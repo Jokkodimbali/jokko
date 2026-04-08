@@ -1,0 +1,287 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis()]
+}
+
+enum RoleUtilisateur {
+  CLIENT
+  PRESTATAIRE
+  ADMIN
+}
+
+enum StatutKyc {
+  EN_ATTENTE
+  VERIFIE
+  REJETE
+}
+
+enum TypePrix {
+  FIXE
+  NEGOCIABLE
+}
+
+enum StatutReservation {
+  EN_ATTENTE
+  CONFIRMEE
+  PAYEE_SEQUESTRE
+  EN_COURS
+  TERMINEE
+  ANNULEE
+  LITIGE
+}
+
+enum MethodePaiement {
+  WAVE
+  ORANGE_MONEY
+  CARTE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  SUCCES
+  ECHEC
+  REMBOURSE
+}
+
+enum TypeNotification {
+  NOUVELLE_RESERVATION
+  RESERVATION_CONFIRMEE
+  RESERVATION_ANNULEE
+  PRESTATAIRE_EN_ROUTE
+  PAIEMENT_LIBERE
+  NOUVEAU_MESSAGE
+  KYC_APPROUVEE
+  KYC_REJETEE
+  LITIGE_RESOLU
+}
+
+model Utilisateur {
+  id                String            @id @default(uuid()) @db.Uuid
+  numeroTelephone   String            @unique @map("phone_number") @db.VarChar(20)
+  nom               String            @map("name") @db.VarChar(100)
+  email             String?           @unique @db.VarChar(150)
+  motDePasseHash    String?           @map("password_hash") @db.VarChar(255)
+  fournisseurOauth  String?           @map("oauth_provider") @db.VarChar(50)
+  identifiantOauth  String?           @map("oauth_id") @db.VarChar(200)
+  role              RoleUtilisateur   @default(CLIENT)
+  urlAvatar         String?           @map("avatar_url") @db.VarChar(500)
+  jetonFcm          String?           @map("fcm_token") @db.VarChar(500)
+  estActif          Boolean           @default(true) @map("is_active")
+  creeLe            DateTime          @default(now()) @map("created_at")
+  misAJourLe        DateTime          @updatedAt @map("updated_at")
+
+  profilProfessionnel       ProfilProfessionnel?
+  reservationsClient        Reservation[]          @relation("ReservationsClient")
+  conversationsClient       Conversation[]         @relation("ConversationsClient")
+  conversationsPrestataire  Conversation[]         @relation("ConversationsPrestataire")
+  messagesEnvoyes           Message[]              @relation("MessagesEnvoyes")
+  notifications             Notification[]
+  sessionsAuthentification  SessionAuthentification[]
+
+  @@map("users")
+}
+
+model SessionAuthentification {
+  id             String      @id @default(uuid()) @db.Uuid
+  utilisateurId  String      @map("user_id") @db.Uuid
+  hashJeton      String      @map("token_hash") @db.VarChar(255)
+  expireLe       DateTime    @map("expires_at")
+  revoqueLe      DateTime?   @map("revoked_at")
+  creeLe         DateTime    @default(now()) @map("created_at")
+  misAJourLe     DateTime    @updatedAt @map("updated_at")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([hashJeton])
+  @@index([utilisateurId])
+  @@index([expireLe])
+  @@map("auth_sessions")
+}
+
+model VerificationOtp {
+  id                String    @id @default(uuid()) @db.Uuid
+  numeroTelephone   String    @unique @map("phone_number") @db.VarChar(20)
+  hashCode          String    @map("code_hash") @db.VarChar(255)
+  expireLe          DateTime  @map("expires_at")
+  tentatives        Int       @default(0) @map("attempts")
+  dernierEnvoiLe    DateTime  @map("last_sent_at")
+  consommeLe        DateTime? @map("consumed_at")
+  creeLe            DateTime  @default(now()) @map("created_at")
+  misAJourLe        DateTime  @updatedAt @map("updated_at")
+
+  @@index([expireLe])
+  @@map("otp_verifications")
+}
+
+model ProfilProfessionnel {
+  id                 String       @id @default(uuid()) @db.Uuid
+  utilisateurId      String       @unique @map("user_id") @db.Uuid
+  biographie         String?      @map("bio") @db.Text
+  nomEntreprise      String?      @map("company_name") @db.VarChar(150)
+  urlPieceIdentite   String?      @map("id_card_url") @db.VarChar(500)
+  statutKyc          StatutKyc    @default(EN_ATTENTE) @map("kyc_status")
+  raisonRejetKyc     String?      @map("kyc_reject_reason") @db.Text
+  localisation       Unsupported("geography(Point, 4326)")?
+  ville              String?      @map("city") @db.VarChar(100)
+  noteGlobale        Decimal      @default(0.0) @map("global_rating") @db.Decimal(2, 1)
+  nombreAvis         Int          @default(0) @map("total_reviews")
+  soldePortefeuille  Decimal      @default(0.00) @map("wallet_balance") @db.Decimal(12, 2)
+  creeLe             DateTime     @default(now()) @map("created_at")
+
+  utilisateur      Utilisateur      @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  services         Service[]
+  disponibilites   Disponibilite[]
+  elementsPortfolio ElementPortfolio[]
+
+  @@map("professional_profiles")
+}
+
+model Categorie {
+  id         String     @id @default(uuid()) @db.Uuid
+  nom        String     @map("name") @unique @db.VarChar(100)
+  urlIcone   String?    @map("icon_url") @db.VarChar(500)
+  ordreTri   Int        @default(0) @map("sort_order") @db.SmallInt
+  estActive  Boolean    @default(true) @map("is_active")
+
+  services   Service[]
+
+  @@map("categories")
+}
+
+model Service {
+  id                    String              @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String              @map("professional_id") @db.Uuid
+  categorieId           String              @map("category_id") @db.Uuid
+  nom                   String              @map("name") @db.VarChar(200)
+  description           String              @db.Text
+  prix                  Decimal             @map("price") @db.Decimal(10, 2)
+  typePrix              TypePrix            @map("price_type")
+  estDisponible         Boolean             @default(true) @map("is_available")
+  creeLe                DateTime            @default(now()) @map("created_at")
+  misAJourLe            DateTime            @updatedAt @map("updated_at")
+
+  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  categorie             Categorie           @relation(fields: [categorieId], references: [id])
+  reservations          Reservation[]
+
+  @@map("services")
+}
+
+model Disponibilite {
+  id                    String              @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String              @map("professional_id") @db.Uuid
+  jourSemaine           Int                 @map("day_of_week") @db.SmallInt
+  heureDebut            DateTime            @map("start_time") @db.Time
+  heureFin              DateTime            @map("end_time") @db.Time
+  estActive             Boolean             @default(true) @map("is_active")
+
+  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+
+  @@map("availabilities")
+}
+
+model ElementPortfolio {
+  id                    String              @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String              @map("professional_id") @db.Uuid
+  titre                 String              @map("title") @db.VarChar(200)
+  description           String?             @db.Text
+  urlImage              String              @map("image_url") @db.VarChar(500)
+  creeLe                DateTime            @default(now()) @map("created_at")
+
+  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_items")
+}
+
+model Reservation {
+  id                String             @id @default(uuid()) @db.Uuid
+  clientId          String             @map("client_id") @db.Uuid
+  serviceId         String             @map("service_id") @db.Uuid
+  statut            StatutReservation  @default(EN_ATTENTE)
+  planifieeLe       DateTime           @map("scheduled_at")
+  adresseClient     String             @map("client_address") @db.Text
+  notesClient       String?            @map("client_notes") @db.Text
+  prixAccorde       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
+  raisonAnnulation  String?            @map("cancel_reason") @db.Text
+  noteClient        Int?               @map("client_rating") @db.SmallInt
+  avisClient        String?            @map("client_review") @db.Text
+  annuleeLe         DateTime?          @map("cancelled_at")
+  termineeLe        DateTime?          @map("completed_at")
+  creeLe            DateTime           @default(now()) @map("created_at")
+
+  client            Utilisateur        @relation("ReservationsClient", fields: [clientId], references: [id])
+  service           Service            @relation(fields: [serviceId], references: [id])
+  paiement          Paiement?
+  conversations     Conversation[]
+
+  @@map("bookings")
+}
+
+model Paiement {
+  id                   String          @id @default(uuid()) @db.Uuid
+  reservationId        String          @unique @map("booking_id") @db.Uuid
+  montant              Decimal         @map("amount") @db.Decimal(12, 2)
+  montantCommission    Decimal         @map("commission_amount") @db.Decimal(12, 2)
+  montantNet           Decimal         @map("net_amount") @db.Decimal(12, 2)
+  methode              MethodePaiement @map("method")
+  statut               StatutPaiement  @default(EN_ATTENTE)
+  referenceFournisseur String?         @map("provider_ref") @db.VarChar(200)
+  raisonRemboursement  String?         @map("refund_reason") @db.Text
+  creeLe               DateTime        @default(now()) @map("created_at")
+
+  reservation          Reservation     @relation(fields: [reservationId], references: [id])
+
+  @@map("payments")
+}
+
+model Conversation {
+  id                String         @id @default(uuid()) @db.Uuid
+  clientId          String         @map("client_id") @db.Uuid
+  prestataireId     String         @map("professional_id") @db.Uuid
+  reservationId     String?        @map("booking_id") @db.Uuid
+  dernierMessageLe  DateTime?      @map("last_message_at")
+  creeLe            DateTime       @default(now()) @map("created_at")
+
+  client            Utilisateur    @relation("ConversationsClient", fields: [clientId], references: [id])
+  prestataire       Utilisateur    @relation("ConversationsPrestataire", fields: [prestataireId], references: [id])
+  reservation       Reservation?   @relation(fields: [reservationId], references: [id])
+  messages          Message[]
+
+  @@unique([clientId, prestataireId])
+  @@map("conversations")
+}
+
+model Message {
+  id                String         @id @default(uuid()) @db.Uuid
+  conversationId    String         @map("conversation_id") @db.Uuid
+  expediteurId      String         @map("sender_id") @db.Uuid
+  contenu           String?        @map("content") @db.Text
+  urlMedia          String?        @map("media_url") @db.VarChar(500)
+  estLu             Boolean        @default(false) @map("is_read")
+  creeLe            DateTime       @default(now()) @map("created_at")
+
+  conversation      Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  expediteur        Utilisateur    @relation("MessagesEnvoyes", fields: [expediteurId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id                String            @id @default(uuid()) @db.Uuid
+  utilisateurId     String            @map("user_id") @db.Uuid
+  type              TypeNotification
+  titre             String            @map("title") @db.VarChar(200)
+  corps             String            @map("body") @db.Text
+  donnees           Json?             @map("data")
+  estLue            Boolean           @default(false) @map("is_read")
+  creeLe            DateTime          @default(now()) @map("created_at")
+
+  utilisateur       Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

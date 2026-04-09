@@ -285,3 +285,58 @@ model Notification {
 
   @@map("notifications")
 }
+
+enum StatutEvenement {
+  EN_ATTENTE
+  TRAITE
+  ECHEC
+}
+
+model EvenementOutbox {
+  id              String           @id @default(uuid()) @db.Uuid
+  typeEvenement   String           @map("event_type") @db.VarChar(100)
+  payload         Json             @map("payload")
+  correlationId   String?          @map("correlation_id") @db.Uuid
+  statut          StatutEvenement  @default(EN_ATTENTE) @map("status")
+  creeLe          DateTime         @default(now()) @map("created_at")
+  traiteLe        DateTime?        @map("processed_at") @db.Timestamp
+  nbTentatives    Int              @default(0) @map("attempts")
+  erreur          String?           @map("error") @db.Text
+
+  @@index([statut, creeLe])
+  @@map("outbox_events")
+}
+
+enum TypeActionAudit {
+  CONNEXION
+  DECONNEXION
+  CREATION
+  MODIFICATION
+  SUPPRESSION
+  PAIEMENT
+  KYC_SOUMISSION
+  KYC_APPROBATION
+  KYC_REJET
+  RESERVATION_CREATION
+  RESERVATION_CONFIRMATION
+  RESERVATION_ANNULATION
+  LITIGE_OUVERTURE
+  LITIGE_RESOLUTION
+  RETRAIT
+}
+
+model JournalAudit {
+  id            String         @id @default(uuid()) @db.Uuid
+  utilisateurId String?        @map("user_id") @db.Uuid
+  typeAction    TypeActionAudit @map("action_type")
+  description   String         @map("description") @db.Text
+  entiteType    String?        @map("entity_type") @db.VarChar(50)
+  entiteId      String?        @map("entity_id") @db.Uuid
+  adresseIp     String?        @map("ip_address") @db.VarChar(45)
+  userAgent     String?        @map("user_agent") @db.Text
+  creeLe        DateTime       @default(now()) @map("created_at")
+
+  @@index([utilisateurId, creeLe])
+  @@index([typeAction, creeLe])
+  @@map("audit_logs")
+}

@@ -24,7 +24,7 @@ export default tseslint.config(
       },
       sourceType: 'module',
       parserOptions: {
-        project: true,
+        project: './tsconfig.eslint.json',
         tsconfigRootDir: __dirname,
       },
     },
@@ -34,7 +34,85 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    },
+  },
+  {
+    files: ['src/**/presentation/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/infrastructure/**', '**/prisma/**'],
+              message:
+                "La couche presentation ne doit pas acceder directement a l'infrastructure.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/application/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/presentation/**', '**/infrastructure/**'],
+              message:
+                'La couche application ne doit pas dependre de presentation/infrastructure.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/domain/**/*.ts', 'src/**/domaine/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@nestjs/**', '@prisma/**'],
+              message:
+                'La couche domaine doit rester independante des frameworks et de la base.',
+            },
+            {
+              group: ['**/presentation/**', '**/infrastructure/**'],
+              message:
+                'La couche domaine ne doit pas dependre de presentation/infrastructure.',
+            },
+            {
+              group: ['**/core/http/**'],
+              message:
+                "La couche domaine ne doit pas connaitre les details HTTP.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/infrastructure/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/presentation/**'],
+              message:
+                'La couche infrastructure ne doit pas dependre de presentation.',
+            },
+          ],
+        },
+      ],
     },
   },
 );

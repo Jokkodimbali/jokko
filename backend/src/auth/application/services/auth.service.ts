@@ -1,19 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { JwtTokenService } from './services/jwt-token.service';
-import { PhoneNumberValidator } from '../domain/validators/phone-number.validator';
-import { PasswordHashService } from './services/password-hash.service';
-import { RefreshSessionService } from './services/refresh-session.service';
-import { GoogleAuthService } from './services/google-auth.service';
+import { JwtTokenService } from './jwt-token.service';
+import { PhoneNumberValidator } from '../../domain/validators/phone-number.validator';
+import { PasswordHashService } from './password-hash.service';
+import { RefreshSessionService } from './refresh-session.service';
+import { GoogleAuthService } from './google-auth.service';
 import {
   appHttpException,
   appMessage,
-} from '../../core/http/app-http.exception';
+} from '../../../core/http/app-http.exception';
 import {
   AUTH_REPOSITORY_PORT,
+  type AuthUserSummary,
   type AuthRepositoryPort,
-} from './ports/auth-repository.port';
-import { OTP_PORT, type OtpPort } from './ports/otp.port';
-import type { LoginCommand, RegisterCommand } from './commands/auth.commands';
+} from '../ports/auth-repository.port';
+import { OTP_PORT, type OtpPort } from '../ports/otp.port';
+import type { LoginCommand, RegisterCommand } from '../commands/auth.commands';
+import { DomainValidationError } from '../../domain/errors/domain-validation.error';
+import type { AppMessageKey } from '../../../core/http/app-messages';
 
 @Injectable()
 export class AuthService {
@@ -30,63 +33,38 @@ export class AuthService {
   ) {}
 
   async sendOtp(phoneNumber: string) {
-    const normalizedPhoneNumber =
-      this.phoneNumberValidator.normalizeOrThrow(phoneNumber);
+    const normalizedPhoneNumber = this.normalizePhoneNumber(phoneNumber);
     const otp = await this.otpService.create(normalizedPhoneNumber);
-    const successMessage = appMessage('AUTH_OTP_SENT');
     return {
-      success: true,
-      message: successMessage.message,
+      message: appMessage('AUTH_OTP_SENT').message,
       expiresInSeconds: otp.expiresInSeconds,
     };
   }
 
   async verifyOtp(phoneNumber: string, code: string) {
-    const normalizedPhoneNumber =
-      this.phoneNumberValidator.normalizeOrThrow(phoneNumber);
+    const normalizedPhoneNumber = this.normalizePhoneNumber(phoneNumber);
     await this.otpService.verify(normalizedPhoneNumber, code);
 
     let user = await this.authRepository.findByPhoneNumber(
       normalizedPhoneNumber,
     );
 
-    if (!user) {
-      user = await this.authRepository.createClientByPhoneNumber(
-        normalizedPhoneNumber,
-      );
-    }
-
-    const { accessToken, refreshToken } =
-      await this.jwtTokenService.issueTokens({
-        sub: user.id,
-        role: user.role,
-        phoneNumber: user.numeroTelephone,
-      });
-    await this.refreshSessionService.persist(
-      user.id,
-      refreshToken,
-      this.jwtTokenService.getRefreshTokenExpiryDate(),
+    user ??= await this.authRepository.createClientByPhoneNumber(
+      normalizedPhoneNumber,
     );
 
+    const { accessToken, refreshToken } =
+      await this.issueTokensAndPersistSession(user);
+
     return {
-      success: true,
-      data: {
-        accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          phoneNumber: user.numeroTelephone,
-          name: user.nom,
-          role: user.role,
-        },
-      },
+      accessToken,
+      refreshToken,
+      user: this.toApiUser(user),
     };
   }
 
   async register(command: RegisterCommand) {
-    const phoneNumber = this.phoneNumberValidator.normalizeOrThrow(
-      command.phoneNumber,
-    );
+    const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
     const existing = await this.authRepository.findByPhoneNumber(phoneNumber);
     if (existing) {
       throw appHttpException('AUTH_PHONE_ALREADY_USED');
@@ -101,36 +79,17 @@ export class AuthService {
     });
 
     const { accessToken, refreshToken } =
-      await this.jwtTokenService.issueTokens({
-        sub: user.id,
-        role: user.role,
-        phoneNumber: user.numeroTelephone,
-      });
-    await this.refreshSessionService.persist(
-      user.id,
-      refreshToken,
-      this.jwtTokenService.getRefreshTokenExpiryDate(),
-    );
+      await this.issueTokensAndPersistSession(user);
 
     return {
-      success: true,
-      data: {
-        accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          phoneNumber: user.numeroTelephone,
-          name: user.nom,
-          role: user.role,
-        },
-      },
+      accessToken,
+      refreshToken,
+      user: this.toApiUser(user),
     };
   }
 
   async login(command: LoginCommand) {
-    const phoneNumber = this.phoneNumberValidator.normalizeOrThrow(
-      command.phoneNumber,
-    );
+    const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
     const user =
       await this.authRepository.findWithPasswordByPhoneNumber(phoneNumber);
     if (!user?.motDePasseHash) {
@@ -146,35 +105,23 @@ export class AuthService {
     }
 
     const { accessToken, refreshToken } =
-      await this.jwtTokenService.issueTokens({
-        sub: user.id,
-        role: user.role,
-        phoneNumber: user.numeroTelephone,
-      });
-    await this.refreshSessionService.persist(
-      user.id,
-      refreshToken,
-      this.jwtTokenService.getRefreshTokenExpiryDate(),
-    );
+      await this.issueTokensAndPersistSession(user);
 
     return {
-      success: true,
-      data: {
-        accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          phoneNumber: user.numeroTelephone,
-          name: user.nom,
-          role: user.role,
-        },
-      },
+      accessToken,
+      refreshToken,
+      user: this.toApiUser(user),
     };
   }
 
   async refresh(refreshToken: string) {
     const session = await this.refreshSessionService.assertValid(refreshToken);
-    const payload = await this.jwtTokenService.verifyRefreshToken(refreshToken);
+    let payload: Awaited<ReturnType<JwtTokenService['verifyRefreshToken']>>;
+    try {
+      payload = await this.jwtTokenService.verifyRefreshToken(refreshToken);
+    } catch {
+      throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
+    }
     if (session.utilisateurId !== payload.sub) {
       throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
     }
@@ -196,10 +143,7 @@ export class AuthService {
       this.jwtTokenService.getRefreshTokenExpiryDate(),
     );
 
-    return {
-      success: true,
-      data: newTokens,
-    };
+    return newTokens;
   }
 
   async loginWithGoogle(idToken: string) {
@@ -216,39 +160,22 @@ export class AuthService {
 
     await this.authRepository.linkGoogleIdentity(user.id, googlePayload.sub);
     const { accessToken, refreshToken } =
-      await this.jwtTokenService.issueTokens({
-        sub: user.id,
-        role: user.role,
-        phoneNumber: user.numeroTelephone,
-      });
-    await this.refreshSessionService.persist(
-      user.id,
-      refreshToken,
-      this.jwtTokenService.getRefreshTokenExpiryDate(),
-    );
+      await this.issueTokensAndPersistSession(user);
 
     return {
-      success: true,
-      data: {
-        accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          phoneNumber: user.numeroTelephone,
-          name: user.nom,
-          role: user.role,
-          email: user.email,
-        },
+      accessToken,
+      refreshToken,
+      user: {
+        ...this.toApiUser(user),
+        email: user.email,
       },
     };
   }
 
   async logout(refreshToken: string) {
     await this.refreshSessionService.revoke(refreshToken);
-    const successMessage = appMessage('AUTH_LOGOUT_SUCCESS');
     return {
-      success: true,
-      message: successMessage.message,
+      message: appMessage('AUTH_LOGOUT_SUCCESS').message,
     };
   }
 
@@ -258,6 +185,42 @@ export class AuthService {
       throw appHttpException('AUTH_USER_NOT_FOUND');
     }
 
-    return { success: true, data: user };
+    return user;
+  }
+
+  private async issueTokensAndPersistSession(user: AuthUserSummary) {
+    const tokens = await this.jwtTokenService.issueTokens({
+      sub: user.id,
+      role: user.role,
+      phoneNumber: user.numeroTelephone,
+    });
+
+    await this.refreshSessionService.persist(
+      user.id,
+      tokens.refreshToken,
+      this.jwtTokenService.getRefreshTokenExpiryDate(),
+    );
+
+    return tokens;
+  }
+
+  private toApiUser(user: AuthUserSummary) {
+    return {
+      id: user.id,
+      phoneNumber: user.numeroTelephone,
+      name: user.nom,
+      role: user.role,
+    };
+  }
+
+  private normalizePhoneNumber(phoneNumber: string): string {
+    try {
+      return this.phoneNumberValidator.normalizeOrThrow(phoneNumber);
+    } catch (error) {
+      if (error instanceof DomainValidationError) {
+        throw appHttpException(error.code as AppMessageKey);
+      }
+      throw error;
+    }
   }
 }

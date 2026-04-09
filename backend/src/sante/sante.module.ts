@@ -3,7 +3,7 @@ import { ObtenirEtatSanteUseCase } from './application/obtenir-etat-sante.use-ca
 import { JournalisationEtatSanteHandler } from './application/handlers/journalisation-etat-sante.handler';
 import { VERIFICATEUR_BASE_PORT } from './domaine/ports/verificateur-base.port';
 import { VerificateurBasePrismaAdapter } from './infrastructure/prisma/verificateur-base-prisma.adapter';
-import { SanteController } from './presentation/sante.controller';
+import { SanteController } from './presentation/controllers/sante.controller';
 
 @Module({
   controllers: [SanteController],

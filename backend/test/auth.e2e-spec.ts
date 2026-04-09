@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
-import { OtpService } from '../src/auth/infrastructure/otp.service';
+import { OtpService } from '../src/auth/application/services/otp.service';
 import { ApiExceptionFilter } from '../src/core/http/api-exception.filter';
 import { buildValidationException } from '../src/core/http/validation-exception.factory';
 
@@ -12,7 +12,7 @@ describe('AuthModule (e2e)', () => {
   const timestamp = Date.now();
   const phoneOtp = `+22177${String(timestamp).slice(-7)}`;
   const phoneRegister = `+22176${String(timestamp).slice(-7)}`;
-  const password = 'Password123!';
+  const password = `TestPass${timestamp}!`;
   let refreshToken = '';
   let accessToken = '';
 

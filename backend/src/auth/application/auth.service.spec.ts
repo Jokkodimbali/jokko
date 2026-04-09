@@ -1,6 +1,6 @@
 import { RoleUtilisateur } from '@prisma/client';
 import { appMessage } from '../../core/http/app-http.exception';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 
 describe('AuthService', () => {
   const authRepository = {
@@ -75,7 +75,8 @@ describe('AuthService', () => {
       password: 'Password123',
     });
 
-    expect(result.success).toBe(true);
+    expect(result.accessToken).toBe('a');
+    expect(result.refreshToken).toBe('r');
     expect(authRepository.createClientWithPassword).toHaveBeenCalled();
     expect(refreshSessionService.persist).toHaveBeenCalled();
   });
@@ -139,7 +140,8 @@ describe('AuthService', () => {
 
     const result = await service.refresh('old-refresh');
 
-    expect(result.success).toBe(true);
+    expect(result.accessToken).toBe('new-access');
+    expect(result.refreshToken).toBe('new-refresh');
     expect(refreshSessionService.rotate).toHaveBeenCalled();
   });
 });

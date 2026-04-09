@@ -3,7 +3,7 @@ import {
   APP_MESSAGE_CATALOG,
   type AppMessageKey,
   type AppMessageDefinition,
-} from './message-catalog';
+} from './app-messages';
 
 type ExceptionPayload = {
   message: string;

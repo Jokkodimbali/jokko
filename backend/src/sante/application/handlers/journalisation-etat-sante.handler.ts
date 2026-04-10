@@ -8,8 +8,13 @@ export class JournalisationEtatSanteHandler {
 
   @OnEvent('sante.etat-verifie')
   handle(event: EtatSanteVerifieEvent): void {
-    this.logger.log(
-      `Etat de sante: ${event.payload.statut} (db: ${event.payload.baseDeDonnees})`,
-    );
+    if (
+      event.payload.statut === 'erreur' ||
+      event.payload.baseDeDonnees === 'deconnectee'
+    ) {
+      this.logger.error(
+        `Etat de sante: ${event.payload.statut} (db: ${event.payload.baseDeDonnees})`,
+      );
+    }
   }
 }

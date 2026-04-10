@@ -22,6 +22,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "docker:build": "docker build -t jokko-backend .",
+    "docker:up": "docker compose up --build",
     "postinstall": "prisma generate"
   },
   "prisma": {

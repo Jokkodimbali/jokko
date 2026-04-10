@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validerEnv } from './config/env.validation';
@@ -27,23 +27,26 @@ import { AuditLoggerMiddleware } from './audit/audit-logger.middleware';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,
-        limit: 10,
-      },
-      {
-        name: 'medium',
-        ttl: 60_000,
-        limit: 60,
-      },
-      {
-        name: 'long',
-        ttl: 600_000,
-        limit: 200,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [
+        {
+          name: 'short',
+          ttl: configService.get<number>('THROTTLE_SHORT_TTL', 1000),
+          limit: configService.get<number>('THROTTLE_SHORT_LIMIT', 10),
+        },
+        {
+          name: 'medium',
+          ttl: configService.get<number>('THROTTLE_MEDIUM_TTL', 60_000),
+          limit: configService.get<number>('THROTTLE_MEDIUM_LIMIT', 60),
+        },
+        {
+          name: 'long',
+          ttl: configService.get<number>('THROTTLE_LONG_TTL', 600_000),
+          limit: configService.get<number>('THROTTLE_LONG_LIMIT', 200),
+        },
+      ],
+    }),
   ],
   providers: [
     AuditLoggerMiddleware,

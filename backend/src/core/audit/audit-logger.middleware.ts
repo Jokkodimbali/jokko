@@ -1,12 +1,8 @@
 import { Injectable, Logger, type NestMiddleware } from '@nestjs/common';
-import type { NextFunction, Request, Response } from 'express';
-import { TypeActionAudit } from '@prisma/client';
+import { Prisma, type TypeActionAudit } from '@prisma/client';
+import type { NextFunction, Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-import type {
-  AuthenticatedRequest,
-  AuthenticatedRequestUser,
-  RouteInfo,
-} from './audit.types';
+import type { AuthenticatedRequest, RouteInfo } from './audit.types';
 
 const ACTION_MAP: Record<string, TypeActionAudit> = {
   '/auth/login': 'CONNEXION',
@@ -50,12 +46,9 @@ export class AuditLoggerMiddleware implements NestMiddleware {
 
   use(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
     const startTime = Date.now();
-    const originalEnd = res.end.bind(res);
-
-    res.end = (chunk?: unknown, encoding?: unknown) => {
+    res.on('finish', () => {
       void this.logAudit(req, res, Date.now() - startTime);
-      return originalEnd(chunk as string, encoding as BufferEncoding);
-    };
+    });
 
     next();
   }
@@ -66,7 +59,7 @@ export class AuditLoggerMiddleware implements NestMiddleware {
     duration: number,
   ): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.sub;
       const route = req.route as RouteInfo | undefined;
       const normalizedPath = req.originalUrl.toLowerCase();
       const actionType = this.mapMethodToAction(req.method, normalizedPath);
@@ -74,16 +67,28 @@ export class AuditLoggerMiddleware implements NestMiddleware {
         normalizedPath,
         req.params as Record<string, string>,
       );
+      const userContext = await this.resolveUserContext(userId);
+      const geoContext = this.extractGeoContext(req);
 
       await this.prisma.journalAudit.create({
         data: {
           utilisateurId: userId,
+          nomUtilisateur: userContext?.nom,
           typeAction: actionType,
           description: `${req.method} ${route?.path ?? req.path} - ${res.statusCode} (${duration}ms)`,
           entiteType: entityInfo.entityType,
           entiteId: entityInfo.entityId,
           adresseIp: req.ip ?? req.socket.remoteAddress,
-          userAgent: req.headers['user-agent'],
+          userAgent: this.normalizeHeaderValue(req.headers['user-agent']),
+          latitude:
+            geoContext.latitude === undefined
+              ? undefined
+              : new Prisma.Decimal(geoContext.latitude),
+          longitude:
+            geoContext.longitude === undefined
+              ? undefined
+              : new Prisma.Decimal(geoContext.longitude),
+          localisationTexte: geoContext.localisationTexte,
         },
       });
     } catch (error) {
@@ -114,5 +119,71 @@ export class AuditLoggerMiddleware implements NestMiddleware {
       }
     }
     return {};
+  }
+
+  private async resolveUserContext(
+    userId?: string,
+  ): Promise<{ nom: string } | null> {
+    if (!userId) {
+      return null;
+    }
+
+    return this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: { nom: true },
+    });
+  }
+
+  private extractGeoContext(req: AuthenticatedRequest): {
+    latitude?: number;
+    longitude?: number;
+    localisationTexte?: string;
+  } {
+    // The mobile app can send exact device coordinates when the user consented.
+    const latitude = this.parseCoordinate(
+      req.headers['x-user-latitude'],
+      -90,
+      90,
+    );
+    const longitude = this.parseCoordinate(
+      req.headers['x-user-longitude'],
+      -180,
+      180,
+    );
+    const locationLabel = req.headers['x-user-location-label'];
+
+    return {
+      latitude,
+      longitude,
+      localisationTexte:
+        typeof locationLabel === 'string' && locationLabel.trim().length > 0
+          ? locationLabel.trim()
+          : undefined,
+    };
+  }
+
+  private parseCoordinate(
+    value: unknown,
+    min: number = Number.NEGATIVE_INFINITY,
+    max: number = Number.POSITIVE_INFINITY,
+  ): number | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+      return undefined;
+    }
+
+    return parsed;
+  }
+
+  private normalizeHeaderValue(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+
+    return undefined;
   }
 }

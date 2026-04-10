@@ -41,13 +41,15 @@ export interface AuthRepositoryPort {
   findWithPasswordByPhoneNumber(
     phoneNumber: string,
   ): Promise<AuthUserWithPassword | null>;
-  createClientByPhoneNumber(phoneNumber: string): Promise<AuthUserSummary>;
+  createClientByPhoneNumber(
+    phoneNumber: string,
+  ): Promise<AuthUserSummary | null>;
   createClientWithPassword(data: {
     phoneNumber: string;
     name: string;
     email?: string;
     passwordHash: string;
-  }): Promise<AuthUserSummary>;
+  }): Promise<AuthUserSummary | null>;
   findPublicProfileById(userId: string): Promise<AuthPublicProfile | null>;
   createRefreshSession(
     userId: string,

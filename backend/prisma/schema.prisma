@@ -65,6 +65,7 @@ model Utilisateur {
   numeroTelephone   String            @unique @map("phone_number") @db.VarChar(20)
   nom               String            @map("name") @db.VarChar(100)
   email             String?           @unique @db.VarChar(150)
+  adresse           String?           @map("address") @db.VarChar(255)
   motDePasseHash    String?           @map("password_hash") @db.VarChar(255)
   fournisseurOauth  String?           @map("oauth_provider") @db.VarChar(50)
   identifiantOauth  String?           @map("oauth_id") @db.VarChar(200)
@@ -326,15 +327,19 @@ enum TypeActionAudit {
 }
 
 model JournalAudit {
-  id            String         @id @default(uuid()) @db.Uuid
-  utilisateurId String?        @map("user_id") @db.Uuid
-  typeAction    TypeActionAudit @map("action_type")
-  description   String         @map("description") @db.Text
-  entiteType    String?        @map("entity_type") @db.VarChar(50)
-  entiteId      String?        @map("entity_id") @db.Uuid
-  adresseIp     String?        @map("ip_address") @db.VarChar(45)
-  userAgent     String?        @map("user_agent") @db.Text
-  creeLe        DateTime       @default(now()) @map("created_at")
+  id                 String          @id @default(uuid()) @db.Uuid
+  utilisateurId      String?         @map("user_id") @db.Uuid
+  nomUtilisateur     String?         @map("user_name") @db.VarChar(100)
+  typeAction         TypeActionAudit @map("action_type")
+  description        String          @map("description") @db.Text
+  entiteType         String?         @map("entity_type") @db.VarChar(50)
+  entiteId           String?         @map("entity_id") @db.Uuid
+  adresseIp          String?         @map("ip_address") @db.VarChar(45)
+  userAgent          String?         @map("user_agent") @db.Text
+  latitude           Decimal?        @db.Decimal(10, 7)
+  longitude          Decimal?        @db.Decimal(10, 7)
+  localisationTexte  String?         @map("location_label") @db.VarChar(255)
+  creeLe             DateTime        @default(now()) @map("created_at")
 
   @@index([utilisateurId, creeLe])
   @@index([typeAction, creeLe])

@@ -95,6 +95,29 @@ describe('AuthService', () => {
     });
   });
 
+  it('register should fail when email is already used', async () => {
+    authRepository.findByPhoneNumber.mockResolvedValue(null);
+    authRepository.findByEmail.mockResolvedValue({
+      id: 'exists',
+      numeroTelephone: '+221770000000',
+      nom: 'Existing',
+      role: RoleUtilisateur.CLIENT,
+      email: 'existing@jokko.sn',
+      identifiantOauth: null,
+    });
+
+    await expect(
+      service.register({
+        phoneNumber: '+221770000001',
+        name: 'Test',
+        email: 'existing@jokko.sn',
+        password: 'Password123',
+      }),
+    ).rejects.toMatchObject({
+      message: appMessage('AUTH_EMAIL_ALREADY_USED').message,
+    });
+  });
+
   it('login should fail when password is invalid', async () => {
     authRepository.findWithPasswordByPhoneNumber.mockResolvedValue({
       id: 'u1',

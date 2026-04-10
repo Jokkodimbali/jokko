@@ -26,6 +26,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
       message: 'Ce numero de telephone est deja utilise.',
     },
+    AUTH_EMAIL_ALREADY_USED: {
+      code: 'AUTH_EMAIL_ALREADY_USED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette adresse email est deja utilisee.',
+    },
     AUTH_INVALID_CREDENTIALS: {
       code: 'AUTH_INVALID_CREDENTIALS',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED,
@@ -99,6 +104,31 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
       message: 'Utilisateur introuvable.',
     },
+    USERS_UPDATE_EMPTY: {
+      code: 'USERS_UPDATE_EMPTY',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Aucune donnee a mettre a jour.',
+    },
+    USERS_EMAIL_ALREADY_USED: {
+      code: 'USERS_EMAIL_ALREADY_USED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette adresse email est deja utilisee.',
+    },
+    USERS_PROFILE_UPDATED: {
+      code: 'USERS_PROFILE_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Profil mis a jour avec succes.',
+    },
+    USERS_AVATAR_UPDATED: {
+      code: 'USERS_AVATAR_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Photo de profil mise a jour avec succes.',
+    },
+    USERS_ACCOUNT_ANONYMIZED: {
+      code: 'USERS_ACCOUNT_ANONYMIZED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Compte anonymise avec succes.',
+    },
   },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
@@ -132,6 +162,11 @@ export const VALIDATION_MESSAGES = {
   NAME_MIN: 'Le nom doit contenir au moins 2 caracteres.',
   NAME_MAX: 'Le nom ne doit pas depasser 100 caracteres.',
   EMAIL_INVALID: "L'adresse email est invalide.",
+  AVATAR_URL_INVALID: "L'URL de l'avatar est invalide.",
+  ADDRESS_INVALID: "L'adresse est invalide.",
+  ADDRESS_MAX: "L'adresse ne doit pas depasser 255 caracteres.",
+  HISTORY_LIMIT_MIN: 'La limite minimale est 1.',
+  HISTORY_LIMIT_MAX: 'La limite maximale est 100.',
   PASSWORD_REQUIRED: 'Le mot de passe est obligatoire.',
   PASSWORD_LENGTH: 'Le mot de passe doit contenir entre 8 et 64 caracteres.',
   ID_TOKEN_REQUIRED: 'Le token Google est obligatoire.',

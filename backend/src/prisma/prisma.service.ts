@@ -1,13 +1,12 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import type { PoolConfig } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import { appMessage } from '../core/http/app-http.exception';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
-  // Les modèles sont hérités de PrismaClient
+  // Les modeles sont herites de PrismaClient.
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;

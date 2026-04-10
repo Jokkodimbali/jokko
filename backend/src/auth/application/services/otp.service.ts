@@ -1,10 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import {
+  appHttpException,
+  appMessage,
+} from '../../../core/http/app-http.exception';
 import {
   OTP_REPOSITORY_PORT,
   type OtpRepositoryPort,
 } from '../ports/otp-repository.port';
-import { appHttpException } from '../../../core/http/app-http.exception';
 
 @Injectable()
 export class OtpService {
@@ -26,10 +29,17 @@ export class OtpService {
       existing &&
       Date.now() - existing.lastSentAt.getTime() < this.resendCooldownMs
     ) {
-      throw appHttpException('AUTH_OTP_RESEND_TOO_EARLY');
+      const message = appMessage('AUTH_OTP_RESEND_TOO_EARLY');
+      throw new HttpException(
+        {
+          message: message.message,
+          errorCode: message.code,
+        },
+        message.httpStatus,
+      );
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(randomInt(100000, 1_000_000));
     await this.otpRepository.upsertForPhoneNumber({
       phoneNumber,
       codeHash: this.hashCode(code),
@@ -37,7 +47,7 @@ export class OtpService {
       lastSentAt: new Date(),
     });
 
-    // Brancher le provider SMS (Twilio/Infobip) ici en production.
+    // brancher le provider SMS (Twilio/Infobip) ici.
 
     return {
       expiresInSeconds: Math.floor(this.ttlMs / 1000),
@@ -57,11 +67,23 @@ export class OtpService {
 
     if (entry.attempts >= this.maxAttempts) {
       await this.otpRepository.delete(entry.id);
-      throw appHttpException('AUTH_OTP_TOO_MANY_REQUESTS');
+      const message = appMessage('AUTH_OTP_TOO_MANY_REQUESTS');
+      throw new HttpException(
+        {
+          message: message.message,
+          errorCode: message.code,
+        },
+        message.httpStatus,
+      );
     }
 
     const inputHash = this.hashCode(code);
-    if (entry.codeHash !== inputHash) {
+    const codeHashBuffer = Buffer.from(entry.codeHash, 'hex');
+    const inputHashBuffer = Buffer.from(inputHash, 'hex');
+    const isValidCode =
+      codeHashBuffer.length === inputHashBuffer.length &&
+      timingSafeEqual(codeHashBuffer, inputHashBuffer);
+    if (!isValidCode) {
       await this.otpRepository.incrementAttempts(entry.id);
       throw appHttpException('AUTH_OTP_INVALID_OR_EXPIRED');
     }

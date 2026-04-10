@@ -22,6 +22,8 @@ src/<module>/
 - SRP: une classe = une responsabilite claire.
 - DRY: pas de duplication de logique metier.
 - KISS: fonctions courtes, lisibles, sans magie.
+- Interdiction totale de `any` dans le code TypeScript.
+- Preferer `unknown` + narrowing explicite quand le type n'est pas connu.
 - DTOs uniquement en `presentation`.
 - Acces base uniquement en `infrastructure`.
 - Messages centralises dans `core/http/app-messages.ts`.
@@ -33,4 +35,3 @@ Un module est termine seulement si:
 3. Aucun texte brut metier en dehors des catalogues centralises.
 4. Controllers sans logique metier.
 5. Services application via ports (pas de dependance directe ORM).
-

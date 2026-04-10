@@ -3,6 +3,8 @@ import { ENV_MESSAGES } from '../http/message-catalog';
 type EnvValide = {
   NODE_ENV: 'development' | 'test' | 'production';
   PORT: number;
+  TRUST_PROXY: boolean;
+  CORS_ORIGINS: string;
   DATABASE_URL: string;
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
@@ -21,9 +23,12 @@ type EnvValide = {
   PAYDUNYA_API_KEY?: string;
   PAYDUNYA_SECRET_KEY?: string;
   PAYDUNYA_MODE?: string;
+  REDIS_ENABLED?: boolean;
+  REDIS_URL?: string;
   REDIS_HOST?: string;
   REDIS_PORT?: number;
   REDIS_PASSWORD?: string;
+  REDIS_TLS?: boolean;
   FCM_PROJECT_ID?: string;
   FCM_PRIVATE_KEY?: string;
   FCM_CLIENT_EMAIL?: string;
@@ -67,6 +72,28 @@ function asNombre(value: unknown, fallback: number): number {
   return parsed;
 }
 
+function asBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+      return false;
+    }
+  }
+
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  return fallback;
+}
+
 function requiredSecret(name: string, value: unknown): string {
   const secret = asString(value).trim();
   if (secret.length < 16 && name !== 'GOOGLE_CLIENT_ID') {
@@ -89,6 +116,8 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
   return {
     NODE_ENV: nodeEnv as EnvValide['NODE_ENV'],
     PORT: asNombre(typeof env.PORT === 'string' ? env.PORT : undefined, 3000),
+    TRUST_PROXY: asBoolean(env.TRUST_PROXY, nodeEnv === 'production'),
+    CORS_ORIGINS: asString(env.CORS_ORIGINS),
     DATABASE_URL: databaseUrl,
     JWT_ACCESS_SECRET: requiredSecret(
       'JWT_ACCESS_SECRET',
@@ -113,9 +142,12 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     PAYDUNYA_API_KEY: asString(env.PAYDUNYA_API_KEY),
     PAYDUNYA_SECRET_KEY: asString(env.PAYDUNYA_SECRET_KEY),
     PAYDUNYA_MODE: asString(env.PAYDUNYA_MODE, 'test'),
+    REDIS_ENABLED: asBoolean(env.REDIS_ENABLED, false),
+    REDIS_URL: asString(env.REDIS_URL),
     REDIS_HOST: asString(env.REDIS_HOST, '127.0.0.1'),
     REDIS_PORT: asNombre(env.REDIS_PORT, 6379),
     REDIS_PASSWORD: asString(env.REDIS_PASSWORD),
+    REDIS_TLS: asBoolean(env.REDIS_TLS, false),
     FCM_PROJECT_ID: asString(env.FCM_PROJECT_ID),
     FCM_PRIVATE_KEY: asString(env.FCM_PRIVATE_KEY),
     FCM_CLIENT_EMAIL: asString(env.FCM_CLIENT_EMAIL),

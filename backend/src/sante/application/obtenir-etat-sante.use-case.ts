@@ -1,8 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DOMAINE_EVENT_BUS } from '../../core/events/domaine-event-bus.port';
-import type { DomaineEventBusPort } from '../../core/events/domaine-event-bus.port';
-import { VERIFICATEUR_BASE_PORT } from '../domaine/ports/verificateur-base.port';
-import type { VerificateurBasePort } from '../domaine/ports/verificateur-base.port';
+import {
+  DOMAINE_EVENT_BUS,
+  type DomaineEventBusPort,
+} from '../../core/events/domaine-event-bus.port';
+import {
+  VERIFICATEUR_BASE_PORT,
+  type VerificateurBasePort,
+} from '../domaine/ports/verificateur-base.port';
 import { EtatSanteVerifieEvent } from '../domaine/events/etat-sante-verifie.event';
 
 export type EtatSanteDto = {

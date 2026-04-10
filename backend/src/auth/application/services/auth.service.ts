@@ -49,9 +49,18 @@ export class AuthService {
       normalizedPhoneNumber,
     );
 
-    user ??= await this.authRepository.createClientByPhoneNumber(
-      normalizedPhoneNumber,
-    );
+    if (!user) {
+      const createdUser = await this.authRepository.createClientByPhoneNumber(
+        normalizedPhoneNumber,
+      );
+      user =
+        createdUser ??
+        (await this.authRepository.findByPhoneNumber(normalizedPhoneNumber));
+    }
+
+    if (!user) {
+      throw appHttpException('AUTH_PHONE_ALREADY_USED');
+    }
 
     const { accessToken, refreshToken } =
       await this.issueTokensAndPersistSession(user);
@@ -65,18 +74,39 @@ export class AuthService {
 
   async register(command: RegisterCommand) {
     const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
+    const normalizedEmail = this.normalizeEmail(command.email);
     const existing = await this.authRepository.findByPhoneNumber(phoneNumber);
     if (existing) {
       throw appHttpException('AUTH_PHONE_ALREADY_USED');
+    }
+    if (
+      normalizedEmail &&
+      (await this.authRepository.findByEmail(normalizedEmail))
+    ) {
+      throw appHttpException('AUTH_EMAIL_ALREADY_USED');
     }
 
     const passwordHash = await this.passwordHashService.hash(command.password);
     const user = await this.authRepository.createClientWithPassword({
       phoneNumber,
       name: command.name.trim(),
-      email: command.email?.trim().toLowerCase(),
+      email: normalizedEmail ?? undefined,
       passwordHash,
     });
+    if (!user) {
+      const userByPhone =
+        await this.authRepository.findByPhoneNumber(phoneNumber);
+      if (userByPhone) {
+        throw appHttpException('AUTH_PHONE_ALREADY_USED');
+      }
+      if (
+        normalizedEmail &&
+        (await this.authRepository.findByEmail(normalizedEmail))
+      ) {
+        throw appHttpException('AUTH_EMAIL_ALREADY_USED');
+      }
+      throw appHttpException('SYSTEM_INTERNAL_SERVER_ERROR');
+    }
 
     const { accessToken, refreshToken } =
       await this.issueTokensAndPersistSession(user);
@@ -222,5 +252,13 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  private normalizeEmail(email?: string): string | null {
+    if (!email) {
+      return null;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    return normalizedEmail.length === 0 ? null : normalizedEmail;
   }
 }

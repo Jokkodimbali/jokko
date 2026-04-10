@@ -17,10 +17,16 @@ export class AuditService {
       await this.prisma.journalAudit.create({
         data: {
           utilisateurId: data.utilisateurId,
+          nomUtilisateur: data.nomUtilisateur,
           typeAction: data.typeAction,
           description: data.description,
           entiteType: data.entiteType,
           entiteId: data.entiteId,
+          adresseIp: data.adresseIp,
+          userAgent: data.userAgent,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          localisationTexte: data.localisationTexte,
         },
       });
     } catch (error) {

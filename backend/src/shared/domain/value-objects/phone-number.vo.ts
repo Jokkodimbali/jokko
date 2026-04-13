@@ -26,7 +26,7 @@ export class PhoneNumber {
   }
 
   getCountryCode(): string | null {
-    const match = RegExp(/^\+(\d{1,3})/).exec(this.value);
+    const match = new RegExp(/^\+(\d{1,3})/).exec(this.value);
     return match ? match[1] : null;
   }
 

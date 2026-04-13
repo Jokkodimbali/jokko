@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SharedModule } from './shared/shared.module';
 import { AuditLoggerMiddleware } from './core/audit/audit-logger.middleware';
+import { ProfessionalsModule } from './professionals/professionals.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuditLoggerMiddleware } from './core/audit/audit-logger.middleware';
     SanteModule,
     AuthModule,
     UsersModule,
+    ProfessionalsModule,
   ],
 })
 export class AppModule implements NestModule {

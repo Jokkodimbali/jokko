@@ -14,7 +14,36 @@ Il complete:
 
 Ce document doit rester vivant: toute decision structurante doit etre tracee ici.
 
+
+
+## 1.1 Metriques Qualite Obligatoires
+- Coverage tests: >85% branches.
+- Pas de `any` autorise.
+- Build/lint strict zero warning.
+- E2E sur tous endpoints critiques.
+- Perf P95 <300ms hors jobs lourds.
+
+## 1.2 Diagrammes Architecture
+
+### Couches Clean Architecture (dependances →)
+```
+Domaine ← Ports ← Application ← Controllers
+ ↑ Impl            ↑ Ports Impl  ↑ DTO/Guards
+Infra Prisma      Services      HTTP/WebSocket
+```
+
+### Flux Dependencies Modules (NestJS)
+```
+AppModule
+├── Core (Global)
+├── Prisma
+├── Auth → Core/Prisma
+├── Users → Auth/Prisma/Core
+└── Future: Bookings → Users/Payments/etc.
+```
+
 ## 1.1 Navigation documentaire (source unique)
+
 - `ARCHITECTURE_PROFESSIONNELLE.md`:
   - vision globale
   - choix d'architecture
@@ -62,7 +91,39 @@ Regle: aucun nouveau document d'architecture ne doit contredire ce fichier.
 - Notifications: FCM (cible)
 - Paiements: provider local via webhooks (cible)
 
+
+
+### 3.2 Arborescence Complete (extrait src/)
+```
+src/
+├── app.module.ts           # Wiring global
+├── main.ts                # Bootstrap prod-ready
+├── core/                  # Global shared (env, events, audit)
+│   ├── config/env.validation.ts
+│   ├── events/outbox-event-bus.service.ts
+│   └── audit/audit-logger.middleware.ts
+├── prisma/prisma.service.ts # DB Client singleton
+├── auth/
+│   ├── domain/entities/auth-user.entity.ts
+│   ├── application/ports/auth-repository.port.ts
+│   ├── infrastructure/repositories/auth.repository.ts (Prisma)
+│   └── presentation/controllers/auth.controller.ts
+├── users/
+│   ├── domain/value-objects/address.vo.ts
+│   ├── application/services/users.service.ts
+│   └── infrastructure/repositories/users.repository.ts
+└── sante/                 # Health template
+```
+
+**Explication Arborescence**:
+Chaque module suit Clean Arch. Exemple Auth:
+- `domain`: Pure business (entities, VO comme PasswordVO).
+- `application`: Orchestre ports (AuthService → AuthRepositoryPort).
+- `infrastructure`: Impl Prisma (AuthRepository implements port).
+- `presentation`: HTTP entry (Controller valide DTO → service).
+
 ### 3.2 Modules actuellement presents
+
 - `core`
 - `prisma`
 - `sante` (module template architecture)
@@ -84,16 +145,75 @@ Regle: aucun nouveau document d'architecture ne doit contredire ce fichier.
 
 ## 4. Architecture logique par couches
 
-Chaque module metier suit ce pattern:
 
-```text
-src/<module>/
-  domaine/
-  application/
-  infrastructure/
-  presentation/
-  <module>.module.ts
+Chaque module metier suit ce pattern (exemple concret AuthModule):
+
+```typescript
+// auth/auth.module.ts (extrait)
+@Module({
+  imports: [PrismaModule, JwtModule.registerAsync({...})],
+  controllers: [AuthController],
+  providers: [
+    AuthService, // Application layer
+    AuthRepository, // Infrastructure impl port
+    { provide: AUTH_REPOSITORY_PORT, useExisting: AuthRepository }, // Binding!
+    JwtAuthGuard,
+    PhoneNumberValidator,
+  ],
+  exports: [AuthService, JwtModule, JwtAuthGuard],
+})
+export class AuthModule {}
 ```
+
+**Explication Bindings DI**:
+- Ports abstraits injectes en application.
+- Infra impl bindee via `useExisting`.
+- Decouplage total: changer Prisma → nouveau repo sans toucher services.
+
+### 4.1 Domain Layer (Pure Business)
+**Responsabilites**:
+- Entites immuables (UserEntity).
+- Value Objects (PhoneNumberVO validates/normalizes).
+- Domain Errors (UserDomainError).
+- Ports (contrats: `findByPhone(AuthRepositoryPort)`).
+
+**Exemple VO** (users/domain/value-objects/address.vo.ts):
+```typescript
+export class AddressVO {
+  private readonly value: string;
+  constructor(value: string) {
+    if (!this.isValid(value)) throw new DomainError('Invalid address');
+    this.value = value;
+  }
+  private isValid(v: string): boolean { /* rules */ }
+}
+```
+**Paragraphe**: Domain ignore frameworks/DB. Regles immuables, testable unit. VO encapsule validation.
+
+### 4.2 Application Layer
+**Orchestre use cases**:
+- Services: `AuthService` coordonne `AuthRepositoryPort`, `PasswordHashService`.
+- Commands/DTOs mappes depuis presentation.
+
+**Exemple Port** (auth/application/ports/auth-repository.port.ts):
+```typescript
+export interface AuthRepositoryPort {
+  findByPhone(phone: PhoneNumberVO): Promise<AuthUserEntity | null>;
+  save(user: UserEntity): Promise<void>;
+}
+```
+
+### 4.3 Infrastructure Layer
+**Impl ports concrets**:
+- Prisma repos: `AuthRepository implements AuthRepositoryPort`.
+- Transactionnelle, migrable.
+
+### 4.4 Presentation Layer
+**HTTP/WS facade**:
+- DTO validation (class-validator).
+- Guards (JwtAuthGuard, RolesGuard).
+- Mapping → application services.
+
 
 ### 4.1 Presentation
 Responsabilites:
@@ -144,7 +264,51 @@ Consequence:
 
 ## 6. Noyau transversal (`core`)
 
+
+
+## 4.5 Prisma Module Deep Dive
+**Singleton DB** (`prisma/prisma.service.ts`):
+- Client Prisma injecte partout via DI.
+- Migrations/seed via `prisma migrate`.
+- PostGIS extensions pour geo queries.
+
+**Schema Highlights** (prisma/schema.prisma):
+| Entity | Key Fields | Relations | Purpose |
+|--------|------------|-----------|---------|
+| User | phone (unique), role enum | 1:N Reservations | Core identity |
+| ProfilProfessionnel | kyc_status enum, location geography(Point) | 1:N Services | Pro details + geo |
+| Reservation | statut enum (EN_ATTENTE→TERMINEE) | N:1 Paiement | Booking FSM |
+| Paiement | provider_ref unique, statut enum | 1:1 Reservation | Escrow secure |
+| OutboxEvents | payload JSON, status enum | None | Reliable messaging |
+| AuditLogs | action_type enum, ip_address | None | Compliance trace |
+
+**Index Critiques**: phone/email unique, GIST on location, composite status+created_at.
+
+## 5. Core Module Exhaustif
+
+### 5.1 Global Config (core/core.module.ts)
+Validation stricte boot:
+```typescript
+ConfigModule.forRoot({ validate: validerEnv }); // Fail fast if DB_URL invalid
+```
+**Vars Env Critiques**:
+- `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGINS`.
+
+### 5.2 Throttling Multi-Tiers
+```typescript
+ThrottlerModule.forRootAsync({
+  // short: 10 req/s, medium: 60/min, long: 200/10min
+});
+```
+Anti-DDoS + SMS abuse prevention.
+
+### 5.3 Domain Event Bus
+- Port: `DOMAINE_EVENT_BUS`.
+- Current: Nest EventEmitter.
+- Impl: `OutboxEventBusService` (pops from outbox table).
+
 ### 6.1 Configuration
+
 - Validation stricte au boot (`env.validation.ts`)
 - Echec immediate si variable critique invalide
 
@@ -159,15 +323,95 @@ Consequence:
 - Messages de validation en francais
 - Factory d'erreur centralisee
 
+
+## 6. Patterns HTTP/Validation/Guards (main.ts)
+
+**Bootstrap Exhaustif** (main.ts):
+```typescript
+app.useGlobalPipes(new ValidationPipe({
+  whitelist: true, forbidNonWhitelisted: true,
+  exceptionFactory: buildValidationException, // Custom FR errors
+}));
+app.useGlobalFilters(new ApiExceptionFilter()); // Uniform JSON errors
+app.setGlobalPrefix('api/v1');
+app.use(helmet()); app.enableCors({...});
+```
+
+**Guards**:
+- JwtAuthGuard (security/jwt-auth.guard.ts): @UseGuards(JwtAuthGuard).
+- RolesGuard (shared/guards/roles.guard.ts): @Roles('ADMIN').
+
+**Reponses Uniformes** (shared/dto/api-response.dto.ts):
+```typescript
+{ success: boolean, data?: T, statusCode: number, errorCode?: string }
+```
+
 ### 6.4 Event bus interne
+
 - Port `DOMAINE_EVENT_BUS`
 - Adapter Nest EventEmitter
 - Etat actuel: bus interne non durable (a industrialiser)
 
 ## 7. Architecture des modules implementes
 
-### 7.1 Auth
+
+### 7.1 Auth (Implémenté - Référence)
+
+**Capacites Actuelles**:
+- POST /auth/otp/send/verify (phone-based).
+- POST /auth/register/login/refresh/logout/me.
+- Google OAuth (si keys).
+
+**Module Deep** (auth/auth.module.ts full bindings):
+```typescript
+providers: [
+  AuthService, JwtTokenService, PasswordHashService (argon2),
+  RefreshSessionService, GoogleAuthService, OtpService,
+  AuthRepository (Prisma impl AUTH_REPOSITORY_PORT),
+  OtpRepository (Prisma impl OTP_REPOSITORY_PORT),
+  PhoneNumberValidator, JwtAuthGuard,
+]
+```
+
+**Refresh Rotation Secure Flow**:
+```
+1. Client POST refresh_token
+2. JwtAuthGuard valide signature
+3. RefreshSessionService:
+   - Hash token → DB match (auth_sessions table)
+   - Check !revoked && !expired
+   - Gen new access/refresh
+   - UPDATE session: new_hash, revoke old
+4. Response {access_token, refresh_token}
+```
+
+**Diagram Refresh**:
+```
+Client ─POST─> Controller ─Guard─> RefreshService ─Port─> AuthRepo
+                                            │
+                       DB: hash_match? → yes → new_tokens + UPDATE session
+```
+
+**Forces**:
+- Ports DIP partout.
+- Rotation anti-replay.
+- Tests E2E complets.
+
+**Exemple Service** (application/services/auth.service.ts):
+```typescript
+async register(cmd: RegisterCommand) {
+  const phone = new PhoneNumberVO(cmd.phone);
+  const existing = await this.authRepo.findByPhone(phone);
+  if (existing) throw new UserAlreadyExistsError();
+  const hashed = await this.hashService.hash(cmd.password);
+  const user = UserEntity.create({...});
+  await this.authRepo.save(user);
+  return this.jwtService.generateTokens(user);
+}
+```
+
 Capacites:
+
 - OTP send/verify
 - register/login
 - refresh/logout
@@ -186,8 +430,36 @@ Points a durcir:
 - audit login/securite avancee
 - revoke list distribuee si multi-instance
 
-### 7.2 Users
+
+### 7.2 Users (Profile Management)
+
+**Capacites**:
+- GET/PUT /users/me (avatar, address via VO).
+
+**Module** (users/users.module.ts):
+```typescript
+@Module({
+  imports: [PrismaModule, AuthModule], // Depends decorated User
+  providers: [UsersService, UsersRepository],
+  { provide: USERS_REPOSITORY_PORT, useExisting: UsersRepository },
+})
+```
+
+**Domain VO Example** (domain/value-objects/address.vo.ts - protects invalid):
+- Validates format, immutable.
+
+**Service** (application/services/users.service.ts):
+Uses port, no Prisma knowledge.
+
+### 7.3 Sante (DDD Template)
+**Pattern Use Case + Event**:
+- ObtenirEtatSanteUseCase → VERIFICATEUR_BASE_PORT.
+- Event EtatSanteVerifie → Handler journalise.
+
+**Utilisation**: Modèle pour tous use cases event-driven.
+
 Capacite:
+
 - endpoint `users/me`
 
 Forces:
@@ -247,7 +519,80 @@ Role:
 - Index GIST sur localisation.
 - Queries ST_DWithin/ST_Distance optimisees.
 
+
+## 7. Event-Driven + Observabilité (Étapes 7)
+
+### 7.1 Outbox Pattern (Reliable Events)
+**Schema** (EvenementOutbox):
+- payload JSON, status (EN_ATTENTE→TRAITE/ECHEC), attempts, error.
+- Poller asynchrone publie vers broker.
+
+**Flow**:
+```
+Use Case → this.eventBus.publish(event) // DomainEvent
+  → OutboxEventBusService.insert(payload)
+  → Cron job: select EN_ATTENTE → publish RabbitMQ → UPDATE TRAITE
+Retry DLQ on failure.
+```
+
+**Avantages**: Atomic avec DB tx, no lost events multi-instance.
+
+### 7.2 Audit Logging Complet
+**Middleware Global** (core/audit/audit-logger.middleware.ts on '*'):
+- Capture request IP, user @CurrentUser(), action.
+- Insert AuditLogs (action_type enum ex CONNEXION/PAIEMENT).
+
+**Schema AuditLogs**:
+- user_id/name, ip_address, geo (lat/lng), user_agent.
+- Indexes user+created_at, action+created_at.
+
+**Cas**: Login → audit CONNEXION, Paiement → PAIEMENT.
+
+## 8. Déploiement & Infra (Étape 8)
+
+### 8.1 Docker Production
+```
+docker-compose.yml: postgres14 + app → DATABASE_URL=postgresql://...
+entrypoint.sh: wait-db && prisma migrate deploy && prisma seed
+```
+
+**Build/Run**:
+```bash
+docker compose up --build  # Dev
+npm run docker:up          # Scripts pkg.json
+```
+
+**Scaling Horizontal**:
+- Stateless API (JWT self-contained).
+- Redis pour Socket.IO adapter (chat/tracking).
+- PG replicas + connection pool pgbouncer.
+
+### 8.2 Variables Env Production
+| Var | Dev Default | Prod Exemple | Criticity |
+|----|-------------|--------------|-----------|
+| DATABASE_URL | postgresql://localhost:5432/jokko | cloud-psql://... | Critical |
+| JWT_ACCESS_SECRET | devsecret | 64+ random | Critical |
+| NODE_ENV | development | production | Info |
+| CORS_ORIGINS | http://localhost:3000 | https://jokko.app | Security |
+
+**Secrets**: Docker secrets ou Vault.
+
+## 9. Testing & Standards (Étape 9)
+
+**Stack**: Jest + Supertest (E2E), ts-jest.
+- Unit: Services/VO/ports (>90% coverage).
+- E2E: Controllers full flow (auth.e2e-spec.ts).
+- `npm test:e2e --config test/jest-e2e.json`.
+
+**Standards** (docs/STANDARDS_MODULES_BACKEND.md):
+- No cross-layer imports.
+- No any/unknown without narrowing.
+- Checklist DoD par module/endpoint.
+
+**Lint**: ESLint9 + Prettier3 strict.
+
 ## 10. Event-driven: actuel vs cible
+
 
 ### 10.1 Etat actuel
 - Publication interne en memoire (EventEmitter).
@@ -347,7 +692,60 @@ Un module/endpoint est "Done" si:
 | Scalabilite | API stateless + async jobs + broker + replicas |
 | Conformite | consentements + anonymisation + tracabilite |
 
+
+## 11. Roadmap Modules Manquants + Endpoints (Étape 10)
+
+**Template Module Structure** (ex bookings):
+```
+bookings/
+├── domain/entities/booking.entity.ts (FSM statut enum)
+├── application/ports/bookings-repo.port.ts
+├── infrastructure/repositories/bookings.repository.ts
+├── presentation/controllers/bookings.controller.ts
+└── bookings.module.ts
+```
+
+**Mappings Schema → Modules**:
+- ProfilProfessionnel → professionals module (KYC flow).
+- Service/Disponibilite → services.
+- Reservation/Paiement → bookings/payments (escrow webhook).
+- Conversation/Message → chat (Socket.IO).
+- Notification → notifications (FCM).
+
+**Endpoint Matrix Projetés** (en plus implémentés):
+| Module | Exemple Endpoint | Auth | Guard | Notes |
+|--------|------------------|------|-------|-------|
+| professionals | POST /professionals/kyc/submit | Pro | Jwt | Upload docs → PENDING |
+| bookings | POST /bookings (serviceId, date) | Client | Jwt | Check disponibilité → EN_ATTENTE |
+| payments | POST /payments/initiate (idempotency-key) | Client | Jwt | → PAID_ESCROW on webhook |
+| chat | WS /socket (bookingId) | Owner | JwtWs | Redis scale |
+| admin | PATCH /admin/disputes/:id/resolve | Admin | Roles(ADMIN) | Audit forced |
+
+**Impl Order**: Professionals → Services → Bookings → Payments → Chat → Admin.
+
+## 12. Appendices (Étape 11)
+
+### 12.1 Checklist DoD Endpoint
+- [ ] DTOs/@ApiProperty doc.
+- [ ] Tests E2E 200/401/422/500.
+- [ ] Logs/action audit.
+- [ ] Throttle si public.
+- [ ] Idempotence si money.
+
+### 12.2 Commands Prisma
+```
+prisma migrate dev --name add_bookings
+prisma generate
+prisma db seed  # ts-node prisma/seed.ts
+```
+
+## 13. Conclusion
+Documentation architecture **complète et exhaustive**. Référence unique pour dev/prod/scaling.
+
+**Prochaines Actions**: Implémentez modules par ordre roadmap.
+
 ## 16. Etat actuel vs cible
+
 
 ### 16.1 Ce qui est deja solide
 - fondation modulaire propre

@@ -16,6 +16,7 @@ import { UsersService } from '../../application/services/users.service';
 import { UpdateMyProfileDto } from '../dto/update-my-profile.dto';
 import { UpdateMyAvatarDto } from '../dto/update-my-avatar.dto';
 import { MyHistoryQueryDto } from '../dto/my-history-query.dto';
+import { createApiResponse } from '../../../shared/dto/api-response.dto';
 
 @Controller('users')
 export class UsersController {
@@ -25,7 +26,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.usersService.me(user.sub);
-    return { success: true, data: result };
+    return createApiResponse(result);
   }
 
   @Put('me')
@@ -35,11 +36,10 @@ export class UsersController {
     @Body() dto: UpdateMyProfileDto,
   ) {
     const result = await this.usersService.updateMe(user.sub, dto);
-    return {
-      success: true,
-      message: appMessage('USERS_PROFILE_UPDATED').message,
-      data: result,
-    };
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFILE_UPDATED').message,
+    );
   }
 
   @Post('me/avatar')
@@ -49,11 +49,10 @@ export class UsersController {
     @Body() dto: UpdateMyAvatarDto,
   ) {
     const result = await this.usersService.updateMyAvatar(user.sub, dto);
-    return {
-      success: true,
-      message: appMessage('USERS_AVATAR_UPDATED').message,
-      data: result,
-    };
+    return createApiResponse(
+      result,
+      appMessage('USERS_AVATAR_UPDATED').message,
+    );
   }
 
   @Get('me/history')
@@ -63,19 +62,16 @@ export class UsersController {
     @Query() query: MyHistoryQueryDto,
   ) {
     const result = await this.usersService.getMyHistory(user.sub, query);
-    return {
-      success: true,
-      data: result,
-    };
+    return createApiResponse(result);
   }
 
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   async deleteMe(@CurrentUser() user: AuthUser) {
     await this.usersService.anonymizeMe(user.sub);
-    return {
-      success: true,
-      message: appMessage('USERS_ACCOUNT_ANONYMIZED').message,
-    };
+    return createApiResponse(
+      null,
+      appMessage('USERS_ACCOUNT_ANONYMIZED').message,
+    );
   }
 }

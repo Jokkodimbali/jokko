@@ -25,6 +25,45 @@ services:
       retries: 5
       start_period: 40s
     restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - jokko-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: jokko-postgres
+    init: true
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jokko}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-jokko}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-jokko} -d ${POSTGRES_DB:-jokko}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - jokko-network
 
@@ -35,23 +74,29 @@ services:
     command: >
       redis-server
       --appendonly yes
-      --requirepass ${REDIS_PASSWORD:-}
+      --requirepass ${REDIS_PASSWORD}
       --loglevel ${REDIS_LOG_LEVEL:-notice}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
-    env_file:
-      - .env
     ports:
       - '${REDIS_PORT:-6379}:6379'
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-}', 'ping']
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 20s
       timeout: 5s
       retries: 3
       start_period: 10s
     restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     networks:
       - jokko-network
 
@@ -60,5 +105,6 @@ networks:
     driver: bridge
 
 volumes:
+  postgres-data:
   redis-data:
   backend-logs:

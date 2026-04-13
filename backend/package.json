@@ -23,7 +23,13 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "docker:build": "docker build -t jokko-backend .",
-    "docker:up": "docker compose up --build",
+    "docker:up": "docker compose -f docker-compose.prod.yml up --build",
+    "docker:up:d": "docker compose -f docker-compose.prod.yml up --build -d",
+    "docker:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:logs": "docker compose -f docker-compose.prod.yml logs -f",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:dev:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "postinstall": "prisma generate"
   },
   "prisma": {

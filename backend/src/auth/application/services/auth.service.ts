@@ -4,6 +4,8 @@ import { PhoneNumberValidator } from '../../domain/validators/phone-number.valid
 import { PasswordHashService } from './password-hash.service';
 import { RefreshSessionService } from './refresh-session.service';
 import { GoogleAuthService } from './google-auth.service';
+import { AuthMapper } from '../mappers/auth.mapper';
+import { normalizeEmail } from '../../../shared/utils/string.utils';
 import {
   appHttpException,
   appMessage,
@@ -68,13 +70,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.toApiUser(user),
+      user: AuthMapper.toApiUser(user),
     };
   }
 
   async register(command: RegisterCommand) {
     const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
-    const normalizedEmail = this.normalizeEmail(command.email);
+    const normalizedEmail = normalizeEmail(command.email);
     const existing = await this.authRepository.findByPhoneNumber(phoneNumber);
     if (existing) {
       throw appHttpException('AUTH_PHONE_ALREADY_USED');
@@ -114,7 +116,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.toApiUser(user),
+      user: AuthMapper.toApiUser(user),
     };
   }
 
@@ -140,7 +142,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.toApiUser(user),
+      user: AuthMapper.toApiUser(user),
     };
   }
 
@@ -195,10 +197,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: {
-        ...this.toApiUser(user),
-        email: user.email,
-      },
+      user: AuthMapper.toApiUserWithEmail(user),
     };
   }
 
@@ -234,15 +233,6 @@ export class AuthService {
     return tokens;
   }
 
-  private toApiUser(user: AuthUserSummary) {
-    return {
-      id: user.id,
-      phoneNumber: user.numeroTelephone,
-      name: user.nom,
-      role: user.role,
-    };
-  }
-
   private normalizePhoneNumber(phoneNumber: string): string {
     try {
       return this.phoneNumberValidator.normalizeOrThrow(phoneNumber);
@@ -252,13 +242,5 @@ export class AuthService {
       }
       throw error;
     }
-  }
-
-  private normalizeEmail(email?: string): string | null {
-    if (!email) {
-      return null;
-    }
-    const normalizedEmail = email.trim().toLowerCase();
-    return normalizedEmail.length === 0 ? null : normalizedEmail;
   }
 }

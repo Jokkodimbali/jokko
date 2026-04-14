@@ -8,9 +8,12 @@ services:
     env_file:
       - .env
     environment:
+      NODE_ENV: production
       PORT: 3000
     ports:
       - '${APP_PORT:-3000}:3000'
+    volumes:
+      - backend-logs:/app/logs
     healthcheck:
       test:
         [
@@ -20,5 +23,42 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
-    restart: unless-stopped
+      start_period: 40s
+    restart: on-failure
+    networks:
+      - jokko-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: jokko-redis
+    init: true
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-}
+      --loglevel ${REDIS_LOG_LEVEL:-notice}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    env_file:
+      - .env
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-}', 'ping']
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: on-failure
+    networks:
+      - jokko-network
+
+networks:
+  jokko-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  backend-logs:

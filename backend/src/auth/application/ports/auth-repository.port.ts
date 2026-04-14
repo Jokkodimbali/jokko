@@ -1,4 +1,4 @@
-import type { RoleUtilisateur } from '@prisma/client';
+import { type RoleUtilisateur } from '@prisma/client';
 
 export const AUTH_REPOSITORY_PORT = Symbol('AUTH_REPOSITORY_PORT');
 

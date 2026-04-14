@@ -93,9 +93,9 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@nestjs/**', '@prisma/**'],
+              group: ['@nestjs/**'],
               message:
-                'La couche domaine doit rester independante des frameworks et de la base.',
+                'La couche domaine doit rester independante du framework NestJS.',
             },
             {
               group: ['**/presentation/**', '**/infrastructure/**'],
@@ -105,7 +105,7 @@ export default tseslint.config(
             {
               group: ['**/core/http/**'],
               message:
-                "La couche domaine ne doit pas connaitre les details HTTP.",
+                "La couche domaine ne doit pas connaite les details HTTP.",
             },
           ],
         },

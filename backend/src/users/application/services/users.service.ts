@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  normalizeEmail,
+  normalizeAddress,
+} from '../../../shared/utils/string.utils';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   USERS_REPOSITORY_PORT,
@@ -27,26 +31,30 @@ export class UsersService {
   async updateMe(userId: string, command: UpdateMyProfileCommand) {
     const existingUser = await this.findUserOrThrow(userId);
 
+    const emailNormalized = normalizeEmail(command.email);
+    const addressNormalized = normalizeAddress(command.address);
+
     const payload = {
       nom: command.name?.trim(),
-      email: this.normalizeEmail(command.email),
-      adresse: this.normalizeAddress(command.address),
+      email: emailNormalized,
+      adresse: addressNormalized,
       urlAvatar: command.avatarUrl?.trim(),
     };
 
-    if (
-      payload.nom === undefined &&
-      payload.email === undefined &&
-      payload.adresse === undefined &&
-      payload.urlAvatar === undefined
-    ) {
+    const hasUpdate =
+      payload.nom !== undefined ||
+      emailNormalized !== undefined ||
+      addressNormalized !== undefined ||
+      payload.urlAvatar !== undefined;
+
+    if (!hasUpdate) {
       throw appHttpException('USERS_UPDATE_EMPTY');
     }
 
     if (
-      payload.email &&
-      payload.email !== existingUser.email &&
-      (await this.usersRepository.findByEmail(payload.email))
+      emailNormalized &&
+      emailNormalized !== existingUser.email &&
+      (await this.usersRepository.findByEmail(emailNormalized))
     ) {
       throw appHttpException('USERS_EMAIL_ALREADY_USED');
     }
@@ -93,31 +101,6 @@ export class UsersService {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
     return user;
-  }
-
-  private normalizeEmail(
-    email: string | null | undefined,
-  ): string | null | undefined {
-    if (email === undefined || email === null) {
-      return email;
-    }
-
-    const normalized = email.trim().toLowerCase();
-    if (normalized.length === 0) {
-      return null;
-    }
-    return normalized;
-  }
-
-  private normalizeAddress(
-    value: string | null | undefined,
-  ): string | null | undefined {
-    if (value === undefined || value === null) {
-      return value;
-    }
-
-    const normalized = value.trim();
-    return normalized.length === 0 ? null : normalized;
   }
 
   private buildAnonymizedPhoneNumber(userId: string): string {

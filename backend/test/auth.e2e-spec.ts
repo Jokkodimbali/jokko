@@ -23,8 +23,8 @@ describe('AuthModule (e2e)', () => {
   type AuthSuccessResponse = {
     success: boolean;
     message?: string;
-    expiresInSeconds?: number;
     data?: {
+      expiresInSeconds?: number;
       accessToken?: string;
       refreshToken?: string;
       user?: {
@@ -106,7 +106,7 @@ describe('AuthModule (e2e)', () => {
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);
-    expect(body.expiresInSeconds).toBe(300);
+    expect(body.data?.expiresInSeconds).toBe(300);
   });
 
   it('POST /api/v1/auth/otp/verify', async () => {

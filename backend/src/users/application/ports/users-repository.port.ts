@@ -1,7 +1,7 @@
-import type {
-  RoleUtilisateur,
-  StatutReservation,
-  TypePrix,
+import {
+  type RoleUtilisateur,
+  type StatutReservation,
+  type TypePrix,
 } from '@prisma/client';
 
 export const USERS_REPOSITORY_PORT = Symbol('USERS_REPOSITORY_PORT');

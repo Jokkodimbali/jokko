@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import type { ValidationError } from 'class-validator';
 import { appMessage } from './app-http.exception';
-import { VALIDATION_MESSAGES } from './message-catalog';
+import { VALIDATION_MESSAGES } from './app-messages';
 
 function normalizeValidationMessage(message: string): string {
   if (message.includes('should not exist')) {

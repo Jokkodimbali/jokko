@@ -1,25 +1,43 @@
 import { Injectable } from '@nestjs/common';
-// Prisma model: VerificationOtp
 
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  type OtpRepositoryPort,
+  type OtpVerificationEntry,
+} from '../../application/ports/otp-repository.port';
 
 @Injectable()
-export class OtpRepository {
+export class OtpRepository implements OtpRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByPhoneNumber(phoneNumber: string) {
-    return this.prisma.verificationOtp.findUnique({
+  async findByPhoneNumber(
+    phoneNumber: string,
+  ): Promise<OtpVerificationEntry | null> {
+    const entity = await this.prisma.verificationOtp.findUnique({
       where: { numeroTelephone: phoneNumber },
     });
+    if (!entity) {
+      return null;
+    }
+
+    return {
+      id: entity.id,
+      phoneNumber: entity.numeroTelephone,
+      codeHash: entity.hashCode,
+      expiresAt: entity.expireLe,
+      consumedAt: entity.consommeLe,
+      attempts: entity.tentatives,
+      lastSentAt: entity.dernierEnvoiLe,
+    };
   }
 
-  upsertForPhoneNumber(data: {
+  async upsertForPhoneNumber(data: {
     phoneNumber: string;
     codeHash: string;
     expiresAt: Date;
     lastSentAt: Date;
-  }) {
-    return this.prisma.verificationOtp.upsert({
+  }): Promise<void> {
+    await this.prisma.verificationOtp.upsert({
       where: { numeroTelephone: data.phoneNumber },
       create: {
         numeroTelephone: data.phoneNumber,
@@ -37,8 +55,8 @@ export class OtpRepository {
     });
   }
 
-  incrementAttempts(id: string) {
-    return this.prisma.verificationOtp.update({
+  async incrementAttempts(id: string): Promise<void> {
+    await this.prisma.verificationOtp.update({
       where: { id },
       data: {
         tentatives: { increment: 1 },
@@ -46,15 +64,15 @@ export class OtpRepository {
     });
   }
 
-  consume(id: string) {
-    return this.prisma.verificationOtp.update({
+  async consume(id: string): Promise<void> {
+    await this.prisma.verificationOtp.update({
       where: { id },
       data: { consommeLe: new Date() },
     });
   }
 
-  delete(id: string) {
-    return this.prisma.verificationOtp.delete({
+  async delete(id: string): Promise<void> {
+    await this.prisma.verificationOtp.delete({
       where: { id },
     });
   }

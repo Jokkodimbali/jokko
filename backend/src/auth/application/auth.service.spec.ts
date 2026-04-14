@@ -1,6 +1,6 @@
 import { RoleUtilisateur } from '@prisma/client';
 import { appMessage } from '../../core/http/app-http.exception';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 
 describe('AuthService', () => {
   const authRepository = {
@@ -75,7 +75,8 @@ describe('AuthService', () => {
       password: 'Password123',
     });
 
-    expect(result.success).toBe(true);
+    expect(result.accessToken).toBe('a');
+    expect(result.refreshToken).toBe('r');
     expect(authRepository.createClientWithPassword).toHaveBeenCalled();
     expect(refreshSessionService.persist).toHaveBeenCalled();
   });
@@ -91,6 +92,29 @@ describe('AuthService', () => {
       }),
     ).rejects.toMatchObject({
       message: appMessage('AUTH_PHONE_ALREADY_USED').message,
+    });
+  });
+
+  it('register should fail when email is already used', async () => {
+    authRepository.findByPhoneNumber.mockResolvedValue(null);
+    authRepository.findByEmail.mockResolvedValue({
+      id: 'exists',
+      numeroTelephone: '+221770000000',
+      nom: 'Existing',
+      role: RoleUtilisateur.CLIENT,
+      email: 'existing@jokko.sn',
+      identifiantOauth: null,
+    });
+
+    await expect(
+      service.register({
+        phoneNumber: '+221770000001',
+        name: 'Test',
+        email: 'existing@jokko.sn',
+        password: 'Password123',
+      }),
+    ).rejects.toMatchObject({
+      message: appMessage('AUTH_EMAIL_ALREADY_USED').message,
     });
   });
 
@@ -139,7 +163,8 @@ describe('AuthService', () => {
 
     const result = await service.refresh('old-refresh');
 
-    expect(result.success).toBe(true);
+    expect(result.accessToken).toBe('new-access');
+    expect(result.refreshToken).toBe('new-refresh');
     expect(refreshSessionService.rotate).toHaveBeenCalled();
   });
 });

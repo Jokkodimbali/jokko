@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { DOMAINE_EVENT_BUS } from './core/events/domaine-event-bus.port';
 import { ObtenirEtatSanteUseCase } from './sante/application/obtenir-etat-sante.use-case';
 import { VERIFICATEUR_BASE_PORT } from './sante/domaine/ports/verificateur-base.port';
-import { SanteController } from './sante/presentation/sante.controller';
+import { SanteController } from './sante/presentation/controllers/sante.controller';
 
 describe('SanteController', () => {
   let santeController: SanteController;

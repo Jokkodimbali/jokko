@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoleUtilisateur } from '@prisma/client';
+import { Prisma, RoleUtilisateur } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthRepositoryPort } from '../../application/ports/auth-repository.port';
 
@@ -52,31 +52,51 @@ export class AuthRepository implements AuthRepositoryPort {
     });
   }
 
-  createClientByPhoneNumber(phoneNumber: string) {
-    return this.prisma.utilisateur.create({
-      data: {
-        numeroTelephone: phoneNumber,
-        nom: `Utilisateur ${phoneNumber}`,
-        role: RoleUtilisateur.CLIENT,
-      },
-    });
+  async createClientByPhoneNumber(phoneNumber: string) {
+    try {
+      return await this.prisma.utilisateur.create({
+        data: {
+          numeroTelephone: phoneNumber,
+          nom: `Utilisateur ${phoneNumber}`,
+          role: RoleUtilisateur.CLIENT,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
-  createClientWithPassword(data: {
+  async createClientWithPassword(data: {
     phoneNumber: string;
     name: string;
     email?: string;
     passwordHash: string;
   }) {
-    return this.prisma.utilisateur.create({
-      data: {
-        numeroTelephone: data.phoneNumber,
-        nom: data.name,
-        email: data.email,
-        motDePasseHash: data.passwordHash,
-        role: RoleUtilisateur.CLIENT,
-      },
-    });
+    try {
+      return await this.prisma.utilisateur.create({
+        data: {
+          numeroTelephone: data.phoneNumber,
+          nom: data.name,
+          email: data.email,
+          motDePasseHash: data.passwordHash,
+          role: RoleUtilisateur.CLIENT,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   findPublicProfileById(userId: string) {

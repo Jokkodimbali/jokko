@@ -1,8 +1,13 @@
-import type { StatutKyc, TypePrix } from '@prisma/client';
+// Domain-level types for KYC status and price type
+// These decouple the application layer from Prisma enums
+export type KycStatus = 'EN_ATTENTE' | 'VERIFIE' | 'REJETE' | 'NON_SOUMIS';
+export type PriceType = 'FIXE' | 'NEGOCIABLE';
 
 export const PROFESSIONALS_REPOSITORY_PORT = Symbol(
   'PROFESSIONALS_REPOSITORY_PORT',
 );
+
+// ─── Shared View Types (for read queries / projections) ─────────────────────
 
 export type ProfessionalProfileView = {
   id: string;
@@ -10,7 +15,7 @@ export type ProfessionalProfileView = {
   biographie: string | null;
   nomEntreprise: string | null;
   urlPieceIdentite: string | null;
-  statutKyc: StatutKyc;
+  statutKyc: KycStatus;
   raisonRejetKyc: string | null;
   ville: string | null;
   noteGlobale: number;
@@ -25,44 +30,12 @@ export type ProfessionalProfileView = {
   };
 };
 
-export type CreateProfessionalProfileInput = {
-  utilisateurId: string;
-  biographie?: string | null;
-  nomEntreprise?: string | null;
-  ville?: string | null;
-};
-
-export type CreateProfessionalProfileResult =
-  | { status: 'created'; profile: ProfessionalProfileView }
-  | { status: 'already_exists' }
-  | { status: 'user_not_found' };
-
-export type SubmitKycInput = {
-  utilisateurId: string;
-  idCardUrl: string;
-};
-
-export type SubmitKycResult =
-  | { status: 'updated'; profile: ProfessionalProfileView }
-  | { status: 'profile_not_found' };
-
-export type UpdateProfessionalProfileInput = {
-  utilisateurId: string;
-  biographie?: string | null;
-  nomEntreprise?: string | null;
-  ville?: string | null;
-};
-
-export type UpdateProfessionalProfileResult =
-  | { status: 'updated'; profile: ProfessionalProfileView }
-  | { status: 'profile_not_found' };
-
 export type ProfessionalServiceView = {
   id: string;
   nom: string;
   description: string;
   prix: number;
-  typePrix: TypePrix;
+  typePrix: PriceType;
   estDisponible: boolean;
   creeLe: Date;
 };
@@ -100,13 +73,76 @@ export type ProfessionalReviewView = {
   };
 };
 
+// ─── Profile Repository Port ─────────────────────────────────────────────────
+
+export type CreateProfessionalProfileInput = {
+  utilisateurId: string;
+  biographie?: string | null;
+  nomEntreprise?: string | null;
+  ville?: string | null;
+};
+
+export type CreateProfessionalProfileResult =
+  | { status: 'created'; profile: ProfessionalProfileView }
+  | { status: 'already_exists' }
+  | { status: 'user_not_found' };
+
+export type UpdateProfessionalProfileInput = {
+  utilisateurId: string;
+  biographie?: string | null;
+  nomEntreprise?: string | null;
+  ville?: string | null;
+};
+
+export type UpdateProfessionalProfileResult =
+  | { status: 'updated'; profile: ProfessionalProfileView }
+  | { status: 'profile_not_found' };
+
+export type SubmitKycInput = {
+  utilisateurId: string;
+  idCardUrl: string;
+};
+
+export type SubmitKycResult =
+  | { status: 'updated'; profile: ProfessionalProfileView }
+  | { status: 'profile_not_found' };
+
+export type ApproveKycResult =
+  | { status: 'approved'; profile: ProfessionalProfileView }
+  | { status: 'profile_not_found' };
+
+export type RejectKycResult =
+  | { status: 'rejected'; profile: ProfessionalProfileView }
+  | { status: 'profile_not_found' };
+
+export interface ProfessionalProfileRepositoryPort {
+  createProfile(
+    input: CreateProfessionalProfileInput,
+  ): Promise<CreateProfessionalProfileResult>;
+  findByUserId(userId: string): Promise<ProfessionalProfileView | null>;
+  updateProfile(
+    input: UpdateProfessionalProfileInput,
+  ): Promise<UpdateProfessionalProfileResult>;
+  submitKyc(input: SubmitKycInput): Promise<SubmitKycResult>;
+  approveKyc(profileId: string): Promise<ApproveKycResult>;
+  rejectKyc(profileId: string, reason: string): Promise<RejectKycResult>;
+  findVerifiedById(profileId: string): Promise<ProfessionalProfileView | null>;
+  listVerified(query: {
+    city?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ profiles: ProfessionalProfileView[]; total: number }>;
+}
+
+// ─── Service Repository Port ─────────────────────────────────────────────────
+
 export type CreateServiceInput = {
   utilisateurId: string;
   categoryId: string;
   name: string;
   description: string;
   price: number;
-  priceType: TypePrix;
+  priceType: PriceType;
 };
 
 export type UpdateServiceInput = {
@@ -115,7 +151,7 @@ export type UpdateServiceInput = {
   name?: string;
   description?: string;
   price?: number;
-  priceType?: TypePrix;
+  priceType?: PriceType;
 };
 
 export type CreateServiceResult =
@@ -133,6 +169,18 @@ export type DisableServiceResult =
   | { status: 'profile_not_found' }
   | { status: 'service_not_found' };
 
+export interface ProfessionalServiceRepositoryPort {
+  listServices(profileId: string): Promise<ProfessionalServiceView[]>;
+  createService(input: CreateServiceInput): Promise<CreateServiceResult>;
+  updateService(input: UpdateServiceInput): Promise<UpdateServiceResult>;
+  disableService(
+    utilisateurId: string,
+    serviceId: string,
+  ): Promise<DisableServiceResult>;
+}
+
+// ─── Portfolio Repository Port ───────────────────────────────────────────────
+
 export type CreatePortfolioItemInput = {
   utilisateurId: string;
   title: string;
@@ -148,6 +196,19 @@ export type DeletePortfolioItemResult =
   | { status: 'deleted' }
   | { status: 'profile_not_found' }
   | { status: 'item_not_found' };
+
+export interface ProfessionalPortfolioRepositoryPort {
+  listPortfolio(profileId: string): Promise<ProfessionalPortfolioItemView[]>;
+  createPortfolioItem(
+    input: CreatePortfolioItemInput,
+  ): Promise<CreatePortfolioItemResult>;
+  deletePortfolioItem(
+    utilisateurId: string,
+    itemId: string,
+  ): Promise<DeletePortfolioItemResult>;
+}
+
+// ─── Availability Repository Port ────────────────────────────────────────────
 
 export type CreateAvailabilityInput = {
   utilisateurId: string;
@@ -165,44 +226,10 @@ export type DisableAvailabilityResult =
   | { status: 'profile_not_found' }
   | { status: 'availability_not_found' };
 
-export interface ProfessionalsRepositoryPort {
-  createProfile(
-    input: CreateProfessionalProfileInput,
-  ): Promise<CreateProfessionalProfileResult>;
-  findByUserId(userId: string): Promise<ProfessionalProfileView | null>;
-  updateProfile(
-    input: UpdateProfessionalProfileInput,
-  ): Promise<UpdateProfessionalProfileResult>;
-  submitKyc(input: SubmitKycInput): Promise<SubmitKycResult>;
-  approveKyc(profileId: string): Promise<ProfessionalProfileView | null>;
-  rejectKyc(
-    profileId: string,
-    reason: string,
-  ): Promise<ProfessionalProfileView | null>;
-  findVerifiedById(profileId: string): Promise<ProfessionalProfileView | null>;
-  listVerified(query: {
-    city?: string;
-    limit: number;
-  }): Promise<ProfessionalProfileView[]>;
-  listServices(profileId: string): Promise<ProfessionalServiceView[]>;
-  listPortfolio(profileId: string): Promise<ProfessionalPortfolioItemView[]>;
+export interface ProfessionalAvailabilityRepositoryPort {
   listAvailabilities(
     profileId: string,
   ): Promise<ProfessionalAvailabilityView[]>;
-  listReviews(profileId: string): Promise<ProfessionalReviewView[]>;
-  createService(input: CreateServiceInput): Promise<CreateServiceResult>;
-  updateService(input: UpdateServiceInput): Promise<UpdateServiceResult>;
-  disableService(
-    utilisateurId: string,
-    serviceId: string,
-  ): Promise<DisableServiceResult>;
-  createPortfolioItem(
-    input: CreatePortfolioItemInput,
-  ): Promise<CreatePortfolioItemResult>;
-  deletePortfolioItem(
-    utilisateurId: string,
-    itemId: string,
-  ): Promise<DeletePortfolioItemResult>;
   createAvailability(
     input: CreateAvailabilityInput,
   ): Promise<CreateAvailabilityResult>;
@@ -211,3 +238,19 @@ export interface ProfessionalsRepositoryPort {
     availabilityId: string,
   ): Promise<DisableAvailabilityResult>;
 }
+
+// ─── Review Repository Port ──────────────────────────────────────────────────
+
+export interface ProfessionalReviewRepositoryPort {
+  listReviews(profileId: string): Promise<ProfessionalReviewView[]>;
+}
+
+// ─── Composite Port ──────────────────────────────────────────────────────────
+
+export interface ProfessionalsRepositoryPort
+  extends
+    ProfessionalProfileRepositoryPort,
+    ProfessionalServiceRepositoryPort,
+    ProfessionalPortfolioRepositoryPort,
+    ProfessionalAvailabilityRepositoryPort,
+    ProfessionalReviewRepositoryPort {}

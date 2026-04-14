@@ -1,35 +1,39 @@
+import { AuthDomainError } from '../errors/auth.domain-error';
+
 export class Password {
   private constructor(private readonly value: string) {}
 
-  static create(raw: string): { success: boolean; error?: string } {
-    if (!raw) {
-      return { success: false, error: 'Le mot de passe est obligatoire' };
+  static create(raw: string): Password {
+    if (!raw || raw.trim().length === 0) {
+      throw AuthDomainError.passwordRequired();
     }
 
-    if (raw.length < 8) {
-      return {
-        success: false,
-        error: 'Le mot de passe doit contenir au moins 8 caractères',
-      };
+    const trimmed = raw.trim();
+
+    if (trimmed.length < 8) {
+      throw AuthDomainError.passwordTooShort(trimmed.length);
     }
 
-    if (raw.length > 64) {
-      return {
-        success: false,
-        error: 'Le mot de passe ne doit pas dépasser 64 caractères',
-      };
+    if (trimmed.length > 64) {
+      throw AuthDomainError.passwordTooLong(trimmed.length);
     }
 
-    return { success: true };
+    return new Password(trimmed);
   }
 
-  static createSecure(raw: string): Password | null {
-    const result = Password.create(raw);
-    return result.success ? new Password(raw) : null;
+  static createOptional(raw: string | null | undefined): Password | null {
+    if (raw === null || raw === undefined || raw.trim().length === 0) {
+      return null;
+    }
+    return Password.create(raw);
   }
 
   getValue(): string {
     return this.value;
+  }
+
+  equals(other: Password): boolean {
+    return this.value === other.value;
   }
 
   meetsStrengthRequirements(): boolean {

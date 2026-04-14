@@ -85,10 +85,9 @@ export class UsersService {
 
   async anonymizeMe(userId: string) {
     await this.findUserOrThrow(userId);
-    const replacementPhoneNumber = this.buildAnonymizedPhoneNumber(userId);
     const anonymized = await this.usersRepository.anonymizeAndRevokeById(
       userId,
-      replacementPhoneNumber,
+      this.buildAnonymizedPhoneNumber(userId),
     );
     if (!anonymized) {
       throw appHttpException('USERS_USER_NOT_FOUND');

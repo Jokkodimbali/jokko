@@ -1,9 +1,6 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
-import {
-  appHttpException,
-  appMessage,
-} from '../../../core/http/app-http.exception';
+import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   OTP_REPOSITORY_PORT,
   type OtpRepositoryPort,
@@ -29,14 +26,7 @@ export class OtpService {
       existing &&
       Date.now() - existing.lastSentAt.getTime() < this.resendCooldownMs
     ) {
-      const message = appMessage('AUTH_OTP_RESEND_TOO_EARLY');
-      throw new HttpException(
-        {
-          message: message.message,
-          errorCode: message.code,
-        },
-        message.httpStatus,
-      );
+      throw appHttpException('AUTH_OTP_RESEND_TOO_EARLY');
     }
 
     const code = String(randomInt(100000, 1_000_000));
@@ -67,14 +57,7 @@ export class OtpService {
 
     if (entry.attempts >= this.maxAttempts) {
       await this.otpRepository.delete(entry.id);
-      const message = appMessage('AUTH_OTP_TOO_MANY_REQUESTS');
-      throw new HttpException(
-        {
-          message: message.message,
-          errorCode: message.code,
-        },
-        message.httpStatus,
-      );
+      throw appHttpException('AUTH_OTP_TOO_MANY_REQUESTS');
     }
 
     const inputHash = this.hashCode(code);

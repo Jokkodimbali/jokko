@@ -1,26 +1,55 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
 export class CreatePortfolioItemDto {
+  @ApiProperty({
+    description: 'Titre du projet portfolio',
+    example: 'Site e-commerce pour une boutique',
+    maxLength: 200,
+  })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
-  @IsString({ message: VALIDATION_MESSAGES.PORTFOLIO_TITLE_REQUIRED })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.PORTFOLIO_TITLE_REQUIRED })
+  @IsString()
   @MaxLength(200, { message: VALIDATION_MESSAGES.PORTFOLIO_TITLE_MAX })
   title!: string;
 
+  @ApiProperty({
+    description: 'Description du projet',
+    example: 'Developpe d un site e-commerce complet avec paiement integre',
+    required: false,
+  })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
   @IsOptional()
-  @IsString({ message: VALIDATION_MESSAGES.PORTFOLIO_TITLE_REQUIRED })
+  @IsString()
   description?: string | null;
 
+  @ApiProperty({
+    description: "URL de l'image du projet",
+    example: 'https://example.com/images/projet.jpg',
+    format: 'uri',
+  })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
-  @IsString({ message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_REQUIRED })
-  @IsUrl({}, { message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_INVALID })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_REQUIRED })
+  @IsString()
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_INVALID,
+    },
+  )
   imageUrl!: string;
 }

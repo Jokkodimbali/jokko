@@ -221,9 +221,9 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(data.id).toBe(professionalProfileId);
   });
 
-  it('PUT /api/v1/professionals/me', async () => {
+  it('PATCH /api/v1/professionals/me', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/professionals/me')
+      .patch('/api/v1/professionals/me')
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         bio: 'Bio mise a jour',
@@ -239,14 +239,14 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(data.ville).toBe('Thies');
   });
 
-  it('POST /api/v1/professionals/me/kyc', async () => {
+  it('PATCH /api/v1/professionals/me/kyc/submit', async () => {
     const response = await request(app.getHttpServer())
-      .post('/api/v1/professionals/me/kyc')
+      .patch('/api/v1/professionals/me/kyc/submit')
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         idCardUrl: 'https://cdn.jokko.sn/kyc/pro-id-card.png',
       })
-      .expect(201);
+      .expect(200);
 
     const body = response.body as ApiResponse;
     expect(body.success).toBe(true);
@@ -326,7 +326,7 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(serviceId).not.toHaveLength(0);
 
     await request(app.getHttpServer())
-      .put(`/api/v1/professionals/me/services/${serviceId}`)
+      .patch(`/api/v1/professionals/me/services/${serviceId}`)
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         name: 'Debouchage premium',

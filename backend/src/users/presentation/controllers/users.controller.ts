@@ -3,11 +3,19 @@ import {
   Controller,
   Delete,
   Get,
-  Post,
-  Put,
+  HttpCode,
+  HttpStatus,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { appMessage } from '../../../core/http/app-http.exception';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
@@ -18,19 +26,31 @@ import { UpdateMyAvatarDto } from '../dto/update-my-avatar.dto';
 import { MyHistoryQueryDto } from '../dto/my-history-query.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get my user profile' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.usersService.me(user.sub);
     return createApiResponse(result);
   }
 
-  @Put('me')
+  @Patch('me')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update my user profile (partial update)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Empty payload or validation error',
+  })
+  @ApiResponse({ status: 409, description: 'Conflict - Email already used' })
   async updateMe(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMyProfileDto,
@@ -42,8 +62,11 @@ export class UsersController {
     );
   }
 
-  @Post('me/avatar')
+  @Patch('me/avatar')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update my avatar URL' })
+  @ApiResponse({ status: 200, description: 'Avatar updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid URL' })
   async updateMyAvatar(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMyAvatarDto,
@@ -57,6 +80,14 @@ export class UsersController {
 
   @Get('me/history')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get my booking history' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of results (default: 20, max: 100)',
+  })
+  @ApiResponse({ status: 200, description: 'History retrieved successfully' })
   async myHistory(
     @CurrentUser() user: AuthUser,
     @Query() query: MyHistoryQueryDto,
@@ -67,6 +98,10 @@ export class UsersController {
 
   @Delete('me')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Anonymize and delete my account' })
+  @ApiResponse({ status: 200, description: 'Account anonymized successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async deleteMe(@CurrentUser() user: AuthUser) {
     await this.usersService.anonymizeMe(user.sub);
     return createApiResponse(

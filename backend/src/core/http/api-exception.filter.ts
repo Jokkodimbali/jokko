@@ -36,13 +36,19 @@ export class ApiExceptionFilter implements ExceptionFilter {
       typeof exceptionResponse === 'string'
         ? exceptionResponse
         : (responseObject?.message ?? fallback.message);
+
+    // Normalize message to always return as string for consistency
+    const normalizedMessage = Array.isArray(message)
+      ? message.join('. ')
+      : message;
+
     const errorCode = responseObject?.errorCode ?? fallback.code;
 
     response.status(statusCode).json({
       success: false,
       statusCode,
       errorCode,
-      message,
+      message: normalizedMessage,
       timestamp: new Date().toISOString(),
       path: request.url,
     });

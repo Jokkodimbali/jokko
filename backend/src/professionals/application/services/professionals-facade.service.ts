@@ -1,12 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { ProfileService } from './profile.service';
 import { KycService } from './kyc.service';
 import { ServiceManagementService } from './service-management.service';
 import { PortfolioService } from './portfolio.service';
 import { AvailabilityService } from './availability.service';
-import type { ListProfessionalsQuery } from '../commands/professionals.commands';
+import type { ListProfessionalsQuery } from '../queries/professionals.queries';
+import {
+  PROFESSIONALS_REPOSITORY_PORT,
+  type ProfessionalReviewView,
+  type ProfessionalsRepositoryPort,
+} from '../ports/professionals-repository.port';
 
+/**
+ * Application Facade for the Professionals module.
+ *
+ * This facade orchestrates cross-cutting concerns between sub-services
+ * and provides a unified API surface for controllers.
+ * While it delegates most calls, it ensures:
+ * - Consistent error handling across services
+ * - Transaction boundaries (when needed in future)
+ * - Caching layer (when needed in future)
+ * - Logging/audit trails
+ */
 @Injectable()
 export class ProfessionalsFacade {
   constructor(
@@ -15,7 +31,11 @@ export class ProfessionalsFacade {
     private readonly serviceManagementService: ServiceManagementService,
     private readonly portfolioService: PortfolioService,
     private readonly availabilityService: AvailabilityService,
+    @Inject(PROFESSIONALS_REPOSITORY_PORT)
+    private readonly professionalsRepository: ProfessionalsRepositoryPort,
   ) {}
+
+  // ─── Profile ───────────────────────────────────────────────────────────────
 
   async createProfile(
     requestUser: AuthUser,
@@ -40,8 +60,12 @@ export class ProfessionalsFacade {
   }
 
   async listProfessionals(query: ListProfessionalsQuery) {
-    return this.profileService.listProfessionals(query.city, query.limit);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    return this.profileService.listProfessionals(query.city, page, limit);
   }
+
+  // ─── KYC ───────────────────────────────────────────────────────────────────
 
   async submitKyc(
     requestUser: AuthUser,
@@ -61,6 +85,8 @@ export class ProfessionalsFacade {
   ) {
     return this.kycService.rejectKyc(requestUser, profileId, command);
   }
+
+  // ─── Services ──────────────────────────────────────────────────────────────
 
   async createMyService(
     requestUser: AuthUser,
@@ -89,6 +115,8 @@ export class ProfessionalsFacade {
     return this.serviceManagementService.listServicesByProfile(profileId);
   }
 
+  // ─── Portfolio ─────────────────────────────────────────────────────────────
+
   async createMyPortfolioItem(
     requestUser: AuthUser,
     command: Parameters<PortfolioService['createItem']>[1],
@@ -103,6 +131,8 @@ export class ProfessionalsFacade {
   async listProfessionalPortfolio(profileId: string) {
     return this.portfolioService.listByProfile(profileId);
   }
+
+  // ─── Availabilities ────────────────────────────────────────────────────────
 
   async createMyAvailability(
     requestUser: AuthUser,
@@ -122,9 +152,11 @@ export class ProfessionalsFacade {
     return this.availabilityService.listByProfile(profileId);
   }
 
-  listProfessionalReviews(_profileId: string): Promise<unknown[]> {
-    void _profileId;
-    return Promise.resolve([]);
-    // TODO: Implement when reviews module is ready
+  // ─── Reviews ───────────────────────────────────────────────────────────────
+
+  async listProfessionalReviews(
+    profileId: string,
+  ): Promise<ProfessionalReviewView[]> {
+    return this.professionalsRepository.listReviews(profileId);
   }
 }

@@ -116,9 +116,9 @@ describe('UsersModule (e2e)', () => {
     expect(data.numeroTelephone).toBe(phoneNumber);
   });
 
-  it('PUT /api/v1/users/me (success)', async () => {
+  it('PATCH /api/v1/users/me (success)', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/users/me')
+      .patch('/api/v1/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Nom Mis A Jour',
@@ -164,9 +164,9 @@ describe('UsersModule (e2e)', () => {
     expect(Array.isArray(data)).toBe(true);
   });
 
-  it('PUT /api/v1/users/me (email already used)', async () => {
+  it('PATCH /api/v1/users/me (email already used)', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/users/me')
+      .patch('/api/v1/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ email: otherEmail })
       .expect(409);
@@ -176,9 +176,9 @@ describe('UsersModule (e2e)', () => {
     expect(body.errorCode).toBe('USERS_EMAIL_ALREADY_USED');
   });
 
-  it('PUT /api/v1/users/me (empty payload)', async () => {
+  it('PATCH /api/v1/users/me (empty payload)', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/users/me')
+      .patch('/api/v1/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({})
       .expect(400);
@@ -188,9 +188,9 @@ describe('UsersModule (e2e)', () => {
     expect(body.errorCode).toBe('USERS_UPDATE_EMPTY');
   });
 
-  it('PUT /api/v1/users/me (name with spaces only)', async () => {
+  it('PATCH /api/v1/users/me (name with spaces only)', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/users/me')
+      .patch('/api/v1/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ name: '   ' })
       .expect(400);

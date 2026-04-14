@@ -4,33 +4,79 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   UserProfileUpdateInput,
   UserProfileUpdateResult,
+  UserMeView,
+  UserHistoryItem,
   UsersRepositoryPort,
 } from '../../application/ports/users-repository.port';
+
+// ─── Prisma Select Constants (DRY) ───────────────────────────────────────────
+
+const USER_ME_SELECT = {
+  id: true,
+  numeroTelephone: true,
+  nom: true,
+  email: true,
+  adresse: true,
+  role: true,
+  urlAvatar: true,
+  estActif: true,
+  creeLe: true,
+} as const;
 
 @Injectable()
 export class UsersRepository implements UsersRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  private readonly userMeSelect = {
-    id: true,
-    numeroTelephone: true,
-    nom: true,
-    email: true,
-    adresse: true,
-    role: true,
-    urlAvatar: true,
-    estActif: true,
-    creeLe: true,
-  } as const;
+  // ─── Helper Methods ────────────────────────────────────────────────────────
 
-  findMeById(userId: string) {
-    return this.prisma.utilisateur.findUnique({
-      where: { id: userId },
-      select: this.userMeSelect,
-    });
+  private mapUserMe(user: {
+    id: string;
+    numeroTelephone: string;
+    nom: string;
+    email: string | null;
+    adresse: string | null;
+    role: string;
+    urlAvatar: string | null;
+    estActif: boolean;
+    creeLe: Date;
+  }): UserMeView {
+    return {
+      id: user.id,
+      numeroTelephone: user.numeroTelephone,
+      nom: user.nom,
+      email: user.email,
+      adresse: user.adresse,
+      role: user.role as UserMeView['role'],
+      urlAvatar: user.urlAvatar,
+      estActif: user.estActif,
+      creeLe: user.creeLe,
+    };
   }
 
-  findByEmail(email: string) {
+  private handlePrismaError<T extends { status: string }>(
+    error: unknown,
+    codeMap: Record<string, T['status']>,
+  ): T | null {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      const status = codeMap[error.code];
+      if (status) {
+        return { status } as T;
+      }
+    }
+    return null;
+  }
+
+  // ─── User Operations ───────────────────────────────────────────────────────
+
+  async findMeById(userId: string): Promise<UserMeView | null> {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: USER_ME_SELECT,
+    });
+    return user ? this.mapUserMe(user) : null;
+  }
+
+  async findByEmail(email: string): Promise<{ id: string } | null> {
     return this.prisma.utilisateur.findUnique({
       where: { email },
       select: { id: true },
@@ -45,27 +91,23 @@ export class UsersRepository implements UsersRepositoryPort {
       const user = await this.prisma.utilisateur.update({
         where: { id: userId },
         data,
-        select: this.userMeSelect,
+        select: USER_ME_SELECT,
       });
-      return { status: 'updated', user };
+      return { status: 'updated', user: this.mapUserMe(user) };
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        return { status: 'not_found' };
-      }
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        return { status: 'email_conflict' };
-      }
+      const handled = this.handlePrismaError<UserProfileUpdateResult>(error, {
+        P2025: 'not_found',
+        P2002: 'email_conflict',
+      });
+      if (handled) return handled;
       throw error;
     }
   }
 
-  async anonymizeAndRevokeById(userId: string, replacementPhoneNumber: string) {
+  async anonymizeAndRevokeById(
+    userId: string,
+    replacementPhoneNumber: string,
+  ): Promise<UserMeView | null> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         await tx.sessionAuthentification.updateMany({
@@ -73,7 +115,7 @@ export class UsersRepository implements UsersRepositoryPort {
           data: { revoqueLe: new Date() },
         });
 
-        return tx.utilisateur.update({
+        const user = await tx.utilisateur.update({
           where: { id: userId },
           data: {
             numeroTelephone: replacementPhoneNumber,
@@ -86,21 +128,23 @@ export class UsersRepository implements UsersRepositoryPort {
             jetonFcm: null,
             estActif: false,
           },
-          select: this.userMeSelect,
+          select: USER_ME_SELECT,
         });
+        return this.mapUserMe(user);
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        return null;
-      }
+      const handled = this.handlePrismaError(error, {
+        P2025: 'not_found',
+      });
+      if (handled) return null;
       throw error;
     }
   }
 
-  async listClientHistory(userId: string, limit: number) {
+  async listClientHistory(
+    userId: string,
+    limit: number,
+  ): Promise<UserHistoryItem[]> {
     const rows = await this.prisma.reservation.findMany({
       where: { clientId: userId },
       orderBy: { creeLe: 'desc' },

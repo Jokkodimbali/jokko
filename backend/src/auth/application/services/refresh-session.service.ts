@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   AUTH_REPOSITORY_PORT,

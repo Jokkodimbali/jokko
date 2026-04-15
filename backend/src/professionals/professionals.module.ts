@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 import { ProfessionalsController } from './presentation/controllers/professionals.controller';
 import { AdminKycController } from './presentation/controllers/admin-kyc.controller';
 import { ProfessionalsRepository } from './infrastructure/repositories/professionals.repository';
@@ -12,7 +13,7 @@ import { AvailabilityService } from './application/services/availability.service
 import { ProfessionalsFacade } from './application/services/professionals-facade.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuthModule],
   controllers: [ProfessionalsController, AdminKycController],
   providers: [
     // Infrastructure

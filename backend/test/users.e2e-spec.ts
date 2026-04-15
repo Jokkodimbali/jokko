@@ -94,7 +94,7 @@ describe('UsersModule (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ phoneNumber, password })
-      .expect(201);
+      .expect(200);
     const body = response.body as ApiResponse;
     const data = body.data as ApiObjectData;
 

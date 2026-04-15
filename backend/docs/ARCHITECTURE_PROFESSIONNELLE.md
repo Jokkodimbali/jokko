@@ -8,10 +8,6 @@ Ce document definit l'architecture cible du backend Jokko et sert de reference u
 - la robustesse production
 - la scalabilite
 
-Il complete:
-- `docs/TABLEAU_MESSAGES_HTTP.md` (codes/messages centralises)
-- `docs/TRELLO_BACKEND_COMPLET.csv` et `docs/TRELLO_WORKFLOW.md` (pilotage execution)
-
 Ce document doit rester vivant: toute decision structurante doit etre tracee ici.
 
 
@@ -122,26 +118,29 @@ Chaque module suit Clean Arch. Exemple Auth:
 - `infrastructure`: Impl Prisma (AuthRepository implements port).
 - `presentation`: HTTP entry (Controller valide DTO → service).
 
-### 3.2 Modules actuellement presents
+### 3.2 Modules actuellement implémentés
 
-- `core`
-- `prisma`
-- `sante` (module template architecture)
-- `auth`
-- `users`
+| Module | Fichiers | Statut | Tests |
+|--------|---------|--------|-------|
+| `core` | Global | ✅ Config, audit, events, validation env | ✅ |
+| `prisma` | Singleton DB | ✅ Client Prisma | ✅ |
+| `auth` | 33 fichiers | ✅ OTP, register, login, refresh, Google OAuth, guards | ✅ unit + E2E |
+| `users` | 16 fichiers | ✅ Profile, avatar, history, anonymisation | ✅ unit + E2E |
+| `professionals` | 37 fichiers | ✅ Profil, KYC, services, portfolio, availabilités, reviews | ✅ unit + E2E |
+| `categories` | 21 fichiers | ✅ CRUD admin + public, DDD complet, événements domaine | ✅ unit + E2E |
+| `sante` | Template | ✅ Health check | ✅ |
 
-### 3.3 Modules metier a implementer
-- `professionals`
-- `categories`
-- `services`
-- `search`
-- `bookings`
-- `payments`
-- `wallet`
-- `chat`
-- `tracking`
-- `notifications`
-- `admin`
+### 3.3 Modules métier à implémenter
+- `services` (si séparé de professionals)
+- `search` (recherche géolocalisée PostGIS)
+- `bookings` (réservations + FSM statut)
+- `payments` (Wave/OM + webhooks + idempotence)
+- `wallet` (ledger immutable)
+- `chat` (Socket.IO temps réel)
+- `tracking` (GPS live)
+- `notifications` (FCM push)
+- `admin` (back-office complet)
+- `reviews` (avis/notes si séparé)
 
 ## 4. Architecture logique par couches
 

@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -62,10 +63,11 @@ export class UsersController {
     );
   }
 
-  @Patch('me/avatar')
+  @Post('me/avatar')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Update my avatar URL' })
-  @ApiResponse({ status: 200, description: 'Avatar updated successfully' })
+  @ApiResponse({ status: 201, description: 'Avatar updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - Invalid URL' })
   async updateMyAvatar(
     @CurrentUser() user: AuthUser,

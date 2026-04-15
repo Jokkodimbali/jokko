@@ -60,6 +60,7 @@ describe('ProfessionalsModule (e2e)', () => {
     data?:
       | AuthResponseData
       | ProfessionalProfileData
+      | { profiles: ProfessionalProfileData[]; total: number }
       | Record<string, unknown>[];
   };
 
@@ -142,7 +143,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: proPhone,
         password: proPassword,
       })
-      .expect(201);
+      .expect(200);
     const proBody = proLoginResponse.body as ApiResponse;
     const proData = proBody.data as AuthResponseData;
     proAccessToken = proData.accessToken ?? '';
@@ -153,7 +154,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: clientPhone,
         password: clientPassword,
       })
-      .expect(201);
+      .expect(200);
     const clientBody = clientLoginResponse.body as ApiResponse;
     const clientData = clientBody.data as AuthResponseData;
     clientAccessToken = clientData.accessToken ?? '';
@@ -165,7 +166,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: adminPhone,
         password: adminPassword,
       })
-      .expect(201);
+      .expect(200);
     const adminBody = adminLoginResponse.body as ApiResponse;
     const adminData = adminBody.data as AuthResponseData;
     adminAccessToken = adminData.accessToken ?? '';
@@ -386,8 +387,11 @@ describe('ProfessionalsModule (e2e)', () => {
       .expect(200);
 
     const body = response.body as ApiResponse;
-    const data = body.data as ProfessionalProfileData[];
-    const profileIds = data.map((item) => item.id);
+    const data = body.data as {
+      profiles: ProfessionalProfileData[];
+      total: number;
+    };
+    const profileIds = data.profiles.map((item) => item.id);
     expect(profileIds).toContain(professionalProfileId);
   });
 

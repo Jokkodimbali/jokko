@@ -249,6 +249,43 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Disponibilite introuvable.',
     },
   },
+  categories: {
+    CATEGORIES_ADMIN_FORBIDDEN_ROLE: {
+      code: 'CATEGORIES_ADMIN_FORBIDDEN_ROLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Seuls les administrateurs peuvent effectuer cette action.',
+    },
+    CATEGORIES_CATEGORY_NOT_FOUND: {
+      code: 'CATEGORIES_CATEGORY_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Categorie introuvable.',
+    },
+    CATEGORIES_NAME_ALREADY_USED: {
+      code: 'CATEGORIES_NAME_ALREADY_USED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Une categorie avec ce nom existe deja.',
+    },
+    CATEGORIES_CATEGORY_CREATED: {
+      code: 'CATEGORIES_CATEGORY_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Categorie creee avec succes.',
+    },
+    CATEGORIES_CATEGORY_UPDATED: {
+      code: 'CATEGORIES_CATEGORY_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Categorie mise a jour avec succes.',
+    },
+    CATEGORIES_CATEGORY_DISABLED: {
+      code: 'CATEGORIES_CATEGORY_DISABLED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Categorie desactivee avec succes.',
+    },
+    CATEGORIES_UPDATE_EMPTY: {
+      code: 'CATEGORIES_UPDATE_EMPTY',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Au moins un champ doit etre fourni pour la mise a jour.',
+    },
+  },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
       code: 'SYSTEM_DATABASE_URL_MISSING',
@@ -268,6 +305,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.auth,
   ...APP_MESSAGES_BY_MODULE.users,
   ...APP_MESSAGES_BY_MODULE.professionals,
+  ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 
@@ -310,6 +348,18 @@ export const VALIDATION_MESSAGES = {
     'Le motif de rejet KYC ne doit pas depasser 1000 caracteres.',
   CATEGORY_ID_REQUIRED: 'La categorie est obligatoire.',
   CATEGORY_ID_FORMAT: "Le format de l'identifiant de categorie est invalide.",
+  CATEGORY_NAME_REQUIRED: 'Le nom de la categorie est obligatoire.',
+  CATEGORY_NAME_MIN:
+    'Le nom de la categorie doit contenir au moins 2 caracteres.',
+  CATEGORY_NAME_MAX:
+    'Le nom de la categorie ne doit pas depasser 100 caracteres.',
+  CATEGORY_ICON_URL_INVALID: "L'URL de l'icone de categorie est invalide.",
+  CATEGORY_SORT_ORDER_INTEGER:
+    "L'ordre de tri de la categorie doit etre un nombre entier.",
+  CATEGORY_SORT_ORDER_MIN:
+    "L'ordre de tri de la categorie ne peut pas etre negatif.",
+  CATEGORY_SORT_ORDER_MAX:
+    "L'ordre de tri de la categorie ne doit pas depasser 32767.",
   SERVICE_NAME_REQUIRED: 'Le nom du service est obligatoire.',
   SERVICE_NAME_MAX: 'Le nom du service ne doit pas depasser 200 caracteres.',
   SERVICE_DESCRIPTION_REQUIRED: 'La description du service est obligatoire.',

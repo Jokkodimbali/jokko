@@ -115,7 +115,9 @@ export class AuditLoggerMiddleware implements NestMiddleware {
   ): { entityType?: string; entityId?: string } {
     for (const [pattern, entityType] of Object.entries(ENTITY_PATTERNS)) {
       if (path.includes(pattern)) {
-        return { entityType, entityId: params.id };
+        const entityId =
+          params.id && !params.id.startsWith(':') ? params.id : undefined;
+        return { entityType, entityId };
       }
     }
     return {};

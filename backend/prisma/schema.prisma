@@ -32,6 +32,7 @@ enum StatutReservation {
   EN_COURS
   TERMINEE
   ANNULEE
+  NO_SHOW
   LITIGE
 }
 
@@ -124,7 +125,8 @@ model ProfilProfessionnel {
   utilisateurId      String       @unique @map("user_id") @db.Uuid
   biographie         String?      @map("bio") @db.Text
   nomEntreprise      String?      @map("company_name") @db.VarChar(150)
-  urlPieceIdentite   String?      @map("id_card_url") @db.VarChar(500)
+  urlPieceIdentiteRecto   String?      @map("id_card_url_recto") @db.VarChar(500)
+  urlPieceIdentiteVerso  String?      @map("id_card_url_verso") @db.VarChar(500)
   statutKyc          StatutKyc    @default(EN_ATTENTE) @map("kyc_status")
   raisonRejetKyc     String?      @map("kyc_reject_reason") @db.Text
   localisation       Unsupported("geography(Point, 4326)")?
@@ -138,6 +140,7 @@ model ProfilProfessionnel {
   services         Service[]
   disponibilites   Disponibilite[]
   elementsPortfolio ElementPortfolio[]
+  reservations     Reservation[]
 
   @@map("professional_profiles")
 }
@@ -202,20 +205,18 @@ model ElementPortfolio {
 model Reservation {
   id                String             @id @default(uuid()) @db.Uuid
   clientId          String             @map("client_id") @db.Uuid
+  professionnelId   String             @map("professional_id") @db.Uuid
   serviceId         String             @map("service_id") @db.Uuid
+  dateHeure         DateTime           @map("date_time")
+  dureeMinutes      Int                @map("duration_minutes") @default(60)
   statut            StatutReservation  @default(EN_ATTENTE)
-  planifieeLe       DateTime           @map("scheduled_at")
-  adresseClient     String             @map("client_address") @db.Text
-  notesClient       String?            @map("client_notes") @db.Text
-  prixAccorde       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
+  notes             String?            @map("notes") @db.Text
   raisonAnnulation  String?            @map("cancel_reason") @db.Text
-  noteClient        Int?               @map("client_rating") @db.SmallInt
-  avisClient        String?            @map("client_review") @db.Text
-  annuleeLe         DateTime?          @map("cancelled_at")
-  termineeLe        DateTime?          @map("completed_at")
   creeLe            DateTime           @default(now()) @map("created_at")
+  misAJourLe        DateTime           @default(now()) @map("updated_at")
 
   client            Utilisateur        @relation("ReservationsClient", fields: [clientId], references: [id])
+  professionnel     ProfilProfessionnel @relation(fields: [professionnelId], references: [id])
   service           Service            @relation(fields: [serviceId], references: [id])
   paiement          Paiement?
   conversations     Conversation[]

@@ -31,6 +31,6 @@ import { ProfessionalsFacade } from './application/services/professionals-facade
     // Facade (orchestration layer)
     ProfessionalsFacade,
   ],
-  exports: [ProfessionalsFacade],
+  exports: [ProfessionalsFacade, PROFESSIONALS_REPOSITORY_PORT],
 })
 export class ProfessionalsModule {}

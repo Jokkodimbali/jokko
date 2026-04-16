@@ -14,7 +14,8 @@ export type ProfessionalProfileView = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
-  urlPieceIdentite: string | null;
+  urlPieceIdentiteRecto: string | null;
+  urlPieceIdentiteVerso: string | null;
   statutKyc: KycStatus;
   raisonRejetKyc: string | null;
   ville: string | null;
@@ -58,9 +59,8 @@ export type ProfessionalAvailabilityView = {
 
 export type ProfessionalReviewView = {
   id: string;
-  noteClient: number;
-  avisClient: string | null;
-  planifieeLe: Date;
+  notes: string | null;
+  dateHeure: Date;
   creeLe: Date;
   service: {
     id: string;
@@ -100,7 +100,8 @@ export type UpdateProfessionalProfileResult =
 
 export type SubmitKycInput = {
   utilisateurId: string;
-  idCardUrl: string;
+  idCardUrlRecto: string;
+  idCardUrlVerso: string | null;
 };
 
 export type SubmitKycResult =
@@ -170,6 +171,7 @@ export type DisableServiceResult =
   | { status: 'service_not_found' };
 
 export interface ProfessionalServiceRepositoryPort {
+  getServiceById(serviceId: string): Promise<ProfessionalServiceView | null>;
   listServices(profileId: string): Promise<ProfessionalServiceView[]>;
   createService(input: CreateServiceInput): Promise<CreateServiceResult>;
   updateService(input: UpdateServiceInput): Promise<UpdateServiceResult>;

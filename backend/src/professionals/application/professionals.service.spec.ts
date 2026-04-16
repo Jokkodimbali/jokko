@@ -23,7 +23,8 @@ const createMockProfileView = (overrides: Record<string, unknown> = {}) => ({
   utilisateurId: 'user-123',
   biographie: 'Bio professionnelle',
   nomEntreprise: 'Entreprise SARL',
-  urlPieceIdentite: null,
+  urlPieceIdentiteRecto: null,
+  urlPieceIdentiteVerso: null,
   statutKyc: StatutKyc.EN_ATTENTE,
   raisonRejetKyc: null,
   ville: 'Dakar',
@@ -190,7 +191,7 @@ describe('KycService', () => {
     it('should submit KYC successfully', async () => {
       const mockProfile = createMockProfileView({
         statutKyc: StatutKyc.EN_ATTENTE,
-        urlPieceIdentite: 'https://example.com/cni.jpg',
+        urlPieceIdentiteRecto: 'https://example.com/cni.jpg',
       });
       mockRepository.submitKyc.mockResolvedValue({
         status: 'updated',
@@ -201,7 +202,7 @@ describe('KycService', () => {
         idCardUrl: 'https://example.com/cni.jpg',
       });
 
-      expect(result.urlPieceIdentite).toBe('https://example.com/cni.jpg');
+      expect(result.urlPieceIdentiteRecto).toBe('https://example.com/cni.jpg');
     });
 
     it('should throw when profile not found', async () => {

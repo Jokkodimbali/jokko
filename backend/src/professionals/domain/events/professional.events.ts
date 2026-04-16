@@ -26,7 +26,8 @@ export class ProfessionalProfileUpdated extends DomainEvent {
 export class ProfessionalKycSubmitted extends DomainEvent {
   constructor(
     aggregateId: string,
-    public readonly idCardUrl: string,
+    public readonly idCardUrlRecto: string,
+    public readonly idCardUrlVerso: string | null,
   ) {
     super(aggregateId);
   }

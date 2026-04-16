@@ -20,7 +20,8 @@ export class ProfessionalProfile {
     private readonly _utilisateurId: string,
     private _biographie: string | null,
     private _nomEntreprise: string | null,
-    private _urlPieceIdentite: string | null,
+    private _urlPieceIdentiteRecto: string | null,
+    private _urlPieceIdentiteVerso: string | null,
     private _statutKyc: KycStatus,
     private _raisonRejetKyc: string | null,
     private _ville: string | null,
@@ -54,8 +55,12 @@ export class ProfessionalProfile {
     return this._nomEntreprise;
   }
 
-  get urlPieceIdentite(): string | null {
-    return this._urlPieceIdentite;
+  get urlPieceIdentiteRecto(): string | null {
+    return this._urlPieceIdentiteRecto;
+  }
+
+  get urlPieceIdentiteVerso(): string | null {
+    return this._urlPieceIdentiteVerso;
   }
 
   get statutKyc(): KycStatus {
@@ -122,7 +127,8 @@ export class ProfessionalProfile {
       utilisateurId,
       biographie,
       nomEntreprise,
-      null, // urlPieceIdentite
+      null, // urlPieceIdentiteRecto
+      null, // urlPieceIdentiteVerso
       'NON_SOUMIS', // statutKyc
       null, // raisonRejetKyc
       ville,
@@ -149,7 +155,8 @@ export class ProfessionalProfile {
     utilisateurId: string;
     biographie: string | null;
     nomEntreprise: string | null;
-    urlPieceIdentite: string | null;
+    urlPieceIdentiteRecto: string | null;
+    urlPieceIdentiteVerso: string | null;
     statutKyc: KycStatus;
     raisonRejetKyc: string | null;
     ville: string | null;
@@ -162,7 +169,8 @@ export class ProfessionalProfile {
       data.utilisateurId,
       data.biographie,
       data.nomEntreprise,
-      data.urlPieceIdentite,
+      data.urlPieceIdentiteRecto,
+      data.urlPieceIdentiteVerso,
       data.statutKyc,
       data.raisonRejetKyc,
       data.ville,
@@ -174,13 +182,16 @@ export class ProfessionalProfile {
 
   // ─── Behavior Methods ─────────────────────────────────────────────────────
 
-  submitKyc(idCardUrl: string): void {
+  submitKyc(idCardUrlRecto: string, idCardUrlVerso: string | null): void {
     this.assertKycNotSubmitted();
-    this._urlPieceIdentite = idCardUrl;
+    this._urlPieceIdentiteRecto = idCardUrlRecto;
+    this._urlPieceIdentiteVerso = idCardUrlVerso;
     this._statutKyc = 'EN_ATTENTE';
     this._raisonRejetKyc = null;
 
-    this.domainEvents.push(new ProfessionalKycSubmitted(this._id, idCardUrl));
+    this.domainEvents.push(
+      new ProfessionalKycSubmitted(this._id, idCardUrlRecto, idCardUrlVerso),
+    );
   }
 
   approveKyc(): void {
@@ -264,7 +275,8 @@ export class ProfessionalProfile {
     utilisateurId: string;
     biographie: string | null;
     nomEntreprise: string | null;
-    urlPieceIdentite: string | null;
+    urlPieceIdentiteRecto: string | null;
+    urlPieceIdentiteVerso: string | null;
     statutKyc: KycStatus;
     raisonRejetKyc: string | null;
     ville: string | null;
@@ -277,7 +289,8 @@ export class ProfessionalProfile {
       utilisateurId: this._utilisateurId,
       biographie: this._biographie,
       nomEntreprise: this._nomEntreprise,
-      urlPieceIdentite: this._urlPieceIdentite,
+      urlPieceIdentiteRecto: this._urlPieceIdentiteRecto,
+      urlPieceIdentiteVerso: this._urlPieceIdentiteVerso,
       statutKyc: this._statutKyc,
       raisonRejetKyc: this._raisonRejetKyc,
       ville: this._ville,

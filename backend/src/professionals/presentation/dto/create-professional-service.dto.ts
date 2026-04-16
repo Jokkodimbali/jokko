@@ -11,6 +11,15 @@ import {
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
+/**
+ * Type de prix du service professionnel.
+ *
+ * Logique métier pour la négociation de prix :
+ * Le professionnel doit indiquer si le prix du service est fixe ou négociable.
+ * S'il est fixe, c'est bon. Si c'est négociable, il discute avec le client,
+ * et si le client n'accepte pas le prix, il lui propose un autre prix jusqu'à ce
+ * qu'ils tombent d'accord sur le prix, puis le client passe au paiement.
+ */
 export enum ServicePriceType {
   FIXE = 'FIXE',
   NEGOCIABLE = 'NEGOCIABLE',

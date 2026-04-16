@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import { KycIdCardUrl } from '../../domain';
+import { KycIdCardUrl, KycIdCardUrlVerso } from '../../domain';
 import type {
   SubmitKycCommand,
   RejectKycCommand,
@@ -15,7 +15,10 @@ export class KycService extends ProfessionalAppService {
 
     const result = await this.professionalsRepository.submitKyc({
       utilisateurId: requestUser.sub,
-      idCardUrl: KycIdCardUrl.create(command.idCardUrl).getValue(),
+      idCardUrlRecto: KycIdCardUrl.create(command.idCardUrl).getValue(),
+      idCardUrlVerso: command.idCardUrlVerso
+        ? KycIdCardUrlVerso.create(command.idCardUrlVerso).getValue()
+        : null,
     });
 
     if (result.status === 'profile_not_found') {

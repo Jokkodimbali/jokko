@@ -5,8 +5,8 @@ import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
 export class SubmitKycDto {
   @ApiProperty({
-    description: "URL de la piece d'identite",
-    example: 'https://example.com/images/cni.jpg',
+    description: "URL du recto de la pièce d'identité (CNI)",
+    example: 'https://example.com/images/cni-recto.jpg',
     format: 'uri',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -21,4 +21,22 @@ export class SubmitKycDto {
     },
   )
   idCardUrl!: string;
+
+  @ApiProperty({
+    description: "URL du verso de la pièce d'identité (CNI)",
+    example: 'https://example.com/images/cni-verso.jpg',
+    format: 'uri',
+    required: false,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      message: VALIDATION_MESSAGES.KYC_ID_CARD_URL_INVALID,
+    },
+  )
+  idCardUrlVerso?: string;
 }

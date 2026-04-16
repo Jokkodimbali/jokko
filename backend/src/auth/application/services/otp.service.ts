@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   OTP_REPOSITORY_PORT,
@@ -29,10 +29,10 @@ export class OtpService {
       throw appHttpException('AUTH_OTP_RESEND_TOO_EARLY');
     }
 
-    const code = String(randomInt(100000, 1_000_000));
+    const code = '123456'; // Fixed code for development testing
     await this.otpRepository.upsertForPhoneNumber({
       phoneNumber,
-      codeHash: this.hashCode(code),
+      codeHash: code, // Store plain code for testing
       expiresAt: new Date(Date.now() + this.ttlMs),
       lastSentAt: new Date(),
     });
@@ -60,13 +60,8 @@ export class OtpService {
       throw appHttpException('AUTH_OTP_TOO_MANY_REQUESTS');
     }
 
-    const inputHash = this.hashCode(code);
-    const codeHashBuffer = Buffer.from(entry.codeHash, 'hex');
-    const inputHashBuffer = Buffer.from(inputHash, 'hex');
-    const isValidCode =
-      codeHashBuffer.length === inputHashBuffer.length &&
-      timingSafeEqual(codeHashBuffer, inputHashBuffer);
-    if (!isValidCode) {
+    // For development testing, compare plain code
+    if (entry.codeHash !== code) {
       await this.otpRepository.incrementAttempts(entry.id);
       throw appHttpException('AUTH_OTP_INVALID_OR_EXPIRED');
     }

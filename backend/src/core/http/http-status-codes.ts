@@ -17,3 +17,5 @@ export const HTTP_STATUS_CODES = {
     INTERNAL_SERVER_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 } as const;
+
+export { HttpStatus } from '@nestjs/common';

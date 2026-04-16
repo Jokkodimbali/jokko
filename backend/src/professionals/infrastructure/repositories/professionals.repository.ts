@@ -37,7 +37,8 @@ const PROFESSIONAL_SELECT = {
   utilisateurId: true,
   biographie: true,
   nomEntreprise: true,
-  urlPieceIdentite: true,
+  urlPieceIdentiteRecto: true,
+  urlPieceIdentiteVerso: true,
   statutKyc: true,
   raisonRejetKyc: true,
   ville: true,
@@ -86,7 +87,8 @@ type RawProfessionalProfile = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
-  urlPieceIdentite: string | null;
+  urlPieceIdentiteRecto: string | null;
+  urlPieceIdentiteVerso: string | null;
   statutKyc: StatutKyc;
   raisonRejetKyc: string | null;
   ville: string | null;
@@ -219,7 +221,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       const profile = await this.prisma.profilProfessionnel.update({
         where: { utilisateurId: input.utilisateurId },
         data: {
-          urlPieceIdentite: input.idCardUrl,
+          urlPieceIdentiteRecto: input.idCardUrlRecto,
+          urlPieceIdentiteVerso: input.idCardUrlVerso,
           statutKyc: StatutKyc.EN_ATTENTE,
           raisonRejetKyc: null,
         },
@@ -326,6 +329,18 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
   }
 
   // ─── Service Operations ────────────────────────────────────────────────────
+
+  async getServiceById(
+    serviceId: string,
+  ): Promise<ProfessionalServiceView | null> {
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      select: SERVICE_SELECT,
+    });
+
+    if (!service) return null;
+    return this.mapService(service);
+  }
 
   async listServices(profileId: string): Promise<ProfessionalServiceView[]> {
     const services = await this.prisma.service.findMany({
@@ -550,16 +565,15 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
         service: {
           profilProfessionnelId: profileId,
         },
-        noteClient: {
+        notes: {
           not: null,
         },
       },
       orderBy: { creeLe: 'desc' },
       select: {
         id: true,
-        noteClient: true,
-        avisClient: true,
-        planifieeLe: true,
+        notes: true,
+        dateHeure: true,
         creeLe: true,
         service: {
           select: {
@@ -580,9 +594,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     // No redundant filter needed: Prisma's `not: null` already excludes nulls
     return rows.map((row) => ({
       id: row.id,
-      noteClient: row.noteClient as number,
-      avisClient: row.avisClient,
-      planifieeLe: row.planifieeLe,
+      notes: row.notes,
+      dateHeure: row.dateHeure,
       creeLe: row.creeLe,
       service: {
         id: row.service.id,
@@ -604,7 +617,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       utilisateurId: profile.utilisateurId,
       biographie: profile.biographie,
       nomEntreprise: profile.nomEntreprise,
-      urlPieceIdentite: profile.urlPieceIdentite,
+      urlPieceIdentiteRecto: profile.urlPieceIdentiteRecto,
+      urlPieceIdentiteVerso: profile.urlPieceIdentiteVerso,
       statutKyc: profile.statutKyc,
       raisonRejetKyc: profile.raisonRejetKyc,
       ville: profile.ville,

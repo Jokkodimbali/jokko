@@ -8,6 +8,7 @@ import { SharedModule } from './shared/shared.module';
 import { AuditLoggerMiddleware } from './core/audit/audit-logger.middleware';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CategoriesModule } from './categories/categories.module';
     UsersModule,
     ProfessionalsModule,
     CategoriesModule,
+    ReservationsModule,
   ],
 })
 export class AppModule implements NestModule {

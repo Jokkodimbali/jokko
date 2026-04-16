@@ -249,6 +249,54 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Disponibilite introuvable.',
     },
   },
+  reservations: {
+    RESERVATIONS_NEGOTIATION_REQUIRED: {
+      code: 'RESERVATIONS_NEGOTIATION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        "Ce service nécessite une négociation de prix. Veuillez créer une négociation d'abord.",
+    },
+  },
+  categories: {
+    RESERVATIONS_NEGOTIATION_REQUIRED: {
+      code: 'RESERVATIONS_NEGOTIATION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.PAYMENT_REQUIRED,
+      message:
+        "Ce service nécessite une négociation de prix. Veuillez créer une négociation d'abord.",
+    },
+  },
+  reservations: {
+    RESERVATIONS_CREATED: {
+      code: 'RESERVATIONS_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Réservation créée avec succès.',
+    },
+    RESERVATIONS_CONFIRMED: {
+      code: 'RESERVATIONS_CONFIRMED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Réservation confirmée avec succès.',
+    },
+    RESERVATIONS_CANCELLED: {
+      code: 'RESERVATIONS_CANCELLED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Réservation annulée avec succès.',
+    },
+    RESERVATIONS_RESCHEDULED: {
+      code: 'RESERVATIONS_RESCHEDULED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Réservation reprogrammée avec succès.',
+    },
+    RESERVATIONS_COMPLETED: {
+      code: 'RESERVATIONS_COMPLETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Réservation terminée avec succès.',
+    },
+    RESERVATIONS_NO_SHOW_MARKED: {
+      code: 'RESERVATIONS_NO_SHOW_MARKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Client marqué absent avec succès.',
+    },
+  },
   categories: {
     CATEGORIES_ADMIN_FORBIDDEN_ROLE: {
       code: 'CATEGORIES_ADMIN_FORBIDDEN_ROLE',

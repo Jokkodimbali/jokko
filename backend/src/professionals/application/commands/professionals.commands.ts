@@ -15,6 +15,7 @@ export type UpdateProfessionalProfileCommand = CreateProfessionalProfileCommand;
 
 export type SubmitKycCommand = {
   idCardUrl: string;
+  idCardUrlVerso?: string;
 };
 
 export type RejectKycCommand = {

@@ -1,11 +1,12 @@
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, RoleUtilisateur } from '@prisma/client';
+import { PrismaClient, RoleUtilisateur, StatutKyc, TypePrix } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { randomUUID } from 'node:crypto';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set');
+  throw new Error('DATABASE_URL not set');
 }
 
 const adapter = new PrismaPg(
@@ -20,82 +21,130 @@ const adapter = new PrismaPg(
 const prisma = new PrismaClient({ adapter });
 
 const CATEGORIES = [
-  { nom: 'Sante & Medecine', ordreTri: 1 },
-  { nom: 'Plomberie & Sanitaire', ordreTri: 2 },
-  { nom: 'Electricite', ordreTri: 3 },
-  { nom: 'Mecanique Automobile', ordreTri: 4 },
-  { nom: 'Informatique & Tech', ordreTri: 5 },
-  { nom: 'Cuisine & Traiteur', ordreTri: 6 },
-  { nom: 'Beaute & Bien-etre', ordreTri: 7 },
-  { nom: 'BTP & Renovation', ordreTri: 8 },
-  { nom: 'Menage & Services', ordreTri: 9 },
-  { nom: 'Cours & Formation', ordreTri: 10 },
-  { nom: 'Transport & Livraison', ordreTri: 11 },
-  { nom: 'Photo & Evenement', ordreTri: 12 },
+  { nom: 'Santé & Médecine', ordreTri: 1 },
+  { nom: 'Plomberie', ordreTri: 2 },
 ];
 
-async function seedCategories(): Promise<void> {
-  for (const category of CATEGORIES) {
+async function seed() {
+  // Categories
+  for (const cat of CATEGORIES) {
     await prisma.categorie.upsert({
-      where: { nom: category.nom },
-      update: {
-        ordreTri: category.ordreTri,
-        estActive: true,
-      },
-      create: {
-        nom: category.nom,
-        ordreTri: category.ordreTri,
-        estActive: true,
-      },
+      where: { nom: cat.nom },
+      update: { ordreTri: cat.ordreTri },
+      create: cat,
     });
   }
-}
 
-async function seedAdminFromEnv(): Promise<void> {
-  const adminPhone = process.env.SEED_ADMIN_PHONE?.trim();
-  const adminName = process.env.SEED_ADMIN_NAME?.trim() ?? 'Admin Jokko';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD?.trim();
+  // Admin
+  const adminPhone = process.env.SEED_ADMIN_PHONE || '+221771234567';
+  const adminName = 'Super Admin';
+  const adminPass = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+  const adminHash = await argon2.hash(adminPass);
 
-  if (!adminPhone || !adminPassword) {
-    return;
-  }
-
-  const passwordHash = await argon2.hash(adminPassword, {
-    type: argon2.argon2id,
-    memoryCost: 19_456,
-    timeCost: 3,
-    parallelism: 1,
-  });
-
-  await prisma.utilisateur.upsert({
+  const admin = await prisma.utilisateur.upsert({
     where: { numeroTelephone: adminPhone },
-    update: {
-      nom: adminName,
-      motDePasseHash: passwordHash,
-      role: RoleUtilisateur.ADMIN,
-      estActif: true,
-    },
+    update: { motDePasseHash: adminHash, role: RoleUtilisateur.ADMIN },
     create: {
       numeroTelephone: adminPhone,
       nom: adminName,
-      motDePasseHash: passwordHash,
+      motDePasseHash: adminHash,
       role: RoleUtilisateur.ADMIN,
-      estActif: true,
     },
   });
-}
 
-async function main(): Promise<void> {
-  await seedCategories();
-  await seedAdminFromEnv();
-}
-
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error: unknown) => {
-    console.error('Seed error:', error);
-    await prisma.$disconnect();
-    process.exit(1);
+  // Client
+  const clientPhone = '+221772345678';
+  const client = await prisma.utilisateur.upsert({
+    where: { numeroTelephone: clientPhone },
+    update: {},
+    create: {
+      numeroTelephone: clientPhone,
+      nom: 'Test Client',
+      role: RoleUtilisateur.CLIENT,
+      motDePasseHash: await argon2.hash('client123'),
+    },
   });
+
+  // Professional
+  const profPhone = '+221773456789';
+  const prof = await prisma.utilisateur.upsert({
+    where: { numeroTelephone: profPhone },
+    update: {},
+    create: {
+      numeroTelephone: profPhone,
+      nom: 'Test Prof',
+      role: RoleUtilisateur.PRESTATAIRE,
+      motDePasseHash: await argon2.hash('prof123'),
+    },
+  });
+
+  // Prof Profile
+  const profId = randomUUID();
+  await prisma.profilProfessionnel.upsert({
+    where: { utilisateurId: prof.id },
+    update: {},
+    create: {
+      id: profId,
+      utilisateurId: prof.id,
+      statutKyc: StatutKyc.VERIFIE,
+      ville: 'Dakar',
+      urlPieceIdentiteRecto: null,
+    },
+  });
+
+  // Category ID
+  const category = await prisma.categorie.findFirst({ where: { nom: 'Santé & Médecine' } });
+  if (!category) throw new Error('Category not found');
+
+  // Services
+  const serviceFixeId = randomUUID();
+  await prisma.service.create({
+    data: {
+      id: serviceFixeId,
+      profilProfessionnelId: profId,
+      categorieId: category.id,
+      nom: 'Consultation FIXE',
+      description: 'Consultation médicale fixe',
+      prix: 5000,
+      typePrix: TypePrix.FIXE,
+    },
+  });
+
+  const serviceNegId = randomUUID();
+  await prisma.service.create({
+    data: {
+      id: serviceNegId,
+      profilProfessionnelId: profId,
+      categorieId: category.id,
+      nom: 'Consultation NEGOCIABLE',
+      description: 'Consultation négociable',
+      prix: 0,
+      typePrix: TypePrix.NEGOCIABLE,
+    },
+  });
+
+  // Test Reservation
+  await prisma.reservation.create({
+    data: {
+      id: randomUUID(),
+      clientId: client.id,
+      professionnelId: profId,
+      serviceId: serviceFixeId,
+      dateHeure: new Date(Date.now() + 24*60*60*1000),
+      dureeMinutes: 60,
+      statut: 'EN_ATTENTE',
+    },
+  });
+
+  console.log('✅ Seed complete: Users, Prof, Services, Reservation créée!');
+}
+
+seed()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+

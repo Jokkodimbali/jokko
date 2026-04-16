@@ -152,9 +152,8 @@ export class UsersRepository implements UsersRepositoryPort {
       select: {
         id: true,
         statut: true,
-        planifieeLe: true,
-        adresseClient: true,
-        prixAccorde: true,
+        dateHeure: true,
+        notes: true,
         creeLe: true,
         service: {
           select: {
@@ -170,10 +169,8 @@ export class UsersRepository implements UsersRepositoryPort {
     return rows.map((row) => ({
       id: row.id,
       statut: row.statut,
-      planifieeLe: row.planifieeLe,
-      adresseClient: row.adresseClient,
-      prixAccorde:
-        row.prixAccorde === null ? null : Number(row.prixAccorde.toString()),
+      dateHeure: row.dateHeure,
+      notes: row.notes,
       creeLe: row.creeLe,
       service: {
         id: row.service.id,

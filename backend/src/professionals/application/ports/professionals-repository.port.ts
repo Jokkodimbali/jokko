@@ -1,5 +1,3 @@
-// Domain-level types for KYC status and price type
-// These decouple the application layer from Prisma enums
 export type KycStatus = 'EN_ATTENTE' | 'VERIFIE' | 'REJETE' | 'NON_SOUMIS';
 export type PriceType = 'FIXE' | 'NEGOCIABLE';
 
@@ -33,6 +31,7 @@ export type ProfessionalProfileView = {
 
 export type ProfessionalServiceView = {
   id: string;
+  profilProfessionnelId: string;
   nom: string;
   description: string;
   prix: number;

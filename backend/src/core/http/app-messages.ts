@@ -121,7 +121,7 @@ export const APP_MESSAGES_BY_MODULE = {
     },
     USERS_AVATAR_UPDATED: {
       code: 'USERS_AVATAR_UPDATED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
       message: 'Photo de profil mise a jour avec succes.',
     },
     USERS_ACCOUNT_ANONYMIZED: {
@@ -249,54 +249,6 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Disponibilite introuvable.',
     },
   },
-  reservations: {
-    RESERVATIONS_NEGOTIATION_REQUIRED: {
-      code: 'RESERVATIONS_NEGOTIATION_REQUIRED',
-      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
-      message:
-        "Ce service nécessite une négociation de prix. Veuillez créer une négociation d'abord.",
-    },
-  },
-  categories: {
-    RESERVATIONS_NEGOTIATION_REQUIRED: {
-      code: 'RESERVATIONS_NEGOTIATION_REQUIRED',
-      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.PAYMENT_REQUIRED,
-      message:
-        "Ce service nécessite une négociation de prix. Veuillez créer une négociation d'abord.",
-    },
-  },
-  reservations: {
-    RESERVATIONS_CREATED: {
-      code: 'RESERVATIONS_CREATED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
-      message: 'Réservation créée avec succès.',
-    },
-    RESERVATIONS_CONFIRMED: {
-      code: 'RESERVATIONS_CONFIRMED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
-      message: 'Réservation confirmée avec succès.',
-    },
-    RESERVATIONS_CANCELLED: {
-      code: 'RESERVATIONS_CANCELLED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
-      message: 'Réservation annulée avec succès.',
-    },
-    RESERVATIONS_RESCHEDULED: {
-      code: 'RESERVATIONS_RESCHEDULED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
-      message: 'Réservation reprogrammée avec succès.',
-    },
-    RESERVATIONS_COMPLETED: {
-      code: 'RESERVATIONS_COMPLETED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
-      message: 'Réservation terminée avec succès.',
-    },
-    RESERVATIONS_NO_SHOW_MARKED: {
-      code: 'RESERVATIONS_NO_SHOW_MARKED',
-      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
-      message: 'Client marqué absent avec succès.',
-    },
-  },
   categories: {
     CATEGORIES_ADMIN_FORBIDDEN_ROLE: {
       code: 'CATEGORIES_ADMIN_FORBIDDEN_ROLE',
@@ -334,6 +286,119 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Au moins un champ doit etre fourni pour la mise a jour.',
     },
   },
+  reservations: {
+    RESERVATIONS_FORBIDDEN_ROLE: {
+      code: 'RESERVATIONS_FORBIDDEN_ROLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Ce role ne peut pas effectuer cette action sur les reservations.',
+    },
+    RESERVATIONS_NOT_FOUND: {
+      code: 'RESERVATIONS_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Reservation introuvable.',
+    },
+    RESERVATIONS_UNAUTHORIZED: {
+      code: 'RESERVATIONS_UNAUTHORIZED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a acceder a cette reservation.",
+    },
+    RESERVATIONS_SERVICE_NOT_FOUND: {
+      code: 'RESERVATIONS_SERVICE_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Service introuvable.',
+    },
+    RESERVATIONS_PROFESSIONAL_NOT_FOUND: {
+      code: 'RESERVATIONS_PROFESSIONAL_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Professionnel introuvable.',
+    },
+    RESERVATIONS_SERVICE_NOT_AVAILABLE: {
+      code: 'RESERVATIONS_SERVICE_NOT_AVAILABLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Ce service nest pas disponible pour reservation.',
+    },
+    RESERVATIONS_SERVICE_PROFESSIONAL_MISMATCH: {
+      code: 'RESERVATIONS_SERVICE_PROFESSIONAL_MISMATCH',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Ce service n appartient pas au professionnel selectionne.',
+    },
+    RESERVATIONS_SELF_BOOKING_FORBIDDEN: {
+      code: 'RESERVATIONS_SELF_BOOKING_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Un prestataire ne peut pas reserver son propre service en tant que client.',
+    },
+    RESERVATIONS_NEGOTIATION_REQUIRED: {
+      code: 'RESERVATIONS_NEGOTIATION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Ce service necessite une negotiation de prix avant de creer une reservation.',
+    },
+    RESERVATIONS_NEGOTIATION_NOT_AVAILABLE: {
+      code: 'RESERVATIONS_NEGOTIATION_NOT_AVAILABLE',
+      httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.NOT_IMPLEMENTED,
+      message:
+        'Le flux de reservation depuis une negotiation nest pas encore disponible.',
+    },
+    RESERVATIONS_TIME_SLOT_UNAVAILABLE: {
+      code: 'RESERVATIONS_TIME_SLOT_UNAVAILABLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Ce creneau horaire nest pas disponible.',
+    },
+    RESERVATIONS_STATUS_PENDING_REQUIRED: {
+      code: 'RESERVATIONS_STATUS_PENDING_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'La reservation doit etre en attente pour cette action.',
+    },
+    RESERVATIONS_STATUS_ACTIVE_REQUIRED: {
+      code: 'RESERVATIONS_STATUS_ACTIVE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La reservation doit etre confirmee ou en cours pour cette action.',
+    },
+    RESERVATIONS_ALREADY_CLOSED: {
+      code: 'RESERVATIONS_ALREADY_CLOSED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'La reservation est deja terminee ou annulee.',
+    },
+    RESERVATIONS_CREATED: {
+      code: 'RESERVATIONS_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Reservation creee avec succes.',
+    },
+    RESERVATIONS_CONFIRMED: {
+      code: 'RESERVATIONS_CONFIRMED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Reservation confirmee avec succes.',
+    },
+    RESERVATIONS_CANCELLED: {
+      code: 'RESERVATIONS_CANCELLED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Reservation annulee avec succes.',
+    },
+    RESERVATIONS_RESCHEDULED: {
+      code: 'RESERVATIONS_RESCHEDULED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Reservation reprogrammee avec succes.',
+    },
+    RESERVATIONS_COMPLETED: {
+      code: 'RESERVATIONS_COMPLETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Reservation terminee avec succes.',
+    },
+    RESERVATIONS_NO_SHOW_MARKED: {
+      code: 'RESERVATIONS_NO_SHOW_MARKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Absence du client enregistree avec succes.',
+    },
+    RESERVATIONS_DATE_RANGE_REQUIRED: {
+      code: 'RESERVATIONS_DATE_RANGE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message:
+        'Les dates de debut et de fin sont obligatoires pour cette requete.',
+    },
+  },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
       code: 'SYSTEM_DATABASE_URL_MISSING',
@@ -354,6 +419,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.users,
   ...APP_MESSAGES_BY_MODULE.professionals,
   ...APP_MESSAGES_BY_MODULE.categories,
+  ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 
@@ -415,6 +481,8 @@ export const VALIDATION_MESSAGES = {
   SERVICE_PRICE_MUST_BE_POSITIVE:
     'Le prix du service doit etre un nombre positif.',
   SERVICE_PRICE_TYPE_INVALID: 'Le type de prix est invalide.',
+  SERVICE_ID_REQUIRED: 'Le service est obligatoire.',
+  SERVICE_ID_FORMAT: "Le format de l'identifiant du service est invalide.",
   PORTFOLIO_TITLE_REQUIRED: 'Le titre du portfolio est obligatoire.',
   PORTFOLIO_TITLE_MAX:
     'Le titre du portfolio ne doit pas depasser 200 caracteres.',
@@ -429,6 +497,32 @@ export const VALIDATION_MESSAGES = {
   PROFESSIONALS_UPDATE_EMPTY:
     'Au moins un champ doit etre fourni pour la mise a jour.',
   PROFESSIONALS_REJECT_REASON_EMPTY: 'Le motif de rejet ne peut pas etre vide.',
+  RESERVATION_PROFESSIONAL_ID_REQUIRED: 'Le professionnel est obligatoire.',
+  RESERVATION_PROFESSIONAL_ID_FORMAT:
+    "Le format de l'identifiant du professionnel est invalide.",
+  RESERVATION_NEGOTIATION_ID_REQUIRED: 'La negotiation est obligatoire.',
+  RESERVATION_NEGOTIATION_ID_FORMAT:
+    "Le format de l'identifiant de negotiation est invalide.",
+  RESERVATION_DATE_REQUIRED: 'La date de reservation est obligatoire.',
+  RESERVATION_DATE_INVALID:
+    'La date de reservation doit etre une date ISO valide.',
+  RESERVATION_ADDRESS_REQUIRED:
+    "L'adresse client de reservation est obligatoire.",
+  RESERVATION_ADDRESS_MAX:
+    "L'adresse client de reservation ne doit pas depasser 255 caracteres.",
+  RESERVATION_DURATION_REQUIRED: 'La duree de reservation est obligatoire.',
+  RESERVATION_DURATION_INTEGER:
+    'La duree de reservation doit etre un nombre entier.',
+  RESERVATION_DURATION_MIN:
+    'La duree de reservation doit etre d au moins 15 minutes.',
+  RESERVATION_DURATION_MAX:
+    'La duree de reservation ne doit pas depasser 1440 minutes.',
+  RESERVATION_NOTES_MAX:
+    'Les notes de reservation ne doivent pas depasser 1000 caracteres.',
+  RESERVATION_CANCEL_REASON_MAX:
+    "Le motif d'annulation ne doit pas depasser 1000 caracteres.",
+  RESERVATION_QUERY_DATE_INVALID:
+    'La date fournie dans les filtres est invalide.',
   PASSWORD_REQUIRED: 'Le mot de passe est obligatoire.',
   PASSWORD_LENGTH: 'Le mot de passe doit contenir entre 8 et 64 caracteres.',
   ID_TOKEN_REQUIRED: 'Le token Google est obligatoire.',

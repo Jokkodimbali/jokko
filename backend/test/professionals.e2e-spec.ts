@@ -371,12 +371,13 @@ describe('ProfessionalsModule (e2e)', () => {
     await prisma.reservation.create({
       data: {
         clientId: clientUserId,
+        professionnelId: professionalProfileId,
         serviceId,
-        statut: StatutReservation.TERMINEE,
-        planifieeLe: new Date(),
+        dateHeure: new Date(),
         adresseClient: 'Dakar Plateau',
-        noteClient: 5,
-        avisClient: 'Tres professionnel',
+        dureeMinutes: 60,
+        statut: StatutReservation.TERMINEE,
+        notes: 'Tres professionnel',
       },
     });
   });

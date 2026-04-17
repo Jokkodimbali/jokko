@@ -61,6 +61,18 @@ enum TypeNotification {
   LITIGE_RESOLU
 }
 
+enum CanalCommunication {
+  EMAIL
+  SMS
+}
+
+enum StatutCommunication {
+  EN_ATTENTE
+  ENVOYE
+  ECHEC
+  CONFIGURATION_MANQUANTE
+}
+
 model Utilisateur {
   id                String            @id @default(uuid()) @db.Uuid
   numeroTelephone   String            @unique @map("phone_number") @db.VarChar(20)
@@ -83,6 +95,7 @@ model Utilisateur {
   conversationsPrestataire  Conversation[]         @relation("ConversationsPrestataire")
   messagesEnvoyes           Message[]              @relation("MessagesEnvoyes")
   notifications             Notification[]
+  communicationsReservation CommunicationReservation[]
   sessionsAuthentification  SessionAuthentification[]
 
   @@map("users")
@@ -208,9 +221,11 @@ model Reservation {
   professionnelId   String             @map("professional_id") @db.Uuid
   serviceId         String             @map("service_id") @db.Uuid
   dateHeure         DateTime           @map("date_time")
+  adresseClient     String             @map("client_address") @db.VarChar(255)
   dureeMinutes      Int                @map("duration_minutes") @default(60)
   statut            StatutReservation  @default(EN_ATTENTE)
   notes             String?            @map("notes") @db.Text
+  prixConvenu       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
   raisonAnnulation  String?            @map("cancel_reason") @db.Text
   creeLe            DateTime           @default(now()) @map("created_at")
   misAJourLe        DateTime           @default(now()) @map("updated_at")
@@ -220,8 +235,35 @@ model Reservation {
   service           Service            @relation(fields: [serviceId], references: [id])
   paiement          Paiement?
   conversations     Conversation[]
+  communications    CommunicationReservation[]
 
   @@map("bookings")
+}
+
+model CommunicationReservation {
+  id                   String              @id @default(uuid()) @db.Uuid
+  reservationId        String              @map("booking_id") @db.Uuid
+  utilisateurId        String              @map("user_id") @db.Uuid
+  canal                CanalCommunication  @map("channel")
+  destinataire         String              @map("recipient") @db.VarChar(255)
+  sujet                String?             @map("subject") @db.VarChar(255)
+  contenu              String              @map("content") @db.Text
+  fournisseur          String?             @map("provider") @db.VarChar(100)
+  identifiantFournisseur String?           @map("provider_message_id") @db.VarChar(255)
+  statut               StatutCommunication @default(EN_ATTENTE) @map("status")
+  erreur               String?             @map("error") @db.Text
+  metadata             Json?               @map("metadata")
+  envoyeLe             DateTime?           @map("sent_at")
+  creeLe               DateTime            @default(now()) @map("created_at")
+  misAJourLe           DateTime            @updatedAt @map("updated_at")
+
+  reservation          Reservation         @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  utilisateur          Utilisateur         @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId, canal])
+  @@index([utilisateurId, creeLe])
+  @@index([statut, creeLe])
+  @@map("reservation_communications")
 }
 
 model Paiement {

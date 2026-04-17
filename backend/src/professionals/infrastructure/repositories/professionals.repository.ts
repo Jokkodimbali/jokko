@@ -37,8 +37,6 @@ const PROFESSIONAL_SELECT = {
   utilisateurId: true,
   biographie: true,
   nomEntreprise: true,
-  urlPieceIdentiteRecto: true,
-  urlPieceIdentiteVerso: true,
   statutKyc: true,
   raisonRejetKyc: true,
   ville: true,
@@ -58,6 +56,7 @@ const PROFESSIONAL_SELECT = {
 
 const SERVICE_SELECT = {
   id: true,
+  profilProfessionnelId: true,
   nom: true,
   description: true,
   prix: true,
@@ -87,8 +86,6 @@ type RawProfessionalProfile = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
-  urlPieceIdentiteRecto: string | null;
-  urlPieceIdentiteVerso: string | null;
   statutKyc: StatutKyc;
   raisonRejetKyc: string | null;
   ville: string | null;
@@ -135,6 +132,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
 
   private mapService(service: {
     id: string;
+    profilProfessionnelId: string;
     nom: string;
     description: string;
     prix: Prisma.Decimal;
@@ -144,6 +142,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
   }): ProfessionalServiceView {
     return {
       id: service.id,
+      profilProfessionnelId: service.profilProfessionnelId,
       nom: service.nom,
       description: service.description,
       prix: service.prix.toNumber(),
@@ -617,8 +616,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       utilisateurId: profile.utilisateurId,
       biographie: profile.biographie,
       nomEntreprise: profile.nomEntreprise,
-      urlPieceIdentiteRecto: profile.urlPieceIdentiteRecto,
-      urlPieceIdentiteVerso: profile.urlPieceIdentiteVerso,
+      urlPieceIdentiteRecto: null,
+      urlPieceIdentiteVerso: null,
       statutKyc: profile.statutKyc,
       raisonRejetKyc: profile.raisonRejetKyc,
       ville: profile.ville,

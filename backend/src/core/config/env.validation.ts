@@ -17,6 +17,9 @@ type EnvValide = {
   THROTTLE_MEDIUM_LIMIT: number;
   THROTTLE_LONG_TTL: number;
   THROTTLE_LONG_LIMIT: number;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM_ADDRESS?: string;
+  EMAIL_FROM_NAME?: string;
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_PHONE_NUMBER?: string;
@@ -136,6 +139,9 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     THROTTLE_MEDIUM_LIMIT: asNombre(env.THROTTLE_MEDIUM_LIMIT, 60),
     THROTTLE_LONG_TTL: asNombre(env.THROTTLE_LONG_TTL, 600000),
     THROTTLE_LONG_LIMIT: asNombre(env.THROTTLE_LONG_LIMIT, 200),
+    RESEND_API_KEY: asString(env.RESEND_API_KEY),
+    EMAIL_FROM_ADDRESS: asString(env.EMAIL_FROM_ADDRESS),
+    EMAIL_FROM_NAME: asString(env.EMAIL_FROM_NAME, 'Jokko'),
     TWILIO_ACCOUNT_SID: asString(env.TWILIO_ACCOUNT_SID),
     TWILIO_AUTH_TOKEN: asString(env.TWILIO_AUTH_TOKEN),
     TWILIO_PHONE_NUMBER: asString(env.TWILIO_PHONE_NUMBER),

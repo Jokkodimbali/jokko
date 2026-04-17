@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
-import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 
 export class SubmitKycDto {
   @ApiProperty({
@@ -31,6 +31,7 @@ export class SubmitKycDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
   @IsUrl(
     { protocols: ['http', 'https'], require_protocol: true },

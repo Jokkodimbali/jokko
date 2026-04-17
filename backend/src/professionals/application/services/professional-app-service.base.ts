@@ -18,27 +18,18 @@ export abstract class ProfessionalAppService {
     protected readonly professionalsRepository: ProfessionalsRepositoryPort,
   ) {}
 
-  /**
-   * Assert that the user has a professional (PRESTATAIRE) role.
-   */
   protected assertProfessionalRole(role: AuthUser['role']): void {
     if (!ProfessionalProfile.isProfessionalRole(role)) {
       throw appHttpException('PROFESSIONALS_FORBIDDEN_ROLE');
     }
   }
 
-  /**
-   * Assert that the user has an ADMIN role.
-   */
   protected assertAdminRole(role: AuthUser['role']): void {
     if (!ProfessionalProfile.isAdminRole(role)) {
       throw appHttpException('PROFESSIONALS_ADMIN_FORBIDDEN_ROLE');
     }
   }
 
-  /**
-   * Assert that the professional profile exists and KYC is verified.
-   */
   protected async assertKycVerified(userId: string): Promise<void> {
     const profile = await this.professionalsRepository.findByUserId(userId);
     if (!profile) {
@@ -49,9 +40,6 @@ export abstract class ProfessionalAppService {
     }
   }
 
-  /**
-   * Assert that a profile exists and is verified (public access).
-   */
   protected async assertVerifiedProfile(profileId: string): Promise<void> {
     const profile =
       await this.professionalsRepository.findVerifiedById(profileId);
@@ -60,9 +48,6 @@ export abstract class ProfessionalAppService {
     }
   }
 
-  /**
-   * Assert that a payload has at least one field defined.
-   */
   protected assertNonEmptyUpdate(payload: Record<string, unknown>): void {
     if (Object.values(payload).every((v) => v === undefined)) {
       throw appHttpException('PROFESSIONALS_UPDATE_EMPTY');

@@ -30,8 +30,9 @@ import {
   CancelReservationDto,
   RescheduleReservationDto,
 } from '../dto/update-reservation.dto';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags('Reservations')
+@ApiTags(API_DOCS.reservations.tag)
 @ApiBearerAuth()
 @Controller('reservations')
 @UseGuards(JwtAuthGuard)
@@ -40,8 +41,11 @@ export class ReservationsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Creer une reservation' })
-  @ApiResponse({ status: 201, description: 'Reservation creee avec succes' })
+  @ApiOperation({ summary: API_DOCS.reservations.createSummary })
+  @ApiResponse({
+    status: 201,
+    description: appMessage('RESERVATIONS_CREATED').message,
+  })
   async createReservation(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateReservationDto,
@@ -55,7 +59,7 @@ export class ReservationsController {
 
   @Post('from-negotiation')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Creer une reservation depuis une negotiation' })
+  @ApiOperation({ summary: API_DOCS.reservations.createFromNegotiationSummary })
   async createReservationFromNegotiation(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateReservationFromNegotiationDto,
@@ -69,7 +73,7 @@ export class ReservationsController {
   }
 
   @Get('my')
-  @ApiOperation({ summary: 'Lister mes reservations' })
+  @ApiOperation({ summary: API_DOCS.reservations.listMineSummary })
   async getMyReservations(
     @CurrentUser() user: AuthUser,
     @Query() query: ListReservationsQueryDto,
@@ -79,10 +83,10 @@ export class ReservationsController {
   }
 
   @Get(':reservationId')
-  @ApiOperation({ summary: 'Recuperer une reservation par son identifiant' })
+  @ApiOperation({ summary: API_DOCS.reservations.getByIdSummary })
   @ApiParam({
     name: 'reservationId',
-    description: 'Identifiant de la reservation',
+    description: API_DOCS.reservations.reservationIdParam,
   })
   async getReservation(
     @CurrentUser() user: AuthUser,
@@ -96,7 +100,7 @@ export class ReservationsController {
   }
 
   @Patch(':reservationId/confirm')
-  @ApiOperation({ summary: 'Confirmer une reservation' })
+  @ApiOperation({ summary: API_DOCS.reservations.confirmSummary })
   async confirmReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
@@ -112,7 +116,7 @@ export class ReservationsController {
   }
 
   @Patch(':reservationId/cancel')
-  @ApiOperation({ summary: 'Annuler une reservation' })
+  @ApiOperation({ summary: API_DOCS.reservations.cancelSummary })
   async cancelReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
@@ -130,7 +134,7 @@ export class ReservationsController {
   }
 
   @Patch(':reservationId/reschedule')
-  @ApiOperation({ summary: 'Reprogrammer une reservation' })
+  @ApiOperation({ summary: API_DOCS.reservations.rescheduleSummary })
   async rescheduleReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
@@ -148,7 +152,7 @@ export class ReservationsController {
   }
 
   @Patch(':reservationId/complete')
-  @ApiOperation({ summary: 'Marquer une reservation comme terminee' })
+  @ApiOperation({ summary: API_DOCS.reservations.completeSummary })
   async completeReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
@@ -164,7 +168,7 @@ export class ReservationsController {
   }
 
   @Patch(':reservationId/no-show')
-  @ApiOperation({ summary: 'Declarer une absence client' })
+  @ApiOperation({ summary: API_DOCS.reservations.noShowSummary })
   async markNoShow(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,

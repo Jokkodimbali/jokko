@@ -1,4 +1,5 @@
 import { ValidationError } from '../../../shared/domain/errors/domain-error';
+import { domainMessage } from '../../../core/messages/domain-message.catalog';
 
 export class CategoryDomainError extends ValidationError {
   constructor(code: string, message: string) {
@@ -8,21 +9,21 @@ export class CategoryDomainError extends ValidationError {
   static invalidNameLength(length: number): CategoryDomainError {
     return new CategoryDomainError(
       'INVALID_CATEGORY_NAME_LENGTH',
-      `Le nom de categorie doit contenir entre 2 et 100 caracteres. Longueur recue: ${length}.`,
+      domainMessage('INVALID_CATEGORY_NAME_LENGTH', { length }),
     );
   }
 
   static invalidIconUrl(url: string): CategoryDomainError {
     return new CategoryDomainError(
       'INVALID_CATEGORY_ICON_URL',
-      `L'URL d'icone de categorie est invalide: ${url}.`,
+      domainMessage('INVALID_CATEGORY_ICON_URL', { url }),
     );
   }
 
   static invalidSortOrder(value: number): CategoryDomainError {
     return new CategoryDomainError(
       'INVALID_CATEGORY_SORT_ORDER',
-      `L'ordre de tri doit etre un entier entre 0 et 32767. Valeur recue: ${value}.`,
+      domainMessage('INVALID_CATEGORY_SORT_ORDER', { value }),
     );
   }
 }

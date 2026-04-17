@@ -26,8 +26,10 @@ import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto/logout.dto';
 import { GoogleLoginDto } from '../dto/google-login.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import { appMessage } from '../../../core/http/app-http.exception';
 
-@ApiTags('Authentication')
+@ApiTags(API_DOCS.auth.tag)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -35,11 +37,14 @@ export class AuthController {
   @Post('otp/send')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send OTP code to phone number' })
-  @ApiResponse({ status: 200, description: 'OTP sent successfully' })
+  @ApiOperation({ summary: API_DOCS.auth.sendOtpSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('AUTH_OTP_SENT').message,
+  })
   @ApiResponse({
     status: 429,
-    description: 'Too many requests - Rate limit exceeded',
+    description: API_DOCS.auth.sendOtpRateLimit,
   })
   async sendOtp(@Body() dto: SendOtpDto) {
     const result = await this.authService.sendOtp(dto.phoneNumber);
@@ -52,9 +57,12 @@ export class AuthController {
   @Post('otp/verify')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP code and authenticate user' })
-  @ApiResponse({ status: 200, description: 'OTP verified, user authenticated' })
-  @ApiResponse({ status: 400, description: 'Invalid or expired OTP' })
+  @ApiOperation({ summary: API_DOCS.auth.verifyOtpSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.auth.verifyOtpSuccess })
+  @ApiResponse({
+    status: 400,
+    description: API_DOCS.common.invalidOrExpiredOtp,
+  })
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code);
     return createApiResponse(result);
@@ -62,11 +70,11 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new user account' })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiOperation({ summary: API_DOCS.auth.registerSummary })
+  @ApiResponse({ status: 201, description: API_DOCS.auth.registerSuccess })
   @ApiResponse({
     status: 409,
-    description: 'Conflict - Phone or email already used',
+    description: API_DOCS.auth.registerConflict,
   })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
@@ -75,9 +83,9 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with phone number and password' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiOperation({ summary: API_DOCS.auth.loginSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.auth.loginSuccess })
+  @ApiResponse({ status: 401, description: API_DOCS.common.invalidCredentials })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
     return createApiResponse(result);
@@ -85,11 +93,11 @@ export class AuthController {
 
   @Post('google/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with Google OAuth token' })
-  @ApiResponse({ status: 200, description: 'Google login successful' })
+  @ApiOperation({ summary: API_DOCS.auth.googleLoginSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.auth.googleLoginSuccess })
   @ApiResponse({
     status: 401,
-    description: 'Google account not linked or invalid',
+    description: API_DOCS.auth.googleLoginFailure,
   })
   async loginWithGoogle(@Body() dto: GoogleLoginDto) {
     const result = await this.authService.loginWithGoogle(dto.idToken);
@@ -98,9 +106,12 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @ApiOperation({ summary: API_DOCS.auth.refreshSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.auth.refreshSuccess })
+  @ApiResponse({
+    status: 401,
+    description: API_DOCS.common.invalidOrExpiredRefreshToken,
+  })
   async refresh(@Body() dto: RefreshTokenDto) {
     const result = await this.authService.refresh(dto.refreshToken);
     return createApiResponse(result);
@@ -108,8 +119,11 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout and revoke refresh session' })
-  @ApiResponse({ status: 200, description: 'Logout successful' })
+  @ApiOperation({ summary: API_DOCS.auth.logoutSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('AUTH_LOGOUT_SUCCESS').message,
+  })
   async logout(@Body() dto: LogoutDto) {
     const result = await this.authService.logout(dto.refreshToken);
     return createApiResponse(null, result.message);
@@ -118,10 +132,13 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user public profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiOperation({ summary: API_DOCS.auth.meSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.common.profileRetrieved })
+  @ApiResponse({ status: 401, description: API_DOCS.common.unauthorized })
+  @ApiResponse({
+    status: 404,
+    description: appMessage('AUTH_USER_NOT_FOUND').message,
+  })
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.authService.getProfile(user.sub);
     return createApiResponse(result);

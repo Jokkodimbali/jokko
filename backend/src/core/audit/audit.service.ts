@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuditLogData } from './audit.types';
+import { TECHNICAL_MESSAGES } from '../messages/technical-message.catalog';
 
 type JournalAuditList = Awaited<
   ReturnType<PrismaService['journalAudit']['findMany']>
@@ -32,7 +33,7 @@ export class AuditService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Failed to write audit log: ${errorMessage}`);
+      this.logger.error(TECHNICAL_MESSAGES.AUDIT_LOG_WRITE_FAILED(errorMessage));
     }
   }
 

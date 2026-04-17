@@ -33,8 +33,9 @@ import { UpdateProfessionalServiceDto } from '../dto/update-professional-service
 import { CreatePortfolioItemDto } from '../dto/create-portfolio-item.dto';
 import { CreateAvailabilityDto } from '../dto/create-availability.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags('Professionals')
+@ApiTags(API_DOCS.professionals.tag)
 @Controller('professionals')
 export class ProfessionalsController {
   constructor(private readonly professionalsFacade: ProfessionalsFacade) {}
@@ -45,15 +46,18 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a professional profile' })
-  @ApiResponse({ status: 201, description: 'Profile created successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.createProfileSummary })
+  @ApiResponse({
+    status: 201,
+    description: appMessage('PROFESSIONALS_PROFILE_CREATED').message,
+  })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - User is not a PRESTATAIRE',
+    description: API_DOCS.professionals.createProfileForbidden,
   })
   @ApiResponse({
     status: 409,
-    description: 'Conflict - Profile already exists',
+    description: API_DOCS.professionals.createProfileConflict,
   })
   async createProfile(
     @CurrentUser() user: AuthUser,
@@ -69,8 +73,8 @@ export class ProfessionalsController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my professional profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.meSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.common.profileRetrieved })
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.professionalsFacade.me(user);
     return createApiResponse(result);
@@ -79,8 +83,11 @@ export class ProfessionalsController {
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update my professional profile (partial update)' })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.updateSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_PROFILE_UPDATED').message,
+  })
   async updateMyProfile(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProfessionalProfileDto,
@@ -97,8 +104,11 @@ export class ProfessionalsController {
   @Patch('me/kyc/submit')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Submit KYC documents for verification' })
-  @ApiResponse({ status: 200, description: 'KYC submitted successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.submitKycSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_KYC_SUBMITTED').message,
+  })
   async submitKyc(@CurrentUser() user: AuthUser, @Body() dto: SubmitKycDto) {
     const result = await this.professionalsFacade.submitKyc(user, dto);
     return createApiResponse(
@@ -113,8 +123,11 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new service' })
-  @ApiResponse({ status: 201, description: 'Service created successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.createServiceSummary })
+  @ApiResponse({
+    status: 201,
+    description: appMessage('PROFESSIONALS_SERVICE_CREATED').message,
+  })
   async createMyService(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateProfessionalServiceDto,
@@ -129,8 +142,11 @@ export class ProfessionalsController {
   @Patch('me/services/:serviceId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a service (partial update)' })
-  @ApiResponse({ status: 200, description: 'Service updated successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.updateServiceSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_SERVICE_UPDATED').message,
+  })
   async updateMyService(
     @CurrentUser() user: AuthUser,
     @Param('serviceId') serviceId: string,
@@ -150,8 +166,11 @@ export class ProfessionalsController {
   @Delete('me/services/:serviceId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Disable a service' })
-  @ApiResponse({ status: 200, description: 'Service disabled successfully' })
+  @ApiOperation({ summary: API_DOCS.professionals.disableServiceSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_SERVICE_DISABLED').message,
+  })
   async disableMyService(
     @CurrentUser() user: AuthUser,
     @Param('serviceId') serviceId: string,
@@ -172,10 +191,10 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a portfolio item' })
+  @ApiOperation({ summary: API_DOCS.professionals.createPortfolioSummary })
   @ApiResponse({
     status: 201,
-    description: 'Portfolio item created successfully',
+    description: appMessage('PROFESSIONALS_PORTFOLIO_ITEM_CREATED').message,
   })
   async createMyPortfolioItem(
     @CurrentUser() user: AuthUser,
@@ -194,10 +213,10 @@ export class ProfessionalsController {
   @Delete('me/portfolio/:itemId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a portfolio item' })
+  @ApiOperation({ summary: API_DOCS.professionals.deletePortfolioSummary })
   @ApiResponse({
     status: 200,
-    description: 'Portfolio item deleted successfully',
+    description: appMessage('PROFESSIONALS_PORTFOLIO_ITEM_DELETED').message,
   })
   async deleteMyPortfolioItem(
     @CurrentUser() user: AuthUser,
@@ -216,10 +235,10 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create an availability slot' })
+  @ApiOperation({ summary: API_DOCS.professionals.createAvailabilitySummary })
   @ApiResponse({
     status: 201,
-    description: 'Availability created successfully',
+    description: appMessage('PROFESSIONALS_AVAILABILITY_CREATED').message,
   })
   async createMyAvailability(
     @CurrentUser() user: AuthUser,
@@ -238,10 +257,10 @@ export class ProfessionalsController {
   @Delete('me/availabilities/:availabilityId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Disable an availability slot' })
+  @ApiOperation({ summary: API_DOCS.professionals.disableAvailabilitySummary })
   @ApiResponse({
     status: 200,
-    description: 'Availability disabled successfully',
+    description: appMessage('PROFESSIONALS_AVAILABILITY_DISABLED').message,
   })
   async disableMyAvailability(
     @CurrentUser() user: AuthUser,
@@ -260,58 +279,79 @@ export class ProfessionalsController {
   // ─── Public Routes ────────────────────────────────────────────────────────
 
   @Get()
-  @ApiOperation({ summary: 'List verified professionals' })
+  @ApiOperation({ summary: API_DOCS.professionals.listSummary })
   @ApiQuery({ name: 'city', required: false, type: String })
   @ApiQuery({
     name: 'page',
     required: false,
     type: Number,
-    description: 'Page number (default: 1)',
+    description: API_DOCS.professionals.pageDescription,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Items per page (default: 20, max: 50)',
+    description: API_DOCS.professionals.limitDescription,
   })
-  @ApiResponse({ status: 200, description: 'List of verified professionals' })
+  @ApiResponse({ status: 200, description: API_DOCS.professionals.listSuccess })
   async list(@Query() query: ListProfessionalsQueryDto) {
     const result = await this.professionalsFacade.listProfessionals(query);
     return createApiResponse(result);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a professional profile by ID' })
-  @ApiParam({ name: 'id', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 404, description: 'Profile not found' })
+  @ApiOperation({ summary: API_DOCS.professionals.byIdSummary })
+  @ApiParam({
+    name: 'id',
+    description: API_DOCS.professionals.professionalIdParam,
+  })
+  @ApiResponse({ status: 200, description: API_DOCS.common.profileRetrieved })
+  @ApiResponse({ status: 404, description: API_DOCS.common.profileNotFound })
   async byId(@Param('id') id: string) {
     const result = await this.professionalsFacade.getProfessionalById(id);
     return createApiResponse(result);
   }
 
   @Get(':id/services')
-  @ApiOperation({ summary: 'List services of a professional' })
-  @ApiParam({ name: 'id', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'List of services' })
+  @ApiOperation({ summary: API_DOCS.professionals.listServicesSummary })
+  @ApiParam({
+    name: 'id',
+    description: API_DOCS.professionals.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: API_DOCS.professionals.listServicesSuccess,
+  })
   async services(@Param('id') id: string) {
     const result = await this.professionalsFacade.listProfessionalServices(id);
     return createApiResponse(result);
   }
 
   @Get(':id/portfolio')
-  @ApiOperation({ summary: 'List portfolio items of a professional' })
-  @ApiParam({ name: 'id', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'List of portfolio items' })
+  @ApiOperation({ summary: API_DOCS.professionals.listPortfolioSummary })
+  @ApiParam({
+    name: 'id',
+    description: API_DOCS.professionals.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: API_DOCS.professionals.listPortfolioSuccess,
+  })
   async portfolio(@Param('id') id: string) {
     const result = await this.professionalsFacade.listProfessionalPortfolio(id);
     return createApiResponse(result);
   }
 
   @Get(':id/availabilities')
-  @ApiOperation({ summary: 'List availabilities of a professional' })
-  @ApiParam({ name: 'id', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'List of availabilities' })
+  @ApiOperation({ summary: API_DOCS.professionals.listAvailabilitiesSummary })
+  @ApiParam({
+    name: 'id',
+    description: API_DOCS.professionals.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: API_DOCS.professionals.listAvailabilitiesSuccess,
+  })
   async availabilities(@Param('id') id: string) {
     const result =
       await this.professionalsFacade.listProfessionalAvailabilities(id);
@@ -319,9 +359,15 @@ export class ProfessionalsController {
   }
 
   @Get(':id/reviews')
-  @ApiOperation({ summary: 'List reviews of a professional' })
-  @ApiParam({ name: 'id', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'List of reviews' })
+  @ApiOperation({ summary: API_DOCS.professionals.listReviewsSummary })
+  @ApiParam({
+    name: 'id',
+    description: API_DOCS.professionals.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: API_DOCS.professionals.listReviewsSuccess,
+  })
   async reviews(@Param('id') id: string) {
     const result = await this.professionalsFacade.listProfessionalReviews(id);
     return createApiResponse(result);

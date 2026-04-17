@@ -13,8 +13,9 @@ import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { ReservationsFacade } from '../../application/services/reservations-facade.service';
 import { ListReservationsQueryDto } from '../dto/list-reservations-query.dto';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags('Admin - Reservations')
+@ApiTags(API_DOCS.adminReservations.tag)
 @ApiBearerAuth()
 @Controller('admin/reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -23,7 +24,7 @@ export class AdminReservationsController {
 
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
-  @ApiOperation({ summary: 'Lister les reservations sur une plage de dates' })
+  @ApiOperation({ summary: API_DOCS.adminReservations.listSummary })
   async listAllReservations(
     @CurrentUser() user: AuthUser,
     @Query() query: ListReservationsQueryDto,
@@ -37,10 +38,10 @@ export class AdminReservationsController {
 
   @Get(':reservationId')
   @Roles(RoleUtilisateur.ADMIN)
-  @ApiOperation({ summary: 'Recuperer une reservation par son identifiant' })
+  @ApiOperation({ summary: API_DOCS.adminReservations.getByIdSummary })
   @ApiParam({
     name: 'reservationId',
-    description: 'Identifiant de la reservation',
+    description: API_DOCS.adminReservations.reservationIdParam,
   })
   async getReservation(
     @CurrentUser() user: AuthUser,

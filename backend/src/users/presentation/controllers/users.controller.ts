@@ -26,8 +26,9 @@ import { UpdateMyProfileDto } from '../dto/update-my-profile.dto';
 import { UpdateMyAvatarDto } from '../dto/update-my-avatar.dto';
 import { MyHistoryQueryDto } from '../dto/my-history-query.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags('Users')
+@ApiTags(API_DOCS.users.tag)
 @ApiBearerAuth()
 @Controller('users')
 export class UsersController {
@@ -35,9 +36,9 @@ export class UsersController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get my user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiOperation({ summary: API_DOCS.users.meSummary })
+  @ApiResponse({ status: 200, description: API_DOCS.common.profileRetrieved })
+  @ApiResponse({ status: 401, description: API_DOCS.common.unauthorized })
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.usersService.me(user.sub);
     return createApiResponse(result);
@@ -45,13 +46,16 @@ export class UsersController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update my user profile (partial update)' })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiOperation({ summary: API_DOCS.users.updateSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('USERS_PROFILE_UPDATED').message,
+  })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - Empty payload or validation error',
+    description: API_DOCS.users.updateBadRequest,
   })
-  @ApiResponse({ status: 409, description: 'Conflict - Email already used' })
+  @ApiResponse({ status: 409, description: API_DOCS.users.updateConflict })
   async updateMe(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMyProfileDto,
@@ -66,9 +70,12 @@ export class UsersController {
   @Post('me/avatar')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Update my avatar URL' })
-  @ApiResponse({ status: 201, description: 'Avatar updated successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid URL' })
+  @ApiOperation({ summary: API_DOCS.users.avatarSummary })
+  @ApiResponse({
+    status: 201,
+    description: appMessage('USERS_AVATAR_UPDATED').message,
+  })
+  @ApiResponse({ status: 400, description: API_DOCS.users.avatarBadRequest })
   async updateMyAvatar(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMyAvatarDto,
@@ -82,14 +89,14 @@ export class UsersController {
 
   @Get('me/history')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get my booking history' })
+  @ApiOperation({ summary: API_DOCS.users.historySummary })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Number of results (default: 20, max: 100)',
+    description: API_DOCS.users.historyLimitDescription,
   })
-  @ApiResponse({ status: 200, description: 'History retrieved successfully' })
+  @ApiResponse({ status: 200, description: API_DOCS.users.historySuccess })
   async myHistory(
     @CurrentUser() user: AuthUser,
     @Query() query: MyHistoryQueryDto,
@@ -101,9 +108,12 @@ export class UsersController {
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Anonymize and delete my account' })
-  @ApiResponse({ status: 200, description: 'Account anonymized successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiOperation({ summary: API_DOCS.users.deleteSummary })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('USERS_ACCOUNT_ANONYMIZED').message,
+  })
+  @ApiResponse({ status: 401, description: API_DOCS.common.unauthorized })
   async deleteMe(@CurrentUser() user: AuthUser) {
     await this.usersService.anonymizeMe(user.sub);
     return createApiResponse(

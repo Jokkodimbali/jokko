@@ -14,6 +14,8 @@ import {
   DOMAINE_EVENT_BUS,
   type DomaineEventBusPort,
 } from '../../../core/events/domaine-event-bus.port';
+import { RESERVATION_NOTIFICATION_MESSAGES } from '../../../core/messages/reservation-notification.messages';
+import { TECHNICAL_MESSAGES } from '../../../core/messages/technical-message.catalog';
 
 type ReservationCreatedNotificationInput = {
   reservationId: string;
@@ -54,18 +56,23 @@ export class ReservationClientNotificationService {
       return;
     }
 
-    const title = 'Reservation enregistree';
     const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
       dateStyle: 'full',
       timeStyle: 'short',
     });
-    const body =
-      `Bonjour ${client.nom}, votre reservation pour "${input.serviceName}" ` +
-      `avec ${input.professionalName} est confirmee dans le systeme pour le ${formattedDate}. ` +
-      `Lieu: ${input.adresseClient}.`;
-    const smsBody =
-      `Jokko: votre reservation "${input.serviceName}" avec ${input.professionalName} ` +
-      `est enregistree pour le ${formattedDate}.`;
+    const title = RESERVATION_NOTIFICATION_MESSAGES.createdTitle;
+    const body = RESERVATION_NOTIFICATION_MESSAGES.createdPushBody({
+      clientName: client.nom,
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+      address: input.adresseClient,
+    });
+    const smsBody = RESERVATION_NOTIFICATION_MESSAGES.createdSmsBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+    });
     const communicationMetadata = {
       reservationId: input.reservationId,
       serviceName: input.serviceName,
@@ -92,7 +99,7 @@ export class ReservationClientNotificationService {
               utilisateurId: input.clientId,
               canal: CanalCommunication.EMAIL,
               destinataire: client.email,
-              sujet: 'Confirmation de votre reservation Jokko',
+              sujet: RESERVATION_NOTIFICATION_MESSAGES.createdEmailSubject,
               contenu: body,
               metadata: communicationMetadata,
             },
@@ -128,14 +135,14 @@ export class ReservationClientNotificationService {
           recipientUserId: client.id,
           recipientEmail: client.email,
           recipientName: client.nom,
-          subject: 'Confirmation de votre reservation Jokko',
+          subject: RESERVATION_NOTIFICATION_MESSAGES.createdEmailSubject,
           body,
         },
       });
 
       const emailResult = await this.sendEmail({
         to: client.email,
-        subject: 'Confirmation de votre reservation Jokko',
+        subject: RESERVATION_NOTIFICATION_MESSAGES.createdEmailSubject,
         text: body,
       });
       if (createdRecords.emailDispatchId) {
@@ -177,12 +184,13 @@ export class ReservationClientNotificationService {
 
     if (!apiKey || !fromAddress) {
       this.logger.warn(
-        'Email provider not configured. Reservation email skipped.',
+        TECHNICAL_MESSAGES.RESERVATION_EMAIL_PROVIDER_NOT_CONFIGURED,
       );
       return {
         status: StatutCommunication.CONFIGURATION_MANQUANTE,
         provider: 'resend',
-        error: 'Email provider not configured',
+        error:
+          TECHNICAL_MESSAGES.RESERVATION_EMAIL_PROVIDER_CONFIGURATION_MISSING,
       };
     }
 
@@ -203,7 +211,9 @@ export class ReservationClientNotificationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`Reservation email failed: ${errorText}`);
+        this.logger.error(
+          TECHNICAL_MESSAGES.RESERVATION_EMAIL_FAILED(errorText),
+        );
         return {
           status: StatutCommunication.ECHEC,
           provider: 'resend',
@@ -221,7 +231,9 @@ export class ReservationClientNotificationService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Reservation email failed: ${errorMessage}`);
+      this.logger.error(
+        TECHNICAL_MESSAGES.RESERVATION_EMAIL_FAILED(errorMessage),
+      );
       return {
         status: StatutCommunication.ECHEC,
         provider: 'resend',
@@ -242,12 +254,13 @@ export class ReservationClientNotificationService {
 
     if (!accountSid || !authToken || !fromPhoneNumber) {
       this.logger.warn(
-        'Twilio is not configured. Reservation SMS notification skipped.',
+        TECHNICAL_MESSAGES.RESERVATION_SMS_PROVIDER_NOT_CONFIGURED,
       );
       return {
         status: StatutCommunication.CONFIGURATION_MANQUANTE,
         provider: 'twilio',
-        error: 'Twilio provider not configured',
+        error:
+          TECHNICAL_MESSAGES.RESERVATION_SMS_PROVIDER_CONFIGURATION_MISSING,
       };
     }
 
@@ -275,7 +288,7 @@ export class ReservationClientNotificationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`Reservation SMS failed: ${errorText}`);
+        this.logger.error(TECHNICAL_MESSAGES.RESERVATION_SMS_FAILED(errorText));
         return {
           status: StatutCommunication.ECHEC,
           provider: 'twilio',
@@ -293,7 +306,9 @@ export class ReservationClientNotificationService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Reservation SMS failed: ${errorMessage}`);
+      this.logger.error(
+        TECHNICAL_MESSAGES.RESERVATION_SMS_FAILED(errorMessage),
+      );
       return {
         status: StatutCommunication.ECHEC,
         provider: 'twilio',

@@ -15,8 +15,9 @@ import { ProfessionalsFacade } from '../../application/services/professionals-fa
 import { RejectKycDto } from '../dto/reject-kyc.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { RoleUtilisateur } from '@prisma/client';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags('Admin - KYC')
+@ApiTags(API_DOCS.adminKyc.tag)
 @Controller('admin/kyc')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -25,11 +26,17 @@ export class AdminKycController {
 
   @Patch(':professionalId/approve')
   @Roles(RoleUtilisateur.ADMIN)
-  @ApiOperation({ summary: 'Approve a professional KYC submission' })
-  @ApiParam({ name: 'professionalId', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'KYC approved successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
-  @ApiResponse({ status: 404, description: 'Profile not found' })
+  @ApiOperation({ summary: API_DOCS.adminKyc.approveSummary })
+  @ApiParam({
+    name: 'professionalId',
+    description: API_DOCS.adminKyc.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_KYC_APPROVED').message,
+  })
+  @ApiResponse({ status: 403, description: API_DOCS.adminKyc.adminOnly })
+  @ApiResponse({ status: 404, description: API_DOCS.common.profileNotFound })
   async approveKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,
@@ -46,11 +53,17 @@ export class AdminKycController {
 
   @Patch(':professionalId/reject')
   @Roles(RoleUtilisateur.ADMIN)
-  @ApiOperation({ summary: 'Reject a professional KYC submission' })
-  @ApiParam({ name: 'professionalId', description: 'Professional profile ID' })
-  @ApiResponse({ status: 200, description: 'KYC rejected successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
-  @ApiResponse({ status: 404, description: 'Profile not found' })
+  @ApiOperation({ summary: API_DOCS.adminKyc.rejectSummary })
+  @ApiParam({
+    name: 'professionalId',
+    description: API_DOCS.adminKyc.professionalIdParam,
+  })
+  @ApiResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_KYC_REJECTED').message,
+  })
+  @ApiResponse({ status: 403, description: API_DOCS.adminKyc.adminOnly })
+  @ApiResponse({ status: 404, description: API_DOCS.common.profileNotFound })
   async rejectKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,

@@ -2,13 +2,14 @@ import { BadRequestException } from '@nestjs/common';
 import type { ValidationError } from 'class-validator';
 import { appMessage } from './app-http.exception';
 import { VALIDATION_MESSAGES } from './app-messages';
+import { resolveValidationMessage } from '../messages/validation-message.catalog';
 
 function normalizeValidationMessage(message: string): string {
   if (message.includes('should not exist')) {
-    return VALIDATION_MESSAGES.NON_WHITELISTED_FIELD;
+    return resolveValidationMessage(VALIDATION_MESSAGES.NON_WHITELISTED_FIELD);
   }
 
-  return message;
+  return resolveValidationMessage(message);
 }
 
 function flattenValidationErrors(

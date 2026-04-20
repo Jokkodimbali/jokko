@@ -50,6 +50,7 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_PAST_DATETIME: 'La date et l heure doivent etre dans le futur.',
   RESERVATION_NOT_PENDING: 'La reservation doit etre en attente.',
   RESERVATION_NOT_ACTIVE: 'La reservation doit etre confirmee ou en cours.',
+  RESERVATION_NOT_CONFIRMED: 'La reservation doit etre confirmee.',
   RESERVATION_ALREADY_CLOSED: 'La reservation est deja terminee ou annulee.',
   RESERVATION_CANNOT_RESCHEDULE:
     'Impossible de reprogrammer cette reservation.',
@@ -59,6 +60,15 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_UNAUTHORIZED:
     "Vous n'etes pas autorise a modifier cette reservation.",
   RESERVATION_TIME_SLOT_UNAVAILABLE: 'Ce creneau horaire n est pas disponible.',
+  RESERVATION_CANNOT_MARK_AS_PAID:
+    'Impossible de marquer cette reservation comme payee.',
+  RESERVATION_CANNOT_START: 'Impossible de demarrer cette reservation.',
+  RESERVATION_CANNOT_OPEN_DISPUTE:
+    "Impossible d'ouvrir un litige pour cette reservation.",
+  RESERVATION_CANCELLATION_TOO_LATE:
+    'Annulation impossible moins de 24h avant la reservation.',
+  RESERVATION_RESCHEDULE_TOO_LATE:
+    'Reprogrammation impossible moins de 24h avant la reservation.',
   USER_NOT_FOUND: 'Utilisateur introuvable',
   USER_ALREADY_EXISTS: ({ identifier }: { identifier: string }) =>
     `L'utilisateur avec ${identifier} existe deja`,

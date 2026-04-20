@@ -20,6 +20,14 @@ export interface ReservationsRepositoryPort {
     endDate: Date,
   ): Promise<Reservation[]>;
   findByService(serviceId: string): Promise<Reservation[]>;
+  findByFilters(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<Reservation[]>;
   save(reservation: Reservation): Promise<Reservation>;
   update(reservation: Reservation): Promise<Reservation>;
   delete(id: string): Promise<void>;

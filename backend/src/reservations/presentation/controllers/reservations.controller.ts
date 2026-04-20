@@ -182,4 +182,45 @@ export class ReservationsController {
       appMessage('RESERVATIONS_NO_SHOW_MARKED').message,
     );
   }
+
+  @Patch(':reservationId/mark-paid')
+  @ApiOperation({ summary: 'Marquer la réservation comme payée' })
+  async markAsPaid(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.reservationsFacade.markAsPaid(
+      user,
+      reservationId,
+    );
+    return createApiResponse(result, 'Réservation marquée comme payée');
+  }
+
+  @Patch(':reservationId/start')
+  @ApiOperation({ summary: 'Démarrer la réservation' })
+  async startReservation(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.reservationsFacade.startReservation(
+      user,
+      reservationId,
+    );
+    return createApiResponse(result, 'Réservation démarrée');
+  }
+
+  @Patch(':reservationId/dispute')
+  @ApiOperation({ summary: 'Ouvrir un litige' })
+  async openDispute(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() body: { reason: string },
+  ) {
+    const result = await this.reservationsFacade.openDispute(
+      user,
+      reservationId,
+      body.reason,
+    );
+    return createApiResponse(result, 'Litige ouvert');
+  }
 }

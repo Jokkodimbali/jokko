@@ -38,7 +38,10 @@ export class AdminCategoriesController {
   @Roles(RoleUtilisateur.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.adminCategories.createSummary })
-  @ApiResponse({ status: 201, description: appMessage('CATEGORIES_CATEGORY_CREATED').message })
+  @ApiResponse({
+    status: 201,
+    description: appMessage('CATEGORIES_CATEGORY_CREATED').message,
+  })
   @ApiResponse({
     status: 403,
     description: API_DOCS.adminCategories.adminOnly,
@@ -58,7 +61,10 @@ export class AdminCategoriesController {
   @Roles(RoleUtilisateur.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.adminCategories.updateSummary })
-  @ApiParam({ name: 'categoryId', description: API_DOCS.adminCategories.categoryIdParam })
+  @ApiParam({
+    name: 'categoryId',
+    description: API_DOCS.adminCategories.categoryIdParam,
+  })
   @ApiResponse({
     status: 200,
     description: appMessage('CATEGORIES_CATEGORY_UPDATED').message,
@@ -83,7 +89,10 @@ export class AdminCategoriesController {
   @Roles(RoleUtilisateur.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.adminCategories.disableSummary })
-  @ApiParam({ name: 'categoryId', description: API_DOCS.adminCategories.categoryIdParam })
+  @ApiParam({
+    name: 'categoryId',
+    description: API_DOCS.adminCategories.categoryIdParam,
+  })
   @ApiResponse({
     status: 200,
     description: appMessage('CATEGORIES_CATEGORY_DISABLED').message,

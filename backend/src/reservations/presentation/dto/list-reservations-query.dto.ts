@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsOptional } from 'class-validator';
+import { IsDateString, IsIn, IsOptional, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 
@@ -29,4 +29,28 @@ export class ListReservationsQueryDto {
     message: VALIDATION_MESSAGES.NON_WHITELISTED_FIELD,
   })
   scope?: 'CLIENT' | 'PRESTATAIRE';
+
+  @ApiPropertyOptional({ description: 'Filtrer par statut' })
+  @IsOptional()
+  @IsIn(
+    [
+      'EN_ATTENTE',
+      'CONFIRMEE',
+      'PAYEE_SEQUESTRE',
+      'EN_COURS',
+      'TERMINEE',
+      'ANNULEE',
+      'NO_SHOW',
+      'LITIGE',
+    ],
+    {
+      message: VALIDATION_MESSAGES.NON_WHITELISTED_FIELD,
+    },
+  )
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrer par service' })
+  @IsOptional()
+  @IsUUID('4', { message: VALIDATION_MESSAGES.SERVICE_ID_FORMAT })
+  serviceId?: string;
 }

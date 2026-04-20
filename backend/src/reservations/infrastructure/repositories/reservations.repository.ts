@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
 import { Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -267,6 +266,51 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         },
       },
       orderBy: { dateHeure: 'asc' },
+      select: RESERVATION_SELECT,
+    });
+
+    return reservations.map((reservation) => this.mapToDomain(reservation));
+  }
+
+  async findByFilters(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<Reservation[]> {
+    const where: Prisma.ReservationWhereInput = {};
+
+    if (filters.clientId) {
+      where.clientId = filters.clientId;
+    }
+
+    if (filters.professionalId) {
+      where.professionnelId = filters.professionalId;
+    }
+
+    if (filters.serviceId) {
+      where.serviceId = filters.serviceId;
+    }
+
+    if (filters.status) {
+      where.statut = filters.status as $Enums.StatutReservation;
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.dateHeure = {};
+      if (filters.startDate) {
+        where.dateHeure.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.dateHeure.lte = filters.endDate;
+      }
+    }
+
+    const reservations = await this.prisma.reservation.findMany({
+      where,
+      orderBy: { dateHeure: 'desc' },
       select: RESERVATION_SELECT,
     });
 

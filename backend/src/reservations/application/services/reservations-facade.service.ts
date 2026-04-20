@@ -58,6 +58,16 @@ export class ReservationsFacade {
     );
   }
 
+  async getReservationStatistics(
+    requestUser: AuthUser,
+    query: ListReservationsQuery,
+  ) {
+    return this.reservationQueryService.getReservationStatistics(
+      requestUser,
+      query,
+    );
+  }
+
   async confirmReservation(requestUser: AuthUser, reservationId: string) {
     return this.reservationCommandService.confirmReservation(
       requestUser,
@@ -100,6 +110,32 @@ export class ReservationsFacade {
     return this.reservationCommandService.markNoShow(
       requestUser,
       reservationId,
+    );
+  }
+
+  async markAsPaid(requestUser: AuthUser, reservationId: string) {
+    return this.reservationCommandService.markAsPaid(
+      requestUser,
+      reservationId,
+    );
+  }
+
+  async startReservation(requestUser: AuthUser, reservationId: string) {
+    return this.reservationCommandService.startReservation(
+      requestUser,
+      reservationId,
+    );
+  }
+
+  async openDispute(
+    requestUser: AuthUser,
+    reservationId: string,
+    reason: string,
+  ) {
+    return this.reservationCommandService.openDispute(
+      requestUser,
+      reservationId,
+      reason,
     );
   }
 }

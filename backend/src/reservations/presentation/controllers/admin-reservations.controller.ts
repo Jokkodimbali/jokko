@@ -53,4 +53,18 @@ export class AdminReservationsController {
     );
     return createApiResponse(result);
   }
+
+  @Get('statistics')
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: 'Obtenir les statistiques des réservations' })
+  async getStatistics(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListReservationsQueryDto,
+  ) {
+    const result = await this.reservationsFacade.getReservationStatistics(
+      user,
+      query,
+    );
+    return createApiResponse(result);
+  }
 }

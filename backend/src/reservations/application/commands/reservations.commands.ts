@@ -26,4 +26,15 @@ export type ListReservationsQuery = {
   startDate?: string;
   endDate?: string;
   scope?: 'CLIENT' | 'PRESTATAIRE';
+  status?: string;
+  serviceId?: string;
+};
+
+export type ReservationFilters = {
+  clientId?: string;
+  professionalId?: string;
+  serviceId?: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
 };

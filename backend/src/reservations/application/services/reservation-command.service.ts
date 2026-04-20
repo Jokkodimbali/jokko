@@ -121,7 +121,25 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.confirm();
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+
+      // Notify client
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        reservation.professionnelId,
+      );
+      const service = await this.getServiceOrThrow(reservation.serviceId);
+      await this.reservationClientNotificationService.notifyReservationConfirmed(
+        {
+          reservationId: updated.id,
+          clientId: updated.clientId,
+          serviceName: service.nom,
+          professionalName: professional.utilisateur.nom,
+          dateHeure: updated.dateHeure,
+          adresseClient: updated.adresseClient,
+        },
+      );
+
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
@@ -141,7 +159,25 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.cancel(trimString(command.reason) ?? null);
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+
+      // Notify client
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        reservation.professionnelId,
+      );
+      const service = await this.getServiceOrThrow(reservation.serviceId);
+      await this.reservationClientNotificationService.notifyReservationCancelled(
+        {
+          reservationId: updated.id,
+          clientId: updated.clientId,
+          serviceName: service.nom,
+          professionalName: professional.utilisateur.nom,
+          dateHeure: updated.dateHeure,
+          adresseClient: updated.adresseClient,
+        },
+      );
+
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
@@ -179,7 +215,9 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.markAsCompleted();
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
@@ -203,34 +241,66 @@ export class ReservationCommandService extends ReservationAppService {
     }
   }
 
+  async markAsPaid(requestUser: AuthUser, reservationId: string) {
+    this.assertClientRole(requestUser.role);
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+
+    try {
+      const entity = ReservationEntity.reconstitute(reservation);
+      entity.markAsPaid();
+      return await this.reservationsRepository.update(entity.toView());
+    } catch (error) {
+      this.handleDomainError(error);
+      throw error;
+    }
+  }
+
+  async startReservation(requestUser: AuthUser, reservationId: string) {
+    this.assertProfessionalRole(requestUser.role);
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+
+    try {
+      const entity = ReservationEntity.reconstitute(reservation);
+      entity.startReservation();
+      return await this.reservationsRepository.update(entity.toView());
+    } catch (error) {
+      this.handleDomainError(error);
+      throw error;
+    }
+  }
+
+  async openDispute(
+    requestUser: AuthUser,
+    reservationId: string,
+    reason: string,
+  ) {
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+
+    try {
+      const entity = ReservationEntity.reconstitute(reservation);
+      entity.openDispute(reason);
+      return await this.reservationsRepository.update(entity.toView());
+    } catch (error) {
+      this.handleDomainError(error);
+      throw error;
+    }
+  }
+
   private handleDomainError(error: unknown): never | void {
     if (!(error instanceof DomainError)) {
       return;
     }
 
-    switch (error.code) {
-      case 'RESERVATION_PAST_DATETIME':
-      case 'RESERVATION_INVALID_DURATION':
-      case 'RESERVATION_INVALID_DATETIME':
-      case 'RESERVATION_CLIENT_REQUIRED':
-      case 'RESERVATION_PROFESSIONAL_REQUIRED':
-      case 'RESERVATION_SERVICE_REQUIRED':
-      case 'RESERVATION_ADDRESS_REQUIRED':
-        throw appHttpException('VALIDATION_REQUEST_INVALID');
-      case 'RESERVATION_NOT_PENDING':
-        throw appHttpException('RESERVATIONS_STATUS_PENDING_REQUIRED');
-      case 'RESERVATION_NOT_ACTIVE':
-        throw appHttpException('RESERVATIONS_STATUS_ACTIVE_REQUIRED');
-      case 'RESERVATION_ALREADY_CLOSED':
-        throw appHttpException('RESERVATIONS_ALREADY_CLOSED');
-      case 'RESERVATION_CANNOT_CANCEL':
-        throw appHttpException('RESERVATIONS_ALREADY_CLOSED');
-      case 'RESERVATION_CANNOT_RESCHEDULE':
-        throw appHttpException('RESERVATIONS_STATUS_ACTIVE_REQUIRED');
-      case 'RESERVATION_TIME_SLOT_UNAVAILABLE':
-        throw appHttpException('RESERVATIONS_TIME_SLOT_UNAVAILABLE');
-      default:
-        return;
-    }
+    // Since ReservationDomainError extends appHttpException, just re-throw
+    throw error;
   }
 }

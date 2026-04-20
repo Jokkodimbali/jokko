@@ -172,6 +172,67 @@ export class ReservationClientNotificationService {
     await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
   }
 
+  async notifyReservationConfirmed(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    await this.notifyGenericEvent(input, 'RESERVATION_CONFIRMEE', 'confirmed');
+  }
+
+  async notifyReservationCancelled(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    await this.notifyGenericEvent(input, 'RESERVATION_ANNULEE', 'cancelled');
+  }
+
+  async notifyReservationCompleted(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    await this.notifyGenericEvent(input, 'PAIEMENT_LIBERE', 'completed');
+  }
+
+  private async notifyGenericEvent(
+    input: ReservationCreatedNotificationInput,
+    type:
+      | 'NOUVELLE_RESERVATION'
+      | 'RESERVATION_CONFIRMEE'
+      | 'RESERVATION_ANNULEE'
+      | 'PRESTATAIRE_EN_ROUTE'
+      | 'PAIEMENT_LIBERE',
+    eventType: string,
+  ): Promise<void> {
+    const client = await this.usersRepository.findMeById(input.clientId);
+    if (!client) {
+      return;
+    }
+
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const title = `Réservation ${eventType}`;
+    const body = `Votre réservation pour ${input.serviceName} avec ${input.professionalName} le ${formattedDate} a été ${eventType}.`;
+
+    const communicationMetadata = {
+      reservationId: input.reservationId,
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      dateHeure: input.dateHeure.toISOString(),
+      adresseClient: input.adresseClient,
+    } satisfies Prisma.JsonObject;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.notification.create({
+        data: {
+          utilisateurId: input.clientId,
+          type: type,
+          titre: title,
+          corps: body,
+          donnees: communicationMetadata,
+        },
+      });
+    });
+  }
+
   private async sendEmail(input: {
     to: string;
     subject: string;

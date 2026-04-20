@@ -1,4 +1,4 @@
-import { ReservationDomainError } from '../errors/reservation.domain-error';
+import { ReservationDomainError } from '../index';
 
 export type ReservationStatus =
   | 'EN_ATTENTE'
@@ -168,12 +168,12 @@ export class ReservationEntity {
   }
 
   cancel(reason?: string | null): void {
+    if (this.isFinalized()) {
+      throw ReservationDomainError.alreadyClosed();
+    }
+
     if (!this.canBeCancelled()) {
-      if (this.isFinalized()) {
-        throw ReservationDomainError.alreadyClosed();
-      } else {
-        throw ReservationDomainError.cannotCancel();
-      }
+      throw ReservationDomainError.cannotCancel();
     }
 
     const normalizedReason = ReservationEntity.normalizeText(reason);
@@ -208,6 +208,34 @@ export class ReservationEntity {
 
     this._dateHeure = new Date(newDateTime);
     this._raisonAnnulation = null;
+    this.touch();
+  }
+
+  markAsPaid(): void {
+    if (!this.canBePaid()) {
+      throw ReservationDomainError.cannotMarkAsPaid();
+    }
+
+    this._statut = 'PAYEE_SEQUESTRE';
+    this.touch();
+  }
+
+  startReservation(): void {
+    if (!this.canBeStarted()) {
+      throw ReservationDomainError.cannotStart();
+    }
+
+    this._statut = 'EN_COURS';
+    this.touch();
+  }
+
+  openDispute(reason: string): void {
+    if (!this.canOpenDispute()) {
+      throw ReservationDomainError.cannotOpenDispute();
+    }
+
+    this._statut = 'LITIGE';
+    this._raisonAnnulation = reason;
     this.touch();
   }
 
@@ -249,7 +277,7 @@ export class ReservationEntity {
       this._statut === 'CONFIRMEE' ||
       this._statut === 'PAYEE_SEQUESTRE' ||
       this._statut === 'EN_COURS'
-    );
+    ) && this.isMoreThanHoursBefore(24);
   }
 
   private canBeCompleted(): boolean {
@@ -261,11 +289,34 @@ export class ReservationEntity {
   }
 
   private canBeRescheduled(): boolean {
+    if (!this.isMoreThanHoursBefore(24)) {
+      throw ReservationDomainError.rescheduleTooLate();
+    }
     return (
       this._statut === 'EN_ATTENTE' ||
       this._statut === 'CONFIRMEE' ||
       this._statut === 'PAYEE_SEQUESTRE'
     );
+  }
+
+  private canBePaid(): boolean {
+    return this._statut === 'CONFIRMEE';
+  }
+
+  private canBeStarted(): boolean {
+    return this._statut === 'CONFIRMEE' || this._statut === 'PAYEE_SEQUESTRE';
+  }
+
+  private canOpenDispute(): boolean {
+    return this._statut === 'TERMINEE' || this._statut === 'NO_SHOW';
+  }
+
+  private isMoreThanHoursBefore(hours: number): boolean {
+    const now = new Date();
+    const hoursBefore = new Date(
+      this._dateHeure.getTime() - hours * 60 * 60 * 1000,
+    );
+    return now < hoursBefore;
   }
 
   private touch(): void {

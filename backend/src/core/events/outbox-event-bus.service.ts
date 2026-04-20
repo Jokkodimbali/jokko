@@ -34,10 +34,7 @@ export class OutboxEventBusService implements DomaineEventBusPort {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(
-        TECHNICAL_MESSAGES.OUTBOX_EVENT_PERSIST_FAILED(
-          event.nom,
-          errorMessage,
-        ),
+        TECHNICAL_MESSAGES.OUTBOX_EVENT_PERSIST_FAILED(event.nom, errorMessage),
       );
     }
   }

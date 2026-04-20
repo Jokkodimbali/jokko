@@ -33,7 +33,9 @@ export class AuditService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(TECHNICAL_MESSAGES.AUDIT_LOG_WRITE_FAILED(errorMessage));
+      this.logger.error(
+        TECHNICAL_MESSAGES.AUDIT_LOG_WRITE_FAILED(errorMessage),
+      );
     }
   }
 

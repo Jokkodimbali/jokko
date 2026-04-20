@@ -16,10 +16,13 @@ export class CategoryIconUrl {
     try {
       const parsedUrl = new URL(normalized);
       if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('protocol_not_supported');
+        throw CategoryDomainError.invalidIconUrl(raw);
       }
       return new CategoryIconUrl(normalized);
-    } catch {
+    } catch (error) {
+      if (error instanceof CategoryDomainError) {
+        throw error;
+      }
       throw CategoryDomainError.invalidIconUrl(raw);
     }
   }

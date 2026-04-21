@@ -14,17 +14,16 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { RoleUtilisateur } from '@prisma/client';
-import { CurrentUser } from '../../../auth/security/current-user.decorator';
-import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { PaymentsFacade } from '../../application/services/payments-facade.service';
 import { ListPaymentsQueryDto } from '../dto/list-payments-query.dto';
+import { PaymentReasonDto } from '../dto/payment-reason.dto';
 import { appMessage } from '../../../core/http/app-http.exception';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-@ApiTags(API_DOCS.adminPayments?.tag || 'Administration - Paiements')
+@ApiTags(API_DOCS.adminPayments.tag)
 @ApiBearerAuth()
 @Controller('admin/payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,16 +33,13 @@ export class AdminPaymentsController {
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
   @ApiOperation({ summary: API_DOCS.adminPayments.listSummary })
-  async listAllPayments(
-    @CurrentUser() user: AuthUser,
-    @Query() query: ListPaymentsQueryDto,
-  ) {
+  async listAllPayments(@Query() query: ListPaymentsQueryDto) {
     const allClientPayments = await this.paymentsFacade.getClientPaymentHistory(
-      '',
+      undefined,
       query,
     );
     const allProfessionalPayments =
-      await this.paymentsFacade.getProfessionalPaymentHistory('', query);
+      await this.paymentsFacade.getProfessionalPaymentHistory(undefined, query);
 
     return createApiResponse({
       clientPayments: allClientPayments,
@@ -55,7 +51,6 @@ export class AdminPaymentsController {
   @Roles(RoleUtilisateur.ADMIN)
   @ApiOperation({ summary: API_DOCS.adminPayments.statisticsSummary })
   async getPaymentStatistics() {
-    // Statistiques générales
     const pendingEscrowReleases =
       await this.paymentsFacade.getPendingEscrowReleases();
 
@@ -79,10 +74,7 @@ export class AdminPaymentsController {
     name: 'paymentId',
     description: API_DOCS.payments.paymentIdParam,
   })
-  async getPaymentDetails(
-    @CurrentUser() user: AuthUser,
-    @Param('paymentId') paymentId: string,
-  ) {
+  async getPaymentDetails(@Param('paymentId') paymentId: string) {
     const payment = await this.paymentsFacade.getPaymentById(paymentId);
     return createApiResponse(payment.toView());
   }
@@ -95,9 +87,8 @@ export class AdminPaymentsController {
     description: API_DOCS.payments.paymentIdParam,
   })
   async refundPayment(
-    @CurrentUser() user: AuthUser,
     @Param('paymentId') paymentId: string,
-    @Body() body: { reason?: string },
+    @Body() body: PaymentReasonDto,
   ) {
     const payment = await this.paymentsFacade.refundPayment(
       paymentId,
@@ -141,8 +132,9 @@ export class AdminPaymentsController {
   async processPendingEscrowReleases() {
     const payments = await this.paymentsFacade.getPendingEscrowReleases();
 
-    const processedPayments = [];
-    const failedPayments = [];
+    const processedPayments: Array<{ id: string; status: string }> = [];
+    const failedPayments: Array<{ id: string; status: string; error: string }> =
+      [];
 
     for (const payment of payments) {
       try {
@@ -154,7 +146,9 @@ export class AdminPaymentsController {
         });
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+          error instanceof Error
+            ? error.message
+            : appMessage('SYSTEM_INTERNAL_SERVER_ERROR').message;
         failedPayments.push({
           id: payment.id,
           status: 'error',

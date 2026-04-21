@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WithdrawalsRepository } from '../../application/ports/withdrawals-repository.port';
-import { WithdrawalRequest } from '../../application/services/withdrawal.service';
+import { WithdrawalRequest } from '../../domain/entities/withdrawal-request.entity';
 import { Prisma, StatutRetrait, MethodePaiement } from '@prisma/client';
 import { PaymentAmount } from '../../domain/value-objects/payment-amount.vo';
+import { WithdrawalStatus } from '../../domain/value-objects/payment-types.vo';
 
 @Injectable()
 export class WithdrawalsRepositoryImpl implements WithdrawalsRepository {
@@ -26,7 +27,7 @@ export class WithdrawalsRepositoryImpl implements WithdrawalsRepository {
 
   async updateStatus(
     id: string,
-    status: string,
+    status: WithdrawalStatus,
     processedAt?: Date,
     gatewayReference?: string,
   ): Promise<void> {
@@ -66,17 +67,17 @@ export class WithdrawalsRepositoryImpl implements WithdrawalsRepository {
     return records.map((record) => this.mapToDomain(record));
   }
 
-  private mapStatusToPrisma(status: string): StatutRetrait {
+  private mapStatusToPrisma(status: WithdrawalStatus): StatutRetrait {
     switch (status) {
-      case 'PROCESSING':
+      case WithdrawalStatus.PROCESSING:
         return StatutRetrait.EN_COURS;
-      case 'COMPLETED':
+      case WithdrawalStatus.COMPLETED:
         return StatutRetrait.TERMINE;
-      case 'FAILED':
+      case WithdrawalStatus.FAILED:
         return StatutRetrait.ECHEC;
-      case 'CANCELLED':
+      case WithdrawalStatus.CANCELLED:
         return StatutRetrait.ANNULE;
-      case 'PENDING':
+      case WithdrawalStatus.PENDING:
       default:
         return StatutRetrait.EN_ATTENTE;
     }
@@ -85,32 +86,22 @@ export class WithdrawalsRepositoryImpl implements WithdrawalsRepository {
   private mapToDomain(
     record: Prisma.DemandeRetraitGetPayload<{ include: object }>,
   ): WithdrawalRequest {
-    const mappedStatus:
-      | 'PENDING'
-      | 'PROCESSING'
-      | 'COMPLETED'
-      | 'FAILED'
-      | 'CANCELLED' =
+    const mappedStatus =
       record.statut === StatutRetrait.EN_ATTENTE
-        ? 'PENDING'
+        ? WithdrawalStatus.PENDING
         : record.statut === StatutRetrait.EN_COURS
-          ? 'PROCESSING'
+          ? WithdrawalStatus.PROCESSING
           : record.statut === StatutRetrait.TERMINE
-            ? 'COMPLETED'
+            ? WithdrawalStatus.COMPLETED
             : record.statut === StatutRetrait.ECHEC
-              ? 'FAILED'
-              : 'CANCELLED';
+              ? WithdrawalStatus.FAILED
+              : WithdrawalStatus.CANCELLED;
 
     return {
       id: record.id,
       professionalId: record.profilProfessionnelId,
       amount: PaymentAmount.create(Number(record.montant)),
-      method:
-        record.methode === MethodePaiement.CARTE
-          ? 'CARTE'
-          : record.methode === MethodePaiement.WAVE
-            ? 'WAVE'
-            : 'ORANGE_MONEY',
+      method: record.methode === MethodePaiement.WAVE ? 'WAVE' : 'ORANGE_MONEY',
       status: mappedStatus,
       requestedAt: record.demandeLe,
       processedAt: record.traiteLe || undefined,

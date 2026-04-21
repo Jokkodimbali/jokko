@@ -9,6 +9,10 @@ import {
   DOMAIN_EVENT_DISPATCHER,
   type DomainEventDispatcher,
 } from '../../../shared/domain/events/domain-event-dispatcher';
+import {
+  WALLET_LEDGER_PORT,
+  type WalletLedgerPort,
+} from '../ports/wallet-ledger.port';
 
 @Injectable()
 export class EscrowService {
@@ -17,6 +21,8 @@ export class EscrowService {
     private readonly paymentsRepository: PaymentsRepository,
     @Inject(DOMAIN_EVENT_DISPATCHER)
     private readonly domainEventDispatcher: DomainEventDispatcher,
+    @Inject(WALLET_LEDGER_PORT)
+    private readonly walletLedger: WalletLedgerPort,
   ) {}
 
   async releaseEscrow(paymentId: string): Promise<Payment> {
@@ -31,6 +37,7 @@ export class EscrowService {
 
     payment.releaseEscrow();
     await this.paymentsRepository.save(payment);
+    await this.walletLedger.creditReleasedEscrow(payment);
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();
 

@@ -86,8 +86,16 @@ export const DOMAIN_MESSAGE_CATALOG = {
   // -- Paiements --
   PAYMENT_INVALID_AMOUNT: ({ reason }: { reason: string }) =>
     `Montant invalide : ${reason}`,
+  PAYMENT_AMOUNT_NOT_NUMERIC: 'Valeur non numerique',
+  PAYMENT_AMOUNT_NEGATIVE: 'Montant negatif non autorise',
+  PAYMENT_AMOUNT_TOO_HIGH: 'Montant trop eleve',
+  PAYMENT_AMOUNT_RESULT_NEGATIVE: 'Resultat negatif non autorise',
+  PAYMENT_AMOUNT_DIVISION_BY_ZERO: 'Division par zero',
   PAYMENT_INVALID_REFERENCE: ({ reason }: { reason: string }) =>
     `Reference invalide : ${reason}`,
+  PAYMENT_REFERENCE_LENGTH_INVALID: 'Longueur invalide (10-100 caracteres)',
+  PAYMENT_REFERENCE_FORMAT_INVALID:
+    'Caracteres non autorises (uniquement lettres, chiffres, tirets et underscores)',
   PAYMENT_INSUFFICIENT_FUNDS: ({
     requested,
     available,
@@ -98,6 +106,12 @@ export const DOMAIN_MESSAGE_CATALOG = {
   PAYMENT_INVALID_METHOD: ({ method }: { method: string }) =>
     `Methode de paiement invalide : ${method}`,
   PAYMENT_ALREADY_PROCESSED: 'Ce paiement a deja ete traite',
+  PAYMENT_IDEMPOTENCY_KEY_REQUIRED:
+    "La cle d'idempotence est obligatoire pour initier un paiement.",
+  PAYMENT_IDEMPOTENCY_CONFLICT:
+    "Cette cle d'idempotence a deja ete utilisee avec une requete differente.",
+  PAYMENT_IDEMPOTENCY_IN_PROGRESS:
+    'Une demande de paiement identique est deja en cours de traitement.',
   ESCROW_ALREADY_RELEASED: 'Les fonds sous sequestre ont deja ete liberes',
   ESCROW_ALREADY_DISPUTED: 'Ces fonds sont deja en litige',
   WITHDRAWAL_TOO_SOON: ({ hoursRemaining }: { hoursRemaining: number }) =>
@@ -122,13 +136,17 @@ export const DOMAIN_MESSAGE_CATALOG = {
     `Paiement sous sequestre introuvable: ${paymentId}`,
   PAYMENT_GATEWAY_ERROR: ({ details }: { details: string }) =>
     `Erreur du prestataire de paiement: ${details}`,
+  PAYMENT_GATEWAY_UNKNOWN_ERROR: 'Erreur gateway inconnue',
+  PAYMENT_FAILED_BY_PROVIDER: 'Paiement refuse par le prestataire',
   PAYMENT_INVALID_WEBHOOK_SIGNATURE: 'Signature webhook invalide',
+  PAYMENT_WEBHOOK_REPLAY_IGNORED:
+    'Ce webhook paiement a deja ete recu et ne sera pas rejoue.',
   PAYMENT_UNAUTHORIZED_ACCESS: ({ paymentId }: { paymentId: string }) =>
-    `Accès non autorisé au paiement ${paymentId}.`,
+    `Acces non autorise au paiement ${paymentId}.`,
   WITHDRAWAL_NOT_FOUND: ({ withdrawalId }: { withdrawalId: string }) =>
     `Demande de retrait introuvable : ${withdrawalId}.`,
   WITHDRAWAL_ALREADY_PROCESSED: ({ status }: { status: string }) =>
-    `Cette demande de retrait a déjà été traitée (statut : ${status}).`,
+    `Cette demande de retrait a deja ete traitee (statut : ${status}).`,
 } as const;
 
 type DomainMessageCatalog = typeof DOMAIN_MESSAGE_CATALOG;

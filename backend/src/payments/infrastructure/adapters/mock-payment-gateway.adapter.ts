@@ -104,8 +104,6 @@ export class MockPaymentGatewayAdapter implements PaymentGateway {
         return `orangemoney://pay?amount=${amount}&ref=${ref}`;
       case DomainPaymentMethod.CARD:
         return `https://jokko.sn/pay-card?amount=${amount}&ref=${ref}`;
-      default:
-        throw new Error('Unsupported method');
     }
   }
 }

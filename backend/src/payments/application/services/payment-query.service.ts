@@ -31,7 +31,7 @@ export class PaymentQueryService {
   }
 
   async getClientPaymentHistory(
-    clientId: string,
+    clientId?: string,
     filters?: {
       status?: PaymentStatus;
       method?: PaymentMethod;
@@ -52,7 +52,7 @@ export class PaymentQueryService {
   }
 
   async getProfessionalPaymentHistory(
-    professionalId: string,
+    professionalId?: string,
     filters?: {
       status?: PaymentStatus;
       escrowStatus?: EscrowStatus;

@@ -11,16 +11,12 @@ export class TransactionReference {
     const normalized = raw.trim();
 
     if (normalized.length < 10 || normalized.length > 100) {
-      throw PaymentDomainError.invalidReference(
-        'Longueur invalide (10-100 caractères)',
-      );
+      throw PaymentDomainError.invalidReferenceLength();
     }
 
     const validPattern = /^[A-Za-z0-9_-]+$/;
     if (!validPattern.test(normalized)) {
-      throw PaymentDomainError.invalidReference(
-        'Caractères non autorisés (uniquement lettres, chiffres, tirets et underscores)',
-      );
+      throw PaymentDomainError.invalidReferenceFormat();
     }
 
     return new TransactionReference(normalized);

@@ -13,7 +13,7 @@ export interface PaymentsRepository {
   findByBookingId(bookingId: string): Promise<Payment | null>;
   findByTransactionReference(reference: string): Promise<Payment | null>;
   findByClientId(
-    clientId: string,
+    clientId?: string,
     filters?: {
       status?: PaymentStatus;
       method?: PaymentMethod;
@@ -22,7 +22,7 @@ export interface PaymentsRepository {
     },
   ): Promise<Payment[]>;
   findByProfessionalId(
-    professionalId: string,
+    professionalId?: string,
     filters?: {
       status?: PaymentStatus;
       escrowStatus?: EscrowStatus;
@@ -31,14 +31,14 @@ export interface PaymentsRepository {
     },
   ): Promise<Payment[]>;
   countByClientId(
-    clientId: string,
+    clientId?: string,
     filters?: {
       status?: PaymentStatus;
       method?: PaymentMethod;
     },
   ): Promise<number>;
   countByProfessionalId(
-    professionalId: string,
+    professionalId?: string,
     filters?: {
       status?: PaymentStatus;
       escrowStatus?: EscrowStatus;

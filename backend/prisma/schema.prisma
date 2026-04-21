@@ -57,6 +57,27 @@ enum StatutRetrait {
   ANNULE
 }
 
+enum StatutIdempotence {
+  EN_COURS
+  TERMINE
+  ECHEC
+}
+
+enum StatutWebhookPaiement {
+  RECU
+  TRAITE
+  ECHEC
+  IGNORE
+}
+
+enum TypeTransactionPortefeuille {
+  CREDIT_ESCROW
+  DEBIT_RETRAIT
+  REMBOURSEMENT
+  COMMISSION
+  AJUSTEMENT
+}
+
 enum EscrowStatus {
   LOCKED
   RELEASED
@@ -170,6 +191,7 @@ model ProfilProfessionnel {
   elementsPortfolio ElementPortfolio[]
   reservations     Reservation[]
   demandesRetrait  DemandeRetrait[]
+  transactionsPortefeuille TransactionPortefeuille[]
 
   @@map("professional_profiles")
 }
@@ -285,8 +307,8 @@ model CommunicationReservation {
 model Paiement {
   id                   String          @id @default(uuid()) @db.Uuid
   reservationId        String          @unique @map("booking_id") @db.Uuid
-  clientId             String          @db.Uuid
-  professionalId       String          @db.Uuid
+  clientId             String          @map("client_id") @db.Uuid
+  professionalId       String          @map("professional_id") @db.Uuid
   montant              Decimal         @map("amount") @db.Decimal(12, 2)
   montantCommission    Decimal         @map("commission_amount") @db.Decimal(12, 2)
   montantNet           Decimal         @map("net_amount") @db.Decimal(12, 2)
@@ -304,8 +326,66 @@ model Paiement {
   misAJourLe           DateTime        @updatedAt @map("updated_at")
 
   reservation          Reservation     @relation(fields: [reservationId], references: [id])
+  transactionsPortefeuille TransactionPortefeuille[]
 
+  @@index([statut, escrowStatus])
+  @@index([referenceTransaction])
+  @@index([referenceFournisseur])
+  @@index([gatewayReference])
   @@map("payments")
+}
+
+model CleIdempotence {
+  id             String            @id @default(uuid()) @db.Uuid
+  cle            String            @unique @map("key") @db.VarChar(160)
+  portee         String            @map("scope") @db.VarChar(100)
+  hashRequete    String            @map("request_hash") @db.VarChar(128)
+  statut         StatutIdempotence @default(EN_COURS) @map("status")
+  reponse        Json?             @map("response")
+  expireLe       DateTime          @map("expires_at")
+  creeLe         DateTime          @default(now()) @map("created_at")
+  misAJourLe     DateTime          @updatedAt @map("updated_at")
+
+  @@index([portee, expireLe])
+  @@index([statut, expireLe])
+  @@map("idempotency_keys")
+}
+
+model EvenementWebhookPaiement {
+  id                    String               @id @default(uuid()) @db.Uuid
+  cleEvenement          String               @unique @map("event_key") @db.VarChar(220)
+  fournisseur           String               @map("provider") @db.VarChar(80)
+  referenceFournisseur  String               @map("provider_ref") @db.VarChar(200)
+  statutProvider        String               @map("provider_status") @db.VarChar(80)
+  signatureValide       Boolean              @default(false) @map("signature_valid")
+  payload               Json                 @map("payload")
+  statut                StatutWebhookPaiement @default(RECU) @map("status")
+  erreur                String?              @map("error") @db.Text
+  recuLe                DateTime             @default(now()) @map("received_at")
+  traiteLe              DateTime?            @map("processed_at")
+
+  @@index([referenceFournisseur])
+  @@index([statut, recuLe])
+  @@map("payment_webhook_events")
+}
+
+model TransactionPortefeuille {
+  id                    String                     @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String                     @map("professional_id") @db.Uuid
+  paiementId            String?                    @map("payment_id") @db.Uuid
+  type                  TypeTransactionPortefeuille
+  montant               Decimal                    @map("amount") @db.Decimal(12, 2)
+  soldeApres            Decimal                    @map("balance_after") @db.Decimal(12, 2)
+  description           String                     @db.Text
+  reference             String                     @unique @db.VarChar(220)
+  creeLe                DateTime                   @default(now()) @map("created_at")
+
+  profilProfessionnel   ProfilProfessionnel        @relation(fields: [profilProfessionnelId], references: [id])
+  paiement              Paiement?                  @relation(fields: [paiementId], references: [id])
+
+  @@index([profilProfessionnelId, creeLe])
+  @@index([paiementId])
+  @@map("wallet_transactions")
 }
 
 model Conversation {

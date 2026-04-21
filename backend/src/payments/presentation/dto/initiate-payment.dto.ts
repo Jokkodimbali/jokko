@@ -1,7 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import { VALIDATION_MESSAGES } from '../../../core/messages/validation-message.catalog';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsUUID,
+} from 'class-validator';
+import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { PaymentMethod } from '../../domain/value-objects/payment-types.vo';
 
@@ -21,7 +28,9 @@ export class InitiatePaymentDto {
     enum: PaymentMethod,
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PAYMENT_METHOD_REQUIRED })
-  @IsString({ message: VALIDATION_MESSAGES.PAYMENT_METHOD_INVALID })
+  @IsEnum(PaymentMethod, {
+    message: VALIDATION_MESSAGES.PAYMENT_METHOD_INVALID,
+  })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.toUpperCase() : value,
   )
@@ -32,7 +41,9 @@ export class InitiatePaymentDto {
     example: 'https://api.jokko.sn/payments/callback',
     required: false,
   })
+  @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID })
+  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
@@ -43,7 +54,9 @@ export class InitiatePaymentDto {
     example: 'https://app.jokko.sn/payment-success',
     required: false,
   })
+  @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID })
+  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
@@ -54,7 +67,9 @@ export class InitiatePaymentDto {
     example: 'https://app.jokko.sn/payment-failed',
     required: false,
   })
+  @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID })
+  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )

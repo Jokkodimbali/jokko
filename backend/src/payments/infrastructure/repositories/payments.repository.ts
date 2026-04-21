@@ -1,17 +1,34 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  EscrowStatus as PrismaEscrowStatus,
+  MethodePaiement,
+  Prisma,
+  StatutPaiement,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PaymentsRepository } from '../../application/ports/payments-repository.port';
 import { Payment } from '../../domain/entities/payment.entity';
 import {
+  EscrowStatus,
   PaymentMethod,
   PaymentStatus,
-  EscrowStatus,
 } from '../../domain/value-objects/payment-types.vo';
-import type {
-  MethodePaiement,
-  StatutPaiement,
-  EscrowStatus as PrismaEscrowStatus,
-} from '@prisma/client';
+
+type PaymentRecord = Prisma.PaiementGetPayload<Record<string, never>>;
+
+type ClientPaymentFilters = {
+  status?: PaymentStatus;
+  method?: PaymentMethod;
+  limit?: number;
+  offset?: number;
+};
+
+type ProfessionalPaymentFilters = {
+  status?: PaymentStatus;
+  escrowStatus?: EscrowStatus;
+  limit?: number;
+  offset?: number;
+};
 
 const toPrismaMethod = (method: PaymentMethod): MethodePaiement => {
   switch (method) {
@@ -27,13 +44,11 @@ const toPrismaMethod = (method: PaymentMethod): MethodePaiement => {
 const toPrismaStatus = (status: PaymentStatus): StatutPaiement => {
   switch (status) {
     case PaymentStatus.PENDING:
-      return 'EN_ATTENTE';
     case PaymentStatus.PROCESSING:
       return 'EN_ATTENTE';
     case PaymentStatus.SUCCESS:
       return 'SUCCES';
     case PaymentStatus.FAILED:
-      return 'ECHEC';
     case PaymentStatus.CANCELLED:
       return 'ECHEC';
     case PaymentStatus.REFUNDED:
@@ -73,6 +88,29 @@ const toPrismaEscrowStatus = (status: EscrowStatus): PrismaEscrowStatus => {
   return status as PrismaEscrowStatus;
 };
 
+const mapPaymentRecord = (record: PaymentRecord): Payment =>
+  Payment.reconstitute({
+    id: record.id,
+    bookingId: record.reservationId,
+    clientId: record.clientId,
+    professionalId: record.professionalId,
+    method: toDomainMethod(record.methode),
+    status: toDomainStatus(record.statut),
+    escrowStatus: toDomainEscrowStatus(record.escrowStatus),
+    amount: Number(record.montant),
+    commissionAmount: Number(record.montantCommission),
+    netAmount: Number(record.montantNet),
+    transactionReference:
+      record.referenceTransaction || record.referenceFournisseur || null,
+    gatewayReference: record.gatewayReference || null,
+    processedAt: record.processedAt || null,
+    escrowReleasedAt: record.escrowReleasedAt || null,
+    disputedAt: record.disputedAt || null,
+    refundReason: record.raisonRemboursement || null,
+    createdAt: record.creeLe,
+    updatedAt: record.misAJourLe || record.creeLe,
+  });
+
 @Injectable()
 export class PaymentsRepositoryImpl implements PaymentsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -105,67 +143,15 @@ export class PaymentsRepositoryImpl implements PaymentsRepository {
   }
 
   async findById(id: string): Promise<Payment | null> {
-    const record = await this.prisma.paiement.findUnique({
-      where: { id },
-    });
-
-    if (!record) {
-      return null;
-    }
-
-    return Payment.reconstitute({
-      id: record.id,
-      bookingId: record.reservationId,
-      clientId: record.clientId,
-      professionalId: record.professionalId,
-      method: toDomainMethod(record.methode),
-      status: toDomainStatus(record.statut),
-      escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-      amount: Number(record.montant),
-      commissionAmount: Number(record.montantCommission),
-      netAmount: Number(record.montantNet),
-      transactionReference:
-        record.referenceTransaction || record.referenceFournisseur || null,
-      gatewayReference: record.gatewayReference || null,
-      processedAt: record.processedAt || null,
-      escrowReleasedAt: record.escrowReleasedAt || null,
-      disputedAt: record.disputedAt || null,
-      refundReason: record.raisonRemboursement || null,
-      createdAt: record.creeLe,
-      updatedAt: record.misAJourLe || record.creeLe,
-    });
+    const record = await this.prisma.paiement.findUnique({ where: { id } });
+    return record ? mapPaymentRecord(record) : null;
   }
 
   async findByBookingId(bookingId: string): Promise<Payment | null> {
     const record = await this.prisma.paiement.findUnique({
       where: { reservationId: bookingId },
     });
-
-    if (!record) {
-      return null;
-    }
-
-    return Payment.reconstitute({
-      id: record.id,
-      bookingId: record.reservationId,
-      clientId: record.clientId,
-      professionalId: record.professionalId,
-      method: toDomainMethod(record.methode),
-      status: toDomainStatus(record.statut),
-      escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-      amount: Number(record.montant),
-      commissionAmount: Number(record.montantCommission),
-      netAmount: Number(record.montantNet),
-      transactionReference:
-        record.referenceTransaction || record.referenceFournisseur || null,
-      gatewayReference: record.gatewayReference || null,
-      processedAt: record.processedAt || null,
-      escrowReleasedAt: record.escrowReleasedAt || null,
-      disputedAt: record.disputedAt || null,
-      refundReason: record.raisonRemboursement || null,
-      createdAt: record.creeLe,
-      updatedAt: record.misAJourLe || record.creeLe,
-    });
+    return record ? mapPaymentRecord(record) : null;
   }
 
   async findByTransactionReference(reference: string): Promise<Payment | null> {
@@ -174,177 +160,57 @@ export class PaymentsRepositoryImpl implements PaymentsRepository {
         OR: [
           { referenceTransaction: reference },
           { referenceFournisseur: reference },
+          { gatewayReference: reference },
         ],
       },
     });
-
-    if (!record) {
-      return null;
-    }
-
-    return Payment.reconstitute({
-      id: record.id,
-      bookingId: record.reservationId,
-      clientId: record.clientId,
-      professionalId: record.professionalId,
-      method: toDomainMethod(record.methode),
-      status: toDomainStatus(record.statut),
-      escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-      amount: Number(record.montant),
-      commissionAmount: Number(record.montantCommission),
-      netAmount: Number(record.montantNet),
-      transactionReference:
-        record.referenceTransaction || record.referenceFournisseur || null,
-      gatewayReference: record.gatewayReference || null,
-      processedAt: record.processedAt || null,
-      escrowReleasedAt: record.escrowReleasedAt || null,
-      disputedAt: record.disputedAt || null,
-      refundReason: record.raisonRemboursement || null,
-      createdAt: record.creeLe,
-      updatedAt: record.misAJourLe || record.creeLe,
-    });
+    return record ? mapPaymentRecord(record) : null;
   }
 
   async findByClientId(
-    clientId: string,
-    filters?: {
-      status?: PaymentStatus;
-      method?: PaymentMethod;
-      limit?: number;
-      offset?: number;
-    },
+    clientId?: string,
+    filters?: ClientPaymentFilters,
   ): Promise<Payment[]> {
-    const where: Record<string, unknown> = { clientId };
-
-    if (filters?.status) {
-      where.statut = toPrismaStatus(filters.status);
-    }
-
-    if (filters?.method) {
-      where.methode = toPrismaMethod(filters.method);
-    }
-
     const records = await this.prisma.paiement.findMany({
-      where,
+      where: this.buildClientWhere(clientId, filters),
       orderBy: { creeLe: 'desc' },
       take: filters?.limit || 20,
       skip: filters?.offset || 0,
     });
 
-    return records.map((record) =>
-      Payment.reconstitute({
-        id: record.id,
-        bookingId: record.reservationId,
-        clientId: record.clientId,
-        professionalId: record.professionalId,
-        method: toDomainMethod(record.methode),
-        status: toDomainStatus(record.statut),
-        escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-        amount: Number(record.montant),
-        commissionAmount: Number(record.montantCommission),
-        netAmount: Number(record.montantNet),
-        transactionReference:
-          record.referenceTransaction || record.referenceFournisseur || null,
-        gatewayReference: record.gatewayReference || null,
-        processedAt: record.processedAt || null,
-        escrowReleasedAt: record.escrowReleasedAt || null,
-        disputedAt: record.disputedAt || null,
-        refundReason: record.raisonRemboursement || null,
-        createdAt: record.creeLe,
-        updatedAt: record.misAJourLe || record.creeLe,
-      }),
-    );
+    return records.map(mapPaymentRecord);
   }
 
   async findByProfessionalId(
-    professionalId: string,
-    filters?: {
-      status?: PaymentStatus;
-      escrowStatus?: EscrowStatus;
-      limit?: number;
-      offset?: number;
-    },
+    professionalId?: string,
+    filters?: ProfessionalPaymentFilters,
   ): Promise<Payment[]> {
-    const where: Record<string, unknown> = { professionalId };
-
-    if (filters?.status) {
-      where.statut = toPrismaStatus(filters.status);
-    }
-
-    if (filters?.escrowStatus) {
-      where.escrowStatus = toPrismaEscrowStatus(filters.escrowStatus);
-    }
-
     const records = await this.prisma.paiement.findMany({
-      where,
+      where: this.buildProfessionalWhere(professionalId, filters),
       orderBy: { creeLe: 'desc' },
       take: filters?.limit || 20,
       skip: filters?.offset || 0,
     });
 
-    return records.map((record) =>
-      Payment.reconstitute({
-        id: record.id,
-        bookingId: record.reservationId,
-        clientId: record.clientId,
-        professionalId: record.professionalId,
-        method: toDomainMethod(record.methode),
-        status: toDomainStatus(record.statut),
-        escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-        amount: Number(record.montant),
-        commissionAmount: Number(record.montantCommission),
-        netAmount: Number(record.montantNet),
-        transactionReference:
-          record.referenceTransaction || record.referenceFournisseur || null,
-        gatewayReference: record.gatewayReference || null,
-        processedAt: record.processedAt || null,
-        escrowReleasedAt: record.escrowReleasedAt || null,
-        disputedAt: record.disputedAt || null,
-        refundReason: record.raisonRemboursement || null,
-        createdAt: record.creeLe,
-        updatedAt: record.misAJourLe || record.creeLe,
-      }),
-    );
+    return records.map(mapPaymentRecord);
   }
 
   async countByClientId(
-    clientId: string,
-    filters?: {
-      status?: PaymentStatus;
-      method?: PaymentMethod;
-    },
+    clientId?: string,
+    filters?: ClientPaymentFilters,
   ): Promise<number> {
-    const where: Record<string, unknown> = { clientId };
-
-    if (filters?.status) {
-      where.statut = toPrismaStatus(filters.status);
-    }
-
-    if (filters?.method) {
-      where.methode = toPrismaMethod(filters.method);
-    }
-
-    return this.prisma.paiement.count({ where });
+    return this.prisma.paiement.count({
+      where: this.buildClientWhere(clientId, filters),
+    });
   }
 
   async countByProfessionalId(
-    professionalId: string,
-    filters?: {
-      status?: PaymentStatus;
-      escrowStatus?: EscrowStatus;
-    },
+    professionalId?: string,
+    filters?: ProfessionalPaymentFilters,
   ): Promise<number> {
-    const where: Record<string, unknown> = { professionalId };
-
-    if (filters?.status) {
-      where.statut = toPrismaStatus(filters.status);
-    }
-
-    if (filters?.escrowStatus) {
-      where.escrowStatus = toPrismaEscrowStatus(filters.escrowStatus);
-    }
-
-    return this.prisma.paiement.count({ where });
+    return this.prisma.paiement.count({
+      where: this.buildProfessionalWhere(professionalId, filters),
+    });
   }
 
   async updatePaymentStatus(
@@ -390,29 +256,7 @@ export class PaymentsRepositoryImpl implements PaymentsRepository {
       orderBy: { creeLe: 'asc' },
     });
 
-    return records.map((record) =>
-      Payment.reconstitute({
-        id: record.id,
-        bookingId: record.reservationId,
-        clientId: record.clientId,
-        professionalId: record.professionalId,
-        method: toDomainMethod(record.methode),
-        status: toDomainStatus(record.statut),
-        escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-        amount: Number(record.montant),
-        commissionAmount: Number(record.montantCommission),
-        netAmount: Number(record.montantNet),
-        transactionReference:
-          record.referenceTransaction || record.referenceFournisseur || null,
-        gatewayReference: record.gatewayReference || null,
-        processedAt: record.processedAt || null,
-        escrowReleasedAt: record.escrowReleasedAt || null,
-        disputedAt: record.disputedAt || null,
-        refundReason: record.raisonRemboursement || null,
-        createdAt: record.creeLe,
-        updatedAt: record.misAJourLe || record.creeLe,
-      }),
-    );
+    return records.map(mapPaymentRecord);
   }
 
   async findExpiredPayments(): Promise<Payment[]> {
@@ -421,34 +265,34 @@ export class PaymentsRepositoryImpl implements PaymentsRepository {
     const records = await this.prisma.paiement.findMany({
       where: {
         statut: 'EN_ATTENTE',
-        creeLe: {
-          lt: thirtyMinutesAgo,
-        },
+        creeLe: { lt: thirtyMinutesAgo },
       },
     });
 
-    return records.map((record) =>
-      Payment.reconstitute({
-        id: record.id,
-        bookingId: record.reservationId,
-        clientId: record.clientId,
-        professionalId: record.professionalId,
-        method: toDomainMethod(record.methode),
-        status: toDomainStatus(record.statut),
-        escrowStatus: toDomainEscrowStatus(record.escrowStatus),
-        amount: Number(record.montant),
-        commissionAmount: Number(record.montantCommission),
-        netAmount: Number(record.montantNet),
-        transactionReference:
-          record.referenceTransaction || record.referenceFournisseur || null,
-        gatewayReference: record.gatewayReference || null,
-        processedAt: record.processedAt || null,
-        escrowReleasedAt: record.escrowReleasedAt || null,
-        disputedAt: record.disputedAt || null,
-        refundReason: record.raisonRemboursement || null,
-        createdAt: record.creeLe,
-        updatedAt: record.misAJourLe || record.creeLe,
-      }),
-    );
+    return records.map(mapPaymentRecord);
+  }
+
+  private buildClientWhere(
+    clientId?: string,
+    filters?: ClientPaymentFilters,
+  ): Prisma.PaiementWhereInput {
+    return {
+      ...(clientId ? { clientId } : {}),
+      ...(filters?.status ? { statut: toPrismaStatus(filters.status) } : {}),
+      ...(filters?.method ? { methode: toPrismaMethod(filters.method) } : {}),
+    };
+  }
+
+  private buildProfessionalWhere(
+    professionalId?: string,
+    filters?: ProfessionalPaymentFilters,
+  ): Prisma.PaiementWhereInput {
+    return {
+      ...(professionalId ? { professionalId } : {}),
+      ...(filters?.status ? { statut: toPrismaStatus(filters.status) } : {}),
+      ...(filters?.escrowStatus
+        ? { escrowStatus: toPrismaEscrowStatus(filters.escrowStatus) }
+        : {}),
+    };
   }
 }

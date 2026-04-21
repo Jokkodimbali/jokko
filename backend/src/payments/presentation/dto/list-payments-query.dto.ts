@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { VALIDATION_MESSAGES } from '../../../core/messages/validation-message.catalog';
+import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import {
   PaymentMethod,
   PaymentStatus,

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString, Min, Max } from 'class-validator';
-import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class RequestWithdrawalDto {

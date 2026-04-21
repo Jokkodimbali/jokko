@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   type PaymentsRepository,
   PAYMENTS_REPOSITORY_PORT,
@@ -8,6 +8,15 @@ import {
   type PaymentGateway,
   PAYMENT_GATEWAY_PORT,
 } from '../ports/payment-gateway.port';
+import {
+  type PaymentWorkflowPort,
+  PAYMENT_WORKFLOW_PORT,
+} from '../ports/payment-workflow.port';
+import {
+  type PaymentIdempotencyPort,
+  PAYMENT_IDEMPOTENCY_PORT,
+  type PaymentInitiationCache,
+} from '../ports/payment-idempotency.port';
 import { Payment } from '../../domain/entities/payment.entity';
 import { PaymentAmount } from '../../domain/value-objects/payment-amount.vo';
 import { TransactionReference } from '../../domain/value-objects/transaction-reference.vo';
@@ -28,6 +37,10 @@ export class PaymentCommandService {
     private readonly paymentsRepository: PaymentsRepository,
     @Inject(PAYMENT_GATEWAY_PORT)
     private readonly paymentGateway: PaymentGateway,
+    @Inject(PAYMENT_WORKFLOW_PORT)
+    private readonly paymentWorkflow: PaymentWorkflowPort,
+    @Inject(PAYMENT_IDEMPOTENCY_PORT)
+    private readonly paymentIdempotency: PaymentIdempotencyPort,
     @Inject(DOMAIN_EVENT_DISPATCHER)
     private readonly domainEventDispatcher: DomainEventDispatcher,
   ) {}
@@ -41,15 +54,61 @@ export class PaymentCommandService {
     callbackUrl?: string;
     successUrl?: string;
     cancelUrl?: string;
+    idempotencyKey?: string;
   }): Promise<{
     payment: Payment;
     paymentUrl: string;
     gatewayReference: string;
   }> {
+    const idempotencyKey = command.idempotencyKey?.trim();
+    if (!idempotencyKey) {
+      throw PaymentDomainError.idempotencyKeyRequired();
+    }
+
+    const requestHash = this.buildInitiationRequestHash(command);
+    const existingIdempotency =
+      await this.paymentIdempotency.findByKey(idempotencyKey);
+
+    if (existingIdempotency) {
+      if (existingIdempotency.requestHash !== requestHash) {
+        throw PaymentDomainError.idempotencyConflict();
+      }
+
+      if (
+        existingIdempotency.status === 'TERMINE' &&
+        existingIdempotency.response
+      ) {
+        const payment = await this.paymentsRepository.findById(
+          existingIdempotency.response.paymentId,
+        );
+        if (!payment) {
+          throw PaymentDomainError.paymentNotFound(
+            existingIdempotency.response.paymentId,
+          );
+        }
+
+        return {
+          payment,
+          paymentUrl: existingIdempotency.response.paymentUrl,
+          gatewayReference: existingIdempotency.response.gatewayReference,
+        };
+      }
+
+      throw PaymentDomainError.idempotencyInProgress();
+    }
+
+    await this.paymentIdempotency.createInProgress({
+      key: idempotencyKey,
+      scope: `payments:initiate:${command.clientId}`,
+      requestHash,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
     const existingPayment = await this.paymentsRepository.findByBookingId(
       command.bookingId,
     );
     if (existingPayment) {
+      await this.paymentIdempotency.fail(idempotencyKey);
       throw PaymentDomainError.alreadyProcessed();
     }
 
@@ -73,7 +132,7 @@ export class PaymentCommandService {
     const gatewayResponse = await this.paymentGateway.initiatePayment({
       amount: command.amount,
       currency: 'XOF', // FCFA
-      description: `Paiement réservation ${command.bookingId}`, //
+      description: `Paiement reservation ${command.bookingId}`,
       customerName: command.clientId,
       customerPhone: command.clientId,
       callbackUrl: command.callbackUrl,
@@ -91,21 +150,31 @@ export class PaymentCommandService {
       !gatewayResponse.paymentUrl ||
       !gatewayResponse.gatewayReference
     ) {
-      payment.markAsFailed('Erreur gateway inconnue');
+      payment.markAsFailed(PaymentDomainError.gatewayUnknownError().message);
       await this.paymentsRepository.save(payment);
+      await this.paymentIdempotency.fail(idempotencyKey);
       this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
       payment.clearDomainEvents();
-      throw PaymentDomainError.gatewayError(
-        gatewayResponse.error
-          ? String(gatewayResponse.error)
-          : 'Erreur gateway inconnue',
-      );
+      throw gatewayResponse.error
+        ? PaymentDomainError.gatewayError(String(gatewayResponse.error))
+        : PaymentDomainError.gatewayUnknownError();
     }
+
+    payment.attachGatewayReference(gatewayResponse.gatewayReference);
+    await this.paymentsRepository.save(payment);
+
+    const response: PaymentInitiationCache = {
+      paymentId: payment.id,
+      paymentUrl: gatewayResponse.paymentUrl,
+      gatewayReference: gatewayResponse.gatewayReference,
+    };
+
+    await this.paymentIdempotency.complete(idempotencyKey, response);
 
     return {
       payment,
-      paymentUrl: gatewayResponse.paymentUrl,
-      gatewayReference: gatewayResponse.gatewayReference,
+      paymentUrl: response.paymentUrl,
+      gatewayReference: response.gatewayReference,
     };
   }
 
@@ -121,18 +190,43 @@ export class PaymentCommandService {
       throw PaymentDomainError.paymentNotFound(gatewayReference);
     }
 
+    const wasAlreadySuccessful = payment.isSuccessful();
+
     if (status === PaymentStatus.SUCCESS) {
       payment.markAsSuccess(gatewayReference);
     } else if (status === PaymentStatus.FAILED) {
-      payment.markAsFailed('Payment failed');
+      payment.markAsFailed(PaymentDomainError.failedByProvider().message);
     } else if (status === PaymentStatus.CANCELLED) {
       payment.markAsCancelled();
     }
 
     await this.paymentsRepository.save(payment);
+    if (payment.isSuccessful() && !wasAlreadySuccessful) {
+      await this.paymentWorkflow.markReservationAsPaidAndNotify(payment);
+    }
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();
 
     return payment;
+  }
+
+  private buildInitiationRequestHash(command: {
+    bookingId: string;
+    clientId: string;
+    professionalId: string;
+    amount: number;
+    method: PaymentMethod;
+  }): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          bookingId: command.bookingId,
+          clientId: command.clientId,
+          professionalId: command.professionalId,
+          amount: command.amount,
+          method: command.method,
+        }),
+      )
+      .digest('hex');
   }
 }

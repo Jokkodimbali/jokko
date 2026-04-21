@@ -7,18 +7,17 @@ export class PaymentAmount {
     const numericValue = typeof raw === 'string' ? Number.parseFloat(raw) : raw;
 
     if (Number.isNaN(numericValue)) {
-      throw PaymentDomainError.invalidAmount('Valeur non numérique');
+      throw PaymentDomainError.invalidAmountNotNumeric();
     }
 
     if (numericValue < 0) {
-      throw PaymentDomainError.invalidAmount('Montant négatif non autorisé');
+      throw PaymentDomainError.invalidAmountNegative();
     }
 
     if (numericValue > 999999.99) {
-      throw PaymentDomainError.invalidAmount('Montant trop élevé');
+      throw PaymentDomainError.invalidAmountTooHigh();
     }
 
-    // Arrondir à 2 décimales
     const roundedValue = Math.round(numericValue * 100) / 100;
 
     return new PaymentAmount(roundedValue);
@@ -35,7 +34,7 @@ export class PaymentAmount {
   subtract(other: PaymentAmount): PaymentAmount {
     const result = this.value - other.value;
     if (result < 0) {
-      throw PaymentDomainError.invalidAmount('Résultat négatif non autorisé');
+      throw PaymentDomainError.invalidAmountResultNegative();
     }
     return new PaymentAmount(result);
   }
@@ -46,7 +45,7 @@ export class PaymentAmount {
 
   divide(divisor: number): PaymentAmount {
     if (divisor === 0) {
-      throw PaymentDomainError.invalidAmount('Division par zéro');
+      throw PaymentDomainError.invalidAmountDivisionByZero();
     }
     return new PaymentAmount(this.value / divisor);
   }

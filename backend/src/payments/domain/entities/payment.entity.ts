@@ -74,9 +74,9 @@ export class Payment {
     professionalId: string;
     method: PaymentMethod;
     amount: PaymentAmount;
-    commissionRate?: number; // Pourcentage (ex: 10 pour 10%)
+    commissionRate?: number; // Pourcentage, par defaut 3%.
   }): Payment {
-    const commissionRate = params.commissionRate || 10; // 10% par défaut
+    const commissionRate = params.commissionRate || 3;
     const commissionAmount = params.amount.percentage(commissionRate);
     const netAmount = params.amount.subtract(commissionAmount);
 
@@ -246,6 +246,11 @@ export class Payment {
     if (reason) {
       this._refundReason = reason;
     }
+    this.touch();
+  }
+
+  attachGatewayReference(gatewayReference: string): void {
+    this._gatewayReference = gatewayReference;
     this.touch();
   }
 

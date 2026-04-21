@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -11,35 +12,34 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
-import { appMessage } from '../../../core/http/app-http.exception';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { PaymentsFacade } from '../../application/services/payments-facade.service';
-import { PaymentDomainError } from '../../domain/errors/payment.domain-error';
 import { PaymentWebhookDto } from '../dto/payment-webhook.dto';
 import { InitiatePaymentDto } from '../dto/initiate-payment.dto';
 import { RequestWithdrawalDto } from '../dto/request-withdrawal.dto';
 import { ListPaymentsQueryDto } from '../dto/list-payments-query.dto';
-import { PaymentStatus } from '../../domain/value-objects/payment-types.vo';
+import { PaymentReasonDto } from '../dto/payment-reason.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import { appMessage } from '../../../core/http/app-http.exception';
 
 @ApiTags(API_DOCS.payments.tag)
 @ApiBearerAuth()
 @Controller('payments')
-@UseGuards(JwtAuthGuard)
 export class PaymentsController {
   constructor(private readonly paymentsFacade: PaymentsFacade) {}
 
   @Post('initiate')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.payments.initiateSummary })
   @ApiResponse({
@@ -49,23 +49,15 @@ export class PaymentsController {
   async initiatePayment(
     @CurrentUser() user: AuthUser,
     @Body() dto: InitiatePaymentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    const bookingInfo = {
-      clientId: user.sub,
-      professionalId: 'professional-id',
-      amount: 10000,
-    };
-
-    const result = await this.paymentsFacade.initiatePayment({
-      bookingId: dto.bookingId,
-      clientId: bookingInfo.clientId,
-      professionalId: bookingInfo.professionalId,
-      amount: bookingInfo.amount,
-      method: dto.method,
-      callbackUrl: dto.callbackUrl,
-      successUrl: dto.successUrl,
-      cancelUrl: dto.cancelUrl,
-    });
+    const result = await this.paymentsFacade.initiatePaymentForReservation(
+      user,
+      {
+        ...dto,
+        idempotencyKey,
+      },
+    );
 
     return createApiResponse(
       {
@@ -85,30 +77,23 @@ export class PaymentsController {
     description: API_DOCS.payments.webhookProcessed,
   })
   async webhook(@Body() webhookData: PaymentWebhookDto) {
-    const { invoice_token, status } = webhookData;
+    const result = await this.paymentsFacade.processGatewayWebhookEvent({
+      gatewayReference: webhookData.gatewayReference,
+      invoiceToken: webhookData.invoice_token,
+      status: webhookData.status,
+      signature: webhookData.signature,
+      timestamp: webhookData.timestamp,
+      payload: webhookData.toRecord(),
+    });
 
-    if (invoice_token && status) {
-      const paymentStatus =
-        status === 'completed'
-          ? PaymentStatus.SUCCESS
-          : status === 'cancelled'
-            ? PaymentStatus.CANCELLED
-            : PaymentStatus.FAILED;
-
-      await this.paymentsFacade.processPaymentWebhook(
-        webhookData.gatewayReference || invoice_token,
-        paymentStatus,
-      );
-      return createApiResponse(
-        null,
-        appMessage('PAYMENTS_WEBHOOK_PROCESSED').message,
-      );
-    }
-
-    return createApiResponse({ received: true });
+    return createApiResponse(
+      result,
+      appMessage('PAYMENTS_WEBHOOK_PROCESSED').message,
+    );
   }
 
   @Get('history')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: API_DOCS.payments.historySummary })
   @ApiQuery({
     name: 'status',
@@ -131,44 +116,31 @@ export class PaymentsController {
     return createApiResponse(result);
   }
 
-  @Get(':paymentId')
-  @ApiOperation({ summary: "Détail d'un paiement" })
-  @ApiParam({
-    name: 'paymentId',
-    description: 'ID du paiement',
-  })
-  async getPaymentDetails(
-    @CurrentUser() user: AuthUser,
-    @Param('paymentId') paymentId: string,
-  ) {
-    const payment = await this.paymentsFacade.getPaymentById(paymentId);
-
-    if (payment.clientId !== user.sub && payment.professionalId !== user.sub) {
-      throw PaymentDomainError.unauthorizedAccess(paymentId);
-    }
-
-    return createApiResponse(payment.toView());
+  @Get('withdrawals')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: API_DOCS.payments.withdrawalsSummary })
+  async getWithdrawalHistory(@CurrentUser() user: AuthUser) {
+    const withdrawals =
+      await this.paymentsFacade.getProfessionalWithdrawalsForUser(user);
+    return createApiResponse(withdrawals);
   }
 
   @Post('withdraw')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Demander un retrait de fonds (professionnel)' })
+  @ApiOperation({ summary: API_DOCS.payments.withdrawSummary })
   @ApiResponse({
     status: 201,
-    description: 'Demande de retrait créée avec succès',
+    description: API_DOCS.payments.withdrawalCreated,
   })
   async requestWithdrawal(
     @CurrentUser() user: AuthUser,
     @Body() dto: RequestWithdrawalDto,
   ) {
-    const walletBalance = 50000;
-
-    const withdrawal = await this.paymentsFacade.requestWithdrawal({
-      professionalId: user.sub,
-      amount: dto.amount,
-      method: dto.method,
-      walletBalance,
-    });
+    const withdrawal = await this.paymentsFacade.requestWithdrawalForUser(
+      user,
+      dto,
+    );
 
     return createApiResponse(
       {
@@ -182,28 +154,41 @@ export class PaymentsController {
     );
   }
 
-  @Get('withdrawals')
-  @ApiOperation({ summary: 'Historique des retraits (professionnel)' })
-  async getWithdrawalHistory(@CurrentUser() user: AuthUser) {
-    const withdrawals = await this.paymentsFacade.getProfessionalWithdrawals(
-      user.sub,
+  @Get(':paymentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: API_DOCS.payments.getByIdSummary })
+  @ApiParam({
+    name: 'paymentId',
+    description: API_DOCS.payments.paymentIdParam,
+  })
+  async getPaymentDetails(
+    @CurrentUser() user: AuthUser,
+    @Param('paymentId') paymentId: string,
+  ) {
+    const payment = await this.paymentsFacade.getPaymentForUser(
+      user,
+      paymentId,
     );
-    return createApiResponse(withdrawals);
+    return createApiResponse(payment.toView());
   }
 
   @Patch(':paymentId/escrow/release')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Libérer les fonds escrow (après validation prestation)',
+    summary: API_DOCS.payments.escrowReleaseSummary,
   })
   @ApiParam({
     name: 'paymentId',
-    description: 'ID du paiement',
+    description: API_DOCS.payments.paymentIdParam,
   })
   async releaseEscrow(
     @CurrentUser() user: AuthUser,
     @Param('paymentId') paymentId: string,
   ) {
-    const payment = await this.paymentsFacade.releaseEscrow(paymentId);
+    const payment = await this.paymentsFacade.releaseEscrowForUser(
+      user,
+      paymentId,
+    );
 
     return createApiResponse(
       {
@@ -215,17 +200,19 @@ export class PaymentsController {
   }
 
   @Patch(':paymentId/escrow/dispute')
-  @ApiOperation({ summary: 'Contester un paiement (ouvrir un litige)' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: API_DOCS.payments.escrowDisputeSummary })
   @ApiParam({
     name: 'paymentId',
-    description: 'ID du paiement',
+    description: API_DOCS.payments.paymentIdParam,
   })
   async disputeEscrow(
     @CurrentUser() user: AuthUser,
     @Param('paymentId') paymentId: string,
-    @Body() body: { reason?: string },
+    @Body() body: PaymentReasonDto,
   ) {
-    const payment = await this.paymentsFacade.disputeEscrow(
+    const payment = await this.paymentsFacade.disputeEscrowForUser(
+      user,
       paymentId,
       body.reason,
     );
@@ -240,16 +227,20 @@ export class PaymentsController {
   }
 
   @Get(':paymentId/escrow/status')
-  @ApiOperation({ summary: "Statut du escrow d'un paiement" })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: API_DOCS.payments.escrowStatusSummary })
   @ApiParam({
     name: 'paymentId',
-    description: 'ID du paiement',
+    description: API_DOCS.payments.paymentIdParam,
   })
   async getEscrowStatus(
     @CurrentUser() user: AuthUser,
     @Param('paymentId') paymentId: string,
   ) {
-    const status = await this.paymentsFacade.getEscrowStatus(paymentId);
+    const status = await this.paymentsFacade.getEscrowStatusForUser(
+      user,
+      paymentId,
+    );
     return createApiResponse(status);
   }
 }

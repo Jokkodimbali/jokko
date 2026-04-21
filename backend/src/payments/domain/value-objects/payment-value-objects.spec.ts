@@ -16,17 +16,19 @@ describe('PaymentAmount', () => {
 
     it('should throw error for negative amount', () => {
       expect(() => PaymentAmount.create(-100)).toThrow(
-        'Montant négatif non autorisé',
+        'Montant invalide : Montant negatif non autorise',
       );
     });
 
     it('should throw error for amount too high', () => {
-      expect(() => PaymentAmount.create(1000000)).toThrow('Montant trop élevé');
+      expect(() => PaymentAmount.create(1000000)).toThrow(
+        'Montant invalide : Montant trop eleve',
+      );
     });
 
     it('should throw error for NaN', () => {
       expect(() => PaymentAmount.create('invalid')).toThrow(
-        'Valeur non numérique',
+        'Montant invalide : Valeur non numerique',
       );
     });
   });
@@ -53,12 +55,12 @@ describe('PaymentAmount', () => {
     it('should throw error for negative result', () => {
       const other = PaymentAmount.create(15000);
       expect(() => amount.subtract(other)).toThrow(
-        'Résultat négatif non autorisé',
+        'Montant invalide : Resultat negatif non autorise',
       );
     });
 
     it('should calculate percentage correctly', () => {
-      const commission = amount.percentage(7); // 7%
+      const commission = amount.percentage(7);
       expect(commission.getValue()).toBe(700);
     });
   });
@@ -92,13 +94,13 @@ describe('TransactionReference', () => {
 
     it('should throw error for reference too short', () => {
       expect(() => TransactionReference.create('ABC')).toThrow(
-        'Longueur invalide (10-100 caractères)',
+        'Reference invalide : Longueur invalide (10-100 caracteres)',
       );
     });
 
     it('should throw error for invalid characters', () => {
       expect(() => TransactionReference.create('PAY_123@invalid')).toThrow(
-        'Caractères non autorisés (uniquement lettres, chiffres, tirets et underscores)',
+        'Reference invalide : Caracteres non autorises (uniquement lettres, chiffres, tirets et underscores)',
       );
     });
   });

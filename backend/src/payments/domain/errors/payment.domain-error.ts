@@ -17,10 +17,52 @@ export class PaymentDomainError extends ValidationError {
     );
   }
 
+  static invalidAmountNotNumeric(): PaymentDomainError {
+    return PaymentDomainError.invalidAmount(
+      domainMessage('PAYMENT_AMOUNT_NOT_NUMERIC'),
+    );
+  }
+
+  static invalidAmountNegative(): PaymentDomainError {
+    return PaymentDomainError.invalidAmount(
+      domainMessage('PAYMENT_AMOUNT_NEGATIVE'),
+    );
+  }
+
+  static invalidAmountTooHigh(): PaymentDomainError {
+    return PaymentDomainError.invalidAmount(
+      domainMessage('PAYMENT_AMOUNT_TOO_HIGH'),
+    );
+  }
+
+  static invalidAmountResultNegative(): PaymentDomainError {
+    return PaymentDomainError.invalidAmount(
+      domainMessage('PAYMENT_AMOUNT_RESULT_NEGATIVE'),
+    );
+  }
+
+  static invalidAmountDivisionByZero(): PaymentDomainError {
+    return PaymentDomainError.invalidAmount(
+      domainMessage('PAYMENT_AMOUNT_DIVISION_BY_ZERO'),
+    );
+  }
+
   static invalidReference(reason: string): PaymentDomainError {
     return new PaymentDomainError(
       'PAYMENT_INVALID_REFERENCE',
       domainMessage('PAYMENT_INVALID_REFERENCE', { reason }),
+    );
+  }
+
+  static invalidReferenceLength(): PaymentDomainError {
+    return PaymentDomainError.invalidReference(
+      domainMessage('PAYMENT_REFERENCE_LENGTH_INVALID'),
+    );
+  }
+
+  static invalidReferenceFormat(): PaymentDomainError {
+    return PaymentDomainError.invalidReference(
+      domainMessage('PAYMENT_REFERENCE_FORMAT_INVALID'),
     );
   }
 
@@ -45,6 +87,27 @@ export class PaymentDomainError extends ValidationError {
     return new ConflictError(
       'PAYMENT_ALREADY_PROCESSED',
       domainMessage('PAYMENT_ALREADY_PROCESSED'),
+    );
+  }
+
+  static idempotencyKeyRequired(): ValidationError {
+    return new ValidationError(
+      'PAYMENT_IDEMPOTENCY_KEY_REQUIRED',
+      domainMessage('PAYMENT_IDEMPOTENCY_KEY_REQUIRED'),
+    );
+  }
+
+  static idempotencyConflict(): ConflictError {
+    return new ConflictError(
+      'PAYMENT_IDEMPOTENCY_CONFLICT',
+      domainMessage('PAYMENT_IDEMPOTENCY_CONFLICT'),
+    );
+  }
+
+  static idempotencyInProgress(): ConflictError {
+    return new ConflictError(
+      'PAYMENT_IDEMPOTENCY_IN_PROGRESS',
+      domainMessage('PAYMENT_IDEMPOTENCY_IN_PROGRESS'),
     );
   }
 
@@ -110,24 +173,36 @@ export class PaymentDomainError extends ValidationError {
     );
   }
 
-  static unauthorizedAccess(paymentId: string): ValidationError {
-    return new ValidationError(
-      'PAYMENT_UNAUTHORIZED_ACCESS',
-      `Vous n'êtes pas autorisé à accéder au paiement ${paymentId}`,
+  static gatewayUnknownError(): ValidationError {
+    return PaymentDomainError.gatewayError(
+      domainMessage('PAYMENT_GATEWAY_UNKNOWN_ERROR'),
     );
   }
 
-  static withdrawalNotFound(id: string): NotFoundError {
+  static failedByProvider(): ValidationError {
+    return PaymentDomainError.gatewayError(
+      domainMessage('PAYMENT_FAILED_BY_PROVIDER'),
+    );
+  }
+
+  static unauthorizedAccess(paymentId: string): ValidationError {
+    return new ValidationError(
+      'PAYMENT_UNAUTHORIZED_ACCESS',
+      domainMessage('PAYMENT_UNAUTHORIZED_ACCESS', { paymentId }),
+    );
+  }
+
+  static withdrawalNotFound(withdrawalId: string): NotFoundError {
     return new NotFoundError(
       'WITHDRAWAL_NOT_FOUND',
-      `Demande de retrait introuvable: ${id}`,
+      domainMessage('WITHDRAWAL_NOT_FOUND', { withdrawalId }),
     );
   }
 
   static withdrawalAlreadyProcessed(status: string): ConflictError {
     return new ConflictError(
       'WITHDRAWAL_ALREADY_PROCESSED',
-      `Cette demande de retrait a déjà été traitée (Statut: ${status})`,
+      domainMessage('WITHDRAWAL_ALREADY_PROCESSED', { status }),
     );
   }
 

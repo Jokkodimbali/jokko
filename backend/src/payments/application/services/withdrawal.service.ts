@@ -1,9 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PaymentAmount } from '../../domain/value-objects/payment-amount.vo';
 import { PaymentDomainError } from '../../domain/errors/payment.domain-error';
 import {
   DOMAIN_EVENT_DISPATCHER,
-  DomainEventDispatcher,
+  type DomainEventDispatcher,
 } from '../../../shared/domain/events/domain-event-dispatcher';
 import {
   WithdrawalRequestedEvent,
@@ -13,24 +14,20 @@ import {
   WITHDRAWALS_REPOSITORY_PORT,
   type WithdrawalsRepository,
 } from '../ports/withdrawals-repository.port';
-import { randomUUID } from 'node:crypto';
-
-export interface WithdrawalRequest {
-  id: string;
-  professionalId: string;
-  amount: PaymentAmount;
-  method: 'WAVE' | 'ORANGE_MONEY' | 'CARTE';
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-  requestedAt: Date;
-  processedAt?: Date;
-  gatewayReference?: string;
-}
+import {
+  WALLET_LEDGER_PORT,
+  type WalletLedgerPort,
+} from '../ports/wallet-ledger.port';
+import { type WithdrawalRequest } from '../../domain/entities/withdrawal-request.entity';
+import { WithdrawalStatus } from '../../domain/value-objects/payment-types.vo';
 
 @Injectable()
 export class WithdrawalService {
   constructor(
     @Inject(WITHDRAWALS_REPOSITORY_PORT)
     private readonly withdrawalsRepository: WithdrawalsRepository,
+    @Inject(WALLET_LEDGER_PORT)
+    private readonly walletLedger: WalletLedgerPort,
     @Inject(DOMAIN_EVENT_DISPATCHER)
     private readonly domainEventDispatcher: DomainEventDispatcher,
   ) {}
@@ -39,9 +36,10 @@ export class WithdrawalService {
     professionalId: string;
     amount: number;
     method: 'WAVE' | 'ORANGE_MONEY';
-    walletBalance: number;
   }): Promise<WithdrawalRequest> {
-    const { professionalId, amount, method, walletBalance } = params;
+    const { professionalId, amount, method } = params;
+    const walletBalance =
+      await this.calculateAvailableWalletBalance(professionalId);
 
     if (amount < 2000) {
       throw PaymentDomainError.withdrawalAmountTooLow(2000, amount);
@@ -55,13 +53,12 @@ export class WithdrawalService {
       throw PaymentDomainError.insufficientFunds(amount, walletBalance);
     }
 
-    const withdrawalId = randomUUID();
     const created: WithdrawalRequest = {
-      id: withdrawalId,
+      id: randomUUID(),
       professionalId,
       amount: PaymentAmount.create(amount),
       method,
-      status: 'PENDING',
+      status: WithdrawalStatus.PENDING,
       requestedAt: new Date(),
     };
 
@@ -71,50 +68,49 @@ export class WithdrawalService {
       new WithdrawalRequestedEvent(created.id, professionalId, amount, method),
     );
 
-    await this.processWithdrawal(created.id);
-
-    return created;
+    return this.processWithdrawal(created.id);
   }
 
   async processWithdrawal(withdrawalId: string): Promise<WithdrawalRequest> {
-    const withdrawalDto =
-      await this.withdrawalsRepository.findById(withdrawalId);
-    if (!withdrawalDto) {
+    const withdrawal = await this.withdrawalsRepository.findById(withdrawalId);
+    if (!withdrawal) {
       throw PaymentDomainError.withdrawalNotFound(withdrawalId);
     }
 
-    if (withdrawalDto.status !== 'PENDING') {
-      throw PaymentDomainError.withdrawalAlreadyProcessed(withdrawalDto.status);
+    if (withdrawal.status !== WithdrawalStatus.PENDING) {
+      throw PaymentDomainError.withdrawalAlreadyProcessed(withdrawal.status);
     }
 
-    await this.withdrawalsRepository.updateStatus(withdrawalId, 'PROCESSING');
+    const processedAt = new Date();
+    const gatewayReference = `GW_${Date.now()}`;
 
-    setTimeout(async () => {
-      const now = new Date();
-      const gatewayRef = `GW_\${Date.now()}`;
-      await this.withdrawalsRepository.updateStatus(
+    await this.withdrawalsRepository.updateStatus(
+      withdrawalId,
+      WithdrawalStatus.COMPLETED,
+      processedAt,
+      gatewayReference,
+    );
+    await this.walletLedger.debitWithdrawal({
+      professionalId: withdrawal.professionalId,
+      amount: withdrawal.amount.getValue(),
+      withdrawalId,
+    });
+
+    this.domainEventDispatcher.publish(
+      new WithdrawalCompletedEvent(
         withdrawalId,
-        'COMPLETED',
-        now,
-        gatewayRef,
-      );
+        withdrawal.professionalId,
+        withdrawal.amount.getValue(),
+      ),
+    );
 
-      this.domainEventDispatcher.publish(
-        new WithdrawalCompletedEvent(
-          withdrawalId,
-          withdrawalDto.professionalId,
-          withdrawalDto.amount.getValue(),
-        ),
-      );
-    }, 2000);
+    const processedWithdrawal =
+      await this.withdrawalsRepository.findById(withdrawalId);
+    if (!processedWithdrawal) {
+      throw PaymentDomainError.withdrawalNotFound(withdrawalId);
+    }
 
-    return (await this.withdrawalsRepository.findById(withdrawalId))!;
-  }
-
-  async getWithdrawalStatus(
-    withdrawalId: string,
-  ): Promise<WithdrawalRequest | null> {
-    return this.withdrawalsRepository.findById(withdrawalId);
+    return processedWithdrawal;
   }
 
   async getProfessionalWithdrawals(
@@ -123,11 +119,9 @@ export class WithdrawalService {
     return this.withdrawalsRepository.findByProfessionalId(professionalId);
   }
 
-  calculateWithdrawalFee(): number {
-    return 0;
-  }
-
-  isWithdrawalAllowed(professionalId: string, amount: number): boolean {
-    return amount >= 2000 && amount <= 500000;
+  private async calculateAvailableWalletBalance(
+    professionalId: string,
+  ): Promise<number> {
+    return this.walletLedger.getAvailableBalance(professionalId);
   }
 }

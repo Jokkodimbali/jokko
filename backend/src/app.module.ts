@@ -9,6 +9,7 @@ import { AuditLoggerMiddleware } from './core/audit/audit-logger.middleware';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     ProfessionalsModule,
     CategoriesModule,
     ReservationsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule implements NestModule {

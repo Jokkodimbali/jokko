@@ -399,6 +399,49 @@ export const APP_MESSAGES_BY_MODULE = {
         'Les dates de debut et de fin sont obligatoires pour cette requete.',
     },
   },
+  payments: {
+    PAYMENTS_FORBIDDEN_ROLE: {
+      code: 'PAYMENTS_FORBIDDEN_ROLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Seuls les utilisateurs autorises peuvent consulter ces paiements.',
+    },
+    PAYMENTS_NOT_FOUND: {
+      code: 'PAYMENTS_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Paiement introuvable.',
+    },
+    PAYMENTS_INITIATED: {
+      code: 'PAYMENTS_INITIATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Paiement initie avec succes.',
+    },
+    PAYMENTS_WEBHOOK_PROCESSED: {
+      code: 'PAYMENTS_WEBHOOK_PROCESSED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Webhook de paiement traite avec succes.',
+    },
+    PAYMENTS_ESCROW_RELEASED: {
+      code: 'PAYMENTS_ESCROW_RELEASED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Fonds liberes avec succes au prestataire.',
+    },
+    PAYMENTS_ESCROW_DISPUTED: {
+      code: 'PAYMENTS_ESCROW_DISPUTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Le paiement a ete place en litige.',
+    },
+    PAYMENTS_ESCROW_REFUNDED: {
+      code: 'PAYMENTS_ESCROW_REFUNDED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Le paiement a ete rembourse.',
+    },
+    PAYMENTS_WITHDRAWAL_REQUESTED: {
+      code: 'PAYMENTS_WITHDRAWAL_REQUESTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Demande de retrait initiee avec succes.',
+    },
+  },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
       code: 'SYSTEM_DATABASE_URL_MISSING',
@@ -420,6 +463,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.professionals,
   ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.reservations,
+  ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 

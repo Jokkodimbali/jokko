@@ -273,11 +273,12 @@ export class ReservationEntity {
 
   private canBeCancelled(): boolean {
     return (
-      this._statut === 'EN_ATTENTE' ||
-      this._statut === 'CONFIRMEE' ||
-      this._statut === 'PAYEE_SEQUESTRE' ||
-      this._statut === 'EN_COURS'
-    ) && this.isMoreThanHoursBefore(24);
+      (this._statut === 'EN_ATTENTE' ||
+        this._statut === 'CONFIRMEE' ||
+        this._statut === 'PAYEE_SEQUESTRE' ||
+        this._statut === 'EN_COURS') &&
+      this.isMoreThanHoursBefore(24)
+    );
   }
 
   private canBeCompleted(): boolean {

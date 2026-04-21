@@ -104,6 +104,23 @@ export const VALIDATION_MESSAGE_CATALOG = {
   REFRESH_TOKEN_MIN: 'Le refresh token est invalide.',
   NON_WHITELISTED_FIELD:
     'La requete contient un champ non autorise par le backend.',
+
+  // -- Paiements --
+  PAYMENT_BOOKING_ID_FORMAT: "Le format de l'ID de réservation est invalide.",
+  PAYMENT_BOOKING_ID_REQUIRED:
+    'La réservation est obligatoire pour le paiement.',
+  PAYMENT_METHOD_REQUIRED: 'La méthode de paiement est obligatoire.',
+  PAYMENT_METHOD_INVALID: 'La méthode de paiement est invalide.',
+  PAYMENT_CALLBACK_URL_INVALID: "L'URL de retour est invalide.",
+  PAYMENT_SUCCESS_URL_INVALID: "L'URL de succès est invalide.",
+  PAYMENT_CANCEL_URL_INVALID: "L'URL d'annulation est invalide.",
+  PAYMENT_STATUS_INVALID: 'Le statut de paiement est invalide.',
+  WITHDRAWAL_AMOUNT_REQUIRED: 'Le montant du retrait est obligatoire.',
+  WITHDRAWAL_AMOUNT_INVALID: 'Le montant du retrait est invalide.',
+  WITHDRAWAL_AMOUNT_MIN: "Le montant minimum de retrait n'est pas atteint.",
+  WITHDRAWAL_AMOUNT_MAX: 'Le montant maximum de retrait est dépassé.',
+  WITHDRAWAL_METHOD_REQUIRED: 'La méthode de retrait est obligatoire.',
+  WITHDRAWAL_METHOD_INVALID: 'La méthode de retrait est invalide.',
 } as const;
 
 export type ValidationMessageKey = keyof typeof VALIDATION_MESSAGE_CATALOG;
@@ -112,11 +129,11 @@ export const VALIDATION_MESSAGES = Object.freeze(
   Object.keys(VALIDATION_MESSAGE_CATALOG).reduce(
     (accumulator, key) => ({
       ...accumulator,
-      [key]: key,
+      [key]: VALIDATION_MESSAGE_CATALOG[key as ValidationMessageKey],
     }),
-    {} as Record<ValidationMessageKey, ValidationMessageKey>,
+    {} as Record<ValidationMessageKey, string>,
   ),
-) as Record<ValidationMessageKey, ValidationMessageKey>;
+) as Record<ValidationMessageKey, string>;
 
 export function resolveValidationMessage(message: string): string {
   if (message in VALIDATION_MESSAGE_CATALOG) {

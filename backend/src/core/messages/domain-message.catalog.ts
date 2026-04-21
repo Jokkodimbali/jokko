@@ -82,6 +82,53 @@ export const DOMAIN_MESSAGE_CATALOG = {
     `Le nom "${name}" est trop court (minimum 2 caracteres)`,
   INVALID_ADDRESS: "L'adresse est trop longue (maximum 255 caracteres)",
   CANNOT_DELETE_ACTIVE_USER: 'Impossible de supprimer un utilisateur actif',
+
+  // -- Paiements --
+  PAYMENT_INVALID_AMOUNT: ({ reason }: { reason: string }) =>
+    `Montant invalide : ${reason}`,
+  PAYMENT_INVALID_REFERENCE: ({ reason }: { reason: string }) =>
+    `Reference invalide : ${reason}`,
+  PAYMENT_INSUFFICIENT_FUNDS: ({
+    requested,
+    available,
+  }: {
+    requested: number;
+    available: number;
+  }) => `Fonds insuffisants. Demande: ${requested}, Disponible: ${available}`,
+  PAYMENT_INVALID_METHOD: ({ method }: { method: string }) =>
+    `Methode de paiement invalide : ${method}`,
+  PAYMENT_ALREADY_PROCESSED: 'Ce paiement a deja ete traite',
+  ESCROW_ALREADY_RELEASED: 'Les fonds sous sequestre ont deja ete liberes',
+  ESCROW_ALREADY_DISPUTED: 'Ces fonds sont deja en litige',
+  WITHDRAWAL_TOO_SOON: ({ hoursRemaining }: { hoursRemaining: number }) =>
+    `Impossible de retirer. Veuillez patienter ${hoursRemaining} heures.`,
+  WITHDRAWAL_AMOUNT_TOO_LOW: ({
+    minimum,
+    requested,
+  }: {
+    minimum: number;
+    requested: number;
+  }) => `Montant trop faible. Minimum: ${minimum}, Demande: ${requested}`,
+  WITHDRAWAL_AMOUNT_TOO_HIGH: ({
+    maximum,
+    requested,
+  }: {
+    maximum: number;
+    requested: number;
+  }) => `Montant trop eleve. Maximum: ${maximum}, Demande: ${requested}`,
+  PAYMENT_NOT_FOUND: ({ paymentId }: { paymentId: string }) =>
+    `Paiement introuvable: ${paymentId}`,
+  ESCROW_NOT_FOUND: ({ paymentId }: { paymentId: string }) =>
+    `Paiement sous sequestre introuvable: ${paymentId}`,
+  PAYMENT_GATEWAY_ERROR: ({ details }: { details: string }) =>
+    `Erreur du prestataire de paiement: ${details}`,
+  PAYMENT_INVALID_WEBHOOK_SIGNATURE: 'Signature webhook invalide',
+  PAYMENT_UNAUTHORIZED_ACCESS: ({ paymentId }: { paymentId: string }) =>
+    `Accès non autorisé au paiement ${paymentId}.`,
+  WITHDRAWAL_NOT_FOUND: ({ withdrawalId }: { withdrawalId: string }) =>
+    `Demande de retrait introuvable : ${withdrawalId}.`,
+  WITHDRAWAL_ALREADY_PROCESSED: ({ status }: { status: string }) =>
+    `Cette demande de retrait a déjà été traitée (statut : ${status}).`,
 } as const;
 
 type DomainMessageCatalog = typeof DOMAIN_MESSAGE_CATALOG;

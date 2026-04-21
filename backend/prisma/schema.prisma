@@ -49,6 +49,21 @@ enum StatutPaiement {
   REMBOURSE
 }
 
+enum StatutRetrait {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ECHEC
+  ANNULE
+}
+
+enum EscrowStatus {
+  LOCKED
+  RELEASED
+  DISPUTED
+  REFUNDED
+}
+
 enum TypeNotification {
   NOUVELLE_RESERVATION
   RESERVATION_CONFIRMEE
@@ -154,6 +169,7 @@ model ProfilProfessionnel {
   disponibilites   Disponibilite[]
   elementsPortfolio ElementPortfolio[]
   reservations     Reservation[]
+  demandesRetrait  DemandeRetrait[]
 
   @@map("professional_profiles")
 }
@@ -269,14 +285,23 @@ model CommunicationReservation {
 model Paiement {
   id                   String          @id @default(uuid()) @db.Uuid
   reservationId        String          @unique @map("booking_id") @db.Uuid
+  clientId             String          @db.Uuid
+  professionalId       String          @db.Uuid
   montant              Decimal         @map("amount") @db.Decimal(12, 2)
   montantCommission    Decimal         @map("commission_amount") @db.Decimal(12, 2)
   montantNet           Decimal         @map("net_amount") @db.Decimal(12, 2)
   methode              MethodePaiement @map("method")
   statut               StatutPaiement  @default(EN_ATTENTE)
+  escrowStatus         EscrowStatus    @default(LOCKED)
+  referenceTransaction String?         @map("transaction_ref") @db.VarChar(200)
   referenceFournisseur String?         @map("provider_ref") @db.VarChar(200)
+  gatewayReference     String?         @map("gateway_ref") @db.VarChar(200)
+  processedAt          DateTime?       @map("processed_at")
+  escrowReleasedAt     DateTime?       @map("escrow_released_at")
+  disputedAt           DateTime?       @map("disputed_at")
   raisonRemboursement  String?         @map("refund_reason") @db.Text
   creeLe               DateTime        @default(now()) @map("created_at")
+  misAJourLe           DateTime        @updatedAt @map("updated_at")
 
   reservation          Reservation     @relation(fields: [reservationId], references: [id])
 
@@ -387,4 +412,19 @@ model JournalAudit {
   @@index([utilisateurId, creeLe])
   @@index([typeAction, creeLe])
   @@map("audit_logs")
+}
+
+model DemandeRetrait {
+  id                  String          @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String        @map("professional_id") @db.Uuid
+  montant             Decimal         @map("amount") @db.Decimal(12, 2)
+  methode             MethodePaiement @map("method")
+  statut              StatutRetrait   @default(EN_ATTENTE)
+  referenceFournisseur String?        @map("provider_ref") @db.VarChar(200)
+  demandeLe           DateTime        @default(now()) @map("requested_at")
+  traiteLe            DateTime?       @map("processed_at")
+
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id])
+
+  @@map("withdrawal_requests")
 }

@@ -18,7 +18,9 @@ export class ReservationQueryService extends ReservationAppService {
       if (query.scope === 'CLIENT') {
         filters.clientId = requestUser.sub;
       } else {
-        const profile = await this.getProfessionalProfileOrThrow(requestUser.sub);
+        const profile = await this.getProfessionalProfileOrThrow(
+          requestUser.sub,
+        );
         filters.professionalId = profile.id;
       }
     } else {

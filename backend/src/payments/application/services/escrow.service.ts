@@ -1,0 +1,104 @@
+import { Injectable, Inject } from '@nestjs/common';
+import {
+  PAYMENTS_REPOSITORY_PORT,
+  type PaymentsRepository,
+} from '../ports/payments-repository.port';
+import { Payment } from '../../domain/entities/payment.entity';
+import { PaymentDomainError } from '../../domain/errors/payment.domain-error';
+import {
+  DOMAIN_EVENT_DISPATCHER,
+  type DomainEventDispatcher,
+} from '../../../shared/domain/events/domain-event-dispatcher';
+
+@Injectable()
+export class EscrowService {
+  constructor(
+    @Inject(PAYMENTS_REPOSITORY_PORT)
+    private readonly paymentsRepository: PaymentsRepository,
+    @Inject(DOMAIN_EVENT_DISPATCHER)
+    private readonly domainEventDispatcher: DomainEventDispatcher,
+  ) {}
+
+  async releaseEscrow(paymentId: string): Promise<Payment> {
+    const payment = await this.paymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw PaymentDomainError.escrowNotFound(paymentId);
+    }
+
+    if (!payment.canReleaseEscrow()) {
+      throw PaymentDomainError.escrowAlreadyReleased();
+    }
+
+    payment.releaseEscrow();
+    await this.paymentsRepository.save(payment);
+    this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
+    payment.clearDomainEvents();
+
+    return payment;
+  }
+
+  async disputeEscrow(paymentId: string, reason?: string): Promise<Payment> {
+    const payment = await this.paymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw PaymentDomainError.escrowNotFound(paymentId);
+    }
+
+    if (!payment.isEscrowLocked()) {
+      throw PaymentDomainError.escrowAlreadyDisputed();
+    }
+
+    payment.disputeEscrow(reason);
+    await this.paymentsRepository.save(payment);
+    this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
+    payment.clearDomainEvents();
+
+    return payment;
+  }
+
+  async refundPayment(paymentId: string, reason?: string): Promise<Payment> {
+    const payment = await this.paymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw PaymentDomainError.escrowNotFound(paymentId);
+    }
+
+    if (!payment.canBeRefunded()) {
+      throw PaymentDomainError.escrowAlreadyReleased();
+    }
+
+    payment.refund(reason);
+    await this.paymentsRepository.save(payment);
+    this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
+    payment.clearDomainEvents();
+
+    return payment;
+  }
+
+  async getPendingEscrowReleases(): Promise<Payment[]> {
+    return this.paymentsRepository.findPendingEscrowReleases();
+  }
+
+  async processAutomaticEscrowRelease(paymentId: string): Promise<Payment> {
+    return this.releaseEscrow(paymentId);
+  }
+
+  async getEscrowStatus(paymentId: string): Promise<{
+    isLocked: boolean;
+    isReleased: boolean;
+    isDisputed: boolean;
+    releasedAt?: Date;
+    disputedAt?: Date;
+  }> {
+    const payment = await this.paymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw PaymentDomainError.escrowNotFound(paymentId);
+    }
+
+    return {
+      isLocked: payment.isEscrowLocked(),
+      isReleased: payment.isEscrowReleased(),
+      isDisputed: payment.isEscrowDisputed(),
+      releasedAt: payment.escrowReleasedAt || undefined,
+      disputedAt: payment.disputedAt || undefined,
+    };
+  }
+}

@@ -18,6 +18,13 @@ import { PaymentWebhookEventRepository } from './infrastructure/repositories/pay
 import { WalletLedgerRepository } from './infrastructure/repositories/wallet-ledger.repository';
 import { MockPaymentGatewayAdapter } from './infrastructure/adapters/mock-payment-gateway.adapter';
 import { HmacPaymentWebhookSecurityAdapter } from './infrastructure/adapters/hmac-payment-webhook-security.adapter';
+import { WavePaymentGatewayAdapter } from './infrastructure/adapters/wave-payment-gateway.adapter';
+import { OrangeMoneyPaymentGatewayAdapter } from './infrastructure/adapters/orange-money-payment-gateway.adapter';
+import { CardPaymentGatewayAdapter } from './infrastructure/adapters/card-payment-gateway.adapter';
+import {
+  PAYMENT_GATEWAY_ADAPTERS,
+  PaymentGatewayRouterAdapter,
+} from './infrastructure/adapters/payment-gateway-router.adapter';
 
 import { PAYMENTS_REPOSITORY_PORT } from './application/ports/payments-repository.port';
 import { PAYMENT_GATEWAY_PORT } from './application/ports/payment-gateway.port';
@@ -59,13 +66,44 @@ import { ProfessionalsModule } from '../professionals/professionals.module';
     PaymentsFacade,
     EscrowService,
     WithdrawalService,
+    MockPaymentGatewayAdapter,
+    WavePaymentGatewayAdapter,
+    OrangeMoneyPaymentGatewayAdapter,
+    CardPaymentGatewayAdapter,
+    PaymentGatewayRouterAdapter,
     {
       provide: PAYMENTS_REPOSITORY_PORT,
       useClass: PaymentsRepositoryImpl,
     },
     {
       provide: PAYMENT_GATEWAY_PORT,
-      useClass: MockPaymentGatewayAdapter,
+      useExisting: PaymentGatewayRouterAdapter,
+    },
+    {
+      provide: PAYMENT_GATEWAY_ADAPTERS,
+      useFactory: (
+        mockAdapter: MockPaymentGatewayAdapter,
+        waveAdapter: WavePaymentGatewayAdapter,
+        orangeMoneyAdapter: OrangeMoneyPaymentGatewayAdapter,
+        cardAdapter: CardPaymentGatewayAdapter,
+        configService: ConfigService,
+      ) => {
+        const mode =
+          configService.get<string>('PAYMENT_GATEWAY_MODE') ??
+          (configService.get<string>('NODE_ENV') === 'production'
+            ? 'external'
+            : 'mock');
+        return mode === 'mock'
+          ? [mockAdapter]
+          : [waveAdapter, orangeMoneyAdapter, cardAdapter];
+      },
+      inject: [
+        MockPaymentGatewayAdapter,
+        WavePaymentGatewayAdapter,
+        OrangeMoneyPaymentGatewayAdapter,
+        CardPaymentGatewayAdapter,
+        ConfigService,
+      ],
     },
 
     {

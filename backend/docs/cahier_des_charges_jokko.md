@@ -23,7 +23,7 @@
 | **Type** | Application Mobile Marketplace de Services B2C |
 | **Marché cible** | Sénégal (Extension CEDEAO prévue Phase 2) |
 | **Stack Technique** | Flutter + NestJS + PostgreSQL/PostGIS |
-| **Paiements intégrés** | Wave CI, Orange Money SN, Carte Bancaire (Stripe/PayDunya) |
+| **Paiements intégrés** | Wave SN, Orange Money SN, Carte Bancaire |
 | **Langues** | Français + Wolof |
 | **Plateformes cibles** | Android (prioritaire) + iOS |
 
@@ -219,10 +219,10 @@ L'application comprendra au lancement les catégories suivantes (extensibles via
 
 ```
 Prix payé par le client          = 10 000 FCFA
-Commission Jokko (7%)            =    700 FCFA
-Montant net reversé au Pro       =  9 300 FCFA
+Commission Jokko (10%)           =  1 000 FCFA
+Montant net reverse au Pro       =  9 000 FCFA
 ```
-> La commission est configurable dans le Back-Office Admin, entre 5% et 12% selon la catégorie.
+> La commission par defaut est de 10% et reste configurable dans le Back-Office Admin selon la categorie.
 
 ### 6.4. Règles KYC
 
@@ -425,7 +425,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | Stockage Media | AWS S3 + CloudFront (CDN) | Stockage infini, livraison rapide des images via CDN |
 | Notifications | Firebase FCM | Gratuit, fiable sur iOS et Android |
 | SMS / OTP | Twilio ou Infobip | Livraison SMS en Afrique de l'Ouest fiable |
-| Paiement | PayDunya ou TouchPay | Agrégateurs locaux supportant Wave + OM + Cartes au Sénégal |
+| Paiement | provider paiement ou provider paiement | Agrégateurs locaux supportant Wave + OM + Cartes au Sénégal |
 | CI/CD | GitHub Actions | Automatisation tests + déploiements |
 | Monitoring | Sentry (erreurs) + Grafana (métriques) | Vision temps réel sur la santé du système |
 | Hébergement API | AWS EC2 (eu-west-1 / Ireland) | Latence Africa < 80ms depuis Dakar |
@@ -555,7 +555,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | R04 | Scalabilité insuffisante lors d'un pic viral | 🟡 Faible | 🟠 Élevé | Auto-scaling AWS + Redis dès le départ + tests k6 |
 | R05 | Délai de développement (sous-estimation) | 🔴 Élevée | 🟠 Élevé | Planning conservateur sur 5 mois + buffer de 2 semaines par phase |
 | R06 | Refus de l'App Store ou Play Store | 🟡 Faible | 🟠 Élevé | Suivre les guidelines Apple/Google dès la conception |
-| R07 | Problème légal (régulation paiements) | 🟡 Faible | 🔴 Critique | Partenariat avec un agrégateur de paiement agréé BCEAO (PayDunya) |
+| R07 | Problème légal (régulation paiements) | 🟡 Faible | 🔴 Critique | Partenariat avec un agrégateur de paiement agréé BCEAO (provider paiement) |
 
 ---
 
@@ -565,7 +565,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 
 | Source | Mécanisme | Estimation Mensuelle (objectif Mois 6) |
 |--------|-----------|----------------------------------------|
-| Commission (7%) | Sur chaque transaction Escrow débloquée | 500 000 – 1 500 000 FCFA |
+| Commission (10%) | Sur chaque transaction Escrow débloquée | 500 000 – 1 500 000 FCFA |
 | Jokko Boost | Abonnement mensuel 5 000 – 15 000 FCFA | 150 000 – 500 000 FCFA |
 | **Total estimé M6** | | **650 000 – 2 000 000 FCFA/mois** |
 
@@ -602,7 +602,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | **0 - Setup** | S1-2 | Backend | Repos Git, CI/CD, BDD, environnements, structure NestJS modulaire |
 | **1 - Core Backend** | S3-6 | Backend | Auth (OTP + Google), Profils, Catégories, Recherche géolocalisée (PostGIS), KYC Admin |
 | **2 - Mobile V1** | S5-9 | Flutter | Onboarding, Home, Recherche, Fiche Pro, Portfolio, Calendrier disponibilités |
-| **3 - Réservation & Paiements** | S9-12 | Full Stack | Booking complet, Notifications FCM, Intégration Wave/OM (PayDunya), Escrow logique |
+| **3 - Réservation & Paiements** | S9-12 | Full Stack | Booking complet, Notifications FCM, Intégration Wave/OM (provider paiement), Escrow logique |
 | **4 - Temps Réel** | S12-15 | Backend + Flutter | Tchat WebSockets, Live Tracking GPS, Portefeuille Pro, Retrait de fonds |
 | **5 - Tests & Sécurité** | S16-18 | QA + Dev | Tests E2E, k6 performance, OWASP audit, UX polish, multilingue Wolof |
 | **6 - Beta Dakar** | S19-20 | Toute l'équipe | 50 pros + 200 clients bêta, correction bugs, soumission App/Play Store |
@@ -750,7 +750,7 @@ docs: mise à jour du README de déploiement
 | Métrique | Objectif Mois 6 | Objectif An 1 |
 |----------|-----------------|---------------|
 | **GMV** (Valeur totale des transactions) | 15M FCFA/mois | 100M FCFA/mois |
-| **Revenu Jokko** (Commission 7%) | 1M FCFA/mois | 7M FCFA/mois |
+| **Revenu Jokko** (Commission 10%) | 1M FCFA/mois | 7M FCFA/mois |
 | **Pros actifs sur la plateforme** | 500 | 2 000 |
 | **Villes couvertes** | 1 (Dakar) | 4 (Dakar, Thiès, SL, Zigui.) |
 
@@ -772,12 +772,12 @@ docs: mise à jour du README de déploiement
 | Paramètre | Valeur |
 |-----------|--------|
 | Prix moyen d'une prestation | 12 000 FCFA |
-| Taux de commission Jokko | 7% → 840 FCFA/prestation |
+| Taux de commission Jokko | 10% -> 1 200 FCFA/prestation |
 | Croissance mensuelle des réservations | +30%/mois |
 
 ### 20.2. Projection des Revenus (12 mois)
 
-| Mois | Réservations | GMV (FCFA) | Revenu Jokko (7%) |
+| Mois | Réservations | GMV (FCFA) | Revenu Jokko (Commission 10%) |
 |------|-------------|------------|-------------------|
 | M1 (Bêta) | 50 | 600 000 | 42 000 |
 | M2 | 150 | 1 800 000 | 126 000 |
@@ -799,17 +799,17 @@ docs: mise à jour du README de déploiement
 
 ## 21. DÉTAILS DES INTÉGRATIONS TIERCES
 
-### 21.1. Paiements — PayDunya (Agrégateur Local)
+### 21.1. Paiements directs � Wave, Orange Money et Carte
 
-PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange Money et les cartes bancaires au Sénégal, et est agréé par la BCEAO.
+Jokko integre directement les APIs Wave, Orange Money et carte bancaire via des adapters separes. Le backend ne depend pas d'un agregateur unique: chaque provider est isole derriere le port `PaymentGateway`, ce qui evite le couplage fort et permet de remplacer un provider sans impacter la logique metier.
 
-| Étape | Action Technique |
+| Etape | Action Technique |
 |-------|-----------------|
-| Initiation | `POST https://app.paydunya.com/api/v1/checkout-invoice/create` avec montant + callback URL |
-| Redirection | L'utilisateur est redirigé vers la page de paiement PayDunya (Wave/OM/Carte) |
-| Webhook de confirmation | PayDunya appelle `POST /api/payments/webhook/paydunya` avec la référence et le statut |
-| Validation | Le serveur Jokko vérifie la signature HMAC, met à jour le statut de paiement à SUCCESS |
-| Déblocage Escrow | Déclenché uniquement lors de la validation de la prestation par le client |
+| Initiation | Le backend selectionne l'adapter selon la methode: Wave, Orange Money ou Carte. |
+| Redirection | L'utilisateur est redirige vers l'URL de paiement retournee par le provider choisi. |
+| Webhook de confirmation | Le provider appelle `POST /api/v1/payments/webhook` avec reference, statut, signature et timestamp. |
+| Validation | Le serveur Jokko verifie la signature HMAC, journalise le webhook et met a jour le paiement. |
+| Escrow | Les fonds restent sous sequestre jusqu'a la validation de la prestation par le client. |
 
 ### 21.2. Géolocalisation — Google Maps Platform
 
@@ -878,7 +878,7 @@ PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange M
 - [ ] Ouverture d'un compte bancaire professionnel pour les transactions Escrow
 - [ ] Rédaction des CGU et Politique de Confidentialité par un juriste
 - [ ] Déclaration à la CDP (Commission des Données Personnelles du Sénégal)
-- [ ] Contact et contractualisation avec PayDunya (agrégateur de paiement agréé BCEAO)
+- [ ] Contact et contractualisation avec provider paiement (agrégateur de paiement agréé BCEAO)
 
 ### Infrastructure & Environnements
 - [ ] Achat du nom de domaine `jokko.sn` (ou `.com`) et configuration DNS

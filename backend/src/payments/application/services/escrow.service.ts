@@ -36,7 +36,6 @@ export class EscrowService {
     }
 
     payment.releaseEscrow();
-    await this.paymentsRepository.save(payment);
     await this.walletLedger.creditReleasedEscrow(payment);
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();

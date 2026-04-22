@@ -84,16 +84,12 @@ export class WithdrawalService {
     const processedAt = new Date();
     const gatewayReference = `GW_${Date.now()}`;
 
-    await this.withdrawalsRepository.updateStatus(
-      withdrawalId,
-      WithdrawalStatus.COMPLETED,
-      processedAt,
-      gatewayReference,
-    );
     await this.walletLedger.debitWithdrawal({
       professionalId: withdrawal.professionalId,
       amount: withdrawal.amount.getValue(),
       withdrawalId,
+      processedAt,
+      gatewayReference,
     });
 
     this.domainEventDispatcher.publish(

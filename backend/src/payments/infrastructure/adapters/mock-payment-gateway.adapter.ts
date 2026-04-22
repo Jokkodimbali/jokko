@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import {
-  PaymentGateway,
+  PaymentGatewayAdapter,
   PaymentGatewayResponse,
   type PaymentMethod,
 } from '../../application/ports/payment-gateway.port';
 import { PaymentMethod as DomainPaymentMethod } from '../../domain/value-objects/payment-types.vo';
 
 @Injectable()
-export class MockPaymentGatewayAdapter implements PaymentGateway {
+export class MockPaymentGatewayAdapter implements PaymentGatewayAdapter {
   private readonly pendingPayments: Map<
     string,
     { amount: number; status: string; metadata: Record<string, unknown> }
@@ -86,6 +86,10 @@ export class MockPaymentGatewayAdapter implements PaymentGateway {
       DomainPaymentMethod.ORANGE_MONEY,
       DomainPaymentMethod.CARD,
     ];
+  }
+
+  supports(method: PaymentMethod): boolean {
+    return this.getSupportedMethods().includes(method);
   }
 
   validateWebhookSignature(): boolean {

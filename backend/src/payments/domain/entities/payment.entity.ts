@@ -14,6 +14,7 @@ import {
   EscrowDisputedEvent,
   EscrowRefundedEvent,
 } from '../events/payment.events';
+import { PAYMENT_COMMISSION_RATE_PERCENT } from '../payment.constants';
 
 export class Payment {
   private readonly _id: string;
@@ -74,9 +75,10 @@ export class Payment {
     professionalId: string;
     method: PaymentMethod;
     amount: PaymentAmount;
-    commissionRate?: number; // Pourcentage, par defaut 3%.
+    commissionRate?: number; // Pourcentage, par defaut 10%.
   }): Payment {
-    const commissionRate = params.commissionRate || 3;
+    const commissionRate =
+      params.commissionRate ?? PAYMENT_COMMISSION_RATE_PERCENT;
     const commissionAmount = params.amount.percentage(commissionRate);
     const netAmount = params.amount.subtract(commissionAmount);
 

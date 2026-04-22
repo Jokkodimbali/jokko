@@ -23,9 +23,14 @@ type EnvValide = {
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_PHONE_NUMBER?: string;
-  PAYDUNYA_API_KEY?: string;
-  PAYDUNYA_SECRET_KEY?: string;
-  PAYDUNYA_MODE?: string;
+  PAYMENT_GATEWAY_MODE?: string;
+  PAYMENT_WEBHOOK_SECRET?: string;
+  WAVE_API_BASE_URL?: string;
+  WAVE_API_KEY?: string;
+  ORANGE_MONEY_API_BASE_URL?: string;
+  ORANGE_MONEY_API_KEY?: string;
+  CARD_PAYMENT_API_BASE_URL?: string;
+  CARD_PAYMENT_API_KEY?: string;
   REDIS_ENABLED?: boolean;
   REDIS_URL?: string;
   REDIS_HOST?: string;
@@ -145,9 +150,17 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     TWILIO_ACCOUNT_SID: asString(env.TWILIO_ACCOUNT_SID),
     TWILIO_AUTH_TOKEN: asString(env.TWILIO_AUTH_TOKEN),
     TWILIO_PHONE_NUMBER: asString(env.TWILIO_PHONE_NUMBER),
-    PAYDUNYA_API_KEY: asString(env.PAYDUNYA_API_KEY),
-    PAYDUNYA_SECRET_KEY: asString(env.PAYDUNYA_SECRET_KEY),
-    PAYDUNYA_MODE: asString(env.PAYDUNYA_MODE, 'test'),
+    PAYMENT_GATEWAY_MODE: asString(
+      env.PAYMENT_GATEWAY_MODE,
+      nodeEnv === 'production' ? 'external' : 'mock',
+    ),
+    PAYMENT_WEBHOOK_SECRET: asString(env.PAYMENT_WEBHOOK_SECRET),
+    WAVE_API_BASE_URL: asString(env.WAVE_API_BASE_URL),
+    WAVE_API_KEY: asString(env.WAVE_API_KEY),
+    ORANGE_MONEY_API_BASE_URL: asString(env.ORANGE_MONEY_API_BASE_URL),
+    ORANGE_MONEY_API_KEY: asString(env.ORANGE_MONEY_API_KEY),
+    CARD_PAYMENT_API_BASE_URL: asString(env.CARD_PAYMENT_API_BASE_URL),
+    CARD_PAYMENT_API_KEY: asString(env.CARD_PAYMENT_API_KEY),
     REDIS_ENABLED: asBoolean(env.REDIS_ENABLED, false),
     REDIS_URL: asString(env.REDIS_URL),
     REDIS_HOST: asString(env.REDIS_HOST, '127.0.0.1'),

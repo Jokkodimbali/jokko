@@ -255,8 +255,8 @@ describe('Payments (e2e)', () => {
     const payment = body.data?.['payment'] as Record<string, unknown>;
     expect(payment['bookingId']).toBe(reservationId);
     expect(payment['method']).toBe('WAVE');
-    expect(payment['commissionAmount']).toBe(300);
-    expect(payment['netAmount']).toBe(9700);
+    expect(payment['commissionAmount']).toBe(1000);
+    expect(payment['netAmount']).toBe(9000);
     gatewayReference = String(body.data?.['gatewayReference']);
 
     const replayResponse = await request(app.getHttpServer())
@@ -449,7 +449,7 @@ describe('Payments (e2e)', () => {
       where: { reference: `wallet:release:${payment.paymentId}` },
     });
     expect(walletTransaction).not.toBeNull();
-    expect(Number(walletTransaction?.montant)).toBe(9700);
+    expect(Number(walletTransaction?.montant)).toBe(9000);
   });
 
   it('PATCH /api/v1/payments/:id/escrow/dispute → 200', async () => {

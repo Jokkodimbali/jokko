@@ -37,10 +37,6 @@ export interface PaymentGateway {
   getSupportedMethods(): PaymentMethod[];
 }
 
-export interface PaydunyaConfig {
-  masterKey: string;
-  privateKey: string;
-  token: string;
-  mode: 'test' | 'live';
-  webhookSecret?: string;
+export interface PaymentGatewayAdapter extends PaymentGateway {
+  supports(method: PaymentMethod): boolean;
 }

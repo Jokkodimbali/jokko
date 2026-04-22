@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { TypeTransactionPortefeuille } from '@prisma/client';
+import {
+  EscrowStatus as PrismaEscrowStatus,
+  StatutPaiement,
+  StatutRetrait,
+  TypeTransactionPortefeuille,
+} from '@prisma/client';
 import { PAYMENT_NOTIFICATION_MESSAGES } from '../../../core/messages/payment-notification.messages';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { type WalletLedgerPort } from '../../application/ports/wallet-ledger.port';
@@ -20,15 +25,26 @@ export class WalletLedgerRepository implements WalletLedgerPort {
 
   async creditReleasedEscrow(payment: Payment): Promise<void> {
     const reference = `wallet:release:${payment.id}`;
-    const existing = await this.prisma.transactionPortefeuille.findUnique({
-      where: { reference },
-    });
-
-    if (existing) {
-      return;
-    }
 
     await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.transactionPortefeuille.findUnique({
+        where: { reference },
+      });
+
+      if (existing) {
+        return;
+      }
+
+      await tx.paiement.update({
+        where: { id: payment.id },
+        data: {
+          statut: StatutPaiement.SUCCES,
+          escrowStatus: PrismaEscrowStatus.RELEASED,
+          escrowReleasedAt: payment.escrowReleasedAt,
+          misAJourLe: new Date(),
+        },
+      });
+
       const updatedProfile = await tx.profilProfessionnel.update({
         where: { id: payment.professionalId },
         data: {
@@ -57,17 +73,29 @@ export class WalletLedgerRepository implements WalletLedgerPort {
     professionalId: string;
     amount: number;
     withdrawalId: string;
+    processedAt: Date;
+    gatewayReference: string;
   }): Promise<void> {
     const reference = `wallet:withdrawal:${params.withdrawalId}`;
-    const existing = await this.prisma.transactionPortefeuille.findUnique({
-      where: { reference },
-    });
-
-    if (existing) {
-      return;
-    }
 
     await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.transactionPortefeuille.findUnique({
+        where: { reference },
+      });
+
+      if (existing) {
+        return;
+      }
+
+      await tx.demandeRetrait.update({
+        where: { id: params.withdrawalId },
+        data: {
+          statut: StatutRetrait.TERMINE,
+          traiteLe: params.processedAt,
+          referenceFournisseur: params.gatewayReference,
+        },
+      });
+
       const updatedProfile = await tx.profilProfessionnel.update({
         where: { id: params.professionalId },
         data: {

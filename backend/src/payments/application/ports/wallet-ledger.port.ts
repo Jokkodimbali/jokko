@@ -9,5 +9,7 @@ export interface WalletLedgerPort {
     professionalId: string;
     amount: number;
     withdrawalId: string;
+    processedAt: Date;
+    gatewayReference: string;
   }): Promise<void>;
 }

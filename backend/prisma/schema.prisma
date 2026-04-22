@@ -95,6 +95,7 @@ enum TypeNotification {
   KYC_APPROUVEE
   KYC_REJETEE
   LITIGE_RESOLU
+  RESERVATION_FINALISEE
 }
 
 enum CanalCommunication {

@@ -10,6 +10,7 @@ import { ProfessionalsModule } from './professionals/professionals.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { PaymentsModule } from './payments/payments.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentsModule } from './payments/payments.module';
     UsersModule,
     ProfessionalsModule,
     CategoriesModule,
+    NotificationsModule,
     ReservationsModule,
     PaymentsModule,
   ],

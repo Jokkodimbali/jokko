@@ -122,6 +122,26 @@ export const VALIDATION_MESSAGE_CATALOG = {
   WITHDRAWAL_METHOD_REQUIRED: 'La methode de retrait est obligatoire.',
   WITHDRAWAL_METHOD_INVALID: 'La methode de retrait est invalide.',
   PAYMENT_REASON_MAX: 'Le motif ne doit pas depasser 1000 caracteres.',
+
+  // -- Notifications --
+  NOTIFICATION_READ_INVALID:
+    'Le filtre de lecture doit etre un booleen valide.',
+  NOTIFICATION_LIMIT_INVALID:
+    'La limite des notifications doit etre un nombre entier.',
+  NOTIFICATION_LIMIT_MIN:
+    'La limite des notifications doit etre superieure ou egale a 1.',
+  NOTIFICATION_LIMIT_MAX:
+    'La limite des notifications ne doit pas depasser 100.',
+  NOTIFICATION_OFFSET_INVALID:
+    "L'offset des notifications doit etre un nombre entier.",
+  NOTIFICATION_OFFSET_MIN:
+    "L'offset des notifications ne peut pas etre negatif.",
+  NOTIFICATION_FCM_TOKEN_REQUIRED:
+    'Le token de notification mobile est obligatoire.',
+  NOTIFICATION_FCM_TOKEN_INVALID:
+    'Le token de notification mobile est invalide.',
+  NOTIFICATION_FCM_TOKEN_TOO_LONG:
+    'Le token de notification mobile ne doit pas depasser 500 caracteres.',
 } as const;
 
 export type ValidationMessageKey = keyof typeof VALIDATION_MESSAGE_CATALOG;

@@ -442,6 +442,28 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Demande de retrait initiee avec succes.',
     },
   },
+  notifications: {
+    NOTIFICATIONS_NOT_FOUND: {
+      code: 'NOTIFICATIONS_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Notification introuvable.',
+    },
+    NOTIFICATIONS_MARKED_AS_READ: {
+      code: 'NOTIFICATIONS_MARKED_AS_READ',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Notification marquee comme lue avec succes.',
+    },
+    NOTIFICATIONS_ALL_MARKED_AS_READ: {
+      code: 'NOTIFICATIONS_ALL_MARKED_AS_READ',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Toutes les notifications ont ete marquees comme lues.',
+    },
+    NOTIFICATIONS_FCM_TOKEN_UPDATED: {
+      code: 'NOTIFICATIONS_FCM_TOKEN_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Token de notification mis a jour avec succes.',
+    },
+  },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
       code: 'SYSTEM_DATABASE_URL_MISSING',
@@ -464,6 +486,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
+  ...APP_MESSAGES_BY_MODULE.notifications,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 

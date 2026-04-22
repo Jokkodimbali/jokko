@@ -40,6 +40,7 @@ import {
 } from '../shared/domain/events/domain-event-dispatcher';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ProfessionalsModule } from '../professionals/professionals.module';
     }),
     ReservationsModule,
     ProfessionalsModule,
+    NotificationsModule,
   ],
   controllers: [PaymentsController, AdminPaymentsController],
   providers: [

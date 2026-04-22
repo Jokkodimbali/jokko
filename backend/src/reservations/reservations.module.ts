@@ -3,9 +3,9 @@ import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RESERVATIONS_REPOSITORY_PORT } from './application/ports/reservations-repository.port';
 import { ReservationCommandService } from './application/services/reservation-command.service';
-import { ReservationClientNotificationService } from './application/services/reservation-client-notification.service';
 import { ReservationQueryService } from './application/services/reservation-query.service';
 import { ReservationsFacade } from './application/services/reservations-facade.service';
 import { ReservationsRepository } from './infrastructure/repositories/reservations.repository';
@@ -13,7 +13,13 @@ import { AdminReservationsController } from './presentation/controllers/admin-re
 import { ReservationsController } from './presentation/controllers/reservations.controller';
 
 @Module({
-  imports: [PrismaModule, AuthModule, ProfessionalsModule, UsersModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    ProfessionalsModule,
+    UsersModule,
+    NotificationsModule,
+  ],
   controllers: [ReservationsController, AdminReservationsController],
   providers: [
     ReservationsRepository,
@@ -22,7 +28,6 @@ import { ReservationsController } from './presentation/controllers/reservations.
       useExisting: ReservationsRepository,
     },
     ReservationCommandService,
-    ReservationClientNotificationService,
     ReservationQueryService,
     ReservationsFacade,
   ],

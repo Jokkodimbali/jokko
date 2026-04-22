@@ -104,7 +104,7 @@ export const API_DOCS = {
   payments: {
     tag: 'Paiements',
     initiateSummary: 'Initier un paiement pour une reservation',
-    webhookSummary: 'Webhook Paydunya pour les confirmations de paiement',
+    webhookSummary: 'Webhook provider pour les confirmations de paiement',
     historySummary: 'Historique des paiements du client',
     getByIdSummary: "Detail d'un paiement",
     withdrawSummary: 'Demander un retrait de fonds (professionnel)',
@@ -152,6 +152,20 @@ export const API_DOCS = {
     escrowPendingSummary: 'Paiements en attente de liberation escrow',
     escrowProcessPendingSummary:
       'Traiter automatiquement les liberations escrow en attente',
+  },
+  notifications: {
+    tag: 'Notifications',
+    listSummary: 'Lister mes notifications',
+    listSuccess: 'Notifications recuperees avec succes',
+    markAsReadSummary: 'Marquer une notification comme lue',
+    markAllAsReadSummary: 'Marquer toutes mes notifications comme lues',
+    updateFcmTokenSummary: 'Enregistrer le token FCM du telephone',
+    notificationIdParam: 'Identifiant de la notification',
+    readFilter: 'Filtrer les notifications lues ou non lues',
+    limitDescription: 'Nombre de resultats (defaut: 20, max: 100)',
+    offsetDescription: 'Offset de pagination (defaut: 0)',
+    fcmTokenDescription:
+      'Token FCM Android/iOS envoye par Firebase depuis lapplication mobile',
   },
   common: {
     unauthorized: 'Unauthorized',

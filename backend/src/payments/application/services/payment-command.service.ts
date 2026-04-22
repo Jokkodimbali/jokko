@@ -29,6 +29,7 @@ import {
   DOMAIN_EVENT_DISPATCHER,
   type DomainEventDispatcher,
 } from '../../../shared/domain/events/domain-event-dispatcher';
+import { PaymentNotificationService } from '../../../notifications/application/services/payment-notification.service';
 
 @Injectable()
 export class PaymentCommandService {
@@ -43,6 +44,7 @@ export class PaymentCommandService {
     private readonly paymentIdempotency: PaymentIdempotencyPort,
     @Inject(DOMAIN_EVENT_DISPATCHER)
     private readonly domainEventDispatcher: DomainEventDispatcher,
+    private readonly paymentNotificationService: PaymentNotificationService,
   ) {}
 
   async initiatePayment(command: {
@@ -202,7 +204,19 @@ export class PaymentCommandService {
 
     await this.paymentsRepository.save(payment);
     if (payment.isSuccessful() && !wasAlreadySuccessful) {
-      await this.paymentWorkflow.markReservationAsPaidAndNotify(payment);
+      const workflowResult =
+        await this.paymentWorkflow.markReservationAsPaid(payment);
+      if (workflowResult) {
+        await this.paymentNotificationService.notifyEscrowConfirmed({
+          clientId: workflowResult.clientId,
+          professionalUserId: workflowResult.professionalUserId,
+          reservationId: workflowResult.reservationId,
+          paymentId: payment.id,
+          serviceName: workflowResult.serviceName,
+          amount: payment.amount.getValue(),
+          escrowStatus: payment.escrowStatus,
+        });
+      }
     }
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();

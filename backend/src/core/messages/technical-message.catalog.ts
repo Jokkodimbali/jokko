@@ -23,6 +23,14 @@ export const TECHNICAL_MESSAGES = {
   RESERVATION_SMS_PROVIDER_CONFIGURATION_MISSING:
     'Twilio provider not configured',
   RESERVATION_SMS_FAILED: (error: string) => `Reservation SMS failed: ${error}`,
+  NOTIFICATION_FCM_PROVIDER_CONFIGURATION_MISSING:
+    'Firebase Cloud Messaging provider not configured',
+  NOTIFICATION_FCM_TOKEN_MISSING:
+    'Firebase Cloud Messaging access token missing',
+  NOTIFICATION_FCM_FAILED: (error: string) =>
+    `Firebase Cloud Messaging notification failed: ${error}`,
+  NOTIFICATION_PUSH_DELIVERY_SKIPPED: (reason: string) =>
+    `Push notification delivery skipped: ${reason}`,
   OUTBOX_EVENT_PERSIST_FAILED: (eventName: string, error: string) =>
     `Failed to persist event ${eventName} to outbox: ${error}`,
   AUDIT_LOG_WRITE_FAILED: (error: string) =>

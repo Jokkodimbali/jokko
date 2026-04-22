@@ -1,0 +1,28 @@
+export const NOTIFICATION_TYPES = {
+  NOUVELLE_RESERVATION: 'NOUVELLE_RESERVATION',
+  RESERVATION_CONFIRMEE: 'RESERVATION_CONFIRMEE',
+  RESERVATION_ANNULEE: 'RESERVATION_ANNULEE',
+  PRESTATAIRE_EN_ROUTE: 'PRESTATAIRE_EN_ROUTE',
+  PAIEMENT_LIBERE: 'PAIEMENT_LIBERE',
+  NOUVEAU_MESSAGE: 'NOUVEAU_MESSAGE',
+  KYC_APPROUVEE: 'KYC_APPROUVEE',
+  KYC_REJETEE: 'KYC_REJETEE',
+  LITIGE_RESOLU: 'LITIGE_RESOLU',
+  RESERVATION_FINALISEE: 'RESERVATION_FINALISEE',
+} as const;
+
+export type NotificationType =
+  (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
+
+export type NotificationMetadata = Record<string, unknown>;
+
+export type NotificationView = {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data: NotificationMetadata | null;
+  isRead: boolean;
+  createdAt: Date;
+};

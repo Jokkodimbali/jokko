@@ -19,7 +19,7 @@ import {
   RESERVATIONS_REPOSITORY_PORT,
   type ReservationsRepositoryPort,
 } from '../ports/reservations-repository.port';
-import { ReservationClientNotificationService } from './reservation-client-notification.service';
+import { ReservationClientNotificationService } from '../../../notifications/application/services/reservation-client-notification.service';
 import { ReservationAppService } from './reservation-app-service.base';
 
 @Injectable()

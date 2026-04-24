@@ -142,6 +142,24 @@ export const VALIDATION_MESSAGE_CATALOG = {
     'Le token de notification mobile est invalide.',
   NOTIFICATION_FCM_TOKEN_TOO_LONG:
     'Le token de notification mobile ne doit pas depasser 500 caracteres.',
+
+  // -- Search --
+  SEARCH_LATITUDE_INVALID:
+    'La latitude doit etre un nombre decimal compris entre -90 et 90.',
+  SEARCH_LONGITUDE_INVALID:
+    'La longitude doit etre un nombre decimal compris entre -180 et 180.',
+  SEARCH_RADIUS_INVALID:
+    'Le rayon de recherche doit etre un nombre positif inferieur ou egal a 100.',
+  SEARCH_PAGE_INVALID:
+    'Le numero de page doit etre un nombre entier superieur ou egal a 1.',
+  SEARCH_LIMIT_MIN:
+    'Le nombre de resultats de recherche doit etre d au moins 1.',
+  SEARCH_LIMIT_MAX:
+    'Le nombre de resultats de recherche ne doit pas depasser 50.',
+  SEARCH_QUERY_MAX:
+    'Le texte de recherche ne doit pas depasser 150 caracteres.',
+  SEARCH_CATEGORY_ID_FORMAT:
+    "Le format de l'identifiant de categorie de recherche est invalide.",
 } as const;
 
 export type ValidationMessageKey = keyof typeof VALIDATION_MESSAGE_CATALOG;

@@ -388,12 +388,10 @@ describe('ProfessionalsModule (e2e)', () => {
       .expect(200);
 
     const body = response.body as ApiResponse;
-    const data = body.data as {
-      profiles: ProfessionalProfileData[];
-      total: number;
-    };
-    const profileIds = data.profiles.map((item) => item.id);
+    const data = body.data as ProfessionalProfileData[];
+    const profileIds = data.map((item) => item.id);
     expect(profileIds).toContain(professionalProfileId);
+    expect(body.meta).toBeDefined();
   });
 
   it('GET /api/v1/professionals/:id should return profile detail', async () => {

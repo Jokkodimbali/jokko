@@ -1,13 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
 export class MyHistoryQueryDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Nombre de resultats (defaut: 20, max: 100)',
     example: 20,
-    required: false,
     default: 20,
     minimum: 1,
     maximum: 100,

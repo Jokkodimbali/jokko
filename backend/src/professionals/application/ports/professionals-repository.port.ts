@@ -127,11 +127,6 @@ export interface ProfessionalProfileRepositoryPort {
   approveKyc(profileId: string): Promise<ApproveKycResult>;
   rejectKyc(profileId: string, reason: string): Promise<RejectKycResult>;
   findVerifiedById(profileId: string): Promise<ProfessionalProfileView | null>;
-  listVerified(query: {
-    city?: string;
-    page: number;
-    limit: number;
-  }): Promise<{ profiles: ProfessionalProfileView[]; total: number }>;
 }
 
 // ─── Service Repository Port ─────────────────────────────────────────────────

@@ -132,6 +132,13 @@ export class ReservationDomainError extends ValidationError {
     );
   }
 
+  static paymentRequired(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PAYMENT_REQUIRED',
+      domainMessage('RESERVATION_PAYMENT_REQUIRED'),
+    );
+  }
+
   static cannotOpenDispute(): ReservationDomainError {
     return new ReservationDomainError(
       'RESERVATION_CANNOT_OPEN_DISPUTE',

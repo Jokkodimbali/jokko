@@ -23,11 +23,17 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect((res) => {
         const body = res.body as {
-          statut?: string;
-          baseDeDonnees?: string;
+          success?: boolean;
+          data?: {
+            statut?: string;
+            baseDeDonnees?: string;
+          };
         };
-        expect(['ok', 'erreur']).toContain(body.statut);
-        expect(['connectee', 'deconnectee']).toContain(body.baseDeDonnees);
+        expect(body.success).toBe(true);
+        expect(['ok', 'erreur']).toContain(body.data?.statut);
+        expect(['connectee', 'deconnectee']).toContain(
+          body.data?.baseDeDonnees,
+        );
       });
   });
 

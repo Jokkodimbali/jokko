@@ -14,6 +14,26 @@ L'architecture suit une logique de separation forte des responsabilites. Les con
 
 Le backend est egalement pense pour une application Flutter unique ciblee Android et iOS. Cela implique une API stable, des reponses uniformes, des messages francais centralises, une gestion stricte des erreurs et une attention particuliere a la robustesse des flux sensibles, notamment autour des reservations, des paiements et des notifications client.
 
+Le projet ne se limite toutefois pas au mobile. L'architecture backend actuelle est concue pour devenir la base commune de plusieurs interfaces clientes:
+- application mobile Android distribuee via le Play Store
+- application mobile iOS distribuee via l'App Store
+- future application web
+- futur site internet Jokko
+
+Cette orientation est importante. Elle signifie que le backend ne doit pas etre pense comme une API reservee a une seule interface temporaire, mais comme une plateforme centralisee de services metier partagee par plusieurs canaux de consommation.
+
+### 2.1 Description produit resumee
+Jokko est une plateforme de mise en relation entre clients et professionnels. Le backend porte les briques critiques du produit:
+- gestion des comptes et de l'authentification
+- gestion des profils professionnels et du KYC
+- recherche de professionnels verifies
+- creation et suivi des reservations
+- paiements securises et escrow
+- notifications in-app, SMS, email et push
+- observabilite, audit et robustesse transversale
+
+Le backend doit donc rester compatible avec un usage mobile natif, un usage web et des besoins de supervision ou d'administration.
+
 ## 3. Socle technique actuel
 ### 3.1 Framework et langage
 Le backend repose sur NestJS pour la structure applicative, l'injection de dependances, les modules, les controllers, les guards et le cycle de vie de l'application. Le code est entierement ecrit en TypeScript, ce qui permet un typage strict, une meilleure fiabilite et une meilleure lisibilite des contrats entre couches.
@@ -45,6 +65,7 @@ Le module racine `AppModule` importe actuellement les modules suivants:
 - `UsersModule`
 - `ProfessionalsModule`
 - `CategoriesModule`
+- `SearchModule`
 - `NotificationsModule`
 - `ReservationsModule`
 - `PaymentsModule`
@@ -68,6 +89,7 @@ backend/
     payments/
     prisma/
     professionals/
+    search/
     reservations/
     sante/
     shared/
@@ -136,6 +158,23 @@ Ce sens de dependance est ce qui permet au backend de rester stable a mesure qu'
 ## 8. Bootstrap global et comportement runtime
 Le point d'entree du serveur est `backend/src/main.ts`. Au demarrage, l'application cree l'instance Nest, recupere `ConfigService`, active `helmet`, active le CORS selon `CORS_ORIGINS` et `NODE_ENV`, configure `trust proxy`, applique le `ValidationPipe` global, applique `ApiExceptionFilter`, fixe le prefixe `/api/v1`, active les shutdown hooks puis ecoute sur `PORT` ou `3000`.
 
+Le bootstrap initialise egalement Swagger avec `DocumentBuilder` et `SwaggerModule`. La documentation interactive de l'API est exposee sur `/api/docs`. Elle reprend les tags par module, les DTOs, les parametres de route et de query, ainsi que les principales reponses de succes et d'erreur. Cette documentation est concue comme une vue d'exploration rapide du backend pour les developpeurs backend, mobile et QA.
+
+### 8.1 URLs de travail par environnement
+Les URLs de reference actuellement retenues sont les suivantes.
+
+#### Local
+- API locale: `http://localhost:3000/api/v1`
+- Swagger local: `http://localhost:3000/api/docs`
+- endpoint sante local: `http://localhost:3000/api/v1/sante`
+
+#### Production cible
+- API production cible: `https://api.jokko.sn/api/v1`
+- Swagger production cible: `https://api.jokko.sn/api/docs`
+- endpoint sante production cible: `https://api.jokko.sn/api/v1/sante`
+
+Ces URLs sont documentees pour servir de base commune a l'equipe backend, a l'equipe mobile Flutter, a la future interface web et a l'integration du futur site internet.
+
 Le comportement CORS est volontairement prudent. Si `CORS_ORIGINS` est renseigne, seules les origines configurees sont acceptees. En production, si rien n'est configure, aucun origin n'est autorise par defaut. En developpement, le systeme reste plus permissif pour faciliter le travail local.
 
 Ce bootstrap donne une base d'execution saine: validation stricte, surface d'API uniforme, securite de base activee et comportement previsible entre environnements.
@@ -190,26 +229,31 @@ Par sa taille et son importance fonctionnelle, ce module sert de tres bon exempl
 
 C'est un module simple, mais utile comme reference de CRUD metier propre. Il montre comment un flux apparemment basique peut tout de meme respecter les conventions du projet: DTOs, facade applicative, controle des roles, messages centralises et repository dedie.
 
-### 10.5 ReservationsModule
+### 10.5 SearchModule
+`SearchModule` est le module dedie a la recherche publique des professionnels verifies. Il centralise les filtres par ville, categorie, texte libre, geolocalisation et pagination. La requete de lecture est portee par un repository SQL/PostGIS dedie, ce qui evite d'alourdir le module `professionals` avec une logique de recherche transversale.
+
+Ce module applique un principe important du backend Jokko: une seule responsabilite par logique metier. La route `GET /api/v1/search/professionals` est la reference fonctionnelle pour la recherche publique. La route `GET /api/v1/professionals` reste exposee pour compatibilite, mais elle delegue desormais a la meme logique `search` afin d'eliminer la duplication et de garantir des resultats identiques.
+
+### 10.6 ReservationsModule
 `ReservationsModule` gere le cycle de vie des reservations. Il couvre la creation d'une reservation, la creation depuis negotiation, la lecture des reservations du compte courant, la lecture d'une reservation par identifiant, la confirmation, l'annulation, la reprogrammation, la completion, le no-show, le marquage comme payee, le demarrage, l'ouverture d'un litige et les vues admin de liste, detail et statistiques.
 
 C'est un module charniere entre le domaine des services et le domaine financier. Il relie client, professionnel, service, calendrier, statut metier et flux de notification. Il joue donc un role central dans la cohesion du backend.
 
-### 10.6 PaymentsModule
+### 10.7 PaymentsModule
 `PaymentsModule` gere le paiement a partir d'une reservation, le webhook provider, l'escrow, les retraits et les vues d'administration financiere.
 
 Il expose notamment l'initiation d'un paiement, le traitement d'un webhook, l'historique client des paiements, l'historique des retraits professionnel, la demande de retrait, le detail d'un paiement, la liberation de l'escrow, la mise en litige de l'escrow, la consultation du statut escrow et les vues admin de liste, statistiques, remboursement et traitement des escrow en attente.
 
 Ce module est structure autour de plusieurs services applicatifs specialises, de ports, de repositories techniques et d'adapters de passerelles de paiement. Il integre aussi l'idempotence, le ledger wallet et des adapters pour Wave, Orange Money, carte et un gateway mock.
 
-### 10.7 NotificationsModule
+### 10.8 NotificationsModule
 `NotificationsModule` est aujourd'hui un module complet et autonome, et non plus une logique secondaire dispersee dans les autres domaines. Il centralise les notifications in-app, le marquage lu et tout lu, la mise a jour du token FCM, la creation des notifications liees aux reservations, la creation des notifications liees aux paiements, l'enregistrement des communications reservation par email et SMS et la preparation des envois email, SMS et push.
 
 Ce module est structure avec un service applicatif generique `NotificationsService`, des services specialises comme `PaymentNotificationService` et `ReservationClientNotificationService`, un service transverse `NotificationDeliveryService`, des repositories dedies et des adapters d'envoi `Resend`, `Twilio` et `FCM`.
 
 Cette centralisation est tres importante architecturalement. Elle permet d'eviter que les modules `reservations` ou `payments` se mettent a gerer eux-memes les details d'email, de SMS ou de push. Chaque module metier signale un besoin de notification, puis `notifications` prend le relai proprement.
 
-### 10.8 SanteModule
+### 10.9 SanteModule
 `SanteModule` expose un endpoint simple de sante. C'est un module volontairement minimal, mais utile pour la supervision, la verification de demarrage et les tests rapides de disponibilite du backend.
 
 ## 11. Structure interne par module: realite du projet
@@ -258,7 +302,12 @@ Le projet suit donc un standard ferme sur les grandes couches, tout en gardant u
 - `GET /api/v1/users/me/history`
 - `DELETE /api/v1/users/me`
 
-### 12.3 Professionals
+### 12.3 Search
+- `GET /api/v1/search/professionals`
+
+Ce endpoint est la reference metier pour la recherche publique des professionnels verifies. Il supporte la ville, la categorie, le texte libre, la geolocalisation et la pagination. La route `GET /api/v1/professionals` reutilise la meme logique afin d'eviter la repetition et de maintenir un contrat public coherent.
+
+### 12.4 Professionals
 - `POST /api/v1/professionals/profile`
 - `GET /api/v1/professionals/me`
 - `PATCH /api/v1/professionals/me`
@@ -279,13 +328,13 @@ Le projet suit donc un standard ferme sur les grandes couches, tout en gardant u
 - `PATCH /api/v1/admin/kyc/:professionalId/approve`
 - `PATCH /api/v1/admin/kyc/:professionalId/reject`
 
-### 12.4 Categories
+### 12.5 Categories
 - `GET /api/v1/categories`
 - `POST /api/v1/admin/categories`
 - `PATCH /api/v1/admin/categories/:categoryId`
 - `PATCH /api/v1/admin/categories/:categoryId/disable`
 
-### 12.5 Reservations
+### 12.6 Reservations
 - `POST /api/v1/reservations`
 - `POST /api/v1/reservations/from-negotiation`
 - `GET /api/v1/reservations/my`
@@ -477,6 +526,147 @@ Ce document doit etre lu avec:
 Les trois documents sont complementaires. L'architecture explique l'organisation et les flux. Le tableau des messages explique les conventions de reponse et les catalogues. Le standard des modules explique comment developper ou faire evoluer un module sans casser la coherence globale.
 
 ## 21. Conclusion
+
 Le backend Jokko est aujourd'hui une base serieuse, modulaire et professionnelle. Il ne s'agit plus d'une simple ossature NestJS en attente de construction. Les modules auth, users, professionals, categories, reservations, payments et notifications sont deja presents et relies entre eux. Les couches sont identifiables, les reponses HTTP sont homogenes, les messages sont centralises, la securite de base est activee, l'audit est present et les flux reservation-paiement-notification sont reels.
 
 La vraie force de cette architecture est sa coherence. Elle cherche a proteger le metier des details techniques, a reduire le couplage, a rendre les modules lisibles et a preparer une croissance progressive du niveau de robustesse. Ce document doit donc rester la reference qui explique non seulement ce que le projet veut devenir, mais surtout ce qu'il est deja aujourd'hui et la maniere dont il doit continuer a evoluer.
+
+## Annexe A. Contrats de reponse HTTP standardises
+Le backend Jokko utilise une convention de reponse unique, appliquee a tous les modules. Cette convention est maintenant documentee aussi bien dans le code que dans Swagger grace a des DTOs de reponse dedies situes dans `src/shared/swagger/api-response-swagger.dto.ts`.
+
+### A.1 Reponse de succes standard
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000"
+  },
+  "message": "Operation effectuee avec succes.",
+  "meta": null
+}
+```
+
+### A.2 Reponse de succes paginee
+```json
+{
+  "success": true,
+  "data": [],
+  "message": "Resultats recuperes avec succes.",
+  "meta": {
+    "pagination": {
+      "total": 24,
+      "page": 1,
+      "limit": 20,
+      "totalPages": 2,
+      "hasNext": true,
+      "hasPrevious": false
+    }
+  }
+}
+```
+
+### A.3 Reponse d'erreur standard
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "errorCode": "VALIDATION_REQUEST_INVALID",
+  "message": "Les donnees envoyees sont invalides.",
+  "timestamp": "2026-04-24T10:00:00.000Z",
+  "path": "/api/v1/endpoint"
+}
+```
+
+### A.4 Codes HTTP de reference
+| Code | Sens | Structure |
+|---|---|---|
+| `200` | succes standard | `success + data + message + meta?` |
+| `201` | creation reussie | `success + data + message + meta?` |
+| `400` | requete invalide | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `401` | non authentifie | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `403` | action interdite | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `404` | ressource introuvable | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `409` | conflit metier | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `429` | limitation de debit | `success=false + statusCode + errorCode + message + timestamp + path` |
+| `500` | erreur interne | `success=false + statusCode + errorCode + message + timestamp + path` |
+
+## Annexe B. DTOs Swagger de reponse
+Pour rendre Swagger precis et exploitable, le projet utilise les elements suivants:
+- `ApiSuccessEnvelopeSwaggerDto`
+- `ApiErrorSwaggerDto`
+- `ApiMetaSwaggerDto`
+- `PaginationSwaggerDto`
+- `ApiStandardSuccessResponse`
+- `ApiStandardErrorResponse`
+
+Ces briques ne changent pas l'execution metier du backend. Elles servent a documenter explicitement les champs `data`, `message` et `meta` ainsi que les erreurs normalisees. Cela evite les schemas implicites ou trop vagues dans Swagger.
+
+## Annexe C. Jeux de donnees de test documentes
+Les exemples Swagger et les scenarios de test s'appuient sur des donnees de reference stables.
+
+### C.1 Identifiants de reference
+- utilisateur client: `550e8400-e29b-41d4-a716-446655440000`
+- reservation: `650e8400-e29b-41d4-a716-446655440001`
+- categorie: `750e8400-e29b-41d4-a716-446655440002`
+- professionnel: `850e8400-e29b-41d4-a716-446655440003`
+- notification: `950e8400-e29b-41d4-a716-446655440004`
+- paiement: `a50e8400-e29b-41d4-a716-446655440005`
+
+### C.2 Donnees fonctionnelles de reference
+- telephone client: `+221771234567`
+- email client: `client@jokko.sn`
+- ville: `Dakar`
+- categorie: `Plomberie`
+- montant paiement de demonstration: `10000 FCFA`
+- commission Jokko: `1000 FCFA`
+- montant net professionnel: `9000 FCFA`
+- latitude de demonstration: `14.7167`
+- longitude de demonstration: `-17.4677`
+
+## Annexe D. Cas d'erreur metier documentes endpoint par endpoint
+Cette annexe sert de reference rapide pour l'equipe mobile, la QA et les futurs developpeurs backend.
+
+### D.1 Auth
+| Endpoint | Succes | Erreurs principales |
+|---|---|---|
+| `POST /api/v1/auth/otp/send` | `200` OTP envoye | `400` telephone invalide, `429` trop de demandes OTP |
+| `POST /api/v1/auth/otp/verify` | `200` OTP verifie | `400` OTP invalide ou expire |
+| `POST /api/v1/auth/register` | `201` compte cree | `400` payload invalide, `409` telephone ou email deja utilise |
+| `POST /api/v1/auth/login` | `200` connexion reussie | `400` payload invalide, `401` identifiants invalides |
+| `POST /api/v1/auth/google/login` | `200` connexion Google reussie | `400` payload invalide, `401` compte Google invalide ou non lie |
+| `POST /api/v1/auth/refresh` | `200` token renouvele | `400` payload invalide, `401` refresh token invalide |
+| `GET /api/v1/auth/me` | `200` profil recupere | `401` token invalide, `404` utilisateur introuvable |
+
+### D.2 Users
+| Endpoint | Succes | Erreurs principales |
+|---|---|---|
+| `GET /api/v1/users/me` | `200` profil recupere | `401` token invalide |
+| `PATCH /api/v1/users/me` | `200` profil mis a jour | `400` payload vide ou invalide, `409` email deja utilise |
+| `POST /api/v1/users/me/avatar` | `201` avatar mis a jour | `400` URL invalide |
+| `GET /api/v1/users/me/history` | `200` historique recupere | `400` limite invalide |
+| `DELETE /api/v1/users/me` | `200` compte anonymise | `401` token invalide |
+
+### D.3 Search
+| Endpoint | Succes | Erreurs principales |
+|---|---|---|
+| `GET /api/v1/search/professionals` | `200` resultats recuperes | `400` latitude sans longitude, longitude sans latitude, pagination invalide |
+
+### D.4 Payments
+| Endpoint | Succes | Erreurs principales |
+|---|---|---|
+| `POST /api/v1/payments/initiate` | `201` paiement initie | `400` payload invalide, `401` token invalide, `404` reservation introuvable, `409` etat metier incompatible |
+| `POST /api/v1/payments/webhook` | `200` webhook traite | `400` payload ou signature invalide |
+| `GET /api/v1/payments/history` | `200` historique recupere | `400` filtres invalides, `401` token invalide |
+| `POST /api/v1/payments/withdraw` | `201` retrait cree | `400` montant ou methode invalides, `401` token invalide, `409` montant indisponible |
+| `GET /api/v1/payments/:paymentId` | `200` paiement recupere | `401` token invalide, `404` paiement introuvable |
+| `PATCH /api/v1/payments/:paymentId/escrow/release` | `200` escrow libere | `401` token invalide, `404` paiement introuvable, `409` etat escrow incompatible |
+| `PATCH /api/v1/payments/:paymentId/escrow/dispute` | `200` litige ouvert | `400` motif invalide, `401` token invalide, `404` paiement introuvable, `409` etat escrow incompatible |
+| `GET /api/v1/payments/:paymentId/escrow/status` | `200` statut recupere | `401` token invalide, `404` paiement introuvable |
+
+### D.5 Notifications
+| Endpoint | Succes | Erreurs principales |
+|---|---|---|
+| `GET /api/v1/notifications` | `200` notifications recuperees | `400` filtres invalides, `401` token invalide |
+| `PATCH /api/v1/notifications/read-all` | `200` notifications marquees comme lues | `401` token invalide |
+| `PATCH /api/v1/notifications/:id/read` | `200` notification marquee comme lue | `401` token invalide, `404` notification introuvable |
+| `POST /api/v1/notifications/device-token` | `200` token FCM enregistre | `400` token invalide, `401` token invalide |

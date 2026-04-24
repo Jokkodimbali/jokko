@@ -12,7 +12,6 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { RoleUtilisateur } from '@prisma/client';
@@ -26,6 +25,11 @@ import { CategoriesFacade } from '../../application/services/categories-facade.s
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import {
+  ApiStandardErrorResponse,
+  ApiStandardSuccessResponse,
+} from '../../../shared/swagger/api-response-swagger.dto';
+import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
 @ApiTags(API_DOCS.adminCategories.tag)
 @ApiBearerAuth()
@@ -38,13 +42,26 @@ export class AdminCategoriesController {
   @Roles(RoleUtilisateur.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.adminCategories.createSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 201,
     description: appMessage('CATEGORIES_CATEGORY_CREATED').message,
+    messageExample: appMessage('CATEGORIES_CATEGORY_CREATED').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.categories.detailData,
+    },
   })
-  @ApiResponse({
+  @ApiStandardErrorResponse({
     status: 403,
     description: API_DOCS.adminCategories.adminOnly,
+    errorCode: 'CATEGORIES_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminCategories.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 409,
+    description: appMessage('CATEGORIES_NAME_ALREADY_USED').message,
+    errorCode: 'CATEGORIES_NAME_ALREADY_USED',
+    messageExample: appMessage('CATEGORIES_NAME_ALREADY_USED').message,
   })
   async createCategory(
     @CurrentUser() user: AuthUser,
@@ -65,9 +82,26 @@ export class AdminCategoriesController {
     name: 'categoryId',
     description: API_DOCS.adminCategories.categoryIdParam,
   })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('CATEGORIES_CATEGORY_UPDATED').message,
+    messageExample: appMessage('CATEGORIES_CATEGORY_UPDATED').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.categories.detailData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
+    errorCode: 'CATEGORIES_CATEGORY_NOT_FOUND',
+    messageExample: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
+  })
+  @ApiStandardErrorResponse({
+    status: 409,
+    description: appMessage('CATEGORIES_NAME_ALREADY_USED').message,
+    errorCode: 'CATEGORIES_NAME_ALREADY_USED',
+    messageExample: appMessage('CATEGORIES_NAME_ALREADY_USED').message,
   })
   async updateCategory(
     @CurrentUser() user: AuthUser,
@@ -93,9 +127,23 @@ export class AdminCategoriesController {
     name: 'categoryId',
     description: API_DOCS.adminCategories.categoryIdParam,
   })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('CATEGORIES_CATEGORY_DISABLED').message,
+    messageExample: appMessage('CATEGORIES_CATEGORY_DISABLED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.categories.detailData,
+        estActive: false,
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
+    errorCode: 'CATEGORIES_CATEGORY_NOT_FOUND',
+    messageExample: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
   })
   async disableCategory(
     @CurrentUser() user: AuthUser,

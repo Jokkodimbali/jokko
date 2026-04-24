@@ -7,12 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '../../application/services/auth.service';
 import { SendOtpDto } from '../dto/send-otp.dto';
@@ -28,6 +23,11 @@ import { GoogleLoginDto } from '../dto/google-login.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { appMessage } from '../../../core/http/app-http.exception';
+import {
+  ApiStandardErrorResponse,
+  ApiStandardSuccessResponse,
+} from '../../../shared/swagger/api-response-swagger.dto';
+import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
 @ApiTags(API_DOCS.auth.tag)
 @Controller('auth')
@@ -38,13 +38,20 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.sendOtpSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('AUTH_OTP_SENT').message,
+    messageExample: appMessage('AUTH_OTP_SENT').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.otpSentData,
+    },
   })
-  @ApiResponse({
+  @ApiStandardErrorResponse({
     status: 429,
     description: API_DOCS.auth.sendOtpRateLimit,
+    errorCode: 'AUTH_OTP_TOO_MANY_REQUESTS',
+    messageExample: API_DOCS.auth.sendOtpRateLimit,
   })
   async sendOtp(@Body() dto: SendOtpDto) {
     const result = await this.authService.sendOtp(dto.phoneNumber);
@@ -58,10 +65,20 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.verifyOtpSummary })
-  @ApiResponse({ status: 200, description: API_DOCS.auth.verifyOtpSuccess })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.auth.verifyOtpSuccess,
+    messageExample: API_DOCS.auth.verifyOtpSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
     status: 400,
     description: API_DOCS.common.invalidOrExpiredOtp,
+    errorCode: 'AUTH_OTP_INVALID_OR_EXPIRED',
+    messageExample: API_DOCS.common.invalidOrExpiredOtp,
   })
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code);
@@ -71,10 +88,20 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.auth.registerSummary })
-  @ApiResponse({ status: 201, description: API_DOCS.auth.registerSuccess })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
+    status: 201,
+    description: API_DOCS.auth.registerSuccess,
+    messageExample: API_DOCS.auth.registerSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
     status: 409,
     description: API_DOCS.auth.registerConflict,
+    errorCode: 'AUTH_PHONE_ALREADY_USED',
+    messageExample: API_DOCS.auth.registerConflict,
   })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
@@ -84,8 +111,21 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.loginSummary })
-  @ApiResponse({ status: 200, description: API_DOCS.auth.loginSuccess })
-  @ApiResponse({ status: 401, description: API_DOCS.common.invalidCredentials })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.auth.loginSuccess,
+    messageExample: API_DOCS.auth.loginSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 401,
+    description: API_DOCS.common.invalidCredentials,
+    errorCode: 'AUTH_INVALID_CREDENTIALS',
+    messageExample: API_DOCS.common.invalidCredentials,
+  })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
     return createApiResponse(result);
@@ -94,10 +134,20 @@ export class AuthController {
   @Post('google/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.googleLoginSummary })
-  @ApiResponse({ status: 200, description: API_DOCS.auth.googleLoginSuccess })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.auth.googleLoginSuccess,
+    messageExample: API_DOCS.auth.googleLoginSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
     status: 401,
     description: API_DOCS.auth.googleLoginFailure,
+    errorCode: 'AUTH_GOOGLE_ACCOUNT_INVALID',
+    messageExample: API_DOCS.auth.googleLoginFailure,
   })
   async loginWithGoogle(@Body() dto: GoogleLoginDto) {
     const result = await this.authService.loginWithGoogle(dto.idToken);
@@ -107,10 +157,20 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.refreshSummary })
-  @ApiResponse({ status: 200, description: API_DOCS.auth.refreshSuccess })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.auth.refreshSuccess,
+    messageExample: API_DOCS.auth.refreshSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
     status: 401,
     description: API_DOCS.common.invalidOrExpiredRefreshToken,
+    errorCode: 'AUTH_REFRESH_TOKEN_INVALID',
+    messageExample: API_DOCS.common.invalidOrExpiredRefreshToken,
   })
   async refresh(@Body() dto: RefreshTokenDto) {
     const result = await this.authService.refresh(dto.refreshToken);
@@ -120,9 +180,14 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.auth.logoutSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('AUTH_LOGOUT_SUCCESS').message,
+    messageExample: appMessage('AUTH_LOGOUT_SUCCESS').message,
+    dataSchema: {
+      type: 'null',
+      example: null,
+    },
   })
   async logout(@Body() dto: LogoutDto) {
     const result = await this.authService.logout(dto.refreshToken);
@@ -133,11 +198,26 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: API_DOCS.auth.meSummary })
-  @ApiResponse({ status: 200, description: API_DOCS.common.profileRetrieved })
-  @ApiResponse({ status: 401, description: API_DOCS.common.unauthorized })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.common.profileRetrieved,
+    messageExample: API_DOCS.common.profileRetrieved,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.meData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 401,
+    description: API_DOCS.common.unauthorized,
+    errorCode: 'AUTH_TOKEN_INVALID',
+    messageExample: API_DOCS.common.unauthorized,
+  })
+  @ApiStandardErrorResponse({
     status: 404,
     description: appMessage('AUTH_USER_NOT_FOUND').message,
+    errorCode: 'AUTH_USER_NOT_FOUND',
+    messageExample: appMessage('AUTH_USER_NOT_FOUND').message,
   })
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.authService.getProfile(user.sub);

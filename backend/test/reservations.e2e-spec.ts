@@ -14,19 +14,25 @@ describe('ReservationsModule (e2e)', () => {
 
   let app: INestApplication<App>;
   let prisma: PrismaService;
-  const timestamp = Date.now();
-  const clientPhone = `+22170${String(timestamp).slice(-7)}`;
-  const clientPassword = `ClientPass${timestamp}!`;
-  const professionalPhone = `+22171${String(timestamp).slice(-7)}`;
-  const professionalPassword = `ProPass${timestamp}!`;
-  const secondProfessionalPhone = `+22173${String(timestamp).slice(-7)}`;
-  const secondProfessionalPassword = `Pro2Pass${timestamp}!`;
-  const adminPhone = `+22172${String(timestamp).slice(-7)}`;
-  const adminPassword = `AdminPass${timestamp}!`;
-  const clientEmail = `client-${timestamp}@jokko.sn`;
-  const professionalEmail = `pro-${timestamp}@jokko.sn`;
-  const secondProfessionalEmail = `pro2-${timestamp}@jokko.sn`;
-  const adminEmail = `admin-${timestamp}@jokko.sn`;
+  const uniqueSeed = randomUUID().replace(/-/g, '');
+  const phoneSuffix = `${Date.now().toString().slice(-4)}${Math.floor(
+    Math.random() * 1000,
+  )
+    .toString()
+    .padStart(3, '0')}`;
+  const emailSuffix = uniqueSeed.slice(0, 12);
+  const clientPhone = `+22170${phoneSuffix}`;
+  const clientPassword = `ClientPass${emailSuffix}!`;
+  const professionalPhone = `+22171${phoneSuffix}`;
+  const professionalPassword = `ProPass${emailSuffix}!`;
+  const secondProfessionalPhone = `+22173${phoneSuffix}`;
+  const secondProfessionalPassword = `Pro2Pass${emailSuffix}!`;
+  const adminPhone = `+22172${phoneSuffix}`;
+  const adminPassword = `AdminPass${emailSuffix}!`;
+  const clientEmail = `client-${emailSuffix}@jokko.sn`;
+  const professionalEmail = `pro-${emailSuffix}@jokko.sn`;
+  const secondProfessionalEmail = `pro2-${emailSuffix}@jokko.sn`;
+  const adminEmail = `admin-${emailSuffix}@jokko.sn`;
 
   let clientToken = '';
   let professionalToken = '';
@@ -186,7 +192,7 @@ describe('ReservationsModule (e2e)', () => {
     await prisma.categorie.create({
       data: {
         id: categoryId,
-        nom: `Plomberie Test ${timestamp}`,
+        nom: `Plomberie Test ${emailSuffix}`,
         ordreTri: 1,
       },
     });
@@ -439,6 +445,11 @@ describe('ReservationsModule (e2e)', () => {
       .set('Authorization', `Bearer ${professionalToken}`)
       .expect(200);
 
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/mark-paid`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
     const response = await request(app.getHttpServer())
       .patch(`/api/v1/reservations/${reservation.id}/complete`)
       .set('Authorization', `Bearer ${clientToken}`)
@@ -449,6 +460,36 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.message).toBe('Reservation terminee avec succes.');
     expect(data.statut).toBe('TERMINEE');
+  });
+
+  it('PATCH /api/v1/reservations/:id/complete refuses a non paid reservation', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(44),
+        adresseClient: 'Dakar Point E',
+        dureeMinutes: 45,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/complete`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(400);
+
+    const body = response.body as ErrorResponse;
+    expect(body.success).toBe(false);
+    expect(body.errorCode).toBe('RESERVATION_PAYMENT_REQUIRED');
   });
 
   it('PATCH /api/v1/reservations/:id/reschedule reschedules a reservation', async () => {
@@ -528,6 +569,11 @@ describe('ReservationsModule (e2e)', () => {
       .set('Authorization', `Bearer ${professionalToken}`)
       .expect(200);
 
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/mark-paid`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
     const response = await request(app.getHttpServer())
       .patch(`/api/v1/reservations/${reservation.id}/no-show`)
       .set('Authorization', `Bearer ${professionalToken}`)
@@ -538,6 +584,36 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.message).toBe('Absence du client enregistree avec succes.');
     expect(data.statut).toBe('NO_SHOW');
+  });
+
+  it('PATCH /api/v1/reservations/:id/start refuses an unpaid reservation', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(74),
+        adresseClient: 'Dakar Grand Yoff',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/start`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(400);
+
+    const body = response.body as ErrorResponse;
+    expect(body.success).toBe(false);
+    expect(body.errorCode).toBe('RESERVATION_PAYMENT_REQUIRED');
   });
 
   it('GET /api/v1/reservations/my lets a professional list reservations as client with scope=CLIENT', async () => {

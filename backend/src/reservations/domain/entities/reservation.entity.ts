@@ -183,6 +183,10 @@ export class ReservationEntity {
   }
 
   markAsCompleted(): void {
+    if (this._statut === 'CONFIRMEE') {
+      throw ReservationDomainError.paymentRequired();
+    }
+
     if (!this.canBeCompleted()) {
       throw ReservationDomainError.notActive();
     }
@@ -192,6 +196,10 @@ export class ReservationEntity {
   }
 
   markAsNoShow(): void {
+    if (this._statut === 'CONFIRMEE') {
+      throw ReservationDomainError.paymentRequired();
+    }
+
     if (!this.canBeCompleted()) {
       throw ReservationDomainError.notActive();
     }
@@ -221,6 +229,10 @@ export class ReservationEntity {
   }
 
   startReservation(): void {
+    if (this._statut === 'CONFIRMEE') {
+      throw ReservationDomainError.paymentRequired();
+    }
+
     if (!this.canBeStarted()) {
       throw ReservationDomainError.cannotStart();
     }
@@ -282,11 +294,7 @@ export class ReservationEntity {
   }
 
   private canBeCompleted(): boolean {
-    return (
-      this._statut === 'CONFIRMEE' ||
-      this._statut === 'PAYEE_SEQUESTRE' ||
-      this._statut === 'EN_COURS'
-    );
+    return this._statut === 'PAYEE_SEQUESTRE' || this._statut === 'EN_COURS';
   }
 
   private canBeRescheduled(): boolean {
@@ -305,7 +313,7 @@ export class ReservationEntity {
   }
 
   private canBeStarted(): boolean {
-    return this._statut === 'CONFIRMEE' || this._statut === 'PAYEE_SEQUESTRE';
+    return this._statut === 'PAYEE_SEQUESTRE';
   }
 
   private canOpenDispute(): boolean {

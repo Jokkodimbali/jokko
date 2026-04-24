@@ -75,12 +75,4 @@ export class ProfileService extends ProfessionalAppService {
     }
     return profile;
   }
-
-  async listProfessionals(city?: string, page: number = 1, limit: number = 20) {
-    return this.professionalsRepository.listVerified({
-      city: City.create(city)?.getValue() ?? undefined,
-      page,
-      limit,
-    });
-  }
 }

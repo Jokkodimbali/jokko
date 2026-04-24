@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
@@ -42,10 +42,9 @@ export class RegisterDto {
   @MaxLength(100, { message: VALIDATION_MESSAGES.NAME_MAX })
   name!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Adresse email optionnelle',
     example: 'moussa@example.com',
-    required: false,
     format: 'email',
   })
   @Transform(({ value }: { value: unknown }) =>

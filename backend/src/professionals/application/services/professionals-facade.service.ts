@@ -5,7 +5,6 @@ import { KycService } from './kyc.service';
 import { ServiceManagementService } from './service-management.service';
 import { PortfolioService } from './portfolio.service';
 import { AvailabilityService } from './availability.service';
-import type { ListProfessionalsQuery } from '../queries/professionals.queries';
 import {
   PROFESSIONALS_REPOSITORY_PORT,
   type ProfessionalReviewView,
@@ -57,12 +56,6 @@ export class ProfessionalsFacade {
 
   async getProfessionalById(profileId: string) {
     return this.profileService.getProfessionalById(profileId);
-  }
-
-  async listProfessionals(query: ListProfessionalsQuery) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    return this.profileService.listProfessionals(query.city, page, limit);
   }
 
   // ─── KYC ───────────────────────────────────────────────────────────────────

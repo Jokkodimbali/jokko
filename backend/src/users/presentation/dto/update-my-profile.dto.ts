@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
@@ -11,10 +11,9 @@ import {
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
 export class UpdateMyProfileDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Nom de l'utilisateur",
     example: 'Moussa Diallo',
-    required: false,
     minLength: 2,
     maxLength: 100,
   })
@@ -27,10 +26,9 @@ export class UpdateMyProfileDto {
   @MaxLength(100, { message: VALIDATION_MESSAGES.NAME_MAX })
   name?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Adresse email',
     example: 'moussa@example.com',
-    required: false,
     format: 'email',
   })
   @Transform(({ value }: { value: unknown }) => {
@@ -43,10 +41,9 @@ export class UpdateMyProfileDto {
   @IsEmail({}, { message: VALIDATION_MESSAGES.EMAIL_INVALID })
   email?: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Adresse physique',
     example: 'Dakar, Senegal',
-    required: false,
     maxLength: 255,
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -57,10 +54,9 @@ export class UpdateMyProfileDto {
   @MaxLength(255, { message: VALIDATION_MESSAGES.ADDRESS_MAX })
   address?: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "URL de l'avatar",
     example: 'https://cdn.jokko.sn/avatars/user-123.png',
-    required: false,
     format: 'uri',
   })
   @Transform(({ value }: { value: unknown }) =>

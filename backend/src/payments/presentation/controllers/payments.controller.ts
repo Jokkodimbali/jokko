@@ -16,7 +16,6 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
@@ -31,6 +30,11 @@ import { ListPaymentsQueryDto } from '../dto/list-payments-query.dto';
 import { PaymentReasonDto } from '../dto/payment-reason.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { appMessage } from '../../../core/http/app-http.exception';
+import {
+  ApiStandardErrorResponse,
+  ApiStandardSuccessResponse,
+} from '../../../shared/swagger/api-response-swagger.dto';
+import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
 @ApiTags(API_DOCS.payments.tag)
 @ApiBearerAuth()
@@ -42,9 +46,26 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.payments.initiateSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 201,
     description: API_DOCS.payments.paymentInitiated,
+    messageExample: appMessage('PAYMENTS_INITIATED').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.payments.initiateData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 400,
+    description: API_DOCS.common.validationBadRequest,
+    errorCode: 'VALIDATION_REQUEST_INVALID',
+    messageExample: API_DOCS.common.validationBadRequest,
+  })
+  @ApiStandardErrorResponse({
+    status: 401,
+    description: API_DOCS.common.unauthorized,
+    errorCode: 'AUTH_TOKEN_INVALID',
+    messageExample: API_DOCS.common.unauthorized,
   })
   async initiatePayment(
     @CurrentUser() user: AuthUser,
@@ -72,9 +93,22 @@ export class PaymentsController {
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: API_DOCS.payments.webhookSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: API_DOCS.payments.webhookProcessed,
+    messageExample: appMessage('PAYMENTS_WEBHOOK_PROCESSED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        processed: true,
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 400,
+    description: API_DOCS.common.validationBadRequest,
+    errorCode: 'VALIDATION_REQUEST_INVALID',
+    messageExample: API_DOCS.common.validationBadRequest,
   })
   async webhook(@Body() webhookData: PaymentWebhookDto) {
     const result = await this.paymentsFacade.processGatewayWebhookEvent({
@@ -105,6 +139,30 @@ export class PaymentsController {
     required: false,
     description: API_DOCS.payments.methodFilter,
   })
+  @ApiQuery({
+    name: 'bookingId',
+    required: false,
+    description: API_DOCS.payments.bookingFilter,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: API_DOCS.payments.limitDescription,
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: API_DOCS.payments.offsetDescription,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.payments.historySummary,
+    messageExample: API_DOCS.payments.historySummary,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.payments.historyData,
+    },
+  })
   async getClientPaymentHistory(
     @CurrentUser() user: AuthUser,
     @Query() query: ListPaymentsQueryDto,
@@ -119,6 +177,18 @@ export class PaymentsController {
   @Get('withdrawals')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: API_DOCS.payments.withdrawalsSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.payments.withdrawalsSummary,
+    messageExample: API_DOCS.payments.withdrawalsSummary,
+    dataSchema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+      example: SWAGGER_RESPONSE_EXAMPLES.payments.withdrawalsData,
+    },
+  })
   async getWithdrawalHistory(@CurrentUser() user: AuthUser) {
     const withdrawals =
       await this.paymentsFacade.getProfessionalWithdrawalsForUser(user);
@@ -129,9 +199,25 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: API_DOCS.payments.withdrawSummary })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 201,
     description: API_DOCS.payments.withdrawalCreated,
+    messageExample: appMessage('PAYMENTS_WITHDRAWAL_REQUESTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        withdrawalId: 'b50e8400-e29b-41d4-a716-446655440006',
+        amount: 15000,
+        method: 'WAVE',
+        status: 'EN_ATTENTE',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 400,
+    description: API_DOCS.common.validationBadRequest,
+    errorCode: 'WITHDRAWAL_AMOUNT_INVALID',
+    messageExample: API_DOCS.common.validationBadRequest,
   })
   async requestWithdrawal(
     @CurrentUser() user: AuthUser,
@@ -161,6 +247,21 @@ export class PaymentsController {
     name: 'paymentId',
     description: API_DOCS.payments.paymentIdParam,
   })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.payments.getByIdSummary,
+    messageExample: API_DOCS.payments.getByIdSummary,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.payments.paymentDetailsData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.paymentNotFound,
+    errorCode: 'PAYMENTS_NOT_FOUND',
+    messageExample: API_DOCS.common.paymentNotFound,
+  })
   async getPaymentDetails(
     @CurrentUser() user: AuthUser,
     @Param('paymentId') paymentId: string,
@@ -180,6 +281,18 @@ export class PaymentsController {
   @ApiParam({
     name: 'paymentId',
     description: API_DOCS.payments.paymentIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('PAYMENTS_ESCROW_RELEASED').message,
+    messageExample: appMessage('PAYMENTS_ESCROW_RELEASED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        payment: SWAGGER_RESPONSE_EXAMPLES.payments.paymentDetailsData,
+        escrowReleased: true,
+      },
+    },
   })
   async releaseEscrow(
     @CurrentUser() user: AuthUser,
@@ -205,6 +318,18 @@ export class PaymentsController {
   @ApiParam({
     name: 'paymentId',
     description: API_DOCS.payments.paymentIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('PAYMENTS_ESCROW_DISPUTED').message,
+    messageExample: appMessage('PAYMENTS_ESCROW_DISPUTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        payment: SWAGGER_RESPONSE_EXAMPLES.payments.paymentDetailsData,
+        isDisputed: true,
+      },
+    },
   })
   async disputeEscrow(
     @CurrentUser() user: AuthUser,
@@ -232,6 +357,15 @@ export class PaymentsController {
   @ApiParam({
     name: 'paymentId',
     description: API_DOCS.payments.paymentIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.payments.escrowStatusSummary,
+    messageExample: API_DOCS.payments.escrowStatusSummary,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.payments.escrowStatusData,
+    },
   })
   async getEscrowStatus(
     @CurrentUser() user: AuthUser,

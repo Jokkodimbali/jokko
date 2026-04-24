@@ -63,6 +63,8 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_CANNOT_MARK_AS_PAID:
     'Impossible de marquer cette reservation comme payee.',
   RESERVATION_CANNOT_START: 'Impossible de demarrer cette reservation.',
+  RESERVATION_PAYMENT_REQUIRED:
+    'La reservation doit etre payee avant de poursuivre cette action.',
   RESERVATION_CANNOT_OPEN_DISPUTE:
     "Impossible d'ouvrir un litige pour cette reservation.",
   RESERVATION_CANCELLATION_TOO_LATE:

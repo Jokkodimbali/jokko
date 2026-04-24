@@ -301,4 +301,31 @@ Ces standards existent pour proteger la qualite du projet a mesure qu'il grandit
 
 Un backend robuste ne tient pas seulement a une bonne idee de depart. Il tient surtout a la repetition disciplinee de bonnes decisions module apres module. Ce document est la reference qui doit guider cette discipline dans Jokko.
 
+## Annexe A. Standard de documentation Swagger
+Tout endpoint critique doit documenter:
+- le format de succes `success + data + message + meta`
+- le format d'erreur `success + statusCode + errorCode + message + timestamp + path`
+- les principaux cas d'erreur metier attendus
+- des exemples de donnees realistes, en francais et alignes avec les tests ou le seed
+
+Le standard du projet repose sur les composants partages suivants:
+- `ApiSuccessEnvelopeSwaggerDto`
+- `ApiErrorSwaggerDto`
+- `ApiMetaSwaggerDto`
+- `PaginationSwaggerDto`
+- `ApiStandardSuccessResponse`
+- `ApiStandardErrorResponse`
+
+Un module n'est pas considere comme suffisamment documente si Swagger laisse deviner implicitement la forme de reponse d'un endpoint critique.
+
+## Annexe B. Exigence de coherence entre code, tests et documentation
+Les exemples Swagger, les donnees de demonstration et les jeux de donnees de test doivent rester coherents entre:
+- les controllers
+- les DTOs de reponse Swagger
+- les tests E2E
+- les seeds ou full-seeds lorsque c'est pertinent
+- les documents `ARCHITECTURE_PROFESSIONNELLE.md` et `TABLEAU_MESSAGES_HTTP.md`
+
+Cette coherence est importante parce qu'elle transforme Swagger en veritable contrat d'API et non en simple documentation illustrative.
+
 

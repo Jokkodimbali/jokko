@@ -36,11 +36,19 @@ describe('ReservationEntity', () => {
   it('does not allow cancelling a no-show reservation', () => {
     const reservation = buildEntity();
     reservation.confirm();
+    reservation.markAsPaid();
     reservation.markAsNoShow();
 
     expect(() => reservation.cancel('Trop tard')).toThrow(
       /statut actuel|deja terminee ou annulee/i,
     );
+  });
+
+  it('requires payment before completing a confirmed reservation', () => {
+    const reservation = buildEntity();
+    reservation.confirm();
+
+    expect(() => reservation.markAsCompleted()).toThrow(/doit etre payee/i);
   });
 
   it('rejects invalid reconstituted dates', () => {

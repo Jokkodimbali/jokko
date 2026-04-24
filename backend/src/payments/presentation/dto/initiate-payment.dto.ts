@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEnum,
@@ -36,10 +36,9 @@ export class InitiatePaymentDto {
   )
   method!: PaymentMethod;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: API_DOCS.payments.callbackUrlDescription,
     example: 'https://api.jokko.sn/payments/callback',
-    required: false,
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID })
@@ -49,10 +48,9 @@ export class InitiatePaymentDto {
   )
   callbackUrl?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: API_DOCS.payments.successUrlDescription,
     example: 'https://app.jokko.sn/payment-success',
-    required: false,
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID })
@@ -62,10 +60,9 @@ export class InitiatePaymentDto {
   )
   successUrl?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: API_DOCS.payments.cancelUrlDescription,
     example: 'https://app.jokko.sn/payment-failed',
-    required: false,
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID })

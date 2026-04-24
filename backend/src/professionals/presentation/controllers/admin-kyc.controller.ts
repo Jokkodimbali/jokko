@@ -2,7 +2,6 @@ import { Body, Controller, Param, Patch, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
@@ -16,6 +15,11 @@ import { RejectKycDto } from '../dto/reject-kyc.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { RoleUtilisateur } from '@prisma/client';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import {
+  ApiStandardErrorResponse,
+  ApiStandardSuccessResponse,
+} from '../../../shared/swagger/api-response-swagger.dto';
+import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
 @ApiTags(API_DOCS.adminKyc.tag)
 @Controller('admin/kyc')
@@ -31,12 +35,30 @@ export class AdminKycController {
     name: 'professionalId',
     description: API_DOCS.adminKyc.professionalIdParam,
   })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('PROFESSIONALS_KYC_APPROVED').message,
+    messageExample: appMessage('PROFESSIONALS_KYC_APPROVED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.professionals.profileData,
+        statutKyc: 'VERIFIE',
+      },
+    },
   })
-  @ApiResponse({ status: 403, description: API_DOCS.adminKyc.adminOnly })
-  @ApiResponse({ status: 404, description: API_DOCS.common.profileNotFound })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.profileNotFound,
+    errorCode: 'PROFESSIONALS_PROFILE_NOT_FOUND',
+    messageExample: API_DOCS.common.profileNotFound,
+  })
   async approveKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,
@@ -58,12 +80,31 @@ export class AdminKycController {
     name: 'professionalId',
     description: API_DOCS.adminKyc.professionalIdParam,
   })
-  @ApiResponse({
+  @ApiStandardSuccessResponse({
     status: 200,
     description: appMessage('PROFESSIONALS_KYC_REJECTED').message,
+    messageExample: appMessage('PROFESSIONALS_KYC_REJECTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.professionals.profileData,
+        statutKyc: 'REJETE',
+        raisonRejetKyc: 'La photo de la carte d identite est floue.',
+      },
+    },
   })
-  @ApiResponse({ status: 403, description: API_DOCS.adminKyc.adminOnly })
-  @ApiResponse({ status: 404, description: API_DOCS.common.profileNotFound })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.profileNotFound,
+    errorCode: 'PROFESSIONALS_PROFILE_NOT_FOUND',
+    messageExample: API_DOCS.common.profileNotFound,
+  })
   async rejectKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,

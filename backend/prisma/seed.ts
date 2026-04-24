@@ -24,7 +24,7 @@ if (!connectionString) {
 const adapter = new PrismaPg(
   new Pool({
     connectionString,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 5000,
     allowExitOnIdle: true,
   }),
@@ -84,13 +84,15 @@ async function upsertUser(input: (typeof SEED_USERS)[keyof typeof SEED_USERS]) {
   });
 }
 
-async function seed() {
+export async function runSeed() {
   const admin = await upsertUser(SEED_USERS.admin);
   const client = await upsertUser(SEED_USERS.client);
   const professionalUser = await upsertUser(SEED_USERS.professional);
 
   await prisma.notification.deleteMany({
-    where: { utilisateurId: { in: [client.id, professionalUser.id, admin.id] } },
+    where: {
+      utilisateurId: { in: [client.id, professionalUser.id, admin.id] },
+    },
   });
 
   const santeCategory = await prisma.categorie.upsert({
@@ -268,10 +270,9 @@ async function seed() {
     data: [
       {
         utilisateurId: client.id,
-        type: 'RESERVATION_CONFIRMEE',
+        type: 'PAIEMENT_CONFIRME',
         titre: PAYMENT_NOTIFICATION_MESSAGES.CLIENT_ESCROW_CONFIRMED_TITLE,
-        corps:
-          PAYMENT_NOTIFICATION_MESSAGES.SEED_CLIENT_ESCROW_CONFIRMED_BODY,
+        corps: PAYMENT_NOTIFICATION_MESSAGES.SEED_CLIENT_ESCROW_CONFIRMED_BODY,
         donnees: {
           reservationId: SEED_IDS.reservationPaid,
           paymentId: payment.id,
@@ -281,7 +282,7 @@ async function seed() {
       },
       {
         utilisateurId: professionalUser.id,
-        type: 'RESERVATION_CONFIRMEE',
+        type: 'PAIEMENT_CONFIRME',
         titre:
           PAYMENT_NOTIFICATION_MESSAGES.PROFESSIONAL_ESCROW_CONFIRMED_TITLE,
         corps:
@@ -299,16 +300,26 @@ async function seed() {
   console.log(TECHNICAL_MESSAGES.SEED_SUCCESS);
   console.log(`Client demo: ${SEED_USERS.client.phone} / client123`);
   console.log(`Pro demo: ${SEED_USERS.professional.phone} / prof123`);
-  console.log(`Reservation confirmee a payer: ${SEED_IDS.reservationConfirmed}`);
+  console.log(
+    `Reservation confirmee a payer: ${SEED_IDS.reservationConfirmed}`,
+  );
   console.log(`Reservation deja payee: ${SEED_IDS.reservationPaid}`);
   console.log(`Paiement seed: ${payment.id}`);
 }
 
-seed()
-  .catch((error: unknown) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+export async function disconnectSeedClient(): Promise<void> {
+  await prisma.$disconnect();
+}
+
+async function main(): Promise<void> {
+  await runSeed();
+}
+
+if (require.main === module) {
+  main()
+    .catch((error: unknown) => {
+      console.error(error);
+      process.exit(1);
+    })
+    .finally(disconnectSeedClient);
+}

@@ -29,6 +29,21 @@ Les messages techniques servent surtout aux logs et a la supervision. Ils ne son
 
 Les messages de notification servent a fabriquer les contenus lies aux reservations et aux paiements, que ce soit pour les notifications in-app, les SMS, les emails ou les push mobiles.
 
+## 3.1 Contexte produit et plateformes cibles
+Le backend Jokko n'est pas documente uniquement pour une application mobile temporaire. Il constitue la base commune de plusieurs interfaces clientes:
+- application mobile Android
+- application mobile iOS
+- future application web
+- futur site internet Jokko
+
+Les messages, les codes HTTP et les formats de reponse doivent donc rester suffisamment stables et explicites pour etre consommes de facon coherente par plusieurs frontends.
+
+### URLs de reference
+- API locale: `http://localhost:3000/api/v1`
+- Swagger local: `http://localhost:3000/api/docs`
+- API production cible: `https://api.jokko.sn/api/v1`
+- Swagger production cible: `https://api.jokko.sn/api/docs`
+
 ## 4. Convention de reponse HTTP
 Une reponse de succes suit la structure suivante:
 
@@ -396,3 +411,53 @@ Lorsque le projet doit evoluer, la priorite est de completer les catalogues exis
 Le systeme de messages Jokko n'est pas un simple detail de style. C'est une partie de l'architecture. Il garantit une API plus propre, une meilleure maintenabilite, une meilleure coherence avec Flutter et une meilleure qualite generale du code.
 
 Ce document doit rester aligne sur les catalogues de code. Si un message change dans le code source, ce referentiel doit etre mis a jour dans le meme mouvement afin de rester fiable pour l'equipe.
+
+## Annexe A. DTOs Swagger de reponse
+Le backend Jokko documente maintenant les enveloppes de reponse avec des DTOs Swagger dedies situes dans `src/shared/swagger/api-response-swagger.dto.ts`.
+
+Les principaux composants sont:
+- `ApiSuccessEnvelopeSwaggerDto`
+- `ApiErrorSwaggerDto`
+- `ApiMetaSwaggerDto`
+- `PaginationSwaggerDto`
+- `ApiStandardSuccessResponse`
+- `ApiStandardErrorResponse`
+
+Leur role est de montrer explicitement dans Swagger les champs `success`, `data`, `message`, `meta`, `statusCode`, `errorCode`, `timestamp` et `path`.
+
+## Annexe B. Cas d'erreur metier documentes
+### B.1 Auth
+| Endpoint | Erreurs metier principales |
+|---|---|
+| `POST /auth/otp/send` | `AUTH_PHONE_INVALID`, `AUTH_OTP_TOO_MANY_REQUESTS`, `AUTH_OTP_RESEND_TOO_EARLY` |
+| `POST /auth/otp/verify` | `AUTH_OTP_INVALID_OR_EXPIRED` |
+| `POST /auth/register` | `AUTH_PHONE_ALREADY_USED`, `AUTH_EMAIL_ALREADY_USED` |
+| `POST /auth/login` | `AUTH_INVALID_CREDENTIALS` |
+| `POST /auth/google/login` | `AUTH_GOOGLE_ACCOUNT_INVALID`, `AUTH_GOOGLE_ACCOUNT_NOT_LINKED` |
+| `POST /auth/refresh` | `AUTH_REFRESH_TOKEN_INVALID` |
+
+### B.2 Users
+| Endpoint | Erreurs metier principales |
+|---|---|
+| `PATCH /users/me` | `USERS_UPDATE_EMPTY`, `USERS_EMAIL_ALREADY_USED` |
+| `POST /users/me/avatar` | `VALIDATION_REQUEST_INVALID` |
+
+### B.3 Search
+| Endpoint | Erreurs metier principales |
+|---|---|
+| `GET /search/professionals` | `VALIDATION_REQUEST_INVALID` pour coordonnees ou pagination invalides |
+
+### B.4 Payments
+| Endpoint | Erreurs metier principales |
+|---|---|
+| `POST /payments/initiate` | `VALIDATION_REQUEST_INVALID`, `PAYMENTS_NOT_FOUND`, erreurs metier de reservation/paiement |
+| `POST /payments/withdraw` | `WITHDRAWAL_AMOUNT_INVALID`, `WITHDRAWAL_AMOUNT_MIN`, `WITHDRAWAL_AMOUNT_MAX` |
+| `GET /payments/:paymentId` | `PAYMENTS_NOT_FOUND` |
+| `PATCH /payments/:paymentId/escrow/release` | `PAYMENTS_NOT_FOUND`, conflit d'etat escrow |
+| `PATCH /payments/:paymentId/escrow/dispute` | `PAYMENTS_NOT_FOUND`, conflit d'etat escrow |
+
+### B.5 Notifications
+| Endpoint | Erreurs metier principales |
+|---|---|
+| `PATCH /notifications/:id/read` | `NOTIFICATIONS_NOT_FOUND` |
+| `POST /notifications/device-token` | `NOTIFICATION_FCM_TOKEN_REQUIRED`, `NOTIFICATION_FCM_TOKEN_INVALID`, `NOTIFICATION_FCM_TOKEN_TOO_LONG` |

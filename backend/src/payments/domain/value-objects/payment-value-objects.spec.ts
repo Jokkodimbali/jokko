@@ -60,8 +60,8 @@ describe('PaymentAmount', () => {
     });
 
     it('should calculate percentage correctly', () => {
-      const commission = amount.percentage(7);
-      expect(commission.getValue()).toBe(700);
+      const commission = amount.percentage(10);
+      expect(commission.getValue()).toBe(1000);
     });
   });
 

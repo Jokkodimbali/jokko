@@ -292,41 +292,6 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     return profile ? this.mapProfile(profile) : null;
   }
 
-  async listVerified(query: { city?: string; page: number; limit: number }) {
-    const cityFilter = query.city
-      ? { ville: { equals: query.city, mode: 'insensitive' as const } }
-      : {};
-
-    const where = {
-      statutKyc: StatutKyc.VERIFIE,
-      utilisateur: {
-        estActif: true,
-        role: 'PRESTATAIRE' as const,
-      },
-      ...cityFilter,
-    };
-
-    const [profiles, total] = await Promise.all([
-      this.prisma.profilProfessionnel.findMany({
-        where,
-        orderBy: [
-          { noteGlobale: 'desc' },
-          { nombreAvis: 'desc' },
-          { creeLe: 'desc' },
-        ],
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
-        select: PROFESSIONAL_SELECT,
-      }),
-      this.prisma.profilProfessionnel.count({ where }),
-    ]);
-
-    return {
-      profiles: profiles.map((p) => this.mapProfile(p)),
-      total,
-    };
-  }
-
   // ─── Service Operations ────────────────────────────────────────────────────
 
   async getServiceById(

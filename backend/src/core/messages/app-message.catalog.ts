@@ -286,6 +286,19 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Au moins un champ doit etre fourni pour la mise a jour.',
     },
   },
+  search: {
+    SEARCH_RESULTS_RETRIEVED: {
+      code: 'SEARCH_RESULTS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Resultats de recherche recuperes avec succes.',
+    },
+    SEARCH_COORDINATES_PAIR_REQUIRED: {
+      code: 'SEARCH_COORDINATES_PAIR_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message:
+        'La latitude et la longitude doivent etre fournies ensemble pour une recherche geolocalisee.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -484,6 +497,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.users,
   ...APP_MESSAGES_BY_MODULE.professionals,
   ...APP_MESSAGES_BY_MODULE.categories,
+  ...APP_MESSAGES_BY_MODULE.search,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,

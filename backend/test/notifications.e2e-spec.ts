@@ -17,6 +17,7 @@ describe('NotificationsModule (e2e)', () => {
   const timestamp = Date.now();
   const phoneNumber = `+22176${String(timestamp).slice(-7)}`;
   const password = `NotifPass${timestamp}!`;
+  const email = `notifications-${timestamp}@jokko.sn`;
 
   type AuthResponseData = {
     accessToken?: string;
@@ -60,18 +61,13 @@ describe('NotificationsModule (e2e)', () => {
     app.useGlobalFilters(new ApiExceptionFilter());
     app.setGlobalPrefix('api/v1');
     await app.init();
-  });
 
-  afterAll(async () => {
-    await app.close();
-  });
-
-  it('registers and logs in a user', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
         phoneNumber,
         name: 'Notifications Test',
+        email,
         password,
       })
       .expect(201);
@@ -85,7 +81,24 @@ describe('NotificationsModule (e2e)', () => {
     const data = body.data as AuthResponseData;
     accessToken = data.accessToken ?? '';
     userId = data.user?.id ?? '';
+  });
 
+  afterAll(async () => {
+    if (userId) {
+      await prisma.notification.deleteMany({
+        where: { utilisateurId: userId },
+      });
+      await prisma.communicationReservation.deleteMany({
+        where: { utilisateurId: userId },
+      });
+      await prisma.utilisateur.delete({
+        where: { id: userId },
+      });
+    }
+    await app.close();
+  });
+
+  it('initializes an authenticated user for the notifications module', () => {
     expect(accessToken).not.toHaveLength(0);
     expect(userId).not.toHaveLength(0);
   });

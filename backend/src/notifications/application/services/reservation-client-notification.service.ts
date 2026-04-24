@@ -88,7 +88,7 @@ export class ReservationClientNotificationService {
     });
 
     const createdRecords =
-      await this.reservationCommunicationsRepository.createReservationCreatedDispatches(
+      await this.reservationCommunicationsRepository.createReservationDispatches(
         {
           reservationId: input.reservationId,
           userId: input.clientId,
@@ -144,7 +144,9 @@ export class ReservationClientNotificationService {
       to: client.numeroTelephone,
       body: smsBody,
     });
-    await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    if (createdRecords.smsDispatchId) {
+      await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    }
   }
 
   async notifyReservationConfirmed(
@@ -162,7 +164,7 @@ export class ReservationClientNotificationService {
   async notifyReservationCompleted(
     input: ReservationCreatedNotificationInput,
   ): Promise<void> {
-    await this.notifyGenericEvent(input, 'PAIEMENT_LIBERE', 'terminee');
+    await this.notifyGenericEvent(input, 'RESERVATION_FINALISEE', 'finalisee');
   }
 
   private async notifyGenericEvent(
@@ -172,7 +174,8 @@ export class ReservationClientNotificationService {
       | 'RESERVATION_CONFIRMEE'
       | 'RESERVATION_ANNULEE'
       | 'PRESTATAIRE_EN_ROUTE'
-      | 'PAIEMENT_LIBERE',
+      | 'PAIEMENT_LIBERE'
+      | 'RESERVATION_FINALISEE',
     eventType: string,
   ): Promise<void> {
     const client = await this.usersRepository.findMeById(input.clientId);
@@ -200,6 +203,14 @@ export class ReservationClientNotificationService {
       dateHeure: input.dateHeure.toISOString(),
       adresseClient: input.adresseClient,
     };
+    const emailSubject =
+      RESERVATION_NOTIFICATION_MESSAGES.genericEventEmailSubject(eventType);
+    const smsBody = RESERVATION_NOTIFICATION_MESSAGES.genericEventSmsBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+      eventType,
+    });
 
     await this.notificationsService.createInAppNotification({
       userId: input.clientId,
@@ -208,6 +219,42 @@ export class ReservationClientNotificationService {
       body,
       data: communicationMetadata,
     });
+
+    const createdRecords =
+      await this.reservationCommunicationsRepository.createReservationDispatches(
+        {
+          reservationId: input.reservationId,
+          userId: input.clientId,
+          email: client.email,
+          phoneNumber: client.numeroTelephone,
+          emailSubject,
+          emailContent: body,
+          smsContent: smsBody,
+          metadata: communicationMetadata,
+        },
+      );
+
+    if (client.email) {
+      const emailResult = await this.deliveryService.sendEmail({
+        to: client.email,
+        subject: emailSubject,
+        text: body,
+      });
+      if (createdRecords.emailDispatchId) {
+        await this.updateDispatchResult(
+          createdRecords.emailDispatchId,
+          emailResult,
+        );
+      }
+    }
+
+    const smsResult = await this.deliveryService.sendSms({
+      to: client.numeroTelephone,
+      body: smsBody,
+    });
+    if (createdRecords.smsDispatchId) {
+      await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    }
   }
 
   private async updateDispatchResult(

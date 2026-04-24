@@ -14,16 +14,16 @@ export type CreateReservationCommunicationDispatchesInput = {
   reservationId: string;
   userId: string;
   email?: string | null;
-  phoneNumber: string;
-  emailSubject: string;
-  emailContent: string;
-  smsContent: string;
+  phoneNumber?: string | null;
+  emailSubject?: string;
+  emailContent?: string;
+  smsContent?: string;
   metadata: NotificationMetadata;
 };
 
 export type ReservationCommunicationDispatches = {
   emailDispatchId: string | null;
-  smsDispatchId: string;
+  smsDispatchId: string | null;
 };
 
 export type UpdateReservationCommunicationDispatchInput = {
@@ -35,7 +35,7 @@ export type UpdateReservationCommunicationDispatchInput = {
 };
 
 export interface ReservationCommunicationsRepositoryPort {
-  createReservationCreatedDispatches(
+  createReservationDispatches(
     input: CreateReservationCommunicationDispatchesInput,
   ): Promise<ReservationCommunicationDispatches>;
   updateDispatchResult(

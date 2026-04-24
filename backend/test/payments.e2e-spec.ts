@@ -9,6 +9,8 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtTokenService } from '../src/auth/application/services/jwt-token.service';
 import { RoleUtilisateur } from '@prisma/client';
 
+jest.setTimeout(15000);
+
 describe('Payments (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;

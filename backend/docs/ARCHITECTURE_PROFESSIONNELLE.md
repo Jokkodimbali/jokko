@@ -1,976 +1,482 @@
-# Architecture Backend Professionnelle - Reference Complete
+# Architecture Backend Professionnelle - Reference Reelle Et Complete Du Projet Jokko
 
-## 1. But du document
-Ce document definit l'architecture cible du backend Jokko et sert de reference unique pour:
-- le design technique
-- les choix d'implementation
-- les standards de qualite
-- la robustesse production
-- la scalabilite
+## 1. Objet du document
+Ce document decrit l'architecture backend telle qu'elle existe actuellement dans le projet Jokko. Il ne s'agit pas d'une cible abstraite, d'un brouillon ou d'une vision purement theorique. Son role est de servir de reference technique centrale pour l'equipe, pour les revues de code, pour l'onboarding, pour les choix d'evolution, pour la qualite logicielle et pour la preparation du deploiement.
 
-Ce document doit rester vivant: toute decision structurante doit etre tracee ici.
+Le principe de base est simple: ce document doit refleter le code reel du repository. Lorsqu'un module change, lorsqu'un flux critique evolue, lorsqu'une regle transversale est renforcee, la documentation doit evoluer en meme temps. Le but n'est pas d'ecrire une architecture ideale deconnectee du projet, mais de disposer d'un document fiable qui explique clairement ce que le backend fait aujourd'hui, comment il est structure, comment les couches communiquent et quels principes sont consideres comme non negociables.
 
+Cette documentation est donc un document de travail vivant. Elle doit pouvoir etre partagee a un developpeur backend, a un architecte logiciel, a un responsable produit ou a un membre de l'equipe mobile sans perdre en clarte. Elle doit etre assez detaillee pour guider l'implementation et assez stable pour servir de base commune a l'ensemble du projet.
 
+## 2. Vision generale du backend Jokko
+Le backend Jokko est construit comme une API modulaire NestJS organisee autour des domaines metier du produit. Le projet n'est pas concu comme une juxtaposition de CRUD techniques. Il est structure pour supporter un veritable systeme transactionnel de marketplace mobile, avec des flux critiques qui lient l'identite, les reservations, les paiements, l'escrow, la notification et la tracabilite.
 
-## 1.1 Metriques Qualite Obligatoires
-- Coverage tests: >85% branches.
-- Pas de `any` autorise.
-- Build/lint strict zero warning.
-- E2E sur tous endpoints critiques.
-- Perf P95 <300ms hors jobs lourds.
+L'architecture suit une logique de separation forte des responsabilites. Les controllers recoivent et valident les requetes, les services applicatifs orchestrent les cas d'usage, les objets de domaine portent les regles metier et les repositories ou adapters d'infrastructure encapsulent l'acces a la base et aux services externes. Cette organisation permet de garder un code testable, evolutif et comprehensible, tout en reduisant le couplage entre les briques.
 
-## 1.2 Diagrammes Architecture
+Le backend est egalement pense pour une application Flutter unique ciblee Android et iOS. Cela implique une API stable, des reponses uniformes, des messages francais centralises, une gestion stricte des erreurs et une attention particuliere a la robustesse des flux sensibles, notamment autour des reservations, des paiements et des notifications client.
 
-### Couches Clean Architecture (dependances →)
-```
-Domaine ← Ports ← Application ← Controllers
- ↑ Impl            ↑ Ports Impl  ↑ DTO/Guards
-Infra Prisma      Services      HTTP/WebSocket
-```
+## 3. Socle technique actuel
+### 3.1 Framework et langage
+Le backend repose sur NestJS pour la structure applicative, l'injection de dependances, les modules, les controllers, les guards et le cycle de vie de l'application. Le code est entierement ecrit en TypeScript, ce qui permet un typage strict, une meilleure fiabilite et une meilleure lisibilite des contrats entre couches.
 
-### Flux Dependencies Modules (NestJS)
-```
-AppModule
-├── Core (Global)
-├── Prisma
-├── Auth → Core/Prisma
-├── Users → Auth/Prisma/Core
-└── Future: Bookings → Users/Payments/etc.
-```
+### 3.2 Persistance et base de donnees
+La persistance est assuree par PostgreSQL. L'acces a la base est centralise via Prisma. Le projet utilise un schema unique dans `backend/prisma/schema.prisma` et un `PrismaService` qui constitue le point d'entree unique vers la base depuis les repositories d'infrastructure.
 
-## 1.1 Navigation documentaire (source unique)
+Le service Prisma est configure avec l'adapter `@prisma/adapter-pg` et une pool `pg`. La connexion est construite a partir de `DATABASE_URL`. Si cette variable est absente, l'application refuse explicitement de demarrer. Ce choix va dans le sens d'un backend qui echoue vite lorsqu'une dependance critique n'est pas disponible, plutot que d'accepter un demarrage incomplet.
 
-- `ARCHITECTURE_PROFESSIONNELLE.md`:
-  - vision globale
-  - choix d'architecture
-  - standards de qualite
-  - matrice endpoints
-  - contraintes par endpoint
-  - definition of done endpoint
-  - roadmap technique
-- `TABLEAU_MESSAGES_HTTP.md`:
-  - messages d'erreur/succes centralises
-  - codes metier associes
-- `TRELLO_BACKEND_COMPLET.csv` + `TRELLO_WORKFLOW.md`:
-  - ordonnancement et suivi des taches
+### 3.3 Securite et execution HTTP
+Le bootstrap applique plusieurs protections globales. L'application active `helmet` pour le durcissement des en-tetes HTTP, configure le CORS a partir des variables d'environnement, applique un `ValidationPipe` global avec `whitelist`, `forbidNonWhitelisted`, `forbidUnknownValues` et `transform`, puis enregistre un filtre global `ApiExceptionFilter`. L'API utilise un prefixe global `/api/v1`, ce qui stabilise la surface d'exposition publique et prepare les futures evolutions de versioning.
 
-Regle: aucun nouveau document d'architecture ne doit contredire ce fichier.
+### 3.4 Authentification et protection des routes
+L'authentification repose sur JWT, avec un couple access token et refresh token. Les endpoints proteges utilisent `JwtAuthGuard`. Les routes d'administration combinent ce guard avec `RolesGuard`. Le module auth gere egalement OTP, login mot de passe, login Google, refresh et logout.
 
-## 2. Principes directeurs
+### 3.5 Evenements et transversal
+Le projet charge `EventEmitterModule` dans `CoreModule` et expose un bus de domaine via `DOMAINE_EVENT_BUS`. L'implementation actuelle passe par `OutboxEventBusService`, ce qui montre que le projet ne se limite pas a un simple event emitter technique mais prepare deja une logique plus robuste de publication et de tracabilite d'evenements.
 
-### 2.1 Principes d'architecture
-- DDD pragmatique par modules metier (bounded contexts).
-- Clean Architecture: la logique metier est protegee des details techniques.
-- Event-driven pour decoupler les effets secondaires.
-- API stateless pour faciliter le scaling horizontal.
+### 3.6 Validation, messages et ergonomie API
+Les validations de DTO sont centralisees via `class-validator`, avec des messages francais references dans un catalogue unique. Les messages applicatifs et codes HTTP sont eux aussi centralises. Les reponses de succes sont homogenes via `createApiResponse`, ce qui offre une forme de contrat d'API stable pour le frontend Flutter.
 
-### 2.2 Principes de code
-- SOLID:
-  - SRP: une classe = une responsabilite.
-  - DIP: application depend de ports, pas d'implementations infra.
-- DRY: centraliser les regles transverses (messages, erreurs, validation).
-- KISS: flux explicites, peu de magie, code lisible.
-- Clean Code: noms metier, petits services, conventions stables.
+## 4. Composition actuelle de l'application
+Le module racine `AppModule` importe actuellement les modules suivants:
+- `SharedModule`
+- `CoreModule`
+- `PrismaModule`
+- `SanteModule`
+- `AuthModule`
+- `UsersModule`
+- `ProfessionalsModule`
+- `CategoriesModule`
+- `NotificationsModule`
+- `ReservationsModule`
+- `PaymentsModule`
 
-### 2.3 Principes produit
-- Priorite aux flux critiques: Auth -> Booking -> Escrow -> Wallet.
-- Integrite des donnees avant la vitesse de livraison.
-- Securite by design (pas en "patch final").
+Cette liste represente l'etat reel du backend aujourd'hui. Elle montre que le projet a deja depasse le stade de la simple fondation technique. Les modules critiques du produit sont deja presents et relies entre eux.
 
-## 3. Vue d'ensemble
+L'`AuditLoggerMiddleware` est applique globalement sur toutes les routes depuis `AppModule`. Cela signifie que toute requete HTTP passee par l'application peut produire une trace d'audit selon son contexte, sa route, son utilisateur, son temps de traitement et des metadonnees de contexte.
 
-### 3.1 Stack
-- API: NestJS (Node.js)
-- ORM: Prisma
-- DB: PostgreSQL + PostGIS
-- Temps reel: WebSocket (Socket.IO)
-- Notifications: FCM (cible)
-- Paiements: provider local via webhooks (cible)
+## 5. Arborescence generale du backend
+Le backend est organise autour d'un noyau transverse, de modules metier et d'un espace de persistance/documentation.
 
-
-
-### 3.2 Arborescence Complete (extrait src/)
-```
-src/
-├── app.module.ts           # Wiring global
-├── main.ts                # Bootstrap prod-ready
-├── core/                  # Global shared (env, events, audit)
-│   ├── config/env.validation.ts
-│   ├── events/outbox-event-bus.service.ts
-│   └── audit/audit-logger.middleware.ts
-├── prisma/prisma.service.ts # DB Client singleton
-├── auth/
-│   ├── domain/entities/auth-user.entity.ts
-│   ├── application/ports/auth-repository.port.ts
-│   ├── infrastructure/repositories/auth.repository.ts (Prisma)
-│   └── presentation/controllers/auth.controller.ts
-├── users/
-│   ├── domain/value-objects/address.vo.ts
-│   ├── application/services/users.service.ts
-│   └── infrastructure/repositories/users.repository.ts
-└── sante/                 # Health template
+```text
+backend/
+  src/
+    app.module.ts
+    main.ts
+    auth/
+    categories/
+    core/
+    notifications/
+    payments/
+    prisma/
+    professionals/
+    reservations/
+    sante/
+    shared/
+    users/
+  prisma/
+    schema.prisma
+    migrations/
+    seed.ts
+    full-seed.ts
+  test/
+    *.e2e-spec.ts
+  docs/
+    ARCHITECTURE_PROFESSIONNELLE.md
+    TABLEAU_MESSAGES_HTTP.md
+    STANDARDS_MODULES_BACKEND.md
 ```
 
-**Explication Arborescence**:
-Chaque module suit Clean Arch. Exemple Auth:
-- `domain`: Pure business (entities, VO comme PasswordVO).
-- `application`: Orchestre ports (AuthService → AuthRepositoryPort).
-- `infrastructure`: Impl Prisma (AuthRepository implements port).
-- `presentation`: HTTP entry (Controller valide DTO → service).
+Cette structure separe clairement le code applicatif, la definition de la base de donnees, les tests de bout en bout et les documents de reference. C'est un point important pour la lisibilite du projet et pour sa maintenance dans le temps.
 
-### 3.2 Modules actuellement implémentés
+## 6. Architecture par couches
+La plupart des modules metier suivent une organisation par couches inspiree de la Clean Architecture et du DDD pragmatique.
 
-| Module | Fichiers | Statut | Tests |
-|--------|---------|--------|-------|
-| `core` | Global | ✅ Config, audit, events, validation env | ✅ |
-| `prisma` | Singleton DB | ✅ Client Prisma | ✅ |
-| `auth` | 33 fichiers | ✅ OTP, register, login, refresh, Google OAuth, guards | ✅ unit + E2E |
-| `users` | 16 fichiers | ✅ Profile, avatar, history, anonymisation | ✅ unit + E2E |
-| `professionals` | 37 fichiers | ✅ Profil, KYC, services, portfolio, availabilités, reviews | ✅ unit + E2E |
-| `categories` | 21 fichiers | ✅ CRUD admin + public, DDD complet, événements domaine | ✅ unit + E2E |
-| `sante` | Template | ✅ Health check | ✅ |
-
-### 3.3 Modules métier à implémenter
-- `services` (si séparé de professionals)
-- `search` (recherche géolocalisée PostGIS)
-- `bookings` (réservations + FSM statut)
-- `payments` (Wave/OM + webhooks + idempotence)
-- `wallet` (ledger immutable)
-- `chat` (Socket.IO temps réel)
-- `tracking` (GPS live)
-- `notifications` (FCM push)
-- `admin` (back-office complet)
-- `reviews` (avis/notes si séparé)
-
-## 4. Architecture logique par couches
-
-
-Chaque module metier suit ce pattern (exemple concret AuthModule):
-
-```typescript
-// auth/auth.module.ts (extrait)
-@Module({
-  imports: [PrismaModule, JwtModule.registerAsync({...})],
-  controllers: [AuthController],
-  providers: [
-    AuthService, // Application layer
-    AuthRepository, // Infrastructure impl port
-    { provide: AUTH_REPOSITORY_PORT, useExisting: AuthRepository }, // Binding!
-    JwtAuthGuard,
-    PhoneNumberValidator,
-  ],
-  exports: [AuthService, JwtModule, JwtAuthGuard],
-})
-export class AuthModule {}
+```text
+src/<module>/
+  domain/
+  application/
+  infrastructure/
+  presentation/
+  <module>.module.ts
 ```
 
-**Explication Bindings DI**:
-- Ports abstraits injectes en application.
-- Infra impl bindee via `useExisting`.
-- Decouplage total: changer Prisma → nouveau repo sans toucher services.
+Cette structure est une convention forte du projet. Elle garantit que les responsabilites sont distribuees correctement et que les choix techniques n'envahissent pas le coeur metier.
 
-### 4.1 Domain Layer (Pure Business)
-**Responsabilites**:
-- Entites immuables (UserEntity).
-- Value Objects (PhoneNumberVO validates/normalizes).
-- Domain Errors (UserDomainError).
-- Ports (contrats: `findByPhone(AuthRepositoryPort)`).
+### 6.1 Couche presentation
+La couche presentation contient les controllers HTTP, les DTOs, les decorations Swagger et les elements lies a l'interface API. Son role est de recevoir les entrees, de s'appuyer sur la validation, de faire appel au bon service applicatif et de retourner une reponse normalisee.
 
-**Exemple VO** (users/domain/value-objects/address.vo.ts):
-```typescript
-export class AddressVO {
-  private readonly value: string;
-  constructor(value: string) {
-    if (!this.isValid(value)) throw new DomainError('Invalid address');
-    this.value = value;
-  }
-  private isValid(v: string): boolean { /* rules */ }
-}
-```
-**Paragraphe**: Domain ignore frameworks/DB. Regles immuables, testable unit. VO encapsule validation.
+Dans Jokko, cette couche ne doit pas contenir de logique metier. Un controller ne calcule pas de commission, ne decide pas d'une transition d'etat metier et ne parle pas directement a Prisma. Il oriente simplement la requete vers la bonne orchestration applicative.
 
-### 4.2 Application Layer
-**Orchestre use cases**:
-- Services: `AuthService` coordonne `AuthRepositoryPort`, `PasswordHashService`.
-- Commands/DTOs mappes depuis presentation.
+### 6.2 Couche application
+La couche application porte les services qui orchestrent les cas d'usage. C'est ici que sont composes les flux metier, que les ports sont appeles et que plusieurs operations sont enchainees dans le bon ordre.
 
-**Exemple Port** (auth/application/ports/auth-repository.port.ts):
-```typescript
-export interface AuthRepositoryPort {
-  findByPhone(phone: PhoneNumberVO): Promise<AuthUserEntity | null>;
-  save(user: UserEntity): Promise<void>;
-}
-```
+Cette couche est volontairement separee des details techniques. Elle ne doit pas dependra d'un repository Prisma concret ni d'un provider externe concret. Elle depend de ports et de contrats. C'est ce qui permet de tester les cas d'usage proprement et de faire evoluer l'infrastructure sans reecrire la logique fonctionnelle.
 
-### 4.3 Infrastructure Layer
-**Impl ports concrets**:
-- Prisma repos: `AuthRepository implements AuthRepositoryPort`.
-- Transactionnelle, migrable.
+### 6.3 Couche domaine
+La couche domaine contient les entites, les value objects, les erreurs metier, les evenements de domaine et les regles qui n'ont pas vocation a dependre de NestJS ou de Prisma. C'est la couche qui exprime le langage du metier.
 
-### 4.4 Presentation Layer
-**HTTP/WS facade**:
-- DTO validation (class-validator).
-- Guards (JwtAuthGuard, RolesGuard).
-- Mapping → application services.
+Lorsqu'une regle concerne l'identite, un statut, un type de paiement, un montant, une reservation ou une notification, elle doit vivre ici ou etre au minimum protegee de la couche presentation.
 
+### 6.4 Couche infrastructure
+La couche infrastructure branche les details concrets: repositories Prisma, adapters de paiement, adapters d'email, de SMS, de push, securisation HMAC des webhooks, persistance de l'idempotence, ledger wallet, etc.
 
-### 4.1 Presentation
-Responsabilites:
-- Controllers HTTP/WS
-- Mapping DTO <-> commandes application
-- Auth guard, validation d'entree
+Cette couche est le seul endroit ou l'on doit trouver l'acces a la base de donnees et les integrations techniques externes. C'est aussi la couche qui implemente les ports definis par l'application.
 
-Interdit:
-- logique metier complexe
-- acces DB direct
+## 7. Regles de dependance
+Le sens des dependances est un point structurant du projet. La regle generale est la suivante:
+- `presentation -> application`
+- `application -> domain`
+- `application -> ports`
+- `infrastructure -> application + domain`
+- `domain -> aucune couche technique`
 
-### 4.2 Application
-Responsabilites:
-- orchestration des cas d'usage
-- coordination des ports
-- publication d'evenements metier
+Concretement, cela signifie plusieurs choses importantes. D'abord, un controller ne doit jamais manipuler Prisma. Ensuite, un service applicatif ne doit pas importer directement un repository concret d'infrastructure, mais un port. Enfin, un objet de domaine ne doit pas dependre de `@nestjs/common`, d'Express, de Swagger ou de `@prisma/client`.
 
-Interdit:
-- connaissance Prisma/SQL
-- dependance a des details infra
+Ce sens de dependance est ce qui permet au backend de rester stable a mesure qu'il grossit. Sans cette discipline, les modules critiques finissent vite par se melanger et deviennent difficiles a tester, a corriger et a faire evoluer.
 
-### 4.3 Domaine
-Responsabilites:
-- vocabulaire metier
-- ports (contrats)
-- regles metier et evenements de domaine
+## 8. Bootstrap global et comportement runtime
+Le point d'entree du serveur est `backend/src/main.ts`. Au demarrage, l'application cree l'instance Nest, recupere `ConfigService`, active `helmet`, active le CORS selon `CORS_ORIGINS` et `NODE_ENV`, configure `trust proxy`, applique le `ValidationPipe` global, applique `ApiExceptionFilter`, fixe le prefixe `/api/v1`, active les shutdown hooks puis ecoute sur `PORT` ou `3000`.
 
-Interdit:
-- dependance framework
-- details techniques
+Le comportement CORS est volontairement prudent. Si `CORS_ORIGINS` est renseigne, seules les origines configurees sont acceptees. En production, si rien n'est configure, aucun origin n'est autorise par defaut. En developpement, le systeme reste plus permissif pour faciliter le travail local.
 
-### 4.4 Infrastructure
-Responsabilites:
-- implementation des ports (Prisma, providers, broker)
-- persistance
-- integration technique externe
+Ce bootstrap donne une base d'execution saine: validation stricte, surface d'API uniforme, securite de base activee et comportement previsible entre environnements.
 
-## 5. Regles de dependance (obligatoires)
+## 9. Noyau transverse du projet
+### 9.1 CoreModule
+`CoreModule` est global et joue un role central. Il charge `ConfigModule` avec validation d'environnement via `validerEnv`, `EventEmitterModule`, `ThrottlerModule`, `OutboxEventBusService`, `AuditService`, `AuditLoggerMiddleware` et le `APP_GUARD` base sur `ThrottlerGuard`.
 
-- `presentation` -> `application`
-- `application` -> `domaine` + `core` (abstractions transverses)
-- `infrastructure` -> `domaine` + `application` (ports)
-- `domaine` -> aucune couche externe
+Ce module est le point de regroupement des regles transverses qui doivent s'appliquer a tout le backend. Il concentre la configuration, la protection globale et le socle commun necessaire aux modules metier.
 
-Consequence:
-- aucune importation `presentation/*` dans `application/*`
-- aucune importation `infrastructure/*` dans `application/*` (sauf via port)
+### 9.2 PrismaModule
+`PrismaModule` encapsule `PrismaService`. Il constitue le point d'entree unique vers la base. Les modules metier n'ont pas a recreer de connexion ni a contourner ce service.
 
-## 6. Noyau transversal (`core`)
+### 9.3 SharedModule
+`SharedModule` contient les composants mutualises qui n'appartiennent pas a un seul domaine metier. On y retrouve notamment des DTOs generiques, des guards partages et des briques de support.
 
+### 9.4 Gestion des erreurs
+Le backend utilise `ApiExceptionFilter` pour homogeniser les erreurs renvoyees au client. La forme de reponse d'erreur est stable: `success`, `statusCode`, `errorCode`, `message`, `timestamp` et `path`.
 
+Le filtre traite les erreurs Nest standard, mais aussi les erreurs de domaine partagees comme `ValidationError`, `ConflictError` et `NotFoundError`. Cela permet d'avoir un comportement coherent entre la logique metier et la couche HTTP.
 
-## 4.5 Prisma Module Deep Dive
-**Singleton DB** (`prisma/prisma.service.ts`):
-- Client Prisma injecte partout via DI.
-- Migrations/seed via `prisma migrate`.
-- PostGIS extensions pour geo queries.
+### 9.5 Validation
+Le `ValidationPipe` global s'appuie sur `buildValidationException`. Ce composant transforme les erreurs `class-validator` en une structure HTTP standard et resolve les cles de validation via le catalogue central des messages. Cela evite de disperser des messages bruts dans toute l'application.
 
-**Schema Highlights** (prisma/schema.prisma):
-| Entity | Key Fields | Relations | Purpose |
-|--------|------------|-----------|---------|
-| User | phone (unique), role enum | 1:N Reservations | Core identity |
-| ProfilProfessionnel | kyc_status enum, location geography(Point) | 1:N Services | Pro details + geo |
-| Reservation | statut enum (EN_ATTENTE→TERMINEE) | N:1 Paiement | Booking FSM |
-| Paiement | provider_ref unique, statut enum | 1:1 Reservation | Escrow secure |
-| OutboxEvents | payload JSON, status enum | None | Reliable messaging |
-| AuditLogs | action_type enum, ip_address | None | Compliance trace |
+### 9.6 Audit
+`AuditLoggerMiddleware` intercepte la fin des reponses HTTP pour enregistrer un journal d'audit. Le systeme determine un type d'action a partir du chemin et de la methode HTTP, tente de retrouver l'utilisateur courant, enregistre l'IP, le user agent, la duree et, si disponibles, les coordonnees geographiques envoyees par le client.
 
-**Index Critiques**: phone/email unique, GIST on location, composite status+created_at.
+Ce mecanisme est important pour la conformite, l'analyse d'incidents et le suivi des actions sensibles comme login, KYC, paiement ou reservation.
 
-## 5. Core Module Exhaustif
+## 10. Modules metier implementes
+### 10.1 AuthModule
+`AuthModule` gere l'identite et l'authentification. C'est un module de reference en termes de separation entre presentation, application, domaine et infrastructure.
 
-### 5.1 Global Config (core/core.module.ts)
-Validation stricte boot:
-```typescript
-ConfigModule.forRoot({ validate: validerEnv }); // Fail fast if DB_URL invalid
-```
-**Vars Env Critiques**:
-- `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGINS`.
+Il prend en charge l'envoi d'OTP, la verification d'OTP, l'inscription classique, la connexion par mot de passe, la connexion Google, la rotation de refresh token, le logout et la lecture du profil courant via `/auth/me`.
 
-### 5.2 Throttling Multi-Tiers
-```typescript
-ThrottlerModule.forRootAsync({
-  // short: 10 req/s, medium: 60/min, long: 200/10min
-});
-```
-Anti-DDoS + SMS abuse prevention.
+Sa structure inclut des ports applicatifs, des services dedies comme `JwtTokenService`, `PasswordHashService`, `RefreshSessionService`, des repositories d'infrastructure distincts et des objets de domaine autour de l'utilisateur auth et des tokens. Ce module montre bien la philosophie du projet: les controllers deleguent, les services orchestrent et les repositories persistents restent encapsules.
 
-### 5.3 Domain Event Bus
-- Port: `DOMAINE_EVENT_BUS`.
-- Current: Nest EventEmitter.
-- Impl: `OutboxEventBusService` (pops from outbox table).
+### 10.2 UsersModule
+`UsersModule` gere le profil courant de l'utilisateur connecte. Il expose la lecture du profil, la mise a jour partielle, la mise a jour de l'avatar, la lecture de l'historique et l'anonymisation du compte.
 
-### 6.1 Configuration
+Ce module est volontairement plus simple qu'auth ou payments, mais il suit la meme logique d'architecture. La lecture et la mise a jour passent par `UsersService`, les DTOs vivent en presentation et les acces base sont regroupes dans un repository dedie.
 
-- Validation stricte au boot (`env.validation.ts`)
-- Echec immediate si variable critique invalide
+### 10.3 ProfessionalsModule
+`ProfessionalsModule` est l'un des modules coeur du produit. Il gere le profil professionnel, le KYC, les services proposes, le portfolio, les disponibilites et les endpoints publics de consultation.
 
-### 6.2 Gestion d'erreurs
-- Format uniforme via `ApiExceptionFilter`
-- Catalogue central des messages/erreurs HTTP:
-  - `src/core/http/message-catalog.ts`
-  - `src/core/http/app-http.exception.ts`
+Ce module couvre des besoins metier riches: creation de profil prestataire, mise a jour, soumission KYC, creation et gestion des offres, exposition publique du profil et vues publiques annexes comme les services, disponibilites, portfolio et reviews. Il comprend egalement un controller admin dedie aux decisions KYC.
 
-### 6.3 Validation
-- `ValidationPipe` global
-- Messages de validation en francais
-- Factory d'erreur centralisee
+Par sa taille et son importance fonctionnelle, ce module sert de tres bon exemple de module metier complet dans Jokko. Il montre comment un domaine riche peut rester lisible lorsqu'il est correctement decoupe.
 
+### 10.4 CategoriesModule
+`CategoriesModule` gere les categories publiques et leur administration. Le module expose une liste publique de categories actives et un ensemble d'actions admin pour creer, mettre a jour et desactiver une categorie.
 
-## 6. Patterns HTTP/Validation/Guards (main.ts)
+C'est un module simple, mais utile comme reference de CRUD metier propre. Il montre comment un flux apparemment basique peut tout de meme respecter les conventions du projet: DTOs, facade applicative, controle des roles, messages centralises et repository dedie.
 
-**Bootstrap Exhaustif** (main.ts):
-```typescript
-app.useGlobalPipes(new ValidationPipe({
-  whitelist: true, forbidNonWhitelisted: true,
-  exceptionFactory: buildValidationException, // Custom FR errors
-}));
-app.useGlobalFilters(new ApiExceptionFilter()); // Uniform JSON errors
-app.setGlobalPrefix('api/v1');
-app.use(helmet()); app.enableCors({...});
+### 10.5 ReservationsModule
+`ReservationsModule` gere le cycle de vie des reservations. Il couvre la creation d'une reservation, la creation depuis negotiation, la lecture des reservations du compte courant, la lecture d'une reservation par identifiant, la confirmation, l'annulation, la reprogrammation, la completion, le no-show, le marquage comme payee, le demarrage, l'ouverture d'un litige et les vues admin de liste, detail et statistiques.
+
+C'est un module charniere entre le domaine des services et le domaine financier. Il relie client, professionnel, service, calendrier, statut metier et flux de notification. Il joue donc un role central dans la cohesion du backend.
+
+### 10.6 PaymentsModule
+`PaymentsModule` gere le paiement a partir d'une reservation, le webhook provider, l'escrow, les retraits et les vues d'administration financiere.
+
+Il expose notamment l'initiation d'un paiement, le traitement d'un webhook, l'historique client des paiements, l'historique des retraits professionnel, la demande de retrait, le detail d'un paiement, la liberation de l'escrow, la mise en litige de l'escrow, la consultation du statut escrow et les vues admin de liste, statistiques, remboursement et traitement des escrow en attente.
+
+Ce module est structure autour de plusieurs services applicatifs specialises, de ports, de repositories techniques et d'adapters de passerelles de paiement. Il integre aussi l'idempotence, le ledger wallet et des adapters pour Wave, Orange Money, carte et un gateway mock.
+
+### 10.7 NotificationsModule
+`NotificationsModule` est aujourd'hui un module complet et autonome, et non plus une logique secondaire dispersee dans les autres domaines. Il centralise les notifications in-app, le marquage lu et tout lu, la mise a jour du token FCM, la creation des notifications liees aux reservations, la creation des notifications liees aux paiements, l'enregistrement des communications reservation par email et SMS et la preparation des envois email, SMS et push.
+
+Ce module est structure avec un service applicatif generique `NotificationsService`, des services specialises comme `PaymentNotificationService` et `ReservationClientNotificationService`, un service transverse `NotificationDeliveryService`, des repositories dedies et des adapters d'envoi `Resend`, `Twilio` et `FCM`.
+
+Cette centralisation est tres importante architecturalement. Elle permet d'eviter que les modules `reservations` ou `payments` se mettent a gerer eux-memes les details d'email, de SMS ou de push. Chaque module metier signale un besoin de notification, puis `notifications` prend le relai proprement.
+
+### 10.8 SanteModule
+`SanteModule` expose un endpoint simple de sante. C'est un module volontairement minimal, mais utile pour la supervision, la verification de demarrage et les tests rapides de disponibilite du backend.
+
+## 11. Structure interne par module: realite du projet
+Tous les modules ne sont pas strictement identiques fichier par fichier, mais ils suivent une logique commune. La structure de reference observee dans le code ressemble a ceci:
+
+```text
+src/<module>/
+  application/
+    commands/
+    mappers/              # present selon le besoin
+    ports/
+    services/
+  domain/
+    entities/
+    errors/
+    events/               # present selon le besoin
+    validators/           # present selon le besoin
+    value-objects/
+    index.ts
+  infrastructure/
+    repositories/
+    adapters/             # present si le module parle a l'exterieur
+  presentation/
+    controllers/
+    dto/
+  <module>.module.ts
 ```
 
-**Guards**:
-- JwtAuthGuard (security/jwt-auth.guard.ts): @UseGuards(JwtAuthGuard).
-- RolesGuard (shared/guards/roles.guard.ts): @Roles('ADMIN').
+Le projet suit donc un standard ferme sur les grandes couches, tout en gardant un peu de pragmatisme a l'interieur des modules. Un module n'est pas oblige d'avoir un dossier `adapters` ou `events` s'il n'en a pas besoin, mais il doit rester coherent avec la logique globale.
 
-**Reponses Uniformes** (shared/dto/api-response.dto.ts):
-```typescript
-{ success: boolean, data?: T, statusCode: number, errorCode?: string }
-```
+## 12. Surface API reelle exposee aujourd'hui
+### 12.1 Auth
+- `POST /api/v1/auth/otp/send`
+- `POST /api/v1/auth/otp/verify`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/google/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
 
-### 6.4 Event bus interne
+### 12.2 Users
+- `GET /api/v1/users/me`
+- `PATCH /api/v1/users/me`
+- `POST /api/v1/users/me/avatar`
+- `GET /api/v1/users/me/history`
+- `DELETE /api/v1/users/me`
 
-- Port `DOMAINE_EVENT_BUS`
-- Adapter Nest EventEmitter
-- Etat actuel: bus interne non durable (a industrialiser)
+### 12.3 Professionals
+- `POST /api/v1/professionals/profile`
+- `GET /api/v1/professionals/me`
+- `PATCH /api/v1/professionals/me`
+- `PATCH /api/v1/professionals/me/kyc/submit`
+- `POST /api/v1/professionals/me/services`
+- `PATCH /api/v1/professionals/me/services/:serviceId`
+- `DELETE /api/v1/professionals/me/services/:serviceId`
+- `POST /api/v1/professionals/me/portfolio`
+- `DELETE /api/v1/professionals/me/portfolio/:itemId`
+- `POST /api/v1/professionals/me/availabilities`
+- `DELETE /api/v1/professionals/me/availabilities/:availabilityId`
+- `GET /api/v1/professionals`
+- `GET /api/v1/professionals/:id`
+- `GET /api/v1/professionals/:id/services`
+- `GET /api/v1/professionals/:id/portfolio`
+- `GET /api/v1/professionals/:id/availabilities`
+- `GET /api/v1/professionals/:id/reviews`
+- `PATCH /api/v1/admin/kyc/:professionalId/approve`
+- `PATCH /api/v1/admin/kyc/:professionalId/reject`
 
-## 7. Architecture des modules implementes
+### 12.4 Categories
+- `GET /api/v1/categories`
+- `POST /api/v1/admin/categories`
+- `PATCH /api/v1/admin/categories/:categoryId`
+- `PATCH /api/v1/admin/categories/:categoryId/disable`
 
+### 12.5 Reservations
+- `POST /api/v1/reservations`
+- `POST /api/v1/reservations/from-negotiation`
+- `GET /api/v1/reservations/my`
+- `GET /api/v1/reservations/:reservationId`
+- `PATCH /api/v1/reservations/:reservationId/confirm`
+- `PATCH /api/v1/reservations/:reservationId/cancel`
+- `PATCH /api/v1/reservations/:reservationId/reschedule`
+- `PATCH /api/v1/reservations/:reservationId/complete`
+- `PATCH /api/v1/reservations/:reservationId/no-show`
+- `PATCH /api/v1/reservations/:reservationId/mark-paid`
+- `PATCH /api/v1/reservations/:reservationId/start`
+- `PATCH /api/v1/reservations/:reservationId/dispute`
+- `GET /api/v1/admin/reservations`
+- `GET /api/v1/admin/reservations/:reservationId`
+- `GET /api/v1/admin/reservations/statistics`
 
-### 7.1 Auth (Implémenté - Référence)
+### 12.6 Payments
+- `POST /api/v1/payments/initiate`
+- `POST /api/v1/payments/webhook`
+- `GET /api/v1/payments/history`
+- `GET /api/v1/payments/withdrawals`
+- `POST /api/v1/payments/withdraw`
+- `GET /api/v1/payments/:paymentId`
+- `PATCH /api/v1/payments/:paymentId/escrow/release`
+- `PATCH /api/v1/payments/:paymentId/escrow/dispute`
+- `GET /api/v1/payments/:paymentId/escrow/status`
+- `GET /api/v1/admin/payments`
+- `GET /api/v1/admin/payments/statistics`
+- `GET /api/v1/admin/payments/:paymentId`
+- `POST /api/v1/admin/payments/:paymentId/refund`
+- `GET /api/v1/admin/payments/escrow/pending`
+- `POST /api/v1/admin/payments/escrow/process-pending`
 
-**Capacites Actuelles**:
-- POST /auth/otp/send/verify (phone-based).
-- POST /auth/register/login/refresh/logout/me.
-- Google OAuth (si keys).
+### 12.7 Notifications
+- `GET /api/v1/notifications`
+- `PATCH /api/v1/notifications/read-all`
+- `PATCH /api/v1/notifications/:id/read`
+- `POST /api/v1/notifications/device-token`
 
-**Module Deep** (auth/auth.module.ts full bindings):
-```typescript
-providers: [
-  AuthService, JwtTokenService, PasswordHashService (argon2),
-  RefreshSessionService, GoogleAuthService, OtpService,
-  AuthRepository (Prisma impl AUTH_REPOSITORY_PORT),
-  OtpRepository (Prisma impl OTP_REPOSITORY_PORT),
-  PhoneNumberValidator, JwtAuthGuard,
-]
-```
+### 12.8 Sante
+- `GET /api/v1/sante`
 
-**Refresh Rotation Secure Flow**:
-```
-1. Client POST refresh_token
-2. JwtAuthGuard valide signature
-3. RefreshSessionService:
-   - Hash token → DB match (auth_sessions table)
-   - Check !revoked && !expired
-   - Gen new access/refresh
-   - UPDATE session: new_hash, revoke old
-4. Response {access_token, refresh_token}
-```
+## 13. Format des reponses API
+Le backend renvoie des reponses de succes homogenes via `createApiResponse`.
 
-**Diagram Refresh**:
-```
-Client ─POST─> Controller ─Guard─> RefreshService ─Port─> AuthRepo
-                                            │
-                       DB: hash_match? → yes → new_tokens + UPDATE session
-```
-
-**Forces**:
-- Ports DIP partout.
-- Rotation anti-replay.
-- Tests E2E complets.
-
-**Exemple Service** (application/services/auth.service.ts):
-```typescript
-async register(cmd: RegisterCommand) {
-  const phone = new PhoneNumberVO(cmd.phone);
-  const existing = await this.authRepo.findByPhone(phone);
-  if (existing) throw new UserAlreadyExistsError();
-  const hashed = await this.hashService.hash(cmd.password);
-  const user = UserEntity.create({...});
-  await this.authRepo.save(user);
-  return this.jwtService.generateTokens(user);
+La structure de succes est la suivante:
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "...",
+  "meta": {}
 }
 ```
 
-Capacites:
+Le `message` et `meta` peuvent etre absents selon le cas d'usage. Pour les listes paginees, `meta.pagination` est renseigne via `createPaginatedResponse`.
 
-- OTP send/verify
-- register/login
-- refresh/logout
-- me
-- google login (si configure)
-
-Forces actuelles:
-- separation controller/service/repository
-- ports applicatifs en place
-- rotation de refresh token
-- messages FR centralises
-- tests unitaires + e2e complets
-
-Points a durcir:
-- provider OTP reel (Twilio/Infobip)
-- audit login/securite avancee
-- revoke list distribuee si multi-instance
-
-
-### 7.2 Users (Profile Management)
-
-**Capacites**:
-- GET/PUT /users/me (avatar, address via VO).
-
-**Module** (users/users.module.ts):
-```typescript
-@Module({
-  imports: [PrismaModule, AuthModule], // Depends decorated User
-  providers: [UsersService, UsersRepository],
-  { provide: USERS_REPOSITORY_PORT, useExisting: UsersRepository },
-})
+La structure d'erreur est la suivante:
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "errorCode": "VALIDATION_REQUEST_INVALID",
+  "message": "Les donnees envoyees sont invalides.",
+  "timestamp": "2026-04-24T10:00:00.000Z",
+  "path": "/api/v1/..."
+}
 ```
 
-**Domain VO Example** (domain/value-objects/address.vo.ts - protects invalid):
-- Validates format, immutable.
-
-**Service** (application/services/users.service.ts):
-Uses port, no Prisma knowledge.
-
-### 7.3 Sante (DDD Template)
-**Pattern Use Case + Event**:
-- ObtenirEtatSanteUseCase → VERIFICATEUR_BASE_PORT.
-- Event EtatSanteVerifie → Handler journalise.
-
-**Utilisation**: Modèle pour tous use cases event-driven.
-
-Capacite:
-
-- endpoint `users/me`
-
-Forces:
-- service depend d'un port repository
-- repository infra Prisma propre
-
-### 7.3 Sante
-Role:
-- module exemple DDD + event-driven
-- montre pattern use case + event + handler
-
-## 8. Flux critiques de reference
-
-### 8.1 Auth - Register/Login
-1. Controller valide DTO.
-2. Service application normalise et valide le numero.
-3. Service interroge repository via port.
-4. Hash mot de passe (argon2id).
-5. Creation utilisateur.
-6. Emission access/refresh token.
-7. Persistance session refresh.
-
-### 8.2 Auth - Refresh
-1. Verifier session refresh stockee.
-2. Verifier signature/validite JWT refresh.
-3. Verifier coherence session <-> utilisateur.
-4. Rotation token et session.
-5. Retour nouveaux tokens.
-
-### 8.3 Booking -> Payment Escrow -> Wallet (cible)
-1. Creation booking (`PENDING`).
-2. Acceptation pro (`CONFIRMED`).
-3. Paiement initie + idempotency key.
-4. Webhook confirme escrow (`PAID_ESCROW`).
-5. Fin mission validee client (`COMPLETED`).
-6. Ecriture ledger wallet (credit net).
-7. Retrait pro via provider.
-
-## 9. Modele data et integrite
-
-### 9.1 Regles globales
-- UUID pour identifiants metier.
-- Contrainte d'unicite sur identites critiques.
-- Transactions DB sur operations multi-etapes.
-- Etats metier explicites (pas de transitions implicites).
-
-### 9.2 Tables techniques cibles
-- `idempotency_keys`
-- `payment_webhook_events`
-- `wallet_transactions` (ledger immutable)
-- `outbox_events`
-- `audit_logs`
-- `disputes`
-
-### 9.3 Geospatial
-- PostGIS obligatoire pour recherche geo.
-- Index GIST sur localisation.
-- Queries ST_DWithin/ST_Distance optimisees.
-
-
-## 7. Event-Driven + Observabilité (Étapes 7)
-
-### 7.1 Outbox Pattern (Reliable Events)
-**Schema** (EvenementOutbox):
-- payload JSON, status (EN_ATTENTE→TRAITE/ECHEC), attempts, error.
-- Poller asynchrone publie vers broker.
-
-**Flow**:
-```
-Use Case → this.eventBus.publish(event) // DomainEvent
-  → OutboxEventBusService.insert(payload)
-  → Cron job: select EN_ATTENTE → publish RabbitMQ → UPDATE TRAITE
-Retry DLQ on failure.
-```
-
-**Avantages**: Atomic avec DB tx, no lost events multi-instance.
-
-### 7.2 Audit Logging Complet
-**Middleware Global** (core/audit/audit-logger.middleware.ts on '*'):
-- Capture request IP, user @CurrentUser(), action.
-- Insert AuditLogs (action_type enum ex CONNEXION/PAIEMENT).
-
-**Schema AuditLogs**:
-- user_id/name, ip_address, geo (lat/lng), user_agent.
-- Indexes user+created_at, action+created_at.
-
-**Cas**: Login → audit CONNEXION, Paiement → PAIEMENT.
-
-## 8. Déploiement & Infra (Étape 8)
+Cette uniformite est importante pour Flutter. Elle permet de centraliser le traitement des erreurs et des succes dans la couche cliente sans multiplier les cas speciaux.
 
-### 8.1 Docker Production
-```
-docker-compose.yml: postgres14 + app → DATABASE_URL=postgresql://...
-entrypoint.sh: wait-db && prisma migrate deploy && prisma seed
-```
+## 14. Base de donnees et modeles structurants
+Le schema Prisma est riche. Les modeles qui structurent le plus l'architecture actuelle sont les suivants.
 
-**Build/Run**:
-```bash
-docker compose up --build  # Dev
-npm run docker:up          # Scripts pkg.json
-```
+### 14.1 Utilisateur
+`Utilisateur` est le pivot identitaire du systeme. Il porte notamment le telephone, le nom, l'email, le role, l'etat actif et le token FCM. Il est relie a l'authentification, aux reservations, aux paiements, aux notifications et a l'audit.
 
-**Scaling Horizontal**:
-- Stateless API (JWT self-contained).
-- Redis pour Socket.IO adapter (chat/tracking).
-- PG replicas + connection pool pgbouncer.
+### 14.2 ProfilProfessionnel
+`ProfilProfessionnel` specialise l'utilisateur en tant que prestataire. Il concentre les informations de bio, KYC, disponibilite, rating, portefeuille et positionnement metier.
 
-### 8.2 Variables Env Production
-| Var | Dev Default | Prod Exemple | Criticity |
-|----|-------------|--------------|-----------|
-| DATABASE_URL | postgresql://localhost:5432/jokko | cloud-psql://... | Critical |
-| JWT_ACCESS_SECRET | devsecret | 64+ random | Critical |
-| NODE_ENV | development | production | Info |
-| CORS_ORIGINS | http://localhost:3000 | https://jokko.app | Security |
-
-**Secrets**: Docker secrets ou Vault.
-
-## 9. Testing & Standards (Étape 9)
-
-**Stack**: Jest + Supertest (E2E), ts-jest.
-- Unit: Services/VO/ports (>90% coverage).
-- E2E: Controllers full flow (auth.e2e-spec.ts).
-- `npm test:e2e --config test/jest-e2e.json`.
-
-**Standards** (docs/STANDARDS_MODULES_BACKEND.md):
-- No cross-layer imports.
-- No any/unknown without narrowing.
-- Checklist DoD par module/endpoint.
-
-**Lint**: ESLint9 + Prettier3 strict.
-
-## 10. Event-driven: actuel vs cible
-
-
-### 10.1 Etat actuel
-- Publication interne en memoire (EventEmitter).
-- Bon decouplage applicatif local.
-
-### 10.2 Cible production
-- Outbox transactionnelle en DB.
-- Publisher asynchrone.
-- Broker durable (RabbitMQ/Kafka/SQS).
-- Retry + DLQ + monitoring.
-
-Pourquoi:
-- eviter perte d'evenements en cas de panne process.
-- garantir la coherence des flux critiques (paiement, wallet, notification).
-
-## 11. Securite et conformite
-
-### 11.1 Mesures techniques
-- JWT access court + refresh rotation.
-- Hash mot de passe argon2id.
-- Rate limiting.
-- Validation stricte payload.
-- Headers HTTP securises (Helmet).
-- TLS obligatoire en production.
-
-### 11.2 Conformite
-- traçabilite des decisions admin (KYC/litiges)
-- minimisation des donnees
-- droit a l'effacement/anonymisation
-- journalisation des consentements
-
-## 12. Observabilite et exploitation
-
-### 12.1 Logs
-- Logs structures JSON.
-- Correlation ID (`X-Request-Id`).
-- Masquage des donnees sensibles.
-
-### 12.2 Metriques cibles
-- Latence P95/P99 par endpoint.
-- Taux d'erreur par route/module.
-- Saturation pool DB.
-- Debits websocket/messages.
-
-### 12.3 Traces
-- OpenTelemetry (cible)
-- Correlation API -> DB -> provider externe
-
-### 12.4 Alerting
-- Erreurs 5xx anormales
-- Echec webhook paiement
-- file de retry qui grossit
-
-## 13. Scalabilite et performance
-
-### 13.1 API
-- Stateless, multi-instance.
-- Autoscaling horizontal.
-
-### 13.2 Realtime
-- Redis adapter Socket.IO (cible multi-instance).
-
-### 13.3 DB
-- Indexation stricte.
-- Pagination cursor-based.
-- Read replicas (phase croissance).
-
-### 13.4 Async jobs
-- Deporter les taches lourdes: PDF, notifications de masse, reconciliations.
-
-## 14. Qualite et standards de dev
-
-### 14.1 Definition of Done technique
-Un module/endpoint est "Done" si:
-1. Contrats (DTO + responses + erreurs) clairs.
-2. Regles metier dans application/domaine.
-3. Ports/interfaces definis.
-4. Tests unitaires + integration/e2e.
-5. Logs/erreurs/validation conformes.
-6. Lint/build strict sans warning bloquant.
-
-### 14.2 Regles de revues de code
-- aucun code metier en controller
-- aucun acces DB hors infrastructure
-- pas de duplication de flux critique
-- no dead code / no unused import
-- tests obligatoires sur chemins critiques
-
-## 15. Mapping cahier des charges -> architecture
-
-| Exigence | Reponse architecture |
-|---|---|
-| Confiance/KYC | module `professionals` + `admin` + audit logs |
-| Escrow/paiement | module `payments` + webhook securise + idempotence + ledger |
-| Geolocalisation | `search` + PostGIS + index GIST |
-| Temps reel | `chat`/`tracking` + WS + Redis adapter |
-| Scalabilite | API stateless + async jobs + broker + replicas |
-| Conformite | consentements + anonymisation + tracabilite |
-
-
-## 11. Roadmap Modules Manquants + Endpoints (Étape 10)
-
-**Template Module Structure** (ex bookings):
-```
-bookings/
-├── domain/entities/booking.entity.ts (FSM statut enum)
-├── application/ports/bookings-repo.port.ts
-├── infrastructure/repositories/bookings.repository.ts
-├── presentation/controllers/bookings.controller.ts
-└── bookings.module.ts
-```
-
-**Mappings Schema → Modules**:
-- ProfilProfessionnel → professionals module (KYC flow).
-- Service/Disponibilite → services.
-- Reservation/Paiement → bookings/payments (escrow webhook).
-- Conversation/Message → chat (Socket.IO).
-- Notification → notifications (FCM).
-
-**Endpoint Matrix Projetés** (en plus implémentés):
-| Module | Exemple Endpoint | Auth | Guard | Notes |
-|--------|------------------|------|-------|-------|
-| professionals | POST /professionals/kyc/submit | Pro | Jwt | Upload docs → PENDING |
-| bookings | POST /bookings (serviceId, date) | Client | Jwt | Check disponibilité → EN_ATTENTE |
-| payments | POST /payments/initiate (idempotency-key) | Client | Jwt | → PAID_ESCROW on webhook |
-| chat | WS /socket (bookingId) | Owner | JwtWs | Redis scale |
-| admin | PATCH /admin/disputes/:id/resolve | Admin | Roles(ADMIN) | Audit forced |
-
-**Impl Order**: Professionals → Services → Bookings → Payments → Chat → Admin.
-
-## 12. Appendices (Étape 11)
-
-### 12.1 Checklist DoD Endpoint
-- [ ] DTOs/@ApiProperty doc.
-- [ ] Tests E2E 200/401/422/500.
-- [ ] Logs/action audit.
-- [ ] Throttle si public.
-- [ ] Idempotence si money.
-
-### 12.2 Commands Prisma
-```
-prisma migrate dev --name add_bookings
-prisma generate
-prisma db seed  # ts-node prisma/seed.ts
-```
-
-## 13. Conclusion
-Documentation architecture **complète et exhaustive**. Référence unique pour dev/prod/scaling.
-
-**Prochaines Actions**: Implémentez modules par ordre roadmap.
-
-## 16. Etat actuel vs cible
-
-
-### 16.1 Ce qui est deja solide
-- fondation modulaire propre
-- `auth` de bon niveau (ports, tests, validation, erreurs FR)
-- centralisation des messages d'erreur
-- pipelines qualite (lint/build/tests)
-
-### 16.2 Ecarts a combler
-- modules P0 metier pas encore tous implementes
-- event bus durable non en place
-- paiements/wallet/escrow non industrialises
-- observabilite production non complete
-
-## 17. Roadmap d'industrialisation
-
-### Phase A (immédiat)
-- finaliser `professionals`, `categories`, `services`, `search`
-- ajouter tests integration module par module
-
-### Phase B (flux argent)
-- `bookings` state machine
-- `payments` + webhooks + idempotence
-- `wallet` + ledger immutable
-
-### Phase C (temps reel)
-- `chat` + `tracking`
-- redis adapter ws
-- policy throttle GPS
-
-### Phase D (hardening)
-- outbox + broker + retries + DLQ
-- observabilite complete
-- tests perf/secu
-
-## 18. Decision finale
-La direction actuelle est la bonne et doit etre maintenue.
-Il ne faut pas revenir a une architecture CRUD plate.
-La priorite doit rester:
-1. integrite metier
-2. robustesse des flux critiques
-3. scalabilite progressive
-4. discipline de code stricte
-
-Cette approche permet de livrer vite sans sacrifier la qualite long terme.
-
-## 19. Specification API Complete (fusion execution plan)
-
-### 19.1 Conventions API globales
-- Prefix: `/api/v1`
-- Reponse succes type:
-  - `{ "success": true, "data": ..., "meta": ... }`
-- Reponse erreur type:
-  - `{ "success": false, "statusCode": ..., "errorCode": "...", "message": "...", "timestamp": "...", "path": "..." }`
-- Auth: JWT access token court + refresh token en rotation.
-- Idempotence:
-  - obligatoire sur `payments/initiate`
-  - recommandee sur creations critiques (bookings).
-- Tracabilite:
-  - `X-Request-Id` recommande sur chaque requete.
-- Rate limiting de base:
-  - public: 60 req/min/IP
-  - authentifie: 100 req/min/user
-
-### 19.2 Matrice endpoints et contraintes
-
-#### Auth
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| POST | `/api/v1/auth/otp/send` | Non | Public | throttle strict, anti-spam SMS, format phone valide |
-| POST | `/api/v1/auth/otp/verify` | Non | Public | OTP TTL, max tentatives, creation/connexion compte |
-| POST | `/api/v1/auth/register` | Non | Public | validation forte payload, consentement CGU obligatoire |
-| POST | `/api/v1/auth/login` | Non | Public | lockout progressif apres echec, audit login |
-| POST | `/api/v1/auth/refresh` | Oui (refresh) | User | rotation refresh token + revoke ancien |
-| POST | `/api/v1/auth/logout` | Oui | User | revoke refresh actif |
-| POST | `/api/v1/auth/google/login` | Non | Public | verification token Google + mapping compte local |
-| GET | `/api/v1/auth/me` | Oui | User | token access valide |
-
-#### Users
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/users/me` | Oui | User | ne jamais exposer donnees sensibles |
-| PUT | `/api/v1/users/me` | Oui | User | validation stricte, audit modifications |
-| DELETE | `/api/v1/users/me` | Oui | User | anonymisation conforme legal/CDP |
-
-#### Professionals + KYC
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| POST | `/api/v1/professionals/profile` | Oui | Pro | statut KYC initial `PENDING` |
-| GET | `/api/v1/professionals` | Optionnelle | Public | geo filtre + tri distance + pagination cursor |
-| GET | `/api/v1/professionals/:id` | Optionnelle | Public | bio, notes, portfolio, disponibilites |
-| PATCH | `/api/v1/professionals/kyc/submit` | Oui | Pro | document CNI requis, audit soumission |
-| PATCH | `/api/v1/admin/kyc/:professionalId/approve` | Oui | Admin | decision tracable, horodatage |
-| PATCH | `/api/v1/admin/kyc/:professionalId/reject` | Oui | Admin | motif obligatoire |
-
-#### Categories
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/categories` | Non | Public | retourner uniquement categories actives |
-| POST | `/api/v1/admin/categories` | Oui | Admin | nom unique, ordre tri coherent |
-| PUT | `/api/v1/admin/categories/:id` | Oui | Admin | journaliser modifications |
-| PATCH | `/api/v1/admin/categories/:id/disable` | Oui | Admin | soft disable, pas suppression brutale |
-
-#### Services
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| POST | `/api/v1/services` | Oui | Pro VERIFIED | KYC doit etre `VERIFIED` |
-| PUT | `/api/v1/services/:id` | Oui | Pro owner | ownership obligatoire |
-| DELETE | `/api/v1/services/:id` | Oui | Pro owner | soft delete recommande |
-| GET | `/api/v1/professionals/:id/services` | Non | Public | filtrer services actifs |
-
-#### Search (Geo)
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/search/professionals` | Non | Public | PostGIS GIST, lat/lng obligatoires, perf < 500ms |
-
-Query params cibles:
-- `lat`, `lng`, `radiusKm`, `categoryId`, `query`, `cursor`, `limit`
-
-#### Bookings
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| POST | `/api/v1/bookings` | Oui | Client | verif disponibilite + idempotence optionnelle |
-| GET | `/api/v1/bookings/:id` | Oui | Owner/Admin | controle acces strict |
-| PATCH | `/api/v1/bookings/:id/confirm` | Oui | Pro owner | transition valide uniquement si `PENDING` |
-| PATCH | `/api/v1/bookings/:id/reject` | Oui | Pro owner | motif rejet obligatoire |
-| PATCH | `/api/v1/bookings/:id/on-the-way` | Oui | Pro owner | autorise apres `PAID_ESCROW` |
-| PATCH | `/api/v1/bookings/:id/complete` | Oui | Client owner | declenche liberation fonds |
-| PATCH | `/api/v1/bookings/:id/cancel` | Oui | Client/Pro | appliquer politique annulation |
-| PATCH | `/api/v1/bookings/:id/dispute` | Oui | Client/Pro | bloque paiement, notifie admin |
-
-Machine d'etats booking:
-- `PENDING -> CONFIRMED -> PAID_ESCROW -> ON_THE_WAY -> COMPLETED`
-- branches: `CANCELLED`, `DISPUTED`
-
-#### Payments + Escrow
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| POST | `/api/v1/payments/initiate` | Oui | Client | `Idempotency-Key` obligatoire |
-| POST | `/api/v1/payments/webhook` | Non (signature) | Provider | HMAC obligatoire, replay protection |
-| GET | `/api/v1/payments/:id` | Oui | Owner/Admin | ne jamais exposer secrets provider |
-| POST | `/api/v1/payments/:id/reconcile` | Oui | Admin/System | usage interne ops only |
-
-Contraintes critiques paiement:
-- separation `payment.status` / `booking.status`
-- ledger immutable
-- outbox event sur succes
-
-#### Wallet + Withdrawals
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/wallet/me` | Oui | Pro | solde + en attente + disponible |
-| GET | `/api/v1/wallet/me/transactions` | Oui | Pro | pagination obligatoire |
-| POST | `/api/v1/payments/withdraw` | Oui | Pro | min 2000 FCFA, max 500000 FCFA |
-
-#### Chat + Realtime
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/conversations` | Oui | User | uniquement conversations utilisateur |
-| GET | `/api/v1/conversations/:id/messages` | Oui | User | controle acces conversation |
-| WS | `/socket` | Oui (JWT WS) | User | Redis adapter en multi-instance |
-
-Events websocket cibles:
-- `chat.message.send`
-- `chat.message.read`
-- `tracking.position.update`
-
-#### Tracking
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| PATCH | `/api/v1/bookings/:id/tracking/start` | Oui | Pro owner | booking `ON_THE_WAY` requis |
-| PATCH | `/api/v1/bookings/:id/tracking/stop` | Oui | Pro owner | fermeture session tracking |
-| WS | `/socket` event tracking | Oui | Pro/Client owner | throttle updates (1-2s) |
-
-#### Notifications
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/notifications` | Oui | User | pagination + filtre read/unread |
-| PATCH | `/api/v1/notifications/:id/read` | Oui | User | ownership obligatoire |
-| POST | `/api/v1/admin/notifications/broadcast` | Oui | Admin | rate limit admin + audit |
-
-#### Admin
-| Methode | Endpoint | Auth | Role | Contraintes |
-|---|---|---|---|---|
-| GET | `/api/v1/admin/dashboard` | Oui | Admin | aggregations performantes |
-| GET | `/api/v1/admin/disputes` | Oui | Admin | tri SLA |
-| PATCH | `/api/v1/admin/disputes/:id/resolve` | Oui | Admin | decision obligatoire + audit |
-| PATCH | `/api/v1/admin/commission` | Oui | Admin | changement versionne et trace |
-| PATCH | `/api/v1/admin/users/:id/block` | Oui | Admin | motif + audit |
-
-### 19.3 Contraintes non fonctionnelles cibles
-- Disponibilite: 99.5% uptime/mois.
-- Performance API: P95 < 300ms (hors traitements lourds).
-- Recherche geo: < 500ms (dataset cible).
-- Tchat: reception nominale < 1s.
-- Backup DB: au moins toutes les 6h.
-- RTO cible: < 2h.
-
-### 19.4 Contraintes data et DB
-- UUID sur entites principales.
-- Index obligatoires:
-  - `users(phone_number)`, `users(email)`
-  - `professional_profiles(location)` GIST
-  - `bookings(status, scheduled_at)`
-  - `payments(status, provider_ref)`
-- Tables techniques cibles:
-  - `idempotency_keys`
-  - `payment_webhook_events`
-  - `wallet_transactions` (ledger immutable)
-  - `outbox_events`
-  - `audit_logs`
-  - `disputes`
-
-### 19.5 Definition of Done endpoint
-Un endpoint est "Done" seulement si:
-1. DTO request/response documentes.
-2. Validation + auth + role checks en place.
-3. Logs metier et audit si necessaire.
-4. Tests unitaires + integration + e2e du cas principal.
-5. Codes erreurs metier geres (4xx/5xx).
-6. Observabilite minimale (latence + erreurs + logs).
-
-### 19.6 Ordre d'execution recommande
-1. `auth`, `users`, `professionals`, `categories`, `services`
-2. `search`
-3. `bookings`
-4. `payments`, `wallet`, `webhook`, `idempotency`, `outbox`
-5. `notifications`
-6. `chat`, `tracking`, `redis realtime scaling`
-7. `admin`, `litiges`, hardening final
+### 14.3 Reservation
+`Reservation` porte le coeur du flux de booking. Elle relie client, professionnel, service et statut metier. C'est l'entite de coordination entre la prestation et le paiement.
+
+### 14.4 Paiement
+`Paiement` relie une reservation a son flux financier. Il contient le montant total, la commission Jokko, le montant net professionnel, la methode, le statut, les references gateway et les informations d'escrow.
+
+### 14.5 Notification
+`Notification` represente la notification in-app persistante. Elle contient l'utilisateur cible, le type, le titre, le contenu, les donnees associees et l'etat de lecture.
+
+### 14.6 CommunicationReservation
+`CommunicationReservation` est une table tres importante pour la tracabilite des emails et SMS lies a une reservation. Elle permet de conserver le canal, le destinataire, le sujet, le corps, le provider, un identifiant provider, le statut d'envoi, l'erreur eventuelle, des metadonnees et la date d'envoi.
+
+Cette table montre que Jokko ne se contente pas d'essayer d'envoyer une communication. Le systeme garde une trace exploitable de ce qui a ete prepare, envoye ou ignore, ce qui est essentiel pour une application transactionnelle.
+
+### 14.7 Tables techniques et de robustesse
+Le backend prepare aussi des briques de robustesse comme l'outbox event, l'idempotence, l'audit et les historiques techniques. Cela montre que l'architecture anticipe la montee en charge et la fiabilisation progressive des flux critiques.
+
+## 15. Flux metier critiques actuellement relies
+### 15.1 Flux d'authentification
+Le flux d'authentification commence en presentation avec les DTOs, puis passe par `AuthService` et ses services auxiliaires. Les repositories lisent et ecrivent l'etat d'authentification, les mots de passe sont hashes, les OTP sont verifies et les tokens JWT sont generes. Le refresh repose sur une logique de rotation et de persistance de session, ce qui renforce la securite par rapport a un refresh token purement stateless.
+
+### 15.2 Flux de reservation
+Lorsqu'une reservation est creee, le controller ne fait qu'appeler la facade de reservation. La couche application valide le contexte, controle la coherence du professionnel et du service, applique les regles metier de creation, persiste la reservation puis declenche les notifications adequates.
+
+Le module reservations ne porte plus directement toute la logique de communication email, SMS ou push. Il s'appuie sur le module notifications, ce qui est un bon signe de maturite architecturale.
+
+### 15.3 Flux de paiement a partir d'une reservation
+Le paiement se construit a partir d'une reservation. L'initiation passe par `PaymentsFacade`, les services applicatifs specialises orchestrent l'idempotence, la selection de gateway, la creation du paiement et la persistance technique. Le webhook provider vient ensuite confirmer ou faire evoluer l'etat du paiement.
+
+Lorsque les transitions critiques sont atteintes, le module peut mettre a jour l'escrow, le ledger et la reservation concernee, puis deleguer la notification au module notifications. Ce flux est important parce qu'il relie plusieurs modules sans leur faire perdre leur responsabilite propre.
+
+### 15.4 Flux de notification
+Le module notifications centralise plusieurs niveaux de sortie. D'abord, il cree une notification in-app persistante. Ensuite, selon le contexte, il peut preparer et tenter un envoi email, SMS ou push.
+
+Le service `NotificationDeliveryService` agit comme orchestrateur technique. Il n'est pas confondu avec la logique metier de reservation ou de paiement. Les adapters concrets `ResendEmailNotificationAdapter`, `TwilioSmsNotificationAdapter` et `FcmPushNotificationAdapter` encapsulent les details techniques d'envoi.
+
+Lorsque les providers ne sont pas encore configures, le backend reste stable et marque les communications de maniere explicite, au lieu d'echouer silencieusement. C'est une bonne pratique pour un projet qui va passer progressivement du mode developpement au mode production.
+
+## 16. Systeme de messages centralises
+Le backend centralise plusieurs familles de messages:
+- les messages applicatifs HTTP
+- les messages de validation DTO
+- les messages techniques
+- les messages de notification reservation
+- les messages de notification paiement
+- les messages de documentation Swagger
+
+Les fichiers structurants sont notamment:
+- `src/core/messages/app-message.catalog.ts`
+- `src/core/messages/validation-message.catalog.ts`
+- `src/core/messages/technical-message.catalog.ts`
+- `src/core/messages/reservation-notification.messages.ts`
+- `src/core/messages/payment-notification.messages.ts`
+- `src/core/messages/api-docs.messages.ts`
+- `src/core/http/http-status-codes.ts`
+- `src/core/http/app-messages.ts`
+
+Ce choix est central pour le projet. Il permet d'eviter la duplication des libelles, d'harmoniser l'experience frontend et de reduire les divergences entre les modules.
+
+## 17. Qualite logicielle et conventions observees
+### 17.1 Controllers minces
+Le projet suit globalement une regle claire: pas de logique metier dans les controllers. Les controllers lisent les DTOs, recuperent l'utilisateur courant, appliquent guards et roles, puis deleguent a des services applicatifs ou des facades.
+
+### 17.2 Services responsables de l'orchestration
+Les services applicatifs portent la coordination des cas d'usage. Ils appellent les ports, composent les operations et prennent les decisions applicatives attendues.
+
+### 17.3 Repositories limites a l'infrastructure
+Les acces base sont regroupes dans les repositories d'infrastructure. Cette separation est importante pour maintenir une bonne testabilite et respecter le principe de responsabilite unique.
+
+### 17.4 Typage strict
+Le projet poursuit une discipline forte autour du typage et cherche a eviter `any`. Cette contrainte participe directement a la qualite du code et a la solidite du backend.
+
+### 17.5 Messages en francais
+Les validations et les messages applicatifs exposes doivent etre en francais clair, explicite et centralise. Cela correspond a la realite fonctionnelle du projet et a l'experience attendue sur le marche cible.
+
+## 18. Securite transversale
+Le backend a deja plusieurs fondations de securite solides:
+- JWT pour les endpoints proteges
+- `RolesGuard` pour les endpoints admin
+- throttling global
+- validation stricte des requetes
+- `helmet`
+- webhook de paiement securisable
+- audit middleware global
+- centralisation des erreurs
+
+Ces briques ne suffisent pas a elles seules a qualifier une architecture de production enterprise complete, mais elles constituent un socle serieux et coherent pour la phase actuelle du projet.
+
+## 19. Scalabilite, robustesse et limites actuelles
+L'architecture actuelle est robuste dans sa structure. Les modules sont decouples, les flux critiques sont identifies, la persistance est centralisee et la separation des couches est clairement posee. Les modules `payments` et `notifications` montrent en particulier une bonne maturite en termes de ports, adapters et tracabilite.
+
+Le projet prepare deja certains besoins de robustesse comme l'idempotence, l'outbox, l'audit et le ledger. Cela dit, pour atteindre un niveau de production tres eleve sur trafic important, plusieurs briques pourront encore etre industrialisees davantage:
+- broker durable externe
+- queues de jobs asynchrones
+- retries automatiques avec backoff
+- workers separes pour les traitements lourds
+- observabilite avancee
+- preferences utilisateur de notification
+- monitoring de delivery email, SMS et push
+
+Il est important de comprendre que ces evolutions futures ne remettent pas en cause la qualite de la structure actuelle. Au contraire, elles seront plus simples a ajouter parce que l'architecture a deja ete pensee pour le decouplage.
+
+## 20. Documentation associee
+Ce document doit etre lu avec:
+- `backend/docs/TABLEAU_MESSAGES_HTTP.md` pour le referentiel complet des messages et codes
+- `backend/docs/STANDARDS_MODULES_BACKEND.md` pour les conventions d'implementation module par module
+- `backend/docs/cahier_des_charges_jokko.md` pour la reference produit et metier
+
+Les trois documents sont complementaires. L'architecture explique l'organisation et les flux. Le tableau des messages explique les conventions de reponse et les catalogues. Le standard des modules explique comment developper ou faire evoluer un module sans casser la coherence globale.
+
+## 21. Conclusion
+Le backend Jokko est aujourd'hui une base serieuse, modulaire et professionnelle. Il ne s'agit plus d'une simple ossature NestJS en attente de construction. Les modules auth, users, professionals, categories, reservations, payments et notifications sont deja presents et relies entre eux. Les couches sont identifiables, les reponses HTTP sont homogenes, les messages sont centralises, la securite de base est activee, l'audit est present et les flux reservation-paiement-notification sont reels.
+
+La vraie force de cette architecture est sa coherence. Elle cherche a proteger le metier des details techniques, a reduire le couplage, a rendre les modules lisibles et a preparer une croissance progressive du niveau de robustesse. Ce document doit donc rester la reference qui explique non seulement ce que le projet veut devenir, mais surtout ce qu'il est deja aujourd'hui et la maniere dont il doit continuer a evoluer.

@@ -34,6 +34,8 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
   >) =>
     `Jokko: votre reservation "${serviceName}" avec ${professionalName} est enregistree pour le ${formattedDate}.`,
   genericEventTitle: (eventType: string) => `Reservation ${eventType}`,
+  genericEventEmailSubject: (eventType: string) =>
+    `Mise a jour de votre reservation Jokko: ${eventType}`,
   genericEventBody: ({
     serviceName,
     professionalName,
@@ -41,4 +43,11 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
     `Votre reservation pour ${serviceName} avec ${professionalName} le ${formattedDate} a ete ${eventType}.`,
+  genericEventSmsBody: ({
+    serviceName,
+    professionalName,
+    formattedDate,
+    eventType,
+  }: ReservationGenericNotificationTemplateInput) =>
+    `Jokko: votre reservation ${serviceName} avec ${professionalName} du ${formattedDate} a ete ${eventType}.`,
 } as const;

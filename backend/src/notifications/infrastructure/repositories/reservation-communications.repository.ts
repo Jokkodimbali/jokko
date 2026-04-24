@@ -16,41 +16,45 @@ import {
 export class ReservationCommunicationsRepository implements ReservationCommunicationsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createReservationCreatedDispatches(
+  async createReservationDispatches(
     input: CreateReservationCommunicationDispatchesInput,
   ): Promise<ReservationCommunicationDispatches> {
     return this.prisma.$transaction(async (tx) => {
-      const emailDispatch = input.email
-        ? await tx.communicationReservation.create({
-            data: {
-              reservationId: input.reservationId,
-              utilisateurId: input.userId,
-              canal: CanalCommunication.EMAIL,
-              destinataire: input.email,
-              sujet: input.emailSubject,
-              contenu: input.emailContent,
-              metadata: this.toPrismaJson(input.metadata),
-            },
-            select: { id: true },
-          })
-        : null;
+      const emailDispatch =
+        input.email && input.emailSubject && input.emailContent
+          ? await tx.communicationReservation.create({
+              data: {
+                reservationId: input.reservationId,
+                utilisateurId: input.userId,
+                canal: CanalCommunication.EMAIL,
+                destinataire: input.email,
+                sujet: input.emailSubject,
+                contenu: input.emailContent,
+                metadata: this.toPrismaJson(input.metadata),
+              },
+              select: { id: true },
+            })
+          : null;
 
-      const smsDispatch = await tx.communicationReservation.create({
-        data: {
-          reservationId: input.reservationId,
-          utilisateurId: input.userId,
-          canal: CanalCommunication.SMS,
-          destinataire: input.phoneNumber,
-          sujet: null,
-          contenu: input.smsContent,
-          metadata: this.toPrismaJson(input.metadata),
-        },
-        select: { id: true },
-      });
+      const smsDispatch =
+        input.phoneNumber && input.smsContent
+          ? await tx.communicationReservation.create({
+              data: {
+                reservationId: input.reservationId,
+                utilisateurId: input.userId,
+                canal: CanalCommunication.SMS,
+                destinataire: input.phoneNumber,
+                sujet: null,
+                contenu: input.smsContent,
+                metadata: this.toPrismaJson(input.metadata),
+              },
+              select: { id: true },
+            })
+          : null;
 
       return {
         emailDispatchId: emailDispatch?.id ?? null,
-        smsDispatchId: smsDispatch.id,
+        smsDispatchId: smsDispatch?.id ?? null,
       };
     });
   }

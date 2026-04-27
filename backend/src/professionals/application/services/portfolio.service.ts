@@ -1,27 +1,18 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import {
-  PROFESSIONALS_REPOSITORY_PORT,
-  type ProfessionalsRepositoryPort,
-} from '../ports/professionals-repository.port';
-import { ProfessionalProfile } from '../../domain';
 import type { CreatePortfolioItemCommand } from '../commands/professionals.commands';
+import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
-export class PortfolioService {
-  constructor(
-    @Inject(PROFESSIONALS_REPOSITORY_PORT)
-    private readonly professionalsRepository: ProfessionalsRepositoryPort,
-  ) {}
-
+export class PortfolioService extends ProfessionalAppService {
   async createItem(requestUser: AuthUser, command: CreatePortfolioItemCommand) {
     this.assertProfessionalRole(requestUser.role);
 
     const result = await this.professionalsRepository.createPortfolioItem({
       utilisateurId: requestUser.sub,
       title: command.title.trim(),
-      description: command.description?.trim(),
+      description: command.description?.trim() ?? null,
       imageUrl: command.imageUrl.trim(),
     });
 
@@ -44,25 +35,12 @@ export class PortfolioService {
     if (result.status === 'item_not_found') {
       throw appHttpException('PROFESSIONALS_PORTFOLIO_ITEM_NOT_FOUND');
     }
+
+    return { success: true };
   }
 
   async listByProfile(profileId: string) {
-    await this.ensureVerifiedProfile(profileId);
+    await this.assertVerifiedProfile(profileId);
     return this.professionalsRepository.listPortfolio(profileId);
-  }
-
-  private assertProfessionalRole(role: AuthUser['role']): void {
-    if (!ProfessionalProfile.isProfessionalRole(role)) {
-      throw appHttpException('PROFESSIONALS_FORBIDDEN_ROLE');
-    }
-  }
-
-  private async ensureVerifiedProfile(profileId: string) {
-    const profile =
-      await this.professionalsRepository.findVerifiedById(profileId);
-    if (!profile) {
-      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
-    }
-    return profile;
   }
 }

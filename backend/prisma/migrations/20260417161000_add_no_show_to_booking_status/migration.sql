@@ -1,0 +1,2 @@
+ALTER TYPE "StatutReservation"
+  ADD VALUE IF NOT EXISTS 'NO_SHOW';

@@ -12,14 +12,15 @@ type ExceptionPayload = {
 };
 
 export function appMessage(key: AppMessageKey): AppMessageDefinition {
-  return APP_MESSAGE_CATALOG[key];
+  const entry: AppMessageDefinition = APP_MESSAGE_CATALOG[key];
+  return entry;
 }
 
 export function appHttpException(
   key: AppMessageKey,
   details?: unknown,
 ): HttpException {
-  const entry = APP_MESSAGE_CATALOG[key];
+  const entry: AppMessageDefinition = APP_MESSAGE_CATALOG[key];
   const payload: ExceptionPayload = {
     message: entry.message,
     errorCode: entry.code,

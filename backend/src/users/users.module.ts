@@ -17,5 +17,6 @@ import { USERS_REPOSITORY_PORT } from './application/ports/users-repository.port
       useExisting: UsersRepository,
     },
   ],
+  exports: [USERS_REPOSITORY_PORT],
 })
 export class UsersModule {}

@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { StatutEvenement } from '@prisma/client';
 import type { DomaineEvent } from './domaine-event';
 import type { DomaineEventBusPort } from './domaine-event-bus.port';
+import { TECHNICAL_MESSAGES } from '../messages/technical-message.catalog';
 
 @Injectable()
 export class OutboxEventBusService implements DomaineEventBusPort {
@@ -33,7 +34,7 @@ export class OutboxEventBusService implements DomaineEventBusPort {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(
-        `Failed to persist event ${event.nom} to outbox: ${errorMessage}`,
+        TECHNICAL_MESSAGES.OUTBOX_EVENT_PERSIST_FAILED(event.nom, errorMessage),
       );
     }
   }

@@ -1,30 +1,24 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { RoleUtilisateur } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import {
-  PROFESSIONALS_REPOSITORY_PORT,
-  type ProfessionalsRepositoryPort,
-} from '../ports/professionals-repository.port';
-import { KycIdCardUrl } from '../../domain';
+import { KycIdCardUrl, KycIdCardUrlVerso } from '../../domain';
 import type {
   SubmitKycCommand,
   RejectKycCommand,
 } from '../commands/professionals.commands';
+import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
-export class KycService {
-  constructor(
-    @Inject(PROFESSIONALS_REPOSITORY_PORT)
-    private readonly professionalsRepository: ProfessionalsRepositoryPort,
-  ) {}
-
+export class KycService extends ProfessionalAppService {
   async submitKyc(requestUser: AuthUser, command: SubmitKycCommand) {
     this.assertProfessionalRole(requestUser.role);
 
     const result = await this.professionalsRepository.submitKyc({
       utilisateurId: requestUser.sub,
-      idCardUrl: KycIdCardUrl.create(command.idCardUrl).getValue(),
+      idCardUrlRecto: KycIdCardUrl.create(command.idCardUrl).getValue(),
+      idCardUrlVerso: command.idCardUrlVerso
+        ? KycIdCardUrlVerso.create(command.idCardUrlVerso).getValue()
+        : null,
     });
 
     if (result.status === 'profile_not_found') {
@@ -37,11 +31,11 @@ export class KycService {
   async approveKyc(requestUser: AuthUser, profileId: string) {
     this.assertAdminRole(requestUser.role);
 
-    const profile = await this.professionalsRepository.approveKyc(profileId);
-    if (!profile) {
+    const result = await this.professionalsRepository.approveKyc(profileId);
+    if (result.status === 'profile_not_found') {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }
-    return profile;
+    return result.profile;
   }
 
   async rejectKyc(
@@ -51,25 +45,18 @@ export class KycService {
   ) {
     this.assertAdminRole(requestUser.role);
 
-    const profile = await this.professionalsRepository.rejectKyc(
+    const reason = command.reason.trim();
+    if (reason.length === 0) {
+      throw appHttpException('PROFESSIONALS_REJECT_REASON_EMPTY');
+    }
+
+    const result = await this.professionalsRepository.rejectKyc(
       profileId,
-      command.reason.trim(),
+      reason,
     );
-    if (!profile) {
+    if (result.status === 'profile_not_found') {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }
-    return profile;
-  }
-
-  private assertProfessionalRole(role: AuthUser['role']): void {
-    if (role !== RoleUtilisateur.PRESTATAIRE) {
-      throw appHttpException('PROFESSIONALS_FORBIDDEN_ROLE');
-    }
-  }
-
-  private assertAdminRole(role: AuthUser['role']): void {
-    if (role !== RoleUtilisateur.ADMIN) {
-      throw appHttpException('PROFESSIONALS_ADMIN_FORBIDDEN_ROLE');
-    }
+    return result.profile;
   }
 }

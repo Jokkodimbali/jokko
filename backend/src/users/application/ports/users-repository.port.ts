@@ -33,9 +33,8 @@ export type UserProfileUpdateResult =
 export type UserHistoryItem = {
   id: string;
   statut: StatutReservation;
-  planifieeLe: Date;
-  adresseClient: string;
-  prixAccorde: number | null;
+  dateHeure: Date;
+  notes: string | null;
   creeLe: Date;
   service: {
     id: string;

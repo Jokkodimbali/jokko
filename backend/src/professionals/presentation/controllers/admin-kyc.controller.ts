@@ -1,18 +1,64 @@
 import { Body, Controller, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
+import { RolesGuard, Roles } from '../../../shared/guards/roles.guard';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appMessage } from '../../../core/http/app-http.exception';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
 import { RejectKycDto } from '../dto/reject-kyc.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { RoleUtilisateur } from '@prisma/client';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import {
+  ApiStandardErrorResponse,
+  ApiStandardSuccessResponse,
+} from '../../../shared/swagger/api-response-swagger.dto';
+import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
+@ApiTags(API_DOCS.adminKyc.tag)
 @Controller('admin/kyc')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class AdminKycController {
   constructor(private readonly professionalsFacade: ProfessionalsFacade) {}
 
   @Patch(':professionalId/approve')
-  @UseGuards(JwtAuthGuard)
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: API_DOCS.adminKyc.approveSummary })
+  @ApiParam({
+    name: 'professionalId',
+    description: API_DOCS.adminKyc.professionalIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_KYC_APPROVED').message,
+    messageExample: appMessage('PROFESSIONALS_KYC_APPROVED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.professionals.profileData,
+        statutKyc: 'VERIFIE',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.profileNotFound,
+    errorCode: 'PROFESSIONALS_PROFILE_NOT_FOUND',
+    messageExample: API_DOCS.common.profileNotFound,
+  })
   async approveKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,
@@ -28,7 +74,37 @@ export class AdminKycController {
   }
 
   @Patch(':professionalId/reject')
-  @UseGuards(JwtAuthGuard)
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: API_DOCS.adminKyc.rejectSummary })
+  @ApiParam({
+    name: 'professionalId',
+    description: API_DOCS.adminKyc.professionalIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_KYC_REJECTED').message,
+    messageExample: appMessage('PROFESSIONALS_KYC_REJECTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.professionals.profileData,
+        statutKyc: 'REJETE',
+        raisonRejetKyc: 'La photo de la carte d identite est floue.',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.profileNotFound,
+    errorCode: 'PROFESSIONALS_PROFILE_NOT_FOUND',
+    messageExample: API_DOCS.common.profileNotFound,
+  })
   async rejectKyc(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,

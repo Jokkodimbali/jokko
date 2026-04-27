@@ -1,0 +1,141 @@
+import { Injectable } from '@nestjs/common';
+import { appHttpException } from '../../../core/http/app-http.exception';
+import type { AuthUser } from '../../../auth/security/auth-user.type';
+import {
+  Category,
+  CategoryIconUrl,
+  CategoryName,
+  CategorySortOrder,
+} from '../../domain';
+import type {
+  CreateCategoryCommand,
+  UpdateCategoryCommand,
+} from '../commands/categories.commands';
+import { CategoryAppService } from './category-app-service.base';
+
+@Injectable()
+export class CategoryAdminService extends CategoryAppService {
+  async createCategory(requestUser: AuthUser, command: CreateCategoryCommand) {
+    this.assertAdminRole(requestUser.role);
+
+    const categoryName = CategoryName.create(command.name)?.getValue();
+    if (!categoryName) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const iconUrl = CategoryIconUrl.create(command.iconUrl)?.getValue() ?? null;
+    const sortOrder =
+      CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0;
+
+    const existingCategory =
+      await this.categoriesRepository.findByName(categoryName);
+    if (existingCategory) {
+      throw appHttpException('CATEGORIES_NAME_ALREADY_USED');
+    }
+
+    const result = await this.categoriesRepository.create({
+      name: categoryName,
+      iconUrl,
+      sortOrder,
+    });
+
+    if (result.status === 'name_conflict') {
+      throw appHttpException('CATEGORIES_NAME_ALREADY_USED');
+    }
+
+    return result.category;
+  }
+
+  async updateCategory(
+    requestUser: AuthUser,
+    categoryId: string,
+    command: UpdateCategoryCommand,
+  ) {
+    this.assertAdminRole(requestUser.role);
+    this.assertNonEmptyUpdate(command as Record<string, unknown>);
+
+    const existingCategory =
+      await this.categoriesRepository.findById(categoryId);
+    if (!existingCategory) {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    const category = Category.reconstitute({
+      id: existingCategory.id,
+      name: existingCategory.nom,
+      iconUrl: existingCategory.urlIcone,
+      sortOrder: existingCategory.ordreTri,
+      isActive: existingCategory.estActive,
+    });
+
+    const nextName = CategoryName.create(command.name)?.getValue();
+    const nextIconUrl =
+      command.iconUrl === undefined
+        ? undefined
+        : (CategoryIconUrl.create(command.iconUrl)?.getValue() ?? null);
+    const nextSortOrder =
+      command.sortOrder === undefined
+        ? undefined
+        : (CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0);
+
+    if (
+      nextName &&
+      nextName.toLowerCase() !== existingCategory.nom.toLowerCase()
+    ) {
+      const categoryWithSameName =
+        await this.categoriesRepository.findByName(nextName);
+      if (categoryWithSameName && categoryWithSameName.id !== categoryId) {
+        throw appHttpException('CATEGORIES_NAME_ALREADY_USED');
+      }
+    }
+
+    category.updateDetails({
+      name: nextName,
+      iconUrl: nextIconUrl,
+      sortOrder: nextSortOrder,
+    });
+
+    const result = await this.categoriesRepository.update({
+      categoryId,
+      name: category.name,
+      iconUrl: category.iconUrl,
+      sortOrder: category.sortOrder,
+    });
+
+    if (result.status === 'not_found') {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    if (result.status === 'name_conflict') {
+      throw appHttpException('CATEGORIES_NAME_ALREADY_USED');
+    }
+
+    return result.category;
+  }
+
+  async disableCategory(requestUser: AuthUser, categoryId: string) {
+    this.assertAdminRole(requestUser.role);
+
+    const existingCategory =
+      await this.categoriesRepository.findById(categoryId);
+    if (!existingCategory) {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    const category = Category.reconstitute({
+      id: existingCategory.id,
+      name: existingCategory.nom,
+      iconUrl: existingCategory.urlIcone,
+      sortOrder: existingCategory.ordreTri,
+      isActive: existingCategory.estActive,
+    });
+    category.disable();
+
+    const result = await this.categoriesRepository.disable(categoryId);
+    if (result.status === 'not_found') {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    return result.category;
+  }
+}

@@ -1,48 +1,72 @@
-export class UserDomainError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'UserDomainError';
+import {
+  ValidationError,
+  ConflictError,
+  NotFoundError,
+} from '../../../shared/domain/errors/domain-error';
+import { domainMessage } from '../../../core/messages/domain-message.catalog';
+
+export class UserDomainError extends ValidationError {
+  constructor(code: string, message: string) {
+    super(code, message);
   }
 
-  static userNotFound(): UserDomainError {
-    return new UserDomainError('USER_NOT_FOUND', 'Utilisateur introuvable');
+  static userNotFound(): NotFoundError {
+    return new NotFoundError('USER_NOT_FOUND', domainMessage('USER_NOT_FOUND'));
   }
 
-  static userAlreadyExists(identifier: string): UserDomainError {
-    return new UserDomainError(
+  static userAlreadyExists(identifier: string): ConflictError {
+    return new ConflictError(
       'USER_ALREADY_EXISTS',
-      `L'utilisateur avec ${identifier} existe déjà`,
+      domainMessage('USER_ALREADY_EXISTS', { identifier }),
     );
   }
 
-  static userNotActive(): UserDomainError {
-    return new UserDomainError(
+  static userNotActive(): ValidationError {
+    return new ValidationError(
       'USER_NOT_ACTIVE',
-      'Le compte utilisateur est désactivé',
+      domainMessage('USER_NOT_ACTIVE'),
     );
   }
 
-  static invalidEmail(email: string): UserDomainError {
-    return new UserDomainError(
+  static userAlreadyDeactivated(): ConflictError {
+    return new ConflictError(
+      'USER_ALREADY_DEACTIVATED',
+      domainMessage('USER_ALREADY_DEACTIVATED'),
+    );
+  }
+
+  static invalidEmail(email: string): ValidationError {
+    return new ValidationError(
       'INVALID_EMAIL',
-      `L'email ${email} est invalide`,
+      domainMessage('INVALID_EMAIL', { email }),
     );
   }
 
-  static emailAlreadyUsed(email: string): UserDomainError {
-    return new UserDomainError(
+  static emailAlreadyUsed(email: string): ConflictError {
+    return new ConflictError(
       'EMAIL_ALREADY_USED',
-      `L'email ${email} est déjà utilisé`,
+      domainMessage('EMAIL_ALREADY_USED', { email }),
     );
   }
 
-  static cannotDeleteActiveUser(): UserDomainError {
-    return new UserDomainError(
+  static invalidName(name: string): ValidationError {
+    return new ValidationError(
+      'INVALID_NAME',
+      domainMessage('INVALID_NAME', { name }),
+    );
+  }
+
+  static invalidAddress(): ValidationError {
+    return new ValidationError(
+      'INVALID_ADDRESS',
+      domainMessage('INVALID_ADDRESS'),
+    );
+  }
+
+  static cannotDeleteActiveUser(): ValidationError {
+    return new ValidationError(
       'CANNOT_DELETE_ACTIVE_USER',
-      'Impossible de supprimer un utilisateur actif',
+      domainMessage('CANNOT_DELETE_ACTIVE_USER'),
     );
   }
 }

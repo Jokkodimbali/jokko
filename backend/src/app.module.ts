@@ -7,6 +7,11 @@ import { UsersModule } from './users/users.module';
 import { SharedModule } from './shared/shared.module';
 import { AuditLoggerMiddleware } from './core/audit/audit-logger.middleware';
 import { ProfessionalsModule } from './professionals/professionals.module';
+import { CategoriesModule } from './categories/categories.module';
+import { ReservationsModule } from './reservations/reservations.module';
+import { PaymentsModule } from './payments/payments.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -17,6 +22,11 @@ import { ProfessionalsModule } from './professionals/professionals.module';
     AuthModule,
     UsersModule,
     ProfessionalsModule,
+    CategoriesModule,
+    NotificationsModule,
+    SearchModule,
+    ReservationsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule implements NestModule {

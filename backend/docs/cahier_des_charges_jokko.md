@@ -1,4 +1,5 @@
 # CAHIER DES CHARGES PROFESSIONNEL — PROJET JOKKO
+
 **Version** : 3.0 | **Date** : Avril 2026 | **Statut** : Document Officiel de Référence
 
 ---
@@ -23,7 +24,7 @@
 | **Type** | Application Mobile Marketplace de Services B2C |
 | **Marché cible** | Sénégal (Extension CEDEAO prévue Phase 2) |
 | **Stack Technique** | Flutter + NestJS + PostgreSQL/PostGIS |
-| **Paiements intégrés** | Wave CI, Orange Money SN, Carte Bancaire (Stripe/PayDunya) |
+| **Paiements intégrés** | Wave SN, Orange Money SN, Carte Bancaire |
 | **Langues** | Français + Wolof |
 | **Plateformes cibles** | Android (prioritaire) + iOS |
 
@@ -51,6 +52,7 @@
 ## 1. CONTEXTE, VISION ET POSITIONNEMENT
 
 ### 1.1. Résumé Exécutif
+
 JOKKO est une marketplace mobile qui connecte des clients sénégalais à des prestataires de services locaux vérifiés. La plateforme couvre tous les corps de métiers du quotidien — de l'artisanat à la santé — avec un système de réservation, de paiement sécurisé et de suivi GPS intégré. Elle s'impose comme le premier "Guichet Unique des Services" au Sénégal.
 
 ### 1.2. Analyse du Marché
@@ -64,12 +66,14 @@ JOKKO est une marketplace mobile qui connecte des clients sénégalais à des pr
 | Concurrent direct au Sénégal | Aucun (opportunité de premier entrant) |
 
 ### 1.3. Problèmes Identifiés
+
 - **Confiance zéro** : Impossible de vérifier les qualifications d'un artisan trouvé "de bouche à oreille".
 - **Opacité des tarifs** : Les prix sont souvent négociés oralement, source de conflits.
 - **Fragmentation** : Aucune plateforme ne regroupe tous les types de service en un seul écosystème.
 - **Sous-visibilité des artisans** : Des milliers de professionnels compétents n'ont aucune présence numérique.
 
 ### 1.4. Proposition de Valeur
+
 - Pour le **Client** : Trouver l'artisan certifié le plus proche en moins de 2 minutes, avec garantie de paiement.
 - Pour le **Professionnel** : Avoir une vitrine digitale gratuite et un flux régulier de clients.
 
@@ -219,10 +223,11 @@ L'application comprendra au lancement les catégories suivantes (extensibles via
 
 ```
 Prix payé par le client          = 10 000 FCFA
-Commission Jokko (7%)            =    700 FCFA
-Montant net reversé au Pro       =  9 300 FCFA
+Commission Jokko (10%)           =  1 000 FCFA
+Montant net reverse au Pro       =  9 000 FCFA
 ```
-> La commission est configurable dans le Back-Office Admin, entre 5% et 12% selon la catégorie.
+
+> La commission par defaut est de 10% et reste configurable dans le Back-Office Admin selon la categorie.
 
 ### 6.4. Règles KYC
 
@@ -231,6 +236,7 @@ Montant net reversé au Pro       =  9 300 FCFA
 - La validation KYC doit être traitée par l'Admin dans un délai maximum de **48 heures ouvrées**.
 
 ### 6.5. Règles de Notation
+
 - La note d'un Pro est calculée comme la **moyenne glissante** de tous ses avis.
 - Un Pro en-dessous de **2.5/5** après 10 avis reçoit un avertissement de l'Admin.
 - Un Pro en-dessous de **2/5** est automatiquement suspendu en attente de révision.
@@ -258,6 +264,7 @@ Montant net reversé au Pro       =  9 300 FCFA
 ### 8.1. Tables et Champs (Version Corrigée)
 
 **Table : `users`**
+
 ```sql
 id             UUID          PRIMARY KEY DEFAULT gen_random_uuid()
 phone_number   VARCHAR(20)   UNIQUE NOT NULL
@@ -275,6 +282,7 @@ updated_at     TIMESTAMP     NOT NULL DEFAULT NOW()
 ```
 
 **Table : `professional_profiles`**
+
 ```sql
 id              UUID           PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID           NOT NULL REFERENCES users(id) ON DELETE CASCADE
@@ -292,6 +300,7 @@ created_at      TIMESTAMP      NOT NULL DEFAULT NOW()
 ```
 
 **Table : `categories`**
+
 ```sql
 id         UUID          PRIMARY KEY DEFAULT gen_random_uuid()
 name       VARCHAR(100)  NOT NULL UNIQUE
@@ -301,6 +310,7 @@ is_active  BOOLEAN       NOT NULL DEFAULT true
 ```
 
 **Table : `services`**
+
 ```sql
 id              UUID           PRIMARY KEY DEFAULT gen_random_uuid()
 professional_id UUID           NOT NULL REFERENCES professional_profiles(id) ON DELETE CASCADE
@@ -315,6 +325,7 @@ updated_at      TIMESTAMP      NOT NULL DEFAULT NOW()
 ```
 
 **Table : `availabilities`**
+
 ```sql
 id              UUID       PRIMARY KEY DEFAULT gen_random_uuid()
 professional_id UUID       NOT NULL REFERENCES professional_profiles(id) ON DELETE CASCADE
@@ -326,6 +337,7 @@ CONSTRAINT chk_time CHECK (end_time > start_time)
 ```
 
 **Table : `portfolio_items`**
+
 ```sql
 id              UUID          PRIMARY KEY DEFAULT gen_random_uuid()
 professional_id UUID          NOT NULL REFERENCES professional_profiles(id) ON DELETE CASCADE
@@ -336,6 +348,7 @@ created_at      TIMESTAMP     NOT NULL DEFAULT NOW()
 ```
 
 **Table : `bookings`**
+
 ```sql
 id               UUID           PRIMARY KEY DEFAULT gen_random_uuid()
 client_id        UUID           NOT NULL REFERENCES users(id)
@@ -357,6 +370,7 @@ CONSTRAINT chk_rating CHECK (client_rating BETWEEN 1 AND 5)
 ```
 
 **Table : `payments`**
+
 ```sql
 id                 UUID           PRIMARY KEY DEFAULT gen_random_uuid()
 booking_id         UUID           NOT NULL UNIQUE REFERENCES bookings(id)
@@ -372,6 +386,7 @@ created_at         TIMESTAMP      NOT NULL DEFAULT NOW()
 ```
 
 **Table : `conversations`**
+
 ```sql
 id              UUID       PRIMARY KEY DEFAULT gen_random_uuid()
 client_id       UUID       NOT NULL REFERENCES users(id)
@@ -383,6 +398,7 @@ UNIQUE(client_id, professional_id)
 ```
 
 **Table : `messages`**
+
 ```sql
 id              UUID          PRIMARY KEY DEFAULT gen_random_uuid()
 conversation_id UUID          NOT NULL REFERENCES conversations(id) ON DELETE CASCADE
@@ -395,6 +411,7 @@ CONSTRAINT chk_content CHECK (content IS NOT NULL OR media_url IS NOT NULL)
 ```
 
 **Table : `notifications`**
+
 ```sql
 id         UUID          PRIMARY KEY DEFAULT gen_random_uuid()
 user_id    UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE
@@ -425,7 +442,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | Stockage Media | AWS S3 + CloudFront (CDN) | Stockage infini, livraison rapide des images via CDN |
 | Notifications | Firebase FCM | Gratuit, fiable sur iOS et Android |
 | SMS / OTP | Twilio ou Infobip | Livraison SMS en Afrique de l'Ouest fiable |
-| Paiement | PayDunya ou TouchPay | Agrégateurs locaux supportant Wave + OM + Cartes au Sénégal |
+| Paiement | provider paiement ou provider paiement | Agrégateurs locaux supportant Wave + OM + Cartes au Sénégal |
 | CI/CD | GitHub Actions | Automatisation tests + déploiements |
 | Monitoring | Sentry (erreurs) + Grafana (métriques) | Vision temps réel sur la santé du système |
 | Hébergement API | AWS EC2 (eu-west-1 / Ireland) | Latence Africa < 80ms depuis Dakar |
@@ -441,6 +458,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 ### 9.3. Endpoints API Complets
 
 **Auth**
+
 - `POST /api/auth/register` — Inscription classique (phone + password)
 - `POST /api/auth/login` — Connexion (retourne access_token + refresh_token)
 - `POST /api/auth/google` — Connexion via Google (OAuth2)
@@ -449,12 +467,14 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 - `POST /api/auth/refresh` — Renouvellement du token JWT
 
 **Utilisateurs**
+
 - `GET /api/users/me` — Mon profil
 - `PUT /api/users/me` — Mise à jour de mon profil
 - `POST /api/users/me/avatar` — Upload photo de profil
 - `DELETE /api/users/me` — Supprimer mon compte (RGPD)
 
 **Professionnels**
+
 - `GET /api/professionals?lat=&lng=&category=&query=&radius=` — Recherche géolocalisée
 - `GET /api/professionals/:id` — Fiche complète d'un Pro
 - `GET /api/professionals/:id/services` — Services du Pro
@@ -465,19 +485,23 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 - `POST /api/professionals/me/kyc` — Soumettre documents KYC
 
 **Services**
+
 - `POST /api/services` — Créer un service
 - `PUT /api/services/:id` — Modifier un service
 - `DELETE /api/services/:id` — Désactiver un service
 
 **Disponibilités**
+
 - `GET /api/availabilities/me` — Mes horaires
 - `PUT /api/availabilities` — Mettre à jour mes horaires (tableau de 7 jours)
 
 **Portfolio**
+
 - `POST /api/portfolio` — Ajouter une réalisation
 - `DELETE /api/portfolio/:id` — Supprimer une réalisation
 
 **Réservations**
+
 - `POST /api/bookings` — Créer une réservation
 - `GET /api/bookings` — Mes réservations (client ou pro selon le rôle)
 - `GET /api/bookings/:id` — Détail d'une réservation
@@ -488,6 +512,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 - `POST /api/bookings/:id/dispute` — Signaler un problème
 
 **Paiements**
+
 - `POST /api/payments/initiate` — Initier un paiement
 - `POST /api/payments/webhook/wave` — Webhook (interne, sécurisé par signature)
 - `POST /api/payments/webhook/orange-money` — Webhook Orange Money
@@ -496,17 +521,20 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 - `GET /api/payments/history` — Historique des transactions
 
 **Messagerie**
+
 - `GET /api/conversations` — Mes conversations
 - `POST /api/conversations` — Initier une conversation
 - `GET /api/conversations/:id/messages` — Historique des messages
 - `WebSocket ws://api.jokko.sn/socket` — Tchat temps réel + GPS Live
 
 **Notifications**
+
 - `GET /api/notifications` — Mes notifications
 - `PATCH /api/notifications/:id/read` — Marquer comme lue
 - `PATCH /api/notifications/read-all` — Tout marquer comme lu
 
 **Catégories**
+
 - `GET /api/categories` — Liste des catégories actives
 
 ---
@@ -514,6 +542,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 ## 10. SÉCURITÉ ET CONFORMITÉ LÉGALE
 
 ### 10.1. Mesures Techniques
+
 - Hachage des mots de passe avec **Argon2id** (résistant aux attaques GPU)
 - Authentification **JWT** : Access Token 15 min + Refresh Token 30 jours (rotation automatique)
 - **Rate Limiting** : 60 req/min sur les endpoints publics, 100 req/min sur les endpoints authentifiés
@@ -524,6 +553,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 - **Idempotence des paiements** : Chaque transaction a un `idempotency_key` pour éviter les doubles débits
 
 ### 10.2. Conformité Légale Sénégal
+
 - **Loi 2008-12** sur la Protection des Données Personnelles (Commission des Données Personnelles — CDP)
 - **Règlement BCEAO** sur la monnaie électronique et les transactions mobiles (Zone UEMOA)
 - **CGU et Politique de Confidentialité** : Acceptation obligatoire à l'inscription, stockage de la date d'acceptation
@@ -555,7 +585,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | R04 | Scalabilité insuffisante lors d'un pic viral | 🟡 Faible | 🟠 Élevé | Auto-scaling AWS + Redis dès le départ + tests k6 |
 | R05 | Délai de développement (sous-estimation) | 🔴 Élevée | 🟠 Élevé | Planning conservateur sur 5 mois + buffer de 2 semaines par phase |
 | R06 | Refus de l'App Store ou Play Store | 🟡 Faible | 🟠 Élevé | Suivre les guidelines Apple/Google dès la conception |
-| R07 | Problème légal (régulation paiements) | 🟡 Faible | 🔴 Critique | Partenariat avec un agrégateur de paiement agréé BCEAO (PayDunya) |
+| R07 | Problème légal (régulation paiements) | 🟡 Faible | 🔴 Critique | Partenariat avec un agrégateur de paiement agréé BCEAO (provider paiement) |
 
 ---
 
@@ -565,7 +595,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 
 | Source | Mécanisme | Estimation Mensuelle (objectif Mois 6) |
 |--------|-----------|----------------------------------------|
-| Commission (7%) | Sur chaque transaction Escrow débloquée | 500 000 – 1 500 000 FCFA |
+| Commission (10%) | Sur chaque transaction Escrow débloquée | 500 000 – 1 500 000 FCFA |
 | Jokko Boost | Abonnement mensuel 5 000 – 15 000 FCFA | 150 000 – 500 000 FCFA |
 | **Total estimé M6** | | **650 000 – 2 000 000 FCFA/mois** |
 
@@ -602,7 +632,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | **0 - Setup** | S1-2 | Backend | Repos Git, CI/CD, BDD, environnements, structure NestJS modulaire |
 | **1 - Core Backend** | S3-6 | Backend | Auth (OTP + Google), Profils, Catégories, Recherche géolocalisée (PostGIS), KYC Admin |
 | **2 - Mobile V1** | S5-9 | Flutter | Onboarding, Home, Recherche, Fiche Pro, Portfolio, Calendrier disponibilités |
-| **3 - Réservation & Paiements** | S9-12 | Full Stack | Booking complet, Notifications FCM, Intégration Wave/OM (PayDunya), Escrow logique |
+| **3 - Réservation & Paiements** | S9-12 | Full Stack | Booking complet, Notifications FCM, Intégration Wave/OM (provider paiement), Escrow logique |
 | **4 - Temps Réel** | S12-15 | Backend + Flutter | Tchat WebSockets, Live Tracking GPS, Portefeuille Pro, Retrait de fonds |
 | **5 - Tests & Sécurité** | S16-18 | QA + Dev | Tests E2E, k6 performance, OWASP audit, UX polish, multilingue Wolof |
 | **6 - Beta Dakar** | S19-20 | Toute l'équipe | 50 pros + 200 clients bêta, correction bugs, soumission App/Play Store |
@@ -614,7 +644,7 @@ created_at TIMESTAMP     NOT NULL DEFAULT NOW()
 | Type de demande | Délai de réponse cible | Canal |
 |-----------------|----------------------|-------|
 | Litige paiement urgent | < 4 heures | WhatsApp Business + Email |
-| Problème technique grave | < 8 heures | Email support@jokko.sn |
+| Problème technique grave | < 8 heures | Email <support@jokko.sn> |
 | Question générale | < 24 heures | Chat in-app ou Email |
 | Validation KYC | < 48 heures ouvrées | Email automatique |
 
@@ -692,6 +722,7 @@ main          ─── Branche de production (protégée, jamais de commit dire
 ```
 
 **Règles de commit** (format Conventional Commits) :
+
 ```
 feat: ajout du système de géolocalisation PostGIS
 fix: correction du calcul de commission sur les paiements Wave
@@ -750,7 +781,7 @@ docs: mise à jour du README de déploiement
 | Métrique | Objectif Mois 6 | Objectif An 1 |
 |----------|-----------------|---------------|
 | **GMV** (Valeur totale des transactions) | 15M FCFA/mois | 100M FCFA/mois |
-| **Revenu Jokko** (Commission 7%) | 1M FCFA/mois | 7M FCFA/mois |
+| **Revenu Jokko** (Commission 10%) | 1M FCFA/mois | 7M FCFA/mois |
 | **Pros actifs sur la plateforme** | 500 | 2 000 |
 | **Villes couvertes** | 1 (Dakar) | 4 (Dakar, Thiès, SL, Zigui.) |
 
@@ -772,12 +803,12 @@ docs: mise à jour du README de déploiement
 | Paramètre | Valeur |
 |-----------|--------|
 | Prix moyen d'une prestation | 12 000 FCFA |
-| Taux de commission Jokko | 7% → 840 FCFA/prestation |
+| Taux de commission Jokko | 10% -> 1 200 FCFA/prestation |
 | Croissance mensuelle des réservations | +30%/mois |
 
 ### 20.2. Projection des Revenus (12 mois)
 
-| Mois | Réservations | GMV (FCFA) | Revenu Jokko (7%) |
+| Mois | Réservations | GMV (FCFA) | Revenu Jokko (Commission 10%) |
 |------|-------------|------------|-------------------|
 | M1 (Bêta) | 50 | 600 000 | 42 000 |
 | M2 | 150 | 1 800 000 | 126 000 |
@@ -799,17 +830,17 @@ docs: mise à jour du README de déploiement
 
 ## 21. DÉTAILS DES INTÉGRATIONS TIERCES
 
-### 21.1. Paiements — PayDunya (Agrégateur Local)
+### 21.1. Paiements directs � Wave, Orange Money et Carte
 
-PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange Money et les cartes bancaires au Sénégal, et est agréé par la BCEAO.
+Jokko integre directement les APIs Wave, Orange Money et carte bancaire via des adapters separes. Le backend ne depend pas d'un agregateur unique: chaque provider est isole derriere le port `PaymentGateway`, ce qui evite le couplage fort et permet de remplacer un provider sans impacter la logique metier.
 
-| Étape | Action Technique |
+| Etape | Action Technique |
 |-------|-----------------|
-| Initiation | `POST https://app.paydunya.com/api/v1/checkout-invoice/create` avec montant + callback URL |
-| Redirection | L'utilisateur est redirigé vers la page de paiement PayDunya (Wave/OM/Carte) |
-| Webhook de confirmation | PayDunya appelle `POST /api/payments/webhook/paydunya` avec la référence et le statut |
-| Validation | Le serveur Jokko vérifie la signature HMAC, met à jour le statut de paiement à SUCCESS |
-| Déblocage Escrow | Déclenché uniquement lors de la validation de la prestation par le client |
+| Initiation | Le backend selectionne l'adapter selon la methode: Wave, Orange Money ou Carte. |
+| Redirection | L'utilisateur est redirige vers l'URL de paiement retournee par le provider choisi. |
+| Webhook de confirmation | Le provider appelle `POST /api/v1/payments/webhook` avec reference, statut, signature et timestamp. |
+| Validation | Le serveur Jokko verifie la signature HMAC, journalise le webhook et met a jour le paiement. |
+| Escrow | Les fonds restent sous sequestre jusqu'a la validation de la prestation par le client. |
 
 ### 21.2. Géolocalisation — Google Maps Platform
 
@@ -873,14 +904,16 @@ PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange M
 > Ce checklist doit être intégralement complété **avant** d'écrire la première ligne de code.
 
 ### Administratif & Légal
+
 - [ ] Création de la structure juridique de Jokko (SARL ou SAS au Sénégal)
 - [ ] Dépôt de la marque "JOKKO" à l'OAPI (Organisation Africaine de la Propriété Intellectuelle)
 - [ ] Ouverture d'un compte bancaire professionnel pour les transactions Escrow
 - [ ] Rédaction des CGU et Politique de Confidentialité par un juriste
 - [ ] Déclaration à la CDP (Commission des Données Personnelles du Sénégal)
-- [ ] Contact et contractualisation avec PayDunya (agrégateur de paiement agréé BCEAO)
+- [ ] Contact et contractualisation avec provider paiement (agrégateur de paiement agréé BCEAO)
 
 ### Infrastructure & Environnements
+
 - [ ] Achat du nom de domaine `jokko.sn` (ou `.com`) et configuration DNS
 - [ ] Création des comptes AWS (API, RDS, S3, CloudFront)
 - [ ] Création du compte Firebase (FCM + Crashlytics)
@@ -890,6 +923,7 @@ PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange M
 - [ ] Achat du compte Twilio pour les SMS OTP
 
 ### Équipe & Organisation
+
 - [ ] Recrutement des 2 développeurs (Backend NestJS + Flutter)
 - [ ] Recrutement du Designer UI/UX
 - [ ] Création de l'organisation GitHub et invitation de l'équipe
@@ -897,12 +931,14 @@ PayDunya est l'agrégateur recommandé car il supporte nativement Wave, Orange M
 - [ ] Configuration du canal Slack d'équipe avec tous les membres
 
 ### Produit & Design
+
 - [ ] Finalisation et validation des maquettes Figma par toute l'équipe
 - [ ] Création du Design System (couleurs, typographie, composants)
 - [ ] Validation de toutes les User Stories (US-C01 à US-P05) avec l'équipe
 - [ ] Définition du MVP exact (fonctionnalités P0 uniquement pour le lancement bêta)
 
 ### Business & Terrain
+
 - [ ] Début du recrutement terrain des 150 premiers professionnels à Dakar
 - [ ] Préparation des supports de formation pour les Pros (vidéos tutoriels)
 - [ ] Mise en place d'un canal WhatsApp Business pour le support client

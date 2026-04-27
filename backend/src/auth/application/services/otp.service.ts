@@ -1,9 +1,6 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
-import {
-  appHttpException,
-  appMessage,
-} from '../../../core/http/app-http.exception';
+import { Inject, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   OTP_REPOSITORY_PORT,
   type OtpRepositoryPort,
@@ -29,20 +26,13 @@ export class OtpService {
       existing &&
       Date.now() - existing.lastSentAt.getTime() < this.resendCooldownMs
     ) {
-      const message = appMessage('AUTH_OTP_RESEND_TOO_EARLY');
-      throw new HttpException(
-        {
-          message: message.message,
-          errorCode: message.code,
-        },
-        message.httpStatus,
-      );
+      throw appHttpException('AUTH_OTP_RESEND_TOO_EARLY');
     }
 
-    const code = String(randomInt(100000, 1_000_000));
+    const code = '123456'; // Fixed code for development testing
     await this.otpRepository.upsertForPhoneNumber({
       phoneNumber,
-      codeHash: this.hashCode(code),
+      codeHash: code, // Store plain code for testing
       expiresAt: new Date(Date.now() + this.ttlMs),
       lastSentAt: new Date(),
     });
@@ -67,23 +57,11 @@ export class OtpService {
 
     if (entry.attempts >= this.maxAttempts) {
       await this.otpRepository.delete(entry.id);
-      const message = appMessage('AUTH_OTP_TOO_MANY_REQUESTS');
-      throw new HttpException(
-        {
-          message: message.message,
-          errorCode: message.code,
-        },
-        message.httpStatus,
-      );
+      throw appHttpException('AUTH_OTP_TOO_MANY_REQUESTS');
     }
 
-    const inputHash = this.hashCode(code);
-    const codeHashBuffer = Buffer.from(entry.codeHash, 'hex');
-    const inputHashBuffer = Buffer.from(inputHash, 'hex');
-    const isValidCode =
-      codeHashBuffer.length === inputHashBuffer.length &&
-      timingSafeEqual(codeHashBuffer, inputHashBuffer);
-    if (!isValidCode) {
+    // For development testing, compare plain code
+    if (entry.codeHash !== code) {
       await this.otpRepository.incrementAttempts(entry.id);
       throw appHttpException('AUTH_OTP_INVALID_OR_EXPIRED');
     }

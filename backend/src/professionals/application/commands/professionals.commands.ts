@@ -1,26 +1,25 @@
+/**
+ * CQRS Commands for the Professionals module.
+ * Commands represent write operations that change state.
+ */
+
 export type CreateProfessionalProfileCommand = {
   bio?: string | null;
   companyName?: string | null;
   city?: string | null;
 };
 
-export type UpdateProfessionalProfileCommand = {
-  bio?: string | null;
-  companyName?: string | null;
-  city?: string | null;
-};
+// Update uses the same shape as Create; we alias for semantic clarity
+// but reuse the type to respect DRY.
+export type UpdateProfessionalProfileCommand = CreateProfessionalProfileCommand;
 
 export type SubmitKycCommand = {
   idCardUrl: string;
+  idCardUrlVerso?: string;
 };
 
 export type RejectKycCommand = {
   reason: string;
-};
-
-export type ListProfessionalsQuery = {
-  city?: string;
-  limit?: number;
 };
 
 export type CreateProfessionalServiceCommand = {

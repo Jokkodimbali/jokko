@@ -3,6 +3,7 @@ import { Prisma, type TypeActionAudit } from '@prisma/client';
 import type { NextFunction, Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthenticatedRequest, RouteInfo } from './audit.types';
+import { TECHNICAL_MESSAGES } from '../messages/technical-message.catalog';
 
 const ACTION_MAP: Record<string, TypeActionAudit> = {
   '/auth/login': 'CONNEXION',
@@ -94,7 +95,9 @@ export class AuditLoggerMiddleware implements NestMiddleware {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Failed to write audit log: ${errorMessage}`);
+      this.logger.error(
+        TECHNICAL_MESSAGES.AUDIT_LOG_WRITE_FAILED(errorMessage),
+      );
     }
   }
 
@@ -115,7 +118,9 @@ export class AuditLoggerMiddleware implements NestMiddleware {
   ): { entityType?: string; entityId?: string } {
     for (const [pattern, entityType] of Object.entries(ENTITY_PATTERNS)) {
       if (path.includes(pattern)) {
-        return { entityType, entityId: params.id };
+        const entityId =
+          params.id && !params.id.startsWith(':') ? params.id : undefined;
+        return { entityType, entityId };
       }
     }
     return {};

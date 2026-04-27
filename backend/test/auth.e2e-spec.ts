@@ -102,7 +102,7 @@ describe('AuthModule (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/otp/send')
       .send({ phoneNumber: phoneOtp })
-      .expect(201);
+      .expect(200);
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);
@@ -113,7 +113,7 @@ describe('AuthModule (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/otp/verify')
       .send({ phoneNumber: phoneOtp, code: '123456' })
-      .expect(201);
+      .expect(200);
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);
@@ -160,7 +160,7 @@ describe('AuthModule (e2e)', () => {
         phoneNumber: phoneRegister,
         password,
       })
-      .expect(201);
+      .expect(200);
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);
@@ -186,7 +186,7 @@ describe('AuthModule (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .send({ refreshToken })
-      .expect(201);
+      .expect(200);
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);
@@ -225,7 +225,7 @@ describe('AuthModule (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
       .send({ refreshToken })
-      .expect(201);
+      .expect(200);
     const body = response.body as AuthSuccessResponse;
 
     expect(body.success).toBe(true);

@@ -60,6 +60,7 @@ describe('ProfessionalsModule (e2e)', () => {
     data?:
       | AuthResponseData
       | ProfessionalProfileData
+      | { profiles: ProfessionalProfileData[]; total: number }
       | Record<string, unknown>[];
   };
 
@@ -142,7 +143,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: proPhone,
         password: proPassword,
       })
-      .expect(201);
+      .expect(200);
     const proBody = proLoginResponse.body as ApiResponse;
     const proData = proBody.data as AuthResponseData;
     proAccessToken = proData.accessToken ?? '';
@@ -153,7 +154,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: clientPhone,
         password: clientPassword,
       })
-      .expect(201);
+      .expect(200);
     const clientBody = clientLoginResponse.body as ApiResponse;
     const clientData = clientBody.data as AuthResponseData;
     clientAccessToken = clientData.accessToken ?? '';
@@ -165,7 +166,7 @@ describe('ProfessionalsModule (e2e)', () => {
         phoneNumber: adminPhone,
         password: adminPassword,
       })
-      .expect(201);
+      .expect(200);
     const adminBody = adminLoginResponse.body as ApiResponse;
     const adminData = adminBody.data as AuthResponseData;
     adminAccessToken = adminData.accessToken ?? '';
@@ -221,9 +222,9 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(data.id).toBe(professionalProfileId);
   });
 
-  it('PUT /api/v1/professionals/me', async () => {
+  it('PATCH /api/v1/professionals/me', async () => {
     const response = await request(app.getHttpServer())
-      .put('/api/v1/professionals/me')
+      .patch('/api/v1/professionals/me')
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         bio: 'Bio mise a jour',
@@ -239,14 +240,14 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(data.ville).toBe('Thies');
   });
 
-  it('POST /api/v1/professionals/me/kyc', async () => {
+  it('PATCH /api/v1/professionals/me/kyc/submit', async () => {
     const response = await request(app.getHttpServer())
-      .post('/api/v1/professionals/me/kyc')
+      .patch('/api/v1/professionals/me/kyc/submit')
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         idCardUrl: 'https://cdn.jokko.sn/kyc/pro-id-card.png',
       })
-      .expect(201);
+      .expect(200);
 
     const body = response.body as ApiResponse;
     expect(body.success).toBe(true);
@@ -326,7 +327,7 @@ describe('ProfessionalsModule (e2e)', () => {
     expect(serviceId).not.toHaveLength(0);
 
     await request(app.getHttpServer())
-      .put(`/api/v1/professionals/me/services/${serviceId}`)
+      .patch(`/api/v1/professionals/me/services/${serviceId}`)
       .set('Authorization', `Bearer ${proAccessToken}`)
       .send({
         name: 'Debouchage premium',
@@ -370,12 +371,13 @@ describe('ProfessionalsModule (e2e)', () => {
     await prisma.reservation.create({
       data: {
         clientId: clientUserId,
+        professionnelId: professionalProfileId,
         serviceId,
-        statut: StatutReservation.TERMINEE,
-        planifieeLe: new Date(),
+        dateHeure: new Date(),
         adresseClient: 'Dakar Plateau',
-        noteClient: 5,
-        avisClient: 'Tres professionnel',
+        dureeMinutes: 60,
+        statut: StatutReservation.TERMINEE,
+        notes: 'Tres professionnel',
       },
     });
   });
@@ -389,6 +391,7 @@ describe('ProfessionalsModule (e2e)', () => {
     const data = body.data as ProfessionalProfileData[];
     const profileIds = data.map((item) => item.id);
     expect(profileIds).toContain(professionalProfileId);
+    expect(body.meta).toBeDefined();
   });
 
   it('GET /api/v1/professionals/:id should return profile detail', async () => {

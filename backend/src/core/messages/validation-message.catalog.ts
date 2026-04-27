@@ -92,8 +92,38 @@ export const VALIDATION_MESSAGE_CATALOG = {
     'La duree de reservation ne doit pas depasser 1440 minutes.',
   RESERVATION_NOTES_MAX:
     'Les notes de reservation ne doivent pas depasser 1000 caracteres.',
+  NEGOTIATION_AMOUNT_INVALID: 'Le montant de negotiation est invalide.',
+  NEGOTIATION_AMOUNT_MIN:
+    'Le montant de negotiation doit etre superieur ou egal a 1 FCFA.',
+  NEGOTIATION_AMOUNT_MAX:
+    'Le montant de negotiation ne doit pas depasser 100000000 FCFA.',
+  NEGOTIATION_MESSAGE_INVALID: 'Le message de negotiation est invalide.',
+  NEGOTIATION_MESSAGE_MAX:
+    'Le message de negotiation ne doit pas depasser 1000 caracteres.',
+  NEGOTIATION_REASON_INVALID:
+    'Le motif de cloture de negotiation est invalide.',
+  NEGOTIATION_REASON_MAX:
+    'Le motif de cloture de negotiation ne doit pas depasser 1000 caracteres.',
+  NEGOTIATION_SCOPE_INVALID: 'Le scope de negotiation est invalide.',
+  NEGOTIATION_STATUS_INVALID: 'Le statut de negotiation est invalide.',
+  NEGOTIATION_LIMIT_INVALID:
+    'La limite des negotiations doit etre un nombre entier.',
+  NEGOTIATION_LIMIT_MIN:
+    'La limite des negotiations doit etre superieure ou egale a 1.',
+  NEGOTIATION_LIMIT_MAX: 'La limite des negotiations ne doit pas depasser 100.',
+  NEGOTIATION_OFFSET_INVALID:
+    "L'offset des negotiations doit etre un nombre entier.",
+  NEGOTIATION_OFFSET_MIN: "L'offset des negotiations ne peut pas etre negatif.",
   RESERVATION_CANCEL_REASON_MAX:
     "Le motif d'annulation ne doit pas depasser 1000 caracteres.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID:
+    "Le montant propose pour l'ajustement de prix est invalide.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_MIN:
+    "Le montant propose pour l'ajustement de prix doit etre superieur ou egal a 1 FCFA.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_MAX:
+    "Le montant propose pour l'ajustement de prix ne doit pas depasser 100000000 FCFA.",
+  RESERVATION_PRICE_ADJUSTMENT_REASON_MAX:
+    "Le motif d'ajustement de prix ne doit pas depasser 1000 caracteres.",
   RESERVATION_QUERY_DATE_INVALID:
     'La date fournie dans les filtres est invalide.',
   PASSWORD_REQUIRED: 'Le mot de passe est obligatoire.',

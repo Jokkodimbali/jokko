@@ -10,6 +10,12 @@ export type ReservationStatus =
   | 'NO_SHOW'
   | 'LITIGE';
 
+export type ReservationPriceAdjustmentStatus =
+  | 'AUCUN'
+  | 'EN_ATTENTE_CLIENT'
+  | 'ACCEPTE'
+  | 'REFUSE';
+
 export type Reservation = {
   id: string;
   clientId: string;
@@ -21,6 +27,10 @@ export type Reservation = {
   statut: ReservationStatus;
   notes: string | null;
   prixConvenu: number | null;
+  statutAjustementPrix: ReservationPriceAdjustmentStatus;
+  prixAjustementPropose: number | null;
+  raisonAjustementPrix: string | null;
+  demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
   creeLe: Date;
   misAJourLe: Date;
@@ -37,7 +47,11 @@ export class ReservationEntity {
     private readonly _dureeMinutes: number,
     private _statut: ReservationStatus,
     private readonly _notes: string | null,
-    private readonly _prixConvenu: number | null,
+    private _prixConvenu: number | null,
+    private _statutAjustementPrix: ReservationPriceAdjustmentStatus,
+    private _prixAjustementPropose: number | null,
+    private _raisonAjustementPrix: string | null,
+    private _demandeAjustementPrixLe: Date | null,
     private _raisonAnnulation: string | null,
     private readonly _creeLe: Date,
     private _misAJourLe: Date,
@@ -81,6 +95,22 @@ export class ReservationEntity {
 
   get prixConvenu(): number | null {
     return this._prixConvenu;
+  }
+
+  get statutAjustementPrix(): ReservationPriceAdjustmentStatus {
+    return this._statutAjustementPrix;
+  }
+
+  get prixAjustementPropose(): number | null {
+    return this._prixAjustementPropose;
+  }
+
+  get raisonAjustementPrix(): string | null {
+    return this._raisonAjustementPrix;
+  }
+
+  get demandeAjustementPrixLe(): Date | null {
+    return this._demandeAjustementPrixLe;
   }
 
   get raisonAnnulation(): string | null {
@@ -133,6 +163,10 @@ export class ReservationEntity {
       'EN_ATTENTE',
       this.normalizeText(input.notes),
       input.prixConvenu ?? null,
+      'AUCUN',
+      null,
+      null,
+      null,
       null,
       now,
       now,
@@ -143,6 +177,9 @@ export class ReservationEntity {
     this.assertValidDate(data.dateHeure);
     this.assertValidDate(data.creeLe);
     this.assertValidDate(data.misAJourLe);
+    if (data.demandeAjustementPrixLe) {
+      this.assertValidDate(data.demandeAjustementPrixLe);
+    }
 
     return new ReservationEntity(
       data.id,
@@ -155,6 +192,12 @@ export class ReservationEntity {
       data.statut,
       data.notes,
       data.prixConvenu,
+      data.statutAjustementPrix,
+      data.prixAjustementPropose,
+      data.raisonAjustementPrix,
+      data.demandeAjustementPrixLe
+        ? new Date(data.demandeAjustementPrixLe)
+        : null,
       data.raisonAnnulation,
       new Date(data.creeLe),
       new Date(data.misAJourLe),
@@ -228,6 +271,67 @@ export class ReservationEntity {
     this.touch();
   }
 
+  proposePriceAdjustment(input: {
+    proposedPrice: number;
+    reason?: string | null;
+  }): void {
+    if (this._statut !== 'CONFIRMEE') {
+      throw ReservationDomainError.invalidPriceAdjustmentStatus();
+    }
+
+    if (this._statutAjustementPrix === 'EN_ATTENTE_CLIENT') {
+      throw ReservationDomainError.priceAdjustmentAlreadyPending();
+    }
+
+    ReservationEntity.assertPositiveAmount(input.proposedPrice);
+
+    if (
+      this._prixConvenu !== null &&
+      this._prixConvenu === input.proposedPrice
+    ) {
+      throw ReservationDomainError.unchangedPriceAdjustmentAmount();
+    }
+
+    this._statutAjustementPrix = 'EN_ATTENTE_CLIENT';
+    this._prixAjustementPropose = input.proposedPrice;
+    this._raisonAjustementPrix = ReservationEntity.normalizeText(input.reason);
+    this._demandeAjustementPrixLe = new Date();
+    this.touch();
+  }
+
+  acceptPriceAdjustment(): void {
+    if (this._statut !== 'CONFIRMEE') {
+      throw ReservationDomainError.invalidPriceAdjustmentStatus();
+    }
+
+    if (
+      this._statutAjustementPrix !== 'EN_ATTENTE_CLIENT' ||
+      this._prixAjustementPropose === null
+    ) {
+      throw ReservationDomainError.priceAdjustmentNotPending();
+    }
+
+    this._prixConvenu = this._prixAjustementPropose;
+    this._statutAjustementPrix = 'ACCEPTE';
+    this.touch();
+  }
+
+  rejectPriceAdjustment(): void {
+    if (this._statut !== 'CONFIRMEE') {
+      throw ReservationDomainError.invalidPriceAdjustmentStatus();
+    }
+
+    if (
+      this._statutAjustementPrix !== 'EN_ATTENTE_CLIENT' ||
+      this._prixAjustementPropose === null
+    ) {
+      throw ReservationDomainError.priceAdjustmentNotPending();
+    }
+
+    this._statutAjustementPrix = 'REFUSE';
+    this.touch();
+  }
+
   startReservation(): void {
     if (this._statut === 'CONFIRMEE') {
       throw ReservationDomainError.paymentRequired();
@@ -263,6 +367,12 @@ export class ReservationEntity {
       statut: this._statut,
       notes: this._notes,
       prixConvenu: this._prixConvenu,
+      statutAjustementPrix: this._statutAjustementPrix,
+      prixAjustementPropose: this._prixAjustementPropose,
+      raisonAjustementPrix: this._raisonAjustementPrix,
+      demandeAjustementPrixLe: this._demandeAjustementPrixLe
+        ? new Date(this._demandeAjustementPrixLe)
+        : null,
       raisonAnnulation: this._raisonAnnulation,
       creeLe: new Date(this._creeLe),
       misAJourLe: new Date(this._misAJourLe),
@@ -361,6 +471,12 @@ export class ReservationEntity {
       dureeMinutes > 1440
     ) {
       throw ReservationDomainError.invalidDuration();
+    }
+  }
+
+  private static assertPositiveAmount(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw ReservationDomainError.invalidPriceAdjustmentAmount();
     }
   }
 

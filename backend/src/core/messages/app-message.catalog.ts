@@ -299,6 +299,99 @@ export const APP_MESSAGES_BY_MODULE = {
         'La latitude et la longitude doivent etre fournies ensemble pour une recherche geolocalisee.',
     },
   },
+  negotiations: {
+    NEGOTIATIONS_CLIENT_ROLE_REQUIRED: {
+      code: 'NEGOTIATIONS_CLIENT_ROLE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Seuls les clients peuvent initier ou annuler une negotiation de prix.',
+    },
+    NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED: {
+      code: 'NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Seuls les prestataires peuvent repondre a cette action de negotiation.',
+    },
+    NEGOTIATIONS_NOT_FOUND: {
+      code: 'NEGOTIATIONS_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Negotiation introuvable.',
+    },
+    NEGOTIATIONS_UNAUTHORIZED: {
+      code: 'NEGOTIATIONS_UNAUTHORIZED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a acceder a cette negotiation.",
+    },
+    NEGOTIATIONS_SERVICE_NOT_NEGOTIABLE: {
+      code: 'NEGOTIATIONS_SERVICE_NOT_NEGOTIABLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Ce service ne permet pas la negotiation de prix.',
+    },
+    NEGOTIATIONS_ALREADY_ACTIVE: {
+      code: 'NEGOTIATIONS_ALREADY_ACTIVE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Une negotiation active existe deja pour ce service et ce client.',
+    },
+    NEGOTIATIONS_SELF_NEGOTIATION_FORBIDDEN: {
+      code: 'NEGOTIATIONS_SELF_NEGOTIATION_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Un prestataire ne peut pas negocier son propre service en tant que client.',
+    },
+    NEGOTIATIONS_WRONG_TURN: {
+      code: 'NEGOTIATIONS_WRONG_TURN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Cette action ne correspond pas au tour actuel de la negotiation.',
+    },
+    NEGOTIATIONS_ALREADY_CLOSED: {
+      code: 'NEGOTIATIONS_ALREADY_CLOSED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette negotiation est deja cloturee.',
+    },
+    NEGOTIATIONS_ACCEPTED_REQUIRED: {
+      code: 'NEGOTIATIONS_ACCEPTED_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La negotiation doit etre acceptee avant de creer une reservation.',
+    },
+    NEGOTIATIONS_ALREADY_CONVERTED: {
+      code: 'NEGOTIATIONS_ALREADY_CONVERTED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette negotiation est deja convertie en reservation.',
+    },
+    NEGOTIATIONS_AMOUNT_INVALID: {
+      code: 'NEGOTIATIONS_AMOUNT_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Le montant propose est invalide.',
+    },
+    NEGOTIATIONS_CREATED: {
+      code: 'NEGOTIATIONS_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Negotiation creee avec succes.',
+    },
+    NEGOTIATIONS_COUNTERED: {
+      code: 'NEGOTIATIONS_COUNTERED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Contre-proposition enregistree avec succes.',
+    },
+    NEGOTIATIONS_ACCEPTED: {
+      code: 'NEGOTIATIONS_ACCEPTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation acceptee avec succes.',
+    },
+    NEGOTIATIONS_REJECTED: {
+      code: 'NEGOTIATIONS_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation rejetee avec succes.',
+    },
+    NEGOTIATIONS_CANCELLED: {
+      code: 'NEGOTIATIONS_CANCELLED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation annulee avec succes.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -395,6 +488,21 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Reservation reprogrammee avec succes.',
     },
+    RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: "Demande d'ajustement de prix envoyee au client avec succes.",
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Ajustement de prix accepte avec succes.',
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_REJECTED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Ajustement de prix refuse avec succes.',
+    },
     RESERVATIONS_COMPLETED: {
       code: 'RESERVATIONS_COMPLETED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
@@ -410,6 +518,12 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message:
         'Les dates de debut et de fin sont obligatoires pour cette requete.',
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        "Impossible d'ajuster le prix car un paiement est deja en cours ou enregistre pour cette reservation.",
     },
   },
   payments: {
@@ -498,6 +612,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.professionals,
   ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.search,
+  ...APP_MESSAGES_BY_MODULE.negotiations,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,

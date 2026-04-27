@@ -91,9 +91,9 @@ export class AdminPaymentsController {
   })
   @ApiStandardErrorResponse({
     status: 403,
-    description: 'Acces reserve aux administrateurs.',
+    description: API_DOCS.adminPayments.adminOnly,
     errorCode: 'AUTH_FORBIDDEN',
-    messageExample: 'Acces reserve aux administrateurs.',
+    messageExample: API_DOCS.adminPayments.adminOnly,
   })
   async listAllPayments(@Query() query: ListPaymentsQueryDto) {
     const allClientPayments = await this.paymentsFacade.getClientPaymentHistory(

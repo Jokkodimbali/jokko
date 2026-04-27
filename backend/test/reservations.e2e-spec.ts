@@ -64,6 +64,10 @@ describe('ReservationsModule (e2e)', () => {
     dateHeure: string;
     adresseClient: string;
     dureeMinutes: number;
+    prixConvenu?: number | null;
+    statutAjustementPrix?: string;
+    prixAjustementPropose?: number | null;
+    raisonAjustementPrix?: string | null;
     raisonAnnulation?: string | null;
   };
 
@@ -549,6 +553,196 @@ describe('ReservationsModule (e2e)', () => {
     expect(data.statut).toBe('ANNULEE');
   });
 
+  it('PATCH /api/v1/reservations/:id/price-adjustment/propose lets the professional propose a new price', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(66),
+        adresseClient: 'Dakar Maristes',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/propose`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .send({
+        proposedPrice: 32000,
+        reason: 'Travaux supplementaires constates sur place.',
+      })
+      .expect(200);
+
+    const body = response.body as ReservationSuccessResponse;
+    const data = body.data as ReservationView;
+    expect(body.success).toBe(true);
+    expect(body.message).toBe(
+      "Demande d'ajustement de prix envoyee au client avec succes.",
+    );
+    expect(data.statutAjustementPrix).toBe('EN_ATTENTE_CLIENT');
+    expect(data.prixAjustementPropose).toBe(32000);
+    expect(data.prixConvenu).toBe(25000);
+
+    const notification = await prisma.notification.findFirst({
+      where: {
+        utilisateurId: clientUserId,
+        type: 'AJUSTEMENT_PRIX_PROPOSE',
+      },
+      orderBy: { creeLe: 'desc' },
+    });
+
+    expect(notification).not.toBeNull();
+    expect(notification?.corps).toContain('32000 FCFA');
+  });
+
+  it('PATCH /api/v1/reservations/:id/price-adjustment/accept updates the agreed price', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(68),
+        adresseClient: 'Dakar Derklé',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/propose`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .send({
+        proposedPrice: 18000,
+        reason: 'Moins de travaux que prevu.',
+      })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/accept`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    const body = response.body as ReservationSuccessResponse;
+    const data = body.data as ReservationView;
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Ajustement de prix accepte avec succes.');
+    expect(data.statutAjustementPrix).toBe('ACCEPTE');
+    expect(data.prixConvenu).toBe(18000);
+    expect(data.prixAjustementPropose).toBe(18000);
+
+    const notification = await prisma.notification.findFirst({
+      where: {
+        utilisateurId: professionalUserId,
+        type: 'AJUSTEMENT_PRIX_ACCEPTE',
+      },
+      orderBy: { creeLe: 'desc' },
+    });
+
+    expect(notification).not.toBeNull();
+  });
+
+  it('PATCH /api/v1/reservations/:id/price-adjustment/reject keeps the original price', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(70),
+        adresseClient: 'Dakar Rufisque',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/propose`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .send({
+        proposedPrice: 35000,
+        reason: 'Pieces a remplacer en plus.',
+      })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/reject`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    const body = response.body as ReservationSuccessResponse;
+    const data = body.data as ReservationView;
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Ajustement de prix refuse avec succes.');
+    expect(data.statutAjustementPrix).toBe('REFUSE');
+    expect(data.prixConvenu).toBe(25000);
+    expect(data.prixAjustementPropose).toBe(35000);
+  });
+
+  it('PATCH /api/v1/reservations/:id/price-adjustment/propose refuses when a payment already exists', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(71),
+        adresseClient: 'Dakar Sicap',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/initiate')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Idempotency-Key', `price-adjustment-${reservation.id}`)
+      .send({ bookingId: reservation.id, method: 'WAVE' })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/price-adjustment/propose`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .send({
+        proposedPrice: 33000,
+        reason: 'Nouveau perimetre des travaux.',
+      })
+      .expect(409);
+
+    const body = response.body as ErrorResponse;
+    expect(body.success).toBe(false);
+    expect(body.errorCode).toBe(
+      'RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT',
+    );
+  });
+
   it('PATCH /api/v1/reservations/:id/no-show marks no-show', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/api/v1/reservations')
@@ -748,19 +942,20 @@ describe('ReservationsModule (e2e)', () => {
     expect(data.id).toBe(reservation.id);
   });
 
-  it('POST /api/v1/reservations/from-negotiation returns not implemented until negotiation module exists', async () => {
+  it('POST /api/v1/reservations/from-negotiation returns 404 for an unknown negotiation', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/reservations/from-negotiation')
       .set('Authorization', `Bearer ${clientToken}`)
       .send({
         negotiationId: randomUUID(),
         dateHeure: buildFutureIso(80),
+        adresseClient: 'Dakar Medina',
         dureeMinutes: 60,
       })
-      .expect(501);
+      .expect(404);
 
     const body = response.body as ErrorResponse;
     expect(body.success).toBe(false);
-    expect(body.errorCode).toBe('RESERVATIONS_NEGOTIATION_NOT_AVAILABLE');
+    expect(body.errorCode).toBe('NEGOTIATIONS_NOT_FOUND');
   });
 });

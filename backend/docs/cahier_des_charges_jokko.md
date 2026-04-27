@@ -887,7 +887,6 @@ Jokko integre directement les APIs Wave, Orange Money et carte bancaire via des 
 
 ### 22.3. Procédure en Cas d'Incident (Runbook)
 
-```
 1. DÉTECTION   → Sentry / Grafana déclenche une alerte
 2. TRIAGE      → Le développeur de garde évalue la sévérité (P0/P1/P2)
 3. NOTIFICATION → Canal Slack #incidents alerté. Si P0 : CEO notifié immédiatement.
@@ -895,13 +894,13 @@ Jokko integre directement les APIs Wave, Orange Money et carte bancaire via des 
 5. CORRECTION  → Hotfix développé, testé sur staging, déployé en production
 6. VALIDATION  → Vérification que l'incident est résolu, clôture de l'alerte
 7. POST-MORTEM → Document analysant la cause racine et les actions préventives (sous 48h)
+
 ```
 
 ---
 
 ## 23. CHECKLIST COMPLÈTE PRÉ-DÉMARRAGE DU PROJET
 
-> Ce checklist doit être intégralement complété **avant** d'écrire la première ligne de code.
 
 ### Administratif & Légal
 
@@ -921,25 +920,3 @@ Jokko integre directement les APIs Wave, Orange Money et carte bancaire via des 
 - [ ] Mise en place du pipeline CI/CD (GitHub Actions)
 - [ ] Configuration de Sentry pour le monitoring des erreurs
 - [ ] Achat du compte Twilio pour les SMS OTP
-
-### Équipe & Organisation
-
-- [ ] Recrutement des 2 développeurs (Backend NestJS + Flutter)
-- [ ] Recrutement du Designer UI/UX
-- [ ] Création de l'organisation GitHub et invitation de l'équipe
-- [ ] Création de l'espace Notion/Linear pour la gestion de projet
-- [ ] Configuration du canal Slack d'équipe avec tous les membres
-
-### Produit & Design
-
-- [ ] Finalisation et validation des maquettes Figma par toute l'équipe
-- [ ] Création du Design System (couleurs, typographie, composants)
-- [ ] Validation de toutes les User Stories (US-C01 à US-P05) avec l'équipe
-- [ ] Définition du MVP exact (fonctionnalités P0 uniquement pour le lancement bêta)
-
-### Business & Terrain
-
-- [ ] Début du recrutement terrain des 150 premiers professionnels à Dakar
-- [ ] Préparation des supports de formation pour les Pros (vidéos tutoriels)
-- [ ] Mise en place d'un canal WhatsApp Business pour le support client
-- [ ] Identification des 3 influenceurs sénégalais pour le lancement

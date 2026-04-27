@@ -9,10 +9,11 @@ import {
   MinLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class UpdateMyProfileDto {
   @ApiPropertyOptional({
-    description: "Nom de l'utilisateur",
+    description: API_DOCS.auth.userNameField,
     example: 'Moussa Diallo',
     minLength: 2,
     maxLength: 100,
@@ -27,7 +28,7 @@ export class UpdateMyProfileDto {
   name?: string;
 
   @ApiPropertyOptional({
-    description: 'Adresse email',
+    description: API_DOCS.users.emailField,
     example: 'moussa@example.com',
     format: 'email',
   })
@@ -42,7 +43,7 @@ export class UpdateMyProfileDto {
   email?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Adresse physique',
+    description: API_DOCS.users.physicalAddressField,
     example: 'Dakar, Senegal',
     maxLength: 255,
   })
@@ -55,7 +56,7 @@ export class UpdateMyProfileDto {
   address?: string | null;
 
   @ApiPropertyOptional({
-    description: "URL de l'avatar",
+    description: API_DOCS.users.avatarUrlField,
     example: 'https://cdn.jokko.sn/avatars/user-123.png',
     format: 'uri',
   })

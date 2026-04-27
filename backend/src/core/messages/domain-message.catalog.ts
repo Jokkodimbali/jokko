@@ -65,6 +65,18 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_CANNOT_START: 'Impossible de demarrer cette reservation.',
   RESERVATION_PAYMENT_REQUIRED:
     'La reservation doit etre payee avant de poursuivre cette action.',
+  RESERVATION_PRICE_ADJUSTMENT_STATUS_INVALID:
+    "Cette reservation ne permet pas d'ajustement de prix dans son statut actuel.",
+  RESERVATION_PRICE_ADJUSTMENT_ALREADY_PENDING:
+    "Une demande d'ajustement de prix est deja en attente de reponse client.",
+  RESERVATION_PRICE_ADJUSTMENT_NOT_PENDING:
+    "Aucune demande d'ajustement de prix n'est en attente pour cette reservation.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID:
+    "Le montant propose pour l'ajustement de prix est invalide.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED:
+    'Le nouveau prix propose doit etre different du prix convenu actuel.',
+  RESERVATION_PRICE_ADJUSTMENT_PAYMENT_ALREADY_EXISTS:
+    "Impossible d'ajuster le prix apres le demarrage du paiement de cette reservation.",
   RESERVATION_CANNOT_OPEN_DISPUTE:
     "Impossible d'ouvrir un litige pour cette reservation.",
   RESERVATION_CANCELLATION_TOO_LATE:

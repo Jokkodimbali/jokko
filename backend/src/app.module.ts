@@ -11,6 +11,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { NegotiationsModule } from './negotiations/negotiations.module';
 import { SearchModule } from './search/search.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { SearchModule } from './search/search.module';
     UsersModule,
     ProfessionalsModule,
     CategoriesModule,
+    NegotiationsModule,
     NotificationsModule,
     SearchModule,
     ReservationsModule,

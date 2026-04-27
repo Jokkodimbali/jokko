@@ -11,10 +11,11 @@ import {
   MinLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class UpdateCategoryDto {
   @ApiProperty({
-    description: 'Nom de la categorie',
+    description: API_DOCS.categories.nameField,
     example: 'Plomberie & Sanitaire',
     required: false,
     minLength: 2,
@@ -30,7 +31,7 @@ export class UpdateCategoryDto {
   name?: string;
 
   @ApiProperty({
-    description: "URL publique de l'icone",
+    description: API_DOCS.categories.iconUrlField,
     example: 'https://cdn.jokko.sn/icons/plomberie-v2.png',
     required: false,
   })
@@ -55,7 +56,7 @@ export class UpdateCategoryDto {
   iconUrl?: string | null;
 
   @ApiProperty({
-    description: 'Ordre de tri de la categorie',
+    description: API_DOCS.categories.sortOrderField,
     example: 2,
     required: false,
     minimum: 0,

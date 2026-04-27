@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import type { ReservationsRepositoryPort } from '../../application/ports/reservations-repository.port';
 import type {
   Reservation,
+  ReservationPriceAdjustmentStatus,
   ReservationStatus,
 } from '../../domain/entities/reservation.entity';
 import { ReservationDomainError } from '../../domain/errors/reservation.domain-error';
@@ -19,6 +20,10 @@ const RESERVATION_SELECT = {
   statut: true,
   notes: true,
   prixConvenu: true,
+  statutAjustementPrix: true,
+  prixAjustementPropose: true,
+  raisonAjustementPrix: true,
+  demandeAjustementPrixLe: true,
   raisonAnnulation: true,
   creeLe: true,
   misAJourLe: true,
@@ -35,6 +40,10 @@ type ReservationRecord = {
   statut: $Enums.StatutReservation;
   notes: string | null;
   prixConvenu: Prisma.Decimal | null;
+  statutAjustementPrix: $Enums.StatutAjustementPrixReservation;
+  prixAjustementPropose: Prisma.Decimal | null;
+  raisonAjustementPrix: string | null;
+  demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
   creeLe: Date;
   misAJourLe: Date;
@@ -147,6 +156,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           statut: reservation.statut,
           notes: reservation.notes,
           prixConvenu: reservation.prixConvenu,
+          statutAjustementPrix: reservation.statutAjustementPrix,
+          prixAjustementPropose: reservation.prixAjustementPropose,
+          raisonAjustementPrix: reservation.raisonAjustementPrix,
+          demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
           creeLe: reservation.creeLe,
           misAJourLe: reservation.misAJourLe,
@@ -156,6 +169,75 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     });
 
     return this.mapToDomain(created);
+  }
+
+  async saveFromNegotiation(
+    reservation: Reservation,
+    negotiationId: string,
+  ): Promise<Reservation | null> {
+    const created = await this.prisma.$transaction(async (tx) => {
+      await this.lockProfessionalSchedule(tx, reservation.professionnelId);
+      const hasConflict = await this.existsForTimeSlot(tx, {
+        professionalId: reservation.professionnelId,
+        dateHeure: reservation.dateHeure,
+        dureeMinutes: reservation.dureeMinutes,
+      });
+      if (hasConflict) {
+        throw ReservationDomainError.timeSlotUnavailable();
+      }
+
+      const linkedNegotiation = await tx.negotiation.findUnique({
+        where: { id: negotiationId },
+        select: {
+          id: true,
+          statut: true,
+          reservationId: true,
+        },
+      });
+
+      if (
+        !linkedNegotiation ||
+        linkedNegotiation.statut !== 'ACCEPTEE' ||
+        linkedNegotiation.reservationId
+      ) {
+        return null;
+      }
+
+      const createdReservation = await tx.reservation.create({
+        data: {
+          id: reservation.id,
+          clientId: reservation.clientId,
+          professionnelId: reservation.professionnelId,
+          serviceId: reservation.serviceId,
+          dateHeure: reservation.dateHeure,
+          adresseClient: reservation.adresseClient,
+          dureeMinutes: reservation.dureeMinutes,
+          statut: reservation.statut,
+          notes: reservation.notes,
+          prixConvenu: reservation.prixConvenu,
+          statutAjustementPrix: reservation.statutAjustementPrix,
+          prixAjustementPropose: reservation.prixAjustementPropose,
+          raisonAjustementPrix: reservation.raisonAjustementPrix,
+          demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
+          raisonAnnulation: reservation.raisonAnnulation,
+          creeLe: reservation.creeLe,
+          misAJourLe: reservation.misAJourLe,
+        },
+        select: RESERVATION_SELECT,
+      });
+
+      await tx.negotiation.update({
+        where: { id: negotiationId },
+        data: {
+          statut: 'CONVERTIE_EN_RESERVATION',
+          reservationId: createdReservation.id,
+        },
+      });
+
+      return createdReservation;
+    });
+
+    return created ? this.mapToDomain(created) : null;
   }
 
   async update(reservation: Reservation): Promise<Reservation> {
@@ -180,6 +262,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           statut: reservation.statut,
           notes: reservation.notes,
           prixConvenu: reservation.prixConvenu,
+          statutAjustementPrix: reservation.statutAjustementPrix,
+          prixAjustementPropose: reservation.prixAjustementPropose,
+          raisonAjustementPrix: reservation.raisonAjustementPrix,
+          demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
           misAJourLe: reservation.misAJourLe,
         },
@@ -188,6 +274,15 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     });
 
     return this.mapToDomain(updated);
+  }
+
+  async hasPaymentForReservation(reservationId: string): Promise<boolean> {
+    const payment = await this.prisma.paiement.findUnique({
+      where: { reservationId },
+      select: { id: true },
+    });
+
+    return payment !== null;
   }
 
   async delete(id: string): Promise<void> {
@@ -329,6 +424,11 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       statut: record.statut as ReservationStatus,
       notes: record.notes,
       prixConvenu: record.prixConvenu?.toNumber() ?? null,
+      statutAjustementPrix:
+        record.statutAjustementPrix as ReservationPriceAdjustmentStatus,
+      prixAjustementPropose: record.prixAjustementPropose?.toNumber() ?? null,
+      raisonAjustementPrix: record.raisonAjustementPrix,
+      demandeAjustementPrixLe: record.demandeAjustementPrixLe,
       raisonAnnulation: record.raisonAnnulation,
       creeLe: record.creeLe,
       misAJourLe: record.misAJourLe,

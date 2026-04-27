@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CreateProfessionalProfileDto {
   @ApiProperty({
-    description: 'Biographie du professionnel',
+    description: API_DOCS.professionals.bioField,
     example: 'Developpeur web avec 5 ans d experience',
     required: false,
     maxLength: 1000,
@@ -19,7 +20,7 @@ export class CreateProfessionalProfileDto {
   bio?: string | null;
 
   @ApiProperty({
-    description: "Nom de l'entreprise",
+    description: API_DOCS.professionals.companyNameField,
     example: 'Tech Solutions SARL',
     required: false,
     maxLength: 150,
@@ -33,7 +34,7 @@ export class CreateProfessionalProfileDto {
   companyName?: string | null;
 
   @ApiProperty({
-    description: 'Ville du professionnel',
+    description: API_DOCS.professionals.cityField,
     example: 'Dakar',
     required: false,
     maxLength: 100,

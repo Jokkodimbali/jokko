@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class LoginDto {
   @ApiProperty({
-    description: 'Numero de telephone',
+    description: API_DOCS.auth.phoneNumberField,
     example: '+221770000000',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -19,7 +20,7 @@ export class LoginDto {
   phoneNumber!: string;
 
   @ApiProperty({
-    description: 'Mot de passe',
+    description: API_DOCS.auth.passwordField,
     example: 'MonMotDePasse123!',
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PASSWORD_REQUIRED })

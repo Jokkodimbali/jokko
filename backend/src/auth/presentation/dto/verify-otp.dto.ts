@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class VerifyOtpDto {
   @ApiProperty({
-    description: 'Numero de telephone',
+    description: API_DOCS.auth.phoneNumberField,
     example: '+221770000000',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -19,7 +20,7 @@ export class VerifyOtpDto {
   phoneNumber!: string;
 
   @ApiProperty({
-    description: 'Code OTP a 6 chiffres',
+    description: API_DOCS.auth.otpCodeField,
     example: '123456',
     minLength: 6,
     maxLength: 6,

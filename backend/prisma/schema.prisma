@@ -36,6 +36,13 @@ enum StatutReservation {
   LITIGE
 }
 
+enum StatutAjustementPrixReservation {
+  AUCUN
+  EN_ATTENTE_CLIENT
+  ACCEPTE
+  REFUSE
+}
+
 enum MethodePaiement {
   WAVE
   ORANGE_MONEY
@@ -90,6 +97,9 @@ enum TypeNotification {
   RESERVATION_CONFIRMEE
   RESERVATION_ANNULEE
   PAIEMENT_CONFIRME
+  AJUSTEMENT_PRIX_PROPOSE
+  AJUSTEMENT_PRIX_ACCEPTE
+  AJUSTEMENT_PRIX_REFUSE
   PRESTATAIRE_EN_ROUTE
   PAIEMENT_LIBERE
   NOUVEAU_MESSAGE
@@ -109,6 +119,20 @@ enum StatutCommunication {
   ENVOYE
   ECHEC
   CONFIGURATION_MANQUANTE
+}
+
+enum StatutNegotiation {
+  EN_ATTENTE_PRESTATAIRE
+  EN_ATTENTE_CLIENT
+  ACCEPTEE
+  REFUSEE
+  ANNULEE
+  CONVERTIE_EN_RESERVATION
+}
+
+enum RoleNegociateur {
+  CLIENT
+  PRESTATAIRE
 }
 
 model Utilisateur {
@@ -135,6 +159,8 @@ model Utilisateur {
   notifications             Notification[]
   communicationsReservation CommunicationReservation[]
   sessionsAuthentification  SessionAuthentification[]
+  negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
+  paiementsClient           Paiement[]             @relation("PaymentsClient")
 
   @@map("users")
 }
@@ -192,8 +218,10 @@ model ProfilProfessionnel {
   disponibilites   Disponibilite[]
   elementsPortfolio ElementPortfolio[]
   reservations     Reservation[]
+  negotiations     Negotiation[]                @relation("NegotiationsProfessional")
   demandesRetrait  DemandeRetrait[]
   transactionsPortefeuille TransactionPortefeuille[]
+  paiements        Paiement[]                  @relation("PaymentsProfessional")
 
   @@map("professional_profiles")
 }
@@ -225,7 +253,9 @@ model Service {
   profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
   categorie             Categorie           @relation(fields: [categorieId], references: [id])
   reservations          Reservation[]
+  negotiations          Negotiation[]
 
+  @@unique([id, profilProfessionnelId])
   @@map("services")
 }
 
@@ -266,6 +296,10 @@ model Reservation {
   statut            StatutReservation  @default(EN_ATTENTE)
   notes             String?            @map("notes") @db.Text
   prixConvenu       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
+  statutAjustementPrix StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")
+  prixAjustementPropose Decimal?       @map("proposed_adjusted_price") @db.Decimal(10, 2)
+  raisonAjustementPrix String?         @map("price_adjustment_reason") @db.Text
+  demandeAjustementPrixLe DateTime?    @map("price_adjustment_requested_at")
   raisonAnnulation  String?            @map("cancel_reason") @db.Text
   creeLe            DateTime           @default(now()) @map("created_at")
   misAJourLe        DateTime           @default(now()) @map("updated_at")
@@ -276,8 +310,56 @@ model Reservation {
   paiement          Paiement?
   conversations     Conversation[]
   communications    CommunicationReservation[]
+  negotiation       Negotiation?
 
+  @@unique([id, clientId, professionnelId])
+  @@index([clientId, dateHeure])
+  @@index([professionnelId, dateHeure])
+  @@index([serviceId, dateHeure])
+  @@index([statut, dateHeure])
   @@map("bookings")
+}
+
+model Negotiation {
+  id                 String             @id @default(uuid()) @db.Uuid
+  clientId           String             @map("client_id") @db.Uuid
+  professionnelId    String             @map("professional_id") @db.Uuid
+  serviceId          String             @map("service_id") @db.Uuid
+  statut             StatutNegotiation  @default(EN_ATTENTE_PRESTATAIRE)
+  montantInitial     Decimal            @map("initial_amount") @db.Decimal(10, 2)
+  montantCourant     Decimal            @map("current_amount") @db.Decimal(10, 2)
+  montantAccepte     Decimal?           @map("accepted_amount") @db.Decimal(10, 2)
+  dernierProposePar  RoleNegociateur    @map("last_proposed_by")
+  messageCourant     String?            @map("current_message") @db.Text
+  raisonCloture      String?            @map("close_reason") @db.Text
+  reservationId      String?            @unique @map("booking_id") @db.Uuid
+  creeLe             DateTime           @default(now()) @map("created_at")
+  misAJourLe         DateTime           @updatedAt @map("updated_at")
+
+  client             Utilisateur        @relation("NegotiationsClient", fields: [clientId], references: [id], onDelete: Cascade)
+  professionnel      ProfilProfessionnel @relation("NegotiationsProfessional", fields: [professionnelId], references: [id], onDelete: Cascade)
+  service            Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  reservation        Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  propositions       PropositionNegotiation[]
+
+  @@index([clientId, statut, creeLe])
+  @@index([professionnelId, statut, creeLe])
+  @@index([serviceId, creeLe])
+  @@map("negotiations")
+}
+
+model PropositionNegotiation {
+  id                String            @id @default(uuid()) @db.Uuid
+  negotiationId     String            @map("negotiation_id") @db.Uuid
+  proposePar        RoleNegociateur   @map("proposed_by")
+  montant           Decimal           @db.Decimal(10, 2)
+  message           String?           @db.Text
+  creeLe            DateTime          @default(now()) @map("created_at")
+
+  negotiation       Negotiation       @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@index([negotiationId, creeLe])
+  @@map("negotiation_offers")
 }
 
 model CommunicationReservation {
@@ -328,8 +410,12 @@ model Paiement {
   misAJourLe           DateTime        @updatedAt @map("updated_at")
 
   reservation          Reservation     @relation(fields: [reservationId], references: [id])
+  client               Utilisateur     @relation("PaymentsClient", fields: [clientId], references: [id])
+  professionnel        ProfilProfessionnel @relation("PaymentsProfessional", fields: [professionalId], references: [id])
   transactionsPortefeuille TransactionPortefeuille[]
 
+  @@index([clientId, creeLe])
+  @@index([professionalId, creeLe])
   @@index([statut, escrowStatus])
   @@index([referenceTransaction])
   @@index([referenceFournisseur])
@@ -404,6 +490,8 @@ model Conversation {
   messages          Message[]
 
   @@unique([clientId, prestataireId])
+  @@index([reservationId])
+  @@index([dernierMessageLe])
   @@map("conversations")
 }
 
@@ -419,6 +507,8 @@ model Message {
   conversation      Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   expediteur        Utilisateur    @relation("MessagesEnvoyes", fields: [expediteurId], references: [id])
 
+  @@index([conversationId, creeLe])
+  @@index([expediteurId, creeLe])
   @@map("messages")
 }
 
@@ -434,6 +524,8 @@ model Notification {
 
   utilisateur       Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
+  @@index([utilisateurId, creeLe])
+  @@index([utilisateurId, estLue, creeLe])
   @@map("notifications")
 }
 
@@ -455,6 +547,7 @@ model EvenementOutbox {
   erreur          String?           @map("error") @db.Text
 
   @@index([statut, creeLe])
+  @@index([typeEvenement, statut, creeLe])
   @@map("outbox_events")
 }
 
@@ -508,5 +601,7 @@ model DemandeRetrait {
 
   profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id])
 
+  @@index([profilProfessionnelId, demandeLe])
+  @@index([statut, demandeLe])
   @@map("withdrawal_requests")
 }

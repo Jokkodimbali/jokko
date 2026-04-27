@@ -35,13 +35,13 @@ export class AdminReservationsController {
     name: 'startDate',
     required: false,
     type: String,
-    description: 'Date de debut ISO 8601',
+    description: API_DOCS.reservations.startDateField,
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: String,
-    description: 'Date de fin ISO 8601',
+    description: API_DOCS.reservations.endDateField,
   })
   @ApiStandardSuccessResponse({
     status: 200,

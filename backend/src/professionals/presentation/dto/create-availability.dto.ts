@@ -9,10 +9,11 @@ import {
   Min,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CreateAvailabilityDto {
   @ApiProperty({
-    description: 'Jour de la semaine (0=Dimanche, 6=Samedi)',
+    description: API_DOCS.professionals.availabilityDayField,
     example: 1,
     minimum: 0,
     maximum: 6,
@@ -27,7 +28,7 @@ export class CreateAvailabilityDto {
   dayOfWeek!: number;
 
   @ApiProperty({
-    description: 'Heure de debut (format HH:mm)',
+    description: API_DOCS.professionals.availabilityStartTimeField,
     example: '09:00',
     pattern: String.raw`^([01]\d|2[0-3]):([0-5]\d)$`,
   })
@@ -42,7 +43,7 @@ export class CreateAvailabilityDto {
   startTime!: string;
 
   @ApiProperty({
-    description: 'Heure de fin (format HH:mm)',
+    description: API_DOCS.professionals.availabilityEndTimeField,
     example: '17:00',
     pattern: String.raw`^([01]\d|2[0-3]):([0-5]\d)$`,
   })

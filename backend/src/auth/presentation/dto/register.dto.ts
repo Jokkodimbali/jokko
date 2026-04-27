@@ -11,10 +11,11 @@ import {
   MinLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class RegisterDto {
   @ApiProperty({
-    description: 'Numero de telephone',
+    description: API_DOCS.auth.phoneNumberField,
     example: '+221770000000',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -28,7 +29,7 @@ export class RegisterDto {
   phoneNumber!: string;
 
   @ApiProperty({
-    description: "Nom de l'utilisateur",
+    description: API_DOCS.auth.userNameField,
     example: 'Moussa Diallo',
     minLength: 2,
     maxLength: 100,
@@ -43,7 +44,7 @@ export class RegisterDto {
   name!: string;
 
   @ApiPropertyOptional({
-    description: 'Adresse email optionnelle',
+    description: API_DOCS.auth.optionalEmailField,
     example: 'moussa@example.com',
     format: 'email',
   })
@@ -55,7 +56,7 @@ export class RegisterDto {
   email?: string;
 
   @ApiProperty({
-    description: 'Mot de passe (8-64 caracteres)',
+    description: API_DOCS.auth.passwordRangeField,
     example: 'MonMotDePasse123!',
     minLength: 8,
     maxLength: 64,

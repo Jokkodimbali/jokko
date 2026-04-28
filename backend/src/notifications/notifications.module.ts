@@ -63,6 +63,7 @@ import { NotificationsController } from './presentation/controllers/notification
     ReservationClientNotificationService,
   ],
   exports: [
+    NotificationDeliveryService,
     NotificationsService,
     PaymentNotificationService,
     ReservationClientNotificationService,

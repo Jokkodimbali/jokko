@@ -89,6 +89,10 @@ export const DOMAIN_MESSAGE_CATALOG = {
     'Un avis client a deja ete enregistre pour cette reservation.',
   RESERVATION_REVIEW_RATING_INVALID:
     'La note client doit etre un entier compris entre 1 et 5.',
+  MESSAGING_MESSAGE_CONTENT_REQUIRED:
+    'Un message doit contenir un texte ou un media.',
+  MESSAGING_PARTICIPANTS_REQUIRED:
+    'Les participants de la conversation sont obligatoires.',
   USER_NOT_FOUND: 'Utilisateur introuvable',
   USER_ALREADY_EXISTS: ({ identifier }: { identifier: string }) =>
     `L'utilisateur avec ${identifier} existe deja`,

@@ -13,6 +13,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NegotiationsModule } from './negotiations/negotiations.module';
 import { SearchModule } from './search/search.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SearchModule } from './search/search.module';
     CategoriesModule,
     NegotiationsModule,
     NotificationsModule,
+    MessagingModule,
     SearchModule,
     ReservationsModule,
     PaymentsModule,

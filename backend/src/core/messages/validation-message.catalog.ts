@@ -114,6 +114,26 @@ export const VALIDATION_MESSAGE_CATALOG = {
   NEGOTIATION_OFFSET_INVALID:
     "L'offset des negotiations doit etre un nombre entier.",
   NEGOTIATION_OFFSET_MIN: "L'offset des negotiations ne peut pas etre negatif.",
+  MESSAGING_PROFESSIONAL_ID_FORMAT:
+    "Le format de l'identifiant du professionnel est invalide.",
+  MESSAGING_CLIENT_ID_FORMAT:
+    "Le format de l'identifiant du client est invalide.",
+  MESSAGING_RESERVATION_ID_REQUIRED:
+    "L'identifiant de reservation est obligatoire pour la conversation.",
+  MESSAGING_RESERVATION_ID_FORMAT:
+    "Le format de l'identifiant de reservation est invalide.",
+  MESSAGING_MESSAGE_CONTENT_INVALID: 'Le contenu du message est invalide.',
+  MESSAGING_MESSAGE_CONTENT_MAX:
+    'Le contenu du message ne doit pas depasser 2000 caracteres.',
+  MESSAGING_MEDIA_URL_INVALID: "L'URL du media du message est invalide.",
+  MESSAGING_LIMIT_INVALID:
+    'La limite des conversations doit etre un nombre entier.',
+  MESSAGING_LIMIT_MIN:
+    'La limite des conversations doit etre superieure ou egale a 1.',
+  MESSAGING_LIMIT_MAX: 'La limite des conversations ne doit pas depasser 100.',
+  MESSAGING_OFFSET_INVALID:
+    "L'offset des conversations doit etre un nombre entier.",
+  MESSAGING_OFFSET_MIN: "L'offset des conversations ne peut pas etre negatif.",
   RESERVATION_CANCEL_REASON_MAX:
     "Le motif d'annulation ne doit pas depasser 1000 caracteres.",
   RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID:

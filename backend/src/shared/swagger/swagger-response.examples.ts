@@ -219,6 +219,45 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
       ],
     },
   },
+  messaging: {
+    conversationData: {
+      id: 'd70e8400-e29b-41d4-a716-446655440201',
+      clientUserId: '550e8400-e29b-41d4-a716-446655440000',
+      professionalUserId: '850e8400-e29b-41d4-a716-446655440099',
+      professionalProfileId: '850e8400-e29b-41d4-a716-446655440003',
+      reservationId: '650e8400-e29b-41d4-a716-446655440001',
+      lastMessageAt: '2026-04-28T10:30:00.000Z',
+      createdAt: '2026-04-28T09:00:00.000Z',
+      unreadCount: 1,
+      counterpart: {
+        userId: '850e8400-e29b-41d4-a716-446655440099',
+        professionalProfileId: '850e8400-e29b-41d4-a716-446655440003',
+        name: 'Samba Fall',
+        avatarUrl: 'https://cdn.jokko.sn/avatars/samba-fall.png',
+      },
+      lastMessage: {
+        id: 'e70e8400-e29b-41d4-a716-446655440202',
+        senderId: '850e8400-e29b-41d4-a716-446655440099',
+        content: 'Je suis en route vers votre adresse.',
+        mediaUrl: null,
+        createdAt: '2026-04-28T10:30:00.000Z',
+      },
+    },
+    messageData: {
+      id: 'e70e8400-e29b-41d4-a716-446655440202',
+      conversationId: 'd70e8400-e29b-41d4-a716-446655440201',
+      senderId: '850e8400-e29b-41d4-a716-446655440099',
+      content: 'Je suis en route vers votre adresse.',
+      mediaUrl: null,
+      isRead: false,
+      createdAt: '2026-04-28T10:30:00.000Z',
+      sender: {
+        id: '850e8400-e29b-41d4-a716-446655440099',
+        name: 'Samba Fall',
+        avatarUrl: 'https://cdn.jokko.sn/avatars/samba-fall.png',
+      },
+    },
+  },
   notifications: {
     listData: [
       {

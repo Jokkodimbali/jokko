@@ -170,6 +170,29 @@ export const API_DOCS = {
     scopeField: 'Scope de consultation',
     statusField: 'Filtrer par statut de negociation',
   },
+  messaging: {
+    tag: 'Messagerie',
+    listConversationsSummary: 'Lister mes conversations par reservation',
+    createConversationSummary:
+      'Initier ou recuperer la conversation d une reservation',
+    listMessagesSummary: 'Lister les messages dune conversation',
+    sendMessageSummary: 'Envoyer un message dans une conversation',
+    conversationIdParam: 'Identifiant de la conversation',
+    listConversationsSuccess: 'Conversations recuperees avec succes',
+    createConversationSuccess: 'Conversation disponible avec succes',
+    listMessagesSuccess: 'Messages recuperes avec succes',
+    sendMessageSuccess: 'Message envoye avec succes',
+    reservationIdField:
+      'Identifiant obligatoire de la reservation rattachee a la conversation',
+    contentField: 'Contenu texte du message',
+    mediaUrlField: 'URL optionnelle du media envoye avec le message',
+    limitField: 'Nombre maximum de resultats',
+    offsetField: 'Offset de pagination',
+    conversationAccessForbidden:
+      'Cette conversation nest pas accessible pour l utilisateur courant.',
+    reservationMismatchConflict:
+      'La reservation fournie ne correspond pas aux participants de la conversation.',
+  },
   adminCategories: {
     tag: 'Admin - Categories',
     createSummary: 'Creer une categorie',

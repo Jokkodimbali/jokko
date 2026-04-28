@@ -392,6 +392,65 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Negotiation annulee avec succes.',
     },
   },
+  messaging: {
+    MESSAGING_CONVERSATION_CREATED: {
+      code: 'MESSAGING_CONVERSATION_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Conversation disponible avec succes.',
+    },
+    MESSAGING_MESSAGES_RETRIEVED: {
+      code: 'MESSAGING_MESSAGES_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Messages recuperes avec succes.',
+    },
+    MESSAGING_MESSAGE_SENT: {
+      code: 'MESSAGING_MESSAGE_SENT',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Message envoye avec succes.',
+    },
+    MESSAGING_NOT_FOUND: {
+      code: 'MESSAGING_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Conversation introuvable.',
+    },
+    MESSAGING_UNAUTHORIZED: {
+      code: 'MESSAGING_UNAUTHORIZED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a acceder a cette conversation.",
+    },
+    MESSAGING_PROFESSIONAL_NOT_FOUND: {
+      code: 'MESSAGING_PROFESSIONAL_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Professionnel introuvable pour cette conversation.',
+    },
+    MESSAGING_CLIENT_NOT_FOUND: {
+      code: 'MESSAGING_CLIENT_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Client introuvable pour cette conversation.',
+    },
+    MESSAGING_RESERVATION_NOT_FOUND: {
+      code: 'MESSAGING_RESERVATION_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Reservation introuvable pour cette conversation.',
+    },
+    MESSAGING_RESERVATION_REQUIRED: {
+      code: 'MESSAGING_RESERVATION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Une reservation est obligatoire pour ouvrir une conversation.',
+    },
+    MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH: {
+      code: 'MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La reservation ne correspond pas aux participants de cette conversation.',
+    },
+    MESSAGING_SELF_CONVERSATION_FORBIDDEN: {
+      code: 'MESSAGING_SELF_CONVERSATION_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Impossible de creer une conversation avec soi-meme sur la plateforme.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -628,6 +687,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.search,
   ...APP_MESSAGES_BY_MODULE.negotiations,
+  ...APP_MESSAGES_BY_MODULE.messaging,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,

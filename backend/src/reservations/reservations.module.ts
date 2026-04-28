@@ -33,6 +33,6 @@ import { ReservationsController } from './presentation/controllers/reservations.
     ReservationQueryService,
     ReservationsFacade,
   ],
-  exports: [ReservationsFacade],
+  exports: [ReservationsFacade, RESERVATIONS_REPOSITORY_PORT],
 })
 export class ReservationsModule {}

@@ -58,7 +58,9 @@ export type ProfessionalAvailabilityView = {
 
 export type ProfessionalReviewView = {
   id: string;
-  notes: string | null;
+  note: number;
+  commentaire: string | null;
+  reviewedAt: Date;
   dateHeure: Date;
   creeLe: Date;
   service: {

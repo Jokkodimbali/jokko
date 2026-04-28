@@ -58,3 +58,33 @@ export class ProposeReservationPriceAdjustmentDto {
   })
   reason?: string;
 }
+
+export class SubmitReservationReviewDto {
+  @ApiProperty({
+    description: API_DOCS.reservations.reviewRatingField,
+    example: 5,
+  })
+  @IsNumber(
+    { maxDecimalPlaces: 0 },
+    {
+      message: VALIDATION_MESSAGES.RESERVATION_REVIEW_RATING_INVALID,
+    },
+  )
+  @Min(1, {
+    message: VALIDATION_MESSAGES.RESERVATION_REVIEW_RATING_MIN,
+  })
+  @Max(5, {
+    message: VALIDATION_MESSAGES.RESERVATION_REVIEW_RATING_MAX,
+  })
+  rating!: number;
+
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.reviewCommentField,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000, {
+    message: VALIDATION_MESSAGES.RESERVATION_REVIEW_MAX,
+  })
+  review?: string;
+}

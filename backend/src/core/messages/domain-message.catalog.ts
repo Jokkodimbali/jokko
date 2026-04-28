@@ -83,6 +83,12 @@ export const DOMAIN_MESSAGE_CATALOG = {
     'Annulation impossible moins de 24h avant la reservation.',
   RESERVATION_RESCHEDULE_TOO_LATE:
     'Reprogrammation impossible moins de 24h avant la reservation.',
+  RESERVATION_REVIEW_REQUIRES_COMPLETED:
+    'La reservation doit etre terminee avant de pouvoir laisser un avis.',
+  RESERVATION_REVIEW_ALREADY_SUBMITTED:
+    'Un avis client a deja ete enregistre pour cette reservation.',
+  RESERVATION_REVIEW_RATING_INVALID:
+    'La note client doit etre un entier compris entre 1 et 5.',
   USER_NOT_FOUND: 'Utilisateur introuvable',
   USER_ALREADY_EXISTS: ({ identifier }: { identifier: string }) =>
     `L'utilisateur avec ${identifier} existe deja`,

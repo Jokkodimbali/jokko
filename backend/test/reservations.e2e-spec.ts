@@ -69,6 +69,9 @@ describe('ReservationsModule (e2e)', () => {
     prixAjustementPropose?: number | null;
     raisonAjustementPrix?: string | null;
     raisonAnnulation?: string | null;
+    clientRating?: number | null;
+    clientReview?: string | null;
+    clientReviewedAt?: string | null;
   };
 
   type ReservationSuccessResponse = {
@@ -464,6 +467,149 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.message).toBe('Reservation terminee avec succes.');
     expect(data.statut).toBe('TERMINEE');
+  });
+
+  it('PATCH /api/v1/reservations/:id/review submits a client review and updates professional aggregates', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(43),
+        adresseClient: 'Dakar Mamelles',
+        dureeMinutes: 45,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/mark-paid`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/complete`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/review`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        rating: 5,
+        review: 'Intervention tres propre et rapide.',
+      })
+      .expect(200);
+
+    const body = response.body as ReservationSuccessResponse;
+    const data = body.data as ReservationView;
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Avis client enregistre avec succes.');
+    expect(data.clientRating).toBe(5);
+    expect(data.clientReview).toBe('Intervention tres propre et rapide.');
+    expect(data.clientReviewedAt).toBeTruthy();
+
+    const persistedReservation = await prisma.reservation.findUnique({
+      where: { id: reservation.id },
+      select: {
+        clientRating: true,
+        clientReview: true,
+        clientReviewedAt: true,
+      },
+    });
+
+    expect(persistedReservation?.clientRating).toBe(5);
+    expect(persistedReservation?.clientReview).toBe(
+      'Intervention tres propre et rapide.',
+    );
+    expect(persistedReservation?.clientReviewedAt).not.toBeNull();
+
+    const updatedProfile = await prisma.profilProfessionnel.findUnique({
+      where: { id: professionalProfileId },
+      select: {
+        noteGlobale: true,
+        nombreAvis: true,
+      },
+    });
+
+    expect(updatedProfile).not.toBeNull();
+    expect(updatedProfile?.nombreAvis).toBeGreaterThanOrEqual(1);
+    expect(updatedProfile?.noteGlobale.toNumber()).toBeGreaterThan(0);
+
+    const reviewsResponse = await request(app.getHttpServer())
+      .get(`/api/v1/professionals/${professionalProfileId}/reviews`)
+      .expect(200);
+
+    const reviewsBody = reviewsResponse.body as ReservationSuccessResponse;
+    const reviewsData = reviewsBody.data as Array<Record<string, unknown>>;
+    expect(
+      reviewsData.some(
+        (item) =>
+          item.id === reservation.id &&
+          item.note === 5 &&
+          item.commentaire === 'Intervention tres propre et rapide.',
+      ),
+    ).toBe(true);
+  });
+
+  it('PATCH /api/v1/reservations/:id/review refuses an already reviewed reservation', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: buildFutureIso(43.5),
+        adresseClient: 'Dakar Fass',
+        dureeMinutes: 45,
+      })
+      .expect(201);
+    const created = createResponse.body as ReservationSuccessResponse;
+    const reservation = created.data as ReservationView;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/confirm`)
+      .set('Authorization', `Bearer ${professionalToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/mark-paid`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/complete`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/review`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        rating: 4,
+        review: 'Bon travail.',
+      })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/reservations/${reservation.id}/review`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        rating: 2,
+        review: 'Deuxieme avis interdit.',
+      })
+      .expect(400);
+
+    const body = response.body as ErrorResponse;
+    expect(body.success).toBe(false);
+    expect(body.errorCode).toBe('RESERVATION_REVIEW_ALREADY_SUBMITTED');
   });
 
   it('PATCH /api/v1/reservations/:id/complete refuses a non paid reservation', async () => {

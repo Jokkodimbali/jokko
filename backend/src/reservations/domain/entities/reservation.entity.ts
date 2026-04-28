@@ -32,6 +32,9 @@ export type Reservation = {
   raisonAjustementPrix: string | null;
   demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
+  clientRating: number | null;
+  clientReview: string | null;
+  clientReviewedAt: Date | null;
   creeLe: Date;
   misAJourLe: Date;
 };
@@ -53,6 +56,9 @@ export class ReservationEntity {
     private _raisonAjustementPrix: string | null,
     private _demandeAjustementPrixLe: Date | null,
     private _raisonAnnulation: string | null,
+    private _clientRating: number | null,
+    private _clientReview: string | null,
+    private _clientReviewedAt: Date | null,
     private readonly _creeLe: Date,
     private _misAJourLe: Date,
   ) {}
@@ -117,6 +123,18 @@ export class ReservationEntity {
     return this._raisonAnnulation;
   }
 
+  get clientRating(): number | null {
+    return this._clientRating;
+  }
+
+  get clientReview(): string | null {
+    return this._clientReview;
+  }
+
+  get clientReviewedAt(): Date | null {
+    return this._clientReviewedAt;
+  }
+
   get creeLe(): Date {
     return this._creeLe;
   }
@@ -168,6 +186,9 @@ export class ReservationEntity {
       null,
       null,
       null,
+      null,
+      null,
+      null,
       now,
       now,
     );
@@ -179,6 +200,9 @@ export class ReservationEntity {
     this.assertValidDate(data.misAJourLe);
     if (data.demandeAjustementPrixLe) {
       this.assertValidDate(data.demandeAjustementPrixLe);
+    }
+    if (data.clientReviewedAt) {
+      this.assertValidDate(data.clientReviewedAt);
     }
 
     return new ReservationEntity(
@@ -199,6 +223,9 @@ export class ReservationEntity {
         ? new Date(data.demandeAjustementPrixLe)
         : null,
       data.raisonAnnulation,
+      data.clientRating,
+      data.clientReview,
+      data.clientReviewedAt ? new Date(data.clientReviewedAt) : null,
       new Date(data.creeLe),
       new Date(data.misAJourLe),
     );
@@ -355,6 +382,23 @@ export class ReservationEntity {
     this.touch();
   }
 
+  submitClientReview(input: { rating: number; review?: string | null }): void {
+    if (this._statut !== 'TERMINEE') {
+      throw ReservationDomainError.reviewRequiresCompletedReservation();
+    }
+
+    if (this._clientRating !== null || this._clientReviewedAt !== null) {
+      throw ReservationDomainError.reviewAlreadySubmitted();
+    }
+
+    ReservationEntity.assertRating(input.rating);
+
+    this._clientRating = input.rating;
+    this._clientReview = ReservationEntity.normalizeText(input.review);
+    this._clientReviewedAt = new Date();
+    this.touch();
+  }
+
   toView(): Reservation {
     return {
       id: this._id,
@@ -374,6 +418,11 @@ export class ReservationEntity {
         ? new Date(this._demandeAjustementPrixLe)
         : null,
       raisonAnnulation: this._raisonAnnulation,
+      clientRating: this._clientRating,
+      clientReview: this._clientReview,
+      clientReviewedAt: this._clientReviewedAt
+        ? new Date(this._clientReviewedAt)
+        : null,
       creeLe: new Date(this._creeLe),
       misAJourLe: new Date(this._misAJourLe),
     };
@@ -477,6 +526,12 @@ export class ReservationEntity {
   private static assertPositiveAmount(amount: number): void {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw ReservationDomainError.invalidPriceAdjustmentAmount();
+    }
+  }
+
+  private static assertRating(rating: number): void {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw ReservationDomainError.invalidReviewRating();
     }
   }
 

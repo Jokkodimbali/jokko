@@ -19,6 +19,7 @@ import type {
   CreateReservationFromNegotiationCommand,
   ProposeReservationPriceAdjustmentCommand,
   RescheduleReservationCommand,
+  SubmitReservationReviewCommand,
 } from '../commands/reservations.commands';
 import { ReservationEntity } from '../../domain/entities/reservation.entity';
 import {
@@ -363,6 +364,36 @@ export class ReservationCommandService extends ReservationAppService {
       const updated = await this.reservationsRepository.update(entity.toView());
 
       return updated;
+    } catch (error) {
+      this.handleDomainError(error);
+      throw error;
+    }
+  }
+
+  async submitReview(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: SubmitReservationReviewCommand,
+  ) {
+    this.assertClientRole(requestUser.role);
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+
+    if (reservation.clientId !== requestUser.sub) {
+      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    }
+
+    try {
+      const entity = ReservationEntity.reconstitute(reservation);
+      entity.submitClientReview({
+        rating: command.rating,
+        review: trimString(command.review) ?? null,
+      });
+      return await this.reservationsRepository.submitClientReview(
+        entity.toView(),
+      );
     } catch (error) {
       this.handleDomainError(error);
       throw error;

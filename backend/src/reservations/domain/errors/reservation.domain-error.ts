@@ -201,4 +201,25 @@ export class ReservationDomainError extends ValidationError {
       domainMessage('RESERVATION_RESCHEDULE_TOO_LATE'),
     );
   }
+
+  static reviewRequiresCompletedReservation(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_REQUIRES_COMPLETED',
+      domainMessage('RESERVATION_REVIEW_REQUIRES_COMPLETED'),
+    );
+  }
+
+  static reviewAlreadySubmitted(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_ALREADY_SUBMITTED',
+      domainMessage('RESERVATION_REVIEW_ALREADY_SUBMITTED'),
+    );
+  }
+
+  static invalidReviewRating(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_RATING_INVALID',
+      domainMessage('RESERVATION_REVIEW_RATING_INVALID'),
+    );
+  }
 }

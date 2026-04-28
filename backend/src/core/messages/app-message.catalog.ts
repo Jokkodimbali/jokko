@@ -508,6 +508,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Reservation terminee avec succes.',
     },
+    RESERVATIONS_REVIEW_SUBMITTED: {
+      code: 'RESERVATIONS_REVIEW_SUBMITTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Avis client enregistre avec succes.',
+    },
     RESERVATIONS_NO_SHOW_MARKED: {
       code: 'RESERVATIONS_NO_SHOW_MARKED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
@@ -524,6 +529,16 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
       message:
         "Impossible d'ajuster le prix car un paiement est deja en cours ou enregistre pour cette reservation.",
+    },
+    RESERVATIONS_REVIEW_ALREADY_SUBMITTED: {
+      code: 'RESERVATIONS_REVIEW_ALREADY_SUBMITTED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Un avis client existe deja pour cette reservation.',
+    },
+    RESERVATIONS_REVIEW_COMPLETED_REQUIRED: {
+      code: 'RESERVATIONS_REVIEW_COMPLETED_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Seules les reservations terminees peuvent etre notees.',
     },
   },
   payments: {

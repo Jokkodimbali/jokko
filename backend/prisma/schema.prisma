@@ -301,6 +301,9 @@ model Reservation {
   raisonAjustementPrix String?         @map("price_adjustment_reason") @db.Text
   demandeAjustementPrixLe DateTime?    @map("price_adjustment_requested_at")
   raisonAnnulation  String?            @map("cancel_reason") @db.Text
+  clientRating      Int?               @map("client_rating") @db.SmallInt
+  clientReview      String?            @map("client_review") @db.Text
+  clientReviewedAt  DateTime?          @map("client_reviewed_at")
   creeLe            DateTime           @default(now()) @map("created_at")
   misAJourLe        DateTime           @default(now()) @map("updated_at")
 
@@ -317,6 +320,7 @@ model Reservation {
   @@index([professionnelId, dateHeure])
   @@index([serviceId, dateHeure])
   @@index([statut, dateHeure])
+  @@index([professionnelId, clientReviewedAt])
   @@map("bookings")
 }
 

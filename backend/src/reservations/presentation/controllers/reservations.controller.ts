@@ -38,6 +38,7 @@ import {
   CancelReservationDto,
   ProposeReservationPriceAdjustmentDto,
   RescheduleReservationDto,
+  SubmitReservationReviewDto,
 } from '../dto/update-reservation.dto';
 
 @ApiTags(API_DOCS.reservations.tag)
@@ -525,6 +526,56 @@ export class ReservationsController {
     return createApiResponse(
       result,
       appMessage('RESERVATIONS_COMPLETED').message,
+    );
+  }
+
+  @Patch(':reservationId/review')
+  @ApiOperation({ summary: API_DOCS.reservations.submitReviewSummary })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiBody({ type: SubmitReservationReviewDto })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.reservations.submitReviewSuccess,
+    messageExample: appMessage('RESERVATIONS_REVIEW_SUBMITTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.reservations.reservationData,
+        statut: 'TERMINEE',
+        clientRating: 5,
+        clientReview: 'Prestation tres propre et ponctuelle.',
+        clientReviewedAt: '2026-05-01T12:00:00.000Z',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: appMessage('RESERVATIONS_NOT_FOUND').message,
+    errorCode: 'RESERVATIONS_NOT_FOUND',
+    messageExample: appMessage('RESERVATIONS_NOT_FOUND').message,
+  })
+  @ApiStandardErrorResponse({
+    status: 400,
+    description: API_DOCS.reservations.reviewCompletedRequired,
+    errorCode: 'RESERVATION_REVIEW_REQUIRES_COMPLETED',
+    messageExample: API_DOCS.reservations.reviewCompletedRequired,
+  })
+  async submitReview(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() dto: SubmitReservationReviewDto,
+  ) {
+    const result = await this.reservationsFacade.submitReview(
+      user,
+      reservationId,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('RESERVATIONS_REVIEW_SUBMITTED').message,
     );
   }
 

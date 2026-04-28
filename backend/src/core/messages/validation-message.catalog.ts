@@ -124,6 +124,13 @@ export const VALIDATION_MESSAGE_CATALOG = {
     "Le montant propose pour l'ajustement de prix ne doit pas depasser 100000000 FCFA.",
   RESERVATION_PRICE_ADJUSTMENT_REASON_MAX:
     "Le motif d'ajustement de prix ne doit pas depasser 1000 caracteres.",
+  RESERVATION_REVIEW_RATING_INVALID:
+    'La note de reservation doit etre un entier valide.',
+  RESERVATION_REVIEW_RATING_MIN:
+    'La note de reservation doit etre au minimum de 1 sur 5.',
+  RESERVATION_REVIEW_RATING_MAX:
+    'La note de reservation doit etre au maximum de 5 sur 5.',
+  RESERVATION_REVIEW_MAX: "L'avis client ne doit pas depasser 1000 caracteres.",
   RESERVATION_QUERY_DATE_INVALID:
     'La date fournie dans les filtres est invalide.',
   PASSWORD_REQUIRED: 'Le mot de passe est obligatoire.',

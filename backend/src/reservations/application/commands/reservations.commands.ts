@@ -28,6 +28,11 @@ export type ProposeReservationPriceAdjustmentCommand = {
   reason?: string;
 };
 
+export type SubmitReservationReviewCommand = {
+  rating: number;
+  review?: string;
+};
+
 export type ListReservationsQuery = {
   startDate?: string;
   endDate?: string;

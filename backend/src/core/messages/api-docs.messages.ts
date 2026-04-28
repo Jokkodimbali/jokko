@@ -196,6 +196,8 @@ export const API_DOCS = {
     rejectPriceAdjustmentSummary:
       'Refuser un ajustement de prix propose par le prestataire',
     completeSummary: 'Marquer une reservation comme terminee',
+    submitReviewSummary:
+      'Laisser une note et un avis sur une reservation terminee',
     noShowSummary: 'Declarer une absence client',
     markPaidSummary: 'Marquer une reservation comme payee',
     startSummary: 'Demarrer une reservation',
@@ -218,6 +220,8 @@ export const API_DOCS = {
     priceAdjustmentReasonField:
       "Motif de l'ajustement de prix constate sur place",
     disputeReasonField: 'Motif du litige sur la reservation',
+    reviewRatingField: 'Note client sur 5',
+    reviewCommentField: 'Commentaire facultatif sur la prestation',
     createNotFound: 'Service ou professionnel introuvable.',
     createConflict: 'Conflit metier sur la reservation.',
     confirmPendingRequired:
@@ -230,6 +234,8 @@ export const API_DOCS = {
       'Le prix ne peut plus etre ajuste si un paiement existe deja ou si une demande est deja en attente.',
     completePaymentRequired:
       'La reservation doit etre payee avant d etre finalisee.',
+    reviewCompletedRequired:
+      'La reservation doit etre terminee et non encore notee pour accepter un avis client.',
     noShowPaymentRequired:
       'La reservation doit etre payee avant d etre marquee en no-show.',
     markPaidConflict:
@@ -251,6 +257,7 @@ export const API_DOCS = {
     acceptPriceAdjustmentSuccess: 'Ajustement de prix accepte avec succes',
     rejectPriceAdjustmentSuccess: 'Ajustement de prix refuse avec succes',
     completeSuccess: 'Reservation terminee avec succes',
+    submitReviewSuccess: 'Avis client enregistre avec succes',
     noShowSuccess: 'Absence client enregistree avec succes',
     markPaidSuccess: 'Reservation marquee comme payee avec succes',
     startSuccess: 'Reservation demarree avec succes',
@@ -349,5 +356,9 @@ export const API_DOCS = {
     invalidCredentials: 'Identifiants invalides',
     invalidOrExpiredOtp: 'Code OTP invalide ou expire',
     invalidOrExpiredRefreshToken: 'Refresh token invalide ou expire',
+    envelopeMessageExample: 'Operation effectuee avec succes.',
+    envelopeDataDescription: 'Charge utile retournee par le backend.',
+    envelopeMetaDescription: 'Metadonnees retournees par le backend.',
+    errorPathExample: '/api/v1/auth/login',
   },
 } as const;

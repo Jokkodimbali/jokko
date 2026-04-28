@@ -7,6 +7,7 @@ import type {
   ListReservationsQuery,
   ProposeReservationPriceAdjustmentCommand,
   RescheduleReservationCommand,
+  SubmitReservationReviewCommand,
 } from '../commands/reservations.commands';
 import { ReservationCommandService } from './reservation-command.service';
 import { ReservationQueryService } from './reservation-query.service';
@@ -130,6 +131,18 @@ export class ReservationsFacade {
     return this.reservationCommandService.completeReservation(
       requestUser,
       reservationId,
+    );
+  }
+
+  async submitReview(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: SubmitReservationReviewCommand,
+  ) {
+    return this.reservationCommandService.submitReview(
+      requestUser,
+      reservationId,
+      command,
     );
   }
 

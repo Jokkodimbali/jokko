@@ -526,17 +526,17 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
   async listReviews(profileId: string): Promise<ProfessionalReviewView[]> {
     const rows = await this.prisma.reservation.findMany({
       where: {
-        service: {
-          profilProfessionnelId: profileId,
-        },
-        notes: {
+        professionnelId: profileId,
+        clientRating: {
           not: null,
         },
       },
-      orderBy: { creeLe: 'desc' },
+      orderBy: [{ clientReviewedAt: 'desc' }, { creeLe: 'desc' }],
       select: {
         id: true,
-        notes: true,
+        clientRating: true,
+        clientReview: true,
+        clientReviewedAt: true,
         dateHeure: true,
         creeLe: true,
         service: {
@@ -555,10 +555,11 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       },
     });
 
-    // No redundant filter needed: Prisma's `not: null` already excludes nulls
     return rows.map((row) => ({
       id: row.id,
-      notes: row.notes,
+      note: row.clientRating ?? 0,
+      commentaire: row.clientReview,
+      reviewedAt: row.clientReviewedAt ?? row.creeLe,
       dateHeure: row.dateHeure,
       creeLe: row.creeLe,
       service: {

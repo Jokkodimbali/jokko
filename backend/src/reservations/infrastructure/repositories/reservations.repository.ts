@@ -25,6 +25,9 @@ const RESERVATION_SELECT = {
   raisonAjustementPrix: true,
   demandeAjustementPrixLe: true,
   raisonAnnulation: true,
+  clientRating: true,
+  clientReview: true,
+  clientReviewedAt: true,
   creeLe: true,
   misAJourLe: true,
 } as const;
@@ -45,6 +48,9 @@ type ReservationRecord = {
   raisonAjustementPrix: string | null;
   demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
+  clientRating: number | null;
+  clientReview: string | null;
+  clientReviewedAt: Date | null;
   creeLe: Date;
   misAJourLe: Date;
 };
@@ -161,6 +167,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           raisonAjustementPrix: reservation.raisonAjustementPrix,
           demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
+          clientRating: reservation.clientRating,
+          clientReview: reservation.clientReview,
+          clientReviewedAt: reservation.clientReviewedAt,
           creeLe: reservation.creeLe,
           misAJourLe: reservation.misAJourLe,
         },
@@ -220,6 +229,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           raisonAjustementPrix: reservation.raisonAjustementPrix,
           demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
+          clientRating: reservation.clientRating,
+          clientReview: reservation.clientReview,
+          clientReviewedAt: reservation.clientReviewedAt,
           creeLe: reservation.creeLe,
           misAJourLe: reservation.misAJourLe,
         },
@@ -267,6 +279,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           raisonAjustementPrix: reservation.raisonAjustementPrix,
           demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
+          clientRating: reservation.clientRating,
+          clientReview: reservation.clientReview,
+          clientReviewedAt: reservation.clientReviewedAt,
           misAJourLe: reservation.misAJourLe,
         },
         select: RESERVATION_SELECT,
@@ -283,6 +298,60 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     });
 
     return payment !== null;
+  }
+
+  async submitClientReview(reservation: Reservation): Promise<Reservation> {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const writeResult = await tx.reservation.updateMany({
+        where: {
+          id: reservation.id,
+          statut: 'TERMINEE',
+          clientRating: null,
+          clientReviewedAt: null,
+        },
+        data: {
+          statut: reservation.statut,
+          clientRating: reservation.clientRating,
+          clientReview: reservation.clientReview,
+          clientReviewedAt: reservation.clientReviewedAt,
+          misAJourLe: reservation.misAJourLe,
+        },
+      });
+
+      if (writeResult.count !== 1) {
+        throw ReservationDomainError.reviewAlreadySubmitted();
+      }
+
+      const savedReservation = await tx.reservation.findUnique({
+        where: { id: reservation.id },
+        select: RESERVATION_SELECT,
+      });
+
+      if (!savedReservation) {
+        throw ReservationDomainError.notFound();
+      }
+
+      const aggregate = await tx.reservation.aggregate({
+        where: {
+          professionnelId: reservation.professionnelId,
+          clientRating: { not: null },
+        },
+        _avg: { clientRating: true },
+        _count: { clientRating: true },
+      });
+
+      await tx.profilProfessionnel.update({
+        where: { id: reservation.professionnelId },
+        data: {
+          noteGlobale: new Prisma.Decimal(aggregate._avg.clientRating ?? 0),
+          nombreAvis: aggregate._count.clientRating,
+        },
+      });
+
+      return savedReservation;
+    });
+
+    return this.mapToDomain(updated);
   }
 
   async delete(id: string): Promise<void> {
@@ -430,6 +499,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       raisonAjustementPrix: record.raisonAjustementPrix,
       demandeAjustementPrixLe: record.demandeAjustementPrixLe,
       raisonAnnulation: record.raisonAnnulation,
+      clientRating: record.clientRating,
+      clientReview: record.clientReview,
+      clientReviewedAt: record.clientReviewedAt,
       creeLe: record.creeLe,
       misAJourLe: record.misAJourLe,
     };

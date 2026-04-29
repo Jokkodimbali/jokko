@@ -6,6 +6,7 @@ import {
   ApiResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
+import { API_DOCS } from '../../core/messages/api-docs.messages';
 
 type SwaggerDto = Type<unknown>;
 
@@ -93,19 +94,19 @@ export class ApiSuccessEnvelopeSwaggerDto {
   success!: boolean;
 
   @ApiPropertyOptional({
-    example: 'Operation effectuee avec succes.',
+    example: API_DOCS.common.envelopeMessageExample,
   })
   message?: string;
 
   @ApiPropertyOptional({
-    description: 'Charge utile retournee par le backend.',
+    description: API_DOCS.common.envelopeDataDescription,
     type: 'object',
     additionalProperties: true,
   })
   data?: Record<string, unknown> | null;
 
   @ApiPropertyOptional({
-    description: 'Metadonnees retournees par le backend.',
+    description: API_DOCS.common.envelopeMetaDescription,
     type: () => ApiMetaSwaggerDto,
   })
   meta?: ApiMetaSwaggerDto;
@@ -127,7 +128,7 @@ export class ApiErrorSwaggerDto {
   @ApiProperty({ example: '2026-04-24T10:00:00.000Z' })
   timestamp!: string;
 
-  @ApiPropertyOptional({ example: '/api/v1/auth/login' })
+  @ApiPropertyOptional({ example: API_DOCS.common.errorPathExample })
   path?: string;
 }
 

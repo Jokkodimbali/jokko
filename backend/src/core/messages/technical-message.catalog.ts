@@ -10,6 +10,7 @@ export const ENV_MESSAGES = {
 } as const;
 
 export const TECHNICAL_MESSAGES = {
+  INVALID_PHONE_NUMBER_CODE: 'INVALID_PHONE_NUMBER',
   DATABASE_HEALTH_TIMEOUT:
     'Le delai de verification de la base de donnees est depasse.',
   RESERVATION_EMAIL_PROVIDER_NOT_CONFIGURED:

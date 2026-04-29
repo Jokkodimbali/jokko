@@ -1,5 +1,5 @@
-import { ValidationError } from '../../../shared/domain/errors/domain-error';
 import { domainMessage } from '../../../core/messages/domain-message.catalog';
+import { ValidationError } from '../../../shared/domain/errors/domain-error';
 
 export class ReservationDomainError extends ValidationError {
   constructor(code: string, message: string) {
@@ -139,6 +139,41 @@ export class ReservationDomainError extends ValidationError {
     );
   }
 
+  static invalidPriceAdjustmentStatus(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PRICE_ADJUSTMENT_STATUS_INVALID',
+      domainMessage('RESERVATION_PRICE_ADJUSTMENT_STATUS_INVALID'),
+    );
+  }
+
+  static priceAdjustmentAlreadyPending(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PRICE_ADJUSTMENT_ALREADY_PENDING',
+      domainMessage('RESERVATION_PRICE_ADJUSTMENT_ALREADY_PENDING'),
+    );
+  }
+
+  static priceAdjustmentNotPending(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PRICE_ADJUSTMENT_NOT_PENDING',
+      domainMessage('RESERVATION_PRICE_ADJUSTMENT_NOT_PENDING'),
+    );
+  }
+
+  static invalidPriceAdjustmentAmount(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID',
+      domainMessage('RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID'),
+    );
+  }
+
+  static unchangedPriceAdjustmentAmount(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED',
+      domainMessage('RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED'),
+    );
+  }
+
   static cannotOpenDispute(): ReservationDomainError {
     return new ReservationDomainError(
       'RESERVATION_CANNOT_OPEN_DISPUTE',
@@ -157,6 +192,27 @@ export class ReservationDomainError extends ValidationError {
     return new ReservationDomainError(
       'RESERVATION_RESCHEDULE_TOO_LATE',
       domainMessage('RESERVATION_RESCHEDULE_TOO_LATE'),
+    );
+  }
+
+  static reviewRequiresCompletedReservation(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_REQUIRES_COMPLETED',
+      domainMessage('RESERVATION_REVIEW_REQUIRES_COMPLETED'),
+    );
+  }
+
+  static reviewAlreadySubmitted(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_ALREADY_SUBMITTED',
+      domainMessage('RESERVATION_REVIEW_ALREADY_SUBMITTED'),
+    );
+  }
+
+  static invalidReviewRating(): ReservationDomainError {
+    return new ReservationDomainError(
+      'RESERVATION_REVIEW_RATING_INVALID',
+      domainMessage('RESERVATION_REVIEW_RATING_INVALID'),
     );
   }
 }

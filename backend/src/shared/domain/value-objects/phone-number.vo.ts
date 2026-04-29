@@ -1,3 +1,5 @@
+import { TECHNICAL_MESSAGES } from '../../../core/messages/technical-message.catalog';
+
 export class PhoneNumber {
   private constructor(private readonly value: string) {}
 
@@ -6,7 +8,7 @@ export class PhoneNumber {
     const phoneRegex = /^\+?[1-9]\d{7,14}$/;
 
     if (!phoneRegex.test(normalized)) {
-      throw new Error('INVALID_PHONE_NUMBER');
+      throw new Error(TECHNICAL_MESSAGES.INVALID_PHONE_NUMBER_CODE);
     }
 
     return new PhoneNumber(normalized);

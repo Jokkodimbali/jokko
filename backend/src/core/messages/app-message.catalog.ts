@@ -97,6 +97,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message: 'Le numero de telephone est invalide.',
     },
+    AUTH_ACCOUNT_INACTIVE: {
+      code: 'AUTH_ACCOUNT_INACTIVE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Ce compte est bloque ou desactive par un administrateur.',
+    },
   },
   users: {
     USERS_USER_NOT_FOUND: {
@@ -128,6 +133,31 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'USERS_ACCOUNT_ANONYMIZED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Compte anonymise avec succes.',
+    },
+    USERS_ADMIN_FORBIDDEN_ROLE: {
+      code: 'USERS_ADMIN_FORBIDDEN_ROLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Seuls les administrateurs peuvent effectuer cette action.',
+    },
+    USERS_LISTED: {
+      code: 'USERS_LISTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateurs recuperes avec succes.',
+    },
+    USERS_HISTORY_RETRIEVED: {
+      code: 'USERS_HISTORY_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: "Historique de l'utilisateur recupere avec succes.",
+    },
+    USERS_BLOCKED: {
+      code: 'USERS_BLOCKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateur bloque avec succes.',
+    },
+    USERS_UNBLOCKED: {
+      code: 'USERS_UNBLOCKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateur debloque avec succes.',
     },
   },
   professionals: {
@@ -280,6 +310,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Categorie desactivee avec succes.',
     },
+    CATEGORIES_COMMISSION_RATE_INVALID: {
+      code: 'CATEGORIES_COMMISSION_RATE_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Le taux de commission de la categorie est invalide.',
+    },
     CATEGORIES_UPDATE_EMPTY: {
       code: 'CATEGORIES_UPDATE_EMPTY',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
@@ -297,6 +332,240 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message:
         'La latitude et la longitude doivent etre fournies ensemble pour une recherche geolocalisee.',
+    },
+  },
+  negotiations: {
+    NEGOTIATIONS_CLIENT_ROLE_REQUIRED: {
+      code: 'NEGOTIATIONS_CLIENT_ROLE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Seuls les clients peuvent initier ou annuler une negotiation de prix.',
+    },
+    NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED: {
+      code: 'NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        'Seuls les prestataires peuvent repondre a cette action de negotiation.',
+    },
+    NEGOTIATIONS_NOT_FOUND: {
+      code: 'NEGOTIATIONS_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Negotiation introuvable.',
+    },
+    NEGOTIATIONS_UNAUTHORIZED: {
+      code: 'NEGOTIATIONS_UNAUTHORIZED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a acceder a cette negotiation.",
+    },
+    NEGOTIATIONS_SERVICE_NOT_NEGOTIABLE: {
+      code: 'NEGOTIATIONS_SERVICE_NOT_NEGOTIABLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Ce service ne permet pas la negotiation de prix.',
+    },
+    NEGOTIATIONS_ALREADY_ACTIVE: {
+      code: 'NEGOTIATIONS_ALREADY_ACTIVE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Une negotiation active existe deja pour ce service et ce client.',
+    },
+    NEGOTIATIONS_SELF_NEGOTIATION_FORBIDDEN: {
+      code: 'NEGOTIATIONS_SELF_NEGOTIATION_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Un prestataire ne peut pas negocier son propre service en tant que client.',
+    },
+    NEGOTIATIONS_WRONG_TURN: {
+      code: 'NEGOTIATIONS_WRONG_TURN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Cette action ne correspond pas au tour actuel de la negotiation.',
+    },
+    NEGOTIATIONS_ALREADY_CLOSED: {
+      code: 'NEGOTIATIONS_ALREADY_CLOSED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette negotiation est deja cloturee.',
+    },
+    NEGOTIATIONS_ACCEPTED_REQUIRED: {
+      code: 'NEGOTIATIONS_ACCEPTED_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La negotiation doit etre acceptee avant de creer une reservation.',
+    },
+    NEGOTIATIONS_ALREADY_CONVERTED: {
+      code: 'NEGOTIATIONS_ALREADY_CONVERTED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Cette negotiation est deja convertie en reservation.',
+    },
+    NEGOTIATIONS_AMOUNT_INVALID: {
+      code: 'NEGOTIATIONS_AMOUNT_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Le montant propose est invalide.',
+    },
+    NEGOTIATIONS_CREATED: {
+      code: 'NEGOTIATIONS_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Negotiation creee avec succes.',
+    },
+    NEGOTIATIONS_COUNTERED: {
+      code: 'NEGOTIATIONS_COUNTERED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Contre-proposition enregistree avec succes.',
+    },
+    NEGOTIATIONS_ACCEPTED: {
+      code: 'NEGOTIATIONS_ACCEPTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation acceptee avec succes.',
+    },
+    NEGOTIATIONS_REJECTED: {
+      code: 'NEGOTIATIONS_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation rejetee avec succes.',
+    },
+    NEGOTIATIONS_CANCELLED: {
+      code: 'NEGOTIATIONS_CANCELLED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Negotiation annulee avec succes.',
+    },
+  },
+  messaging: {
+    MESSAGING_CONVERSATION_CREATED: {
+      code: 'MESSAGING_CONVERSATION_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Conversation disponible avec succes.',
+    },
+    MESSAGING_MESSAGES_RETRIEVED: {
+      code: 'MESSAGING_MESSAGES_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Messages recuperes avec succes.',
+    },
+    MESSAGING_MESSAGE_SENT: {
+      code: 'MESSAGING_MESSAGE_SENT',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Message envoye avec succes.',
+    },
+    MESSAGING_NOT_FOUND: {
+      code: 'MESSAGING_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Conversation introuvable.',
+    },
+    MESSAGING_UNAUTHORIZED: {
+      code: 'MESSAGING_UNAUTHORIZED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a acceder a cette conversation.",
+    },
+    MESSAGING_PROFESSIONAL_NOT_FOUND: {
+      code: 'MESSAGING_PROFESSIONAL_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Professionnel introuvable pour cette conversation.',
+    },
+    MESSAGING_CLIENT_NOT_FOUND: {
+      code: 'MESSAGING_CLIENT_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Client introuvable pour cette conversation.',
+    },
+    MESSAGING_RESERVATION_NOT_FOUND: {
+      code: 'MESSAGING_RESERVATION_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Reservation introuvable pour cette conversation.',
+    },
+    MESSAGING_RESERVATION_REQUIRED: {
+      code: 'MESSAGING_RESERVATION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Une reservation est obligatoire pour ouvrir une conversation.',
+    },
+    MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH: {
+      code: 'MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La reservation ne correspond pas aux participants de cette conversation.',
+    },
+    MESSAGING_SELF_CONVERSATION_FORBIDDEN: {
+      code: 'MESSAGING_SELF_CONVERSATION_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Impossible de creer une conversation avec soi-meme sur la plateforme.',
+    },
+  },
+  disputes: {
+    DISPUTES_CREATED: {
+      code: 'DISPUTES_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Litige ouvert avec succes.',
+    },
+    DISPUTES_LISTED: {
+      code: 'DISPUTES_LISTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litiges recuperes avec succes.',
+    },
+    DISPUTES_RETRIEVED: {
+      code: 'DISPUTES_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige recupere avec succes.',
+    },
+    DISPUTES_MARKED_IN_REVIEW: {
+      code: 'DISPUTES_MARKED_IN_REVIEW',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige pris en charge avec succes.',
+    },
+    DISPUTES_RESOLVED: {
+      code: 'DISPUTES_RESOLVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige resolu avec succes.',
+    },
+    DISPUTES_REJECTED: {
+      code: 'DISPUTES_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige rejete avec succes.',
+    },
+    DISPUTES_NOT_FOUND: {
+      code: 'DISPUTES_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Litige introuvable.',
+    },
+    DISPUTES_INVALID_STATUS: {
+      code: 'DISPUTES_INVALID_STATUS',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Le statut actuel du litige ne permet pas cette action.',
+    },
+    DISPUTES_INVALID_RESOLUTION: {
+      code: 'DISPUTES_INVALID_RESOLUTION',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'La decision de resolution du litige est invalide.',
+    },
+  },
+  liveTracking: {
+    LIVE_TRACKING_ON_THE_WAY_MARKED: {
+      code: 'LIVE_TRACKING_ON_THE_WAY_MARKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Le trajet du prestataire vers la reservation a ete active.',
+    },
+    LIVE_TRACKING_STATUS_RETRIEVED: {
+      code: 'LIVE_TRACKING_STATUS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message:
+        'Le suivi temps reel de la reservation a ete recupere avec succes.',
+    },
+    LIVE_TRACKING_PRESENCE_RETRIEVED: {
+      code: 'LIVE_TRACKING_PRESENCE_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'La presence du prestataire a ete recuperee avec succes.',
+    },
+    LIVE_TRACKING_INVALID_RESERVATION_STATUS: {
+      code: 'LIVE_TRACKING_INVALID_RESERVATION_STATUS',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Le suivi en route ne peut etre active que pour une reservation payee et non demarree.',
+    },
+    LIVE_TRACKING_ACTIVE_SESSION_REQUIRED: {
+      code: 'LIVE_TRACKING_ACTIVE_SESSION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Aucune session de suivi active nest disponible pour cette reservation.',
+    },
+    LIVE_TRACKING_PROFESSIONAL_PROFILE_NOT_FOUND: {
+      code: 'LIVE_TRACKING_PROFESSIONAL_PROFILE_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Profil professionnel introuvable pour le suivi temps reel.',
     },
   },
   reservations: {
@@ -395,10 +664,30 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Reservation reprogrammee avec succes.',
     },
+    RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: "Demande d'ajustement de prix envoyee au client avec succes.",
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Ajustement de prix accepte avec succes.',
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_REJECTED: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Ajustement de prix refuse avec succes.',
+    },
     RESERVATIONS_COMPLETED: {
       code: 'RESERVATIONS_COMPLETED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Reservation terminee avec succes.',
+    },
+    RESERVATIONS_REVIEW_SUBMITTED: {
+      code: 'RESERVATIONS_REVIEW_SUBMITTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Avis client enregistre avec succes.',
     },
     RESERVATIONS_NO_SHOW_MARKED: {
       code: 'RESERVATIONS_NO_SHOW_MARKED',
@@ -410,6 +699,22 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message:
         'Les dates de debut et de fin sont obligatoires pour cette requete.',
+    },
+    RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT: {
+      code: 'RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        "Impossible d'ajuster le prix car un paiement est deja en cours ou enregistre pour cette reservation.",
+    },
+    RESERVATIONS_REVIEW_ALREADY_SUBMITTED: {
+      code: 'RESERVATIONS_REVIEW_ALREADY_SUBMITTED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Un avis client existe deja pour cette reservation.',
+    },
+    RESERVATIONS_REVIEW_COMPLETED_REQUIRED: {
+      code: 'RESERVATIONS_REVIEW_COMPLETED_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Seules les reservations terminees peuvent etre notees.',
     },
   },
   payments: {
@@ -476,6 +781,18 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Token de notification mis a jour avec succes.',
     },
+    NOTIFICATIONS_ADMIN_BROADCAST_SENT: {
+      code: 'NOTIFICATIONS_ADMIN_BROADCAST_SENT',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Notification de masse envoyee avec succes.',
+    },
+  },
+  admin: {
+    ADMIN_DASHBOARD_RETRIEVED: {
+      code: 'ADMIN_DASHBOARD_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Tableau de bord admin recupere avec succes.',
+    },
   },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
@@ -498,9 +815,14 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.professionals,
   ...APP_MESSAGES_BY_MODULE.categories,
   ...APP_MESSAGES_BY_MODULE.search,
+  ...APP_MESSAGES_BY_MODULE.negotiations,
+  ...APP_MESSAGES_BY_MODULE.messaging,
+  ...APP_MESSAGES_BY_MODULE.disputes,
+  ...APP_MESSAGES_BY_MODULE.liveTracking,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,
+  ...APP_MESSAGES_BY_MODULE.admin,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 

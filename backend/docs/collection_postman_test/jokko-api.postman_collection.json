@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Jokko API",
-    "description": "API Jokko - Endpoints pour tests Postman",
+    "description": "Collection HTTP Jokko pour tests manuels rapides. La reference exhaustive et la plus a jour reste Swagger sur /api/docs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -29,6 +29,21 @@
       "key": "professionalId",
       "value": "",
       "type": "default"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "serviceId",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "reservationId",
+      "value": "",
+      "type": "default"
     }
   ],
   "auth": {
@@ -40,29 +55,7 @@
       }
     ]
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Variable pour stocker les tokens",
-          "if (!pm.environment.has('accessToken')) {",
-          "  pm.environment.set('accessToken', '');",
-          "}",
-          "if (!pm.environment.has('refreshToken')) {",
-          "  pm.environment.set('refreshToken', '');",
-          "}",
-          "if (!pm.environment.has('userId')) {",
-          "  pm.environment.set('userId', '');",
-          "}",
-          "if (!pm.environment.has('professionalId')) {",
-          "  pm.environment.set('professionalId', '');",
-          "}"
-        ]
-      }
-    }
-  ],
+  "event": [],
   "item": [
     {
       "name": "Santé",

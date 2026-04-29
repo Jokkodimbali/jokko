@@ -67,6 +67,17 @@ export class ProfessionalsFacade {
     return this.kycService.submitKyc(requestUser, command);
   }
 
+  async listKycForAdmin(
+    requestUser: AuthUser,
+    query?: Parameters<KycService['listKycForAdmin']>[1],
+  ) {
+    return this.kycService.listKycForAdmin(requestUser, query);
+  }
+
+  async getKycByIdForAdmin(requestUser: AuthUser, profileId: string) {
+    return this.kycService.getKycByIdForAdmin(requestUser, profileId);
+  }
+
   async approveKyc(requestUser: AuthUser, profileId: string) {
     return this.kycService.approveKyc(requestUser, profileId);
   }

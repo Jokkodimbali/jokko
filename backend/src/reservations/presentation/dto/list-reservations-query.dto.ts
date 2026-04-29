@@ -1,9 +1,13 @@
 import { IsDateString, IsIn, IsOptional, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class ListReservationsQueryDto {
-  @ApiPropertyOptional({ description: 'Date de debut en ISO 8601' })
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.startDateField,
+    example: '2026-05-01T00:00:00.000Z',
+  })
   @IsOptional()
   @IsDateString(
     {},
@@ -11,7 +15,10 @@ export class ListReservationsQueryDto {
   )
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Date de fin en ISO 8601' })
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.endDateField,
+    example: '2026-05-31T23:59:59.999Z',
+  })
   @IsOptional()
   @IsDateString(
     {},
@@ -20,9 +27,9 @@ export class ListReservationsQueryDto {
   endDate?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Vue souhaitee pour un compte prestataire: CLIENT ou PRESTATAIRE',
+    description: API_DOCS.reservations.scopeField,
     enum: ['CLIENT', 'PRESTATAIRE'],
+    example: 'CLIENT',
   })
   @IsOptional()
   @IsIn(['CLIENT', 'PRESTATAIRE'], {
@@ -30,7 +37,10 @@ export class ListReservationsQueryDto {
   })
   scope?: 'CLIENT' | 'PRESTATAIRE';
 
-  @ApiPropertyOptional({ description: 'Filtrer par statut' })
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.statusField,
+    example: 'CONFIRMEE',
+  })
   @IsOptional()
   @IsIn(
     [
@@ -49,7 +59,10 @@ export class ListReservationsQueryDto {
   )
   status?: string;
 
-  @ApiPropertyOptional({ description: 'Filtrer par service' })
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.serviceFilterField,
+    example: '960e8400-e29b-41d4-a716-446655440031',
+  })
   @IsOptional()
   @IsUUID('4', { message: VALIDATION_MESSAGES.SERVICE_ID_FORMAT })
   serviceId?: string;

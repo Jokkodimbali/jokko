@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class UpdateMyAvatarDto {
   @ApiProperty({
-    description: 'URL de la nouvelle photo de profil',
+    description: API_DOCS.users.avatarUpdateUrlField,
     example: 'https://cdn.jokko.sn/avatars/user-456.png',
     format: 'uri',
   })

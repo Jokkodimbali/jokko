@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { RoleUtilisateur } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   type CreateNotificationInput,
@@ -82,6 +83,36 @@ export class NotificationsService {
 
   async updateFcmToken(userId: string, fcmToken: string): Promise<void> {
     await this.recipientRepository.updateFcmToken(userId, fcmToken.trim());
+  }
+
+  async broadcastByAdmin(params: {
+    role: RoleUtilisateur;
+    target: 'CLIENT' | 'PRESTATAIRE' | 'ALL';
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  }) {
+    if (params.role !== RoleUtilisateur.ADMIN) {
+      throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
+    }
+
+    const recipients =
+      await this.recipientRepository.listRecipientsForBroadcast(params.target);
+
+    await this.createManyInAppNotifications(
+      recipients.map((recipient) => ({
+        userId: recipient.id,
+        type: 'ANNONCE_ADMIN',
+        title: params.title,
+        body: params.body,
+        data: params.data,
+      })),
+    );
+
+    return {
+      recipientCount: recipients.length,
+      target: params.target,
+    };
   }
 
   private normalizeLimit(limit?: number): number {

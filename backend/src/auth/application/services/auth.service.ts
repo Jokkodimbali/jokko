@@ -64,6 +64,8 @@ export class AuthService {
       throw appHttpException('AUTH_PHONE_ALREADY_USED');
     }
 
+    this.assertActiveUser(user);
+
     const { accessToken, refreshToken } =
       await this.issueTokensAndPersistSession(user);
 
@@ -128,6 +130,8 @@ export class AuthService {
       throw appHttpException('AUTH_INVALID_CREDENTIALS');
     }
 
+    this.assertActiveUser(user);
+
     const isValidPassword = await this.passwordHashService.compare(
       command.password,
       user.motDePasseHash,
@@ -163,6 +167,8 @@ export class AuthService {
       throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
     }
 
+    this.assertActiveUser(user);
+
     const newTokens = await this.jwtTokenService.issueTokens({
       sub: user.id,
       role: user.role,
@@ -189,6 +195,8 @@ export class AuthService {
     if (!user) {
       throw appHttpException('AUTH_GOOGLE_ACCOUNT_NOT_LINKED');
     }
+
+    this.assertActiveUser(user);
 
     await this.authRepository.linkGoogleIdentity(user.id, googlePayload.sub);
     const { accessToken, refreshToken } =
@@ -241,6 +249,12 @@ export class AuthService {
         throw appHttpException(error.code as AppMessageKey);
       }
       throw error;
+    }
+  }
+
+  private assertActiveUser(user: AuthUserSummary): void {
+    if (!user.estActif) {
+      throw appHttpException('AUTH_ACCOUNT_INACTIVE');
     }
   }
 }

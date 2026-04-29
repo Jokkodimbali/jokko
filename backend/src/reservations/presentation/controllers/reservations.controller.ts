@@ -36,7 +36,9 @@ import { ListReservationsQueryDto } from '../dto/list-reservations-query.dto';
 import { OpenDisputeDto } from '../dto/open-dispute.dto';
 import {
   CancelReservationDto,
+  ProposeReservationPriceAdjustmentDto,
   RescheduleReservationDto,
+  SubmitReservationReviewDto,
 } from '../dto/update-reservation.dto';
 
 @ApiTags(API_DOCS.reservations.tag)
@@ -72,15 +74,15 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 404,
-    description: 'Service ou professionnel introuvable.',
+    description: API_DOCS.reservations.createNotFound,
     errorCode: 'RESERVATIONS_SERVICE_NOT_FOUND',
-    messageExample: 'Service introuvable pour cette reservation.',
+    messageExample: appMessage('RESERVATIONS_SERVICE_NOT_FOUND').message,
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description: 'Conflit metier sur la reservation.',
+    description: API_DOCS.reservations.createConflict,
     errorCode: 'RESERVATIONS_TIME_SLOT_UNAVAILABLE',
-    messageExample: 'Ce creneau horaire n est pas disponible.',
+    messageExample: appMessage('RESERVATIONS_TIME_SLOT_UNAVAILABLE').message,
   })
   async createReservation(
     @CurrentUser() user: AuthUser,
@@ -118,11 +120,16 @@ export class ReservationsController {
     messageExample: API_DOCS.common.unauthorized,
   })
   @ApiStandardErrorResponse({
-    status: 501,
-    description: 'Le module de negotiation nest pas encore disponible.',
-    errorCode: 'RESERVATIONS_NEGOTIATION_NOT_AVAILABLE',
-    messageExample:
-      'La reservation depuis une negotiation nest pas encore disponible.',
+    status: 404,
+    description: appMessage('NEGOTIATIONS_NOT_FOUND').message,
+    errorCode: 'NEGOTIATIONS_NOT_FOUND',
+    messageExample: appMessage('NEGOTIATIONS_NOT_FOUND').message,
+  })
+  @ApiStandardErrorResponse({
+    status: 409,
+    description: appMessage('NEGOTIATIONS_ACCEPTED_REQUIRED').message,
+    errorCode: 'NEGOTIATIONS_ACCEPTED_REQUIRED',
+    messageExample: appMessage('NEGOTIATIONS_ACCEPTED_REQUIRED').message,
   })
   async createReservationFromNegotiation(
     @CurrentUser() user: AuthUser,
@@ -132,7 +139,7 @@ export class ReservationsController {
       await this.reservationsFacade.createReservationFromNegotiation(user, dto);
     return createApiResponse(
       result,
-      appMessage('RESERVATIONS_CREATED').message,
+      API_DOCS.reservations.createFromNegotiationSuccess,
     );
   }
 
@@ -142,19 +149,19 @@ export class ReservationsController {
     name: 'status',
     required: false,
     type: String,
-    description: 'Filtrer mes reservations par statut',
+    description: API_DOCS.reservations.statusField,
   })
   @ApiQuery({
     name: 'startDate',
     required: false,
     type: String,
-    description: 'Date de debut ISO 8601',
+    description: API_DOCS.reservations.startDateField,
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: String,
-    description: 'Date de fin ISO 8601',
+    description: API_DOCS.reservations.endDateField,
   })
   @ApiStandardSuccessResponse({
     status: 200,
@@ -241,9 +248,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description: 'La reservation doit etre en attente pour etre confirmee.',
+    description: API_DOCS.reservations.confirmPendingRequired,
     errorCode: 'RESERVATIONS_STATUS_PENDING_REQUIRED',
-    messageExample: 'La reservation doit etre en attente pour etre confirmee.',
+    messageExample: API_DOCS.reservations.confirmPendingRequired,
   })
   async confirmReservation(
     @CurrentUser() user: AuthUser,
@@ -286,11 +293,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description:
-      'La reservation ne peut pas etre annulee dans son statut actuel.',
+    description: API_DOCS.reservations.cancelConflict,
     errorCode: 'RESERVATIONS_ALREADY_CLOSED',
-    messageExample:
-      'La reservation ne peut pas etre annulee dans son statut actuel.',
+    messageExample: API_DOCS.reservations.cancelConflict,
   })
   async cancelReservation(
     @CurrentUser() user: AuthUser,
@@ -334,10 +339,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description:
-      'La reservation ne peut pas etre reprogrammee dans son statut actuel.',
+    description: API_DOCS.reservations.rescheduleConflict,
     errorCode: 'RESERVATIONS_TIME_SLOT_UNAVAILABLE',
-    messageExample: 'Ce creneau horaire n est pas disponible.',
+    messageExample: appMessage('RESERVATIONS_TIME_SLOT_UNAVAILABLE').message,
   })
   async rescheduleReservation(
     @CurrentUser() user: AuthUser,
@@ -352,6 +356,132 @@ export class ReservationsController {
     return createApiResponse(
       result,
       appMessage('RESERVATIONS_RESCHEDULED').message,
+    );
+  }
+
+  @Patch(':reservationId/price-adjustment/propose')
+  @ApiOperation({
+    summary: API_DOCS.reservations.proposePriceAdjustmentSummary,
+  })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiBody({ type: ProposeReservationPriceAdjustmentDto })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.reservations.proposePriceAdjustmentSuccess,
+    messageExample: appMessage('RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED')
+      .message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.reservations.reservationData,
+        statut: 'CONFIRMEE',
+        prixConvenu: 25000,
+        statutAjustementPrix: 'EN_ATTENTE_CLIENT',
+        prixAjustementPropose: 32000,
+        raisonAjustementPrix: 'Travaux supplementaires constates sur place',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 409,
+    description: API_DOCS.reservations.priceAdjustmentConflict,
+    errorCode: 'RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT',
+    messageExample: appMessage(
+      'RESERVATIONS_PRICE_ADJUSTMENT_FORBIDDEN_AFTER_PAYMENT',
+    ).message,
+  })
+  async proposePriceAdjustment(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() dto: ProposeReservationPriceAdjustmentDto,
+  ) {
+    const result = await this.reservationsFacade.proposePriceAdjustment(
+      user,
+      reservationId,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('RESERVATIONS_PRICE_ADJUSTMENT_PROPOSED').message,
+    );
+  }
+
+  @Patch(':reservationId/price-adjustment/accept')
+  @ApiOperation({
+    summary: API_DOCS.reservations.acceptPriceAdjustmentSummary,
+  })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.reservations.acceptPriceAdjustmentSuccess,
+    messageExample: appMessage('RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED')
+      .message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.reservations.reservationData,
+        statut: 'CONFIRMEE',
+        prixConvenu: 32000,
+        statutAjustementPrix: 'ACCEPTE',
+        prixAjustementPropose: 32000,
+      },
+    },
+  })
+  async acceptPriceAdjustment(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.reservationsFacade.acceptPriceAdjustment(
+      user,
+      reservationId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('RESERVATIONS_PRICE_ADJUSTMENT_ACCEPTED').message,
+    );
+  }
+
+  @Patch(':reservationId/price-adjustment/reject')
+  @ApiOperation({
+    summary: API_DOCS.reservations.rejectPriceAdjustmentSummary,
+  })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.reservations.rejectPriceAdjustmentSuccess,
+    messageExample: appMessage('RESERVATIONS_PRICE_ADJUSTMENT_REJECTED')
+      .message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.reservations.reservationData,
+        statut: 'CONFIRMEE',
+        prixConvenu: 25000,
+        statutAjustementPrix: 'REFUSE',
+        prixAjustementPropose: 32000,
+      },
+    },
+  })
+  async rejectPriceAdjustment(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.reservationsFacade.rejectPriceAdjustment(
+      user,
+      reservationId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('RESERVATIONS_PRICE_ADJUSTMENT_REJECTED').message,
     );
   }
 
@@ -381,10 +511,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description: 'La reservation doit etre payee avant d etre finalisee.',
+    description: API_DOCS.reservations.completePaymentRequired,
     errorCode: 'RESERVATION_PAYMENT_REQUIRED',
-    messageExample:
-      'La reservation doit etre payee avant de poursuivre cette action.',
+    messageExample: API_DOCS.reservations.completePaymentRequired,
   })
   async completeReservation(
     @CurrentUser() user: AuthUser,
@@ -397,6 +526,56 @@ export class ReservationsController {
     return createApiResponse(
       result,
       appMessage('RESERVATIONS_COMPLETED').message,
+    );
+  }
+
+  @Patch(':reservationId/review')
+  @ApiOperation({ summary: API_DOCS.reservations.submitReviewSummary })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiBody({ type: SubmitReservationReviewDto })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.reservations.submitReviewSuccess,
+    messageExample: appMessage('RESERVATIONS_REVIEW_SUBMITTED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.reservations.reservationData,
+        statut: 'TERMINEE',
+        clientRating: 5,
+        clientReview: 'Prestation tres propre et ponctuelle.',
+        clientReviewedAt: '2026-05-01T12:00:00.000Z',
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: appMessage('RESERVATIONS_NOT_FOUND').message,
+    errorCode: 'RESERVATIONS_NOT_FOUND',
+    messageExample: appMessage('RESERVATIONS_NOT_FOUND').message,
+  })
+  @ApiStandardErrorResponse({
+    status: 400,
+    description: API_DOCS.reservations.reviewCompletedRequired,
+    errorCode: 'RESERVATION_REVIEW_REQUIRES_COMPLETED',
+    messageExample: API_DOCS.reservations.reviewCompletedRequired,
+  })
+  async submitReview(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() dto: SubmitReservationReviewDto,
+  ) {
+    const result = await this.reservationsFacade.submitReview(
+      user,
+      reservationId,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('RESERVATIONS_REVIEW_SUBMITTED').message,
     );
   }
 
@@ -426,11 +605,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description:
-      'La reservation doit etre payee avant d etre marquee en no-show.',
+    description: API_DOCS.reservations.noShowPaymentRequired,
     errorCode: 'RESERVATION_PAYMENT_REQUIRED',
-    messageExample:
-      'La reservation doit etre payee avant de poursuivre cette action.',
+    messageExample: API_DOCS.reservations.noShowPaymentRequired,
   })
   async markNoShow(
     @CurrentUser() user: AuthUser,
@@ -472,10 +649,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description:
-      'La reservation ne peut pas etre marquee comme payee dans son statut actuel.',
+    description: API_DOCS.reservations.markPaidConflict,
     errorCode: 'RESERVATIONS_STATUS_ACTIVE_REQUIRED',
-    messageExample: 'La reservation doit etre confirmee ou en cours.',
+    messageExample: appMessage('RESERVATIONS_STATUS_ACTIVE_REQUIRED').message,
   })
   async markAsPaid(
     @CurrentUser() user: AuthUser,
@@ -514,10 +690,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description: 'La reservation doit etre payee avant d etre demarree.',
+    description: API_DOCS.reservations.startPaymentRequired,
     errorCode: 'RESERVATION_PAYMENT_REQUIRED',
-    messageExample:
-      'La reservation doit etre payee avant de poursuivre cette action.',
+    messageExample: API_DOCS.reservations.startPaymentRequired,
   })
   async startReservation(
     @CurrentUser() user: AuthUser,
@@ -557,10 +732,9 @@ export class ReservationsController {
   })
   @ApiStandardErrorResponse({
     status: 409,
-    description:
-      'Impossible d ouvrir un litige dans le statut actuel de la reservation.',
+    description: API_DOCS.reservations.disputeConflict,
     errorCode: 'RESERVATIONS_STATUS_ACTIVE_REQUIRED',
-    messageExample: 'La reservation doit etre confirmee ou en cours.',
+    messageExample: appMessage('RESERVATIONS_STATUS_ACTIVE_REQUIRED').message,
   })
   async openDispute(
     @CurrentUser() user: AuthUser,

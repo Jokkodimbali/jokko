@@ -47,6 +47,12 @@ export const VALIDATION_MESSAGE_CATALOG = {
     "L'ordre de tri de la categorie ne peut pas etre negatif.",
   CATEGORY_SORT_ORDER_MAX:
     "L'ordre de tri de la categorie ne doit pas depasser 32767.",
+  CATEGORY_COMMISSION_RATE_INVALID:
+    'Le taux de commission de la categorie doit etre un nombre decimal valide.',
+  CATEGORY_COMMISSION_RATE_MIN:
+    'Le taux de commission de la categorie ne peut pas etre negatif.',
+  CATEGORY_COMMISSION_RATE_MAX:
+    'Le taux de commission de la categorie ne doit pas depasser 100%.',
   SERVICE_NAME_REQUIRED: 'Le nom du service est obligatoire.',
   SERVICE_NAME_MAX: 'Le nom du service ne doit pas depasser 200 caracteres.',
   SERVICE_DESCRIPTION_REQUIRED: 'La description du service est obligatoire.',
@@ -92,8 +98,73 @@ export const VALIDATION_MESSAGE_CATALOG = {
     'La duree de reservation ne doit pas depasser 1440 minutes.',
   RESERVATION_NOTES_MAX:
     'Les notes de reservation ne doivent pas depasser 1000 caracteres.',
+  NEGOTIATION_AMOUNT_INVALID: 'Le montant de negotiation est invalide.',
+  NEGOTIATION_AMOUNT_MIN:
+    'Le montant de negotiation doit etre superieur ou egal a 1 FCFA.',
+  NEGOTIATION_AMOUNT_MAX:
+    'Le montant de negotiation ne doit pas depasser 100000000 FCFA.',
+  NEGOTIATION_MESSAGE_INVALID: 'Le message de negotiation est invalide.',
+  NEGOTIATION_MESSAGE_MAX:
+    'Le message de negotiation ne doit pas depasser 1000 caracteres.',
+  NEGOTIATION_REASON_INVALID:
+    'Le motif de cloture de negotiation est invalide.',
+  NEGOTIATION_REASON_MAX:
+    'Le motif de cloture de negotiation ne doit pas depasser 1000 caracteres.',
+  NEGOTIATION_SCOPE_INVALID: 'Le scope de negotiation est invalide.',
+  NEGOTIATION_STATUS_INVALID: 'Le statut de negotiation est invalide.',
+  NEGOTIATION_LIMIT_INVALID:
+    'La limite des negotiations doit etre un nombre entier.',
+  NEGOTIATION_LIMIT_MIN:
+    'La limite des negotiations doit etre superieure ou egale a 1.',
+  NEGOTIATION_LIMIT_MAX: 'La limite des negotiations ne doit pas depasser 100.',
+  NEGOTIATION_OFFSET_INVALID:
+    "L'offset des negotiations doit etre un nombre entier.",
+  NEGOTIATION_OFFSET_MIN: "L'offset des negotiations ne peut pas etre negatif.",
+  MESSAGING_PROFESSIONAL_ID_FORMAT:
+    "Le format de l'identifiant du professionnel est invalide.",
+  MESSAGING_CLIENT_ID_FORMAT:
+    "Le format de l'identifiant du client est invalide.",
+  MESSAGING_RESERVATION_ID_REQUIRED:
+    "L'identifiant de reservation est obligatoire pour la conversation.",
+  MESSAGING_RESERVATION_ID_FORMAT:
+    "Le format de l'identifiant de reservation est invalide.",
+  MESSAGING_MESSAGE_CONTENT_INVALID: 'Le contenu du message est invalide.',
+  MESSAGING_MESSAGE_CONTENT_MAX:
+    'Le contenu du message ne doit pas depasser 2000 caracteres.',
+  MESSAGING_MEDIA_URL_INVALID: "L'URL du media du message est invalide.",
+  MESSAGING_LIMIT_INVALID:
+    'La limite des conversations doit etre un nombre entier.',
+  MESSAGING_LIMIT_MIN:
+    'La limite des conversations doit etre superieure ou egale a 1.',
+  MESSAGING_LIMIT_MAX: 'La limite des conversations ne doit pas depasser 100.',
+  MESSAGING_OFFSET_INVALID:
+    "L'offset des conversations doit etre un nombre entier.",
+  MESSAGING_OFFSET_MIN: "L'offset des conversations ne peut pas etre negatif.",
   RESERVATION_CANCEL_REASON_MAX:
     "Le motif d'annulation ne doit pas depasser 1000 caracteres.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID:
+    "Le montant propose pour l'ajustement de prix est invalide.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_MIN:
+    "Le montant propose pour l'ajustement de prix doit etre superieur ou egal a 1 FCFA.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_MAX:
+    "Le montant propose pour l'ajustement de prix ne doit pas depasser 100000000 FCFA.",
+  RESERVATION_PRICE_ADJUSTMENT_REASON_MAX:
+    "Le motif d'ajustement de prix ne doit pas depasser 1000 caracteres.",
+  RESERVATION_REVIEW_RATING_INVALID:
+    'La note de reservation doit etre un entier valide.',
+  RESERVATION_REVIEW_RATING_MIN:
+    'La note de reservation doit etre au minimum de 1 sur 5.',
+  RESERVATION_REVIEW_RATING_MAX:
+    'La note de reservation doit etre au maximum de 5 sur 5.',
+  RESERVATION_REVIEW_MAX: "L'avis client ne doit pas depasser 1000 caracteres.",
+  LIVE_TRACKING_ACCURACY_INVALID:
+    'La precision GPS doit etre un nombre positif inferieur ou egal a 10000 metres.',
+  LIVE_TRACKING_HEADING_INVALID:
+    'L orientation GPS doit etre un entier compris entre 0 et 360 degres.',
+  LIVE_TRACKING_SPEED_INVALID:
+    'La vitesse GPS doit etre un nombre positif inferieur ou egale a 300 km/h.',
+  LIVE_TRACKING_LOCATION_LABEL_MAX:
+    'Le libelle de localisation ne doit pas depasser 255 caracteres.',
   RESERVATION_QUERY_DATE_INVALID:
     'La date fournie dans les filtres est invalide.',
   PASSWORD_REQUIRED: 'Le mot de passe est obligatoire.',
@@ -142,6 +213,18 @@ export const VALIDATION_MESSAGE_CATALOG = {
     'Le token de notification mobile est invalide.',
   NOTIFICATION_FCM_TOKEN_TOO_LONG:
     'Le token de notification mobile ne doit pas depasser 500 caracteres.',
+  NOTIFICATION_BROADCAST_TITLE_REQUIRED:
+    'Le titre de la notification admin est obligatoire.',
+  NOTIFICATION_BROADCAST_TITLE_MAX:
+    'Le titre de la notification admin ne doit pas depasser 200 caracteres.',
+  NOTIFICATION_BROADCAST_BODY_REQUIRED:
+    'Le contenu de la notification admin est obligatoire.',
+  NOTIFICATION_BROADCAST_BODY_MAX:
+    'Le contenu de la notification admin ne doit pas depasser 2000 caracteres.',
+  NOTIFICATION_BROADCAST_TARGET_REQUIRED:
+    'La cible de diffusion admin est obligatoire.',
+  NOTIFICATION_BROADCAST_TARGET_INVALID:
+    'La cible de diffusion admin est invalide.',
 
   // -- Search --
   SEARCH_LATITUDE_INVALID:
@@ -160,6 +243,21 @@ export const VALIDATION_MESSAGE_CATALOG = {
     'Le texte de recherche ne doit pas depasser 150 caracteres.',
   SEARCH_CATEGORY_ID_FORMAT:
     "Le format de l'identifiant de categorie de recherche est invalide.",
+  ADMIN_USER_LIMIT_INVALID:
+    'La limite des utilisateurs admin doit etre un nombre entier.',
+  ADMIN_USER_LIMIT_MIN:
+    'La limite des utilisateurs admin doit etre superieure ou egale a 1.',
+  ADMIN_USER_LIMIT_MAX:
+    'La limite des utilisateurs admin ne doit pas depasser 100.',
+  ADMIN_USER_OFFSET_INVALID:
+    "L'offset des utilisateurs admin doit etre un nombre entier.",
+  ADMIN_USER_OFFSET_MIN:
+    "L'offset des utilisateurs admin ne peut pas etre negatif.",
+  ADMIN_USER_ROLE_INVALID: 'Le role filtre utilisateur admin est invalide.',
+  ADMIN_USER_STATUS_INVALID:
+    "Le filtre d'etat actif utilisateur admin est invalide.",
+  ADMIN_USER_SEARCH_MAX:
+    'Le texte de recherche utilisateur admin ne doit pas depasser 100 caracteres.',
 } as const;
 
 export type ValidationMessageKey = keyof typeof VALIDATION_MESSAGE_CATALOG;

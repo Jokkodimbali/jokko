@@ -8,10 +8,11 @@ import {
   MaxLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CreatePortfolioItemDto {
   @ApiProperty({
-    description: 'Titre du projet portfolio',
+    description: API_DOCS.professionals.portfolioTitleField,
     example: 'Site e-commerce pour une boutique',
     maxLength: 200,
   })
@@ -24,7 +25,7 @@ export class CreatePortfolioItemDto {
   title!: string;
 
   @ApiProperty({
-    description: 'Description du projet',
+    description: API_DOCS.professionals.portfolioDescriptionField,
     example: 'Developpe d un site e-commerce complet avec paiement integre',
     required: false,
   })
@@ -36,7 +37,7 @@ export class CreatePortfolioItemDto {
   description?: string | null;
 
   @ApiProperty({
-    description: "URL de l'image du projet",
+    description: API_DOCS.professionals.portfolioImageUrlField,
     example: 'https://example.com/images/projet.jpg',
     format: 'uri',
   })

@@ -10,6 +10,7 @@ export type CreateReservationCommand = {
 export type CreateReservationFromNegotiationCommand = {
   negotiationId: string;
   dateHeure: string;
+  adresseClient: string;
   dureeMinutes: number;
   notes?: string;
 };
@@ -20,6 +21,16 @@ export type CancelReservationCommand = {
 
 export type RescheduleReservationCommand = {
   newDateTime: string;
+};
+
+export type ProposeReservationPriceAdjustmentCommand = {
+  proposedPrice: number;
+  reason?: string;
+};
+
+export type SubmitReservationReviewCommand = {
+  rating: number;
+  review?: string;
 };
 
 export type ListReservationsQuery = {

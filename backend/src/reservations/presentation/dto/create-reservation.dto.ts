@@ -11,10 +11,11 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CreateReservationDto {
   @ApiProperty({
-    description: 'Identifiant du profil professionnel',
+    description: API_DOCS.reservations.professionalIdField,
     example: '550e8400-e29b-41d4-a716-446655440000',
     format: 'uuid',
   })
@@ -24,7 +25,7 @@ export class CreateReservationDto {
   professionnelId!: string;
 
   @ApiProperty({
-    description: 'Identifiant du service reserve',
+    description: API_DOCS.reservations.serviceIdField,
     example: '660e8400-e29b-41d4-a716-446655440001',
     format: 'uuid',
   })
@@ -32,14 +33,14 @@ export class CreateReservationDto {
   serviceId!: string;
 
   @ApiProperty({
-    description: 'Date et heure de reservation en ISO 8601',
+    description: API_DOCS.reservations.dateTimeField,
     example: '2026-05-01T10:30:00.000Z',
   })
   @IsDateString({}, { message: VALIDATION_MESSAGES.RESERVATION_DATE_INVALID })
   dateHeure!: string;
 
   @ApiProperty({
-    description: 'Adresse du client pour la prestation',
+    description: API_DOCS.reservations.addressField,
     example: 'Dakar Plateau, Avenue Pompidou',
   })
   @IsString()
@@ -50,7 +51,7 @@ export class CreateReservationDto {
   adresseClient!: string;
 
   @ApiProperty({
-    description: 'Duree de reservation en minutes',
+    description: API_DOCS.reservations.durationField,
     example: 60,
     minimum: 15,
     maximum: 1440,
@@ -61,7 +62,7 @@ export class CreateReservationDto {
   dureeMinutes!: number;
 
   @ApiPropertyOptional({
-    description: 'Notes libres de reservation',
+    description: API_DOCS.reservations.notesField,
     example: 'Merci de venir avec le materiel necessaire.',
   })
   @IsOptional()

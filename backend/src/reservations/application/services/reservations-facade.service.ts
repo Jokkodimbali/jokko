@@ -5,7 +5,9 @@ import type {
   CreateReservationCommand,
   CreateReservationFromNegotiationCommand,
   ListReservationsQuery,
+  ProposeReservationPriceAdjustmentCommand,
   RescheduleReservationCommand,
+  SubmitReservationReviewCommand,
 } from '../commands/reservations.commands';
 import { ReservationCommandService } from './reservation-command.service';
 import { ReservationQueryService } from './reservation-query.service';
@@ -99,10 +101,48 @@ export class ReservationsFacade {
     );
   }
 
+  async proposePriceAdjustment(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: ProposeReservationPriceAdjustmentCommand,
+  ) {
+    return this.reservationCommandService.proposePriceAdjustment(
+      requestUser,
+      reservationId,
+      command,
+    );
+  }
+
+  async acceptPriceAdjustment(requestUser: AuthUser, reservationId: string) {
+    return this.reservationCommandService.acceptPriceAdjustment(
+      requestUser,
+      reservationId,
+    );
+  }
+
+  async rejectPriceAdjustment(requestUser: AuthUser, reservationId: string) {
+    return this.reservationCommandService.rejectPriceAdjustment(
+      requestUser,
+      reservationId,
+    );
+  }
+
   async completeReservation(requestUser: AuthUser, reservationId: string) {
     return this.reservationCommandService.completeReservation(
       requestUser,
       reservationId,
+    );
+  }
+
+  async submitReview(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: SubmitReservationReviewCommand,
+  ) {
+    return this.reservationCommandService.submitReview(
+      requestUser,
+      reservationId,
+      command,
     );
   }
 

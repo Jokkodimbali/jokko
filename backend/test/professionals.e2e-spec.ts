@@ -377,7 +377,18 @@ describe('ProfessionalsModule (e2e)', () => {
         adresseClient: 'Dakar Plateau',
         dureeMinutes: 60,
         statut: StatutReservation.TERMINEE,
-        notes: 'Tres professionnel',
+        notes: 'Merci pour la ponctualite.',
+        clientRating: 5,
+        clientReview: 'Tres professionnel',
+        clientReviewedAt: new Date(),
+      },
+    });
+
+    await prisma.profilProfessionnel.update({
+      where: { id: professionalProfileId },
+      data: {
+        noteGlobale: 5,
+        nombreAvis: 1,
       },
     });
   });
@@ -448,6 +459,10 @@ describe('ProfessionalsModule (e2e)', () => {
     const data = body.data as Record<string, unknown>[];
     expect(body.success).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+    expect(data[0]?.note).toBe(5);
+    expect(data[0]?.commentaire).toBe('Tres professionnel');
+    expect(data[0]?.service).toBeTruthy();
+    expect(data[0]?.client).toBeTruthy();
   });
 
   it('DELETE /api/v1/professionals/me/portfolio/:itemId', async () => {

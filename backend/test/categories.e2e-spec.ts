@@ -35,6 +35,7 @@ describe('CategoriesModule (e2e)', () => {
     nom?: string;
     urlIcone?: string | null;
     ordreTri?: number;
+    tauxCommission?: number;
     estActive?: boolean;
   };
 
@@ -158,6 +159,7 @@ describe('CategoriesModule (e2e)', () => {
         name: categoryName,
         iconUrl: 'https://cdn.jokko.sn/icons/plomberie.png',
         sortOrder: 1,
+        commissionRate: 12.5,
       })
       .expect(201);
 
@@ -168,6 +170,7 @@ describe('CategoriesModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.message).toBe('Categorie creee avec succes.');
     expect(data.nom).toBe(categoryName);
+    expect(data.tauxCommission).toBe(12.5);
     expect(categoryId).not.toHaveLength(0);
   });
 
@@ -204,6 +207,7 @@ describe('CategoriesModule (e2e)', () => {
         name: updatedCategoryName,
         iconUrl: 'https://cdn.jokko.sn/icons/plomberie-v2.png',
         sortOrder: 3,
+        commissionRate: 15,
       })
       .expect(200);
 
@@ -213,6 +217,7 @@ describe('CategoriesModule (e2e)', () => {
     expect(body.message).toBe('Categorie mise a jour avec succes.');
     expect(data.nom).toBe(updatedCategoryName);
     expect(data.ordreTri).toBe(3);
+    expect(data.tauxCommission).toBe(15);
   });
 
   it('PATCH /api/v1/admin/categories/:id should reject empty payloads', async () => {

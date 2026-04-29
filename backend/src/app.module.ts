@@ -11,7 +11,12 @@ import { CategoriesModule } from './categories/categories.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { NegotiationsModule } from './negotiations/negotiations.module';
 import { SearchModule } from './search/search.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { DisputesModule } from './disputes/disputes.module';
+import { LiveTrackingModule } from './live-tracking/live-tracking.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -23,7 +28,12 @@ import { SearchModule } from './search/search.module';
     UsersModule,
     ProfessionalsModule,
     CategoriesModule,
+    NegotiationsModule,
     NotificationsModule,
+    DisputesModule,
+    MessagingModule,
+    LiveTrackingModule,
+    AdminModule,
     SearchModule,
     ReservationsModule,
     PaymentsModule,

@@ -33,8 +33,12 @@ describe('SanteController', () => {
   describe('sante', () => {
     it('should return health status', async () => {
       await expect(santeController.getEtatSante()).resolves.toMatchObject({
-        statut: 'ok',
-        baseDeDonnees: 'connectee',
+        success: true,
+        message: 'Etat de sante recupere avec succes',
+        data: {
+          statut: 'ok',
+          baseDeDonnees: 'connectee',
+        },
       });
     });
   });

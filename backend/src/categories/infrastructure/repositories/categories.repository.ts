@@ -16,6 +16,7 @@ const CATEGORY_SELECT = {
   nom: true,
   urlIcone: true,
   ordreTri: true,
+  tauxCommission: true,
   estActive: true,
 } as const;
 
@@ -24,6 +25,7 @@ type RawCategory = {
   nom: string;
   urlIcone: string | null;
   ordreTri: number;
+  tauxCommission: Prisma.Decimal;
   estActive: boolean;
 };
 
@@ -69,6 +71,7 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           nom: input.name,
           urlIcone: input.iconUrl,
           ordreTri: input.sortOrder,
+          tauxCommission: input.commissionRate,
         },
         select: CATEGORY_SELECT,
       });
@@ -90,6 +93,7 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           nom: input.name,
           urlIcone: input.iconUrl,
           ordreTri: input.sortOrder,
+          tauxCommission: input.commissionRate,
         },
         select: CATEGORY_SELECT,
       });
@@ -132,6 +136,7 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
       nom: category.nom,
       urlIcone: category.urlIcone,
       ordreTri: category.ordreTri,
+      tauxCommission: Number(category.tauxCommission),
       estActive: category.estActive,
     };
   }

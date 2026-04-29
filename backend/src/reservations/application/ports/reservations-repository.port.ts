@@ -29,6 +29,13 @@ export interface ReservationsRepositoryPort {
     endDate?: Date;
   }): Promise<Reservation[]>;
   save(reservation: Reservation): Promise<Reservation>;
+  saveFromNegotiation(
+    reservation: Reservation,
+    negotiationId: string,
+  ): Promise<Reservation | null>;
+  hasPaymentForReservation(reservationId: string): Promise<boolean>;
+  findPaymentIdForReservation(reservationId: string): Promise<string | null>;
+  submitClientReview(reservation: Reservation): Promise<Reservation>;
   update(reservation: Reservation): Promise<Reservation>;
   delete(id: string): Promise<void>;
 }

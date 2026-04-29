@@ -91,9 +91,9 @@ export class AdminPaymentsController {
   })
   @ApiStandardErrorResponse({
     status: 403,
-    description: 'Acces reserve aux administrateurs.',
+    description: API_DOCS.adminPayments.adminOnly,
     errorCode: 'AUTH_FORBIDDEN',
-    messageExample: 'Acces reserve aux administrateurs.',
+    messageExample: API_DOCS.adminPayments.adminOnly,
   })
   async listAllPayments(@Query() query: ListPaymentsQueryDto) {
     const allClientPayments = await this.paymentsFacade.getClientPaymentHistory(
@@ -128,19 +128,7 @@ export class AdminPaymentsController {
     messageExample: API_DOCS.common.unauthorized,
   })
   async getPaymentStatistics() {
-    const pendingEscrowReleases =
-      await this.paymentsFacade.getPendingEscrowReleases();
-
-    const stats = {
-      pendingEscrowReleases: pendingEscrowReleases.length,
-      totalEscrowAmount: pendingEscrowReleases.reduce(
-        (sum, payment) => sum + payment.netAmount.getValue(),
-        0,
-      ),
-      totalPayments: 0,
-      totalRevenue: 0,
-    };
-
+    const stats = await this.paymentsFacade.getAdminStatistics();
     return createApiResponse(stats);
   }
 

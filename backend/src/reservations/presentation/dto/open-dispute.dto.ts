@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, MaxLength, MinLength } from 'class-validator';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class OpenDisputeDto {
   @ApiProperty({
-    description: 'Motif du litige sur la reservation',
+    description: API_DOCS.reservations.disputeReasonField,
     example: 'Le prestataire ne sest pas presente au rendez-vous.',
     minLength: 5,
     maxLength: 1000,

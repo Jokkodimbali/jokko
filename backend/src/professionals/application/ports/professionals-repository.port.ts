@@ -29,9 +29,15 @@ export type ProfessionalProfileView = {
   };
 };
 
+export type AdminKycProfileView = ProfessionalProfileView & {
+  urlPieceIdentiteRecto: string | null;
+  urlPieceIdentiteVerso: string | null;
+};
+
 export type ProfessionalServiceView = {
   id: string;
   profilProfessionnelId: string;
+  categorieId: string;
   nom: string;
   description: string;
   prix: number;
@@ -58,7 +64,9 @@ export type ProfessionalAvailabilityView = {
 
 export type ProfessionalReviewView = {
   id: string;
-  notes: string | null;
+  note: number;
+  commentaire: string | null;
+  reviewedAt: Date;
   dateHeure: Date;
   creeLe: Date;
   service: {
@@ -127,6 +135,12 @@ export interface ProfessionalProfileRepositoryPort {
   approveKyc(profileId: string): Promise<ApproveKycResult>;
   rejectKyc(profileId: string, reason: string): Promise<RejectKycResult>;
   findVerifiedById(profileId: string): Promise<ProfessionalProfileView | null>;
+  listKycForAdmin(query?: {
+    status?: KycStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminKycProfileView[]>;
+  findKycByIdForAdmin(profileId: string): Promise<AdminKycProfileView | null>;
 }
 
 // ─── Service Repository Port ─────────────────────────────────────────────────

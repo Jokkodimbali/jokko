@@ -30,6 +30,10 @@ import {
   type DomainEventDispatcher,
 } from '../../../shared/domain/events/domain-event-dispatcher';
 import { PaymentNotificationService } from '../../../notifications/application/services/payment-notification.service';
+import {
+  USERS_REPOSITORY_PORT,
+  type UsersRepositoryPort,
+} from '../../../users/application/ports/users-repository.port';
 
 @Injectable()
 export class PaymentCommandService {
@@ -45,6 +49,8 @@ export class PaymentCommandService {
     @Inject(DOMAIN_EVENT_DISPATCHER)
     private readonly domainEventDispatcher: DomainEventDispatcher,
     private readonly paymentNotificationService: PaymentNotificationService,
+    @Inject(USERS_REPOSITORY_PORT)
+    private readonly usersRepository: UsersRepositoryPort,
   ) {}
 
   async initiatePayment(command: {
@@ -52,6 +58,7 @@ export class PaymentCommandService {
     clientId: string;
     professionalId: string;
     amount: number;
+    commissionRate?: number;
     method: PaymentMethod;
     callbackUrl?: string;
     successUrl?: string;
@@ -115,6 +122,12 @@ export class PaymentCommandService {
     }
 
     const paymentId = randomUUID();
+    const client = await this.usersRepository.findMeById(command.clientId);
+    if (!client) {
+      await this.paymentIdempotency.fail(idempotencyKey);
+      throw PaymentDomainError.unauthorizedAccess(command.clientId);
+    }
+
     const payment = Payment.create({
       id: paymentId,
       bookingId: command.bookingId,
@@ -122,6 +135,7 @@ export class PaymentCommandService {
       professionalId: command.professionalId,
       method: command.method,
       amount: PaymentAmount.create(command.amount),
+      commissionRate: command.commissionRate,
     });
 
     const transactionReference = TransactionReference.generate('PAY');
@@ -135,8 +149,9 @@ export class PaymentCommandService {
       amount: command.amount,
       currency: 'XOF', // FCFA
       description: `Paiement reservation ${command.bookingId}`,
-      customerName: command.clientId,
-      customerPhone: command.clientId,
+      customerName: client.nom,
+      customerEmail: client.email ?? undefined,
+      customerPhone: client.numeroTelephone,
       callbackUrl: command.callbackUrl,
       successUrl: command.successUrl,
       cancelUrl: command.cancelUrl,

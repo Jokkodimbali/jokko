@@ -26,6 +26,25 @@ type ReservationCreatedNotificationInput = {
   adresseClient: string;
 };
 
+type ReservationPriceAdjustmentNotificationInput = {
+  reservationId: string;
+  clientId: string;
+  serviceName: string;
+  professionalName: string;
+  dateHeure: Date;
+  adresseClient: string;
+  currentPrice: number | null;
+  proposedPrice: number;
+  reason?: string | null;
+};
+
+type ReservationProfessionalPriceAdjustmentNotificationInput = {
+  reservationId: string;
+  professionalUserId: string;
+  serviceName: string;
+  proposedPrice: number;
+};
+
 type DispatchResult = {
   status: NotificationDispatchStatus;
   provider?: string;
@@ -167,6 +186,196 @@ export class ReservationClientNotificationService {
     await this.notifyGenericEvent(input, 'RESERVATION_FINALISEE', 'finalisee');
   }
 
+  async notifyProfessionalOnTheWay(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    const client = await this.usersRepository.findMeById(input.clientId);
+    if (!client) {
+      return;
+    }
+
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const title = RESERVATION_NOTIFICATION_MESSAGES.onTheWayTitle;
+    const body = RESERVATION_NOTIFICATION_MESSAGES.onTheWayBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+    });
+    const smsBody = RESERVATION_NOTIFICATION_MESSAGES.onTheWaySmsBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+    });
+    const communicationMetadata = {
+      reservationId: input.reservationId,
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      dateHeure: input.dateHeure.toISOString(),
+      adresseClient: input.adresseClient,
+    };
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.clientId,
+      type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+      title,
+      body,
+      data: communicationMetadata,
+    });
+
+    const createdRecords =
+      await this.reservationCommunicationsRepository.createReservationDispatches(
+        {
+          reservationId: input.reservationId,
+          userId: input.clientId,
+          email: client.email,
+          phoneNumber: client.numeroTelephone,
+          emailSubject: RESERVATION_NOTIFICATION_MESSAGES.onTheWayEmailSubject,
+          emailContent: body,
+          smsContent: smsBody,
+          metadata: communicationMetadata,
+        },
+      );
+
+    if (client.email) {
+      const emailResult = await this.deliveryService.sendEmail({
+        to: client.email,
+        subject: RESERVATION_NOTIFICATION_MESSAGES.onTheWayEmailSubject,
+        text: body,
+      });
+      if (createdRecords.emailDispatchId) {
+        await this.updateDispatchResult(
+          createdRecords.emailDispatchId,
+          emailResult,
+        );
+      }
+    }
+
+    const smsResult = await this.deliveryService.sendSms({
+      to: client.numeroTelephone,
+      body: smsBody,
+    });
+    if (createdRecords.smsDispatchId) {
+      await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    }
+  }
+
+  async notifyPriceAdjustmentProposed(
+    input: ReservationPriceAdjustmentNotificationInput,
+  ): Promise<void> {
+    const client = await this.usersRepository.findMeById(input.clientId);
+    if (!client) {
+      return;
+    }
+
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const title =
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentProposedTitle;
+    const body = RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentProposedBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+      currentPrice: input.currentPrice,
+      proposedPrice: input.proposedPrice,
+      reason: input.reason,
+    });
+    const smsBody =
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentProposedSmsBody({
+        serviceName: input.serviceName,
+        professionalName: input.professionalName,
+        proposedPrice: input.proposedPrice,
+      });
+    const communicationMetadata = {
+      reservationId: input.reservationId,
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      dateHeure: input.dateHeure.toISOString(),
+      adresseClient: input.adresseClient,
+      currentPrice: input.currentPrice,
+      proposedPrice: input.proposedPrice,
+      reason: input.reason ?? null,
+    };
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.clientId,
+      type: NOTIFICATION_TYPES.AJUSTEMENT_PRIX_PROPOSE,
+      title,
+      body,
+      data: communicationMetadata,
+    });
+
+    const createdRecords =
+      await this.reservationCommunicationsRepository.createReservationDispatches(
+        {
+          reservationId: input.reservationId,
+          userId: input.clientId,
+          email: client.email,
+          phoneNumber: client.numeroTelephone,
+          emailSubject:
+            RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentProposedEmailSubject,
+          emailContent: body,
+          smsContent: smsBody,
+          metadata: communicationMetadata,
+        },
+      );
+
+    if (client.email) {
+      const emailResult = await this.deliveryService.sendEmail({
+        to: client.email,
+        subject:
+          RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentProposedEmailSubject,
+        text: body,
+      });
+      if (createdRecords.emailDispatchId) {
+        await this.updateDispatchResult(
+          createdRecords.emailDispatchId,
+          emailResult,
+        );
+      }
+    }
+
+    const smsResult = await this.deliveryService.sendSms({
+      to: client.numeroTelephone,
+      body: smsBody,
+    });
+    if (createdRecords.smsDispatchId) {
+      await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    }
+  }
+
+  async notifyPriceAdjustmentAccepted(
+    input: ReservationProfessionalPriceAdjustmentNotificationInput,
+  ): Promise<void> {
+    await this.notifyProfessionalPriceAdjustmentResponse(
+      input,
+      NOTIFICATION_TYPES.AJUSTEMENT_PRIX_ACCEPTE,
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentAcceptedTitle,
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentAcceptedBody({
+        serviceName: input.serviceName,
+        proposedPrice: input.proposedPrice,
+      }),
+    );
+  }
+
+  async notifyPriceAdjustmentRejected(
+    input: ReservationProfessionalPriceAdjustmentNotificationInput,
+  ): Promise<void> {
+    await this.notifyProfessionalPriceAdjustmentResponse(
+      input,
+      NOTIFICATION_TYPES.AJUSTEMENT_PRIX_REFUSE,
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentRejectedTitle,
+      RESERVATION_NOTIFICATION_MESSAGES.priceAdjustmentRejectedBody({
+        serviceName: input.serviceName,
+        proposedPrice: input.proposedPrice,
+      }),
+    );
+  }
+
   private async notifyGenericEvent(
     input: ReservationCreatedNotificationInput,
     type:
@@ -267,6 +476,25 @@ export class ReservationClientNotificationService {
       providerMessageId: result.providerMessageId,
       status: result.status,
       error: result.error,
+    });
+  }
+
+  private async notifyProfessionalPriceAdjustmentResponse(
+    input: ReservationProfessionalPriceAdjustmentNotificationInput,
+    type: 'AJUSTEMENT_PRIX_ACCEPTE' | 'AJUSTEMENT_PRIX_REFUSE',
+    title: string,
+    body: string,
+  ): Promise<void> {
+    await this.notificationsService.createInAppNotification({
+      userId: input.professionalUserId,
+      type,
+      title,
+      body,
+      data: {
+        reservationId: input.reservationId,
+        serviceName: input.serviceName,
+        proposedPrice: input.proposedPrice,
+      },
     });
   }
 }

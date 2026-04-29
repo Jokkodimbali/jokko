@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { RoleUtilisateur } from '@prisma/client';
 import {
   normalizeEmail,
   normalizeAddress,
@@ -77,6 +78,63 @@ export class UsersService {
     return this.updateMe(userId, { avatarUrl: command.avatarUrl });
   }
 
+  async listForAdmin(
+    requestUser: { role: RoleUtilisateur },
+    query: {
+      role?: RoleUtilisateur;
+      isActive?: boolean;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
+    this.assertAdminRole(requestUser.role);
+    return this.usersRepository.listAdminUsers(query);
+  }
+
+  async getForAdmin(requestUser: { role: RoleUtilisateur }, userId: string) {
+    this.assertAdminRole(requestUser.role);
+    const user = await this.usersRepository.findAdminUserById(userId);
+    if (!user) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
+    return user;
+  }
+
+  async getHistoryForAdmin(
+    requestUser: { role: RoleUtilisateur },
+    userId: string,
+    limit: number,
+  ) {
+    this.assertAdminRole(requestUser.role);
+    const history = await this.usersRepository.getAdminUserHistory(
+      userId,
+      limit,
+    );
+    if (!history) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
+    return history;
+  }
+
+  async blockUser(requestUser: { role: RoleUtilisateur }, userId: string) {
+    this.assertAdminRole(requestUser.role);
+    const user = await this.usersRepository.setUserActiveStatus(userId, false);
+    if (!user) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
+    return user;
+  }
+
+  async unblockUser(requestUser: { role: RoleUtilisateur }, userId: string) {
+    this.assertAdminRole(requestUser.role);
+    const user = await this.usersRepository.setUserActiveStatus(userId, true);
+    if (!user) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
+    return user;
+  }
+
   async getMyHistory(userId: string, query: GetMyHistoryQuery) {
     await this.findUserOrThrow(userId);
     const limit: number = query.limit ?? 20;
@@ -105,5 +163,11 @@ export class UsersService {
   private buildAnonymizedPhoneNumber(userId: string): string {
     const suffix = Date.now().toString().slice(-4);
     return `del-${userId.slice(0, 8)}-${suffix}`;
+  }
+
+  private assertAdminRole(role: RoleUtilisateur): void {
+    if (role !== RoleUtilisateur.ADMIN) {
+      throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
+    }
   }
 }

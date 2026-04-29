@@ -7,6 +7,7 @@ export type AuthUserSummary = {
   numeroTelephone: string;
   nom: string;
   role: RoleUtilisateur;
+  estActif: boolean;
 };
 
 export type AuthUserWithPassword = AuthUserSummary & {

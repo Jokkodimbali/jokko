@@ -10,16 +10,8 @@ import {
   MaxLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
-/**
- * Type de prix du service professionnel.
- *
- * Logique métier pour la négociation de prix :
- * Le professionnel doit indiquer si le prix du service est fixe ou négociable.
- * S'il est fixe, c'est bon. Si c'est négociable, il discute avec le client,
- * et si le client n'accepte pas le prix, il lui propose un autre prix jusqu'à ce
- * qu'ils tombent d'accord sur le prix, puis le client passe au paiement.
- */
 export enum ServicePriceType {
   FIXE = 'FIXE',
   NEGOCIABLE = 'NEGOCIABLE',
@@ -27,7 +19,7 @@ export enum ServicePriceType {
 
 export class CreateProfessionalServiceDto {
   @ApiProperty({
-    description: 'ID de la categorie du service',
+    description: API_DOCS.professionals.categoryIdField,
     example: '550e8400-e29b-41d4-a716-446655440000',
     format: 'uuid',
   })
@@ -36,7 +28,7 @@ export class CreateProfessionalServiceDto {
   categoryId!: string;
 
   @ApiProperty({
-    description: 'Nom du service',
+    description: API_DOCS.professionals.serviceNameField,
     example: 'Creation site web',
     maxLength: 200,
   })
@@ -49,7 +41,7 @@ export class CreateProfessionalServiceDto {
   name!: string;
 
   @ApiProperty({
-    description: 'Description du service',
+    description: API_DOCS.professionals.serviceDescriptionField,
     example: 'Je cree des sites web modernes et responsifs',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -60,7 +52,7 @@ export class CreateProfessionalServiceDto {
   description!: string;
 
   @ApiProperty({
-    description: 'Prix du service en FCFA',
+    description: API_DOCS.professionals.servicePriceField,
     example: 50000,
     minimum: 0,
   })
@@ -73,7 +65,7 @@ export class CreateProfessionalServiceDto {
   price!: number;
 
   @ApiProperty({
-    description: 'Type de prix',
+    description: API_DOCS.professionals.servicePriceTypeField,
     enum: ServicePriceType,
     example: ServicePriceType.FIXE,
   })

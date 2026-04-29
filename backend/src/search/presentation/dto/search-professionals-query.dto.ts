@@ -11,10 +11,11 @@ import {
   Min,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class SearchProfessionalsQueryDto {
   @ApiPropertyOptional({
-    description: 'Ville du professionnel',
+    description: API_DOCS.search.cityField,
     example: 'Dakar',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -26,7 +27,7 @@ export class SearchProfessionalsQueryDto {
   city?: string;
 
   @ApiPropertyOptional({
-    description: 'Identifiant de la categorie',
+    description: API_DOCS.search.categoryIdField,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsOptional()
@@ -34,7 +35,7 @@ export class SearchProfessionalsQueryDto {
   categoryId?: string;
 
   @ApiPropertyOptional({
-    description: 'Texte libre de recherche',
+    description: API_DOCS.search.queryField,
     example: 'plombier urgence',
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -46,7 +47,7 @@ export class SearchProfessionalsQueryDto {
   query?: string;
 
   @ApiPropertyOptional({
-    description: 'Latitude GPS',
+    description: API_DOCS.search.latitudeField,
     example: 14.7167,
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -59,7 +60,7 @@ export class SearchProfessionalsQueryDto {
   latitude?: number;
 
   @ApiPropertyOptional({
-    description: 'Longitude GPS',
+    description: API_DOCS.search.longitudeField,
     example: -17.4677,
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -72,7 +73,7 @@ export class SearchProfessionalsQueryDto {
   longitude?: number;
 
   @ApiPropertyOptional({
-    description: 'Rayon de recherche en kilometres',
+    description: API_DOCS.search.radiusKmField,
     example: 10,
     default: 25,
   })
@@ -86,7 +87,7 @@ export class SearchProfessionalsQueryDto {
   radiusKm?: number = 25;
 
   @ApiPropertyOptional({
-    description: 'Numero de page',
+    description: API_DOCS.search.pageField,
     example: 1,
     default: 1,
   })
@@ -99,7 +100,7 @@ export class SearchProfessionalsQueryDto {
   page?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Nombre de resultats par page',
+    description: API_DOCS.search.limitField,
     example: 20,
     default: 20,
   })

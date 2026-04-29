@@ -2,10 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
+import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class SubmitKycDto {
   @ApiProperty({
-    description: "URL du recto de la pièce d'identité (CNI)",
+    description: API_DOCS.professionals.kycFrontUrlField,
     example: 'https://example.com/images/cni-recto.jpg',
     format: 'uri',
   })
@@ -23,7 +24,7 @@ export class SubmitKycDto {
   idCardUrl!: string;
 
   @ApiProperty({
-    description: "URL du verso de la pièce d'identité (CNI)",
+    description: API_DOCS.professionals.kycBackUrlField,
     example: 'https://example.com/images/cni-verso.jpg',
     format: 'uri',
     required: false,

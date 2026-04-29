@@ -4,6 +4,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NegotiationsModule } from '../negotiations/negotiations.module';
+import { DisputesModule } from '../disputes/disputes.module';
+import { LiveTrackingModule } from '../live-tracking/live-tracking.module';
 import { RESERVATIONS_REPOSITORY_PORT } from './application/ports/reservations-repository.port';
 import { ReservationCommandService } from './application/services/reservation-command.service';
 import { ReservationQueryService } from './application/services/reservation-query.service';
@@ -19,6 +22,9 @@ import { ReservationsController } from './presentation/controllers/reservations.
     ProfessionalsModule,
     UsersModule,
     NotificationsModule,
+    NegotiationsModule,
+    DisputesModule,
+    LiveTrackingModule,
   ],
   controllers: [ReservationsController, AdminReservationsController],
   providers: [
@@ -31,6 +37,6 @@ import { ReservationsController } from './presentation/controllers/reservations.
     ReservationQueryService,
     ReservationsFacade,
   ],
-  exports: [ReservationsFacade],
+  exports: [ReservationsFacade, RESERVATIONS_REPOSITORY_PORT],
 })
 export class ReservationsModule {}

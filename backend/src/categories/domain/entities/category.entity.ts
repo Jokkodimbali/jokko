@@ -12,6 +12,7 @@ export class Category {
     private _name: string,
     private _iconUrl: string | null,
     private _sortOrder: number,
+    private _commissionRate: number,
     private _isActive: boolean,
     private readonly domainEvents: (
       | CategoryCreated
@@ -40,17 +41,23 @@ export class Category {
     return this._isActive;
   }
 
+  get commissionRate(): number {
+    return this._commissionRate;
+  }
+
   static create(data: {
     id: string;
     name: string;
     iconUrl: string | null;
     sortOrder: number;
+    commissionRate: number;
   }): Category {
     const category = new Category(
       data.id,
       data.name,
       data.iconUrl,
       data.sortOrder,
+      data.commissionRate,
       true,
     );
 
@@ -71,6 +78,7 @@ export class Category {
     name: string;
     iconUrl: string | null;
     sortOrder: number;
+    commissionRate: number;
     isActive: boolean;
   }): Category {
     return new Category(
@@ -78,6 +86,7 @@ export class Category {
       data.name,
       data.iconUrl,
       data.sortOrder,
+      data.commissionRate,
       data.isActive,
     );
   }
@@ -86,6 +95,7 @@ export class Category {
     name?: string;
     iconUrl?: string | null;
     sortOrder?: number;
+    commissionRate?: number;
   }): void {
     if (data.name !== undefined) {
       this._name = data.name;
@@ -97,6 +107,10 @@ export class Category {
 
     if (data.sortOrder !== undefined) {
       this._sortOrder = data.sortOrder;
+    }
+
+    if (data.commissionRate !== undefined) {
+      this._commissionRate = data.commissionRate;
     }
 
     this.domainEvents.push(

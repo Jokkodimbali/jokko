@@ -65,12 +65,55 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_CANNOT_START: 'Impossible de demarrer cette reservation.',
   RESERVATION_PAYMENT_REQUIRED:
     'La reservation doit etre payee avant de poursuivre cette action.',
+  RESERVATION_PRICE_ADJUSTMENT_STATUS_INVALID:
+    "Cette reservation ne permet pas d'ajustement de prix dans son statut actuel.",
+  RESERVATION_PRICE_ADJUSTMENT_ALREADY_PENDING:
+    "Une demande d'ajustement de prix est deja en attente de reponse client.",
+  RESERVATION_PRICE_ADJUSTMENT_NOT_PENDING:
+    "Aucune demande d'ajustement de prix n'est en attente pour cette reservation.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_INVALID:
+    "Le montant propose pour l'ajustement de prix est invalide.",
+  RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED:
+    'Le nouveau prix propose doit etre different du prix convenu actuel.',
+  RESERVATION_PRICE_ADJUSTMENT_PAYMENT_ALREADY_EXISTS:
+    "Impossible d'ajuster le prix apres le demarrage du paiement de cette reservation.",
   RESERVATION_CANNOT_OPEN_DISPUTE:
     "Impossible d'ouvrir un litige pour cette reservation.",
   RESERVATION_CANCELLATION_TOO_LATE:
     'Annulation impossible moins de 24h avant la reservation.',
   RESERVATION_RESCHEDULE_TOO_LATE:
     'Reprogrammation impossible moins de 24h avant la reservation.',
+  RESERVATION_REVIEW_REQUIRES_COMPLETED:
+    'La reservation doit etre terminee avant de pouvoir laisser un avis.',
+  RESERVATION_REVIEW_ALREADY_SUBMITTED:
+    'Un avis client a deja ete enregistre pour cette reservation.',
+  RESERVATION_REVIEW_RATING_INVALID:
+    'La note client doit etre un entier compris entre 1 et 5.',
+  DISPUTE_REASON_TOO_SHORT:
+    'Le motif du litige doit contenir au moins 10 caracteres.',
+  DISPUTE_INVALID_STATUS_IN_REVIEW:
+    'Le litige doit etre ouvert pour etre pris en charge.',
+  DISPUTE_INVALID_STATUS_RESOLVE:
+    'Le litige doit etre ouvert ou en revue pour etre resolu.',
+  DISPUTE_INVALID_STATUS_REJECT:
+    'Le litige doit etre ouvert ou en revue pour etre rejete.',
+  DISPUTE_INVALID_RESOLUTION_NOTES:
+    'Les notes de resolution du litige sont invalides.',
+  DISPUTE_INVALID_REJECTION_NOTES:
+    'Les notes de rejet du litige sont invalides.',
+  DISPUTE_INVALID_REFUND_PERCENTAGE:
+    'Le pourcentage de remboursement du litige est invalide.',
+  DISPUTE_WALLET_TRANSACTION_DESCRIPTION: 'Resolution de litige Jokko',
+  LIVE_TRACKING_INVALID_ON_THE_WAY_STATUS:
+    'La reservation doit etre payee et en attente de demarrage pour activer le suivi en route.',
+  LIVE_TRACKING_ACTIVE_SESSION_REQUIRED:
+    'Aucune session de suivi en cours nest disponible pour cette reservation.',
+  LIVE_TRACKING_INVALID_LOCATION:
+    'Les coordonnees GPS du suivi sont invalides.',
+  MESSAGING_MESSAGE_CONTENT_REQUIRED:
+    'Un message doit contenir un texte ou un media.',
+  MESSAGING_PARTICIPANTS_REQUIRED:
+    'Les participants de la conversation sont obligatoires.',
   USER_NOT_FOUND: 'Utilisateur introuvable',
   USER_ALREADY_EXISTS: ({ identifier }: { identifier: string }) =>
     `L'utilisateur avec ${identifier} existe deja`,

@@ -24,6 +24,7 @@ import {
   PAYMENT_WEBHOOK_SECURITY_PORT,
   type PaymentWebhookSecurityPort,
 } from '../ports/payment-webhook-security.port';
+import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
 
 export interface PaymentFilters {
   status?: string;
@@ -56,6 +57,7 @@ export class PaymentsFacade {
     private readonly paymentWebhookEvents: PaymentWebhookEventPort,
     @Inject(PAYMENT_WEBHOOK_SECURITY_PORT)
     private readonly paymentWebhookSecurity: PaymentWebhookSecurityPort,
+    private readonly disputesFacade: DisputesFacade,
   ) {}
 
   async initiatePaymentForReservation(
@@ -200,7 +202,14 @@ export class PaymentsFacade {
     reason?: string,
   ) {
     await this.assertCanAccessPayment(requestUser, paymentId);
-    return this.escrowService.disputeEscrow(paymentId, reason);
+    const payment = await this.escrowService.disputeEscrow(paymentId, reason);
+    await this.disputesFacade.openForPayment({
+      paymentId: payment.id,
+      reservationId: payment.bookingId,
+      reporterUserId: requestUser.sub,
+      reason: reason?.trim() || 'Litige ouvert depuis le module paiement.',
+    });
+    return payment;
   }
 
   async getEscrowStatusForUser(requestUser: AuthUser, paymentId: string) {

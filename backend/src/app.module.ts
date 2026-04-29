@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { NegotiationsModule } from './negotiations/negotiations.module';
 import { SearchModule } from './search/search.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MessagingModule } from './messaging/messaging.module';
     CategoriesModule,
     NegotiationsModule,
     NotificationsModule,
+    DisputesModule,
     MessagingModule,
     SearchModule,
     ReservationsModule,

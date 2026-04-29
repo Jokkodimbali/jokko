@@ -28,6 +28,7 @@ const PRISMA_NOTIFICATION_TYPE_BY_DOMAIN: Record<
   NOUVEAU_MESSAGE: TypeNotification.NOUVEAU_MESSAGE,
   KYC_APPROUVEE: TypeNotification.KYC_APPROUVEE,
   KYC_REJETEE: TypeNotification.KYC_REJETEE,
+  LITIGE_OUVERT: TypeNotification.LITIGE_OUVERT,
   LITIGE_RESOLU: TypeNotification.LITIGE_RESOLU,
   RESERVATION_FINALISEE: TypeNotification.RESERVATION_FINALISEE,
 };
@@ -68,19 +69,15 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
       return [];
     }
 
-    const notifications = await this.prisma.$transaction(
-      inputs.map((input) =>
-        this.prisma.notification.create({
-          data: {
-            utilisateurId: input.userId,
-            type: this.toPrismaType(input.type),
-            titre: input.title,
-            corps: input.body,
-            donnees: this.toPrismaJson(input.data),
-          },
-        }),
-      ),
-    );
+    const notifications = await this.prisma.notification.createManyAndReturn({
+      data: inputs.map((input) => ({
+        utilisateurId: input.userId,
+        type: this.toPrismaType(input.type),
+        titre: input.title,
+        corps: input.body,
+        donnees: this.toPrismaJson(input.data),
+      })),
+    });
 
     return notifications.map((notification) => this.toView(notification));
   }

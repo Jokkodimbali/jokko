@@ -300,6 +300,17 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     return payment !== null;
   }
 
+  async findPaymentIdForReservation(
+    reservationId: string,
+  ): Promise<string | null> {
+    const payment = await this.prisma.paiement.findUnique({
+      where: { reservationId },
+      select: { id: true },
+    });
+
+    return payment?.id ?? null;
+  }
+
   async submitClientReview(reservation: Reservation): Promise<Reservation> {
     const updated = await this.prisma.$transaction(async (tx) => {
       const writeResult = await tx.reservation.updateMany({

@@ -42,6 +42,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
+import { DisputesModule } from '../disputes/disputes.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { UsersModule } from '../users/users.module';
     ProfessionalsModule,
     NotificationsModule,
     UsersModule,
+    DisputesModule,
   ],
   controllers: [PaymentsController, AdminPaymentsController],
   providers: [

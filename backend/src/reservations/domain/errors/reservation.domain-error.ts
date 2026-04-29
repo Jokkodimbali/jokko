@@ -1,5 +1,5 @@
-import { ValidationError } from '../../../shared/domain/errors/domain-error';
 import { domainMessage } from '../../../core/messages/domain-message.catalog';
+import { ValidationError } from '../../../shared/domain/errors/domain-error';
 
 export class ReservationDomainError extends ValidationError {
   constructor(code: string, message: string) {
@@ -171,13 +171,6 @@ export class ReservationDomainError extends ValidationError {
     return new ReservationDomainError(
       'RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED',
       domainMessage('RESERVATION_PRICE_ADJUSTMENT_AMOUNT_UNCHANGED'),
-    );
-  }
-
-  static paymentAlreadyExistsForPriceAdjustment(): ReservationDomainError {
-    return new ReservationDomainError(
-      'RESERVATION_PRICE_ADJUSTMENT_PAYMENT_ALREADY_EXISTS',
-      domainMessage('RESERVATION_PRICE_ADJUSTMENT_PAYMENT_ALREADY_EXISTS'),
     );
   }
 

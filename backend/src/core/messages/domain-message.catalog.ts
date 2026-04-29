@@ -89,6 +89,21 @@ export const DOMAIN_MESSAGE_CATALOG = {
     'Un avis client a deja ete enregistre pour cette reservation.',
   RESERVATION_REVIEW_RATING_INVALID:
     'La note client doit etre un entier compris entre 1 et 5.',
+  DISPUTE_REASON_TOO_SHORT:
+    'Le motif du litige doit contenir au moins 10 caracteres.',
+  DISPUTE_INVALID_STATUS_IN_REVIEW:
+    'Le litige doit etre ouvert pour etre pris en charge.',
+  DISPUTE_INVALID_STATUS_RESOLVE:
+    'Le litige doit etre ouvert ou en revue pour etre resolu.',
+  DISPUTE_INVALID_STATUS_REJECT:
+    'Le litige doit etre ouvert ou en revue pour etre rejete.',
+  DISPUTE_INVALID_RESOLUTION_NOTES:
+    'Les notes de resolution du litige sont invalides.',
+  DISPUTE_INVALID_REJECTION_NOTES:
+    'Les notes de rejet du litige sont invalides.',
+  DISPUTE_INVALID_REFUND_PERCENTAGE:
+    'Le pourcentage de remboursement du litige est invalide.',
+  DISPUTE_WALLET_TRANSACTION_DESCRIPTION: 'Resolution de litige Jokko',
   MESSAGING_MESSAGE_CONTENT_REQUIRED:
     'Un message doit contenir un texte ou un media.',
   MESSAGING_PARTICIPANTS_REQUIRED:

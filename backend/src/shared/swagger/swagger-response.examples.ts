@@ -258,6 +258,103 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
       },
     },
   },
+  disputes: {
+    listData: [
+      {
+        id: 'f70e8400-e29b-41d4-a716-446655440301',
+        reservationId: '650e8400-e29b-41d4-a716-446655440001',
+        paiementId: 'a50e8400-e29b-41d4-a716-446655440005',
+        reporterUserId: '550e8400-e29b-41d4-a716-446655440000',
+        statut: 'OUVERT',
+        priorite: 'HAUTE',
+        raison: 'Le prestataire ne sest pas presente a ladresse convenue.',
+        ouvertLe: '2026-04-29T10:00:00.000Z',
+        slaRemainingHours: 12,
+        reservation: {
+          id: '650e8400-e29b-41d4-a716-446655440001',
+          statut: 'LITIGE',
+        },
+        payment: {
+          id: 'a50e8400-e29b-41d4-a716-446655440005',
+          statut: 'SUCCES',
+          escrowStatus: 'DISPUTED',
+          montant: 10000,
+          montantNet: 9000,
+        },
+        reporter: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          nom: 'Client Jokko',
+          role: 'CLIENT',
+        },
+        client: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          nom: 'Client Jokko',
+        },
+        professional: {
+          profileId: '850e8400-e29b-41d4-a716-446655440003',
+          userId: '850e8400-e29b-41d4-a716-446655440099',
+          nom: 'Samba Fall',
+        },
+      },
+    ],
+    detailData: {
+      id: 'f70e8400-e29b-41d4-a716-446655440301',
+      reservationId: '650e8400-e29b-41d4-a716-446655440001',
+      paiementId: 'a50e8400-e29b-41d4-a716-446655440005',
+      reporterUserId: '550e8400-e29b-41d4-a716-446655440000',
+      resolvedByAdminUserId: null,
+      statut: 'EN_REVUE',
+      priorite: 'HAUTE',
+      raison: 'Le prestataire ne sest pas presente a ladresse convenue.',
+      notesInternes: null,
+      decisionResolution: null,
+      pourcentageRemboursementClient: null,
+      montantRembourseClient: null,
+      montantPrestataire: null,
+      ouvertLe: '2026-04-29T10:00:00.000Z',
+      prisEnChargeLe: '2026-04-29T12:00:00.000Z',
+      resoluLe: null,
+      rejeteLe: null,
+      slaRemainingHours: 10,
+      reservation: {
+        id: '650e8400-e29b-41d4-a716-446655440001',
+        statut: 'LITIGE',
+      },
+      payment: {
+        id: 'a50e8400-e29b-41d4-a716-446655440005',
+        statut: 'SUCCES',
+        escrowStatus: 'DISPUTED',
+        montant: 10000,
+        montantNet: 9000,
+      },
+      reporter: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        nom: 'Client Jokko',
+        role: 'CLIENT',
+      },
+      client: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        nom: 'Client Jokko',
+      },
+      professional: {
+        profileId: '850e8400-e29b-41d4-a716-446655440003',
+        userId: '850e8400-e29b-41d4-a716-446655440099',
+        nom: 'Samba Fall',
+      },
+    },
+    resolutionData: {
+      dispute: {
+        id: 'f70e8400-e29b-41d4-a716-446655440301',
+        statut: 'RESOLU',
+        decisionResolution: 'REMBOURSER_CLIENT',
+        pourcentageRemboursementClient: 100,
+        montantRembourseClient: 10000,
+        montantPrestataire: 0,
+      },
+      clientRefundAmount: 10000,
+      professionalPayoutAmount: 0,
+    },
+  },
   notifications: {
     listData: [
       {

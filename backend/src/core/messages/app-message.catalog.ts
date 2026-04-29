@@ -451,6 +451,53 @@ export const APP_MESSAGES_BY_MODULE = {
         'Impossible de creer une conversation avec soi-meme sur la plateforme.',
     },
   },
+  disputes: {
+    DISPUTES_CREATED: {
+      code: 'DISPUTES_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Litige ouvert avec succes.',
+    },
+    DISPUTES_LISTED: {
+      code: 'DISPUTES_LISTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litiges recuperes avec succes.',
+    },
+    DISPUTES_RETRIEVED: {
+      code: 'DISPUTES_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige recupere avec succes.',
+    },
+    DISPUTES_MARKED_IN_REVIEW: {
+      code: 'DISPUTES_MARKED_IN_REVIEW',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige pris en charge avec succes.',
+    },
+    DISPUTES_RESOLVED: {
+      code: 'DISPUTES_RESOLVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige resolu avec succes.',
+    },
+    DISPUTES_REJECTED: {
+      code: 'DISPUTES_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Litige rejete avec succes.',
+    },
+    DISPUTES_NOT_FOUND: {
+      code: 'DISPUTES_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Litige introuvable.',
+    },
+    DISPUTES_INVALID_STATUS: {
+      code: 'DISPUTES_INVALID_STATUS',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message: 'Le statut actuel du litige ne permet pas cette action.',
+    },
+    DISPUTES_INVALID_RESOLUTION: {
+      code: 'DISPUTES_INVALID_RESOLUTION',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'La decision de resolution du litige est invalide.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -688,6 +735,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.search,
   ...APP_MESSAGES_BY_MODULE.negotiations,
   ...APP_MESSAGES_BY_MODULE.messaging,
+  ...APP_MESSAGES_BY_MODULE.disputes,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,

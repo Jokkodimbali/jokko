@@ -105,8 +105,28 @@ enum TypeNotification {
   NOUVEAU_MESSAGE
   KYC_APPROUVEE
   KYC_REJETEE
+  LITIGE_OUVERT
   LITIGE_RESOLU
   RESERVATION_FINALISEE
+}
+
+enum StatutLitige {
+  OUVERT
+  EN_REVUE
+  RESOLU
+  REJETE
+}
+
+enum PrioriteLitige {
+  BASSE
+  MOYENNE
+  HAUTE
+}
+
+enum DecisionResolutionLitige {
+  REMBOURSER_CLIENT
+  CREDITER_PRESTATAIRE
+  PARTAGER
 }
 
 enum CanalCommunication {
@@ -161,6 +181,8 @@ model Utilisateur {
   sessionsAuthentification  SessionAuthentification[]
   negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
   paiementsClient           Paiement[]             @relation("PaymentsClient")
+  litigesSignales           Litige[]               @relation("ReportedDisputes")
+  litigesResolus            Litige[]               @relation("ResolvedDisputes")
 
   @@map("users")
 }
@@ -314,6 +336,7 @@ model Reservation {
   conversation      Conversation?
   communications    CommunicationReservation[]
   negotiation       Negotiation?
+  litige            Litige?
 
   @@unique([id, clientId, professionnelId])
   @@index([clientId, dateHeure])
@@ -417,6 +440,7 @@ model Paiement {
   client               Utilisateur     @relation("PaymentsClient", fields: [clientId], references: [id])
   professionnel        ProfilProfessionnel @relation("PaymentsProfessional", fields: [professionalId], references: [id])
   transactionsPortefeuille TransactionPortefeuille[]
+  litige               Litige?
 
   @@index([clientId, creeLe])
   @@index([professionalId, creeLe])
@@ -425,6 +449,38 @@ model Paiement {
   @@index([referenceFournisseur])
   @@index([gatewayReference])
   @@map("payments")
+}
+
+model Litige {
+  id                       String                      @id @default(uuid()) @db.Uuid
+  reservationId            String                      @unique @map("booking_id") @db.Uuid
+  paiementId               String?                     @unique @map("payment_id") @db.Uuid
+  reporterUserId           String                      @map("reporter_user_id") @db.Uuid
+  resolvedByAdminUserId    String?                     @map("resolved_by_admin_user_id") @db.Uuid
+  statut                   StatutLitige                @default(OUVERT) @map("status")
+  priorite                 PrioriteLitige              @default(MOYENNE) @map("priority")
+  raison                   String                      @db.Text
+  notesInternes            String?                     @map("internal_notes") @db.Text
+  decisionResolution       DecisionResolutionLitige?   @map("resolution_decision")
+  pourcentageRemboursementClient Int?                  @map("client_refund_percentage")
+  montantRembourseClient   Decimal?                    @map("client_refund_amount") @db.Decimal(12, 2)
+  montantPrestataire       Decimal?                    @map("professional_payout_amount") @db.Decimal(12, 2)
+  ouvertLe                 DateTime                    @default(now()) @map("opened_at")
+  prisEnChargeLe           DateTime?                   @map("review_started_at")
+  resoluLe                 DateTime?                   @map("resolved_at")
+  rejeteLe                 DateTime?                   @map("rejected_at")
+  creeLe                   DateTime                    @default(now()) @map("created_at")
+  misAJourLe               DateTime                    @updatedAt @map("updated_at")
+
+  reservation              Reservation                 @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  paiement                 Paiement?                   @relation(fields: [paiementId], references: [id], onDelete: SetNull)
+  reporter                 Utilisateur                 @relation("ReportedDisputes", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  resolvedByAdmin          Utilisateur?                @relation("ResolvedDisputes", fields: [resolvedByAdminUserId], references: [id], onDelete: SetNull)
+
+  @@index([statut, priorite, ouvertLe])
+  @@index([reporterUserId, ouvertLe])
+  @@index([resolvedByAdminUserId, resoluLe])
+  @@map("disputes")
 }
 
 model CleIdempotence {

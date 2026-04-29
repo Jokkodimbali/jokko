@@ -193,6 +193,38 @@ export const API_DOCS = {
     reservationMismatchConflict:
       'La reservation fournie ne correspond pas aux participants de la conversation.',
   },
+  disputes: {
+    tag: 'Admin - Litiges',
+    listSummary: 'Lister les litiges ouverts et resolus',
+    getByIdSummary: 'Recuperer le detail dun litige',
+    markInReviewSummary: 'Prendre en charge un litige',
+    resolveSummary: 'Resoudre un litige admin',
+    rejectSummary: 'Rejeter un litige et clore le dossier',
+    disputeIdParam: 'Identifiant du litige',
+    statusFilter: 'Filtrer par statut de litige',
+    priorityFilter: 'Filtrer par priorite de litige',
+    limitField: 'Nombre maximum de litiges retournes',
+    cursorField: 'Curseur de pagination opaque',
+    decisionField: 'Decision admin sur le litige',
+    refundPercentageField: 'Pourcentage de remboursement client (0 a 100)',
+    notesField: 'Notes internes ou justification admin',
+    limitExample: 20,
+    refundPercentageExample: 50,
+    resolveNotesExample:
+      'Prestation partiellement executee. Decision de partage admin.',
+    rejectNotesExample:
+      'Le dossier ne justifie pas une retenue des fonds escrow.',
+    listSuccess: 'Litiges recuperes avec succes',
+    getByIdSuccess: 'Litige recupere avec succes',
+    markInReviewSuccess: 'Litige pris en charge avec succes',
+    resolveSuccess: 'Litige resolu avec succes',
+    rejectSuccess: 'Litige rejete avec succes',
+    invalidStatusConflict:
+      'Le litige doit etre ouvert ou en revue pour permettre cette action.',
+    invalidResolution:
+      'La decision admin, le pourcentage ou les notes de resolution sont invalides.',
+    adminOnly: 'Acces reserve aux administrateurs.',
+  },
   adminCategories: {
     tag: 'Admin - Categories',
     createSummary: 'Creer une categorie',

@@ -28,6 +28,7 @@ import {
 } from '../ports/reservations-repository.port';
 import { ReservationClientNotificationService } from '../../../notifications/application/services/reservation-client-notification.service';
 import { ReservationAppService } from './reservation-app-service.base';
+import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
@@ -40,6 +41,7 @@ export class ReservationCommandService extends ReservationAppService {
     private readonly eventBus: DomaineEventBusPort,
     private readonly negotiationsFacade: NegotiationsFacade,
     private readonly reservationClientNotificationService: ReservationClientNotificationService,
+    private readonly disputesFacade: DisputesFacade,
   ) {
     super(reservationsRepository, professionalsRepository);
   }
@@ -464,7 +466,18 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.openDispute(reason);
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+      const paymentId =
+        await this.reservationsRepository.findPaymentIdForReservation(
+          reservationId,
+        );
+      await this.disputesFacade.openForReservation({
+        reservationId: updated.id,
+        reporterUserId: requestUser.sub,
+        paymentId,
+        reason,
+      });
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;

@@ -529,6 +529,8 @@ describe('Payments (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('pendingEscrowReleases');
     expect(body.data).toHaveProperty('totalEscrowAmount');
+    expect(body.data).toHaveProperty('totalPayments');
+    expect(body.data).toHaveProperty('totalRevenue');
   });
 
   it('GET /api/v1/admin/payments/:id → 200 avec token admin', async () => {

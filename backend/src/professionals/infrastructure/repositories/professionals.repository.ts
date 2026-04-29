@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, StatutKyc } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
+  AdminKycProfileView,
   // Profile types
   CreateAvailabilityInput,
   CreateAvailabilityResult,
@@ -54,9 +55,16 @@ const PROFESSIONAL_SELECT = {
   },
 } as const;
 
+const ADMIN_KYC_SELECT = {
+  ...PROFESSIONAL_SELECT,
+  urlPieceIdentiteRecto: true,
+  urlPieceIdentiteVerso: true,
+} as const;
+
 const SERVICE_SELECT = {
   id: true,
   profilProfessionnelId: true,
+  categorieId: true,
   nom: true,
   description: true,
   prix: true,
@@ -86,6 +94,8 @@ type RawProfessionalProfile = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
+  urlPieceIdentiteRecto?: string | null;
+  urlPieceIdentiteVerso?: string | null;
   statutKyc: StatutKyc;
   raisonRejetKyc: string | null;
   ville: string | null;
@@ -133,6 +143,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
   private mapService(service: {
     id: string;
     profilProfessionnelId: string;
+    categorieId: string;
     nom: string;
     description: string;
     prix: Prisma.Decimal;
@@ -143,6 +154,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     return {
       id: service.id,
       profilProfessionnelId: service.profilProfessionnelId,
+      categorieId: service.categorieId,
       nom: service.nom,
       description: service.description,
       prix: service.prix.toNumber(),
@@ -290,6 +302,35 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       select: PROFESSIONAL_SELECT,
     });
     return profile ? this.mapProfile(profile) : null;
+  }
+
+  async listKycForAdmin(query?: {
+    status?: StatutKyc;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminKycProfileView[]> {
+    const profiles = await this.prisma.profilProfessionnel.findMany({
+      where: {
+        ...(query?.status ? { statutKyc: query.status } : {}),
+      },
+      orderBy: [{ creeLe: 'desc' }],
+      take: query?.limit ?? 20,
+      skip: query?.offset ?? 0,
+      select: ADMIN_KYC_SELECT,
+    });
+
+    return profiles.map((profile) => this.mapAdminKycProfile(profile));
+  }
+
+  async findKycByIdForAdmin(
+    profileId: string,
+  ): Promise<AdminKycProfileView | null> {
+    const profile = await this.prisma.profilProfessionnel.findUnique({
+      where: { id: profileId },
+      select: ADMIN_KYC_SELECT,
+    });
+
+    return profile ? this.mapAdminKycProfile(profile) : null;
   }
 
   // ─── Service Operations ────────────────────────────────────────────────────
@@ -605,6 +646,16 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             urlAvatar: null,
             estActif: false,
           },
+    };
+  }
+
+  private mapAdminKycProfile(
+    profile: RawProfessionalProfile,
+  ): AdminKycProfileView {
+    return {
+      ...this.mapProfile(profile),
+      urlPieceIdentiteRecto: profile.urlPieceIdentiteRecto ?? null,
+      urlPieceIdentiteVerso: profile.urlPieceIdentiteVerso ?? null,
     };
   }
 }

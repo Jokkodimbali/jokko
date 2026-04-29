@@ -13,6 +13,22 @@ import type {
 } from '../commands/categories.commands';
 import { CategoryAppService } from './category-app-service.base';
 
+const normalizeCommissionRate = (commissionRate?: number): number => {
+  if (commissionRate === undefined) {
+    return 10;
+  }
+
+  if (
+    !Number.isFinite(commissionRate) ||
+    commissionRate < 0 ||
+    commissionRate > 100
+  ) {
+    throw appHttpException('CATEGORIES_COMMISSION_RATE_INVALID');
+  }
+
+  return Number(commissionRate.toFixed(2));
+};
+
 @Injectable()
 export class CategoryAdminService extends CategoryAppService {
   async createCategory(requestUser: AuthUser, command: CreateCategoryCommand) {
@@ -26,6 +42,7 @@ export class CategoryAdminService extends CategoryAppService {
     const iconUrl = CategoryIconUrl.create(command.iconUrl)?.getValue() ?? null;
     const sortOrder =
       CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0;
+    const commissionRate = normalizeCommissionRate(command.commissionRate);
 
     const existingCategory =
       await this.categoriesRepository.findByName(categoryName);
@@ -37,6 +54,7 @@ export class CategoryAdminService extends CategoryAppService {
       name: categoryName,
       iconUrl,
       sortOrder,
+      commissionRate,
     });
 
     if (result.status === 'name_conflict') {
@@ -65,6 +83,7 @@ export class CategoryAdminService extends CategoryAppService {
       name: existingCategory.nom,
       iconUrl: existingCategory.urlIcone,
       sortOrder: existingCategory.ordreTri,
+      commissionRate: existingCategory.tauxCommission,
       isActive: existingCategory.estActive,
     });
 
@@ -77,6 +96,10 @@ export class CategoryAdminService extends CategoryAppService {
       command.sortOrder === undefined
         ? undefined
         : (CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0);
+    const nextCommissionRate =
+      command.commissionRate === undefined
+        ? undefined
+        : normalizeCommissionRate(command.commissionRate);
 
     if (
       nextName &&
@@ -93,6 +116,7 @@ export class CategoryAdminService extends CategoryAppService {
       name: nextName,
       iconUrl: nextIconUrl,
       sortOrder: nextSortOrder,
+      commissionRate: nextCommissionRate,
     });
 
     const result = await this.categoriesRepository.update({
@@ -100,6 +124,7 @@ export class CategoryAdminService extends CategoryAppService {
       name: category.name,
       iconUrl: category.iconUrl,
       sortOrder: category.sortOrder,
+      commissionRate: category.commissionRate,
     });
 
     if (result.status === 'not_found') {
@@ -127,6 +152,7 @@ export class CategoryAdminService extends CategoryAppService {
       name: existingCategory.nom,
       iconUrl: existingCategory.urlIcone,
       sortOrder: existingCategory.ordreTri,
+      commissionRate: existingCategory.tauxCommission,
       isActive: existingCategory.estActive,
     });
     category.disable();

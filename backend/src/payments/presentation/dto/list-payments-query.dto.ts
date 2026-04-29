@@ -11,6 +11,7 @@ import { API_DOCS } from '../../../core/messages/api-docs.messages';
 export class ListPaymentsQueryDto {
   @ApiPropertyOptional({
     description: API_DOCS.payments.methodFilter,
+    example: 'WAVE',
   })
   @IsOptional()
   @IsEnum(PaymentMethod, {
@@ -20,6 +21,7 @@ export class ListPaymentsQueryDto {
 
   @ApiPropertyOptional({
     description: API_DOCS.payments.statusFilter,
+    example: 'SUCCES',
   })
   @IsOptional()
   @IsEnum(PaymentStatus, {

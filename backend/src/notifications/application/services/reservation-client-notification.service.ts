@@ -186,6 +186,82 @@ export class ReservationClientNotificationService {
     await this.notifyGenericEvent(input, 'RESERVATION_FINALISEE', 'finalisee');
   }
 
+  async notifyProfessionalOnTheWay(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    const client = await this.usersRepository.findMeById(input.clientId);
+    if (!client) {
+      return;
+    }
+
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const title = RESERVATION_NOTIFICATION_MESSAGES.onTheWayTitle;
+    const body = RESERVATION_NOTIFICATION_MESSAGES.onTheWayBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+    });
+    const smsBody = RESERVATION_NOTIFICATION_MESSAGES.onTheWaySmsBody({
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      formattedDate,
+    });
+    const communicationMetadata = {
+      reservationId: input.reservationId,
+      serviceName: input.serviceName,
+      professionalName: input.professionalName,
+      dateHeure: input.dateHeure.toISOString(),
+      adresseClient: input.adresseClient,
+    };
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.clientId,
+      type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+      title,
+      body,
+      data: communicationMetadata,
+    });
+
+    const createdRecords =
+      await this.reservationCommunicationsRepository.createReservationDispatches(
+        {
+          reservationId: input.reservationId,
+          userId: input.clientId,
+          email: client.email,
+          phoneNumber: client.numeroTelephone,
+          emailSubject: RESERVATION_NOTIFICATION_MESSAGES.onTheWayEmailSubject,
+          emailContent: body,
+          smsContent: smsBody,
+          metadata: communicationMetadata,
+        },
+      );
+
+    if (client.email) {
+      const emailResult = await this.deliveryService.sendEmail({
+        to: client.email,
+        subject: RESERVATION_NOTIFICATION_MESSAGES.onTheWayEmailSubject,
+        text: body,
+      });
+      if (createdRecords.emailDispatchId) {
+        await this.updateDispatchResult(
+          createdRecords.emailDispatchId,
+          emailResult,
+        );
+      }
+    }
+
+    const smsResult = await this.deliveryService.sendSms({
+      to: client.numeroTelephone,
+      body: smsBody,
+    });
+    if (createdRecords.smsDispatchId) {
+      await this.updateDispatchResult(createdRecords.smsDispatchId, smsResult);
+    }
+  }
+
   async notifyPriceAdjustmentProposed(
     input: ReservationPriceAdjustmentNotificationInput,
   ): Promise<void> {

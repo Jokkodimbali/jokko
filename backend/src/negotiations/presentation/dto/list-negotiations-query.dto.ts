@@ -8,6 +8,7 @@ export class ListNegotiationsQueryDto {
   @ApiPropertyOptional({
     description: API_DOCS.negotiations.scopeField,
     enum: ['CLIENT', 'PRESTATAIRE'],
+    example: 'CLIENT',
   })
   @IsOptional()
   @IsIn(['CLIENT', 'PRESTATAIRE'], {
@@ -25,6 +26,7 @@ export class ListNegotiationsQueryDto {
       'ANNULEE',
       'CONVERTIE_EN_RESERVATION',
     ],
+    example: 'EN_ATTENTE_PRESTATAIRE',
   })
   @IsOptional()
   @IsIn(

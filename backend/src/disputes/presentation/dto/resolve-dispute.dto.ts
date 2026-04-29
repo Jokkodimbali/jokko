@@ -21,6 +21,7 @@ export class ResolveDisputeDto {
   @ApiProperty({
     description: API_DOCS.disputes.decisionField,
     enum: Object.values(DISPUTE_DECISIONS),
+    example: 'PARTAGER',
   })
   @IsEnum(DISPUTE_DECISIONS)
   decision!: (typeof DISPUTE_DECISIONS)[keyof typeof DISPUTE_DECISIONS];

@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -12,6 +20,7 @@ import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appMessage } from '../../../core/http/app-http.exception';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
 import { RejectKycDto } from '../dto/reject-kyc.dto';
+import { ListAdminKycQueryDto } from '../dto/list-admin-kyc-query.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { RoleUtilisateur } from '@prisma/client';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
@@ -27,6 +36,72 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 @ApiBearerAuth()
 export class AdminKycController {
   constructor(private readonly professionalsFacade: ProfessionalsFacade) {}
+
+  @Get()
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: API_DOCS.adminKyc.listSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.adminKyc.listSuccess,
+    messageExample: API_DOCS.adminKyc.listSuccess,
+    dataSchema: {
+      type: 'array',
+      items: { type: 'object' },
+      example: SWAGGER_RESPONSE_EXAMPLES.professionals.adminKycListData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  async listKyc(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListAdminKycQueryDto,
+  ) {
+    const result = await this.professionalsFacade.listKycForAdmin(user, query);
+    return createApiResponse(result);
+  }
+
+  @Get(':professionalId')
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: API_DOCS.adminKyc.getByIdSummary })
+  @ApiParam({
+    name: 'professionalId',
+    description: API_DOCS.adminKyc.professionalIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.adminKyc.getByIdSuccess,
+    messageExample: API_DOCS.adminKyc.getByIdSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.professionals.adminKycListData[0],
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 403,
+    description: API_DOCS.adminKyc.adminOnly,
+    errorCode: 'PROFESSIONALS_ADMIN_FORBIDDEN_ROLE',
+    messageExample: API_DOCS.adminKyc.adminOnly,
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: API_DOCS.common.profileNotFound,
+    errorCode: 'PROFESSIONALS_PROFILE_NOT_FOUND',
+    messageExample: API_DOCS.common.profileNotFound,
+  })
+  async getKyc(
+    @CurrentUser() user: AuthUser,
+    @Param('professionalId') professionalId: string,
+  ) {
+    const result = await this.professionalsFacade.getKycByIdForAdmin(
+      user,
+      professionalId,
+    );
+    return createApiResponse(result);
+  }
 
   @Patch(':professionalId/approve')
   @Roles(RoleUtilisateur.ADMIN)

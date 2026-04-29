@@ -128,19 +128,7 @@ export class AdminPaymentsController {
     messageExample: API_DOCS.common.unauthorized,
   })
   async getPaymentStatistics() {
-    const pendingEscrowReleases =
-      await this.paymentsFacade.getPendingEscrowReleases();
-
-    const stats = {
-      pendingEscrowReleases: pendingEscrowReleases.length,
-      totalEscrowAmount: pendingEscrowReleases.reduce(
-        (sum, payment) => sum + payment.netAmount.getValue(),
-        0,
-      ),
-      totalPayments: 0,
-      totalRevenue: 0,
-    };
-
+    const stats = await this.paymentsFacade.getAdminStatistics();
     return createApiResponse(stats);
   }
 

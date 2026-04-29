@@ -22,6 +22,6 @@ import { CategoriesController } from './presentation/controllers/categories.cont
     CategoryAdminService,
     CategoriesFacade,
   ],
-  exports: [CategoriesFacade],
+  exports: [CategoriesFacade, CATEGORIES_REPOSITORY_PORT],
 })
 export class CategoriesModule {}

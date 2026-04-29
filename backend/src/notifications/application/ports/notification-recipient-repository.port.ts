@@ -7,7 +7,12 @@ export type NotificationRecipient = {
   fcmToken: string | null;
 };
 
+export type NotificationBroadcastTarget = 'CLIENT' | 'PRESTATAIRE' | 'ALL';
+
 export interface NotificationRecipientRepositoryPort {
   findById(userId: string): Promise<NotificationRecipient | null>;
   updateFcmToken(userId: string, fcmToken: string): Promise<void>;
+  listRecipientsForBroadcast(
+    target: NotificationBroadcastTarget,
+  ): Promise<NotificationRecipient[]>;
 }

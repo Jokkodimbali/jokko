@@ -7,6 +7,7 @@ export class CreateConversationDto {
   @ApiProperty({
     description: API_DOCS.messaging.reservationIdField,
     format: 'uuid',
+    example: '650e8400-e29b-41d4-a716-446655440001',
   })
   @IsNotEmpty({
     message: VALIDATION_MESSAGES.MESSAGING_RESERVATION_ID_REQUIRED,

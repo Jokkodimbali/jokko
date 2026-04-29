@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   type NotificationRecipient,
+  type NotificationBroadcastTarget,
   type NotificationRecipientRepositoryPort,
 } from '../../application/ports/notification-recipient-repository.port';
 
@@ -33,5 +34,25 @@ export class NotificationRecipientRepository implements NotificationRecipientRep
       where: { id: userId },
       data: { jetonFcm: fcmToken },
     });
+  }
+
+  async listRecipientsForBroadcast(
+    target: NotificationBroadcastTarget,
+  ): Promise<NotificationRecipient[]> {
+    const users = await this.prisma.utilisateur.findMany({
+      where: {
+        estActif: true,
+        ...(target === 'ALL' ? {} : { role: target }),
+      },
+      select: {
+        id: true,
+        jetonFcm: true,
+      },
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      fcmToken: user.jetonFcm,
+    }));
   }
 }

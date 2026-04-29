@@ -18,6 +18,31 @@ export type UserMeView = {
   creeLe: Date;
 };
 
+export type AdminUserListItem = UserMeView & {
+  nombreReservationsClient: number;
+  nombreReservationsPrestataire: number;
+};
+
+export type AdminUserHistoryView = {
+  user: UserMeView;
+  reservationsAsClient: UserHistoryItem[];
+  reservationsAsProfessional: UserHistoryItem[];
+  paymentsAsClient: Array<{
+    id: string;
+    bookingId: string;
+    amount: number;
+    status: string;
+    createdAt: Date;
+  }>;
+  withdrawalsAsProfessional: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    requestedAt: Date;
+  }>;
+  notificationsCount: number;
+};
+
 export type UserProfileUpdateInput = {
   nom?: string;
   email?: string | null;
@@ -56,4 +81,21 @@ export interface UsersRepositoryPort {
     replacementPhoneNumber: string,
   ): Promise<UserMeView | null>;
   listClientHistory(userId: string, limit: number): Promise<UserHistoryItem[]>;
+  listAdminUsers(query?: {
+    role?: RoleUtilisateur;
+    isActive?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminUserListItem[]>;
+  findAdminUserById(userId: string): Promise<UserMeView | null>;
+  setUserActiveStatus(
+    userId: string,
+    isActive: boolean,
+  ): Promise<UserMeView | null>;
+  getAdminUserHistory(
+    userId: string,
+    limit: number,
+  ): Promise<AdminUserHistoryView | null>;
+  countActiveUsers(): Promise<number>;
 }

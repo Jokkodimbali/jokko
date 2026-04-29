@@ -12,7 +12,10 @@ import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CancelReservationDto {
-  @ApiPropertyOptional({ description: API_DOCS.reservations.cancelReasonField })
+  @ApiPropertyOptional({
+    description: API_DOCS.reservations.cancelReasonField,
+    example: 'Le client nest plus disponible a cette heure.',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(1000, {
@@ -24,6 +27,7 @@ export class CancelReservationDto {
 export class RescheduleReservationDto {
   @ApiProperty({
     description: API_DOCS.reservations.newDateTimeField,
+    example: '2026-05-03T14:30:00.000Z',
   })
   @IsDateString({}, { message: VALIDATION_MESSAGES.RESERVATION_DATE_INVALID })
   newDateTime!: string;
@@ -50,6 +54,7 @@ export class ProposeReservationPriceAdjustmentDto {
 
   @ApiPropertyOptional({
     description: API_DOCS.reservations.priceAdjustmentReasonField,
+    example: 'Des pieces supplementaires doivent etre remplacees sur place.',
   })
   @IsOptional()
   @IsString()
@@ -80,6 +85,7 @@ export class SubmitReservationReviewDto {
 
   @ApiPropertyOptional({
     description: API_DOCS.reservations.reviewCommentField,
+    example: 'Intervention rapide, propre et tres professionnelle.',
   })
   @IsOptional()
   @IsString()

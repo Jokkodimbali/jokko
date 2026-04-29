@@ -97,6 +97,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message: 'Le numero de telephone est invalide.',
     },
+    AUTH_ACCOUNT_INACTIVE: {
+      code: 'AUTH_ACCOUNT_INACTIVE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Ce compte est bloque ou desactive par un administrateur.',
+    },
   },
   users: {
     USERS_USER_NOT_FOUND: {
@@ -128,6 +133,31 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'USERS_ACCOUNT_ANONYMIZED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Compte anonymise avec succes.',
+    },
+    USERS_ADMIN_FORBIDDEN_ROLE: {
+      code: 'USERS_ADMIN_FORBIDDEN_ROLE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Seuls les administrateurs peuvent effectuer cette action.',
+    },
+    USERS_LISTED: {
+      code: 'USERS_LISTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateurs recuperes avec succes.',
+    },
+    USERS_HISTORY_RETRIEVED: {
+      code: 'USERS_HISTORY_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: "Historique de l'utilisateur recupere avec succes.",
+    },
+    USERS_BLOCKED: {
+      code: 'USERS_BLOCKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateur bloque avec succes.',
+    },
+    USERS_UNBLOCKED: {
+      code: 'USERS_UNBLOCKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Utilisateur debloque avec succes.',
     },
   },
   professionals: {
@@ -279,6 +309,11 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'CATEGORIES_CATEGORY_DISABLED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Categorie desactivee avec succes.',
+    },
+    CATEGORIES_COMMISSION_RATE_INVALID: {
+      code: 'CATEGORIES_COMMISSION_RATE_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Le taux de commission de la categorie est invalide.',
     },
     CATEGORIES_UPDATE_EMPTY: {
       code: 'CATEGORIES_UPDATE_EMPTY',
@@ -498,6 +533,41 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'La decision de resolution du litige est invalide.',
     },
   },
+  liveTracking: {
+    LIVE_TRACKING_ON_THE_WAY_MARKED: {
+      code: 'LIVE_TRACKING_ON_THE_WAY_MARKED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Le trajet du prestataire vers la reservation a ete active.',
+    },
+    LIVE_TRACKING_STATUS_RETRIEVED: {
+      code: 'LIVE_TRACKING_STATUS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message:
+        'Le suivi temps reel de la reservation a ete recupere avec succes.',
+    },
+    LIVE_TRACKING_PRESENCE_RETRIEVED: {
+      code: 'LIVE_TRACKING_PRESENCE_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'La presence du prestataire a ete recuperee avec succes.',
+    },
+    LIVE_TRACKING_INVALID_RESERVATION_STATUS: {
+      code: 'LIVE_TRACKING_INVALID_RESERVATION_STATUS',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Le suivi en route ne peut etre active que pour une reservation payee et non demarree.',
+    },
+    LIVE_TRACKING_ACTIVE_SESSION_REQUIRED: {
+      code: 'LIVE_TRACKING_ACTIVE_SESSION_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Aucune session de suivi active nest disponible pour cette reservation.',
+    },
+    LIVE_TRACKING_PROFESSIONAL_PROFILE_NOT_FOUND: {
+      code: 'LIVE_TRACKING_PROFESSIONAL_PROFILE_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Profil professionnel introuvable pour le suivi temps reel.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -711,6 +781,18 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Token de notification mis a jour avec succes.',
     },
+    NOTIFICATIONS_ADMIN_BROADCAST_SENT: {
+      code: 'NOTIFICATIONS_ADMIN_BROADCAST_SENT',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Notification de masse envoyee avec succes.',
+    },
+  },
+  admin: {
+    ADMIN_DASHBOARD_RETRIEVED: {
+      code: 'ADMIN_DASHBOARD_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Tableau de bord admin recupere avec succes.',
+    },
   },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {
@@ -736,9 +818,11 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.negotiations,
   ...APP_MESSAGES_BY_MODULE.messaging,
   ...APP_MESSAGES_BY_MODULE.disputes,
+  ...APP_MESSAGES_BY_MODULE.liveTracking,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,
+  ...APP_MESSAGES_BY_MODULE.admin,
   ...APP_MESSAGES_BY_MODULE.system,
 } as const satisfies Record<string, AppMessageDefinition>;
 

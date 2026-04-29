@@ -71,4 +71,8 @@ export class PaymentQueryService {
 
     return { payments, total };
   }
+
+  async getAdminStatistics() {
+    return this.paymentsRepository.getAdminStatistics();
+  }
 }

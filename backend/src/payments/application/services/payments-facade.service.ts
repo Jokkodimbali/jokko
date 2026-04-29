@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { RoleUtilisateur } from '@prisma/client';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
+import {
+  CATEGORIES_REPOSITORY_PORT,
+  type CategoriesRepositoryPort,
+} from '../../../categories/application/ports/categories-repository.port';
 import { ReservationsFacade } from '../../../reservations/application/services/reservations-facade.service';
 import {
   PROFESSIONALS_REPOSITORY_PORT,
@@ -51,6 +55,8 @@ export class PaymentsFacade {
     private readonly escrowService: EscrowService,
     private readonly withdrawalService: WithdrawalService,
     private readonly reservationsFacade: ReservationsFacade,
+    @Inject(CATEGORIES_REPOSITORY_PORT)
+    private readonly categoriesRepository: CategoriesRepositoryPort,
     @Inject(PROFESSIONALS_REPOSITORY_PORT)
     private readonly professionalsRepository: ProfessionalsRepositoryPort,
     @Inject(PAYMENT_WEBHOOK_EVENT_PORT)
@@ -68,12 +74,25 @@ export class PaymentsFacade {
       requestUser,
       command.bookingId,
     );
+    const service = await this.professionalsRepository.getServiceById(
+      reservation.serviceId,
+    );
+    if (!service) {
+      throw PaymentDomainError.paymentNotFound(reservation.serviceId);
+    }
+    const category = await this.categoriesRepository.findById(
+      service.categorieId,
+    );
+    if (!category) {
+      throw PaymentDomainError.paymentNotFound(service.categorieId);
+    }
 
     return this.paymentCommandService.initiatePayment({
       bookingId: command.bookingId,
       clientId: requestUser.sub,
       professionalId: reservation.professionnelId,
       amount: Number(reservation.prixConvenu),
+      commissionRate: category.tauxCommission,
       method: command.method,
       callbackUrl: command.callbackUrl,
       successUrl: command.successUrl,
@@ -223,6 +242,10 @@ export class PaymentsFacade {
 
   async getPendingEscrowReleases() {
     return this.escrowService.getPendingEscrowReleases();
+  }
+
+  async getAdminStatistics() {
+    return this.paymentQueryService.getAdminStatistics();
   }
 
   async processAutomaticEscrowRelease(paymentId: string) {

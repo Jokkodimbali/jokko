@@ -15,6 +15,8 @@ import { NegotiationsModule } from './negotiations/negotiations.module';
 import { SearchModule } from './search/search.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { LiveTrackingModule } from './live-tracking/live-tracking.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { DisputesModule } from './disputes/disputes.module';
     NotificationsModule,
     DisputesModule,
     MessagingModule,
+    LiveTrackingModule,
+    AdminModule,
     SearchModule,
     ReservationsModule,
     PaymentsModule,

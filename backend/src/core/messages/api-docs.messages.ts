@@ -52,6 +52,31 @@ export const API_DOCS = {
     avatarUrlField: "URL de l'avatar",
     avatarUpdateUrlField: 'URL de la nouvelle photo de profil',
   },
+  adminUsers: {
+    tag: 'Admin - Utilisateurs',
+    listSummary: 'Lister les utilisateurs de la plateforme',
+    getByIdSummary: 'Recuperer un utilisateur par identifiant',
+    getHistorySummary: "Consulter l'historique complet d'un utilisateur",
+    blockSummary: 'Bloquer un compte utilisateur',
+    unblockSummary: 'Debloquer un compte utilisateur',
+    userIdParam: "Identifiant de l'utilisateur",
+    roleFilter: 'Filtrer par role utilisateur',
+    isActiveFilter: 'Filtrer par etat actif',
+    searchFilter: 'Rechercher par nom, telephone ou email',
+    limitField: 'Nombre maximum de resultats',
+    offsetField: 'Offset de pagination',
+    roleExample: 'CLIENT',
+    isActiveExample: true,
+    searchExample: 'Moussa',
+    limitExample: 20,
+    offsetExample: 0,
+    listSuccess: 'Utilisateurs recuperes avec succes',
+    getByIdSuccess: 'Utilisateur recupere avec succes',
+    historySuccess: 'Historique utilisateur recupere avec succes',
+    blockSuccess: 'Utilisateur bloque avec succes',
+    unblockSuccess: 'Utilisateur debloque avec succes',
+    adminOnly: 'Acces reserve aux administrateurs.',
+  },
   professionals: {
     tag: 'Professionnels',
     createProfileSummary: 'Creer mon profil professionnel',
@@ -102,9 +127,17 @@ export const API_DOCS = {
   },
   adminKyc: {
     tag: 'Admin - KYC',
+    listSummary: 'Lister les dossiers KYC professionnels',
+    getByIdSummary: 'Recuperer un dossier KYC professionnel',
     approveSummary: 'Approuver un dossier KYC professionnel',
     rejectSummary: 'Rejeter un dossier KYC professionnel',
     professionalIdParam: 'Identifiant du profil professionnel',
+    statusFilter: 'Filtrer par statut KYC',
+    statusExample: 'EN_ATTENTE',
+    limitExample: 20,
+    offsetExample: 0,
+    listSuccess: 'Dossiers KYC recuperes avec succes',
+    getByIdSuccess: 'Dossier KYC recupere avec succes',
     adminOnly: 'Acces reserve aux administrateurs',
   },
   categories: {
@@ -114,6 +147,8 @@ export const API_DOCS = {
     nameField: 'Nom de la categorie',
     iconUrlField: "URL publique de l'icone",
     sortOrderField: 'Ordre de tri de la categorie',
+    commissionRateField:
+      'Taux de commission preleve par la plateforme sur cette categorie',
   },
   search: {
     tag: 'Recherche',
@@ -224,6 +259,33 @@ export const API_DOCS = {
     invalidResolution:
       'La decision admin, le pourcentage ou les notes de resolution sont invalides.',
     adminOnly: 'Acces reserve aux administrateurs.',
+  },
+  liveTracking: {
+    tag: 'Live Tracking',
+    markOnTheWaySummary:
+      'Activer le suivi en route d une reservation par le prestataire',
+    getReservationTrackingSummary:
+      'Recuperer le suivi temps reel d une reservation',
+    getProfessionalPresenceSummary:
+      'Recuperer la presence temps reel d un prestataire',
+    reservationIdParam: 'Identifiant de la reservation a suivre',
+    professionalIdParam: 'Identifiant du profil professionnel',
+    latitudeField: 'Latitude GPS courante du prestataire',
+    longitudeField: 'Longitude GPS courante du prestataire',
+    accuracyField: 'Precision GPS en metres',
+    headingField: 'Orientation GPS en degres',
+    speedField: 'Vitesse estimee en km/h',
+    locationLabelField: 'Libelle de localisation visible par le client',
+    markOnTheWaySuccess:
+      'Le suivi en route du prestataire a ete active avec succes',
+    getReservationTrackingSuccess:
+      'Le suivi temps reel de la reservation a ete recupere avec succes',
+    getProfessionalPresenceSuccess:
+      'La presence temps reel du prestataire a ete recuperee avec succes',
+    invalidReservationStatus:
+      'Le suivi en route exige une reservation payee et non encore demarree.',
+    activeSessionRequired:
+      'Une session de suivi active est obligatoire pour envoyer la position GPS.',
   },
   adminCategories: {
     tag: 'Admin - Categories',
@@ -382,6 +444,11 @@ export const API_DOCS = {
       'Traiter automatiquement les liberations escrow en attente',
     adminOnly: 'Acces reserve aux administrateurs.',
   },
+  adminDashboard: {
+    tag: 'Admin - Dashboard',
+    summary: 'Recuperer les indicateurs globaux de la plateforme',
+    success: 'Tableau de bord admin recupere avec succes',
+  },
   notifications: {
     tag: 'Notifications',
     listSummary: 'Lister mes notifications',
@@ -395,6 +462,21 @@ export const API_DOCS = {
     offsetDescription: 'Offset de pagination (defaut: 0)',
     fcmTokenDescription:
       'Token FCM Android ou iOS envoye par Firebase depuis lapplication mobile',
+  },
+  adminNotifications: {
+    tag: 'Admin - Notifications',
+    broadcastSummary:
+      'Envoyer une notification de masse aux clients, prestataires ou a toute la plateforme',
+    broadcastTargetField: 'Audience cible de la diffusion admin',
+    broadcastTitleField: 'Titre de la notification admin',
+    broadcastBodyField: 'Contenu de la notification admin',
+    broadcastDataField: 'Metadonnees libres ajoutees a la notification admin',
+    broadcastTargetExample: 'CLIENT',
+    broadcastTitleExample: 'Maintenance planifiee',
+    broadcastBodyExample:
+      'Une maintenance courte est prevue ce soir entre 23h et 23h30.',
+    broadcastSuccess: 'Notification de masse envoyee avec succes',
+    adminOnly: 'Acces reserve aux administrateurs.',
   },
   sante: {
     tag: 'Sante',

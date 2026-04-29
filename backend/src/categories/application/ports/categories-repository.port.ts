@@ -5,6 +5,7 @@ export type CategoryView = {
   nom: string;
   urlIcone: string | null;
   ordreTri: number;
+  tauxCommission: number;
   estActive: boolean;
 };
 
@@ -12,6 +13,7 @@ export type CreateCategoryInput = {
   name: string;
   iconUrl: string | null;
   sortOrder: number;
+  commissionRate: number;
 };
 
 export type UpdateCategoryInput = {
@@ -19,6 +21,7 @@ export type UpdateCategoryInput = {
   name: string;
   iconUrl: string | null;
   sortOrder: number;
+  commissionRate: number;
 };
 
 export type CreateCategoryResult =

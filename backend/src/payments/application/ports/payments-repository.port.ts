@@ -58,4 +58,11 @@ export interface PaymentsRepository {
   ): Promise<void>;
   findPendingEscrowReleases(): Promise<Payment[]>;
   findExpiredPayments(): Promise<Payment[]>;
+  getAdminStatistics(): Promise<{
+    totalPayments: number;
+    totalRevenue: number;
+    totalGrossAmount: number;
+    pendingEscrowReleases: number;
+    totalEscrowAmount: number;
+  }>;
 }

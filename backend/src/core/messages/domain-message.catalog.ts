@@ -104,6 +104,12 @@ export const DOMAIN_MESSAGE_CATALOG = {
   DISPUTE_INVALID_REFUND_PERCENTAGE:
     'Le pourcentage de remboursement du litige est invalide.',
   DISPUTE_WALLET_TRANSACTION_DESCRIPTION: 'Resolution de litige Jokko',
+  LIVE_TRACKING_INVALID_ON_THE_WAY_STATUS:
+    'La reservation doit etre payee et en attente de demarrage pour activer le suivi en route.',
+  LIVE_TRACKING_ACTIVE_SESSION_REQUIRED:
+    'Aucune session de suivi en cours nest disponible pour cette reservation.',
+  LIVE_TRACKING_INVALID_LOCATION:
+    'Les coordonnees GPS du suivi sont invalides.',
   MESSAGING_MESSAGE_CONTENT_REQUIRED:
     'Un message doit contenir un texte ou un media.',
   MESSAGING_PARTICIPANTS_REQUIRED:

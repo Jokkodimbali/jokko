@@ -43,6 +43,7 @@ import { ProfessionalsModule } from '../professionals/professionals.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { DisputesModule } from '../disputes/disputes.module';
+import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { DisputesModule } from '../disputes/disputes.module';
     NotificationsModule,
     UsersModule,
     DisputesModule,
+    CategoriesModule,
   ],
   controllers: [PaymentsController, AdminPaymentsController],
   providers: [

@@ -1,4 +1,32 @@
 export const SWAGGER_RESPONSE_EXAMPLES = {
+  adminDashboard: {
+    data: {
+      users: {
+        active: 124,
+        total: 156,
+      },
+      kyc: {
+        pending: 8,
+      },
+      reservations: {
+        pending: 12,
+        confirmed: 18,
+        inEscrow: 7,
+        inProgress: 4,
+        active: 41,
+      },
+      disputes: {
+        open: 3,
+        inReview: 2,
+        resolved: 14,
+        rejected: 1,
+      },
+      revenue: {
+        gross: 1450000,
+        commission: 174000,
+      },
+    },
+  },
   auth: {
     otpSentData: {
       expiresInSeconds: 300,
@@ -48,6 +76,61 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
         },
       },
     ],
+    adminListData: [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        numeroTelephone: '+221771234567',
+        nom: 'Client Jokko',
+        email: 'client@jokko.sn',
+        adresse: 'Dakar, Senegal',
+        role: 'CLIENT',
+        urlAvatar: 'https://cdn.jokko.sn/avatars/client-jokko.png',
+        estActif: true,
+        creeLe: '2026-04-20T08:00:00.000Z',
+        nombreReservationsClient: 4,
+        nombreReservationsPrestataire: 0,
+      },
+    ],
+    adminHistoryData: {
+      user: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        numeroTelephone: '+221771234567',
+        nom: 'Client Jokko',
+        email: 'client@jokko.sn',
+        adresse: 'Dakar, Senegal',
+        role: 'CLIENT',
+        urlAvatar: 'https://cdn.jokko.sn/avatars/client-jokko.png',
+        estActif: true,
+        creeLe: '2026-04-20T08:00:00.000Z',
+      },
+      reservationsAsClient: [
+        {
+          id: '650e8400-e29b-41d4-a716-446655440001',
+          statut: 'TERMINEE',
+          dateHeure: '2026-04-24T12:00:00.000Z',
+          notes: 'Intervention terminee avec succes.',
+          creeLe: '2026-04-23T10:30:00.000Z',
+          service: {
+            id: '760e8400-e29b-41d4-a716-446655440021',
+            nom: 'Plomberie a domicile',
+            prix: 12000,
+            typePrix: 'FIXE',
+          },
+        },
+      ],
+      reservationsAsProfessional: [],
+      paymentsAsClient: [
+        {
+          id: 'a50e8400-e29b-41d4-a716-446655440005',
+          bookingId: '650e8400-e29b-41d4-a716-446655440001',
+          amount: 12000,
+          status: 'SUCCES',
+          createdAt: '2026-04-24T11:00:00.000Z',
+        },
+      ],
+      withdrawalsAsProfessional: [],
+      notificationsCount: 6,
+    },
   },
   categories: {
     listData: [
@@ -125,6 +208,30 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
           id: '550e8400-e29b-41d4-a716-446655440000',
           nom: 'Client Jokko',
           urlAvatar: 'https://cdn.jokko.sn/avatars/client-jokko.png',
+        },
+      },
+    ],
+    adminKycListData: [
+      {
+        id: '850e8400-e29b-41d4-a716-446655440003',
+        utilisateurId: '850e8400-e29b-41d4-a716-446655440099',
+        biographie:
+          'Professionnel verifie specialise en plomberie et sanitaire',
+        nomEntreprise: 'Samba Services',
+        urlPieceIdentiteRecto: 'https://cdn.jokko.sn/kyc/samba-fall-recto.png',
+        urlPieceIdentiteVerso: 'https://cdn.jokko.sn/kyc/samba-fall-verso.png',
+        statutKyc: 'EN_ATTENTE',
+        raisonRejetKyc: null,
+        ville: 'Dakar',
+        noteGlobale: 4.8,
+        nombreAvis: 32,
+        creeLe: '2026-04-26T08:00:00.000Z',
+        utilisateur: {
+          id: '850e8400-e29b-41d4-a716-446655440099',
+          nom: 'Samba Fall',
+          numeroTelephone: '+221771112233',
+          urlAvatar: 'https://cdn.jokko.sn/avatars/samba-fall.png',
+          estActif: true,
         },
       },
     ],
@@ -258,6 +365,53 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
       },
     },
   },
+  liveTracking: {
+    presenceData: {
+      professionalId: '850e8400-e29b-41d4-a716-446655440003',
+      isOnline: true,
+      status: 'EN_ROUTE',
+      lastLatitude: 14.716677,
+      lastLongitude: -17.467686,
+      lastAccuracyMeters: 12.5,
+      lastHeadingDegrees: 180,
+      lastSpeedKmh: 28.4,
+      lastLocationLabel: 'Corniche Ouest, Dakar',
+      lastPositionAt: '2026-05-02T10:25:00.000Z',
+      lastSeenAt: '2026-05-02T10:25:00.000Z',
+      updatedAt: '2026-05-02T10:25:00.000Z',
+    },
+    trackingData: {
+      reservationId: '650e8400-e29b-41d4-a716-446655440001',
+      clientUserId: '550e8400-e29b-41d4-a716-446655440000',
+      professionalId: '850e8400-e29b-41d4-a716-446655440003',
+      professionalUserId: '850e8400-e29b-41d4-a716-446655440099',
+      trackingStatus: 'EN_ROUTE',
+      startedAt: '2026-05-02T10:20:00.000Z',
+      endedAt: null,
+      lastLatitude: 14.716677,
+      lastLongitude: -17.467686,
+      lastAccuracyMeters: 12.5,
+      lastHeadingDegrees: 180,
+      lastSpeedKmh: 28.4,
+      lastLocationLabel: 'Corniche Ouest, Dakar',
+      lastPositionAt: '2026-05-02T10:25:00.000Z',
+      updatedAt: '2026-05-02T10:25:00.000Z',
+      presence: {
+        professionalId: '850e8400-e29b-41d4-a716-446655440003',
+        isOnline: true,
+        status: 'EN_ROUTE',
+        lastLatitude: 14.716677,
+        lastLongitude: -17.467686,
+        lastAccuracyMeters: 12.5,
+        lastHeadingDegrees: 180,
+        lastSpeedKmh: 28.4,
+        lastLocationLabel: 'Corniche Ouest, Dakar',
+        lastPositionAt: '2026-05-02T10:25:00.000Z',
+        lastSeenAt: '2026-05-02T10:25:00.000Z',
+        updatedAt: '2026-05-02T10:25:00.000Z',
+      },
+    },
+  },
   disputes: {
     listData: [
       {
@@ -366,6 +520,10 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
         createdAt: '2026-04-24T12:00:00.000Z',
       },
     ],
+    adminBroadcastData: {
+      recipientCount: 42,
+      target: 'CLIENT',
+    },
   },
   payments: {
     initiateData: {

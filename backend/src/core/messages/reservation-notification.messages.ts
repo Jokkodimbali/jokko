@@ -59,6 +59,20 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
     `Jokko: votre reservation ${serviceName} avec ${professionalName} du ${formattedDate} a ete ${eventType}.`,
+  onTheWayTitle: 'Prestataire en route',
+  onTheWayEmailSubject: 'Votre prestataire est en route',
+  onTheWayBody: ({
+    serviceName,
+    professionalName,
+    formattedDate,
+  }: Omit<ReservationGenericNotificationTemplateInput, 'eventType'>) =>
+    `Votre prestataire ${professionalName} est en route pour la reservation ${serviceName} prevue le ${formattedDate}.`,
+  onTheWaySmsBody: ({
+    serviceName,
+    professionalName,
+    formattedDate,
+  }: Omit<ReservationGenericNotificationTemplateInput, 'eventType'>) =>
+    `Jokko: ${professionalName} est en route pour votre reservation ${serviceName} du ${formattedDate}.`,
   priceAdjustmentProposedTitle: 'Demande d ajustement de prix',
   priceAdjustmentProposedEmailSubject:
     'Mise a jour du prix de votre reservation Jokko',

@@ -58,6 +58,7 @@ export class PaymentCommandService {
     clientId: string;
     professionalId: string;
     amount: number;
+    commissionRate?: number;
     method: PaymentMethod;
     callbackUrl?: string;
     successUrl?: string;
@@ -134,6 +135,7 @@ export class PaymentCommandService {
       professionalId: command.professionalId,
       method: command.method,
       amount: PaymentAmount.create(command.amount),
+      commissionRate: command.commissionRate,
     });
 
     const transactionReference = TransactionReference.generate('PAY');

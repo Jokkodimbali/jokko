@@ -20,6 +20,7 @@ export class ListDisputesQueryDto {
   @ApiPropertyOptional({
     description: API_DOCS.disputes.statusFilter,
     enum: Object.values(DISPUTE_STATUSES),
+    example: 'OUVERT',
   })
   @IsOptional()
   @IsEnum(DISPUTE_STATUSES)
@@ -28,6 +29,7 @@ export class ListDisputesQueryDto {
   @ApiPropertyOptional({
     description: API_DOCS.disputes.priorityFilter,
     enum: Object.values(DISPUTE_PRIORITIES),
+    example: 'HAUTE',
   })
   @IsOptional()
   @IsEnum(DISPUTE_PRIORITIES)
@@ -46,6 +48,7 @@ export class ListDisputesQueryDto {
 
   @ApiPropertyOptional({
     description: API_DOCS.disputes.cursorField,
+    example: 'cursor-litige-2026-04-29T10:00:00.000Z',
   })
   @IsOptional()
   @IsString()

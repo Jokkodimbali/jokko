@@ -29,6 +29,7 @@ import {
 import { ReservationClientNotificationService } from '../../../notifications/application/services/reservation-client-notification.service';
 import { ReservationAppService } from './reservation-app-service.base';
 import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
+import { LiveTrackingFacade } from '../../../live-tracking/application/services/live-tracking-facade.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
@@ -42,6 +43,7 @@ export class ReservationCommandService extends ReservationAppService {
     private readonly negotiationsFacade: NegotiationsFacade,
     private readonly reservationClientNotificationService: ReservationClientNotificationService,
     private readonly disputesFacade: DisputesFacade,
+    private readonly liveTrackingFacade: LiveTrackingFacade,
   ) {
     super(reservationsRepository, professionalsRepository);
   }
@@ -169,6 +171,12 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.cancel(trimString(command.reason) ?? null);
       const updated = await this.reservationsRepository.update(entity.toView());
+      await this.liveTrackingFacade.finalizeReservationTracking({
+        reservationId: updated.id,
+        professionalId: updated.professionnelId,
+        trackingStatus: 'ANNULEE',
+        nextPresenceStatus: 'EN_LIGNE',
+      });
 
       // Notify client
       const professional = await this.getVerifiedProfessionalOrThrow(
@@ -364,6 +372,12 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.markAsCompleted();
       const updated = await this.reservationsRepository.update(entity.toView());
+      await this.liveTrackingFacade.finalizeReservationTracking({
+        reservationId: updated.id,
+        professionalId: updated.professionnelId,
+        trackingStatus: 'TERMINEE',
+        nextPresenceStatus: 'EN_LIGNE',
+      });
 
       return updated;
     } catch (error) {
@@ -412,7 +426,14 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.markAsNoShow();
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+      await this.liveTrackingFacade.finalizeReservationTracking({
+        reservationId: updated.id,
+        professionalId: updated.professionnelId,
+        trackingStatus: 'ANNULEE',
+        nextPresenceStatus: 'EN_LIGNE',
+      });
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
@@ -446,7 +467,14 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.startReservation();
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+      await this.liveTrackingFacade.finalizeReservationTracking({
+        reservationId: updated.id,
+        professionalId: updated.professionnelId,
+        trackingStatus: 'TERMINEE',
+        nextPresenceStatus: 'EN_PRESTATION',
+      });
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
@@ -467,6 +495,12 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.openDispute(reason);
       const updated = await this.reservationsRepository.update(entity.toView());
+      await this.liveTrackingFacade.finalizeReservationTracking({
+        reservationId: updated.id,
+        professionalId: updated.professionnelId,
+        trackingStatus: 'ANNULEE',
+        nextPresenceStatus: 'EN_LIGNE',
+      });
       const paymentId =
         await this.reservationsRepository.findPaymentIdForReservation(
           reservationId,

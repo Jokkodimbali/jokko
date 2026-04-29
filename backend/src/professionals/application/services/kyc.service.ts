@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { KycIdCardUrl, KycIdCardUrlVerso } from '../../domain';
+import type { KycStatus } from '../ports/professionals-repository.port';
 import type {
   SubmitKycCommand,
   RejectKycCommand,
@@ -10,6 +11,24 @@ import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
 export class KycService extends ProfessionalAppService {
+  async listKycForAdmin(
+    requestUser: AuthUser,
+    query?: { status?: KycStatus; limit?: number; offset?: number },
+  ) {
+    this.assertAdminRole(requestUser.role);
+    return this.professionalsRepository.listKycForAdmin(query);
+  }
+
+  async getKycByIdForAdmin(requestUser: AuthUser, profileId: string) {
+    this.assertAdminRole(requestUser.role);
+    const profile =
+      await this.professionalsRepository.findKycByIdForAdmin(profileId);
+    if (!profile) {
+      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
+    }
+    return profile;
+  }
+
   async submitKyc(requestUser: AuthUser, command: SubmitKycCommand) {
     this.assertProfessionalRole(requestUser.role);
 

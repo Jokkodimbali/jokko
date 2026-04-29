@@ -108,6 +108,20 @@ enum TypeNotification {
   LITIGE_OUVERT
   LITIGE_RESOLU
   RESERVATION_FINALISEE
+  ANNONCE_ADMIN
+}
+
+enum StatutPresenceProfessionnel {
+  HORS_LIGNE
+  EN_LIGNE
+  EN_ROUTE
+  EN_PRESTATION
+}
+
+enum StatutSessionTrackingReservation {
+  EN_ROUTE
+  TERMINEE
+  ANNULEE
 }
 
 enum StatutLitige {
@@ -183,6 +197,7 @@ model Utilisateur {
   paiementsClient           Paiement[]             @relation("PaymentsClient")
   litigesSignales           Litige[]               @relation("ReportedDisputes")
   litigesResolus            Litige[]               @relation("ResolvedDisputes")
+  sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
 
   @@map("users")
 }
@@ -244,6 +259,8 @@ model ProfilProfessionnel {
   demandesRetrait  DemandeRetrait[]
   transactionsPortefeuille TransactionPortefeuille[]
   paiements        Paiement[]                  @relation("PaymentsProfessional")
+  presence         PresenceProfessionnel?
+  sessionsTracking SessionTrackingReservation[]
 
   @@map("professional_profiles")
 }
@@ -253,6 +270,7 @@ model Categorie {
   nom        String     @map("name") @unique @db.VarChar(100)
   urlIcone   String?    @map("icon_url") @db.VarChar(500)
   ordreTri   Int        @default(0) @map("sort_order") @db.SmallInt
+  tauxCommission Decimal @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
   estActive  Boolean    @default(true) @map("is_active")
 
   services   Service[]
@@ -337,6 +355,7 @@ model Reservation {
   communications    CommunicationReservation[]
   negotiation       Negotiation?
   litige            Litige?
+  trackingSession   SessionTrackingReservation?
 
   @@unique([id, clientId, professionnelId])
   @@index([clientId, dateHeure])
@@ -481,6 +500,75 @@ model Litige {
   @@index([reporterUserId, ouvertLe])
   @@index([resolvedByAdminUserId, resoluLe])
   @@map("disputes")
+}
+
+model PresenceProfessionnel {
+  id                         String                       @id @default(uuid()) @db.Uuid
+  profilProfessionnelId      String                       @unique @map("professional_id") @db.Uuid
+  estEnLigne                 Boolean                      @default(false) @map("is_online")
+  statut                     StatutPresenceProfessionnel  @default(HORS_LIGNE) @map("status")
+  derniereLatitude           Decimal?                     @map("last_latitude") @db.Decimal(10, 7)
+  derniereLongitude          Decimal?                     @map("last_longitude") @db.Decimal(10, 7)
+  dernierePrecisionMetres    Decimal?                     @map("last_accuracy_meters") @db.Decimal(8, 2)
+  derniereOrientationDegres  Int?                         @map("last_heading_degrees") @db.SmallInt
+  derniereVitesseKmh         Decimal?                     @map("last_speed_kmh") @db.Decimal(8, 2)
+  dernierLibelleLocalisation String?                      @map("last_location_label") @db.VarChar(255)
+  dernierePositionLe         DateTime?                    @map("last_position_at")
+  dernierVueLe               DateTime?                    @map("last_seen_at")
+  creeLe                     DateTime                     @default(now()) @map("created_at")
+  misAJourLe                 DateTime                     @updatedAt @map("updated_at")
+
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+
+  @@index([statut, misAJourLe])
+  @@index([estEnLigne, misAJourLe])
+  @@map("professional_presence")
+}
+
+model SessionTrackingReservation {
+  id                         String                           @id @default(uuid()) @db.Uuid
+  reservationId              String                           @unique @map("booking_id") @db.Uuid
+  clientId                   String                           @map("client_id") @db.Uuid
+  professionnelId            String                           @map("professional_id") @db.Uuid
+  statut                     StatutSessionTrackingReservation @default(EN_ROUTE) @map("status")
+  derniereLatitude           Decimal?                         @map("last_latitude") @db.Decimal(10, 7)
+  derniereLongitude          Decimal?                         @map("last_longitude") @db.Decimal(10, 7)
+  dernierePrecisionMetres    Decimal?                         @map("last_accuracy_meters") @db.Decimal(8, 2)
+  derniereOrientationDegres  Int?                             @map("last_heading_degrees") @db.SmallInt
+  derniereVitesseKmh         Decimal?                         @map("last_speed_kmh") @db.Decimal(8, 2)
+  dernierLibelleLocalisation String?                          @map("last_location_label") @db.VarChar(255)
+  dernierePositionLe         DateTime?                        @map("last_position_at")
+  demarreLe                  DateTime                         @default(now()) @map("started_at")
+  termineLe                  DateTime?                        @map("ended_at")
+  creeLe                     DateTime                         @default(now()) @map("created_at")
+  misAJourLe                 DateTime                         @updatedAt @map("updated_at")
+
+  reservation   Reservation          @relation(fields: [reservationId, clientId, professionnelId], references: [id, clientId, professionnelId], onDelete: Cascade)
+  client        Utilisateur          @relation("TrackingSessionsClient", fields: [clientId], references: [id], onDelete: Cascade)
+  professionnel ProfilProfessionnel  @relation(fields: [professionnelId], references: [id], onDelete: Cascade)
+  points        PointTrackingReservation[]
+
+  @@unique([reservationId, clientId, professionnelId])
+  @@index([professionnelId, statut, misAJourLe])
+  @@index([clientId, misAJourLe])
+  @@map("reservation_tracking_sessions")
+}
+
+model PointTrackingReservation {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  sessionTrackingId   String                     @map("tracking_session_id") @db.Uuid
+  latitude            Decimal                    @db.Decimal(10, 7)
+  longitude           Decimal                    @db.Decimal(10, 7)
+  precisionMetres     Decimal?                   @map("accuracy_meters") @db.Decimal(8, 2)
+  orientationDegres   Int?                       @map("heading_degrees") @db.SmallInt
+  vitesseKmh          Decimal?                   @map("speed_kmh") @db.Decimal(8, 2)
+  libelleLocalisation String?                    @map("location_label") @db.VarChar(255)
+  enregistreLe        DateTime                   @default(now()) @map("recorded_at")
+
+  sessionTracking SessionTrackingReservation @relation(fields: [sessionTrackingId], references: [id], onDelete: Cascade)
+
+  @@index([sessionTrackingId, enregistreLe])
+  @@map("reservation_tracking_points")
 }
 
 model CleIdempotence {

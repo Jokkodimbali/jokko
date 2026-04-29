@@ -21,6 +21,7 @@ export class AuthRepository implements AuthRepositoryPort {
         numeroTelephone: true,
         nom: true,
         role: true,
+        estActif: true,
       },
     });
   }
@@ -35,6 +36,7 @@ export class AuthRepository implements AuthRepositoryPort {
         role: true,
         email: true,
         identifiantOauth: true,
+        estActif: true,
       },
     });
   }
@@ -48,6 +50,7 @@ export class AuthRepository implements AuthRepositoryPort {
         nom: true,
         role: true,
         motDePasseHash: true,
+        estActif: true,
       },
     });
   }
@@ -59,6 +62,7 @@ export class AuthRepository implements AuthRepositoryPort {
           numeroTelephone: phoneNumber,
           nom: `Utilisateur ${phoneNumber}`,
           role: RoleUtilisateur.CLIENT,
+          estActif: true,
         },
       });
     } catch (error) {
@@ -86,6 +90,7 @@ export class AuthRepository implements AuthRepositoryPort {
           email: data.email,
           motDePasseHash: data.passwordHash,
           role: RoleUtilisateur.CLIENT,
+          estActif: true,
         },
       });
     } catch (error) {

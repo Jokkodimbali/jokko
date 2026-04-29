@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -70,4 +71,23 @@ export class UpdateCategoryDto {
   @Min(0, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MIN })
   @Max(32767, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MAX })
   sortOrder?: number;
+
+  @ApiProperty({
+    description: API_DOCS.categories.commissionRateField,
+    example: 15,
+    required: false,
+    minimum: 0,
+    maximum: 100,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    value === undefined ? value : Number(value),
+  )
+  @IsOptional()
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: VALIDATION_MESSAGES.CATEGORY_COMMISSION_RATE_INVALID },
+  )
+  @Min(0, { message: VALIDATION_MESSAGES.CATEGORY_COMMISSION_RATE_MIN })
+  @Max(100, { message: VALIDATION_MESSAGES.CATEGORY_COMMISSION_RATE_MAX })
+  commissionRate?: number;
 }

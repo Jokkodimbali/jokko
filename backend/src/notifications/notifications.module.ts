@@ -21,11 +21,12 @@ import { TwilioSmsNotificationAdapter } from './infrastructure/adapters/twilio-s
 import { NotificationRecipientRepository } from './infrastructure/repositories/notification-recipient.repository';
 import { NotificationsRepository } from './infrastructure/repositories/notifications.repository';
 import { ReservationCommunicationsRepository } from './infrastructure/repositories/reservation-communications.repository';
+import { AdminNotificationsController } from './presentation/controllers/admin-notifications.controller';
 import { NotificationsController } from './presentation/controllers/notifications.controller';
 
 @Module({
   imports: [PrismaModule, UsersModule, CoreModule, AuthModule],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, AdminNotificationsController],
   providers: [
     NotificationsRepository,
     NotificationRecipientRepository,

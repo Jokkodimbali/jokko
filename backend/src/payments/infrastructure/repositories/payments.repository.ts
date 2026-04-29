@@ -272,6 +272,53 @@ export class PaymentsRepositoryImpl implements PaymentsRepository {
     return records.map(mapPaymentRecord);
   }
 
+  async getAdminStatistics(): Promise<{
+    totalPayments: number;
+    totalRevenue: number;
+    totalGrossAmount: number;
+    pendingEscrowReleases: number;
+    totalEscrowAmount: number;
+  }> {
+    const [
+      totalPayments,
+      paymentAggregates,
+      pendingEscrowReleases,
+      pendingEscrowAggregates,
+    ] = await this.prisma.$transaction([
+      this.prisma.paiement.count(),
+      this.prisma.paiement.aggregate({
+        where: { statut: 'SUCCES' },
+        _sum: {
+          montant: true,
+          montantCommission: true,
+        },
+      }),
+      this.prisma.paiement.count({
+        where: {
+          statut: 'SUCCES',
+          escrowStatus: 'LOCKED',
+        },
+      }),
+      this.prisma.paiement.aggregate({
+        where: {
+          statut: 'SUCCES',
+          escrowStatus: 'LOCKED',
+        },
+        _sum: {
+          montantNet: true,
+        },
+      }),
+    ]);
+
+    return {
+      totalPayments,
+      totalRevenue: Number(paymentAggregates._sum.montantCommission ?? 0),
+      totalGrossAmount: Number(paymentAggregates._sum.montant ?? 0),
+      pendingEscrowReleases,
+      totalEscrowAmount: Number(pendingEscrowAggregates._sum.montantNet ?? 0),
+    };
+  }
+
   private buildClientWhere(
     clientId?: string,
     filters?: ClientPaymentFilters,

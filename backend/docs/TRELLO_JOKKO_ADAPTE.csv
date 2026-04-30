@@ -1,2737 +1,1368 @@
 List Name,Card Name,Card Description,Labels
-To Do,US 1.1 Envoyer OTP par SMS,"**US 1.1 Envoyer OTP par SMS**
-
-**Description**  
-Permettre aux utilisateurs d'envoyer un code OTP à leur numéro de téléphone pour l'authentification initiale. Throttle strict anti-spam.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/otp/send  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/otp/send
-
-**Request-Body**  
-{  
-  ""phoneNumber"": ""+221771234567""  
-}
-
-**Règles de Validation**  
-- Format: +XXX ou numéro 8-15 chiffres  
-- Téléphone Sénégal: +221 7XX, 77X, 78X  
-- Throttle: max 5 appels par 60 sec par IP  
-- Anti-spam: max 3 codes actifs par téléphone
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Code OTP envoyé avec succès"",  
-  ""data"": {  
-    ""otpId"": ""uuid-123"",  
-    ""expiresIn"": 600,  
-    ""attemptsRemaining"": 5  
-  }  
-}
-
-**Response Error (429 Too Many Requests)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 429,  
-  ""errorCode"": ""AUTH_OTP_TOO_MANY_REQUESTS"",  
-  ""message"": ""Trop de tentatives OTP. Réessayez plus tard."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Créer Controller sendOtp  
-- Valider format téléphone avec regex  
-- Vérifier throttle via Redis/Cache  
-- Intégrer provider SMS (Twilio/Infobip)  
-- Hasher code OTP en base  
-- Ajouter LoggingMiddleware  
-- Écrire tests throttle + SMS
-
-**Checklist**  
-- [ ] Endpoint implémenté  
-- [ ] Throttle testé  
-- [ ] Provider SMS intégré  
-- [ ] Tests passés  
-- [ ] Logs configurés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth
-To Do,US 1.2 Vérifier OTP et créer session,"**US 1.2 Vérifier OTP et créer session**
-
-**Description**  
-Vérifier le code OTP fourni par l'utilisateur et créer une session d'authentification avec JWT access + refresh tokens.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/otp/verify  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/otp/verify
-
-**Request-Body**  
-{  
-  ""phoneNumber"": ""+221771234567"",  
-  ""code"": ""123456""  
-}
-
-**Règles de Validation**  
-- Code OTP: 6 chiffres exactement  
-- TTL: 10 minutes  
-- Max tentatives: 5 par OTP  
-- Format téléphone valide
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Code OTP vérifié"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""expiresIn"": 3600,  
-    ""userRole"": ""CLIENT""  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_OTP_INVALID_OR_EXPIRED"",  
-  ""message"": ""Le code OTP est invalide ou expiré."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier OTP expiré/invalide  
-- Créer utilisateur si 1ère connexion  
-- Générer JWT access (15 min)  
-- Générer et rotationner refresh token  
-- Persister session auth en base  
-- Logger succès/échec d'authentification  
-- Écrire tests validation OTP
-
-**Checklist**  
-- [ ] Endpoint implémenté  
-- [ ] JWT généré correctement  
-- [ ] Session persistée  
-- [ ] Refresh token rotationné  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth
-To Do,US 1.3 Enregistrement classique avec mot de passe,"**US 1.3 Enregistrement classique avec mot de passe**
-
-**Description**  
-Permettre l'enregistrement avec numéro téléphone et mot de passe sécurisé. Consentement CGU obligatoire.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/register  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/register
-
-**Request-Body**  
-{  
-  ""phoneNumber"": ""+221771234567"",  
-  ""name"": ""Amadou Diallo"",  
-  ""password"": ""SecurePass123!"",  
-  ""role"": ""CLIENT"",  
-  ""acceptTerms"": true  
-}
-
-**Règles de Validation**  
-- phoneNumber: Format valide +221 ou numéro Sénégal  
-- phoneNumber: Unique en base  
-- name: 2-100 caractères  
-- password: Min 8 chars, 1 majuscule, 1 chiffre, 1 spécial  
-- acceptTerms: Doit être true  
-- role: CLIENT ou PRESTATAIRE
-
-**Response (201 Created)**  
-{  
-  ""success"": true,  
-  ""message"": ""Enregistrement réussi"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""phoneNumber"": ""+221771234567"",  
-    ""name"": ""Amadou Diallo"",  
-    ""role"": ""CLIENT"",  
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs...""  
-  }  
-}
-
-**Response Error (409 Conflict)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 409,  
-  ""errorCode"": ""AUTH_PHONE_ALREADY_USED"",  
-  ""message"": ""Ce numéro de téléphone est déjà utilisé."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Valider tous les champs strictement  
-- Vérifier unicité du téléphone  
-- Hasher mot de passe (argon2id)  
-- Créer utilisateur en base  
-- Générer access + refresh tokens  
-- Logger audit d'enregistrement  
-- Écrire tests validation pwd
-
-**Checklist**  
-- [ ] Validation stricte  
-- [ ] Phone unique  
-- [ ] Password hashé  
-- [ ] Tokens générés  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth
-To Do,US 1.4 Se connecter avec téléphone et mot de passe,"**US 1.4 Se connecter avec téléphone et mot de passe**
-
-**Description**  
-Login classique avec téléphone + mot de passe. Lockout progressif après 5 échecs.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/login  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/login
-
-**Request-Body**  
-{  
-  ""phoneNumber"": ""+221771234567"",  
-  ""password"": ""SecurePass123!""  
-}
-
-**Règles de Validation**  
-- phoneNumber: Format valide  
-- password: 8-64 caractères  
-- Compte actif (not blocked)  
-- Lockout progressif: 5 tentatives = 15 min lockout
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Connexion réussie"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""expiresIn"": 3600,  
-    ""userRole"": ""CLIENT""  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_INVALID_CREDENTIALS"",  
-  ""message"": ""Les identifiants sont invalides."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Valider credentials  
-- Vérifier compte actif  
-- Implémenter lockout progressif  
-- Comparer password hasé  
-- Générer JWT tokens  
-- Persister session  
-- Logger tentative login
-
-**Checklist**  
-- [ ] Credentials validés  
-- [ ] Lockout implémenté  
-- [ ] Session créée  
-- [ ] Tokens générés  
-- [ ] Logs enregistrés  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth
-To Do,US 1.5 Renouveler access token via refresh token,"**US 1.5 Renouveler access token via refresh token**
-
-**Description**  
-Rotation du refresh token et génération d'un nouvel access token sans ré-authentification.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/refresh  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/refresh
-
-**Request-Body**  
-{  
-  ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs...""  
-}
-
-**Règles de Validation**  
-- refreshToken: JWT valide  
-- refreshToken: Non expiré  
-- refreshToken: Session existante en base  
-- refreshToken: Non révoqué
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Token renouvelé"",  
-  ""data"": {  
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""expiresIn"": 3600  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_REFRESH_TOKEN_INVALID"",  
-  ""message"": ""Le refresh token est invalide ou expiré."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier JWT refresh valide  
-- Vérifier session en base  
-- Vérifier cohérence user_id  
-- Rotation: générer nouveau refresh  
-- Révoquer ancien refresh  
-- Générer nouvel access token  
-- Persister nouvelle session
-
-**Checklist**  
-- [ ] Refresh validé  
-- [ ] Session vérifiée  
-- [ ] Ancien révoqué  
-- [ ] Nouveau généré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth;Securite
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth;Securite
-To Do,US 1.6 Se déconnecter et révoquer refresh token,"**US 1.6 Se déconnecter et révoquer refresh token**
-
-**Description**  
-Logout qui invalide immédiatement le refresh token actif.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/logout  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/logout
-
-**Request-Body**  
-(Vide ou {})
-
-**Règles de Validation**  
-- Access token requis en header  
-- Access token valide et non expiré
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Déconnexion effectuée avec succès."",  
-  ""data"": {}  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_TOKEN_INVALID"",  
-  ""message"": ""Le token d'authentification est invalide."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier access token  
-- Récupérer user_id du token  
-- Révoquer session refresh  
-- Marquer session comme revoked_at  
-- Logger deconnexion  
-- Vider cache si applicable
-
-**Checklist**  
-- [ ] Token vérifié  
-- [ ] Session révoquée  
-- [ ] Marque revoked_at  
-- [ ] Logs enregistrés  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth;Securite
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth;Securite
-To Do,US 1.7 Connexion via Google OAuth2,"**US 1.7 Connexion via Google OAuth2**
-
-**Description**  
-Login via Google avec vérification de token ID et mapping à compte Jokko existant ou création.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/auth/google/login  
-- Host: api.jokko.sn  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/auth/google/login
-
-**Request-Body**  
-{  
-  ""idToken"": ""eyJhbGciOiJSUzI1NiIs...""  
-}
-
-**Règles de Validation**  
-- idToken: JWT Google valide  
-- idToken: Signature Google vérifiée  
-- idToken: aud claim = Google client ID  
-- email: Extrait du token  
-- phone: À renseigner lors 1ère connexion
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Connexion Google réussie"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""accessToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""refreshToken"": ""eyJhbGciOiJIUzI1NiIs..."",  
-    ""isNewUser"": false,  
-    ""requiresPhoneNumber"": false  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_GOOGLE_ACCOUNT_INVALID"",  
-  ""message"": ""Le compte Google est invalide."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Intégrer Google client library  
-- Vérifier signature idToken  
-- Extraire email/name du token  
-- Chercher compte par email  
-- Si 1ère connexion: créer user réclamant phone  
-- Générer tokens Jokko  
-- Logger connexion Google
-
-**Checklist**  
-- [ ] Google client intégré  
-- [ ] Token vérifié  
-- [ ] Mapping fait  
-- [ ] Tokens générés  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Auth
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Auth",P0 Critique;Auth
-To Do,US 2.1 Récupérer profil utilisateur courant,"**US 2.1 Récupérer profil utilisateur courant**
-
-**Description**  
-Endpoint GET /users/me retournant le profil de l'utilisateur connecté sans données sensibles.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/users/me  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Exemple de Request**  
-GET /api/v1/users/me
-
-**Règles de Validation**  
-- Access token requis et valide  
-- Compte actif (not blocked)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Profil récupéré"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""phoneNumber"": ""+221771234567"",  
-    ""name"": ""Amadou Diallo"",  
-    ""email"": ""amadou@example.com"",  
-    ""role"": ""CLIENT"",  
-    ""avatarUrl"": ""https://..."",  
-    ""createdAt"": ""2026-01-15T08:30:00Z""  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""AUTH_TOKEN_INVALID"",  
-  ""message"": ""Le token d'authentification est invalide."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier JWT valide (JwtAuthGuard)  
-- Récupérer user_id du token  
-- Interroger BD pour profil  
-- Exclure password_hash, oauth secrets  
-- Retourner format structuré
-
-**Checklist**  
-- [ ] Guard JWT appliqué  
-- [ ] User récupéré  
-- [ ] Données sensibles excluded  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Users
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Users",P0 Critique;Users
-To Do,US 2.2 Modifier le profil utilisateur,"**US 2.2 Modifier le profil utilisateur**
-
-**Description**  
-Mettre à jour les informations personnelles (name, email, avatar). Tous champs optionnels mais au moins un modifié requis.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PUT /api/v1/users/me  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PUT /api/v1/users/me
-
-**Request-Body**  
-{  
-  ""name"": ""Amadou Diallo Sall"",  
-  ""email"": ""amadou.sall@example.com"",  
-  ""avatarUrl"": ""https://...image.jpg""  
-}
-
-**Règles de Validation**  
-- Tous champs optionnels  
-- Au moins 1 champ modifié requis  
-- name: 2-100 caractères si fourni  
-- email: Format email valide, unique en base  
-- avatarUrl: URL valide https  
-- Pas de modification de phone ou role
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Profil mis à jour"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""name"": ""Amadou Diallo Sall"",  
-    ""email"": ""amadou.sall@example.com"",  
-    ""avatarUrl"": ""https://...image.jpg""  
-  }  
-}
-
-**Response Error (400 Bad Request)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 400,  
-  ""errorCode"": ""VALIDATION_REQUEST_INVALID"",  
-  ""message"": ""Aucun champ à modifier. Fournissez au moins un champ."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier JWT  
-- Valider champs fournis  
-- Vérifier au moins 1 champ  
-- Vérifier unicité email si modifié  
-- Mettre à jour en BD  
-- Logger audit (qui/quoi/quand)  
-- Écrire tests validation
-
-**Checklist**  
-- [ ] JWT validé  
-- [ ] Validation stricte  
-- [ ] Au moins 1 champ  
-- [ ] Email unique  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Users
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Users",P0 Critique;Users
-To Do,US 2.3 Anonymiser et supprimer le compte,"**US 2.3 Anonymiser et supprimer le compte**
-
-**Description**  
-Suppression logique du compte avec anonymisation conforme RGPD/CDP. Opération irréversible.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- DELETE /api/v1/users/me  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-DELETE /api/v1/users/me
-
-**Request-Body**  
-{  
-  ""reason"": ""Plus intéressé"",  
-  ""confirmDeletion"": true  
-}
-
-**Règles de Validation**  
-- Access token valide  
-- confirmDeletion: Doit être true  
-- Aucune réservation active  
-- Aucun paiement en cours
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Compte supprimé et anonymisé"",  
-  ""data"": {  
-    ""userId"": ""uuid-user"",  
-    ""anonymizedAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Response Error (400 Bad Request)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 400,  
-  ""errorCode"": ""VALIDATION_REQUEST_INVALID"",  
-  ""message"": ""Vous avez des réservations actives. Annulez-les avant de supprimer."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier marque confirmDeletion  
-- Vérifier pas de réservation active  
-- Anonymiser: phone -> null, name -> ""Utilisateur Supprimé"", email -> null  
-- Marquer estActif = false  
-- Conserver audit pour conformité  
-- Documenter procédure irréversibilité
-
-**Checklist**  
-- [ ] Confirmation comprise  
-- [ ] Réservations vérifiées  
-- [ ] Anonymisation faite  
-- [ ] estActif = false  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Conformite
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-1:Users",P0 Critique;Conformite
-To Do,US 3.1 Créer profil professionnel,"**US 3.1 Créer profil professionnel**
-
-**Description**  
-Créer un profil professionnel avec statut KYC initial PENDING et localisation géographique.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/professionals/profile  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/professionals/profile
-
-**Request-Body**  
-{  
-  ""bio"": ""Plombier avec 10 ans d'expérience"",  
-  ""companyName"": ""Plomberie Diallo & Fils"",  
-  ""city"": ""Dakar"",  
-  ""latitude"": 14.6928,  
-  ""longitude"": -17.0467  
-}
-
-**Règles de Validation**  
-- bio: 10-500 caractères  
-- companyName: 2-150 caractères (optionnel)  
-- city: 2-100 caractères  
-- latitude: Entre -90 et 90  
-- longitude: Entre -180 et 180  
-- Utilisateur role = PRESTATAIRE
-
-**Response (201 Created)**  
-{  
-  ""success"": true,  
-  ""message"": ""Profil professionnel créé"",  
-  ""data"": {  
-    ""professionalId"": ""uuid-prof"",  
-    ""userId"": ""uuid-user"",  
-    ""bio"": ""Plombier avec 10 ans d'expérience"",  
-    ""companyName"": ""Plomberie Diallo & Fils"",  
-    ""kycStatus"": ""EN_ATTENTE"",  
-    ""city"": ""Dakar"",  
-    ""globalRating"": 0.0,  
-    ""totalReviews"": 0  
-  }  
-}
-
-**Realisation**  
-- Vérifier role = PRESTATAIRE  
-- Valider tous champs  
-- Créer ProfilProfessionnel  
-- Stocker localisation PostGIS  
-- Initialiser KYC = EN_ATTENTE  
-- Logger création profil
-
-**Checklist**  
-- [ ] Role vérifié  
-- [ ] Validation stricte  
-- [ ] ProfileProf créé  
-- [ ] PostGIS configuré  
-- [ ] KYC = EN_ATTENTE  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Professionals
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-1:Professionals",P0 Critique;Professionals
-To Do,US 3.2 Soumettre documents KYC,"**US 3.2 Soumettre documents KYC**
-
-**Description**  
-Uploader CNI et documents pour vérification KYC. Passe à statut PENDING_REVIEW.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/professionals/kyc/submit  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Content-Type: multipart/form-data
-
-**Exemple de Request**  
-PATCH /api/v1/professionals/kyc/submit
-
-**Form-Data**  
-- idCardFile: {file} (jpg, png, pdf)  
-- idCardNumber: ""SN1234567890""  
-- fullName: ""Amadou Diallo""
-
-**Règles de Validation**  
-- idCardFile: Image 2-5 MB, JPG/PNG/PDF  
-- idCardNumber: Format numéro CNI Sénégal  
-- fullName: 2-100 caractères  
-- User role = PRESTATAIRE  
-- Profil professionnel existant
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Documents KYC soumis"",  
-  ""data"": {  
-    ""professionalId"": ""uuid-prof"",  
-    ""kycStatus"": ""EN_ATTENTE"",  
-    ""idCardUrl"": ""https://storage.jokko.sn/kyc/....."",  
-    ""submittedAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Valider fichier (type, taille)  
-- Valider numéro CNI  
-- Uploader vers cloud storage  
-- Persister idCardUrl  
-- Marquer soumission (submittedAt)  
-- Logger audit KYC  
-- Notifier admin
-
-**Checklist**  
-- [ ] Fichier validé  
-- [ ] CNI validé  
-- [ ] Upload réussi  
-- [ ] URL persistée  
-- [ ] Admin notifié  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;KYC
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-1:KYC",P0 Critique;KYC
-To Do,US 3.3 Approuver KYC (Admin),"**US 3.3 Approuver KYC (Admin)**
-
-**Description**  
-Admin valide les documents KYC et marque professionnel comme VERIFIE.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/admin/kyc/{professionalId}/approve  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/admin/kyc/uuid-prof-123/approve
-
-**Request-Body**  
-{  
-  ""approvalNotes"": ""CNI vérifiée, données cohérentes""  
-}
-
-**Règles de Validation**  
-- User role = ADMIN  
-- Professional KYC status = EN_ATTENTE  
-- approvalNotes: 5-500 caractères
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""KYC approuvé"",  
-  ""data"": {  
-    ""professionalId"": ""uuid-prof"",  
-    ""kycStatus"": ""VERIFIE"",  
-    ""approvedAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Vérifier status EN_ATTENTE  
-- Mettre à jour status = VERIFIE  
-- Enregistrer timestamp approbation  
-- Logger audit décision  
-- Notifier professionnel approuvé
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Status EN_ATTENTE  
-- [ ] Status = VERIFIE  
-- [ ] Notif envoyée  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;KYC;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-1:KYC",P0 Critique;KYC;Admin
-To Do,US 3.4 Rejeter KYC (Admin),"**US 3.4 Rejeter KYC (Admin)**
-
-**Description**  
-Admin rejette les documents KYC avec motif obligatoire. Professionnel peut soumettre de nouveau.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/admin/kyc/{professionalId}/reject  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/admin/kyc/uuid-prof-123/reject
-
-**Request-Body**  
-{  
-  ""rejectReason"": ""CNI illisible, veuillez soumettre une image claire""  
-}
-
-**Règles de Validation**  
-- User role = ADMIN  
-- Professional KYC status = EN_ATTENTE  
-- rejectReason: 10-500 caractères (obligatoire)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""KYC rejeté"",  
-  ""data"": {  
-    ""professionalId"": ""uuid-prof"",  
-    ""kycStatus"": ""REJETE"",  
-    ""rejectReason"": ""CNI illisible, veuillez soumettre une image claire"",  
-    ""rejectedAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Vérifier status EN_ATTENTE  
-- Mettre à jour status = REJETE  
-- Stocker motif rejet  
-- Enregistrer timestamp  
-- Logger audit décision  
-- Notifier professionnel avec motif
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Status EN_ATTENTE  
-- [ ] Status = REJETE  
-- [ ] Motif stocké  
-- [ ] Notif envoyée  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;KYC;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-1:KYC",P0 Critique;KYC;Admin
-To Do,US 4.1 Créer catégorie de services,"**US 4.1 Créer catégorie de services**
-
-**Description**  
-Admin crée une catégorie de services (Plomberie, Électricité, etc.) avec icon et ordre de tri.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/admin/categories  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/admin/categories
-
-**Request-Body**  
-{  
-  ""name"": ""Plomberie & Sanitaire"",  
-  ""iconUrl"": ""https://..."",  
-  ""sortOrder"": 1  
-}
-
-**Règles de Validation**  
-- User role = ADMIN  
-- name: 3-100 caractères, unique  
-- iconUrl: URL https valide  
-- sortOrder: Entier >= 0
-
-**Response (201 Created)**  
-{  
-  ""success"": true,  
-  ""message"": ""Catégorie créée"",  
-  ""data"": {  
-    ""categoryId"": ""uuid-cat"",  
-    ""name"": ""Plomberie & Sanitaire"",  
-    ""iconUrl"": ""https://..."",  
-    ""sortOrder"": 1,  
-    ""isActive"": true  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Valider unicité name  
-- Valider URL icon  
-- Créer Categorie en BD  
-- Initialiser isActive = true  
-- Logger création audit
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Name unique  
-- [ ] Icon valide  
-- [ ] Category créée  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Categories;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-2:Categories",P0 Critique;Categories;Admin
-To Do,US 4.2 Récupérer liste des catégories,"**US 4.2 Récupérer liste des catégories**
-
-**Description**  
-Retourner toutes les catégories actives triées par sortOrder.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/categories  
-- Host: api.jokko.sn  
-- Accept: application/json
-
-**Exemple de Request**  
-GET /api/v1/categories
-
-**Règles de Validation**  
-- Public (pas d'auth requise)  
-- Retourner uniquement isActive = true
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Catégories récupérées"",  
-  ""data"": [  
-    {  
-      ""categoryId"": ""uuid-cat-1"",  
-      ""name"": ""Plomberie & Sanitaire"",  
-      ""iconUrl"": ""https://..."",  
-      ""sortOrder"": 1  
-    },  
-    {  
-      ""categoryId"": ""uuid-cat-2"",  
-      ""name"": ""Électricité"",  
-      ""iconUrl"": ""https://..."",  
-      ""sortOrder"": 2  
-    }  
-  ]  
-}
-
-**Realisation**  
-- Requête BD isActive = true  
-- Trier par sortOrder ASC  
-- Mettre en cache (CloudFlare/Redis)  
-- Ajouter cache-control headers
-
-**Checklist**  
-- [ ] Query isActive = true  
-- [ ] Tri sortOrder  
-- [ ] Cache ajouté  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Categories
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-2:Categories",P0 Critique;Categories
-To Do,US 4.3 Mettre à jour une catégorie,"**US 4.3 Mettre à jour une catégorie**
-
-**Description**  
-Admin met à jour nom, icon ou ordre de tri d'une catégorie.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PUT /api/v1/admin/categories/{categoryId}  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PUT /api/v1/admin/categories/uuid-cat-1
-
-**Request-Body**  
-{  
-  ""name"": ""Plomberie & Tuyauterie"",  
-  ""sortOrder"": 2  
-}
-
-**Règles de Validation**  
-- User role = ADMIN  
-- Category existe  
-- name: Unique si modifié  
-- Au moins 1 champ modifié
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Catégorie mise à jour"",  
-  ""data"": {  
-    ""categoryId"": ""uuid-cat-1"",  
-    ""name"": ""Plomberie & Tuyauterie"",  
-    ""sortOrder"": 2  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin  
-- Vérifier category existe  
-- Valider modifications  
-- Mettre à jour BD  
-- Invalider cache  
-- Logger audit
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Category existe  
-- [ ] Validation faite  
-- [ ] Audit enregistré  
-- [ ] Cache invalidé  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Categories;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-2:Categories",P0 Critique;Categories;Admin
-To Do,US 4.4 Désactiver une catégorie,"**US 4.4 Désactiver une catégorie**
-
-**Description**  
-Admin désactive une catégorie (soft delete). Les services liés ne sont pas supprimés.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/admin/categories/{categoryId}/disable  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/admin/categories/uuid-cat-1/disable
-
-**Request-Body**  
-(Vide)
-
-**Règles de Validation**  
-- User role = ADMIN  
-- Category existe  
-- Category isActive = true
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Catégorie désactivée"",  
-  ""data"": {  
-    ""categoryId"": ""uuid-cat-1"",  
-    ""isActive"": false,  
-    ""disabledAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin  
-- Vérifier category isActive = true  
-- Mettre isActive = false  
-- Enregistrer timestamp désactivation  
-- Invalider cache  
-- Services liés restent inchangés
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Category existe  
-- [ ] isActive = false  
-- [ ] Timestamp enregistré  
-- [ ] Cache invalidé  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Categories;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-2:Categories",P0 Critique;Categories;Admin
-To Do,US 5.1 Créer un service professionnel,"**US 5.1 Créer un service professionnel**
-
-**Description**  
-Professionnel créé un service. Requis: profil VERIFIE (KYC), catégorie, prix, description.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/services  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/services
-
-**Request-Body**  
-{  
-  ""categoryId"": ""uuid-cat-1"",  
-  ""name"": ""Débouchage évier"",  
-  ""description"": ""Débouchage rapide évier avec équipement professionnel"",  
-  ""price"": 15000.00,  
-  ""priceType"": ""FIXE""  
-}
-
-**Règles de Validation**  
-- User role = PRESTATAIRE  
-- KYC status = VERIFIE (obligatoire)  
-- categoryId: Catégorie existe et isActive = true  
-- name: 5-200 caractères  
-- description: 10-1000 caractères  
-- price: > 0, max 10000000 XOF  
-- priceType: FIXE ou NEGOCIABLE
-
-**Response (201 Created)**  
-{  
-  ""success"": true,  
-  ""message"": ""Service créé"",  
-  ""data"": {  
-    ""serviceId"": ""uuid-svc-1"",  
-    ""categoryId"": ""uuid-cat-1"",  
-    ""name"": ""Débouchage évier"",  
-    ""price"": 15000.00,  
-    ""priceType"": ""FIXE"",  
-    ""isAvailable"": true,  
-    ""createdAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Response Error (403 Forbidden)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 403,  
-  ""errorCode"": ""PROFESSIONAL_NOT_VERIFIED"",  
-  ""message"": ""Votre profil KYC doit être vérifié pour créer des services."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier role PRESTATAIRE  
-- Vérifier KYC = VERIFIE  
-- Valider tous champs  
-- Créer Service en BD  
-- Initialiser isAvailable = true  
-- Logger création audit
-
-**Checklist**  
-- [ ] Role vérifié  
-- [ ] KYC = VERIFIE  
-- [ ] Validation stricte  
-- [ ] Service créé  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Services
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-2:Services",P0 Critique;Services
-To Do,US 5.2 Modifier un service,"**US 5.2 Modifier un service**
-
-**Description**  
-Professionnel met à jour son service (name, description, prix, disponibilité).
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PUT /api/v1/services/{serviceId}  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PUT /api/v1/services/uuid-svc-1
-
-**Request-Body**  
-{  
-  ""name"": ""Débouchage évier professionnel"",  
-  ""price"": 20000.00,  
-  ""isAvailable"": true  
-}
-
-**Règles de Validation**  
-- Service existe  
-- User owner du service (acl check)  
-- name: 5-200 caractères  
-- price: > 0 si modifié  
-- Au moins 1 champ modifié
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Service mis à jour"",  
-  ""data"": {  
-    ""serviceId"": ""uuid-svc-1"",  
-    ""name"": ""Débouchage évier professionnel"",  
-    ""price"": 20000.00,  
-    ""isAvailable"": true  
-  }  
-}
-
-**Realisation**  
-- Vérifier service existe  
-- Vérifier ownership (acl)  
-- Valider modifications  
-- Mettre à jour BD  
-- Logger audit modification
-
-**Checklist**  
-- [ ] Service existe  
-- [ ] Ownership vérifié  
-- [ ] Validation faite  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Services
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-2:Services",P0 Critique;Services
-To Do,US 5.3 Supprimer (soft delete) un service,"**US 5.3 Supprimer (soft delete) un service**
-
-**Description**  
-Professionnel supprime un service (soft delete, reste en BD avec isAvailable = false).
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- DELETE /api/v1/services/{serviceId}  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}
-
-**Exemple de Request**  
-DELETE /api/v1/services/uuid-svc-1
-
-**Règles de Validation**  
-- Service existe  
-- User owner du service (acl check)  
-- Service non lié à réservation active
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Service supprimé"",  
-  ""data"": {  
-    ""serviceId"": ""uuid-svc-1"",  
-    ""isAvailable"": false  
-  }  
-}
-
-**Realisation**  
-- Vérifier service existe  
-- Vérifier ownership  
-- Mettre isAvailable = false (soft delete)  
-- Marquer deletedAt  
-- Logger audit suppression
-
-**Checklist**  
-- [ ] Service existe  
-- [ ] Ownership vérifié  
-- [ ] isAvailable = false  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Services
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-2:Services",P0 Critique;Services
-To Do,US 6.1 Recherche géographique de prestataires,"**US 6.1 Recherche géographique de prestataires**
-
-**Description**  
-Recherche locale avec PostGIS. Client cherche prestataires par catégorie, distance, et localisation GPS.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/search/professionals  
-- Host: api.jokko.sn  
-- Accept: application/json
-
-**Query Parameters**  
-- lat: Latitude -90 à 90 (obligatoire)  
-- lng: Longitude -180 à 180 (obligatoire)  
-- radiusKm: Distance max en km (défaut 10)  
-- categoryId: Filter par catégorie (optionnel)  
-- query: Recherche texte sur nom/bio (optionnel)  
-- limit: Max résultats (défaut 20, max 100)  
-- cursor: Pagination cursor (optionnel)
-
-**Exemple de Request**  
-GET /api/v1/search/professionals?lat=14.6928&lng=-17.0467&radiusKm=5&categoryId=uuid-cat-1&limit=20
-
-**Règles de Validation**  
-- lat/lng: Format numérique valide  
-- radiusKm: 0.1 à 100  
-- limit: 1 à 100  
-- Public (pas d'auth requise)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Résultats de recherche"",  
-  ""data"": [  
-    {  
-      ""professionalId"": ""uuid-prof-1"",  
-      ""name"": ""Amadou Plomberie"",  
-      ""companyName"": ""Plomberie Diallo"",  
-      ""city"": ""Dakar"",  
-      ""globalRating"": 4.8,  
-      ""totalReviews"": 32,  
-      ""distanceKm"": 2.5,  
-      ""kycStatus"": ""VERIFIE"",  
-      ""serviceCount"": 5  
-    }  
-  ],  
-  ""meta"": {  
-    ""total"": 45,  
-    ""limit"": 20,  
-    ""cursor"": ""next-cursor-token""  
-  }  
-}
-
-**Realisation**  
-- Utiliser PostGIS ST_DWithin + ST_Distance  
-- Index GIST sur localisation  
-- Joindre Services + Catégories  
-- Filter KYC = VERIFIE uniquement  
-- Pagination cursor-based  
-- Cache résultats (Redis)  
-- Perf cible < 500ms P95
-
-**Checklist**  
-- [ ] Query PostGIS  
-- [ ] Index GIST  
-- [ ] Pagination OK  
-- [ ] Cache ajouté  
-- [ ] Perf < 500ms  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Search;Data
-
-**Acteur**  
-Client
-
-**Sprint**  
-Sprint-2:Search",P0 Critique;Search;Data
-To Do,US 7.1 Créer une réservation,"**US 7.1 Créer une réservation**
-
-**Description**  
-Client crée une réservation. Statut initial: PENDING. Vérifier disponibilités pro.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/bookings  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/bookings
-
-**Request-Body**  
-{  
-  ""serviceId"": ""uuid-svc-1"",  
-  ""scheduledAt"": ""2026-04-20T14:00:00Z"",  
-  ""clientAddress"": ""Rue 1, Dakar Plateau, Dakar"",  
-  ""clientNotes"": ""Veuillez apporter tournevis""  
-}
-
-**Règles de Validation**  
-- User role = CLIENT  
-- serviceId: Service existe et isAvailable = true  
-- scheduledAt: Future (>= maintenant + 30 min)  
-- clientAddress: 10-500 caractères  
-- clientNotes: Max 1000 caractères  
-- Pas d'idempotency-key requise (optionnelle)
-
-**Response (201 Created)**  
-{  
-  ""success"": true,  
-  ""message"": ""Réservation créée"",  
-  ""data"": {  
-    ""bookingId"": ""uuid-book-1"",  
-    ""serviceId"": ""uuid-svc-1"",  
-    ""status"": ""PENDING"",  
-    ""scheduledAt"": ""2026-04-20T14:00:00Z"",  
-    ""createdAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier role CLIENT  
-- Valider service existe et dispo  
-- Vérifier scheduledAt future  
-- Créer Reservation status = PENDING  
-- Logger création audit
-
-**Checklist**  
-- [ ] Role vérifié  
-- [ ] Service dispo  
-- [ ] Date future  
-- [ ] Booking créé  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Booking
-
-**Acteur**  
-Client
-
-**Sprint**  
-Sprint-2:Booking",P0 Critique;Booking
-To Do,US 7.2 Confirmer une réservation (Pro),"**US 7.2 Confirmer une réservation (Pro)**
-
-**Description**  
-Pro accepte la réservation. Transition: PENDING -> CONFIRMED.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/bookings/{bookingId}/confirm  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/bookings/uuid-book-1/confirm
-
-**Request-Body**  
-{  
-  ""agreedPrice"": 15000.00  
-}
-
-**Règles de Validation**  
-- Booking existe  
-- User = Pro propriétaire du service  
-- Booking status = PENDING  
-- agreedPrice: > 0 si fourni (optionnel)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Réservation confirmée"",  
-  ""data"": {  
-    ""bookingId"": ""uuid-book-1"",  
-    ""status"": ""CONFIRMED"",  
-    ""agreedPrice"": 15000.00,  
-    ""confirmedAt"": ""2026-04-10T08:00:00Z""  
-  }  
-}
-
-**Response Error (400 Bad Request)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 400,  
-  ""errorCode"": ""BOOKING_INVALID_TRANSITION"",  
-  ""message"": ""Transition non autorisée depuis PENDING vers CONFIRMED."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier booking existe  
-- Vérifier ownership du service  
-- Vérifier status = PENDING  
-- Mettre status = CONFIRMED  
-- Enregistrer prix agréé si modifié  
-- Logger state machine transition
-
-**Checklist**  
-- [ ] Booking existe  
-- [ ] Ownership vérifié  
-- [ ] Status = PENDING  
-- [ ] Status = CONFIRMED  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Booking
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-3:Booking",P0 Critique;Booking
-To Do,US 7.3 Rejeter une réservation (Pro),"**US 7.3 Rejeter une réservation (Pro)**
-
-**Description**  
-Pro rejette la réservation. Transition: PENDING -> ANNULEE. Motif obligatoire.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/bookings/{bookingId}/reject  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/bookings/uuid-book-1/reject
-
-**Request-Body**  
-{  
-  ""cancelReason"": ""Je ne suis pas disponible ce jour""  
-}
-
-**Règles de Validation**  
-- Booking existe  
-- User = Pro propriétaire du service  
-- Booking status = PENDING ou CONFIRMED  
-- cancelReason: 5-500 caractères (obligatoire)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Réservation rejetée"",  
-  ""data"": {  
-    ""bookingId"": ""uuid-book-1"",  
-    ""status"": ""ANNULEE"",  
-    ""cancelReason"": ""Je ne suis pas disponible ce jour"",  
-    ""cancelledAt"": ""2026-04-10T09:00:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier booking existe  
-- Vérifier ownership  
-- Vérifier status valide  
-- Mettre status = ANNULEE  
-- Enregistrer motif  
-- Notifier client rejet  
-- Logger transition state machine
-
-**Checklist**  
-- [ ] Booking existe  
-- [ ] Ownership vérifié  
-- [ ] Status valide  
-- [ ] Status = ANNULEE  
-- [ ] Client notifié  
-- [ ] Audit enregistré  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Booking
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-3:Booking",P0 Critique;Booking
-To Do,US 7.4 Initier paiement en escrow,"**US 7.4 Initier paiement en escrow**
-
-**Description**  
-Client paie. Argent bloqué en escrow. Transition: CONFIRMED -> PAID_ESCROW.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/payments/initiate  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/payments/initiate
-
-**Request-Body**  
-{  
-  ""bookingId"": ""uuid-book-1"",  
-  ""amount"": 15000.00,  
-  ""method"": ""WAVE"",  
-  ""idempotencyKey"": ""550e8400-e29b-41d4-a716-446655440000""  
-}
-
-**Règles de Validation**  
-- Booking existe, status = CONFIRMED  
-- amount: > 0, = prix agréé ± 5% tolerance  
-- method: WAVE, ORANGE_MONEY, CARTE valides  
-- idempotencyKey: UUID, **OBLIGATOIRE**, unique  
-- Commande + commission <= solde disponible
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Paiement initialisé"",  
-  ""data"": {  
-    ""paymentId"": ""uuid-pay-1"",  
-    ""bookingId"": ""uuid-book-1"",  
-    ""amount"": 15000.00,  
-    ""commissionAmount"": 1500.00,  
-    ""netAmount"": 13500.00,  
-    ""status"": ""EN_ATTENTE"",  
-    ""method"": ""WAVE""  
-  }  
-}
-
-**Response Error (409 Conflict)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 409,  
-  ""errorCode"": ""PAYMENT_DUPLICATE"",  
-  ""message"": ""Paiement avec cet idempotencyKey existe déjà."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier idempotencyKey unique (3x check)  
-- Valider booking status = CONFIRMED  
-- Vérifier amount cohere  
-- Calculer commission  
-- Créer Payment status = EN_ATTENTE  
-- Appeler provider (Wave/Orange) API  
-- Logger paiement initiation
-
-**Checklist**  
-- [ ] Idempotency checked  
-- [ ] Booking status OK  
-- [ ] Commission calculée  
-- [ ] Payment créé  
-- [ ] Provider appelé  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Paiement;Securite
-
-**Acteur**  
-Client
-
-**Sprint**  
-Sprint-3:Payments",P0 Critique;Paiement;Securite
-To Do,US 7.5 Valider paiement via webhook (Provider),"**US 7.5 Valider paiement via webhook (Provider)**
-
-**Description**  
-Provider Wave/Orange confirme paiement via webhook sécurisé. Transition: EN_ATTENTE -> SUCCES.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/payments/webhook  
-- Host: api.jokko.sn  
-- X-Webhook-Signature: HMAC-SHA256  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/payments/webhook
-
-**Request-Body**  
-{  
-  ""paymentId"": ""uuid-pay-1"",  
-  ""transactionId"": ""WAVE-TXN-12345"",  
-  ""status"": ""SUCCESS"",  
-  ""amount"": 15000.00,  
-  ""timestamp"": ""2026-04-10T10:15:00Z""  
-}
-
-**Règles de Validation**  
-- X-Webhook-Signature: Signature HMAC valide (clé secrète)  
-- Anti-replay: transaction_id unique, timestamp recent (< 5 min)  
-- paymentId: UUID, Payment existe  
-- status: SUCCESS ou FAILED  
-- amount: Correspond montant payment
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Webhook traité"",  
-  ""data"": {  
-    ""paymentId"": ""uuid-pay-1"",  
-    ""status"": ""SUCCES"",  
-    ""processedAt"": ""2026-04-10T10:15:30Z""  
-  }  
-}
-
-**Response Error (401 Unauthorized)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 401,  
-  ""errorCode"": ""WEBHOOK_INVALID_SIGNATURE"",  
-  ""message"": ""Signature webhook invalide."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier signature HMAC  
-- Anti-replay check (transaction_id + timestamp)  
-- Vérifier payment existe  
-- Mettre status = SUCCES/ECHEC  
-- Mettre booking status = PAID_ESCROW si SUCCES  
-- Écrire ledger wallet (crédit net)  
-- Logger webhook reception + traitement  
-- Notifier client + pro succès
-
-**Checklist**  
-- [ ] Signature vérifiée  
-- [ ] Anti-replay OK  
-- [ ] Payment status updated  
-- [ ] Booking status updated  
-- [ ] Ledger écrit  
-- [ ] Notifs envoyées  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Paiement;Securite
-
-**Acteur**  
-Admin, System
-
-**Sprint**  
-Sprint-3:Payments",P0 Critique;Paiement;Securite
-To Do,US 7.6 Terminer une réservation (Client),"**US 7.6 Terminer une réservation (Client)**
-
-**Description**  
-Client valide fin de prestation. Transition: ON_THE_WAY -> TERMINEE. Libère fonds au pro.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/bookings/{bookingId}/complete  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/bookings/uuid-book-1/complete
-
-**Request-Body**  
-{  
-  ""clientRating"": 5,  
-  ""clientReview"": ""Travail excellent, pro très professionnel!""  
-}
-
-**Règles de Validation**  
-- Booking existe  
-- User = Client propriétaire  
-- Booking status = ON_THE_WAY  
-- clientRating: 1 à 5 (optionnel)  
-- clientReview: Max 500 caractères
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Réservation terminée"",  
-  ""data"": {  
-    ""bookingId"": ""uuid-book-1"",  
-    ""status"": ""TERMINEE"",  
-    ""clientRating"": 5,  
-    ""completedAt"": ""2026-04-20T16:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier booking exists  
-- Vérifier ownership client  
-- Vérifier status = ON_THE_WAY  
-- Mettre status = TERMINEE  
-- Enregistrer rating + review  
-- Mettre à jour pro rating global (moyenne)  
-- Déclencher wallet credit (ledger entry)  
-- Logger completion
-
-**Checklist**  
-- [ ] Booking existe  
-- [ ] Ownership vérifié  
-- [ ] Status = ON_THE_WAY  
-- [ ] Status = TERMINEE  
-- [ ] Rating enregistré  
-- [ ] Wallet crédité  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Booking
-
-**Acteur**  
-Client
-
-**Sprint**  
-Sprint-3:Booking",P0 Critique;Booking
-To Do,US 7.7 Annuler une réservation,"**US 7.7 Annuler une réservation**
-
-**Description**  
-Annuler réservation selon politique temporelle. Remboursement partiel/total.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/bookings/{bookingId}/cancel  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/bookings/uuid-book-1/cancel
-
-**Request-Body**  
-{  
-  ""reason"": ""Changement de plans""  
-}
-
-**Règles de Validation**  
-- Booking existe  
-- User = Client ou Pro propriétaire du service  
-- Booking status != TERMINEE, ANNULEE, LITIGE  
-- reason: 5-500 caractères  
-- Politique: > 24h avant = 100% remboursé, < 24h = 50% remboursé
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Réservation annulée"",  
-  ""data"": {  
-    ""bookingId"": ""uuid-book-1"",  
-    ""status"": ""ANNULEE"",  
-    ""refundPercentage"": 100,  
-    ""refundAmount"": 15000.00,  
-    ""cancelledAt"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier booking existe  
-- Vérifier ownership  
-- Vérifier status cancellable  
-- Calculer % remboursement (politique)  
-- Mettre status = ANNULEE  
-- Créer refund payment  
-- Écrire ledger debit  
-- Logger annulation
-
-**Checklist**  
-- [ ] Booking existe  
-- [ ] Ownership vérifié  
-- [ ] Politique appliquée  
-- [ ] Status = ANNULEE  
-- [ ] Refund créé  
-- [ ] Ledger écrit  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Booking
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-3:Booking",P0 Critique;Booking
-To Do,US 8.1 Récupérer statut du portefeuille,"**US 8.1 Récupérer statut du portefeuille**
-
-**Description**  
-Professionnel voit son solde wallet (pending + available).
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/wallet/me  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Exemple de Request**  
-GET /api/v1/wallet/me
-
-**Règles de Validation**  
-- Access token valide  
-- Role = PRESTATAIRE
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Portefeuille récupéré"",  
-  ""data"": {  
-    ""walletId"": ""uuid-wallet-1"",  
-    ""professionalId"": ""uuid-prof-1"",  
-    ""balancePending"": 50000.00,  
-    ""balanceAvailable"": 125000.00,  
-    ""totalBalance"": 175000.00,  
-    ""lastUpdated"": ""2026-04-09T10:30:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier role PRESTATAIRE  
-- Lire wallet balance de BD  
-- Calculer pending (en cours)  
-- Calculer available (pret a retirer)  
-- Pas d'exposition numero compte
-
-**Checklist**  
-- [ ] Role vérifié  
-- [ ] Wallet récupéré  
-- [ ] Balances calculées  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Wallet
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-3:Wallet",P0 Critique;Wallet
-To Do,US 8.2 Demander un retrait,"**US 8.2 Demander un retrait**
-
-**Description**  
-Pro demande retrait avec min/max limites BCEAO (500k-25M XOF).
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- POST /api/v1/payments/withdraw  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-POST /api/v1/payments/withdraw
-
-**Request-Body**  
-{  
-  ""amount"": 50000.00,  
-  ""method"": ""WAVE""  
-}
-
-**Règles de Validation**  
-- Role = PRESTATAIRE  
-- amount: Entre 500 et 25000000 XOF  
-- amount: <= balanceAvailable  
-- method: WAVE, ORANGE_MONEY, CARTE  
-- Pas plus de 1 retrait par jour
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Demande de retrait envoyée"",  
-  ""data"": {  
-    ""withdrawId"": ""uuid-withdraw-1"",  
-    ""amount"": 50000.00,  
-    ""method"": ""WAVE"",  
-    ""status"": ""EN_ATTENTE"",  
-    ""estimatedAt"": ""2026-04-10T15:00:00Z""  
-  }  
-}
-
-**Response Error (400 Bad Request)**  
-{  
-  ""success"": false,  
-  ""statusCode"": 400,  
-  ""errorCode"": ""WITHDRAWAL_LIMIT_EXCEEDED"",  
-  ""message"": ""Montant dépasse la limite maximum de 25M XOF."",  
-  ""timestamp"": ""2026-04-09T10:30:00Z""  
-}
-
-**Realisation**  
-- Vérifier role PRESTATAIRE  
-- Valider amount (min/max)  
-- Vérifier solde available >= montant  
-- Vérifier pas de retrait en cours  
-- Créer retrait status = EN_ATTENTE  
-- Bloquer montant du solde  
-- Appeler provider API
-
-**Checklist**  
-- [ ] Role vérifié  
-- [ ] Limites BCEAO  
-- [ ] Solde OK  
-- [ ] Retrait créé  
-- [ ] Provider appelé  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P0 Critique;Wallet;Paiement
-
-**Acteur**  
-Professionnel
-
-**Sprint**  
-Sprint-3:Wallet",P0 Critique;Wallet;Paiement
-To Do,US 9.1 Conversation entre client et pro,"**US 9.1 Conversation entre client et pro**
-
-**Description**  
-WebSocket: Créer/Récupérer conversation client <-> pro, optionnellement liée à booking.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/conversations  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Exemple de Request**  
-GET /api/v1/conversations?limit=20&cursor=abc123
-
-**Règles de Validation**  
-- Access token valide  
-- Unique conversation per (client, pro) pair  
-- limit: 1-100  
-- cursor: Pagination  
-- Filtrer par role (CLIENT ou PRESTATAIRE)
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Conversations récupérées"",  
-  ""data"": [  
-    {  
-      ""conversationId"": ""uuid-conv-1"",  
-      ""clientId"": ""uuid-client-1"",  
-      ""professionalId"": ""uuid-prof-1"",  
-      ""bookingId"": ""uuid-book-1"",  
-      ""lastMessageAt"": ""2026-04-09T14:30:00Z"",  
-      ""messageCount"": 15,  
-      ""unreadCount"": 3  
-    }  
-  ],  
-  ""meta"": {  
-    ""cursor"": ""next-cursor-token""  
-  }  
-}
-
-**Realisation**  
-- Vérifier auth token  
-- Créer conversation si 1ère fois  
-- Joindre messages  
-- Filter par role  
-- Pagination cursor  
-- Compter unread messages
-
-**Checklist**  
-- [ ] Auth vérifié  
-- [ ] Conversation trouvée/créée  
-- [ ] Messages joinés  
-- [ ] Unread comptés  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P1 Important;Chat
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-4:Chat",P1 Important;Chat
-To Do,US 9.2 Envoyer un message en WebSocket,"**US 9.2 Envoyer un message en WebSocket**
-
-**Description**  
-WebSocket: Client/Pro envoie message texte/média. Temps réel avec Socket.IO.
-
-**Base URL**  
-ws://api.jokko.sn/socket.io
-
-**WebSocket Events**  
-- message:send: Envoyer  
-- message:received: Recevoir  
-- message:read: Marquer lu  
-- user:typing: Indicateur saisie
-
-**Exemple d'Event**  
-{  
-  ""event"": ""message:send"",  
-  ""data"": {  
-    ""conversationId"": ""uuid-conv-1"",  
-    ""content"": ""Bonjour, êtes-vous disponible demain?"",  
-    ""mediaUrl"": null  
-  }  
-}
-
-**Règles de Validation**  
-- WebSocket auth via JWT  
-- conversationId: Existe et acl check  
-- content: 1-5000 caractères  
-- mediaUrl: Optionnel, https URL valide  
-- Livraison < 1s nominal
-
-**Response (Event)**  
-{  
-  ""event"": ""message:received"",  
-  ""data"": {  
-    ""messageId"": ""uuid-msg-1"",  
-    ""conversationId"": ""uuid-conv-1"",  
-    ""senderId"": ""uuid-user-1"",  
-    ""content"": ""Bonjour, êtes-vous disponible demain?"",  
-    ""createdAt"": ""2026-04-09T14:35:00Z""  
-  }  
-}
-
-**Realisation**  
-- Socket.IO server avec adapter Redis  
-- Auth JWT sur handshake WS  
-- Valider conversationId + ACL  
-- Persister message BD  
-- Emit event destinataire  
-- Marquer lastMessageAt conversation  
-- Caching messages récents (Redis)
-
-**Checklist**  
-- [ ] Socket.IO setup  
-- [ ] Auth WS  
-- [ ] ACL check  
-- [ ] Persistence BD  
-- [ ] Events emit  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P1 Important;Chat;TempsReel
-
-**Acteur**  
-Client, Professionnel
-
-**Sprint**  
-Sprint-4:Chat",P1 Important;Chat;TempsReel
-To Do,US 10.1 Dashboard Admin","**US 10.1 Dashboard Admin**
-
-**Description**  
-Admin voit vue agrégée: actifs, CA, bookings, litiges, revenu.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/admin/dashboard  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Query Parameters**  
-- period: TODAY, WEEK, MONTH, YEAR (défaut TODAY)
-
-**Exemple de Request**  
-GET /api/v1/admin/dashboard?period=MONTH
-
-**Règles de Validation**  
-- User role = ADMIN  
-- period: Valeur autorisée  
-- Perf: < 2s
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Dashboard récupéré"",  
-  ""data"": {  
-    ""summary"": {  
-      ""activeUsers"": 1250,  
-      ""totalRevenue"": 5000000.00,  
-      ""totalCommission"": 500000.00,  
-      ""completedBookings"": 450,  
-      ""pendingDisputes"": 12  
-    },  
-    ""topCategories"": [  
-      {  
-        ""categoryId"": ""uuid-cat-1"",  
-        ""name"": ""Plomberie"",  
-        ""bookingCount"": 150  
-      }  
-    ],  
-    ""topProfessionals"": [  
-      {  
-        ""professionalId"": ""uuid-prof-1"",  
-        ""name"": ""Amadou Plomberie"",  
-        ""rating"": 4.9,  
-        ""bookingCount"": 45  
-      }  
-    ]  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Agréger métriques par période  
-- Top categories (count bookings)  
-- Top pros (rating + count)  
-- Cacher données sensibles  
-- Cache résultats (5 min)
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Mtriques agrégées  
-- [ ] Top N calculés  
-- [ ] Cache ajouté  
-- [ ] Perf < 2s  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P1 Important;Admin
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-4:Admin",P1 Important;Admin
-To Do,US 10.2 Lister les litiges,"**US 10.2 Lister les litiges**
-
-**Description**  
-Admin liste litiges avec filtres status, priorité, SLA.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/admin/disputes  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json
-
-**Query Parameters**  
-- status: OPEN, IN_REVIEW, RESOLVED, REJECTED  
-- priority: HIGH, MEDIUM, LOW  
-- limit: 1-100 (défaut 20)  
-- cursor: Pagination
-
-**Exemple de Request**  
-GET /api/v1/admin/disputes?status=OPEN&priority=HIGH&limit=20
-
-**Règles de Validation**  
-- User role = ADMIN  
-- status/priority: Valeurs autorisées  
-- SLA: Afficher temps écoulé vs SLA
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Litiges récupérés"",  
-  ""data"": [  
-    {  
-      ""disputeId"": ""uuid-disp-1"",  
-      ""bookingId"": ""uuid-book-1"",  
-      ""status"": ""OPEN"",  
-      ""priority"": ""HIGH"",  
-      ""openedAt"": ""2026-04-05T10:00:00Z"",  
-      ""slaRemainingHours"": 12,  
-      ""reporterId"": ""uuid-user-1"",  
-      ""reason"": ""Service non fourni""  
-    }  
-  ]  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Filtrer par status/priority  
-- Pagination cursor  
-- Calculer SLA remaining  
-- Ordonner par SLA ASC  
-- Joindre booking + users
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Filtres appliqués  
-- [ ] SLA calculé  
-- [ ] Ordonnancement fait  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P1 Important;Admin;Litige
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-4:Admin",P1 Important;Admin;Litige
-To Do,US 10.3 Résoudre un litige,"**US 10.3 Résoudre un litige**
-
-**Description**  
-Admin décide remboursement/partage. Applique effet sur paiement + wallet.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- PATCH /api/v1/admin/disputes/{disputeId}/resolve  
-- Host: api.jokko.sn  
-- Authorization: Bearer {accessToken}  
-- Accept: application/json  
-- Content-Type: application/json
-
-**Exemple de Request**  
-PATCH /api/v1/admin/disputes/uuid-disp-1/resolve
-
-**Request-Body**  
-{  
-  ""decision"": ""REFUND_CLIENT"",  
-  ""clientRefundPercentage"": 100,  
-  ""notes"": ""Prestation non fournie. Remboursement intégral.""  
-}
-
-**Règles de Validation**  
-- User role = ADMIN  
-- dispute status = OPEN ou IN_REVIEW  
-- decision: REFUND_CLIENT, CREDIT_PRO, SPLIT (50/50)  
-- percentages: 0-100  
-- notes: 10-1000 caractères
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""Litige résolu"",  
-  ""data"": {  
-    ""disputeId"": ""uuid-disp-1"",  
-    ""status"": ""RESOLVED"",  
-    ""decision"": ""REFUND_CLIENT"",  
-    ""clientRefundAmount"": 15000.00,  
-    ""resolvedAt"": ""2026-04-09T15:45:00Z""  
-  }  
-}
-
-**Realisation**  
-- Vérifier admin role  
-- Vérifier dispute status  
-- Valider décision  
-- Calculer montants remboursement  
-- Créer ledger entries (debit/credit)  
-- Mettre à jour wallet balances  
-- Marquer dispute = RESOLVED  
-- Notifier client + pro + booking
-
-**Checklist**  
-- [ ] Admin vérifié  
-- [ ] Dispute status OK  
-- [ ] Montants calculés  
-- [ ] Ledger écrit  
-- [ ] Wallets mis à jour  
-- [ ] Notifs envoyées  
-- [ ] Tests passés
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P1 Important;Admin;Litige;Paiement
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-4:Admin",P1 Important;Admin;Litige;Paiement
-To Do,US 11.1 Vérifier l'état de santé du backend,"**US 11.1 Vérifier l'état de santé du backend**
-
-**Description**  
-Vérifier l'état de santé de l'API et des dépendances via le module sante.
-
-**Base URL**  
-/api/v1
-
-**Request-Header**  
-- GET /api/v1/sante  
-- Host: api.jokko.sn  
-- Accept: application/json
-
-**Exemple de Request**  
-GET /api/v1/sante
-
-**Règles de Validation**  
-- Endpoint public  
-- Doit retourner 200 si le service est disponible  
-- Vérifier réponse JSON valide
-
-**Response (200 OK)**  
-{  
-  ""success"": true,  
-  ""message"": ""État de santé OK"",  
-  ""data"": {  
-    ""status"": ""UP"",  
-    ""timestamp"": ""2026-04-09T10:45:00Z""  
-  }  
-}
-
-**Realisation**  
-- Ajouter endpoint GET /sante dans SanteController  
-- Retourner DTO EtatSanteDto  
-- Vérifier dépendances applicatives  
-- Valider format de réponse JSON
-
-**Checklist**  
-- [ ] Endpoint implémenté  
-- [ ] Response 200 stable  
-- [ ] Tests unitaires en place  
-- [ ] Documentation mise à jour
-
-**Membres**  
-- Développeur Backend
-
-**Étiquettes**  
-P2 Support;Sante
-
-**Acteur**  
-Tous
-
-**Sprint**  
-Sprint-1:Support",P2 Support;Sante
-Done,US 1.0 Architecture & Setup,"**US 1.0 Architecture & Setup**
-
-**Description**  
-Configuration initiale du projet NestJS, Prisma, structure DDD par modules, tests et CI/CD.
-
-**Realisation**  
-- NestJS + TypeScript setup  
-- Prisma ORM + PostgreSQL avec PostGIS  
-- Structure modules (core, auth, users, sante)  
-- Validation globale + messages FR  
-- Tests unitaires + e2e  
-- ESLint + Prettier stricte  
-- GitHub Actions CI/CD
-
-**Checklist**  
-- [x] NestJS setup  
-- [x] Prisma configuré  
-- [x] Structure DDD  
-- [x] Tests en place  
-- [x] CI/CD running
-
-**Membres**  
-- Développeur Backend, DevOps
-
-**Étiquettes**  
-P0 Critique;Setup
-
-**Acteur**  
-Admin
-
-**Sprint**  
-Sprint-1:Setup",P0 Critique;Setup
+"00 - Pilotage","JOKKO BACKEND - Inventaire reel du projet","Statut: reference Trello alignee sur le backend actuel.
+
+Objectif: refleter exactement le projet NestJS/Prisma present dans backend/src, backend/test et backend/docs.
+
+Base API: /api/v1
+Swagger: /api/docs
+Postman: backend/docs/collection_postman_test
+
+Modules branches dans AppModule:
+- SharedModule
+- CoreModule
+- PrismaModule
+- SanteModule
+- AuthModule
+- UsersModule
+- ProfessionalsModule
+- CategoriesModule
+- NegotiationsModule
+- NotificationsModule
+- DisputesModule
+- MessagingModule
+- LiveTrackingModule
+- AdminModule
+- SearchModule
+- ReservationsModule
+- PaymentsModule
+
+Modules backend implementes:
+- auth
+- users
+- professionals
+- categories
+- search
+- negotiations
+- reservations
+- messaging
+- live-tracking
+- payments
+- notifications
+- disputes
+- admin
+- sante
+
+Backlog backend restant:
+- upload media reel
+- documents / factures
+- parrainage / cashback
+- Redis distribue reel pour throttling, cache et Socket.IO multi-instance
+- observabilite production complete
+- worker outbox robuste
+
+Preuve projet:
+- backend/src/app.module.ts
+- backend/test/*.e2e-spec.ts
+- backend/docs/POSTMAN_TESTS.md
+- backend/docs/cahier_des_charges_jokko.md
+- backend/docs/ARCHITECTURE_PROFESSIONNELLE.md","Reference;Backend;Documentation"
+"00 - Pilotage","Standards transverses API et architecture","Statut: implemente.
+
+Regles transverses:
+- prefixe global /api/v1
+- enveloppe HTTP standard success, message, data, meta
+- exception filter global
+- validation globale avec whitelist, forbidNonWhitelisted, forbidUnknownValues, transform
+- messages centralises
+- Swagger francise
+- audit middleware global
+- throttling global Nest Throttler
+- helmet
+- CORS centralise HTTP et Socket.IO
+- shutdown hooks actives
+
+Fichiers:
+- backend/src/main.ts
+- backend/src/core/core.module.ts
+- backend/src/core/http/api-exception.filter.ts
+- backend/src/core/http/validation-exception.factory.ts
+- backend/src/core/config/env.validation.ts
+- backend/src/core/config/cors.config.ts
+- backend/src/core/audit/audit-logger.middleware.ts
+- backend/src/core/messages
+
+Checklist:
+- [x] Validation globale
+- [x] Exception filter global
+- [x] CORS HTTP
+- [x] CORS Socket.IO
+- [x] Helmet
+- [x] Throttling global
+- [x] Audit middleware
+- [x] Swagger
+- [ ] Redis distribue pour rate limit multi-instance
+- [ ] Observabilite Sentry/metrics complete","Core;Security;Architecture"
+"00 - Pilotage","Verification qualite et tests disponibles","Statut: implemente et documente.
+
+Commandes de verification:
+- npm.cmd run build
+- npm.cmd run lint
+- npm.cmd test -- --runInBand
+- npm.cmd run test:e2e -- --runInBand
+
+Suites e2e presentes:
+- app.e2e-spec.ts
+- auth.e2e-spec.ts
+- users.e2e-spec.ts
+- professionals.e2e-spec.ts
+- categories.e2e-spec.ts
+- search.e2e-spec.ts
+- negotiations.e2e-spec.ts
+- reservations.e2e-spec.ts
+- messaging.e2e-spec.ts
+- live-tracking.e2e-spec.ts
+- payments.e2e-spec.ts
+- notifications.e2e-spec.ts
+- disputes.e2e-spec.ts
+- admin.e2e-spec.ts
+
+Note Windows:
+- preferer --runInBand pour eviter spawn EPERM Jest
+
+Fichiers:
+- backend/package.json
+- backend/test/jest-e2e.json
+- backend/test/*.e2e-spec.ts
+- backend/src/**/*.spec.ts","Tests;QA;Backend"
+"01 - Sante et Infrastructure","Sante API et verification base de donnees","Statut: implemente.
+
+Endpoint:
+- GET /api/v1/sante
+
+Role:
+- public
+
+Fonction:
+- expose l'etat de sante applicatif
+- verifie la connectivite base de donnees
+- renvoie baseDeDonnees connectee ou deconnectee
+
+Fichiers:
+- backend/src/sante/sante.module.ts
+- backend/src/sante/presentation/controllers/sante.controller.ts
+- backend/src/sante/application
+- backend/src/sante/infrastructure/prisma
+
+Tests:
+- backend/test/app.e2e-spec.ts
+
+Points d'attention:
+- si la reponse indique baseDeDonnees deconnectee, corriger DATABASE_URL ou l'acces reseau avant les tests Swagger/Postman metier","Sante;Infrastructure;P0"
+"01 - Sante et Infrastructure","Prisma, migrations, seed et base de donnees","Statut: implemente.
+
+Stack:
+- Prisma 7
+- prisma.config.ts
+- PostgreSQL
+- @prisma/adapter-pg
+
+Commandes:
+- npm.cmd run prisma:generate
+- npm.cmd run prisma:migrate:dev
+- npm.cmd run prisma:migrate:deploy
+- npm.cmd run prisma:seed
+- npm.cmd run prisma:studio
+
+Fichiers:
+- backend/prisma/schema.prisma
+- backend/prisma/migrations
+- backend/prisma/seed.ts
+- backend/prisma.config.ts
+- backend/src/prisma/prisma.module.ts
+- backend/src/prisma/prisma.service.ts
+
+Donnees couvertes par le schema:
+- utilisateurs
+- sessions refresh
+- OTP
+- profils professionnels
+- categories
+- services
+- disponibilites
+- portfolio
+- reservations
+- negotiations
+- paiements
+- retraits
+- wallets ledger
+- webhooks paiement
+- conversations
+- messages
+- notifications
+- tracking
+- presence
+- litiges
+- audit
+- outbox events
+
+Points d'attention:
+- garder schema.prisma compatible Prisma 7
+- verifier migrations avant prod
+- seed sert au developpement et tests manuels, pas comme source de verite production","Prisma;Database;Infrastructure"
+"01 - Sante et Infrastructure","Docker et deploiement backend","Statut: implemente.
+
+Fichiers:
+- backend/Dockerfile
+- backend/docker-compose.yml
+- backend/docker-compose.dev.yml
+- backend/docker-compose.prod.yml
+- backend/.dockerignore
+- backend/scripts/docker/entrypoint.sh
+
+Commandes:
+- npm run docker:build
+- npm run docker:dev
+- npm run docker:dev:down
+- npm run docker:up
+- npm run docker:up:d
+- npm run docker:down
+- npm run docker:logs
+
+Comportement:
+- image multi-stage
+- runtime non-root node
+- healthcheck /api/v1/sante
+- entrypoint applique prisma migrate deploy sauf PRISMA_SKIP_MIGRATIONS=true
+- services docker prod: backend, postgres, redis
+
+Variables importantes:
+- DATABASE_URL
+- POSTGRES_USER
+- POSTGRES_PASSWORD
+- POSTGRES_DB
+- JWT_ACCESS_SECRET
+- JWT_REFRESH_SECRET
+- CORS_ORIGINS
+- PAYMENT_WEBHOOK_SECRET
+- REDIS_PASSWORD
+
+Backlog production:
+- CI/CD deploiement cloud
+- monitoring runtime
+- sauvegardes PostgreSQL
+- rotation secrets","Docker;Deploy;Production"
+"02 - Auth","Authentification OTP, inscription, login et sessions","Statut: implemente.
+
+Endpoints:
+- POST /api/v1/auth/otp/send
+- POST /api/v1/auth/otp/verify
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+- POST /api/v1/auth/google/login
+- POST /api/v1/auth/refresh
+- POST /api/v1/auth/logout
+- GET /api/v1/auth/me
+
+Roles:
+- public pour OTP, register, login, google login, refresh, logout
+- authentifie pour /auth/me
+
+Fonctions:
+- normalisation telephone
+- OTP
+- creation compte client
+- login mot de passe
+- Google login si GOOGLE_CLIENT_ID configure
+- JWT access token
+- refresh token avec session persistante
+- rotation refresh token
+- logout/revocation
+- blocage compte actif respecte
+
+Fichiers:
+- backend/src/auth/auth.module.ts
+- backend/src/auth/presentation/controllers/auth.controller.ts
+- backend/src/auth/application/services/auth.service.ts
+- backend/src/auth/application/services/jwt-token.service.ts
+- backend/src/auth/application/services/otp.service.ts
+- backend/src/auth/application/services/refresh-session.service.ts
+- backend/src/auth/application/services/google-auth.service.ts
+- backend/src/auth/security/jwt-auth.guard.ts
+- backend/src/auth/security/current-user.decorator.ts
+- backend/src/auth/infrastructure/repositories/auth.repository.ts
+- backend/src/auth/infrastructure/repositories/otp.repository.ts
+
+Tests:
+- backend/test/auth.e2e-spec.ts
+- backend/src/auth/application/auth.service.spec.ts
+
+Backlog:
+- validation provider SMS reel avec Twilio/Infobip en staging
+- politique anti-bruteforce distribuee via Redis","Auth;Security;P0"
+"03 - Users","Profil utilisateur courant et anonymisation","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/users/me
+- PATCH /api/v1/users/me
+- POST /api/v1/users/me/avatar
+- GET /api/v1/users/me/history
+- DELETE /api/v1/users/me
+
+Roles:
+- CLIENT
+- PRESTATAIRE
+- ADMIN selon usage authentifie
+
+Fonctions:
+- lire son profil
+- modifier nom, email, telephone selon DTO
+- enregistrer avatar par URL
+- consulter historique personnel
+- anonymiser/supprimer son compte
+- invalidation refresh apres anonymisation
+
+Fichiers:
+- backend/src/users/users.module.ts
+- backend/src/users/presentation/controllers/users.controller.ts
+- backend/src/users/application/services/users.service.ts
+- backend/src/users/infrastructure/repositories/users.repository.ts
+- backend/src/users/presentation/dto
+
+Tests:
+- backend/test/users.e2e-spec.ts
+- backend/src/users/application/users.service.spec.ts
+
+Limite actuelle:
+- avatar par URL seulement
+- upload fichier reel non implemente","Users;Profile;Auth"
+"03 - Users","Administration utilisateurs","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/admin/users
+- GET /api/v1/admin/users/:userId
+- GET /api/v1/admin/users/:userId/history
+- PATCH /api/v1/admin/users/:userId/block
+- PATCH /api/v1/admin/users/:userId/unblock
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- lister utilisateurs
+- filtrer par role/statut/recherche
+- consulter detail utilisateur
+- consulter historique
+- bloquer compte
+- debloquer compte
+- login respecte le blocage
+
+Fichiers:
+- backend/src/users/presentation/controllers/admin-users.controller.ts
+- backend/src/users/application/services/users.service.ts
+- backend/src/shared/guards/roles.guard.ts
+- backend/src/auth/security/jwt-auth.guard.ts
+
+Tests:
+- backend/test/admin.e2e-spec.ts
+- backend/test/users.e2e-spec.ts","Admin;Users;Security"
+"04 - Professionals","Profil professionnel, KYC, services, portfolio et disponibilites","Statut: implemente.
+
+Endpoints prives:
+- POST /api/v1/professionals/profile
+- GET /api/v1/professionals/me
+- PATCH /api/v1/professionals/me
+- PATCH /api/v1/professionals/me/kyc/submit
+- POST /api/v1/professionals/me/services
+- PATCH /api/v1/professionals/me/services/:serviceId
+- DELETE /api/v1/professionals/me/services/:serviceId
+- POST /api/v1/professionals/me/portfolio
+- DELETE /api/v1/professionals/me/portfolio/:itemId
+- POST /api/v1/professionals/me/availabilities
+- DELETE /api/v1/professionals/me/availabilities/:availabilityId
+
+Endpoints publics:
+- GET /api/v1/professionals
+- GET /api/v1/professionals/:id
+- GET /api/v1/professionals/:id/services
+- GET /api/v1/professionals/:id/portfolio
+- GET /api/v1/professionals/:id/availabilities
+- GET /api/v1/professionals/:id/reviews
+
+Roles:
+- PRESTATAIRE pour gestion pro
+- public pour consultation profils verifies
+
+Fonctions:
+- creer profil pro
+- modifier profil pro
+- soumettre KYC par URLs documents
+- creer/mettre a jour/desactiver service
+- gerer portfolio
+- gerer disponibilites
+- exposer fiche publique, services, portfolio, disponibilites, avis
+
+Fichiers:
+- backend/src/professionals/professionals.module.ts
+- backend/src/professionals/presentation/controllers/professionals.controller.ts
+- backend/src/professionals/application/services
+- backend/src/professionals/domain
+- backend/src/professionals/infrastructure/repositories
+
+Tests:
+- backend/test/professionals.e2e-spec.ts
+- backend/src/professionals/application/professionals.service.spec.ts
+
+Limite actuelle:
+- documents KYC et portfolio par URL uniquement
+- upload reel non implemente","Professionals;KYC;Services"
+"04 - Professionals","Administration KYC","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/admin/kyc
+- GET /api/v1/admin/kyc/:professionalId
+- PATCH /api/v1/admin/kyc/:professionalId/approve
+- PATCH /api/v1/admin/kyc/:professionalId/reject
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- lister dossiers KYC
+- consulter un dossier
+- approuver KYC
+- rejeter KYC avec raison
+- conditionner la creation de service au KYC verifie
+
+Fichiers:
+- backend/src/professionals/presentation/controllers/admin-kyc.controller.ts
+- backend/src/professionals/application/services/kyc.service.ts
+- backend/src/professionals/infrastructure/repositories
+
+Tests:
+- backend/test/professionals.e2e-spec.ts
+- backend/test/admin.e2e-spec.ts","Admin;KYC;Professionals"
+"05 - Categories","Categories publiques et administration categories","Statut: implemente.
+
+Endpoints publics:
+- GET /api/v1/categories
+
+Endpoints admin:
+- POST /api/v1/admin/categories
+- PATCH /api/v1/admin/categories/:categoryId
+- PATCH /api/v1/admin/categories/:categoryId/disable
+
+Roles:
+- public pour lecture categories actives
+- ADMIN pour creation, modification, desactivation
+
+Fonctions:
+- lister categories actives
+- creer categorie
+- modifier nom, icone, ordre, taux commission
+- desactiver categorie
+- eviter doublons nom
+- taux commission par categorie utilise par paiements
+
+Fichiers:
+- backend/src/categories/categories.module.ts
+- backend/src/categories/presentation/controllers/categories.controller.ts
+- backend/src/categories/presentation/controllers/admin-categories.controller.ts
+- backend/src/categories/application/services
+- backend/src/categories/domain
+- backend/src/categories/infrastructure/repositories
+
+Tests:
+- backend/test/categories.e2e-spec.ts
+- backend/src/categories/application/services/category-admin.service.spec.ts","Categories;Admin;Commission"
+"06 - Search","Recherche professionnels","Statut: implemente.
+
+Endpoint:
+- GET /api/v1/search/professionals
+
+Role:
+- public
+
+Fonctions:
+- recherche de professionnels verifies
+- filtre texte
+- filtre ville
+- filtre categorie
+- filtre geolocalisation
+- radiusKm
+- reutilisation logique recherche publique professionals
+
+Fichiers:
+- backend/src/search/search.module.ts
+- backend/src/search/presentation/controllers/search.controller.ts
+- backend/src/search/application
+- backend/src/search/infrastructure
+
+Tests:
+- backend/test/search.e2e-spec.ts
+
+Backlog:
+- cache Redis des recherches frequentes
+- scoring avance si besoin produit","Search;Public;Discovery"
+"07 - Negotiations","Negociation avant reservation","Statut: implemente.
+
+Endpoints:
+- POST /api/v1/negotiations
+- GET /api/v1/negotiations/my
+- GET /api/v1/negotiations/:negotiationId
+- PATCH /api/v1/negotiations/:negotiationId/counter
+- PATCH /api/v1/negotiations/:negotiationId/accept
+- PATCH /api/v1/negotiations/:negotiationId/reject
+- PATCH /api/v1/negotiations/:negotiationId/cancel
+
+Roles:
+- CLIENT pour ouverture, acceptation, annulation selon etat
+- PRESTATAIRE pour contre-proposition et rejet selon etat
+
+Fonctions:
+- ouvrir negotiation sur service negociable
+- refuser service non negociable
+- empecher doublon actif
+- contre-proposition
+- acceptation
+- rejet
+- annulation
+- conversion vers reservation via module reservations
+
+Fichiers:
+- backend/src/negotiations/negotiations.module.ts
+- backend/src/negotiations/presentation/controllers/negotiations.controller.ts
+- backend/src/negotiations/application/services
+- backend/src/negotiations/domain
+- backend/src/negotiations/infrastructure/repositories
+
+Tests:
+- backend/test/negotiations.e2e-spec.ts","Negotiations;Reservations;Client;Prestataire"
+"08 - Reservations","Cycle reservation client/prestataire","Statut: implemente.
+
+Endpoints:
+- POST /api/v1/reservations
+- POST /api/v1/reservations/from-negotiation
+- GET /api/v1/reservations/my
+- GET /api/v1/reservations/:reservationId
+- PATCH /api/v1/reservations/:reservationId/confirm
+- PATCH /api/v1/reservations/:reservationId/cancel
+- PATCH /api/v1/reservations/:reservationId/reschedule
+- PATCH /api/v1/reservations/:reservationId/price-adjustment/propose
+- PATCH /api/v1/reservations/:reservationId/price-adjustment/accept
+- PATCH /api/v1/reservations/:reservationId/price-adjustment/reject
+- PATCH /api/v1/reservations/:reservationId/complete
+- PATCH /api/v1/reservations/:reservationId/review
+- PATCH /api/v1/reservations/:reservationId/no-show
+- PATCH /api/v1/reservations/:reservationId/mark-paid
+- PATCH /api/v1/reservations/:reservationId/start
+- PATCH /api/v1/reservations/:reservationId/dispute
+
+Roles:
+- CLIENT pour creation, reschedule, review, accept/reject ajustement selon regles
+- PRESTATAIRE pour confirmation, start, complete, no-show, prix ajuste selon regles
+- ADMIN via routes dediees
+
+Fonctions:
+- creation reservation
+- creation depuis negotiation acceptee
+- double role prestataire/client avec scope=CLIENT
+- prevention self-booking
+- gestion transitions
+- communication notifications/outbox
+- ajustement de prix avant paiement
+- avis client unique
+- ouverture litige
+- marquage paye interne
+
+Fichiers:
+- backend/src/reservations/reservations.module.ts
+- backend/src/reservations/presentation/controllers/reservations.controller.ts
+- backend/src/reservations/application/services
+- backend/src/reservations/domain
+- backend/src/reservations/infrastructure/repositories/reservations.repository.ts
+
+Tests:
+- backend/test/reservations.e2e-spec.ts
+- backend/src/reservations/domain/entities/reservation.entity.spec.ts","Reservations;CoreFlow;Client;Prestataire"
+"08 - Reservations","Administration reservations","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/admin/reservations
+- GET /api/v1/admin/reservations/:reservationId
+- GET /api/v1/admin/reservations/statistics
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- listing reservations
+- detail reservation
+- statistiques reservation
+- filtres admin selon DTO
+
+Fichiers:
+- backend/src/reservations/presentation/controllers/admin-reservations.controller.ts
+- backend/src/reservations/application/services/reservation-query.service.ts
+- backend/src/shared/guards/roles.guard.ts
+
+Tests:
+- backend/test/reservations.e2e-spec.ts
+- backend/test/admin.e2e-spec.ts","Admin;Reservations;Analytics"
+"09 - Messaging","Messagerie HTTP reservation/conversation","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/conversations
+- POST /api/v1/conversations
+- GET /api/v1/conversations/:conversationId/messages
+- POST /api/v1/conversations/:conversationId/messages
+
+Roles:
+- CLIENT participant
+- PRESTATAIRE participant
+
+Fonctions:
+- conversation liee a une reservation
+- idempotence conversation par reservation
+- envoi texte ou mediaUrl
+- historique messages
+- marquage lecture
+- refus utilisateur non participant
+- creation notification et outbox
+
+Fichiers:
+- backend/src/messaging/messaging.module.ts
+- backend/src/messaging/presentation/controllers/conversations.controller.ts
+- backend/src/messaging/application/services
+- backend/src/messaging/domain
+- backend/src/messaging/infrastructure/repositories/messaging.repository.ts
+
+Tests:
+- backend/test/messaging.e2e-spec.ts
+
+Limite actuelle:
+- mediaUrl accepte mais upload fichier reel non implemente","Messaging;HTTP;Realtime"
+"09 - Messaging","Messagerie Socket.IO temps reel","Statut: implemente.
+
+Namespace:
+- /socket
+
+Authentification:
+- JWT via handshake.auth.token ou Authorization Bearer
+
+Events entrants:
+- conversation.join
+- conversation.message.send
+- conversation.typing
+
+Events sortants:
+- conversation.history
+- conversation.message.created
+- conversation.messages.read
+- conversation.typing.updated
+
+Fonctions:
+- join room user
+- join room conversation
+- livraison message au recipient connecte
+- read receipt
+- typing indicator
+- controle participant via facade messaging
+- CORS Socket.IO centralise
+
+Fichiers:
+- backend/src/messaging/presentation/gateways/messaging.gateway.ts
+- backend/src/messaging/application/services/messaging-facade.service.ts
+- backend/src/core/config/cors.config.ts
+
+Tests:
+- backend/test/messaging.e2e-spec.ts
+
+Backlog scale:
+- adapter Redis Socket.IO pour multi-instance","Messaging;SocketIO;Realtime"
+"10 - Live Tracking","Live tracking HTTP et presence prestataire","Statut: implemente.
+
+Endpoints:
+- PATCH /api/v1/reservations/:reservationId/on-the-way
+- GET /api/v1/reservations/:reservationId/live-tracking
+- GET /api/v1/professionals/:professionalId/presence
+
+Roles:
+- PRESTATAIRE pour on-the-way
+- CLIENT/PRESTATAIRE participants pour tracking reservation
+- public/auth selon regles service pour presence
+
+Fonctions:
+- demarrer suivi en route
+- persister session tracking
+- lire snapshot tracking
+- lire presence prestataire
+- synchroniser presence avec socket connection
+- finaliser tracking lors start/completion selon flux
+
+Fichiers:
+- backend/src/live-tracking/live-tracking.module.ts
+- backend/src/live-tracking/presentation/controllers/live-tracking.controller.ts
+- backend/src/live-tracking/application/services
+- backend/src/live-tracking/domain
+- backend/src/live-tracking/infrastructure/repositories/live-tracking.repository.ts
+
+Tests:
+- backend/test/live-tracking.e2e-spec.ts","LiveTracking;Presence;Mobile"
+"10 - Live Tracking","Live tracking Socket.IO","Statut: implemente.
+
+Namespace:
+- /socket
+
+Authentification:
+- JWT via handshake.auth.token ou Authorization Bearer
+
+Events entrants:
+- tracking.subscribe
+- professional.presence.subscribe
+- tracking.location.update
+
+Events sortants:
+- tracking.snapshot
+- tracking.location.updated
+- professional.presence.snapshot
+- professional.presence.updated
+
+Fonctions:
+- rooms par utilisateur
+- rooms par reservation tracking
+- rooms par professionnel
+- mise a jour position GPS
+- diffusion temps reel client/prestataire
+- presence online/offline
+- CORS Socket.IO centralise
+
+Fichiers:
+- backend/src/live-tracking/presentation/gateways/live-tracking.gateway.ts
+- backend/src/live-tracking/application/services/live-tracking-facade.service.ts
+- backend/src/core/config/cors.config.ts
+
+Tests:
+- backend/test/live-tracking.e2e-spec.ts
+
+Backlog scale:
+- adapter Redis Socket.IO pour multi-instance
+- strategie de retention des points GPS","LiveTracking;SocketIO;Realtime"
+"11 - Payments","Paiement client, escrow et statut","Statut: implemente.
+
+Endpoints:
+- POST /api/v1/payments/initiate
+- GET /api/v1/payments/history
+- GET /api/v1/payments/:paymentId
+- PATCH /api/v1/payments/:paymentId/escrow/release
+- PATCH /api/v1/payments/:paymentId/escrow/dispute
+- GET /api/v1/payments/:paymentId/escrow/status
+
+Roles:
+- CLIENT proprietaire paiement
+- PRESTATAIRE lie au paiement selon service
+- ADMIN via routes admin
+
+Fonctions:
+- initiation paiement reservation
+- idempotency-key obligatoire
+- calcul commission depuis categorie
+- gateways Wave, Orange Money, carte via adapters
+- mode mock/dev et external/prod
+- historique client
+- detail paiement securise
+- escrow release
+- escrow dispute
+- statut escrow
+
+Fichiers:
+- backend/src/payments/payments.module.ts
+- backend/src/payments/presentation/controllers/payments.controller.ts
+- backend/src/payments/application/services
+- backend/src/payments/domain
+- backend/src/payments/infrastructure/repositories
+- backend/src/payments/infrastructure/adapters
+
+Tests:
+- backend/test/payments.e2e-spec.ts","Payments;Escrow;Client"
+"11 - Payments","Webhooks paiement securises","Statut: implemente.
+
+Endpoint:
+- POST /api/v1/payments/webhook
+
+Role:
+- public provider, securise par signature si PAYMENT_WEBHOOK_SECRET configure
+
+Fonctions:
+- reception gatewayReference ou invoice_token
+- verification HMAC sha256
+- protection timestamp 5 minutes
+- rejet signature invalide
+- enregistrement evenement webhook
+- detection replay via eventKey
+- traitement statut provider
+- mark processed ou failed
+
+Fichiers:
+- backend/src/payments/presentation/controllers/payments.controller.ts
+- backend/src/payments/presentation/dto/payment-webhook.dto.ts
+- backend/src/payments/application/services/payments-facade.service.ts
+- backend/src/payments/infrastructure/adapters/hmac-payment-webhook-security.adapter.ts
+- backend/src/payments/infrastructure/repositories/payment-webhook-event.repository.ts
+
+Tests:
+- backend/test/payments.e2e-spec.ts
+
+Point production:
+- PAYMENT_WEBHOOK_SECRET obligatoire en production external","Payments;Webhook;Security"
+"11 - Payments","Retraits prestataire et wallet ledger","Statut: implemente.
+
+Endpoints:
+- POST /api/v1/payments/withdraw
+- GET /api/v1/payments/withdrawals
+
+Role:
+- PRESTATAIRE uniquement
+
+Fonctions:
+- demander retrait
+- verifier role prestataire
+- verifier profil pro
+- verifier solde
+- historiser retraits
+- wallet ledger
+
+Fichiers:
+- backend/src/payments/application/services/withdrawal.service.ts
+- backend/src/payments/infrastructure/repositories/withdrawals.repository.ts
+- backend/src/payments/infrastructure/repositories/wallet-ledger.repository.ts
+- backend/src/payments/presentation/dto/request-withdrawal.dto.ts
+
+Tests:
+- backend/test/payments.e2e-spec.ts","Payments;Withdrawals;Prestataire"
+"11 - Payments","Administration paiements","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/admin/payments
+- GET /api/v1/admin/payments/statistics
+- GET /api/v1/admin/payments/:paymentId
+- POST /api/v1/admin/payments/:paymentId/refund
+- GET /api/v1/admin/payments/escrow/pending
+- POST /api/v1/admin/payments/escrow/process-pending
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- lister paiements
+- statistiques paiement
+- detail paiement
+- remboursement
+- consulter escrow pending
+- traiter releases automatiques
+
+Fichiers:
+- backend/src/payments/presentation/controllers/admin-payments.controller.ts
+- backend/src/payments/application/services/payment-query.service.ts
+- backend/src/payments/application/services/escrow.service.ts
+
+Tests:
+- backend/test/payments.e2e-spec.ts
+- backend/test/admin.e2e-spec.ts","Admin;Payments;Escrow"
+"12 - Notifications","Notifications utilisateur in-app et device token","Statut: implemente.
+
+Endpoints:
+- GET /api/v1/notifications
+- PATCH /api/v1/notifications/read-all
+- PATCH /api/v1/notifications/:id/read
+- POST /api/v1/notifications/device-token
+
+Role:
+- utilisateur authentifie
+
+Fonctions:
+- lister notifications utilisateur
+- marquer une notification lue
+- marquer toutes lues
+- enregistrer token FCM
+- pagination/filtres selon DTO
+
+Fichiers:
+- backend/src/notifications/notifications.module.ts
+- backend/src/notifications/presentation/controllers/notifications.controller.ts
+- backend/src/notifications/application/services/notifications.service.ts
+- backend/src/notifications/infrastructure/repositories/notifications.repository.ts
+- backend/src/notifications/infrastructure/repositories/notification-recipient.repository.ts
+
+Tests:
+- backend/test/notifications.e2e-spec.ts","Notifications;User;Mobile"
+"12 - Notifications","Providers notification email, SMS, FCM et communications reservation","Statut: partiellement pret provider, implemente cote code.
+
+Providers:
+- Resend email
+- Twilio SMS
+- Firebase Cloud Messaging push
+
+Fonctions:
+- notification in-app
+- livraison push si FCM configure
+- livraison email si Resend configure
+- livraison SMS si Twilio configure
+- traces reservation_communications
+- gestion provider non configure sans casser le flux
+
+Fichiers:
+- backend/src/notifications/application/services/notification-delivery.service.ts
+- backend/src/notifications/application/services/reservation-client-notification.service.ts
+- backend/src/notifications/application/services/payment-notification.service.ts
+- backend/src/notifications/infrastructure/adapters/fcm-push-notification.adapter.ts
+- backend/src/notifications/infrastructure/adapters/resend-email-notification.adapter.ts
+- backend/src/notifications/infrastructure/adapters/twilio-sms-notification.adapter.ts
+- backend/src/notifications/infrastructure/repositories/reservation-communications.repository.ts
+- backend/src/core/messages/*notification*.messages.ts
+
+Backlog:
+- validation live Resend
+- validation live Twilio
+- validation live FCM
+- monitoring delivery failure","Notifications;Providers;Integration"
+"12 - Notifications","Administration notifications de masse","Statut: implemente.
+
+Endpoint:
+- POST /api/v1/admin/notifications/broadcast
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- broadcast vers CLIENT
+- broadcast vers PRESTATAIRE
+- broadcast global
+- notifications ciblees selon role
+
+Fichiers:
+- backend/src/notifications/presentation/controllers/admin-notifications.controller.ts
+- backend/src/notifications/presentation/dto/broadcast-notification.dto.ts
+- backend/src/notifications/application/services/notifications.service.ts
+
+Tests:
+- backend/test/admin.e2e-spec.ts","Admin;Notifications;Broadcast"
+"13 - Disputes","Litiges admin reservation/paiement","Statut: implemente.
+
+Endpoints admin:
+- GET /api/v1/admin/disputes
+- GET /api/v1/admin/disputes/:disputeId
+- PATCH /api/v1/admin/disputes/:disputeId/in-review
+- PATCH /api/v1/admin/disputes/:disputeId/resolve
+- PATCH /api/v1/admin/disputes/:disputeId/reject
+
+Endpoints metier lies:
+- PATCH /api/v1/reservations/:reservationId/dispute
+- PATCH /api/v1/payments/:paymentId/escrow/dispute
+
+Roles:
+- CLIENT/PRESTATAIRE selon litige ouvert
+- ADMIN pour instruction/resolution
+
+Fonctions:
+- ouvrir litige reservation ou paiement
+- lister litiges
+- consulter detail
+- passer en review
+- resoudre avec refund/repartition
+- rejeter et liberer selon regles
+- notifications et outbox
+
+Fichiers:
+- backend/src/disputes/disputes.module.ts
+- backend/src/disputes/presentation/controllers/admin-disputes.controller.ts
+- backend/src/disputes/application/services
+- backend/src/disputes/domain
+- backend/src/disputes/infrastructure/repositories/disputes.repository.ts
+
+Tests:
+- backend/test/disputes.e2e-spec.ts","Disputes;Admin;Escrow"
+"14 - Admin","Dashboard administrateur","Statut: implemente.
+
+Endpoint:
+- GET /api/v1/admin/dashboard
+
+Role:
+- ADMIN uniquement
+
+Fonctions:
+- analytics plateforme
+- volumes utilisateurs
+- reservations
+- paiements/revenus
+- litiges
+- indicateurs gouvernance
+
+Fichiers:
+- backend/src/admin/admin.module.ts
+- backend/src/admin/presentation/controllers/admin-dashboard.controller.ts
+- backend/src/admin/application
+
+Tests:
+- backend/test/admin.e2e-spec.ts","Admin;Dashboard;Analytics"
+"15 - Documentation et API","Swagger et exemples API","Statut: implemente.
+
+URL:
+- http://localhost:3000/api/docs
+
+Fonctions:
+- documentation interactive HTTP
+- bearer JWT
+- exemples enveloppe success/message/data/meta
+- tags modules
+- descriptions francaises centralisees
+
+Fichiers:
+- backend/src/main.ts
+- backend/src/core/messages/api-docs.messages.ts
+- backend/src/shared/swagger/swagger-response.examples.ts
+- backend/src/shared/swagger/api-response-swagger.dto.ts
+- controllers presentation/*
+
+Backlog:
+- maintenir Swagger a chaque ajout endpoint
+- ajouter schemas detaillees pour nouveaux modules upload/documents/parrainage","Swagger;Docs;API"
+"15 - Documentation et API","Collection Postman de test manuel","Statut: implemente.
+
+Fichiers:
+- backend/docs/collection_postman_test/jokko-api.postman_collection.json
+- backend/docs/collection_postman_test/jokko-api.postman_environment.json
+- backend/docs/POSTMAN_TESTS.md
+
+Usage:
+- tests manuels HTTP
+- scenarios role CLIENT/PRESTATAIRE/ADMIN
+- verification rapide Swagger/Postman
+
+Limites:
+- ne remplace pas les e2e Jest
+- ne couvre pas parfaitement Socket.IO
+- ne valide pas fournisseurs externes reels email/SMS/FCM/paiement
+
+Variables Postman:
+- baseUrl
+- accessToken
+- refreshToken
+- userId
+- professionalId
+- categoryId
+- serviceId
+- negotiationId
+- reservationId
+- conversationId
+- paymentId
+- notificationId
+- disputeId","Postman;Docs;QA"
+"16 - Securite et Roles","Guards JWT et roles","Statut: implemente.
+
+Guards:
+- JwtAuthGuard
+- RolesGuard
+
+Decorators:
+- CurrentUser
+- Roles
+
+Roles:
+- CLIENT
+- PRESTATAIRE
+- ADMIN
+
+Fonctions:
+- verifier Bearer JWT
+- injecter request.user
+- proteger routes privees
+- proteger routes admin
+- verifier roles aussi dans les services metier critiques
+
+Fichiers:
+- backend/src/auth/security/jwt-auth.guard.ts
+- backend/src/auth/security/current-user.decorator.ts
+- backend/src/auth/security/auth-user.type.ts
+- backend/src/shared/guards/roles.guard.ts
+- controllers admin
+- services application modules
+
+Tests:
+- backend/test/auth.e2e-spec.ts
+- backend/test/categories.e2e-spec.ts
+- backend/test/professionals.e2e-spec.ts
+- backend/test/payments.e2e-spec.ts
+- backend/test/admin.e2e-spec.ts","Security;Roles;Auth"
+"16 - Securite et Roles","Configuration environnement production","Statut: implemente avec garde-fous.
+
+Variables validees:
+- NODE_ENV
+- PORT
+- TRUST_PROXY
+- CORS_ORIGINS
+- DATABASE_URL
+- JWT_ACCESS_SECRET
+- JWT_REFRESH_SECRET
+- JWT_ACCESS_TTL
+- JWT_REFRESH_TTL
+- GOOGLE_CLIENT_ID
+- THROTTLE_*
+- PAYMENT_GATEWAY_MODE
+- PAYMENT_WEBHOOK_SECRET
+- REDIS_*
+- FCM_*
+- AWS_*
+- SENTRY_DSN
+
+Garde-fous production:
+- DATABASE_URL doit commencer par postgresql://
+- CORS_ORIGINS obligatoire en production
+- secrets JWT 32 caracteres minimum en production
+- PAYMENT_WEBHOOK_SECRET obligatoire et fort en production external
+
+Fichiers:
+- backend/src/core/config/env.validation.ts
+- backend/src/core/config/cors.config.ts
+- backend/.env.example
+- backend/.env.local
+
+Tests:
+- backend/src/core/config/env.validation.spec.ts
+- backend/src/core/config/cors.config.spec.ts","Config;Production;Security"
+"17 - Backlog Plateforme","Module upload media reel","Statut: non implemente.
+
+Pourquoi c'est prioritaire:
+- avatar utilisateur
+- documents KYC
+- portfolio prestataire
+- media messages
+- preuves de litige
+- futures factures/documents
+
+Etat actuel:
+- le backend stocke des URLs
+- pas de multipart upload
+- pas de stockage S3/Cloudinary/local abstrait
+- pas de validation MIME/taille
+- pas de signed URLs
+- pas de suppression fichier
+- pas de ownership media
+
+Endpoints a prevoir:
+- POST /api/v1/uploads
+- POST /api/v1/uploads/presigned-url
+- DELETE /api/v1/uploads/:mediaId
+- GET /api/v1/uploads/:mediaId
+
+Tables a prevoir:
+- media_files
+- ownerUserId
+- usageType
+- url
+- mimeType
+- sizeBytes
+- checksum
+- storageKey
+
+Tests a prevoir:
+- upload avatar
+- upload KYC
+- upload portfolio
+- upload message media
+- permissions suppression
+- rejet type fichier interdit
+- rejet taille excessive","Backlog;Upload;P0"
+"17 - Backlog Plateforme","Module documents et factures","Statut: non implemente.
+
+Besoin:
+- recu paiement client
+- facture/preuve commission plateforme
+- justificatif retrait prestataire
+- document remboursement
+- document litige/resolution
+
+Etat actuel:
+- paiements et webhooks existent
+- pas de generation PDF
+- pas de stockage document
+- pas d'endpoint document
+
+Endpoints a prevoir:
+- GET /api/v1/payments/:paymentId/receipt
+- GET /api/v1/admin/payments/:paymentId/invoice
+- GET /api/v1/payments/withdrawals/:withdrawalId/document
+- GET /api/v1/admin/disputes/:disputeId/report
+
+Tables a prevoir:
+- documents
+- paymentId
+- withdrawalId
+- disputeId
+- type
+- url
+- generatedAt
+- generatedBy
+
+Tests a prevoir:
+- document genere apres paiement succes
+- document accessible seulement au bon utilisateur/admin
+- regeneration idempotente
+- audit acces document","Backlog;Documents;Invoices;P1"
+"17 - Backlog Plateforme","Module parrainage, cashback et promotions","Statut: non implemente.
+
+Besoin:
+- code parrainage utilisateur
+- invitation nouveau client/prestataire
+- cashback ou credit promotionnel
+- anti-abus
+- statistiques admin
+
+Etat actuel:
+- aucun module referral branche dans AppModule
+- aucune table dediee parrainage/cashback
+- aucun endpoint dedie
+
+Endpoints a prevoir:
+- POST /api/v1/referrals/apply
+- GET /api/v1/referrals/me
+- GET /api/v1/admin/referrals
+- POST /api/v1/admin/promotions
+- PATCH /api/v1/admin/promotions/:promotionId/disable
+
+Tables a prevoir:
+- referral_codes
+- referral_events
+- rewards
+- promotions
+
+Regles a prevoir:
+- un code par compte
+- recompense apres condition metier validee
+- limite anti auto-parrainage
+- limite multi-comptes
+- audit admin","Backlog;Referral;Promotions;P2"
+"17 - Backlog Plateforme","Redis distribue, cache et Socket.IO adapter","Statut: partiellement configure, non branche au code metier distribue.
+
+Etat actuel:
+- variables REDIS_* presentes
+- redis present dans docker-compose.prod.yml
+- pas de storage Redis pour Throttler
+- pas d'adapter Redis Socket.IO
+- pas de cache metier Redis
+
+A faire:
+- installer/configurer client Redis
+- brancher ThrottlerStorage Redis
+- brancher @socket.io/redis-adapter
+- partager rooms/events entre instances backend
+- cache search professionals si besoin
+- strategy invalidation cache
+
+Pourquoi:
+- production grande echelle multi-instance
+- rate limit coherent entre instances
+- messaging/live tracking temps reel sur plusieurs pods/containers","Backlog;Redis;Scale;P1"
+"17 - Backlog Plateforme","Observabilite production et alerting","Statut: non implemente completement.
+
+Etat actuel:
+- SENTRY_DSN present en config
+- logs Nest standards
+- audit metier en base
+- pas d'integration Sentry complete visible
+- pas de metrics endpoint dedie
+- pas de tracing distribue
+
+A faire:
+- integration Sentry Nest
+- filtres erreurs vers Sentry
+- correlation requestId
+- logs JSON production
+- metrics Prometheus/OpenTelemetry
+- alerting erreurs paiement/webhook
+- alerting DB deconnectee
+- dashboard operations
+
+Tests a prevoir:
+- erreur capturee
+- contexte user non sensible
+- pas de fuite secrets
+- alerte sur webhook failed","Backlog;Observability;Production;P1"
+"17 - Backlog Plateforme","Worker outbox et evenements robustes","Statut: outbox presente, maturite worker a finaliser.
+
+Etat actuel:
+- outbox_events existe dans le schema
+- plusieurs flux ecrivent des evenements
+- pas de worker robuste complet documente pour retry/backoff/dead-letter
+
+A faire:
+- worker outbox separe
+- polling ou broker
+- retry avec backoff
+- dead-letter
+- idempotence handler
+- monitoring failed events
+- replay admin
+
+Flux concernes:
+- notifications
+- messaging
+- live tracking
+- paiements
+- reservations
+- litiges
+
+Pourquoi:
+- garantir les effets secondaires sans bloquer les transactions metier
+- production resiliente","Backlog;Outbox;Events;P1"
+"18 - Frontend Ready","Contrat backend pour Angular/Vue web","Statut: pret pour demarrage frontend avec points de vigilance.
+
+Base URL:
+- http://localhost:3000/api/v1 en local
+- /api/docs pour Swagger
+
+Auth:
+- JWT Bearer
+- accessToken
+- refreshToken
+- logout
+
+CORS:
+- ajouter l'origine web dans CORS_ORIGINS en staging/prod
+- exemples: https://app.jokko.sn, https://admin.jokko.sn
+
+Endpoints utiles web admin:
+- admin/users
+- admin/kyc
+- admin/categories
+- admin/reservations
+- admin/payments
+- admin/disputes
+- admin/dashboard
+- admin/notifications/broadcast
+
+Points a traiter avant web complet:
+- upload media reel
+- documents/factures
+- monitoring prod","Frontend;Web;Angular;Vue"
+"18 - Frontend Ready","Contrat backend pour Flutter Android/iOS","Statut: pret pour demarrage mobile avec points de vigilance.
+
+Mobile consommera:
+- auth
+- users/me
+- professionals/search
+- reservations
+- negotiations
+- conversations
+- Socket.IO /socket
+- payments
+- notifications/device-token
+- live tracking
+- reviews
+
+Notifications:
+- token FCM via POST /notifications/device-token
+- FCM provider a configurer en reel
+
+Socket.IO:
+- namespace /socket
+- token JWT dans handshake.auth.token
+
+Tracking:
+- PATCH /reservations/:id/on-the-way
+- socket tracking.location.update
+
+Points a traiter:
+- upload media reel mobile
+- gestion refresh token cote app
+- stockage securise token mobile
+- tests reels FCM Android/iOS","Frontend;Mobile;Flutter"

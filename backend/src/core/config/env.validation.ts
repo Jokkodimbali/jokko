@@ -110,6 +110,14 @@ function requiredSecret(name: string, value: unknown): string {
   return secret;
 }
 
+function requiredProductionSecret(name: string, value: unknown): string {
+  const secret = requiredSecret(name, value);
+  if (secret.length < 32) {
+    throw new Error(ENV_MESSAGES.INVALID_PRODUCTION_SECRET_MIN_LENGTH(name));
+  }
+  return secret;
+}
+
 export function validerEnv(env: Record<string, unknown>): EnvValide {
   const nodeEnv = asString(env.NODE_ENV, 'development');
   if (!['development', 'test', 'production'].includes(nodeEnv)) {
@@ -121,20 +129,41 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     throw new Error(ENV_MESSAGES.INVALID_DATABASE_URL);
   }
 
+  const corsOrigins = asString(env.CORS_ORIGINS);
+  const paymentGatewayMode = asString(
+    env.PAYMENT_GATEWAY_MODE,
+    nodeEnv === 'production' ? 'external' : 'mock',
+  );
+  const paymentWebhookSecret = asString(env.PAYMENT_WEBHOOK_SECRET).trim();
+  const jwtAccessSecret =
+    nodeEnv === 'production'
+      ? requiredProductionSecret('JWT_ACCESS_SECRET', env.JWT_ACCESS_SECRET)
+      : requiredSecret('JWT_ACCESS_SECRET', env.JWT_ACCESS_SECRET);
+  const jwtRefreshSecret =
+    nodeEnv === 'production'
+      ? requiredProductionSecret('JWT_REFRESH_SECRET', env.JWT_REFRESH_SECRET)
+      : requiredSecret('JWT_REFRESH_SECRET', env.JWT_REFRESH_SECRET);
+
+  if (nodeEnv === 'production' && corsOrigins.trim().length === 0) {
+    throw new Error(ENV_MESSAGES.PRODUCTION_CORS_ORIGINS_REQUIRED);
+  }
+
+  if (
+    nodeEnv === 'production' &&
+    paymentGatewayMode === 'external' &&
+    paymentWebhookSecret.length < 32
+  ) {
+    throw new Error(ENV_MESSAGES.PRODUCTION_PAYMENT_WEBHOOK_SECRET_REQUIRED);
+  }
+
   return {
     NODE_ENV: nodeEnv as EnvValide['NODE_ENV'],
     PORT: asNombre(typeof env.PORT === 'string' ? env.PORT : undefined, 3000),
     TRUST_PROXY: asBoolean(env.TRUST_PROXY, nodeEnv === 'production'),
-    CORS_ORIGINS: asString(env.CORS_ORIGINS),
+    CORS_ORIGINS: corsOrigins,
     DATABASE_URL: databaseUrl,
-    JWT_ACCESS_SECRET: requiredSecret(
-      'JWT_ACCESS_SECRET',
-      env.JWT_ACCESS_SECRET,
-    ),
-    JWT_REFRESH_SECRET: requiredSecret(
-      'JWT_REFRESH_SECRET',
-      env.JWT_REFRESH_SECRET,
-    ),
+    JWT_ACCESS_SECRET: jwtAccessSecret,
+    JWT_REFRESH_SECRET: jwtRefreshSecret,
     JWT_ACCESS_TTL: asString(env.JWT_ACCESS_TTL, '15m'),
     JWT_REFRESH_TTL: asString(env.JWT_REFRESH_TTL, '30d'),
     GOOGLE_CLIENT_ID: asString(env.GOOGLE_CLIENT_ID).trim(),
@@ -150,11 +179,8 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     TWILIO_ACCOUNT_SID: asString(env.TWILIO_ACCOUNT_SID),
     TWILIO_AUTH_TOKEN: asString(env.TWILIO_AUTH_TOKEN),
     TWILIO_PHONE_NUMBER: asString(env.TWILIO_PHONE_NUMBER),
-    PAYMENT_GATEWAY_MODE: asString(
-      env.PAYMENT_GATEWAY_MODE,
-      nodeEnv === 'production' ? 'external' : 'mock',
-    ),
-    PAYMENT_WEBHOOK_SECRET: asString(env.PAYMENT_WEBHOOK_SECRET),
+    PAYMENT_GATEWAY_MODE: paymentGatewayMode,
+    PAYMENT_WEBHOOK_SECRET: paymentWebhookSecret,
     WAVE_API_BASE_URL: asString(env.WAVE_API_BASE_URL),
     WAVE_API_KEY: asString(env.WAVE_API_KEY),
     ORANGE_MONEY_API_BASE_URL: asString(env.ORANGE_MONEY_API_BASE_URL),

@@ -124,6 +124,7 @@ describe('AuthService', () => {
       numeroTelephone: '+221770000000',
       nom: 'Test',
       role: RoleUtilisateur.CLIENT,
+      estActif: true,
       motDePasseHash: 'hashed',
     });
     passwordHashService.compare.mockResolvedValue(false);
@@ -154,6 +155,7 @@ describe('AuthService', () => {
       numeroTelephone: '+221770000000',
       nom: 'Test',
       role: RoleUtilisateur.CLIENT,
+      estActif: true,
     });
     jwtTokenService.issueTokens.mockResolvedValue({
       accessToken: 'new-access',

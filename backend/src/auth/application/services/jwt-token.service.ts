@@ -16,7 +16,7 @@ function ttlToSeconds(ttl: string): number {
     return numeric;
   }
 
-  const match = ttl.match(/^(\d+)([smhd])$/i);
+  const match = new RegExp(/^(\d+)([smhd])$/i).exec(ttl);
   if (!match) {
     return 900;
   }

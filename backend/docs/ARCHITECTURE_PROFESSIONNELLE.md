@@ -1,6 +1,7 @@
 # Architecture Backend Professionnelle - Jokko
 
 ## 1. Objet
+
 Ce document decrit l'architecture backend reelle du projet Jokko dans son etat actuel.
 
 Il ne s'agit pas d'une architecture cible theorique. C'est une reference de travail pour :
@@ -12,6 +13,7 @@ Il ne s'agit pas d'une architecture cible theorique. C'est une reference de trav
 - la preparation du deploiement
 
 ## 2. Resume executif
+
 Le backend Jokko est une API NestJS modulaire, orientee domaines metier, avec PostgreSQL via Prisma, messages centralises, Swagger exploitable, audit HTTP, notifications multi-canaux et deux briques temps reel Socket.IO :
 
 - `messaging`
@@ -26,6 +28,7 @@ Le projet a deja depasse le stade d'une simple base CRUD. Il supporte aujourd'hu
 - reservation -> live tracking -> notification
 
 ## 3. Modules actuellement importes par `AppModule`
+
 Le module racine charge actuellement :
 
 - `SharedModule`
@@ -98,6 +101,7 @@ Cette structure est effectivement appliquee sur les modules metier principaux.
 ## 6. Separation des couches
 
 ### 6.1 Presentation
+
 Contient :
 
 - controllers HTTP
@@ -106,6 +110,7 @@ Contient :
 - gateways Socket.IO quand necessaire
 
 ### 6.2 Application
+
 Contient :
 
 - orchestration des cas d'usage
@@ -114,6 +119,7 @@ Contient :
 - ports vers l'infrastructure
 
 ### 6.3 Domain
+
 Contient :
 
 - entites
@@ -123,6 +129,7 @@ Contient :
 - evenements de domaine ou assimilables quand necessaire
 
 ### 6.4 Infrastructure
+
 Contient :
 
 - repositories Prisma
@@ -141,6 +148,7 @@ Contient :
 ## 8. Modules metier reels
 
 ### 8.1 Auth
+
 Responsabilites :
 
 - OTP
@@ -159,6 +167,7 @@ Points forts :
 - messages centralises
 
 ### 8.2 Users
+
 Responsabilites :
 
 - profil courant
@@ -169,6 +178,7 @@ Responsabilites :
 - administration utilisateur
 
 ### 8.3 Professionals
+
 Responsabilites :
 
 - profil professionnel
@@ -180,6 +190,7 @@ Responsabilites :
 - administration KYC
 
 ### 8.4 Categories
+
 Responsabilites :
 
 - liste publique des categories actives
@@ -189,12 +200,14 @@ Responsabilites :
 - taux de commission par categorie
 
 ### 8.5 Search
+
 Responsabilites :
 
 - recherche de professionnels verifies
 - filtres ville, categorie, texte, geolocalisation, pagination
 
 ### 8.6 Negotiations
+
 Responsabilites :
 
 - creation de negotiation
@@ -205,6 +218,7 @@ Responsabilites :
 - conversion vers reservation
 
 ### 8.7 Reservations
+
 Responsabilites :
 
 - creation
@@ -224,6 +238,7 @@ Responsabilites :
 Ce module est le pivot metier principal du projet.
 
 ### 8.8 Messaging
+
 Responsabilites :
 
 - conversation par reservation
@@ -233,6 +248,7 @@ Responsabilites :
 - notification in-app de nouveau message
 
 ### 8.9 Live Tracking
+
 Responsabilites :
 
 - presence prestataire
@@ -242,6 +258,7 @@ Responsabilites :
 - temps reel Socket.IO
 
 ### 8.10 Payments
+
 Responsabilites :
 
 - initiation de paiement
@@ -253,6 +270,7 @@ Responsabilites :
 - statistiques admin
 
 ### 8.11 Notifications
+
 Responsabilites :
 
 - notifications in-app
@@ -263,6 +281,7 @@ Responsabilites :
 - branchages email et SMS
 
 ### 8.12 Disputes
+
 Responsabilites :
 
 - dossier de litige unique

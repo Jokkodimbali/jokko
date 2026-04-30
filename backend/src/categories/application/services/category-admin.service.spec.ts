@@ -50,6 +50,7 @@ describe('CategoryAdminService', () => {
       name: 'Plomberie',
       iconUrl: 'https://cdn.jokko.sn/plomberie.png',
       sortOrder: 1,
+      commissionRate: 10,
     });
   });
 

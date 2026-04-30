@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { MessagingFacade } from '../../application/services/messaging-facade.service';
 import type { ConversationMessageView } from '../../application/ports/messaging-repository.port';
+import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
 type AuthenticatedSocket = Socket & {
   data: {
@@ -34,10 +35,7 @@ type ConversationTypingPayload = {
 
 @WebSocketGateway({
   namespace: '/socket',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: buildSocketCorsOptionsFromProcessEnv(),
 })
 export class MessagingGateway implements OnGatewayConnection {
   @WebSocketServer()

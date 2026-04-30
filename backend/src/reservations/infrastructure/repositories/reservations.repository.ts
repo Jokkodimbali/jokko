@@ -205,8 +205,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       });
 
       if (
-        !linkedNegotiation ||
-        linkedNegotiation.statut !== 'ACCEPTEE' ||
+        linkedNegotiation?.statut !== 'ACCEPTEE' ||
         linkedNegotiation.reservationId
       ) {
         return null;

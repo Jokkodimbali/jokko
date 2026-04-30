@@ -32,7 +32,7 @@ export class OtpService {
     const code = '123456'; // Fixed code for development testing
     await this.otpRepository.upsertForPhoneNumber({
       phoneNumber,
-      codeHash: code, // Store plain code for testing
+      codeHash: code,
       expiresAt: new Date(Date.now() + this.ttlMs),
       lastSentAt: new Date(),
     });

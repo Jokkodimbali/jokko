@@ -8,8 +8,7 @@ import {
 
 const toJsonPayload = (
   payload: Record<string, unknown>,
-): Prisma.InputJsonValue =>
-  JSON.parse(JSON.stringify(payload)) as Prisma.InputJsonValue;
+): Prisma.InputJsonValue => structuredClone(payload) as Prisma.InputJsonValue;
 
 @Injectable()
 export class PaymentWebhookEventRepository implements PaymentWebhookEventPort {

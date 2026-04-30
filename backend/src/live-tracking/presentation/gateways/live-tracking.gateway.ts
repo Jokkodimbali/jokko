@@ -14,6 +14,7 @@ import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { LiveTrackingFacade } from '../../application/services/live-tracking-facade.service';
 import type { TrackingLocationDto } from '../dto/tracking-location.dto';
+import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
 type AuthenticatedSocket = Socket & {
   data: {
@@ -23,10 +24,7 @@ type AuthenticatedSocket = Socket & {
 
 @WebSocketGateway({
   namespace: '/socket',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: buildSocketCorsOptionsFromProcessEnv(),
 })
 export class LiveTrackingGateway
   implements OnGatewayConnection, OnGatewayDisconnect

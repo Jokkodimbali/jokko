@@ -96,6 +96,8 @@ export class AuthService {
       name: command.name.trim(),
       email: normalizedEmail ?? undefined,
       passwordHash,
+      role: command.role,
+      adresse: command.adresse.trim(),
     });
     if (!user) {
       const userByPhone =

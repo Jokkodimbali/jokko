@@ -2,31 +2,38 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../data-access/auth.service';
 import { RegisterRequestDto } from '../../../domain/models/auth.models';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { AUTH_UI_MESSAGES } from '../../../domain/auth-ui.messages';
+import { AUTH_VALIDATORS } from '../../../domain/auth.validators';
 
 @Component({
   selector: 'app-register',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  templateUrl: './register.component.html'
+  templateUrl: './register.component.html',
 })
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
 
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
+  protected readonly messages = AUTH_UI_MESSAGES;
 
   registerForm = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-    phoneNumber: ['', [Validators.required, Validators.pattern('^\\+?[1-9]\\d{7,14}$')]],
+    name: ['', AUTH_VALIDATORS.name],
+    phoneNumber: ['', AUTH_VALIDATORS.phoneNumber],
     email: ['', [Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(64)]],
+    password: ['', AUTH_VALIDATORS.password],
     role: ['CLIENT', [Validators.required]],
-    adresse: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(255)]]
+    adresse: ['', AUTH_VALIDATORS.address],
   });
 
   onSubmit(): void {
@@ -42,21 +49,21 @@ export class RegisterComponent {
     const payload: RegisterRequestDto = {
       ...formData,
       role: formData.role as 'CLIENT' | 'PRESTATAIRE',
-      email: formData.email ? formData.email : undefined // Only send email if provided
+      email: formData.email ? formData.email : undefined,
     };
 
-    this.authService.register(payload).subscribe({
-      next: (response) => {
-        localStorage.setItem('accessToken', response.accessToken);
-        this.isLoading.set(false);
-        // Maybe redirect to OTP verification or Dashboard depending on flow
-        this.router.navigate(['/auth/verify-otp'], { queryParams: { phone: payload.phoneNumber } });
-      },
-      error: (err) => {
-        this.isLoading.set(false);
-        this.errorMessage.set(err.error?.message || 'Une erreur est survenue lors de l\'inscription.');
-      }
-    });
+    this.authService
+      .register(payload)
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.authSession.saveAuthResponse(response);
+          this.router.navigate(['/']);
+        },
+        error: (error: unknown) => {
+          this.errorMessage.set(getHttpErrorMessage(error, AUTH_UI_MESSAGES.registerFailed));
+        },
+      });
   }
 
   isFieldInvalid(field: string): boolean {

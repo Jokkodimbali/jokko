@@ -1,148 +1,143 @@
-<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-  <!-- Decorative Background Elements -->
-  <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-    <div class="absolute -top-[30%] -right-[10%] w-[70%] h-[70%] rounded-full bg-primary/10 blur-3xl"></div>
-    <div class="absolute -bottom-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-primary/20 blur-3xl"></div>
-  </div>
+<main class="auth-page auth-page--login">
+  <a routerLink="/services" class="auth-page__back">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M10.5 19 3.5 12l7-7 1.4 1.4L7.3 11H21v2H7.3l4.6 4.6L10.5 19Z" />
+    </svg>
+    Retour aux services
+  </a>
 
-  <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-    <div class="flex justify-center mb-6">
-      <!-- Jokko Logo -->
-      <img src="logo.png" alt="Jokko Logo" class="w-32 h-32 object-contain transform transition-transform hover:scale-105 duration-300">
-    </div>
-    <h2 class="mt-4 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-      Bienvenue sur Jokko
-    </h2>
-    <p class="mt-2 text-center text-sm text-gray-600">
-      Ou <a routerLink="/auth/register" class="font-medium text-primary hover:text-primary-dark transition-colors duration-200 cursor-pointer">créez un nouveau compte</a>
-    </p>
-  </div>
+  <section class="auth-panel">
+    <div class="auth-panel__story">
+      <a routerLink="/services" class="auth-panel__brand">
+        <img src="logo.png" alt="Jokko Logo" />
+        <span>JOKKO Dimbali</span>
+      </a>
 
-  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-    <!-- Glassmorphism Card -->
-    <div class="bg-white/80 backdrop-blur-xl py-8 px-4 shadow-2xl shadow-primary/10 sm:rounded-3xl sm:px-10 border border-white/40">
-      
-      <!-- Error Message -->
-      <div *ngIf="errorMessage()" class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center animate-fade-in">
-        <svg class="h-5 w-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-        </svg>
-        <p class="text-sm text-red-700 font-medium">{{ errorMessage() }}</p>
+      <div class="auth-panel__copy">
+        <p class="auth-panel__eyebrow">Espace securise</p>
+        <h1>Bienvenue sur Jokko</h1>
+        <p>
+          Retrouvez vos services, vos reservations et vos prestataires dans une experience simple,
+          rapide et coherente avec l'application mobile.
+        </p>
       </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
-        <!-- Phone Number Input -->
+      <div class="auth-panel__proof">
         <div>
-          <label for="phoneNumber" class="block text-sm font-semibold text-gray-700">
-            Numéro de téléphone
-          </label>
-          <div class="mt-2 relative rounded-xl shadow-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-            </div>
-            <input 
-              id="phoneNumber" 
-              type="tel" 
-              formControlName="phoneNumber"
-              class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary bg-gray-50 transition-all duration-200 placeholder-gray-400 sm:text-sm"
-              [ngClass]="{'border-red-300 focus:ring-red-500 focus:border-red-500': isFieldInvalid('phoneNumber')}"
-              placeholder="77 123 45 67">
-          </div>
-          <p *ngIf="isFieldInvalid('phoneNumber')" class="mt-2 text-sm text-red-600 animate-fade-in">
-            Veuillez entrer un numéro de téléphone valide (ex: +221770000000).
-          </p>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2 4 5.5v5.8c0 5 3.4 9.6 8 10.7 4.6-1.1 8-5.7 8-10.7V5.5L12 2Z" />
+          </svg>
+          Connexion protegee
         </div>
-
-        <!-- Password Input -->
         <div>
-          <label for="password" class="block text-sm font-semibold text-gray-700">
-            Mot de passe
-          </label>
-          <div class="mt-2 relative rounded-xl shadow-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <input 
-              id="password" 
-              [type]="showPassword() ? 'text' : 'password'" 
-              formControlName="password"
-              class="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary bg-gray-50 transition-all duration-200 placeholder-gray-400 sm:text-sm"
-              [ngClass]="{'border-red-300 focus:ring-red-500 focus:border-red-500': isFieldInvalid('password')}"
-              placeholder="••••••••">
-            <button 
-              type="button" 
-              (click)="showPassword.set(!showPassword())"
-              class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors duration-200">
-              <svg *ngIf="!showPassword()" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg *ngIf="showPassword()" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
-            </button>
-          </div>
-          <p *ngIf="isFieldInvalid('password')" class="mt-2 text-sm text-red-600 animate-fade-in">
-            Le mot de passe doit contenir entre 8 et 64 caractères.
-          </p>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6.5h16v11H4v-11Zm2 2v7h12v-7H6Zm2 2h8v2H8v-2Z" />
+          </svg>
+          API Jokko synchronisee
         </div>
+      </div>
+    </div>
 
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded transition-colors duration-200">
-            <label for="remember-me" class="ml-2 block text-sm text-gray-700">
-              Se souvenir de moi
-            </label>
-          </div>
-
-          <div class="text-sm">
-            <a href="#" class="font-medium text-primary hover:text-primary-dark transition-colors duration-200">
-              Mot de passe oublié ?
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <button 
-            type="submit" 
-            [disabled]="isLoading() || loginForm.invalid"
-            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0">
-            
-            <svg *ngIf="isLoading()" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    <div class="auth-panel__form-shell">
+      <div class="auth-card">
+        <div class="auth-card__header">
+          <span class="auth-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.2 0-7 2.1-7 5.2V21h14v-1.8c0-3.1-2.8-5.2-7-5.2Z"
+              />
             </svg>
-            <span *ngIf="!isLoading()">Se connecter</span>
-            <span *ngIf="isLoading()">Connexion en cours...</span>
-          </button>
-        </div>
-      </form>
-      
-      <!-- Social Login Options (Optional/Placeholder for UX) -->
-      <div class="mt-8">
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-white/80 text-gray-500 rounded-full">Ou continuer avec</span>
+          </span>
+          <div>
+            <h2>Connexion</h2>
+            <p>Accedez a votre compte Jokko.</p>
           </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-2 gap-3">
-          <button type="button" class="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-            <svg class="h-5 w-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </button>
-          <button type="button" class="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-             <svg class="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          </button>
+        <div *ngIf="errorMessage()" class="auth-alert auth-alert--error" role="alert">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2 1.8 20h20.4L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V8h2v5Z" />
+          </svg>
+          <p>{{ errorMessage() }}</p>
         </div>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+          <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('phoneNumber')">
+            <span>Numero de telephone</span>
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6.6 10.8a15.9 15.9 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.4a1 1 0 0 1 1 1c0 1.2.2 2.4.6 3.6a1 1 0 0 1-.2 1l-2.2 2.2Z"
+                />
+              </svg>
+              <input
+                id="phoneNumber"
+                type="tel"
+                formControlName="phoneNumber"
+                placeholder="+221770000000"
+              />
+            </div>
+            <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneRequired }}</small>
+          </label>
+
+          <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('password')">
+            <span>Mot de passe</span>
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8H4v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Z"
+                />
+              </svg>
+              <input
+                id="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="Mot de passe"
+              />
+              <button
+                type="button"
+                (click)="showPassword.set(!showPassword())"
+                aria-label="Afficher le mot de passe"
+              >
+                <svg *ngIf="!showPassword()" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5c5.2 0 8.7 4.3 10 7-1.3 2.7-4.8 7-10 7S3.3 14.7 2 12c1.3-2.7 4.8-7 10-7Zm0 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                  />
+                </svg>
+                <svg *ngIf="showPassword()" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="m3.3 2 18.4 18.4-1.4 1.4-3.1-3.1A10.7 10.7 0 0 1 12 20c-5.2 0-8.7-4.3-10-7 .7-1.4 2-3.2 3.8-4.6L1.9 4 3.3 2Zm7.5 7.5 3.7 3.7A4 4 0 0 0 10.8 9.5ZM12 4c5.2 0 8.7 4.3 10 7-.5 1-1.3 2.2-2.4 3.3L16.8 11.5A4 4 0 0 0 12.5 7.2L10.2 4.9A10.6 10.6 0 0 1 12 4Z"
+                  />
+                </svg>
+              </button>
+            </div>
+            <small *ngIf="isFieldInvalid('password')">{{ messages.passwordLength }}</small>
+          </label>
+
+          <div class="auth-form__row">
+            <label class="auth-check">
+              <input type="checkbox" />
+              <span>Se souvenir de moi</span>
+            </label>
+            <a href="#">Mot de passe oublie</a>
+          </div>
+
+          <button type="submit" class="auth-submit" [disabled]="isLoading() || loginForm.invalid">
+            <svg *ngIf="isLoading()" viewBox="0 0 24 24" aria-hidden="true" class="auth-spin">
+              <path d="M12 2v4a6 6 0 1 1-6 6H2a10 10 0 1 0 10-10Z" />
+            </svg>
+            <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17.6 15.6 12 10 6.4 11.4 5l7 7-7 7-1.4-1.4ZM4 13v-2h13v2H4Z" />
+            </svg>
+            {{ isLoading() ? 'Connexion en cours...' : 'Se connecter' }}
+          </button>
+        </form>
+
+        <p class="auth-card__switch">
+          Nouveau sur Jokko ?
+          <a routerLink="/auth/register">Creer un compte</a>
+        </p>
       </div>
-      
     </div>
-  </div>
-</div>
+  </section>
+</main>

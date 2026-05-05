@@ -1,0 +1,179 @@
+<main class="services-page">
+  <section class="hero">
+    <header class="topbar">
+      <a class="brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
+        <img [src]="logo" alt="" />
+        <span>JOKKO Dimbali</span>
+      </a>
+
+      <nav class="nav" aria-label="Navigation principale">
+        <a
+          *ngFor="let item of navItems"
+          class="nav-item"
+          [class.active]="item.active"
+          [routerLink]="item.route"
+        >
+          <img [src]="item.icon" alt="" />
+          <span>{{ item.label }}</span>
+        </a>
+      </nav>
+
+      <div class="profile-actions">
+        <a routerLink="/auth/login" class="login-link">Connexion</a>
+        <a routerLink="/auth/register" class="register-button">Rejoindre</a>
+        <button type="button" class="icon-button" aria-label="Parametres">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 8.8a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4Zm8.2 3.2c0 .5-.1 1-.2 1.5l2 1.5-2 3.4-2.4-1a8 8 0 0 1-2.6 1.5l-.4 2.6h-4l-.4-2.6a8 8 0 0 1-2.6-1.5l-2.4 1-2-3.4 2-1.5A8 8 0 0 1 3.8 12c0-.5.1-1 .2-1.5L2 9l2-3.4 2.4 1a8 8 0 0 1 2.6-1.5l.4-2.6h4l.4 2.6a8 8 0 0 1 2.6 1.5l2.4-1 2 3.4-2 1.5c.1.5.2 1 .2 1.5Z"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="hero-content">
+      <div class="search-zone">
+        <h1>Tous les services au Senegal</h1>
+
+        <form class="search-bar" aria-label="Recherche de services">
+          <button type="button" class="location-control">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 2.8a7.2 7.2 0 0 0-7.2 7.2c0 5.4 7.2 11.2 7.2 11.2S19.2 15.4 19.2 10A7.2 7.2 0 0 0 12 2.8Zm0 9.7a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+              />
+            </svg>
+            <span><strong>Localisation</strong>Dakar, SN</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.5 9 5.5 5.5L17.5 9h-11Z" />
+            </svg>
+          </button>
+
+          <label class="search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M10.8 4a6.8 6.8 0 0 1 5.4 10.9l3.5 3.5-1.4 1.4-3.5-3.5A6.8 6.8 0 1 1 10.8 4Zm0 2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z"
+              />
+            </svg>
+            <input type="search" placeholder="Recherche" />
+          </label>
+
+          <button type="button" class="filter-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 7h8a2.5 2.5 0 0 0 4.6 0H20V5h-3.4A2.5 2.5 0 0 0 12 5H4v2Zm0 12h3.4a2.5 2.5 0 0 0 4.6 0h8v-2h-8a2.5 2.5 0 0 0-4.6 0H4v2Zm0-6h12.4a2.5 2.5 0 0 0 4.6 0h-4.6a2.5 2.5 0 0 0-4.6 0H4v2Z"
+              />
+            </svg>
+            Filtrage
+          </button>
+        </form>
+      </div>
+
+      <img class="hero-visual" [src]="heroIllustration" alt="Prestataires Jokko Dimbali" />
+    </div>
+  </section>
+
+  <section class="content-shell">
+    <aside class="favorites" aria-label="Vos favoris">
+      <h2>Vos Favoris</h2>
+      <div class="empty-favorites">
+        <div class="heart-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 20.4 10.7 19C5.9 14.7 3 12.1 3 8.9A5 5 0 0 1 8.1 4c1.6 0 3.1.7 3.9 1.9A4.8 4.8 0 0 1 15.9 4 5 5 0 0 1 21 8.9c0 3.2-2.9 5.8-7.7 10.1L12 20.4Z"
+            />
+          </svg>
+        </div>
+        <p>Vos prestataires favoris s'afficheront ici.</p>
+        <a routerLink="/auth/login" class="auth-link">Connectez-vous</a>
+      </div>
+    </aside>
+
+    <div class="service-feed">
+      <div *ngIf="isLoading() && sections().length === 0" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des services en cours...</p>
+      </div>
+
+      <div *ngIf="errorMessage()" class="error-state" role="alert">
+        <p>{{ errorMessage() }}</p>
+        <button type="button" (click)="loadHomeData()" class="retry-button">Reessayer</button>
+      </div>
+
+      <div *ngIf="!isLoading() && sections().length === 0" class="empty-state">
+        <div class="empty-icon-container">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </div>
+        <h3>Aucun service trouve</h3>
+        <p>
+          Il semble que nous n'ayons pas encore de prestataires actifs dans votre secteur ou pour
+          ces categories.
+        </p>
+        <button type="button" (click)="ngOnInit()" class="retry-button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          Actualiser la page
+        </button>
+      </div>
+
+      <section *ngFor="let section of sections()" class="service-section">
+        <div class="section-heading">
+          <div class="section-title-group">
+            <h2>{{ section.title }}</h2>
+            <p>{{ section.countLabel }}</p>
+          </div>
+        </div>
+
+        <div class="provider-row">
+          <article *ngFor="let provider of section.providers" class="provider-card">
+            <div class="provider-info">
+              <img [src]="provider.avatar || logo" [alt]="provider.nom" />
+              <div>
+                <h3>{{ provider.nom }}</h3>
+                <p class="speciality">{{ provider.speciality }}</p>
+                <p>{{ provider.location }}</p>
+                <p class="status">
+                  <span class="status-dot"></span>
+                  {{ provider.status }}
+                </p>
+              </div>
+            </div>
+
+            <div class="photo-strip" *ngIf="provider.photos.length > 0">
+              <img *ngFor="let photo of provider.photos" [src]="photo" alt="" />
+            </div>
+          </article>
+        </div>
+
+        <button
+          *ngIf="section.pagination?.hasNext"
+          type="button"
+          class="see-all"
+          (click)="onViewAll(section)"
+        >
+          Voir plus de prestataires
+        </button>
+      </section>
+
+      <div class="load-more-sections" *ngIf="categoryPagination()?.hasNext">
+        <button
+          type="button"
+          (click)="loadMoreCategories()"
+          [disabled]="isLoading()"
+          class="load-more-btn"
+        >
+          {{ isLoading() ? 'Chargement...' : 'Charger plus de categories' }}
+          <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <app-footer />
+</main>

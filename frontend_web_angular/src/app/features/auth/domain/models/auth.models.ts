@@ -1,13 +1,13 @@
 export interface LoginRequestDto {
   phoneNumber: string;
-  password?: string;
+  password: string;
 }
 
 export interface RegisterRequestDto {
   phoneNumber: string;
   name: string;
   email?: string;
-  password?: string;
+  password: string;
   role: 'CLIENT' | 'PRESTATAIRE';
   adresse: string;
 }
@@ -21,6 +21,18 @@ export interface VerifyOtpRequestDto {
   code: string;
 }
 
+export interface RefreshTokenRequestDto {
+  refreshToken: string;
+}
+
+export interface GoogleLoginRequestDto {
+  idToken: string;
+}
+
+export interface SendOtpResponseDto {
+  expiresInSeconds: number;
+}
+
 export interface AuthResponseDto {
   accessToken: string;
   refreshToken: string;
@@ -30,7 +42,17 @@ export interface AuthResponseDto {
 export interface UserDto {
   id: string;
   phoneNumber: string;
-  name?: string;
+  name: string;
   email?: string;
-  roles: string[];
+  role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
+}
+
+export interface UserProfileDto {
+  id: string;
+  numeroTelephone: string;
+  nom: string;
+  email?: string | null;
+  role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
+  urlAvatar?: string | null;
+  estActif: boolean;
 }

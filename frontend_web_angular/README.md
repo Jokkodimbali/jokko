@@ -1,59 +1,41 @@
-# FrontendWebAngular
+# Jokko Web Angular
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.9.
+Frontend web Angular de Jokko Dimbali. L’application consomme l’API backend NestJS via `http://localhost:3000/api/v1` et respecte l’enveloppe standard du backend : `success`, `message`, `data`, `meta`.
 
-## Development server
+## Prérequis
 
-To start a local development server, run:
+- Node.js LTS pair uniquement : Node `24.x` recommandé, ou Node `22.12.0+`.
+- npm `>=10.9.0 <12`.
+- Backend Jokko démarré sur `http://localhost:3000/api/v1` pour charger les catégories, les prestataires et l’authentification.
 
-```bash
-ng serve
-```
+Le projet active `engine-strict=true` pour éviter les installations avec Node `25.x`, qui est une version impaire non LTS et signalée comme non supportée par Angular CLI.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Installation
 
 ```bash
-ng generate component component-name
+npm.cmd install
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Développement
 
 ```bash
-ng generate --help
+npm.cmd start
 ```
 
-## Building
+Puis ouvrir `http://127.0.0.1:4200/`.
 
-To build the project run:
+## Vérification
 
 ```bash
-ng build
+npm.cmd run verify
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Cette commande lance le build Angular puis les tests unitaires en mode non interactif.
 
-## Running unit tests
+## Architecture actuelle
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `src/app/core/http/` : contrat `ApiResponse<T>` et helpers d’extraction des données/erreurs backend.
+- `src/app/core/auth/` : stockage centralisé des jetons d’authentification.
+- `src/app/core/interceptors/` : injection automatique du Bearer token.
+- `src/app/features/auth/` : pages login, register, vérification OTP et service auth.
+- `src/app/features/services/` : chargement des catégories et prestataires depuis le backend.

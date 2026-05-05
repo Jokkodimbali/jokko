@@ -11,7 +11,7 @@ export class CategoryQueryService {
     private readonly categoriesRepository: CategoriesRepositoryPort,
   ) {}
 
-  async listActiveCategories() {
-    return this.categoriesRepository.listActive();
+  async listActiveCategories(page?: number, limit?: number) {
+    return this.categoriesRepository.listActive(page, limit);
   }
 }

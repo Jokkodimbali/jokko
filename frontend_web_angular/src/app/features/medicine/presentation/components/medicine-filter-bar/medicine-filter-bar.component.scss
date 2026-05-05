@@ -1,0 +1,38 @@
+:host {
+  display: block;
+}
+
+.medicine-filter-bar {
+  align-items: center;
+  background: #fff;
+  display: flex;
+  gap: 108px;
+  justify-content: center;
+  min-height: 120px;
+  padding: 10px 24px;
+}
+
+.medicine-filter-bar__button {
+  align-items: center;
+  background: #fff;
+  border: 3px solid #e4edf6;
+  border-radius: 18px;
+  color: #172433;
+  display: inline-flex;
+  font-size: 28px;
+  font-weight: 800;
+  gap: 25px;
+  height: 61px;
+  justify-content: center;
+  min-width: 256px;
+  padding: 0 22px;
+}
+
+.medicine-filter-bar__button--accent {
+  color: #0092a9;
+  min-width: 256px;
+}
+
+.medicine-filter-bar__button lucide-icon {
+  color: currentColor;
+}

@@ -1,32 +1,6 @@
 <main class="services-page">
   <section class="hero">
-    <header class="topbar">
-      <a class="brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
-        <img [src]="logo" alt="" />
-      </a>
-
-      <nav class="nav" aria-label="Navigation principale">
-        <a
-          *ngFor="let item of navItems"
-          class="nav-item"
-          [class.active]="item.active"
-          [routerLink]="item.route"
-        >
-          <img [src]="item.icon" alt="" />
-          <span>{{ item.label }}</span>
-        </a>
-      </nav>
-
-      <div class="profile-actions">
-        <a routerLink="/auth/login" class="profile-card" aria-label="Connexion">
-          <span>MD</span>
-          <img [src]="profileChevronIcon" alt="" class="profile-chevron" />
-        </a>
-        <button type="button" class="icon-button" aria-label="Parametres">
-          <img [src]="settingsIcon" alt="" />
-        </button>
-      </div>
-    </header>
+    <app-navbar />
 
     <div class="hero-content">
       <div class="search-zone">

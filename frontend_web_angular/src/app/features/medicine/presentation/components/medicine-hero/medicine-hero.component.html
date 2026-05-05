@@ -1,0 +1,25 @@
+<section class="medicine-hero">
+  <app-navbar />
+
+  <div class="medicine-hero__content">
+    <h1>{{ messages.title }}</h1>
+
+    <form class="medicine-hero__search" aria-label="Recherche de m&eacute;decins">
+      <button type="button" class="medicine-hero__location">
+        <lucide-icon name="map-pin" size="22" [strokeWidth]="3"></lucide-icon>
+        <span><strong>{{ messages.locationTitle }}</strong>{{ messages.locationValue }}</span>
+        <lucide-icon name="chevron-down" size="15" [strokeWidth]="3"></lucide-icon>
+      </button>
+
+      <label class="medicine-hero__field">
+        <lucide-icon name="search" size="35" [strokeWidth]="2.6"></lucide-icon>
+        <input type="search" [placeholder]="messages.searchPlaceholder" />
+      </label>
+
+      <button type="button" class="medicine-hero__filter">
+        <lucide-icon name="sliders-horizontal" size="36" [strokeWidth]="3"></lucide-icon>
+        Filtrage
+      </button>
+    </form>
+  </div>
+</section>

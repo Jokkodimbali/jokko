@@ -1,0 +1,49 @@
+@media (max-width: 1180px) {
+  :host .hero-content,
+  :host .content-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  :host .hero-content {
+    padding: 12px 18px 0 !important;
+  }
+
+  :host .search-zone {
+    padding-bottom: 22px;
+  }
+
+  :host .hero-visual {
+    justify-self: end;
+  }
+
+  :host .favorites {
+    border-bottom: 2px solid #ccd7e5;
+    border-right: 0 !important;
+  }
+
+  :host .favorite-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  :host .search-zone h1 {
+    font-size: 34px !important;
+  }
+
+  :host .search-bar {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    padding: 10px !important;
+  }
+
+  :host .location-control,
+  :host .filter-button {
+    width: 100%;
+  }
+
+  :host .favorite-list {
+    grid-template-columns: 1fr;
+  }
+}

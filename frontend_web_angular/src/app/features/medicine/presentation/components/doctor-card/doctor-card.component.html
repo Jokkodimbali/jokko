@@ -1,0 +1,31 @@
+<article class="doctor-card">
+  <div class="doctor-card__summary">
+    <div class="doctor-card__portrait">
+      <img [src]="doctor.imageUrl" [alt]="doctor.name" />
+      <span *ngIf="doctor.isOnline" class="doctor-card__status">
+        <i aria-hidden="true"></i>
+        En ligne
+      </span>
+    </div>
+
+    <div class="doctor-card__identity">
+      <h2>{{ doctor.name }}</h2>
+      <p>{{ doctor.specialty }}</p>
+      <div class="doctor-card__rating">
+        <lucide-icon name="star" size="24" [strokeWidth]="0" fill="#ff9d00"></lucide-icon>
+        <span>{{ doctor.rating }} ({{ doctor.reviewCount }} review)</span>
+      </div>
+    </div>
+
+    <button type="button" class="doctor-card__cta">{{ messages.appointment }}</button>
+  </div>
+
+  <section class="doctor-card__availability" aria-label="Prochaines disponibilit&eacute;">
+    <h3>{{ messages.nextAvailability }}</h3>
+
+    <div *ngFor="let slot of doctor.availability" class="doctor-card__slot">
+      <strong>{{ slot.period }} :</strong>
+      <span *ngFor="let day of slot.days">{{ day }}</span>
+    </div>
+  </section>
+</article>

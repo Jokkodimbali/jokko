@@ -1,0 +1,27 @@
+<header class="app-navbar">
+  <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
+    <img [src]="logo" alt="" />
+  </a>
+
+  <nav class="app-navbar__nav" aria-label="Navigation principale">
+    <a
+      *ngFor="let item of navItems"
+      class="app-navbar__nav-item"
+      [class.app-navbar__nav-item--active]="isActive(item.route)"
+      [routerLink]="item.route"
+    >
+      <img [src]="item.icon" alt="" />
+      <span>{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <div class="app-navbar__actions">
+    <a routerLink="/auth/login" class="app-navbar__profile" aria-label="Connexion">
+      <span>MD</span>
+      <img [src]="profileChevronIcon" alt="" />
+    </a>
+    <button type="button" class="app-navbar__settings" aria-label="Param&egrave;tres">
+      <img [src]="settingsIcon" alt="" />
+    </button>
+  </div>
+</header>

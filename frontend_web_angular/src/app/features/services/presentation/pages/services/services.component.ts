@@ -6,25 +6,25 @@ import { ServicesService } from '../../../data-access/services.service';
 import { ServiceSection, PaginationMeta } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
+import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 
-  @Component({
-    selector: 'app-services',
-    standalone: true,
-    imports: [CommonModule, RouterLink, AppFooterComponent, LucideAngularModule],
-    templateUrl: './services.component.html',
-    styleUrl: './services.component.scss',
-  })
+@Component({
+  selector: 'app-services',
+  standalone: true,
+  imports: [CommonModule, RouterLink, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  templateUrl: './services.component.html',
+  styleUrls: [
+    './services.component.scss',
+    './services-hero.component.scss',
+    './services-feed.component.scss',
+    './services-responsive.component.scss',
+  ],
+})
 export class ServicesComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
 
-  protected readonly logo =
-    'https://www.figma.com/api/mcp/asset/ef96ce3a-5f45-4060-b60b-e20978378ba4';
   protected readonly heroIllustration =
     'https://www.figma.com/api/mcp/asset/9f194bf6-3fd1-4012-bb76-dc280db53929';
-  protected readonly profileChevronIcon =
-    'https://www.figma.com/api/mcp/asset/0eebf22f-ce77-4427-a841-b94a93f49261';
-  protected readonly settingsIcon =
-    'https://www.figma.com/api/mcp/asset/e5cc1a27-5d3c-4512-b5e0-5c70255087ae';
   protected readonly locationIcon =
     'https://www.figma.com/api/mcp/asset/d7e611d1-1f73-4aba-ac86-e2cb08f08b89';
   protected readonly fallbackAvatars = [
@@ -44,33 +44,6 @@ export class ServicesComponent implements OnInit {
     'https://www.figma.com/api/mcp/asset/99f79ff2-baa5-437c-9f99-5e6e793818da',
   ];
 
-  protected readonly navItems = [
-    {
-      label: 'Services',
-      icon: 'https://www.figma.com/api/mcp/asset/879f2a3c-78c7-437d-a16c-73236640c9a1',
-      active: true,
-      route: '/services',
-    },
-    {
-      label: 'M\u00e9decine',
-      icon: 'https://www.figma.com/api/mcp/asset/15de1656-647a-430f-bc5d-55ffe939217a',
-      active: false,
-      route: '/medecine',
-    },
-    {
-      label: 'Rendez vous',
-      icon: 'https://www.figma.com/api/mcp/asset/d44f3915-c915-4d53-ac4c-56858a07e8fc',
-      active: false,
-      route: '/appointments',
-    },
-    {
-      label: 'Message',
-      icon: 'https://www.figma.com/api/mcp/asset/7d89cf24-0508-4799-965a-4ca12372548c',
-      active: false,
-      route: '/messages',
-    },
-  ];
-
   sections = signal<ServiceSection[]>([]);
   categoryPagination = signal<PaginationMeta | undefined>(undefined);
   isLoading = signal<boolean>(true);
@@ -78,7 +51,7 @@ export class ServicesComponent implements OnInit {
   favoriteProviders = computed(() =>
     this.sections()
       .flatMap((section) => section.providers)
-      .slice(0, 4),
+      .slice(0, 3),
   );
 
   ngOnInit(): void {

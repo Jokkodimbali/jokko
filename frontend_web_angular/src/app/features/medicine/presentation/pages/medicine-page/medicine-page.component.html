@@ -1,0 +1,16 @@
+<main class="medicine-page">
+  <app-medicine-hero />
+
+  <app-medicine-filter-bar [filters]="filters" />
+
+  <section class="medicine-page__list" aria-label="Liste des médecins">
+    <app-doctor-card *ngFor="let doctor of doctors" [doctor]="doctor" />
+
+    <button type="button" class="medicine-page__scroll-hint">
+      <span>{{ messages.scrollHint }}</span>
+      <lucide-icon name="arrow-down" size="24" [strokeWidth]="2.4"></lucide-icon>
+    </button>
+  </section>
+
+  <app-footer />
+</main>

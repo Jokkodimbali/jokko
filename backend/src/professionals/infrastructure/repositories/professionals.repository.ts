@@ -99,6 +99,8 @@ type RawProfessionalProfile = {
   statutKyc: StatutKyc;
   raisonRejetKyc: string | null;
   ville: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   noteGlobale: Prisma.Decimal;
   nombreAvis: number;
   creeLe: Date;
@@ -198,7 +200,10 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       where: { utilisateurId: userId },
       select: PROFESSIONAL_SELECT,
     });
-    return profile ? this.mapProfile(profile) : null;
+    if (!profile) return null;
+
+    const coordinates = await this.getProfileCoordinates(profile.id);
+    return this.mapProfile({ ...profile, ...coordinates });
   }
 
   async updateProfile(
@@ -301,7 +306,10 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       },
       select: PROFESSIONAL_SELECT,
     });
-    return profile ? this.mapProfile(profile) : null;
+    if (!profile) return null;
+
+    const coordinates = await this.getProfileCoordinates(profile.id);
+    return this.mapProfile({ ...profile, ...coordinates });
   }
 
   async listKycForAdmin(query?: {
@@ -628,6 +636,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       statutKyc: profile.statutKyc,
       raisonRejetKyc: profile.raisonRejetKyc,
       ville: profile.ville,
+      latitude: profile.latitude ?? null,
+      longitude: profile.longitude ?? null,
       noteGlobale: profile.noteGlobale.toNumber(),
       nombreAvis: profile.nombreAvis,
       creeLe: profile.creeLe,
@@ -646,6 +656,28 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             urlAvatar: null,
             estActif: false,
           },
+    };
+  }
+
+  private async getProfileCoordinates(profileId: string): Promise<{
+    latitude: number | null;
+    longitude: number | null;
+  }> {
+    const rows = await this.prisma.$queryRaw<
+      Array<{ latitude: number | null; longitude: number | null }>
+    >(Prisma.sql`
+      SELECT
+        ST_Y(localisation::geometry) AS latitude,
+        ST_X(localisation::geometry) AS longitude
+      FROM professional_profiles
+      WHERE id = ${profileId}::uuid
+      LIMIT 1
+    `);
+
+    const first = rows[0];
+    return {
+      latitude: first?.latitude == null ? null : Number(first.latitude),
+      longitude: first?.longitude == null ? null : Number(first.longitude),
     };
   }
 

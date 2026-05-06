@@ -17,6 +17,8 @@ export type ProfessionalProfileView = {
   statutKyc: KycStatus;
   raisonRejetKyc: string | null;
   ville: string | null;
+  latitude: number | null;
+  longitude: number | null;
   noteGlobale: number;
   nombreAvis: number;
   creeLe: Date;

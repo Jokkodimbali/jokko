@@ -3,6 +3,8 @@ export type RegisterCommand = {
   name: string;
   email?: string;
   password: string;
+  role: 'CLIENT' | 'PRESTATAIRE';
+  adresse: string;
 };
 
 export type LoginCommand = {

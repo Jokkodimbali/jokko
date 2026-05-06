@@ -1,0 +1,117 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.app-search-bar {
+  align-items: center;
+  background: #fff;
+  border-radius: 26px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+  color: #172433;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 200px 1fr 152px;
+  height: 83px;
+  padding: 10px 15px;
+  width: 100%;
+}
+
+.app-search-bar--compact {
+  box-shadow: 0 0 2px rgba(133, 19, 19, 0.25);
+  gap: 10px;
+  height: 63px;
+  max-width: 916px;
+  padding: 0 15px;
+}
+
+.app-search-bar__location,
+.app-search-bar__filter {
+  align-items: center;
+  border: 0;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.app-search-bar__location {
+  background: #fff;
+  border-radius: 30px;
+  box-shadow: 3px 6px 7px 2px rgba(37, 37, 37, 0.25);
+  color: #000;
+  gap: 9px;
+  height: 43px;
+  padding: 0 13px;
+}
+
+.app-search-bar__location span {
+  display: grid;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.app-search-bar__field {
+  align-items: center;
+  color: #000;
+  display: flex;
+  gap: 43px;
+  min-width: 0;
+}
+
+.app-search-bar--compact .app-search-bar__field {
+  gap: 108px;
+  padding-left: 22px;
+}
+
+.app-search-bar__field input {
+  border: 0;
+  color: #778ba3;
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.app-search-bar--compact .app-search-bar__field input {
+  color: #c5cbd3;
+  font-size: 14px;
+  height: 100%;
+}
+
+.app-search-bar__filter {
+  background: #000;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  gap: 8px;
+  height: 55px;
+}
+
+.app-search-bar--compact .app-search-bar__filter {
+  background: #181717;
+  border: 2px solid #000;
+  color: #f7f5f5;
+  height: 42px;
+  padding: 0 14px;
+}
+
+@media (max-width: 700px) {
+  .app-search-bar,
+  .app-search-bar--compact {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 10px;
+  }
+
+  .app-search-bar__location,
+  .app-search-bar__filter {
+    width: 100%;
+  }
+
+  .app-search-bar--compact .app-search-bar__field {
+    gap: 43px;
+    padding-left: 0;
+  }
+}

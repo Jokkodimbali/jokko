@@ -1,0 +1,152 @@
+:host {
+  display: block;
+}
+
+.doctor-card {
+  background: #fff;
+  border: 4px solid #e4edf6;
+  border-radius: 23px;
+  color: inherit;
+  display: block;
+  margin: 0 auto;
+  min-height: 500px;
+  overflow: hidden;
+  padding: 0 15px 30px;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+  width: min(100%, 884px);
+}
+
+.doctor-card:hover {
+  border-color: #398fde;
+  box-shadow: 0 14px 32px rgba(57, 143, 222, 0.16);
+  transform: translateY(-2px);
+}
+
+.doctor-card__summary {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr) 310px;
+  min-height: 310px;
+}
+
+.doctor-card__portrait {
+  align-self: end;
+  height: 285px;
+  position: relative;
+}
+
+.doctor-card__portrait img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
+}
+
+.doctor-card__status {
+  align-items: center;
+  background: #fff;
+  border-radius: 15px;
+  bottom: 24px;
+  box-shadow: 0 0 3px 3px rgba(0, 0, 0, 0.25);
+  color: #172433;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  left: 0;
+  min-height: 26px;
+  padding: 0 11px;
+  position: absolute;
+}
+
+.doctor-card__status i {
+  background: #30d100;
+  border-radius: 999px;
+  height: 14px;
+  width: 14px;
+}
+
+.doctor-card__identity {
+  align-self: center;
+  margin-left: 18px;
+  min-width: 0;
+}
+
+.doctor-card__identity h2 {
+  color: #111118;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 7px;
+}
+
+.doctor-card__identity p {
+  color: #697586;
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.doctor-card__rating {
+  align-items: center;
+  color: #253244;
+  display: flex;
+  font-size: 14px;
+  gap: 3px;
+}
+
+.doctor-card__cta {
+  align-self: end;
+  background: #398fde;
+  border: 0;
+  border-radius: 44px;
+  color: #fff;
+  font-size: 35px;
+  font-weight: 400;
+  height: 83px;
+  justify-self: center;
+  margin-bottom: 35px;
+  width: 302px;
+}
+
+.doctor-card__availability {
+  padding-top: 13px;
+}
+
+.doctor-card__availability h3 {
+  color: #111118;
+  font-size: 29px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 27px;
+  text-align: center;
+}
+
+.doctor-card__slot {
+  align-items: center;
+  color: #4a5564;
+  display: grid;
+  font-size: 15px;
+  grid-template-columns: 250px repeat(2, max-content);
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.doctor-card__slot strong {
+  font-weight: 800;
+}
+
+.doctor-card__slot span {
+  background: #f3faf5;
+  border-radius: 14px;
+  color: #3d5948;
+  font-size: 13px;
+  line-height: 1.2;
+  margin-left: 19px;
+  min-height: 24px;
+  padding: 4px 13px;
+}

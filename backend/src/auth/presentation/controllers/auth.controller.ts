@@ -105,7 +105,7 @@ export class AuthController {
   })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
-    return createApiResponse(result);
+    return createApiResponse(result, API_DOCS.auth.registerSuccess);
   }
 
   @Post('login')
@@ -128,7 +128,7 @@ export class AuthController {
   })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
-    return createApiResponse(result);
+    return createApiResponse(result, API_DOCS.auth.loginSuccess);
   }
 
   @Post('google/login')

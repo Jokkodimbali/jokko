@@ -21,13 +21,13 @@ import { LiveTrackingFacade } from '../../application/services/live-tracking-fac
 import { TrackingLocationDto } from '../dto/tracking-location.dto';
 
 @ApiTags(API_DOCS.liveTracking.tag)
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller()
 export class LiveTrackingController {
   constructor(private readonly liveTrackingFacade: LiveTrackingFacade) {}
 
   @Patch('reservations/:reservationId/on-the-way')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: API_DOCS.liveTracking.markOnTheWaySummary })
   @ApiParam({
     name: 'reservationId',
@@ -73,6 +73,8 @@ export class LiveTrackingController {
   }
 
   @Get('reservations/:reservationId/live-tracking')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: API_DOCS.liveTracking.getReservationTrackingSummary,
   })
@@ -121,13 +123,10 @@ export class LiveTrackingController {
     },
   })
   async getProfessionalPresence(
-    @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,
   ) {
-    const result = await this.liveTrackingFacade.getProfessionalPresence(
-      user,
-      professionalId,
-    );
+    const result =
+      await this.liveTrackingFacade.getProfessionalPresence(professionalId);
     return createApiResponse(
       result,
       appMessage('LIVE_TRACKING_PRESENCE_RETRIEVED').message,

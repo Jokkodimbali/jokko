@@ -1,0 +1,154 @@
+<main class="services-page">
+  <section class="hero">
+    <app-navbar />
+
+    <div class="hero-content">
+      <div class="search-zone">
+        <h1>Tous les services au S&eacute;n&eacute;gal</h1>
+
+        <app-search-bar
+          class="search-bar"
+          ariaLabel="Recherche de services"
+          variant="compact"
+        />
+      </div>
+
+      <img class="hero-visual" [src]="heroIllustration" alt="Prestataires Jokko Dimbali" />
+    </div>
+  </section>
+
+  <section class="content-shell">
+    <aside class="favorites" aria-label="Vos favoris">
+      <h2>Vos Favoris</h2>
+      <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list">
+        <a
+          *ngFor="let provider of favoriteProviders(); let providerIndex = index"
+          class="favorite-row"
+          [routerLink]="provider.route"
+        >
+          <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
+          <span>
+            <strong>{{ provider.nom }}</strong>
+            <small>{{ provider.speciality }}</small>
+          </span>
+        </a>
+      </div>
+
+      <ng-template #emptyFavorites>
+        <div class="empty-favorites">
+          <div class="heart-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 20.4 10.7 19C5.9 14.7 3 12.1 3 8.9A5 5 0 0 1 8.1 4c1.6 0 3.1.7 3.9 1.9A4.8 4.8 0 0 1 15.9 4 5 5 0 0 1 21 8.9c0 3.2-2.9 5.8-7.7 10.1L12 20.4Z"
+              />
+            </svg>
+          </div>
+          <p>Vos prestataires favoris s'afficheront ici.</p>
+          <a routerLink="/auth/login" class="auth-link">Connectez-vous</a>
+        </div>
+      </ng-template>
+      <br>
+    </aside>
+
+    <div class="service-feed">
+      <div *ngIf="isLoading() && sections().length === 0" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des services en cours...</p>
+      </div>
+
+      <div *ngIf="errorMessage()" class="error-state" role="alert">
+        <p>{{ errorMessage() }}</p>
+        <button type="button" (click)="loadHomeData()" class="retry-button">Reessayer</button>
+      </div>
+
+      <div *ngIf="!isLoading() && sections().length === 0" class="empty-state">
+        <div class="empty-icon-container">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </div>
+        <h3>Aucun service trouve</h3>
+        <p>
+          Il semble que nous n'ayons pas encore de prestataires actifs dans votre secteur ou pour
+          ces categories.
+        </p>
+        <button type="button" (click)="ngOnInit()" class="retry-button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          Actualiser la page
+        </button>
+      </div>
+
+      <section *ngFor="let section of sections()" class="service-section">
+        <div class="section-heading">
+          <div class="section-title-group">
+            <h2>{{ section.title }}</h2>
+            <p>{{ section.countLabel }}</p>
+          </div>
+        </div>
+
+        <div class="provider-row">
+          <a
+            *ngFor="let provider of section.providers; let providerIndex = index"
+            class="provider-card"
+            [routerLink]="['/services', provider.id]"
+            [state]="{
+              provider: provider,
+              avatar: resolveProviderAvatar(provider, providerIndex),
+              photos: [
+                resolveProviderPhoto(provider, providerIndex, 0),
+                resolveProviderPhoto(provider, providerIndex, 1)
+              ]
+            }"
+          >
+            <div class="provider-info">
+              <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
+              <div>
+                <h3>{{ provider.nom }}</h3>
+                <p class="speciality">{{ provider.speciality }}</p>
+                <p>{{ provider.location }}</p>
+                <p class="status">
+                  <span class="status-dot"></span>
+                  {{ provider.status }}
+                </p>
+              </div>
+            </div>
+
+            <div class="photo-strip">
+              <img [src]="resolveProviderPhoto(provider, providerIndex, 0)" alt="" />
+              <img [src]="resolveProviderPhoto(provider, providerIndex, 1)" alt="" />
+            </div>
+          </a>
+        </div>
+
+        <button
+          *ngIf="section.pagination?.hasNext"
+          type="button"
+          class="see-all"
+          (click)="onViewAll(section)"
+        >
+          Voir plus de prestataires
+        </button>
+      </section>
+
+      <div class="load-more-sections" *ngIf="categoryPagination()?.hasNext">
+        <button
+          type="button"
+          (click)="loadMoreCategories()"
+          [disabled]="isLoading()"
+          class="load-more-btn"
+        >
+          {{ isLoading() ? 'Chargement...' : 'Charger plus de categories' }}
+          <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <app-footer />
+</main>

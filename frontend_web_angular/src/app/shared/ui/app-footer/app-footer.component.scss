@@ -1,0 +1,247 @@
+.app-footer {
+  background: #000;
+  border-top: 1px solid #ccd7e5;
+  color: #fff;
+  display: grid;
+  gap: 54px;
+  min-height: 761px;
+  overflow: hidden;
+  padding: 41px 20px 20px;
+}
+
+.app-footer__primary,
+.app-footer__secondary {
+  display: grid;
+  justify-content: center;
+}
+
+.app-footer__primary {
+  gap: 50px;
+  grid-template-columns: 555px 555px 456px;
+}
+
+.app-footer__secondary {
+  gap: 54px;
+  grid-template-columns: 555px 1059px;
+}
+
+.app-footer__brand,
+.app-footer__nav,
+.app-footer__download,
+.app-footer__social,
+.app-footer__newsletter {
+  background: #2a2a2a;
+  border-radius: 10px;
+}
+
+.app-footer__brand,
+.app-footer__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+  height: 412px;
+  justify-content: center;
+  padding: 40px;
+}
+
+.app-footer h2 {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.27;
+  margin: 0;
+}
+
+.app-footer a {
+  color: #fff;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.63;
+  text-decoration: none;
+}
+
+.app-footer__download {
+  align-items: center;
+  display: flex;
+  height: 412px;
+  justify-content: center;
+  padding: 40px;
+}
+
+.app-footer__badges {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 47px;
+}
+
+.app-footer__store-badge:first-child {
+  background: #fff;
+  border-radius: 16.5px;
+  overflow: hidden;
+  width: 376px;
+}
+
+.app-footer__store-badge:last-child {
+  width: 377px;
+}
+
+.app-footer__store-badge img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.app-footer__social {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  height: 229px;
+  justify-content: center;
+  padding: 10px;
+}
+
+.app-footer__social-links {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  height: 83px;
+  justify-content: center;
+}
+
+.app-footer__social-links a {
+  align-items: center;
+  display: inline-flex;
+  height: 61px;
+  justify-content: center;
+  width: 61px;
+}
+
+.app-footer__social-links a:last-child {
+  height: 83px;
+  width: 84px;
+}
+
+.app-footer__social-links img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.app-footer__newsletter {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+  height: 229px;
+  justify-content: center;
+  padding: 10px;
+}
+
+.app-footer__newsletter div {
+  align-items: baseline;
+  display: flex;
+  height: 83px;
+  padding: 10px;
+  width: 915px;
+}
+
+.app-footer__newsletter h3 {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 8px 0 0;
+}
+
+.app-footer__newsletter p {
+  color: #fff;
+  font-size: 20px;
+  margin: 0;
+}
+
+.app-footer__newsletter-form {
+  align-items: center;
+  background: #fff;
+  border-radius: 30px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.25);
+  display: grid;
+  grid-template-columns: 1fr 152px;
+  height: 83px;
+  padding: 0 15px;
+  width: 916px;
+}
+
+.app-footer__newsletter-form input {
+  border: 0;
+  color: #778ba3;
+  font-size: 24px;
+  font-weight: 700;
+  outline: 0;
+  text-align: center;
+}
+
+.app-footer__newsletter-form button {
+  background: #000;
+  border: 0;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  height: 55px;
+}
+
+@media (max-width: 1700px) {
+  .app-footer__primary,
+  .app-footer__secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .app-footer__brand,
+  .app-footer__nav,
+  .app-footer__download,
+  .app-footer__social,
+  .app-footer__newsletter {
+    justify-self: center;
+    max-width: 100%;
+    width: min(100%, 1059px);
+  }
+}
+
+@media (max-width: 980px) {
+  .app-footer__newsletter div,
+  .app-footer__newsletter-form {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-footer {
+    padding: 32px 14px;
+  }
+
+  .app-footer__brand,
+  .app-footer__nav,
+  .app-footer__download,
+  .app-footer__social,
+  .app-footer__newsletter {
+    height: auto;
+  }
+
+  .app-footer h2,
+  .app-footer__newsletter h3 {
+    font-size: 24px;
+  }
+
+  .app-footer a,
+  .app-footer__newsletter p {
+    font-size: 18px;
+  }
+
+  .app-footer__newsletter-form {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 14px;
+  }
+}

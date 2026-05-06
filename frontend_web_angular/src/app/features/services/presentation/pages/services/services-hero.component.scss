@@ -1,0 +1,57 @@
+:host .hero {
+  background: #865221;
+  color: #fff;
+  min-height: 355px !important;
+  overflow: hidden;
+  position: relative;
+}
+
+:host .hero app-navbar {
+  --app-navbar-backdrop-height: 355px;
+}
+
+:host .hero-content {
+  display: block !important;
+  height: 355px !important;
+  margin-bottom: 0;
+  max-width: 100% !important;
+  min-height: 233px !important;
+  padding: 0 0 0 29px !important;
+}
+
+:host .search-zone {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-top: 90px;
+  position: relative;
+  width: 916px;
+  z-index: 2;
+}
+
+:host .search-zone h1 {
+  font-size: 48px !important;
+  font-weight: 800 !important;
+  line-height: 1.18 !important;
+  margin: 0 auto 18px !important;
+  max-width: 520px !important;
+  text-align: center;
+}
+
+:host .search-bar {
+  display: block !important;
+  margin: 0 !important;
+  max-width: 916px !important;
+  width: 100%;
+}
+
+:host .hero-visual {
+  bottom: 0;
+  display: block;
+  max-height: 370px !important;
+  object-fit: contain;
+  position: absolute;
+  right: -510px;
+  width: 8890px;
+  z-index: 1;
+}

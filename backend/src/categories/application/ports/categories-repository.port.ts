@@ -38,7 +38,7 @@ export type DisableCategoryResult =
   | { status: 'not_found' };
 
 export interface CategoriesRepositoryPort {
-  listActive(): Promise<CategoryView[]>;
+  listActive(page?: number, limit?: number): Promise<{ items: CategoryView[]; total: number }>;
   findById(categoryId: string): Promise<CategoryView | null>;
   findByName(name: string): Promise<{ id: string } | null>;
   create(input: CreateCategoryInput): Promise<CreateCategoryResult>;

@@ -1,0 +1,32 @@
+<app-account-shell
+  title="Mes parametres"
+  subtitle="Consultez les informations rattachees a votre compte Jokko."
+>
+  <section *ngIf="currentUser(); else loginRequired" class="settings-page__panel">
+    <div class="settings-page__row">
+      <span>Nom</span>
+      <strong>{{ profile()?.nom || currentUser()?.name }}</strong>
+    </div>
+    <div class="settings-page__row">
+      <span>Telephone</span>
+      <strong>{{ profile()?.numeroTelephone || currentUser()?.phoneNumber }}</strong>
+    </div>
+    <div class="settings-page__row">
+      <span>Role</span>
+      <strong>{{ profile()?.role || currentUser()?.role }}</strong>
+    </div>
+    <div class="settings-page__row">
+      <span>Email</span>
+      <strong>{{ profile()?.email || currentUser()?.email || 'Non renseigne' }}</strong>
+    </div>
+    <p *ngIf="isLoading()" class="settings-page__loading">Synchronisation du profil...</p>
+  </section>
+
+  <ng-template #loginRequired>
+    <section class="settings-page__panel settings-page__panel--empty">
+      <h2>Connexion requise</h2>
+      <p>Connectez-vous pour consulter vos parametres.</p>
+      <a routerLink="/auth/login">Se connecter</a>
+    </section>
+  </ng-template>
+</app-account-shell>

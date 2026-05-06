@@ -65,4 +65,25 @@ export class RegisterDto {
   @IsString()
   @Length(8, 64, { message: VALIDATION_MESSAGES.PASSWORD_LENGTH })
   password!: string;
+
+  @ApiProperty({
+    description: 'Rôle de l\'utilisateur (CLIENT ou PRESTATAIRE)',
+    enum: ['CLIENT', 'PRESTATAIRE'],
+    example: 'CLIENT',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^(CLIENT|PRESTATAIRE)$/)
+  role!: 'CLIENT' | 'PRESTATAIRE';
+
+  @ApiProperty({
+    description: 'Adresse physique de l\'utilisateur',
+    example: 'Dakar, Plateau, Rue 12',
+    minLength: 5,
+    maxLength: 255,
+  })
+  @IsNotEmpty()
+  @IsString()
+  @Length(5, 255)
+  adresse!: string;
 }

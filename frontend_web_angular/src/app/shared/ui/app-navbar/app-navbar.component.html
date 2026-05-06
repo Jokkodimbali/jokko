@@ -1,0 +1,90 @@
+<header class="app-navbar">
+  <div *ngIf="feedbackMessage() as message" class="app-navbar__toast" role="status">
+    {{ message.text }}
+  </div>
+
+  <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
+    <img [src]="logo" alt="" />
+  </a>
+
+  <nav class="app-navbar__nav" aria-label="Navigation principale">
+    <a
+      *ngFor="let item of navItems"
+      class="app-navbar__nav-item"
+      [class.app-navbar__nav-item--active]="isActive(item.route)"
+      [routerLink]="item.route"
+    >
+      <lucide-icon [name]="item.icon" size="36" [strokeWidth]="2.6"></lucide-icon>
+      <span>{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <button
+    *ngIf="isMenuOpen()"
+    type="button"
+    class="app-navbar__blur-backdrop"
+    aria-label="Fermer le menu profil"
+    (click)="closeProfileMenu()"
+  ></button>
+
+  <div class="app-navbar__actions">
+    <a
+      *ngIf="!isAuthenticated(); else connectedProfile"
+      routerLink="/auth/login"
+      class="app-navbar__login"
+      aria-label="Connexion"
+    >
+      Connexion
+    </a>
+
+    <ng-template #connectedProfile>
+      <button
+        type="button"
+        class="app-navbar__profile"
+        [class.app-navbar__profile--open]="isMenuOpen()"
+        [attr.aria-label]="profileTitle()"
+        [attr.aria-expanded]="isMenuOpen()"
+        aria-haspopup="menu"
+        (click)="toggleProfileMenu()"
+      >
+        <span>{{ profileLabel() }}</span>
+        <lucide-icon name="chevron-down" size="30" [strokeWidth]="2.4"></lucide-icon>
+      </button>
+
+      <section *ngIf="isMenuOpen()" class="app-navbar__dropdown" role="menu">
+        <button
+          type="button"
+          class="app-navbar__dropdown-head"
+          aria-label="Fermer le menu profil"
+          (click)="closeProfileMenu()"
+        >
+          <span>{{ profileLabel() }}</span>
+          <lucide-icon name="chevron-down" size="34" [strokeWidth]="2.5"></lucide-icon>
+        </button>
+
+        <a routerLink="/favorites" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+          <lucide-icon name="heart" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span>Mes favoris</span>
+        </a>
+        <a routerLink="/settings" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+          <lucide-icon name="settings" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span>Mes Param&egrave;tres</span>
+        </a>
+        <button
+          type="button"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          [disabled]="isLoggingOut()"
+          (click)="logout()"
+        >
+          <lucide-icon name="log-out" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span>D&eacute;connexion</span>
+        </button>
+      </section>
+    </ng-template>
+
+    <a routerLink="/settings" class="app-navbar__settings" aria-label="Param&egrave;tres">
+      <lucide-icon name="settings" size="38" [strokeWidth]="2.5"></lucide-icon>
+    </a>
+  </div>
+</header>

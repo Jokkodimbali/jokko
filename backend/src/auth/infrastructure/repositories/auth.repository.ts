@@ -81,6 +81,8 @@ export class AuthRepository implements AuthRepositoryPort {
     name: string;
     email?: string;
     passwordHash: string;
+    role: RoleUtilisateur;
+    adresse: string;
   }) {
     try {
       return await this.prisma.utilisateur.create({
@@ -89,7 +91,8 @@ export class AuthRepository implements AuthRepositoryPort {
           nom: data.name,
           email: data.email,
           motDePasseHash: data.passwordHash,
-          role: RoleUtilisateur.CLIENT,
+          role: data.role,
+          adresse: data.adresse,
           estActif: true,
         },
       });

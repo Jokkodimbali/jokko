@@ -1,0 +1,11 @@
+<div class="medicine-filter-bar" aria-label="Filtres médecine">
+  <button
+    *ngFor="let filter of filters"
+    type="button"
+    class="medicine-filter-bar__button"
+    [class.medicine-filter-bar__button--accent]="filter.variant === 'accent'"
+  >
+    <lucide-icon [name]="filter.icon" size="42" [strokeWidth]="2.7"></lucide-icon>
+    <span>{{ filter.label }}</span>
+  </button>
+</div>

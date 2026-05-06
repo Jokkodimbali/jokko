@@ -1,0 +1,112 @@
+<main class="doctor-profile">
+  <section class="doctor-profile__nav">
+    <app-navbar />
+  </section>
+
+  <div class="doctor-profile__shell">
+    <section class="doctor-profile__hero" [style.backgroundImage]="'url(' + coverUrl + ')'">
+      <button type="button" class="doctor-profile__back" aria-label="Retour" (click)="goBack()">
+        <lucide-icon name="arrow-left" size="27" [strokeWidth]="2.4"></lucide-icon>
+      </button>
+
+      <span *ngIf="doctor.isOnline" class="doctor-profile__online">
+        <span></span>
+        En ligne
+      </span>
+    </section>
+
+    <section class="doctor-profile__identity">
+      <img class="doctor-profile__avatar" [src]="doctor.imageUrl" [alt]="doctor.name" />
+      <div class="doctor-profile__name">
+        <h1>{{ doctor.name }}</h1>
+        <p>{{ doctor.specialty }}</p>
+      </div>
+
+      <div class="doctor-profile__actions" aria-label="Actions medecin">
+        <button type="button" aria-label="Partager">
+          <lucide-icon name="share-2" size="26" [strokeWidth]="2.4"></lucide-icon>
+        </button>
+        <button
+          type="button"
+          [class.doctor-profile__favorite--active]="isFavorite()"
+          [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+          (click)="toggleFavorite()"
+        >
+          <lucide-icon name="heart" size="30" [strokeWidth]="2.3"></lucide-icon>
+        </button>
+      </div>
+    </section>
+
+    <section class="doctor-profile__stats" aria-label="Statistiques du medecin">
+      <div>
+        <lucide-icon name="clock-3" size="39" [strokeWidth]="2.5"></lucide-icon>
+        <p><strong>Disponible</strong><span>Planning</span></p>
+      </div>
+      <div>
+        <lucide-icon name="users" size="39" [strokeWidth]="2.5"></lucide-icon>
+        <p><strong>Medecine</strong><span>Specialite</span></p>
+      </div>
+      <div>
+        <lucide-icon name="star" size="43" [strokeWidth]="2.3"></lucide-icon>
+        <p><strong>{{ doctor.reviewCount }}</strong><span>Notations</span></p>
+      </div>
+    </section>
+
+    <section class="doctor-profile__grid">
+      <article class="doctor-profile__card doctor-profile__about">
+        <h2>{{ doctor.specialty }}</h2>
+        <p>
+          {{ doctor.name }} vous accueille pour un accompagnement medical clair, attentif et
+          organise. Les informations de cette fiche proviennent actuellement du module medecine du
+          frontend.
+        </p>
+      </article>
+
+      <aside class="doctor-profile__side">
+        <article class="doctor-profile__card doctor-profile__price">
+          <p><strong>Sur rendez-vous</strong> <span>/consultation</span></p>
+          <button type="button">
+            <lucide-icon name="calendar-days" size="28" [strokeWidth]="2.4"></lucide-icon>
+            Prendre RDV
+          </button>
+        </article>
+
+        <article class="doctor-profile__card doctor-profile__contact">
+          <h2>Coordonnee</h2>
+          <p><strong>Ville :</strong> Dakar</p>
+          <p><strong>Telephone :</strong> Non renseigne</p>
+          <iframe
+            [src]="mapUrl()"
+            title="Carte de localisation - Dakar"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </article>
+      </aside>
+
+      <article class="doctor-profile__card doctor-profile__expertise">
+        <div class="doctor-profile__card-head">
+          <h2>Expertises</h2>
+          <lucide-icon name="chevron-down" size="30" [strokeWidth]="2.7"></lucide-icon>
+        </div>
+        <div class="doctor-profile__tags">
+          <span>{{ doctor.specialty }}</span>
+          <span>Consultation</span>
+          <span>Suivi medical</span>
+        </div>
+      </article>
+
+      <article class="doctor-profile__card doctor-profile__hours">
+        <h2>Horaires du cabinet</h2>
+        <div class="doctor-profile__hours-list">
+          <div *ngFor="let slot of doctor.availability">
+            <strong>{{ slot.period }} :</strong>
+            <span *ngFor="let day of slot.days">{{ day }}</span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <app-footer />
+</main>

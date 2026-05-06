@@ -33,14 +33,24 @@ type RawCategory = {
 export class CategoriesRepository implements CategoriesRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listActive(): Promise<CategoryView[]> {
-    const categories = await this.prisma.categorie.findMany({
-      where: { estActive: true },
-      orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
-      select: CATEGORY_SELECT,
-    });
+  async listActive(page: number = 1, limit: number = 10): Promise<{ items: CategoryView[]; total: number }> {
+    const skip = (page - 1) * limit;
+    
+    const [categories, total] = await Promise.all([
+      this.prisma.categorie.findMany({
+        where: { estActive: true },
+        orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
+        select: CATEGORY_SELECT,
+        skip,
+        take: limit,
+      }),
+      this.prisma.categorie.count({ where: { estActive: true } })
+    ]);
 
-    return categories.map((category) => this.mapCategory(category));
+    return {
+      items: categories.map((category) => this.mapCategory(category)),
+      total
+    };
   }
 
   async findById(categoryId: string): Promise<CategoryView | null> {

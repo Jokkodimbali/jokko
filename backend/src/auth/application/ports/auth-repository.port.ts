@@ -50,6 +50,8 @@ export interface AuthRepositoryPort {
     name: string;
     email?: string;
     passwordHash: string;
+    role: RoleUtilisateur;
+    adresse: string;
   }): Promise<AuthUserSummary | null>;
   findPublicProfileById(userId: string): Promise<AuthPublicProfile | null>;
   createRefreshSession(

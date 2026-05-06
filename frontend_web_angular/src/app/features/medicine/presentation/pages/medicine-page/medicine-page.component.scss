@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.medicine-page {
+  background: #fff;
+  color: #172433;
+  min-height: 100vh;
+}
+
+.medicine-page__list {
+  background: #fff;
+  display: grid;
+  gap: 48px;
+  padding: 0 24px 47px;
+  position: relative;
+}
+
+.medicine-page__scroll-hint {
+  align-items: center;
+  background: #2c2c2c;
+  border: 0;
+  border-radius: 15px;
+  bottom: 32px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 800;
+  gap: 18px;
+  height: 89px;
+  justify-content: center;
+  padding: 0 38px;
+  position: fixed;
+  right: 36px;
+  z-index: 20;
+}
+
+@media (max-width: 1120px) {
+  .medicine-page__scroll-hint {
+    bottom: 20px;
+    height: 68px;
+    left: 50%;
+    padding: 0 26px;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}

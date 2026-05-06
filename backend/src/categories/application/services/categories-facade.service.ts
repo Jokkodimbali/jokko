@@ -14,8 +14,8 @@ export class CategoriesFacade {
     private readonly categoryAdminService: CategoryAdminService,
   ) {}
 
-  async listActiveCategories() {
-    return this.categoryQueryService.listActiveCategories();
+  async listActiveCategories(page?: number, limit?: number) {
+    return this.categoryQueryService.listActiveCategories(page, limit);
   }
 
   async createCategory(requestUser: AuthUser, command: CreateCategoryCommand) {

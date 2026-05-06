@@ -1,4 +1,8 @@
-<article class="doctor-card">
+<a
+  class="doctor-card"
+  [routerLink]="['/medecine', doctor.id]"
+  [state]="{ doctor: doctor }"
+>
   <div class="doctor-card__summary">
     <div class="doctor-card__portrait">
       <img [src]="doctor.imageUrl" [alt]="doctor.name" />
@@ -17,7 +21,9 @@
       </div>
     </div>
 
-    <button type="button" class="doctor-card__cta">{{ messages.appointment }}</button>
+    <button type="button" class="doctor-card__cta" (click)="$event.preventDefault()">
+      {{ messages.appointment }}
+    </button>
   </div>
 
   <section class="doctor-card__availability" aria-label="Prochaines disponibilit&eacute;">
@@ -28,4 +34,4 @@
       <span *ngFor="let day of slot.days">{{ day }}</span>
     </div>
   </section>
-</article>
+</a>

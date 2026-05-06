@@ -3,9 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map, switchMap, of, catchError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
+  BackendProfessionalAvailability,
   BackendProfessional,
+  BackendProfessionalDetailService,
+  BackendProfessionalPortfolioItem,
+  BackendProfessionalPresence,
+  BackendProfessionalProfile,
+  BackendProfessionalReview,
   Category,
   Professional,
+  ProviderProfileDetail,
   ServiceSection,
   PaginationMeta,
 } from '../domain/models/services.models';
@@ -85,6 +92,63 @@ export class ServicesService {
         );
       }),
     );
+  }
+
+  getProviderProfileDetail(profileId: string): Observable<ProviderProfileDetail> {
+    return forkJoin({
+      profile: this.getProfessionalProfile(profileId),
+      services: this.getProfessionalServices(profileId),
+      portfolio: this.getProfessionalPortfolio(profileId),
+      availabilities: this.getProfessionalAvailabilities(profileId),
+      reviews: this.getProfessionalReviews(profileId),
+      presence: this.getProfessionalPresence(profileId),
+    });
+  }
+
+  private getProfessionalProfile(profileId: string): Observable<BackendProfessionalProfile> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/${profileId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private getProfessionalServices(profileId: string): Observable<BackendProfessionalDetailService[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalDetailService[]>>(
+        `${this.apiUrl}/professionals/${profileId}/services`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private getProfessionalPortfolio(profileId: string): Observable<BackendProfessionalPortfolioItem[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalPortfolioItem[]>>(
+        `${this.apiUrl}/professionals/${profileId}/portfolio`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private getProfessionalAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalAvailability[]>>(
+        `${this.apiUrl}/professionals/${profileId}/availabilities`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private getProfessionalReviews(profileId: string): Observable<BackendProfessionalReview[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalReview[]>>(
+        `${this.apiUrl}/professionals/${profileId}/reviews`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private getProfessionalPresence(profileId: string): Observable<BackendProfessionalPresence> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalPresence>>(
+        `${this.apiUrl}/professionals/${profileId}/presence`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   private mapProfessional(data: BackendProfessional): Professional {

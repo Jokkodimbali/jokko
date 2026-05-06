@@ -1,0 +1,222 @@
+import { CommonModule, Location } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { FavoritesService } from '../../../../../core/favorites/favorites.service';
+import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
+import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { ServicesService } from '../../../data-access/services.service';
+import {
+  BackendProfessionalAvailability,
+  BackendProfessionalDetailService,
+  BackendProfessionalPresence,
+  ProviderProfileDetail,
+} from '../../../domain/models/services.models';
+
+interface ScheduleRow {
+  day: string;
+  slots: string[];
+}
+
+@Component({
+  selector: 'app-provider-profile',
+  standalone: true,
+  imports: [CommonModule, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  templateUrl: './provider-profile.component.html',
+  styleUrl: './provider-profile.component.scss',
+})
+export class ProviderProfileComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
+  private readonly servicesService = inject(ServicesService);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly favoritesService = inject(FavoritesService);
+  private readonly feedback = inject(AppFeedbackService);
+
+  protected readonly detail = signal<ProviderProfileDetail | null>(null);
+  protected readonly isLoading = signal(true);
+  protected readonly errorMessage = signal<string | null>(null);
+
+  protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
+
+  protected readonly displayName = computed(() => {
+    const profile = this.detail()?.profile;
+    return profile?.nomEntreprise || profile?.utilisateur.nom || 'Prestataire';
+  });
+
+  protected readonly primaryService = computed(() => this.detail()?.services[0] ?? null);
+  protected readonly speciality = computed(() => this.primaryService()?.nom || 'Service');
+  protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
+  protected readonly initials = computed(() =>
+    this.displayName()
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join(''),
+  );
+  protected readonly coverUrl = computed(
+    () => this.detail()?.portfolio[0]?.urlImage ?? null,
+  );
+  protected readonly bio = computed(
+    () =>
+      this.detail()?.profile.biographie ||
+      this.primaryService()?.description ||
+      "Ce prestataire n'a pas encore renseigne sa biographie.",
+  );
+  protected readonly priceLabel = computed(() => {
+    const price = this.primaryService()?.prix;
+    return typeof price === 'number' ? `${this.formatNumber(price)} FCFA` : 'Prix sur devis';
+  });
+  protected readonly priceTypeLabel = computed(() =>
+    this.primaryService()?.typePrix === 'NEGOCIABLE' ? '/negociable' : '/par session',
+  );
+  protected readonly experienceLabel = computed(() => {
+    const createdAt = this.detail()?.profile.creeLe;
+    if (!createdAt) return 'Nouveau';
+
+    const years = Math.max(0, new Date().getFullYear() - new Date(createdAt).getFullYear());
+    return years > 0 ? `${years} ans` : 'Nouveau';
+  });
+  protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
+  protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
+  protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
+  protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
+  protected readonly isFavorite = computed(() => this.favoritesService.isFavorite(this.profileId));
+  protected readonly expertiseTags = computed(() =>
+    this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
+  );
+  protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
+  protected readonly mapUrl = computed<SafeResourceUrl>(() => {
+    const detail = this.detail();
+    const coordinates = this.resolveMapCoordinates(detail);
+    const query = coordinates
+      ? `${coordinates.latitude},${coordinates.longitude}`
+      : `${detail?.profile.ville || 'Senegal'}, Senegal`;
+    const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(src);
+  });
+
+  ngOnInit(): void {
+    this.loadProviderDetail();
+  }
+
+  protected goBack(): void {
+    this.location.back();
+  }
+
+  protected loadProviderDetail(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    this.servicesService.getProviderProfileDetail(this.profileId).subscribe({
+      next: (detail) => {
+        this.detail.set(detail);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Impossible de charger ce prestataire pour le moment.');
+        this.isLoading.set(false);
+      },
+    });
+  }
+
+  protected formatLocation(): string {
+    return this.detail()?.profile.ville || 'Localisation non renseignee';
+  }
+
+  protected formatPhone(): string {
+    return this.detail()?.profile.utilisateur.numeroTelephone || 'Telephone non renseigne';
+  }
+
+  protected toggleFavorite(): void {
+    const detail = this.detail();
+    if (!detail) return;
+
+    const isAdded = this.favoritesService.toggle({
+      id: detail.profile.id,
+      name: this.displayName(),
+      subtitle: this.speciality(),
+      location: this.formatLocation(),
+      imageUrl: this.avatarUrl() || this.coverUrl(),
+      route: `/services/${detail.profile.id}`,
+      source: 'services',
+    });
+
+    this.feedback.success(isAdded ? 'Ajoute aux favoris.' : 'Retire des favoris.');
+  }
+
+  private resolveMapCoordinates(detail: ProviderProfileDetail | null): {
+    latitude: number;
+    longitude: number;
+  } | null {
+    const liveLatitude = detail?.presence.lastLatitude;
+    const liveLongitude = detail?.presence.lastLongitude;
+    if (this.isValidCoordinate(liveLatitude, liveLongitude)) {
+      return { latitude: liveLatitude, longitude: liveLongitude as number };
+    }
+
+    const profileLatitude = detail?.profile.latitude;
+    const profileLongitude = detail?.profile.longitude;
+    if (this.isValidCoordinate(profileLatitude, profileLongitude)) {
+      return { latitude: profileLatitude, longitude: profileLongitude as number };
+    }
+
+    return null;
+  }
+
+  private isValidCoordinate(
+    latitude: number | null | undefined,
+    longitude: number | null | undefined,
+  ): latitude is number {
+    return typeof latitude === 'number' && Number.isFinite(latitude)
+      && typeof longitude === 'number' && Number.isFinite(longitude);
+  }
+
+  private buildSchedule(availabilities: BackendProfessionalAvailability[]): ScheduleRow[] {
+    const rows = new Map<number, string[]>();
+
+    for (const availability of availabilities) {
+      if (!availability.estActive) continue;
+      const slots = rows.get(availability.jourSemaine) ?? [];
+      slots.push(`${this.formatTime(availability.heureDebut)} - ${this.formatTime(availability.heureFin)}`);
+      rows.set(availability.jourSemaine, slots);
+    }
+
+    return [1, 2, 3, 4, 5, 6, 0]
+      .filter((day) => rows.has(day))
+      .map((day) => ({ day: this.dayName(day), slots: rows.get(day) ?? [] }));
+  }
+
+  private dayName(day: number): string {
+    return ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][day] || 'Jour';
+  }
+
+  private formatPresence(presence: BackendProfessionalPresence | null): string {
+    if (!presence) return '';
+
+    const labels: Record<BackendProfessionalPresence['status'], string> = {
+      HORS_LIGNE: 'Hors ligne',
+      EN_LIGNE: 'En ligne',
+      EN_ROUTE: 'En route',
+      EN_PRESTATION: 'En prestation',
+    };
+
+    return labels[presence.status];
+  }
+
+  private formatTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}h${minutes}`;
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
+  }
+}

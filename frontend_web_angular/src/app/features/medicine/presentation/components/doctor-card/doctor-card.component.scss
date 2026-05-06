@@ -6,11 +6,24 @@
   background: #fff;
   border: 4px solid #e4edf6;
   border-radius: 23px;
+  color: inherit;
+  display: block;
   margin: 0 auto;
   min-height: 500px;
   overflow: hidden;
   padding: 0 15px 30px;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
   width: min(100%, 884px);
+}
+
+.doctor-card:hover {
+  border-color: #398fde;
+  box-shadow: 0 14px 32px rgba(57, 143, 222, 0.16);
+  transform: translateY(-2px);
 }
 
 .doctor-card__summary {

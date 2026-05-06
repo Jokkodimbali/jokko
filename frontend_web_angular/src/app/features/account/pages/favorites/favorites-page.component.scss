@@ -1,0 +1,115 @@
+.favorites-page__grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.favorites-page__card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.favorites-page__link {
+  align-items: center;
+  color: #172433;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.favorites-page__link img,
+.favorites-page__initials {
+  border-radius: 50%;
+  height: 64px;
+  width: 64px;
+}
+
+.favorites-page__link img {
+  object-fit: cover;
+}
+
+.favorites-page__initials {
+  align-items: center;
+  background: #e7eef2;
+  display: inline-flex;
+  font-size: 24px;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.favorites-page__link span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.favorites-page__link strong,
+.favorites-page__link small,
+.favorites-page__link em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorites-page__link strong {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.favorites-page__link small,
+.favorites-page__link em {
+  color: #64748b;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.favorites-page__card button,
+.favorites-page__empty a {
+  align-items: center;
+  background: #fff3e5;
+  border: 0;
+  border-radius: 10px;
+  color: #865221;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.favorites-page__empty {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.favorites-page__empty h2,
+.favorites-page__empty p {
+  margin: 0;
+}
+
+.favorites-page__empty h2 {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.favorites-page__empty p {
+  color: #64748b;
+  font-weight: 700;
+}

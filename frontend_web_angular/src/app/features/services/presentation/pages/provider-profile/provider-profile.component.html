@@ -1,0 +1,134 @@
+<main class="provider-profile">
+  <section class="provider-profile__nav">
+    <app-navbar />
+  </section>
+
+  <div class="provider-profile__shell">
+    <section
+      class="provider-profile__hero"
+      [class.provider-profile__hero--empty]="!coverUrl()"
+      [style.backgroundImage]="coverUrl() ? 'url(' + coverUrl() + ')' : null"
+    >
+      <button type="button" class="provider-profile__back" aria-label="Retour" (click)="goBack()">
+        <lucide-icon name="arrow-left" size="27" [strokeWidth]="2.4"></lucide-icon>
+      </button>
+
+      <span
+        *ngIf="!isLoading() && !errorMessage()"
+        class="provider-profile__online"
+        [class.provider-profile__online--offline]="!isOnline()"
+      >
+        <span></span>
+        {{ presenceLabel() }}
+      </span>
+    </section>
+
+    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__identity">
+      <img *ngIf="avatarUrl(); else avatarInitials" class="provider-profile__avatar" [src]="avatarUrl()!" [alt]="displayName()" />
+      <ng-template #avatarInitials>
+        <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
+      </ng-template>
+      <div class="provider-profile__name">
+        <h1>{{ displayName() }}</h1>
+        <p>{{ speciality() }}</p>
+      </div>
+
+      <div class="provider-profile__actions" aria-label="Actions prestataire">
+        <button type="button" aria-label="Partager">
+          <lucide-icon name="share-2" size="26" [strokeWidth]="2.4"></lucide-icon>
+        </button>
+        <button
+          type="button"
+          [class.provider-profile__favorite--active]="isFavorite()"
+          [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+          (click)="toggleFavorite()"
+        >
+          <lucide-icon name="heart" size="30" [strokeWidth]="2.3"></lucide-icon>
+        </button>
+      </div>
+    </section>
+
+    <section *ngIf="isLoading()" class="provider-profile__state">
+      <p>Chargement du prestataire...</p>
+    </section>
+
+    <section *ngIf="errorMessage()" class="provider-profile__state provider-profile__state--error">
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="loadProviderDetail()">Reessayer</button>
+    </section>
+
+    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__stats" aria-label="Statistiques du prestataire">
+      <div>
+        <lucide-icon name="clock-3" size="39" [strokeWidth]="2.5"></lucide-icon>
+        <p><strong>{{ experienceLabel() }}</strong><span>Experience</span></p>
+      </div>
+      <div>
+        <lucide-icon name="users" size="39" [strokeWidth]="2.5"></lucide-icon>
+        <p><strong>{{ servicesCountLabel() }}</strong><span>Services</span></p>
+      </div>
+      <div>
+        <lucide-icon name="star" size="43" [strokeWidth]="2.3"></lucide-icon>
+        <p><strong>{{ reviewsCountLabel() }}</strong><span>Notations</span></p>
+      </div>
+    </section>
+
+    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__grid">
+      <article class="provider-profile__card provider-profile__about">
+        <h2>{{ speciality() }}</h2>
+        <p>{{ bio() }}</p>
+      </article>
+
+      <aside class="provider-profile__side">
+        <article class="provider-profile__card provider-profile__price">
+          <p><strong>{{ priceLabel() }}</strong> <span>{{ priceTypeLabel() }}</span></p>
+          <button type="button">
+            <lucide-icon name="banknote" size="31" [strokeWidth]="2.4"></lucide-icon>
+            Proposez un prix
+          </button>
+        </article>
+
+        <article class="provider-profile__card provider-profile__contact">
+          <h2>Coordonnee</h2>
+          <p><strong>Ville :</strong> {{ formatLocation() }}</p>
+          <p><strong>Telephone :</strong> {{ formatPhone() }}</p>
+          <iframe
+            [src]="mapUrl()"
+            [title]="'Carte de localisation - ' + formatLocation()"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </article>
+      </aside>
+
+      <article class="provider-profile__card provider-profile__expertise">
+        <div class="provider-profile__card-head">
+          <h2>Expertises</h2>
+          <lucide-icon name="chevron-down" size="30" [strokeWidth]="2.7"></lucide-icon>
+        </div>
+        <div *ngIf="expertiseTags().length > 0; else noExpertise" class="provider-profile__tags">
+          <span *ngFor="let tag of expertiseTags()">
+            {{ tag }}
+          </span>
+        </div>
+        <ng-template #noExpertise>
+          <p class="provider-profile__empty">Aucune expertise renseignee.</p>
+        </ng-template>
+      </article>
+
+      <article class="provider-profile__card provider-profile__hours">
+        <h2>Horaires du cabinet</h2>
+        <div *ngIf="schedule().length > 0; else noSchedule" class="provider-profile__hours-list">
+          <div *ngFor="let row of schedule()">
+            <strong>{{ row.day }} :</strong>
+            <span *ngFor="let slot of row.slots">{{ slot }}</span>
+          </div>
+        </div>
+        <ng-template #noSchedule>
+          <p class="provider-profile__empty">Aucun horaire renseigne.</p>
+        </ng-template>
+      </article>
+    </section>
+  </div>
+
+  <app-footer />
+</main>

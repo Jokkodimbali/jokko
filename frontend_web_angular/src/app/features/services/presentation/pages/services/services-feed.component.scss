@@ -124,11 +124,23 @@
 :host .provider-card {
   border: 2px solid #ccd7e5 !important;
   border-radius: clamp(12px, 1.34vw, 23px) !important;
+  color: inherit;
   flex: 0 0 calc((100% - clamp(14px, 1.34vw, 23px)) / 2) !important;
   min-height: clamp(248px, 24vw, 416px);
   min-width: 318px !important;
   overflow: hidden;
   padding: clamp(14px, 1.34vw, 23px) !important;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+:host .provider-card:hover {
+  border-color: #172433 !important;
+  box-shadow: 0 14px 32px rgba(23, 36, 51, 0.16);
+  transform: translateY(-2px);
 }
 
 :host .service-section:not(:first-of-type) .provider-card {

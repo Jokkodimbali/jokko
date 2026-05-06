@@ -303,8 +303,6 @@ export async function runSeed() {
   console.log(
     `Reservation confirmee a payer: ${SEED_IDS.reservationConfirmed}`,
   );
-  console.log(`Reservation deja payee: ${SEED_IDS.reservationPaid}`);
-  console.log(`Paiement seed: ${payment.id}`);
 }
 
 export async function disconnectSeedClient(): Promise<void> {

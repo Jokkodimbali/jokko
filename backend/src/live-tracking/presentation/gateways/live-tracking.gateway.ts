@@ -104,7 +104,6 @@ export class LiveTrackingGateway
     }
 
     const presence = await this.liveTrackingFacade.getProfessionalPresence(
-      user,
       payload.professionalId,
     );
     await client.join(this.buildProfessionalRoom(payload.professionalId));

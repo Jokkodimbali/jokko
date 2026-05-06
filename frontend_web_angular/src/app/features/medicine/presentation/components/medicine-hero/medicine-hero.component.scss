@@ -8,6 +8,10 @@
   min-height: 491px;
 }
 
+.medicine-hero app-navbar {
+  --app-navbar-backdrop-height: 491px;
+}
+
 .medicine-hero__content {
   align-items: center;
   display: flex;
@@ -25,68 +29,6 @@
 }
 
 .medicine-hero__search {
-  align-items: center;
-  background: #fff;
-  border-radius: 26px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
-  color: #172433;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 200px 1fr 152px;
-  height: 83px;
-  padding: 10px 15px;
+  display: block;
   width: min(100% - 48px, 1257px);
-}
-
-.medicine-hero__location,
-.medicine-hero__filter {
-  align-items: center;
-  border: 0;
-  display: inline-flex;
-  justify-content: center;
-}
-
-.medicine-hero__location {
-  background: #fff;
-  border-radius: 30px;
-  box-shadow: 3px 6px 7px 2px rgba(37, 37, 37, 0.25);
-  color: #000;
-  gap: 9px;
-  height: 43px;
-  padding: 0 13px;
-}
-
-.medicine-hero__location span {
-  display: grid;
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.medicine-hero__field {
-  align-items: center;
-  color: #000;
-  display: flex;
-  gap: 43px;
-  min-width: 0;
-}
-
-.medicine-hero__field input {
-  border: 0;
-  color: #778ba3;
-  font-size: 20px;
-  font-weight: 700;
-  min-width: 0;
-  outline: 0;
-  width: 100%;
-}
-
-.medicine-hero__filter {
-  background: #000;
-  border-radius: 30px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  gap: 8px;
-  height: 55px;
 }

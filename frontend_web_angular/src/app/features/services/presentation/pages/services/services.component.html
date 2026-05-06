@@ -6,27 +6,11 @@
       <div class="search-zone">
         <h1>Tous les services au S&eacute;n&eacute;gal</h1>
 
-        <form class="search-bar" aria-label="Recherche de services">
-          <button type="button" class="location-control">
-            <img [src]="locationIcon" alt="" />
-            <span><strong>Localisation</strong>Dakar, SN</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m6.5 9 5.5 5.5L17.5 9h-11Z" />
-            </svg>
-          </button>
-
-          <label class="search-field">
-            <svg viewBox="0 0 24 24" class="search-icon" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" fill="none" stroke="#121212" stroke-width="3"/>
-              <path d="m21 21-4.3-4.3" stroke="#121212" stroke-width="3" stroke-linecap="round"/>
-            </svg>
-          </label>
-
-          <button type="button" class="filter-button" backgroudcolor="black">
-            <lucide-icon name="sliders-horizontal" color="white" [strokeWidth]="3" [absoluteStrokeWidth]="true" size="28"></lucide-icon>
-            Filtrage
-          </button>
-        </form>
+        <app-search-bar
+          class="search-bar"
+          ariaLabel="Recherche de services"
+          variant="compact"
+        />
       </div>
 
       <img class="hero-visual" [src]="heroIllustration" alt="Prestataires Jokko Dimbali" />
@@ -40,7 +24,7 @@
         <a
           *ngFor="let provider of favoriteProviders(); let providerIndex = index"
           class="favorite-row"
-          href="#"
+          [routerLink]="provider.route"
         >
           <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
           <span>
@@ -63,6 +47,7 @@
           <a routerLink="/auth/login" class="auth-link">Connectez-vous</a>
         </div>
       </ng-template>
+      <br>
     </aside>
 
     <div class="service-feed">
@@ -106,9 +91,18 @@
         </div>
 
         <div class="provider-row">
-          <article
+          <a
             *ngFor="let provider of section.providers; let providerIndex = index"
             class="provider-card"
+            [routerLink]="['/services', provider.id]"
+            [state]="{
+              provider: provider,
+              avatar: resolveProviderAvatar(provider, providerIndex),
+              photos: [
+                resolveProviderPhoto(provider, providerIndex, 0),
+                resolveProviderPhoto(provider, providerIndex, 1)
+              ]
+            }"
           >
             <div class="provider-info">
               <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
@@ -127,7 +121,7 @@
               <img [src]="resolveProviderPhoto(provider, providerIndex, 0)" alt="" />
               <img [src]="resolveProviderPhoto(provider, providerIndex, 1)" alt="" />
             </div>
-          </article>
+          </a>
         </div>
 
         <button

@@ -1,0 +1,19 @@
+<main class="account-shell">
+  <section class="account-shell__nav">
+    <app-navbar />
+  </section>
+
+  <section class="account-shell__header">
+    <div>
+      <p>Jokko Dimbali</p>
+      <h1>{{ title }}</h1>
+      <span *ngIf="subtitle">{{ subtitle }}</span>
+    </div>
+  </section>
+
+  <section class="account-shell__content">
+    <ng-content />
+  </section>
+
+  <app-footer />
+</main>

@@ -2,16 +2,25 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { ServicesService } from '../../../data-access/services.service';
 import { ServiceSection, PaginationMeta } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 
 @Component({
   selector: 'app-services',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    AppFooterComponent,
+    AppNavbarComponent,
+    AppSearchBarComponent,
+    LucideAngularModule,
+  ],
   templateUrl: './services.component.html',
   styleUrls: [
     './services.component.scss',
@@ -22,11 +31,10 @@ import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navb
 })
 export class ServicesComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
+  private readonly favoritesService = inject(FavoritesService);
 
   protected readonly heroIllustration =
     'https://www.figma.com/api/mcp/asset/9f194bf6-3fd1-4012-bb76-dc280db53929';
-  protected readonly locationIcon =
-    'https://www.figma.com/api/mcp/asset/d7e611d1-1f73-4aba-ac86-e2cb08f08b89';
   protected readonly fallbackAvatars = [
     'https://www.figma.com/api/mcp/asset/6fbed90c-597f-4a65-9803-f64e71b550c5',
     'https://www.figma.com/api/mcp/asset/bd04523b-1aa5-479e-806b-1929dcc43dab',
@@ -49,9 +57,16 @@ export class ServicesComponent implements OnInit {
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   favoriteProviders = computed(() =>
-    this.sections()
-      .flatMap((section) => section.providers)
-      .slice(0, 3),
+    this.favoritesService.favorites().map((favorite) => ({
+      id: favorite.id,
+      nom: favorite.name,
+      speciality: favorite.subtitle,
+      location: favorite.location,
+      status: favorite.source === 'medicine' ? 'Medecine' : 'Service',
+      avatar: favorite.imageUrl || undefined,
+      photos: [],
+      route: favorite.route,
+    })),
   );
 
   ngOnInit(): void {

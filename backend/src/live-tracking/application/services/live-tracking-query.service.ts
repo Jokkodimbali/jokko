@@ -62,8 +62,7 @@ export class LiveTrackingQueryService {
     };
   }
 
-  async getProfessionalPresence(user: AuthUser, professionalId: string) {
-    void user;
+  async getProfessionalPresence(professionalId: string) {
     const professional =
       await this.professionalsRepository.findVerifiedById(professionalId);
     if (!professional) {

@@ -356,7 +356,6 @@ describe('LiveTrackingModule (e2e)', () => {
   it('GET /api/v1/professionals/:id/presence returns offline state before socket connection', async () => {
     const response = await request(app.getHttpServer())
       .get(`/api/v1/professionals/${professionalProfileId}/presence`)
-      .set('Authorization', `Bearer ${clientToken}`)
       .expect(200);
 
     const body = response.body as ApiResponse<{

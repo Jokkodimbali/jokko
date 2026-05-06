@@ -32,17 +32,6 @@
     font-size: 34px !important;
   }
 
-  :host .search-bar {
-    grid-template-columns: 1fr !important;
-    height: auto !important;
-    padding: 10px !important;
-  }
-
-  :host .location-control,
-  :host .filter-button {
-    width: 100%;
-  }
-
   :host .favorite-list {
     grid-template-columns: 1fr;
   }

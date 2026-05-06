@@ -44,7 +44,7 @@ export class LiveTrackingFacade {
     return this.queryService.getReservationTracking(user, reservationId);
   }
 
-  getProfessionalPresence(user: AuthUser, professionalId: string) {
-    return this.queryService.getProfessionalPresence(user, professionalId);
+  getProfessionalPresence(professionalId: string) {
+    return this.queryService.getProfessionalPresence(professionalId);
   }
 }

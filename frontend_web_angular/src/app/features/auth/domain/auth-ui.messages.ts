@@ -1,5 +1,8 @@
 export const AUTH_UI_MESSAGES = {
   loginFailed: 'Une erreur est survenue lors de la connexion.',
+  loginSuccess: 'Connexion effectuee avec succes.',
+  logoutSuccess: 'Deconnexion effectuee avec succes.',
+  registerSuccess: 'Compte cree avec succes.',
   registerFailed: 'Une erreur est survenue lors de l’inscription.',
   otpInvalid: 'Code OTP invalide ou expiré.',
   otpResendFailed: 'Erreur lors du renvoi du code.',

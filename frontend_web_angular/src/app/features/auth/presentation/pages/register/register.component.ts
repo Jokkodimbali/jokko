@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../data-access/auth.service';
 import { RegisterRequestDto } from '../../../domain/models/auth.models';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AUTH_UI_MESSAGES } from '../../../domain/auth-ui.messages';
 import { AUTH_VALIDATORS } from '../../../domain/auth.validators';
@@ -20,6 +21,7 @@ export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
 
   isLoading = signal(false);
@@ -58,6 +60,7 @@ export class RegisterComponent {
       .subscribe({
         next: (response) => {
           this.authSession.saveAuthResponse(response);
+          this.feedback.success(AUTH_UI_MESSAGES.registerSuccess);
           this.router.navigate(['/']);
         },
         error: (error: unknown) => {

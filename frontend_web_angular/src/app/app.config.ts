@@ -7,13 +7,23 @@ import { routes } from './app.routes';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import {
   ArrowDown,
+  ArrowLeft,
+  Banknote,
   CalendarDays,
   ChevronDown,
+  Clock3,
+  Heart,
+  HeartPlus,
+  HeartPulse,
+  LogOut,
   MapPin,
+  MessageCircle,
   Search,
+  Share2,
   Settings,
   SlidersHorizontal,
   Star,
+  Users,
   LucideAngularModule,
 } from 'lucide-angular';
 
@@ -25,13 +35,23 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(
       LucideAngularModule.pick({
         ArrowDown,
+        ArrowLeft,
+        Banknote,
         CalendarDays,
         ChevronDown,
+        Clock3,
+        Heart,
+        HeartPlus,
+        HeartPulse,
+        LogOut,
         MapPin,
+        MessageCircle,
         Search,
+        Share2,
         Settings,
         SlidersHorizontal,
         Star,
+        Users,
       }),
     ),
     {

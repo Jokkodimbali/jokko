@@ -3,10 +3,16 @@
 
   <app-medicine-filter-bar [filters]="filters" />
 
-  <section class="medicine-page__list" aria-label="Liste des médecins">
+  <section #doctorList class="medicine-page__list" aria-label="Liste des medecins">
     <app-doctor-card *ngFor="let doctor of doctors" [doctor]="doctor" />
 
-    <button type="button" class="medicine-page__scroll-hint">
+    <button
+      *ngIf="showScrollHint()"
+      type="button"
+      class="medicine-page__scroll-hint"
+      [attr.aria-label]="messages.scrollHint"
+      (click)="scrollToNextDoctor()"
+    >
       <span>{{ messages.scrollHint }}</span>
       <lucide-icon name="arrow-down" size="24" [strokeWidth]="2.4"></lucide-icon>
     </button>

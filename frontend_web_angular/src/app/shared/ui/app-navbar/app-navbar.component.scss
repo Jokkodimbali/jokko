@@ -1,5 +1,6 @@
 :host {
   display: block;
+  --app-navbar-backdrop-height: 491px;
 }
 
 .app-navbar {
@@ -61,7 +62,7 @@
   box-shadow: inset 0 0 4px 4px rgba(0, 0, 0, 0.25);
 }
 
-.app-navbar__nav-item img {
+.app-navbar__nav-item lucide-icon {
   height: 36px;
   width: 36px;
 }
@@ -70,8 +71,39 @@
   align-items: center;
   display: flex;
   gap: 8px;
+  position: relative;
 }
 
+.app-navbar__blur-backdrop {
+  backdrop-filter: blur(7px);
+  background: rgba(0, 0, 0, 0.16);
+  border: 0;
+  cursor: default;
+  height: var(--app-navbar-backdrop-height);
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 90;
+}
+
+.app-navbar__toast {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 16px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  color: #065f46;
+  font-size: 15px;
+  font-weight: 800;
+  max-width: min(420px, calc(100vw - 40px));
+  padding: 14px 18px;
+  position: fixed;
+  right: 92px;
+  top: 112px;
+  z-index: 140;
+}
+
+.app-navbar__login,
 .app-navbar__profile,
 .app-navbar__settings {
   align-items: center;
@@ -84,11 +116,23 @@
   justify-content: center;
 }
 
+.app-navbar__login {
+  font-size: 16px;
+  font-weight: 800;
+  padding: 0 22px;
+  text-decoration: none;
+  width: 126px;
+}
+
 .app-navbar__profile {
   gap: 20px;
   padding: 0 16px;
-  text-decoration: none;
   width: 126px;
+}
+
+.app-navbar__profile--open {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .app-navbar__profile span {
@@ -101,19 +145,81 @@
   width: 44px;
 }
 
-.app-navbar__profile img {
+.app-navbar__profile lucide-icon {
   height: 30px;
   width: 30px;
 }
 
 .app-navbar__settings {
   padding: 0;
+  position: relative;
+  text-decoration: none;
   width: 57px;
+  z-index: 110;
 }
 
-.app-navbar__settings img {
+.app-navbar__settings lucide-icon {
   height: 38px;
   width: 38px;
+}
+
+.app-navbar__dropdown {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 13px 25px rgba(0, 0, 0, 0.18);
+  color: #0d1117;
+  display: grid;
+  gap: 24px;
+  padding: 39px 36px 38px;
+  position: fixed;
+  right: 88px;
+  top: 46px;
+  width: 430px;
+  z-index: 120;
+}
+
+.app-navbar__dropdown-head,
+.app-navbar__dropdown-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #0d1117;
+  display: flex;
+  font: inherit;
+  text-decoration: none;
+}
+
+.app-navbar__dropdown-head {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 0;
+}
+
+.app-navbar__dropdown-head lucide-icon {
+  color: #2f465d;
+  transform: rotate(180deg);
+}
+
+.app-navbar__dropdown-item {
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 800;
+  gap: 35px;
+  min-height: 48px;
+  padding: 0;
+  text-align: left;
+}
+
+.app-navbar__dropdown-item:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.app-navbar__dropdown-item lucide-icon {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 1180px) {
@@ -126,5 +232,19 @@
   .app-navbar__nav,
   .app-navbar__actions {
     flex-wrap: wrap;
+  }
+
+  .app-navbar__dropdown {
+    left: 18px;
+    max-width: calc(100vw - 36px);
+    right: auto;
+    top: 24px;
+    width: 430px;
+  }
+
+  .app-navbar__toast {
+    left: 18px;
+    right: auto;
+    top: 96px;
   }
 }

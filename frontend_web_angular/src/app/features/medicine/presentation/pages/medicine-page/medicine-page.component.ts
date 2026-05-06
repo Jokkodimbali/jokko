@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  signal,
+} from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { MEDICINE_DOCTORS, MEDICINE_FILTERS } from '../../../domain/medicine.mock';
@@ -22,9 +29,44 @@ import { MedicineHeroComponent } from '../../components/medicine-hero/medicine-h
   templateUrl: './medicine-page.component.html',
   styleUrl: './medicine-page.component.scss',
 })
-export class MedicinePageComponent {
+export class MedicinePageComponent implements AfterViewInit {
+  @ViewChild('doctorList') private doctorList?: ElementRef<HTMLElement>;
+
   protected readonly messages = MEDICINE_UI_MESSAGES;
   protected readonly doctors = MEDICINE_DOCTORS;
   protected readonly filters = MEDICINE_FILTERS;
+  protected readonly showScrollHint = signal(false);
 
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.updateScrollHint());
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.updateScrollHint();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.updateScrollHint();
+  }
+
+  protected scrollToNextDoctor(): void {
+    const list = this.doctorList?.nativeElement;
+    if (!list) return;
+
+    const cards = Array.from(list.querySelectorAll<HTMLElement>('app-doctor-card'));
+    const nextCard = cards.find((card) => card.getBoundingClientRect().top > 120);
+    (nextCard ?? list).scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    window.setTimeout(() => this.updateScrollHint(), 450);
+  }
+
+  private updateScrollHint(): void {
+    const list = this.doctorList?.nativeElement;
+    if (!list) return;
+
+    const rect = list.getBoundingClientRect();
+    this.showScrollHint.set(rect.bottom > window.innerHeight + 80);
+  }
 }

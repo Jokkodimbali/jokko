@@ -1,53 +1,131 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
+import { catchError, finalize, of } from 'rxjs';
+import { AuthSessionService } from '../../../core/auth/auth-session.service';
+import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
+import { AuthService } from '../../../features/auth/data-access/auth.service';
+import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages';
 
 interface AppNavItem {
   label: string;
-  icon: string;
+  icon: 'users' | 'heart-plus' | 'calendar-days' | 'message-circle';
   route: string;
 }
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './app-navbar.component.html',
   styleUrl: './app-navbar.component.scss',
 })
-export class AppNavbarComponent {
+export class AppNavbarComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly authService = inject(AuthService);
+  private readonly feedback = inject(AppFeedbackService);
 
   protected readonly logo = '/logo.png';
-  protected readonly profileChevronIcon =
-    'https://www.figma.com/api/mcp/asset/0eebf22f-ce77-4427-a841-b94a93f49261';
-  protected readonly settingsIcon =
-    'https://www.figma.com/api/mcp/asset/e5cc1a27-5d3c-4512-b5e0-5c70255087ae';
+  protected readonly feedbackMessage = this.feedback.message;
+  protected readonly currentUser = this.authSession.currentUser;
+  protected readonly isMenuOpen = signal(false);
+  protected readonly isLoggingOut = signal(false);
+  protected readonly isAuthenticated = computed(() => !!this.currentUser());
+  protected readonly profileLabel = computed(() => {
+    const user = this.currentUser();
+    if (!user) return '';
+
+    return user.name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U';
+  });
+  protected readonly profileTitle = computed(() => {
+    const user = this.currentUser();
+    return user ? `${user.name} (${user.role})` : 'Connexion';
+  });
 
   protected readonly navItems: AppNavItem[] = [
     {
       label: 'Services',
-      icon: 'https://www.figma.com/api/mcp/asset/879f2a3c-78c7-437d-a16c-73236640c9a1',
+      icon: 'users',
       route: '/services',
     },
     {
-      label: 'Médecine',
-      icon: 'https://www.figma.com/api/mcp/asset/15de1656-647a-430f-bc5d-55ffe939217a',
+      label: 'M\u00e9decine',
+      icon: 'heart-plus',
       route: '/medecine',
     },
     {
       label: 'Rendez vous',
-      icon: 'https://www.figma.com/api/mcp/asset/d44f3915-c915-4d53-ac4c-56858a07e8fc',
+      icon: 'calendar-days',
       route: '/appointments',
     },
     {
       label: 'Message',
-      icon: 'https://www.figma.com/api/mcp/asset/7d89cf24-0508-4799-965a-4ca12372548c',
+      icon: 'message-circle',
       route: '/messages',
     },
   ];
 
   protected isActive(route: string): boolean {
     return this.router.url.startsWith(route);
+  }
+
+  protected toggleProfileMenu(): void {
+    if (!this.isAuthenticated()) return;
+    this.isMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected closeProfileMenu(): void {
+    this.isMenuOpen.set(false);
+  }
+
+  protected logout(): void {
+    const refreshToken = this.authSession.refreshToken;
+    this.closeProfileMenu();
+
+    if (!refreshToken) {
+      this.authSession.clear();
+      this.feedback.success(AUTH_UI_MESSAGES.logoutSuccess);
+      this.router.navigate(['/services']);
+      return;
+    }
+
+    this.isLoggingOut.set(true);
+    this.authService
+      .logout(refreshToken)
+      .pipe(
+        catchError(() => of(undefined)),
+        finalize(() => {
+          this.authSession.clear();
+          this.isLoggingOut.set(false);
+          this.feedback.success(AUTH_UI_MESSAGES.logoutSuccess);
+          this.router.navigate(['/services']);
+        }),
+      )
+      .subscribe();
+  }
+
+  ngOnInit(): void {
+    if (!this.authSession.accessToken || this.currentUser()) return;
+
+    this.authService
+      .me()
+      .pipe(
+        catchError(() => {
+          this.authSession.clear();
+          return of(null);
+        }),
+      )
+      .subscribe((profile) => {
+        if (profile) {
+          this.authSession.saveUserProfile(profile);
+        }
+      });
   }
 }

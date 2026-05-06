@@ -6,6 +6,10 @@
   position: relative;
 }
 
+:host .hero app-navbar {
+  --app-navbar-backdrop-height: 355px;
+}
+
 :host .hero-content {
   display: block !important;
   height: 355px !important;
@@ -35,99 +39,10 @@
 }
 
 :host .search-bar {
-  background: #fff !important;
-  border-radius: 26px !important;
-  box-shadow: 0 0 2px rgba(133, 19, 19, 0.25) !important;
-  display: grid !important;
-  gap: 10px !important;
-  grid-template-columns: 200px 1fr 152px !important;
-  height: 63px !important;
+  display: block !important;
   margin: 0 !important;
   max-width: 916px !important;
-  padding: 0 15px !important;
   width: 100%;
-}
-
-:host .location-control,
-:host .filter-button {
-  border: 0 !important;
-  display: inline-flex;
-}
-
-:host .location-control {
-  background: #fff !important;
-  border-radius: 30px !important;
-  box-shadow: 3px 6px 7px 2px rgba(37, 37, 37, 0.25) !important;
-  color: #000 !important;
-  gap: 9px !important;
-  height: 43px !important;
-  justify-content: center;
-  padding: 0 14px !important;
-}
-
-:host .location-control img {
-  height: 33px;
-  width: 33px;
-}
-
-:host .location-control svg {
-  fill: #172433;
-  height: 16px !important;
-  width: 16px !important;
-}
-
-:host .location-control span {
-  display: grid;
-  font-size: 8px !important;
-  font-weight: 700;
-}
-
-:host .search-field {
-  align-items: center;
-  display: flex !important;
-  gap: 108px !important;
-  min-width: 0;
-  padding-left: 22px !important;
-}
-
-:host .search-field .search-icon {
-  color: #fff !important;
-  height: 28px !important;
-  stroke: #fff !important;
-  width: 28px !important;
-}
-
-:host .search-field input {
-  border: 0;
-  border-radius: 0 !important;
-  color: #c5cbd3;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  height: 100%;
-  min-width: 0;
-  outline: 1000px solid transparent !important;
-  width: 100%;
-}
-
-:host .filter-button {
-  align-items: center;
-  background: #181717 !important;
-  border: 2px solid #000 !important;
-  border-radius: 30px !important;
-  color: #f7f5f5;
-  font-size: 15px !important;
-  font-weight: 800 !important;
-  gap: 8px !important;
-  height: 42px !important;
-  justify-content: center;
-  padding: 0 14px;
-}
-
-:host .filter-button .filter-icon {
-  color: #000 !important;
-  height: 28px !important;
-  stroke: #000 !important;
-  width: 28px !important;
 }
 
 :host .hero-visual {

@@ -47,10 +47,10 @@ export class AuthService {
       .pipe(map(unwrapApiResponse));
   }
 
-  refresh(data: RefreshTokenRequestDto): Observable<AuthResponseDto> {
+  refresh(data: RefreshTokenRequestDto = {}): Observable<void> {
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/refresh`, data)
-      .pipe(map(unwrapApiResponse));
+      .post<ApiResponse<null>>(`${this.apiUrl}/refresh`, data)
+      .pipe(map(() => undefined));
   }
 
   googleLogin(data: GoogleLoginRequestDto): Observable<AuthResponseDto> {
@@ -65,9 +65,9 @@ export class AuthService {
       .pipe(map(unwrapApiResponse));
   }
 
-  logout(refreshToken: string): Observable<void> {
+  logout(): Observable<void> {
     return this.http
-      .post<ApiResponse<null>>(`${this.apiUrl}/logout`, { refreshToken })
+      .post<ApiResponse<null>>(`${this.apiUrl}/logout`, {})
       .pipe(map(() => undefined));
   }
 }

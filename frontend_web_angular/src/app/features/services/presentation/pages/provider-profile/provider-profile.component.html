@@ -6,8 +6,7 @@
   <div class="provider-profile__shell">
     <section
       class="provider-profile__hero"
-      [class.provider-profile__hero--empty]="!coverUrl()"
-      [style.backgroundImage]="coverUrl() ? 'url(' + coverUrl() + ')' : null"
+      [style.backgroundImage]="'url(' + coverUrl() + ')'"
     >
       <button type="button" class="provider-profile__back" aria-label="Retour" (click)="goBack()">
         <lucide-icon name="arrow-left" size="27" [strokeWidth]="2.4"></lucide-icon>
@@ -21,6 +20,8 @@
         <span></span>
         {{ presenceLabel() }}
       </span>
+
+      <app-scroll-hint *ngIf="!isLoading() && !errorMessage()" />
     </section>
 
     <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__identity">

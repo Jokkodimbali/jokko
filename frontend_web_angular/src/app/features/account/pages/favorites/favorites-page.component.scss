@@ -6,7 +6,7 @@
 
 .favorites-page__card {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   border: 1px solid #dbe4ee;
   border-radius: 12px;
   display: flex;
@@ -17,7 +17,7 @@
 
 .favorites-page__link {
   align-items: center;
-  color: #172433;
+  color: var(--color-text, #172433);
   display: flex;
   gap: 14px;
   min-width: 0;
@@ -37,7 +37,7 @@
 
 .favorites-page__initials {
   align-items: center;
-  background: #e7eef2;
+  background: var(--color-auth-surface, #e7eef2);
   display: inline-flex;
   font-size: 24px;
   font-weight: 900;
@@ -74,10 +74,10 @@
 .favorites-page__card button,
 .favorites-page__empty a {
   align-items: center;
-  background: #fff3e5;
+  background: var(--color-brand-soft, #fff3e5);
   border: 0;
   border-radius: 10px;
-  color: #865221;
+  color: var(--color-brand, #865221);
   cursor: pointer;
   display: inline-flex;
   font-weight: 900;
@@ -89,7 +89,7 @@
 
 .favorites-page__empty {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   border: 1px solid #dbe4ee;
   border-radius: 12px;
   display: flex;

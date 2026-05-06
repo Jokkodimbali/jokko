@@ -4,7 +4,7 @@
 
 .medicine-filter-bar {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   display: flex;
   gap: 108px;
   justify-content: center;
@@ -14,10 +14,10 @@
 
 .medicine-filter-bar__button {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   border: 3px solid #e4edf6;
   border-radius: 18px;
-  color: #172433;
+  color: var(--color-text, #172433);
   display: inline-flex;
   font-size: 28px;
   font-weight: 800;

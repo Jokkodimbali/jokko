@@ -4,8 +4,8 @@
 >
   <section *ngIf="favorites().length > 0; else emptyFavorites" class="favorites-page__grid">
     <article *ngFor="let favorite of favorites()" class="favorites-page__card">
-      <a [routerLink]="favorite.route" class="favorites-page__link">
-        <img *ngIf="favorite.imageUrl; else favoriteInitials" [src]="favorite.imageUrl" [alt]="favorite.name" />
+      <a [routerLink]="['/services', favorite.professionalId]" class="favorites-page__link">
+        <img *ngIf="favorite.avatarUrl; else favoriteInitials" [src]="favorite.avatarUrl" [alt]="favorite.name" />
         <ng-template #favoriteInitials>
           <span class="favorites-page__initials">{{ favorite.name[0] }}</span>
         </ng-template>
@@ -17,8 +17,8 @@
         </span>
       </a>
 
-      <button type="button" aria-label="Retirer des favoris" (click)="removeFavorite(favorite.id)">
-        <lucide-icon name="heart" size="24" [strokeWidth]="2.3" fill="#865221"></lucide-icon>
+      <button type="button" aria-label="Retirer des favoris" (click)="removeFavorite(favorite.professionalId)">
+        <lucide-icon name="heart" size="24" [strokeWidth]="2.3"></lucide-icon>
       </button>
     </article>
   </section>

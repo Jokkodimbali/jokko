@@ -17,7 +17,7 @@
   }
 
   :host .favorites {
-    border-bottom: 2px solid #ccd7e5;
+    border-bottom: 2px solid var(--color-border, #ccd7e5);
     border-right: 0 !important;
   }
 

@@ -5,11 +5,16 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
+import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from '../../application/services/auth.service';
+import { JwtTokenService } from '../../application/services/jwt-token.service';
 import { SendOtpDto } from '../dto/send-otp.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
@@ -22,7 +27,10 @@ import { LogoutDto } from '../dto/logout.dto';
 import { GoogleLoginDto } from '../dto/google-login.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
-import { appMessage } from '../../../core/http/app-http.exception';
+import {
+  appHttpException,
+  appMessage,
+} from '../../../core/http/app-http.exception';
 import {
   ApiStandardErrorResponse,
   ApiStandardSuccessResponse,
@@ -32,7 +40,11 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 @ApiTags(API_DOCS.auth.tag)
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtTokenService: JwtTokenService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('otp/send')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -80,9 +92,12 @@ export class AuthController {
     errorCode: 'AUTH_OTP_INVALID_OR_EXPIRED',
     messageExample: API_DOCS.common.invalidOrExpiredOtp,
   })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  async verifyOtp(@Body() dto: VerifyOtpDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code);
-    return createApiResponse(result);
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.verifyOtpSuccess,
+    );
   }
 
   @Post('register')
@@ -103,9 +118,12 @@ export class AuthController {
     errorCode: 'AUTH_PHONE_ALREADY_USED',
     messageExample: API_DOCS.auth.registerConflict,
   })
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.register(dto);
-    return createApiResponse(result, API_DOCS.auth.registerSuccess);
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.registerSuccess,
+    );
   }
 
   @Post('login')
@@ -126,9 +144,12 @@ export class AuthController {
     errorCode: 'AUTH_INVALID_CREDENTIALS',
     messageExample: API_DOCS.common.invalidCredentials,
   })
-  async login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.login(dto);
-    return createApiResponse(result, API_DOCS.auth.loginSuccess);
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.loginSuccess,
+    );
   }
 
   @Post('google/login')
@@ -149,9 +170,15 @@ export class AuthController {
     errorCode: 'AUTH_GOOGLE_ACCOUNT_INVALID',
     messageExample: API_DOCS.auth.googleLoginFailure,
   })
-  async loginWithGoogle(@Body() dto: GoogleLoginDto) {
+  async loginWithGoogle(
+    @Body() dto: GoogleLoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const result = await this.authService.loginWithGoogle(dto.idToken);
-    return createApiResponse(result);
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.googleLoginSuccess,
+    );
   }
 
   @Post('refresh')
@@ -172,9 +199,19 @@ export class AuthController {
     errorCode: 'AUTH_REFRESH_TOKEN_INVALID',
     messageExample: API_DOCS.common.invalidOrExpiredRefreshToken,
   })
-  async refresh(@Body() dto: RefreshTokenDto) {
-    const result = await this.authService.refresh(dto.refreshToken);
-    return createApiResponse(result);
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const refreshToken = dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
+    if (!refreshToken) {
+      throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
+    }
+
+    const result = await this.authService.refresh(refreshToken);
+    this.setAuthCookies(response, result.accessToken, result.refreshToken);
+    return createApiResponse(null, API_DOCS.auth.refreshSuccess);
   }
 
   @Post('logout')
@@ -189,8 +226,18 @@ export class AuthController {
       example: null,
     },
   })
-  async logout(@Body() dto: LogoutDto) {
-    const result = await this.authService.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: LogoutDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const refreshToken = dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
+    if (!refreshToken) {
+      throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
+    }
+
+    const result = await this.authService.logout(refreshToken);
+    this.clearAuthCookies(response);
     return createApiResponse(null, result.message);
   }
 
@@ -222,5 +269,58 @@ export class AuthController {
   async me(@CurrentUser() user: AuthUser) {
     const result = await this.authService.getProfile(user.sub);
     return createApiResponse(result);
+  }
+
+  private persistAuthCookies(
+    response: Response,
+    result: {
+      accessToken: string;
+      refreshToken: string;
+      user: unknown;
+    },
+  ) {
+    this.setAuthCookies(response, result.accessToken, result.refreshToken);
+    return { user: result.user };
+  }
+
+  private setAuthCookies(
+    response: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    response.cookie('jokko_access_token', accessToken, {
+      ...this.cookieOptions(),
+      maxAge: this.jwtTokenService.getAccessTokenMaxAgeMs(),
+    });
+    response.cookie('jokko_refresh_token', refreshToken, {
+      ...this.cookieOptions(),
+      maxAge: this.jwtTokenService.getRefreshTokenMaxAgeMs(),
+    });
+  }
+
+  private clearAuthCookies(response: Response): void {
+    response.clearCookie('jokko_access_token', this.cookieOptions());
+    response.clearCookie('jokko_refresh_token', this.cookieOptions());
+  }
+
+  private cookieOptions(): CookieOptions {
+    return {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
+      path: '/api/v1',
+    };
+  }
+
+  private readCookie(request: Request, name: string): string | null {
+    const cookieHeader = request.headers.cookie;
+    if (!cookieHeader) return null;
+
+    const cookie = cookieHeader
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name}=`));
+
+    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : null;
   }
 }

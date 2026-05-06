@@ -73,6 +73,8 @@ describe('AuthService', () => {
       phoneNumber: '+221770000000',
       name: 'Test',
       password: 'Password123',
+      role: RoleUtilisateur.CLIENT,
+      adresse: 'Dakar Plateau',
     });
 
     expect(result.accessToken).toBe('a');
@@ -89,6 +91,8 @@ describe('AuthService', () => {
         phoneNumber: '+221770000000',
         name: 'Test',
         password: 'Password123',
+        role: RoleUtilisateur.CLIENT,
+        adresse: 'Dakar Plateau',
       }),
     ).rejects.toMatchObject({
       message: appMessage('AUTH_PHONE_ALREADY_USED').message,
@@ -112,6 +116,8 @@ describe('AuthService', () => {
         name: 'Test',
         email: 'existing@jokko.sn',
         password: 'Password123',
+        role: RoleUtilisateur.CLIENT,
+        adresse: 'Dakar Plateau',
       }),
     ).rejects.toMatchObject({
       message: appMessage('AUTH_EMAIL_ALREADY_USED').message,

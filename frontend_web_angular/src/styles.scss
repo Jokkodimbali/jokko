@@ -3,9 +3,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-brand: #865221;
+  --color-brand-alt: #8b551f;
+  --color-brand-soft: #fff3e5;
+  --color-text: #172433;
+  --color-title: #14181f;
+  --color-strong: #0d1117;
+  --color-muted: #53616e;
+  --color-border: #ccd7e5;
+  --color-page-soft: #e7f1f5;
+  --color-auth-surface: #e7eef2;
+  --color-white: #fff;
+  --color-ink: #2c2c2c;
+  --color-success: #22c55e;
+}
+
 .services-page {
-  background: #fff;
-  color: #172433;
+  background: var(--color-white);
+  color: var(--color-text);
   font-family: Inter, Roboto, Arial, sans-serif;
   min-height: 100vh;
 }

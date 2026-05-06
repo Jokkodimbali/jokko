@@ -32,8 +32,6 @@ export const SWAGGER_RESPONSE_EXAMPLES = {
       expiresInSeconds: 300,
     },
     tokenPairData: {
-      accessToken: 'jwt-access-token',
-      refreshToken: 'jwt-refresh-token',
       user: {
         id: '550e8400-e29b-41d4-a716-446655440000',
         phoneNumber: '+221771234567',

@@ -22,7 +22,7 @@ export interface VerifyOtpRequestDto {
 }
 
 export interface RefreshTokenRequestDto {
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface GoogleLoginRequestDto {
@@ -34,8 +34,6 @@ export interface SendOtpResponseDto {
 }
 
 export interface AuthResponseDto {
-  accessToken: string;
-  refreshToken: string;
   user: UserDto;
 }
 

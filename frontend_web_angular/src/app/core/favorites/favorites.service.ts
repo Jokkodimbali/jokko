@@ -1,69 +1,89 @@
-import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { ApiResponse } from '../http/api-response.models';
+import { unwrapApiResponse } from '../http/api-response.utils';
 
 export interface FavoriteItem {
   id: string;
+  professionalId: string;
+  createdAt: string;
   name: string;
   subtitle: string;
   location: string;
-  imageUrl: string | null;
-  route: string;
-  source: 'services' | 'medicine';
+  avatarUrl: string | null;
+  rating: number;
+  totalReviews: number;
+  service: {
+    id: string;
+    name: string;
+    price: number;
+    priceType: string;
+    categoryId: string;
+    categoryName: string;
+  } | null;
 }
 
-const FAVORITES_KEY = 'jokkoFavorites';
+export interface FavoriteStatus {
+  professionalId: string;
+  isFavorite: boolean;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class FavoritesService {
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly favoritesSignal = signal<FavoriteItem[]>(this.readFavorites());
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/favorites`;
+  private readonly favoritesSignal = signal<FavoriteItem[]>([]);
 
   readonly favorites = this.favoritesSignal.asReadonly();
 
-  isFavorite(id: string): boolean {
-    return this.favoritesSignal().some((favorite) => favorite.id === id);
+  list(): Observable<FavoriteItem[]> {
+    return this.http.get<ApiResponse<FavoriteItem[]>>(this.apiUrl).pipe(
+      map(unwrapApiResponse),
+      tap((favorites) => this.favoritesSignal.set(favorites)),
+    );
   }
 
-  toggle(item: FavoriteItem): boolean {
-    const exists = this.isFavorite(item.id);
-    const nextFavorites = exists
-      ? this.favoritesSignal().filter((favorite) => favorite.id !== item.id)
-      : [item, ...this.favoritesSignal()];
-
-    this.favoritesSignal.set(nextFavorites);
-    this.persist(nextFavorites);
-    return !exists;
+  status(professionalId: string): Observable<FavoriteStatus> {
+    return this.http
+      .get<ApiResponse<FavoriteStatus>>(
+        `${this.apiUrl}/professionals/${professionalId}/status`,
+      )
+      .pipe(map(unwrapApiResponse));
   }
 
-  remove(id: string): void {
-    const nextFavorites = this.favoritesSignal().filter((favorite) => favorite.id !== id);
-    this.favoritesSignal.set(nextFavorites);
-    this.persist(nextFavorites);
+  add(professionalId: string): Observable<FavoriteItem> {
+    return this.http
+      .post<ApiResponse<FavoriteItem>>(
+        `${this.apiUrl}/professionals/${professionalId}`,
+        {},
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        tap((favorite) => {
+          this.favoritesSignal.update((favorites) => [
+            favorite,
+            ...favorites.filter((item) => item.professionalId !== professionalId),
+          ]);
+        }),
+      );
   }
 
-  private readFavorites(): FavoriteItem[] {
-    if (!this.canUseStorage()) return [];
-
-    const rawFavorites = localStorage.getItem(FAVORITES_KEY);
-    if (!rawFavorites) return [];
-
-    try {
-      const parsed = JSON.parse(rawFavorites) as FavoriteItem[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      localStorage.removeItem(FAVORITES_KEY);
-      return [];
-    }
-  }
-
-  private persist(favorites: FavoriteItem[]): void {
-    if (!this.canUseStorage()) return;
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-  }
-
-  private canUseStorage(): boolean {
-    return isPlatformBrowser(this.platformId);
+  remove(professionalId: string): Observable<FavoriteStatus> {
+    return this.http
+      .delete<ApiResponse<FavoriteStatus>>(
+        `${this.apiUrl}/professionals/${professionalId}`,
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => {
+          this.favoritesSignal.update((favorites) =>
+            favorites.filter((item) => item.professionalId !== professionalId),
+          );
+        }),
+      );
   }
 }

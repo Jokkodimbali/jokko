@@ -86,19 +86,11 @@ export class AppNavbarComponent implements OnInit {
   }
 
   protected logout(): void {
-    const refreshToken = this.authSession.refreshToken;
     this.closeProfileMenu();
-
-    if (!refreshToken) {
-      this.authSession.clear();
-      this.feedback.success(AUTH_UI_MESSAGES.logoutSuccess);
-      this.router.navigate(['/services']);
-      return;
-    }
 
     this.isLoggingOut.set(true);
     this.authService
-      .logout(refreshToken)
+      .logout()
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {
@@ -112,7 +104,7 @@ export class AppNavbarComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (!this.authSession.accessToken || this.currentUser()) return;
+    if (this.currentUser()) return;
 
     this.authService
       .me()

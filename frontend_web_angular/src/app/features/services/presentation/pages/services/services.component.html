@@ -14,6 +14,8 @@
       </div>
 
       <img class="hero-visual" [src]="heroIllustration" alt="Prestataires Jokko Dimbali" />
+
+      <app-scroll-hint />
     </div>
   </section>
 
@@ -91,37 +93,51 @@
         </div>
 
         <div class="provider-row">
-          <a
+          <article
             *ngFor="let provider of section.providers; let providerIndex = index"
             class="provider-card"
-            [routerLink]="['/services', provider.id]"
-            [state]="{
-              provider: provider,
-              avatar: resolveProviderAvatar(provider, providerIndex),
-              photos: [
-                resolveProviderPhoto(provider, providerIndex, 0),
-                resolveProviderPhoto(provider, providerIndex, 1)
-              ]
-            }"
           >
-            <div class="provider-info">
-              <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
-              <div>
-                <h3>{{ provider.nom }}</h3>
-                <p class="speciality">{{ provider.speciality }}</p>
-                <p>{{ provider.location }}</p>
-                <p class="status">
-                  <span class="status-dot"></span>
-                  {{ provider.status }}
-                </p>
+            <a
+              class="provider-card__link"
+              [routerLink]="['/services', provider.id]"
+              [state]="{
+                provider: provider,
+                avatar: resolveProviderAvatar(provider, providerIndex),
+                photos: [
+                  resolveProviderPhoto(provider, providerIndex, 0),
+                  resolveProviderPhoto(provider, providerIndex, 1)
+                ]
+              }"
+            >
+              <div class="provider-info">
+                <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
+                <div>
+                  <h3>{{ provider.nom }}</h3>
+                  <p class="speciality">{{ provider.speciality }}</p>
+                  <p>{{ provider.location }}</p>
+                  <p class="status">
+                    <span class="status-dot"></span>
+                    {{ provider.status }}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div class="photo-strip">
-              <img [src]="resolveProviderPhoto(provider, providerIndex, 0)" alt="" />
-              <img [src]="resolveProviderPhoto(provider, providerIndex, 1)" alt="" />
-            </div>
-          </a>
+              <div class="photo-strip">
+                <img [src]="resolveProviderPhoto(provider, providerIndex, 0)" alt="" />
+                <img [src]="resolveProviderPhoto(provider, providerIndex, 1)" alt="" />
+              </div>
+            </a>
+
+            <button
+              type="button"
+              class="provider-card__favorite"
+              [class.provider-card__favorite--active]="isProviderFavorite(provider.id)"
+              [attr.aria-label]="isProviderFavorite(provider.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+              (click)="toggleProviderFavorite($event, provider.id)"
+            >
+              <lucide-icon name="heart" size="23" [strokeWidth]="2.4"></lucide-icon>
+            </button>
+          </article>
         </div>
 
         <button

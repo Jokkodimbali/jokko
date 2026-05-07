@@ -3,15 +3,15 @@
 }
 
 .account-shell {
-  background: #e7eef2;
-  color: #172433;
+  background: var(--color-auth-surface, #e7eef2);
+  color: var(--color-text, #172433);
   min-height: 100vh;
 }
 
 .account-shell__nav,
 .account-shell__header {
-  background: #865221;
-  color: #fff;
+  background: var(--color-brand, #865221);
+  color: var(--color-white, #fff);
 }
 
 .account-shell__nav app-navbar {

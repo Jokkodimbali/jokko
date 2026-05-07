@@ -3,7 +3,7 @@
 }
 
 :host .services-page {
-  background: #865221;
-  color: #172433;
+  background: var(--color-brand, #865221);
+  color: var(--color-text, #172433);
   min-height: 100vh;
 }

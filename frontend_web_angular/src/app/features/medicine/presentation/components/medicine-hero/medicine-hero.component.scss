@@ -3,8 +3,8 @@
 }
 
 .medicine-hero {
-  background: #865221;
-  color: #fff;
+  background: var(--color-brand, #865221);
+  color: var(--color-white, #fff);
   min-height: 491px;
 }
 

@@ -17,7 +17,19 @@ export class FavoritesPageComponent {
 
   protected readonly favorites = this.favoritesService.favorites;
 
-  protected removeFavorite(id: string): void {
-    this.favoritesService.remove(id);
+  constructor() {
+    this.favoritesService.list().subscribe({
+      error: () => {
+        // La page affiche l'etat vide quand la session n'est pas active.
+      },
+    });
+  }
+
+  protected removeFavorite(professionalId: string): void {
+    this.favoritesService.remove(professionalId).subscribe({
+      error: () => {
+        // Le cache local reste intact si l'API refuse la suppression.
+      },
+    });
   }
 }

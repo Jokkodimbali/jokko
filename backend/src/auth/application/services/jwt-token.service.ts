@@ -77,4 +77,18 @@ export class JwtTokenService {
     );
     return new Date(Date.now() + refreshTtl * 1000);
   }
+
+  getAccessTokenMaxAgeMs(): number {
+    const accessTtl = ttlToSeconds(
+      this.configService.get<string>('JWT_ACCESS_TTL') ?? '15m',
+    );
+    return accessTtl * 1000;
+  }
+
+  getRefreshTokenMaxAgeMs(): number {
+    const refreshTtl = ttlToSeconds(
+      this.configService.get<string>('JWT_REFRESH_TTL') ?? '30d',
+    );
+    return refreshTtl * 1000;
+  }
 }

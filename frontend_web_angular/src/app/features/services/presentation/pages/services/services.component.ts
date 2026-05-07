@@ -2,12 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { FavoritesService } from '../../../../../core/favorites/favorites.service';
+import { Observable } from 'rxjs';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import {
+  FavoriteItem,
+  FavoriteStatus,
+  FavoritesService,
+} from '../../../../../core/favorites/favorites.service';
 import { ServicesService } from '../../../data-access/services.service';
 import { ServiceSection, PaginationMeta } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 
 @Component({
@@ -18,6 +25,7 @@ import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/a
     RouterLink,
     AppFooterComponent,
     AppNavbarComponent,
+    AppScrollHintComponent,
     AppSearchBarComponent,
     LucideAngularModule,
   ],
@@ -32,6 +40,7 @@ import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/a
 export class ServicesComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly feedback = inject(AppFeedbackService);
 
   protected readonly heroIllustration =
     'https://www.figma.com/api/mcp/asset/9f194bf6-3fd1-4012-bb76-dc280db53929';
@@ -58,19 +67,22 @@ export class ServicesComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
-      id: favorite.id,
+      id: favorite.professionalId,
       nom: favorite.name,
       speciality: favorite.subtitle,
       location: favorite.location,
-      status: favorite.source === 'medicine' ? 'Medecine' : 'Service',
-      avatar: favorite.imageUrl || undefined,
+      status: favorite.totalReviews > 0
+        ? `${favorite.rating}/5 (${favorite.totalReviews} avis)`
+        : 'Favori',
+      avatar: favorite.avatarUrl || undefined,
       photos: [],
-      route: favorite.route,
+      route: `/services/${favorite.professionalId}`,
     })),
   );
 
   ngOnInit(): void {
     this.loadHomeData();
+    this.loadFavorites();
   }
 
   onViewAll(section: ServiceSection): void {
@@ -128,6 +140,14 @@ export class ServicesComponent implements OnInit {
     this.loadHomeData(nextPage);
   }
 
+  private loadFavorites(): void {
+    this.favoritesService.list().subscribe({
+      error: () => {
+        // Les visiteurs non connectes voient simplement l'etat vide.
+      },
+    });
+  }
+
   resolveProviderAvatar(provider: { avatar?: string }, index: number): string {
     return provider.avatar || this.fallbackAvatars[index % this.fallbackAvatars.length];
   }
@@ -141,5 +161,33 @@ export class ServicesComponent implements OnInit {
       provider.photos[photoIndex] ||
       this.fallbackPhotos[(providerIndex * 2 + photoIndex) % this.fallbackPhotos.length]
     );
+  }
+
+  isProviderFavorite(providerId: string): boolean {
+    return this.favoritesService
+      .favorites()
+      .some((favorite) => favorite.professionalId === providerId);
+  }
+
+  toggleProviderFavorite(event: Event, providerId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const action: Observable<FavoriteItem | FavoriteStatus> = this.isProviderFavorite(providerId)
+      ? this.favoritesService.remove(providerId)
+      : this.favoritesService.add(providerId);
+
+    action.subscribe({
+      next: () => {
+        this.feedback.success(
+          this.isProviderFavorite(providerId)
+            ? 'Prestataire ajoute aux favoris.'
+            : 'Prestataire retire des favoris.',
+        );
+      },
+      error: () => {
+        this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      },
+    });
   }
 }

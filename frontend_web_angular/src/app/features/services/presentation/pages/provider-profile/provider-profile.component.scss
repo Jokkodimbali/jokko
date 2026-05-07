@@ -3,13 +3,13 @@
 }
 
 .provider-profile {
-  background: #e7f1f5;
-  color: #14181f;
+  background: var(--color-page-soft);
+  color: var(--color-title);
   min-height: 100vh;
 }
 
 .provider-profile__nav {
-  background: #865221;
+  background: var(--color-brand);
 }
 
 .provider-profile__shell {
@@ -19,7 +19,6 @@
 }
 
 .provider-profile__hero {
-  background-color: #c7b18a;
   background-position: center;
   background-size: cover;
   border-radius: 12px 12px 0 0;
@@ -27,17 +26,13 @@
   position: relative;
 }
 
-.provider-profile__hero--empty {
-  background: #865221;
-}
-
 .provider-profile__back,
 .provider-profile__online,
 .provider-profile__actions button {
   align-items: center;
-  background: #fff;
+  background: var(--color-white);
   border: 0;
-  color: #0d1117;
+  color: var(--color-strong);
   display: inline-flex;
   justify-content: center;
 }
@@ -85,7 +80,7 @@
 }
 
 .provider-profile__avatar {
-  border: 6px solid #fff;
+  border: 6px solid var(--color-white);
   border-radius: 50%;
   height: 120px;
   margin-left: 8px;
@@ -97,8 +92,8 @@
 
 .provider-profile__avatar--initials {
   align-items: center;
-  background: #865221;
-  color: #fff;
+  background: var(--color-brand);
+  color: var(--color-white);
   display: inline-flex;
   font-size: 34px;
   font-weight: 800;
@@ -113,7 +108,7 @@
 }
 
 .provider-profile__name p {
-  color: #53616e;
+  color: var(--color-muted);
   font-size: 16px;
   margin: 0;
 }
@@ -131,17 +126,17 @@
 }
 
 .provider-profile__favorite--active {
-  background: #fff3e5 !important;
-  color: #865221 !important;
+  background: var(--color-brand-soft) !important;
+  color: var(--color-brand) !important;
 }
 
 .provider-profile__favorite--active lucide-icon {
-  fill: #865221;
+  fill: var(--color-brand);
 }
 
 .provider-profile__stats {
   align-items: center;
-  background: #fff;
+  background: var(--color-white);
   border-radius: 12px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -151,7 +146,7 @@
 
 .provider-profile__state {
   align-items: center;
-  background: #fff;
+  background: var(--color-white);
   border-radius: 12px;
   display: flex;
   justify-content: center;
@@ -160,7 +155,7 @@
 }
 
 .provider-profile__state p {
-  color: #53616e;
+  color: var(--color-muted);
   font-size: 18px;
   font-weight: 700;
   margin: 0;
@@ -175,7 +170,7 @@
   background: #000;
   border: 0;
   border-radius: 999px;
-  color: #fff;
+  color: var(--color-white);
   font-weight: 800;
   min-height: 42px;
   padding: 0 24px;
@@ -209,7 +204,7 @@
 }
 
 .provider-profile__card {
-  background: #fff;
+  background: var(--color-white);
   border-radius: 12px;
 }
 
@@ -227,7 +222,7 @@
 }
 
 .provider-profile__about p {
-  color: #53616e;
+  color: var(--color-muted);
   font-size: 16px;
   line-height: 1.95;
   margin: 0;
@@ -251,7 +246,7 @@
 }
 
 .provider-profile__price strong {
-  color: #14181f;
+  color: var(--color-title);
   font-size: 26px;
   font-weight: 800;
 }
@@ -382,7 +377,7 @@
 }
 
 .provider-profile__empty {
-  color: #53616e;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 700;
   margin: 38px 0 0;

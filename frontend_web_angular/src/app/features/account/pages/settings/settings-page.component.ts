@@ -23,8 +23,6 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isLoading = signal(false);
 
   ngOnInit(): void {
-    if (!this.authSession.accessToken) return;
-
     this.isLoading.set(true);
     this.authService
       .me()

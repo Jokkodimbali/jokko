@@ -17,6 +17,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { LiveTrackingModule } from './live-tracking/live-tracking.module';
 import { AdminModule } from './admin/admin.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AdminModule } from './admin/admin.module';
     MessagingModule,
     LiveTrackingModule,
     AdminModule,
+    FavoritesModule,
     SearchModule,
     ReservationsModule,
     PaymentsModule,

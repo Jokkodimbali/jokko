@@ -1,0 +1,48 @@
+:host {
+  display: contents;
+}
+
+.app-scroll-hint {
+  align-items: center;
+  background: var(--color-ink, #2c2c2c);
+  border: 0;
+  border-radius: 15px;
+  bottom: 32px;
+  color: var(--color-white, #fff);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 800;
+  gap: 18px;
+  height: 89px;
+  justify-content: center;
+  padding: 0 38px;
+  position: fixed;
+  right: 36px;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+  z-index: 20;
+}
+
+.app-scroll-hint:hover,
+.app-scroll-hint:focus-visible {
+  background: var(--color-text, #172433);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 1120px) {
+  .app-scroll-hint {
+    bottom: 20px;
+    height: 68px;
+    left: 50%;
+    padding: 0 26px;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .app-scroll-hint:hover,
+  .app-scroll-hint:focus-visible {
+    transform: translateX(-50%) translateY(-2px);
+  }
+}

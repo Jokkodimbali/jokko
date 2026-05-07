@@ -1,6 +1,6 @@
 :host .hero {
-  background: #865221;
-  color: #fff;
+  background: var(--color-brand, #865221);
+  color: var(--color-white, #fff);
   min-height: 355px !important;
   overflow: hidden;
   position: relative;
@@ -54,4 +54,11 @@
   right: -510px;
   width: 8890px;
   z-index: 1;
+}
+
+:host .hero-content app-scroll-down-indicator {
+  position: absolute;
+  bottom: 32px;
+  right: 36px;
+  z-index: 10;
 }

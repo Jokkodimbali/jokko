@@ -1,5 +1,5 @@
 .settings-page__panel {
-  background: #fff;
+  background: var(--color-white, #fff);
   border: 1px solid #dbe4ee;
   border-radius: 12px;
   display: grid;
@@ -16,7 +16,7 @@
 }
 
 .settings-page__row + .settings-page__row {
-  border-top: 1px solid #e7eef2;
+  border-top: 1px solid var(--color-auth-surface, #e7eef2);
 }
 
 .settings-page__row span,
@@ -27,13 +27,13 @@
 }
 
 .settings-page__row strong {
-  color: #172433;
+  color: var(--color-text, #172433);
   font-weight: 900;
   text-align: right;
 }
 
 .settings-page__loading {
-  border-top: 1px solid #e7eef2;
+  border-top: 1px solid var(--color-auth-surface, #e7eef2);
   margin: 0;
   padding: 18px 24px;
 }
@@ -55,9 +55,9 @@
 }
 
 .settings-page__panel--empty a {
-  background: #172433;
+  background: var(--color-text, #172433);
   border-radius: 10px;
-  color: #fff;
+  color: var(--color-white, #fff);
   font-weight: 900;
   margin-top: 18px;
   padding: 14px 22px;

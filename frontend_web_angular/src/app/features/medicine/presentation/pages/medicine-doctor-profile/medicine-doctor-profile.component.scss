@@ -3,13 +3,13 @@
 }
 
 .doctor-profile {
-  background: #e7f1f5;
-  color: #14181f;
+  background: var(--color-page-soft, #e7f1f5);
+  color: var(--color-title, #14181f);
   min-height: 100vh;
 }
 
 .doctor-profile__nav {
-  background: #865221;
+  background: var(--color-brand, #865221);
 }
 
 .doctor-profile__shell {
@@ -31,9 +31,9 @@
 .doctor-profile__online,
 .doctor-profile__actions button {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   border: 0;
-  color: #0d1117;
+  color: var(--color-strong, #0d1117);
   display: inline-flex;
   justify-content: center;
 }
@@ -77,7 +77,7 @@
 }
 
 .doctor-profile__avatar {
-  border: 6px solid #fff;
+  border: 6px solid var(--color-white, #fff);
   border-radius: 50%;
   height: 120px;
   margin-left: 8px;
@@ -95,7 +95,7 @@
 }
 
 .doctor-profile__name p {
-  color: #53616e;
+  color: var(--color-muted, #53616e);
   font-size: 16px;
   margin: 0;
 }
@@ -113,12 +113,12 @@
 }
 
 .doctor-profile__favorite--active {
-  background: #fff3e5 !important;
-  color: #865221 !important;
+  background: var(--color-brand-soft, #fff3e5) !important;
+  color: var(--color-brand, #865221) !important;
 }
 
 .doctor-profile__favorite--active lucide-icon {
-  fill: #865221;
+  fill: var(--color-brand, #865221);
 }
 
 .doctor-profile__stats,
@@ -128,7 +128,7 @@
 
 .doctor-profile__stats {
   align-items: center;
-  background: #fff;
+  background: var(--color-white, #fff);
   border-radius: 12px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -163,7 +163,7 @@
 }
 
 .doctor-profile__card {
-  background: #fff;
+  background: var(--color-white, #fff);
   border-radius: 12px;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .doctor-profile__about p {
-  color: #53616e;
+  color: var(--color-muted, #53616e);
   font-size: 16px;
   line-height: 1.95;
   margin: 27px 0 0;
@@ -207,7 +207,7 @@
 }
 
 .doctor-profile__price strong {
-  color: #14181f;
+  color: var(--color-title, #14181f);
   font-size: 26px;
   font-weight: 800;
 }

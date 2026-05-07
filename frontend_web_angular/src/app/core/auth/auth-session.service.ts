@@ -6,8 +6,6 @@ import {
   UserProfileDto,
 } from '../../features/auth/domain/models/auth.models';
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
 const CURRENT_USER_KEY = 'currentUser';
 
 @Injectable({
@@ -21,17 +19,7 @@ export class AuthSessionService {
 
   readonly currentUser = this.currentUserSignal.asReadonly();
 
-  get accessToken(): string | null {
-    return this.getItem(ACCESS_TOKEN_KEY);
-  }
-
-  get refreshToken(): string | null {
-    return this.getItem(REFRESH_TOKEN_KEY);
-  }
-
   saveAuthResponse(response: AuthResponseDto): void {
-    this.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-    this.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
     if (response.user) {
       this.saveUser(response.user);
     }
@@ -52,8 +40,6 @@ export class AuthSessionService {
       return;
     }
 
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(CURRENT_USER_KEY);
     this.currentUserSignal.set(null);
   }

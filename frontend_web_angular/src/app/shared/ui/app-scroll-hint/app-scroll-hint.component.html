@@ -1,0 +1,10 @@
+<button
+  *ngIf="visible()"
+  type="button"
+  class="app-scroll-hint"
+  [attr.aria-label]="label"
+  (click)="scrollDown()"
+>
+  <span>{{ label }}</span>
+  <lucide-icon name="arrow-down" size="24" [strokeWidth]="2.4"></lucide-icon>
+</button>

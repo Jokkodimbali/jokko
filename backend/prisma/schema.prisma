@@ -193,6 +193,7 @@ model Utilisateur {
   notifications             Notification[]
   communicationsReservation CommunicationReservation[]
   sessionsAuthentification  SessionAuthentification[]
+  favorisProfessionnels     FavoriProfessionnel[]
   negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
   paiementsClient           Paiement[]             @relation("PaymentsClient")
   litigesSignales           Litige[]               @relation("ReportedDisputes")
@@ -261,8 +262,24 @@ model ProfilProfessionnel {
   paiements        Paiement[]                  @relation("PaymentsProfessional")
   presence         PresenceProfessionnel?
   sessionsTracking SessionTrackingReservation[]
+  favoris          FavoriProfessionnel[]
 
   @@map("professional_profiles")
+}
+
+model FavoriProfessionnel {
+  id                    String   @id @default(uuid()) @db.Uuid
+  utilisateurId         String   @map("user_id") @db.Uuid
+  profilProfessionnelId String   @map("professional_id") @db.Uuid
+  creeLe                DateTime @default(now()) @map("created_at")
+
+  utilisateur           Utilisateur          @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  profilProfessionnel   ProfilProfessionnel  @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, profilProfessionnelId])
+  @@index([utilisateurId, creeLe])
+  @@index([profilProfessionnelId])
+  @@map("professional_favorites")
 }
 
 model Categorie {

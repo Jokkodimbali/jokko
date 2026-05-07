@@ -3,10 +3,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { Observable } from 'rxjs';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
-import { FavoritesService } from '../../../../../core/favorites/favorites.service';
+import {
+  FavoriteItem,
+  FavoriteStatus,
+  FavoritesService,
+} from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -23,7 +29,13 @@ interface ScheduleRow {
 @Component({
   selector: 'app-provider-profile',
   standalone: true,
-  imports: [CommonModule, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  imports: [
+    CommonModule,
+    AppFooterComponent,
+    AppNavbarComponent,
+    AppScrollHintComponent,
+    LucideAngularModule,
+  ],
   templateUrl: './provider-profile.component.html',
   styleUrl: './provider-profile.component.scss',
 })
@@ -40,6 +52,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
+  protected readonly defaultCoverUrl = '/boabab.png';
 
   protected readonly displayName = computed(() => {
     const profile = this.detail()?.profile;
@@ -58,7 +71,7 @@ export class ProviderProfileComponent implements OnInit {
       .join(''),
   );
   protected readonly coverUrl = computed(
-    () => this.detail()?.portfolio[0]?.urlImage ?? null,
+    () => this.detail()?.portfolio[0]?.urlImage ?? this.defaultCoverUrl,
   );
   protected readonly bio = computed(
     () =>
@@ -84,7 +97,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
   protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
   protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
-  protected readonly isFavorite = computed(() => this.favoritesService.isFavorite(this.profileId));
+  protected readonly isFavorite = signal(false);
   protected readonly expertiseTags = computed(() =>
     this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
   );
@@ -115,6 +128,7 @@ export class ProviderProfileComponent implements OnInit {
       next: (detail) => {
         this.detail.set(detail);
         this.isLoading.set(false);
+        this.loadFavoriteStatus();
       },
       error: () => {
         this.errorMessage.set('Impossible de charger ce prestataire pour le moment.');
@@ -135,17 +149,31 @@ export class ProviderProfileComponent implements OnInit {
     const detail = this.detail();
     if (!detail) return;
 
-    const isAdded = this.favoritesService.toggle({
-      id: detail.profile.id,
-      name: this.displayName(),
-      subtitle: this.speciality(),
-      location: this.formatLocation(),
-      imageUrl: this.avatarUrl() || this.coverUrl(),
-      route: `/services/${detail.profile.id}`,
-      source: 'services',
-    });
+    const action: Observable<FavoriteItem | FavoriteStatus> = this.isFavorite()
+      ? this.favoritesService.remove(detail.profile.id)
+      : this.favoritesService.add(detail.profile.id);
 
-    this.feedback.success(isAdded ? 'Ajoute aux favoris.' : 'Retire des favoris.');
+    action.subscribe({
+      next: () => {
+        const isNowFavorite = !this.isFavorite();
+        this.isFavorite.set(isNowFavorite);
+        this.feedback.success(
+          isNowFavorite ? 'Ajoute aux favoris.' : 'Retire des favoris.',
+        );
+      },
+      error: () => {
+        this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      },
+    });
+  }
+
+  private loadFavoriteStatus(): void {
+    if (!this.profileId) return;
+
+    this.favoritesService.status(this.profileId).subscribe({
+      next: (status) => this.isFavorite.set(status.isFavorite),
+      error: () => this.isFavorite.set(false),
+    });
   }
 
   private resolveMapCoordinates(detail: ProviderProfileDetail | null): {

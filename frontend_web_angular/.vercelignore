@@ -1,0 +1,10 @@
+.angular
+.git
+.gitignore
+.node-version
+.nvmrc
+.prettierrc
+.vscode
+dist
+node_modules
+*.md

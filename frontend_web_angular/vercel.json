@@ -1,0 +1,33 @@
+{
+  "buildCommand": "npm run build -- --configuration production",
+  "outputDirectory": "dist/frontend-web-angular/browser",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "headers": [
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

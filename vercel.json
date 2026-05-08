@@ -1,6 +1,7 @@
 {
-  "buildCommand": "npm run build -- --configuration production",
-  "outputDirectory": "dist/frontend_web_angular/browser",
+  "installCommand": "cd frontend_web_angular && npm ci",
+  "buildCommand": "cd frontend_web_angular && npm run build -- --configuration production",
+  "outputDirectory": "frontend_web_angular/dist/frontend_web_angular/browser",
   "env": {
     "NODE_ENV": "production"
   },

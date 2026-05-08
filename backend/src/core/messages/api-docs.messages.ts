@@ -8,6 +8,11 @@ export const API_DOCS = {
     bearerDescription:
       "Jeton JWT a envoyer dans l'en-tete Authorization au format Bearer.",
     docsPath: 'api/docs',
+    localServerUrl: 'http://localhost:3000',
+    localServerDescription:
+      'Local - backend lance sur la machine de developpement',
+    renderServerUrl: 'https://jokko-dimbali.onrender.com',
+    renderServerDescription: 'Production Render - Jokko Dimbali',
   },
   auth: {
     tag: 'Authentification',

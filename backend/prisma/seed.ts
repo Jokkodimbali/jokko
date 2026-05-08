@@ -296,13 +296,6 @@ export async function runSeed() {
       },
     ],
   });
-
-  console.log(TECHNICAL_MESSAGES.SEED_SUCCESS);
-  console.log(`Client demo: ${SEED_USERS.client.phone} / client123`);
-  console.log(`Pro demo: ${SEED_USERS.professional.phone} / prof123`);
-  console.log(
-    `Reservation confirmee a payer: ${SEED_IDS.reservationConfirmed}`,
-  );
 }
 
 export async function disconnectSeedClient(): Promise<void> {

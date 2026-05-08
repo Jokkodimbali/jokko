@@ -37,6 +37,14 @@ async function bootstrap() {
     .setTitle(API_DOCS.swagger.title)
     .setDescription(API_DOCS.swagger.description)
     .setVersion(API_DOCS.swagger.version)
+    .addServer(
+      API_DOCS.swagger.localServerUrl,
+      API_DOCS.swagger.localServerDescription,
+    )
+    .addServer(
+      API_DOCS.swagger.renderServerUrl,
+      API_DOCS.swagger.renderServerDescription,
+    )
     .addBearerAuth({
       type: 'http',
       scheme: 'bearer',

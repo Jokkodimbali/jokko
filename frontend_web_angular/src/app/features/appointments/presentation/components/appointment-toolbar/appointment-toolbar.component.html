@@ -1,0 +1,34 @@
+<section class="appointment-toolbar" aria-label="Filtres rendez-vous">
+  <div class="appointment-toolbar__tabs">
+    <button
+      type="button"
+      [class.appointment-toolbar__tab--active]="activeTab === 'future'"
+      (click)="activeTabChange.emit('future')"
+    >
+      FUTURS
+      <span>{{ futureCount }}</span>
+    </button>
+    <button
+      type="button"
+      [class.appointment-toolbar__tab--active]="activeTab === 'done'"
+      (click)="activeTabChange.emit('done')"
+    >
+      Termines
+      <span>{{ doneCount }}</span>
+    </button>
+  </div>
+
+  <label class="appointment-toolbar__search">
+    <lucide-icon name="search" size="26" [strokeWidth]="2.4"></lucide-icon>
+    <input
+      type="search"
+      [value]="search"
+      placeholder="Recherche"
+      (input)="searchChange.emit($any($event.target).value)"
+    />
+    <button type="button">
+      <lucide-icon name="sliders-horizontal" size="23" [strokeWidth]="2.4"></lucide-icon>
+      Filtrage
+    </button>
+  </label>
+</section>

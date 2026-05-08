@@ -4,6 +4,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   FavoriteItem,
@@ -16,7 +17,6 @@ import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
-  BackendProfessionalDetailService,
   BackendProfessionalPresence,
   ProviderProfileDetail,
 } from '../../../domain/models/services.models';
@@ -45,6 +45,7 @@ export class ProviderProfileComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
 
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
@@ -98,6 +99,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
   protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
   protected readonly isFavorite = signal(false);
+  protected readonly currentUser = this.authSession.currentUser;
   protected readonly expertiseTags = computed(() =>
     this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
   );
@@ -149,6 +151,11 @@ export class ProviderProfileComponent implements OnInit {
     const detail = this.detail();
     if (!detail) return;
 
+    if (!this.currentUser()) {
+      this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      return;
+    }
+
     const action: Observable<FavoriteItem | FavoriteStatus> = this.isFavorite()
       ? this.favoritesService.remove(detail.profile.id)
       : this.favoritesService.add(detail.profile.id);
@@ -168,7 +175,7 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   private loadFavoriteStatus(): void {
-    if (!this.profileId) return;
+    if (!this.profileId || !this.currentUser()) return;
 
     this.favoritesService.status(this.profileId).subscribe({
       next: (status) => this.isFavorite.set(status.isFavorite),

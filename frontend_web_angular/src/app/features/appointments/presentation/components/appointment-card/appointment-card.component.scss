@@ -1,0 +1,193 @@
+:host {
+  display: block;
+}
+
+.appointment-card {
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 12px;
+  box-shadow: 0 2px 9px rgba(15, 23, 42, 0.18);
+  color: #1d2432;
+  min-height: 331px;
+  padding: 14px 15px 18px;
+}
+
+.appointment-card header,
+.appointment-card__meta,
+.appointment-card__doctor,
+.appointment-card__service,
+.appointment-card footer {
+  align-items: center;
+  display: flex;
+}
+
+.appointment-card header {
+  justify-content: space-between;
+}
+
+.appointment-card header span {
+  color: #7f7b76;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.appointment-card header button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.appointment-card h2 {
+  color: #241b18;
+  font-size: 21px;
+  font-weight: 900;
+  margin: 12px 0 12px;
+  text-transform: capitalize;
+}
+
+.appointment-card__meta {
+  color: #0f141d;
+  font-size: 10px;
+  font-weight: 800;
+  gap: 18px;
+}
+
+.appointment-card__meta span,
+.appointment-card__confirmation span,
+.appointment-card__confirmation div,
+.appointment-card footer button:last-child {
+  align-items: center;
+  display: inline-flex;
+}
+
+.appointment-card__meta span {
+  gap: 5px;
+}
+
+.appointment-card__doctor {
+  background: #f2f0ec;
+  border-radius: 10px;
+  gap: 12px;
+  margin-top: 10px;
+  min-height: 58px;
+  padding: 7px 8px;
+}
+
+.appointment-card__doctor img {
+  border-radius: 9px;
+  height: 44px;
+  object-fit: cover;
+  object-position: center top;
+  width: 44px;
+}
+
+.appointment-card__doctor p {
+  display: grid;
+  flex: 1;
+  margin: 0;
+}
+
+.appointment-card__doctor strong {
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.appointment-card__doctor small {
+  color: #6d675f;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.appointment-card__service {
+  gap: 9px;
+  margin-top: 11px;
+}
+
+.appointment-card__service span {
+  align-items: center;
+  background: #dcefe8;
+  border-radius: 50%;
+  color: #33715d;
+  display: inline-flex;
+  height: 25px;
+  justify-content: center;
+  width: 25px;
+}
+
+.appointment-card__service strong {
+  color: #8a7767;
+  font-size: 14px;
+}
+
+.appointment-card__confirmation {
+  background: #415eef;
+  border-radius: 10px;
+  color: #fff;
+  margin-top: 12px;
+  min-height: 72px;
+  padding: 8px 10px;
+}
+
+.appointment-card__confirmation span {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 800;
+  gap: 4px;
+  padding: 3px 7px;
+}
+
+.appointment-card__confirmation strong {
+  display: block;
+  font-size: 8px;
+  margin-top: 6px;
+}
+
+.appointment-card__confirmation small {
+  display: block;
+  font-size: 6px;
+  margin-top: 3px;
+  opacity: 0.86;
+}
+
+.appointment-card__confirmation div {
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.appointment-card__confirmation em {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 6px;
+  font-style: normal;
+  padding: 3px 8px;
+}
+
+.appointment-card footer {
+  gap: 34px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.appointment-card footer button {
+  border: 0;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  height: 22px;
+}
+
+.appointment-card footer button:first-child {
+  background: #fff;
+  border: 1px solid #e6e0db;
+  color: #6d5444;
+  width: 109px;
+}
+
+.appointment-card footer button:last-child {
+  background: #bf7331;
+  color: #fff;
+  gap: 8px;
+  justify-content: center;
+  width: 112px;
+}

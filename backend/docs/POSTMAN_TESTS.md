@@ -37,6 +37,14 @@ Swagger local :
 
 `http://localhost:3000/api/docs`
 
+Swagger production Render :
+
+`https://jokko-dimbali.onrender.com/api/docs`
+
+API production Render :
+
+`https://jokko-dimbali.onrender.com/api/v1`
+
 ## 4. Prerequis avant test
 
 1. lancer le backend
@@ -370,5 +378,9 @@ La collection HTTP ne remplace pas :
 Pour les payloads les plus a jour et les exemples d'enveloppes de reponse, la reference principale reste Swagger :
 
 `http://localhost:3000/api/docs`
+
+Le guide Swagger local et production est documente ici :
+
+`backend/docs/SWAGGER_TESTS.md`
 
 Postman est ici un complement pratique de verification manuelle, pas la source de verite unique de l'API.

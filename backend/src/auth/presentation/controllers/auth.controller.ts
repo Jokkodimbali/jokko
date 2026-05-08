@@ -92,7 +92,10 @@ export class AuthController {
     errorCode: 'AUTH_OTP_INVALID_OR_EXPIRED',
     messageExample: API_DOCS.common.invalidOrExpiredOtp,
   })
-  async verifyOtp(@Body() dto: VerifyOtpDto, @Res({ passthrough: true }) response: Response) {
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code);
     return createApiResponse(
       this.persistAuthCookies(response, result),
@@ -118,7 +121,10 @@ export class AuthController {
     errorCode: 'AUTH_PHONE_ALREADY_USED',
     messageExample: API_DOCS.auth.registerConflict,
   })
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const result = await this.authService.register(dto);
     return createApiResponse(
       this.persistAuthCookies(response, result),
@@ -144,7 +150,10 @@ export class AuthController {
     errorCode: 'AUTH_INVALID_CREDENTIALS',
     messageExample: API_DOCS.common.invalidCredentials,
   })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const result = await this.authService.login(dto);
     return createApiResponse(
       this.persistAuthCookies(response, result),
@@ -204,7 +213,8 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
+    const refreshToken =
+      dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
     if (!refreshToken) {
       throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
     }
@@ -231,7 +241,8 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
+    const refreshToken =
+      dto.refreshToken ?? this.readCookie(request, 'jokko_refresh_token');
     if (!refreshToken) {
       throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
     }
@@ -324,6 +335,8 @@ export class AuthController {
       .map((part) => part.trim())
       .find((part) => part.startsWith(`${name}=`));
 
-    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : null;
+    return cookie
+      ? decodeURIComponent(cookie.split('=').slice(1).join('='))
+      : null;
   }
 }

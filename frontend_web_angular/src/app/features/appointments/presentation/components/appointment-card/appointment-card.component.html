@@ -1,0 +1,58 @@
+<article class="appointment-card">
+  <header>
+    <span>{{ appointment.eyebrow }}</span>
+    <button type="button" aria-label="Options du rendez-vous">
+      <lucide-icon name="more-horizontal" size="19" [strokeWidth]="2.4"></lucide-icon>
+    </button>
+  </header>
+
+  <h2>{{ appointment.dateLabel }}</h2>
+
+  <div class="appointment-card__meta">
+    <span>
+      <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+      {{ appointment.timeLabel }}
+    </span>
+    <span>
+      <lucide-icon name="map-pin" size="15" [strokeWidth]="2"></lucide-icon>
+      {{ appointment.locationLabel }}
+    </span>
+  </div>
+
+  <section class="appointment-card__doctor">
+    <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+    <p>
+      <strong>{{ appointment.doctorName }}</strong>
+      <small>{{ appointment.specialty }}</small>
+    </p>
+    <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.2"></lucide-icon>
+  </section>
+
+  <div class="appointment-card__service">
+    <span>
+      <lucide-icon name="heart" size="18" [strokeWidth]="2"></lucide-icon>
+    </span>
+    <strong>{{ appointment.serviceName }}</strong>
+  </div>
+
+  <section class="appointment-card__confirmation">
+    <span>
+      <lucide-icon name="calendar-days" size="13" [strokeWidth]="2"></lucide-icon>
+      Prestation prevue
+    </span>
+    <strong>{{ appointment.confirmationLabel }}</strong>
+    <small>Merci de bien verifier l'adresse et l'heure avant le rendez-vous.</small>
+    <div>
+      <em>{{ appointment.timeLabel }}</em>
+      <em>{{ appointment.addressLabel }}</em>
+    </div>
+  </section>
+
+  <footer>
+    <button type="button">Annuler</button>
+    <button type="button">
+      Voir le rendez-vous
+      <lucide-icon name="arrow-right" size="12" [strokeWidth]="2.4"></lucide-icon>
+    </button>
+  </footer>
+</article>

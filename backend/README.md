@@ -94,6 +94,14 @@ backend/
 - Swagger : `http://localhost:3000/api/docs`
 - Sante : `http://localhost:3000/api/v1/sante`
 
+## URLs production Render
+
+- API : `https://jokko-dimbali.onrender.com/api/v1`
+- Swagger : `https://jokko-dimbali.onrender.com/api/docs`
+- Sante : `https://jokko-dimbali.onrender.com/api/v1/sante`
+
+Swagger contient maintenant deux serveurs de test : local et production Render. Le guide dedie se trouve dans `docs/SWAGGER_TESTS.md`.
+
 ## Installation
 
 ```bash
@@ -255,6 +263,7 @@ Principaux fichiers :
 - `STANDARDS_MODULES_BACKEND.md`
 - `TABLEAU_MESSAGES_HTTP.md`
 - `POSTMAN_TESTS.md`
+- `SWAGGER_TESTS.md`
 - `docker-README.md`
 - `cahier_des_charges_jokko.md`
 

@@ -1,0 +1,46 @@
+<main class="appointments-page">
+  <div class="appointments-page__nav">
+    <app-navbar />
+  </div>
+
+  <section class="appointments-page__hero">
+    <h1>Vos rendez-vous,</h1>
+    <p>Suivez vos prochains rendez-vous, retrouvez l'historique</p>
+    <p>de vos visites et gerez vos rendez-vous d'un simple geste</p>
+
+    <button type="button" class="appointments-page__agenda">
+      Voir mon agenda
+      <lucide-icon name="chevron-down" size="19" [strokeWidth]="2.3"></lucide-icon>
+    </button>
+
+    <app-appointment-stats [stats]="stats()" />
+
+    <app-appointment-toolbar
+      [futureCount]="futureAppointments().length"
+      [doneCount]="doneAppointments().length"
+      [activeTab]="activeTab()"
+      [search]="search()"
+      (activeTabChange)="setTab($event)"
+      (searchChange)="setSearch($event)"
+    />
+  </section>
+
+  <section class="appointments-page__content" aria-label="Liste des rendez-vous">
+    <p *ngIf="isLoading()" class="appointments-page__state">Chargement des rendez-vous...</p>
+    <p *ngIf="!isLoading() && !currentUser()" class="appointments-page__state">
+      Connectez-vous pour synchroniser vos rendez-vous Jokko.
+    </p>
+    <p *ngIf="!isLoading() && currentUser() && visibleAppointments().length === 0" class="appointments-page__state">
+      Aucun rendez-vous dans cette categorie.
+    </p>
+
+    <div *ngIf="!isLoading() && visibleAppointments().length > 0" class="appointments-page__grid">
+      <app-appointment-card
+        *ngFor="let appointment of visibleAppointments()"
+        [appointment]="appointment"
+      />
+    </div>
+  </section>
+
+  <app-footer />
+</main>

@@ -9,13 +9,16 @@ export interface DoctorProfile {
   specialty: string;
   rating: number;
   reviewCount: number;
+  location: string;
   imageUrl: string;
   isOnline: boolean;
   availability: AvailabilitySlot[];
+  nextAvailability: string[];
+  modes: Array<'Teleconsult' | 'Cabinet'>;
 }
 
 export interface MedicineFilterAction {
   label: string;
-  icon: 'map-pin' | 'sliders-horizontal' | 'calendar-days';
+  icon: 'map' | 'sliders-horizontal' | 'calendar-days';
   variant?: 'accent';
 }

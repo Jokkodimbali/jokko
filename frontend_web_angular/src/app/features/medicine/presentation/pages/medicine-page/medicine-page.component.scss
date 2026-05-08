@@ -3,15 +3,53 @@
 }
 
 .medicine-page {
-  background: var(--color-white, #fff);
+  background: #fbf7f0;
   color: var(--color-text, #172433);
   min-height: 100vh;
 }
 
+.medicine-page__booking-surface {
+  background: #fbf7f0;
+  padding: 12px 52px 13px;
+}
+
 .medicine-page__list {
-  background: var(--color-white, #fff);
   display: grid;
-  gap: 48px;
-  padding: 0 24px 47px;
+  gap: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 37px auto 0;
+  max-width: 1280px;
+  padding: 0;
   position: relative;
+}
+
+.medicine-page__state {
+  color: #66717e;
+  font-size: 16px;
+  font-weight: 800;
+  margin: 42px 0 0;
+  text-align: center;
+}
+
+.medicine-page__state--error {
+  color: #b85a34;
+}
+
+@media (max-width: 1180px) {
+  .medicine-page__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 760px) {
+  .medicine-page__booking-surface {
+    padding: 16px 18px 24px;
+  }
+
+  .medicine-page__list {
+    gap: 22px;
+    grid-template-columns: 1fr;
+    max-width: 330px;
+  }
 }

@@ -1,10 +1,15 @@
 <main class="medicine-page">
   <app-medicine-hero />
 
-  <app-medicine-filter-bar [filters]="filters" />
+  <section class="medicine-page__booking-surface" aria-label="Medecins disponibles">
+    <app-medicine-filter-bar [filters]="filters" />
 
-  <section class="medicine-page__list" aria-label="Liste des medecins">
-    <app-doctor-card *ngFor="let doctor of doctors" [doctor]="doctor" />
+    <p *ngIf="isLoading()" class="medicine-page__state">Chargement des medecins...</p>
+    <p *ngIf="errorMessage()" class="medicine-page__state medicine-page__state--error">{{ errorMessage() }}</p>
+
+    <section *ngIf="!isLoading() && !errorMessage()" class="medicine-page__list" aria-label="Liste des medecins">
+      <app-doctor-card *ngFor="let doctor of doctors()" [doctor]="doctor" />
+    </section>
   </section>
 
   <app-scroll-hint [label]="messages.scrollHint" />

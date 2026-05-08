@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { FavoritesService } from '../../../../core/favorites/favorites.service';
 import { AccountShellComponent } from '../../../../shared/ui/account-shell/account-shell.component';
 
@@ -14,21 +15,29 @@ import { AccountShellComponent } from '../../../../shared/ui/account-shell/accou
 })
 export class FavoritesPageComponent {
   private readonly favoritesService = inject(FavoritesService);
+  private readonly authSession = inject(AuthSessionService);
 
   protected readonly favorites = this.favoritesService.favorites;
+  protected readonly currentUser = this.authSession.currentUser;
 
   constructor() {
+    if (!this.currentUser()) {
+      return;
+    }
+
     this.favoritesService.list().subscribe({
       error: () => {
-        // La page affiche l'etat vide quand la session n'est pas active.
       },
     });
   }
 
   protected removeFavorite(professionalId: string): void {
+    if (!this.currentUser()) {
+      return;
+    }
+
     this.favoritesService.remove(professionalId).subscribe({
       error: () => {
-        // Le cache local reste intact si l'API refuse la suppression.
       },
     });
   }

@@ -6,6 +6,7 @@ import { ProviderProfileComponent } from './features/services/presentation/pages
 import { FavoritesPageComponent } from './features/account/pages/favorites/favorites-page.component';
 import { SettingsPageComponent } from './features/account/pages/settings/settings-page.component';
 import { SimpleAccountPageComponent } from './features/account/pages/simple-account-page.component';
+import { AppointmentsPageComponent } from './features/appointments/presentation/pages/appointments-page/appointments-page.component';
 
 export const routes: Routes = [
   {
@@ -34,13 +35,7 @@ export const routes: Routes = [
   },
   {
     path: 'appointments',
-    component: SimpleAccountPageComponent,
-    data: {
-      title: 'Rendez vous',
-      subtitle: 'Suivez vos rendez-vous et vos prochaines interventions.',
-      emptyTitle: 'Aucun rendez-vous affiche pour le moment',
-      emptyText: 'Le module web de rendez-vous est pret cote navigation. Les donnees seront raccordees au flux reservation lorsque la page metier sera implementee.',
-    },
+    component: AppointmentsPageComponent,
   },
   {
     path: 'messages',

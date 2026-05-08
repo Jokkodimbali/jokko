@@ -3,43 +3,60 @@
 }
 
 .doctor-card {
-  background: var(--color-white, #fff);
-  border: 4px solid #e4edf6;
-  border-radius: 23px;
+  background: #fff;
+  border: 1px solid #eef2f5;
+  border-radius: 14px;
+  box-shadow: 0 8px 21px rgba(32, 36, 39, 0.22);
   color: inherit;
   display: block;
   margin: 0 auto;
-  min-height: 500px;
-  overflow: hidden;
-  padding: 0 15px 30px;
+  min-height: 264px;
+  overflow: visible;
+  padding: 14px 13px 13px;
+  position: relative;
   text-decoration: none;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
-  width: min(100%, 884px);
+  width: min(100%, 305px);
 }
 
 .doctor-card:hover {
-  border-color: #398fde;
-  box-shadow: 0 14px 32px rgba(57, 143, 222, 0.16);
+  border-color: #d7e5f2;
+  box-shadow: 0 12px 25px rgba(32, 36, 39, 0.24);
   transform: translateY(-2px);
 }
 
-.doctor-card__summary {
+.doctor-card__favorite {
   align-items: center;
+  background: transparent;
+  border: 0;
+  color: #2e3d4d;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  width: 24px;
+}
+
+.doctor-card__summary {
+  align-items: start;
   display: grid;
-  grid-template-columns: 245px minmax(0, 1fr) 310px;
-  min-height: 310px;
+  grid-template-columns: 102px minmax(0, 1fr);
+  min-height: 114px;
 }
 
 .doctor-card__portrait {
-  align-self: end;
-  height: 285px;
+  height: 98px;
   position: relative;
 }
 
 .doctor-card__portrait img {
+  border-radius: 12px;
   display: block;
   height: 100%;
   object-fit: cover;
@@ -49,104 +66,152 @@
 
 .doctor-card__status {
   align-items: center;
-  background: var(--color-white, #fff);
-  border-radius: 15px;
-  bottom: 24px;
-  box-shadow: 0 0 3px 3px rgba(0, 0, 0, 0.25);
-  color: var(--color-text, #172433);
+  background: #050505;
+  border-radius: 999px;
+  bottom: -5px;
+  color: #fff;
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  gap: 6px;
-  left: 0;
-  min-height: 26px;
-  padding: 0 11px;
+  font-size: 7px;
+  font-weight: 800;
+  gap: 4px;
+  left: 20px;
+  min-height: 14px;
+  padding: 0 7px;
   position: absolute;
+  white-space: nowrap;
 }
 
 .doctor-card__status i {
-  background: #30d100;
+  background: #00e757;
   border-radius: 999px;
-  height: 14px;
-  width: 14px;
+  height: 6px;
+  width: 6px;
 }
 
 .doctor-card__identity {
-  align-self: center;
-  margin-left: 18px;
   min-width: 0;
+  padding: 5px 20px 0 25px;
 }
 
 .doctor-card__identity h2 {
-  color: #111118;
-  font-size: 30px;
+  color: #08090d;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.2;
-  margin: 0 0 7px;
+  line-height: 1.1;
+  margin: 0 0 5px;
 }
 
 .doctor-card__identity p {
-  color: #697586;
-  font-size: 18px;
-  margin: 0 0 6px;
+  color: #66717e;
+  font-size: 10px;
+  margin: 0 0 7px;
 }
 
 .doctor-card__rating {
   align-items: center;
-  color: #253244;
+  color: #4b5968;
   display: flex;
-  font-size: 14px;
-  gap: 3px;
+  font-size: 9px;
+  gap: 5px;
+  white-space: nowrap;
 }
 
-.doctor-card__cta {
-  align-self: end;
-  background: #398fde;
-  border: 0;
-  border-radius: 44px;
-  color: var(--color-white, #fff);
-  font-size: 35px;
-  font-weight: 400;
-  height: 83px;
-  justify-self: center;
-  margin-bottom: 35px;
-  width: 302px;
+.doctor-card__rating strong {
+  color: #111827;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.doctor-card__rating i {
+  background: #d7dde4;
+  border-radius: 999px;
+  height: 3px;
+  width: 3px;
+}
+
+.doctor-card__modes {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.doctor-card__modes span {
+  align-items: center;
+  background: #eef2f4;
+  border-radius: 999px;
+  color: #5f6b76;
+  display: inline-flex;
+  font-size: 8px;
+  gap: 3px;
+  min-height: 17px;
+  padding: 0 7px;
+}
+
+.doctor-card__modes .doctor-card__mode--remote {
+  background: #fff0df;
+  color: #cf7222;
 }
 
 .doctor-card__availability {
-  padding-top: 13px;
+  padding-top: 6px;
 }
 
 .doctor-card__availability h3 {
-  color: #111118;
-  font-size: 29px;
-  font-weight: 800;
-  line-height: 1.2;
-  margin: 0 0 27px;
-  text-align: center;
-}
-
-.doctor-card__slot {
   align-items: center;
-  color: #4a5564;
-  display: grid;
-  font-size: 15px;
-  grid-template-columns: 250px repeat(2, max-content);
+  color: #354252;
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 8px;
+  line-height: 1;
+  margin: 0 0 23px 6px;
+  text-transform: uppercase;
+}
+
+.doctor-card__days {
+  align-items: center;
+  display: flex;
+  gap: 13px;
   justify-content: center;
-  margin-top: 18px;
 }
 
-.doctor-card__slot strong {
-  font-weight: 800;
+.doctor-card__days span {
+  align-items: center;
+  background: #eef2f5;
+  border-radius: 999px;
+  color: #5d6876;
+  display: inline-flex;
+  font-size: 10px;
+  height: 22px;
+  justify-content: center;
+  min-width: 48px;
+  padding: 0 9px;
 }
 
-.doctor-card__slot span {
-  background: #f3faf5;
-  border-radius: 14px;
-  color: #3d5948;
-  font-size: 13px;
-  line-height: 1.2;
-  margin-left: 19px;
-  min-height: 24px;
-  padding: 4px 13px;
+.doctor-card__cta {
+  align-items: center;
+  background: #258ce6;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  height: 36px;
+  justify-content: center;
+  margin-top: 20px;
+  position: relative;
+  width: 100%;
+}
+
+.doctor-card__cta span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: inline-flex;
+  height: 23px;
+  justify-content: center;
+  position: absolute;
+  right: 7px;
+  width: 23px;
 }

@@ -1,0 +1,7 @@
+<section class="appointment-stats" aria-label="Resume des rendez-vous">
+  <article *ngFor="let stat of stats">
+    <span>{{ stat.label }}</span>
+    <strong>{{ stat.value }}</strong>
+    <small>{{ stat.caption }}</small>
+  </article>
+</section>

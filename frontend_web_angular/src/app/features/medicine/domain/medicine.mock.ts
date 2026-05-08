@@ -1,50 +1,46 @@
 import { DoctorProfile, MedicineFilterAction } from './models/medicine.models';
 
+const CHARLE_DIOUF: Omit<DoctorProfile, 'id'> = {
+  name: 'Dr Charle Diouf',
+  specialty: 'Chirurgien dentiste',
+  rating: 4.9,
+  reviewCount: 550,
+  location: 'DAKAR',
+  imageUrl: '/medicine-doctor-charle-diouf.png',
+  isOnline: true,
+  nextAvailability: ['MER 15', 'Jeu 16', 'ven 17', 'Sam 18'],
+  modes: ['Teleconsult', 'Cabinet'],
+  availability: [
+    {
+      period: 'Matin',
+      days: ['MER 15', 'Jeu 16'],
+    },
+    {
+      period: 'Apres-midi',
+      days: ['ven 17', 'Sam 18'],
+    },
+  ],
+};
+
 export const MEDICINE_DOCTORS: DoctorProfile[] = [
   {
+    ...CHARLE_DIOUF,
     id: 'charle-diouf',
-    name: 'Dr Charle Diouf',
-    specialty: 'Chirurgien dentiste',
-    rating: 4.9,
-    reviewCount: 550,
-    imageUrl: '/medicine-doctor-charle-diouf.png',
-    isOnline: true,
-    availability: [
-      {
-        period: 'Matin',
-        days: ['mer 15', 'jeudi 16'],
-      },
-      {
-        period: 'Après-midi',
-        days: ['mer 15', 'jeudi 16'],
-      },
-    ],
   },
   {
+    ...CHARLE_DIOUF,
     id: 'charle-diouf-2',
-    name: 'Dr Charle Diouf',
-    specialty: 'Chirurgien dentiste',
-    rating: 4.9,
-    reviewCount: 550,
-    imageUrl: '/medicine-doctor-charle-diouf.png',
-    isOnline: true,
-    availability: [
-      {
-        period: 'Matin',
-        days: ['mer 15', 'jeudi 16'],
-      },
-      {
-        period: 'Après-midi',
-        days: ['mer 15', 'jeudi 16'],
-      },
-    ],
+  },
+  {
+    ...CHARLE_DIOUF,
+    id: 'charle-diouf-3',
   },
 ];
 
 export const MEDICINE_FILTERS: MedicineFilterAction[] = [
   {
     label: 'Afficher la carte',
-    icon: 'map-pin',
+    icon: 'map',
     variant: 'accent',
   },
   {
@@ -52,7 +48,7 @@ export const MEDICINE_FILTERS: MedicineFilterAction[] = [
     icon: 'sliders-horizontal',
   },
   {
-    label: 'Disponibilité',
+    label: 'Disponibilite',
     icon: 'calendar-days',
   },
 ];

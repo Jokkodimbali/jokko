@@ -3,6 +3,7 @@ import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   FavoriteItem,
@@ -40,6 +41,7 @@ import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/a
 export class ServicesComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
 
   protected readonly heroIllustration =
@@ -65,6 +67,7 @@ export class ServicesComponent implements OnInit {
   categoryPagination = signal<PaginationMeta | undefined>(undefined);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
+  protected readonly currentUser = this.authSession.currentUser;
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
       id: favorite.professionalId,
@@ -141,6 +144,10 @@ export class ServicesComponent implements OnInit {
   }
 
   private loadFavorites(): void {
+    if (!this.currentUser()) {
+      return;
+    }
+
     this.favoritesService.list().subscribe({
       error: () => {
         // Les visiteurs non connectes voient simplement l'etat vide.
@@ -172,6 +179,11 @@ export class ServicesComponent implements OnInit {
   toggleProviderFavorite(event: Event, providerId: string): void {
     event.preventDefault();
     event.stopPropagation();
+
+    if (!this.currentUser()) {
+      this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      return;
+    }
 
     const action: Observable<FavoriteItem | FavoriteStatus> = this.isProviderFavorite(providerId)
       ? this.favoritesService.remove(providerId)

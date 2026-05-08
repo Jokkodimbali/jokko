@@ -18,6 +18,13 @@ export function buildCorsOptionsFromValues(
 ): CorsOptions {
   const configuredOrigins = parseCorsOrigins(config.corsOrigins);
 
+  if (configuredOrigins.includes('*')) {
+    return {
+      origin: true,
+      credentials: true,
+    };
+  }
+
   if (configuredOrigins.length > 0) {
     return {
       origin: configuredOrigins,

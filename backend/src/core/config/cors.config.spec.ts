@@ -13,6 +13,18 @@ describe('buildCorsOptionsFromValues', () => {
     });
   });
 
+  it('allows every origin when the wildcard marker is configured', () => {
+    expect(
+      buildCorsOptionsFromValues({
+        nodeEnv: 'production',
+        corsOrigins: '*',
+      }),
+    ).toEqual({
+      origin: true,
+      credentials: true,
+    });
+  });
+
   it('closes CORS by default in production', () => {
     expect(
       buildCorsOptionsFromValues({

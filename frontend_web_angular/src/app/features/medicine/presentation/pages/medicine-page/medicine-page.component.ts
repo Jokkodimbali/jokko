@@ -24,7 +24,10 @@ import { MedicineHeroComponent } from '../../components/medicine-hero/medicine-h
     MedicineHeroComponent,
   ],
   templateUrl: './medicine-page.component.html',
-  styleUrl: './medicine-page.component.scss',
+  styleUrls: [
+    './medicine-page.component.scss',
+    './medicine-page-responsive.component.scss',
+  ],
 })
 export class MedicinePageComponent implements OnInit {
   private readonly medicineService = inject(MedicineService);

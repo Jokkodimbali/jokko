@@ -9,7 +9,10 @@
         <app-search-bar
           class="search-bar"
           ariaLabel="Recherche de services"
-          variant="compact"
+          [value]="searchTerm()"
+          [locationValue]="locationValue"
+          (valueChange)="onSearchTermChange($event)"
+          (searchSubmit)="submitSearch($event)"
         />
       </div>
 
@@ -21,15 +24,34 @@
 
   <section class="content-shell">
     <aside class="favorites" aria-label="Vos favoris">
-      <h2>Vos Favoris</h2>
+      <div class="favorites-header">
+        <button type="button" class="favorites-header__icon" aria-label="Vos favoris">
+          <lucide-icon name="heart" size="20" [strokeWidth]="2"></lucide-icon>
+        </button>
+        <div class="favorites-header__text">
+          <h2>Vos favoris</h2>
+          <span>{{ favoriteProviders().length }} prestataires</span>
+        </div>
+      </div>
+
       <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list">
         <a
           *ngFor="let provider of favoriteProviders(); let providerIndex = index"
           class="favorite-row"
           [routerLink]="provider.route"
         >
-          <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
-          <span>
+          <div class="favorite-avatar">
+            <img
+              *ngIf="resolveProviderAvatar(provider) as avatar; else favoriteInitials"
+              [src]="avatar"
+              [alt]="provider.nom"
+            />
+            <ng-template #favoriteInitials>
+              <span class="favorite-avatar__initials">{{ providerInitials(provider.nom) }}</span>
+            </ng-template>
+            <span class="favorite-avatar__dot" aria-hidden="true"></span>
+          </div>
+          <span class="favorite-row__info">
             <strong>{{ provider.nom }}</strong>
             <small>{{ provider.speciality }}</small>
           </span>
@@ -38,18 +60,12 @@
 
       <ng-template #emptyFavorites>
         <div class="empty-favorites">
-          <div class="heart-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12 20.4 10.7 19C5.9 14.7 3 12.1 3 8.9A5 5 0 0 1 8.1 4c1.6 0 3.1.7 3.9 1.9A4.8 4.8 0 0 1 15.9 4 5 5 0 0 1 21 8.9c0 3.2-2.9 5.8-7.7 10.1L12 20.4Z"
-              />
-            </svg>
-          </div>
           <p>Vos prestataires favoris s'afficheront ici.</p>
           <a routerLink="/auth/login" class="auth-link">Connectez-vous</a>
         </div>
       </ng-template>
       <br>
+      <a routerLink="/favorites" class="favorites-manage">Gérer mes favoris</a>
     </aside>
 
     <div class="service-feed">
@@ -102,30 +118,45 @@
               [routerLink]="['/services', provider.id]"
               [state]="{
                 provider: provider,
-                avatar: resolveProviderAvatar(provider, providerIndex),
-                photos: [
-                  resolveProviderPhoto(provider, providerIndex, 0),
-                  resolveProviderPhoto(provider, providerIndex, 1)
-                ]
+                avatar: resolveProviderAvatar(provider),
+                photos: providerPhotos(provider)
               }"
             >
               <div class="provider-info">
-                <img [src]="resolveProviderAvatar(provider, providerIndex)" [alt]="provider.nom" />
+                <div class="provider-avatar">
+                  <img
+                    *ngIf="resolveProviderAvatar(provider) as avatar; else providerInitialsTpl"
+                    [src]="avatar"
+                    [alt]="provider.nom"
+                  />
+                  <ng-template #providerInitialsTpl>
+                    <span>{{ providerInitials(provider.nom) }}</span>
+                  </ng-template>
+                  <i aria-hidden="true"></i>
+                </div>
                 <div>
                   <h3>{{ provider.nom }}</h3>
                   <p class="speciality">{{ provider.speciality }}</p>
-                  <p>{{ provider.location }}</p>
+                  <p class="location">
+                    <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
+                    {{ provider.location }}
+                  </p>
                   <p class="status">
-                    <span class="status-dot"></span>
+                    <lucide-icon name="clock-3" size="12" [strokeWidth]="2"></lucide-icon>
                     {{ provider.status }}
                   </p>
                 </div>
               </div>
 
-              <div class="photo-strip">
-                <img [src]="resolveProviderPhoto(provider, providerIndex, 0)" alt="" />
-                <img [src]="resolveProviderPhoto(provider, providerIndex, 1)" alt="" />
+              <div class="photo-strip" *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio">
+                <img *ngFor="let photo of providerPhotos(provider)" [src]="photo" alt="" />
               </div>
+              <ng-template #emptyPortfolio>
+                <div class="photo-strip photo-strip--empty">
+                  <span>Portfolio</span>
+                  <span>{{ provider.speciality }}</span>
+                </div>
+              </ng-template>
             </a>
 
             <button

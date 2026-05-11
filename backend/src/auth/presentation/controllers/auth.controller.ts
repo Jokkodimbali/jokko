@@ -291,7 +291,7 @@ export class AuthController {
     },
   ) {
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
-    return { user: result.user };
+    return { accessToken: result.accessToken, user: result.user };
   }
 
   private setAuthCookies(
@@ -322,7 +322,7 @@ export class AuthController {
       httpOnly: true,
       sameSite: isProduction ? 'none' : 'lax',
       secure: isProduction,
-      path: '/api/v1',
+      path: '/',
     };
   }
 

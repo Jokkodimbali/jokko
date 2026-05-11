@@ -67,7 +67,7 @@ export class RegisterDto {
   password!: string;
 
   @ApiProperty({
-    description: 'Rôle de l\'utilisateur (CLIENT ou PRESTATAIRE)',
+    description: "Rôle de l'utilisateur (CLIENT ou PRESTATAIRE)",
     enum: ['CLIENT', 'PRESTATAIRE'],
     example: 'CLIENT',
   })
@@ -77,7 +77,7 @@ export class RegisterDto {
   role!: 'CLIENT' | 'PRESTATAIRE';
 
   @ApiProperty({
-    description: 'Adresse physique de l\'utilisateur',
+    description: "Adresse physique de l'utilisateur",
     example: 'Dakar, Plateau, Rue 12',
     minLength: 5,
     maxLength: 255,

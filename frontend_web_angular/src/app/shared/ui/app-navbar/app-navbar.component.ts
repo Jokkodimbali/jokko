@@ -31,32 +31,35 @@ export class AppNavbarComponent implements OnInit {
   protected readonly feedbackMessage = this.feedback.message;
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly isMenuOpen = signal(false);
+  protected readonly isMobileNavOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
   protected readonly profileLabel = computed(() => {
     const user = this.currentUser();
     if (!user) return '';
 
-    return user.name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || 'U';
+    return (
+      user.name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'U'
+    );
   });
   protected readonly profileTitle = computed(() => {
     const user = this.currentUser();
     return user ? `${user.name} (${user.role})` : 'Connexion';
   });
 
-  protected readonly navItems: AppNavItem[] = [
+  protected readonly navItems = signal<AppNavItem[]>([
     {
       label: 'Services',
       icon: 'users',
       route: '/services',
     },
     {
-      label: 'M\u00e9decine',
+      label: 'Médecine',
       icon: 'heart-plus',
       route: '/medecine',
     },
@@ -70,7 +73,7 @@ export class AppNavbarComponent implements OnInit {
       icon: 'message-circle',
       route: '/messages',
     },
-  ];
+  ]);
 
   protected isActive(route: string): boolean {
     return this.router.url.startsWith(route);
@@ -85,8 +88,18 @@ export class AppNavbarComponent implements OnInit {
     this.isMenuOpen.set(false);
   }
 
+  protected toggleMobileNav(): void {
+    this.isMobileNavOpen.update((v) => !v);
+    if (this.isMobileNavOpen()) this.closeProfileMenu();
+  }
+
+  protected closeMobileNav(): void {
+    this.isMobileNavOpen.set(false);
+  }
+
   protected logout(): void {
     this.closeProfileMenu();
+    this.closeMobileNav();
 
     this.isLoggingOut.set(true);
     this.authService
@@ -105,6 +118,9 @@ export class AppNavbarComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.currentUser()) return;
+
+    // Only attempt to refresh session if we have a stored access token
+    if (!this.authSession.getAccessToken()) return;
 
     this.authService
       .me()

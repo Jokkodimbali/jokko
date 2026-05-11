@@ -61,9 +61,42 @@
   padding: 42px 0 72px;
 }
 
-@media (max-width: 680px) {
+/* Mobile: <768px */
+@media (max-width: 767px) {
+  .account-shell__header {
+    padding: 16px 14px 34px;
+  }
+
   .account-shell__header > div,
   .account-shell__content {
     width: min(calc(100% - 28px), 1180px);
   }
+
+  .account-shell__header h1 {
+    font-size: clamp(28px, 9vw, 32px);
+    line-height: 1.05;
+  }
+
+  .account-shell__header span {
+    font-size: 15px;
+    line-height: 1.35;
+    margin-top: 10px;
+  }
+
+  .account-shell__content {
+    padding: 32px 0 48px;
+  }
 }
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .account-shell__header {
+    padding: 18px 20px 50px;
+  }
+
+  .account-shell__header h1 {
+    font-size: 48px;
+  }
+}
+
+/* Desktop: >1024px - unchanged */

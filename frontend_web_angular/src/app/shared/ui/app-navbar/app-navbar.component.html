@@ -3,13 +3,15 @@
     {{ message.text }}
   </div>
 
+  <!-- Brand Logo -->
   <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
     <img [src]="logo" alt="" />
   </a>
 
+  <!-- Desktop Navigation -->
   <nav class="app-navbar__nav" aria-label="Navigation principale">
     <a
-      *ngFor="let item of navItems"
+      *ngFor="let item of navItems()"
       class="app-navbar__nav-item"
       [class.app-navbar__nav-item--active]="isActive(item.route)"
       [routerLink]="item.route"
@@ -19,6 +21,7 @@
     </a>
   </nav>
 
+  <!-- Desktop Profile Dropdown Backdrop -->
   <button
     *ngIf="isMenuOpen()"
     type="button"
@@ -27,6 +30,7 @@
     (click)="closeProfileMenu()"
   ></button>
 
+  <!-- Desktop Actions -->
   <div class="app-navbar__actions">
     <a
       *ngIf="!isAuthenticated(); else connectedProfile"
@@ -87,4 +91,106 @@
       <lucide-icon name="settings" size="38" [strokeWidth]="2.5"></lucide-icon>
     </a>
   </div>
+
+  <!-- Hamburger Button (visible on mobile/tablet only) -->
+  <button
+    type="button"
+    class="app-navbar__hamburger"
+    [class.app-navbar__hamburger--open]="isMobileNavOpen()"
+    [attr.aria-expanded]="isMobileNavOpen()"
+    aria-label="Ouvrir le menu de navigation"
+    (click)="toggleMobileNav()"
+  >
+    <span class="app-navbar__hamburger-line"></span>
+    <span class="app-navbar__hamburger-line"></span>
+    <span class="app-navbar__hamburger-line"></span>
+  </button>
+
+  <!-- Mobile Overlay -->
+  <div
+    *ngIf="isMobileNavOpen()"
+    class="app-navbar__mobile-overlay"
+    (click)="closeMobileNav()"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Mobile / Tablet Navigation Drawer -->
+  <aside
+    class="app-navbar__mobile-drawer"
+    [class.app-navbar__mobile-drawer--open]="isMobileNavOpen()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menu de navigation"
+  >
+    <!-- Drawer Header -->
+    <div class="app-navbar__mobile-drawer-header">
+      <a
+        class="app-navbar__mobile-drawer-brand"
+        routerLink="/services"
+        aria-label="Accueil"
+        (click)="closeMobileNav()"
+      >
+        <img [src]="logo" alt="Jokko Dimbali" />
+      </a>
+      <button
+        type="button"
+        class="app-navbar__mobile-drawer-close"
+        aria-label="Fermer le menu"
+        (click)="closeMobileNav()"
+      >
+        <lucide-icon name="x" size="24" [strokeWidth]="2.5"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Mobile Nav Items -->
+    <nav class="app-navbar__mobile-nav" aria-label="Navigation mobile">
+      <a
+        *ngFor="let item of navItems()"
+        class="app-navbar__mobile-nav-item"
+        [class.app-navbar__mobile-nav-item--active]="isActive(item.route)"
+        [routerLink]="item.route"
+        (click)="closeMobileNav()"
+      >
+        <lucide-icon [name]="item.icon" size="24" [strokeWidth]="2.5"></lucide-icon>
+        <span>{{ item.label }}</span>
+      </a>
+    </nav>
+
+    <!-- Mobile Auth Actions -->
+    <div class="app-navbar__mobile-actions">
+      <ng-container *ngIf="isAuthenticated(); else mobileGuest">
+        <div class="app-navbar__mobile-user">
+          <span class="app-navbar__mobile-avatar">{{ profileLabel() }}</span>
+          <span class="app-navbar__mobile-username">{{ profileTitle() }}</span>
+        </div>
+        <a routerLink="/favorites" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
+          <lucide-icon name="heart" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Mes favoris</span>
+        </a>
+        <a routerLink="/settings" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
+          <lucide-icon name="settings" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Mes Param&egrave;tres</span>
+        </a>
+        <button
+          type="button"
+          class="app-navbar__mobile-action-item app-navbar__mobile-logout"
+          [disabled]="isLoggingOut()"
+          (click)="logout()"
+        >
+          <lucide-icon name="log-out" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>D&eacute;connexion</span>
+        </button>
+      </ng-container>
+
+      <ng-template #mobileGuest>
+        <a routerLink="/auth/login" class="app-navbar__mobile-login" (click)="closeMobileNav()">
+          Connexion
+        </a>
+        <a routerLink="/settings" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
+          <lucide-icon name="settings" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Param&egrave;tres</span>
+        </a>
+      </ng-template>
+    </div>
+  </aside>
 </header>

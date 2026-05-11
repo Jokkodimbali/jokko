@@ -30,7 +30,7 @@ export class FavoritesController {
   }
 
   @Get('professionals/:professionalId/status')
-  @ApiOperation({ summary: "Verifier si un prestataire est dans mes favoris" })
+  @ApiOperation({ summary: 'Verifier si un prestataire est dans mes favoris' })
   async status(
     @CurrentUser() user: AuthUser,
     @Param('professionalId') professionalId: string,

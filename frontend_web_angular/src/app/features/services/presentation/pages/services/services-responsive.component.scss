@@ -1,7 +1,119 @@
-@media (max-width: 1180px) {
-  :host .hero-content,
+/* ─── Mobile (<768px) ───────────────────────────────────────────── */
+@media (max-width: 767px) {
+  :host .content-shell {
+    display: block !important;
+  }
+
+  :host .search-zone h1 {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+
+  /* Hide favorites sidebar — show it only as collapsible or remove on mobile */
   :host .content-shell {
     grid-template-columns: 1fr !important;
+  }
+
+  :host .favorites {
+    border-radius: 16px !important;
+    height: auto !important;
+    margin: 16px 12px !important;
+    padding: 18px 14px !important;
+    width: calc(100% - 24px) !important;
+  }
+
+  :host .favorite-list {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  :host .favorite-row {
+    min-height: 64px !important;
+  }
+
+  :host .service-section {
+    min-height: auto !important;
+    padding: 26px 14px 20px !important;
+  }
+
+  :host .service-section:first-of-type {
+    grid-column: 1 !important;
+  }
+
+  :host .section-title-group h2 {
+    font-size: clamp(22px, 6vw, 32px) !important;
+    line-height: 1.15 !important;
+  }
+
+  :host .section-title-group p {
+    font-size: clamp(14px, 4vw, 18px) !important;
+  }
+
+  :host .provider-row {
+    display: grid !important;
+    gap: 14px !important;
+    grid-template-columns: 1fr !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  :host .provider-card {
+    box-sizing: border-box;
+    flex: none !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+    width: 100% !important;
+  }
+
+  :host .provider-info {
+    align-items: flex-start !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+    min-height: 0 !important;
+    padding-right: 42px;
+  }
+
+  :host .provider-info h3 {
+    font-size: 18px !important;
+    white-space: normal;
+  }
+
+  :host .provider-info p {
+    font-size: 12px !important;
+  }
+
+  :host .provider-info .location,
+  :host .provider-info .status {
+    flex-wrap: wrap;
+  }
+
+  :host .provider-info img,
+  :host .provider-avatar span {
+    height: 62px !important;
+    width: 62px !important;
+  }
+
+  :host .photo-strip {
+    gap: 10px !important;
+  }
+
+  :host .photo-strip--empty {
+    min-height: 84px !important;
+  }
+
+  :host .see-all {
+    font-size: 15px !important;
+    min-height: 40px !important;
+    padding: 10px 20px !important;
+  }
+}
+
+/* ─── Tablet (768px – 1023px) ──────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :host .content-shell {
+    grid-template-columns: minmax(230px, 280px) minmax(0, 1fr) !important;
   }
 
   :host .hero-content {
@@ -17,22 +129,43 @@
   }
 
   :host .favorites {
-    border-bottom: 2px solid var(--color-border, #ccd7e5);
-    border-right: 0 !important;
+    border-radius: 20px !important;
+    height: auto !important;
+    margin: 20px 0 12px 16px !important;
+    width: calc(100% - 16px) !important;
   }
 
   :host .favorite-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    min-height: 0;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  :host .service-section {
+    min-height: auto !important;
+    padding: 20px 16px 16px !important;
+  }
+
+  :host .provider-card {
+    flex: 1 1 calc((100% - 12px) / 2) !important;
+    min-width: min(100%, 280px) !important;
+  }
+
+  :host .service-section:not(:first-of-type) .provider-card {
+    flex-basis: calc((100% - 12px) / 2) !important;
+  }
+
+  :host .provider-row {
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+  }
+
+  :host .provider-info {
+    gap: 14px !important;
+  }
+
+  :host .provider-info h3 {
+    white-space: normal;
   }
 }
 
-@media (max-width: 700px) {
-  :host .search-zone h1 {
-    font-size: 34px !important;
-  }
-
-  :host .favorite-list {
-    grid-template-columns: 1fr;
-  }
-}
+/* ─── Desktop (≥1024px) — no overrides needed ─────────────────── */

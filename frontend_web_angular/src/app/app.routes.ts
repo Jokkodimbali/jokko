@@ -5,8 +5,8 @@ import { MedicineDoctorProfileComponent } from './features/medicine/presentation
 import { ProviderProfileComponent } from './features/services/presentation/pages/provider-profile/provider-profile.component';
 import { FavoritesPageComponent } from './features/account/pages/favorites/favorites-page.component';
 import { SettingsPageComponent } from './features/account/pages/settings/settings-page.component';
-import { SimpleAccountPageComponent } from './features/account/pages/simple-account-page.component';
 import { AppointmentsPageComponent } from './features/appointments/presentation/pages/appointments-page/appointments-page.component';
+import { MessagesPageComponent } from './features/messages/presentation/pages/messages-page/messages-page.component';
 
 export const routes: Routes = [
   {
@@ -39,13 +39,7 @@ export const routes: Routes = [
   },
   {
     path: 'messages',
-    component: SimpleAccountPageComponent,
-    data: {
-      title: 'Messages',
-      subtitle: 'Retrouvez vos conversations avec les prestataires et les clients.',
-      emptyTitle: 'Aucune conversation affichee pour le moment',
-      emptyText: 'Le module web de messagerie est pret cote navigation. Les donnees seront raccordees au backend messagerie lorsque la page metier sera implementee.',
-    },
+    component: MessagesPageComponent,
   },
   {
     path: 'auth',

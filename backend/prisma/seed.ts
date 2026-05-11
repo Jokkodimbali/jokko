@@ -39,6 +39,7 @@ const SEED_IDS = {
   serviceConsultation: '44444444-4444-4444-8444-444444444444',
   reservationPaid: '55555555-5555-4555-8555-555555555555',
   reservationConfirmed: '66666666-6666-4666-8666-666666666666',
+  conversationDemo: '99999999-9999-4999-8999-999999999999',
   paymentPaid: '77777777-7777-4777-8777-777777777777',
   withdrawal: '88888888-8888-4888-8888-888888888888',
 };
@@ -214,6 +215,52 @@ export async function runSeed() {
       prixConvenu: 10000,
       notes: 'Reservation demo deja payee en escrow.',
     },
+  });
+
+  const conversation = await prisma.conversation.upsert({
+    where: { reservationId: SEED_IDS.reservationConfirmed },
+    update: {
+      clientId: client.id,
+      prestataireId: professionalUser.id,
+      dernierMessageLe: new Date(),
+    },
+    create: {
+      id: SEED_IDS.conversationDemo,
+      clientId: client.id,
+      prestataireId: professionalUser.id,
+      reservationId: SEED_IDS.reservationConfirmed,
+      dernierMessageLe: new Date(),
+    },
+  });
+
+  // Create sample messages
+  await prisma.message.createMany({
+    data: [
+      {
+        conversationId: conversation.id,
+        expediteurId: client.id,
+        contenu: 'Bonjour Docteur, j\'ai reserve une consultation pour demain. Pouvez-vous confirmer l\'heure ?',
+        creeLe: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      },
+      {
+        conversationId: conversation.id,
+        expediteurId: professionalUser.id,
+        contenu: 'Bonjour ! Oui, votre consultation est bien programmee pour demain a 10h. Je vous attends au cabinet.',
+        creeLe: new Date(Date.now() - 1.5 * 60 * 60 * 1000), // 1.5 hours ago
+      },
+      {
+        conversationId: conversation.id,
+        expediteurId: client.id,
+        contenu: 'Parfait, merci. Dois-je apporter quelque chose en particulier ?',
+        creeLe: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+      },
+      {
+        conversationId: conversation.id,
+        expediteurId: professionalUser.id,
+        contenu: 'Apportez simplement votre carte d\'identite et vos examens medicaux precedents si vous en avez. A demain !',
+        creeLe: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      },
+    ],
   });
 
   const payment = await prisma.paiement.upsert({

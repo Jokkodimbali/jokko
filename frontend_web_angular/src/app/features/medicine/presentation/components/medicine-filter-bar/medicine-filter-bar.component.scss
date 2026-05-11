@@ -36,15 +36,44 @@
   color: currentColor;
 }
 
-@media (max-width: 760px) {
+/* Mobile: <768px */
+@media (max-width: 767px) {
   .medicine-filter-bar {
     flex-wrap: wrap;
     gap: 12px;
+    padding: 0 16px;
   }
 
   .medicine-filter-bar__button,
   .medicine-filter-bar__button--accent {
     min-width: 0;
     width: 100%;
+    font-size: 14px;
+    height: 40px;
+    padding: 0 20px;
+    gap: 8px;
+  }
+
+  .medicine-filter-bar__button--accent {
+    min-width: 0;
   }
 }
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .medicine-filter-bar {
+    gap: 40px;
+  }
+
+  .medicine-filter-bar__button {
+    font-size: 15px;
+    min-width: 120px;
+    padding: 0 20px;
+  }
+
+  .medicine-filter-bar__button--accent {
+    min-width: 180px;
+  }
+}
+
+/* Desktop: >1024px - unchanged */

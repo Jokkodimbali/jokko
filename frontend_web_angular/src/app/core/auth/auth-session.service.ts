@@ -7,6 +7,7 @@ import {
 } from '../../features/auth/domain/models/auth.models';
 
 const CURRENT_USER_KEY = 'currentUser';
+const ACCESS_TOKEN_KEY = 'accessToken';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +24,14 @@ export class AuthSessionService {
     if (response.user) {
       this.saveUser(response.user);
     }
+    // Save access token if available (for Authorization header)
+    if ((response as any).accessToken) {
+      this.saveAccessToken((response as any).accessToken);
+    }
+  }
+
+  getAccessToken(): string | null {
+    return this.getItem(ACCESS_TOKEN_KEY);
   }
 
   saveUserProfile(profile: UserProfileDto): void {
@@ -41,6 +50,7 @@ export class AuthSessionService {
     }
 
     localStorage.removeItem(CURRENT_USER_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
     this.currentUserSignal.set(null);
   }
 
@@ -63,6 +73,10 @@ export class AuthSessionService {
   private saveUser(user: UserDto): void {
     this.currentUserSignal.set(user);
     this.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  }
+
+  private saveAccessToken(token: string): void {
+    this.setItem(ACCESS_TOKEN_KEY, token);
   }
 
   private readStoredUser(): UserDto | null {

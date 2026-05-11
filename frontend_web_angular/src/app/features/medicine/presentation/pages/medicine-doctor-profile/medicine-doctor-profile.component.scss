@@ -309,7 +309,37 @@
   min-width: 78px;
 }
 
-@media (max-width: 980px) {
+/* Mobile: <768px */
+@media (max-width: 767px) {
+  .doctor-profile__shell {
+    margin-top: 20px;
+    width: min(calc(100% - 16px), 848px);
+  }
+
+  .doctor-profile__identity,
+  .doctor-profile__stats,
+  .doctor-profile__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-profile__identity {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .doctor-profile__actions {
+    padding: 0 0 12px;
+  }
+
+  .doctor-profile__stats {
+    height: auto;
+    padding: 16px;
+    row-gap: 16px;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
   .doctor-profile__shell {
     margin-top: 28px;
     width: min(calc(100% - 24px), 848px);
@@ -336,3 +366,5 @@
     row-gap: 18px;
   }
 }
+
+/* Desktop: >1024px - unchanged */

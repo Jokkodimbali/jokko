@@ -32,7 +32,9 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
-  private extractToken(headers: Record<string, string | undefined>): string | null {
+  private extractToken(
+    headers: Record<string, string | undefined>,
+  ): string | null {
     const authHeader = headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.slice(7);
@@ -46,6 +48,8 @@ export class JwtAuthGuard implements CanActivate {
       .map((part) => part.trim())
       .find((part) => part.startsWith('jokko_access_token='));
 
-    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : null;
+    return cookie
+      ? decodeURIComponent(cookie.split('=').slice(1).join('='))
+      : null;
   }
 }

@@ -46,27 +46,13 @@ export class ServicesComponent implements OnInit {
 
   protected readonly heroIllustration =
     'https://www.figma.com/api/mcp/asset/9f194bf6-3fd1-4012-bb76-dc280db53929';
-  protected readonly fallbackAvatars = [
-    'https://www.figma.com/api/mcp/asset/6fbed90c-597f-4a65-9803-f64e71b550c5',
-    'https://www.figma.com/api/mcp/asset/bd04523b-1aa5-479e-806b-1929dcc43dab',
-    'https://www.figma.com/api/mcp/asset/8ac6c017-5cd7-4960-a3d2-3e839aa68a3f',
-    'https://www.figma.com/api/mcp/asset/fd9a2b60-ecaa-4a48-90cf-61f71dac88d6',
-  ];
-  protected readonly fallbackPhotos = [
-    'https://www.figma.com/api/mcp/asset/86becdf8-4abc-4072-85ff-1b21088f7fd0',
-    'https://www.figma.com/api/mcp/asset/69c4201e-99e0-426f-9213-6df5a95fe4e9',
-    'https://www.figma.com/api/mcp/asset/dd8f6549-6b09-41ac-b1f1-fe63f6bd292a',
-    'https://www.figma.com/api/mcp/asset/d3ba4c59-bc9b-49d2-88b1-48ff60c3f0c4',
-    'https://www.figma.com/api/mcp/asset/75efea4c-2efe-4333-ac01-5224440c6148',
-    'https://www.figma.com/api/mcp/asset/897d1143-68ee-47bd-9e3e-fafceb170ad4',
-    'https://www.figma.com/api/mcp/asset/e7027761-7239-4313-83b7-225104e195f5',
-    'https://www.figma.com/api/mcp/asset/99f79ff2-baa5-437c-9f99-5e6e793818da',
-  ];
 
   sections = signal<ServiceSection[]>([]);
   categoryPagination = signal<PaginationMeta | undefined>(undefined);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
+  searchTerm = signal<string>('');
+  readonly locationValue = 'Dakar, SN';
   protected readonly currentUser = this.authSession.currentUser;
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
@@ -86,6 +72,41 @@ export class ServicesComponent implements OnInit {
   ngOnInit(): void {
     this.loadHomeData();
     this.loadFavorites();
+  }
+
+  onSearchTermChange(value: string): void {
+    this.searchTerm.set(value);
+  }
+
+  submitSearch(value: string): void {
+    const query = value.trim();
+
+    if (!query) {
+      this.loadHomeData();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.categoryPagination.set(undefined);
+    this.servicesService.searchProfessionals(query, 1, 6, 'Dakar').subscribe({
+      next: (result) => {
+        this.sections.set([
+          {
+            id: 'search-results',
+            title: `Recherche ${query}`,
+            countLabel: `${result.meta?.total || result.providers.length} Professionnels`,
+            providers: result.providers,
+            pagination: result.meta,
+          },
+        ]);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set(SERVICES_UI_MESSAGES.loadServicesFailed);
+        this.isLoading.set(false);
+      },
+    });
   }
 
   onViewAll(section: ServiceSection): void {
@@ -119,6 +140,10 @@ export class ServicesComponent implements OnInit {
   }
 
   loadHomeData(page: number = 1): void {
+    if (page === 1) {
+      this.searchTerm.set('');
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.servicesService.getServiceHomeData(page, 5).subscribe({
@@ -155,19 +180,22 @@ export class ServicesComponent implements OnInit {
     });
   }
 
-  resolveProviderAvatar(provider: { avatar?: string }, index: number): string {
-    return provider.avatar || this.fallbackAvatars[index % this.fallbackAvatars.length];
+  resolveProviderAvatar(provider: { avatar?: string }): string | null {
+    return provider.avatar || null;
   }
 
-  resolveProviderPhoto(
-    provider: { photos: string[] },
-    providerIndex: number,
-    photoIndex: number,
-  ): string {
-    return (
-      provider.photos[photoIndex] ||
-      this.fallbackPhotos[(providerIndex * 2 + photoIndex) % this.fallbackPhotos.length]
-    );
+  providerInitials(name: string): string {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  providerPhotos(provider: { photos: string[] }): string[] {
+    return provider.photos.slice(0, 2);
   }
 
   isProviderFavorite(providerId: string): boolean {

@@ -1,7 +1,7 @@
 :host .hero {
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
-  min-height: 355px !important;
+  min-height: 355px;
   overflow: hidden;
   position: relative;
 }
@@ -11,44 +11,45 @@
 }
 
 :host .hero-content {
-  display: block !important;
-  height: 355px !important;
-  margin-bottom: 0;
-  max-width: 100% !important;
-  min-height: 233px !important;
-  padding: 0 0 0 29px !important;
+  height: 355px;
+  max-width: 100%;
+  min-height: 233px;
+  overflow: hidden;
+  padding: 0  0 0 29px;
+  position: relative;
+  align-items: flex-start;
 }
 
 :host .search-zone {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding-top: 90px;
+  padding-top: 76px;
   position: relative;
-  width: 916px;
+  width: min(916px, 100%);
   z-index: 2;
 }
 
 :host .search-zone h1 {
-  font-size: 48px !important;
-  font-weight: 800 !important;
-  line-height: 1.18 !important;
-  margin: 0 auto 18px !important;
-  max-width: 520px !important;
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.18;
+  margin: 0 auto 18px;
+  max-width: 520px;
   text-align: center;
 }
 
 :host .search-bar {
-  display: block !important;
-  margin: 0 !important;
-  max-width: 916px !important;
+  display: block;
+  margin: 0;
+  max-width: 916px;
   width: 100%;
 }
 
 :host .hero-visual {
   bottom: 0;
   display: block;
-  max-height: 370px !important;
+  max-height: 370px;
   object-fit: contain;
   position: absolute;
   right: -510px;
@@ -56,9 +57,63 @@
   z-index: 1;
 }
 
-:host .hero-content app-scroll-down-indicator {
-  position: absolute;
-  bottom: 32px;
-  right: 36px;
-  z-index: 10;
+/* ─── Tablet (768px – 1023px) ──────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :host .hero {
+    min-height: 300px;
+  }
+
+  :host .hero-content {
+    height: 300px;
+    padding: 0 20px;
+  }
+
+  :host .search-zone {
+    padding-top: 60px;
+    width: 100%;
+  }
+
+  :host .search-zone h1 {
+    font-size: 36px;
+    margin-bottom: 16px;
+    max-width: 100%;
+  }
+
+  :host .hero-visual {
+    right: -700px;
+    opacity: 0.6;
+  }
+}
+
+/* ─── Mobile (<768px) ───────────────────────────────────────────── */
+@media (max-width: 767px) {
+  :host .hero {
+    min-height: 260px;
+  }
+
+  :host .hero-content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 260px;
+    padding: 20px 16px 28px;
+  }
+
+  :host .search-zone {
+    align-items: center;
+    padding-top: 16px;
+    width: 100%;
+  }
+
+  :host .search-zone h1 {
+    font-size: clamp(24px, 7vw, 32px);
+    margin-bottom: 16px;
+    max-width: 100%;
+  }
+
+  /* Hide the decorative panoramic illustration on mobile */
+  :host .hero-visual {
+    display: none;
+  }
 }

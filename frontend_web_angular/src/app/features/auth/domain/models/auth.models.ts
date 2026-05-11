@@ -35,6 +35,7 @@ export interface SendOtpResponseDto {
 
 export interface AuthResponseDto {
   user: UserDto;
+  accessToken?: string;
 }
 
 export interface UserDto {

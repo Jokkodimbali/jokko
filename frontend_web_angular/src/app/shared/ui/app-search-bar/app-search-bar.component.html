@@ -2,6 +2,7 @@
   class="app-search-bar"
   [class.app-search-bar--compact]="variant === 'compact'"
   [attr.aria-label]="ariaLabel"
+  (submit)="$event.preventDefault(); onSubmit()"
 >
   <button type="button" class="app-search-bar__location">
     <lucide-icon name="map-pin" size="22" [strokeWidth]="3"></lucide-icon>
@@ -11,10 +12,15 @@
 
   <label class="app-search-bar__field">
     <lucide-icon name="search" size="35" [strokeWidth]="2.6"></lucide-icon>
-    <input type="search" [placeholder]="placeholder" />
+    <input
+      type="search"
+      [value]="value"
+      [placeholder]="placeholder"
+      (input)="onInput($any($event.target).value)"
+    />
   </label>
 
-  <button type="button" class="app-search-bar__filter">
+  <button type="button" class="app-search-bar__filter" aria-label="Ouvrir les filtres">
     <lucide-icon name="sliders-horizontal" size="36" [strokeWidth]="3"></lucide-icon>
     {{ filterLabel }}
   </button>

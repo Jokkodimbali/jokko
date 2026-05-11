@@ -3,6 +3,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Global Reset & Base ────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: Inter, 'Roboto', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── Design Tokens ──────────────────────────────────────────────── */
 :root {
   --color-brand: #865221;
   --color-brand-alt: #8b551f;
@@ -223,19 +250,6 @@
   text-align: center;
 }
 
-.services-page .search-bar {
-  align-items: center;
-  background: #fff;
-  border-radius: 30px;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
-  color: #172433;
-  display: grid;
-  grid-template-columns: 210px 1fr 126px;
-  height: 70px;
-  margin-left: 28px;
-  max-width: 860px;
-  padding: 7px;
-}
 
 .services-page .location-control,
 .services-page .filter-button {
@@ -413,7 +427,16 @@
   padding: 9px 28px;
 }
 
-@media (max-width: 980px) {
+/* Responsive Breakpoints */
+:root {
+  --mobile-max: 767px;
+  --tablet-min: 768px;
+  --tablet-max: 1023px;
+  --desktop-min: 1024px;
+}
+
+/* Mobile: <768px */
+@media (max-width: 767px) {
   .services-page .topbar,
   .services-page .hero-content,
   .services-page .content-shell {
@@ -440,22 +463,60 @@
   .services-page .favorites {
     border-right: 0;
   }
-}
 
-@media (max-width: 560px) {
   .services-page .nav-item {
     min-height: 54px;
     width: 100%;
   }
 
   .services-page .provider-card {
-    flex-basis: 300px;
+    flex-basis: 100%;
+    min-width: 280px;
   }
 
   .services-page .provider-info,
   .services-page .favorite-row {
     align-items: flex-start;
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .services-page .provider-info img,
+  .services-page .favorite-row img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .services-page .photo-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .services-page .content-shell {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .services-page .provider-card {
+    flex-basis: calc(50% - 12px);
+    min-width: 300px;
+  }
+
+  .services-page .photo-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop: >1024px */
+@media (min-width: 1024px) {
+  .services-page .content-shell {
+    grid-template-columns: 330px minmax(0, 1fr);
+  }
+
+  .services-page .provider-card {
+    flex-basis: calc(33.333% - 16px);
+    min-width: 320px;
   }
 }
 
@@ -842,25 +903,14 @@
   text-align: center;
 }
 
-@media (max-width: 920px) {
-  .auth-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-panel__story,
-  .auth-panel__form-shell {
-    border-radius: 24px;
-  }
-
-  .auth-panel__form-shell {
-    border: 1px solid #e2e8f0;
-    margin-top: 18px;
-  }
-}
-
-@media (max-width: 620px) {
+/* Mobile: <768px */
+@media (max-width: 767px) {
   .auth-page {
     padding: 14px;
+  }
+
+  .auth-panel {
+    grid-template-columns: 1fr;
   }
 
   .auth-panel__story,
@@ -871,6 +921,11 @@
 
   .auth-panel__story {
     padding: 24px;
+  }
+
+  .auth-panel__form-shell {
+    border: 1px solid #e2e8f0;
+    margin-top: 18px;
   }
 
   .auth-panel__proof div {
@@ -886,6 +941,51 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .auth-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-panel__story,
+  .auth-panel__form-shell {
+    border-radius: 24px;
+  }
+
+  .auth-panel__form-shell {
+    border: 1px solid #e2e8f0;
+    margin-top: 18px;
+  }
+
+  .auth-form__grid,
+  .auth-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop: >1024px */
+@media (min-width: 1024px) {
+  .auth-panel {
+    grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.15fr);
+  }
+
+  .auth-panel__story,
+  .auth-panel__form-shell {
+    border-radius: 28px;
+  }
+
+  .auth-panel__form-shell {
+    border-left: 1px solid rgba(226, 232, 240, 0.9);
+    border-top: 0;
+    margin-top: 0;
+  }
+
+  .auth-form__grid,
+  .auth-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

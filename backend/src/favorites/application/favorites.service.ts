@@ -146,9 +146,7 @@ export class FavoritesService {
       createdAt: favorite.creeLe,
       name: professional.nomEntreprise || professional.utilisateur.nom,
       subtitle:
-        primaryService?.categorie.nom ||
-        primaryService?.nom ||
-        'Prestataire',
+        primaryService?.categorie.nom || primaryService?.nom || 'Prestataire',
       location: professional.ville || 'Senegal',
       avatarUrl: professional.utilisateur.urlAvatar,
       rating: professional.noteGlobale.toNumber(),

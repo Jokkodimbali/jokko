@@ -1,0 +1,45 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { ApiResponse } from '../../../core/http/api-response.models';
+import { unwrapApiResponse } from '../../../core/http/api-response.utils';
+import { Conversation, ConversationMessage } from '../domain/models/messages.models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class MessagesService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/conversations`;
+
+  listConversations(limit = 30, offset = 0): Observable<Conversation[]> {
+    return this.http
+      .get<ApiResponse<Conversation[]>>(this.apiUrl, {
+        params: {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        },
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  listMessages(conversationId: string, limit = 50, offset = 0): Observable<ConversationMessage[]> {
+    return this.http
+      .get<ApiResponse<ConversationMessage[]>>(`${this.apiUrl}/${conversationId}/messages`, {
+        params: {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        },
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  sendMessage(conversationId: string, content: string): Observable<ConversationMessage> {
+    return this.http
+      .post<ApiResponse<ConversationMessage>>(`${this.apiUrl}/${conversationId}/messages`, {
+        content,
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+}

@@ -27,7 +27,10 @@ export class CategoriesController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  async listActive(@Query('page') page?: string, @Query('limit') limit?: string) {
+  async listActive(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const p = page ? parseInt(page) : 1;
     const l = limit ? parseInt(limit) : 10;
     const result = await this.categoriesFacade.listActiveCategories(p, l);

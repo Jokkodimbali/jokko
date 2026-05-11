@@ -52,10 +52,49 @@ export class ServicesService {
         params: { categoryId, page: page.toString(), limit: limit.toString() },
       })
       .pipe(
-        map((response) => ({
-          providers: unwrapApiResponse(response).map((p) => this.mapProfessional(p)),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
+        switchMap((response) =>
+          this.attachPortfolioPhotos(unwrapApiResponse(response)).pipe(
+            map((providers) => ({
+              providers,
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            })),
+          ),
+        ),
+      );
+  }
+
+  searchProfessionals(
+    query: string,
+    page: number = 1,
+    limit: number = 6,
+    city?: string,
+  ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
+    const params: Record<string, string> = {
+      page: page.toString(),
+      limit: limit.toString(),
+    };
+
+    if (query.trim()) {
+      params['query'] = query.trim();
+    }
+
+    if (city?.trim()) {
+      params['city'] = city.trim();
+    }
+
+    return this.http
+      .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
+        params,
+      })
+      .pipe(
+        switchMap((response) =>
+          this.attachPortfolioPhotos(unwrapApiResponse(response)).pipe(
+            map((providers) => ({
+              providers,
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            })),
+          ),
+        ),
       );
   }
 
@@ -151,17 +190,47 @@ export class ServicesService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  private mapProfessional(data: BackendProfessional): Professional {
+  private attachPortfolioPhotos(data: BackendProfessional[]): Observable<Professional[]> {
+    if (data.length === 0) {
+      return of([]);
+    }
+
+    return forkJoin(
+      data.map((professional) =>
+        this.getProfessionalPortfolio(professional.id).pipe(
+          map((portfolio) =>
+            this.mapProfessional(
+              professional,
+              portfolio.map((item) => item.urlImage).filter(Boolean),
+            ),
+          ),
+          catchError(() => of(this.mapProfessional(professional))),
+        ),
+      ),
+    );
+  }
+
+  private mapProfessional(data: BackendProfessional, photos: string[] = []): Professional {
     const primaryService = data.services[0];
 
     return {
       id: data.id,
       nom: data.companyName || data.name,
       speciality: primaryService?.categoryName || primaryService?.name || 'Service',
-      location: data.city || 'Dakar',
+      location: this.formatLocation(data.city, data.distanceKm),
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       avatar: data.avatarUrl || undefined,
-      photos: [],
+      photos,
     };
+  }
+
+  private formatLocation(city: string | null, distanceKm: number | null): string {
+    const cityLabel = city || 'Dakar';
+
+    if (distanceKm === null) {
+      return cityLabel;
+    }
+
+    return `${cityLabel} - ${distanceKm.toFixed(1)} KM`;
   }
 }

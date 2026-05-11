@@ -383,7 +383,41 @@
   margin: 38px 0 0;
 }
 
-@media (max-width: 980px) {
+/* Mobile: <768px */
+@media (max-width: 767px) {
+  .provider-profile__shell {
+    margin-top: 20px;
+    width: min(calc(100% - 16px), 848px);
+  }
+
+  .provider-profile__identity,
+  .provider-profile__stats,
+  .provider-profile__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .provider-profile__identity {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .provider-profile__actions {
+    padding: 0 0 12px;
+  }
+
+  .provider-profile__stats {
+    height: auto;
+    padding: 16px;
+    row-gap: 16px;
+  }
+
+  .provider-profile__grid {
+    gap: 12px;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
   .provider-profile__shell {
     margin-top: 28px;
     width: min(calc(100% - 24px), 848px);
@@ -414,3 +448,5 @@
     gap: 16px;
   }
 }
+
+/* Desktop: >1024px - unchanged */

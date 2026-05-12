@@ -176,7 +176,7 @@
 
 :host .empty-favorites {
   align-items: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(19, 18, 18, 0.85);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -187,10 +187,10 @@
 }
 
 :host .empty-favorites .auth-link {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(39, 38, 38, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-  color: #fff;
+  color: #111111;
   padding: 8px 20px;
   text-decoration: none;
   transition: background 0.2s;

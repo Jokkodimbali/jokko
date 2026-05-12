@@ -51,6 +51,7 @@ export class AppNavbarComponent implements OnInit {
     const user = this.currentUser();
     return user ? `${user.name} (${user.role})` : 'Connexion';
   });
+  protected readonly profileName = computed(() => this.currentUser()?.name || 'Mon Compte');
 
   protected readonly navItems = signal<AppNavItem[]>([
     {

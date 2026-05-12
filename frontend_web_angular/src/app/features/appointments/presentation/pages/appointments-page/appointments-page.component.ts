@@ -87,7 +87,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   private loadAppointments(): void {
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       this.isLoading.set(false);
       return;
     }

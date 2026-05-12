@@ -1,12 +1,26 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import {
+  NegotiationView,
+  ServiceProposalService,
+} from '../../../../services/data-access/service-proposal.service';
 import { MessagesService } from '../../../data-access/messages.service';
 import { Conversation, ConversationMessage } from '../../../domain/models/messages.models';
+
+interface PendingProposal {
+  negotiationId: string | null;
+  conversationId: string | null;
+  professionalId: string | null;
+  providerName: string;
+  serviceName: string;
+  amount: number;
+  status: string | null;
+}
 
 @Component({
   selector: 'app-messages-page',
@@ -15,9 +29,12 @@ import { Conversation, ConversationMessage } from '../../../domain/models/messag
   templateUrl: './messages-page.component.html',
   styleUrl: './messages-page.component.scss',
 })
-export class MessagesPageComponent implements OnInit {
+export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
+  private readonly proposalService = inject(ServiceProposalService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly conversations = signal<Conversation[]>([]);
@@ -29,6 +46,9 @@ export class MessagesPageComponent implements OnInit {
   protected readonly isLoadingMessages = signal(false);
   protected readonly isSending = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly pendingProposal = signal<PendingProposal | null>(null);
+  protected readonly priceProposals = signal<NegotiationView[]>([]);
+  private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly selectedConversation = computed(() =>
     this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
@@ -50,8 +70,37 @@ export class MessagesPageComponent implements OnInit {
     });
   });
 
+  protected readonly visibleProposal = computed<PendingProposal | null>(() => {
+    const proposal = this.pendingProposal();
+    const conversation = this.selectedConversation();
+
+    if (proposal && this.isProposalForConversation(proposal, conversation)) {
+      return proposal;
+    }
+
+    if (!conversation) {
+      return proposal;
+    }
+
+    return this.proposalFromConversation(conversation);
+  });
+
+  protected readonly isProposalAccepted = computed(() => {
+    const status = this.visibleProposal()?.status;
+    return status === 'ACCEPTEE' || status === 'CONVERTIE_EN_RESERVATION';
+  });
+
   ngOnInit(): void {
+    this.readPendingProposalFromQuery();
+    this.refreshPendingProposalStatus();
+    this.startPendingProposalStatusRefresh();
     this.loadConversations();
+  }
+
+  ngOnDestroy(): void {
+    if (this.proposalStatusRefreshId) {
+      clearInterval(this.proposalStatusRefreshId);
+    }
   }
 
   protected selectConversation(conversationId: string): void {
@@ -135,11 +184,23 @@ export class MessagesPageComponent implements OnInit {
     }).format(new Date(value));
   }
 
+  protected formatAmount(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0);
+  }
+
+  protected payAcceptedProposal(): void {
+    this.router.navigate(['/appointments']);
+  }
+
+  protected cancelAcceptedProposal(): void {
+    this.pendingProposal.set(null);
+  }
+
   private loadConversations(): void {
     this.isLoadingConversations.set(true);
     this.errorMessage.set(null);
 
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       this.isLoadingConversations.set(false);
       return;
     }
@@ -147,8 +208,10 @@ export class MessagesPageComponent implements OnInit {
     this.messagesService.listConversations().subscribe({
       next: (conversations) => {
         this.conversations.set(conversations);
-        const selectedId = conversations[0]?.id ?? null;
+        const selectedId =
+          this.findProposalConversation(conversations)?.id ?? conversations[0]?.id ?? null;
         this.selectedConversationId.set(selectedId);
+        this.loadPriceProposals();
         this.isLoadingConversations.set(false);
 
         if (selectedId) {
@@ -181,5 +244,145 @@ export class MessagesPageComponent implements OnInit {
     this.messagesService.listConversations().subscribe({
       next: (conversations) => this.conversations.set(conversations),
     });
+  }
+
+  private loadPriceProposals(): void {
+    if (!this.authSession.hasAuthenticatedSession()) {
+      return;
+    }
+
+    this.proposalService.listMyPriceProposals().subscribe({
+      next: (proposals) => {
+        this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
+      },
+    });
+  }
+
+  private refreshPendingProposalStatus(): void {
+    const proposal = this.pendingProposal();
+
+    if (!proposal?.negotiationId || !this.authSession.hasAuthenticatedSession()) {
+      return;
+    }
+
+    this.proposalService.listMyPriceProposals().subscribe({
+      next: (proposals) => {
+        const currentProposal = proposals.find((item) => item.id === proposal.negotiationId);
+        if (!currentProposal) {
+          return;
+        }
+
+        this.pendingProposal.set({
+          ...proposal,
+          amount: currentProposal.montantCourant || proposal.amount,
+          status: currentProposal.statut,
+        });
+        this.priceProposals.update((items) => {
+          const others = items.filter((item) => item.id !== currentProposal.id);
+          return this.isVisibleProposalStatus(currentProposal.statut)
+            ? [currentProposal, ...others]
+            : others;
+        });
+
+        if (currentProposal.statut === 'ACCEPTEE' && this.proposalStatusRefreshId) {
+          clearInterval(this.proposalStatusRefreshId);
+          this.proposalStatusRefreshId = null;
+        }
+      },
+    });
+  }
+
+  private startPendingProposalStatusRefresh(): void {
+    const proposal = this.pendingProposal();
+
+    if (!proposal?.negotiationId || this.proposalStatusRefreshId) {
+      return;
+    }
+
+    this.proposalStatusRefreshId = setInterval(() => {
+      this.refreshPendingProposalStatus();
+    }, 5000);
+  }
+
+  private readPendingProposalFromQuery(): void {
+    const query = this.route.snapshot.queryParamMap;
+    const rawAmount = Number(query.get('amount'));
+    const professionalId = query.get('professionalId');
+
+    if (!professionalId && !Number.isFinite(rawAmount)) {
+      return;
+    }
+
+    this.pendingProposal.set({
+      negotiationId: query.get('negotiationId'),
+      conversationId: query.get('conversationId'),
+      professionalId,
+      providerName: query.get('providerName') || 'le prestataire',
+      serviceName: query.get('serviceName') || 'service',
+      amount: Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : 0,
+      status: query.get('status'),
+    });
+  }
+
+  private findProposalConversation(conversations: Conversation[]): Conversation | null {
+    const proposal = this.pendingProposal();
+
+    if (!proposal) {
+      return null;
+    }
+
+    return (
+      conversations.find((conversation) => conversation.id === proposal.conversationId) ??
+      conversations.find(
+        (conversation) =>
+          conversation.counterpart.professionalProfileId === proposal.professionalId ||
+          conversation.counterpart.name === proposal.providerName,
+      ) ?? null
+    );
+  }
+
+  private isProposalForConversation(
+    proposal: PendingProposal,
+    conversation: Conversation | null,
+  ): boolean {
+    if (!conversation) {
+      return true;
+    }
+
+    return (
+      conversation.id === proposal.conversationId ||
+      conversation.counterpart.professionalProfileId === proposal.professionalId ||
+      conversation.counterpart.name === proposal.providerName
+    );
+  }
+
+  private proposalFromConversation(conversation: Conversation): PendingProposal | null {
+    const professionalId = conversation.counterpart.professionalProfileId;
+    const proposal = this.priceProposals().find(
+      (item) => professionalId && item.professionnelId === professionalId,
+    );
+
+    if (!proposal) {
+      return null;
+    }
+
+    return {
+      negotiationId: proposal.id,
+      conversationId: conversation.id,
+      professionalId: proposal.professionnelId,
+      providerName: conversation.counterpart.name,
+      serviceName: 'service',
+      amount: proposal.montantCourant || proposal.montantInitial,
+      status: proposal.statut,
+    };
+  }
+
+  private isVisibleProposalStatus(status: string): boolean {
+    return (
+      status === 'EN_ATTENTE_PRESTATAIRE' ||
+      status === 'EN_ATTENTE_CLIENT' ||
+      status === 'ACCEPTEE' ||
+      status === 'CONVERTIE_EN_RESERVATION'
+    );
   }
 }

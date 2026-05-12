@@ -50,6 +50,34 @@ export class AppointmentsService {
       );
   }
 
+  getAppointmentById(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .get<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}`)
+      .pipe(
+        map(unwrapApiResponse),
+        switchMap((reservation) =>
+          this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
+            map((detail) => {
+              const service =
+                detail.services.find((item) => item.id === reservation.serviceId) ??
+                detail.services[0];
+
+              return this.mapAppointment(reservation, {
+                doctorName:
+                  detail.profile.nomEntreprise ||
+                  detail.profile.utilisateur.nom ||
+                  'Professionnel Jokko',
+                specialty: service?.nom || 'Consultation',
+                avatarUrl: detail.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+                serviceName: service?.nom || 'Service Jokko',
+              });
+            }),
+            catchError(() => of(this.mapAppointment(reservation))),
+          ),
+        ),
+      );
+  }
+
   private mapAppointment(
     reservation: BackendReservation,
     professional: {
@@ -63,16 +91,23 @@ export class AppointmentsService {
 
     return {
       id: reservation.id,
+      professionalId: reservation.professionnelId,
+      serviceId: reservation.serviceId,
       status: reservation.statut,
       scheduledAt: reservation.dateHeure,
+      durationMinutes: reservation.dureeMinutes,
       eyebrow: this.isDone(reservation.statut) ? 'RENDEZ-VOUS TERMINE' : 'PROCHAIN RENDEZ-VOUS',
       dateLabel: this.formatDate(date),
+      shortDateLabel: this.formatShortDate(date),
+      fullDateLabel: this.formatFullDate(date),
       timeLabel: this.formatTime(date),
       locationLabel: reservation.adresseClient || 'Au cabinet',
       doctorName: professional.doctorName || 'Professionnel Jokko',
       specialty: professional.specialty || 'Consultation',
       avatarUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
       serviceName: professional.serviceName || 'Consultation',
+      notes: reservation.notes,
+      agreedPrice: reservation.prixConvenu,
       confirmationLabel: this.confirmationLabel(reservation.statut),
       addressLabel: reservation.adresseClient || 'Adresse non renseignee',
     };
@@ -102,6 +137,25 @@ export class AppointmentsService {
 
     return new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(date);
+  }
+
+  private formatShortDate(date: Date): string {
+    if (Number.isNaN(date.getTime())) return '--/--/--';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    }).format(date);
+  }
+
+  private formatFullDate(date: Date): string {
+    if (Number.isNaN(date.getTime())) return 'date a confirmer';
+
+    return new Intl.DateTimeFormat('fr-FR', {
       day: 'numeric',
       month: 'long',
     }).format(date);

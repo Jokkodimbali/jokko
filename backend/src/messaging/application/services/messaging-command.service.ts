@@ -72,16 +72,26 @@ export class MessagingCommandService extends MessagingAppService {
     requestUser: AuthUser,
     command: CreateConversationCommand,
   ) {
-    const participantContext = await this.resolveReservationConversationContext(
-      requestUser,
-      command.reservationId,
-    );
+    const participantContext = command.reservationId
+      ? await this.resolveReservationConversationContext(
+          requestUser,
+          command.reservationId,
+        )
+      : await this.resolveDirectConversationContext(
+          requestUser,
+          command.professionalProfileId,
+        );
 
-    const existing =
-      await this.messagingRepository.findConversationByReservationId(
-        participantContext.reservationId,
-        requestUser.sub,
-      );
+    const existing = participantContext.reservationId
+      ? await this.messagingRepository.findConversationByReservationId(
+          participantContext.reservationId,
+          requestUser.sub,
+        )
+      : await this.messagingRepository.findDirectConversationByParticipants({
+          clientUserId: participantContext.clientUserId,
+          professionalUserId: participantContext.professionalUserId,
+          currentUserId: requestUser.sub,
+        });
     if (existing) {
       return existing;
     }
@@ -97,12 +107,43 @@ export class MessagingCommandService extends MessagingAppService {
       {
         clientUserId: conversation.clientUserId,
         professionalUserId: conversation.professionalUserId,
-        reservationId: conversation.reservationId,
+        reservationId: participantContext.reservationId,
       },
       requestUser.sub,
     );
 
     return result.conversation;
+  }
+
+  private async resolveDirectConversationContext(
+    requestUser: AuthUser,
+    professionalProfileId?: string,
+  ): Promise<{
+    clientUserId: string;
+    professionalUserId: string;
+    reservationId: string | null;
+  }> {
+    if (!professionalProfileId) {
+      throw appHttpException('MESSAGING_RESERVATION_REQUIRED');
+    }
+
+    if (requestUser.role !== 'CLIENT') {
+      throw appHttpException('MESSAGING_UNAUTHORIZED');
+    }
+
+    const professional = await this.getProfessionalProfileOrThrow(
+      professionalProfileId,
+    );
+
+    if (professional.utilisateur.id === requestUser.sub) {
+      throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
+    }
+
+    return {
+      clientUserId: requestUser.sub,
+      professionalUserId: professional.utilisateur.id,
+      reservationId: null,
+    };
   }
 
   async sendMessage(

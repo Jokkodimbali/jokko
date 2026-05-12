@@ -1,4 +1,9 @@
-<article class="appointment-card">
+<article
+  class="appointment-card"
+  [routerLink]="['/appointments', appointment.id]"
+  role="link"
+  tabindex="0"
+>
   <header>
     <span>{{ appointment.eyebrow }}</span>
     <button type="button" aria-label="Options du rendez-vous">

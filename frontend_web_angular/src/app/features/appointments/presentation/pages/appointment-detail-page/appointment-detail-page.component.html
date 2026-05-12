@@ -1,0 +1,166 @@
+<main class="appointment-detail">
+  <section class="appointment-detail__nav" aria-label="Navigation principale">
+    <app-navbar />
+  </section>
+
+  <header class="appointment-detail__topbar">
+    <button type="button" class="appointment-detail__back" aria-label="Retour" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
+    </button>
+    <h1>Informations sur le rendez vous</h1>
+    <span></span>
+  </header>
+
+  <section class="appointment-detail__state" *ngIf="isLoading()">Chargement du rendez-vous...</section>
+  <section class="appointment-detail__state appointment-detail__state--error" *ngIf="!isLoading() && errorMessage()">
+    {{ errorMessage() }}
+  </section>
+
+  <ng-container *ngIf="!isLoading() && !errorMessage() && appointment() as appointment">
+    <section class="appointment-detail__hero">
+      <span>
+        <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.4"></lucide-icon>
+        {{ statusLabel() }}
+      </span>
+      <lucide-icon class="appointment-detail__hero-icon" name="calendar-days" size="54" [strokeWidth]="2.8"></lucide-icon>
+      <h2>Votre intervention est confirmée pour le {{ appointment.fullDateLabel }}</h2>
+      <p>
+        {{ appointment.doctorName }} interviendra à {{ appointment.timeLabel }}.
+        Vous recevrez une alerte 24 h avant le rendez- vous
+      </p>
+      <div>
+        <em>
+          <lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon>
+          {{ appointment.timeLabel }}
+        </em>
+        <em>
+          <lucide-icon name="map-pin" size="18" [strokeWidth]="2.4"></lucide-icon>
+          {{ appointment.addressLabel }}
+        </em>
+      </div>
+    </section>
+
+    <section class="appointment-detail__body">
+      <div class="appointment-detail__left">
+        <article class="appointment-detail__card appointment-detail__service">
+          <span class="appointment-detail__tool">
+            <lucide-icon name="wrench" size="41" [strokeWidth]="2.6"></lucide-icon>
+          </span>
+          <div class="appointment-detail__service-copy">
+            <h2>{{ appointment.serviceName }}</h2>
+            <p>{{ appointment.notes || 'Diagnostic et réparation. Module matériel inclus' }}</p>
+            <div class="appointment-detail__badges">
+              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Diagnostic</span>
+              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Garantie 30J</span>
+              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Matériel inclus</span>
+            </div>
+          </div>
+
+          <div class="appointment-detail__facts">
+            <strong>
+              <lucide-icon name="calendar-days" size="19" [strokeWidth]="2.4"></lucide-icon>
+              DATE
+              <b>{{ appointment.shortDateLabel }}</b>
+            </strong>
+            <strong>
+              <lucide-icon name="clock-3" size="19" [strokeWidth]="2.4"></lucide-icon>
+              HEURE
+              <b>{{ appointment.timeLabel }}</b>
+            </strong>
+            <strong>
+              <lucide-icon name="heart-pulse" size="19" [strokeWidth]="2.4"></lucide-icon>
+              DURÉE
+              <b>{{ durationLabel(appointment) }}</b>
+            </strong>
+          </div>
+
+          <div class="appointment-detail__actions">
+            <button type="button">
+              <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.4"></lucide-icon>
+              Synchroniser le RDV
+            </button>
+            <button type="button">
+              <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2.4"></lucide-icon>
+              Reprogrammer
+            </button>
+            <button type="button">
+              <lucide-icon name="circle-x" size="15" [strokeWidth]="2.4"></lucide-icon>
+              Annuler
+            </button>
+          </div>
+        </article>
+
+        <article class="appointment-detail__card appointment-detail__provider">
+          <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <div>
+            <h2>{{ appointment.doctorName }}</h2>
+            <p>{{ appointment.specialty }} <span>// 500 intervention</span></p>
+            <strong><lucide-icon name="star" size="18" [strokeWidth]="2.2"></lucide-icon> 4.9/5 (125 avis)</strong>
+          </div>
+          <a [routerLink]="['/services', appointment.professionalId]">
+            PROFIL
+            <lucide-icon name="arrow-right" size="17" [strokeWidth]="2.4"></lucide-icon>
+          </a>
+          <div class="appointment-detail__contact">
+            <button type="button"><lucide-icon name="phone" size="19" [strokeWidth]="2.3"></lucide-icon>TELEPHONE</button>
+            <button type="button"><lucide-icon name="message-circle" size="19" [strokeWidth]="2.3"></lucide-icon>MESSAGE</button>
+            <button type="button"><lucide-icon name="mail" size="19" [strokeWidth]="2.3"></lucide-icon>EMAIL</button>
+          </div>
+        </article>
+
+        <article class="appointment-detail__card appointment-detail__alert">
+          <span><lucide-icon name="bell" size="20" [strokeWidth]="2.4"></lucide-icon></span>
+          <p><b>AUTO-ALERTE</b> - notification programmée 24H avant le RDV</p>
+          <button type="button" (click)="alertEnabled.update((value) => !value)">
+            <lucide-icon name="power" size="16" [strokeWidth]="2.4"></lucide-icon>
+            {{ alertEnabled() ? 'Activé' : 'Activer' }}
+          </button>
+        </article>
+      </div>
+
+      <div class="appointment-detail__right">
+        <article class="appointment-detail__tracking">
+          <span><lucide-icon name="lock-keyhole" size="52" [strokeWidth]="2.4"></lucide-icon></span>
+          <h2>Le suivi en direct s’activera le jour du rendez-vous</h2>
+          <p>
+            Vous pourrez suivre {{ appointment.doctorName }} en temps réel sur la carte dès qu’il sera en route vers chez vous.
+          </p>
+          <div>
+            <strong>
+              <lucide-icon name="clock-3" size="34" [strokeWidth]="2.4"></lucide-icon>
+              <small>DEVERROUILLAGE</small>
+              {{ appointment.fullDateLabel }} - {{ appointment.timeLabel }}
+            </strong>
+            <strong>
+              <lucide-icon name="map-pin" size="36" [strokeWidth]="2.4"></lucide-icon>
+              <small>ADRESSE APPROXIMATIVE</small>
+              {{ appointment.addressLabel }}
+            </strong>
+            <strong>
+              <lucide-icon name="bell" size="35" [strokeWidth]="2.4"></lucide-icon>
+              <small>NOTIFICATION</small>
+              Alerte 30 min avant l'arrivée
+            </strong>
+          </div>
+        </article>
+
+        <article class="appointment-detail__payment">
+          <h2>
+            <span><lucide-icon name="circle-dollar-sign" size="32" [strokeWidth]="2.6"></lucide-icon></span>
+            MOYEN DE PAIEMENT
+          </h2>
+          <div class="appointment-detail__payment-method">
+            <img src="/wave.png" alt="Wave" />
+            <p>
+              <strong>wave</strong>
+              <small>****** 54 98- {{ appointment.shortDateLabel }}</small>
+            </p>
+            <lucide-icon name="check" size="24" [strokeWidth]="3"></lucide-icon>
+          </div>
+        </article>
+      </div>
+    </section>
+  </ng-container>
+
+  <app-footer />
+</main>

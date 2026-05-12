@@ -58,20 +58,27 @@
       <section *ngIf="isMenuOpen()" class="app-navbar__dropdown" role="menu">
         <button
           type="button"
-          class="app-navbar__dropdown-head"
+          class="app-navbar__dropdown-account"
           aria-label="Fermer le menu profil"
           (click)="closeProfileMenu()"
         >
-          <span>{{ profileLabel() }}</span>
-          <lucide-icon name="chevron-down" size="34" [strokeWidth]="2.5"></lucide-icon>
+          <span class="app-navbar__dropdown-avatar">{{ profileLabel() }}</span>
+          <span class="app-navbar__dropdown-account-copy">
+            <strong>{{ profileName() }}</strong>
+            <small>Connect&eacute;</small>
+          </span>
         </button>
 
         <a routerLink="/favorites" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
-          <lucide-icon name="heart" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span class="app-navbar__dropdown-icon">
+            <lucide-icon name="heart" size="19" [strokeWidth]="2.2"></lucide-icon>
+          </span>
           <span>Mes favoris</span>
         </a>
         <a routerLink="/settings" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
-          <lucide-icon name="settings" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span class="app-navbar__dropdown-icon">
+            <lucide-icon name="settings" size="18" [strokeWidth]="2.2"></lucide-icon>
+          </span>
           <span>Mes Param&egrave;tres</span>
         </a>
         <button
@@ -81,15 +88,13 @@
           [disabled]="isLoggingOut()"
           (click)="logout()"
         >
-          <lucide-icon name="log-out" size="32" [strokeWidth]="2.4"></lucide-icon>
+          <span class="app-navbar__dropdown-icon">
+            <lucide-icon name="log-out" size="18" [strokeWidth]="2.2"></lucide-icon>
+          </span>
           <span>D&eacute;connexion</span>
         </button>
       </section>
     </ng-template>
-
-    <a routerLink="/settings" class="app-navbar__settings" aria-label="Param&egrave;tres">
-      <lucide-icon name="settings" size="38" [strokeWidth]="2.5"></lucide-icon>
-    </a>
   </div>
 
   <!-- Hamburger Button (visible on mobile/tablet only) -->

@@ -6,6 +6,8 @@ const CHARLE_DIOUF: Omit<DoctorProfile, 'id'> = {
   rating: 4.9,
   reviewCount: 550,
   location: 'DAKAR',
+  latitude: 14.6928,
+  longitude: -17.4467,
   imageUrl: '/medicine-doctor-charle-diouf.png',
   isOnline: true,
   nextAvailability: ['MER 15', 'Jeu 16', 'ven 17', 'Sam 18'],

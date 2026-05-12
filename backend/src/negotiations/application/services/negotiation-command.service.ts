@@ -82,6 +82,20 @@ export class NegotiationCommandService extends NegotiationAppService {
       this.toCreateInput(entity),
     );
     if (!created) {
+      const existing =
+        await this.negotiationsRepository.findActiveByClientAndService(
+          requestUser.sub,
+          command.serviceId,
+        );
+      if (existing) {
+        const existingNegotiation = await this.negotiationsRepository.findById(
+          existing.id,
+        );
+        if (existingNegotiation) {
+          return existingNegotiation;
+        }
+      }
+
       throw appHttpException('NEGOTIATIONS_ALREADY_ACTIVE');
     }
     await this.publishEvents(entity);

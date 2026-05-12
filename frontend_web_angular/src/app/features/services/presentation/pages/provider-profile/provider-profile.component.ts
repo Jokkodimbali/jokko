@@ -1,7 +1,7 @@
 import { CommonModule, Location } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -35,6 +35,7 @@ interface ScheduleRow {
     AppNavbarComponent,
     AppScrollHintComponent,
     LucideAngularModule,
+    RouterLink,
   ],
   templateUrl: './provider-profile.component.html',
   styleUrl: './provider-profile.component.scss',
@@ -151,7 +152,7 @@ export class ProviderProfileComponent implements OnInit {
     const detail = this.detail();
     if (!detail) return;
 
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       this.feedback.success('Connectez-vous pour gerer vos favoris.');
       return;
     }
@@ -175,7 +176,7 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   private loadFavoriteStatus(): void {
-    if (!this.profileId || !this.currentUser()) return;
+    if (!this.profileId || !this.authSession.hasAuthenticatedSession()) return;
 
     this.favoritesService.status(this.profileId).subscribe({
       next: (status) => this.isFavorite.set(status.isFavorite),

@@ -8,8 +8,16 @@
   border-radius: 12px;
   box-shadow: 0 2px 9px rgba(15, 23, 42, 0.18);
   color: #1d2432;
+  cursor: pointer;
   min-height: 372px;
   padding: 16px 16px 18px;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.appointment-card:hover {
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
+  transform: translateY(-2px);
 }
 
 .appointment-card header,

@@ -1,0 +1,169 @@
+<main class="service-proposal">
+  <section class="service-proposal__nav">
+    <app-navbar />
+  </section>
+
+  <section class="service-proposal__bar">
+    <button type="button" class="service-proposal__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="19" [strokeWidth]="2.4"></lucide-icon>
+      Retour
+    </button>
+
+    <span class="service-proposal__secure">
+      <span></span>
+      Paiement securise
+    </span>
+  </section>
+
+  <section *ngIf="isLoading()" class="service-proposal__state">
+    Chargement de la proposition...
+  </section>
+
+  <section *ngIf="errorMessage()" class="service-proposal__state service-proposal__state--error">
+    {{ errorMessage() }}
+  </section>
+
+  <section *ngIf="!isLoading() && !errorMessage()" class="service-proposal__content">
+    <div class="service-proposal__form">
+      <header class="service-proposal__intro">
+        <h1>Choississez une date et l'adresse de rendez-vous</h1>
+        <p>Verifiez les informations, proposez votre prix et selectionnez un moyens de paiement.</p>
+      </header>
+
+      <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
+        <label class="service-proposal__field">
+          <span class="service-proposal__field-icon">
+            <lucide-icon name="calendar-days" size="20" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <span class="service-proposal__field-copy">
+            <small>DATE</small>
+            <strong>{{ formattedDate() }}</strong>
+          </span>
+          <input
+            type="datetime-local"
+            [min]="minAppointmentDate()"
+            [ngModel]="appointmentDate()"
+            (ngModelChange)="appointmentDate.set($event)"
+            aria-label="Date du rendez-vous"
+          />
+          <lucide-icon name="pencil" size="19" [strokeWidth]="2.1"></lucide-icon>
+        </label>
+
+        <label class="service-proposal__field service-proposal__field--address">
+          <span class="service-proposal__field-icon">
+            <lucide-icon name="map-pin" size="20" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <span class="service-proposal__field-copy">
+            <small>ADRESSE</small>
+            <strong>{{ shortAddress() }}</strong>
+          </span>
+          <input
+            type="text"
+            minlength="5"
+            required
+            [ngModel]="address()"
+            (ngModelChange)="address.set($event)"
+            aria-label="Adresse du rendez-vous"
+          />
+          <lucide-icon name="pencil" size="19" [strokeWidth]="2.1"></lucide-icon>
+        </label>
+      </div>
+
+      <div class="service-proposal__section-title">
+        <span>
+          <lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+        Proposez un prix au prestataire
+      </div>
+
+      <label class="service-proposal__offer">
+        <span>Votre offre</span>
+        <lucide-icon name="pencil" size="24" [strokeWidth]="2.3"></lucide-icon>
+        <input
+          type="number"
+          min="1"
+          step="500"
+          [ngModel]="offerAmount()"
+          (ngModelChange)="updateOfferAmount($event)"
+          aria-label="Votre offre"
+        />
+        <strong>FCFA</strong>
+      </label>
+
+      <h2>Moyens de paiement</h2>
+      <div class="service-proposal__payments" aria-label="Moyens de paiement">
+        <button
+          *ngFor="let payment of paymentOptions"
+          type="button"
+          class="service-proposal__payment"
+          [class.service-proposal__payment--selected]="selectedPayment() === payment.id"
+          (click)="selectPayment(payment.id)"
+        >
+          <span class="service-proposal__payment-logo" [attr.data-method]="payment.id">
+            <img [src]="payment.logoUrl" [alt]="payment.label" />
+            <span>{{ payment.mark }}</span>
+          </span>
+          <strong>{{ payment.label }}</strong>
+          <span *ngIf="selectedPayment() === payment.id" class="service-proposal__payment-check">
+            <lucide-icon name="check" size="16" [strokeWidth]="3"></lucide-icon>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <aside class="service-proposal__summary" aria-label="Recapitulatif du rendez-vous">
+      <div class="service-proposal__provider">
+        <img [src]="avatarUrl()" [alt]="displayName()" />
+        <div>
+          <h2>{{ displayName() }}</h2>
+          <span>
+            <lucide-icon name="wrench" size="18" [strokeWidth]="2.1"></lucide-icon>
+            {{ categoryLabel() }}
+          </span>
+          <p>
+            <lucide-icon name="star" size="16" [strokeWidth]="2.4" fill="currentColor"></lucide-icon>
+            {{ ratingLabel() }}
+          </p>
+        </div>
+      </div>
+
+      <div class="service-proposal__divider"></div>
+
+      <h3>DETAIL DU RENDEZ- VOUS</h3>
+
+      <div class="service-proposal__summary-row">
+        <span>
+          <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+        <p><small>DATE</small><strong>{{ formattedDate() }}</strong></p>
+      </div>
+
+      <div class="service-proposal__summary-row">
+        <span>
+          <lucide-icon name="map-pin" size="22" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+        <p><small>ADRESSE</small><strong>{{ shortAddress() }}</strong></p>
+      </div>
+
+      <div class="service-proposal__summary-row">
+        <span>
+          <lucide-icon name="wallet-cards" size="22" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+        <p><small>Prix propose</small><strong>{{ formattedOffer() }} FCFA</strong></p>
+      </div>
+    </aside>
+  </section>
+
+  <section *ngIf="!isLoading() && !errorMessage()" class="service-proposal__checkout">
+    <div>
+      <small>Total a autoriser</small>
+      <strong>{{ formattedOffer() }} FCFA</strong>
+    </div>
+    <button type="button" (click)="submitProposal()" [disabled]="isSubmitting()">
+      {{ isSubmitting() ? 'Envoi en cours...' : 'Confirmez la reservation' }}
+      <lucide-icon name="arrow-right" size="23" [strokeWidth]="2.3"></lucide-icon>
+    </button>
+  </section>
+
+  <app-footer />
+</main>

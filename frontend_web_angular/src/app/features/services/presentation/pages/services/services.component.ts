@@ -169,7 +169,7 @@ export class ServicesComponent implements OnInit {
   }
 
   private loadFavorites(): void {
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       return;
     }
 
@@ -208,7 +208,7 @@ export class ServicesComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       this.feedback.success('Connectez-vous pour gerer vos favoris.');
       return;
     }

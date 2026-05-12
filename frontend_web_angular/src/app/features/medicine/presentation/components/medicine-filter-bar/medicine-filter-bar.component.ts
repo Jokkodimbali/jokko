@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { MedicineFilterAction } from '../../../domain/models/medicine.models';
 
@@ -12,4 +12,6 @@ import { MedicineFilterAction } from '../../../domain/models/medicine.models';
 })
 export class MedicineFilterBarComponent {
   @Input({ required: true }) filters: MedicineFilterAction[] = [];
+  @Input() activeMap = false;
+  @Output() filterSelected = new EventEmitter<MedicineFilterAction>();
 }

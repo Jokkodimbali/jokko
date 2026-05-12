@@ -18,7 +18,7 @@ export interface Conversation {
   clientUserId: string;
   professionalUserId: string;
   professionalProfileId: string | null;
-  reservationId: string;
+  reservationId: string | null;
   lastMessageAt: string | null;
   createdAt: string;
   unreadCount: number;

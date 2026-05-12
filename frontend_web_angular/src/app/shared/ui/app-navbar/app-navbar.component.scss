@@ -1,22 +1,25 @@
 :host {
   display: block;
+  min-height: var(--app-navbar-height, 153px);
   --app-navbar-backdrop-height: 491px;
+  --app-navbar-height: 153px;
 }
 
-/* ─── Base Layout ───────────────────────────────────────────────── */
 .app-navbar {
   align-items: center;
+  background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
   display: grid;
   gap: 28px;
   grid-template-columns: 271px minmax(0, 1fr) auto;
   height: 153px;
-  margin: 0 auto;
-  max-width: 1728px;
+  inset: 0 0 auto;
+  max-width: none;
   padding: 17px 92px 17px 18px;
+  position: fixed;
+  z-index: 1000;
 }
 
-/* ─── Brand ─────────────────────────────────────────────────────── */
 .app-navbar__brand {
   align-items: center;
   color: var(--color-white, #fff);
@@ -35,7 +38,6 @@
   width: 271px;
 }
 
-/* ─── Desktop Nav ───────────────────────────────────────────────── */
 .app-navbar__nav {
   align-items: center;
   display: flex;
@@ -57,11 +59,6 @@
   min-width: 0;
   padding: 0 18px;
   text-decoration: none;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
   width: auto;
 }
 
@@ -75,17 +72,12 @@
   transform: scale(1.04);
 }
 
-.app-navbar__nav-item lucide-icon {
-  height: 36px;
-  width: 36px;
-}
-
-/* ─── Desktop Actions ───────────────────────────────────────────── */
 .app-navbar__actions {
   align-items: center;
   display: flex;
   gap: 8px;
   position: relative;
+  z-index: 130;
 }
 
 .app-navbar__blur-backdrop {
@@ -93,7 +85,6 @@
   -webkit-backdrop-filter: none;
   background: transparent;
   border: 0;
-  cursor: default;
   height: var(--app-navbar-backdrop-height);
   left: 0;
   position: fixed;
@@ -119,8 +110,7 @@
 }
 
 .app-navbar__login,
-.app-navbar__profile,
-.app-navbar__settings {
+.app-navbar__profile {
   align-items: center;
   background: var(--color-white, #fff);
   border: 0;
@@ -146,11 +136,6 @@
   width: 126px;
 }
 
-.app-navbar__profile--open {
-  opacity: 0;
-  pointer-events: none;
-}
-
 .app-navbar__profile span {
   align-items: center;
   display: inline-flex;
@@ -161,41 +146,22 @@
   width: 44px;
 }
 
-.app-navbar__profile lucide-icon {
-  height: 30px;
-  width: 30px;
-}
-
-.app-navbar__settings {
-  padding: 0;
-  position: relative;
-  text-decoration: none;
-  width: 57px;
-  z-index: 110;
-}
-
-.app-navbar__settings lucide-icon {
-  height: 38px;
-  width: 38px;
-}
-
-/* ─── Profile Dropdown ──────────────────────────────────────────── */
 .app-navbar__dropdown {
   background: var(--color-white, #fff);
-  border-radius: 20px;
-  box-shadow: 0 13px 25px rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 13px 26px rgba(0, 0, 0, 0.22);
   color: var(--color-strong, #0d1117);
   display: grid;
-  gap: 24px;
-  padding: 39px 36px 38px;
-  position: fixed;
-  right: 88px;
-  top: 46px;
-  width: 430px;
+  gap: 17px;
+  padding: 14px 20px 17px 22px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 210px;
   z-index: 120;
 }
 
-.app-navbar__dropdown-head,
+.app-navbar__dropdown-account,
 .app-navbar__dropdown-item {
   align-items: center;
   background: transparent;
@@ -206,28 +172,55 @@
   text-decoration: none;
 }
 
-.app-navbar__dropdown-head {
+.app-navbar__dropdown-account {
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 800;
-  justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 13px;
   padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
-.app-navbar__dropdown-head lucide-icon {
-  color: #2f465d;
-  transform: rotate(180deg);
+.app-navbar__dropdown-avatar {
+  align-items: center;
+  background: #9a5c20;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 900;
+  height: 35px;
+  justify-content: center;
+  width: 35px;
+}
+
+.app-navbar__dropdown-account-copy {
+  display: grid;
+}
+
+.app-navbar__dropdown-account-copy strong {
+  color: #101010;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.app-navbar__dropdown-account-copy small {
+  color: #101010;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.1;
 }
 
 .app-navbar__dropdown-item {
   cursor: pointer;
-  font-size: 18px;
-  font-weight: 800;
-  gap: 35px;
-  min-height: 48px;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 20px;
+  min-height: 34px;
   padding: 0;
   text-align: left;
+  width: 100%;
 }
 
 .app-navbar__dropdown-item:disabled {
@@ -235,11 +228,18 @@
   opacity: 0.65;
 }
 
-.app-navbar__dropdown-item lucide-icon {
+.app-navbar__dropdown-icon {
+  align-items: center;
+  background: #e9f1f8;
+  border-radius: 50%;
+  color: #0f1720;
+  display: inline-flex;
   flex: 0 0 auto;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
 }
 
-/* ─── Hamburger Button (hidden on desktop) ──────────────────────── */
 .app-navbar__hamburger {
   align-items: center;
   background: rgba(255, 255, 255, 0.15);
@@ -252,7 +252,6 @@
   height: 44px;
   justify-content: center;
   padding: 10px 11px;
-  transition: background 0.2s ease;
   width: 44px;
 }
 
@@ -380,9 +379,6 @@
   min-height: 54px;
   padding: 0 16px;
   text-decoration: none;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
 }
 
 .app-navbar__mobile-nav-item:hover,
@@ -465,9 +461,6 @@
   padding: 0 16px;
   text-align: left;
   text-decoration: none;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
   width: 100%;
 }
 
@@ -513,6 +506,10 @@
 
 /* ─── Responsive: Mobile / Tablet (<1024px) ─────────────────────── */
 @media (max-width: 1023px) {
+  :host {
+    --app-navbar-height: 72px;
+  }
+
   .app-navbar {
     grid-template-columns: auto 1fr auto;
     gap: 0;
@@ -558,6 +555,10 @@
 }
 
 @media (max-width: 420px) {
+  :host {
+    --app-navbar-height: 64px;
+  }
+
   .app-navbar {
     min-height: 64px;
     padding: 8px 12px;
@@ -581,6 +582,10 @@
 
 /* ─── Small Desktop (1024px–1199px) ───────────────────────────────── */
 @media (min-width: 1024px) and (max-width: 1199px) {
+  :host {
+    --app-navbar-height: clamp(120px, 12vw, 153px);
+  }
+
   .app-navbar {
     grid-template-columns: clamp(200px, 20vw, 271px) minmax(0, 1fr) auto;
     height: clamp(120px, 12vw, 153px);
@@ -620,15 +625,10 @@
     width: auto;
   }
 
-  .app-navbar__settings {
-    height: clamp(45px, 4vw, 51px);
-    width: clamp(50px, 4vw, 57px);
-  }
-
   .app-navbar__dropdown {
-    right: clamp(60px, 6vw, 88px);
-    top: clamp(36px, 4vw, 46px);
-    width: clamp(350px, 35vw, 430px);
+    right: 0;
+    top: calc(100% + 10px);
+    width: 210px;
   }
 
   .app-navbar__toast {
@@ -647,12 +647,6 @@
 
   .app-navbar__nav {
     gap: clamp(32px, 3vw, 96px);
-  }
-
-  .app-navbar__dropdown {
-    right: 88px;
-    top: 46px;
-    width: 430px;
   }
 
   .app-navbar__toast {

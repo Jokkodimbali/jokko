@@ -5,19 +5,21 @@ export class ConversationEntity {
     readonly id: string,
     readonly clientUserId: string,
     readonly professionalUserId: string,
-    readonly reservationId: string,
+    readonly reservationId: string | null,
   ) {}
 
   static create(input: {
     id: string;
     clientUserId: string;
     professionalUserId: string;
-    reservationId: string;
+    reservationId?: string | null;
   }) {
     if (
       input.clientUserId.trim().length === 0 ||
       input.professionalUserId.trim().length === 0 ||
-      input.reservationId.trim().length === 0
+      (input.reservationId !== null &&
+        input.reservationId !== undefined &&
+        input.reservationId.trim().length === 0)
     ) {
       throw MessagingDomainError.participantsRequired();
     }
@@ -26,7 +28,7 @@ export class ConversationEntity {
       input.id,
       input.clientUserId,
       input.professionalUserId,
-      input.reservationId,
+      input.reservationId ?? null,
     );
   }
 }

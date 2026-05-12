@@ -17,6 +17,8 @@ type SearchProfessionalRow = {
   companyName: string | null;
   bio: string | null;
   city: string | null;
+  latitude: number | null;
+  longitude: number | null;
   rating: Prisma.Decimal | number | string;
   totalReviews: number;
   distanceKm: number | null;
@@ -131,6 +133,14 @@ export class SearchRepository implements SearchRepositoryPort {
         pp.company_name AS "companyName",
         pp.bio AS bio,
         pp.city AS city,
+        CASE
+          WHEN pp.localisation IS NULL THEN NULL
+          ELSE ST_Y(pp.localisation::geometry)
+        END AS latitude,
+        CASE
+          WHEN pp.localisation IS NULL THEN NULL
+          ELSE ST_X(pp.localisation::geometry)
+        END AS longitude,
         pp.global_rating AS rating,
         pp.total_reviews AS "totalReviews",
         ${geoDistanceFragment} AS "distanceKm"
@@ -202,6 +212,8 @@ export class SearchRepository implements SearchRepositoryPort {
       companyName: row.companyName,
       bio: row.bio,
       city: row.city,
+      latitude: row.latitude === null ? null : Number(row.latitude),
+      longitude: row.longitude === null ? null : Number(row.longitude),
       rating: Number(row.rating),
       totalReviews: row.totalReviews,
       distanceKm:

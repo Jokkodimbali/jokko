@@ -145,7 +145,7 @@ export class NegotiationEntity {
     amount: number;
     message?: string | null;
   }): void {
-    this.assertPendingStatus('EN_ATTENTE_CLIENT');
+    this.assertOpen();
     this.applyCounterOffer('CLIENT', input);
   }
 

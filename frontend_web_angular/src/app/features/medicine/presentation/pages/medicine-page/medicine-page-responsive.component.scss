@@ -15,6 +15,26 @@
     font-size: 14px;
     margin: 32px 0 0;
   }
+
+  .medicine-page__map {
+    height: 560px;
+    margin: 18px -14px 0;
+    width: calc(100% + 28px);
+  }
+
+  .medicine-page__map-doctor {
+    grid-template-columns: 82px minmax(0, 1fr);
+    min-width: min(290px, calc(100vw - 42px));
+  }
+
+  .medicine-page__map-doctor img {
+    height: 124px;
+    width: 82px;
+  }
+
+  .medicine-page__map-doctor:nth-of-type(n + 3) {
+    display: none;
+  }
 }
 
 /* ─── Tablet (768px – 1023px) ──────────────────────────────────── */
@@ -27,6 +47,17 @@
 
   .medicine-page__booking-surface {
     padding: 12px 32px 13px;
+  }
+
+  .medicine-page__map {
+    height: 580px;
+    margin-left: -32px;
+    margin-right: -32px;
+    width: calc(100% + 64px);
+  }
+
+  .medicine-page__map-doctor {
+    min-width: 292px;
   }
 }
 

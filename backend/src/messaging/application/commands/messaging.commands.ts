@@ -1,5 +1,6 @@
 export type CreateConversationCommand = {
-  reservationId: string;
+  reservationId?: string;
+  professionalProfileId?: string;
 };
 
 export type SendConversationMessageCommand = {

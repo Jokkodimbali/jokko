@@ -21,7 +21,7 @@ export class FavoritesPageComponent {
   protected readonly currentUser = this.authSession.currentUser;
 
   constructor() {
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       return;
     }
 
@@ -32,7 +32,7 @@ export class FavoritesPageComponent {
   }
 
   protected removeFavorite(professionalId: string): void {
-    if (!this.currentUser()) {
+    if (!this.authSession.hasAuthenticatedSession()) {
       return;
     }
 

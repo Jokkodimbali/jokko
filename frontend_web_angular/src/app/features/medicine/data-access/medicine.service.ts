@@ -41,6 +41,8 @@ export class MedicineService {
       rating: professional.rating || 0,
       reviewCount: professional.totalReviews || 0,
       location: (professional.city || 'Dakar').toUpperCase(),
+      latitude: professional.latitude,
+      longitude: professional.longitude,
       imageUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
       isOnline: false,
       nextAvailability: ['MER 15', 'Jeu 16', 'ven 17', 'Sam 18'],

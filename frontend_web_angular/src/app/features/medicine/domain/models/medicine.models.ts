@@ -10,6 +10,8 @@ export interface DoctorProfile {
   rating: number;
   reviewCount: number;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   imageUrl: string;
   isOnline: boolean;
   availability: AvailabilitySlot[];

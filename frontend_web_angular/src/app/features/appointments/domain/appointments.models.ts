@@ -29,16 +29,23 @@ export interface BackendReservation {
 
 export interface AppointmentView {
   id: string;
+  professionalId: string;
+  serviceId: string;
   status: AppointmentStatus;
   scheduledAt: string;
+  durationMinutes: number;
   eyebrow: string;
   dateLabel: string;
+  shortDateLabel: string;
+  fullDateLabel: string;
   timeLabel: string;
   locationLabel: string;
   doctorName: string;
   specialty: string;
   avatarUrl: string;
   serviceName: string;
+  notes: string | null;
+  agreedPrice: number | null;
   confirmationLabel: string;
   addressLabel: string;
 }

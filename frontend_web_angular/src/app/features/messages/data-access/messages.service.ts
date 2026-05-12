@@ -24,6 +24,15 @@ export class MessagesService {
       .pipe(map(unwrapApiResponse));
   }
 
+  createConversation(payload: {
+    reservationId?: string;
+    professionalProfileId?: string;
+  }): Observable<Conversation> {
+    return this.http
+      .post<ApiResponse<Conversation>>(this.apiUrl, payload)
+      .pipe(map(unwrapApiResponse));
+  }
+
   listMessages(conversationId: string, limit = 50, offset = 0): Observable<ConversationMessage[]> {
     return this.http
       .get<ApiResponse<ConversationMessage[]>>(`${this.apiUrl}/${conversationId}/messages`, {

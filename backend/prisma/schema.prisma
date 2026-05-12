@@ -645,13 +645,13 @@ model Conversation {
   id                String         @id @default(uuid()) @db.Uuid
   clientId          String         @map("client_id") @db.Uuid
   prestataireId     String         @map("professional_id") @db.Uuid
-  reservationId     String         @unique @map("booking_id") @db.Uuid
+  reservationId     String?        @unique @map("booking_id") @db.Uuid
   dernierMessageLe  DateTime?      @map("last_message_at")
   creeLe            DateTime       @default(now()) @map("created_at")
 
   client            Utilisateur    @relation("ConversationsClient", fields: [clientId], references: [id])
   prestataire       Utilisateur    @relation("ConversationsPrestataire", fields: [prestataireId], references: [id])
-  reservation       Reservation    @relation(fields: [reservationId], references: [id])
+  reservation       Reservation?   @relation(fields: [reservationId], references: [id])
   messages          Message[]
 
   @@index([clientId, prestataireId])

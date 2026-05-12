@@ -32,6 +32,11 @@
   min-width: 207px;
 }
 
+.medicine-filter-bar__button--active {
+  border-color: #0aa9b4;
+  color: #0a9cab;
+}
+
 .medicine-filter-bar__button lucide-icon {
   color: currentColor;
 }

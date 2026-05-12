@@ -16,7 +16,7 @@ type PrismaConversationRecord = {
   id: string;
   clientId: string;
   prestataireId: string;
-  reservationId: string;
+  reservationId: string | null;
   dernierMessageLe: Date | null;
   creeLe: Date;
   client: { id: string; nom: string; urlAvatar: string | null };
@@ -120,14 +120,43 @@ export class MessagingRepository implements MessagingRepositoryPort {
       : null;
   }
 
+  async findDirectConversationByParticipants(params: {
+    clientUserId: string;
+    professionalUserId: string;
+    currentUserId: string;
+  }): Promise<ConversationView | null> {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        clientId: params.clientUserId,
+        prestataireId: params.professionalUserId,
+        reservationId: null,
+        OR: [
+          { clientId: params.currentUserId },
+          { prestataireId: params.currentUserId },
+        ],
+      },
+      select: this.buildConversationSelect(params.currentUserId),
+    });
+
+    return conversation
+      ? this.mapConversation(conversation, params.currentUserId)
+      : null;
+  }
+
   async createConversation(
     input: CreateConversationInput,
     currentUserId: string,
   ): Promise<CreateConversationResult> {
-    const existing = await this.findConversationByReservationId(
-      input.reservationId,
-      currentUserId,
-    );
+    const existing = input.reservationId
+      ? await this.findConversationByReservationId(
+          input.reservationId,
+          currentUserId,
+        )
+      : await this.findDirectConversationByParticipants({
+          clientUserId: input.clientUserId,
+          professionalUserId: input.professionalUserId,
+          currentUserId,
+        });
     if (existing) {
       return { conversation: existing, wasCreated: false };
     }
@@ -138,7 +167,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
           data: {
             clientId: input.clientUserId,
             prestataireId: input.professionalUserId,
-            reservationId: input.reservationId,
+            reservationId: input.reservationId ?? null,
           },
           select: this.buildConversationSelect(currentUserId),
         });
@@ -150,7 +179,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
               conversationId: conversation.id,
               clientUserId: input.clientUserId,
               professionalUserId: input.professionalUserId,
-              reservationId: input.reservationId,
+              reservationId: input.reservationId ?? null,
             },
             statut: 'EN_ATTENTE',
           },
@@ -168,10 +197,16 @@ export class MessagingRepository implements MessagingRepositoryPort {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const conflictConversation = await this.findConversationByReservationId(
-          input.reservationId,
-          currentUserId,
-        );
+        const conflictConversation = input.reservationId
+          ? await this.findConversationByReservationId(
+              input.reservationId,
+              currentUserId,
+            )
+          : await this.findDirectConversationByParticipants({
+              clientUserId: input.clientUserId,
+              professionalUserId: input.professionalUserId,
+              currentUserId,
+            });
         if (conflictConversation) {
           return { conversation: conflictConversation, wasCreated: false };
         }

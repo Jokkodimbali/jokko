@@ -25,7 +25,7 @@ export type ConversationView = {
   clientUserId: string;
   professionalUserId: string;
   professionalProfileId: string | null;
-  reservationId: string;
+  reservationId: string | null;
   lastMessageAt: Date | null;
   createdAt: Date;
   unreadCount: number;
@@ -51,7 +51,7 @@ export type ConversationMessageView = {
 export type CreateConversationInput = {
   clientUserId: string;
   professionalUserId: string;
-  reservationId: string;
+  reservationId?: string | null;
 };
 
 export type CreateConversationResult = {
@@ -92,6 +92,11 @@ export interface MessagingRepositoryPort {
     reservationId: string,
     currentUserId: string,
   ): Promise<ConversationView | null>;
+  findDirectConversationByParticipants(params: {
+    clientUserId: string;
+    professionalUserId: string;
+    currentUserId: string;
+  }): Promise<ConversationView | null>;
   createConversation(
     input: CreateConversationInput,
     currentUserId: string,

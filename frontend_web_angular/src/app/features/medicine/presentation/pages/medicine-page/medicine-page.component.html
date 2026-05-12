@@ -2,14 +2,52 @@
   <app-medicine-hero />
 
   <section class="medicine-page__booking-surface" aria-label="Medecins disponibles">
-    <app-medicine-filter-bar [filters]="filters" />
+    <app-medicine-filter-bar
+      [filters]="filters"
+      [activeMap]="showMap()"
+      (filterSelected)="handleFilter($event)"
+    />
 
     <p *ngIf="isLoading()" class="medicine-page__state">Chargement des medecins...</p>
     <p *ngIf="errorMessage()" class="medicine-page__state medicine-page__state--error">{{ errorMessage() }}</p>
 
-    <section *ngIf="!isLoading() && !errorMessage()" class="medicine-page__list" aria-label="Liste des medecins">
-      <app-doctor-card *ngFor="let doctor of doctors()" [doctor]="doctor" />
-    </section>
+    <ng-container *ngIf="!isLoading() && !errorMessage()">
+      <section *ngIf="showMap()" class="medicine-page__map" aria-label="Carte des medecins disponibles">
+        <iframe
+          [src]="mapUrl()"
+          title="Carte des medecins disponibles a Dakar"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+
+        <p *ngIf="mapDoctors().length === 0" class="medicine-page__map-empty">
+          Aucun medecin avec une localisation GPS precise n'est disponible pour le moment.
+        </p>
+
+        <a
+          *ngFor="let doctor of mapDoctors()"
+          class="medicine-page__map-doctor"
+          [ngStyle]="mapCardStyle(doctor)"
+          [routerLink]="['/medecine', doctor.id]"
+        >
+          <span class="medicine-page__map-online" *ngIf="doctor.isOnline">
+            <i></i>
+            En ligne
+          </span>
+          <img [src]="doctor.imageUrl" [alt]="doctor.name" />
+          <span class="medicine-page__map-copy">
+            <strong>{{ doctor.name }}</strong>
+            <small>{{ doctor.specialty }}</small>
+            <b>{{ doctor.rating }} ({{ doctor.reviewCount }} review)</b>
+            <em>Prendre RDV</em>
+          </span>
+        </a>
+      </section>
+
+      <section *ngIf="!showMap()" class="medicine-page__list" aria-label="Liste des medecins">
+        <app-doctor-card *ngFor="let doctor of doctors()" [doctor]="doctor" />
+      </section>
+    </ng-container>
   </section>
 
   <app-scroll-hint [label]="messages.scrollHint" />

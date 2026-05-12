@@ -110,6 +110,35 @@
           <p class="messages-page__bubble">{{ message.content || 'Piece jointe' }}</p>
           <small>{{ formatTime(message.createdAt) }}</small>
         </article>
+
+        <article
+          *ngIf="visibleProposal() as proposal"
+          class="messages-page__proposal-row"
+          [class.messages-page__proposal-row--accepted]="isProposalAccepted()"
+        >
+          <div
+            class="messages-page__proposal-card"
+            [class.messages-page__proposal-card--accepted]="isProposalAccepted()"
+          >
+            <span>
+              {{
+                isProposalAccepted()
+                  ? proposal.providerName + ' a accepte le montant propose'
+                  : 'En attente de validation par ' + proposal.providerName
+              }}
+            </span>
+            <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
+            <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
+            <div *ngIf="isProposalAccepted()" class="messages-page__proposal-actions">
+              <button type="button" class="messages-page__proposal-pay" (click)="payAcceptedProposal()">
+                Payez
+              </button>
+              <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
+                Annuler la reservation
+              </button>
+            </div>
+          </div>
+        </article>
       </div>
 
       <footer class="messages-page__composer">
@@ -125,6 +154,9 @@
         <button type="button" aria-label="Ajouter une photo">
           <lucide-icon name="camera" size="24" [strokeWidth]="2.5"></lucide-icon>
         </button>
+        <button type="button" aria-label="Ajouter une piece jointe">
+          <lucide-icon name="plus" size="25" [strokeWidth]="2.6"></lucide-icon>
+        </button>
         <label>
           <input
             type="text"
@@ -134,22 +166,84 @@
             (keydown.enter)="sendMessage()"
           />
           <button type="button" aria-label="Envoyer le message" [disabled]="isSending()" (click)="sendMessage()">
-            <lucide-icon name="plus" size="32" [strokeWidth]="2.8"></lucide-icon>
+            <lucide-icon name="send" size="22" [strokeWidth]="2.5"></lucide-icon>
           </button>
         </label>
       </footer>
     </section>
 
     <ng-template #emptyThread>
-      <section class="messages-page__chat messages-page__chat--empty">
+      <section
+        *ngIf="visibleProposal() as proposal; else noConversationSelected"
+        class="messages-page__chat messages-page__chat--proposal-only"
+      >
+        <header class="messages-page__chat-head">
+          <span class="messages-page__chat-identity">
+            <span class="messages-page__avatar messages-page__avatar--large">
+              <i>{{ initials(proposal.providerName) }}</i>
+            </span>
+            <strong>{{ proposal.providerName }}</strong>
+          </span>
+        </header>
+
+        <div class="messages-page__thread messages-page__thread--proposal-only">
+          <article
+            class="messages-page__proposal-row"
+            [class.messages-page__proposal-row--accepted]="isProposalAccepted()"
+          >
+            <div
+              class="messages-page__proposal-card"
+              [class.messages-page__proposal-card--accepted]="isProposalAccepted()"
+            >
+              <span>
+                {{
+                  isProposalAccepted()
+                    ? proposal.providerName + ' a accepte le montant propose'
+                    : 'En attente de validation par ' + proposal.providerName
+                }}
+              </span>
+              <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
+              <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
+              <div *ngIf="isProposalAccepted()" class="messages-page__proposal-actions">
+                <button type="button" class="messages-page__proposal-pay" (click)="payAcceptedProposal()">
+                  Payez
+                </button>
+                <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
+                  Annuler la reservation
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <footer class="messages-page__composer">
+          <button type="button" aria-label="Ajouter une photo">
+            <lucide-icon name="camera" size="24" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+          <button type="button" aria-label="Ajouter une piece jointe" disabled>
+            <lucide-icon name="plus" size="25" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+          <label>
+            <input type="text" placeholder="Tapez votre message" disabled />
+            <button type="button" aria-label="Envoyer le message" disabled>
+              <lucide-icon name="send" size="22" [strokeWidth]="2.5"></lucide-icon>
+            </button>
+          </label>
+        </footer>
+      </section>
+
+      <ng-template #noConversationSelected>
+        <section class="messages-page__chat messages-page__chat--empty">
         <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
         <lucide-icon name="message-circle" size="52" [strokeWidth]="2"></lucide-icon>
         <h2>Selectionnez une conversation</h2>
         <p>Vos echanges avec les prestataires et clients apparaitront ici.</p>
         <a *ngIf="!currentUser()" routerLink="/auth/login">Se connecter</a>
-      </section>
+        </section>
+      </ng-template>
     </ng-template>
   </section>
 
   <app-footer />
 </main>
+

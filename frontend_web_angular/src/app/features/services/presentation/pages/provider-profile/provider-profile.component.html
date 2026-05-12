@@ -82,7 +82,11 @@
       <aside class="provider-profile__side">
         <article class="provider-profile__card provider-profile__price">
           <p><strong>{{ priceLabel() }}</strong> <span>{{ priceTypeLabel() }}</span></p>
-          <button type="button">
+          <button
+            type="button"
+            [routerLink]="['/services', profileId, 'proposition']"
+            [queryParams]="primaryService()?.id ? { serviceId: primaryService()?.id } : null"
+          >
             <lucide-icon name="banknote" size="31" [strokeWidth]="2.4"></lucide-icon>
             Proposez un prix
           </button>

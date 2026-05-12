@@ -28,6 +28,8 @@ export type SearchProfessionalView = {
   companyName: string | null;
   bio: string | null;
   city: string | null;
+  latitude: number | null;
+  longitude: number | null;
   rating: number;
   totalReviews: number;
   distanceKm: number | null;

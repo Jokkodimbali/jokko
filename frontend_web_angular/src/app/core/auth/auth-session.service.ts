@@ -34,6 +34,10 @@ export class AuthSessionService {
     return this.getItem(ACCESS_TOKEN_KEY);
   }
 
+  hasAuthenticatedSession(): boolean {
+    return Boolean(this.currentUserSignal() && this.getAccessToken());
+  }
+
   saveUserProfile(profile: UserProfileDto): void {
     this.saveUser({
       id: profile.id,

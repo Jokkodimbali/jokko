@@ -71,7 +71,6 @@ export class NegotiationsRepository implements NegotiationsRepositoryPort {
             in: [
               StatutNegotiation.EN_ATTENTE_CLIENT,
               StatutNegotiation.EN_ATTENTE_PRESTATAIRE,
-              StatutNegotiation.ACCEPTEE,
             ],
           },
         },
@@ -167,7 +166,6 @@ export class NegotiationsRepository implements NegotiationsRepositoryPort {
           in: [
             StatutNegotiation.EN_ATTENTE_CLIENT,
             StatutNegotiation.EN_ATTENTE_PRESTATAIRE,
-            StatutNegotiation.ACCEPTEE,
           ],
         },
       },

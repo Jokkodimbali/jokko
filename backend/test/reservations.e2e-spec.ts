@@ -80,6 +80,19 @@ describe('ReservationsModule (e2e)', () => {
     data?: ReservationView | ReservationView[];
   };
 
+  type AvailabilitySuccessResponse = {
+    success: boolean;
+    data?: {
+      available: boolean;
+      reason: string;
+      professionalId: string;
+      dateHeure: string;
+      dureeMinutes: number;
+      withinAvailability: boolean;
+      hasConflict: boolean;
+    };
+  };
+
   type ErrorResponse = {
     success: boolean;
     errorCode?: string;
@@ -90,15 +103,27 @@ describe('ReservationsModule (e2e)', () => {
     return new Date(Date.now() + hoursAhead * 60 * 60 * 1000).toISOString();
   }
 
+  function buildFutureUtcSlot(daysAhead: number, hour: number, minute = 0): string {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() + daysAhead);
+    date.setUTCHours(hour, minute, 0, 0);
+    return date.toISOString();
+  }
+
   async function registerUser(input: {
     phoneNumber: string;
     password: string;
     email: string;
     name: string;
+    role?: 'CLIENT' | 'PRESTATAIRE';
   }): Promise<string> {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send(input)
+      .send({
+        ...input,
+        role: input.role ?? 'CLIENT',
+        adresse: 'Dakar Plateau',
+      })
       .expect(201);
     const body = response.body as AuthResponse;
     return body.data?.user?.id ?? '';
@@ -247,6 +272,16 @@ describe('ReservationsModule (e2e)', () => {
         },
       ],
     });
+
+    await prisma.disponibilite.createMany({
+      data: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        profilProfessionnelId: professionalProfileId,
+        jourSemaine: dayOfWeek,
+        heureDebut: new Date(Date.UTC(1970, 0, 1, 8, 0, 0)),
+        heureFin: new Date(Date.UTC(1970, 0, 1, 18, 0, 0)),
+        estActive: true,
+      })),
+    });
   });
 
   afterAll(async () => {
@@ -327,6 +362,61 @@ describe('ReservationsModule (e2e)', () => {
     expect(
       (smsOutboxEvent?.payload as { recipientUserId?: string }).recipientUserId,
     ).toBe(clientUserId);
+  });
+
+  it('GET /api/v1/reservations/availability validates an open professional slot', async () => {
+    const dateHeure = buildFutureUtcSlot(16, 10);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/reservations/availability')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({
+        professionalId: professionalProfileId,
+        dateHeure,
+        dureeMinutes: 60,
+      })
+      .expect(200);
+
+    const body = response.body as AvailabilitySuccessResponse;
+
+    expect(body.success).toBe(true);
+    expect(body.data?.available).toBe(true);
+    expect(body.data?.withinAvailability).toBe(true);
+    expect(body.data?.hasConflict).toBe(false);
+    expect(body.data?.dateHeure).toBe(dateHeure);
+  });
+
+  it('GET /api/v1/reservations/availability refuses an occupied professional slot', async () => {
+    const dateHeure = buildFutureUtcSlot(17, 11);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure,
+        adresseClient: 'Dakar Almadies',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/reservations/availability')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({
+        professionalId: professionalProfileId,
+        dateHeure,
+        dureeMinutes: 60,
+      })
+      .expect(200);
+
+    const body = response.body as AvailabilitySuccessResponse;
+
+    expect(body.success).toBe(true);
+    expect(body.data?.available).toBe(false);
+    expect(body.data?.withinAvailability).toBe(true);
+    expect(body.data?.hasConflict).toBe(true);
   });
 
   it('POST /api/v1/reservations refuses negotiable services', async () => {

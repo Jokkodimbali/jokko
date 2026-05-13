@@ -170,6 +170,38 @@
   cursor: pointer;
 }
 
+.service-proposal__availability {
+  grid-column: 1 / -1;
+  min-height: 28px;
+  margin: -4px 0 2px;
+  padding: 7px 10px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #5d6878;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.service-proposal__availability--checking {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3949ab;
+}
+
+.service-proposal__availability--ok {
+  border-color: #b9dfc0;
+  background: #edf8ef;
+  color: #2f7437;
+}
+
+.service-proposal__availability--error {
+  border-color: #f4c5c0;
+  background: #fff1f0;
+  color: #9a332b;
+}
+
 .service-proposal__section-title {
   display: flex;
   align-items: center;

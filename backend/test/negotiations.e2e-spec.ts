@@ -23,8 +23,8 @@ describe('NegotiationsModule (e2e)', () => {
     .padStart(3, '0')}`;
   const clientPhone = `+22179${phoneSuffix}`;
   const professionalPhone = `+22174${phoneSuffix}`;
-  const clientPassword = `ClientNeg${uniqueSeed.slice(0, 8)}!`;
-  const professionalPassword = `ProNeg${uniqueSeed.slice(0, 8)}!`;
+  const clientPassword = `ClientNeg1${uniqueSeed.slice(0, 8)}!`;
+  const professionalPassword = `ProNeg1${uniqueSeed.slice(0, 8)}!`;
   const clientEmail = `client-neg-${uniqueSeed.slice(0, 8)}@jokko.sn`;
   const professionalEmail = `pro-neg-${uniqueSeed.slice(0, 8)}@jokko.sn`;
 
@@ -39,6 +39,7 @@ describe('NegotiationsModule (e2e)', () => {
   let negotiationId = '';
   let rejectedNegotiationId = '';
   let cancelledNegotiationId = '';
+  let acceptedFollowupNegotiationId = '';
 
   type AuthResponse = {
     success: boolean;
@@ -56,7 +57,11 @@ describe('NegotiationsModule (e2e)', () => {
   }): Promise<string> {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send(input)
+      .send({
+        ...input,
+        role: 'CLIENT',
+        adresse: 'Dakar Plateau',
+      })
       .expect(201);
     const body = response.body as AuthResponse;
     return body.data?.user?.id ?? '';
@@ -296,6 +301,35 @@ describe('NegotiationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.data.statut).toBe('ACCEPTEE');
     expect(body.data.montantAccepte).toBe(18500);
+  });
+
+  it('POST /api/v1/negotiations allows a new proposal after a previous negotiation was accepted', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/negotiations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        serviceId: negotiableServiceId,
+        proposedAmount: 17500,
+        message: 'Nouvelle proposition pour un autre creneau apres acceptation.',
+      })
+      .expect(201);
+
+    const body = createResponse.body as {
+      success: boolean;
+      data: { id: string; statut: string };
+    };
+
+    acceptedFollowupNegotiationId = body.data.id;
+    expect(body.success).toBe(true);
+    expect(body.data.statut).toBe('EN_ATTENTE_PRESTATAIRE');
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/negotiations/${acceptedFollowupNegotiationId}/cancel`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        reason: 'Nettoyage du test de nouvelle proposition acceptee.',
+      })
+      .expect(200);
   });
 
   it('POST /api/v1/reservations/from-negotiation creates a reservation with the accepted amount', async () => {

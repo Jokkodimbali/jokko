@@ -129,15 +129,55 @@
             </span>
             <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
             <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
-            <div *ngIf="isProposalAccepted()" class="messages-page__proposal-actions">
-              <button type="button" class="messages-page__proposal-pay" (click)="payAcceptedProposal()">
-                Payez
+            <div *ngIf="canRespondToProposal()" class="messages-page__proposal-actions">
+              <button
+                type="button"
+                class="messages-page__proposal-pay"
+                [disabled]="isUpdatingProposal()"
+                (click)="acceptProposal()"
+              >
+                {{ isUpdatingProposal() ? 'Validation...' : 'Accepter' }}
+              </button>
+              <button
+                type="button"
+                class="messages-page__proposal-cancel"
+                [disabled]="isUpdatingProposal()"
+                (click)="rejectProposal()"
+              >
+                Refuser
+              </button>
+            </div>
+            <div *ngIf="canPayAcceptedProposal()" class="messages-page__proposal-actions">
+              <button
+                type="button"
+                class="messages-page__proposal-pay"
+                [disabled]="isPreparingPayment()"
+                (click)="payAcceptedProposal()"
+              >
+                {{ isPreparingPayment() ? 'Preparation...' : 'Payez' }}
               </button>
               <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
                 Annuler la reservation
               </button>
             </div>
           </div>
+        </article>
+
+        <article *ngIf="appointmentPreview() as appointment" class="messages-page__appointment-row">
+          <section class="messages-page__appointment-card" aria-label="Resume du rendez-vous">
+            <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+            <div class="messages-page__appointment-info">
+              <p>
+                <lucide-icon name="handshake" size="31" [strokeWidth]="2.4"></lucide-icon>
+                <span>{{ appointment.serviceName }}</span>
+              </p>
+              <strong>Le {{ appointment.fullDateLabel }}</strong>
+            </div>
+            <a [routerLink]="['/appointments', appointment.id, 'payment']">
+              Plus de détails
+              <lucide-icon name="chevron-right" size="19" [strokeWidth]="3"></lucide-icon>
+            </a>
+          </section>
         </article>
       </div>
 
@@ -204,9 +244,32 @@
               </span>
               <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
               <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
-              <div *ngIf="isProposalAccepted()" class="messages-page__proposal-actions">
-                <button type="button" class="messages-page__proposal-pay" (click)="payAcceptedProposal()">
-                  Payez
+              <div *ngIf="canRespondToProposal()" class="messages-page__proposal-actions">
+                <button
+                  type="button"
+                  class="messages-page__proposal-pay"
+                  [disabled]="isUpdatingProposal()"
+                  (click)="acceptProposal()"
+                >
+                  {{ isUpdatingProposal() ? 'Validation...' : 'Accepter' }}
+                </button>
+                <button
+                  type="button"
+                  class="messages-page__proposal-cancel"
+                  [disabled]="isUpdatingProposal()"
+                  (click)="rejectProposal()"
+                >
+                  Refuser
+                </button>
+              </div>
+              <div *ngIf="canPayAcceptedProposal()" class="messages-page__proposal-actions">
+                <button
+                  type="button"
+                  class="messages-page__proposal-pay"
+                  [disabled]="isPreparingPayment()"
+                  (click)="payAcceptedProposal()"
+                >
+                  {{ isPreparingPayment() ? 'Preparation...' : 'Payez' }}
                 </button>
                 <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
                   Annuler la reservation

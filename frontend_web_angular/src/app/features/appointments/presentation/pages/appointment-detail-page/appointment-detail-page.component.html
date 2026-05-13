@@ -75,6 +75,10 @@
           </div>
 
           <div class="appointment-detail__actions">
+            <button type="button" [routerLink]="['/appointments', appointment.id, 'payment']">
+              <lucide-icon name="banknote" size="15" [strokeWidth]="2.4"></lucide-icon>
+              Payer
+            </button>
             <button type="button">
               <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.4"></lucide-icon>
               Synchroniser le RDV

@@ -379,6 +379,75 @@
   background: #6d6e68;
 }
 
+.messages-page__appointment-row {
+  align-self: flex-end;
+  display: flex;
+  justify-content: flex-end;
+  width: min(100%, 390px);
+}
+
+.messages-page__appointment-card {
+  align-items: center;
+  background: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, 0.2);
+  color: #5a6878;
+  display: grid;
+  gap: 19px;
+  grid-template-columns: 89px minmax(0, 1fr);
+  min-height: 133px;
+  padding: 20px 14px 19px;
+  position: relative;
+  width: 100%;
+}
+
+.messages-page__appointment-card > img {
+  border-radius: 50%;
+  height: 89px;
+  object-fit: cover;
+  width: 89px;
+}
+
+.messages-page__appointment-info {
+  display: grid;
+  gap: 13px;
+}
+
+.messages-page__appointment-info p {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.messages-page__appointment-info span {
+  font-size: 14px;
+}
+
+.messages-page__appointment-info strong {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.messages-page__appointment-card a {
+  align-items: center;
+  background: #5b6878;
+  border-radius: 7px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 850;
+  gap: 4px;
+  min-height: 27px;
+  padding: 0 8px 0 10px;
+  position: absolute;
+  right: 5px;
+  text-decoration: none;
+  top: 5px;
+}
+
 .messages-page__composer {
   align-items: center;
   background: #fff;
@@ -655,6 +724,20 @@
 
   .messages-page__proposal-card {
     min-width: min(260px, 100%);
+  }
+
+  .messages-page__appointment-row {
+    align-self: center;
+    width: 100%;
+  }
+
+  .messages-page__appointment-card > img {
+    height: 74px;
+    width: 74px;
+  }
+
+  .messages-page__appointment-info strong {
+    font-size: 19px;
   }
 
   .messages-page__composer {

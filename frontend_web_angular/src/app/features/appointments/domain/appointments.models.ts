@@ -50,6 +50,30 @@ export interface AppointmentView {
   addressLabel: string;
 }
 
+export type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'CARD';
+
+export interface PaymentInitiationView {
+  payment: {
+    id: string;
+    bookingId: string;
+    clientId: string;
+    professionalId: string;
+    method: PaymentMethod;
+    amount: number;
+    status: string;
+    transactionReference: string | null;
+    gatewayReference: string | null;
+    escrowStatus: string;
+    commissionRate: number;
+    commissionAmount: number;
+    professionalAmount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+  paymentUrl: string;
+  gatewayReference: string;
+}
+
 export interface AppointmentStat {
   label: string;
   value: number;

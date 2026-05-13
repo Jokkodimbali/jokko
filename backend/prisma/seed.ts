@@ -60,7 +60,7 @@ const SEED_USERS = {
   professional: {
     phone: '+221773456789',
     name: 'Docteur Demo Jokko',
-    password: 'prof123',
+    password: 'prof12345',
     role: RoleUtilisateur.PRESTATAIRE,
   },
 };

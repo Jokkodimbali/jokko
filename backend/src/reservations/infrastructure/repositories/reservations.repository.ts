@@ -491,6 +491,15 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     return reservations.map((reservation) => this.mapToDomain(reservation));
   }
 
+  async hasTimeSlotConflict(input: {
+    professionalId: string;
+    dateHeure: Date;
+    dureeMinutes: number;
+    excludeReservationId?: string;
+  }): Promise<boolean> {
+    return this.existsForTimeSlot(this.prisma, input);
+  }
+
   private mapToDomain(record: ReservationRecord): Reservation {
     return {
       id: record.id,

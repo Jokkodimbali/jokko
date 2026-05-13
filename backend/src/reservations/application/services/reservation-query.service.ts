@@ -48,6 +48,73 @@ export class ReservationQueryService extends ReservationAppService {
     return this.getAccessibleReservationOrThrow(requestUser, reservationId);
   }
 
+  async checkAvailability(query: {
+    professionalId: string;
+    dateHeure: string;
+    dureeMinutes: number;
+  }) {
+    const professional = await this.getVerifiedProfessionalOrThrow(
+      query.professionalId,
+    );
+    const scheduledAt = this.parseDateOrThrow(query.dateHeure);
+    const durationMinutes = Math.trunc(Number(query.dureeMinutes));
+
+    if (
+      !Number.isInteger(durationMinutes) ||
+      durationMinutes < 15 ||
+      durationMinutes > 1440 ||
+      scheduledAt.getTime() <= Date.now()
+    ) {
+      return {
+        available: false,
+        reason: 'Date ou duree invalide.',
+        professionalId: professional.id,
+        dateHeure: scheduledAt.toISOString(),
+        dureeMinutes: durationMinutes,
+        withinAvailability: false,
+        hasConflict: false,
+      };
+    }
+
+    const availabilities =
+      await this.professionalsRepository.listAvailabilities(professional.id);
+    const withinAvailability = this.isWithinProfessionalAvailability(
+      scheduledAt,
+      durationMinutes,
+      availabilities,
+    );
+
+    if (!withinAvailability) {
+      return {
+        available: false,
+        reason: 'Le prestataire nest pas disponible sur cette plage horaire.',
+        professionalId: professional.id,
+        dateHeure: scheduledAt.toISOString(),
+        dureeMinutes: durationMinutes,
+        withinAvailability,
+        hasConflict: false,
+      };
+    }
+
+    const hasConflict = await this.reservationsRepository.hasTimeSlotConflict({
+      professionalId: professional.id,
+      dateHeure: scheduledAt,
+      dureeMinutes: durationMinutes,
+    });
+
+    return {
+      available: !hasConflict,
+      reason: hasConflict
+        ? 'Ce creneau est deja reserve pour ce prestataire.'
+        : 'Ce creneau est disponible.',
+      professionalId: professional.id,
+      dateHeure: scheduledAt.toISOString(),
+      dureeMinutes: durationMinutes,
+      withinAvailability,
+      hasConflict,
+    };
+  }
+
   async getAllReservationsByDateRange(
     requestUser: AuthUser,
     query: ListReservationsQuery,
@@ -88,5 +155,39 @@ export class ReservationQueryService extends ReservationAppService {
       cancellationRate,
       completionRate,
     };
+  }
+
+  private isWithinProfessionalAvailability(
+    scheduledAt: Date,
+    durationMinutes: number,
+    availabilities: Array<{
+      jourSemaine: number;
+      heureDebut: Date;
+      heureFin: Date;
+      estActive: boolean;
+    }>,
+  ): boolean {
+    const requestedStartMinutes =
+      scheduledAt.getUTCHours() * 60 + scheduledAt.getUTCMinutes();
+    const requestedEndMinutes = requestedStartMinutes + durationMinutes;
+    const requestedDay = scheduledAt.getUTCDay();
+
+    return availabilities.some((availability) => {
+      if (!availability.estActive || availability.jourSemaine !== requestedDay) {
+        return false;
+      }
+
+      const availabilityStartMinutes =
+        availability.heureDebut.getUTCHours() * 60 +
+        availability.heureDebut.getUTCMinutes();
+      const availabilityEndMinutes =
+        availability.heureFin.getUTCHours() * 60 +
+        availability.heureFin.getUTCMinutes();
+
+      return (
+        requestedStartMinutes >= availabilityStartMinutes &&
+        requestedEndMinutes <= availabilityEndMinutes
+      );
+    });
   }
 }

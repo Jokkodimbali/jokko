@@ -5,7 +5,12 @@ import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { ServicesService } from '../../services/data-access/services.service';
-import { BackendReservation, AppointmentView } from '../domain/appointments.models';
+import {
+  AppointmentView,
+  BackendReservation,
+  PaymentInitiationView,
+  PaymentMethod,
+} from '../domain/appointments.models';
 
 @Injectable({
   providedIn: 'root',
@@ -76,6 +81,36 @@ export class AppointmentsService {
           ),
         ),
       );
+  }
+
+  initiatePayment(
+    reservationId: string,
+    method: PaymentMethod,
+  ): Observable<PaymentInitiationView> {
+    return this.http
+      .post<ApiResponse<PaymentInitiationView>>(
+        `${this.apiUrl}/payments/initiate`,
+        {
+          bookingId: reservationId,
+          method,
+          successUrl: this.absoluteUrl(`/appointments/${reservationId}`),
+          cancelUrl: this.absoluteUrl(`/appointments/${reservationId}/payment`),
+        },
+        {
+          headers: {
+            'Idempotency-Key': `web-payment-${reservationId}-${method}`,
+          },
+        },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  cancelAppointment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/cancel`, {
+        raisonAnnulation: 'Annulation demandee depuis la page de paiement.',
+      })
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 
   private mapAppointment(
@@ -168,5 +203,13 @@ export class AppointmentsService {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date).replace(':', 'h');
+  }
+
+  private absoluteUrl(path: string): string {
+    if (typeof window === 'undefined') {
+      return path;
+    }
+
+    return `${window.location.origin}${path}`;
   }
 }

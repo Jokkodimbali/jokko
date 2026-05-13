@@ -5,7 +5,13 @@ import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { ServicesService } from '../../services/data-access/services.service';
-import { BackendReservation, AppointmentView } from '../domain/appointments.models';
+import {
+  AppointmentView,
+  AppointmentTrackingView,
+  BackendReservation,
+  PaymentInitiationView,
+  PaymentMethod,
+} from '../domain/appointments.models';
 
 @Injectable({
   providedIn: 'root',
@@ -78,6 +84,71 @@ export class AppointmentsService {
       );
   }
 
+  getAppointmentTracking(reservationId: string): Observable<AppointmentTrackingView> {
+    return this.http
+      .get<ApiResponse<AppointmentTrackingView>>(
+        `${this.apiUrl}/reservations/${reservationId}/live-tracking`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  initiatePayment(
+    reservationId: string,
+    method: PaymentMethod,
+  ): Observable<PaymentInitiationView> {
+    return this.http
+      .post<ApiResponse<PaymentInitiationView>>(
+        `${this.apiUrl}/payments/initiate`,
+        {
+          bookingId: reservationId,
+          method,
+          successUrl: this.absoluteUrl(`/appointments/${reservationId}`),
+          cancelUrl: this.absoluteUrl(`/appointments/${reservationId}/payment`),
+        },
+        {
+          headers: {
+            'Idempotency-Key': `web-payment-${reservationId}-${method}`,
+          },
+        },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  cancelAppointment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/cancel`, {
+        raisonAnnulation: 'Annulation demandee depuis la page de paiement.',
+      })
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  acceptPriceAdjustment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/accept`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  rejectPriceAdjustment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/reject`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  submitReview(reservationId: string, rating: number, review?: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/review`,
+        { rating, review },
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
   private mapAppointment(
     reservation: BackendReservation,
     professional: {
@@ -108,6 +179,13 @@ export class AppointmentsService {
       serviceName: professional.serviceName || 'Consultation',
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
+      priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
+      proposedAdjustedPrice: reservation.prixAjustementPropose,
+      priceAdjustmentReason: reservation.raisonAjustementPrix,
+      priceAdjustmentRequestedAt: reservation.demandeAjustementPrixLe,
+      clientRating: reservation.clientRating,
+      clientReview: reservation.clientReview,
+      clientReviewedAt: reservation.clientReviewedAt,
       confirmationLabel: this.confirmationLabel(reservation.statut),
       addressLabel: reservation.adresseClient || 'Adresse non renseignee',
     };
@@ -168,5 +246,13 @@ export class AppointmentsService {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date).replace(':', 'h');
+  }
+
+  private absoluteUrl(path: string): string {
+    if (typeof window === 'undefined') {
+      return path;
+    }
+
+    return `${window.location.origin}${path}`;
   }
 }

@@ -8,6 +8,7 @@ import { FavoritesPageComponent } from './features/account/pages/favorites/favor
 import { SettingsPageComponent } from './features/account/pages/settings/settings-page.component';
 import { AppointmentsPageComponent } from './features/appointments/presentation/pages/appointments-page/appointments-page.component';
 import { AppointmentDetailPageComponent } from './features/appointments/presentation/pages/appointment-detail-page/appointment-detail-page.component';
+import { AppointmentPaymentPageComponent } from './features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component';
 import { MessagesPageComponent } from './features/messages/presentation/pages/messages-page/messages-page.component';
 
 export const routes: Routes = [
@@ -42,6 +43,10 @@ export const routes: Routes = [
   {
     path: 'appointments',
     component: AppointmentsPageComponent,
+  },
+  {
+    path: 'appointments/:id/payment',
+    component: AppointmentPaymentPageComponent,
   },
   {
     path: 'appointments/:id',

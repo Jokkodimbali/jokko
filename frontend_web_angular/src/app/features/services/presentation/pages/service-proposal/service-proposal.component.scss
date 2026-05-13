@@ -170,6 +170,123 @@
   cursor: pointer;
 }
 
+.service-proposal__availability {
+  min-height: 28px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #5d6878;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.service-proposal__availability--checking {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3949ab;
+}
+
+.service-proposal__availability--ok {
+  border-color: #b9dfc0;
+  background: #edf8ef;
+  color: #2f7437;
+}
+
+.service-proposal__availability--error {
+  border-color: #f4c5c0;
+  background: #fff1f0;
+  color: #9a332b;
+}
+
+.service-proposal__slots {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  max-width: 522px;
+  padding: 12px;
+  border: 1px solid #e3e8f1;
+  border-radius: 11px;
+  background: #ffffff;
+}
+
+.service-proposal__slots-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: #65728a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.service-proposal__slots-header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-proposal__slots-header strong {
+  color: #1b2230;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.service-proposal__slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.service-proposal__slot {
+  display: grid;
+  gap: 2px;
+  min-height: 50px;
+  padding: 7px 6px;
+  border: 1px solid #c8e2ce;
+  border-radius: 8px;
+  background: #f1faf3;
+  color: #2f7437;
+  cursor: pointer;
+}
+
+.service-proposal__slot strong {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.service-proposal__slot span {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-proposal__slot--selected {
+  border-color: #31415d;
+  background: #31415d;
+  color: #ffffff;
+}
+
+.service-proposal__slot--reserved,
+.service-proposal__slot--unavailable,
+.service-proposal__slot:disabled {
+  border-color: #d8dee8;
+  background: #f4f6f9;
+  color: #8993a3;
+  cursor: not-allowed;
+}
+
+.service-proposal__slot--reserved {
+  border-color: #f1c9c5;
+  background: #fff1f0;
+  color: #9a332b;
+}
+
 .service-proposal__section-title {
   display: flex;
   align-items: center;
@@ -525,6 +642,10 @@
   .service-proposal__fields,
   .service-proposal__payments {
     grid-template-columns: 1fr;
+  }
+
+  .service-proposal__slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .service-proposal__offer {

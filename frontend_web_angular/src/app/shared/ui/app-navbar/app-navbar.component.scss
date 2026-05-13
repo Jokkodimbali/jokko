@@ -131,9 +131,11 @@
 
 .app-navbar__profile {
   cursor: pointer;
-  gap: 20px;
-  padding: 0 16px;
-  width: 126px;
+  gap: 10px;
+  max-width: 230px;
+  min-width: 166px;
+  padding: 0 12px;
+  width: auto;
 }
 
 .app-navbar__profile span {
@@ -144,6 +146,34 @@
   height: 44px;
   justify-content: center;
   width: 44px;
+}
+
+.app-navbar__profile strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  max-width: 112px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-navbar__profile-avatar {
+  background: #9a5c20;
+  border-radius: 50%;
+  color: #ffffff;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.app-navbar__profile-avatar img,
+.app-navbar__dropdown-avatar img,
+.app-navbar__mobile-avatar img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .app-navbar__dropdown {
@@ -192,6 +222,7 @@
   height: 35px;
   justify-content: center;
   width: 35px;
+  overflow: hidden;
 }
 
 .app-navbar__dropdown-account-copy {
@@ -432,6 +463,7 @@
   height: 42px;
   justify-content: center;
   width: 42px;
+  overflow: hidden;
 }
 
 .app-navbar__mobile-username {

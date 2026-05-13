@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
@@ -12,6 +12,8 @@ export type NegotiationStatus =
   | 'REFUSEE'
   | 'ANNULEE'
   | 'CONVERTIE_EN_RESERVATION';
+
+export type NegotiationScope = 'CLIENT' | 'PRESTATAIRE';
 
 export interface NegotiationView {
   id: string;
@@ -45,28 +47,89 @@ export interface CreateDirectReservationPayload {
   notes?: string;
 }
 
+export interface CreateReservationFromNegotiationPayload {
+  negotiationId: string;
+  dateHeure: string;
+  adresseClient: string;
+  dureeMinutes: number;
+  notes?: string;
+}
+
+export interface ReservationAvailabilityView {
+  available: boolean;
+  reason: string;
+  professionalId: string;
+  dateHeure: string;
+  dureeMinutes: number;
+  withinAvailability: boolean;
+  hasConflict: boolean;
+}
+
+export interface ReservationAvailabilitySlotView {
+  dateHeure: string;
+  label: string;
+  available: boolean;
+  status: 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE';
+  reason: string;
+}
+
+export interface ReservationAvailabilitySlotsView {
+  professionalId: string;
+  date: string;
+  dureeMinutes: number;
+  slots: ReservationAvailabilitySlotView[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class ServiceProposalService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
-  private readonly activeStatuses = new Set<NegotiationStatus>([
+  private readonly proposalsCacheTtlMs = 8000;
+  private readonly proposalsCache = new Map<
+    NegotiationScope,
+    { expiresAt: number; value: NegotiationView[] }
+  >();
+  private readonly proposalsInFlight = new Map<NegotiationScope, Observable<NegotiationView[]>>();
+  private readonly editableStatuses = new Set<NegotiationStatus>([
     'EN_ATTENTE_PRESTATAIRE',
     'EN_ATTENTE_CLIENT',
-    'ACCEPTEE',
   ]);
 
-  listMyPriceProposals(): Observable<NegotiationView[]> {
-    return this.http
+  listMyPriceProposals(scope: NegotiationScope = 'CLIENT'): Observable<NegotiationView[]> {
+    const cached = this.proposalsCache.get(scope);
+    if (cached && cached.expiresAt > Date.now()) {
+      return of(cached.value);
+    }
+
+    const inFlight = this.proposalsInFlight.get(scope);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<NegotiationView[]>>(`${this.apiUrl}/negotiations/my`, {
         params: {
-          scope: 'CLIENT',
+          scope,
           limit: '100',
           offset: '0',
         },
       })
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap((value) =>
+          this.proposalsCache.set(scope, {
+            value,
+            expiresAt: Date.now() + this.proposalsCacheTtlMs,
+          }),
+        ),
+        finalize(() => this.proposalsInFlight.delete(scope)),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+
+    this.proposalsInFlight.set(scope, request$);
+    return request$;
   }
 
   findActiveProposalForService(serviceId: string): Observable<NegotiationView | null> {
@@ -75,7 +138,7 @@ export class ServiceProposalService {
         (proposals) =>
           proposals.find(
             (proposal) =>
-              proposal.serviceId === serviceId && this.activeStatuses.has(proposal.statut),
+              proposal.serviceId === serviceId && this.editableStatuses.has(proposal.statut),
           ) ?? null,
       ),
     );
@@ -84,7 +147,10 @@ export class ServiceProposalService {
   createPriceProposal(payload: CreatePriceProposalPayload): Observable<NegotiationView> {
     return this.http
       .post<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations`, payload)
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
   }
 
   counterPriceProposal(
@@ -99,12 +165,85 @@ export class ServiceProposalService {
           message: payload.message,
         },
       )
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
+  }
+
+  acceptPriceProposal(negotiationId: string): Observable<NegotiationView> {
+    return this.http
+      .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/accept`, {})
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
+  }
+
+  rejectPriceProposal(negotiationId: string, reason: string): Observable<NegotiationView> {
+    return this.http
+      .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/reject`, {
+        reason,
+      })
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
   }
 
   createDirectReservation(payload: CreateDirectReservationPayload): Observable<unknown> {
     return this.http
       .post<ApiResponse<unknown>>(`${this.apiUrl}/reservations`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  createReservationFromNegotiation(
+    payload: CreateReservationFromNegotiationPayload,
+  ): Observable<{ id: string }> {
+    return this.http
+      .post<ApiResponse<{ id: string }>>(`${this.apiUrl}/reservations/from-negotiation`, payload)
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
+  }
+
+  checkReservationAvailability(input: {
+    professionalId: string;
+    dateHeure: string;
+    dureeMinutes: number;
+  }): Observable<ReservationAvailabilityView> {
+    return this.http
+      .get<ApiResponse<ReservationAvailabilityView>>(`${this.apiUrl}/reservations/availability`, {
+        params: {
+          professionalId: input.professionalId,
+          dateHeure: input.dateHeure,
+          dureeMinutes: input.dureeMinutes.toString(),
+        },
+      })
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  listReservationAvailabilitySlots(input: {
+    professionalId: string;
+    date: string;
+    dureeMinutes: number;
+  }): Observable<ReservationAvailabilitySlotsView> {
+    return this.http
+      .get<ApiResponse<ReservationAvailabilitySlotsView>>(
+        `${this.apiUrl}/reservations/availability/slots`,
+        {
+          params: {
+            professionalId: input.professionalId,
+            date: input.date,
+            dureeMinutes: input.dureeMinutes.toString(),
+          },
+        },
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private clearProposalsCache(): void {
+    this.proposalsCache.clear();
   }
 }

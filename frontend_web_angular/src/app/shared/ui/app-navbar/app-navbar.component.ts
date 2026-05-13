@@ -34,6 +34,7 @@ export class AppNavbarComponent implements OnInit {
   protected readonly isMobileNavOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
+  protected readonly profileAvatarUrl = computed(() => this.currentUser()?.avatarUrl || null);
   protected readonly profileLabel = computed(() => {
     const user = this.currentUser();
     if (!user) return '';
@@ -118,16 +119,15 @@ export class AppNavbarComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.currentUser()) return;
-
-    // Only attempt to refresh session if we have a stored access token
     if (!this.authSession.getAccessToken()) return;
 
     this.authService
-      .me()
+      .myUserProfile()
       .pipe(
         catchError(() => {
-          this.authSession.clear();
+          if (!this.currentUser()) {
+            this.authSession.clear();
+          }
           return of(null);
         }),
       )

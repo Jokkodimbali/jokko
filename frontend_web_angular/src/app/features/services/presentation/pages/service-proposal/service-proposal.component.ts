@@ -1,6 +1,6 @@
 import { CommonModule, Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -12,6 +12,8 @@ import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navb
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   NegotiationView,
+  ReservationAvailabilitySlotView,
+  ReservationAvailabilityView,
   ServiceProposalService,
 } from '../../../data-access/service-proposal.service';
 import { ServicesService } from '../../../data-access/services.service';
@@ -29,6 +31,15 @@ interface PaymentOption {
   logoUrl: string;
 }
 
+interface ReservationDraft {
+  service: BackendProfessionalDetailService;
+  amount: number;
+  dateHeure: string;
+  adresseClient: string;
+  dureeMinutes: number;
+  paymentMethod: PaymentMethod;
+}
+
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
@@ -42,7 +53,7 @@ interface PaymentOption {
   templateUrl: './service-proposal.component.html',
   styleUrl: './service-proposal.component.scss',
 })
-export class ServiceProposalComponent implements OnInit {
+export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -55,7 +66,11 @@ export class ServiceProposalComponent implements OnInit {
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
+  protected readonly isCheckingAvailability = signal(false);
+  protected readonly isLoadingAvailabilitySlots = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly availabilityStatus = signal<ReservationAvailabilityView | null>(null);
+  protected readonly availabilitySlots = signal<ReservationAvailabilitySlotView[]>([]);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly selectedServiceId = signal(
@@ -119,9 +134,46 @@ export class ServiceProposalComponent implements OnInit {
   protected readonly minAppointmentDate = computed(() =>
     this.toDateInputValue(new Date(Date.now() + 5 * 60 * 1000)),
   );
+  protected readonly appointmentDay = computed(() => this.appointmentDate().slice(0, 10));
+  protected readonly minAppointmentDay = computed(() => this.minAppointmentDate().slice(0, 10));
+  protected readonly selectedSlotLabel = computed(() => {
+    const selectedIso = this.toIsoDateTime(this.appointmentDate());
+    const slot = this.availabilitySlots().find((item) => item.dateHeure === selectedIso);
+    return slot?.label || 'Heure a choisir';
+  });
+  protected readonly availabilityLabel = computed(() => {
+    if (this.isLoadingAvailabilitySlots()) {
+      return 'Chargement des heures du prestataire...';
+    }
+
+    if (this.isCheckingAvailability()) {
+      return 'Verification du creneau selectionne...';
+    }
+
+    if (this.availabilitySlots().length === 0) {
+      return 'Aucun creneau disponible pour cette date.';
+    }
+
+    const status = this.availabilityStatus();
+    if (!status) {
+      return 'Selectionnez une heure disponible.';
+    }
+
+    return status.available ? 'Creneau disponible pour ce prestataire.' : status.reason;
+  });
+  protected readonly isAvailabilityValid = computed(
+    () => this.availabilityStatus()?.available === true && !this.isCheckingAvailability(),
+  );
+  private availabilityCheckTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.loadDetail();
+  }
+
+  ngOnDestroy(): void {
+    if (this.availabilityCheckTimeoutId) {
+      clearTimeout(this.availabilityCheckTimeoutId);
+    }
   }
 
   protected goBack(): void {
@@ -137,9 +189,45 @@ export class ServiceProposalComponent implements OnInit {
     this.offerAmount.set(Number.isFinite(amount) ? amount : 0);
   }
 
+  protected updateAppointmentDate(value: string): void {
+    this.appointmentDate.set(value);
+    this.scheduleAvailabilityCheck();
+  }
+
+  protected updateAppointmentDay(value: string): void {
+    if (!value) {
+      return;
+    }
+
+    this.appointmentDate.set(`${value}T10:00`);
+    this.scheduleAvailabilityCheck();
+  }
+
+  protected selectAvailabilitySlot(slot: ReservationAvailabilitySlotView): void {
+    if (!slot.available) {
+      this.feedback.success(slot.reason || 'Ce creneau nest pas disponible.');
+      return;
+    }
+
+    this.appointmentDate.set(this.toDateInputValue(new Date(slot.dateHeure)));
+    const service = this.currentService();
+    this.availabilityStatus.set({
+      available: true,
+      reason: slot.reason || 'Disponible',
+      professionalId: service?.profilProfessionnelId || '',
+      dateHeure: slot.dateHeure,
+      dureeMinutes: this.durationMinutes,
+      withinAvailability: true,
+      hasConflict: false,
+    });
+  }
+
+  protected isSlotSelected(slot: ReservationAvailabilitySlotView): boolean {
+    return slot.dateHeure === this.toIsoDateTime(this.appointmentDate());
+  }
+
   protected submitProposal(): void {
     const service = this.currentService();
-    const amount = Number(this.offerAmount());
 
     if (!this.authSession.getAccessToken()) {
       this.feedback.success('Connectez-vous pour proposer un prix.');
@@ -147,35 +235,25 @@ export class ServiceProposalComponent implements OnInit {
       return;
     }
 
-    if (!this.isValidAppointmentDate()) {
-      this.feedback.success('Choisissez une date et une heure future pour le rendez-vous.');
+    const draft = this.validateReservationDraft(service);
+    if (!draft) {
       return;
     }
 
-    if (!this.isValidAddress()) {
-      this.feedback.success('Renseignez une adresse precise pour le rendez-vous.');
-      return;
-    }
-
-    if (!service || !Number.isFinite(amount) || amount < 1) {
-      this.feedback.success('Renseignez un montant valide avant de confirmer.');
-      return;
-    }
-
-    if (service.typePrix !== 'NEGOCIABLE') {
-      this.createDirectReservation(service, amount);
+    if (draft.service.typePrix !== 'NEGOCIABLE') {
+      this.createDirectReservation(draft);
       return;
     }
 
     this.isSubmitting.set(true);
-    this.proposalService.findActiveProposalForService(service.id).subscribe({
+    this.proposalService.findActiveProposalForService(draft.service.id).subscribe({
       next: (activeProposal) => {
         if (activeProposal) {
-          this.updateActiveProposalThenOpenDiscussion(activeProposal, service, amount);
+          this.updateActiveProposalThenOpenDiscussion(activeProposal, draft);
           return;
         }
 
-        this.createProposal(service.id, amount);
+        this.createProposal(draft);
       },
       error: (error) => {
         this.isSubmitting.set(false);
@@ -184,12 +262,12 @@ export class ServiceProposalComponent implements OnInit {
     });
   }
 
-  private createProposal(serviceId: string, amount: number): void {
+  private createProposal(draft: ReservationDraft): void {
     this.proposalService
       .createPriceProposal({
-        serviceId,
-        proposedAmount: amount,
-        message: this.buildProposalMessage(),
+        serviceId: draft.service.id,
+        proposedAmount: draft.amount,
+        message: this.buildProposalMessage(draft),
       })
       .subscribe({
         next: (proposal) => {
@@ -199,7 +277,7 @@ export class ServiceProposalComponent implements OnInit {
               ? 'Une discussion est deja ouverte pour ce service.'
               : 'Votre proposition a ete envoyee au prestataire.',
           );
-          this.openConversationThenGoToDiscussion(proposal, this.currentService(), amount);
+          this.openConversationThenGoToDiscussion(proposal, draft);
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -210,19 +288,18 @@ export class ServiceProposalComponent implements OnInit {
 
   private updateActiveProposalThenOpenDiscussion(
     activeProposal: NegotiationView,
-    service: BackendProfessionalDetailService,
-    amount: number,
+    draft: ReservationDraft,
   ): void {
     this.proposalService
       .counterPriceProposal(activeProposal.id, {
-        serviceId: service.id,
-        proposedAmount: amount,
-        message: this.buildProposalMessage(),
+        serviceId: draft.service.id,
+        proposedAmount: draft.amount,
+        message: this.buildProposalMessage(draft),
       })
       .subscribe({
         next: (proposal) => {
           this.feedback.success('Votre nouvelle proposition a ete envoyee.');
-          this.openConversationThenGoToDiscussion(proposal, service, amount);
+          this.openConversationThenGoToDiscussion(proposal, draft);
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -231,27 +308,18 @@ export class ServiceProposalComponent implements OnInit {
       });
   }
 
-  private createDirectReservation(
-    service: BackendProfessionalDetailService,
-    amount: number,
-  ): void {
-    const dateHeure = this.toIsoDateTime(this.appointmentDate());
-    if (!dateHeure) {
-      this.feedback.success('Choisissez une date valide avant de confirmer.');
-      return;
-    }
-
+  private createDirectReservation(draft: ReservationDraft): void {
     this.isSubmitting.set(true);
     this.proposalService
       .createDirectReservation({
-        professionnelId: service.profilProfessionnelId,
-        serviceId: service.id,
-        dateHeure,
-        adresseClient: this.address().trim() || 'Dakar, Senegal',
-        dureeMinutes: this.durationMinutes,
+        professionnelId: draft.service.profilProfessionnelId,
+        serviceId: draft.service.id,
+        dateHeure: draft.dateHeure,
+        adresseClient: draft.adresseClient,
+        dureeMinutes: draft.dureeMinutes,
         notes: [
-          `Montant affiche: ${this.formatAmount(amount)} FCFA.`,
-          `Paiement choisi: ${this.selectedPayment()}.`,
+          `Montant affiche: ${this.formatAmount(draft.amount)} FCFA.`,
+          `Paiement choisi: ${draft.paymentMethod}.`,
         ].join(' '),
       })
       .subscribe({
@@ -303,35 +371,13 @@ export class ServiceProposalComponent implements OnInit {
         const service = this.currentService();
         this.selectedServiceId.set(service?.id || '');
         this.offerAmount.set(service?.prix || 5000);
-        this.loadActiveProposalAmount(service);
         this.address.set(this.resolveInitialAddress(detail));
         this.isLoading.set(false);
+        this.scheduleAvailabilityCheck();
       },
       error: () => {
         this.errorMessage.set('Impossible de charger les informations du rendez-vous.');
         this.isLoading.set(false);
-      },
-    });
-  }
-
-  private loadActiveProposalAmount(service: BackendProfessionalDetailService | null): void {
-    if (!service || service.typePrix !== 'NEGOCIABLE' || !this.authSession.getAccessToken()) {
-      return;
-    }
-
-    this.proposalService.findActiveProposalForService(service.id).subscribe({
-      next: (proposal) => {
-        const proposedAmount = proposal?.montantCourant || proposal?.montantInitial;
-        if (
-          typeof proposedAmount === 'number' &&
-          Number.isFinite(proposedAmount) &&
-          proposedAmount > 0
-        ) {
-          this.offerAmount.set(proposedAmount);
-        }
-      },
-      error: () => {
-        // The page remains usable with the service base price if the active proposal lookup fails.
       },
     });
   }
@@ -341,21 +387,22 @@ export class ServiceProposalComponent implements OnInit {
     return label ? `${label}, Senegal` : 'Dakar, Senegal';
   }
 
-  private buildProposalMessage(): string {
+  private buildProposalMessage(draft: ReservationDraft): string {
     return [
-      `Proposition de prix: ${this.formatAmount(this.offerAmount())} FCFA.`,
-      `Date souhaitee: ${this.formattedDate()}.`,
-      `Adresse: ${this.address()}.`,
-      `Paiement choisi: ${this.selectedPayment()}.`,
+      `Service: ${draft.service.nom || this.categoryLabel()}.`,
+      `Proposition de prix: ${this.formatAmount(draft.amount)} FCFA.`,
+      `Date souhaitee: ${this.formatProposalDate(draft.dateHeure)}.`,
+      `Adresse: ${draft.adresseClient}.`,
+      `Duree: ${draft.dureeMinutes} minutes.`,
+      `Paiement choisi: ${draft.paymentMethod}.`,
     ].join(' ');
   }
 
   private openConversationThenGoToDiscussion(
     proposal: NegotiationView,
-    service: BackendProfessionalDetailService | null,
-    fallbackAmount: number,
+    draft: ReservationDraft,
   ): void {
-    const professionalProfileId = proposal.professionnelId || service?.profilProfessionnelId;
+    const professionalProfileId = proposal.professionnelId || draft.service.profilProfessionnelId;
 
     if (!professionalProfileId) {
       this.isSubmitting.set(false);
@@ -365,14 +412,15 @@ export class ServiceProposalComponent implements OnInit {
 
     this.messagesService.createConversation({ professionalProfileId }).subscribe({
       next: (conversation) => {
-        this.isSubmitting.set(false);
-        this.router.navigate(['/messages'], {
-          queryParams: this.buildDiscussionQueryParams(
-            proposal,
-            service,
-            fallbackAmount,
-            conversation.id,
-          ),
+        const queryParams = this.buildDiscussionQueryParams(
+          proposal,
+          draft,
+          conversation.id,
+        );
+
+        this.messagesService.sendMessage(conversation.id, this.buildProposalMessage(draft)).subscribe({
+          next: () => this.navigateToDiscussion(queryParams),
+          error: () => this.navigateToDiscussion(queryParams),
         });
       },
       error: (error) => {
@@ -394,8 +442,7 @@ export class ServiceProposalComponent implements OnInit {
           this.router.navigate(['/messages'], {
             queryParams: this.buildDiscussionQueryParams(
               null,
-              service,
-              fallbackAmount,
+              this.buildFallbackReservationDraft(service, fallbackAmount),
               conversation.id,
             ),
           });
@@ -409,22 +456,29 @@ export class ServiceProposalComponent implements OnInit {
 
   private buildDiscussionQueryParams(
     proposal: NegotiationView | null,
-    service: BackendProfessionalDetailService | null,
-    fallbackAmount: number,
+    draft: ReservationDraft,
     conversationId?: string,
   ) {
     return {
       conversationId,
       negotiationId: proposal?.id,
-      professionalId: proposal?.professionnelId || service?.profilProfessionnelId,
+      professionalId: proposal?.professionnelId || draft.service.profilProfessionnelId,
+      appointmentDate: draft.dateHeure,
+      address: draft.adresseClient,
+      durationMinutes: draft.dureeMinutes,
       amount:
-        Number.isFinite(fallbackAmount) && fallbackAmount > 0
-          ? fallbackAmount
+        Number.isFinite(draft.amount) && draft.amount > 0
+          ? draft.amount
           : proposal?.montantCourant || 0,
       providerName: this.displayName(),
-      serviceName: service?.nom || this.categoryLabel(),
+      serviceName: draft.service.nom || this.categoryLabel(),
       status: proposal?.statut || 'EN_ATTENTE_PRESTATAIRE',
     };
+  }
+
+  private navigateToDiscussion(queryParams: Record<string, unknown>): void {
+    this.isSubmitting.set(false);
+    this.router.navigate(['/messages'], { queryParams });
   }
 
   private isValidAppointmentDate(): boolean {
@@ -436,9 +490,174 @@ export class ServiceProposalComponent implements OnInit {
     return selectedDate.getTime() > Date.now();
   }
 
-  private isValidAddress(): boolean {
-    const normalizedAddress = this.address().trim();
-    return normalizedAddress.length >= 5;
+  private validateReservationDraft(
+    service: BackendProfessionalDetailService | null,
+  ): ReservationDraft | null {
+    if (!service) {
+      this.feedback.success('Selectionnez un service valide avant de confirmer.');
+      return null;
+    }
+
+    const amount = Math.trunc(Number(this.offerAmount()));
+    if (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000) {
+      this.feedback.success('Renseignez un montant entre 500 et 10 000 000 FCFA.');
+      return null;
+    }
+
+    const dateHeure = this.toIsoDateTime(this.appointmentDate());
+    if (!dateHeure || !this.isValidAppointmentDate()) {
+      this.feedback.success('Choisissez une date et une heure future pour le rendez-vous.');
+      return null;
+    }
+
+    if (this.isCheckingAvailability() || this.isLoadingAvailabilitySlots()) {
+      this.feedback.success('Patientez pendant la verification des creneaux.');
+      return null;
+    }
+
+    const availabilityStatus = this.availabilityStatus();
+    if (!availabilityStatus || availabilityStatus.dateHeure !== dateHeure) {
+      this.feedback.success('Verifiez la disponibilite du creneau avant de confirmer.');
+      this.checkAvailabilityNow(service, dateHeure);
+      return null;
+    }
+
+    if (!availabilityStatus.available) {
+      this.feedback.success(availabilityStatus.reason || 'Ce creneau nest pas disponible.');
+      return null;
+    }
+
+    const adresseClient = this.address().trim().replace(/\s+/g, ' ');
+    if (adresseClient.length < 5 || adresseClient.length > 180) {
+      this.feedback.success('Renseignez une adresse precise entre 5 et 180 caracteres.');
+      return null;
+    }
+
+    if (!Number.isInteger(this.durationMinutes) || this.durationMinutes < 15 || this.durationMinutes > 1440) {
+      this.feedback.success('La duree du rendez-vous est invalide.');
+      return null;
+    }
+
+    const paymentMethod = this.selectedPayment();
+    if (!this.paymentOptions.some((payment) => payment.id === paymentMethod)) {
+      this.feedback.success('Selectionnez un moyen de paiement valide.');
+      return null;
+    }
+
+    return {
+      service,
+      amount,
+      dateHeure,
+      adresseClient,
+      dureeMinutes: this.durationMinutes,
+      paymentMethod,
+    };
+  }
+
+  private scheduleAvailabilityCheck(): void {
+    if (this.availabilityCheckTimeoutId) {
+      clearTimeout(this.availabilityCheckTimeoutId);
+    }
+
+    this.availabilityStatus.set(null);
+    this.availabilityCheckTimeoutId = setTimeout(() => {
+      const service = this.currentService();
+      const date = this.appointmentDay();
+      if (!service || !date) {
+        this.isCheckingAvailability.set(false);
+        this.isLoadingAvailabilitySlots.set(false);
+        return;
+      }
+
+      this.loadAvailabilitySlots(service, date);
+    }, 450);
+  }
+
+  private loadAvailabilitySlots(
+    service: BackendProfessionalDetailService,
+    date: string,
+  ): void {
+    this.isLoadingAvailabilitySlots.set(true);
+    this.availabilitySlots.set([]);
+    this.proposalService
+      .listReservationAvailabilitySlots({
+        professionalId: service.profilProfessionnelId,
+        date,
+        dureeMinutes: this.durationMinutes,
+      })
+      .subscribe({
+        next: (result) => {
+          if (this.appointmentDay() !== result.date) {
+            return;
+          }
+
+          this.availabilitySlots.set(result.slots);
+          const selectedIso = this.toIsoDateTime(this.appointmentDate());
+          const selectedSlot = result.slots.find((slot) => slot.dateHeure === selectedIso);
+
+          if (selectedSlot?.available) {
+            this.selectAvailabilitySlot(selectedSlot);
+          } else {
+            this.availabilityStatus.set(null);
+          }
+
+          this.isLoadingAvailabilitySlots.set(false);
+        },
+        error: () => {
+          this.availabilitySlots.set([]);
+          this.availabilityStatus.set(null);
+          this.isLoadingAvailabilitySlots.set(false);
+        },
+      });
+  }
+
+  private checkAvailabilityNow(
+    service: BackendProfessionalDetailService,
+    dateHeure: string,
+  ): void {
+    this.isCheckingAvailability.set(true);
+    this.proposalService
+      .checkReservationAvailability({
+        professionalId: service.profilProfessionnelId,
+        dateHeure,
+        dureeMinutes: this.durationMinutes,
+      })
+      .subscribe({
+        next: (status) => {
+          if (this.toIsoDateTime(this.appointmentDate()) === status.dateHeure) {
+            this.availabilityStatus.set(status);
+          }
+          this.isCheckingAvailability.set(false);
+        },
+        error: () => {
+          this.availabilityStatus.set({
+            available: false,
+            reason: 'Impossible de verifier ce creneau pour le moment.',
+            professionalId: service.profilProfessionnelId,
+            dateHeure,
+            dureeMinutes: this.durationMinutes,
+            withinAvailability: false,
+            hasConflict: false,
+          });
+          this.isCheckingAvailability.set(false);
+        },
+      });
+  }
+
+  private buildFallbackReservationDraft(
+    service: BackendProfessionalDetailService,
+    fallbackAmount: number,
+  ): ReservationDraft {
+    const detail = this.detail();
+
+    return {
+      service,
+      amount: Number.isFinite(fallbackAmount) && fallbackAmount > 0 ? Math.trunc(fallbackAmount) : service.prix || 500,
+      dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? this.getDefaultAppointmentDate().toISOString(),
+      adresseClient: this.address().trim() || (detail ? this.resolveInitialAddress(detail) : 'Dakar, Senegal'),
+      dureeMinutes: this.durationMinutes,
+      paymentMethod: this.selectedPayment(),
+    };
   }
 
   private getDefaultAppointmentDate(): Date {
@@ -456,6 +675,24 @@ export class ServiceProposalComponent implements OnInit {
   private toIsoDateTime(value: string): string | null {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  private formatProposalDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return this.formattedDate();
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .format(date)
+      .toUpperCase()
+      .replace(',', '');
   }
 
   private formatAmount(value: number): string {

@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
+import { AppointmentView } from '../../../../appointments/domain/appointments.models';
 import {
   NegotiationView,
   ServiceProposalService,
@@ -20,6 +23,18 @@ interface PendingProposal {
   serviceName: string;
   amount: number;
   status: string | null;
+  reservationId: string | null;
+  appointmentDate: string | null;
+  address: string | null;
+  durationMinutes: number;
+  proposalMessage: string | null;
+}
+
+interface ReservationPaymentDraft {
+  negotiationId: string;
+  appointmentDate: string;
+  address: string;
+  durationMinutes: number;
 }
 
 @Component({
@@ -32,9 +47,9 @@ interface PendingProposal {
 export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
   private readonly proposalService = inject(ServiceProposalService);
+  private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly conversations = signal<Conversation[]>([]);
@@ -45,9 +60,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly isLoadingConversations = signal(true);
   protected readonly isLoadingMessages = signal(false);
   protected readonly isSending = signal(false);
+  protected readonly isPreparingPayment = signal(false);
+  protected readonly isUpdatingProposal = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly pendingProposal = signal<PendingProposal | null>(null);
   protected readonly priceProposals = signal<NegotiationView[]>([]);
+  protected readonly appointmentPreview = signal<AppointmentView | null>(null);
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly selectedConversation = computed(() =>
@@ -73,6 +91,20 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly visibleProposal = computed<PendingProposal | null>(() => {
     const proposal = this.pendingProposal();
     const conversation = this.selectedConversation();
+    const conversationProposal = conversation ? this.proposalFromConversation(conversation) : null;
+
+    if (conversationProposal) {
+      return proposal && this.isProposalForConversation(proposal, conversation)
+        ? {
+            ...conversationProposal,
+            appointmentDate: proposal.appointmentDate,
+            address: proposal.address,
+            durationMinutes: proposal.durationMinutes,
+            serviceName: proposal.serviceName || conversationProposal.serviceName,
+            proposalMessage: proposal.proposalMessage || conversationProposal.proposalMessage,
+          }
+        : conversationProposal;
+    }
 
     if (proposal && this.isProposalForConversation(proposal, conversation)) {
       return proposal;
@@ -90,10 +122,22 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return status === 'ACCEPTEE' || status === 'CONVERTIE_EN_RESERVATION';
   });
 
+  protected readonly canRespondToProposal = computed(() => {
+    const proposal = this.visibleProposal();
+    return (
+      this.currentUser()?.role === 'PRESTATAIRE' &&
+      proposal?.status === 'EN_ATTENTE_PRESTATAIRE' &&
+      Boolean(proposal.negotiationId)
+    );
+  });
+
+  protected readonly canPayAcceptedProposal = computed(
+    () => this.currentUser()?.role === 'CLIENT' && this.isProposalAccepted(),
+  );
+
   ngOnInit(): void {
     this.readPendingProposalFromQuery();
-    this.refreshPendingProposalStatus();
-    this.startPendingProposalStatusRefresh();
+    this.startProposalRefresh();
     this.loadConversations();
   }
 
@@ -109,7 +153,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     this.selectedConversationId.set(conversationId);
+    this.appointmentPreview.set(null);
     this.loadMessages(conversationId);
+    setTimeout(() => this.loadAppointmentPreviewForVisibleProposal(), 0);
   }
 
   protected updateSearch(value: string): void {
@@ -189,11 +235,144 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected payAcceptedProposal(): void {
-    this.router.navigate(['/appointments']);
+    const proposal = this.visibleProposal();
+
+    if (!proposal || this.isPreparingPayment()) {
+      return;
+    }
+
+    if (proposal.reservationId) {
+      this.loadAppointmentPreview(proposal.reservationId);
+      return;
+    }
+
+    const draft = this.validateReservationPaymentDraft(proposal);
+    if (!draft) {
+      return;
+    }
+
+    this.createReservationCardFromProposal(proposal, draft);
+  }
+
+  private createReservationCardFromProposal(
+    proposal: PendingProposal,
+    draft: ReservationPaymentDraft,
+  ): void {
+    this.isPreparingPayment.set(true);
+    this.errorMessage.set(null);
+    this.proposalService
+      .createReservationFromNegotiation({
+        negotiationId: draft.negotiationId,
+        dateHeure: draft.appointmentDate,
+        adresseClient: draft.address,
+        dureeMinutes: draft.durationMinutes,
+        notes: `Reservation creee apres acceptation du prix propose: ${this.formatAmount(proposal.amount)} FCFA.`,
+      })
+      .subscribe({
+        next: (reservation) => {
+          this.isPreparingPayment.set(false);
+          this.pendingProposal.update((current) =>
+            current?.negotiationId === proposal.negotiationId
+              ? {
+                  ...current,
+                  reservationId: reservation.id,
+                  status: 'CONVERTIE_EN_RESERVATION',
+                }
+              : current,
+          );
+          this.loadAppointmentPreview(reservation.id);
+          this.loadPriceProposals();
+          this.refreshConversationsSilently();
+        },
+        error: (error) => {
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de creer la reservation avant paiement.'),
+          );
+          this.isPreparingPayment.set(false);
+        },
+      });
   }
 
   protected cancelAcceptedProposal(): void {
     this.pendingProposal.set(null);
+  }
+
+  protected acceptProposal(): void {
+    const proposal = this.visibleProposal();
+    if (!proposal || this.isUpdatingProposal()) {
+      return;
+    }
+
+    if (!this.validateProposalResponse(proposal, 'accept')) {
+      return;
+    }
+    const negotiationId = proposal.negotiationId;
+    if (!negotiationId) {
+      return;
+    }
+
+    this.isUpdatingProposal.set(true);
+    this.errorMessage.set(null);
+
+    this.proposalService.acceptPriceProposal(negotiationId).subscribe({
+      next: (updatedProposal) => {
+        this.upsertProposal(updatedProposal);
+        this.pendingProposal.update((current) =>
+          current?.negotiationId === updatedProposal.id
+            ? {
+                ...current,
+                amount: updatedProposal.montantCourant,
+                status: updatedProposal.statut,
+                reservationId: updatedProposal.reservationId,
+              }
+            : current,
+        );
+        this.isUpdatingProposal.set(false);
+      },
+      error: () => {
+        this.errorMessage.set("Impossible d'accepter cette proposition.");
+        this.isUpdatingProposal.set(false);
+      },
+    });
+  }
+
+  protected rejectProposal(): void {
+    const proposal = this.visibleProposal();
+    if (!proposal || this.isUpdatingProposal()) {
+      return;
+    }
+
+    if (!this.validateProposalResponse(proposal, 'reject')) {
+      return;
+    }
+    const negotiationId = proposal.negotiationId;
+    if (!negotiationId) {
+      return;
+    }
+
+    this.isUpdatingProposal.set(true);
+    this.errorMessage.set(null);
+
+    this.proposalService.rejectPriceProposal(negotiationId, 'Proposition refusee par le prestataire.').subscribe({
+      next: (updatedProposal) => {
+        this.upsertProposal(updatedProposal);
+        this.pendingProposal.update((current) =>
+          current?.negotiationId === updatedProposal.id
+            ? {
+                ...current,
+                amount: updatedProposal.montantCourant,
+                status: updatedProposal.statut,
+                reservationId: updatedProposal.reservationId,
+              }
+            : current,
+        );
+        this.isUpdatingProposal.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Impossible de refuser cette proposition.');
+        this.isUpdatingProposal.set(false);
+      },
+    });
   }
 
   private loadConversations(): void {
@@ -251,9 +430,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.proposalService.listMyPriceProposals().subscribe({
+    this.proposalService.listMyPriceProposals(this.resolveNegotiationScope()).subscribe({
       next: (proposals) => {
         this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
+        this.loadAppointmentPreviewForVisibleProposal();
       },
     });
   }
@@ -265,7 +445,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.proposalService.listMyPriceProposals().subscribe({
+    this.proposalService.listMyPriceProposals(this.resolveNegotiationScope()).subscribe({
       next: (proposals) => {
         const currentProposal = proposals.find((item) => item.id === proposal.negotiationId);
         if (!currentProposal) {
@@ -276,32 +456,27 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           ...proposal,
           amount: currentProposal.montantCourant || proposal.amount,
           status: currentProposal.statut,
+          reservationId: currentProposal.reservationId,
         });
-        this.priceProposals.update((items) => {
-          const others = items.filter((item) => item.id !== currentProposal.id);
-          return this.isVisibleProposalStatus(currentProposal.statut)
-            ? [currentProposal, ...others]
-            : others;
-        });
-
-        if (currentProposal.statut === 'ACCEPTEE' && this.proposalStatusRefreshId) {
-          clearInterval(this.proposalStatusRefreshId);
-          this.proposalStatusRefreshId = null;
-        }
+        this.upsertProposal(currentProposal);
       },
     });
   }
 
-  private startPendingProposalStatusRefresh(): void {
-    const proposal = this.pendingProposal();
-
-    if (!proposal?.negotiationId || this.proposalStatusRefreshId) {
+  private startProposalRefresh(): void {
+    if (!this.authSession.hasAuthenticatedSession() || this.proposalStatusRefreshId) {
       return;
     }
 
     this.proposalStatusRefreshId = setInterval(() => {
+      this.refreshConversationsSilently();
+      this.loadPriceProposals();
+      const conversationId = this.selectedConversationId();
+      if (conversationId) {
+        this.refreshMessagesSilently(conversationId);
+      }
       this.refreshPendingProposalStatus();
-    }, 5000);
+    }, 10000);
   }
 
   private readPendingProposalFromQuery(): void {
@@ -321,6 +496,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       serviceName: query.get('serviceName') || 'service',
       amount: Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : 0,
       status: query.get('status'),
+      reservationId: query.get('reservationId'),
+      appointmentDate: query.get('appointmentDate'),
+      address: query.get('address'),
+      durationMinutes: Number(query.get('durationMinutes')) || 60,
+      proposalMessage: null,
     });
   }
 
@@ -357,23 +537,40 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private proposalFromConversation(conversation: Conversation): PendingProposal | null {
-    const professionalId = conversation.counterpart.professionalProfileId;
+    const professionalId =
+      conversation.professionalProfileId ?? conversation.counterpart.professionalProfileId;
+    const clientId =
+      this.currentUser()?.role === 'PRESTATAIRE'
+        ? conversation.counterpart.userId
+        : this.currentUser()?.id;
     const proposal = this.priceProposals().find(
-      (item) => professionalId && item.professionnelId === professionalId,
+      (item) =>
+        professionalId &&
+        item.professionnelId === professionalId &&
+        (!clientId || item.clientId === clientId),
     );
 
     if (!proposal) {
       return null;
     }
+    const details = this.extractProposalDetails(proposal.messageCourant);
 
     return {
       negotiationId: proposal.id,
       conversationId: conversation.id,
       professionalId: proposal.professionnelId,
-      providerName: conversation.counterpart.name,
-      serviceName: 'service',
+      providerName:
+        this.currentUser()?.role === 'PRESTATAIRE'
+          ? 'vous'
+          : conversation.counterpart.name,
+      serviceName: details.serviceName ?? 'service',
       amount: proposal.montantCourant || proposal.montantInitial,
       status: proposal.statut,
+      reservationId: proposal.reservationId,
+      appointmentDate: details.appointmentDate,
+      address: details.address,
+      durationMinutes: details.durationMinutes ?? 60,
+      proposalMessage: proposal.messageCourant,
     };
   }
 
@@ -384,5 +581,223 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       status === 'ACCEPTEE' ||
       status === 'CONVERTIE_EN_RESERVATION'
     );
+  }
+
+  private resolveNegotiationScope(): 'CLIENT' | 'PRESTATAIRE' {
+    return this.currentUser()?.role === 'PRESTATAIRE' ? 'PRESTATAIRE' : 'CLIENT';
+  }
+
+  private upsertProposal(proposal: NegotiationView): void {
+    this.priceProposals.update((items) => {
+      const others = items.filter((item) => item.id !== proposal.id);
+      return this.isVisibleProposalStatus(proposal.statut)
+        ? [proposal, ...others]
+        : others;
+    });
+  }
+
+  private refreshMessagesSilently(conversationId: string): void {
+    this.messagesService.listMessages(conversationId).subscribe({
+      next: (messages) => this.messages.set(messages),
+    });
+  }
+
+  private loadAppointmentPreviewForVisibleProposal(): void {
+    const proposal = this.visibleProposal();
+    if (!proposal?.reservationId || this.currentUser()?.role !== 'CLIENT') {
+      return;
+    }
+
+    if (this.appointmentPreview()?.id === proposal.reservationId) {
+      return;
+    }
+
+    this.loadAppointmentPreview(proposal.reservationId);
+  }
+
+  private loadAppointmentPreview(reservationId: string): void {
+    this.appointmentsService.getAppointmentById(reservationId).subscribe({
+      next: (appointment) => this.appointmentPreview.set(appointment),
+      error: () => {
+        this.errorMessage.set('Impossible de charger le resume du rendez-vous.');
+      },
+    });
+  }
+
+  private extractProposalDetails(message: string | null): {
+    appointmentDate: string | null;
+    address: string | null;
+    durationMinutes: number | null;
+    serviceName: string | null;
+  } {
+    if (!message) {
+      return {
+        appointmentDate: null,
+        address: null,
+        durationMinutes: null,
+        serviceName: null,
+      };
+    }
+
+    const serviceMatch = message.match(/Service:\s*([^.]+)\./i);
+    const dateMatch = message.match(/Date souhaitee:\s*([^.]+)\./i);
+    const addressMatch = message.match(/Adresse:\s*([^.]+)\./i);
+    const durationMatch = message.match(/Duree:\s*(\d{1,4})\s*minutes?\./i);
+    const parsedDuration = durationMatch ? Number(durationMatch[1]) : null;
+    const durationMinutes =
+      typeof parsedDuration === 'number' &&
+      Number.isInteger(parsedDuration) &&
+      parsedDuration >= 15 &&
+      parsedDuration <= 1440
+        ? parsedDuration
+        : null;
+
+    return {
+      appointmentDate: dateMatch ? this.parseProposalDate(dateMatch[1]) : null,
+      address: addressMatch?.[1]?.trim() || null,
+      durationMinutes,
+      serviceName: serviceMatch?.[1]?.trim() || null,
+    };
+  }
+
+  private resolveReservationDraft(proposal: PendingProposal): {
+    appointmentDate: string | null;
+    address: string | null;
+    durationMinutes: number;
+  } {
+    const messageDetails = this.extractProposalDetails(proposal.proposalMessage || proposal.serviceName);
+
+    return {
+      appointmentDate: proposal.appointmentDate || messageDetails.appointmentDate,
+      address: proposal.address || messageDetails.address,
+      durationMinutes: proposal.durationMinutes || messageDetails.durationMinutes || 60,
+    };
+  }
+
+  private parseProposalDate(value: string): string | null {
+    const normalized = value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+    const match = normalized.match(
+      /^(\d{1,2})\s+([A-Z]+)\s+(\d{4})(?:(?:\s+(?:A|À))?\s+(\d{1,2})[:H](\d{2}))?$/,
+    );
+    if (!match) {
+      return null;
+    }
+
+    const months: Record<string, number> = {
+      JANVIER: 0,
+      FEVRIER: 1,
+      MARS: 2,
+      AVRIL: 3,
+      MAI: 4,
+      JUIN: 5,
+      JUILLET: 6,
+      AOUT: 7,
+      SEPTEMBRE: 8,
+      OCTOBRE: 9,
+      NOVEMBRE: 10,
+      DECEMBRE: 11,
+    };
+    const month = months[match[2]];
+    if (month === undefined) {
+      return null;
+    }
+
+    const hours = match[4] ? Number(match[4]) : 12;
+    const minutes = match[5] ? Number(match[5]) : 0;
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null;
+    }
+
+    const date = new Date(Date.UTC(Number(match[3]), month, Number(match[1]), hours, minutes, 0));
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  private validateProposalResponse(proposal: PendingProposal, action: 'accept' | 'reject'): boolean {
+    if (this.currentUser()?.role !== 'PRESTATAIRE') {
+      this.errorMessage.set('Seul le prestataire peut valider ou refuser une proposition.');
+      return false;
+    }
+
+    if (!proposal.negotiationId) {
+      this.errorMessage.set('Impossible de traiter cette proposition: identifiant manquant.');
+      return false;
+    }
+
+    if (proposal.status !== 'EN_ATTENTE_PRESTATAIRE') {
+      this.errorMessage.set(
+        action === 'accept'
+          ? 'Cette proposition ne peut plus etre acceptee.'
+          : 'Cette proposition ne peut plus etre refusee.',
+      );
+      return false;
+    }
+
+    if (!Number.isFinite(proposal.amount) || proposal.amount <= 0) {
+      this.errorMessage.set('Impossible de traiter cette proposition: montant invalide.');
+      return false;
+    }
+
+    return true;
+  }
+
+  private validateReservationPaymentDraft(
+    proposal: PendingProposal,
+  ): ReservationPaymentDraft | null {
+    if (this.currentUser()?.role !== 'CLIENT') {
+      this.errorMessage.set('Seul le client peut preparer le paiement de cette reservation.');
+      return null;
+    }
+
+    if (proposal.status !== 'ACCEPTEE') {
+      this.errorMessage.set('Le paiement est disponible seulement apres acceptation du prix.');
+      return null;
+    }
+
+    if (!proposal.negotiationId) {
+      this.errorMessage.set('Impossible de creer la reservation: proposition introuvable.');
+      return null;
+    }
+
+    if (!Number.isFinite(proposal.amount) || proposal.amount <= 0) {
+      this.errorMessage.set('Impossible de creer la reservation: montant invalide.');
+      return null;
+    }
+
+    const draft = this.resolveReservationDraft(proposal);
+    const appointmentDate = draft.appointmentDate;
+    const scheduledAt = appointmentDate ? new Date(appointmentDate) : null;
+    if (!appointmentDate || !scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+      this.errorMessage.set('Impossible de creer la reservation: date du rendez-vous manquante.');
+      return null;
+    }
+
+    if (scheduledAt.getTime() <= Date.now()) {
+      this.errorMessage.set('Impossible de creer la reservation: la date du rendez-vous est deja passee.');
+      return null;
+    }
+
+    const address = draft.address?.trim().replace(/\s+/g, ' ') ?? '';
+    if (address.length < 5 || address.length > 180) {
+      this.errorMessage.set('Impossible de creer la reservation: adresse du rendez-vous invalide.');
+      return null;
+    }
+
+    const durationMinutes = Math.trunc(Number(draft.durationMinutes));
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 1440) {
+      this.errorMessage.set('Impossible de creer la reservation: duree du rendez-vous invalide.');
+      return null;
+    }
+
+    return {
+      negotiationId: proposal.negotiationId,
+      appointmentDate,
+      address,
+      durationMinutes,
+    };
   }
 }

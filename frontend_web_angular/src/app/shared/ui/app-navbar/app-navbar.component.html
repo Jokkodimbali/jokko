@@ -51,7 +51,11 @@
         aria-haspopup="menu"
         (click)="toggleProfileMenu()"
       >
-        <span>{{ profileLabel() }}</span>
+        <span class="app-navbar__profile-avatar">
+          <img *ngIf="profileAvatarUrl(); else profileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+          <ng-template #profileInitials>{{ profileLabel() }}</ng-template>
+        </span>
+        <strong>{{ profileName() }}</strong>
         <lucide-icon name="chevron-down" size="30" [strokeWidth]="2.4"></lucide-icon>
       </button>
 
@@ -62,7 +66,10 @@
           aria-label="Fermer le menu profil"
           (click)="closeProfileMenu()"
         >
-          <span class="app-navbar__dropdown-avatar">{{ profileLabel() }}</span>
+          <span class="app-navbar__dropdown-avatar">
+            <img *ngIf="profileAvatarUrl(); else dropdownInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <ng-template #dropdownInitials>{{ profileLabel() }}</ng-template>
+          </span>
           <span class="app-navbar__dropdown-account-copy">
             <strong>{{ profileName() }}</strong>
             <small>Connect&eacute;</small>
@@ -165,8 +172,11 @@
     <div class="app-navbar__mobile-actions">
       <ng-container *ngIf="isAuthenticated(); else mobileGuest">
         <div class="app-navbar__mobile-user">
-          <span class="app-navbar__mobile-avatar">{{ profileLabel() }}</span>
-          <span class="app-navbar__mobile-username">{{ profileTitle() }}</span>
+          <span class="app-navbar__mobile-avatar">
+            <img *ngIf="profileAvatarUrl(); else mobileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <ng-template #mobileInitials>{{ profileLabel() }}</ng-template>
+          </span>
+          <span class="app-navbar__mobile-username">{{ profileName() }}</span>
         </div>
         <a routerLink="/favorites" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
           <lucide-icon name="heart" size="22" [strokeWidth]="2.4"></lucide-icon>

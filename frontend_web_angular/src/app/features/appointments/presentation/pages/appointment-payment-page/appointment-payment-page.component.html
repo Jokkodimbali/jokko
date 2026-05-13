@@ -1,0 +1,101 @@
+<main class="appointment-payment">
+  <section class="appointment-payment__nav" aria-label="Navigation principale">
+    <app-navbar />
+  </section>
+
+  <section class="appointment-payment__topbar">
+    <button type="button" class="appointment-payment__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="31" [strokeWidth]="2.6"></lucide-icon>
+      <span>Back</span>
+    </button>
+  </section>
+
+  <section class="appointment-payment__state" *ngIf="isLoading()">Chargement du paiement...</section>
+  <section class="appointment-payment__state appointment-payment__state--error" *ngIf="!isLoading() && errorMessage()">
+    {{ errorMessage() }}
+  </section>
+
+  <ng-container *ngIf="!isLoading() && appointment() as appointment">
+    <section class="appointment-payment__content">
+      <section class="appointment-payment__checkout" aria-label="Paiement du rendez-vous">
+        <header class="appointment-payment__heading">
+          <h1>PAYEZ</h1>
+          <lucide-icon name="banknote" size="51" [strokeWidth]="2.8"></lucide-icon>
+        </header>
+
+        <strong class="appointment-payment__amount">{{ amountLabel() }}</strong>
+
+        <p>Choississez le moyen de paiement</p>
+        <div class="appointment-payment__methods" role="radiogroup" aria-label="Moyens de paiement">
+          <button
+            *ngFor="let option of paymentOptions"
+            type="button"
+            class="appointment-payment__method"
+            [class.appointment-payment__method--selected]="selectedMethod() === option.id"
+            [attr.aria-label]="methodAriaLabel(option)"
+            [attr.aria-checked]="selectedMethod() === option.id"
+            role="radio"
+            (click)="selectMethod(option.id)"
+          >
+            <img [src]="option.logoUrl" [alt]="option.label" />
+          </button>
+        </div>
+
+        <div class="appointment-payment__actions">
+          <button type="button" class="appointment-payment__pay" [disabled]="isPaying()" (click)="pay()">
+            {{ isPaying() ? 'Paiement...' : 'Payez' }}
+          </button>
+          <button
+            type="button"
+            class="appointment-payment__cancel"
+            [disabled]="isCancelling()"
+            (click)="cancelReservation()"
+          >
+            {{ isCancelling() ? 'Annulation...' : 'Annulez la reservation' }}
+          </button>
+        </div>
+      </section>
+
+      <aside class="appointment-payment__summary" aria-label="Details du rendez-vous">
+        <header class="appointment-payment__provider">
+          <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <div>
+            <h2>{{ appointment.doctorName }}</h2>
+            <p>
+              <lucide-icon name="handshake" size="47" [strokeWidth]="2.6"></lucide-icon>
+              <span>{{ appointment.serviceName }}</span>
+            </p>
+          </div>
+        </header>
+
+        <h3>Détails du rendez-vous</h3>
+
+        <dl>
+          <div>
+            <dt>
+              <lucide-icon name="calendar-days" size="35" [strokeWidth]="2.5"></lucide-icon>
+              <span>Date</span>
+            </dt>
+            <dd>{{ formatPaymentDate(appointment) }}</dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="map-pin" size="36" [strokeWidth]="2.5"></lucide-icon>
+              <span>Adresse d'intervention</span>
+            </dt>
+            <dd>{{ appointment.addressLabel }}</dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="banknote" size="33" [strokeWidth]="2.5"></lucide-icon>
+              <span>Prix proposé</span>
+            </dt>
+            <dd>{{ amountLabel() }}</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+  </ng-container>
+
+  <app-footer />
+</main>

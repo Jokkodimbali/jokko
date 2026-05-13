@@ -28,6 +28,12 @@ export interface ReservationsRepositoryPort {
     startDate?: Date;
     endDate?: Date;
   }): Promise<Reservation[]>;
+  hasTimeSlotConflict(input: {
+    professionalId: string;
+    dateHeure: Date;
+    dureeMinutes: number;
+    excludeReservationId?: string;
+  }): Promise<boolean>;
   save(reservation: Reservation): Promise<Reservation>;
   saveFromNegotiation(
     reservation: Reservation,

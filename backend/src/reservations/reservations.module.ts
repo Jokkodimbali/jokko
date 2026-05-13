@@ -13,6 +13,7 @@ import { ReservationQueryService } from './application/services/reservation-quer
 import { ReservationsFacade } from './application/services/reservations-facade.service';
 import { ReservationsRepository } from './infrastructure/repositories/reservations.repository';
 import { AdminReservationsController } from './presentation/controllers/admin-reservations.controller';
+import { ReservationAvailabilityController } from './presentation/controllers/reservation-availability.controller';
 import { ReservationsController } from './presentation/controllers/reservations.controller';
 
 @Module({
@@ -26,7 +27,11 @@ import { ReservationsController } from './presentation/controllers/reservations.
     DisputesModule,
     LiveTrackingModule,
   ],
-  controllers: [ReservationsController, AdminReservationsController],
+  controllers: [
+    ReservationAvailabilityController,
+    ReservationsController,
+    AdminReservationsController,
+  ],
   providers: [
     ReservationsRepository,
     {

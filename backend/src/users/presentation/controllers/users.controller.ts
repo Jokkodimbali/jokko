@@ -2,21 +2,35 @@ import {
   Body,
   Controller,
   Delete,
+  UploadedFile,
   Get,
   HttpCode,
   HttpStatus,
   Patch,
   Post,
+  Req,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import type {
+  DiskStorageCallback,
+  DiskStorageFile,
+} from 'multer';
+import { extname, join } from 'node:path';
+import { mkdirSync } from 'node:fs';
 import { appMessage } from '../../../core/http/app-http.exception';
+import { appHttpException } from '../../../core/http/app-http.exception';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -31,6 +45,27 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
+
+type UploadedAvatarFile = {
+  filename: string;
+  mimetype: string;
+  size: number;
+};
+
+const avatarUploadDirectory = join(process.cwd(), 'uploads', 'avatars');
+const allowedAvatarMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function ensureAvatarUploadDirectory(): void {
+  mkdirSync(avatarUploadDirectory, { recursive: true });
+}
+
+function buildAvatarFileName(userId: string, originalName: string): string {
+  const extension = extname(originalName).toLowerCase() || '.jpg';
+  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp'].includes(extension)
+    ? extension
+    : '.jpg';
+  return `${userId}-${Date.now()}${safeExtension}`;
+}
 
 @ApiTags(API_DOCS.users.tag)
 @ApiBearerAuth()
@@ -120,6 +155,62 @@ export class UsersController {
     @Body() dto: UpdateMyAvatarDto,
   ) {
     const result = await this.usersService.updateMyAvatar(user.sub, dto);
+    return createApiResponse(
+      result,
+      appMessage('USERS_AVATAR_UPDATED').message,
+    );
+  }
+
+  @Post('me/avatar/upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: (
+          _request: unknown,
+          _file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          ensureAvatarUploadDirectory();
+          callback(null, avatarUploadDirectory);
+        },
+        filename: (
+          request: unknown,
+          file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          const authUser = (request as Request & { user?: AuthUser }).user;
+          callback(null, buildAvatarFileName(authUser?.sub ?? 'user', file.originalname));
+        },
+      }),
+      limits: {
+        fileSize: 2 * 1024 * 1024,
+      },
+      fileFilter: (_request, file, callback) => {
+        if (!allowedAvatarMimeTypes.has(file.mimetype)) {
+          callback(appHttpException('VALIDATION_REQUEST_INVALID'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Uploader ma photo de profil' })
+  async uploadMyAvatar(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: UploadedAvatarFile | undefined,
+    @Req() request: Request,
+  ) {
+    if (!file) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const origin = `${request.protocol}://${request.get('host')}`;
+    const avatarUrl = `${origin}/uploads/avatars/${file.filename}`;
+    const result = await this.usersService.updateMyAvatar(user.sub, {
+      avatarUrl,
+    });
     return createApiResponse(
       result,
       appMessage('USERS_AVATAR_UPDATED').message,

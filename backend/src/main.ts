@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { ValidationError } from 'class-validator';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './core/http/api-exception.filter';
 import { buildValidationException } from './core/http/validation-exception.factory';
@@ -15,7 +16,14 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
   app.enableCors(buildCorsOptions(configService));
   app.set('trust proxy', configService.get<boolean>('TRUST_PROXY', false));
 

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -23,8 +24,13 @@ import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { PaymentsFacade } from '../../application/services/payments-facade.service';
+import { SavedPaymentMethodsService } from '../../application/services/saved-payment-methods.service';
 import { PaymentWebhookDto } from '../dto/payment-webhook.dto';
 import { InitiatePaymentDto } from '../dto/initiate-payment.dto';
+import {
+  SavePaymentMethodDto,
+  UpdateSavedPaymentMethodDto,
+} from '../dto/saved-payment-method.dto';
 import { RequestWithdrawalDto } from '../dto/request-withdrawal.dto';
 import { ListPaymentsQueryDto } from '../dto/list-payments-query.dto';
 import { PaymentReasonDto } from '../dto/payment-reason.dto';
@@ -40,7 +46,10 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 @ApiBearerAuth()
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsFacade: PaymentsFacade) {}
+  constructor(
+    private readonly paymentsFacade: PaymentsFacade,
+    private readonly savedPaymentMethods: SavedPaymentMethodsService,
+  ) {}
 
   @Post('initiate')
   @UseGuards(JwtAuthGuard)
@@ -238,6 +247,46 @@ export class PaymentsController {
       },
       appMessage('PAYMENTS_WITHDRAWAL_REQUESTED').message,
     );
+  }
+
+  @Get('methods/saved')
+  @UseGuards(JwtAuthGuard)
+  async listSavedPaymentMethods(@CurrentUser() user: AuthUser) {
+    const methods = await this.savedPaymentMethods.list(user.sub);
+    return createApiResponse(methods);
+  }
+
+  @Post('methods/saved')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async createSavedPaymentMethod(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SavePaymentMethodDto,
+  ) {
+    const method = await this.savedPaymentMethods.create(user.sub, dto);
+    return createApiResponse(method, 'Moyen de paiement enregistre.');
+  }
+
+  @Patch('methods/saved/:methodId')
+  @UseGuards(JwtAuthGuard)
+  async updateSavedPaymentMethod(
+    @CurrentUser() user: AuthUser,
+    @Param('methodId') methodId: string,
+    @Body() dto: UpdateSavedPaymentMethodDto,
+  ) {
+    const method = await this.savedPaymentMethods.update(user.sub, methodId, dto);
+    return createApiResponse(method, 'Moyen de paiement modifie.');
+  }
+
+  @Delete('methods/saved/:methodId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteSavedPaymentMethod(
+    @CurrentUser() user: AuthUser,
+    @Param('methodId') methodId: string,
+  ) {
+    await this.savedPaymentMethods.remove(user.sub, methodId);
+    return createApiResponse(null, 'Moyen de paiement supprime.');
   }
 
   @Get(':paymentId')

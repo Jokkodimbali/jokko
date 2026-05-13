@@ -44,6 +44,7 @@ export interface UserDto {
   name: string;
   email?: string;
   role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
+  avatarUrl?: string | null;
 }
 
 export interface UserProfileDto {
@@ -51,7 +52,9 @@ export interface UserProfileDto {
   numeroTelephone: string;
   nom: string;
   email?: string | null;
+  adresse?: string | null;
   role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
   urlAvatar?: string | null;
   estActif: boolean;
+  creeLe?: string | Date;
 }

@@ -40,22 +40,14 @@
             <strong>{{ formattedDate() }}</strong>
           </span>
           <input
-            type="datetime-local"
-            [min]="minAppointmentDate()"
-            [ngModel]="appointmentDate()"
-            (ngModelChange)="updateAppointmentDate($event)"
+            type="date"
+            [min]="minAppointmentDay()"
+            [ngModel]="appointmentDay()"
+            (ngModelChange)="updateAppointmentDay($event)"
             aria-label="Date du rendez-vous"
           />
           <lucide-icon name="pencil" size="19" [strokeWidth]="2.1"></lucide-icon>
         </label>
-        <p
-          class="service-proposal__availability"
-          [class.service-proposal__availability--ok]="isAvailabilityValid()"
-          [class.service-proposal__availability--error]="availabilityStatus() && !availabilityStatus()?.available"
-          [class.service-proposal__availability--checking]="isCheckingAvailability()"
-        >
-          {{ availabilityLabel() }}
-        </p>
 
         <label class="service-proposal__field service-proposal__field--address">
           <span class="service-proposal__field-icon">
@@ -75,6 +67,41 @@
           />
           <lucide-icon name="pencil" size="19" [strokeWidth]="2.1"></lucide-icon>
         </label>
+
+        <div class="service-proposal__slots" aria-label="Heures disponibles">
+          <div class="service-proposal__slots-header">
+            <span>
+              <lucide-icon name="clock-3" size="18" [strokeWidth]="2.2"></lucide-icon>
+              Heure du rendez-vous
+            </span>
+            <strong>{{ selectedSlotLabel() }}</strong>
+          </div>
+
+          <p
+            class="service-proposal__availability"
+            [class.service-proposal__availability--ok]="isAvailabilityValid()"
+            [class.service-proposal__availability--error]="availabilityStatus() && !availabilityStatus()?.available"
+            [class.service-proposal__availability--checking]="isCheckingAvailability() || isLoadingAvailabilitySlots()"
+          >
+            {{ availabilityLabel() }}
+          </p>
+
+          <div class="service-proposal__slot-grid">
+            <button
+              *ngFor="let slot of availabilitySlots()"
+              type="button"
+              class="service-proposal__slot"
+              [class.service-proposal__slot--selected]="isSlotSelected(slot)"
+              [class.service-proposal__slot--reserved]="slot.status === 'RESERVED'"
+              [class.service-proposal__slot--unavailable]="slot.status === 'UNAVAILABLE'"
+              [disabled]="!slot.available"
+              (click)="selectAvailabilitySlot(slot)"
+            >
+              <strong>{{ slot.label }}</strong>
+              <span>{{ slot.reason }}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="service-proposal__section-title">
@@ -167,7 +194,7 @@
       <small>Total a autoriser</small>
       <strong>{{ formattedOffer() }} FCFA</strong>
     </div>
-    <button type="button" (click)="submitProposal()" [disabled]="isSubmitting() || isCheckingAvailability()">
+    <button type="button" (click)="submitProposal()" [disabled]="isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()">
       {{ isSubmitting() ? 'Envoi en cours...' : 'Confirmez la reservation' }}
       <lucide-icon name="arrow-right" size="23" [strokeWidth]="2.3"></lucide-icon>
     </button>

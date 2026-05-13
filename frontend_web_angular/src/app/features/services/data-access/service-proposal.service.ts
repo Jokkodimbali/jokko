@@ -65,6 +65,21 @@ export interface ReservationAvailabilityView {
   hasConflict: boolean;
 }
 
+export interface ReservationAvailabilitySlotView {
+  dateHeure: string;
+  label: string;
+  available: boolean;
+  status: 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE';
+  reason: string;
+}
+
+export interface ReservationAvailabilitySlotsView {
+  professionalId: string;
+  date: string;
+  dureeMinutes: number;
+  slots: ReservationAvailabilitySlotView[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -206,6 +221,25 @@ export class ServiceProposalService {
           dureeMinutes: input.dureeMinutes.toString(),
         },
       })
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  listReservationAvailabilitySlots(input: {
+    professionalId: string;
+    date: string;
+    dureeMinutes: number;
+  }): Observable<ReservationAvailabilitySlotsView> {
+    return this.http
+      .get<ApiResponse<ReservationAvailabilitySlotsView>>(
+        `${this.apiUrl}/reservations/availability/slots`,
+        {
+          params: {
+            professionalId: input.professionalId,
+            date: input.date,
+            dureeMinutes: input.dureeMinutes.toString(),
+          },
+        },
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

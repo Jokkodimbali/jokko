@@ -32,7 +32,6 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 import { ReservationsFacade } from '../../application/services/reservations-facade.service';
 import { CreateReservationFromNegotiationDto } from '../dto/create-reservation-from-negotiation.dto';
 import { CreateReservationDto } from '../dto/create-reservation.dto';
-import { CheckReservationAvailabilityQueryDto } from '../dto/check-reservation-availability.dto';
 import { ListReservationsQueryDto } from '../dto/list-reservations-query.dto';
 import { OpenDisputeDto } from '../dto/open-dispute.dto';
 import {
@@ -48,15 +47,6 @@ import {
 @UseGuards(JwtAuthGuard)
 export class ReservationsController {
   constructor(private readonly reservationsFacade: ReservationsFacade) {}
-
-  @Get('availability')
-  @ApiOperation({ summary: 'Verifier la disponibilite dun creneau' })
-  async checkAvailability(
-    @Query() query: CheckReservationAvailabilityQueryDto,
-  ) {
-    const result = await this.reservationsFacade.checkAvailability(query);
-    return createApiResponse(result);
-  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

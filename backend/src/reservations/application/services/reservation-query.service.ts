@@ -115,6 +115,81 @@ export class ReservationQueryService extends ReservationAppService {
     };
   }
 
+  async listAvailabilitySlots(query: {
+    professionalId: string;
+    date: string;
+    dureeMinutes: number;
+  }) {
+    const professional = await this.getVerifiedProfessionalOrThrow(
+      query.professionalId,
+    );
+    const dayStart = this.parseAvailabilityDateOrThrow(query.date);
+    const durationMinutes = Math.trunc(Number(query.dureeMinutes));
+
+    if (
+      !Number.isInteger(durationMinutes) ||
+      durationMinutes < 15 ||
+      durationMinutes > 1440
+    ) {
+      return {
+        professionalId: professional.id,
+        date: dayStart.toISOString().slice(0, 10),
+        dureeMinutes: durationMinutes,
+        slots: [],
+      };
+    }
+
+    const availabilities =
+      await this.professionalsRepository.listAvailabilities(professional.id);
+    const dayAvailabilities = availabilities.filter(
+      (availability) =>
+        availability.estActive &&
+        availability.jourSemaine === dayStart.getUTCDay(),
+    );
+    const slotStarts = this.buildSlotStartsForDay(
+      dayStart,
+      durationMinutes,
+      dayAvailabilities,
+    );
+
+    const slots = await Promise.all(
+      slotStarts.map(async (slotStart) => {
+        const isPast = slotStart.getTime() <= Date.now();
+        const hasConflict = isPast
+          ? false
+          : await this.reservationsRepository.hasTimeSlotConflict({
+              professionalId: professional.id,
+              dateHeure: slotStart,
+              dureeMinutes: durationMinutes,
+            });
+        const available = !isPast && !hasConflict;
+
+        return {
+          dateHeure: slotStart.toISOString(),
+          label: this.formatSlotLabel(slotStart),
+          available,
+          status: available
+            ? 'AVAILABLE'
+            : hasConflict
+              ? 'RESERVED'
+              : 'UNAVAILABLE',
+          reason: available
+            ? 'Disponible'
+            : hasConflict
+              ? 'Deja reserve'
+              : 'Non disponible',
+        };
+      }),
+    );
+
+    return {
+      professionalId: professional.id,
+      date: dayStart.toISOString().slice(0, 10),
+      dureeMinutes: durationMinutes,
+      slots,
+    };
+  }
+
   async getAllReservationsByDateRange(
     requestUser: AuthUser,
     query: ListReservationsQuery,
@@ -173,7 +248,10 @@ export class ReservationQueryService extends ReservationAppService {
     const requestedDay = scheduledAt.getUTCDay();
 
     return availabilities.some((availability) => {
-      if (!availability.estActive || availability.jourSemaine !== requestedDay) {
+      if (
+        !availability.estActive ||
+        availability.jourSemaine !== requestedDay
+      ) {
         return false;
       }
 
@@ -189,5 +267,51 @@ export class ReservationQueryService extends ReservationAppService {
         requestedEndMinutes <= availabilityEndMinutes
       );
     });
+  }
+
+  private parseAvailabilityDateOrThrow(value: string): Date {
+    const normalized = value.length === 10 ? `${value}T00:00:00.000Z` : value;
+    const date = this.parseDateOrThrow(normalized);
+    date.setUTCHours(0, 0, 0, 0);
+    return date;
+  }
+
+  private buildSlotStartsForDay(
+    dayStart: Date,
+    durationMinutes: number,
+    availabilities: Array<{
+      heureDebut: Date;
+      heureFin: Date;
+    }>,
+  ): Date[] {
+    const slotStepMinutes = 30;
+    const starts: Date[] = [];
+
+    for (const availability of availabilities) {
+      const startMinutes =
+        availability.heureDebut.getUTCHours() * 60 +
+        availability.heureDebut.getUTCMinutes();
+      const endMinutes =
+        availability.heureFin.getUTCHours() * 60 +
+        availability.heureFin.getUTCMinutes();
+
+      for (
+        let minute = startMinutes;
+        minute + durationMinutes <= endMinutes;
+        minute += slotStepMinutes
+      ) {
+        const slotStart = new Date(dayStart);
+        slotStart.setUTCMinutes(minute);
+        starts.push(slotStart);
+      }
+    }
+
+    return starts.sort((a, b) => a.getTime() - b.getTime());
+  }
+
+  private formatSlotLabel(value: Date): string {
+    const hours = value.getUTCHours().toString().padStart(2, '0');
+    const minutes = value.getUTCMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   }
 }

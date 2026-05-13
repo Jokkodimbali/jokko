@@ -15,7 +15,7 @@ describe('ReservationsModule (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const uniqueSeed = randomUUID().replaceAll('-', '');
-  const phoneSuffix = `${Date.now().toString().slice(-4)}${Math.floor(
+  const phoneSuffix = `${Date.now().toString().slice(-6)}${Math.floor(
     Math.random() * 1000,
   )
     .toString()
@@ -90,6 +90,22 @@ describe('ReservationsModule (e2e)', () => {
       dureeMinutes: number;
       withinAvailability: boolean;
       hasConflict: boolean;
+    };
+  };
+
+  type AvailabilitySlotsSuccessResponse = {
+    success: boolean;
+    data?: {
+      professionalId: string;
+      date: string;
+      dureeMinutes: number;
+      slots: Array<{
+        dateHeure: string;
+        label: string;
+        available: boolean;
+        status: 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE';
+        reason: string;
+      }>;
     };
   };
 
@@ -417,6 +433,48 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.data?.available).toBe(false);
     expect(body.data?.withinAvailability).toBe(true);
     expect(body.data?.hasConflict).toBe(true);
+  });
+
+  it('GET /api/v1/reservations/availability/slots lists available and reserved slots', async () => {
+    const reservedDateHeure = buildFutureUtcSlot(18, 14);
+    const date = reservedDateHeure.slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        professionnelId: professionalProfileId,
+        serviceId: fixedServiceId,
+        dateHeure: reservedDateHeure,
+        adresseClient: 'Dakar Liberte',
+        dureeMinutes: 60,
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/reservations/availability/slots')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({
+        professionalId: professionalProfileId,
+        date,
+        dureeMinutes: 60,
+      })
+      .expect(200);
+
+    const body = response.body as AvailabilitySlotsSuccessResponse;
+    const reservedSlot = body.data?.slots.find(
+      (slot) => slot.dateHeure === reservedDateHeure,
+    );
+    const openSlot = body.data?.slots.find(
+      (slot) => slot.status === 'AVAILABLE',
+    );
+
+    expect(body.success).toBe(true);
+    expect(body.data?.professionalId).toBe(professionalProfileId);
+    expect(body.data?.date).toBe(date);
+    expect(reservedSlot?.available).toBe(false);
+    expect(reservedSlot?.status).toBe('RESERVED');
+    expect(openSlot?.available).toBe(true);
   });
 
   it('POST /api/v1/reservations refuses negotiable services', async () => {

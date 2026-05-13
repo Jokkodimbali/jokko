@@ -51,6 +51,14 @@ export class ReservationsFacade {
     return this.reservationQueryService.checkAvailability(query);
   }
 
+  async listAvailabilitySlots(query: {
+    professionalId: string;
+    date: string;
+    dureeMinutes: number;
+  }) {
+    return this.reservationQueryService.listAvailabilitySlots(query);
+  }
+
   async getReservationById(requestUser: AuthUser, reservationId: string) {
     return this.reservationQueryService.getReservationById(
       requestUser,

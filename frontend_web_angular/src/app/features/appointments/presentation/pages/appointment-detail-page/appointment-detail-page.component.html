@@ -17,30 +17,300 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && !errorMessage() && appointment() as appointment">
-    <section class="appointment-detail__hero">
-      <span>
-        <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.4"></lucide-icon>
-        {{ statusLabel() }}
+    <section *ngIf="hasPendingPriceAdjustment()" class="appointment-detail__price-review">
+      <span class="appointment-detail__price-pill">
+        <lucide-icon name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
+        Revision du prix
       </span>
-      <lucide-icon class="appointment-detail__hero-icon" name="calendar-days" size="54" [strokeWidth]="2.8"></lucide-icon>
-      <h2>Votre intervention est confirmée pour le {{ appointment.fullDateLabel }}</h2>
+      <lucide-icon class="appointment-detail__price-alert" name="triangle-alert" size="54" [strokeWidth]="2.4"></lucide-icon>
+
+      <h2>{{ appointment.doctorName }} propose un ajustement Tarifaire</h2>
+
+      <div class="appointment-detail__price-row">
+        <del>{{ currentPriceLabel() }}</del>
+        <strong>{{ proposedAdjustedPriceLabel() }}</strong>
+        <em>{{ priceAdjustmentDeltaLabel() }}</em>
+      </div>
+
       <p>
-        {{ appointment.doctorName }} interviendra à {{ appointment.timeLabel }}.
-        Vous recevrez une alerte 24 h avant le rendez- vous
+        <lucide-icon name="clipboard" size="24" [strokeWidth]="2.3"></lucide-icon>
+        {{ appointment.priceAdjustmentReason || 'Ajustement demande par le prestataire.' }}
       </p>
-      <div>
-        <em>
-          <lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon>
-          {{ appointment.timeLabel }}
-        </em>
-        <em>
-          <lucide-icon name="map-pin" size="18" [strokeWidth]="2.4"></lucide-icon>
-          {{ appointment.addressLabel }}
-        </em>
+
+      <div class="appointment-detail__price-actions">
+        <button type="button" (click)="acceptPriceAdjustment(appointment)" [disabled]="isHandlingPriceAdjustment()">
+          <lucide-icon name="check" size="22" [strokeWidth]="2.4"></lucide-icon>
+          Accepter
+        </button>
+        <button type="button" (click)="rejectPriceAdjustment(appointment)" [disabled]="isHandlingPriceAdjustment()">
+          <lucide-icon name="x" size="22" [strokeWidth]="2.4"></lucide-icon>
+          Refuser
+        </button>
       </div>
     </section>
 
-    <section class="appointment-detail__body">
+    <section *ngIf="isAppointmentCompleted()" class="appointment-detail__completed-hero">
+      <span>
+        <lucide-icon name="check" size="22" [strokeWidth]="2.8"></lucide-icon>
+        PRESTATION TERMINEE
+      </span>
+      <lucide-icon class="appointment-detail__completed-icon" name="check" size="54" [strokeWidth]="2.8"></lucide-icon>
+      <h2>Mission accomplie par {{ appointment.doctorName }}</h2>
+      <p>Votre avis nous aide a ameliorer la qualite du service</p>
+
+      <div class="appointment-detail__completed-actions">
+        <div class="appointment-detail__rating" aria-label="Note de la prestation">
+          <button
+            *ngFor="let rating of reviewStars"
+            type="button"
+            [class.appointment-detail__rating-star--active]="selectedRating() >= rating"
+            [disabled]="isSubmittingReview() || !!appointment.clientReviewedAt"
+            [attr.aria-label]="'Noter ' + rating + ' sur 5'"
+            (click)="setRating(rating)"
+          >
+            <lucide-icon name="star" size="34" [strokeWidth]="2.2"></lucide-icon>
+          </button>
+        </div>
+        <span class="appointment-detail__invoice-pill">
+          <lucide-icon name="clipboard" size="20" [strokeWidth]="2.3"></lucide-icon>
+          {{ invoiceNumberLabel() }}
+        </span>
+        <span class="appointment-detail__invoice-pill">{{ finalPriceLabel() }}</span>
+      </div>
+
+      <button type="button" class="appointment-detail__download" (click)="downloadInvoice(appointment)">
+        <lucide-icon name="clipboard" size="23" [strokeWidth]="2.4"></lucide-icon>
+        Telechargez la facture
+      </button>
+    </section>
+
+    <section *ngIf="isAppointmentCompleted()" class="appointment-detail__completion-card">
+      <div class="appointment-detail__completion-map">
+        <iframe
+          *ngIf="mapEmbedUrl(); else completedMapPending"
+          title="Carte de la prestation terminee"
+          [src]="mapEmbedUrl()"
+          loading="lazy"
+        ></iframe>
+        <ng-template #completedMapPending>
+          <div class="appointment-detail__map-empty">
+            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+            Position finale en attente
+          </div>
+        </ng-template>
+        <div class="appointment-detail__completion-overlay"></div>
+        <span class="appointment-detail__completion-time">
+          <lucide-icon name="check" size="13" [strokeWidth]="2.8"></lucide-icon>
+          Termine a {{ completedAtLabel() }}
+        </span>
+        <span class="appointment-detail__completion-duration">
+          <lucide-icon name="clock-3" size="14" [strokeWidth]="2.5"></lucide-icon>
+          Duree reelle : {{ realDurationLabel() }}
+        </span>
+        <div class="appointment-detail__completion-message">
+          <lucide-icon name="check" size="34" [strokeWidth]="2.8"></lucide-icon>
+          <h2>Intervention terminee</h2>
+          <p>Merci d'avoir confiance a {{ appointment.doctorName }}</p>
+        </div>
+      </div>
+
+      <div class="appointment-detail__completion-footer">
+        <strong>
+          <small><lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon> ADRESSE</small>
+          {{ appointment.addressLabel }}
+        </strong>
+        <span>
+          <lucide-icon name="check" size="15" [strokeWidth]="2.8"></lucide-icon>
+          Visite achevee
+        </span>
+      </div>
+    </section>
+
+    <section
+      *ngIf="!isAppointmentCompleted()"
+      class="appointment-detail__hero"
+      [class.appointment-detail__hero--route]="isProviderOnTheWay()"
+      [class.appointment-detail__hero--working]="isProviderWorking()"
+    >
+      <span>
+        <lucide-icon [name]="isProviderWorking() ? 'wrench' : isProviderOnTheWay() ? 'send' : 'calendar-days'" size="22" [strokeWidth]="2.4"></lucide-icon>
+        {{ statusLabel() }}
+      </span>
+      <lucide-icon class="appointment-detail__hero-icon" [name]="isProviderWorking() ? 'wrench' : isProviderOnTheWay() ? 'send' : 'calendar-days'" size="54" [strokeWidth]="2.8"></lucide-icon>
+
+      <ng-container *ngIf="isProviderWorking(); else movingOrConfirmedHero">
+        <h2>{{ appointment.doctorName }} travaille</h2>
+        <div class="appointment-detail__work-steps" aria-label="Progression de la prestation">
+          <ng-container *ngFor="let step of workProgressSteps(); let last = last; let index = index">
+            <span [class.appointment-detail__work-step--done]="step.state === 'done'" [class.appointment-detail__work-step--active]="step.state === 'active'">
+              <b>{{ step.state === 'done' ? 'OK' : index + 1 }}</b>
+              {{ step.label }}
+            </span>
+            <i *ngIf="!last"></i>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <ng-template #movingOrConfirmedHero>
+      <ng-container *ngIf="isProviderOnTheWay(); else confirmedHero">
+        <h2>{{ appointment.doctorName }} arrive dans {{ estimatedArrivalMinutes() }} min</h2>
+        <p>{{ remainingDistanceLabel() }}. Suivez sa position en temps reel.</p>
+        <div class="appointment-detail__progress">
+          <small>Progression du trajet</small>
+          <i><b [style.width.%]="routeProgress()"></b></i>
+        </div>
+      </ng-container>
+      </ng-template>
+
+      <ng-template #confirmedHero>
+        <h2>Votre intervention est confirmee pour le {{ appointment.fullDateLabel }}</h2>
+        <p>
+          {{ appointment.doctorName }} interviendra a {{ appointment.timeLabel }}.
+          Vous recevrez une alerte 24 h avant le rendez-vous.
+        </p>
+        <div>
+          <em>
+            <lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon>
+            {{ appointment.timeLabel }}
+          </em>
+          <em>
+            <lucide-icon name="map-pin" size="18" [strokeWidth]="2.4"></lucide-icon>
+            {{ appointment.addressLabel }}
+          </em>
+        </div>
+      </ng-template>
+    </section>
+
+    <section *ngIf="!isAppointmentCompleted() && isProviderWorking()" class="appointment-detail__work-layout" aria-label="Prestation en cours">
+      <article class="appointment-detail__work-card">
+        <div class="appointment-detail__work-map">
+          <iframe
+            *ngIf="mapEmbedUrl(); else workMapPending"
+            title="Carte de la prestation en cours"
+            [src]="mapEmbedUrl()"
+            loading="lazy"
+          ></iframe>
+          <ng-template #workMapPending>
+            <div class="appointment-detail__map-empty">
+              <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+              Position GPS en attente
+            </div>
+          </ng-template>
+          <div class="appointment-detail__map-badge"><span></span>EN DIRECT</div>
+          <div class="appointment-detail__arrived-badge">
+            <lucide-icon name="check" size="14" [strokeWidth]="3"></lucide-icon>
+            Arrive sur place
+          </div>
+          <div class="appointment-detail__work-radius" *ngIf="hasTrackingCoordinates()"></div>
+          <img
+            class="appointment-detail__work-avatar"
+            [src]="appointment.avatarUrl"
+            [alt]="appointment.doctorName"
+            *ngIf="hasTrackingCoordinates()"
+          />
+        </div>
+
+        <div class="appointment-detail__work-info">
+          <span class="appointment-detail__work-icon">
+            <lucide-icon name="wrench" size="32" [strokeWidth]="2.6"></lucide-icon>
+          </span>
+          <div>
+            <h2>{{ appointment.serviceName }}</h2>
+            <p>{{ appointment.doctorName }} est arrive a {{ arrivedAtLabel() }}</p>
+          </div>
+        </div>
+
+        <div class="appointment-detail__work-facts">
+          <strong>
+            <small><lucide-icon name="map-pin" size="14" [strokeWidth]="2.4"></lucide-icon> ADRESSE</small>
+            {{ appointment.addressLabel }}
+          </strong>
+          <strong>
+            <small><lucide-icon name="clock-3" size="14" [strokeWidth]="2.4"></lucide-icon> FIN ESTIMEE</small>
+            = {{ estimatedEndLabel() }}
+          </strong>
+        </div>
+      </article>
+    </section>
+
+    <section *ngIf="!isAppointmentCompleted() && isProviderOnTheWay()" class="appointment-detail__route-layout" aria-label="Suivi du prestataire en route">
+      <article class="appointment-detail__route-service">
+        <span class="appointment-detail__tool">
+          <lucide-icon name="wrench" size="41" [strokeWidth]="2.6"></lucide-icon>
+        </span>
+        <div class="appointment-detail__service-copy">
+          <h2>{{ appointment.serviceName }}</h2>
+          <p>{{ appointment.notes || 'Diagnostic et reparation. Module materiel inclus' }}</p>
+          <div class="appointment-detail__badges">
+            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Diagnostic</span>
+            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Garantie 30J</span>
+            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Materiel inclus</span>
+          </div>
+        </div>
+
+        <div class="appointment-detail__facts">
+          <strong>
+            <lucide-icon name="calendar-days" size="19" [strokeWidth]="2.4"></lucide-icon>
+            DATE
+            <b>{{ appointment.shortDateLabel }}</b>
+          </strong>
+          <strong>
+            <lucide-icon name="clock-3" size="19" [strokeWidth]="2.4"></lucide-icon>
+            HEURE
+            <b>{{ appointment.timeLabel }}</b>
+          </strong>
+          <strong>
+            <lucide-icon name="heart-pulse" size="19" [strokeWidth]="2.4"></lucide-icon>
+            DUREE
+            <b>{{ durationLabel(appointment) }}</b>
+          </strong>
+        </div>
+
+        <div class="appointment-detail__actions">
+          <button type="button">
+            <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.4"></lucide-icon>
+            Synchroniser le RDV
+          </button>
+          <button type="button">
+            <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2.4"></lucide-icon>
+            Reprogrammer
+          </button>
+          <button type="button">
+            <lucide-icon name="circle-x" size="15" [strokeWidth]="2.4"></lucide-icon>
+            Annuler
+          </button>
+        </div>
+      </article>
+
+      <article class="appointment-detail__live-map">
+        <iframe
+          *ngIf="mapEmbedUrl(); else routePending"
+          title="Carte de suivi du prestataire"
+          [src]="mapEmbedUrl()"
+          loading="lazy"
+        ></iframe>
+        <ng-template #routePending>
+          <div class="appointment-detail__map-empty">
+            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+            Position GPS en attente
+          </div>
+        </ng-template>
+        <div class="appointment-detail__map-badge"><span></span>EN DIRECT</div>
+        <a [href]="mapDirectionsUrl(appointment)" target="_blank" rel="noopener">
+          <lucide-icon name="map-pin" size="15" [strokeWidth]="2.3"></lucide-icon>
+          {{ estimatedArrivalMinutes() ? 'Arrive dans ' + estimatedArrivalMinutes() + ' min' : lastPositionLabel() }}
+        </a>
+        <div class="appointment-detail__route-line" *ngIf="hasTrackingCoordinates()"></div>
+        <img
+          class="appointment-detail__map-avatar"
+          [src]="appointment.avatarUrl"
+          [alt]="appointment.doctorName"
+          *ngIf="hasTrackingCoordinates()"
+        />
+      </article>
+    </section>
+
+    <section class="appointment-detail__body" *ngIf="!isAppointmentCompleted() && !isProviderOnTheWay() && !isProviderWorking()">
       <div class="appointment-detail__left">
         <article class="appointment-detail__card appointment-detail__service">
           <span class="appointment-detail__tool">
@@ -48,11 +318,11 @@
           </span>
           <div class="appointment-detail__service-copy">
             <h2>{{ appointment.serviceName }}</h2>
-            <p>{{ appointment.notes || 'Diagnostic et réparation. Module matériel inclus' }}</p>
+            <p>{{ appointment.notes || 'Diagnostic et reparation. Module materiel inclus' }}</p>
             <div class="appointment-detail__badges">
               <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Diagnostic</span>
               <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Garantie 30J</span>
-              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Matériel inclus</span>
+              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Materiel inclus</span>
             </div>
           </div>
 
@@ -69,7 +339,7 @@
             </strong>
             <strong>
               <lucide-icon name="heart-pulse" size="19" [strokeWidth]="2.4"></lucide-icon>
-              DURÉE
+              DUREE
               <b>{{ durationLabel(appointment) }}</b>
             </strong>
           </div>
@@ -114,10 +384,10 @@
 
         <article class="appointment-detail__card appointment-detail__alert">
           <span><lucide-icon name="bell" size="20" [strokeWidth]="2.4"></lucide-icon></span>
-          <p><b>AUTO-ALERTE</b> - notification programmée 24H avant le RDV</p>
+          <p><b>AUTO-ALERTE</b> - notification programmee 24H avant le RDV</p>
           <button type="button" (click)="alertEnabled.update((value) => !value)">
             <lucide-icon name="power" size="16" [strokeWidth]="2.4"></lucide-icon>
-            {{ alertEnabled() ? 'Activé' : 'Activer' }}
+            {{ alertEnabled() ? 'Active' : 'Activer' }}
           </button>
         </article>
       </div>
@@ -125,9 +395,9 @@
       <div class="appointment-detail__right">
         <article class="appointment-detail__tracking">
           <span><lucide-icon name="lock-keyhole" size="52" [strokeWidth]="2.4"></lucide-icon></span>
-          <h2>Le suivi en direct s’activera le jour du rendez-vous</h2>
+          <h2>Le suivi en direct s'activera le jour du rendez-vous</h2>
           <p>
-            Vous pourrez suivre {{ appointment.doctorName }} en temps réel sur la carte dès qu’il sera en route vers chez vous.
+            Vous pourrez suivre {{ appointment.doctorName }} en temps reel sur la carte des qu'il sera en route vers chez vous.
           </p>
           <div>
             <strong>
@@ -143,7 +413,7 @@
             <strong>
               <lucide-icon name="bell" size="35" [strokeWidth]="2.4"></lucide-icon>
               <small>NOTIFICATION</small>
-              Alerte 30 min avant l'arrivée
+              Alerte 30 min avant l'arrivee
             </strong>
           </div>
         </article>

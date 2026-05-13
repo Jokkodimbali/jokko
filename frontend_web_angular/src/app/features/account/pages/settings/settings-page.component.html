@@ -1,32 +1,321 @@
-<app-account-shell
-  title="Mes parametres"
-  subtitle="Consultez les informations rattachees a votre compte Jokko."
->
-  <section *ngIf="currentUser(); else loginRequired" class="settings-page__panel">
-    <div class="settings-page__row">
-      <span>Nom</span>
-      <strong>{{ profile()?.nom || currentUser()?.name }}</strong>
-    </div>
-    <div class="settings-page__row">
-      <span>Telephone</span>
-      <strong>{{ profile()?.numeroTelephone || currentUser()?.phoneNumber }}</strong>
-    </div>
-    <div class="settings-page__row">
-      <span>Role</span>
-      <strong>{{ profile()?.role || currentUser()?.role }}</strong>
-    </div>
-    <div class="settings-page__row">
-      <span>Email</span>
-      <strong>{{ profile()?.email || currentUser()?.email || 'Non renseigne' }}</strong>
-    </div>
-    <p *ngIf="isLoading()" class="settings-page__loading">Synchronisation du profil...</p>
+<main class="settings-page">
+  <section class="settings-page__nav" aria-label="Navigation principale">
+    <app-navbar />
   </section>
 
+  <section class="settings-page__top">
+    <button type="button" class="settings-page__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.5"></lucide-icon>
+      Retour
+    </button>
+  </section>
+
+  <ng-container *ngIf="currentUser(); else loginRequired">
+    <section class="settings-page__layout">
+      <aside class="settings-page__sidebar">
+        <nav aria-label="Menu parametres">
+          <button type="button" [class.settings-page__side-item--active]="activeSection() === 'profile'" (click)="selectSection('profile')">
+            <lucide-icon name="users" size="34" [strokeWidth]="2.2"></lucide-icon>
+            Mon profil
+          </button>
+          <button type="button" [class.settings-page__side-item--active]="activeSection() === 'payment'" (click)="selectSection('payment')">
+            <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.2"></lucide-icon>
+            Moyens de paiement
+          </button>
+          <button type="button" (click)="selectSection('favorites')">
+            <lucide-icon name="heart" size="34" [strokeWidth]="2.2"></lucide-icon>
+            Favoris
+          </button>
+          <button type="button" (click)="selectSection('reservations')">
+            <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.2"></lucide-icon>
+            Reservation
+          </button>
+          <button type="button" class="settings-page__logout" (click)="logout()">
+            <lucide-icon name="log-out" size="34" [strokeWidth]="2.2"></lucide-icon>
+            Deconnexion
+          </button>
+        </nav>
+      </aside>
+
+      <section class="settings-page__content">
+        <header class="settings-page__search">
+          <label>
+            <lucide-icon name="search" size="27" [strokeWidth]="2.5"></lucide-icon>
+            <input type="search" placeholder="Recherche" />
+          </label>
+          <button type="button" aria-label="Notifications">
+            <lucide-icon name="bell" size="35" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </header>
+
+        <p *ngIf="isLoading()" class="settings-page__state">Synchronisation du profil...</p>
+        <p *ngIf="errorMessage()" class="settings-page__state settings-page__state--error">{{ errorMessage() }}</p>
+
+        <ng-container *ngIf="activeSection() === 'profile' && profile() as profile">
+          <h1>Mon Profil</h1>
+
+          <article class="settings-page__profile-card">
+            <label class="settings-page__avatar" aria-label="Uploader la photo de profil">
+              <img *ngIf="profile.urlAvatar; else initialsAvatar" [src]="profile.urlAvatar" [alt]="displayName()" />
+              <ng-template #initialsAvatar>
+                <span>{{ initials() }}</span>
+              </ng-template>
+              <lucide-icon name="camera" size="15" [strokeWidth]="2.4"></lucide-icon>
+              <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadAvatar($event)" />
+            </label>
+            <div>
+              <h2>{{ displayName() }}</h2>
+              <strong>{{ roleLabel() }}</strong>
+              <p>{{ profile.adresse || 'Adresse non renseignee' }}</p>
+              <small *ngIf="isSavingAvatar()">Upload de la photo...</small>
+            </div>
+          </article>
+
+          <article class="settings-page__card">
+            <header>
+              <h2>Informations personnelles</h2>
+              <button *ngIf="!isEditingProfile()" type="button" (click)="startProfileEdit()">
+                Modifiez
+                <lucide-icon name="pencil" size="17" [strokeWidth]="2.4"></lucide-icon>
+              </button>
+              <button *ngIf="isEditingProfile()" type="button" class="settings-page__ghost" (click)="cancelProfileEdit()">
+                Annuler
+                <lucide-icon name="x" size="17" [strokeWidth]="2.4"></lucide-icon>
+              </button>
+            </header>
+
+            <div class="settings-page__grid" *ngIf="!isEditingProfile(); else editProfile">
+              <div>
+                <span>Prenom</span>
+                <strong>{{ profileForm.firstName || profile.nom }}</strong>
+              </div>
+              <div>
+                <span>Nom</span>
+                <strong>{{ profileForm.lastName || 'Non renseigne' }}</strong>
+              </div>
+              <div>
+                <span>Date de naissance</span>
+                <strong>Non renseignee</strong>
+              </div>
+              <div>
+                <span>Adresse email</span>
+                <strong>{{ profile.email || 'Non renseignee' }}</strong>
+              </div>
+              <div>
+                <span>Telephone</span>
+                <strong>{{ profile.numeroTelephone }}</strong>
+              </div>
+              <div>
+                <span>Compte</span>
+                <strong>{{ profile.estActif ? 'Actif' : 'Inactif' }}</strong>
+              </div>
+            </div>
+
+            <ng-template #editProfile>
+              <form class="settings-page__form" (ngSubmit)="saveProfile()">
+                <label class="settings-page__field">
+                  <span>Prenom</span>
+                  <input type="text" name="firstName" [(ngModel)]="profileForm.firstName" required />
+                </label>
+                <label class="settings-page__field">
+                  <span>Nom</span>
+                  <input type="text" name="lastName" [(ngModel)]="profileForm.lastName" />
+                </label>
+                <label class="settings-page__field settings-page__field--full">
+                  <span>Adresse email</span>
+                  <input type="email" name="email" [(ngModel)]="profileForm.email" />
+                </label>
+                <button type="submit" class="settings-page__save" [disabled]="isSavingProfile()">
+                  <lucide-icon name="check" size="18" [strokeWidth]="2.4"></lucide-icon>
+                  Enregistrer
+                </button>
+              </form>
+            </ng-template>
+          </article>
+
+          <article class="settings-page__card">
+            <header>
+              <h2>Adresse</h2>
+              <button *ngIf="!isEditingAddress()" type="button" (click)="startAddressEdit()">
+                Modifiez
+                <lucide-icon name="pencil" size="17" [strokeWidth]="2.4"></lucide-icon>
+              </button>
+              <button *ngIf="isEditingAddress()" type="button" class="settings-page__ghost" (click)="cancelAddressEdit()">
+                Annuler
+                <lucide-icon name="x" size="17" [strokeWidth]="2.4"></lucide-icon>
+              </button>
+            </header>
+
+            <div class="settings-page__grid" *ngIf="!isEditingAddress(); else editAddress">
+              <div class="settings-page__wide">
+                <span>Adresse complete</span>
+                <strong>{{ profile.adresse || 'Non renseignee' }}</strong>
+              </div>
+              <div>
+                <span>Pays</span>
+                <strong>{{ addressParts().country }}</strong>
+              </div>
+              <div>
+                <span>Ville</span>
+                <strong>{{ addressParts().city }}</strong>
+              </div>
+              <div>
+                <span>Code postale</span>
+                <strong>{{ addressParts().postalCode }}</strong>
+              </div>
+            </div>
+
+            <ng-template #editAddress>
+              <form class="settings-page__form" (ngSubmit)="saveAddress()">
+                <label class="settings-page__field settings-page__field--full">
+                  <span>Adresse complete</span>
+                  <input type="text" name="address" [(ngModel)]="addressForm.address" />
+                </label>
+                <button type="submit" class="settings-page__save" [disabled]="isSavingAddress()">
+                  <lucide-icon name="check" size="18" [strokeWidth]="2.4"></lucide-icon>
+                  Enregistrer
+                </button>
+              </form>
+            </ng-template>
+          </article>
+
+          <article class="settings-page__danger">
+            <div>
+              <h2>Zone sensible</h2>
+              <p>La suppression anonymise le compte et coupe les sessions rattachees.</p>
+            </div>
+            <button type="button" (click)="deleteAccount()" [disabled]="isDeleting()">
+              Supprimer le compte
+            </button>
+          </article>
+        </ng-container>
+
+        <section *ngIf="activeSection() === 'payment'" class="settings-page__payment-page">
+          <article class="settings-page__payment-main">
+            <header class="settings-page__payment-head">
+              <div>
+                <h1>Payment method</h1>
+                <p>Ajoutez ou modifiez vos moyens de paiement enregistres.</p>
+              </div>
+              <span>{{ savedPaymentMethods().length }} actif{{ savedPaymentMethods().length > 1 ? 's' : '' }}</span>
+            </header>
+
+            <div class="settings-page__payment-layout">
+              <nav class="settings-page__payment-tabs" aria-label="Types de moyens de paiement">
+                <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'CARD'" (click)="selectPaymentType('CARD')">
+                  <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.6"></lucide-icon>
+                  <span>Credit card</span>
+                  <small>{{ savedCards().length }} carte{{ savedCards().length > 1 ? 's' : '' }}</small>
+                </button>
+                <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'WAVE'" (click)="selectPaymentType('WAVE')">
+                  <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.6"></lucide-icon>
+                  <span>Wave</span>
+                  <small>{{ savedWaveNumbers().length }} numero{{ savedWaveNumbers().length > 1 ? 's' : '' }}</small>
+                </button>
+                <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'OTHER'" (click)="selectPaymentType('OTHER')">
+                  <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.6"></lucide-icon>
+                  <span>Other</span>
+                  <small>Bientot</small>
+                </button>
+              </nav>
+
+              <section class="settings-page__payment-editor">
+                <form *ngIf="selectedPaymentType() === 'CARD'" class="settings-page__payment-form" (ngSubmit)="saveSelectedPaymentMethod()">
+                  <div class="settings-page__card-preview" aria-hidden="true">
+                    <div>
+                      <span>VISA</span>
+                      <strong>MasterCard</strong>
+                    </div>
+                    <p>{{ cardForm.cardNumber || '5412 1235 4512 2353' }}</p>
+                    <small>{{ cardForm.holderName || displayName() }}</small>
+                  </div>
+
+                  <label class="settings-page__payment-field settings-page__payment-field--full">
+                    <span>Carte de credit</span>
+                    <input type="text" name="cardNumber" [(ngModel)]="cardForm.cardNumber" placeholder="5412 1235 4512 2353" autocomplete="cc-number" required />
+                  </label>
+                  <label class="settings-page__payment-field settings-page__payment-field--full">
+                    <span>Nom</span>
+                    <input type="text" name="holderName" [(ngModel)]="cardForm.holderName" placeholder="Nom affiche sur la carte" autocomplete="cc-name" required />
+                  </label>
+                  <div class="settings-page__payment-row">
+                    <label class="settings-page__payment-field">
+                      <span>Mois</span>
+                      <input type="number" name="expiryMonth" min="1" max="12" [(ngModel)]="cardForm.expiryMonth" autocomplete="cc-exp-month" required />
+                    </label>
+                    <label class="settings-page__payment-field">
+                      <span>Annee</span>
+                      <input type="number" name="expiryYear" min="2026" max="2100" [(ngModel)]="cardForm.expiryYear" autocomplete="cc-exp-year" required />
+                    </label>
+                    <label class="settings-page__payment-field">
+                      <span>CVV</span>
+                      <input type="password" value="***" disabled />
+                    </label>
+                  </div>
+                  <p class="settings-page__payment-note"><b>!</b> Votre carte bancaire sera enregistree de maniere securisee pour faciliter vos prochains paiements.</p>
+                  <div class="settings-page__payment-actions">
+                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Confirmez' }}</button>
+                    <button *ngIf="editingPaymentMethodId()" type="button" class="settings-page__payment-cancel" (click)="clearPaymentEdit()">Annuler</button>
+                  </div>
+                </form>
+
+                <form *ngIf="selectedPaymentType() === 'WAVE'" class="settings-page__payment-form settings-page__payment-form--wave" (ngSubmit)="saveSelectedPaymentMethod()">
+                  <div class="settings-page__wave-brand">
+                    <img src="/wave.png" alt="Wave" />
+                  </div>
+                  <label class="settings-page__payment-field settings-page__payment-field--full">
+                    <span>Numero de telephone</span>
+                    <input type="tel" name="wavePhoneNumber" [(ngModel)]="waveForm.phoneNumber" placeholder="77 450 54 54" autocomplete="tel" required />
+                  </label>
+                  <p class="settings-page__payment-note"><b>!</b> Votre numero de telephone sera enregistre de maniere securisee pour faciliter vos prochains paiements.</p>
+                  <div class="settings-page__payment-actions">
+                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Confirmez' }}</button>
+                    <button *ngIf="editingPaymentMethodId()" type="button" class="settings-page__payment-cancel" (click)="clearPaymentEdit()">Annuler</button>
+                  </div>
+                </form>
+
+                <section *ngIf="selectedPaymentType() === 'OTHER'" class="settings-page__payment-form settings-page__empty">
+                  <h2>Autres moyens</h2>
+                  <p>Les autres moyens seront ajoutes depuis le backend des que le provider sera active.</p>
+                </section>
+              </section>
+            </div>
+          </article>
+
+          <aside class="settings-page__payment-saved">
+            <h2>{{ selectedPaymentType() === 'WAVE' ? 'Numeros enregistres' : 'Cartes enregistrees' }}</h2>
+            <ng-container *ngIf="selectedPaymentType() === 'WAVE'; else savedCardsTpl">
+              <p *ngIf="savedWaveNumbers().length === 0" class="settings-page__saved-empty">Aucun numero Wave enregistre.</p>
+              <article *ngFor="let method of savedWaveNumbers(); let index = index" class="settings-page__saved-method">
+                <button type="button" class="settings-page__saved-edit" (click)="editPaymentMethod(method)">Modifier</button>
+                <strong>Numero {{ index + 1 }}</strong>
+                <span>{{ method.maskedValue }}</span>
+                <button type="button" class="settings-page__saved-delete" (click)="deletePaymentMethod(method)">Supprimer</button>
+              </article>
+            </ng-container>
+            <ng-template #savedCardsTpl>
+              <p *ngIf="savedCards().length === 0" class="settings-page__saved-empty">Aucune carte enregistree.</p>
+              <article *ngFor="let method of savedCards(); let index = index" class="settings-page__saved-method">
+                <button type="button" class="settings-page__saved-edit" (click)="editPaymentMethod(method)">Modifier</button>
+                <strong>Carte {{ index + 1 }}</strong>
+                <span>{{ method.maskedValue }}</span>
+                <small>{{ method.expiryMonth || '--' }}/{{ method.expiryYear || '--' }}</small>
+                <button type="button" class="settings-page__saved-delete" (click)="deletePaymentMethod(method)">Supprimer</button>
+              </article>
+            </ng-template>
+          </aside>
+        </section>
+      </section>
+    </section>
+  </ng-container>
+
   <ng-template #loginRequired>
-    <section class="settings-page__panel settings-page__panel--empty">
-      <h2>Connexion requise</h2>
-      <p>Connectez-vous pour consulter vos parametres.</p>
+    <section class="settings-page__login">
+      <h1>Connexion requise</h1>
+      <p>Connectez-vous pour consulter et modifier vos parametres.</p>
       <a routerLink="/auth/login">Se connecter</a>
     </section>
   </ng-template>
-</app-account-shell>
+
+  <app-footer />
+</main>

@@ -45,6 +45,7 @@ export class AuthSessionService {
       name: profile.nom,
       email: profile.email ?? undefined,
       role: profile.role,
+      avatarUrl: profile.urlAvatar ?? null,
     });
   }
 

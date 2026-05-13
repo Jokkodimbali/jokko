@@ -10,6 +10,7 @@ import { PaymentQueryService } from './application/services/payment-query.servic
 import { PaymentsFacade } from './application/services/payments-facade.service';
 import { EscrowService } from './application/services/escrow.service';
 import { WithdrawalService } from './application/services/withdrawal.service';
+import { SavedPaymentMethodsService } from './application/services/saved-payment-methods.service';
 import { PaymentsRepositoryImpl } from './infrastructure/repositories/payments.repository';
 import { WithdrawalsRepositoryImpl } from './infrastructure/repositories/withdrawals.repository';
 import { PaymentWorkflowRepository } from './infrastructure/repositories/payment-workflow.repository';
@@ -74,6 +75,7 @@ import { CategoriesModule } from '../categories/categories.module';
     PaymentsFacade,
     EscrowService,
     WithdrawalService,
+    SavedPaymentMethodsService,
     MockPaymentGatewayAdapter,
     WavePaymentGatewayAdapter,
     OrangeMoneyPaymentGatewayAdapter,

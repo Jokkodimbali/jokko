@@ -12,6 +12,7 @@ import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navb
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   NegotiationView,
+  ReservationAvailabilitySlotView,
   ReservationAvailabilityView,
   ServiceProposalService,
 } from '../../../data-access/service-proposal.service';
@@ -66,8 +67,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
   protected readonly isCheckingAvailability = signal(false);
+  protected readonly isLoadingAvailabilitySlots = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly availabilityStatus = signal<ReservationAvailabilityView | null>(null);
+  protected readonly availabilitySlots = signal<ReservationAvailabilitySlotView[]>([]);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly selectedServiceId = signal(
@@ -131,14 +134,29 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly minAppointmentDate = computed(() =>
     this.toDateInputValue(new Date(Date.now() + 5 * 60 * 1000)),
   );
+  protected readonly appointmentDay = computed(() => this.appointmentDate().slice(0, 10));
+  protected readonly minAppointmentDay = computed(() => this.minAppointmentDate().slice(0, 10));
+  protected readonly selectedSlotLabel = computed(() => {
+    const selectedIso = this.toIsoDateTime(this.appointmentDate());
+    const slot = this.availabilitySlots().find((item) => item.dateHeure === selectedIso);
+    return slot?.label || 'Heure a choisir';
+  });
   protected readonly availabilityLabel = computed(() => {
+    if (this.isLoadingAvailabilitySlots()) {
+      return 'Chargement des heures du prestataire...';
+    }
+
     if (this.isCheckingAvailability()) {
-      return 'Verification du creneau...';
+      return 'Verification du creneau selectionne...';
+    }
+
+    if (this.availabilitySlots().length === 0) {
+      return 'Aucun creneau disponible pour cette date.';
     }
 
     const status = this.availabilityStatus();
     if (!status) {
-      return 'Choisissez une date et une heure pour verifier le creneau.';
+      return 'Selectionnez une heure disponible.';
     }
 
     return status.available ? 'Creneau disponible pour ce prestataire.' : status.reason;
@@ -174,6 +192,38 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected updateAppointmentDate(value: string): void {
     this.appointmentDate.set(value);
     this.scheduleAvailabilityCheck();
+  }
+
+  protected updateAppointmentDay(value: string): void {
+    if (!value) {
+      return;
+    }
+
+    this.appointmentDate.set(`${value}T10:00`);
+    this.scheduleAvailabilityCheck();
+  }
+
+  protected selectAvailabilitySlot(slot: ReservationAvailabilitySlotView): void {
+    if (!slot.available) {
+      this.feedback.success(slot.reason || 'Ce creneau nest pas disponible.');
+      return;
+    }
+
+    this.appointmentDate.set(this.toDateInputValue(new Date(slot.dateHeure)));
+    const service = this.currentService();
+    this.availabilityStatus.set({
+      available: true,
+      reason: slot.reason || 'Disponible',
+      professionalId: service?.profilProfessionnelId || '',
+      dateHeure: slot.dateHeure,
+      dureeMinutes: this.durationMinutes,
+      withinAvailability: true,
+      hasConflict: false,
+    });
+  }
+
+  protected isSlotSelected(slot: ReservationAvailabilitySlotView): boolean {
+    return slot.dateHeure === this.toIsoDateTime(this.appointmentDate());
   }
 
   protected submitProposal(): void {
@@ -460,8 +510,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return null;
     }
 
-    if (this.isCheckingAvailability()) {
-      this.feedback.success('Patientez pendant la verification du creneau.');
+    if (this.isCheckingAvailability() || this.isLoadingAvailabilitySlots()) {
+      this.feedback.success('Patientez pendant la verification des creneaux.');
       return null;
     }
 
@@ -512,14 +562,53 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.availabilityStatus.set(null);
     this.availabilityCheckTimeoutId = setTimeout(() => {
       const service = this.currentService();
-      const dateHeure = this.toIsoDateTime(this.appointmentDate());
-      if (!service || !dateHeure || !this.isValidAppointmentDate()) {
+      const date = this.appointmentDay();
+      if (!service || !date) {
         this.isCheckingAvailability.set(false);
+        this.isLoadingAvailabilitySlots.set(false);
         return;
       }
 
-      this.checkAvailabilityNow(service, dateHeure);
+      this.loadAvailabilitySlots(service, date);
     }, 450);
+  }
+
+  private loadAvailabilitySlots(
+    service: BackendProfessionalDetailService,
+    date: string,
+  ): void {
+    this.isLoadingAvailabilitySlots.set(true);
+    this.availabilitySlots.set([]);
+    this.proposalService
+      .listReservationAvailabilitySlots({
+        professionalId: service.profilProfessionnelId,
+        date,
+        dureeMinutes: this.durationMinutes,
+      })
+      .subscribe({
+        next: (result) => {
+          if (this.appointmentDay() !== result.date) {
+            return;
+          }
+
+          this.availabilitySlots.set(result.slots);
+          const selectedIso = this.toIsoDateTime(this.appointmentDate());
+          const selectedSlot = result.slots.find((slot) => slot.dateHeure === selectedIso);
+
+          if (selectedSlot?.available) {
+            this.selectAvailabilitySlot(selectedSlot);
+          } else {
+            this.availabilityStatus.set(null);
+          }
+
+          this.isLoadingAvailabilitySlots.set(false);
+        },
+        error: () => {
+          this.availabilitySlots.set([]);
+          this.availabilityStatus.set(null);
+          this.isLoadingAvailabilitySlots.set(false);
+        },
+      });
   }
 
   private checkAvailabilityNow(

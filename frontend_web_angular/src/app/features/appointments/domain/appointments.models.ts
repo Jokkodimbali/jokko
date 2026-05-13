@@ -19,6 +19,10 @@ export interface BackendReservation {
   statut: AppointmentStatus;
   notes: string | null;
   prixConvenu: number | null;
+  statutAjustementPrix: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
+  prixAjustementPropose: number | null;
+  raisonAjustementPrix: string | null;
+  demandeAjustementPrixLe: string | null;
   clientRating: number | null;
   clientReview: string | null;
   clientReviewedAt: string | null;
@@ -46,8 +50,49 @@ export interface AppointmentView {
   serviceName: string;
   notes: string | null;
   agreedPrice: number | null;
+  priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
+  proposedAdjustedPrice: number | null;
+  priceAdjustmentReason: string | null;
+  priceAdjustmentRequestedAt: string | null;
+  clientRating: number | null;
+  clientReview: string | null;
+  clientReviewedAt: string | null;
   confirmationLabel: string;
   addressLabel: string;
+}
+
+export interface AppointmentPresenceView {
+  professionalId: string;
+  isOnline: boolean;
+  status: 'HORS_LIGNE' | 'EN_LIGNE' | 'EN_ROUTE' | 'EN_PRESTATION';
+  lastLatitude: number | null;
+  lastLongitude: number | null;
+  lastAccuracyMeters: number | null;
+  lastHeadingDegrees: number | null;
+  lastSpeedKmh: number | null;
+  lastLocationLabel: string | null;
+  lastPositionAt: string | null;
+  lastSeenAt: string | null;
+  updatedAt: string;
+}
+
+export interface AppointmentTrackingView {
+  reservationId: string;
+  clientUserId: string;
+  professionalId: string;
+  professionalUserId: string;
+  trackingStatus: 'EN_ROUTE' | 'TERMINEE' | 'ANNULEE' | 'INACTIF';
+  startedAt: string | null;
+  endedAt: string | null;
+  lastLatitude: number | null;
+  lastLongitude: number | null;
+  lastAccuracyMeters: number | null;
+  lastHeadingDegrees: number | null;
+  lastSpeedKmh: number | null;
+  lastLocationLabel: string | null;
+  lastPositionAt: string | null;
+  updatedAt: string | null;
+  presence: AppointmentPresenceView;
 }
 
 export type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'CARD';

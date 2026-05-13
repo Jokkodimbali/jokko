@@ -196,6 +196,7 @@ model Utilisateur {
   favorisProfessionnels     FavoriProfessionnel[]
   negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
   paiementsClient           Paiement[]             @relation("PaymentsClient")
+  moyensPaiementEnregistres MoyenPaiementEnregistre[]
   litigesSignales           Litige[]               @relation("ReportedDisputes")
   litigesResolus            Litige[]               @relation("ResolvedDisputes")
   sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
@@ -485,6 +486,25 @@ model Paiement {
   @@index([referenceFournisseur])
   @@index([gatewayReference])
   @@map("payments")
+}
+
+model MoyenPaiementEnregistre {
+  id             String   @id @default(uuid()) @db.Uuid
+  utilisateurId  String   @map("user_id") @db.Uuid
+  type           String   @db.VarChar(20)
+  libelle        String?  @map("label") @db.VarChar(80)
+  valeurMasquee  String   @map("masked_value") @db.VarChar(80)
+  titulaire      String?  @map("holder_name") @db.VarChar(100)
+  moisExpiration Int?     @map("expiry_month")
+  anneeExpiration Int?    @map("expiry_year")
+  estDefaut      Boolean  @default(false) @map("is_default")
+  creeLe         DateTime @default(now()) @map("created_at")
+  misAJourLe     DateTime @updatedAt @map("updated_at")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId, type])
+  @@map("saved_payment_methods")
 }
 
 model Litige {

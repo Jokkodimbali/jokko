@@ -7,6 +7,7 @@ import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { ServicesService } from '../../services/data-access/services.service';
 import {
   AppointmentView,
+  AppointmentTrackingView,
   BackendReservation,
   PaymentInitiationView,
   PaymentMethod,
@@ -83,6 +84,14 @@ export class AppointmentsService {
       );
   }
 
+  getAppointmentTracking(reservationId: string): Observable<AppointmentTrackingView> {
+    return this.http
+      .get<ApiResponse<AppointmentTrackingView>>(
+        `${this.apiUrl}/reservations/${reservationId}/live-tracking`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   initiatePayment(
     reservationId: string,
     method: PaymentMethod,
@@ -110,6 +119,33 @@ export class AppointmentsService {
       .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/cancel`, {
         raisonAnnulation: 'Annulation demandee depuis la page de paiement.',
       })
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  acceptPriceAdjustment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/accept`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  rejectPriceAdjustment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/reject`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  submitReview(reservationId: string, rating: number, review?: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/review`,
+        { rating, review },
+      )
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 
@@ -143,6 +179,13 @@ export class AppointmentsService {
       serviceName: professional.serviceName || 'Consultation',
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
+      priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
+      proposedAdjustedPrice: reservation.prixAjustementPropose,
+      priceAdjustmentReason: reservation.raisonAjustementPrix,
+      priceAdjustmentRequestedAt: reservation.demandeAjustementPrixLe,
+      clientRating: reservation.clientRating,
+      clientReview: reservation.clientReview,
+      clientReviewedAt: reservation.clientReviewedAt,
       confirmationLabel: this.confirmationLabel(reservation.statut),
       addressLabel: reservation.adresseClient || 'Adresse non renseignee',
     };

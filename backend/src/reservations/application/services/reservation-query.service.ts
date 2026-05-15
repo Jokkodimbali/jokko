@@ -41,11 +41,18 @@ export class ReservationQueryService extends ReservationAppService {
       filters.serviceId = query.serviceId;
     }
 
-    return this.reservationsRepository.findByFilters(filters);
+    return this.reservationsRepository.findDetailedByFilters(filters);
   }
 
   async getReservationById(requestUser: AuthUser, reservationId: string) {
-    return this.getAccessibleReservationOrThrow(requestUser, reservationId);
+    await this.getAccessibleReservationOrThrow(requestUser, reservationId);
+    const reservation =
+      await this.reservationsRepository.findDetailedById(reservationId);
+    if (!reservation) {
+      throw appHttpException('RESERVATIONS_NOT_FOUND');
+    }
+
+    return reservation;
   }
 
   async checkAvailability(query: {
@@ -197,7 +204,10 @@ export class ReservationQueryService extends ReservationAppService {
     this.assertAdminRole(requestUser.role);
     const { startDate, endDate } = this.parseDateRangeOrThrow(query);
 
-    return this.reservationsRepository.findAllByDateRange(startDate, endDate);
+    return this.reservationsRepository.findAllDetailedByDateRange(
+      startDate,
+      endDate,
+    );
   }
 
   async getReservationStatistics(

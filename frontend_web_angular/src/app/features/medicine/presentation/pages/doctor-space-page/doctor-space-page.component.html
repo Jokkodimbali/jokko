@@ -1,0 +1,574 @@
+<main class="doctor-space">
+  <aside class="doctor-space__sidebar">
+    <button type="button" class="doctor-space__back" (click)="goBack()" aria-label="Retour">
+      <lucide-icon name="arrow-left" size="31" [strokeWidth]="2.6"></lucide-icon>
+    </button>
+
+    <nav aria-label="Espace medecin">
+      <button
+        type="button"
+        [class.doctor-space__nav-item--active]="activeSection() === 'availability'"
+        (click)="selectSection('availability')"
+      >
+        <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
+        <span>Disponibilit&eacute;</span>
+      </button>
+      <button
+        type="button"
+        [class.doctor-space__nav-item--active]="activeSection() === 'consultation'"
+        (click)="selectSection('consultation')"
+      >
+        <lucide-icon name="clipboard" size="34" [strokeWidth]="2.1"></lucide-icon>
+        <span>Motif de consultation</span>
+      </button>
+      <button
+        type="button"
+        [class.doctor-space__nav-item--active]="activeSection() === 'agenda'"
+        (click)="selectSection('agenda')"
+      >
+        <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
+        <span>Agenda</span>
+      </button>
+      <button
+        type="button"
+        [class.doctor-space__nav-item--active]="activeSection() === 'wallet'"
+        (click)="selectSection('wallet')"
+      >
+        <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.1"></lucide-icon>
+        <span>Wallet</span>
+      </button>
+    </nav>
+  </aside>
+
+  <section class="doctor-space__content">
+    <header class="doctor-space__header">
+      <h1>{{ pageTitle() }}</h1>
+      <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
+    </header>
+
+    <p *ngIf="isLoading()" class="doctor-space__state">Chargement des disponibilit&eacute;s...</p>
+    <p *ngIf="errorMessage()" class="doctor-space__state doctor-space__state--error">{{ errorMessage() }}</p>
+
+    <ng-container *ngIf="!isLoading() && !errorMessage()">
+      <ng-container *ngIf="activeSection() === 'availability'; else secondarySection">
+        <section class="doctor-space__cards" aria-label="Parametres rapides">
+          <article class="doctor-space__blocked-card">
+            <header>
+              <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.1"></lucide-icon>
+              <span>Jours bloqu&eacute;</span>
+            </header>
+            <p>Ces dates seront indisponibles dans l'agenda</p>
+
+            <div class="doctor-space__calendar">
+              <div class="doctor-space__calendar-head">
+                <button type="button" (click)="previousYear()" aria-label="Annee precedente">&lsaquo;&lsaquo;</button>
+                <button type="button" (click)="previousMonth()" aria-label="Mois precedent">&lsaquo;</button>
+                <strong>{{ monthLabel() }}</strong>
+                <button type="button" (click)="nextMonth()" aria-label="Mois suivant">&rsaquo;</button>
+                <button type="button" (click)="nextYear()" aria-label="Annee suivante">&rsaquo;&rsaquo;</button>
+              </div>
+              <div class="doctor-space__calendar-week">
+                <span>Lun</span>
+                <span>Mar</span>
+                <span>Mer</span>
+                <span>Jeu</span>
+                <span>Ven</span>
+                <span>Sam</span>
+                <span>Dim</span>
+              </div>
+              <div class="doctor-space__calendar-grid">
+                <button
+                  type="button"
+                  *ngFor="let day of calendarDays()"
+                  [class.doctor-space__calendar-day--empty]="day.isOutside"
+                  [class.doctor-space__calendar-day--selected]="day.isSelected"
+                  [class.doctor-space__calendar-day--today]="day.isToday"
+                  [class.doctor-space__calendar-day--working]="day.isWorkingDay"
+                  [class.doctor-space__calendar-day--blocked]="day.isBlocked"
+                  [disabled]="day.isOutside"
+                  (click)="selectCalendarDay(day)"
+                >
+                  {{ day.isOutside ? '' : day.dayOfMonth }}
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="doctor-space__params-card">
+            <header>
+              <lucide-icon name="clock-3" size="18" [strokeWidth]="2.2"></lucide-icon>
+              <span>Param&egrave;tres des rendez-vous</span>
+            </header>
+            <p>Dur&eacute;e standard et temps tampon entre deux consultations</p>
+
+            <label>
+              <span>Dur&eacute;e d'un rendez-vous</span>
+              <output>{{ appointmentDuration() }} min</output>
+              <input
+                type="range"
+                min="20"
+                max="90"
+                step="5"
+                [ngModel]="appointmentDuration()"
+                (ngModelChange)="updateAppointmentDuration($event)"
+                [style.--progress]="durationProgress() + '%'"
+              />
+            </label>
+
+            <label>
+              <span>Pause entre rendez-vous</span>
+              <output>{{ appointmentPause() }} min</output>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                step="5"
+                [ngModel]="appointmentPause()"
+                (ngModelChange)="updateAppointmentPause($event)"
+                [style.--progress]="pauseProgress() + '%'"
+              />
+            </label>
+          </article>
+        </section>
+
+        <section class="doctor-space__schedule">
+          <header>
+            <h2>Horaires hebdomadaires</h2>
+            <p>Activez les jours travaill&eacute;s et d&eacute;finissez vos plages horaires</p>
+          </header>
+
+          <article
+            *ngFor="let day of days(); trackBy: trackDay"
+            class="doctor-space__day"
+            [class.doctor-space__day--disabled]="!day.enabled"
+          >
+            <div class="doctor-space__day-head">
+              <button
+                type="button"
+                class="doctor-space__switch"
+                [class.doctor-space__switch--active]="day.enabled"
+                [disabled]="isSaving()"
+                (click)="toggleDay(day)"
+                [attr.aria-label]="day.enabled ? 'Desactiver ' + day.label : 'Activer ' + day.label"
+              >
+                <span></span>
+              </button>
+              <h3>{{ day.label }}</h3>
+              <button type="button" class="doctor-space__add" [disabled]="isSaving()" (click)="addSlot(day)">
+                <span>+</span>
+                Ajouter
+              </button>
+            </div>
+
+            <div class="doctor-space__slots" *ngIf="day.enabled">
+              <div *ngFor="let slot of day.slots; trackBy: trackSlot" class="doctor-space__slot">
+                <label>
+                  <input
+                    type="time"
+                    [(ngModel)]="slot.startTime"
+                    [disabled]="isSaving()"
+                    (change)="saveSlot(day, slot)"
+                  />
+                  <lucide-icon name="clock-3" size="16" [strokeWidth]="2"></lucide-icon>
+                </label>
+                <span class="doctor-space__arrow">&rarr;</span>
+                <label>
+                  <input
+                    type="time"
+                    [(ngModel)]="slot.endTime"
+                    [disabled]="isSaving()"
+                    (change)="saveSlot(day, slot)"
+                  />
+                  <lucide-icon name="clock-3" size="16" [strokeWidth]="2"></lucide-icon>
+                </label>
+                <button type="button" class="doctor-space__remove" [disabled]="isSaving()" (click)="removeSlot(day, slot)">
+                  &times;
+                </button>
+              </div>
+            </div>
+          </article>
+        </section>
+      </ng-container>
+
+      <ng-template #secondarySection>
+        <section *ngIf="activeSection() === 'consultation'; else placeholderSection" class="doctor-space__motifs">
+          <form class="doctor-space__motif-form" (ngSubmit)="addMotif()">
+            <header>
+              <lucide-icon name="plus" size="26" [strokeWidth]="2.4"></lucide-icon>
+              <div>
+                <strong>Nouveau motif</strong>
+                <span>renseignez le nom, la dur&eacute;e et le tarif</span>
+              </div>
+            </header>
+
+            <div class="doctor-space__motif-fields">
+              <label>
+                <span>Nom du motif</span>
+                <input type="text" name="motifName" placeholder="Ex : D&eacute;tartrage" [(ngModel)]="motifForm.name" />
+              </label>
+              <label>
+                <span>Dur&eacute;e ( min)</span>
+                <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" />
+              </label>
+              <label>
+                <span>Tarif ( FCFA)</span>
+                <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" />
+              </label>
+              <button
+                type="button"
+                class="doctor-space__motif-switch"
+                [class.doctor-space__motif-switch--active]="motifForm.isRequired"
+                (click)="motifForm.isRequired = !motifForm.isRequired"
+                aria-label="Changer le statut obligatoire"
+              >
+                <span></span>
+              </button>
+              <span class="doctor-space__motif-required-label">Obligatoire</span>
+              <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">Ajouter</button>
+            </div>
+          </form>
+
+          <section class="doctor-space__motif-list">
+            <header>
+              <lucide-icon name="clipboard" size="28" [strokeWidth]="2.2"></lucide-icon>
+              <h3>Mes motifs ({{ motifs().length }})</h3>
+            </header>
+
+            <p *ngIf="motifs().length === 0" class="doctor-space__motif-empty">Aucun motif de consultation enregistr&eacute;.</p>
+
+            <article *ngFor="let motif of motifs()" class="doctor-space__motif-item">
+              <div>
+                <strong>{{ motif.name }}</strong>
+                <span>{{ motif.durationMinutes }} min. {{ motif.price | number: '1.0-0' }} FCFA</span>
+              </div>
+              <span class="doctor-space__motif-required-label">Obligatoire</span>
+              <button
+                type="button"
+                class="doctor-space__motif-switch"
+                [class.doctor-space__motif-switch--active]="motif.isRequired"
+                [disabled]="isSaving()"
+                (click)="toggleMotifRequired(motif)"
+                aria-label="Changer le statut obligatoire du motif"
+              >
+                <span></span>
+              </button>
+              <button type="button" class="doctor-space__motif-delete" [disabled]="isSaving()" (click)="deleteMotif(motif)" aria-label="Supprimer le motif">
+                <lucide-icon name="trash-2" size="22" [strokeWidth]="2.2"></lucide-icon>
+              </button>
+            </article>
+          </section>
+        </section>
+
+        <ng-template #placeholderSection>
+        <section *ngIf="activeSection() === 'agenda'; else walletSection" class="doctor-space__agenda">
+          <section class="doctor-space__agenda-stats" aria-label="Indicateurs de l'agenda">
+            <article class="doctor-space__agenda-stat doctor-space__agenda-stat--orange">
+              <div class="doctor-space__agenda-stat-icon">
+                <lucide-icon name="wallet-cards" size="22" [strokeWidth]="2.1"></lucide-icon>
+              </div>
+              <span>REVENUS GENERES</span>
+              <strong>{{ agendaRevenue() | number: '1.0-0' }} FCFA</strong>
+              <small>{{ agendaPeriodCaption() }} confirm&eacute;</small>
+            </article>
+            <article class="doctor-space__agenda-stat doctor-space__agenda-stat--green">
+              <div class="doctor-space__agenda-stat-icon">
+                <lucide-icon name="clock-3" size="22" [strokeWidth]="2.1"></lucide-icon>
+              </div>
+              <span>PROCHAIN RDV</span>
+              <strong>{{ agendaNextDelayLabel() }}</strong>
+              <small>Depuis maintenant</small>
+            </article>
+            <article class="doctor-space__agenda-stat doctor-space__agenda-stat--red">
+              <div class="doctor-space__agenda-stat-icon">
+                <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.1"></lucide-icon>
+              </div>
+              <span>REVENUS ANNULES</span>
+              <strong>{{ agendaCancelledRevenue() | number: '1.0-0' }} FCFA</strong>
+              <small>{{ agendaPeriodCaption() }} annul&eacute;</small>
+            </article>
+          </section>
+
+          <section class="doctor-space__agenda-board">
+            <div class="doctor-space__agenda-toolbar">
+              <div class="doctor-space__agenda-date-controls">
+                <button type="button" (click)="previousAgendaWeek()" aria-label="Semaine precedente">
+                  <lucide-icon name="arrow-left" size="28" [strokeWidth]="2.8"></lucide-icon>
+                </button>
+                <button type="button" class="doctor-space__agenda-today" (click)="goToTodayAgenda()">Aujourd'hui</button>
+                <button type="button" (click)="nextAgendaWeek()" aria-label="Semaine suivante">
+                  <lucide-icon name="arrow-right" size="28" [strokeWidth]="2.8"></lucide-icon>
+                </button>
+                <strong>{{ agendaDateLabel() }}</strong>
+              </div>
+
+              <div class="doctor-space__agenda-view-controls">
+                <button
+                  type="button"
+                  [class.doctor-space__agenda-view--active]="agendaViewMode() === 'day'"
+                  (click)="selectAgendaViewMode('day')"
+                >
+                  <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.1"></lucide-icon>
+                  Jour
+                </button>
+                <button
+                  type="button"
+                  [class.doctor-space__agenda-view--active]="agendaViewMode() === 'week'"
+                  (click)="selectAgendaViewMode('week')"
+                >
+                  <lucide-icon name="sliders-horizontal" size="15" [strokeWidth]="2.1"></lucide-icon>
+                  Semaine
+                </button>
+                <button
+                  type="button"
+                  [class.doctor-space__agenda-view--active]="agendaViewMode() === 'month'"
+                  (click)="selectAgendaViewMode('month')"
+                >
+                  <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.1"></lucide-icon>
+                  Mois
+                </button>
+                <div
+                  class="doctor-space__agenda-zoom"
+                  aria-label="Zoom de la grille horaire"
+                  [title]="'Affichage par tranche de ' + agendaSlotMinutes() + ' minutes'"
+                >
+                  <button type="button" (click)="zoomAgendaOut()" aria-label="Reduire le detail horaire">-</button>
+                  <span>{{ agendaZoomPercent() }} %</span>
+                  <button type="button" (click)="zoomAgendaIn()" aria-label="Augmenter le detail horaire">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="doctor-space__agenda-filters">
+              <lucide-icon name="sliders-horizontal" size="24" [strokeWidth]="2"></lucide-icon>
+              <button
+                type="button"
+                [class.doctor-space__agenda-chip--active]="agendaFilter() === 'ALL'"
+                (click)="selectAgendaFilter('ALL')"
+              >
+                Tous
+              </button>
+              <button
+                type="button"
+                class="doctor-space__agenda-chip--confirmed"
+                [class.doctor-space__agenda-chip--active]="agendaFilter() === 'CONFIRMED'"
+                (click)="selectAgendaFilter('CONFIRMED')"
+              >
+                Confirm&eacute;s
+              </button>
+              <button
+                type="button"
+                class="doctor-space__agenda-chip--cancelled"
+                [class.doctor-space__agenda-chip--active]="agendaFilter() === 'CANCELLED'"
+                (click)="selectAgendaFilter('CANCELLED')"
+              >
+                Annul&eacute;
+              </button>
+              <div class="doctor-space__agenda-period">
+                <span>P&eacute;riode :</span>
+                <input
+                  type="date"
+                  [ngModel]="agendaPeriodStart()"
+                  (ngModelChange)="updateAgendaPeriodStart($event)"
+                  aria-label="Date de debut"
+                />
+                <span>&rarr;</span>
+                <input
+                  type="date"
+                  [ngModel]="agendaPeriodEnd()"
+                  (ngModelChange)="updateAgendaPeriodEnd($event)"
+                  aria-label="Date de fin"
+                />
+              </div>
+            </div>
+
+            <div
+              class="doctor-space__agenda-grid"
+              aria-label="Planning hebdomadaire"
+              [style.--agenda-row-height.px]="agendaRowHeight()"
+            >
+              <div class="doctor-space__agenda-corner">Heure</div>
+              <div
+                *ngFor="let day of agendaWeekDays(); trackBy: trackAgendaDay"
+                class="doctor-space__agenda-day-head"
+              >
+                <span>{{ day.dayLabel }}</span>
+                <strong>{{ day.dayNumber }}</strong>
+              </div>
+
+              <ng-container *ngFor="let row of agendaRows(); let rowIndex = index; trackBy: trackAgendaRow">
+                <div class="doctor-space__agenda-hour">{{ row }}</div>
+                <div
+                  *ngFor="let day of agendaWeekDays(); trackBy: trackAgendaDay"
+                  class="doctor-space__agenda-cell"
+                ></div>
+              </ng-container>
+
+              <article
+                *ngFor="let event of agendaEvents(); trackBy: trackAgendaEvent"
+                class="doctor-space__agenda-event"
+                [class.doctor-space__agenda-event--cancelled]="event.variant === 'cancelled'"
+                [style.gridColumn]="event.dayIndex + 2"
+                [style.gridRow]="event.rowStart + ' / span ' + event.rowSpan"
+              >
+                <strong><span></span>{{ event.title }}</strong>
+                <small>
+                  <lucide-icon name="clock-3" size="10" [strokeWidth]="2"></lucide-icon>
+                  {{ event.timeLabel }}
+                </small>
+                <small>
+                  <lucide-icon name="users" size="10" [strokeWidth]="2"></lucide-icon>
+                  {{ event.clientLabel }}
+                </small>
+                <em>{{ event.price | number: '1.0-0' }} FCFA</em>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <ng-template #walletSection>
+          <section class="doctor-space__wallet">
+            <section class="doctor-space__wallet-summary">
+              <article class="doctor-space__wallet-balance">
+                <div>
+                  <lucide-icon name="wallet-cards" size="24" [strokeWidth]="2.2"></lucide-icon>
+                  <span>Solde disponible</span>
+                </div>
+                <strong>{{ walletBalance() | number: '1.0-0' }} FCFA</strong>
+
+                <button
+                  type="button"
+                  class="doctor-space__wallet-open-withdraw"
+                  (click)="openWithdrawalModal()"
+                  [disabled]="walletBalance() <= 0"
+                >
+                  <lucide-icon name="arrow-down" size="15" [strokeWidth]="2"></lucide-icon>
+                  Retirer
+                </button>
+              </article>
+
+              <article class="doctor-space__wallet-revenue">
+                <header>
+                  <lucide-icon name="arrow-up-right" size="26" [strokeWidth]="2"></lucide-icon>
+                  <span>Revenue du mois</span>
+                </header>
+                <strong>{{ walletMonthlyRevenue() | number: '1.0-0' }} FCFA</strong>
+                <small [class.doctor-space__wallet-change--down]="walletMonthlyChangePercent() < 0">
+                  {{ walletMonthlyChangeLabel() }}
+                </small>
+                <dl>
+                  <div>
+                    <dt>Consultation</dt>
+                    <dd>{{ walletConsultationCount() }}</dd>
+                  </div>
+                  <div>
+                    <dt>T&eacute;l&eacute;consultation</dt>
+                    <dd>{{ walletTeleconsultationCount() }}</dd>
+                  </div>
+                  <div>
+                    <dt>Annulation rembours&eacute;e</dt>
+                    <dd>{{ walletRefundedCancellationCount() }}</dd>
+                  </div>
+                </dl>
+              </article>
+            </section>
+
+            <section class="doctor-space__wallet-history">
+              <h2>Historique des transactions</h2>
+
+              <p *ngIf="walletTransactions().length === 0" class="doctor-space__wallet-empty">
+                Aucune transaction wallet pour le moment.
+              </p>
+
+              <article
+                *ngFor="let transaction of walletTransactions()"
+                class="doctor-space__wallet-transaction"
+                [class.doctor-space__wallet-transaction--out]="transaction.direction === 'OUT'"
+              >
+                <span class="doctor-space__wallet-transaction-icon">
+                  <lucide-icon
+                    [name]="transaction.direction === 'OUT' ? 'arrow-up-right' : 'arrow-down'"
+                    size="24"
+                    [strokeWidth]="2.2"
+                  ></lucide-icon>
+                </span>
+                <div>
+                  <strong>{{ transaction.title }}</strong>
+                  <small>{{ transaction.date | date: 'd MMMM y' : undefined : 'fr-FR' }}</small>
+                </div>
+                <em>
+                  {{ transaction.amount > 0 ? '+' : '-' }}
+                  {{ (transaction.amount < 0 ? -transaction.amount : transaction.amount) | number: '1.0-0' }} FCFA
+                </em>
+              </article>
+            </section>
+
+            <section
+              *ngIf="isWithdrawalModalOpen()"
+              class="doctor-space__withdraw-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="withdrawal-title"
+            >
+              <div class="doctor-space__withdraw-backdrop" (click)="closeWithdrawalModal()"></div>
+              <form class="doctor-space__withdraw-panel" (ngSubmit)="requestWalletWithdrawal()">
+                <button type="button" class="doctor-space__withdraw-close" (click)="closeWithdrawalModal()" aria-label="Fermer">
+                  <lucide-icon name="x" size="26" [strokeWidth]="2.2"></lucide-icon>
+                </button>
+
+                <h2 id="withdrawal-title">Retirez de l'argent</h2>
+                <p>
+                  Choisissez votre moyen de retrait. Solde disponible :
+                  <strong>{{ walletBalance() | number: '1.0-0' }} FCFA</strong>
+                </p>
+
+                <label class="doctor-space__withdraw-amount">
+                  <span>Montant ( FCFA)</span>
+                  <input
+                    type="number"
+                    min="2000"
+                    [max]="walletBalance()"
+                    step="500"
+                    name="modalWithdrawalAmount"
+                    placeholder="50 000 FCFA"
+                    [(ngModel)]="withdrawalForm.amount"
+                  />
+                </label>
+
+                <fieldset class="doctor-space__withdraw-methods">
+                  <legend>Moyen de paiement</legend>
+                  <button
+                    type="button"
+                    *ngFor="let method of withdrawalMethods"
+                    [class.doctor-space__withdraw-method--active]="withdrawalForm.method === method.id"
+                    [class.doctor-space__withdraw-method--disabled]="!method.enabled"
+                    (click)="selectWithdrawalMethod(method)"
+                  >
+                    <span class="doctor-space__withdraw-radio"></span>
+                    <span class="doctor-space__withdraw-logo">
+                      <img *ngIf="method.logoUrl" [src]="method.logoUrl" [alt]="method.label" />
+                      <lucide-icon *ngIf="!method.logoUrl" name="wallet-cards" size="20" [strokeWidth]="2"></lucide-icon>
+                    </span>
+                    <span>
+                      <strong>{{ method.label }}</strong>
+                      <small>{{ method.detail }}</small>
+                    </span>
+                  </button>
+                </fieldset>
+
+                <div class="doctor-space__withdraw-actions">
+                  <button type="submit" [disabled]="isSaving() || withdrawalForm.amount <= 0">
+                    Confirme le retrait
+                  </button>
+                  <button type="button" (click)="closeWithdrawalModal()" [disabled]="isSaving()">
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            </section>
+          </section>
+        </ng-template>
+        </ng-template>
+      </ng-template>
+    </ng-container>
+  </section>
+</main>

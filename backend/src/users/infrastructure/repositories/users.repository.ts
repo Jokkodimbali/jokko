@@ -23,6 +23,22 @@ const USER_ME_SELECT = {
   urlAvatar: true,
   estActif: true,
   creeLe: true,
+  profilProfessionnel: {
+    select: {
+      id: true,
+      nomEntreprise: true,
+      services: {
+        where: { estDisponible: true },
+        select: {
+          categorie: {
+            select: {
+              nom: true,
+            },
+          },
+        },
+      },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -41,6 +57,15 @@ export class UsersRepository implements UsersRepositoryPort {
     urlAvatar: string | null;
     estActif: boolean;
     creeLe: Date;
+    profilProfessionnel: {
+      id: string;
+      nomEntreprise: string | null;
+      services: Array<{
+        categorie: {
+          nom: string;
+        };
+      }>;
+    } | null;
   }): UserMeView {
     return {
       id: user.id,
@@ -52,6 +77,19 @@ export class UsersRepository implements UsersRepositoryPort {
       urlAvatar: user.urlAvatar,
       estActif: user.estActif,
       creeLe: user.creeLe,
+      profilProfessionnel: user.profilProfessionnel
+        ? {
+            id: user.profilProfessionnel.id,
+            nomEntreprise: user.profilProfessionnel.nomEntreprise,
+            categories: Array.from(
+              new Set(
+                user.profilProfessionnel.services.map(
+                  (service) => service.categorie.nom,
+                ),
+              ),
+            ),
+          }
+        : null,
     };
   }
 
@@ -239,6 +277,18 @@ export class UsersRepository implements UsersRepositoryPort {
         },
         profilProfessionnel: {
           select: {
+            id: true,
+            nomEntreprise: true,
+            services: {
+              where: { estDisponible: true },
+              select: {
+                categorie: {
+                  select: {
+                    nom: true,
+                  },
+                },
+              },
+            },
             _count: {
               select: {
                 reservations: true,

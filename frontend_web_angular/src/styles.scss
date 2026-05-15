@@ -1170,3 +1170,215 @@ video {
 .services-page .load-more-btn:hover svg {
   transform: translateY(3px) !important;
 }
+
+.doctor-space__withdraw-modal {
+  inset: 0;
+  position: fixed;
+  z-index: 100;
+}
+
+.doctor-space__withdraw-backdrop {
+  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.36);
+  inset: 0;
+  position: absolute;
+}
+
+.doctor-space__withdraw-panel {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(28, 18, 11, 0.28);
+  left: 50%;
+  max-width: 416px;
+  padding: 24px 17px 9px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(416px, calc(100vw - 32px));
+}
+
+.doctor-space__withdraw-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #111;
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 20px;
+  top: 21px;
+  width: 32px;
+}
+
+.doctor-space__withdraw-panel h2 {
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+  margin: 0 42px 16px 0;
+}
+
+.doctor-space__withdraw-panel p {
+  color: #8a8179;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 17px;
+}
+
+.doctor-space__withdraw-panel p strong {
+  color: #73675d;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.doctor-space__withdraw-amount {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+
+.doctor-space__withdraw-amount span,
+.doctor-space__withdraw-methods legend {
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.doctor-space__withdraw-amount input {
+  background: #fff;
+  border: 1px solid #ead7c4;
+  border-radius: 9px;
+  box-shadow: 0 2px 7px rgba(70, 42, 18, 0.1);
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  height: 35px;
+  outline: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.doctor-space__withdraw-amount input:focus {
+  border-color: #985f22;
+}
+
+.doctor-space__withdraw-methods {
+  border: 0;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.doctor-space__withdraw-methods legend {
+  margin-bottom: 7px;
+  padding: 0;
+}
+
+.doctor-space__withdraw-methods > button {
+  align-items: center;
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 8px;
+  box-shadow: 0 2px 7px rgba(70, 42, 18, 0.09);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 14px 42px minmax(0, 1fr);
+  min-height: 39px;
+  padding: 5px 8px 5px 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.doctor-space__withdraw-method--active {
+  border-color: #985f22 !important;
+  box-shadow: 0 0 0 2px rgba(152, 95, 34, 0.13) !important;
+}
+
+.doctor-space__withdraw-method--disabled {
+  cursor: not-allowed !important;
+  opacity: 0.72;
+}
+
+.doctor-space__withdraw-radio {
+  border: 2px solid #8b7c6e;
+  border-radius: 50%;
+  height: 12px;
+  width: 12px;
+}
+
+.doctor-space__withdraw-method--active .doctor-space__withdraw-radio {
+  background: #985f22;
+  border-color: #985f22;
+  box-shadow: inset 0 0 0 3px #fffefd;
+}
+
+.doctor-space__withdraw-logo {
+  align-items: center;
+  color: #128f52;
+  display: inline-flex;
+  height: 25px;
+  justify-content: center;
+  min-width: 42px;
+}
+
+.doctor-space__withdraw-logo img {
+  display: block;
+  max-height: 24px;
+  max-width: 42px;
+  object-fit: contain;
+}
+
+.doctor-space__withdraw-methods strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.doctor-space__withdraw-methods small {
+  color: #8a8179;
+  display: block;
+  font-size: 9px;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.doctor-space__withdraw-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 21px;
+}
+
+.doctor-space__withdraw-actions button {
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  height: 29px;
+  padding: 0 12px;
+}
+
+.doctor-space__withdraw-actions button[type='submit'] {
+  background: #985f22;
+  border: 1px solid #985f22;
+  color: #fff;
+}
+
+.doctor-space__withdraw-actions button[type='button'] {
+  background: #fffefd;
+  border: 1px solid #b9b9b9;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  color: #111;
+}
+
+.doctor-space__withdraw-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}

@@ -29,6 +29,7 @@ import {
   type PaymentWebhookSecurityPort,
 } from '../ports/payment-webhook-security.port';
 import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
+import { WalletQueryService } from './wallet-query.service';
 
 export interface PaymentFilters {
   status?: string;
@@ -64,6 +65,7 @@ export class PaymentsFacade {
     @Inject(PAYMENT_WEBHOOK_SECURITY_PORT)
     private readonly paymentWebhookSecurity: PaymentWebhookSecurityPort,
     private readonly disputesFacade: DisputesFacade,
+    private readonly walletQueryService: WalletQueryService,
   ) {}
 
   async initiatePaymentForReservation(
@@ -267,6 +269,16 @@ export class PaymentsFacade {
   async getProfessionalWithdrawalsForUser(requestUser: AuthUser) {
     const professionalId = await this.getProfessionalProfileId(requestUser);
     return this.withdrawalService.getProfessionalWithdrawals(professionalId);
+  }
+
+  async getProfessionalWalletForUser(requestUser: AuthUser) {
+    if (requestUser.role !== RoleUtilisateur.PRESTATAIRE) {
+      throw PaymentDomainError.unauthorizedAccess('wallet');
+    }
+
+    return this.walletQueryService.getProfessionalWalletByUserId(
+      requestUser.sub,
+    );
   }
 
   private async assertCanAccessPayment(

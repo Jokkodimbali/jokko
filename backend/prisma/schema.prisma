@@ -304,6 +304,8 @@ model Service {
   description           String              @db.Text
   prix                  Decimal             @map("price") @db.Decimal(10, 2)
   typePrix              TypePrix            @map("price_type")
+  dureeMinutes          Int                 @default(15) @map("duration_minutes")
+  estObligatoire        Boolean             @default(false) @map("is_required")
   estDisponible         Boolean             @default(true) @map("is_available")
   creeLe                DateTime            @default(now()) @map("created_at")
   misAJourLe            DateTime            @updatedAt @map("updated_at")

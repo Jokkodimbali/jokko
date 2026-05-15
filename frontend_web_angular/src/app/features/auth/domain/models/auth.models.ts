@@ -45,6 +45,13 @@ export interface UserDto {
   email?: string;
   role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
   avatarUrl?: string | null;
+  professionalProfile?: UserProfessionalProfileDto | null;
+}
+
+export interface UserProfessionalProfileDto {
+  id: string;
+  nomEntreprise?: string | null;
+  categories: string[];
 }
 
 export interface UserProfileDto {
@@ -57,4 +64,5 @@ export interface UserProfileDto {
   urlAvatar?: string | null;
   estActif: boolean;
   creeLe?: string | Date;
+  profilProfessionnel?: UserProfessionalProfileDto | null;
 }

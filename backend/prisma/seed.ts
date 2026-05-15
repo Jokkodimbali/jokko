@@ -239,7 +239,8 @@ export async function runSeed() {
       {
         conversationId: conversation.id,
         expediteurId: client.id,
-        contenu: 'Bonjour Docteur, j\'ai reserve une consultation pour demain. Pouvez-vous confirmer l\'heure ?',
+        contenu:
+          "Bonjour Docteur, j'ai reserve une consultation pour demain. Pouvez-vous confirmer l'heure ?",
         creeLe: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       },
       {
@@ -257,7 +258,8 @@ export async function runSeed() {
       {
         conversationId: conversation.id,
         expediteurId: professionalUser.id,
-        contenu: 'Apportez simplement votre carte d\'identite et vos examens medicaux precedents si vous en avez. A demain !',
+        contenu:
+          "Apportez simplement votre carte d'identite et vos examens medicaux precedents si vous en avez. A demain !",
         creeLe: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       },
     ],

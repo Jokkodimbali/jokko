@@ -1,7 +1,8 @@
 import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { IMAGE_CONFIG } from '@angular/common';
+import { IMAGE_CONFIG, registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 
 import { routes } from './app.routes';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
@@ -45,6 +46,7 @@ import {
   Settings,
   SlidersHorizontal,
   Star,
+  Trash2,
   TriangleAlert,
   Users,
   Video,
@@ -53,6 +55,9 @@ import {
   X,
   LucideAngularModule,
 } from 'lucide-angular';
+// Register French locale
+registerLocaleData(localeFr);
+
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -100,6 +105,7 @@ export const appConfig: ApplicationConfig = {
         Settings,
         SlidersHorizontal,
         Star,
+        Trash2,
         TriangleAlert,
         Users,
         Video,

@@ -81,6 +81,8 @@ export interface BackendProfessionalDetailService {
   description: string;
   prix: number;
   typePrix: 'FIXE' | 'NEGOCIABLE';
+  dureeMinutes?: number;
+  estObligatoire?: boolean;
   estDisponible: boolean;
   creeLe: string;
 }

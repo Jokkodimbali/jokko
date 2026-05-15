@@ -223,8 +223,8 @@
                 <form *ngIf="selectedPaymentType() === 'CARD'" class="settings-page__payment-form" (ngSubmit)="saveSelectedPaymentMethod()">
                   <div class="settings-page__card-preview" aria-hidden="true">
                     <div>
-                      <span>VISA</span>
-                      <strong>MasterCard</strong>
+                      <img class="settings-page__card-brand-logo settings-page__card-brand-logo--visa" src="/logo%20vissa.avif" alt="Visa" />
+                      <img class="settings-page__card-brand-logo settings-page__card-brand-logo--mastercard" src="/MasterCard_Logo.svg.png" alt="Mastercard" />
                     </div>
                     <p>{{ cardForm.cardNumber || '5412 1235 4512 2353' }}</p>
                     <small>{{ cardForm.holderName || displayName() }}</small>

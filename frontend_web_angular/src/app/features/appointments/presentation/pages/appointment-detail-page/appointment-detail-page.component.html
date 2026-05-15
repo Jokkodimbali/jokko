@@ -181,6 +181,33 @@
       </ng-template>
     </section>
 
+    <section *ngIf="canManageProviderStatus()" class="appointment-detail__provider-controls">
+      <button
+        type="button"
+        (click)="markOnTheWay(appointment)"
+        [disabled]="isUpdatingStatus() || appointment.status !== 'PAYEE_SEQUESTRE'"
+      >
+        <lucide-icon name="send" size="18" [strokeWidth]="2.5"></lucide-icon>
+        Je suis en route
+      </button>
+      <button
+        type="button"
+        (click)="startWork(appointment)"
+        [disabled]="isUpdatingStatus() || (appointment.status !== 'PAYEE_SEQUESTRE' && !isProviderOnTheWay())"
+      >
+        <lucide-icon name="wrench" size="18" [strokeWidth]="2.5"></lucide-icon>
+        Commencer
+      </button>
+      <button
+        type="button"
+        (click)="completeWork(appointment)"
+        [disabled]="isUpdatingStatus() || !isProviderWorking()"
+      >
+        <lucide-icon name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
+        Terminer
+      </button>
+    </section>
+
     <section *ngIf="!isAppointmentCompleted() && isProviderWorking()" class="appointment-detail__work-layout" aria-label="Prestation en cours">
       <article class="appointment-detail__work-card">
         <div class="appointment-detail__work-map">

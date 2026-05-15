@@ -499,28 +499,18 @@
   justify-content: flex-end;
 }
 
-.settings-page__card-preview div span,
-.settings-page__card-preview div strong {
-  align-items: center;
-  border: 1px solid #d5dbe2;
-  border-radius: 3px;
-  background: #ffffff;
-  display: inline-flex;
-  font-weight: 950;
-  height: 32px;
-  justify-content: center;
-  min-width: 61px;
+.settings-page__card-brand-logo {
+  display: block;
+  height: 46px;
+  object-fit: contain;
 }
 
-.settings-page__card-preview div span {
-  color: #0756a5;
-  font-size: 29px;
-  font-style: italic;
+.settings-page__card-brand-logo--visa {
+  width: 108px;
 }
 
-.settings-page__card-preview div strong {
-  color: #d52a1e;
-  font-size: 10px;
+.settings-page__card-brand-logo--mastercard {
+  width: 92px;
 }
 
 .settings-page__card-preview p {
@@ -639,10 +629,10 @@
 }
 
 .settings-page__wave-brand img {
-  border-radius: 10px;
-  height: 94px;
-  object-fit: cover;
-  width: 166px;
+  display: block;
+  height: 126px;
+  object-fit: contain;
+  width: 224px;
 }
 
 .settings-page__payment-form--wave {

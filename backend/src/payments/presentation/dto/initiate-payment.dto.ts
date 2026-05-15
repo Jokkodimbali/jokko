@@ -42,7 +42,10 @@ export class InitiatePaymentDto {
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID })
-  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID })
+  @IsUrl(
+    { require_protocol: true, require_tld: false },
+    { message: VALIDATION_MESSAGES.PAYMENT_CALLBACK_URL_INVALID },
+  )
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
@@ -54,7 +57,10 @@ export class InitiatePaymentDto {
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID })
-  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID })
+  @IsUrl(
+    { require_protocol: true, require_tld: false },
+    { message: VALIDATION_MESSAGES.PAYMENT_SUCCESS_URL_INVALID },
+  )
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
@@ -66,7 +72,10 @@ export class InitiatePaymentDto {
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID })
-  @IsUrl({}, { message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID })
+  @IsUrl(
+    { require_protocol: true, require_tld: false },
+    { message: VALIDATION_MESSAGES.PAYMENT_CANCEL_URL_INVALID },
+  )
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )

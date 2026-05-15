@@ -86,8 +86,19 @@ export class AppointmentPaymentPageComponent implements OnInit {
         this.isPaying.set(false);
         this.feedback.success('Paiement initialise avec succes.');
 
-        if (payment.paymentUrl) {
+        if (this.canRedirectToPaymentUrl(payment.paymentUrl)) {
           window.location.href = payment.paymentUrl;
+          return;
+        }
+
+        if (payment.paymentUrl) {
+          this.feedback.success(
+            'Paiement simule confirme pour le test web.',
+          );
+          this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
+            next: () => this.router.navigate(['/appointments', appointment.id]),
+            error: () => this.router.navigate(['/appointments', appointment.id]),
+          });
           return;
         }
 
@@ -160,5 +171,16 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   private formatAmount(value: number): string {
     return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0)} FCFA`;
+  }
+
+  private canRedirectToPaymentUrl(paymentUrl?: string): boolean {
+    if (!paymentUrl) return false;
+
+    try {
+      const parsedUrl = new URL(paymentUrl);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 }

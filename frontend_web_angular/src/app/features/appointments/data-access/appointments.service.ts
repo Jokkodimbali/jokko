@@ -30,8 +30,11 @@ export class AppointmentsService {
           if (reservations.length === 0) return of([]);
 
           return forkJoin(
-            reservations.map((reservation) =>
-              this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
+            reservations.map((reservation) => {
+              const enriched = this.mapFromEnrichedReservation(reservation);
+              if (enriched) return of(enriched);
+
+              return this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
                 map((detail) => {
                   const service =
                     detail.services.find((item) => item.id === reservation.serviceId) ??
@@ -48,8 +51,8 @@ export class AppointmentsService {
                   });
                 }),
                 catchError(() => of(this.mapAppointment(reservation))),
-              ),
-            ),
+              );
+            }),
           );
         }),
         catchError(() => of([])),
@@ -61,8 +64,11 @@ export class AppointmentsService {
       .get<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}`)
       .pipe(
         map(unwrapApiResponse),
-        switchMap((reservation) =>
-          this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
+        switchMap((reservation) => {
+          const enriched = this.mapFromEnrichedReservation(reservation);
+          if (enriched) return of(enriched);
+
+          return this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
             map((detail) => {
               const service =
                 detail.services.find((item) => item.id === reservation.serviceId) ??
@@ -79,8 +85,8 @@ export class AppointmentsService {
               });
             }),
             catchError(() => of(this.mapAppointment(reservation))),
-          ),
-        ),
+          );
+        }),
       );
   }
 
@@ -90,6 +96,52 @@ export class AppointmentsService {
         `${this.apiUrl}/reservations/${reservationId}/live-tracking`,
       )
       .pipe(map(unwrapApiResponse));
+  }
+
+  markAppointmentAsPaid(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/mark-paid`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  markProviderOnTheWay(
+    reservationId: string,
+    location: {
+      latitude?: number;
+      longitude?: number;
+      accuracyMeters?: number | null;
+      headingDegrees?: number | null;
+      speedKmh?: number | null;
+      locationLabel?: string | null;
+    },
+  ): Observable<AppointmentTrackingView> {
+    return this.http
+      .patch<ApiResponse<AppointmentTrackingView>>(
+        `${this.apiUrl}/reservations/${reservationId}/on-the-way`,
+        location,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  startAppointment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/start`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  completeAppointment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/complete`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 
   initiatePayment(
@@ -107,7 +159,7 @@ export class AppointmentsService {
         },
         {
           headers: {
-            'Idempotency-Key': `web-payment-${reservationId}-${method}`,
+            'Idempotency-Key': `web-payment-${reservationId}-${method}-${Date.now()}`,
           },
         },
       )
@@ -218,6 +270,20 @@ export class AppointmentsService {
       day: 'numeric',
       month: 'long',
     }).format(date);
+  }
+
+  private mapFromEnrichedReservation(reservation: BackendReservation): AppointmentView | null {
+    if (!reservation.service || !reservation.professionnel) return null;
+
+    return this.mapAppointment(reservation, {
+      doctorName:
+        reservation.professionnel.nomEntreprise ||
+        reservation.professionnel.utilisateur.nom ||
+        'Professionnel Jokko',
+      specialty: reservation.service.nom,
+      avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+      serviceName: reservation.service.nom,
+    });
   }
 
   private formatShortDate(date: Date): string {

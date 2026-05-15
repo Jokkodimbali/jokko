@@ -16,6 +16,11 @@ export type UserMeView = {
   urlAvatar: string | null;
   estActif: boolean;
   creeLe: Date;
+  profilProfessionnel: {
+    id: string;
+    nomEntreprise: string | null;
+    categories: string[];
+  } | null;
 };
 
 export type AdminUserListItem = UserMeView & {

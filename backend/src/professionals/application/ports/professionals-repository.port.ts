@@ -44,6 +44,8 @@ export type ProfessionalServiceView = {
   description: string;
   prix: number;
   typePrix: PriceType;
+  dureeMinutes: number;
+  estObligatoire: boolean;
   estDisponible: boolean;
   creeLe: Date;
 };
@@ -154,6 +156,8 @@ export type CreateServiceInput = {
   description: string;
   price: number;
   priceType: PriceType;
+  durationMinutes?: number;
+  isRequired?: boolean;
 };
 
 export type UpdateServiceInput = {
@@ -163,6 +167,8 @@ export type UpdateServiceInput = {
   description?: string;
   price?: number;
   priceType?: PriceType;
+  durationMinutes?: number;
+  isRequired?: boolean;
 };
 
 export type CreateServiceResult =

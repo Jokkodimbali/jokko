@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { ServicesComponent } from './features/services/presentation/pages/services/services.component';
 import { MedicinePageComponent } from './features/medicine/presentation/pages/medicine-page/medicine-page.component';
 import { MedicineDoctorProfileComponent } from './features/medicine/presentation/pages/medicine-doctor-profile/medicine-doctor-profile.component';
+import { DoctorSpacePageComponent } from './features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component';
 import { ProviderProfileComponent } from './features/services/presentation/pages/provider-profile/provider-profile.component';
 import { ServiceProposalComponent } from './features/services/presentation/pages/service-proposal/service-proposal.component';
 import { FavoritesPageComponent } from './features/account/pages/favorites/favorites-page.component';
@@ -27,6 +28,10 @@ export const routes: Routes = [
   {
     path: 'medecine',
     component: MedicinePageComponent,
+  },
+  {
+    path: 'medecine/espace',
+    component: DoctorSpacePageComponent,
   },
   {
     path: 'medecine/:id',

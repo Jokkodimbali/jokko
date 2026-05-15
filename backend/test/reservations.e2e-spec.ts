@@ -72,6 +72,31 @@ describe('ReservationsModule (e2e)', () => {
     clientRating?: number | null;
     clientReview?: string | null;
     clientReviewedAt?: string | null;
+    client?: {
+      id: string;
+      nom: string;
+      numeroTelephone: string;
+      urlAvatar: string | null;
+    };
+    service?: {
+      id: string;
+      nom: string;
+      prix: number;
+      dureeMinutes: number;
+      categorie: {
+        id: string;
+        nom: string;
+      };
+    };
+    professionnel?: {
+      id: string;
+      nomEntreprise: string | null;
+      utilisateur: {
+        id: string;
+        nom: string;
+        urlAvatar: string | null;
+      };
+    };
   };
 
   type ReservationSuccessResponse = {
@@ -525,6 +550,9 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+    expect(data[0]?.client?.nom).toBe('Client Reservation');
+    expect(data[0]?.service?.nom).toBeTruthy();
+    expect(data[0]?.professionnel?.utilisateur?.nom).toBe('Pro Reservation');
   });
 
   it('GET /api/v1/reservations/:id returns a reservation to its client', async () => {
@@ -551,6 +579,9 @@ describe('ReservationsModule (e2e)', () => {
     const data = body.data as ReservationView;
     expect(body.success).toBe(true);
     expect(data.id).toBe(reservation.id);
+    expect(data.client?.nom).toBe('Client Reservation');
+    expect(data.service?.nom).toBe('Depannage plomberie');
+    expect(data.professionnel?.id).toBe(professionalProfileId);
   });
 
   it('PATCH /api/v1/reservations/:id/confirm confirms a reservation', async () => {
@@ -1162,6 +1193,12 @@ describe('ReservationsModule (e2e)', () => {
     const data = body.data as ReservationView[];
     expect(body.success).toBe(true);
     expect(data.some((item) => item.id === reservation.id)).toBe(true);
+    const assignedReservation = data.find((item) => item.id === reservation.id);
+    expect(assignedReservation?.client?.nom).toBe('Client Reservation');
+    expect(assignedReservation?.service?.nom).toBe('Depannage plomberie');
+    expect(assignedReservation?.professionnel?.utilisateur?.nom).toBe(
+      'Pro Reservation',
+    );
   });
 
   it('PATCH /api/v1/reservations/:id/cancel lets a professional reject a reservation assigned to them', async () => {

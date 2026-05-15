@@ -29,6 +29,46 @@ export interface BackendReservation {
   raisonAnnulation: string | null;
   creeLe: string;
   misAJourLe: string;
+  client?: {
+    id: string;
+    nom: string;
+    numeroTelephone: string;
+    email: string | null;
+    adresse: string | null;
+    urlAvatar: string | null;
+  };
+  service?: {
+    id: string;
+    profilProfessionnelId: string;
+    categorieId: string;
+    nom: string;
+    description: string;
+    prix: number;
+    typePrix: string;
+    dureeMinutes: number;
+    estObligatoire: boolean;
+    estDisponible: boolean;
+    categorie: {
+      id: string;
+      nom: string;
+      urlIcone: string | null;
+      tauxCommission: number;
+    };
+  };
+  professionnel?: {
+    id: string;
+    utilisateurId: string;
+    nomEntreprise: string | null;
+    ville: string | null;
+    noteGlobale: number;
+    nombreAvis: number;
+    utilisateur: {
+      id: string;
+      nom: string;
+      numeroTelephone: string;
+      urlAvatar: string | null;
+    };
+  };
 }
 
 export interface AppointmentView {

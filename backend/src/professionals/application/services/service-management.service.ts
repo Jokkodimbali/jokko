@@ -24,6 +24,8 @@ export class ServiceManagementService extends ProfessionalAppService {
       description: command.description.trim(),
       price: command.price,
       priceType: command.priceType as TypePrix,
+      durationMinutes: command.durationMinutes,
+      isRequired: command.isRequired,
     });
 
     if (result.status === 'profile_not_found') {
@@ -52,6 +54,8 @@ export class ServiceManagementService extends ProfessionalAppService {
       description: command.description?.trim(),
       price: command.price,
       priceType: command.priceType as TypePrix | undefined,
+      durationMinutes: command.durationMinutes,
+      isRequired: command.isRequired,
     });
 
     if (result.status === 'profile_not_found') {

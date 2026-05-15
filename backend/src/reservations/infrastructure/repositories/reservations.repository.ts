@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { ReservationsRepositoryPort } from '../../application/ports/reservations-repository.port';
+import type { ReservationDetailedView } from '../../application/ports/reservations-repository.port';
 import type {
   Reservation,
   ReservationPriceAdjustmentStatus,
@@ -32,6 +33,60 @@ const RESERVATION_SELECT = {
   misAJourLe: true,
 } as const;
 
+const RESERVATION_DETAIL_SELECT = {
+  ...RESERVATION_SELECT,
+  client: {
+    select: {
+      id: true,
+      nom: true,
+      numeroTelephone: true,
+      email: true,
+      adresse: true,
+      urlAvatar: true,
+    },
+  },
+  service: {
+    select: {
+      id: true,
+      profilProfessionnelId: true,
+      categorieId: true,
+      nom: true,
+      description: true,
+      prix: true,
+      typePrix: true,
+      dureeMinutes: true,
+      estObligatoire: true,
+      estDisponible: true,
+      categorie: {
+        select: {
+          id: true,
+          nom: true,
+          urlIcone: true,
+          tauxCommission: true,
+        },
+      },
+    },
+  },
+  professionnel: {
+    select: {
+      id: true,
+      utilisateurId: true,
+      nomEntreprise: true,
+      ville: true,
+      noteGlobale: true,
+      nombreAvis: true,
+      utilisateur: {
+        select: {
+          id: true,
+          nom: true,
+          numeroTelephone: true,
+          urlAvatar: true,
+        },
+      },
+    },
+  },
+} as const;
+
 type ReservationRecord = {
   id: string;
   clientId: string;
@@ -55,6 +110,49 @@ type ReservationRecord = {
   misAJourLe: Date;
 };
 
+type ReservationDetailRecord = ReservationRecord & {
+  client: {
+    id: string;
+    nom: string;
+    numeroTelephone: string;
+    email: string | null;
+    adresse: string | null;
+    urlAvatar: string | null;
+  };
+  service: {
+    id: string;
+    profilProfessionnelId: string;
+    categorieId: string;
+    nom: string;
+    description: string;
+    prix: Prisma.Decimal;
+    typePrix: $Enums.TypePrix;
+    dureeMinutes: number;
+    estObligatoire: boolean;
+    estDisponible: boolean;
+    categorie: {
+      id: string;
+      nom: string;
+      urlIcone: string | null;
+      tauxCommission: Prisma.Decimal;
+    };
+  };
+  professionnel: {
+    id: string;
+    utilisateurId: string;
+    nomEntreprise: string | null;
+    ville: string | null;
+    noteGlobale: Prisma.Decimal;
+    nombreAvis: number;
+    utilisateur: {
+      id: string;
+      nom: string;
+      numeroTelephone: string;
+      urlAvatar: string | null;
+    };
+  };
+};
+
 @Injectable()
 export class ReservationsRepository implements ReservationsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
@@ -66,6 +164,15 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     });
 
     return reservation ? this.mapToDomain(reservation) : null;
+  }
+
+  async findDetailedById(id: string): Promise<ReservationDetailedView | null> {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id },
+      select: RESERVATION_DETAIL_SELECT,
+    });
+
+    return reservation ? this.mapToDetailedView(reservation) : null;
   }
 
   async findByClient(clientId: string): Promise<Reservation[]> {
@@ -446,6 +553,26 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     return reservations.map((reservation) => this.mapToDomain(reservation));
   }
 
+  async findAllDetailedByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ReservationDetailedView[]> {
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        dateHeure: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { dateHeure: 'asc' },
+      select: RESERVATION_DETAIL_SELECT,
+    });
+
+    return reservations.map((reservation) =>
+      this.mapToDetailedView(reservation),
+    );
+  }
+
   async findByFilters(filters: {
     clientId?: string;
     professionalId?: string;
@@ -454,33 +581,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     startDate?: Date;
     endDate?: Date;
   }): Promise<Reservation[]> {
-    const where: Prisma.ReservationWhereInput = {};
-
-    if (filters.clientId) {
-      where.clientId = filters.clientId;
-    }
-
-    if (filters.professionalId) {
-      where.professionnelId = filters.professionalId;
-    }
-
-    if (filters.serviceId) {
-      where.serviceId = filters.serviceId;
-    }
-
-    if (filters.status) {
-      where.statut = filters.status as $Enums.StatutReservation;
-    }
-
-    if (filters.startDate || filters.endDate) {
-      where.dateHeure = {};
-      if (filters.startDate) {
-        where.dateHeure.gte = filters.startDate;
-      }
-      if (filters.endDate) {
-        where.dateHeure.lte = filters.endDate;
-      }
-    }
+    const where = this.buildFilterWhere(filters);
 
     const reservations = await this.prisma.reservation.findMany({
       where,
@@ -489,6 +590,27 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     });
 
     return reservations.map((reservation) => this.mapToDomain(reservation));
+  }
+
+  async findDetailedByFilters(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<ReservationDetailedView[]> {
+    const where = this.buildFilterWhere(filters);
+
+    const reservations = await this.prisma.reservation.findMany({
+      where,
+      orderBy: { dateHeure: 'desc' },
+      select: RESERVATION_DETAIL_SELECT,
+    });
+
+    return reservations.map((reservation) =>
+      this.mapToDetailedView(reservation),
+    );
   }
 
   async hasTimeSlotConflict(input: {
@@ -524,6 +646,67 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       creeLe: record.creeLe,
       misAJourLe: record.misAJourLe,
     };
+  }
+
+  private mapToDetailedView(
+    record: ReservationDetailRecord,
+  ): ReservationDetailedView {
+    return {
+      ...this.mapToDomain(record),
+      client: record.client,
+      service: {
+        ...record.service,
+        typePrix: record.service.typePrix,
+        prix: record.service.prix.toNumber(),
+        categorie: {
+          ...record.service.categorie,
+          tauxCommission: record.service.categorie.tauxCommission.toNumber(),
+        },
+      },
+      professionnel: {
+        ...record.professionnel,
+        noteGlobale: record.professionnel.noteGlobale.toNumber(),
+      },
+    };
+  }
+
+  private buildFilterWhere(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Prisma.ReservationWhereInput {
+    const where: Prisma.ReservationWhereInput = {};
+
+    if (filters.clientId) {
+      where.clientId = filters.clientId;
+    }
+
+    if (filters.professionalId) {
+      where.professionnelId = filters.professionalId;
+    }
+
+    if (filters.serviceId) {
+      where.serviceId = filters.serviceId;
+    }
+
+    if (filters.status) {
+      where.statut = filters.status as $Enums.StatutReservation;
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.dateHeure = {};
+      if (filters.startDate) {
+        where.dateHeure.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.dateHeure.lte = filters.endDate;
+      }
+    }
+
+    return where;
   }
 
   private async lockProfessionalSchedule(

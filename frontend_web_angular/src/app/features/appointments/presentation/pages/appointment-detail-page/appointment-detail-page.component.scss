@@ -258,6 +258,48 @@
   padding: 12px 105px 20px 15px;
 }
 
+.appointment-detail__provider-controls {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d9e4ec;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -18px 30px 28px;
+  padding: 14px;
+}
+
+.appointment-detail__provider-controls button {
+  align-items: center;
+  background: #435cef;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 15px;
+}
+
+.appointment-detail__provider-controls button:nth-child(2) {
+  background: #955d24;
+}
+
+.appointment-detail__provider-controls button:nth-child(3) {
+  background: #24ae83;
+}
+
+.appointment-detail__provider-controls button:disabled {
+  background: #9aa5b1;
+  cursor: not-allowed;
+  opacity: 0.74;
+}
+
 .appointment-detail__completed-hero {
   background: #24ae83;
   border-radius: 10px;

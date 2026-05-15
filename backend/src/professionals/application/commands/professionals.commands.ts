@@ -28,6 +28,8 @@ export type CreateProfessionalServiceCommand = {
   description: string;
   price: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
+  durationMinutes?: number;
+  isRequired?: boolean;
 };
 
 export type UpdateProfessionalServiceCommand = {
@@ -35,6 +37,8 @@ export type UpdateProfessionalServiceCommand = {
   description?: string;
   price?: number;
   priceType?: 'FIXE' | 'NEGOCIABLE';
+  durationMinutes?: number;
+  isRequired?: boolean;
 };
 
 export type CreatePortfolioItemCommand = {

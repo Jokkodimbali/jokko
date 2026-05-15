@@ -1,0 +1,1382 @@
+:host {
+  display: block;
+}
+
+.doctor-space {
+  background: #fbf6ed;
+  color: #111;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.doctor-space__sidebar {
+  background: #915a22;
+  color: #fff;
+  height: 100vh;
+  left: 0;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  width: 230px;
+  z-index: 20;
+}
+
+.doctor-space__back {
+  align-items: center;
+  background: rgba(255, 226, 189, 0.2);
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 54px;
+  justify-content: center;
+  margin: 33px 0 44px 7px;
+  width: 54px;
+}
+
+.doctor-space__sidebar nav {
+  display: grid;
+  gap: 0;
+}
+
+.doctor-space__sidebar nav button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 500;
+  gap: 13px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-height: 116px;
+  padding: 0 18px 0 22px;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.doctor-space__sidebar nav button:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.doctor-space__sidebar nav button.doctor-space__nav-item--active {
+  background: #fff;
+  border-radius: 0 12px 12px 0;
+  color: #915a22 !important;
+  margin-left: 0;
+  margin-right: 13px;
+  min-height: 59px;
+  width: calc(100% - 13px);
+}
+
+.doctor-space__sidebar nav button.doctor-space__nav-item--active,
+.doctor-space__sidebar nav button.doctor-space__nav-item--active span,
+.doctor-space__sidebar nav button.doctor-space__nav-item--active lucide-icon {
+  color: #915a22 !important;
+  opacity: 1;
+}
+
+.doctor-space__sidebar nav button.doctor-space__nav-item--active::after {
+  background: #915a22;
+  border-radius: 50%;
+  content: '';
+  height: 5px;
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+}
+
+.doctor-space__sidebar nav button span {
+  color: inherit;
+  display: block;
+  opacity: 1;
+}
+
+.doctor-space__content {
+  grid-column: 2;
+  min-width: 0;
+  padding: 41px 28px 68px 28px;
+  width: 100%;
+}
+
+.doctor-space__header {
+  margin: 0 0 21px 0;
+}
+
+.doctor-space__header h1 {
+  color: #915a22;
+  font-size: 42px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.doctor-space__header p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.doctor-space__cards {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(330px, 0.92fr) minmax(420px, 1.08fr);
+  margin: 0 0 22px;
+  width: 100%;
+}
+
+.doctor-space__blocked-card,
+.doctor-space__params-card,
+.doctor-space__schedule,
+.doctor-space__placeholder {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.doctor-space__blocked-card {
+  min-height: 300px;
+  padding: 18px 20px 20px;
+}
+
+.doctor-space__blocked-card header,
+.doctor-space__params-card header {
+  align-items: center;
+  color: #1f1f1f;
+  display: flex;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.doctor-space__blocked-card header lucide-icon,
+.doctor-space__params-card header lucide-icon {
+  color: #9a5c20;
+}
+
+.doctor-space__blocked-card p,
+.doctor-space__params-card p {
+  color: #4b4844;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 14px 0 16px;
+}
+
+.doctor-space__calendar {
+  background: #fff;
+  border: 1px solid #f0e1d0;
+  border-radius: 12px;
+  font-size: 13px;
+  padding: 14px 16px 16px;
+  width: 100%;
+}
+
+.doctor-space__calendar-head,
+.doctor-space__calendar-week,
+.doctor-space__calendar-grid {
+  display: grid;
+  text-align: center;
+}
+
+.doctor-space__calendar-head {
+  align-items: center;
+  color: #aaa;
+  grid-template-columns: 30px 30px minmax(0, 1fr) 30px 30px;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.doctor-space__calendar-head button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #c2b8ad;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+}
+
+.doctor-space__calendar-head button:hover,
+.doctor-space__calendar-head button:focus-visible {
+  background: #f5eadf;
+  color: #915a22;
+  outline: none;
+}
+
+.doctor-space__calendar-head strong {
+  color: #333;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.doctor-space__calendar-week {
+  color: #606060;
+  font-size: 11px;
+  font-weight: 800;
+  gap: 7px;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 10px;
+}
+
+.doctor-space__calendar-grid {
+  gap: 8px;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.doctor-space__calendar-grid button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #303030;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+}
+
+.doctor-space__calendar-day--empty {
+  color: transparent !important;
+  cursor: default !important;
+}
+
+.doctor-space__calendar-day--selected {
+  background: #3aa4ff;
+  border: 1px solid #915a22;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+.doctor-space__calendar-day--today:not(.doctor-space__calendar-day--selected) {
+  border: 1px solid #915a22;
+}
+
+.doctor-space__calendar-day--working:not(.doctor-space__calendar-day--selected) {
+  background: #f5eadf;
+  color: #7b4619 !important;
+  font-weight: 700;
+}
+
+.doctor-space__calendar-day--blocked:not(.doctor-space__calendar-day--selected) {
+  color: #b7a99c !important;
+}
+
+.doctor-space__params-card {
+  min-height: 300px;
+  padding: 20px 22px;
+}
+
+.doctor-space__params-card label {
+  display: grid;
+  gap: 12px;
+  margin-top: 34px;
+  position: relative;
+}
+
+.doctor-space__params-card label span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.doctor-space__params-card output {
+  background: #e5d9cf;
+  border-radius: 99px;
+  color: #7d4c22;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  position: absolute;
+  right: 0;
+  top: -5px;
+}
+
+.doctor-space__params-card input[type='range'] {
+  --progress: 0%;
+  accent-color: #915a22;
+  appearance: none;
+  background: linear-gradient(
+    90deg,
+    #915a22 0%,
+    #915a22 var(--progress),
+    #e4d7cb var(--progress),
+    #e4d7cb 100%
+  );
+  border-radius: 999px;
+  height: 8px;
+  width: 100%;
+}
+
+.doctor-space__params-card input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  background: #d8b99d;
+  border: 1px solid #915a22;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 17px;
+  width: 17px;
+}
+
+.doctor-space__params-card input[type='range']::-moz-range-thumb {
+  background: #d8b99d;
+  border: 1px solid #915a22;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 17px;
+  width: 17px;
+}
+
+.doctor-space__schedule {
+  margin: 0;
+  max-width: none;
+  padding: 21px 16px 25px;
+  width: 100%;
+}
+
+.doctor-space__schedule > header h2 {
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0 0 24px;
+}
+
+.doctor-space__schedule > header p {
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+
+.doctor-space__day {
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  padding: 16px 20px;
+}
+
+.doctor-space__day-head {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 31px 1fr auto;
+}
+
+.doctor-space__day h3 {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.doctor-space__switch {
+  align-items: center;
+  background: #d9d4df;
+  border: 1px solid #80768f;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  height: 18px;
+  padding: 2px;
+  width: 30px;
+}
+
+.doctor-space__switch span {
+  background: #817888;
+  border-radius: 50%;
+  display: block;
+  height: 10px;
+  transition: transform 0.18s ease;
+  width: 10px;
+}
+
+.doctor-space__switch--active {
+  background: #985f2d;
+  border-color: #985f2d;
+}
+
+.doctor-space__switch--active span {
+  background: #fff;
+  transform: translateX(12px);
+}
+
+.doctor-space__add {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #171717;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 7px;
+  padding: 0;
+}
+
+.doctor-space__add span {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.doctor-space__slots {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0 2px;
+}
+
+.doctor-space__slot {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.doctor-space__slot label {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cfc9c4;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  display: inline-flex;
+  gap: 9px;
+  height: 33px;
+  padding: 0 10px 0 14px;
+  width: 98px;
+}
+
+.doctor-space__slot input {
+  background: transparent;
+  border: 0;
+  color: #1b1b1b;
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+  width: 58px;
+}
+
+.doctor-space__slot input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.doctor-space__arrow,
+.doctor-space__remove {
+  color: #111;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.doctor-space__remove {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.doctor-space__day--disabled {
+  min-height: 44px;
+  padding-bottom: 12px;
+  padding-top: 12px;
+}
+
+.doctor-space__day--disabled .doctor-space__add {
+  visibility: hidden;
+}
+
+.doctor-space__placeholder {
+  margin: 0;
+  max-width: none;
+  padding: 34px;
+  width: 100%;
+}
+
+.doctor-space__placeholder h2 {
+  font-size: 26px;
+  margin: 0 0 12px;
+}
+
+.doctor-space__placeholder p {
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+
+.doctor-space__placeholder button {
+  background: #915a22;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+
+.doctor-space__agenda {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.doctor-space__agenda-stats {
+  display: grid;
+  gap: 37px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-right: 0;
+}
+
+.doctor-space__agenda-stat {
+  border-radius: 8px;
+  color: #fff;
+  height: 126px;
+  padding: 17px 20px;
+  position: relative;
+}
+
+.doctor-space__agenda-stat--orange {
+  background: #ef8b00;
+}
+
+.doctor-space__agenda-stat--green {
+  background: #15af7d;
+}
+
+.doctor-space__agenda-stat--red {
+  background: #e92a32;
+}
+
+.doctor-space__agenda-stat-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.23);
+  border-radius: 50%;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  margin-bottom: 6px;
+  width: 34px;
+}
+
+.doctor-space__agenda-stat span {
+  font-size: 9px;
+  opacity: 0.75;
+  position: absolute;
+  right: 28px;
+  top: 27px;
+}
+
+.doctor-space__agenda-stat strong {
+  display: block;
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1.05;
+  margin-top: 1px;
+}
+
+.doctor-space__agenda-stat small {
+  display: block;
+  font-size: 11px;
+  margin-top: 13px;
+  opacity: 0.72;
+}
+
+.doctor-space__agenda-board {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 1px 5px rgba(65, 41, 22, 0.18);
+  overflow: hidden;
+}
+
+.doctor-space__agenda-toolbar {
+  align-items: center;
+  border-bottom: 1px solid #ead7c4;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  min-height: 80px;
+  padding: 15px 16px 15px 18px;
+}
+
+.doctor-space__agenda-date-controls,
+.doctor-space__agenda-view-controls,
+.doctor-space__agenda-filters,
+.doctor-space__agenda-period {
+  align-items: center;
+  display: flex;
+}
+
+.doctor-space__agenda-date-controls {
+  gap: 18px;
+}
+
+.doctor-space__agenda-date-controls button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #111;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0;
+}
+
+.doctor-space__agenda-date-controls .doctor-space__agenda-today {
+  background: #3d50f1;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  height: 37px;
+  padding: 0 21px;
+}
+
+.doctor-space__agenda-date-controls strong {
+  font-size: 16px;
+  font-weight: 500;
+  min-width: 164px;
+}
+
+.doctor-space__agenda-view-controls {
+  background: #e7ebf0;
+  border-radius: 999px;
+  gap: 3px;
+  padding: 5px;
+}
+
+.doctor-space__agenda-view-controls button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #6f7785;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.doctor-space__agenda-view-controls .doctor-space__agenda-view--active {
+  background: #fff;
+  color: #3144ef;
+}
+
+.doctor-space__agenda-zoom {
+  align-items: center;
+  background: #dfe3ea;
+  border-radius: 999px;
+  color: #6f7785;
+  display: inline-flex;
+  font-size: 14px;
+  gap: 2px;
+  height: 32px;
+  margin-left: 4px;
+  padding: 0 7px;
+}
+
+.doctor-space__agenda-zoom button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: #6f7785;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+}
+
+.doctor-space__agenda-zoom button:hover {
+  background: rgba(255, 255, 255, 0.75);
+  color: #3144ef;
+}
+
+.doctor-space__agenda-zoom span {
+  min-width: 48px;
+  text-align: center;
+}
+
+.doctor-space__agenda-filters {
+  border-bottom: 1px solid #ead7c4;
+  color: #8b93a0;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 16px 10px 18px;
+}
+
+.doctor-space__agenda-filters > button {
+  background: #edf8f1;
+  border: 0;
+  border-radius: 999px;
+  color: #55b884;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  min-width: 78px;
+  padding: 7px 14px;
+}
+
+.doctor-space__agenda-filters > button:first-of-type {
+  background: #eef1ff;
+  color: #3d50f1;
+}
+
+.doctor-space__agenda-filters > .doctor-space__agenda-chip--cancelled {
+  background: #ffe5e8;
+  color: #d7192c;
+}
+
+.doctor-space__agenda-filters > .doctor-space__agenda-chip--active {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.55);
+  filter: saturate(1.1);
+  font-weight: 700;
+}
+
+.doctor-space__agenda-period {
+  gap: 11px;
+  margin-left: auto;
+}
+
+.doctor-space__agenda-period input {
+  background: #fff;
+  border: 1px solid #ead7c4;
+  border-radius: 999px;
+  color: #111;
+  font: inherit;
+  height: 31px;
+  padding: 0 12px;
+  width: 140px;
+}
+
+.doctor-space__agenda-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, minmax(109px, 1fr));
+  grid-template-rows: 41px;
+  grid-auto-rows: var(--agenda-row-height, 27px);
+  min-height: 430px;
+  overflow-x: auto;
+  position: relative;
+}
+
+.doctor-space__agenda-corner,
+.doctor-space__agenda-day-head,
+.doctor-space__agenda-hour,
+.doctor-space__agenda-cell {
+  border-bottom: 1px solid #dfddff;
+  border-right: 1px solid #dfddff;
+}
+
+.doctor-space__agenda-corner {
+  align-items: center;
+  background: #fffefd;
+  color: #7e8795;
+  display: flex;
+  font-size: 14px;
+  font-weight: 400;
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: center;
+  padding: 0;
+  z-index: 4;
+}
+
+.doctor-space__agenda-day-head {
+  color: #858d9a;
+  display: grid;
+  font-size: 16px;
+  justify-items: center;
+  line-height: 1.05;
+  padding-top: 3px;
+}
+
+.doctor-space__agenda-day-head strong {
+  font-weight: 500;
+}
+
+.doctor-space__agenda-hour {
+  align-items: start;
+  background: #fffefd;
+  color: #7e8795;
+  display: flex;
+  font-size: 14px;
+  font-weight: 400;
+  grid-column: 1;
+  justify-content: center;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  padding: 8px 0 0;
+  z-index: 3;
+  text-align: center;
+}
+
+.doctor-space__agenda-cell {
+  min-width: 0;
+}
+
+.doctor-space__agenda-event {
+  align-self: stretch;
+  background: #baf4d9;
+  border-left: 3px solid #0aa87c;
+  border-radius: 11px;
+  color: #0e1a19;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 1px 4px;
+  min-height: 54px;
+  overflow: hidden;
+  padding: 7px 7px 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.doctor-space__agenda-event--cancelled {
+  background: #ffd9dc;
+  border-left-color: #d7192c;
+}
+
+.doctor-space__agenda-event strong {
+  align-items: center;
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 4px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__agenda-event strong span {
+  background: currentColor;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 4px;
+  width: 4px;
+}
+
+.doctor-space__agenda-event small {
+  align-items: center;
+  color: #7b8592;
+  display: inline-flex;
+  font-size: 8px;
+  gap: 4px;
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__agenda-event em {
+  bottom: 7px;
+  color: #657083;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  left: 7px;
+  line-height: 1;
+  position: absolute;
+  right: 7px;
+  white-space: nowrap;
+}
+
+.doctor-space__motifs {
+  width: 100%;
+}
+
+.doctor-space__motif-form,
+.doctor-space__motif-list {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  margin: 0 0 18px;
+  padding: 24px 24px 26px;
+  width: 100%;
+}
+
+.doctor-space__motif-form header,
+.doctor-space__motif-list header {
+  align-items: center;
+  color: #111;
+  display: flex;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.doctor-space__motif-form header lucide-icon,
+.doctor-space__motif-list header lucide-icon {
+  color: #915a22;
+}
+
+.doctor-space__motif-form header strong,
+.doctor-space__motif-list h3 {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.doctor-space__motif-form header span {
+  display: block;
+  color: #4f4a45;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.doctor-space__motif-fields {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(240px, 1.3fr) 150px 170px 34px auto 118px;
+}
+
+.doctor-space__motif-fields label {
+  display: grid;
+  gap: 10px;
+}
+
+.doctor-space__motif-fields label span {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.doctor-space__motif-fields input {
+  background: #fff;
+  border: 1px solid #cac5c1;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font: inherit;
+  font-size: 15px;
+  height: 48px;
+  outline: none;
+  padding: 0 16px;
+  width: 100%;
+}
+
+.doctor-space__motif-fields input:focus {
+  border-color: #915a22;
+}
+
+.doctor-space__motif-switch {
+  align-items: center;
+  align-self: center;
+  background: #d9d4df;
+  border: 1px solid #80768f;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  height: 24px;
+  padding: 3px;
+  width: 42px;
+}
+
+.doctor-space__motif-switch span {
+  background: #817888;
+  border-radius: 50%;
+  display: block;
+  height: 16px;
+  transition: transform 0.18s ease;
+  width: 16px;
+}
+
+.doctor-space__motif-switch--active {
+  background: #985f2d;
+  border-color: #985f2d;
+}
+
+.doctor-space__motif-switch--active span {
+  background: #fff;
+  transform: translateX(16px);
+}
+
+.doctor-space__motif-required-label {
+  align-self: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.doctor-space__motif-submit {
+  align-self: center;
+  background: #985f2d;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  height: 48px;
+  padding: 0 28px;
+}
+
+.doctor-space__motif-submit:disabled,
+.doctor-space__motif-switch:disabled,
+.doctor-space__motif-delete:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.doctor-space__motif-list {
+  margin-top: 14px;
+  padding: 18px 16px 12px;
+}
+
+.doctor-space__motif-list header {
+  margin-bottom: 16px;
+}
+
+.doctor-space__motif-empty {
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  margin: 0;
+  padding: 24px 28px;
+}
+
+.doctor-space__motif-item {
+  align-items: center;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto 34px 34px;
+  margin-bottom: 14px;
+  min-height: 76px;
+  padding: 16px 28px;
+}
+
+.doctor-space__motif-item strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.doctor-space__motif-item div span {
+  display: block;
+  font-size: 13px;
+}
+
+.doctor-space__motif-delete {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #b3261e;
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.doctor-space__wallet {
+  display: grid;
+  gap: 20px;
+  max-width: none;
+  width: 100%;
+}
+
+.doctor-space__wallet-summary {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+}
+
+.doctor-space__wallet-balance,
+.doctor-space__wallet-revenue,
+.doctor-space__wallet-history {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+}
+
+.doctor-space__wallet-balance {
+  background: #985f22;
+  border-color: #985f22;
+  color: #fff;
+  min-height: 148px;
+  padding: 17px 16px 15px;
+}
+
+.doctor-space__wallet-balance > div,
+.doctor-space__wallet-revenue header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.doctor-space__wallet-balance > div span,
+.doctor-space__wallet-revenue header span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.doctor-space__wallet-balance strong,
+.doctor-space__wallet-revenue strong {
+  display: block;
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.doctor-space__wallet-balance strong {
+  margin: 22px 0 10px;
+}
+
+.doctor-space__wallet-open-withdraw {
+  align-items: center;
+  background: #fff0df;
+  border: 0;
+  border-radius: 10px;
+  color: #985f22;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 7px;
+  height: 38px;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 0 14px;
+}
+
+.doctor-space__wallet-open-withdraw:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.doctor-space__wallet-revenue {
+  min-height: 148px;
+  padding: 15px 14px 10px;
+}
+
+.doctor-space__wallet-revenue header {
+  color: #786c62;
+}
+
+.doctor-space__wallet-revenue strong {
+  font-size: 26px;
+  margin: 12px 0 3px;
+}
+
+.doctor-space__wallet-revenue small {
+  color: #44bb73;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.doctor-space__wallet-change--down {
+  color: #e7262f !important;
+}
+
+.doctor-space__wallet-revenue dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.doctor-space__wallet-revenue dl div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.doctor-space__wallet-revenue dt,
+.doctor-space__wallet-revenue dd {
+  color: #7e746b;
+  font-size: 10px;
+  margin: 0;
+}
+
+.doctor-space__wallet-revenue dd {
+  color: #111;
+  font-weight: 800;
+}
+
+.doctor-space__wallet-history {
+  min-height: 394px;
+  padding: 16px 15px 22px;
+}
+
+.doctor-space__wallet-history h2 {
+  color: #736458;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 2px 0 12px;
+}
+
+.doctor-space__wallet-empty {
+  border: 1px dashed #ead7c4;
+  border-radius: 10px;
+  color: #7e746b;
+  margin: 0;
+  padding: 22px;
+}
+
+.doctor-space__wallet-transaction {
+  align-items: center;
+  border: 1px solid #ead7c4;
+  border-radius: 9px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 43px minmax(0, 1fr) auto;
+  min-height: 60px;
+  padding: 10px 12px;
+}
+
+.doctor-space__wallet-transaction + .doctor-space__wallet-transaction {
+  margin-top: 7px;
+}
+
+.doctor-space__wallet-transaction-icon {
+  align-items: center;
+  background: #d9f6df;
+  border-radius: 50%;
+  color: #25a852;
+  display: inline-flex;
+  height: 35px;
+  justify-content: center;
+  width: 35px;
+}
+
+.doctor-space__wallet-transaction--out .doctor-space__wallet-transaction-icon {
+  background: #ffdfe2;
+  color: #ed222a;
+}
+
+.doctor-space__wallet-transaction strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__wallet-transaction small {
+  color: #8c8c8c;
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.doctor-space__wallet-transaction em {
+  background: #29a64f;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  min-width: 107px;
+  padding: 9px 11px;
+  text-align: center;
+}
+
+.doctor-space__wallet-transaction--out em {
+  background: #ed222a;
+}
+
+.doctor-space__state {
+  background: #fff;
+  border-radius: 10px;
+  margin: 0;
+  max-width: none;
+  padding: 18px;
+}
+
+.doctor-space__state--error {
+  color: #b42318;
+}
+
+@media (max-width: 860px) {
+  .doctor-space {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__sidebar {
+    height: auto;
+    min-height: auto;
+    position: relative;
+    width: 100%;
+  }
+
+  .doctor-space__sidebar nav {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .doctor-space__sidebar nav button {
+    font-size: 15px;
+    min-height: 72px;
+  }
+
+  .doctor-space__back {
+    margin-bottom: 8px;
+  }
+
+  .doctor-space__content {
+    grid-column: 1;
+    padding: 22px 14px 44px;
+  }
+
+  .doctor-space__cards {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__agenda-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__agenda-toolbar,
+  .doctor-space__agenda-filters {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .doctor-space__agenda-period {
+    margin-left: 0;
+  }
+
+  .doctor-space__motif-fields,
+  .doctor-space__motif-item {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__wallet,
+  .doctor-space__wallet-summary,
+  .doctor-space__wallet-transaction {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__wallet-transaction em {
+    justify-self: start;
+  }
+
+  .doctor-space__blocked-card,
+  .doctor-space__params-card {
+    min-height: auto;
+  }
+}

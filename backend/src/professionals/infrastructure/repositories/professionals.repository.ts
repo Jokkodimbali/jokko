@@ -69,6 +69,8 @@ const SERVICE_SELECT = {
   description: true,
   prix: true,
   typePrix: true,
+  dureeMinutes: true,
+  estObligatoire: true,
   estDisponible: true,
   creeLe: true,
 } as const;
@@ -150,6 +152,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     description: string;
     prix: Prisma.Decimal;
     typePrix: string;
+    dureeMinutes: number;
+    estObligatoire: boolean;
     estDisponible: boolean;
     creeLe: Date;
   }): ProfessionalServiceView {
@@ -161,6 +165,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       description: service.description,
       prix: service.prix.toNumber(),
       typePrix: service.typePrix as ProfessionalServiceView['typePrix'],
+      dureeMinutes: service.dureeMinutes,
+      estObligatoire: service.estObligatoire,
       estDisponible: service.estDisponible,
       creeLe: service.creeLe,
     };
@@ -383,6 +389,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           description: input.description,
           prix: input.price,
           typePrix: input.priceType,
+          dureeMinutes: input.durationMinutes,
+          estObligatoire: input.isRequired,
         },
         select: SERVICE_SELECT,
       });
@@ -413,6 +421,8 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           description: input.description,
           prix: input.price,
           typePrix: input.priceType,
+          dureeMinutes: input.durationMinutes,
+          estObligatoire: input.isRequired,
         },
         select: SERVICE_SELECT,
       });

@@ -204,6 +204,34 @@ export class PaymentsController {
     return createApiResponse(withdrawals);
   }
 
+  @Get('wallet')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Consulter le wallet du prestataire connecte' })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: 'Wallet du prestataire connecte',
+    messageExample: 'Wallet du prestataire connecte',
+    dataSchema: {
+      type: 'object',
+      example: {
+        professionalId: '33333333-3333-4333-8333-333333333333',
+        availableBalance: 92000,
+        monthlyRevenue: {
+          amount: 62000,
+          changePercent: 12,
+          consultationCount: 28,
+          teleconsultationCount: 28,
+          refundedCancellationCount: 1,
+        },
+        transactions: [],
+      },
+    },
+  })
+  async getProfessionalWallet(@CurrentUser() user: AuthUser) {
+    const wallet = await this.paymentsFacade.getProfessionalWalletForUser(user);
+    return createApiResponse(wallet);
+  }
+
   @Post('withdraw')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)

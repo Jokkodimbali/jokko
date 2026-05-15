@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEnum,
+  IsBoolean,
+  IsInt,
   IsNotEmpty,
+  IsOptional,
   IsNumber,
   IsPositive,
   IsString,
@@ -74,4 +77,32 @@ export class CreateProfessionalServiceDto {
     message: VALIDATION_MESSAGES.SERVICE_PRICE_TYPE_INVALID,
   })
   priceType!: ServicePriceType;
+
+  @ApiProperty({
+    description: 'Duree du motif de consultation en minutes',
+    example: 15,
+    required: false,
+    minimum: 5,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? Number(value) : value,
+  )
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  durationMinutes?: number;
+
+  @ApiProperty({
+    description: 'Indique si le motif est obligatoire pour la prise de rendez-vous',
+    example: true,
+    required: false,
+  })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value === 'true';
+    return value;
+  })
+  @IsOptional()
+  @IsBoolean()
+  isRequired?: boolean;
 }

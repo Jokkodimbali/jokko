@@ -4,6 +4,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -29,13 +30,17 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly authSession = inject(AuthSessionService);
   private trackingSubscription?: Subscription;
+  private automaticStatusSubscription?: Subscription;
 
+  protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly tracking = signal<AppointmentTrackingView | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
+  protected readonly isUpdatingStatus = signal(false);
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isSubmittingReview = signal(false);
   protected readonly selectedRating = signal(0);
@@ -46,6 +51,16 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       appointment?.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT' &&
       typeof appointment.proposedAdjustedPrice === 'number' &&
       Number.isFinite(appointment.proposedAdjustedPrice)
+    );
+  });
+  protected readonly canManageProviderStatus = computed(() => {
+    const appointment = this.appointment();
+    return (
+      this.currentUser()?.role === 'PRESTATAIRE' &&
+      !!appointment &&
+      appointment.status !== 'TERMINEE' &&
+      appointment.status !== 'ANNULEE' &&
+      appointment.status !== 'NO_SHOW'
     );
   });
   protected readonly isAppointmentCompleted = computed(() => this.appointment()?.status === 'TERMINEE');
@@ -218,6 +233,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
 
   ngOnDestroy(): void {
     this.trackingSubscription?.unsubscribe();
+    this.automaticStatusSubscription?.unsubscribe();
   }
 
   protected goBack(): void {
@@ -317,6 +333,87 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     });
   }
 
+  protected async markOnTheWay(appointment: AppointmentView): Promise<void> {
+    await this.transitionOnTheWay(appointment, false);
+  }
+
+  private async transitionOnTheWay(
+    appointment: AppointmentView,
+    silent: boolean,
+  ): Promise<void> {
+    if (this.isUpdatingStatus()) return;
+
+    this.isUpdatingStatus.set(true);
+    const location = await this.resolveCurrentLocation(appointment.addressLabel);
+    this.appointmentsService.markProviderOnTheWay(appointment.id, location).subscribe({
+      next: (tracking) => {
+        this.tracking.set(tracking);
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success('Statut mis a jour : prestataire en route.');
+        }
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success("Impossible d'activer le suivi en route. Verifiez que la reservation est payee.");
+        }
+      },
+    });
+  }
+
+  protected startWork(appointment: AppointmentView): void {
+    this.transitionStartWork(appointment, false);
+  }
+
+  private transitionStartWork(appointment: AppointmentView, silent: boolean): void {
+    if (this.isUpdatingStatus()) return;
+
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.startAppointment(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.refreshTracking(appointment.id);
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success('Prestation demarree.');
+        }
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success('Impossible de demarrer. La reservation doit etre payee.');
+        }
+      },
+    });
+  }
+
+  protected completeWork(appointment: AppointmentView): void {
+    this.transitionCompleteWork(appointment, false);
+  }
+
+  private transitionCompleteWork(appointment: AppointmentView, silent: boolean): void {
+    if (this.isUpdatingStatus()) return;
+
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.completeAppointment(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.refreshTracking(appointment.id);
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success('Prestation terminee.');
+        }
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        if (!silent) {
+          this.feedback.success('Impossible de terminer cette prestation pour le moment.');
+        }
+      },
+    });
+  }
+
   protected workProgressSteps(): Array<{ label: string; state: 'done' | 'active' | 'pending' }> {
     return [
       { label: 'Diagnostic', state: 'done' },
@@ -335,6 +432,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
         this.selectedRating.set(appointment.clientRating ?? 0);
         this.isLoading.set(false);
         this.startTrackingPolling(appointment.id);
+        this.startAutomaticStatusSync();
       },
       error: () => {
         this.errorMessage.set('Impossible de charger ce rendez-vous.');
@@ -353,6 +451,64 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
             .pipe(catchError(() => of(null))),
         ),
       )
+      .subscribe((tracking) => {
+        if (tracking) {
+          this.tracking.set(tracking);
+        }
+      });
+  }
+
+  private startAutomaticStatusSync(): void {
+    this.automaticStatusSubscription?.unsubscribe();
+    this.automaticStatusSubscription = timer(0, 15000).subscribe(() => {
+      void this.applyAutomaticStatusTransition();
+    });
+  }
+
+  private async applyAutomaticStatusTransition(): Promise<void> {
+    const appointment = this.appointment();
+    if (!appointment || !this.canManageProviderStatus() || this.isUpdatingStatus()) {
+      return;
+    }
+
+    const schedule = new Date(appointment.scheduledAt);
+    if (Number.isNaN(schedule.getTime())) {
+      return;
+    }
+
+    const now = Date.now();
+    const startAt = schedule.getTime();
+    const onTheWayAt = startAt - 30 * 60 * 1000;
+    const finishAt = startAt + Math.max(15, appointment.durationMinutes || 30) * 60 * 1000;
+
+    if (
+      appointment.status === 'PAYEE_SEQUESTRE' &&
+      !this.isProviderOnTheWay() &&
+      !this.isProviderWorking() &&
+      now >= onTheWayAt
+    ) {
+      await this.transitionOnTheWay(appointment, true);
+      return;
+    }
+
+    if (
+      appointment.status === 'PAYEE_SEQUESTRE' &&
+      this.isProviderOnTheWay() &&
+      now >= startAt
+    ) {
+      this.transitionStartWork(appointment, true);
+      return;
+    }
+
+    if (appointment.status === 'EN_COURS' && now >= finishAt) {
+      this.transitionCompleteWork(appointment, true);
+    }
+  }
+
+  private refreshTracking(appointmentId: string): void {
+    this.appointmentsService
+      .getAppointmentTracking(appointmentId)
+      .pipe(catchError(() => of(null)))
       .subscribe((tracking) => {
         if (tracking) {
           this.tracking.set(tracking);
@@ -397,5 +553,52 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     })
       .format(value)
       .replace(':', 'h');
+  }
+
+  private resolveCurrentLocation(fallbackLabel: string): Promise<{
+    latitude?: number;
+    longitude?: number;
+    accuracyMeters?: number | null;
+    headingDegrees?: number | null;
+    speedKmh?: number | null;
+    locationLabel?: string | null;
+  }> {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      return Promise.resolve(this.defaultTrackingLocation(fallbackLabel));
+    }
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyMeters: position.coords.accuracy,
+            headingDegrees:
+              typeof position.coords.heading === 'number'
+                ? position.coords.heading
+                : null,
+            speedKmh:
+              typeof position.coords.speed === 'number'
+                ? position.coords.speed * 3.6
+                : 24,
+            locationLabel: fallbackLabel,
+          });
+        },
+        () => resolve(this.defaultTrackingLocation(fallbackLabel)),
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 },
+      );
+    });
+  }
+
+  private defaultTrackingLocation(locationLabel: string) {
+    return {
+      latitude: 14.716677,
+      longitude: -17.467686,
+      accuracyMeters: 50,
+      headingDegrees: 180,
+      speedKmh: 24,
+      locationLabel,
+    };
   }
 }

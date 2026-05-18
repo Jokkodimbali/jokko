@@ -44,8 +44,7 @@ export class ServicesComponent implements OnInit {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
 
-  protected readonly heroIllustration =
-    'https://www.figma.com/api/mcp/asset/9f194bf6-3fd1-4012-bb76-dc280db53929';
+  protected readonly heroIllustration = '/image%20haut.png';
 
   sections = signal<ServiceSection[]>([]);
   categoryPagination = signal<PaginationMeta | undefined>(undefined);

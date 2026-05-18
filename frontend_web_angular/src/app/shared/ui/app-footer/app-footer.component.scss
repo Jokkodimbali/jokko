@@ -71,23 +71,27 @@
   align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 47px;
+  gap: 24px;
+  width: 100%;
 }
 
-.app-footer__store-badge:first-child {
-  background: var(--color-white, #fff);
-  border-radius: 16.5px;
+.app-footer__store-badge {
+  align-items: center;
+  background: transparent;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  line-height: 1;
+  max-width: 430px;
   overflow: hidden;
-  width: 376px;
-}
-
-.app-footer__store-badge:last-child {
-  width: 377px;
+  width: min(100%, 430px);
 }
 
 .app-footer__store-badge img {
   display: block;
   height: auto;
+  max-height: none;
+  object-fit: contain;
   width: 100%;
 }
 
@@ -104,22 +108,27 @@
 .app-footer__social-links {
   align-items: center;
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 14px;
   height: 83px;
   justify-content: center;
 }
 
 .app-footer__social-links a {
   align-items: center;
+  background: #fff;
+  border-radius: 50%;
   display: inline-flex;
-  height: 61px;
+  height: 58px;
   justify-content: center;
-  width: 61px;
+  overflow: hidden;
+  padding: 8px;
+  width: 58px;
 }
 
-.app-footer__social-links a:last-child {
-  height: 83px;
-  width: 84px;
+.app-footer__social-links a[aria-label='YouTube'],
+.app-footer__social-links a[aria-label='Twitter'] {
+  padding: 9px;
 }
 
 .app-footer__social-links img {
@@ -255,8 +264,7 @@
   }
 
   .app-footer__store-badge img {
-    height: auto;
-    max-width: 100%;
+    max-height: none;
   }
 
   .app-footer__social-links a {
@@ -327,8 +335,7 @@
   }
 
   .app-footer__store-badge img {
-    height: auto;
-    max-width: 100%;
+    max-height: none;
   }
 
   .app-footer__social-links a {
@@ -398,8 +405,7 @@
   }
 
   .app-footer__store-badge img {
-    height: auto;
-    max-width: 100%;
+    max-height: none;
   }
 
   .app-footer__social-links a {
@@ -469,8 +475,7 @@
   }
 
   .app-footer__store-badge img {
-    height: auto;
-    max-width: 100%;
+    max-height: none;
   }
 
   .app-footer__social-links a {
@@ -559,25 +564,11 @@
   }
 
   .app-footer__store-badge img {
-    height: auto;
-    max-width: 100%;
-  }
-
-  .app-footer__store-badge:first-child {
-    width: min(376px, 100%);
-  }
-
-  .app-footer__store-badge:last-child {
-    width: min(377px, 100%);
+    max-height: none;
   }
 
   .app-footer__social-links a {
     height: clamp(48px, 4vw, 61px);
     width: clamp(48px, 4vw, 61px);
-  }
-
-  .app-footer__social-links a:last-child {
-    height: clamp(56px, 5vw, 83px);
-    width: clamp(56px, 6vw, 84px);
   }
 }

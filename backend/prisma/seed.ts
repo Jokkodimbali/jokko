@@ -47,19 +47,19 @@ const SEED_IDS = {
 const SEED_USERS = {
   admin: {
     phone: process.env.SEED_ADMIN_PHONE || '+221771234567',
-    name: 'Super Admin Jokko',
+    name: 'Admin mamadou dia',
     password: process.env.SEED_ADMIN_PASSWORD || 'admin123',
     role: RoleUtilisateur.ADMIN,
   },
   client: {
     phone: '+221772345678',
-    name: 'Client Demo Paiement',
+    name: 'Client jokko',
     password: 'client123',
     role: RoleUtilisateur.CLIENT,
   },
   professional: {
     phone: '+221773456789',
-    name: 'Docteur Demo Jokko',
+    name: 'Docteur Jokko',
     password: 'prof12345',
     role: RoleUtilisateur.PRESTATAIRE,
   },

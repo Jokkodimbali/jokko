@@ -74,6 +74,10 @@ export class AppNavbarComponent implements OnInit {
       searchableText.includes(keyword),
     );
   });
+  protected readonly showProviderSpace = computed(() => {
+    const user = this.currentUser();
+    return !!user && user.role === 'PRESTATAIRE' && !this.showDoctorSpace();
+  });
 
   protected readonly navItems = signal<AppNavItem[]>([
     {

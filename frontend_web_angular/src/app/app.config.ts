@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, LOCALE_ID, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { IMAGE_CONFIG, registerLocaleData } from '@angular/common';
@@ -48,6 +48,7 @@ import {
   Star,
   Trash2,
   TriangleAlert,
+  UserRoundCog,
   Users,
   Video,
   WalletCards,
@@ -62,6 +63,7 @@ registerLocaleData(localeFr);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(), 
+    { provide: LOCALE_ID, useValue: 'fr-FR' },
     provideRouter(routes),
     provideHttpClient(withInterceptors([jwtInterceptor])),
     importProvidersFrom(
@@ -107,6 +109,7 @@ export const appConfig: ApplicationConfig = {
         Star,
         Trash2,
         TriangleAlert,
+        UserRoundCog,
         Users,
         Video,
         WalletCards,

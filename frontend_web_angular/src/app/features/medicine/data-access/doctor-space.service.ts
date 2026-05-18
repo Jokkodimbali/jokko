@@ -57,10 +57,26 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
+  listMyAvailabilities(): Observable<BackendProfessionalAvailability[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalAvailability[]>>(
+        `${this.apiUrl}/professionals/me/availabilities`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   listServices(profileId: string): Observable<BackendProfessionalDetailService[]> {
     return this.http
       .get<ApiResponse<BackendProfessionalDetailService[]>>(
         `${this.apiUrl}/professionals/${profileId}/services`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  listMyServices(): Observable<BackendProfessionalDetailService[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalDetailService[]>>(
+        `${this.apiUrl}/professionals/me/services`,
       )
       .pipe(map(unwrapApiResponse));
   }

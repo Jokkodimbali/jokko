@@ -3,8 +3,15 @@
   [routerLink]="['/medecine', doctor.id]"
   [state]="{ doctor: doctor }"
 >
-  <button type="button" class="doctor-card__favorite" aria-label="Ajouter aux favoris" (click)="$event.preventDefault()">
-    <lucide-icon name="heart" size="16" [strokeWidth]="1.8"></lucide-icon>
+  <button
+    type="button"
+    class="doctor-card__favorite"
+    [class.doctor-card__favorite--active]="isFavorite()"
+    [disabled]="isTogglingFavorite()"
+    [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+    (click)="toggleFavorite($event)"
+  >
+    <lucide-icon name="heart" size="16" [strokeWidth]="1.8" [attr.fill]="isFavorite() ? 'currentColor' : 'none'"></lucide-icon>
   </button>
 
   <div class="doctor-card__summary">
@@ -43,12 +50,15 @@
       {{ messages.nextAvailability }}
     </h3>
 
-    <div class="doctor-card__days">
+    <div class="doctor-card__days" *ngIf="doctor.nextAvailability.length > 0; else noAvailability">
       <span *ngFor="let day of doctor.nextAvailability">{{ day }}</span>
     </div>
+    <ng-template #noAvailability>
+      <p class="doctor-card__empty-availability">Aucune disponibilit&eacute; publi&eacute;e</p>
+    </ng-template>
   </section>
 
-  <button type="button" class="doctor-card__cta" (click)="$event.preventDefault()">
+  <button type="button" class="doctor-card__cta" (click)="openBooking($event)">
     {{ messages.appointment }}
     <span>
       <lucide-icon name="arrow-up-right" size="13" [strokeWidth]="2.3"></lucide-icon>

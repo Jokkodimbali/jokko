@@ -1,0 +1,344 @@
+:host {
+  display: block;
+}
+
+.medicine-booking {
+  background: #e8f2f7;
+  color: #050505;
+  min-height: 100vh;
+}
+
+.medicine-booking__nav {
+  background: #fff;
+  position: relative;
+  z-index: 5;
+}
+
+.medicine-booking__hero {
+  background: linear-gradient(180deg, #925a22 0%, #9b672e 100%);
+  color: #fff;
+  min-height: 322px;
+  position: relative;
+}
+
+.medicine-booking__back {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  gap: 12px;
+  height: 43px;
+  left: 2px;
+  padding: 0 24px;
+  position: absolute;
+  top: 14px;
+}
+
+.medicine-booking__hero header {
+  left: 50%;
+  position: absolute;
+  text-align: center;
+  top: 112px;
+  transform: translateX(-50%);
+  width: min(680px, 90vw);
+}
+
+.medicine-booking__hero header lucide-icon,
+.medicine-booking__hero header span {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.medicine-booking__hero header span {
+  font-size: 13px;
+  font-weight: 900;
+  margin: 19px 0 0 9px;
+  max-width: min(420px, 70vw);
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medicine-booking__hero h1 {
+  font-size: 39px;
+  font-weight: 900;
+  line-height: 1;
+  margin: 14px 0 6px;
+}
+
+.medicine-booking__hero p {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.medicine-booking__panel {
+  background: #fff;
+  border-radius: 11px 11px 0 0;
+  margin: -50px auto 44px;
+  min-height: 620px;
+  padding: 36px 54px 30px;
+  position: relative;
+  width: min(800px, calc(100vw - 48px));
+  z-index: 2;
+}
+
+.medicine-booking__step {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  margin-bottom: 22px;
+}
+
+.medicine-booking__step-number {
+  align-items: center;
+  background: #925a22;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  font-size: 29px;
+  font-weight: 900;
+  height: 43px;
+  justify-content: center;
+  width: 43px;
+}
+
+.medicine-booking__step h2 {
+  align-self: center;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.medicine-booking__audience {
+  display: grid;
+  gap: 23px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.medicine-booking__audience button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d9e6ed;
+  border-radius: 8px;
+  color: #111;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 23px 1fr 16px;
+  min-height: 68px;
+  padding: 10px;
+  text-align: left;
+}
+
+.medicine-booking__audience-card--active {
+  background: #eee2d7 !important;
+  border-color: #925a22 !important;
+  color: #925a22 !important;
+}
+
+.medicine-booking__audience strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.medicine-booking__audience small {
+  color: #596271;
+  display: block;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.medicine-booking__step--motif {
+  border-bottom: 1px solid #d9e6ed;
+  padding-bottom: 18px;
+}
+
+.medicine-booking__select {
+  grid-column: 1 / -1;
+  position: relative;
+}
+
+.medicine-booking__select select {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #d9e6ed;
+  border-radius: 8px;
+  color: #111;
+  font: inherit;
+  font-size: 16px;
+  height: 50px;
+  outline: none;
+  padding: 0 48px 0 16px;
+  width: 100%;
+}
+
+.medicine-booking__select lucide-icon {
+  pointer-events: none;
+  position: absolute;
+  right: 16px;
+  top: 13px;
+}
+
+.medicine-booking__step--availability {
+  display: block;
+}
+
+.medicine-booking__step--availability .medicine-booking__step-number,
+.medicine-booking__step--availability h2 {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.medicine-booking__step--availability h2 {
+  margin: 0 0 0 25px;
+}
+
+.medicine-booking__day {
+  border: 1px solid #d9e6ed;
+  border-radius: 8px;
+  margin-top: 22px;
+  overflow: hidden;
+}
+
+.medicine-booking__day-head {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  color: #111;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 28px 1fr 25px;
+  min-height: 57px;
+  padding: 12px 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.medicine-booking__day-head lucide-icon:first-child {
+  color: #925a22;
+}
+
+.medicine-booking__day-head strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.medicine-booking__day-head small {
+  color: #596271;
+  display: block;
+  font-size: 10px;
+}
+
+.medicine-booking__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 6px;
+  justify-content: center;
+  padding: 0 20px 15px 70px;
+}
+
+.medicine-booking__slots button {
+  background: #e9f4f8;
+  border: 0;
+  border-radius: 999px;
+  color: #050505;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  min-width: 56px;
+  padding: 6px 13px;
+}
+
+.medicine-booking__slots .medicine-booking__slot--selected {
+  background: #925a22;
+  color: #fff;
+}
+
+.medicine-booking__slots .medicine-booking__more {
+  background: transparent;
+  border-radius: 0;
+  color: #925a22;
+  flex: 1 0 100%;
+  font-size: 22px;
+  margin-top: 10px;
+}
+
+.medicine-booking__footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+  padding: 0 20px 6px 16px;
+}
+
+.medicine-booking__footer span {
+  color: #596271;
+  font-size: 10px;
+}
+
+.medicine-booking__footer button {
+  background: #a87547;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  height: 34px;
+  min-width: 159px;
+  padding: 0 18px;
+}
+
+.medicine-booking__footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.medicine-booking__state {
+  color: #596271;
+  font-size: 14px;
+  grid-column: 1 / -1;
+  margin: 18px 0;
+}
+
+.medicine-booking__state--error {
+  color: #b42318;
+}
+
+@media (max-width: 720px) {
+  .medicine-booking__hero header {
+    left: 50%;
+    top: 102px;
+    transform: translateX(-50%);
+    width: calc(100vw - 32px);
+  }
+
+  .medicine-booking__panel {
+    padding: 26px 18px;
+    width: min(100% - 24px, 800px);
+  }
+
+  .medicine-booking__audience,
+  .medicine-booking__step {
+    grid-template-columns: 1fr;
+  }
+
+  .medicine-booking__slots {
+    padding-left: 20px;
+  }
+}

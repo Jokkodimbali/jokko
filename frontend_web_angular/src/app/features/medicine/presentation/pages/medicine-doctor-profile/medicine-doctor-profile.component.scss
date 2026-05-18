@@ -257,6 +257,16 @@
   padding: 12px;
 }
 
+.doctor-profile__hours {
+  padding: 0 0 16px;
+}
+
+.doctor-profile__hours h2 {
+  color: #14181f;
+  font-size: 26px;
+  padding: 0 4px;
+}
+
 .doctor-profile__card-head {
   align-items: start;
   display: flex;
@@ -268,9 +278,15 @@
   transform: rotate(180deg);
 }
 
-.doctor-profile__tags,
-.doctor-profile__hours-list {
+.doctor-profile__tags {
   margin-top: 57px;
+}
+
+.doctor-profile__hours-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 18px;
+  padding: 0 8px;
 }
 
 .doctor-profile__tags {
@@ -279,8 +295,7 @@
   gap: 16px 8px;
 }
 
-.doctor-profile__tags span,
-.doctor-profile__hours-list span {
+.doctor-profile__tags span {
   background: #e3edf3;
   border-radius: 10px;
   color: #50606b;
@@ -290,23 +305,37 @@
   padding: 8px 10px;
 }
 
-.doctor-profile__hours-list {
-  display: grid;
-  gap: 14px;
-}
-
 .doctor-profile__hours-list div {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 9px;
+  gap: 8px;
 }
 
 .doctor-profile__hours-list strong {
   color: #4d5965;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   min-width: 78px;
+}
+
+.doctor-profile__schedule-row span {
+  align-items: center;
+  background: #e4f1e8;
+  border-radius: 999px;
+  color: #315441;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 24px;
+  min-width: 76px;
+  padding: 0 9px;
+}
+
+.doctor-profile__schedule-row .doctor-profile__schedule-unavailable {
+  background: #eef2f5;
+  color: #7b8794;
 }
 
 /* Mobile: <768px */

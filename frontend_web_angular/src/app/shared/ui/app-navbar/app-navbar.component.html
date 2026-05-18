@@ -100,6 +100,18 @@
           </span>
           <span>Espace M&eacute;decin</span>
         </a>
+        <a
+          *ngIf="showProviderSpace()"
+          routerLink="/prestataire/espace"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          (click)="closeProfileMenu()"
+        >
+          <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--provider">
+            <lucide-icon name="user-round-cog" size="18" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <span>Espace Prestataire</span>
+        </a>
         <button
           type="button"
           class="app-navbar__dropdown-item"
@@ -206,6 +218,15 @@
         >
           <lucide-icon name="heart-plus" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Espace M&eacute;decin</span>
+        </a>
+        <a
+          *ngIf="showProviderSpace()"
+          routerLink="/prestataire/espace"
+          class="app-navbar__mobile-action-item app-navbar__mobile-action-item--provider"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="user-round-cog" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Espace Prestataire</span>
         </a>
         <button
           type="button"

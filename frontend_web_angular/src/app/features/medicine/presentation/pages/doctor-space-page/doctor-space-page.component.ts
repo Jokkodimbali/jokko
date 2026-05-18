@@ -1,6 +1,7 @@
 import { CommonModule, Location } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
@@ -98,12 +99,13 @@ export class DoctorSpacePageComponent implements OnInit {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly location = inject(Location);
+  private readonly router = inject(Router);
 
   protected readonly activeSection = signal<DoctorSpaceSection>('availability');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly professionalName = signal('Mon espace medecin');
+  protected readonly professionalName = signal('Mon espace professionnel');
   protected readonly professionalProfileId = signal<string | null>(null);
   protected readonly days = signal<DaySchedule[]>(this.buildEmptyWeek());
   protected readonly motifs = signal<ConsultationMotif[]>([]);
@@ -153,6 +155,13 @@ export class DoctorSpacePageComponent implements OnInit {
   ];
   protected readonly calendarCursor = signal(this.startOfMonth(new Date()));
   protected readonly selectedCalendarDate = signal(this.startOfDay(new Date()));
+  protected readonly isProviderSpace = computed(() =>
+    this.router.url.startsWith('/prestataire/espace'),
+  );
+  protected readonly spaceAriaLabel = computed(() =>
+    this.isProviderSpace() ? 'Espace prestataire' : 'Espace medecin',
+  );
+  protected readonly showConsultationSection = computed(() => !this.isProviderSpace());
 
   protected readonly calendarDays = computed(() =>
     this.buildCalendarDays(
@@ -251,6 +260,11 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected selectSection(section: DoctorSpaceSection): void {
+    if (section === 'consultation' && !this.showConsultationSection()) {
+      this.activeSection.set('availability');
+      return;
+    }
+
     this.activeSection.set(section);
   }
 
@@ -593,15 +607,25 @@ export class DoctorSpacePageComponent implements OnInit {
           this.professionalName.set(profile.utilisateur.nom);
           this.professionalProfileId.set(profile.id);
           return forkJoin({
-            availabilities: this.doctorSpaceService.listAvailabilities(profile.id),
-            services: this.doctorSpaceService.listServices(profile.id),
-            categories: this.doctorSpaceService.listCategories(),
-            reservations: this.doctorSpaceService.listMyReservations(),
-            wallet: this.doctorSpaceService.getWallet(),
+            availabilities: this.doctorSpaceService
+              .listMyAvailabilities()
+              .pipe(catchError(() => of([] as BackendProfessionalAvailability[]))),
+            services: this.doctorSpaceService
+              .listMyServices()
+              .pipe(catchError(() => of([] as BackendProfessionalDetailService[]))),
+            categories: this.doctorSpaceService
+              .listCategories()
+              .pipe(catchError(() => of([] as Category[]))),
+            reservations: this.doctorSpaceService
+              .listMyReservations()
+              .pipe(catchError(() => of([] as BackendReservation[]))),
+            wallet: this.doctorSpaceService
+              .getWallet()
+              .pipe(catchError(() => of(null as DoctorWalletView | null))),
           });
         }),
         catchError((error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger les disponibilites.'));
+          this.errorMessage.set(getHttpErrorMessage(error, "Impossible de charger l'espace prestataire."));
           return of({
             availabilities: [],
             services: [],
@@ -628,7 +652,7 @@ export class DoctorSpacePageComponent implements OnInit {
       return;
     }
 
-    this.doctorSpaceService.listAvailabilities(profileId).subscribe({
+    this.doctorSpaceService.listMyAvailabilities().subscribe({
       next: (availabilities) => this.applyAvailabilities(availabilities),
       error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Synchronisation impossible.')),
     });
@@ -638,7 +662,7 @@ export class DoctorSpacePageComponent implements OnInit {
     const profileId = this.professionalProfileId();
     if (!profileId) return;
 
-    this.doctorSpaceService.listServices(profileId).subscribe({
+    this.doctorSpaceService.listMyServices().subscribe({
       next: (services) => this.applyServices(services),
       error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Synchronisation des motifs impossible.')),
     });

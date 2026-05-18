@@ -49,4 +49,16 @@ export class AvailabilityService extends ProfessionalAppService {
     await this.assertVerifiedProfile(profileId);
     return this.professionalsRepository.listAvailabilities(profileId);
   }
+
+  async listMyAvailabilities(requestUser: AuthUser) {
+    this.assertProfessionalRole(requestUser.role);
+    const profile = await this.professionalsRepository.findByUserId(
+      requestUser.sub,
+    );
+    if (!profile) {
+      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
+    }
+
+    return this.professionalsRepository.listAvailabilities(profile.id);
+  }
 }

@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
+import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { MedicineService } from '../../../data-access/medicine.service';
 import { MEDICINE_FILTERS } from '../../../domain/medicine.mock';
 import { MEDICINE_UI_MESSAGES } from '../../../domain/medicine-ui.messages';
@@ -34,6 +35,7 @@ import { MedicineHeroComponent } from '../../components/medicine-hero/medicine-h
 })
 export class MedicinePageComponent implements OnInit {
   private readonly medicineService = inject(MedicineService);
+  private readonly favoritesService = inject(FavoritesService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly messages = MEDICINE_UI_MESSAGES;
@@ -56,6 +58,7 @@ export class MedicinePageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDoctors();
+    this.favoritesService.list().subscribe({ error: () => undefined });
   }
 
   protected handleFilter(filter: MedicineFilterAction): void {

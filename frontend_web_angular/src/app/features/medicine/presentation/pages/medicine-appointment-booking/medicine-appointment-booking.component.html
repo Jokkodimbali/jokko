@@ -1,0 +1,134 @@
+<main class="medicine-booking">
+  <section class="medicine-booking__nav" aria-label="Navigation principale">
+    <app-navbar />
+  </section>
+
+  <section class="medicine-booking__hero">
+    <button type="button" class="medicine-booking__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="24" [strokeWidth]="2.6"></lucide-icon>
+      Retour
+    </button>
+
+    <header>
+      <lucide-icon name="heart-pulse" size="48" [strokeWidth]="2.4"></lucide-icon>
+      <span>{{ doctorName() }}</span>
+      <h1>Prendre rendez-vous</h1>
+      <p>
+        R&eacute;servez une consultation en quelques &eacute;tapes.<br />
+        Chaque cr&eacute;neau dure environ {{ selectedService()?.dureeMinutes ?? 15 }} minutes
+      </p>
+    </header>
+  </section>
+
+  <section class="medicine-booking__panel">
+    <p *ngIf="isLoading()" class="medicine-booking__state">Chargement du medecin...</p>
+    <p *ngIf="errorMessage()" class="medicine-booking__state medicine-booking__state--error">{{ errorMessage() }}</p>
+
+    <ng-container *ngIf="!isLoading() && !errorMessage()">
+      <section class="medicine-booking__step">
+        <span class="medicine-booking__step-number">1</span>
+        <h2>Qui prend rendez -vous ?</h2>
+
+        <div class="medicine-booking__audience">
+          <button
+            type="button"
+            [class.medicine-booking__audience-card--active]="appointmentFor() === 'ME'"
+            (click)="selectAppointmentFor('ME')"
+          >
+            <lucide-icon name="users" size="22" [strokeWidth]="2"></lucide-icon>
+            <span>
+              <strong>Pour moi</strong>
+              <small>Rendez-vous personnel</small>
+            </span>
+            <lucide-icon name="check" size="16" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+          <button
+            type="button"
+            [class.medicine-booking__audience-card--active]="appointmentFor() === 'RELATIVE'"
+            (click)="selectAppointmentFor('RELATIVE')"
+          >
+            <lucide-icon name="users" size="22" [strokeWidth]="2"></lucide-icon>
+            <span>
+              <strong>Pour un proche</strong>
+              <small>Enfant, parent, conjoint ....</small>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section class="medicine-booking__step medicine-booking__step--motif">
+        <span class="medicine-booking__step-number">2</span>
+        <h2>Motif de consultation</h2>
+
+        <label class="medicine-booking__select">
+          <select [ngModel]="selectedServiceId()" (ngModelChange)="selectService($event)">
+            <option value="">S&eacute;lectionnez un motif</option>
+            <option *ngFor="let service of services()" [value]="service.id">
+              {{ serviceLabel(service) }}
+            </option>
+          </select>
+          <lucide-icon name="chevron-down" size="24" [strokeWidth]="2.5"></lucide-icon>
+        </label>
+      </section>
+
+      <section class="medicine-booking__step medicine-booking__step--availability">
+        <span class="medicine-booking__step-number">3</span>
+        <h2>Disponibilit&eacute; du m&eacute;decin</h2>
+
+        <p *ngIf="selectedService() && bookingDays().length === 0" class="medicine-booking__state">
+          Aucun cr&eacute;neau disponible pour ce motif.
+        </p>
+
+        <article
+          *ngFor="let day of bookingDays()"
+          class="medicine-booking__day"
+          [class.medicine-booking__day--open]="expandedDay() === day.isoDate"
+        >
+          <button type="button" class="medicine-booking__day-head" (click)="toggleDay(day)">
+            <lucide-icon name="calendar-days" size="28" [strokeWidth]="2"></lucide-icon>
+            <span>
+              <strong>{{ day.label }}</strong>
+              <small>
+                {{ day.availableCount }} cr&eacute;neaux du planning du m&eacute;decin sont disponibles. Dur&eacute;e moyenne de
+                {{ day.averageDuration }} minutes
+              </small>
+            </span>
+            <lucide-icon
+              [name]="expandedDay() === day.isoDate ? 'chevron-down' : 'chevron-right'"
+              size="25"
+              [strokeWidth]="2.5"
+            ></lucide-icon>
+          </button>
+
+          <div *ngIf="expandedDay() === day.isoDate" class="medicine-booking__slots">
+            <button
+              type="button"
+              *ngFor="let slot of daySlots(day)"
+              [class.medicine-booking__slot--selected]="selectedDateTime() === slot.dateHeure"
+              (click)="selectSlot(slot.dateHeure)"
+            >
+              {{ slot.label }}
+            </button>
+            <button
+              type="button"
+              *ngIf="day.availableCount > daySlots(day).length"
+              class="medicine-booking__more"
+              (click)="showMoreSlots(day)"
+            >
+              VOIR PLUS
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <footer class="medicine-booking__footer">
+        <span>Compl&eacute;tez les &eacute;tapes pour confirmer.</span>
+        <button type="button" [disabled]="!canConfirm()" (click)="confirmAppointment()">
+          Confirmer les rendez-vous
+        </button>
+      </footer>
+    </ng-container>
+  </section>
+
+  <app-footer />
+</main>

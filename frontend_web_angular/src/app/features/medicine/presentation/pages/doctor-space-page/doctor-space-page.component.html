@@ -4,16 +4,17 @@
       <lucide-icon name="arrow-left" size="31" [strokeWidth]="2.6"></lucide-icon>
     </button>
 
-    <nav aria-label="Espace medecin">
+    <nav [attr.aria-label]="spaceAriaLabel()">
       <button
         type="button"
         [class.doctor-space__nav-item--active]="activeSection() === 'availability'"
         (click)="selectSection('availability')"
       >
         <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
-        <span>Disponibilit&eacute;</span>
+        <span>Disponibilit&eacute;s</span>
       </button>
       <button
+        *ngIf="showConsultationSection()"
         type="button"
         [class.doctor-space__nav-item--active]="activeSection() === 'consultation'"
         (click)="selectSection('consultation')"
@@ -46,7 +47,7 @@
       <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
     </header>
 
-    <p *ngIf="isLoading()" class="doctor-space__state">Chargement des disponibilit&eacute;s...</p>
+    <p *ngIf="isLoading()" class="doctor-space__state">Chargement de l'espace professionnel...</p>
     <p *ngIf="errorMessage()" class="doctor-space__state doctor-space__state--error">{{ errorMessage() }}</p>
 
     <ng-container *ngIf="!isLoading() && !errorMessage()">

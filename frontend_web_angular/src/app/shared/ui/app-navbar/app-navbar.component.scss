@@ -276,6 +276,11 @@
   color: #ffffff;
 }
 
+.app-navbar__dropdown-icon--provider {
+  background: #5d86df;
+  color: #ffffff;
+}
+
 .app-navbar__hamburger {
   align-items: center;
   background: rgba(255, 255, 255, 0.15);
@@ -523,6 +528,10 @@
 
 .app-navbar__mobile-action-item--doctor lucide-icon {
   color: #74f06d;
+}
+
+.app-navbar__mobile-action-item--provider lucide-icon {
+  color: #8fb0ff;
 }
 
 /* Mobile Login Button */

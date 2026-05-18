@@ -10,10 +10,9 @@
   color: inherit;
   display: block;
   margin: 0 auto;
-  min-height: 430px;
   max-width: 540px;
   overflow: visible;
-  padding: 24px 22px 22px;
+  padding: 24px 22px 16px;
   position: relative;
   text-decoration: none;
   transition:
@@ -34,6 +33,7 @@
   background: transparent;
   border: 0;
   color: #2e3d4d;
+  cursor: pointer;
   display: inline-flex;
   height: 36px;
   justify-content: center;
@@ -42,6 +42,15 @@
   right: 12px;
   top: 11px;
   width: 36px;
+}
+
+.doctor-card__favorite--active {
+  color: #d7263d;
+}
+
+.doctor-card__favorite:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .doctor-card__summary {
@@ -194,6 +203,17 @@
   padding: 0 12px;
 }
 
+.doctor-card__empty-availability {
+  background: #f4f7f9;
+  border-radius: 999px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+  padding: 10px 14px;
+  text-align: center;
+}
+
 .doctor-card__cta {
   align-items: center;
   background: #258ce6;
@@ -205,7 +225,7 @@
   font-weight: 700;
   height: 52px;
   justify-content: center;
-  margin-top: 28px;
+  margin-top: 20px;
   position: relative;
   width: 100%;
   transition: background-color 160ms ease;
@@ -297,7 +317,7 @@
   .doctor-card__cta {
     height: 48px;
     font-size: 14px;
-    margin-top: 20px;
+    margin-top: 16px;
   }
 
   .doctor-card__cta span {
@@ -311,7 +331,6 @@
 @media (min-width: 768px) and (max-width: 1023px) {
   .doctor-card {
     max-width: 460px;
-    min-height: 400px;
   }
 
   .doctor-card__summary {

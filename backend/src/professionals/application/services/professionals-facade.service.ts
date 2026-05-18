@@ -115,6 +115,10 @@ export class ProfessionalsFacade {
     return this.serviceManagementService.disableService(requestUser, serviceId);
   }
 
+  async listMyServices(requestUser: AuthUser) {
+    return this.serviceManagementService.listMyServices(requestUser);
+  }
+
   async listProfessionalServices(profileId: string) {
     return this.serviceManagementService.listServicesByProfile(profileId);
   }
@@ -150,6 +154,10 @@ export class ProfessionalsFacade {
       requestUser,
       availabilityId,
     );
+  }
+
+  async listMyAvailabilities(requestUser: AuthUser) {
+    return this.availabilityService.listMyAvailabilities(requestUser);
   }
 
   async listProfessionalAvailabilities(profileId: string) {

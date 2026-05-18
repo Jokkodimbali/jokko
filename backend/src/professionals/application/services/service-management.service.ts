@@ -89,4 +89,16 @@ export class ServiceManagementService extends ProfessionalAppService {
     await this.assertVerifiedProfile(profileId);
     return this.professionalsRepository.listServices(profileId);
   }
+
+  async listMyServices(requestUser: AuthUser) {
+    this.assertProfessionalRole(requestUser.role);
+    const profile = await this.professionalsRepository.findByUserId(
+      requestUser.sub,
+    );
+    if (!profile) {
+      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
+    }
+
+    return this.professionalsRepository.listServices(profile.id);
+  }
 }

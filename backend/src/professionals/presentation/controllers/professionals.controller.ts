@@ -185,6 +185,25 @@ export class ProfessionalsController {
     );
   }
 
+  @Get('me/services')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: API_DOCS.professionals.listServicesSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.professionals.listServicesSuccess,
+    messageExample: API_DOCS.professionals.listServicesSuccess,
+    dataSchema: {
+      type: 'array',
+      items: { type: 'object' },
+      example: [SWAGGER_RESPONSE_EXAMPLES.professionals.serviceData],
+    },
+  })
+  async listMyServices(@CurrentUser() user: AuthUser) {
+    const result = await this.professionalsFacade.listMyServices(user);
+    return createApiResponse(result);
+  }
+
   @Patch('me/services/:serviceId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -326,6 +345,25 @@ export class ProfessionalsController {
       result,
       appMessage('PROFESSIONALS_AVAILABILITY_CREATED').message,
     );
+  }
+
+  @Get('me/availabilities')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: API_DOCS.professionals.listAvailabilitiesSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.professionals.listAvailabilitiesSuccess,
+    messageExample: API_DOCS.professionals.listAvailabilitiesSuccess,
+    dataSchema: {
+      type: 'array',
+      items: { type: 'object' },
+      example: [SWAGGER_RESPONSE_EXAMPLES.professionals.availabilityData],
+    },
+  })
+  async listMyAvailabilities(@CurrentUser() user: AuthUser) {
+    const result = await this.professionalsFacade.listMyAvailabilities(user);
+    return createApiResponse(result);
   }
 
   @Delete('me/availabilities/:availabilityId')

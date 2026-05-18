@@ -1,10 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
-import { BackendProfessional, PaginationMeta } from '../../services/domain/models/services.models';
+import {
+  BackendProfessional,
+  BackendProfessionalAvailability,
+  PaginationMeta,
+} from '../../services/domain/models/services.models';
 import { DoctorProfile } from '../domain/models/medicine.models';
 
 @Injectable({
@@ -24,15 +28,46 @@ export class MedicineService {
         },
       })
       .pipe(
-        map((response) => ({
-          doctors: unwrapApiResponse(response).map((professional) => this.mapDoctor(professional)),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
+        switchMap((response) => {
+          const professionals = unwrapApiResponse(response);
+          if (professionals.length === 0) {
+            return of({
+              doctors: [],
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            });
+          }
+
+          return forkJoin(
+            professionals.map((professional) =>
+              this.getProfessionalAvailabilities(professional.id).pipe(
+                map((availabilities) => this.mapDoctor(professional, availabilities)),
+                catchError(() => of(this.mapDoctor(professional, []))),
+              ),
+            ),
+          ).pipe(
+            map((doctors) => ({
+              doctors,
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            })),
+          );
+        }),
       );
   }
 
-  private mapDoctor(professional: BackendProfessional): DoctorProfile {
+  private getProfessionalAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalAvailability[]>>(
+        `${this.apiUrl}/professionals/${profileId}/availabilities`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  private mapDoctor(
+    professional: BackendProfessional,
+    availabilities: BackendProfessionalAvailability[],
+  ): DoctorProfile {
     const primaryService = professional.services[0];
+    const nextAvailability = this.buildNextAvailabilityLabels(availabilities);
 
     return {
       id: professional.id,
@@ -45,14 +80,52 @@ export class MedicineService {
       longitude: professional.longitude,
       imageUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
       isOnline: false,
-      nextAvailability: ['MER 15', 'Jeu 16', 'ven 17', 'Sam 18'],
+      nextAvailability,
       modes: ['Teleconsult', 'Cabinet'],
       availability: [
         {
           period: 'Prochaines dispos',
-          days: ['MER 15', 'Jeu 16', 'ven 17', 'Sam 18'],
+          days: nextAvailability,
         },
       ],
     };
+  }
+
+  private buildNextAvailabilityLabels(availabilities: BackendProfessionalAvailability[]): string[] {
+    const activeWeekdays = new Set(
+      availabilities
+        .filter((availability) => availability.estActive)
+        .map((availability) => availability.jourSemaine),
+    );
+
+    if (activeWeekdays.size === 0) {
+      return [];
+    }
+
+    const formatter = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'short',
+      day: 'numeric',
+    });
+    const labels: string[] = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+
+    for (let offset = 0; offset < 21 && labels.length < 4; offset += 1) {
+      const date = new Date(cursor);
+      date.setDate(cursor.getDate() + offset);
+
+      if (!activeWeekdays.has(date.getDay())) {
+        continue;
+      }
+
+      labels.push(
+        formatter
+          .format(date)
+          .replace('.', '')
+          .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
+      );
+    }
+
+    return labels;
   }
 }

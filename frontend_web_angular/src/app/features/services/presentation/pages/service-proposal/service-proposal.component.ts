@@ -4,11 +4,13 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   NegotiationView,
@@ -60,6 +62,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly messagesService = inject(MessagesService);
+  private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
 
@@ -79,8 +82,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly selectedPayment = signal<PaymentMethod>('WAVE');
 
   protected readonly appointmentDate = signal(this.toDateInputValue(this.getDefaultAppointmentDate()));
-  protected readonly address = signal('Dakar, Senegal');
-  protected readonly offerAmount = signal(5000);
+  protected readonly address = signal('');
+  protected readonly offerAmount = signal(0);
   protected readonly durationMinutes = 60;
 
   protected readonly paymentOptions: PaymentOption[] = [
@@ -268,6 +271,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         serviceId: draft.service.id,
         proposedAmount: draft.amount,
         message: this.buildProposalMessage(draft),
+        dateHeure: draft.dateHeure,
+        adresseClient: draft.adresseClient,
+        dureeMinutes: draft.dureeMinutes,
       })
       .subscribe({
         next: (proposal) => {
@@ -295,6 +301,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         serviceId: draft.service.id,
         proposedAmount: draft.amount,
         message: this.buildProposalMessage(draft),
+        dateHeure: draft.dateHeure,
+        adresseClient: draft.adresseClient,
+        dureeMinutes: draft.dureeMinutes,
       })
       .subscribe({
         next: (proposal) => {
@@ -365,13 +374,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.servicesService.getProviderProfileDetail(this.profileId).subscribe({
-      next: (detail) => {
+    forkJoin({
+      detail: this.servicesService.getProviderProfileDetail(this.profileId),
+      user: this.authSession.hasAuthenticatedSession()
+        ? this.authService.myUserProfile().pipe(catchError(() => of(null)))
+        : of(null),
+    }).subscribe({
+      next: ({ detail, user }) => {
         this.detail.set(detail);
         const service = this.currentService();
         this.selectedServiceId.set(service?.id || '');
-        this.offerAmount.set(service?.prix || 5000);
-        this.address.set(this.resolveInitialAddress(detail));
+        this.offerAmount.set(service?.prix ?? 0);
+        this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
         this.isLoading.set(false);
         this.scheduleAvailabilityCheck();
       },
@@ -383,8 +397,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private resolveInitialAddress(detail: ProviderProfileDetail): string {
-    const label = detail.presence?.lastLocationLabel || detail.profile.ville;
-    return label ? `${label}, Senegal` : 'Dakar, Senegal';
+    void detail;
+    return '';
   }
 
   private buildProposalMessage(draft: ReservationDraft): string {
@@ -652,9 +666,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     return {
       service,
-      amount: Number.isFinite(fallbackAmount) && fallbackAmount > 0 ? Math.trunc(fallbackAmount) : service.prix || 500,
+      amount: Number.isFinite(fallbackAmount) && fallbackAmount > 0 ? Math.trunc(fallbackAmount) : service.prix || 0,
       dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? this.getDefaultAppointmentDate().toISOString(),
-      adresseClient: this.address().trim() || (detail ? this.resolveInitialAddress(detail) : 'Dakar, Senegal'),
+      adresseClient: this.address().trim() || (detail ? this.resolveInitialAddress(detail) : ''),
       dureeMinutes: this.durationMinutes,
       paymentMethod: this.selectedPayment(),
     };

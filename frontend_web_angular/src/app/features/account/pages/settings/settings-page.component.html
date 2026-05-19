@@ -22,11 +22,11 @@
             <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.2"></lucide-icon>
             Moyens de paiement
           </button>
-          <button type="button" (click)="selectSection('favorites')">
+          <button type="button" [class.settings-page__side-item--active]="activeSection() === 'favorites'" (click)="selectSection('favorites')">
             <lucide-icon name="heart" size="34" [strokeWidth]="2.2"></lucide-icon>
             Favoris
           </button>
-          <button type="button" (click)="selectSection('reservations')">
+          <button type="button" [class.settings-page__side-item--active]="activeSection() === 'reservations'" (click)="selectSection('reservations')">
             <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.2"></lucide-icon>
             Reservation
           </button>
@@ -75,7 +75,7 @@
             <header>
               <h2>Informations personnelles</h2>
               <button *ngIf="!isEditingProfile()" type="button" (click)="startProfileEdit()">
-                Modifiez
+                Modifier
                 <lucide-icon name="pencil" size="17" [strokeWidth]="2.4"></lucide-icon>
               </button>
               <button *ngIf="isEditingProfile()" type="button" class="settings-page__ghost" (click)="cancelProfileEdit()">
@@ -137,7 +137,7 @@
             <header>
               <h2>Adresse</h2>
               <button *ngIf="!isEditingAddress()" type="button" (click)="startAddressEdit()">
-                Modifiez
+                Modifier
                 <lucide-icon name="pencil" size="17" [strokeWidth]="2.4"></lucide-icon>
               </button>
               <button *ngIf="isEditingAddress()" type="button" class="settings-page__ghost" (click)="cancelAddressEdit()">
@@ -194,7 +194,7 @@
           <article class="settings-page__payment-main">
             <header class="settings-page__payment-head">
               <div>
-                <h1>Payment method</h1>
+                <h1>Moyens de paiement</h1>
                 <p>Ajoutez ou modifiez vos moyens de paiement enregistres.</p>
               </div>
               <span>{{ savedPaymentMethods().length }} actif{{ savedPaymentMethods().length > 1 ? 's' : '' }}</span>
@@ -204,7 +204,7 @@
               <nav class="settings-page__payment-tabs" aria-label="Types de moyens de paiement">
                 <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'CARD'" (click)="selectPaymentType('CARD')">
                   <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.6"></lucide-icon>
-                  <span>Credit card</span>
+                  <span>Carte bancaire</span>
                   <small>{{ savedCards().length }} carte{{ savedCards().length > 1 ? 's' : '' }}</small>
                 </button>
                 <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'WAVE'" (click)="selectPaymentType('WAVE')">
@@ -214,7 +214,7 @@
                 </button>
                 <button type="button" [class.settings-page__payment-tab--active]="selectedPaymentType() === 'OTHER'" (click)="selectPaymentType('OTHER')">
                   <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.6"></lucide-icon>
-                  <span>Other</span>
+                  <span>Autre</span>
                   <small>Bientot</small>
                 </button>
               </nav>
@@ -254,7 +254,7 @@
                   </div>
                   <p class="settings-page__payment-note"><b>!</b> Votre carte bancaire sera enregistree de maniere securisee pour faciliter vos prochains paiements.</p>
                   <div class="settings-page__payment-actions">
-                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Confirmez' }}</button>
+                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Enregistrer' }}</button>
                     <button *ngIf="editingPaymentMethodId()" type="button" class="settings-page__payment-cancel" (click)="clearPaymentEdit()">Annuler</button>
                   </div>
                 </form>
@@ -269,7 +269,7 @@
                   </label>
                   <p class="settings-page__payment-note"><b>!</b> Votre numero de telephone sera enregistre de maniere securisee pour faciliter vos prochains paiements.</p>
                   <div class="settings-page__payment-actions">
-                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Confirmez' }}</button>
+                    <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Enregistrer' }}</button>
                     <button *ngIf="editingPaymentMethodId()" type="button" class="settings-page__payment-cancel" (click)="clearPaymentEdit()">Annuler</button>
                   </div>
                 </form>

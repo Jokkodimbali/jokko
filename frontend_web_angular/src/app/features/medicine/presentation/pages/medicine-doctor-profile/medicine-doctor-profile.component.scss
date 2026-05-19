@@ -100,6 +100,14 @@
   margin: 0;
 }
 
+.doctor-profile__error {
+  color: #b42318;
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
 .doctor-profile__actions {
   display: flex;
   gap: 39px;

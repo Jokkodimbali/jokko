@@ -75,7 +75,12 @@
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "frontend_web_angular:build:development",
+            "tsConfig": "tsconfig.spec.json",
+            "include": ["src/**/*.spec.ts"]
+          }
         }
       }
     }

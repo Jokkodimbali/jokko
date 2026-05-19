@@ -22,6 +22,7 @@
       <div class="doctor-profile__name">
         <h1>{{ doctor().name }}</h1>
         <p>{{ doctor().specialty }}</p>
+        <small *ngIf="errorMessage()" class="doctor-profile__error">{{ errorMessage() }}</small>
       </div>
 
       <div class="doctor-profile__actions" aria-label="Actions medecin">
@@ -77,13 +78,17 @@
         <article class="doctor-profile__card doctor-profile__contact">
           <h2>Coordonnee</h2>
           <p><strong>Ville :</strong> {{ doctor().location }}</p>
-          <p><strong>Telephone :</strong> Non renseigne</p>
+          <p><strong>Telephone :</strong> {{ phoneLabel() }}</p>
           <iframe
+            *ngIf="mapUrl()"
             [src]="mapUrl()"
-            title="Carte de localisation - Dakar"
+            [title]="'Carte de localisation - ' + doctor().location"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
+          <p *ngIf="!mapUrl()" class="doctor-profile__map-empty">
+            Localisation GPS non renseignee par ce medecin.
+          </p>
         </article>
       </aside>
 

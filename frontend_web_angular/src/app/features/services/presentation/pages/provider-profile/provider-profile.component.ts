@@ -105,12 +105,16 @@ export class ProviderProfileComponent implements OnInit {
     this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
   );
   protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
-  protected readonly mapUrl = computed<SafeResourceUrl>(() => {
+  protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
     const detail = this.detail();
     const coordinates = this.resolveMapCoordinates(detail);
     const query = coordinates
       ? `${coordinates.latitude},${coordinates.longitude}`
-      : `${detail?.profile.ville || 'Senegal'}, Senegal`;
+      : detail?.profile.ville || '';
+    if (!query) {
+      return null;
+    }
+
     const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(src);
   });

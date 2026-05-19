@@ -10,7 +10,7 @@ import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages
 
 interface AppNavItem {
   label: string;
-  icon: 'users' | 'heart-plus' | 'calendar-days' | 'message-circle';
+  icon: 'users' | 'heart-plus' | 'calendar-days' | 'message-circle' | 'layout-dashboard';
   route: string;
 }
 
@@ -78,6 +78,7 @@ export class AppNavbarComponent implements OnInit {
     const user = this.currentUser();
     return !!user && user.role === 'PRESTATAIRE' && !this.showDoctorSpace();
   });
+  protected readonly showAdminSpace = computed(() => this.currentUser()?.role === 'ADMIN');
 
   protected readonly navItems = signal<AppNavItem[]>([
     {

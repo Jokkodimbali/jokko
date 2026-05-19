@@ -7,6 +7,7 @@ import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import {
   BackendProfessional,
   BackendProfessionalAvailability,
+  BackendProfessionalPresence,
   PaginationMeta,
 } from '../../services/domain/models/services.models';
 import { DoctorProfile } from '../domain/models/medicine.models';
@@ -39,9 +40,17 @@ export class MedicineService {
 
           return forkJoin(
             professionals.map((professional) =>
-              this.getProfessionalAvailabilities(professional.id).pipe(
-                map((availabilities) => this.mapDoctor(professional, availabilities)),
-                catchError(() => of(this.mapDoctor(professional, []))),
+              forkJoin({
+                availabilities: this.getProfessionalAvailabilities(professional.id).pipe(
+                  catchError(() => of([])),
+                ),
+                presence: this.getProfessionalPresence(professional.id).pipe(
+                  catchError(() => of(null)),
+                ),
+              }).pipe(
+                map(({ availabilities, presence }) =>
+                  this.mapDoctor(professional, availabilities, presence),
+                ),
               ),
             ),
           ).pipe(
@@ -62,9 +71,18 @@ export class MedicineService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  private getProfessionalPresence(profileId: string): Observable<BackendProfessionalPresence> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalPresence>>(
+        `${this.apiUrl}/professionals/${profileId}/presence`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   private mapDoctor(
     professional: BackendProfessional,
     availabilities: BackendProfessionalAvailability[],
+    presence: BackendProfessionalPresence | null,
   ): DoctorProfile {
     const primaryService = professional.services[0];
     const nextAvailability = this.buildNextAvailabilityLabels(availabilities);
@@ -72,16 +90,15 @@ export class MedicineService {
     return {
       id: professional.id,
       name: professional.companyName || professional.name,
-      specialty: primaryService?.name || primaryService?.categoryName || 'Consultation medicale',
+      specialty: primaryService?.name || primaryService?.categoryName || 'Motif non renseigne',
       rating: professional.rating || 0,
       reviewCount: professional.totalReviews || 0,
-      location: (professional.city || 'Dakar').toUpperCase(),
+      location: (professional.city || 'Localisation non renseignee').toUpperCase(),
       latitude: professional.latitude,
       longitude: professional.longitude,
       imageUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
-      isOnline: false,
+      isOnline: Boolean(presence?.isOnline),
       nextAvailability,
-      modes: ['Teleconsult', 'Cabinet'],
       availability: [
         {
           period: 'Prochaines dispos',

@@ -36,33 +36,7 @@ export class ProfileService extends ProfessionalAppService {
 
   async getMyProfile(requestUser: AuthUser) {
     this.assertProfessionalRole(requestUser.role);
-    const profile = await this.professionalsRepository.findByUserId(requestUser.sub);
-    if (profile) {
-      return profile;
-    }
-
-    const result = await this.professionalsRepository.createProfile({
-      utilisateurId: requestUser.sub,
-      biographie: null,
-      nomEntreprise: null,
-      ville: null,
-    });
-
-    if (result.status === 'already_exists') {
-      const createdProfile = await this.professionalsRepository.findByUserId(
-        requestUser.sub,
-      );
-      if (createdProfile) return createdProfile;
-    }
-    if (result.status === 'user_not_found') {
-      throw appHttpException('AUTH_USER_NOT_FOUND');
-    }
-
-    if (result.status === 'created') {
-      return result.profile;
-    }
-
-    throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
+    return this.ensureProfessionalProfile(requestUser.sub);
   }
 
   async updateMyProfile(

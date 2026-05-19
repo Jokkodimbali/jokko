@@ -35,12 +35,6 @@
         <span>{{ doctor.location }}</span>
       </div>
 
-      <div class="doctor-card__modes" aria-label="Modes de consultation">
-        <span *ngFor="let mode of doctor.modes" [class.doctor-card__mode--remote]="mode === 'Teleconsult'">
-          <lucide-icon *ngIf="mode === 'Teleconsult'" name="video" size="11" [strokeWidth]="2.4"></lucide-icon>
-          {{ mode }}
-        </span>
-      </div>
     </div>
   </div>
 

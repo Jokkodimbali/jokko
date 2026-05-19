@@ -21,9 +21,11 @@ export class AppointmentsService {
   private readonly servicesService = inject(ServicesService);
   private readonly apiUrl = environment.apiUrl;
 
-  listMyAppointments(): Observable<AppointmentView[]> {
+  listMyAppointments(scope: 'CLIENT' | 'PRESTATAIRE' = 'CLIENT'): Observable<AppointmentView[]> {
     return this.http
-      .get<ApiResponse<BackendReservation[]>>(`${this.apiUrl}/reservations/my`)
+      .get<ApiResponse<BackendReservation[]>>(`${this.apiUrl}/reservations/my`, {
+        params: { scope },
+      })
       .pipe(
         map(unwrapApiResponse),
         switchMap((reservations) => {
@@ -44,10 +46,10 @@ export class AppointmentsService {
                     doctorName:
                       detail.profile.nomEntreprise ||
                       detail.profile.utilisateur.nom ||
-                      'Professionnel Jokko',
-                    specialty: service?.nom || 'Consultation',
+                      'Prestataire non renseigne',
+                    specialty: service?.nom || 'Service non renseigne',
                     avatarUrl: detail.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
-                    serviceName: service?.nom || 'Service Jokko',
+                    serviceName: service?.nom || 'Service non renseigne',
                   });
                 }),
                 catchError(() => of(this.mapAppointment(reservation))),
@@ -78,10 +80,10 @@ export class AppointmentsService {
                 doctorName:
                   detail.profile.nomEntreprise ||
                   detail.profile.utilisateur.nom ||
-                  'Professionnel Jokko',
-                specialty: service?.nom || 'Consultation',
+                  'Prestataire non renseigne',
+                specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
-                serviceName: service?.nom || 'Service Jokko',
+                serviceName: service?.nom || 'Service non renseigne',
               });
             }),
             catchError(() => of(this.mapAppointment(reservation))),
@@ -224,11 +226,11 @@ export class AppointmentsService {
       shortDateLabel: this.formatShortDate(date),
       fullDateLabel: this.formatFullDate(date),
       timeLabel: this.formatTime(date),
-      locationLabel: reservation.adresseClient || 'Au cabinet',
-      doctorName: professional.doctorName || 'Professionnel Jokko',
-      specialty: professional.specialty || 'Consultation',
+      locationLabel: reservation.adresseClient || 'Adresse non renseignee',
+      doctorName: professional.doctorName || 'Prestataire non renseigne',
+      specialty: professional.specialty || 'Service non renseigne',
       avatarUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
-      serviceName: professional.serviceName || 'Consultation',
+      serviceName: professional.serviceName || 'Service non renseigne',
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
@@ -279,7 +281,7 @@ export class AppointmentsService {
       doctorName:
         reservation.professionnel.nomEntreprise ||
         reservation.professionnel.utilisateur.nom ||
-        'Professionnel Jokko',
+        'Prestataire non renseigne',
       specialty: reservation.service.nom,
       avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
       serviceName: reservation.service.nom,

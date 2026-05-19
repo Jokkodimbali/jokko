@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { SharedModule } from '../shared/shared.module';
 import { PaymentsController } from './presentation/controllers/payments.controller';
 import { AdminPaymentsController } from './presentation/controllers/admin-payments.controller';
+import { AdminPaymentEscrowController } from './presentation/controllers/admin-payment-escrow.controller';
 import { PaymentCommandService } from './application/services/payment-command.service';
 import { PaymentQueryService } from './application/services/payment-query.service';
 import { PaymentsFacade } from './application/services/payments-facade.service';
@@ -64,7 +65,11 @@ import { CategoriesModule } from '../categories/categories.module';
     DisputesModule,
     CategoriesModule,
   ],
-  controllers: [PaymentsController, AdminPaymentsController],
+  controllers: [
+    PaymentsController,
+    AdminPaymentsController,
+    AdminPaymentEscrowController,
+  ],
   providers: [
     DomainEventDispatcher,
     {

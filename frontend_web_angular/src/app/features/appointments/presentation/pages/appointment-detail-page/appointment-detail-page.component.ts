@@ -180,7 +180,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       return Math.max(4, Math.min(45, Math.round(12 * (28 / Math.max(speed, 12)))));
     }
 
-    return this.hasTrackingCoordinates() ? 12 : 0;
+    return 0;
   });
   protected readonly routeProgress = computed(() => {
     const minutes = this.estimatedArrivalMinutes();
@@ -581,7 +581,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
             speedKmh:
               typeof position.coords.speed === 'number'
                 ? position.coords.speed * 3.6
-                : 24,
+                : null,
             locationLabel: fallbackLabel,
           });
         },
@@ -593,11 +593,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
 
   private defaultTrackingLocation(locationLabel: string) {
     return {
-      latitude: 14.716677,
-      longitude: -17.467686,
-      accuracyMeters: 50,
-      headingDegrees: 180,
-      speedKmh: 24,
+      accuracyMeters: null,
+      headingDegrees: null,
+      speedKmh: null,
       locationLabel,
     };
   }

@@ -31,6 +31,9 @@ export type CreateNegotiationInput = {
   montantAccepte: number | null;
   dernierProposePar: NegotiationActor;
   messageCourant: string | null;
+  dateHeureProposee: Date | null;
+  adresseClientProposee: string | null;
+  dureeMinutesProposee: number | null;
   raisonCloture: string | null;
   reservationId: string | null;
   creeLe: Date;
@@ -51,6 +54,9 @@ export type UpdateNegotiationInput = {
   montantAccepte: number | null;
   dernierProposePar: NegotiationActor;
   messageCourant: string | null;
+  dateHeureProposee: Date | null;
+  adresseClientProposee: string | null;
+  dureeMinutesProposee: number | null;
   raisonCloture: string | null;
   reservationId: string | null;
   misAJourLe: Date;

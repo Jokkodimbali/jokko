@@ -63,7 +63,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   protected readonly doctorName = computed(() => {
     const detail = this.detail();
-    return detail?.profile.nomEntreprise || detail?.profile.utilisateur.nom || 'Cabinet medical';
+    return detail?.profile.nomEntreprise || detail?.profile.utilisateur.nom || 'Medecin non renseigne';
   });
   protected readonly selectedService = computed(() =>
     this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
@@ -236,9 +236,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     current.setHours(0, 0, 0, 0);
 
     while (dates.length < count) {
-      if (current.getDay() !== 0) {
-        dates.push(new Date(current));
-      }
+      dates.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
 
@@ -246,7 +244,8 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   private resolveClientAddress(detail: ProviderProfileDetail): string {
-    return this.user()?.adresse?.trim() || detail.profile.ville?.trim() || '';
+    void detail;
+    return this.user()?.adresse?.trim() || '';
   }
 
   private toIsoDate(date: Date): string {

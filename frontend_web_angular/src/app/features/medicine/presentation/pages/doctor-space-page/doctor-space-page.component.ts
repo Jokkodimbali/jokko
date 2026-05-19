@@ -21,6 +21,7 @@ import {
   DoctorWalletTransaction,
   DoctorWalletView,
 } from '../../../data-access/doctor-space.service';
+import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
 
 type DoctorSpaceSection = 'availability' | 'consultation' | 'agenda' | 'wallet';
 
@@ -91,7 +92,7 @@ type WithdrawalMethodOption = {
 @Component({
   selector: 'app-doctor-space-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, DoctorSpaceSidebarComponent],
   templateUrl: './doctor-space-page.component.html',
   styleUrl: './doctor-space-page.component.scss',
 })

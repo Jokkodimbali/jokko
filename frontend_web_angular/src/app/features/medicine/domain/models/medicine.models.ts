@@ -16,11 +16,10 @@ export interface DoctorProfile {
   isOnline: boolean;
   availability: AvailabilitySlot[];
   nextAvailability: string[];
-  modes: Array<'Teleconsult' | 'Cabinet'>;
 }
 
 export interface MedicineFilterAction {
   label: string;
-  icon: 'map' | 'sliders-horizontal' | 'calendar-days';
+  icon: 'search' | 'map' | 'sliders-horizontal' | 'calendar-days';
   variant?: 'accent';
 }

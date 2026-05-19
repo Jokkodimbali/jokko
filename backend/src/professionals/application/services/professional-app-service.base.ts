@@ -3,6 +3,7 @@ import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
   PROFESSIONALS_REPOSITORY_PORT,
+  type ProfessionalProfileView,
   type ProfessionalsRepositoryPort,
 } from '../ports/professionals-repository.port';
 import { ProfessionalProfile } from '../../domain';
@@ -31,13 +32,40 @@ export abstract class ProfessionalAppService {
   }
 
   protected async assertKycVerified(userId: string): Promise<void> {
-    const profile = await this.professionalsRepository.findByUserId(userId);
-    if (!profile) {
-      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
-    }
+    const profile = await this.ensureProfessionalProfile(userId);
     if (profile.statutKyc !== 'VERIFIE') {
       throw appHttpException('PROFESSIONALS_KYC_NOT_VERIFIED');
     }
+  }
+
+  protected async ensureProfessionalProfile(
+    userId: string,
+  ): Promise<ProfessionalProfileView> {
+    const profile = await this.professionalsRepository.findByUserId(userId);
+    if (profile) return profile;
+
+    const result = await this.professionalsRepository.createProfile({
+      utilisateurId: userId,
+      biographie: null,
+      nomEntreprise: null,
+      ville: null,
+    });
+
+    if (result.status === 'created') {
+      return result.profile;
+    }
+
+    if (result.status === 'already_exists') {
+      const existingProfile =
+        await this.professionalsRepository.findByUserId(userId);
+      if (existingProfile) return existingProfile;
+    }
+
+    if (result.status === 'user_not_found') {
+      throw appHttpException('AUTH_USER_NOT_FOUND');
+    }
+
+    throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
   }
 
   protected async assertVerifiedProfile(profileId: string): Promise<void> {

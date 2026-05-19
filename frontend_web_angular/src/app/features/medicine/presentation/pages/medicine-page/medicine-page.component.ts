@@ -7,7 +7,7 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { MedicineService } from '../../../data-access/medicine.service';
-import { MEDICINE_FILTERS } from '../../../domain/medicine.mock';
+import { MEDICINE_FILTERS } from '../../../domain/medicine-filter-actions';
 import { MEDICINE_UI_MESSAGES } from '../../../domain/medicine-ui.messages';
 import { DoctorProfile, MedicineFilterAction } from '../../../domain/models/medicine.models';
 import { DoctorCardComponent } from '../../components/doctor-card/doctor-card.component';
@@ -47,11 +47,13 @@ export class MedicinePageComponent implements OnInit {
   protected readonly mapDoctors = computed(() =>
     this.doctors().filter((doctor) => this.hasPreciseLocation(doctor)),
   );
-  protected readonly mapUrl = computed<SafeResourceUrl>(() => {
+  protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
     const center = this.mapCenter();
-    const query = center
-      ? `${center.latitude},${center.longitude}`
-      : 'Dakar, Senegal';
+    if (!center) {
+      return null;
+    }
+
+    const query = `${center.latitude},${center.longitude}`;
     const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=14&output=embed`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(src);
   });

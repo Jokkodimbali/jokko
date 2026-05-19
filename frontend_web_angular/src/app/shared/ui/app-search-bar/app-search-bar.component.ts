@@ -12,7 +12,7 @@ import { LucideAngularModule } from 'lucide-angular';
 export class AppSearchBarComponent {
   @Input() ariaLabel = 'Recherche';
   @Input() locationTitle = 'Localisation';
-  @Input() locationValue = 'Dakar, SN';
+  @Input() locationValue = 'Toute zone';
   @Input() placeholder = 'Recherche';
   @Input() filterLabel = 'Filtrage';
   @Input() value = '';

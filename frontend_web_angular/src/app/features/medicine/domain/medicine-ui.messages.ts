@@ -8,5 +8,5 @@ export const MEDICINE_UI_MESSAGES = {
   nextAvailability: 'Prochaines disponibilité',
   scrollHint: 'Glissez vers le bas',
   locationTitle: 'Localisation',
-  locationValue: 'Dakar, SN',
+  locationValue: 'Position selon les medecins disponibles',
 } as const;

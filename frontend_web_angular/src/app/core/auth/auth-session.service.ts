@@ -34,6 +34,10 @@ export class AuthSessionService {
     return this.getItem(ACCESS_TOKEN_KEY);
   }
 
+  getAuthenticatedRole(): UserDto['role'] | null {
+    return this.readTokenRole() ?? this.currentUserSignal()?.role ?? null;
+  }
+
   hasAuthenticatedSession(): boolean {
     return Boolean(this.currentUserSignal() && this.getAccessToken());
   }
@@ -93,6 +97,30 @@ export class AuthSessionService {
       return JSON.parse(rawUser) as UserDto;
     } catch {
       localStorage.removeItem(CURRENT_USER_KEY);
+      return null;
+    }
+  }
+
+  private readTokenRole(): UserDto['role'] | null {
+    const token = this.getAccessToken();
+    if (!token || !this.canUseStorage()) {
+      return null;
+    }
+
+    const [, payload] = token.split('.');
+    if (!payload) {
+      return null;
+    }
+
+    try {
+      const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedPayload = normalizedPayload.padEnd(
+        normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+        '=',
+      );
+      const decoded = JSON.parse(window.atob(paddedPayload)) as { role?: unknown };
+      return typeof decoded.role === 'string' ? decoded.role : null;
+    } catch {
       return null;
     }
   }

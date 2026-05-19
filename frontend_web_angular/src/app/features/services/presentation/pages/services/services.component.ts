@@ -51,7 +51,7 @@ export class ServicesComponent implements OnInit {
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   searchTerm = signal<string>('');
-  readonly locationValue = 'Dakar, SN';
+  readonly locationValue = 'Toute zone';
   protected readonly currentUser = this.authSession.currentUser;
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
@@ -88,7 +88,7 @@ export class ServicesComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.categoryPagination.set(undefined);
-    this.servicesService.searchProfessionals(query, 1, 6, 'Dakar').subscribe({
+    this.servicesService.searchProfessionals(query, 1, 6).subscribe({
       next: (result) => {
         this.sections.set([
           {

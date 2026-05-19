@@ -26,6 +26,9 @@ export interface NegotiationView {
   montantAccepte: number | null;
   dernierProposePar: 'CLIENT' | 'PRESTATAIRE';
   messageCourant: string | null;
+  dateHeureProposee: string | null;
+  adresseClientProposee: string | null;
+  dureeMinutesProposee: number | null;
   reservationId: string | null;
   creeLe: string;
   misAJourLe: string;
@@ -36,6 +39,9 @@ export interface CreatePriceProposalPayload {
   serviceId: string;
   proposedAmount: number;
   message?: string;
+  dateHeure?: string;
+  adresseClient?: string;
+  dureeMinutes?: number;
 }
 
 export interface CreateDirectReservationPayload {
@@ -163,6 +169,9 @@ export class ServiceProposalService {
         {
           proposedAmount: payload.proposedAmount,
           message: payload.message,
+          dateHeure: payload.dateHeure,
+          adresseClient: payload.adresseClient,
+          dureeMinutes: payload.dureeMinutes,
         },
       )
       .pipe(

@@ -97,11 +97,15 @@
           <p><strong>Ville :</strong> {{ formatLocation() }}</p>
           <p><strong>Telephone :</strong> {{ formatPhone() }}</p>
           <iframe
+            *ngIf="mapUrl()"
             [src]="mapUrl()"
             [title]="'Carte de localisation - ' + formatLocation()"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
+          <p *ngIf="!mapUrl()" class="provider-profile__map-empty">
+            Localisation non renseignee par ce prestataire.
+          </p>
         </article>
       </aside>
 

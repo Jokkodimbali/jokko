@@ -397,6 +397,9 @@ model Negotiation {
   montantAccepte     Decimal?           @map("accepted_amount") @db.Decimal(10, 2)
   dernierProposePar  RoleNegociateur    @map("last_proposed_by")
   messageCourant     String?            @map("current_message") @db.Text
+  dateHeureProposee  DateTime?          @map("proposed_datetime")
+  adresseClientProposee String?         @map("proposed_client_address") @db.VarChar(180)
+  dureeMinutesProposee Int?             @map("proposed_duration_minutes")
   raisonCloture      String?            @map("close_reason") @db.Text
   reservationId      String?            @unique @map("booking_id") @db.Uuid
   creeLe             DateTime           @default(now()) @map("created_at")

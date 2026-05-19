@@ -14,7 +14,6 @@ import {
   BackendProfessionalAvailability,
   ProviderProfileDetail,
 } from '../../../../services/domain/models/services.models';
-import { MEDICINE_DOCTORS } from '../../../domain/medicine.mock';
 import { DoctorProfile } from '../../../domain/models/medicine.models';
 
 interface DoctorScheduleRow {
@@ -46,34 +45,51 @@ export class MedicineDoctorProfileComponent implements OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly navigationState = (history.state || {}) as { doctor?: DoctorProfile };
 
+  private readonly routeProfileId = this.route.snapshot.paramMap.get('id') ?? '';
   private readonly initialDoctor =
-    this.navigationState.doctor ||
-    MEDICINE_DOCTORS.find((item) => item.id === this.route.snapshot.paramMap.get('id')) ||
-    MEDICINE_DOCTORS[0];
+    this.navigationState.doctor || this.buildEmptyDoctor(this.routeProfileId);
+  protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly doctor = signal<DoctorProfile>(this.initialDoctor);
   protected readonly coverUrl = '/boabab.png';
-  protected readonly mapUrl = computed<SafeResourceUrl>(() => {
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
     const doctor = this.doctor();
-    const query =
-      typeof doctor.latitude === 'number' && typeof doctor.longitude === 'number'
-        ? `${doctor.latitude},${doctor.longitude}`
-        : doctor.location;
+    if (
+      typeof doctor.latitude !== 'number' ||
+      !Number.isFinite(doctor.latitude) ||
+      typeof doctor.longitude !== 'number' ||
+      !Number.isFinite(doctor.longitude)
+    ) {
+      return null;
+    }
+
+    const query = `${doctor.latitude},${doctor.longitude}`;
     const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(src);
   });
+  protected readonly phoneLabel = computed(
+    () => this.detail()?.profile.utilisateur.numeroTelephone || 'Telephone non renseigne',
+  );
   protected readonly isFavorite = signal(false);
   protected readonly isTogglingFavorite = signal(false);
   protected readonly schedule = signal<DoctorScheduleRow[]>([]);
 
   ngOnInit(): void {
-    const profileId = this.route.snapshot.paramMap.get('id');
+    const profileId = this.routeProfileId;
+    if (!profileId) {
+      this.errorMessage.set('Profil medecin introuvable.');
+      return;
+    }
+
     if (profileId) {
       this.servicesService.getProviderProfileDetail(profileId).subscribe({
         next: (detail) => {
+          this.errorMessage.set(null);
+          this.detail.set(detail);
           this.doctor.set(this.mapDoctor(detail));
           this.schedule.set(this.buildSchedule(detail.availabilities));
         },
-        error: () => undefined,
+        error: () => this.errorMessage.set('Impossible de charger les informations du medecin.'),
       });
     }
 
@@ -130,16 +146,15 @@ export class MedicineDoctorProfileComponent implements OnInit {
     return {
       id: profile.id,
       name: profile.nomEntreprise || profile.utilisateur.nom,
-      specialty: primaryService?.nom || 'Consultation medicale',
+      specialty: primaryService?.nom || 'Motif non renseigne',
       rating: profile.noteGlobale || 0,
       reviewCount: profile.nombreAvis || 0,
-      location: (profile.ville || 'Senegal').toUpperCase(),
+      location: (profile.ville || 'Localisation non renseignee').toUpperCase(),
       latitude: profile.latitude,
       longitude: profile.longitude,
-      imageUrl: profile.utilisateur.urlAvatar || this.initialDoctor.imageUrl,
+      imageUrl: profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
       isOnline: detail.presence.isOnline,
       nextAvailability,
-      modes: ['Teleconsult', 'Cabinet'],
       availability: [
         {
           period: 'Prochaines dispos',
@@ -206,6 +221,23 @@ export class MedicineDoctorProfileComponent implements OnInit {
       dayLabel,
       ranges: grouped.get(day) ?? [],
     }));
+  }
+
+  private buildEmptyDoctor(profileId: string): DoctorProfile {
+    return {
+      id: profileId,
+      name: 'Medecin',
+      specialty: 'Motif non renseigne',
+      rating: 0,
+      reviewCount: 0,
+      location: 'Localisation non renseignee',
+      latitude: null,
+      longitude: null,
+      imageUrl: '/medicine-doctor-charle-diouf.png',
+      isOnline: false,
+      availability: [],
+      nextAvailability: [],
+    };
   }
 
   private formatAvailabilityTime(value: string): string {

@@ -11,96 +11,6 @@
   width: 100%;
 }
 
-.doctor-space__sidebar {
-  background: #915a22;
-  color: #fff;
-  height: 100vh;
-  left: 0;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  width: 230px;
-  z-index: 20;
-}
-
-.doctor-space__back {
-  align-items: center;
-  background: rgba(255, 226, 189, 0.2);
-  border: 0;
-  border-radius: 12px;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  height: 54px;
-  justify-content: center;
-  margin: 33px 0 44px 7px;
-  width: 54px;
-}
-
-.doctor-space__sidebar nav {
-  display: grid;
-  gap: 0;
-}
-
-.doctor-space__sidebar nav button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: #fff;
-  cursor: pointer;
-  display: grid;
-  font: inherit;
-  font-size: 22px;
-  font-weight: 500;
-  gap: 13px;
-  grid-template-columns: 42px minmax(0, 1fr);
-  min-height: 116px;
-  padding: 0 18px 0 22px;
-  position: relative;
-  text-align: left;
-  width: 100%;
-}
-
-.doctor-space__sidebar nav button:hover {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.doctor-space__sidebar nav button.doctor-space__nav-item--active {
-  background: #fff;
-  border-radius: 0 12px 12px 0;
-  color: #915a22 !important;
-  margin-left: 0;
-  margin-right: 13px;
-  min-height: 59px;
-  width: calc(100% - 13px);
-}
-
-.doctor-space__sidebar nav button.doctor-space__nav-item--active,
-.doctor-space__sidebar nav button.doctor-space__nav-item--active span,
-.doctor-space__sidebar nav button.doctor-space__nav-item--active lucide-icon {
-  color: #915a22 !important;
-  opacity: 1;
-}
-
-.doctor-space__sidebar nav button.doctor-space__nav-item--active::after {
-  background: #915a22;
-  border-radius: 50%;
-  content: '';
-  height: 5px;
-  position: absolute;
-  right: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-}
-
-.doctor-space__sidebar nav button span {
-  color: inherit;
-  display: block;
-  opacity: 1;
-}
-
 .doctor-space__content {
   grid-column: 2;
   min-width: 0;
@@ -1315,26 +1225,6 @@
 @media (max-width: 860px) {
   .doctor-space {
     grid-template-columns: 1fr;
-  }
-
-  .doctor-space__sidebar {
-    height: auto;
-    min-height: auto;
-    position: relative;
-    width: 100%;
-  }
-
-  .doctor-space__sidebar nav {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .doctor-space__sidebar nav button {
-    font-size: 15px;
-    min-height: 72px;
-  }
-
-  .doctor-space__back {
-    margin-bottom: 8px;
   }
 
   .doctor-space__content {

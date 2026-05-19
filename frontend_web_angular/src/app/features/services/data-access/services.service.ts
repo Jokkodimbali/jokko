@@ -225,7 +225,7 @@ export class ServicesService {
   }
 
   private formatLocation(city: string | null, distanceKm: number | null): string {
-    const cityLabel = city || 'Dakar';
+    const cityLabel = city || 'Localisation non renseignee';
 
     if (distanceKm === null) {
       return cityLabel;

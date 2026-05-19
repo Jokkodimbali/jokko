@@ -4,11 +4,17 @@ export type CreateNegotiationCommand = {
   serviceId: string;
   proposedAmount: number;
   message?: string;
+  dateHeure?: string;
+  adresseClient?: string;
+  dureeMinutes?: number;
 };
 
 export type CounterNegotiationCommand = {
   proposedAmount: number;
   message?: string;
+  dateHeure?: string;
+  adresseClient?: string;
+  dureeMinutes?: number;
 };
 
 export type RejectNegotiationCommand = {

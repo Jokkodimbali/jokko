@@ -31,6 +31,9 @@ export type Negotiation = {
   montantAccepte: number | null;
   dernierProposePar: NegotiationActor;
   messageCourant: string | null;
+  dateHeureProposee: Date | null;
+  adresseClientProposee: string | null;
+  dureeMinutesProposee: number | null;
   raisonCloture: string | null;
   reservationId: string | null;
   creeLe: Date;
@@ -85,6 +88,9 @@ export class NegotiationEntity {
     serviceId: string;
     montantInitial: number;
     messageCourant?: string | null;
+    dateHeureProposee?: Date | string | null;
+    adresseClientProposee?: string | null;
+    dureeMinutesProposee?: number | null;
     offreId: string;
   }): NegotiationEntity {
     this.assertPositiveAmount(input.montantInitial);
@@ -100,6 +106,9 @@ export class NegotiationEntity {
       montantAccepte: null,
       dernierProposePar: 'CLIENT',
       messageCourant: this.normalizeText(input.messageCourant),
+      dateHeureProposee: this.normalizeDate(input.dateHeureProposee),
+      adresseClientProposee: this.normalizeText(input.adresseClientProposee),
+      dureeMinutesProposee: this.normalizeDuration(input.dureeMinutesProposee),
       raisonCloture: null,
       reservationId: null,
       creeLe: now,
@@ -135,6 +144,9 @@ export class NegotiationEntity {
         ...offer,
         creeLe: new Date(offer.creeLe),
       })),
+      dateHeureProposee: state.dateHeureProposee
+        ? new Date(state.dateHeureProposee)
+        : null,
       creeLe: new Date(state.creeLe),
       misAJourLe: new Date(state.misAJourLe),
     });
@@ -144,6 +156,9 @@ export class NegotiationEntity {
     offerId: string;
     amount: number;
     message?: string | null;
+    dateHeureProposee?: Date | string | null;
+    adresseClientProposee?: string | null;
+    dureeMinutesProposee?: number | null;
   }): void {
     this.assertOpen();
     this.applyCounterOffer('CLIENT', input);
@@ -153,6 +168,9 @@ export class NegotiationEntity {
     offerId: string;
     amount: number;
     message?: string | null;
+    dateHeureProposee?: Date | string | null;
+    adresseClientProposee?: string | null;
+    dureeMinutesProposee?: number | null;
   }): void {
     this.assertPendingStatus('EN_ATTENTE_PRESTATAIRE');
     this.applyCounterOffer('PRESTATAIRE', input);
@@ -240,6 +258,9 @@ export class NegotiationEntity {
   toView(): Negotiation {
     return {
       ...this.state,
+      dateHeureProposee: this.state.dateHeureProposee
+        ? new Date(this.state.dateHeureProposee)
+        : null,
       creeLe: new Date(this.state.creeLe),
       misAJourLe: new Date(this.state.misAJourLe),
       propositions: this.state.propositions.map((offer) => ({
@@ -251,7 +272,14 @@ export class NegotiationEntity {
 
   private applyCounterOffer(
     actor: NegotiationActor,
-    input: { offerId: string; amount: number; message?: string | null },
+    input: {
+      offerId: string;
+      amount: number;
+      message?: string | null;
+      dateHeureProposee?: Date | string | null;
+      adresseClientProposee?: string | null;
+      dureeMinutesProposee?: number | null;
+    },
   ): void {
     NegotiationEntity.assertPositiveAmount(input.amount);
 
@@ -270,6 +298,15 @@ export class NegotiationEntity {
     this.state.montantCourant = input.amount;
     this.state.dernierProposePar = actor;
     this.state.messageCourant = message;
+    this.state.dateHeureProposee =
+      NegotiationEntity.normalizeDate(input.dateHeureProposee) ??
+      this.state.dateHeureProposee;
+    this.state.adresseClientProposee =
+      NegotiationEntity.normalizeText(input.adresseClientProposee) ??
+      this.state.adresseClientProposee;
+    this.state.dureeMinutesProposee =
+      NegotiationEntity.normalizeDuration(input.dureeMinutesProposee) ??
+      this.state.dureeMinutesProposee;
     this.state.statut =
       actor === 'CLIENT' ? 'EN_ATTENTE_PRESTATAIRE' : 'EN_ATTENTE_CLIENT';
     this.state.montantAccepte = null;
@@ -338,5 +375,26 @@ export class NegotiationEntity {
 
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private static normalizeDate(value?: Date | string | null): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private static normalizeDuration(value?: number | null): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (!Number.isInteger(value) || value < 15 || value > 1440) {
+      return null;
+    }
+
+    return value;
   }
 }

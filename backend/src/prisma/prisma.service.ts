@@ -16,8 +16,8 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
 
     const poolConfig: PoolConfig = {
       connectionString,
-      connectionTimeoutMillis: 2000,
-      idleTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
       allowExitOnIdle: true,
     };
 

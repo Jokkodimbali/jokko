@@ -92,8 +92,15 @@ export class AppointmentsPageComponent implements OnInit {
       return;
     }
 
+    const scope = this.resolveReservationScope();
+    if (!scope) {
+      this.appointments.set([]);
+      this.isLoading.set(false);
+      return;
+    }
+
     this.isLoading.set(true);
-    this.appointmentsService.listMyAppointments().subscribe({
+    this.appointmentsService.listMyAppointments(scope).subscribe({
       next: (appointments) => {
         this.appointments.set(appointments);
         this.isLoading.set(false);
@@ -103,6 +110,13 @@ export class AppointmentsPageComponent implements OnInit {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private resolveReservationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
+    const role = this.authSession.getAuthenticatedRole();
+    if (role === 'CLIENT') return 'CLIENT';
+    if (role === 'PRESTATAIRE') return 'PRESTATAIRE';
+    return null;
   }
 
   private isDone(status: AppointmentView['status']): boolean {

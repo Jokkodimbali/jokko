@@ -430,10 +430,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.proposalService.listMyPriceProposals(this.resolveNegotiationScope()).subscribe({
+    const scope = this.resolveNegotiationScope();
+    if (!scope) {
+      this.priceProposals.set([]);
+      return;
+    }
+
+    this.proposalService.listMyPriceProposals(scope).subscribe({
       next: (proposals) => {
         this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
         this.loadAppointmentPreviewForVisibleProposal();
+      },
+      error: () => {
+        this.priceProposals.set([]);
       },
     });
   }
@@ -445,7 +454,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.proposalService.listMyPriceProposals(this.resolveNegotiationScope()).subscribe({
+    const scope = this.resolveNegotiationScope();
+    if (!scope) {
+      return;
+    }
+
+    this.proposalService.listMyPriceProposals(scope).subscribe({
       next: (proposals) => {
         const currentProposal = proposals.find((item) => item.id === proposal.negotiationId);
         if (!currentProposal) {
@@ -460,6 +474,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         });
         this.upsertProposal(currentProposal);
       },
+      error: () => undefined,
     });
   }
 
@@ -567,9 +582,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       amount: proposal.montantCourant || proposal.montantInitial,
       status: proposal.statut,
       reservationId: proposal.reservationId,
-      appointmentDate: details.appointmentDate,
-      address: details.address,
-      durationMinutes: details.durationMinutes ?? 60,
+      appointmentDate: proposal.dateHeureProposee ?? details.appointmentDate,
+      address: proposal.adresseClientProposee ?? details.address,
+      durationMinutes: proposal.dureeMinutesProposee ?? details.durationMinutes ?? 60,
       proposalMessage: proposal.messageCourant,
     };
   }
@@ -583,8 +598,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private resolveNegotiationScope(): 'CLIENT' | 'PRESTATAIRE' {
-    return this.currentUser()?.role === 'PRESTATAIRE' ? 'PRESTATAIRE' : 'CLIENT';
+  private resolveNegotiationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
+    const role = this.authSession.getAuthenticatedRole();
+    if (role === 'CLIENT') return 'CLIENT';
+    if (role === 'PRESTATAIRE') return 'PRESTATAIRE';
+    return null;
   }
 
   private upsertProposal(proposal: NegotiationView): void {

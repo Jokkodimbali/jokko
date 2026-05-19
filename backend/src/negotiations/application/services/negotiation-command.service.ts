@@ -75,6 +75,9 @@ export class NegotiationCommandService extends NegotiationAppService {
       serviceId: command.serviceId,
       montantInitial: command.proposedAmount,
       messageCourant: command.message,
+      dateHeureProposee: command.dateHeure,
+      adresseClientProposee: command.adresseClient,
+      dureeMinutesProposee: command.dureeMinutes,
       offreId: randomUUID(),
     });
 
@@ -104,6 +107,9 @@ export class NegotiationCommandService extends NegotiationAppService {
           offerId: randomUUID(),
           amount: command.proposedAmount,
           message: command.message,
+          dateHeureProposee: command.dateHeure,
+          adresseClientProposee: command.adresseClient,
+          dureeMinutesProposee: command.dureeMinutes,
         });
       } else {
         entity.counterByClient({
@@ -234,6 +240,9 @@ export class NegotiationCommandService extends NegotiationAppService {
       montantAccepte: view.montantAccepte,
       dernierProposePar: view.dernierProposePar,
       messageCourant: view.messageCourant,
+      dateHeureProposee: view.dateHeureProposee,
+      adresseClientProposee: view.adresseClientProposee,
+      dureeMinutesProposee: view.dureeMinutesProposee,
       raisonCloture: view.raisonCloture,
       reservationId: view.reservationId,
       creeLe: view.creeLe,
@@ -259,6 +268,9 @@ export class NegotiationCommandService extends NegotiationAppService {
       montantAccepte: view.montantAccepte,
       dernierProposePar: view.dernierProposePar,
       messageCourant: view.messageCourant,
+      dateHeureProposee: view.dateHeureProposee,
+      adresseClientProposee: view.adresseClientProposee,
+      dureeMinutesProposee: view.dureeMinutesProposee,
       raisonCloture: view.raisonCloture,
       reservationId: view.reservationId,
       misAJourLe: view.misAJourLe,

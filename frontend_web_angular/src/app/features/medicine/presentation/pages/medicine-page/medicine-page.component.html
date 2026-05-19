@@ -14,8 +14,9 @@
     <ng-container *ngIf="!isLoading() && !errorMessage()">
       <section *ngIf="showMap()" class="medicine-page__map" aria-label="Carte des medecins disponibles">
         <iframe
+          *ngIf="mapUrl()"
           [src]="mapUrl()"
-          title="Carte des medecins disponibles a Dakar"
+          title="Carte des medecins disponibles"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
         ></iframe>

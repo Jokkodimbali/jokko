@@ -246,13 +246,15 @@ export async function runSeed() {
       {
         conversationId: conversation.id,
         expediteurId: professionalUser.id,
-        contenu: 'Bonjour ! Oui, votre consultation est bien programmee pour demain a 10h. Je vous attends au cabinet.',
+        contenu:
+          'Bonjour ! Oui, votre consultation est bien programmee pour demain a 10h. Je vous attends au cabinet.',
         creeLe: new Date(Date.now() - 1.5 * 60 * 60 * 1000), // 1.5 hours ago
       },
       {
         conversationId: conversation.id,
         expediteurId: client.id,
-        contenu: 'Parfait, merci. Dois-je apporter quelque chose en particulier ?',
+        contenu:
+          'Parfait, merci. Dois-je apporter quelque chose en particulier ?',
         creeLe: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
       },
       {

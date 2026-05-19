@@ -1,45 +1,11 @@
 <main class="doctor-space">
-  <aside class="doctor-space__sidebar">
-    <button type="button" class="doctor-space__back" (click)="goBack()" aria-label="Retour">
-      <lucide-icon name="arrow-left" size="31" [strokeWidth]="2.6"></lucide-icon>
-    </button>
-
-    <nav [attr.aria-label]="spaceAriaLabel()">
-      <button
-        type="button"
-        [class.doctor-space__nav-item--active]="activeSection() === 'availability'"
-        (click)="selectSection('availability')"
-      >
-        <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
-        <span>Disponibilit&eacute;s</span>
-      </button>
-      <button
-        *ngIf="showConsultationSection()"
-        type="button"
-        [class.doctor-space__nav-item--active]="activeSection() === 'consultation'"
-        (click)="selectSection('consultation')"
-      >
-        <lucide-icon name="clipboard" size="34" [strokeWidth]="2.1"></lucide-icon>
-        <span>Motif de consultation</span>
-      </button>
-      <button
-        type="button"
-        [class.doctor-space__nav-item--active]="activeSection() === 'agenda'"
-        (click)="selectSection('agenda')"
-      >
-        <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
-        <span>Agenda</span>
-      </button>
-      <button
-        type="button"
-        [class.doctor-space__nav-item--active]="activeSection() === 'wallet'"
-        (click)="selectSection('wallet')"
-      >
-        <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.1"></lucide-icon>
-        <span>Wallet</span>
-      </button>
-    </nav>
-  </aside>
+  <app-doctor-space-sidebar
+    [activeSection]="activeSection()"
+    [ariaLabel]="spaceAriaLabel()"
+    [showConsultationSection]="showConsultationSection()"
+    (backRequested)="goBack()"
+    (sectionSelected)="selectSection($event)"
+  ></app-doctor-space-sidebar>
 
   <section class="doctor-space__content">
     <header class="doctor-space__header">

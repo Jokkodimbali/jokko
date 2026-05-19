@@ -216,18 +216,31 @@ describe('NegotiationsModule (e2e)', () => {
         serviceId: negotiableServiceId,
         proposedAmount: 17000,
         message: 'Je peux confirmer aujourd hui a ce budget.',
+        dateHeure: buildFutureIso(36),
+        adresseClient: 'Dakar Plateau',
+        dureeMinutes: 90,
       })
       .expect(201);
 
     const body = response.body as {
       success: boolean;
-      data: { id: string; statut: string; montantCourant: number };
+      data: {
+        id: string;
+        statut: string;
+        montantCourant: number;
+        dateHeureProposee: string | null;
+        adresseClientProposee: string | null;
+        dureeMinutesProposee: number | null;
+      };
     };
     negotiationId = body.data.id;
 
     expect(body.success).toBe(true);
     expect(body.data.statut).toBe('EN_ATTENTE_PRESTATAIRE');
     expect(body.data.montantCourant).toBe(17000);
+    expect(body.data.dateHeureProposee).not.toBeNull();
+    expect(body.data.adresseClientProposee).toBe('Dakar Plateau');
+    expect(body.data.dureeMinutesProposee).toBe(90);
   });
 
   it('GET /api/v1/negotiations/my lists negotiations for the professional scope', async () => {

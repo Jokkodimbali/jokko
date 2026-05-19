@@ -70,6 +70,29 @@ export class AdminReservationsController {
     return createApiResponse(result);
   }
 
+  @Get('statistics')
+  @Roles(RoleUtilisateur.ADMIN)
+  @ApiOperation({ summary: API_DOCS.adminReservations.statisticsSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.adminReservations.statisticsSuccess,
+    messageExample: API_DOCS.adminReservations.statisticsSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.reservations.statisticsData,
+    },
+  })
+  async getStatistics(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListReservationsQueryDto,
+  ) {
+    const result = await this.reservationsFacade.getReservationStatistics(
+      user,
+      query,
+    );
+    return createApiResponse(result);
+  }
+
   @Get(':reservationId')
   @Roles(RoleUtilisateur.ADMIN)
   @ApiOperation({ summary: API_DOCS.adminReservations.getByIdSummary })
@@ -99,29 +122,6 @@ export class AdminReservationsController {
     const result = await this.reservationsFacade.getReservationById(
       user,
       reservationId,
-    );
-    return createApiResponse(result);
-  }
-
-  @Get('statistics')
-  @Roles(RoleUtilisateur.ADMIN)
-  @ApiOperation({ summary: API_DOCS.adminReservations.statisticsSummary })
-  @ApiStandardSuccessResponse({
-    status: 200,
-    description: API_DOCS.adminReservations.statisticsSuccess,
-    messageExample: API_DOCS.adminReservations.statisticsSuccess,
-    dataSchema: {
-      type: 'object',
-      example: SWAGGER_RESPONSE_EXAMPLES.reservations.statisticsData,
-    },
-  })
-  async getStatistics(
-    @CurrentUser() user: AuthUser,
-    @Query() query: ListReservationsQueryDto,
-  ) {
-    const result = await this.reservationsFacade.getReservationStatistics(
-      user,
-      query,
     );
     return createApiResponse(result);
   }

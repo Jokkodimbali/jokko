@@ -12,7 +12,6 @@ import { AppointmentsPageComponent } from './features/appointments/presentation/
 import { AppointmentDetailPageComponent } from './features/appointments/presentation/pages/appointment-detail-page/appointment-detail-page.component';
 import { AppointmentPaymentPageComponent } from './features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component';
 import { MessagesPageComponent } from './features/messages/presentation/pages/messages-page/messages-page.component';
-import { AdminDashboardPageComponent } from './features/admin/presentation/pages/admin-dashboard-page/admin-dashboard-page.component';
 
 export const routes: Routes = [
   {
@@ -73,7 +72,10 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    component: AdminDashboardPageComponent,
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/admin-dashboard-page/admin-dashboard-page.component').then(
+        (m) => m.AdminDashboardPageComponent,
+      ),
   },
   {
     path: 'auth',

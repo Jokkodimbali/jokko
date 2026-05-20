@@ -24,18 +24,20 @@ export class AdminDisputesService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  refundClient(disputeId: string, notes: string): Observable<AdminDisputeCase> {
+  refundClient(disputeId: string, notes: string, clientRefundPercentage = 100): Observable<AdminDisputeCase> {
+    const normalizedPercentage = this.normalizePercentage(clientRefundPercentage);
     return this.resolve(disputeId, {
-      decision: 'REMBOURSER_CLIENT',
-      clientRefundPercentage: 100,
+      decision: normalizedPercentage >= 100 ? 'REMBOURSER_CLIENT' : 'PARTAGER',
+      clientRefundPercentage: normalizedPercentage,
       notes,
     });
   }
 
-  creditProfessional(disputeId: string, notes: string): Observable<AdminDisputeCase> {
+  creditProfessional(disputeId: string, notes: string, clientRefundPercentage = 0): Observable<AdminDisputeCase> {
+    const normalizedPercentage = this.normalizePercentage(clientRefundPercentage);
     return this.resolve(disputeId, {
-      decision: 'CREDITER_PRESTATAIRE',
-      clientRefundPercentage: 0,
+      decision: normalizedPercentage <= 0 ? 'CREDITER_PRESTATAIRE' : 'PARTAGER',
+      clientRefundPercentage: normalizedPercentage,
       notes,
     });
   }
@@ -64,5 +66,10 @@ export class AdminDisputesService {
     return this.http
       .patch<ApiResponse<{ dispute: AdminDisputeCase }>>(`${this.disputesUrl}/${disputeId}/resolve`, payload)
       .pipe(map((response) => unwrapApiResponse(response).dispute));
+  }
+
+  private normalizePercentage(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(Math.min(100, Math.max(0, value)) * 100) / 100;
   }
 }

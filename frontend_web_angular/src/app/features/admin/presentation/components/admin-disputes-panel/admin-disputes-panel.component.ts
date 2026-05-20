@@ -20,6 +20,15 @@ type DisputeThreadItem = {
   createdAt: string | Date;
 };
 
+type FinancialDecisionAction = Extract<DisputeAction, 'refund-client' | 'credit-professional'>;
+type FinancialDecisionBeneficiary = 'CLIENT' | 'PRESTATAIRE';
+
+type FinancialDecisionState = {
+  action: FinancialDecisionAction;
+  beneficiary: FinancialDecisionBeneficiary;
+  disputeId: string;
+};
+
 @Component({
   selector: 'app-admin-disputes-panel',
   standalone: true,
@@ -31,10 +40,18 @@ export class AdminDisputesPanelComponent implements OnChanges {
   @Input({ required: true }) disputes: AdminDisputeCase[] = [];
   @Input() isLoading = false;
   @Input() actionId: string | null = null;
-  @Output() action = new EventEmitter<{ disputeId: string; action: DisputeAction; notes?: string }>();
+  @Output() action = new EventEmitter<{
+    disputeId: string;
+    action: DisputeAction;
+    notes?: string;
+    clientRefundPercentage?: number;
+  }>();
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly resolutionNote = signal('');
+  protected readonly financialDecision = signal<FinancialDecisionState | null>(null);
+  protected readonly financialAmount = signal('');
+  protected readonly financialNote = signal('');
   protected readonly selectedDispute = computed(
     () => this.disputes.find((dispute) => dispute.id === this.selectedId()) ?? this.disputes[0] ?? null,
   );
@@ -49,6 +66,7 @@ export class AdminDisputesPanelComponent implements OnChanges {
   protected select(disputeId: string): void {
     this.selectedId.set(disputeId);
     this.resolutionNote.set('');
+    this.closeFinancialDecision();
   }
 
   protected updateNote(event: Event): void {
@@ -76,6 +94,61 @@ export class AdminDisputesPanelComponent implements OnChanges {
     this.action.emit({ disputeId: dispute.id, action, notes });
   }
 
+  protected openFinancialDecision(action: FinancialDecisionAction): void {
+    const dispute = this.selectedDispute();
+    if (!dispute || this.isClosed(dispute)) return;
+
+    const beneficiary: FinancialDecisionBeneficiary = action === 'refund-client' ? 'CLIENT' : 'PRESTATAIRE';
+    this.financialDecision.set({ action, beneficiary, disputeId: dispute.id });
+    this.financialAmount.set(String(this.defaultFinancialAmount(dispute, action)));
+    this.financialNote.set(this.resolutionNote().trim());
+  }
+
+  protected closeFinancialDecision(): void {
+    this.financialDecision.set(null);
+    this.financialAmount.set('');
+    this.financialNote.set('');
+  }
+
+  protected selectFinancialBeneficiary(beneficiary: FinancialDecisionBeneficiary): void {
+    const dispute = this.selectedDispute();
+    const current = this.financialDecision();
+    if (!dispute || !current) return;
+
+    const action: FinancialDecisionAction = beneficiary === 'CLIENT' ? 'refund-client' : 'credit-professional';
+    this.financialDecision.set({ ...current, action, beneficiary });
+    this.financialAmount.set(String(this.defaultFinancialAmount(dispute, action)));
+  }
+
+  protected updateFinancialAmount(event: Event): void {
+    const value = (event.target as HTMLInputElement).value.replace(/[^\d]/g, '');
+    this.financialAmount.set(value);
+  }
+
+  protected updateFinancialNote(event: Event): void {
+    this.financialNote.set((event.target as HTMLInputElement).value);
+  }
+
+  protected confirmFinancialDecision(): void {
+    const decision = this.financialDecision();
+    const dispute = this.selectedDispute();
+    if (!decision || !dispute || this.isClosed(dispute) || !this.canConfirmFinancialDecision()) return;
+
+    const notes = this.financialNote().trim();
+    this.action.emit({
+      disputeId: decision.disputeId,
+      action: decision.action,
+      notes,
+      clientRefundPercentage: this.resolveClientRefundPercentage(dispute, decision.action),
+    });
+    this.resolutionNote.set('');
+    this.closeFinancialDecision();
+  }
+
+  protected canConfirmFinancialDecision(): boolean {
+    return this.financialNote().trim().length >= 10 && this.parseFinancialAmount() > 0;
+  }
+
   protected title(dispute: AdminDisputeCase): string {
     return `${dispute.client.nom} vs ${dispute.professional.nom}`;
   }
@@ -86,6 +159,14 @@ export class AdminDisputesPanelComponent implements OnChanges {
 
   protected disputeAmount(dispute: AdminDisputeCase): number {
     return dispute.payment?.montant ?? dispute.reservation.prixConvenu ?? dispute.reservation.service.prix;
+  }
+
+  protected professionalDecisionAmount(dispute: AdminDisputeCase): number {
+    return dispute.payment?.montantNet ?? this.disputeAmount(dispute);
+  }
+
+  protected shortDisputeCode(dispute: AdminDisputeCase): string {
+    return `L-${dispute.id.slice(0, 4).toUpperCase()}`;
   }
 
   protected statusLabel(status: string): string {
@@ -176,6 +257,37 @@ export class AdminDisputesPanelComponent implements OnChanges {
       TOUS: 'client + prestataire',
     };
     return labels[recipient] ?? recipient;
+  }
+
+  protected financialBeneficiaryTitle(dispute: AdminDisputeCase, beneficiary: FinancialDecisionBeneficiary): string {
+    return beneficiary === 'CLIENT' ? dispute.client.nom : dispute.professional.nom;
+  }
+
+  protected financialBeneficiarySubtitle(beneficiary: FinancialDecisionBeneficiary): string {
+    return beneficiary === 'CLIENT' ? 'Remboursement au client' : 'Versement au prestataire';
+  }
+
+  private defaultFinancialAmount(dispute: AdminDisputeCase, action: FinancialDecisionAction): number {
+    return action === 'refund-client' ? this.disputeAmount(dispute) : this.professionalDecisionAmount(dispute);
+  }
+
+  private parseFinancialAmount(): number {
+    return Number(this.financialAmount().replace(/[^\d]/g, '')) || 0;
+  }
+
+  private resolveClientRefundPercentage(dispute: AdminDisputeCase, action: FinancialDecisionAction): number {
+    const amount = this.parseFinancialAmount();
+    const grossAmount = Math.max(this.disputeAmount(dispute), 1);
+    if (action === 'refund-client') {
+      return this.clampPercentage((amount / grossAmount) * 100);
+    }
+
+    const professionalBase = Math.max(this.professionalDecisionAmount(dispute), 1);
+    return this.clampPercentage(100 - (amount / professionalBase) * 100);
+  }
+
+  private clampPercentage(value: number): number {
+    return Math.round(Math.min(100, Math.max(0, value)) * 100) / 100;
   }
 
   private messageAuthor(dispute: AdminDisputeCase, message: AdminDisputeMessage): string {

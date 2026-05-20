@@ -813,6 +813,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Diplomes medecins rejetes avec succes.',
     },
+    ADMIN_PROVIDERS_RETRIEVED: {
+      code: 'ADMIN_PROVIDERS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Prestataires admin recuperes avec succes.',
+    },
   },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {

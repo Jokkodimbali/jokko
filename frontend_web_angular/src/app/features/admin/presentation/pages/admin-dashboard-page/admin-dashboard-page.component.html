@@ -57,13 +57,31 @@
       </ng-template>
 
       <ng-template #nonMedicalContent>
-        <ng-container *ngIf="activeSection() === 'disputes'; else overviewContent">
+        <ng-container *ngIf="activeSection() === 'disputes'; else nonDisputesContent">
           <app-admin-disputes-panel
             [disputes]="disputeCases()"
             [isLoading]="isDisputesLoading()"
             [actionId]="kycActionId()"
             (action)="handleDisputeAction($event)"
           ></app-admin-disputes-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonDisputesContent>
+        <ng-container *ngIf="activeSection() === 'providers'; else overviewContent">
+          <app-admin-providers-panel
+            [providers]="providerProfiles()"
+            [isLoading]="isProvidersLoading()"
+            [isActionLoading]="isProviderActionLoading()"
+            [pagination]="providerPagination()"
+            [stats]="providerStats()"
+            [selectedProviderId]="selectedProviderId()"
+            [selectedProviderDetail]="selectedProviderDetail()"
+            (queryChange)="loadProviders($event)"
+            (detailRequested)="loadProviderDetail($event)"
+            (detailClosed)="closeProviderDetail()"
+            (activationChange)="handleProviderActivation($event)"
+          ></app-admin-providers-panel>
         </ng-container>
       </ng-template>
 

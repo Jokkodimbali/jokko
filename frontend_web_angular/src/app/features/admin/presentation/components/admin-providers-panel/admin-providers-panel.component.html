@@ -1,0 +1,290 @@
+<section class="admin-providers-page">
+  <ng-container *ngIf="!selectedId(); else providerDetailPage">
+  <header class="admin-providers-heading">
+    <div>
+      <lucide-icon name="users" size="38" [strokeWidth]="2.2"></lucide-icon>
+      <h1>Prestataires</h1>
+    </div>
+    <p>Liste operationnelle des prestataires. Chaque ligne vient du backend et ouvre le dossier complet du profil selectionne.</p>
+  </header>
+
+  <section class="admin-providers-kpis">
+    <article>
+      <lucide-icon name="shield-check" size="20" [strokeWidth]="2.1"></lucide-icon>
+      <span>Prestataires verifies</span>
+      <strong>{{ verifiedCount() }}</strong>
+    </article>
+    <article>
+      <lucide-icon name="power" size="20" [strokeWidth]="2.1"></lucide-icon>
+      <span>Comptes actifs</span>
+      <strong>{{ activeCount() }}</strong>
+    </article>
+    <article>
+      <lucide-icon name="calendar-days" size="20" [strokeWidth]="2.1"></lucide-icon>
+      <span>Reservations</span>
+      <strong>{{ totalReservations() }}</strong>
+    </article>
+    <article>
+      <lucide-icon name="wallet-cards" size="20" [strokeWidth]="2.1"></lucide-icon>
+      <span>Revenus generes</span>
+      <strong>{{ formatMoney(totalRevenue()) }} FCFA</strong>
+    </article>
+  </section>
+
+  <section class="admin-provider-toolbar" aria-label="Filtres prestataires">
+    <label class="admin-provider-search">
+      <lucide-icon name="search" size="18" [strokeWidth]="2.2"></lucide-icon>
+      <input
+        type="search"
+        placeholder="Rechercher par nom, entreprise, ville ou telephone"
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+        (keyup.enter)="applyFilters(1)"
+      />
+    </label>
+    <select [ngModel]="statusFilter()" (ngModelChange)="onFilterChange('kyc', $event)">
+      <option value="">Tous les statuts KYC</option>
+      <option value="VERIFIE">Verifies</option>
+      <option value="EN_ATTENTE">En validation</option>
+      <option value="REJETE">Rejetes</option>
+    </select>
+    <select [ngModel]="activeFilter()" (ngModelChange)="onFilterChange('active', $event)">
+      <option value="">Tous les comptes</option>
+      <option value="true">Actifs</option>
+      <option value="false">Desactives</option>
+    </select>
+  </section>
+
+  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des prestataires...</section>
+
+  <section class="admin-provider-table-card" *ngIf="!isLoading && providers.length > 0; else noProviders">
+    <div class="admin-provider-table-scroll">
+      <table class="admin-provider-table">
+        <thead>
+          <tr>
+            <th>Prestataire</th>
+            <th>Ville</th>
+            <th>KYC</th>
+            <th>Compte</th>
+            <th>Services</th>
+            <th>Reservations</th>
+            <th>Revenus</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let provider of providers"
+            [class.admin-provider-table__row--active]="selectedId() === provider.id"
+            (click)="select(provider.id)"
+          >
+            <td>
+              <div class="admin-provider-identity">
+                <img *ngIf="provider.avatarUrl; else providerInitials" [src]="provider.avatarUrl" [alt]="provider.name" />
+                <ng-template #providerInitials>
+                  <span>{{ initials(provider.name) }}</span>
+                </ng-template>
+                <div>
+                  <strong>{{ displayName(provider) }}</strong>
+                  <small>{{ provider.name }} . {{ provider.phone }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ provider.city || 'Non renseignee' }}</td>
+            <td>
+              <span class="admin-provider-pill" [class.admin-provider-pill--success]="provider.kycStatus === 'VERIFIE'">
+                {{ kycLabel(provider.kycStatus) }}
+              </span>
+            </td>
+            <td>
+              <span class="admin-provider-pill" [class.admin-provider-pill--danger]="!provider.active">
+                {{ provider.active ? 'Actif' : 'Desactive' }}
+              </span>
+            </td>
+            <td>{{ provider.activeServicesCount }} / {{ provider.servicesCount }}</td>
+            <td>{{ provider.reservationsCount }}</td>
+            <td>{{ formatMoney(provider.revenueGross) }} FCFA</td>
+            <td>
+              <div class="admin-provider-row-actions" (click)="$event.stopPropagation()">
+                <button type="button" class="admin-provider-action admin-provider-action--view" (click)="select(provider.id)">
+                  <lucide-icon name="eye" size="15" [strokeWidth]="2.2"></lucide-icon>
+                  Details
+                </button>
+                <button
+                  type="button"
+                  class="admin-provider-action"
+                  [class.admin-provider-action--danger]="provider.active"
+                  [disabled]="isActionLoading"
+                  (click)="toggleActivation(provider)"
+                >
+                  <lucide-icon name="power" size="15" [strokeWidth]="2.2"></lucide-icon>
+                  {{ provider.active ? 'Desactiver' : 'Activer' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="admin-provider-pagination" *ngIf="pagination">
+      <span>{{ pagination.total }} prestataire(s)</span>
+      <button type="button" [disabled]="!pagination.hasPrevious" (click)="goToPage(pagination.page - 1)">
+        <lucide-icon name="arrow-left" size="16"></lucide-icon>
+      </button>
+      <strong>Page {{ pagination.page }} / {{ pagination.totalPages || 1 }}</strong>
+      <button type="button" [disabled]="!pagination.hasNext" (click)="goToPage(pagination.page + 1)">
+        <lucide-icon name="arrow-right" size="16"></lucide-icon>
+      </button>
+    </footer>
+  </section>
+
+  </ng-container>
+
+  <ng-template #providerDetailPage>
+  <header class="admin-provider-detail-heading">
+    <button type="button" (click)="backToList()">
+      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
+      Retour aux prestataires
+    </button>
+    <div>
+      <h1>{{ detailProvider() ? displayName(detailProvider()!) : 'Dossier prestataire' }}</h1>
+      <p>Vue detaillee chargee depuis le backend pour le prestataire selectionne.</p>
+    </div>
+  </header>
+
+  <section class="admin-provider-detail-state" *ngIf="selectedId() && isDetailLoading() && !detailProvider()">
+    Chargement du dossier prestataire...
+  </section>
+
+  <section class="admin-provider-detail-state admin-provider-detail-state--error" *ngIf="selectedId() && !isDetailLoading() && !detailProvider()">
+    Impossible de charger ce dossier pour le moment.
+  </section>
+
+  <article class="admin-provider-detail" *ngIf="detailProvider() as provider">
+    <header>
+      <img *ngIf="provider.avatarUrl; else detailInitials" [src]="provider.avatarUrl" [alt]="provider.name" />
+      <ng-template #detailInitials>
+        <span>{{ initials(provider.name) }}</span>
+      </ng-template>
+      <div>
+        <h2>{{ displayName(provider) }}</h2>
+        <p>{{ provider.name }} . {{ provider.city || 'Localisation non renseignee' }}</p>
+        <div>
+          <b>{{ kycLabel(provider.kycStatus) }}</b>
+          <b [class.admin-provider-status--inactive]="!provider.active">{{ provider.active ? 'Compte actif' : 'Compte desactive' }}</b>
+        </div>
+      </div>
+      <div class="admin-provider-actions">
+        <button
+          type="button"
+          class="admin-provider-toggle"
+          [class.admin-provider-toggle--danger]="provider.active"
+          [disabled]="isActionLoading"
+          (click)="toggleActivation(provider)"
+        >
+          <lucide-icon name="power" size="16" [strokeWidth]="2.1"></lucide-icon>
+          {{ provider.active ? 'Desactiver' : 'Activer' }}
+        </button>
+      </div>
+    </header>
+
+    <section class="admin-provider-metrics">
+      <article>
+        <span>Note</span>
+        <strong>{{ provider.rating }}/5</strong>
+        <small>{{ provider.reviewsCount }} avis</small>
+      </article>
+      <article>
+        <span>Portefeuille</span>
+        <strong>{{ formatMoney(provider.walletBalance) }} FCFA</strong>
+        <small>Solde disponible</small>
+      </article>
+      <article>
+        <span>Revenu net</span>
+        <strong>{{ formatMoney(provider.revenueNet) }} FCFA</strong>
+        <small>Apres commissions</small>
+      </article>
+      <article>
+        <span>Litiges</span>
+        <strong>{{ provider.disputesCount }}</strong>
+        <small>Sur {{ provider.reservationsCount }} reservations</small>
+      </article>
+    </section>
+
+    <section class="admin-provider-grid">
+      <article>
+        <h3>Activite</h3>
+        <dl>
+          <div>
+            <dt>Reservations actives</dt>
+            <dd>{{ provider.activeReservationsCount }}</dd>
+          </div>
+          <div>
+            <dt>Reservations terminees</dt>
+            <dd>{{ provider.completedReservationsCount }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <article>
+        <h3>Services</h3>
+        <dl>
+          <div>
+            <dt>Services actifs</dt>
+            <dd>{{ provider.activeServicesCount }}</dd>
+          </div>
+          <div>
+            <dt>Total services</dt>
+            <dd>{{ provider.servicesCount }}</dd>
+          </div>
+        </dl>
+        <div class="admin-provider-tags" *ngIf="provider.mainCategories.length > 0">
+          <span *ngFor="let category of provider.mainCategories">{{ category }}</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="admin-provider-contact">
+      <div>
+        <lucide-icon name="phone" size="16" [strokeWidth]="2"></lucide-icon>
+        <span>{{ provider.phone }}</span>
+      </div>
+      <p>{{ provider.bio || 'Aucune biographie renseignee pour ce prestataire.' }}</p>
+    </section>
+
+    <section class="admin-provider-deep-grid">
+      <article>
+        <h3>Services declares</h3>
+        <ul *ngIf="provider.services?.length; else emptyServices">
+          <li *ngFor="let service of provider.services">
+            <span>{{ service.name }}</span>
+            <small>{{ service.category }} . {{ service.active ? 'Disponible' : 'Indisponible' }}</small>
+          </li>
+        </ul>
+      </article>
+
+      <article>
+        <h3>Dernieres reservations</h3>
+        <ul *ngIf="provider.recentReservations?.length; else emptyBookings">
+          <li *ngFor="let reservation of provider.recentReservations">
+            <span>{{ reservation.serviceName }}</span>
+            <small>{{ reservation.clientName }} . {{ formatDate(reservation.scheduledAt) }} . {{ reservation.status }}</small>
+          </li>
+        </ul>
+      </article>
+    </section>
+
+    <ng-template #emptyServices>
+      <p class="admin-provider-empty">Aucun service declare.</p>
+    </ng-template>
+    <ng-template #emptyBookings>
+      <p class="admin-provider-empty">Aucune reservation recente.</p>
+    </ng-template>
+  </article>
+  </ng-template>
+</section>
+
+<ng-template #noProviders>
+  <section class="admin-validation-empty" *ngIf="!isLoading">Aucun prestataire trouve pour ces filtres.</section>
+</ng-template>

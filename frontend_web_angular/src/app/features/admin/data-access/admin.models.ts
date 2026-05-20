@@ -176,6 +176,93 @@ export interface AdminDisputeCase {
   };
 }
 
+export interface AdminProviderProfile {
+  id: string;
+  userId: string;
+  name: string;
+  companyName: string | null;
+  phone: string;
+  avatarUrl: string | null;
+  city: string | null;
+  bio: string | null;
+  kycStatus: string;
+  active: boolean;
+  rating: number;
+  reviewsCount: number;
+  walletBalance: number;
+  createdAt: string | Date;
+  servicesCount: number;
+  activeServicesCount: number;
+  reservationsCount: number;
+  completedReservationsCount: number;
+  activeReservationsCount: number;
+  disputesCount: number;
+  revenueGross: number;
+  revenueNet: number;
+  mainCategories: string[];
+  lastBookingAt: string | Date | null;
+  services?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    active: boolean;
+  }>;
+  recentReservations?: Array<{
+    id: string;
+    status: string;
+    scheduledAt: string | Date;
+    address: string;
+    price: number | null;
+    clientName: string;
+    serviceName: string;
+    hasDispute: boolean;
+  }>;
+  medicalCredentials?: Array<{
+    id: string;
+    title: string;
+    institution: string;
+    graduationYear: string | null;
+    status: string;
+    verifiedAt: string | Date | null;
+  }>;
+  portfolio?: Array<{
+    id: string;
+    title: string;
+    imageUrl: string;
+    createdAt: string | Date;
+  }>;
+}
+
+export interface AdminProviderListQuery {
+  search?: string;
+  kycStatus?: string;
+  active?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminPaginatedResult<T> {
+  items: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+  stats?: AdminProviderStats;
+}
+
+export interface AdminProviderStats {
+  totalProviders: number;
+  verifiedCount: number;
+  activeCount: number;
+  reservationsCount: number;
+  revenueGross: number;
+  revenueNet: number;
+}
+
 export interface AdminDashboard {
   users: { active: number; total: number };
   kyc: { pending: number };

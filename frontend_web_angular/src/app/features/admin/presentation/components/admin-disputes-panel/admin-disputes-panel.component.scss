@@ -371,6 +371,188 @@
   background: #3a3937;
 }
 
+.admin-financial-modal-backdrop {
+  align-items: center;
+  backdrop-filter: blur(3px);
+  background: rgba(33, 30, 28, 0.44);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 80;
+}
+
+.admin-financial-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(30, 22, 17, 0.28);
+  color: #1b1715;
+  display: grid;
+  gap: 18px;
+  max-width: 430px;
+  padding: 24px;
+  width: min(430px, 100%);
+}
+
+.admin-financial-modal header {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr;
+}
+
+.admin-financial-modal header > span {
+  align-items: center;
+  color: #8f675c;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.admin-financial-modal h2,
+.admin-financial-modal p,
+.admin-financial-fieldset strong,
+.admin-financial-input span {
+  margin: 0;
+}
+
+.admin-financial-modal h2 {
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.admin-financial-modal p {
+  color: #937a70;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
+.admin-financial-fieldset {
+  display: grid;
+  gap: 9px;
+}
+
+.admin-financial-fieldset strong,
+.admin-financial-input span {
+  color: #8f675c;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-financial-recipient {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #9fd3bd;
+  border-radius: 9px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 2px 9px;
+  grid-template-columns: auto auto 1fr;
+  min-height: 58px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.admin-financial-recipient > span {
+  border: 1px solid #b8784a;
+  border-radius: 999px;
+  height: 12px;
+  position: relative;
+  width: 12px;
+}
+
+.admin-financial-recipient--selected > span::after {
+  background: #9a5d25;
+  border-radius: inherit;
+  content: '';
+  height: 6px;
+  inset: 2px;
+  position: absolute;
+  width: 6px;
+}
+
+.admin-financial-recipient b {
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.admin-financial-recipient small {
+  color: #8d7c74;
+  font-size: 11px;
+  grid-column: 3;
+}
+
+.admin-financial-recipient--selected {
+  background: #fffdf9;
+  border-color: #6fc19d;
+}
+
+.admin-financial-input {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-financial-input input {
+  background: #fff;
+  border: 1px solid #eee1d8;
+  border-radius: 11px;
+  color: #7d5e53;
+  font: inherit;
+  font-size: 18px;
+  height: 44px;
+  outline: 0;
+  padding: 0 14px;
+}
+
+.admin-financial-input input:focus {
+  border-color: #9a5d25;
+  box-shadow: 0 0 0 3px rgba(154, 93, 37, 0.12);
+}
+
+.admin-financial-modal footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.admin-financial-modal footer button {
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 20px;
+}
+
+.admin-financial-cancel {
+  background: #f4f0ed;
+  color: #5d4b43;
+}
+
+.admin-financial-confirm {
+  background: #955c25;
+  color: #fff;
+}
+
+.admin-financial-confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 @media (max-width: 1100px) {
   .admin-disputes-page {
     height: auto;
@@ -400,5 +582,26 @@
 
   .admin-dispute-send button {
     flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-financial-modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .admin-financial-modal {
+    max-width: none;
+    padding: 20px;
+  }
+
+  .admin-financial-modal footer {
+    flex-direction: column-reverse;
+  }
+
+  .admin-financial-modal footer button {
+    justify-content: center;
+    width: 100%;
   }
 }

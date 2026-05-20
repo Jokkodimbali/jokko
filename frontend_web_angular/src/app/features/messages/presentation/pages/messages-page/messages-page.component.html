@@ -63,7 +63,17 @@
               <span>{{ formatTime(conversation.lastMessageAt || conversation.createdAt) }}</span>
             </em>
           </span>
-          <lucide-icon name="star" size="23" [strokeWidth]="2.2"></lucide-icon>
+          <span class="messages-page__conversation-meta">
+            <span *ngIf="conversation.unreadCount > 0" class="messages-page__unread-badge">
+              {{ formatUnreadCount(conversation.unreadCount) }}
+            </span>
+            <lucide-icon
+              *ngIf="conversation.unreadCount === 0"
+              name="chevron-right"
+              size="22"
+              [strokeWidth]="2.4"
+            ></lucide-icon>
+          </span>
         </button>
       </div>
     </aside>
@@ -106,9 +116,22 @@
           class="messages-page__bubble-row"
           [class.messages-page__bubble-row--own]="isOwnMessage(message)"
         >
-          <time>{{ formatDate(message.createdAt) }}</time>
-          <p class="messages-page__bubble">{{ message.content || 'Piece jointe' }}</p>
-          <small>{{ formatTime(message.createdAt) }}</small>
+          <span class="messages-page__message-avatar">
+            <img
+              *ngIf="message.sender.avatarUrl; else messageInitials"
+              [src]="message.sender.avatarUrl"
+              [alt]="message.sender.name"
+            />
+            <ng-template #messageInitials>
+              <i>{{ initials(message.sender.name) }}</i>
+            </ng-template>
+          </span>
+          <span class="messages-page__bubble-stack">
+            <strong>{{ message.sender.name }}</strong>
+            <time>{{ formatDate(message.createdAt) }}</time>
+            <p class="messages-page__bubble">{{ message.content || 'Piece jointe' }}</p>
+            <small>{{ formatTime(message.createdAt) }}</small>
+          </span>
         </article>
 
         <article

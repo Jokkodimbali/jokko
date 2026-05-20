@@ -1,0 +1,93 @@
+<section class="admin-validation-page">
+  <header class="admin-section-heading">
+    <h1>Validation en attente</h1>
+    <p>Verifiez les documents avant d'approuver les prestataires</p>
+  </header>
+
+  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des dossiers KYC...</section>
+
+  <div class="admin-validation-layout" *ngIf="!isLoading && profiles.length > 0; else noValidation">
+    <aside class="admin-validation-list">
+      <button
+        *ngFor="let profile of profiles"
+        type="button"
+        [class.admin-validation-card--active]="selectedId() === profile.id"
+        (click)="select(profile.id)"
+        class="admin-validation-card"
+      >
+        <img *ngIf="profile.utilisateur.urlAvatar; else validationAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
+        <ng-template #validationAvatar>
+          <span>{{ initials(profile) }}</span>
+        </ng-template>
+        <strong>{{ title(profile) }}</strong>
+        <small>{{ subtitle(profile) }}</small>
+        <em>En attente</em>
+        <time>{{ formatDate(profile) }}</time>
+      </button>
+    </aside>
+
+    <article class="admin-validation-detail" *ngIf="selectedProfile() as profile">
+      <header>
+        <img *ngIf="profile.utilisateur.urlAvatar; else detailAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
+        <ng-template #detailAvatar>
+          <span>{{ initials(profile) }}</span>
+        </ng-template>
+        <div>
+          <h2>{{ title(profile) }}</h2>
+          <p>{{ subtitle(profile) }}</p>
+          <small>{{ profile.biographie || 'Dossier professionnel soumis pour verification' }}</small>
+        </div>
+      </header>
+
+      <dl class="admin-validation-meta">
+        <div>
+          <lucide-icon name="map-pin" size="13" [strokeWidth]="2"></lucide-icon>
+          <span>{{ profile.ville || 'Adresse non renseignee' }}</span>
+        </div>
+        <div>
+          <lucide-icon name="phone" size="13" [strokeWidth]="2"></lucide-icon>
+          <span>{{ profile.utilisateur.numeroTelephone }}</span>
+        </div>
+        <div>
+          <lucide-icon name="mail" size="13" [strokeWidth]="2"></lucide-icon>
+          <span>{{ profile.utilisateur.nom }}</span>
+        </div>
+        <div>
+          <lucide-icon name="calendar-days" size="13" [strokeWidth]="2"></lucide-icon>
+          <span>Soumis le {{ formatDate(profile) }}</span>
+        </div>
+      </dl>
+
+      <section class="admin-validation-documents">
+        <h3>Documents fournis</h3>
+        <a
+          *ngFor="let document of documents(profile)"
+          [href]="document.url || null"
+          [class.admin-document--missing]="!document.url"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <lucide-icon name="file-text" size="14" [strokeWidth]="2"></lucide-icon>
+          <span>{{ document.label }}</span>
+          <b>{{ document.url ? 'Fourni' : 'Manquant' }}</b>
+          <lucide-icon name="eye" size="13" [strokeWidth]="2"></lucide-icon>
+        </a>
+      </section>
+
+      <footer>
+        <button type="button" class="admin-validation-reject" (click)="rejectSelected()" [disabled]="actionId === profile.id">
+          <lucide-icon name="x" size="18" [strokeWidth]="2.2"></lucide-icon>
+          Rejeter
+        </button>
+        <button type="button" class="admin-validation-approve" (click)="approveSelected()" [disabled]="actionId === profile.id">
+          <lucide-icon name="check" size="18" [strokeWidth]="2.2"></lucide-icon>
+          Approuver le compte
+        </button>
+      </footer>
+    </article>
+  </div>
+</section>
+
+<ng-template #noValidation>
+  <section class="admin-validation-empty" *ngIf="!isLoading">Aucune validation en attente.</section>
+</ng-template>

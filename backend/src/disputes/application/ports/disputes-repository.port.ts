@@ -17,9 +17,39 @@ export type DisputeAdminListItem = Dispute & {
     id: string;
     statut: string;
     dateHeure: Date;
+    adresseClient: string;
+    dureeMinutes: number;
+    prixConvenu: number | null;
     clientId: string;
     professionnelId: string;
     serviceId: string;
+    service: {
+      id: string;
+      nom: string;
+      prix: number;
+    };
+    messages: Array<{
+      id: string;
+      expediteurId: string;
+      contenu: string | null;
+      urlMedia: string | null;
+      creeLe: Date;
+      expediteur: {
+        id: string;
+        nom: string;
+        role: string;
+      };
+    }>;
+    mediationMessages: Array<{
+      id: string;
+      destinataire: 'CLIENT' | 'PRESTATAIRE' | 'TOUS';
+      contenu: string;
+      creeLe: Date;
+      expediteurAdmin: {
+        id: string;
+        nom: string;
+      };
+    }>;
   };
   payment: {
     id: string;

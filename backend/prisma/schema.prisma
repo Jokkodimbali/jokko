@@ -20,6 +20,12 @@ enum StatutKyc {
   REJETE
 }
 
+enum StatutDiplomeMedical {
+  EN_ATTENTE
+  AUTHENTIFIE
+  REJETE
+}
+
 enum TypePrix {
   FIXE
   NEGOCIABLE
@@ -137,6 +143,12 @@ enum PrioriteLitige {
   HAUTE
 }
 
+enum DestinataireMessageLitige {
+  CLIENT
+  PRESTATAIRE
+  TOUS
+}
+
 enum DecisionResolutionLitige {
   REMBOURSER_CLIENT
   CREDITER_PRESTATAIRE
@@ -199,6 +211,7 @@ model Utilisateur {
   moyensPaiementEnregistres MoyenPaiementEnregistre[]
   litigesSignales           Litige[]               @relation("ReportedDisputes")
   litigesResolus            Litige[]               @relation("ResolvedDisputes")
+  messagesLitigeAdmin       MessageLitige[]        @relation("DisputeAdminMessages")
   sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
 
   @@map("users")
@@ -264,8 +277,30 @@ model ProfilProfessionnel {
   presence         PresenceProfessionnel?
   sessionsTracking SessionTrackingReservation[]
   favoris          FavoriProfessionnel[]
+  diplomesMedicaux DiplomeMedical[]
 
   @@map("professional_profiles")
+}
+
+model DiplomeMedical {
+  id                    String               @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String               @map("professional_id") @db.Uuid
+  titre                 String               @map("title") @db.VarChar(180)
+  etablissement         String               @map("institution") @db.VarChar(180)
+  promotion             String?              @map("graduation_year") @db.VarChar(20)
+  numeroReference       String?              @map("reference_number") @db.VarChar(80)
+  urlDocument           String?              @map("document_url") @db.VarChar(500)
+  statut                StatutDiplomeMedical @default(EN_ATTENTE) @map("status")
+  noteVerification      String?              @map("verification_note") @db.Text
+  verifieLe             DateTime?            @map("verified_at")
+  creeLe                DateTime             @default(now()) @map("created_at")
+  misAJourLe            DateTime             @updatedAt @map("updated_at")
+
+  profilProfessionnel   ProfilProfessionnel  @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+
+  @@index([profilProfessionnelId, statut])
+  @@index([statut, creeLe])
+  @@map("medical_credentials")
 }
 
 model FavoriProfessionnel {
@@ -537,11 +572,28 @@ model Litige {
   paiement                 Paiement?                   @relation(fields: [paiementId], references: [id], onDelete: SetNull)
   reporter                 Utilisateur                 @relation("ReportedDisputes", fields: [reporterUserId], references: [id], onDelete: Cascade)
   resolvedByAdmin          Utilisateur?                @relation("ResolvedDisputes", fields: [resolvedByAdminUserId], references: [id], onDelete: SetNull)
+  messagesMediation        MessageLitige[]
 
   @@index([statut, priorite, ouvertLe])
   @@index([reporterUserId, ouvertLe])
   @@index([resolvedByAdminUserId, resoluLe])
   @@map("disputes")
+}
+
+model MessageLitige {
+  id                String                    @id @default(uuid()) @db.Uuid
+  litigeId          String                    @map("dispute_id") @db.Uuid
+  expediteurAdminId String                    @map("admin_sender_id") @db.Uuid
+  destinataire      DestinataireMessageLitige @map("recipient")
+  contenu           String                    @map("content") @db.Text
+  creeLe            DateTime                  @default(now()) @map("created_at")
+
+  litige            Litige                    @relation(fields: [litigeId], references: [id], onDelete: Cascade)
+  expediteurAdmin   Utilisateur               @relation("DisputeAdminMessages", fields: [expediteurAdminId], references: [id], onDelete: Cascade)
+
+  @@index([litigeId, creeLe])
+  @@index([expediteurAdminId, creeLe])
+  @@map("dispute_messages")
 }
 
 model PresenceProfessionnel {

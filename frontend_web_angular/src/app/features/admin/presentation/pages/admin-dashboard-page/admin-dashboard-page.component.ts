@@ -5,14 +5,19 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import {
-  AdminActivityItem,
-  AdminCategoryMetric,
   AdminDashboard,
-  AdminDashboardService,
+  AdminDisputeCase,
   AdminKycProfile,
-  AdminPlatformMetric,
-  AdminSeriesPoint,
-} from '../../../data-access/admin-dashboard.service';
+  AdminMedicalValidation,
+} from '../../../data-access/admin.models';
+import { AdminDashboardService } from '../../../data-access/admin-dashboard.service';
+import { AdminDisputesService } from '../../../data-access/admin-disputes.service';
+import { AdminKycService } from '../../../data-access/admin-kyc.service';
+import { AdminMedicalCredentialsService } from '../../../data-access/admin-medical-credentials.service';
+import { AdminDisputesPanelComponent } from '../../components/admin-disputes-panel/admin-disputes-panel.component';
+import { AdminMedicalCredentialsPanelComponent } from '../../components/admin-medical-credentials-panel/admin-medical-credentials-panel.component';
+import { AdminKycValidationPanelComponent } from '../../components/admin-kyc-validation-panel/admin-kyc-validation-panel.component';
+import { AdminOverviewPanelComponent } from '../../components/admin-overview-panel/admin-overview-panel.component';
 
 type AdminSection =
   | 'overview'
@@ -29,21 +34,34 @@ type AdminSection =
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    LucideAngularModule,
+    AdminDisputesPanelComponent,
+    AdminKycValidationPanelComponent,
+    AdminMedicalCredentialsPanelComponent,
+    AdminOverviewPanelComponent,
+  ],
   templateUrl: './admin-dashboard-page.component.html',
   styleUrl: './admin-dashboard-page.component.scss',
 })
 export class AdminDashboardPageComponent implements OnInit {
-  protected readonly categoryColors = ['#d58a38', '#b95f34', '#86a361', '#9b8172', '#c96f48', '#6f8f77'];
   private readonly adminDashboardService = inject(AdminDashboardService);
+  private readonly adminDisputesService = inject(AdminDisputesService);
+  private readonly adminKycService = inject(AdminKycService);
+  private readonly adminMedicalCredentialsService = inject(AdminMedicalCredentialsService);
   private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
 
   protected readonly dashboard = signal<AdminDashboard | null>(null);
+  protected readonly disputeCases = signal<AdminDisputeCase[]>([]);
   protected readonly kycProfiles = signal<AdminKycProfile[]>([]);
-  protected readonly selectedKycId = signal<string | null>(null);
+  protected readonly medicalCredentialProfiles = signal<AdminMedicalValidation[]>([]);
   protected readonly isLoading = signal(true);
+  protected readonly isDisputesLoading = signal(false);
   protected readonly isKycLoading = signal(false);
+  protected readonly isMedicalLoading = signal(false);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
   protected readonly user = this.authSession.currentUser;
@@ -78,7 +96,6 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly categoryTotal = computed(() =>
     (this.dashboard()?.overview.categoryDistribution ?? []).reduce((sum, item) => sum + item.value, 0),
   );
-
   protected readonly navItems: Array<{
     key: AdminSection;
     label: string;
@@ -87,8 +104,8 @@ export class AdminDashboardPageComponent implements OnInit {
   }> = [
     { key: 'overview', label: 'Vue d ensemble', icon: 'layout-dashboard' },
     { key: 'validations', label: 'Validations', icon: 'shield-check', badge: () => this.dashboard()?.kyc.pending ?? 0 },
-    { key: 'doctors', label: 'Medecins- Diplomes', icon: 'stethoscope', badge: () => this.dashboard()?.kyc.pending ?? 0 },
-    { key: 'disputes', label: 'Litiges', icon: 'triangle-alert', badge: () => this.openDisputes() },
+    { key: 'doctors', label: 'Medecins- Diplomes', icon: 'stethoscope', badge: () => this.medicalCredentialProfiles().length },
+    { key: 'disputes', label: 'Litiges', icon: 'scale', badge: () => this.openDisputes() },
     { key: 'providers', label: 'Prestataires', icon: 'users', badge: () => this.providerCount() },
     { key: 'traffic', label: 'Trafic & Analytics', icon: 'chart-no-axes-combined', badge: () => this.trafficCount() },
     { key: 'revenue', label: 'Chiffre d affaire', icon: 'wallet-cards', badge: () => this.dashboard()?.revenue.monthlyGross ?? 0 },
@@ -96,11 +113,6 @@ export class AdminDashboardPageComponent implements OnInit {
     { key: 'archives', label: 'Archives', icon: 'archive', badge: () => this.closedDisputes() },
     { key: 'structure', label: 'Structure des Services', icon: 'git-fork', badge: () => this.categoryTotal() },
   ];
-
-  protected readonly selectedKyc = computed(() => {
-    const profiles = this.kycProfiles();
-    return profiles.find((profile) => profile.id === this.selectedKycId()) ?? profiles[0] ?? null;
-  });
 
   ngOnInit(): void {
     if (this.authSession.getAuthenticatedRole() !== 'ADMIN') {
@@ -127,12 +139,107 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'validations' && this.kycProfiles().length === 0) {
       this.loadPendingKyc();
     }
+    if (section === 'doctors' && this.medicalCredentialProfiles().length === 0) {
+      this.loadMedicalCredentials();
+    }
+    if (section === 'disputes' && this.disputeCases().length === 0) {
+      this.loadDisputes();
+    }
+  }
+
+  protected loadDisputes(): void {
+    this.isDisputesLoading.set(true);
+    this.adminDisputesService
+      .listOpen()
+      .pipe(
+        catchError(() => {
+          this.isDisputesLoading.set(false);
+          return of([]);
+        }),
+      )
+      .subscribe((disputes) => {
+        this.disputeCases.set(disputes);
+        this.isDisputesLoading.set(false);
+      });
+  }
+
+  protected handleDisputeAction(payload: {
+    disputeId: string;
+    action:
+      | 'review'
+      | 'refund-client'
+      | 'credit-professional'
+      | 'message-client'
+      | 'message-professional'
+      | 'message-both';
+    notes?: string;
+  }): void {
+    this.kycActionId.set(payload.disputeId);
+    const request = this.buildDisputeActionRequest(payload);
+
+    request
+      .pipe(
+        catchError(() => {
+          this.kycActionId.set(null);
+          return of(null);
+        }),
+      )
+      .subscribe((updated) => this.afterDisputeMutation(updated));
+  }
+
+  private buildDisputeActionRequest(payload: {
+    disputeId: string;
+    action:
+      | 'review'
+      | 'refund-client'
+      | 'credit-professional'
+      | 'message-client'
+      | 'message-professional'
+      | 'message-both';
+    notes?: string;
+  }) {
+    if (payload.action === 'refund-client') {
+      return this.adminDisputesService.refundClient(payload.disputeId, payload.notes ?? '');
+    }
+    if (payload.action === 'credit-professional') {
+      return this.adminDisputesService.creditProfessional(payload.disputeId, payload.notes ?? '');
+    }
+    if (payload.action === 'message-client') {
+      return this.adminDisputesService.sendMessage(payload.disputeId, 'CLIENT', payload.notes ?? '');
+    }
+    if (payload.action === 'message-professional') {
+      return this.adminDisputesService.sendMessage(payload.disputeId, 'PRESTATAIRE', payload.notes ?? '');
+    }
+    if (payload.action === 'message-both') {
+      return this.adminDisputesService.sendMessage(payload.disputeId, 'TOUS', payload.notes ?? '');
+    }
+    return this.adminDisputesService.markInReview(payload.disputeId);
+  }
+
+  protected afterDisputeMutation(updated: AdminDisputeCase | unknown | null): void {
+    this.kycActionId.set(null);
+    if (updated && this.isAdminDisputeCase(updated)) {
+      this.disputeCases.set(
+        this.disputeCases().map((dispute) => (dispute.id === updated.id ? updated : dispute)),
+      );
+    }
+    this.loadDisputes();
+    this.adminDashboardService
+      .getDashboard()
+      .pipe(catchError(() => of(null)))
+      .subscribe((dashboard) => {
+        if (dashboard) this.dashboard.set(dashboard);
+      });
+  }
+
+  private isAdminDisputeCase(value: unknown): value is AdminDisputeCase {
+    return typeof value === 'object' && value !== null && 'reservationId' in value;
   }
 
   protected loadPendingKyc(): void {
     this.isKycLoading.set(true);
-    this.adminDashboardService
-      .listPendingKyc()
+    this.adminKycService
+      .listPending()
       .pipe(
         catchError(() => {
           this.isKycLoading.set(false);
@@ -141,17 +248,14 @@ export class AdminDashboardPageComponent implements OnInit {
       )
       .subscribe((profiles) => {
         this.kycProfiles.set(profiles);
-        this.selectedKycId.set(profiles[0]?.id ?? null);
         this.isKycLoading.set(false);
       });
   }
 
-  protected approveSelectedKyc(): void {
-    const profile = this.selectedKyc();
-    if (!profile) return;
-    this.kycActionId.set(profile.id);
-    this.adminDashboardService
-      .approveKyc(profile.id)
+  protected approveKyc(profileId: string): void {
+    this.kycActionId.set(profileId);
+    this.adminKycService
+      .approve(profileId)
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
@@ -161,14 +265,10 @@ export class AdminDashboardPageComponent implements OnInit {
       .subscribe((updated) => this.afterKycMutation(updated));
   }
 
-  protected rejectSelectedKyc(): void {
-    const profile = this.selectedKyc();
-    if (!profile) return;
-    const reason = window.prompt('Motif du rejet du dossier KYC');
-    if (!reason?.trim()) return;
-    this.kycActionId.set(profile.id);
-    this.adminDashboardService
-      .rejectKyc(profile.id, reason.trim())
+  protected rejectKyc(payload: { profileId: string; reason: string }): void {
+    this.kycActionId.set(payload.profileId);
+    this.adminKycService
+      .reject(payload.profileId, payload.reason)
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
@@ -183,7 +283,6 @@ export class AdminDashboardPageComponent implements OnInit {
     if (!updated) return;
     const remaining = this.kycProfiles().filter((profile) => profile.id !== updated.id);
     this.kycProfiles.set(remaining);
-    this.selectedKycId.set(remaining[0]?.id ?? null);
     const dashboard = this.dashboard();
     if (!dashboard) return;
     this.dashboard.set({
@@ -192,44 +291,69 @@ export class AdminDashboardPageComponent implements OnInit {
         ...dashboard.kyc,
         pending: Math.max(0, dashboard.kyc.pending - 1),
       },
+      overview: {
+        ...dashboard.overview,
+      },
     });
   }
 
-  protected kycTitle(profile: AdminKycProfile): string {
-    return profile.nomEntreprise || profile.utilisateur.nom;
+  protected loadMedicalCredentials(): void {
+    this.isMedicalLoading.set(true);
+    this.adminMedicalCredentialsService
+      .listPending()
+      .pipe(
+        catchError(() => {
+          this.isMedicalLoading.set(false);
+          return of([]);
+        }),
+      )
+      .subscribe((profiles) => {
+        this.medicalCredentialProfiles.set(profiles);
+        this.isMedicalLoading.set(false);
+      });
   }
 
-  protected kycSubtitle(profile: AdminKycProfile): string {
-    return profile.biographie || profile.ville || 'Profil professionnel';
+  protected certifyMedical(profileId: string): void {
+    this.kycActionId.set(profileId);
+    this.adminMedicalCredentialsService
+      .certify(profileId)
+      .pipe(
+        catchError(() => {
+          this.kycActionId.set(null);
+          return of(null);
+        }),
+      )
+      .subscribe((updated) => this.afterMedicalMutation(updated?.professionalId ?? null));
   }
 
-  protected kycInitials(profile: AdminKycProfile): string {
-    const value = this.kycTitle(profile);
-    return value
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+  protected rejectMedical(payload: { profileId: string; reason: string }): void {
+    this.kycActionId.set(payload.profileId);
+    this.adminMedicalCredentialsService
+      .reject(payload.profileId, payload.reason)
+      .pipe(
+        catchError(() => {
+          this.kycActionId.set(null);
+          return of(null);
+        }),
+      )
+      .subscribe((updated) => this.afterMedicalMutation(updated?.professionalId ?? null));
   }
 
-  protected kycDate(profile: AdminKycProfile): Date {
-    return new Date(profile.creeLe);
-  }
-
-  protected formatKycDate(profile: AdminKycProfile): string {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(this.kycDate(profile));
-  }
-
-  protected kycDocuments(profile: AdminKycProfile): Array<{ label: string; url: string | null }> {
-    return [
-      { label: "Piece d'identite recto", url: profile.urlPieceIdentiteRecto },
-      { label: "Piece d'identite verso", url: profile.urlPieceIdentiteVerso },
-    ];
+  protected afterMedicalMutation(profileId: string | null): void {
+    this.kycActionId.set(null);
+    if (!profileId) return;
+    const dashboard = this.dashboard();
+    const remaining = this.medicalCredentialProfiles().filter((profile) => profile.id !== profileId);
+    this.medicalCredentialProfiles.set(remaining);
+    if (!dashboard) return;
+    this.dashboard.set({
+      ...dashboard,
+      kyc: {
+        ...dashboard.kyc,
+        pending: Math.max(0, dashboard.kyc.pending - 1),
+      },
+    });
+    this.kycProfiles.set(this.kycProfiles().filter((profile) => profile.id !== profileId));
   }
 
   protected formatMetric(value: number, unit?: string): string {
@@ -256,90 +380,4 @@ export class AdminDashboardPageComponent implements OnInit {
     }
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
   }
-
-  protected formatCompact(value: number): string {
-    if (value >= 1_000_000) {
-      return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value / 1_000_000)}M`;
-    }
-    if (value >= 1_000) {
-      return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value / 1_000)}K`;
-    }
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
-  }
-
-  protected chartMax(series: AdminSeriesPoint[], keys: Array<'gross' | 'commission' | 'web' | 'ios' | 'android'>): number {
-    return Math.max(1, ...series.flatMap((point) => keys.map((key) => Number(point[key] ?? 0))));
-  }
-
-  protected chartPointX(index: number, total: number): number {
-    if (total <= 1) return 40;
-    return 40 + (index * 500) / (total - 1);
-  }
-
-  protected chartPointY(
-    value: number,
-    series: AdminSeriesPoint[],
-    keys: Array<'gross' | 'commission' | 'web' | 'ios' | 'android'>,
-  ): number {
-    return 150 - (Number(value || 0) / this.chartMax(series, keys)) * 112;
-  }
-
-  protected chartTicks(
-    series: AdminSeriesPoint[],
-    keys: Array<'gross' | 'commission' | 'web' | 'ios' | 'android'>,
-  ): number[] {
-    const max = this.chartMax(series, keys);
-    return [max, max * 0.75, max * 0.5, max * 0.25, 0];
-  }
-
-  protected chartTickY(index: number): number {
-    return 38 + index * 28;
-  }
-
-  protected linePoints(
-    series: AdminSeriesPoint[],
-    key: 'gross' | 'commission',
-  ): string {
-    return series
-      .map((point, index) => {
-        const x = this.chartPointX(index, series.length);
-        const y = this.chartPointY(Number(point[key] ?? 0), series, ['gross', 'commission']);
-        return `${x},${y}`;
-      })
-      .join(' ');
-  }
-
-  protected areaPoints(series: AdminSeriesPoint[], key: 'gross' | 'commission'): string {
-    if (series.length === 0) return '';
-    const line = this.linePoints(series, key);
-    const start = this.chartPointX(0, series.length);
-    const end = this.chartPointX(series.length - 1, series.length);
-    return `${start},150 ${line} ${end},150`;
-  }
-
-  protected barHeight(
-    value: number,
-    series: AdminSeriesPoint[],
-  ): number {
-    return Math.max(2, (Number(value || 0) / this.chartMax(series, ['web', 'ios', 'android'])) * 118);
-  }
-
-  protected categoryOffset(categories: AdminCategoryMetric[], index: number): number {
-    return categories.slice(0, index).reduce((sum, category) => sum + category.share, 0);
-  }
-
-  protected categoryColor(index: number): string {
-    return this.categoryColors[index % this.categoryColors.length];
-  }
-
-  protected platformIcon(platform: AdminPlatformMetric): string {
-    if (platform.key === 'ios') return 'apple';
-    if (platform.key === 'android') return 'smartphone';
-    return 'globe-2';
-  }
-
-  protected activityDate(activity: AdminActivityItem): Date {
-    return new Date(activity.timestamp);
-  }
-
 }

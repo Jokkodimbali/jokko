@@ -517,6 +517,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Litige rejete avec succes.',
     },
+    DISPUTES_MESSAGE_SENT: {
+      code: 'DISPUTES_MESSAGE_SENT',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Message de mediation envoye avec succes.',
+    },
     DISPUTES_NOT_FOUND: {
       code: 'DISPUTES_NOT_FOUND',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
@@ -792,6 +797,21 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'ADMIN_DASHBOARD_RETRIEVED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Tableau de bord admin recupere avec succes.',
+    },
+    ADMIN_MEDICAL_CREDENTIALS_RETRIEVED: {
+      code: 'ADMIN_MEDICAL_CREDENTIALS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Diplomes medecins recuperes avec succes.',
+    },
+    ADMIN_MEDICAL_CREDENTIALS_CERTIFIED: {
+      code: 'ADMIN_MEDICAL_CREDENTIALS_CERTIFIED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Diplomes medecins certifies avec succes.',
+    },
+    ADMIN_MEDICAL_CREDENTIALS_REJECTED: {
+      code: 'ADMIN_MEDICAL_CREDENTIALS_REJECTED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Diplomes medecins rejetes avec succes.',
     },
   },
   system: {

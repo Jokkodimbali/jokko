@@ -7,6 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
@@ -176,6 +177,22 @@ export class MessagingGateway implements OnGatewayConnection {
     this.server
       .to(this.buildUserRoom(recipientUserId))
       .emit('conversation.message.created', message);
+  }
+
+  @OnEvent('conversation.message.created')
+  handleRealtimeMessageCreated(payload: {
+    message: ConversationMessageView;
+    recipientUserIds: string[];
+  }): void {
+    this.server
+      .to(this.buildConversationRoom(payload.message.conversationId))
+      .emit('conversation.message.created', payload.message);
+
+    for (const recipientUserId of payload.recipientUserIds) {
+      this.server
+        .to(this.buildUserRoom(recipientUserId))
+        .emit('conversation.message.created', payload.message);
+    }
   }
 
   private publishMessagesRead(

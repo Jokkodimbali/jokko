@@ -1,0 +1,183 @@
+<section class="admin-disputes-page">
+  <header class="admin-disputes-heading">
+    <div>
+      <lucide-icon name="scale" size="40" [strokeWidth]="2.2"></lucide-icon>
+      <h1>Gestion des litiges</h1>
+    </div>
+    <p>Mediation entre prestataires et clients - {{ averageResponseLabel() }}</p>
+  </header>
+
+  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des litiges...</section>
+
+  <div class="admin-disputes-layout" *ngIf="!isLoading && disputes.length > 0; else noDisputes">
+    <aside class="admin-disputes-list" aria-label="Liste des litiges">
+      <button
+        *ngFor="let dispute of disputes"
+        type="button"
+        class="admin-dispute-card"
+        [class.admin-dispute-card--active]="selectedId() === dispute.id"
+        (click)="select(dispute.id)"
+      >
+        <strong>{{ title(dispute) }}</strong>
+        <span>{{ statusLabel(dispute.statut) }}</span>
+        <small>{{ serviceLabel(dispute) }} . {{ formatMoney(disputeAmount(dispute)) }} FCFA</small>
+        <em>{{ priorityLabel(dispute.priorite) }}</em>
+        <time>
+          <lucide-icon name="clock-3" size="12" [strokeWidth]="2"></lucide-icon>
+          {{ relativeTime(dispute.ouvertLe) }}
+        </time>
+      </button>
+    </aside>
+
+    <article class="admin-dispute-detail" *ngIf="selectedDispute() as dispute" aria-label="Discussion du litige selectionne">
+      <section class="admin-dispute-detail__fixed">
+        <header>
+          <h2>{{ serviceLabel(dispute) }}</h2>
+          <span>{{ statusLabel(dispute.statut) }}</span>
+        </header>
+
+        <section class="admin-dispute-parties">
+          <div>
+            <lucide-icon name="users" size="14" [strokeWidth]="2"></lucide-icon>
+            <small>Client</small>
+            <strong>{{ dispute.client.nom }}</strong>
+          </div>
+          <div>
+            <lucide-icon name="wrench" size="14" [strokeWidth]="2"></lucide-icon>
+            <small>Prestataire</small>
+            <strong>{{ dispute.professional.nom }}</strong>
+          </div>
+        </section>
+
+        <section class="admin-dispute-summary">
+          <lucide-icon name="triangle-alert" size="15" [strokeWidth]="2.2"></lucide-icon>
+          <strong>Resume du litige</strong>
+          <p>{{ dispute.raison }}</p>
+          <b>montant en jeu : {{ formatMoney(disputeAmount(dispute)) }} FCFA</b>
+        </section>
+      </section>
+
+      <section class="admin-dispute-thread" aria-label="Messages du litige">
+        <article
+          *ngFor="let message of threadItems(dispute)"
+          class="admin-dispute-message"
+          [class.admin-dispute-message--client]="message.tone === 'client'"
+          [class.admin-dispute-message--professional]="message.tone === 'professional'"
+          [class.admin-dispute-message--moderation]="message.tone === 'moderation'"
+        >
+          <strong>{{ message.author }}</strong>
+          <p>{{ message.content }}</p>
+          <a *ngIf="message.mediaUrl" [href]="message.mediaUrl" target="_blank" rel="noreferrer">Voir le media</a>
+        </article>
+      </section>
+
+      <footer class="admin-dispute-composer">
+        <div class="admin-dispute-actions">
+          <button type="button" (click)="openFinancialDecision('refund-client')" [disabled]="actionId === dispute.id || isClosed(dispute)">
+            <lucide-icon name="banknote" size="14" [strokeWidth]="2"></lucide-icon>
+            Remboursement client
+          </button>
+          <button type="button" (click)="openFinancialDecision('credit-professional')" [disabled]="actionId === dispute.id || isClosed(dispute)">
+            <lucide-icon name="wallet-cards" size="14" [strokeWidth]="2"></lucide-icon>
+            Indemniser le prestataire
+          </button>
+        </div>
+
+        <textarea
+          [value]="resolutionNote()"
+          (input)="updateNote($event)"
+          [disabled]="isClosed(dispute)"
+          placeholder="Message officiel de la moderation..."
+          rows="2"
+        ></textarea>
+
+        <div class="admin-dispute-send">
+          <button type="button" (click)="runAction('message-client')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+            <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
+            Envoyer au client
+          </button>
+          <button type="button" (click)="runAction('message-professional')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+            <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
+            Envoyer au prestataire
+          </button>
+          <button type="button" (click)="runAction('message-both')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+            <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
+            Envoyer aux deux
+          </button>
+        </div>
+      </footer>
+    </article>
+  </div>
+</section>
+
+<ng-template #noDisputes>
+  <section class="admin-validation-empty" *ngIf="!isLoading">Aucun litige ouvert ou historise pour le moment.</section>
+</ng-template>
+
+<section
+  class="admin-financial-modal-backdrop"
+  *ngIf="financialDecision() as decision"
+  (click)="closeFinancialDecision()"
+  aria-label="Decision financiere du litige"
+>
+  <article class="admin-financial-modal" *ngIf="selectedDispute() as dispute" (click)="$event.stopPropagation()">
+    <header>
+      <span>
+        <lucide-icon name="wallet-cards" size="26" [strokeWidth]="2.1"></lucide-icon>
+      </span>
+      <div>
+        <h2>Decision financiere - {{ shortDisputeCode(dispute) }}</h2>
+        <p>Choisissez le beneficiaire du remboursement. Le montant sera preleve sur le sequestre du litige</p>
+      </div>
+    </header>
+
+    <section class="admin-financial-fieldset" aria-label="Beneficiaire">
+      <strong>BENEFICIAIRE</strong>
+      <button
+        type="button"
+        class="admin-financial-recipient"
+        [class.admin-financial-recipient--selected]="decision.beneficiary === 'CLIENT'"
+        (click)="selectFinancialBeneficiary('CLIENT')"
+      >
+        <span></span>
+        <lucide-icon name="users" size="18" [strokeWidth]="1.9"></lucide-icon>
+        <b>{{ financialBeneficiaryTitle(dispute, 'CLIENT') }}</b>
+        <small>{{ financialBeneficiarySubtitle('CLIENT') }}</small>
+      </button>
+      <button
+        type="button"
+        class="admin-financial-recipient"
+        [class.admin-financial-recipient--selected]="decision.beneficiary === 'PRESTATAIRE'"
+        (click)="selectFinancialBeneficiary('PRESTATAIRE')"
+      >
+        <span></span>
+        <lucide-icon name="wrench" size="18" [strokeWidth]="1.9"></lucide-icon>
+        <b>{{ financialBeneficiaryTitle(dispute, 'PRESTATAIRE') }}</b>
+        <small>{{ financialBeneficiarySubtitle('PRESTATAIRE') }}</small>
+      </button>
+    </section>
+
+    <label class="admin-financial-input">
+      <span>Montant ( FCFA )</span>
+      <input type="text" inputmode="numeric" [value]="financialAmount()" (input)="updateFinancialAmount($event)" />
+    </label>
+
+    <label class="admin-financial-input">
+      <span>Motif de la decision</span>
+      <input type="text" [value]="financialNote()" (input)="updateFinancialNote($event)" />
+    </label>
+
+    <footer>
+      <button type="button" class="admin-financial-cancel" (click)="closeFinancialDecision()">Annuler</button>
+      <button
+        type="button"
+        class="admin-financial-confirm"
+        (click)="confirmFinancialDecision()"
+        [disabled]="actionId === dispute.id || !canConfirmFinancialDecision()"
+      >
+        <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2"></lucide-icon>
+        confirmer le versement
+      </button>
+    </footer>
+  </article>
+</section>

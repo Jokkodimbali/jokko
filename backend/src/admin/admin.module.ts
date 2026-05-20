@@ -2,11 +2,23 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AdminDashboardService } from './application/services/admin-dashboard.service';
+import { AdminMedicalCredentialsService } from './application/services/admin-medical-credentials.service';
+import { AdminProvidersService } from './application/services/admin-providers.service';
 import { AdminDashboardController } from './presentation/controllers/admin-dashboard.controller';
+import { AdminMedicalCredentialsController } from './presentation/controllers/admin-medical-credentials.controller';
+import { AdminProvidersController } from './presentation/controllers/admin-providers.controller';
 
 @Module({
   imports: [PrismaModule, AuthModule],
-  controllers: [AdminDashboardController],
-  providers: [AdminDashboardService],
+  controllers: [
+    AdminDashboardController,
+    AdminMedicalCredentialsController,
+    AdminProvidersController,
+  ],
+  providers: [
+    AdminDashboardService,
+    AdminMedicalCredentialsService,
+    AdminProvidersService,
+  ],
 })
 export class AdminModule {}

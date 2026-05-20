@@ -16,7 +16,11 @@ export class AdminDashboardService {
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(now.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -49,7 +53,9 @@ export class AdminDashboardService {
       this.prisma.profilProfessionnel.count({
         where: { statutKyc: 'EN_ATTENTE' },
       }),
-      this.prisma.profilProfessionnel.count({ where: { statutKyc: 'VERIFIE' } }),
+      this.prisma.profilProfessionnel.count({
+        where: { statutKyc: 'VERIFIE' },
+      }),
       this.prisma.reservation.count({ where: { statut: 'EN_ATTENTE' } }),
       this.prisma.reservation.count({ where: { statut: 'CONFIRMEE' } }),
       this.prisma.reservation.count({ where: { statut: 'PAYEE_SEQUESTRE' } }),
@@ -130,7 +136,9 @@ export class AdminDashboardService {
 
     const revenueGross = Number(paymentStats._sum.montant ?? 0);
     const monthlyRevenue = Number(monthlyPaymentStats._sum.montant ?? 0);
-    const previousMonthlyRevenue = Number(previousMonthlyPaymentStats._sum.montant ?? 0);
+    const previousMonthlyRevenue = Number(
+      previousMonthlyPaymentStats._sum.montant ?? 0,
+    );
     const platformTotals = this.buildPlatformTotals(auditLogs);
     const categoryDistribution = this.buildCategoryDistribution(categories);
     const trafficSeries = this.buildTrafficSeries(auditLogs, sevenDaysAgo);
@@ -165,7 +173,9 @@ export class AdminDashboardService {
         gross: revenueGross,
         commission: Number(paymentStats._sum.montantCommission ?? 0),
         monthlyGross: monthlyRevenue,
-        monthlyCommission: Number(monthlyPaymentStats._sum.montantCommission ?? 0),
+        monthlyCommission: Number(
+          monthlyPaymentStats._sum.montantCommission ?? 0,
+        ),
       },
       overview: {
         status: 'operationnel',
@@ -202,7 +212,10 @@ export class AdminDashboardService {
             label: 'LITIGES OUVERTS',
             value: openDisputes + inReviewDisputes,
             unit: 'litiges',
-            trend: this.calculateTrend(openDisputes + inReviewDisputes, resolvedDisputes + rejectedDisputes),
+            trend: this.calculateTrend(
+              openDisputes + inReviewDisputes,
+              resolvedDisputes + rejectedDisputes,
+            ),
             caption: `${resolvedDisputes + rejectedDisputes} clotures`,
             tone: 'danger',
           },
@@ -224,13 +237,19 @@ export class AdminDashboardService {
             key: 'android',
             label: 'Application Android',
             value: platformTotals.android,
-            share: this.percentage(platformTotals.android, platformTotals.total),
+            share: this.percentage(
+              platformTotals.android,
+              platformTotals.total,
+            ),
           },
         ],
         revenueSeries: this.buildRevenueSeries(revenuePayments, now),
         trafficSeries,
         categoryDistribution,
-        recentActivity: this.buildRecentActivity(recentAuditLogs, recentPayments),
+        recentActivity: this.buildRecentActivity(
+          recentAuditLogs,
+          recentPayments,
+        ),
       },
     };
   }
@@ -247,7 +266,12 @@ export class AdminDashboardService {
 
   private classifyPlatform(userAgent: string | null): PlatformKey {
     const value = (userAgent ?? '').toLowerCase();
-    if (value.includes('iphone') || value.includes('ipad') || value.includes('ios')) return 'ios';
+    if (
+      value.includes('iphone') ||
+      value.includes('ipad') ||
+      value.includes('ios')
+    )
+      return 'ios';
     if (value.includes('android')) return 'android';
     return 'web';
   }
@@ -256,7 +280,10 @@ export class AdminDashboardService {
     categories: { nom: string; services: { id: string }[] }[],
   ) {
     const rows = categories
-      .map((category) => ({ label: category.nom, value: category.services.length }))
+      .map((category) => ({
+        label: category.nom,
+        value: category.services.length,
+      }))
       .filter((category) => category.value > 0);
     const total = rows.reduce((sum, row) => sum + row.value, 0);
 
@@ -308,21 +335,44 @@ export class AdminDashboardService {
     const rows = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + index);
-      return { date, label: labels[date.getDay() === 0 ? 6 : date.getDay() - 1], web: 0, ios: 0, android: 0 };
+      return {
+        date,
+        label: labels[date.getDay() === 0 ? 6 : date.getDay() - 1],
+        web: 0,
+        ios: 0,
+        android: 0,
+      };
     });
 
     for (const log of logs) {
-      const index = Math.floor((log.creeLe.getTime() - startDate.getTime()) / 86_400_000);
+      const index = Math.floor(
+        (log.creeLe.getTime() - startDate.getTime()) / 86_400_000,
+      );
       if (index < 0 || index > 6) continue;
       rows[index][this.classifyPlatform(log.userAgent)] += 1;
     }
 
-    return rows.map(({ label, web, ios, android }) => ({ label, web, ios, android }));
+    return rows.map(({ label, web, ios, android }) => ({
+      label,
+      web,
+      ios,
+      android,
+    }));
   }
 
   private buildRecentActivity(
-    auditLogs: { nomUtilisateur: string | null; description: string; typeAction: string; creeLe: Date }[],
-    payments: { montant: unknown; methode: string; creeLe: Date; client: { nom: string } }[],
+    auditLogs: {
+      nomUtilisateur: string | null;
+      description: string;
+      typeAction: string;
+      creeLe: Date;
+    }[],
+    payments: {
+      montant: unknown;
+      methode: string;
+      creeLe: Date;
+      client: { nom: string };
+    }[],
   ) {
     const audit = auditLogs.map((log) => ({
       title: log.nomUtilisateur ?? log.typeAction,

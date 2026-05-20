@@ -26,9 +26,19 @@ const DISPUTE_INCLUDE = {
       id: true,
       statut: true,
       dateHeure: true,
+      adresseClient: true,
+      dureeMinutes: true,
+      prixConvenu: true,
       clientId: true,
       professionnelId: true,
       serviceId: true,
+      service: {
+        select: {
+          id: true,
+          nom: true,
+          prix: true,
+        },
+      },
       client: {
         select: {
           id: true,
@@ -44,6 +54,28 @@ const DISPUTE_INCLUDE = {
               id: true,
               nom: true,
             },
+          },
+        },
+      },
+      conversation: {
+        select: {
+          messages: {
+            select: {
+              id: true,
+              expediteurId: true,
+              contenu: true,
+              urlMedia: true,
+              creeLe: true,
+              expediteur: {
+                select: {
+                  id: true,
+                  nom: true,
+                  role: true,
+                },
+              },
+            },
+            orderBy: { creeLe: 'asc' },
+            take: 20,
           },
         },
       },
@@ -70,6 +102,21 @@ const DISPUTE_INCLUDE = {
       nom: true,
       role: true,
     },
+  },
+  messagesMediation: {
+    select: {
+      id: true,
+      destinataire: true,
+      contenu: true,
+      creeLe: true,
+      expediteurAdmin: {
+        select: {
+          id: true,
+          nom: true,
+        },
+      },
+    },
+    orderBy: { creeLe: 'asc' },
   },
 } as const;
 
@@ -488,9 +535,41 @@ export class DisputesRepository implements DisputesRepositoryPort {
         id: record.reservation.id,
         statut: record.reservation.statut,
         dateHeure: record.reservation.dateHeure,
+        adresseClient: record.reservation.adresseClient,
+        dureeMinutes: record.reservation.dureeMinutes,
+        prixConvenu: record.reservation.prixConvenu
+          ? Number(record.reservation.prixConvenu)
+          : null,
         clientId: record.reservation.clientId,
         professionnelId: record.reservation.professionnelId,
         serviceId: record.reservation.serviceId,
+        service: {
+          id: record.reservation.service.id,
+          nom: record.reservation.service.nom,
+          prix: Number(record.reservation.service.prix),
+        },
+        messages: record.reservation.conversation?.messages.map((message) => ({
+          id: message.id,
+          expediteurId: message.expediteurId,
+          contenu: message.contenu,
+          urlMedia: message.urlMedia,
+          creeLe: message.creeLe,
+          expediteur: {
+            id: message.expediteur.id,
+            nom: message.expediteur.nom,
+            role: message.expediteur.role,
+          },
+        })) ?? [],
+        mediationMessages: record.messagesMediation.map((message) => ({
+          id: message.id,
+          destinataire: message.destinataire,
+          contenu: message.contenu,
+          creeLe: message.creeLe,
+          expediteurAdmin: {
+            id: message.expediteurAdmin.id,
+            nom: message.expediteurAdmin.nom,
+          },
+        })),
       },
       payment: record.paiement
         ? {

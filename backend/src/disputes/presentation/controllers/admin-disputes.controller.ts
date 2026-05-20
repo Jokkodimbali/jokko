@@ -3,6 +3,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
   Body,
@@ -28,18 +29,23 @@ import {
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 import { DisputesFacade } from '../../application/services/disputes-facade.service';
+import { DisputeMediationMessageService } from '../../application/services/dispute-mediation-message.service';
 import { ListDisputesQueryDto } from '../dto/list-disputes-query.dto';
 import {
   RejectDisputeDto,
   ResolveDisputeDto,
 } from '../dto/resolve-dispute.dto';
+import { SendDisputeMessageDto } from '../dto/send-dispute-message.dto';
 
 @ApiTags(API_DOCS.disputes.tag)
 @ApiBearerAuth()
 @Controller('admin/disputes')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminDisputesController {
-  constructor(private readonly disputesFacade: DisputesFacade) {}
+  constructor(
+    private readonly disputesFacade: DisputesFacade,
+    private readonly disputeMessages: DisputeMediationMessageService,
+  ) {}
 
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
@@ -243,5 +249,19 @@ export class AdminDisputesController {
   ) {
     const result = await this.disputesFacade.reject(user, disputeId, body);
     return createApiResponse(result, appMessage('DISPUTES_REJECTED').message);
+  }
+
+  @Post(':disputeId/messages')
+  @Roles(RoleUtilisateur.ADMIN)
+  async sendMediationMessage(
+    @CurrentUser() user: AuthUser,
+    @Param('disputeId') disputeId: string,
+    @Body() body: SendDisputeMessageDto,
+  ) {
+    const result = await this.disputeMessages.send(user, disputeId, body);
+    return createApiResponse(
+      result,
+      appMessage('DISPUTES_MESSAGE_SENT').message,
+    );
   }
 }

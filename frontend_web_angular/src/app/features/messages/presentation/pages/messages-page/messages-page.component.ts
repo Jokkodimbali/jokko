@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
@@ -13,6 +14,7 @@ import {
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
 import { MessagesService } from '../../../data-access/messages.service';
+import { MessagesRealtimeService } from '../../../data-access/messages-realtime.service';
 import { Conversation, ConversationMessage } from '../../../domain/models/messages.models';
 
 interface PendingProposal {
@@ -49,6 +51,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly proposalService = inject(ServiceProposalService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly currentUser = this.authSession.currentUser;
@@ -67,6 +70,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly priceProposals = signal<NegotiationView[]>([]);
   protected readonly appointmentPreview = signal<AppointmentView | null>(null);
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
+  private realtimeMessageSubscription: Subscription | null = null;
 
   protected readonly selectedConversation = computed(() =>
     this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
@@ -137,6 +141,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.readPendingProposalFromQuery();
+    this.startRealtimeMessaging();
     this.startProposalRefresh();
     this.loadConversations();
   }
@@ -145,6 +150,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     if (this.proposalStatusRefreshId) {
       clearInterval(this.proposalStatusRefreshId);
     }
+    this.realtimeMessageSubscription?.unsubscribe();
+    this.messagesRealtime.disconnect();
   }
 
   protected selectConversation(conversationId: string): void {
@@ -153,6 +160,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     this.selectedConversationId.set(conversationId);
+    this.markConversationAsReadLocally(conversationId);
+    this.messagesRealtime.joinConversation(conversationId);
     this.appointmentPreview.set(null);
     this.loadMessages(conversationId);
     setTimeout(() => this.loadAppointmentPreviewForVisibleProposal(), 0);
@@ -177,7 +186,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isSending.set(true);
     this.messagesService.sendMessage(conversation.id, content).subscribe({
       next: (message) => {
-        this.messages.update((items) => [...items, message]);
+        this.upsertMessage(message);
         this.draft.set('');
         this.isSending.set(false);
         this.refreshConversationsSilently();
@@ -232,6 +241,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected formatAmount(value: number): string {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0);
+  }
+
+  protected formatUnreadCount(value: number): string {
+    return value > 99 ? '99+' : value.toString();
   }
 
   protected payAcceptedProposal(): void {
@@ -394,6 +407,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.isLoadingConversations.set(false);
 
         if (selectedId) {
+          this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
         }
       },
@@ -410,7 +424,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.messagesService.listMessages(conversationId).subscribe({
       next: (messages) => {
         this.messages.set(messages);
+        this.markConversationAsReadLocally(conversationId);
         this.isLoadingMessages.set(false);
+        this.refreshConversationsSilently();
       },
       error: () => {
         this.errorMessage.set('Impossible de charger cette conversation.');
@@ -618,6 +634,79 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.messagesService.listMessages(conversationId).subscribe({
       next: (messages) => this.messages.set(messages),
     });
+  }
+
+  private startRealtimeMessaging(): void {
+    if (!this.authSession.hasAuthenticatedSession()) {
+      return;
+    }
+
+    this.messagesRealtime.connect();
+    this.realtimeMessageSubscription = this.messagesRealtime.messageCreated$.subscribe((message) => {
+      const isSelectedConversation = message.conversationId === this.selectedConversationId();
+      this.upsertConversationFromMessage(message, isSelectedConversation);
+
+      if (!isSelectedConversation) {
+        this.refreshConversationsSilently();
+        return;
+      }
+
+      this.upsertMessage(message);
+      this.messagesRealtime.joinConversation(message.conversationId);
+      this.refreshConversationsSilently();
+    });
+  }
+
+  private upsertMessage(message: ConversationMessage): void {
+    this.messages.update((items) => {
+      if (items.some((item) => item.id === message.id)) {
+        return items;
+      }
+
+      return [...items, message];
+    });
+  }
+
+  private upsertConversationFromMessage(message: ConversationMessage, isOpen: boolean): void {
+    const currentUserId = this.currentUser()?.id;
+    const shouldIncrementUnread = !isOpen && message.senderId !== currentUserId;
+
+    this.conversations.update((items) => {
+      const nextItems = items.map((conversation) => {
+        if (conversation.id !== message.conversationId) {
+          return conversation;
+        }
+
+        return {
+          ...conversation,
+          lastMessageAt: message.createdAt,
+          unreadCount: shouldIncrementUnread ? conversation.unreadCount + 1 : conversation.unreadCount,
+          lastMessage: {
+            id: message.id,
+            senderId: message.senderId,
+            content: message.content,
+            mediaUrl: message.mediaUrl,
+            createdAt: message.createdAt,
+          },
+        };
+      });
+
+      return nextItems.sort((first, second) => {
+        const firstDate = new Date(first.lastMessageAt || first.createdAt).getTime();
+        const secondDate = new Date(second.lastMessageAt || second.createdAt).getTime();
+        return secondDate - firstDate;
+      });
+    });
+  }
+
+  private markConversationAsReadLocally(conversationId: string): void {
+    this.conversations.update((items) =>
+      items.map((conversation) =>
+        conversation.id === conversationId
+          ? { ...conversation, unreadCount: 0 }
+          : conversation,
+      ),
+    );
   }
 
   private loadAppointmentPreviewForVisibleProposal(): void {

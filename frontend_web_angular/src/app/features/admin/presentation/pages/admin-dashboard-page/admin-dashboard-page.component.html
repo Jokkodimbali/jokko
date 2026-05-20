@@ -30,271 +30,67 @@
         <lucide-icon name="search" size="18" [strokeWidth]="2.2"></lucide-icon>
         <input type="search" placeholder="Recherche, prestataire, litige, transaction..." />
       </label>
-      <button type="button" class="admin-topbar__profile">
-        <span>{{ userInitials() }}</span>
-        <lucide-icon name="chevron-down" size="18" [strokeWidth]="2.3"></lucide-icon>
-      </button>
-      <button type="button" class="admin-topbar__settings" aria-label="Parametres">
-        <lucide-icon name="settings" size="22" [strokeWidth]="2.5"></lucide-icon>
-      </button>
+      
     </header>
 
     <ng-container *ngIf="dashboard() as data; else adminState">
-      <ng-container *ngIf="activeSection() === 'validations'; else overviewContent">
-        <section class="admin-validation-page">
-          <header class="admin-section-heading">
-            <h1>Validation en attente</h1>
-            <p>Verifiez les documents avant d'approuver les prestataires</p>
-          </header>
-
-          <div class="admin-validation-layout" *ngIf="!isKycLoading(); else validationLoading">
-            <aside class="admin-validation-list" *ngIf="kycProfiles().length > 0; else noValidation">
-              <button
-                *ngFor="let profile of kycProfiles()"
-                type="button"
-                [class.admin-validation-card--active]="selectedKycId() === profile.id"
-                (click)="selectedKycId.set(profile.id)"
-                class="admin-validation-card"
-              >
-                <img *ngIf="profile.utilisateur.urlAvatar; else validationAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
-                <ng-template #validationAvatar>
-                  <span>{{ kycInitials(profile) }}</span>
-                </ng-template>
-                <strong>{{ kycTitle(profile) }}</strong>
-                <small>{{ kycSubtitle(profile) }}</small>
-                <em>En attente</em>
-                <time>{{ formatKycDate(profile) }}</time>
-              </button>
-            </aside>
-
-            <article class="admin-validation-detail" *ngIf="selectedKyc() as profile">
-              <header>
-                <img *ngIf="profile.utilisateur.urlAvatar; else detailAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
-                <ng-template #detailAvatar>
-                  <span>{{ kycInitials(profile) }}</span>
-                </ng-template>
-                <div>
-                  <h2>{{ kycTitle(profile) }}</h2>
-                  <p>{{ kycSubtitle(profile) }}</p>
-                  <small>{{ profile.biographie || 'Dossier professionnel soumis pour verification' }}</small>
-                </div>
-              </header>
-
-              <dl class="admin-validation-meta">
-                <div>
-                  <lucide-icon name="map-pin" size="13" [strokeWidth]="2"></lucide-icon>
-                  <span>{{ profile.ville || 'Adresse non renseignee' }}</span>
-                </div>
-                <div>
-                  <lucide-icon name="phone" size="13" [strokeWidth]="2"></lucide-icon>
-                  <span>{{ profile.utilisateur.numeroTelephone }}</span>
-                </div>
-                <div>
-                  <lucide-icon name="mail" size="13" [strokeWidth]="2"></lucide-icon>
-                  <span>{{ profile.utilisateur.nom }}</span>
-                </div>
-                <div>
-                  <lucide-icon name="calendar-days" size="13" [strokeWidth]="2"></lucide-icon>
-                  <span>Soumis le {{ formatKycDate(profile) }}</span>
-                </div>
-              </dl>
-
-              <section class="admin-validation-documents">
-                <h3>Documents fournis</h3>
-                <a
-                  *ngFor="let document of kycDocuments(profile)"
-                  [href]="document.url || null"
-                  [class.admin-document--missing]="!document.url"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <lucide-icon name="file-text" size="14" [strokeWidth]="2"></lucide-icon>
-                  <span>{{ document.label }}</span>
-                  <b>{{ document.url ? 'Fourni' : 'Manquant' }}</b>
-                  <lucide-icon name="eye" size="13" [strokeWidth]="2"></lucide-icon>
-                </a>
-              </section>
-
-              <footer>
-                <button type="button" class="admin-validation-reject" (click)="rejectSelectedKyc()" [disabled]="kycActionId() === profile.id">
-                  <lucide-icon name="x" size="18" [strokeWidth]="2.2"></lucide-icon>
-                  Rejeter
-                </button>
-                <button type="button" class="admin-validation-approve" (click)="approveSelectedKyc()" [disabled]="kycActionId() === profile.id">
-                  <lucide-icon name="check" size="18" [strokeWidth]="2.2"></lucide-icon>
-                  Approuver le compte
-                </button>
-              </footer>
-            </article>
-          </div>
-        </section>
+      <ng-container *ngIf="activeSection() === 'validations'; else nonValidationContent">
+        <app-admin-kyc-validation-panel
+          [profiles]="kycProfiles()"
+          [isLoading]="isKycLoading()"
+          [actionId]="kycActionId()"
+          (approve)="approveKyc($event)"
+          (reject)="rejectKyc($event)"
+        ></app-admin-kyc-validation-panel>
       </ng-container>
 
-      <ng-template #validationLoading>
-        <section class="admin-validation-empty">Chargement des dossiers KYC...</section>
+      <ng-template #nonValidationContent>
+        <ng-container *ngIf="activeSection() === 'doctors'; else nonMedicalContent">
+          <app-admin-medical-credentials-panel
+            *ngIf="!isMedicalLoading(); else medicalLoading"
+            [profiles]="medicalCredentialProfiles()"
+            [actionId]="kycActionId()"
+            (certify)="certifyMedical($event)"
+            (reject)="rejectMedical($event)"
+          ></app-admin-medical-credentials-panel>
+        </ng-container>
       </ng-template>
 
-      <ng-template #noValidation>
-        <section class="admin-validation-empty">Aucune validation en attente.</section>
+      <ng-template #nonMedicalContent>
+        <ng-container *ngIf="activeSection() === 'disputes'; else nonDisputesContent">
+          <app-admin-disputes-panel
+            [disputes]="disputeCases()"
+            [isLoading]="isDisputesLoading()"
+            [actionId]="kycActionId()"
+            (action)="handleDisputeAction($event)"
+          ></app-admin-disputes-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonDisputesContent>
+        <ng-container *ngIf="activeSection() === 'providers'; else overviewContent">
+          <app-admin-providers-panel
+            [providers]="providerProfiles()"
+            [isLoading]="isProvidersLoading()"
+            [isActionLoading]="isProviderActionLoading()"
+            [pagination]="providerPagination()"
+            [stats]="providerStats()"
+            [selectedProviderId]="selectedProviderId()"
+            [selectedProviderDetail]="selectedProviderDetail()"
+            (queryChange)="loadProviders($event)"
+            (detailRequested)="loadProviderDetail($event)"
+            (detailClosed)="closeProviderDetail()"
+            (activationChange)="handleProviderActivation($event)"
+          ></app-admin-providers-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #medicalLoading>
+        <section class="admin-validation-empty">Chargement des diplomes medecins...</section>
       </ng-template>
 
       <ng-template #overviewContent>
-      <section class="admin-hero">
-        <span><i></i> Systeme {{ data.overview.status }}</span>
-        <h1>Bonjour {{ user()?.name || 'Administrateur' }}, tout va bien</h1>
-        <p>Vue d ensemble de Jokko Dimbal - la plateforme qui connecte tous les prestataires du Senegal a leurs clients.</p>
-      </section>
-
-      <section class="admin-kpis" aria-label="Indicateurs admin">
-        <article *ngFor="let kpi of data.overview.kpis" [class]="'admin-kpi admin-kpi--' + kpi.tone">
-          <span>{{ kpi.label }}</span>
-          <strong>{{ formatMetric(kpi.value, kpi.unit) }}</strong>
-          <small [class.admin-trend--down]="kpi.trend < 0">
-            <lucide-icon name="arrow-up-right" size="13" [strokeWidth]="2.2"></lucide-icon>
-            {{ kpi.trend > 0 ? '+' : '' }}{{ kpi.trend }}%
-            <em>{{ kpi.caption }}</em>
-          </small>
-        </article>
-      </section>
-
-      <section class="admin-platforms">
-        <article *ngFor="let platform of data.overview.platforms">
-          <header>
-            <span>
-              <lucide-icon [name]="platformIcon(platform)" size="18" [strokeWidth]="2"></lucide-icon>
-            </span>
-            <strong>{{ platform.label }}</strong>
-            <small>{{ platform.share }} %</small>
-          </header>
-          <b>{{ formatMetric(platform.value) }}</b>
-          <div><i [style.width.%]="platform.share"></i></div>
-        </article>
-      </section>
-
-      <section class="admin-dashboard-grid">
-        <article class="admin-panel admin-panel--wide">
-          <header>
-            <div>
-              <h2>Chiffre d affaire</h2>
-              <p>Montants payes et commissions - FCFA</p>
-            </div>
-            <small class="admin-chart-legend"><i></i> CA brut <i></i> Commission</small>
-          </header>
-          <figure class="admin-line-chart">
-            <svg viewBox="0 0 580 180" role="img" aria-label="Evolution du chiffre d affaire">
-              <g class="admin-grid-lines">
-                <line x1="40" x2="540" y1="38" y2="38"></line>
-                <line x1="40" x2="540" y1="66" y2="66"></line>
-                <line x1="40" x2="540" y1="94" y2="94"></line>
-                <line x1="40" x2="540" y1="122" y2="122"></line>
-                <line x1="40" x2="540" y1="150" y2="150"></line>
-              </g>
-              <g class="admin-y-axis">
-                <text
-                  *ngFor="let tick of chartTicks(data.overview.revenueSeries, ['gross', 'commission']); let index = index"
-                  x="32"
-                  [attr.y]="chartTickY(index) + 3"
-                >
-                  {{ formatCompact(tick) }}
-                </text>
-              </g>
-              <polygon class="admin-area admin-area--gross" [attr.points]="areaPoints(data.overview.revenueSeries, 'gross')"></polygon>
-              <polygon class="admin-area admin-area--commission" [attr.points]="areaPoints(data.overview.revenueSeries, 'commission')"></polygon>
-              <polyline class="admin-line admin-line--gross" [attr.points]="linePoints(data.overview.revenueSeries, 'gross')"></polyline>
-              <polyline class="admin-line admin-line--commission" [attr.points]="linePoints(data.overview.revenueSeries, 'commission')"></polyline>
-              <g
-                *ngFor="let point of data.overview.revenueSeries; let index = index"
-                class="admin-svg-point admin-svg-point--gross"
-                [attr.transform]="'translate(' + chartPointX(index, data.overview.revenueSeries.length) + ',' + chartPointY(point.gross || 0, data.overview.revenueSeries, ['gross', 'commission']) + ')'"
-              >
-                <circle r="5"></circle>
-                <text x="-34" y="-14">CA {{ point.label }}: {{ formatCompact(point.gross || 0) }} FCFA</text>
-              </g>
-              <g
-                *ngFor="let point of data.overview.revenueSeries; let index = index"
-                class="admin-svg-point admin-svg-point--commission"
-                [attr.transform]="'translate(' + chartPointX(index, data.overview.revenueSeries.length) + ',' + chartPointY(point.commission || 0, data.overview.revenueSeries, ['gross', 'commission']) + ')'"
-              >
-                <circle r="4"></circle>
-                <text x="-52" y="20">Commission {{ point.label }}: {{ formatCompact(point.commission || 0) }} FCFA</text>
-              </g>
-              <g class="admin-axis-labels">
-                <text *ngFor="let point of data.overview.revenueSeries; let index = index" [attr.x]="chartPointX(index, data.overview.revenueSeries.length)" y="172">{{ point.label }}</text>
-              </g>
-            </svg>
-          </figure>
-        </article>
-
-        <article class="admin-panel admin-donut">
-          <h2>Categories</h2>
-          <p>Repartition des prestataires</p>
-          <figure class="admin-donut__visual">
-            <svg viewBox="0 0 120 120" role="img" aria-label="Repartition des categories">
-              <circle class="admin-donut__track" cx="60" cy="60" r="38"></circle>
-              <circle
-                *ngFor="let category of data.overview.categoryDistribution; let index = index"
-                class="admin-donut__segment"
-                cx="60"
-                cy="60"
-                r="38"
-                pathLength="100"
-                [attr.stroke]="categoryColor(index)"
-                [attr.stroke-dasharray]="category.share + ' ' + (100 - category.share)"
-                [attr.stroke-dashoffset]="-categoryOffset(data.overview.categoryDistribution, index)"
-              >
-                <title>{{ category.label }} - {{ category.value }} services - {{ category.share }}%</title>
-              </circle>
-              <circle class="admin-donut__hole" cx="60" cy="60" r="24"></circle>
-            </svg>
-          </figure>
-          <ul class="admin-donut__legend">
-            <li *ngFor="let category of data.overview.categoryDistribution; let index = index">
-              <i [style.background]="categoryColor(index)"></i>
-              <span>{{ category.label }}</span>
-              <b>{{ category.share }}%</b>
-            </li>
-          </ul>
-        </article>
-
-        <article class="admin-panel admin-panel--wide">
-          <header>
-            <div>
-              <h2>Trafic 7 jours</h2>
-              <p>Visiteurs par plateforme</p>
-            </div>
-          </header>
-          <small class="admin-chart-legend admin-chart-legend--bars"><i></i> Web <i></i> iOS <i></i> Android</small>
-          <div class="admin-bar-chart">
-            <div *ngFor="let point of data.overview.trafficSeries" class="admin-bar-chart__group">
-              <span [style.height.px]="barHeight(point.web || 0, data.overview.trafficSeries)"></span>
-              <span [style.height.px]="barHeight(point.ios || 0, data.overview.trafficSeries)"></span>
-              <span [style.height.px]="barHeight(point.android || 0, data.overview.trafficSeries)"></span>
-              <em>{{ point.label }}</em>
-              <b>
-                {{ point.label }}<br />
-                Web: {{ point.web || 0 }}<br />
-                iOS: {{ point.ios || 0 }}<br />
-                Android: {{ point.android || 0 }}
-              </b>
-            </div>
-          </div>
-        </article>
-
-        <article class="admin-panel admin-activity">
-          <h2>Activite recente</h2>
-          <p>Flux temps reel</p>
-          <ul>
-            <li *ngFor="let activity of data.overview.recentActivity">
-              <i></i>
-              <span>
-                <strong>{{ activity.title }}</strong>
-                <small>{{ activity.description }}</small>
-              </span>
-              <time>{{ activityDate(activity) | date: 'dd/MM HH:mm' }}</time>
-            </li>
-          </ul>
-        </article>
-      </section>
+        <app-admin-overview-panel [data]="data" [userName]="user()?.name"></app-admin-overview-panel>
       </ng-template>
     </ng-container>
 

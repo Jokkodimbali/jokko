@@ -1,0 +1,118 @@
+<section class="admin-traffic-page">
+  <header class="admin-traffic-hero">
+    <div>
+      <span>
+        <lucide-icon name="chart-no-axes-combined" size="18" [strokeWidth]="2.2"></lucide-icon>
+        Trafic & Analytics
+      </span>
+      <h1>Lecture temps reel de l'activite</h1>
+      <p>Suivez les utilisateurs connectes, les plateformes actives et les signaux recents de la plateforme.</p>
+    </div>
+    <aside>
+      <strong>{{ formatNumber(totalTraffic()) }}</strong>
+      <small>utilisateurs actifs sur 7 jours</small>
+    </aside>
+  </header>
+
+  <section class="admin-traffic-kpis">
+    <article>
+      <span>Comptes actifs</span>
+      <strong>{{ formatNumber(activeUsers()) }}</strong>
+      <small>{{ activityRate() }} % du parc utilisateurs</small>
+    </article>
+    <article>
+      <span>Jour le plus charge</span>
+      <strong>{{ busiestDay()?.label || '-' }}</strong>
+      <small>{{ formatNumber(busiestDayTotal()) }} sessions</small>
+    </article>
+    <article>
+      <span>Web</span>
+      <strong>{{ formatNumber(platformTotal('web')) }}</strong>
+      <small>{{ platformShare('web') }} % du trafic</small>
+    </article>
+    <article>
+      <span>Mobile</span>
+      <strong>{{ formatNumber(platformTotal('ios') + platformTotal('android')) }}</strong>
+      <small>{{ platformShare('ios') + platformShare('android') }} % du trafic</small>
+    </article>
+  </section>
+
+  <section class="admin-traffic-layout">
+    <article class="admin-traffic-chart-card">
+      <header>
+        <div>
+        <h2>Utilisateurs connectes sur 7 jours</h2>
+          <p>Repartition par jour et par plateforme des utilisateurs authentifies.</p>
+        </div>
+        <ul class="admin-traffic-legend" aria-label="Legende trafic">
+          <li><i class="admin-traffic-dot admin-traffic-dot--web"></i> Web</li>
+          <li><i class="admin-traffic-dot admin-traffic-dot--ios"></i> iOS</li>
+          <li><i class="admin-traffic-dot admin-traffic-dot--android"></i> Android</li>
+        </ul>
+      </header>
+
+      <div class="admin-traffic-bars" role="img" aria-label="Diagramme du trafic sur sept jours">
+        <div *ngFor="let point of data.overview.trafficSeries" class="admin-traffic-bars__day">
+          <div class="admin-traffic-bars__stack">
+            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--web" [style.height.px]="barHeight(point.web)"></span>
+            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--ios" [style.height.px]="barHeight(point.ios)"></span>
+            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--android" [style.height.px]="barHeight(point.android)"></span>
+            <b>
+              {{ point.label }}<br />
+              Web {{ point.web || 0 }} | iOS {{ point.ios || 0 }} | Android {{ point.android || 0 }}
+            </b>
+          </div>
+          <em>{{ point.label }}</em>
+          <small>{{ dayTotal(point) }}</small>
+        </div>
+      </div>
+    </article>
+
+    <aside class="admin-platform-panel">
+      <h2>Canaux actifs</h2>
+      <article
+        *ngFor="let platform of data.overview.platforms"
+        [class]="'admin-platform-card admin-platform-card--' + platformTone(platform)"
+      >
+        <div>
+          <lucide-icon [name]="platformIcon(platform)" size="20" [strokeWidth]="2.1"></lucide-icon>
+          <span>{{ platform.label }}</span>
+        </div>
+        <strong>{{ formatNumber(platform.value) }}</strong>
+        <small>{{ platform.share }} % du total detecte</small>
+        <i><b [style.width.%]="platform.share"></b></i>
+      </article>
+    </aside>
+  </section>
+
+  <section class="admin-traffic-bottom">
+    <article class="admin-traffic-activity">
+      <header>
+        <h2>Activite recente</h2>
+        <span>{{ data.overview.recentActivity.length }} flux</span>
+      </header>
+      <ul>
+        <li *ngFor="let activity of data.overview.recentActivity">
+          <i></i>
+          <div>
+            <strong>{{ activity.title }}</strong>
+            <p>{{ activity.description }}</p>
+          </div>
+          <time>{{ formatDate(activity.timestamp) }}</time>
+        </li>
+      </ul>
+    </article>
+
+    <article class="admin-traffic-quality">
+      <h2>Lecture operationnelle</h2>
+      <div>
+        <span>Utilisateurs totaux</span>
+        <strong>{{ formatNumber(totalUsers()) }}</strong>
+      </div>
+      <div>
+        <span>Plateformes detectees</span>
+        <strong>{{ data.overview.platforms.length }}</strong>
+      </div>
+    </article>
+  </section>
+</section>

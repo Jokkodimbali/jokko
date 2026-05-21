@@ -454,6 +454,11 @@ export const API_DOCS = {
     summary: 'Recuperer les indicateurs globaux de la plateforme',
     success: 'Tableau de bord admin recupere avec succes',
   },
+  adminRevenue: {
+    tag: "Admin - Chiffre d'affaires",
+    summary: "Recuperer l'evolution du chiffre d'affaires",
+    success: "Chiffre d'affaires recupere avec succes",
+  },
   notifications: {
     tag: 'Notifications',
     listSummary: 'Lister mes notifications',

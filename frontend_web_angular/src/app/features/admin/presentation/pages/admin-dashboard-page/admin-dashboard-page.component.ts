@@ -13,6 +13,8 @@ import {
   AdminProviderListQuery,
   AdminProviderProfile,
   AdminProviderStats,
+  AdminRevenuePeriod,
+  AdminRevenueReport,
 } from '../../../data-access/admin.models';
 import { AdminDashboardService } from '../../../data-access/admin-dashboard.service';
 import { AdminDisputesService } from '../../../data-access/admin-disputes.service';
@@ -24,6 +26,8 @@ import { AdminMedicalCredentialsPanelComponent } from '../../components/admin-me
 import { AdminKycValidationPanelComponent } from '../../components/admin-kyc-validation-panel/admin-kyc-validation-panel.component';
 import { AdminOverviewPanelComponent } from '../../components/admin-overview-panel/admin-overview-panel.component';
 import { AdminProvidersPanelComponent } from '../../components/admin-providers-panel/admin-providers-panel.component';
+import { AdminRevenuePanelComponent } from '../../components/admin-revenue-panel/admin-revenue-panel.component';
+import { AdminTrafficAnalyticsPanelComponent } from '../../components/admin-traffic-analytics-panel/admin-traffic-analytics-panel.component';
 
 type AdminSection =
   | 'overview'
@@ -49,6 +53,8 @@ type AdminSection =
     AdminMedicalCredentialsPanelComponent,
     AdminOverviewPanelComponent,
     AdminProvidersPanelComponent,
+    AdminRevenuePanelComponent,
+    AdminTrafficAnalyticsPanelComponent,
   ],
   templateUrl: './admin-dashboard-page.component.html',
   styleUrl: './admin-dashboard-page.component.scss',
@@ -71,6 +77,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly selectedProviderDetail = signal<AdminProviderProfile | null>(null);
   protected readonly providerPagination = signal<AdminPaginatedResult<AdminProviderProfile>['pagination'] | null>(null);
   protected readonly providerStats = signal<AdminProviderStats | null>(null);
+  protected readonly revenueReport = signal<AdminRevenueReport | null>(null);
   protected readonly selectedProviderId = signal<string | null>(null);
   protected readonly providerQuery = signal<AdminProviderListQuery>({ page: 1, limit: 12 });
   protected readonly isLoading = signal(true);
@@ -78,6 +85,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly isKycLoading = signal(false);
   protected readonly isMedicalLoading = signal(false);
   protected readonly isProvidersLoading = signal(false);
+  protected readonly isRevenueLoading = signal(false);
   protected readonly isProviderActionLoading = signal(false);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
@@ -105,10 +113,7 @@ export class AdminDashboardPageComponent implements OnInit {
     return kpi?.value ?? 0;
   });
   protected readonly trafficCount = computed(() =>
-    (this.dashboard()?.overview.trafficSeries ?? []).reduce(
-      (sum, point) => sum + Number(point.web ?? 0) + Number(point.ios ?? 0) + Number(point.android ?? 0),
-      0,
-    ),
+    (this.dashboard()?.overview.platforms ?? []).reduce((sum, platform) => sum + Number(platform.value ?? 0), 0),
   );
   protected readonly categoryTotal = computed(() =>
     (this.dashboard()?.overview.categoryDistribution ?? []).reduce((sum, item) => sum + item.value, 0),
@@ -176,6 +181,25 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'providers' && this.providerProfiles().length === 0) {
       this.loadProviders();
     }
+    if (section === 'revenue' && !this.revenueReport()) {
+      this.loadRevenue();
+    }
+  }
+
+  protected loadRevenue(period: AdminRevenuePeriod = this.revenueReport()?.period ?? '12m'): void {
+    this.isRevenueLoading.set(true);
+    this.adminDashboardService
+      .getRevenue(period)
+      .pipe(
+        catchError(() => {
+          this.isRevenueLoading.set(false);
+          return of(null);
+        }),
+      )
+      .subscribe((report) => {
+        this.revenueReport.set(report);
+        this.isRevenueLoading.set(false);
+      });
   }
 
   protected loadDisputes(): void {

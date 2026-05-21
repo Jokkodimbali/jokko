@@ -23,10 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import type {
-  DiskStorageCallback,
-  DiskStorageFile,
-} from 'multer';
+import type { DiskStorageCallback, DiskStorageFile } from 'multer';
 import { extname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { appMessage } from '../../../core/http/app-http.exception';
@@ -53,7 +50,11 @@ type UploadedAvatarFile = {
 };
 
 const avatarUploadDirectory = join(process.cwd(), 'uploads', 'avatars');
-const allowedAvatarMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedAvatarMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 function ensureAvatarUploadDirectory(): void {
   mkdirSync(avatarUploadDirectory, { recursive: true });
@@ -180,7 +181,10 @@ export class UsersController {
           callback: DiskStorageCallback,
         ) => {
           const authUser = (request as Request & { user?: AuthUser }).user;
-          callback(null, buildAvatarFileName(authUser?.sub ?? 'user', file.originalname));
+          callback(
+            null,
+            buildAvatarFileName(authUser?.sub ?? 'user', file.originalname),
+          );
         },
       }),
       limits: {

@@ -1,0 +1,473 @@
+:host {
+  display: block;
+}
+
+.admin-traffic-page {
+  color: #2d231c;
+  display: grid;
+  gap: 22px;
+}
+
+.admin-traffic-hero {
+  align-items: stretch;
+  background: #f5eee8;
+  border: 1px solid #eadacf;
+  border-radius: 22px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  overflow: hidden;
+  padding: 26px;
+}
+
+.admin-traffic-hero > div {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-traffic-hero span {
+  align-items: center;
+  color: #915a22;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.admin-traffic-hero h1 {
+  color: #2f261f;
+  font-size: clamp(31px, 4vw, 52px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.admin-traffic-hero p {
+  color: #7b6c62;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 720px;
+}
+
+.admin-traffic-hero aside {
+  align-content: center;
+  background: #9a5c22;
+  border-radius: 20px;
+  color: #fff;
+  display: grid;
+  justify-items: start;
+  padding: 24px;
+}
+
+.admin-traffic-hero aside strong {
+  font-size: 44px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.admin-traffic-hero aside small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.admin-traffic-kpis {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-traffic-kpis article,
+.admin-traffic-chart-card,
+.admin-platform-panel,
+.admin-traffic-activity,
+.admin-traffic-quality {
+  background: #fff;
+  border: 1px solid #eadfd6;
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(54, 38, 26, 0.06);
+}
+
+.admin-traffic-kpis article {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 20px;
+}
+
+.admin-traffic-kpis span,
+.admin-platform-card span,
+.admin-traffic-quality span {
+  color: #84756c;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-traffic-kpis strong {
+  color: #2f261f;
+  font-size: 32px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.admin-traffic-kpis small,
+.admin-platform-card small {
+  color: #7f7168;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-traffic-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.62fr) minmax(290px, 0.72fr);
+}
+
+.admin-traffic-chart-card {
+  display: grid;
+  gap: 24px;
+  min-height: 410px;
+  padding: 24px;
+}
+
+.admin-traffic-chart-card header,
+.admin-traffic-activity header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.admin-traffic-chart-card h2,
+.admin-platform-panel h2,
+.admin-traffic-activity h2,
+.admin-traffic-quality h2 {
+  color: #251d18;
+  font-size: 22px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.admin-traffic-chart-card p,
+.admin-traffic-quality p {
+  color: #81736b;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 5px 0 0;
+}
+
+.admin-traffic-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-traffic-legend li {
+  align-items: center;
+  color: #6e625c;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.admin-traffic-dot {
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  width: 8px;
+}
+
+.admin-traffic-dot--web {
+  background: #9a5c22;
+}
+
+.admin-traffic-dot--ios {
+  background: #d98b2b;
+}
+
+.admin-traffic-dot--android {
+  background: #18a874;
+}
+
+.admin-traffic-bars {
+  align-items: end;
+  border-bottom: 1px solid #eadfd6;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(7, minmax(56px, 1fr));
+  min-height: 252px;
+  padding: 16px 0 0;
+}
+
+.admin-traffic-bars__day {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.admin-traffic-bars__stack {
+  align-items: end;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: repeat(3, 13px);
+  height: 188px;
+  position: relative;
+}
+
+.admin-traffic-bars__bar {
+  border-radius: 999px 999px 8px 8px;
+  display: block;
+  min-height: 4px;
+  transition: height 180ms ease, transform 180ms ease;
+}
+
+.admin-traffic-bars__bar--web {
+  background: #9a5c22;
+}
+
+.admin-traffic-bars__bar--ios {
+  background: #d98b2b;
+}
+
+.admin-traffic-bars__bar--android {
+  background: #18a874;
+}
+
+.admin-traffic-bars__stack:hover .admin-traffic-bars__bar {
+  transform: translateY(-4px);
+}
+
+.admin-traffic-bars__stack b {
+  background: #2b241f;
+  border-radius: 12px;
+  bottom: calc(100% + 10px);
+  box-shadow: 0 14px 30px rgba(42, 30, 24, 0.16);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  left: 50%;
+  line-height: 1.55;
+  opacity: 0;
+  padding: 9px 10px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%) translateY(8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.admin-traffic-bars__stack:hover b {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.admin-traffic-bars em {
+  color: #897c74;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.admin-traffic-bars small {
+  color: #2f261f;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.admin-platform-panel {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.admin-platform-card {
+  border: 1px solid #efe3da;
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.admin-platform-card > div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-platform-card lucide-icon {
+  background: #f3ebe5;
+  border-radius: 12px;
+  color: #9a5c22;
+  padding: 8px;
+}
+
+.admin-platform-card strong {
+  color: #261e19;
+  font-size: 30px;
+  font-weight: 950;
+}
+
+.admin-platform-card i {
+  background: #f0e6df;
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  overflow: hidden;
+}
+
+.admin-platform-card i b {
+  background: #9a5c22;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.admin-platform-card--ios i b {
+  background: #d98b2b;
+}
+
+.admin-platform-card--android i b {
+  background: #18a874;
+}
+
+.admin-traffic-bottom {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+
+.admin-traffic-activity {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.admin-traffic-activity header span {
+  background: #f4ebe5;
+  border-radius: 999px;
+  color: #915a22;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px;
+}
+
+.admin-traffic-activity ul {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-traffic-activity li {
+  align-items: center;
+  border: 1px solid #f0e6df;
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  padding: 13px 14px;
+}
+
+.admin-traffic-activity li > i {
+  background: #18a874;
+  border-radius: 999px;
+  height: 9px;
+  width: 9px;
+}
+
+.admin-traffic-activity strong {
+  color: #2b241f;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-traffic-activity p {
+  color: #83756d;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 3px 0 0;
+}
+
+.admin-traffic-activity time {
+  color: #9a5c22;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.admin-traffic-quality {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.admin-traffic-quality div {
+  align-items: center;
+  border: 1px solid #f0e6df;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.admin-traffic-quality strong {
+  color: #2d231c;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+@media (max-width: 1180px) {
+  .admin-traffic-hero,
+  .admin-traffic-layout,
+  .admin-traffic-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-traffic-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-traffic-hero,
+  .admin-traffic-chart-card,
+  .admin-platform-panel,
+  .admin-traffic-activity,
+  .admin-traffic-quality {
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .admin-traffic-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-traffic-bars {
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .admin-traffic-activity li {
+    align-items: start;
+    grid-template-columns: 9px minmax(0, 1fr);
+  }
+
+  .admin-traffic-activity time {
+    grid-column: 2;
+  }
+}

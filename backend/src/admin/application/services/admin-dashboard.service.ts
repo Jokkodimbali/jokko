@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-
-type PlatformKey = 'web' | 'ios' | 'android';
+import { AdminTrafficAnalyticsService } from './admin-traffic-analytics.service';
 
 @Injectable()
 export class AdminDashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly trafficAnalytics: AdminTrafficAnalyticsService,
+  ) {}
 
   async getDashboard(requestUser: AuthUser) {
     if (requestUser.role !== 'ADMIN') {
@@ -44,7 +46,7 @@ export class AdminDashboardService {
       previousMonthlyPaymentStats,
       revenuePayments,
       categories,
-      auditLogs,
+      authTrafficSessions,
       recentAuditLogs,
       recentPayments,
     ] = await this.prisma.$transaction([
@@ -106,9 +108,9 @@ export class AdminDashboardService {
         },
         orderBy: { ordreTri: 'asc' },
       }),
-      this.prisma.journalAudit.findMany({
+      this.prisma.sessionAuthentification.findMany({
         where: { creeLe: { gte: sevenDaysAgo } },
-        select: { creeLe: true, userAgent: true },
+        select: { creeLe: true, plateforme: true, utilisateurId: true },
         orderBy: { creeLe: 'asc' },
       }),
       this.prisma.journalAudit.findMany({
@@ -139,9 +141,13 @@ export class AdminDashboardService {
     const previousMonthlyRevenue = Number(
       previousMonthlyPaymentStats._sum.montant ?? 0,
     );
-    const platformTotals = this.buildPlatformTotals(auditLogs);
+    const platformTotals =
+      this.trafficAnalytics.buildPlatformTotals(authTrafficSessions);
     const categoryDistribution = this.buildCategoryDistribution(categories);
-    const trafficSeries = this.buildTrafficSeries(auditLogs, sevenDaysAgo);
+    const trafficSeries = this.trafficAnalytics.buildTrafficSeries(
+      authTrafficSessions,
+      sevenDaysAgo,
+    );
 
     return {
       users: {
@@ -254,28 +260,6 @@ export class AdminDashboardService {
     };
   }
 
-  private buildPlatformTotals(logs: { userAgent: string | null }[]) {
-    const totals: Record<PlatformKey, number> = { web: 0, ios: 0, android: 0 };
-
-    for (const log of logs) {
-      totals[this.classifyPlatform(log.userAgent)] += 1;
-    }
-
-    return { ...totals, total: totals.web + totals.ios + totals.android };
-  }
-
-  private classifyPlatform(userAgent: string | null): PlatformKey {
-    const value = (userAgent ?? '').toLowerCase();
-    if (
-      value.includes('iphone') ||
-      value.includes('ipad') ||
-      value.includes('ios')
-    )
-      return 'ios';
-    if (value.includes('android')) return 'android';
-    return 'web';
-  }
-
   private buildCategoryDistribution(
     categories: { nom: string; services: { id: string }[] }[],
   ) {
@@ -324,39 +308,6 @@ export class AdminDashboardService {
       label,
       gross,
       commission,
-    }));
-  }
-
-  private buildTrafficSeries(
-    logs: { creeLe: Date; userAgent: string | null }[],
-    startDate: Date,
-  ) {
-    const labels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-    const rows = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + index);
-      return {
-        date,
-        label: labels[date.getDay() === 0 ? 6 : date.getDay() - 1],
-        web: 0,
-        ios: 0,
-        android: 0,
-      };
-    });
-
-    for (const log of logs) {
-      const index = Math.floor(
-        (log.creeLe.getTime() - startDate.getTime()) / 86_400_000,
-      );
-      if (index < 0 || index > 6) continue;
-      rows[index][this.classifyPlatform(log.userAgent)] += 1;
-    }
-
-    return rows.map(({ label, web, ios, android }) => ({
-      label,
-      web,
-      ios,
-      android,
     }));
   }
 

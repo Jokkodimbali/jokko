@@ -20,6 +20,10 @@ import type { LoginCommand, RegisterCommand } from '../commands/auth.commands';
 import { DomainValidationError } from '../../domain/errors/domain-validation.error';
 import type { AppMessageKey } from '../../../core/http/app-messages';
 
+type AuthSessionContext = {
+  userAgent?: string;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -43,7 +47,11 @@ export class AuthService {
     };
   }
 
-  async verifyOtp(phoneNumber: string, code: string) {
+  async verifyOtp(
+    phoneNumber: string,
+    code: string,
+    context: AuthSessionContext = {},
+  ) {
     const normalizedPhoneNumber = this.normalizePhoneNumber(phoneNumber);
     await this.otpService.verify(normalizedPhoneNumber, code);
 
@@ -67,7 +75,7 @@ export class AuthService {
     this.assertActiveUser(user);
 
     const { accessToken, refreshToken } =
-      await this.issueTokensAndPersistSession(user);
+      await this.issueTokensAndPersistSession(user, context);
 
     return {
       accessToken,
@@ -76,7 +84,10 @@ export class AuthService {
     };
   }
 
-  async register(command: RegisterCommand) {
+  async register(
+    command: RegisterCommand,
+    context: AuthSessionContext = {},
+  ) {
     const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
     const normalizedEmail = normalizeEmail(command.email);
     const existing = await this.authRepository.findByPhoneNumber(phoneNumber);
@@ -115,7 +126,7 @@ export class AuthService {
     }
 
     const { accessToken, refreshToken } =
-      await this.issueTokensAndPersistSession(user);
+      await this.issueTokensAndPersistSession(user, context);
 
     return {
       accessToken,
@@ -124,7 +135,7 @@ export class AuthService {
     };
   }
 
-  async login(command: LoginCommand) {
+  async login(command: LoginCommand, context: AuthSessionContext = {}) {
     const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
     const user =
       await this.authRepository.findWithPasswordByPhoneNumber(phoneNumber);
@@ -143,7 +154,7 @@ export class AuthService {
     }
 
     const { accessToken, refreshToken } =
-      await this.issueTokensAndPersistSession(user);
+      await this.issueTokensAndPersistSession(user, context);
 
     return {
       accessToken,
@@ -152,7 +163,7 @@ export class AuthService {
     };
   }
 
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken: string, context: AuthSessionContext = {}) {
     const session = await this.refreshSessionService.assertValid(refreshToken);
     let payload: Awaited<ReturnType<JwtTokenService['verifyRefreshToken']>>;
     try {
@@ -181,12 +192,16 @@ export class AuthService {
       user.id,
       newTokens.refreshToken,
       this.jwtTokenService.getRefreshTokenExpiryDate(),
+      this.buildSessionMetadata(context.userAgent),
     );
 
     return newTokens;
   }
 
-  async loginWithGoogle(idToken: string) {
+  async loginWithGoogle(
+    idToken: string,
+    context: AuthSessionContext = {},
+  ) {
     const googlePayload = await this.googleAuthService.verifyIdToken(idToken);
     const email = googlePayload.email?.toLowerCase();
     if (!email) {
@@ -202,7 +217,7 @@ export class AuthService {
 
     await this.authRepository.linkGoogleIdentity(user.id, googlePayload.sub);
     const { accessToken, refreshToken } =
-      await this.issueTokensAndPersistSession(user);
+      await this.issueTokensAndPersistSession(user, context);
 
     return {
       accessToken,
@@ -227,7 +242,10 @@ export class AuthService {
     return user;
   }
 
-  private async issueTokensAndPersistSession(user: AuthUserSummary) {
+  private async issueTokensAndPersistSession(
+    user: AuthUserSummary,
+    context: AuthSessionContext = {},
+  ) {
     const tokens = await this.jwtTokenService.issueTokens({
       sub: user.id,
       role: user.role,
@@ -238,9 +256,34 @@ export class AuthService {
       user.id,
       tokens.refreshToken,
       this.jwtTokenService.getRefreshTokenExpiryDate(),
+      this.buildSessionMetadata(context.userAgent),
     );
 
     return tokens;
+  }
+
+  private buildSessionMetadata(userAgent?: string): {
+    platform: 'web' | 'ios' | 'android';
+    userAgent?: string;
+  } {
+    return {
+      platform: this.classifyClientPlatform(userAgent),
+      userAgent,
+    };
+  }
+
+  private classifyClientPlatform(userAgent?: string): 'web' | 'ios' | 'android' {
+    const value = (userAgent ?? '').toLowerCase();
+    if (value.includes('jokko-ios') || value.includes('jokko-dimbali-ios')) {
+      return 'ios';
+    }
+    if (
+      value.includes('jokko-android') ||
+      value.includes('jokko-dimbali-android')
+    ) {
+      return 'android';
+    }
+    return 'web';
   }
 
   private normalizePhoneNumber(phoneNumber: string): string {

@@ -17,12 +17,18 @@ export class RefreshSessionService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  async persist(userId: string, refreshToken: string, expiresAt: Date) {
+  async persist(
+    userId: string,
+    refreshToken: string,
+    expiresAt: Date,
+    metadata?: { platform?: string; userAgent?: string },
+  ) {
     const tokenHash = this.hashToken(refreshToken);
     return this.authRepository.createRefreshSession(
       userId,
       tokenHash,
       expiresAt,
+      metadata,
     );
   }
 
@@ -50,6 +56,7 @@ export class RefreshSessionService {
     userId: string,
     newRefreshToken: string,
     expiresAt: Date,
+    metadata?: { platform?: string; userAgent?: string },
   ) {
     const newTokenHash = this.hashToken(newRefreshToken);
     await this.authRepository.rotateSessionToken(
@@ -57,6 +64,7 @@ export class RefreshSessionService {
       userId,
       newTokenHash,
       expiresAt,
+      metadata,
     );
   }
 }

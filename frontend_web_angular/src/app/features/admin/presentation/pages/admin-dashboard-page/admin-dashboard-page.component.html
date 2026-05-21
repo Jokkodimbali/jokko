@@ -68,7 +68,7 @@
       </ng-template>
 
       <ng-template #nonDisputesContent>
-        <ng-container *ngIf="activeSection() === 'providers'; else overviewContent">
+        <ng-container *ngIf="activeSection() === 'providers'; else nonProvidersContent">
           <app-admin-providers-panel
             [providers]="providerProfiles()"
             [isLoading]="isProvidersLoading()"
@@ -82,6 +82,22 @@
             (detailClosed)="closeProviderDetail()"
             (activationChange)="handleProviderActivation($event)"
           ></app-admin-providers-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonProvidersContent>
+        <ng-container *ngIf="activeSection() === 'traffic'; else nonTrafficContent">
+          <app-admin-traffic-analytics-panel [data]="data"></app-admin-traffic-analytics-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonTrafficContent>
+        <ng-container *ngIf="activeSection() === 'revenue'; else overviewContent">
+          <app-admin-revenue-panel
+            [report]="revenueReport()"
+            [isLoading]="isRevenueLoading()"
+            (periodChange)="loadRevenue($event)"
+          ></app-admin-revenue-panel>
         </ng-container>
       </ng-template>
 
@@ -99,7 +115,7 @@
         <lucide-icon *ngIf="isLoading()" name="sliders-horizontal" size="36" [strokeWidth]="2.2"></lucide-icon>
         <lucide-icon *ngIf="!isLoading()" name="triangle-alert" size="36" [strokeWidth]="2.2"></lucide-icon>
         <h1>{{ isLoading() ? 'Chargement administration' : 'Tableau de bord indisponible' }}</h1>
-        <p>{{ isLoading() ? 'Synchronisation des donnees backend.' : 'Impossible de charger les donnees admin pour le moment.' }}</p>
+        <p>{{ isLoading() ? 'Actualisation des donnees de la console.' : 'Impossible de charger les donnees admin pour le moment.' }}</p>
       </section>
     </ng-template>
   </section>

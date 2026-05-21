@@ -94,9 +94,12 @@ export class AuthController {
   })
   async verifyOtp(
     @Body() dto: VerifyOtpDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code);
+    const result = await this.authService.verifyOtp(dto.phoneNumber, dto.code, {
+      userAgent: this.readUserAgent(request),
+    });
     return createApiResponse(
       this.persistAuthCookies(response, result),
       API_DOCS.auth.verifyOtpSuccess,
@@ -123,9 +126,12 @@ export class AuthController {
   })
   async register(
     @Body() dto: RegisterDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.register(dto);
+    const result = await this.authService.register(dto, {
+      userAgent: this.readUserAgent(request),
+    });
     return createApiResponse(
       this.persistAuthCookies(response, result),
       API_DOCS.auth.registerSuccess,
@@ -152,9 +158,12 @@ export class AuthController {
   })
   async login(
     @Body() dto: LoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.login(dto);
+    const result = await this.authService.login(dto, {
+      userAgent: this.readUserAgent(request),
+    });
     return createApiResponse(
       this.persistAuthCookies(response, result),
       API_DOCS.auth.loginSuccess,
@@ -181,9 +190,12 @@ export class AuthController {
   })
   async loginWithGoogle(
     @Body() dto: GoogleLoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.loginWithGoogle(dto.idToken);
+    const result = await this.authService.loginWithGoogle(dto.idToken, {
+      userAgent: this.readUserAgent(request),
+    });
     return createApiResponse(
       this.persistAuthCookies(response, result),
       API_DOCS.auth.googleLoginSuccess,
@@ -219,7 +231,9 @@ export class AuthController {
       throw appHttpException('AUTH_REFRESH_TOKEN_INVALID');
     }
 
-    const result = await this.authService.refresh(refreshToken);
+    const result = await this.authService.refresh(refreshToken, {
+      userAgent: this.readUserAgent(request),
+    });
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
     return createApiResponse(null, API_DOCS.auth.refreshSuccess);
   }
@@ -338,5 +352,12 @@ export class AuthController {
     return cookie
       ? decodeURIComponent(cookie.split('=').slice(1).join('='))
       : null;
+  }
+
+  private readUserAgent(request: Request): string | undefined {
+    const value = request.headers['user-agent'];
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
   }
 }

@@ -223,6 +223,8 @@ model SessionAuthentification {
   hashJeton      String      @map("token_hash") @db.VarChar(255)
   expireLe       DateTime    @map("expires_at")
   revoqueLe      DateTime?   @map("revoked_at")
+  plateforme     String?     @map("platform") @db.VarChar(20)
+  userAgent      String?     @map("user_agent") @db.Text
   creeLe         DateTime    @default(now()) @map("created_at")
   misAJourLe     DateTime    @updatedAt @map("updated_at")
 
@@ -230,6 +232,7 @@ model SessionAuthentification {
 
   @@unique([hashJeton])
   @@index([utilisateurId])
+  @@index([plateforme, creeLe])
   @@index([expireLe])
   @@map("auth_sessions")
 }

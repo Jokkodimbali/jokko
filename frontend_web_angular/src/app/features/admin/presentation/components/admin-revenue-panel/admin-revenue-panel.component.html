@@ -1,0 +1,182 @@
+<section class="admin-revenue-page" *ngIf="report as data; else revenueState">
+  <header class="admin-revenue-hero">
+    <div>
+      <span>
+        <lucide-icon name="wallet-cards" size="18" [strokeWidth]="2.2"></lucide-icon>
+        Chiffre d'affaires
+      </span>
+      <h1>Evolution financiere de la plateforme</h1>
+      <p>Analyse des paiements valides, commissions, montants reverses et remboursements sur la periode selectionnee.</p>
+    </div>
+    <nav aria-label="Periode chiffre d'affaires">
+      <button
+        *ngFor="let period of periods"
+        type="button"
+        [class.admin-revenue-period--active]="data.period === period.value"
+        (click)="selectPeriod(period.value)"
+      >
+        {{ period.label }}
+      </button>
+    </nav>
+  </header>
+
+  <section class="admin-revenue-kpis">
+    <article class="admin-revenue-kpi admin-revenue-kpi--primary">
+      <span>Chiffre d'affaires brut</span>
+      <strong>{{ formatMoney(data.totals.gross) }} FCFA</strong>
+      <small>{{ data.totals.successfulPayments }} paiements confirmes</small>
+    </article>
+    <article>
+      <span>Commission plateforme</span>
+      <strong>{{ formatMoney(data.totals.commission) }} FCFA</strong>
+      <small>{{ data.totals.successRate }} % de reussite paiement</small>
+    </article>
+    <article>
+      <span>Net prestataires</span>
+      <strong>{{ formatMoney(data.totals.net) }} FCFA</strong>
+      <small>Ticket moyen {{ formatMoney(data.totals.averageTicket) }} FCFA</small>
+    </article>
+    <article>
+      <span>Remboursements</span>
+      <strong>{{ formatMoney(data.totals.refunded) }} FCFA</strong>
+      <small>{{ data.totals.refundedPayments }} operations remboursees</small>
+    </article>
+  </section>
+
+  <section class="admin-revenue-grid">
+    <article class="admin-revenue-card admin-revenue-card--chart">
+      <header>
+        <div>
+          <h2>Courbe d'evolution reelle</h2>
+          <p>Les points proviennent des paiements en base pour la periode active.</p>
+        </div>
+        <ul class="admin-revenue-legend">
+          <li><i class="admin-revenue-dot admin-revenue-dot--gross"></i> CA brut</li>
+          <li><i class="admin-revenue-dot admin-revenue-dot--net"></i> Net</li>
+          <li><i class="admin-revenue-dot admin-revenue-dot--commission"></i> Commission</li>
+          <li><i class="admin-revenue-dot admin-revenue-dot--refund"></i> Remboursements</li>
+        </ul>
+      </header>
+
+      <figure class="admin-revenue-chart" *ngIf="data.series.length > 0; else emptyChart">
+        <svg viewBox="0 0 760 300" role="img" aria-label="Evolution du chiffre d'affaires">
+          <g class="admin-revenue-grid-lines">
+            <line *ngFor="let tick of chartTicks(data); let index = index" x1="52" x2="708" [attr.y1]="chartTickY(index)" [attr.y2]="chartTickY(index)"></line>
+          </g>
+          <g class="admin-revenue-axis">
+            <text *ngFor="let tick of chartTicks(data); let index = index" x="44" [attr.y]="chartTickY(index) + 4">{{ formatCompact(tick) }}</text>
+            <text *ngFor="let point of data.series; let index = index" [attr.x]="chartPointX(index, data.series.length)" y="282">{{ point.label }}</text>
+          </g>
+          <polygon class="admin-revenue-area admin-revenue-area--gross" [attr.points]="areaPoints(data, 'gross')"></polygon>
+          <polygon class="admin-revenue-area admin-revenue-area--net" [attr.points]="areaPoints(data, 'net')"></polygon>
+          <polyline class="admin-revenue-line admin-revenue-line--gross" [attr.points]="linePoints(data, 'gross')"></polyline>
+          <polyline class="admin-revenue-line admin-revenue-line--net" [attr.points]="linePoints(data, 'net')"></polyline>
+          <polyline class="admin-revenue-line admin-revenue-line--commission" [attr.points]="linePoints(data, 'commission')"></polyline>
+          <polyline class="admin-revenue-line admin-revenue-line--refund" [attr.points]="linePoints(data, 'refunded')"></polyline>
+          <g
+            *ngFor="let point of data.series; let index = index"
+            class="admin-revenue-point"
+            [attr.transform]="'translate(' + chartPointX(index, data.series.length) + ',' + chartPointY(point.gross || 0, data) + ')'"
+          >
+            <circle r="6"></circle>
+            <text x="-58" y="-18">{{ point.label }} : {{ formatMoney(point.gross || 0) }} FCFA</text>
+          </g>
+        </svg>
+      </figure>
+    </article>
+
+    <aside class="admin-revenue-card admin-revenue-card--health">
+      <h2>Sante financiere</h2>
+      <div>
+        <span>Paiements en attente</span>
+        <strong>{{ data.totals.pendingPayments }}</strong>
+      </div>
+      <div>
+        <span>Paiements echoues</span>
+        <strong>{{ data.totals.failedPayments }}</strong>
+      </div>
+      <div>
+        <span>Meilleure periode</span>
+        <strong>{{ bestPoint(data)?.label || '-' }}</strong>
+      </div>
+      <small>Actualise le {{ formatDate(data.generatedAt) }}</small>
+    </aside>
+  </section>
+
+  <section class="admin-revenue-bottom">
+    <article class="admin-revenue-card admin-revenue-methods">
+      <header>
+        <h2>Moyens de paiement</h2>
+        <span>{{ data.totals.successfulPayments }} transactions</span>
+      </header>
+      <div *ngFor="let method of data.methods">
+        <p>
+          <strong>{{ method.label }}</strong>
+          <small>{{ method.transactions }} paiement(s)</small>
+        </p>
+        <b>{{ formatMoney(method.gross) }} FCFA</b>
+        <i><em [style.width.%]="method.share"></em></i>
+      </div>
+    </article>
+
+    <article class="admin-revenue-card admin-revenue-providers">
+      <header>
+        <h2>Prestataires contributeurs</h2>
+        <span>{{ data.topProviders.length }} profils</span>
+      </header>
+      <ol>
+        <li *ngFor="let provider of data.topProviders">
+          <span>{{ provider.name }}</span>
+          <small>{{ provider.companyName || provider.city || 'Profil professionnel' }}</small>
+          <strong>{{ formatMoney(provider.gross) }} FCFA</strong>
+        </li>
+      </ol>
+    </article>
+  </section>
+
+  <section class="admin-revenue-card admin-revenue-payments">
+    <header>
+      <h2>Paiements recents</h2>
+      <span>{{ data.recentPayments.length }} lignes</span>
+    </header>
+    <div class="admin-revenue-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Client</th>
+            <th>Prestataire</th>
+            <th>Methode</th>
+            <th>Statut</th>
+            <th>Montant</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payment of data.recentPayments">
+            <td>{{ payment.serviceName }}</td>
+            <td>{{ payment.clientName }}</td>
+            <td>{{ payment.professionalName }}</td>
+            <td>{{ payment.method }}</td>
+            <td><span [class]="'admin-revenue-status admin-revenue-status--' + payment.status.toLowerCase()">{{ payment.status }}</span></td>
+            <td>{{ formatMoney(payment.amount) }} FCFA</td>
+            <td>{{ formatDate(payment.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<ng-template #revenueState>
+  <section class="admin-revenue-empty">
+    <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.2"></lucide-icon>
+    <h1>{{ isLoading ? 'Chargement du chiffre d affaires' : 'Chiffre d affaires indisponible' }}</h1>
+    <p>{{ isLoading ? 'Preparation des indicateurs financiers.' : 'Aucune donnee financiere disponible pour le moment.' }}</p>
+  </section>
+</ng-template>
+
+<ng-template #emptyChart>
+  <div class="admin-revenue-empty-chart">Aucun paiement sur cette periode.</div>
+</ng-template>
+

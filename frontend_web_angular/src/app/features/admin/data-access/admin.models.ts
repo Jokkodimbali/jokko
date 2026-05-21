@@ -291,3 +291,121 @@ export interface AdminDashboard {
     recentActivity: AdminActivityItem[];
   };
 }
+
+export type AdminRevenuePeriod = '7d' | '30d' | '90d' | '12m';
+
+export interface AdminRevenueSeriesPoint {
+  label: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  gross: number;
+  net: number;
+  commission: number;
+  refunded: number;
+  transactions: number;
+}
+
+export interface AdminRevenueMethod {
+  key: string;
+  label: string;
+  gross: number;
+  transactions: number;
+  share: number;
+}
+
+export interface AdminRevenueProvider {
+  id: string;
+  name: string;
+  companyName: string | null;
+  city: string | null;
+  gross: number;
+  net: number;
+  transactions: number;
+}
+
+export interface AdminRevenuePayment {
+  id: string;
+  reference: string | null;
+  method: string;
+  status: string;
+  amount: number;
+  net: number;
+  commission: number;
+  createdAt: string | Date;
+  clientName: string;
+  professionalName: string;
+  serviceName: string;
+}
+
+export interface AdminRevenueReport {
+  period: AdminRevenuePeriod;
+  generatedAt: string | Date;
+  totals: {
+    gross: number;
+    net: number;
+    commission: number;
+    refunded: number;
+    totalPayments: number;
+    successfulPayments: number;
+    refundedPayments: number;
+    pendingPayments: number;
+    failedPayments: number;
+    averageTicket: number;
+    successRate: number;
+  };
+  series: AdminRevenueSeriesPoint[];
+  methods: AdminRevenueMethod[];
+  topProviders: AdminRevenueProvider[];
+  recentPayments: AdminRevenuePayment[];
+}
+
+export interface AdminRegionCategory {
+  label: string;
+  value: number;
+}
+
+export interface AdminRegionRow {
+  name: string;
+  providers: number;
+  activeProviders: number;
+  verifiedProviders: number;
+  services: number;
+  availableServices: number;
+  reservations: number;
+  completedReservations: number;
+  activeReservations: number;
+  disputes: number;
+  grossRevenue: number;
+  netRevenue: number;
+  averageRating: number;
+  verificationRate: number;
+  completionRate: number;
+  topCategories: AdminRegionCategory[];
+}
+
+export interface AdminRegionsReport {
+  generatedAt: string | Date;
+  totals: {
+    clients: number;
+    regions: number;
+    providers: number;
+    activeProviders: number;
+    verifiedProviders: number;
+    services: number;
+    availableServices: number;
+    reservations: number;
+    completedReservations: number;
+    activeReservations: number;
+    disputes: number;
+    grossRevenue: number;
+    netRevenue: number;
+  };
+  regions: AdminRegionRow[];
+  topRegions: AdminRegionRow[];
+  coverage: {
+    strongestRegion: string | null;
+    regionsWithRevenue: number;
+    regionsWithDisputes: number;
+    verifiedCoverageRate: number;
+  };
+}

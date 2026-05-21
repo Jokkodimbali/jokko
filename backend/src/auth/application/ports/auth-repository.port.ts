@@ -58,6 +58,10 @@ export interface AuthRepositoryPort {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    metadata?: {
+      platform?: string;
+      userAgent?: string;
+    },
   ): Promise<unknown>;
   findActiveSessionByTokenHash(
     tokenHash: string,
@@ -69,6 +73,10 @@ export interface AuthRepositoryPort {
     userId: string,
     newTokenHash: string,
     expiresAt: Date,
+    metadata?: {
+      platform?: string;
+      userAgent?: string;
+    },
   ): Promise<unknown>;
   linkGoogleIdentity(userId: string, googleSub: string): Promise<unknown>;
 }

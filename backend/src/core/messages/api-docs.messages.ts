@@ -454,6 +454,16 @@ export const API_DOCS = {
     summary: 'Recuperer les indicateurs globaux de la plateforme',
     success: 'Tableau de bord admin recupere avec succes',
   },
+  adminRevenue: {
+    tag: "Admin - Chiffre d'affaires",
+    summary: "Recuperer l'evolution du chiffre d'affaires",
+    success: "Chiffre d'affaires recupere avec succes",
+  },
+  adminRegions: {
+    tag: 'Admin - Regions Senegal',
+    summary: 'Recuperer la couverture regionale de la plateforme',
+    success: 'Couverture regionale recuperee avec succes',
+  },
   notifications: {
     tag: 'Notifications',
     listSummary: 'Lister mes notifications',

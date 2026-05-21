@@ -1,0 +1,149 @@
+<section class="admin-regions-page" *ngIf="report as data; else regionsState">
+  <header class="admin-regions-hero">
+    <div>
+      <span>
+        <lucide-icon name="map-pinned" size="18" [strokeWidth]="2.4"></lucide-icon>
+        Couverture territoriale
+      </span>
+      <h1>Régions Sénégal</h1>
+      <p>
+        Suivez la présence des prestataires, les réservations et les revenus par zone renseignée dans les profils
+        professionnels. Les indicateurs sont calculés depuis les données enregistrées sur la plateforme.
+      </p>
+    </div>
+    <aside>
+      <small>Zone la plus active</small>
+      <strong>{{ data.coverage.strongestRegion || 'Aucune zone' }}</strong>
+      <em>{{ formatNumber(data.totals.providers) }} prestataires référencés</em>
+    </aside>
+  </header>
+
+  <div class="admin-regions-kpis">
+    <article>
+      <span>Zones couvertes</span>
+      <strong>{{ formatNumber(data.totals.regions) }}</strong>
+      <small>{{ data.coverage.regionsWithRevenue }} avec revenus confirmés</small>
+    </article>
+    <article>
+      <span>Prestataires actifs</span>
+      <strong>{{ formatNumber(data.totals.activeProviders) }}</strong>
+      <small>{{ data.coverage.verifiedCoverageRate }}% de profils vérifiés</small>
+    </article>
+    <article>
+      <span>Réservations</span>
+      <strong>{{ formatNumber(data.totals.reservations) }}</strong>
+      <small>{{ formatNumber(data.totals.completedReservations) }} terminées</small>
+    </article>
+    <article>
+      <span>Revenus générés</span>
+      <strong>{{ formatMoney(data.totals.grossRevenue) }}</strong>
+      <small>{{ formatMoney(data.totals.netRevenue) }} reversés</small>
+    </article>
+  </div>
+
+  <div class="admin-regions-layout">
+    <article class="admin-regions-map-card">
+      <header>
+        <div>
+          <h2>Répartition opérationnelle</h2>
+          <p>Volume de prestataires par zone, avec lecture rapide des services disponibles.</p>
+        </div>
+        <span>{{ formatNumber(data.totals.services) }} services</span>
+      </header>
+
+      <div class="admin-regions-bars" *ngIf="data.regions.length > 0; else noRegions">
+        <button
+          *ngFor="let region of data.regions.slice(0, 8); trackBy: regionTrackBy"
+          type="button"
+          [title]="region.name + ' - ' + formatNumber(region.providers) + ' prestataires'"
+        >
+          <i [style.height.%]="providerHeight(region, data)"></i>
+          <strong>{{ region.name }}</strong>
+          <small>{{ formatNumber(region.providers) }}</small>
+        </button>
+      </div>
+    </article>
+
+    <aside class="admin-regions-quality">
+      <h2>Santé du réseau</h2>
+      <div>
+        <span>Profils vérifiés</span>
+        <strong>{{ data.coverage.verifiedCoverageRate }}%</strong>
+      </div>
+      <div>
+        <span>Zones avec litiges</span>
+        <strong>{{ formatNumber(data.coverage.regionsWithDisputes) }}</strong>
+      </div>
+      <div>
+        <span>Services disponibles</span>
+        <strong>{{ formatNumber(data.totals.availableServices) }}</strong>
+      </div>
+    </aside>
+  </div>
+
+  <article class="admin-regions-table-card">
+    <header>
+      <div>
+        <h2>Détail par région</h2>
+        <p>Chaque ligne reflète les données actuelles des profils, réservations, paiements et litiges.</p>
+      </div>
+      <span>{{ formatNumber(data.regions.length) }} zones</span>
+    </header>
+
+    <div class="admin-regions-table" *ngIf="data.regions.length > 0; else noRegions">
+      <div class="admin-regions-row admin-regions-row--head">
+        <span>Région</span>
+        <span>Prestataires</span>
+        <span>Activité</span>
+        <span>Revenus</span>
+        <span>Qualité</span>
+      </div>
+
+      <div class="admin-regions-row" *ngFor="let region of data.regions; trackBy: regionTrackBy">
+        <div>
+          <strong>{{ region.name }}</strong>
+          <small>
+            {{ region.topCategories.length ? region.topCategories[0].label : 'Aucune catégorie renseignée' }}
+          </small>
+        </div>
+        <div>
+          <strong>{{ formatNumber(region.providers) }}</strong>
+          <small>{{ formatNumber(region.activeProviders) }} actifs · {{ region.verificationRate }}% vérifiés</small>
+        </div>
+        <div>
+          <strong>{{ formatNumber(region.reservations) }}</strong>
+          <small>{{ formatNumber(region.activeReservations) }} en cours · {{ formatNumber(region.disputes) }} litiges</small>
+        </div>
+        <div>
+          <strong>{{ formatMoney(region.grossRevenue) }}</strong>
+          <i><b [style.width.%]="revenueWidth(region, data)"></b></i>
+        </div>
+        <div>
+          <strong>{{ region.averageRating | number: '1.1-1' }}/5</strong>
+          <small>{{ region.completionRate }}% terminées</small>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<ng-template #regionsState>
+  <section class="admin-regions-state">
+    <lucide-icon [name]="isLoading ? 'loader-circle' : 'map'" size="38" [strokeWidth]="2.2"></lucide-icon>
+    <h1>{{ isLoading ? 'Chargement des régions' : 'Aucune donnée régionale disponible' }}</h1>
+    <p>
+      {{
+        isLoading
+          ? 'Préparation de la couverture territoriale.'
+          : 'Les profils prestataires doivent renseigner leur ville pour alimenter cette vue.'
+      }}
+    </p>
+  </section>
+</ng-template>
+
+<ng-template #noRegions>
+  <div class="admin-regions-empty">
+    <lucide-icon name="map" size="26" [strokeWidth]="2.2"></lucide-icon>
+    <span>Aucune région exploitable pour le moment.</span>
+  </div>
+</ng-template>

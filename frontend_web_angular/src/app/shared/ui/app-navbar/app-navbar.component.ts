@@ -27,7 +27,7 @@ export class AppNavbarComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
 
-  protected readonly logo = '/logo.png';
+  protected readonly logo = '/logojokko.png';
   protected readonly feedbackMessage = this.feedback.message;
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly isMenuOpen = signal(false);

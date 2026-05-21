@@ -1,0 +1,517 @@
+:host {
+  display: block;
+}
+
+.admin-revenue-page {
+  color: #2f261f;
+  display: grid;
+  gap: 22px;
+}
+
+.admin-revenue-hero,
+.admin-revenue-kpis article,
+.admin-revenue-card,
+.admin-revenue-empty {
+  background: #fff;
+  border: 1px solid #eadfd6;
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(54, 38, 26, 0.06);
+}
+
+.admin-revenue-hero {
+  align-items: end;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 28px;
+}
+
+.admin-revenue-hero > div {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-revenue-hero span,
+.admin-revenue-kpis span,
+.admin-revenue-card header span,
+.admin-revenue-card > small {
+  color: #915a22;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-revenue-hero span {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.admin-revenue-hero h1 {
+  color: #2d231c;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.admin-revenue-hero p,
+.admin-revenue-card p,
+.admin-revenue-kpis small {
+  color: #7c6e65;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.admin-revenue-hero nav {
+  background: #f5eee8;
+  border: 1px solid #eadfd6;
+  border-radius: 16px;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+}
+
+.admin-revenue-hero button {
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  color: #745f51;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.admin-revenue-period--active {
+  background: #915a22 !important;
+  color: #fff !important;
+}
+
+.admin-revenue-kpis {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-revenue-kpis article {
+  display: grid;
+  gap: 9px;
+  min-height: 138px;
+  padding: 20px;
+}
+
+.admin-revenue-kpis strong {
+  color: #241d18;
+  font-size: clamp(23px, 2.1vw, 34px);
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.admin-revenue-kpi--primary {
+  background: #915a22 !important;
+  color: #fff;
+}
+
+.admin-revenue-kpi--primary span,
+.admin-revenue-kpi--primary small,
+.admin-revenue-kpi--primary strong {
+  color: #fff;
+}
+
+.admin-revenue-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.admin-revenue-card {
+  padding: 22px;
+}
+
+.admin-revenue-card--chart {
+  display: grid;
+  gap: 22px;
+  min-height: 470px;
+}
+
+.admin-revenue-card header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.admin-revenue-card h2 {
+  color: #251d18;
+  font-size: 22px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.admin-revenue-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-revenue-legend li {
+  align-items: center;
+  color: #6c5f57;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.admin-revenue-dot {
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  width: 8px;
+}
+
+.admin-revenue-dot--gross,
+.admin-revenue-line--gross,
+.admin-revenue-point circle {
+  stroke: #915a22;
+}
+
+.admin-revenue-dot--gross {
+  background: #915a22;
+}
+
+.admin-revenue-dot--net {
+  background: #18a874;
+}
+
+.admin-revenue-dot--commission {
+  background: #d98b2b;
+}
+
+.admin-revenue-dot--refund {
+  background: #dc3f3f;
+}
+
+.admin-revenue-chart {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.admin-revenue-chart svg {
+  display: block;
+  min-width: 720px;
+  width: 100%;
+}
+
+.admin-revenue-grid-lines line {
+  stroke: #efe5dc;
+  stroke-width: 1;
+}
+
+.admin-revenue-axis text {
+  fill: #8a7b72;
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.admin-revenue-axis text:first-child,
+.admin-revenue-axis text:nth-child(2),
+.admin-revenue-axis text:nth-child(3),
+.admin-revenue-axis text:nth-child(4),
+.admin-revenue-axis text:nth-child(5) {
+  text-anchor: end;
+}
+
+.admin-revenue-area {
+  opacity: 0.13;
+}
+
+.admin-revenue-area--gross {
+  fill: #915a22;
+}
+
+.admin-revenue-area--net {
+  fill: #18a874;
+}
+
+.admin-revenue-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.admin-revenue-line--net {
+  stroke: #18a874;
+}
+
+.admin-revenue-line--commission {
+  stroke: #d98b2b;
+  stroke-width: 3;
+}
+
+.admin-revenue-line--refund {
+  stroke: #dc3f3f;
+  stroke-dasharray: 7 7;
+  stroke-width: 3;
+}
+
+.admin-revenue-point circle {
+  fill: #fff;
+  stroke-width: 4;
+}
+
+.admin-revenue-point text {
+  fill: #251d18;
+  font-size: 11px;
+  font-weight: 900;
+  opacity: 0;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4px;
+  transition: opacity 150ms ease;
+}
+
+.admin-revenue-point:hover text {
+  opacity: 1;
+}
+
+.admin-revenue-card--health {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
+
+.admin-revenue-card--health div,
+.admin-revenue-methods div {
+  border: 1px solid #f0e6df;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.admin-revenue-card--health div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.admin-revenue-card--health strong {
+  color: #251d18;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.admin-revenue-bottom {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+}
+
+.admin-revenue-methods,
+.admin-revenue-providers,
+.admin-revenue-payments {
+  display: grid;
+  gap: 15px;
+}
+
+.admin-revenue-methods div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.admin-revenue-methods p {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-revenue-methods b {
+  color: #251d18;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.admin-revenue-methods i {
+  background: #f0e6df;
+  border-radius: 999px;
+  display: block;
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+}
+
+.admin-revenue-methods em {
+  background: #915a22;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.admin-revenue-providers ol {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-revenue-providers li {
+  align-items: center;
+  border: 1px solid #f0e6df;
+  border-radius: 16px;
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.admin-revenue-providers span {
+  color: #251d18;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.admin-revenue-providers small {
+  color: #83756d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-revenue-providers strong {
+  color: #915a22;
+  font-size: 15px;
+  font-weight: 950;
+  grid-row: span 2;
+}
+
+.admin-revenue-table {
+  overflow-x: auto;
+}
+
+.admin-revenue-table table {
+  border-collapse: separate;
+  border-spacing: 0 9px;
+  min-width: 920px;
+  width: 100%;
+}
+
+.admin-revenue-table th {
+  color: #8a7b72;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 0 12px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.admin-revenue-table td {
+  background: #fbf8f4;
+  border-bottom: 1px solid #efe5dc;
+  border-top: 1px solid #efe5dc;
+  color: #302720;
+  font-size: 13px;
+  font-weight: 760;
+  padding: 14px 12px;
+}
+
+.admin-revenue-table td:first-child {
+  border-left: 1px solid #efe5dc;
+  border-radius: 14px 0 0 14px;
+}
+
+.admin-revenue-table td:last-child {
+  border-radius: 0 14px 14px 0;
+  border-right: 1px solid #efe5dc;
+}
+
+.admin-revenue-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.admin-revenue-status--succes {
+  background: #def7e9;
+  color: #168257;
+}
+
+.admin-revenue-status--rembourse {
+  background: #ffe2e2;
+  color: #b83232;
+}
+
+.admin-revenue-status--en_attente {
+  background: #fff1d9;
+  color: #9a5c22;
+}
+
+.admin-revenue-status--echec {
+  background: #f1e7e3;
+  color: #674235;
+}
+
+.admin-revenue-empty,
+.admin-revenue-empty-chart {
+  align-items: center;
+  color: #7b6d65;
+  display: grid;
+  justify-items: center;
+  min-height: 360px;
+  padding: 28px;
+  text-align: center;
+}
+
+.admin-revenue-empty h1 {
+  color: #251d18;
+  margin: 0;
+}
+
+.admin-revenue-empty p {
+  margin: 0;
+}
+
+.admin-revenue-empty-chart {
+  border: 1px dashed #dbc7b8;
+  border-radius: 18px;
+  min-height: 260px;
+}
+
+@media (max-width: 1180px) {
+  .admin-revenue-hero,
+  .admin-revenue-grid,
+  .admin-revenue-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-revenue-hero,
+  .admin-revenue-card,
+  .admin-revenue-kpis article {
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .admin-revenue-hero nav {
+    flex-wrap: wrap;
+  }
+
+  .admin-revenue-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -585,6 +585,10 @@
   padding: 15px;
 }
 
+.admin-provider-deep-grid article:only-child {
+  grid-column: 1 / -1;
+}
+
 .admin-provider-deep-grid h3 {
   color: #111;
   font-size: 17px;

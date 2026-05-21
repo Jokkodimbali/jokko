@@ -122,12 +122,19 @@ export class AuthRepository implements AuthRepositoryPort {
     });
   }
 
-  createRefreshSession(userId: string, tokenHash: string, expiresAt: Date) {
+  createRefreshSession(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+    metadata?: { platform?: string; userAgent?: string },
+  ) {
     return this.prisma.sessionAuthentification.create({
       data: {
         utilisateurId: userId,
         hashJeton: tokenHash,
         expireLe: expiresAt,
+        plateforme: metadata?.platform,
+        userAgent: metadata?.userAgent,
       },
     });
   }
@@ -160,6 +167,7 @@ export class AuthRepository implements AuthRepositoryPort {
     userId: string,
     newTokenHash: string,
     expiresAt: Date,
+    metadata?: { platform?: string; userAgent?: string },
   ) {
     return this.prisma.$transaction(async (tx) => {
       await tx.sessionAuthentification.update({
@@ -171,6 +179,8 @@ export class AuthRepository implements AuthRepositoryPort {
           utilisateurId: userId,
           hashJeton: newTokenHash,
           expireLe: expiresAt,
+          plateforme: metadata?.platform,
+          userAgent: metadata?.userAgent,
         },
       });
     });

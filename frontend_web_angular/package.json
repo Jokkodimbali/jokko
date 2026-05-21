@@ -11,8 +11,12 @@
   },
   "private": true,
   "engines": {
-    "node": "^22.12.0 || ^24.0.0",
+    "node": "22.12.0",
     "npm": ">=10.9.0 <12"
+  },
+  "volta": {
+    "node": "22.12.0",
+    "npm": "11.12.1"
   },
   "packageManager": "npm@11.12.1",
   "dependencies": {
@@ -22,6 +26,7 @@
     "@angular/forms": "^21.2.11",
     "@angular/platform-browser": "^21.2.11",
     "@angular/router": "^21.2.11",
+    "@fontsource/inter": "^5.2.8",
     "lucide-angular": "^1.0.0",
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.3",

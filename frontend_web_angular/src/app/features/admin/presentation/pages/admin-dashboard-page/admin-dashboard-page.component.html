@@ -1,8 +1,7 @@
 <main class="admin-page">
   <aside class="admin-sidebar" aria-label="Navigation administration">
     <a routerLink="/services" class="admin-sidebar__brand" aria-label="Accueil Jokko Dimbali">
-      <img src="/logo.png" alt="" />
-      <strong>JOKKO Dimbali</strong>
+      <img src="/logojokko.png" alt="" />
     </a>
     <a routerLink="/services" class="admin-sidebar__back">
       <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
@@ -92,12 +91,21 @@
       </ng-template>
 
       <ng-template #nonTrafficContent>
-        <ng-container *ngIf="activeSection() === 'revenue'; else overviewContent">
+        <ng-container *ngIf="activeSection() === 'revenue'; else nonRevenueContent">
           <app-admin-revenue-panel
             [report]="revenueReport()"
             [isLoading]="isRevenueLoading()"
             (periodChange)="loadRevenue($event)"
           ></app-admin-revenue-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonRevenueContent>
+        <ng-container *ngIf="activeSection() === 'regions'; else overviewContent">
+          <app-admin-regions-panel
+            [report]="regionsReport()"
+            [isLoading]="isRegionsLoading()"
+          ></app-admin-regions-panel>
         </ng-container>
       </ng-template>
 

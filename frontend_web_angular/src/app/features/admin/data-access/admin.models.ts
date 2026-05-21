@@ -358,3 +358,54 @@ export interface AdminRevenueReport {
   topProviders: AdminRevenueProvider[];
   recentPayments: AdminRevenuePayment[];
 }
+
+export interface AdminRegionCategory {
+  label: string;
+  value: number;
+}
+
+export interface AdminRegionRow {
+  name: string;
+  providers: number;
+  activeProviders: number;
+  verifiedProviders: number;
+  services: number;
+  availableServices: number;
+  reservations: number;
+  completedReservations: number;
+  activeReservations: number;
+  disputes: number;
+  grossRevenue: number;
+  netRevenue: number;
+  averageRating: number;
+  verificationRate: number;
+  completionRate: number;
+  topCategories: AdminRegionCategory[];
+}
+
+export interface AdminRegionsReport {
+  generatedAt: string | Date;
+  totals: {
+    clients: number;
+    regions: number;
+    providers: number;
+    activeProviders: number;
+    verifiedProviders: number;
+    services: number;
+    availableServices: number;
+    reservations: number;
+    completedReservations: number;
+    activeReservations: number;
+    disputes: number;
+    grossRevenue: number;
+    netRevenue: number;
+  };
+  regions: AdminRegionRow[];
+  topRegions: AdminRegionRow[];
+  coverage: {
+    strongestRegion: string | null;
+    regionsWithRevenue: number;
+    regionsWithDisputes: number;
+    verifiedCoverageRate: number;
+  };
+}

@@ -13,6 +13,7 @@ import {
   AdminProviderListQuery,
   AdminProviderProfile,
   AdminProviderStats,
+  AdminRegionsReport,
   AdminRevenuePeriod,
   AdminRevenueReport,
 } from '../../../data-access/admin.models';
@@ -26,6 +27,7 @@ import { AdminMedicalCredentialsPanelComponent } from '../../components/admin-me
 import { AdminKycValidationPanelComponent } from '../../components/admin-kyc-validation-panel/admin-kyc-validation-panel.component';
 import { AdminOverviewPanelComponent } from '../../components/admin-overview-panel/admin-overview-panel.component';
 import { AdminProvidersPanelComponent } from '../../components/admin-providers-panel/admin-providers-panel.component';
+import { AdminRegionsPanelComponent } from '../../components/admin-regions-panel/admin-regions-panel.component';
 import { AdminRevenuePanelComponent } from '../../components/admin-revenue-panel/admin-revenue-panel.component';
 import { AdminTrafficAnalyticsPanelComponent } from '../../components/admin-traffic-analytics-panel/admin-traffic-analytics-panel.component';
 
@@ -53,6 +55,7 @@ type AdminSection =
     AdminMedicalCredentialsPanelComponent,
     AdminOverviewPanelComponent,
     AdminProvidersPanelComponent,
+    AdminRegionsPanelComponent,
     AdminRevenuePanelComponent,
     AdminTrafficAnalyticsPanelComponent,
   ],
@@ -77,6 +80,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly selectedProviderDetail = signal<AdminProviderProfile | null>(null);
   protected readonly providerPagination = signal<AdminPaginatedResult<AdminProviderProfile>['pagination'] | null>(null);
   protected readonly providerStats = signal<AdminProviderStats | null>(null);
+  protected readonly regionsReport = signal<AdminRegionsReport | null>(null);
   protected readonly revenueReport = signal<AdminRevenueReport | null>(null);
   protected readonly selectedProviderId = signal<string | null>(null);
   protected readonly providerQuery = signal<AdminProviderListQuery>({ page: 1, limit: 12 });
@@ -85,6 +89,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly isKycLoading = signal(false);
   protected readonly isMedicalLoading = signal(false);
   protected readonly isProvidersLoading = signal(false);
+  protected readonly isRegionsLoading = signal(false);
   protected readonly isRevenueLoading = signal(false);
   protected readonly isProviderActionLoading = signal(false);
   protected readonly kycActionId = signal<string | null>(null);
@@ -131,7 +136,7 @@ export class AdminDashboardPageComponent implements OnInit {
     { key: 'providers', label: 'Prestataires', icon: 'users', badge: () => this.providerCount() },
     { key: 'traffic', label: 'Trafic & Analytics', icon: 'chart-no-axes-combined', badge: () => this.trafficCount() },
     { key: 'revenue', label: 'Chiffre d affaire', icon: 'wallet-cards', badge: () => this.dashboard()?.revenue.monthlyGross ?? 0 },
-    { key: 'regions', label: 'Regions Senegal', icon: 'globe-2', badge: () => this.dashboard()?.overview.categoryDistribution.length ?? 0 },
+    { key: 'regions', label: 'Regions Senegal', icon: 'globe-2', badge: () => this.regionsReport()?.totals.regions ?? 0 },
     { key: 'archives', label: 'Archives', icon: 'archive', badge: () => this.closedDisputes() },
     { key: 'structure', label: 'Structure des Services', icon: 'git-fork', badge: () => this.categoryTotal() },
   ];
@@ -184,6 +189,25 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'revenue' && !this.revenueReport()) {
       this.loadRevenue();
     }
+    if (section === 'regions' && !this.regionsReport()) {
+      this.loadRegions();
+    }
+  }
+
+  protected loadRegions(): void {
+    this.isRegionsLoading.set(true);
+    this.adminDashboardService
+      .getRegions()
+      .pipe(
+        catchError(() => {
+          this.isRegionsLoading.set(false);
+          return of(null);
+        }),
+      )
+      .subscribe((report) => {
+        this.regionsReport.set(report);
+        this.isRegionsLoading.set(false);
+      });
   }
 
   protected loadRevenue(period: AdminRevenuePeriod = this.revenueReport()?.period ?? '12m'): void {

@@ -823,6 +823,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: "Chiffre d'affaires admin recupere avec succes.",
     },
+    ADMIN_REGIONS_RETRIEVED: {
+      code: 'ADMIN_REGIONS_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Couverture regionale admin recuperee avec succes.',
+    },
   },
   system: {
     SYSTEM_DATABASE_URL_MISSING: {

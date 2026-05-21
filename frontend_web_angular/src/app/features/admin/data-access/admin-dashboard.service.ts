@@ -4,7 +4,12 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
-import { AdminDashboard, AdminRevenuePeriod, AdminRevenueReport } from './admin.models';
+import {
+  AdminDashboard,
+  AdminRegionsReport,
+  AdminRevenuePeriod,
+  AdminRevenueReport,
+} from './admin.models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminDashboardService {
@@ -22,6 +27,12 @@ export class AdminDashboardService {
       .get<ApiResponse<AdminRevenueReport>>(`${environment.apiUrl}/admin/revenue`, {
         params: { period },
       })
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  getRegions(): Observable<AdminRegionsReport> {
+    return this.http
+      .get<ApiResponse<AdminRegionsReport>>(`${environment.apiUrl}/admin/regions`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 }

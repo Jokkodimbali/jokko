@@ -459,6 +459,11 @@ export const API_DOCS = {
     summary: "Recuperer l'evolution du chiffre d'affaires",
     success: "Chiffre d'affaires recupere avec succes",
   },
+  adminRegions: {
+    tag: 'Admin - Regions Senegal',
+    summary: 'Recuperer la couverture regionale de la plateforme',
+    success: 'Couverture regionale recuperee avec succes',
+  },
   notifications: {
     tag: 'Notifications',
     listSummary: 'Lister mes notifications',

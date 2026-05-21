@@ -1,0 +1,345 @@
+:host {
+  display: block;
+}
+
+.admin-regions-page {
+  color: #2f261f;
+  display: grid;
+  gap: 22px;
+}
+
+.admin-regions-hero,
+.admin-regions-kpis article,
+.admin-regions-map-card,
+.admin-regions-quality,
+.admin-regions-table-card,
+.admin-regions-state {
+  background: #fff;
+  border: 1px solid #eadfd6;
+  border-radius: 22px;
+  box-shadow: 0 18px 42px rgba(54, 38, 26, 0.07);
+}
+
+.admin-regions-hero {
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 84% 16%, rgba(145, 90, 34, 0.14), transparent 30%),
+    #f6eee7;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.34fr);
+  padding: 28px;
+}
+
+.admin-regions-hero > div {
+  display: grid;
+  gap: 11px;
+}
+
+.admin-regions-hero span {
+  align-items: center;
+  color: #915a22;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.admin-regions-hero h1 {
+  color: #2d231c;
+  font-size: clamp(36px, 4.6vw, 58px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.98;
+  margin: 0;
+}
+
+.admin-regions-hero p {
+  color: #76685e;
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 780px;
+}
+
+.admin-regions-hero aside {
+  align-content: center;
+  background: #915a22;
+  border-radius: 20px;
+  color: #fff;
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+}
+
+.admin-regions-hero aside small,
+.admin-regions-hero aside em,
+.admin-regions-kpis span,
+.admin-regions-quality span,
+.admin-regions-row small {
+  color: #87786f;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.admin-regions-hero aside small,
+.admin-regions-hero aside em {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.admin-regions-hero aside strong {
+  font-size: 30px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.admin-regions-kpis {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-regions-kpis article {
+  display: grid;
+  gap: 8px;
+  min-height: 128px;
+  padding: 20px;
+}
+
+.admin-regions-kpis span,
+.admin-regions-quality span {
+  text-transform: uppercase;
+}
+
+.admin-regions-kpis strong {
+  color: #2d231c;
+  font-size: 30px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.admin-regions-kpis small {
+  color: #7d6f66;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-regions-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(270px, 0.45fr);
+}
+
+.admin-regions-map-card,
+.admin-regions-quality,
+.admin-regions-table-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.admin-regions-map-card header,
+.admin-regions-table-card header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.admin-regions-map-card h2,
+.admin-regions-quality h2,
+.admin-regions-table-card h2 {
+  color: #251d18;
+  font-size: 22px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.admin-regions-map-card p,
+.admin-regions-table-card p {
+  color: #82746b;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+}
+
+.admin-regions-map-card header span,
+.admin-regions-table-card header span {
+  background: #f4ebe5;
+  border-radius: 999px;
+  color: #915a22;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.admin-regions-bars {
+  align-items: end;
+  border-bottom: 1px solid #eadfd6;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: repeat(8, minmax(70px, 1fr));
+  min-height: 258px;
+  padding-top: 12px;
+}
+
+.admin-regions-bars button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: default;
+  display: grid;
+  gap: 8px;
+  grid-template-rows: 178px auto auto;
+  justify-items: center;
+  min-width: 0;
+}
+
+.admin-regions-bars i {
+  align-self: end;
+  background: linear-gradient(180deg, #d98b2b, #915a22);
+  border-radius: 999px 999px 10px 10px;
+  display: block;
+  width: 28px;
+}
+
+.admin-regions-bars strong {
+  color: #312821;
+  font-size: 12px;
+  font-weight: 900;
+  max-width: 84px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-regions-bars small {
+  color: #8b7b72;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.admin-regions-quality div {
+  align-items: center;
+  border: 1px solid #f0e6df;
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+}
+
+.admin-regions-quality strong {
+  color: #2d231c;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.admin-regions-table {
+  border: 1px solid #f0e6df;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.admin-regions-row {
+  align-items: center;
+  border-top: 1px solid #f3e9e1;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(170px, 1.2fr) repeat(4, minmax(130px, 1fr));
+  padding: 15px 16px;
+}
+
+.admin-regions-row:first-child {
+  border-top: 0;
+}
+
+.admin-regions-row--head {
+  background: #f8f1eb;
+  color: #8a5b34;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-regions-row strong {
+  color: #241c17;
+  display: block;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.admin-regions-row i {
+  background: #efe4dc;
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+
+.admin-regions-row i b {
+  background: #915a22;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.admin-regions-state,
+.admin-regions-empty {
+  align-items: center;
+  color: #7b6d65;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-height: 380px;
+  padding: 30px;
+  text-align: center;
+}
+
+.admin-regions-state h1 {
+  color: #2d231c;
+  font-size: 28px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.admin-regions-state p {
+  margin: 0;
+}
+
+.admin-regions-empty {
+  border: 1px dashed #e4d4c8;
+  border-radius: 18px;
+  min-height: 180px;
+}
+
+@media (max-width: 1180px) {
+  .admin-regions-hero,
+  .admin-regions-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-regions-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-regions-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-regions-map-card,
+  .admin-regions-table-card {
+    overflow-x: auto;
+  }
+
+  .admin-regions-row {
+    min-width: 760px;
+  }
+}

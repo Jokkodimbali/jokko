@@ -53,7 +53,7 @@
 .auth-panel__brand {
   align-items: center;
   color: #fff;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 32px;
@@ -61,8 +61,13 @@
 }
 
 .auth-panel__brand img {
-  height: 48px;
-  width: auto;
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 20px 42px rgba(38, 22, 13, 0.28);
+  height: 136px;
+  object-fit: contain;
+  padding: 10px;
+  width: 136px;
 }
 
 .auth-panel__brand span {
@@ -380,7 +385,9 @@
   }
 
   .auth-panel__brand img {
-    height: 40px;
+    border-radius: 22px;
+    height: 104px;
+    width: 104px;
   }
 
   .auth-panel__brand span {

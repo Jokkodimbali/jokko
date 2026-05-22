@@ -104,8 +104,18 @@ export class AdminPaymentsController {
       await this.paymentsFacade.getProfessionalPaymentHistory(undefined, query);
 
     return createApiResponse({
-      clientPayments: allClientPayments,
-      professionalPayments: allProfessionalPayments,
+      clientPayments: {
+        ...allClientPayments,
+        payments: allClientPayments.payments.map((payment) =>
+          payment.toView(),
+        ),
+      },
+      professionalPayments: {
+        ...allProfessionalPayments,
+        payments: allProfessionalPayments.payments.map((payment) =>
+          payment.toView(),
+        ),
+      },
     });
   }
 

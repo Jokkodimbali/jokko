@@ -39,6 +39,11 @@ export type ListReservationsQuery = {
   scope?: 'CLIENT' | 'PRESTATAIRE';
   status?: string;
   serviceId?: string;
+  clientId?: string;
+  professionalId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export type ReservationFilters = {
@@ -48,4 +53,5 @@ export type ReservationFilters = {
   status?: string;
   startDate?: Date;
   endDate?: Date;
+  search?: string;
 };

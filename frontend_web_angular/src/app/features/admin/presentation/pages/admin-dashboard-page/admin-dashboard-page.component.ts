@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import {
+  AdminArchivesReport,
   AdminDashboard,
   AdminDisputeCase,
   AdminKycProfile,
@@ -16,12 +17,16 @@ import {
   AdminRegionsReport,
   AdminRevenuePeriod,
   AdminRevenueReport,
+  AdminServiceStructureReport,
+  AdminCategoryPayload,
+  AdminSubCategoryPayload,
 } from '../../../data-access/admin.models';
 import { AdminDashboardService } from '../../../data-access/admin-dashboard.service';
 import { AdminDisputesService } from '../../../data-access/admin-disputes.service';
 import { AdminKycService } from '../../../data-access/admin-kyc.service';
 import { AdminMedicalCredentialsService } from '../../../data-access/admin-medical-credentials.service';
 import { AdminProvidersService } from '../../../data-access/admin-providers.service';
+import { AdminArchivesPanelComponent } from '../../components/admin-archives-panel/admin-archives-panel.component';
 import { AdminDisputesPanelComponent } from '../../components/admin-disputes-panel/admin-disputes-panel.component';
 import { AdminMedicalCredentialsPanelComponent } from '../../components/admin-medical-credentials-panel/admin-medical-credentials-panel.component';
 import { AdminKycValidationPanelComponent } from '../../components/admin-kyc-validation-panel/admin-kyc-validation-panel.component';
@@ -29,7 +34,12 @@ import { AdminOverviewPanelComponent } from '../../components/admin-overview-pan
 import { AdminProvidersPanelComponent } from '../../components/admin-providers-panel/admin-providers-panel.component';
 import { AdminRegionsPanelComponent } from '../../components/admin-regions-panel/admin-regions-panel.component';
 import { AdminRevenuePanelComponent } from '../../components/admin-revenue-panel/admin-revenue-panel.component';
+import { AdminServiceStructurePanelComponent } from '../../components/admin-service-structure-panel/admin-service-structure-panel.component';
 import { AdminTrafficAnalyticsPanelComponent } from '../../components/admin-traffic-analytics-panel/admin-traffic-analytics-panel.component';
+import { AdminUsersPanelComponent } from '../../components/admin-users-panel/admin-users-panel.component';
+import { AdminReservationsPanelComponent } from '../../components/admin-reservations-panel/admin-reservations-panel.component';
+import { AdminPaymentsPanelComponent } from '../../components/admin-payments-panel/admin-payments-panel.component';
+import { AdminNotificationsPanelComponent } from '../../components/admin-notifications-panel/admin-notifications-panel.component';
 
 type AdminSection =
   | 'overview'
@@ -41,7 +51,11 @@ type AdminSection =
   | 'revenue'
   | 'regions'
   | 'archives'
-  | 'structure';
+  | 'structure'
+  | 'users'
+  | 'reservations'
+  | 'payments'
+  | 'notifications';
 
 @Component({
   selector: 'app-admin-dashboard-page',
@@ -50,14 +64,20 @@ type AdminSection =
     CommonModule,
     RouterLink,
     LucideAngularModule,
+    AdminArchivesPanelComponent,
     AdminDisputesPanelComponent,
     AdminKycValidationPanelComponent,
     AdminMedicalCredentialsPanelComponent,
     AdminOverviewPanelComponent,
     AdminProvidersPanelComponent,
     AdminRegionsPanelComponent,
+    AdminReservationsPanelComponent,
     AdminRevenuePanelComponent,
+    AdminServiceStructurePanelComponent,
     AdminTrafficAnalyticsPanelComponent,
+    AdminUsersPanelComponent,
+    AdminPaymentsPanelComponent,
+    AdminNotificationsPanelComponent,
   ],
   templateUrl: './admin-dashboard-page.component.html',
   styleUrl: './admin-dashboard-page.component.scss',
@@ -73,6 +93,7 @@ export class AdminDashboardPageComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly dashboard = signal<AdminDashboard | null>(null);
+  protected readonly archivesReport = signal<AdminArchivesReport | null>(null);
   protected readonly disputeCases = signal<AdminDisputeCase[]>([]);
   protected readonly kycProfiles = signal<AdminKycProfile[]>([]);
   protected readonly medicalCredentialProfiles = signal<AdminMedicalValidation[]>([]);
@@ -82,16 +103,20 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly providerStats = signal<AdminProviderStats | null>(null);
   protected readonly regionsReport = signal<AdminRegionsReport | null>(null);
   protected readonly revenueReport = signal<AdminRevenueReport | null>(null);
+  protected readonly serviceStructureReport = signal<AdminServiceStructureReport | null>(null);
   protected readonly selectedProviderId = signal<string | null>(null);
   protected readonly providerQuery = signal<AdminProviderListQuery>({ page: 1, limit: 12 });
   protected readonly isLoading = signal(true);
+  protected readonly isArchivesLoading = signal(false);
   protected readonly isDisputesLoading = signal(false);
   protected readonly isKycLoading = signal(false);
   protected readonly isMedicalLoading = signal(false);
   protected readonly isProvidersLoading = signal(false);
   protected readonly isRegionsLoading = signal(false);
   protected readonly isRevenueLoading = signal(false);
+  protected readonly isStructureLoading = signal(false);
   protected readonly isProviderActionLoading = signal(false);
+  protected readonly structureActionId = signal<string | null>(null);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
   protected readonly user = this.authSession.currentUser;
@@ -134,11 +159,15 @@ export class AdminDashboardPageComponent implements OnInit {
     { key: 'doctors', label: 'Medecins- Diplomes', icon: 'stethoscope', badge: () => this.medicalCredentialProfiles().length },
     { key: 'disputes', label: 'Litiges', icon: 'scale', badge: () => this.openDisputes() },
     { key: 'providers', label: 'Prestataires', icon: 'users', badge: () => this.providerCount() },
+    { key: 'users', label: 'Utilisateurs', icon: 'user-round-cog', badge: () => this.dashboard()?.users.total ?? 0 },
+    { key: 'reservations', label: 'Reservations', icon: 'calendar-days', badge: () => this.dashboard()?.reservations.active ?? 0 },
+    { key: 'payments', label: 'Paiements', icon: 'banknote', badge: () => this.dashboard()?.reservations.inEscrow ?? 0 },
+    { key: 'notifications', label: 'Notifications', icon: 'bell' },
     { key: 'traffic', label: 'Trafic & Analytics', icon: 'chart-no-axes-combined', badge: () => this.trafficCount() },
     { key: 'revenue', label: 'Chiffre d affaire', icon: 'wallet-cards', badge: () => this.dashboard()?.revenue.monthlyGross ?? 0 },
     { key: 'regions', label: 'Regions Senegal', icon: 'globe-2', badge: () => this.regionsReport()?.totals.regions ?? 0 },
     { key: 'archives', label: 'Archives', icon: 'archive', badge: () => this.closedDisputes() },
-    { key: 'structure', label: 'Structure des Services', icon: 'git-fork', badge: () => this.categoryTotal() },
+    { key: 'structure', label: 'Structure des Services', icon: 'git-fork', badge: () => this.serviceStructureReport()?.totals.categories ?? this.categoryTotal() },
   ];
 
   ngOnInit(): void {
@@ -192,6 +221,28 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'regions' && !this.regionsReport()) {
       this.loadRegions();
     }
+    if (section === 'archives' && !this.archivesReport()) {
+      this.loadArchives();
+    }
+    if (section === 'structure' && !this.serviceStructureReport()) {
+      this.loadServiceStructure();
+    }
+  }
+
+  protected loadArchives(query = {}): void {
+    this.isArchivesLoading.set(true);
+    this.adminDashboardService
+      .getArchives(query)
+      .pipe(
+        catchError(() => {
+          this.isArchivesLoading.set(false);
+          return of(null);
+        }),
+      )
+      .subscribe((report) => {
+        this.archivesReport.set(report);
+        this.isArchivesLoading.set(false);
+      });
   }
 
   protected loadRegions(): void {
@@ -207,6 +258,89 @@ export class AdminDashboardPageComponent implements OnInit {
       .subscribe((report) => {
         this.regionsReport.set(report);
         this.isRegionsLoading.set(false);
+      });
+  }
+
+  protected loadServiceStructure(): void {
+    this.isStructureLoading.set(true);
+    this.adminDashboardService
+      .getServiceStructure()
+      .pipe(
+        catchError(() => {
+          this.isStructureLoading.set(false);
+          return of(null);
+        }),
+      )
+      .subscribe((report) => {
+        this.serviceStructureReport.set(report);
+        this.isStructureLoading.set(false);
+      });
+  }
+
+  protected createCategory(payload: AdminCategoryPayload): void {
+    this.structureActionId.set('create');
+    this.adminDashboardService
+      .createCategory(payload)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected bulkCreateCategories(payload: AdminCategoryPayload[]): void {
+    this.structureActionId.set('bulk-categories');
+    this.adminDashboardService
+      .bulkCreateCategories(payload)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected updateCategory(payload: { categoryId: string; payload: AdminCategoryPayload }): void {
+    this.structureActionId.set(payload.categoryId);
+    this.adminDashboardService
+      .updateCategory(payload.categoryId, payload.payload)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected disableCategory(categoryId: string): void {
+    this.structureActionId.set(categoryId);
+    this.adminDashboardService
+      .disableCategory(categoryId)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected createSubCategory(payload: AdminSubCategoryPayload): void {
+    this.structureActionId.set('subcategory');
+    this.adminDashboardService
+      .createSubCategory(payload)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected bulkCreateSubCategories(payload: AdminSubCategoryPayload[]): void {
+    this.structureActionId.set('bulk-subcategories');
+    this.adminDashboardService
+      .bulkCreateSubCategories(payload)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  protected assignSubCategories(payload: { categoryId: string; subCategoryIds: string[] }): void {
+    this.structureActionId.set(payload.categoryId);
+    this.adminDashboardService
+      .assignSubCategories(payload.categoryId, payload.subCategoryIds)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.afterCategoryMutation());
+  }
+
+  private afterCategoryMutation(): void {
+    this.structureActionId.set(null);
+    this.loadServiceStructure();
+    this.adminDashboardService
+      .getDashboard()
+      .pipe(catchError(() => of(null)))
+      .subscribe((dashboard) => {
+        if (dashboard) this.dashboard.set(dashboard);
       });
   }
 
@@ -248,6 +382,7 @@ export class AdminDashboardPageComponent implements OnInit {
       | 'review'
       | 'refund-client'
       | 'credit-professional'
+      | 'reject'
       | 'message-client'
       | 'message-professional'
       | 'message-both';
@@ -273,6 +408,7 @@ export class AdminDashboardPageComponent implements OnInit {
       | 'review'
       | 'refund-client'
       | 'credit-professional'
+      | 'reject'
       | 'message-client'
       | 'message-professional'
       | 'message-both';
@@ -302,7 +438,22 @@ export class AdminDashboardPageComponent implements OnInit {
     if (payload.action === 'message-both') {
       return this.adminDisputesService.sendMessage(payload.disputeId, 'TOUS', payload.notes ?? '');
     }
+    if (payload.action === 'reject') {
+      return this.adminDisputesService.reject(payload.disputeId, payload.notes ?? '');
+    }
     return this.adminDisputesService.markInReview(payload.disputeId);
+  }
+
+  protected loadDisputeDetail(disputeId: string): void {
+    this.adminDisputesService
+      .get(disputeId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((updated) => {
+        if (!updated) return;
+        this.disputeCases.set(
+          this.disputeCases().map((dispute) => (dispute.id === updated.id ? updated : dispute)),
+        );
+      });
   }
 
   protected afterDisputeMutation(updated: AdminDisputeCase | unknown | null): void {
@@ -448,6 +599,16 @@ export class AdminDashboardPageComponent implements OnInit {
         }),
       )
       .subscribe((updated) => this.afterKycMutation(updated));
+  }
+
+  protected loadKycDetail(profileId: string): void {
+    this.adminKycService
+      .get(profileId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((detail) => {
+        if (!detail) return;
+        this.kycProfiles.set(this.kycProfiles().map((profile) => (profile.id === detail.id ? detail : profile)));
+      });
   }
 
   protected rejectKyc(payload: { profileId: string; reason: string }): void {

@@ -580,6 +580,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
   }): Promise<Reservation[]> {
     const where = this.buildFilterWhere(filters);
 
@@ -599,18 +600,37 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<ReservationDetailedView[]> {
     const where = this.buildFilterWhere(filters);
 
     const reservations = await this.prisma.reservation.findMany({
       where,
       orderBy: { dateHeure: 'desc' },
+      take: filters.limit,
+      skip: filters.offset,
       select: RESERVATION_DETAIL_SELECT,
     });
 
     return reservations.map((reservation) =>
       this.mapToDetailedView(reservation),
     );
+  }
+
+  async countByFilters(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
+  }): Promise<number> {
+    return this.prisma.reservation.count({
+      where: this.buildFilterWhere(filters),
+    });
   }
 
   async hasTimeSlotConflict(input: {
@@ -677,6 +697,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
   }): Prisma.ReservationWhereInput {
     const where: Prisma.ReservationWhereInput = {};
 
@@ -696,10 +717,25 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       where.statut = filters.status as $Enums.StatutReservation;
     }
 
-    if (filters.startDate || filters.endDate) {
+      if (filters.startDate || filters.endDate) {
       where.dateHeure = {};
       if (filters.startDate) {
         where.dateHeure.gte = filters.startDate;
+      }
+
+      if (filters.search) {
+        where.OR = [
+          { adresseClient: { contains: filters.search, mode: 'insensitive' } },
+          { client: { nom: { contains: filters.search, mode: 'insensitive' } } },
+          { service: { nom: { contains: filters.search, mode: 'insensitive' } } },
+          {
+            professionnel: {
+              utilisateur: {
+                nom: { contains: filters.search, mode: 'insensitive' },
+              },
+            },
+          },
+        ];
       }
       if (filters.endDate) {
         where.dateHeure.lte = filters.endDate;

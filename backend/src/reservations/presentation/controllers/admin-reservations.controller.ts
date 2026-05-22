@@ -10,7 +10,10 @@ import { RoleUtilisateur } from '@prisma/client';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
-import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import {
+  createApiResponse,
+  createPaginatedResponse,
+} from '../../../shared/dto/api-response.dto';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { ReservationsFacade } from '../../application/services/reservations-facade.service';
 import { ListReservationsQueryDto } from '../dto/list-reservations-query.dto';
@@ -67,7 +70,12 @@ export class AdminReservationsController {
       user,
       query,
     );
-    return createApiResponse(result);
+    return createPaginatedResponse(
+      result.items,
+      result.total,
+      Math.floor(result.offset / result.limit) + 1,
+      result.limit,
+    );
   }
 
   @Get('statistics')

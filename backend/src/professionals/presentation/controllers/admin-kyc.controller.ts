@@ -21,7 +21,10 @@ import { appMessage } from '../../../core/http/app-http.exception';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
 import { RejectKycDto } from '../dto/reject-kyc.dto';
 import { ListAdminKycQueryDto } from '../dto/list-admin-kyc-query.dto';
-import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import {
+  createApiResponse,
+  createPaginatedResponse,
+} from '../../../shared/dto/api-response.dto';
 import { RoleUtilisateur } from '@prisma/client';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import {
@@ -61,7 +64,12 @@ export class AdminKycController {
     @Query() query: ListAdminKycQueryDto,
   ) {
     const result = await this.professionalsFacade.listKycForAdmin(user, query);
-    return createApiResponse(result);
+    return createPaginatedResponse(
+      result.items,
+      result.total,
+      Math.floor(result.offset / result.limit) + 1,
+      result.limit,
+    );
   }
 
   @Get(':professionalId')

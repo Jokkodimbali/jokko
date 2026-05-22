@@ -1245,6 +1245,32 @@ describe('ReservationsModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+    expect(body.meta?.['pagination']).toMatchObject({
+      page: 1,
+      limit: 20,
+      hasPrevious: false,
+    });
+  });
+
+  it('GET /api/v1/admin/reservations and /statistics accept an unfiltered admin load', async () => {
+    const listResponse = await request(app.getHttpServer())
+      .get('/api/v1/admin/reservations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const listBody = listResponse.body as ReservationSuccessResponse;
+    expect(listBody.success).toBe(true);
+    expect(Array.isArray(listBody.data)).toBe(true);
+
+    const statisticsResponse = await request(app.getHttpServer())
+      .get('/api/v1/admin/reservations/statistics')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const statisticsBody = statisticsResponse.body as ReservationSuccessResponse;
+    expect(statisticsBody.success).toBe(true);
+    expect(statisticsBody.data).toHaveProperty('total');
+    expect(statisticsBody.data).toHaveProperty('byStatus');
   });
 
   it('GET /api/v1/admin/reservations/:id returns a reservation to admins', async () => {

@@ -329,9 +329,39 @@ model Categorie {
   tauxCommission Decimal @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
   estActive  Boolean    @default(true) @map("is_active")
 
-  services   Service[]
+  services        Service[]
+  sousCategories  CategorieSousCategorie[]
 
   @@map("categories")
+}
+
+model SousCategorieService {
+  id          String   @id @default(uuid()) @db.Uuid
+  nom         String   @map("name") @unique @db.VarChar(120)
+  description String?  @db.Text
+  ordreTri    Int      @default(0) @map("sort_order") @db.SmallInt
+  estActive   Boolean  @default(true) @map("is_active")
+  creeLe      DateTime @default(now()) @map("created_at")
+  misAJourLe  DateTime @updatedAt @map("updated_at")
+
+  categories  CategorieSousCategorie[]
+
+  @@map("service_subcategories")
+}
+
+model CategorieSousCategorie {
+  id              String   @id @default(uuid()) @db.Uuid
+  categorieId     String   @map("category_id") @db.Uuid
+  sousCategorieId String   @map("subcategory_id") @db.Uuid
+  ordreTri        Int      @default(0) @map("sort_order") @db.SmallInt
+  creeLe          DateTime @default(now()) @map("created_at")
+
+  categorie       Categorie             @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  sousCategorie   SousCategorieService  @relation(fields: [sousCategorieId], references: [id], onDelete: Cascade)
+
+  @@unique([categorieId, sousCategorieId])
+  @@index([sousCategorieId])
+  @@map("category_service_subcategories")
 }
 
 model Service {

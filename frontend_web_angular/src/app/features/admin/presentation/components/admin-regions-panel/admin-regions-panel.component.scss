@@ -22,9 +22,7 @@
 
 .admin-regions-hero {
   align-items: stretch;
-  background:
-    radial-gradient(circle at 84% 16%, rgba(145, 90, 34, 0.14), transparent 30%),
-    #f6eee7;
+  background: #f6eee7;
   display: grid;
   gap: 24px;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 0.34fr);
@@ -176,50 +174,172 @@
   white-space: nowrap;
 }
 
-.admin-regions-bars {
-  align-items: end;
-  border-bottom: 1px solid #eadfd6;
+.admin-senegal-map-shell {
+  align-items: stretch;
   display: grid;
-  gap: 13px;
-  grid-template-columns: repeat(8, minmax(70px, 1fr));
-  min-height: 258px;
-  padding-top: 12px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
 }
 
-.admin-regions-bars button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: default;
+.admin-senegal-map-canvas {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(251, 247, 242, 0.94)),
+    #fbf7f2;
+  border: 1px solid #eadfd6;
+  border-radius: 24px;
   display: grid;
-  gap: 8px;
-  grid-template-rows: 178px auto auto;
-  justify-items: center;
+  gap: 10px;
   min-width: 0;
+  padding: 16px;
 }
 
-.admin-regions-bars i {
-  align-self: end;
-  background: linear-gradient(180deg, #d98b2b, #915a22);
-  border-radius: 999px 999px 10px 10px;
-  display: block;
-  width: 28px;
+.admin-senegal-map {
+  min-height: 520px;
+  width: 100%;
 }
 
-.admin-regions-bars strong {
-  color: #312821;
+.admin-senegal-map-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-senegal-map-legend span {
+  align-items: center;
+  color: #706259;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.admin-senegal-map-legend__dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.admin-senegal-map-legend__dot--empty {
+  background: #eee6df;
+}
+
+.admin-senegal-map-legend__dot--low {
+  background: #dec5ad;
+}
+
+.admin-senegal-map-legend__dot--medium {
+  background: #bd8249;
+}
+
+.admin-senegal-map-legend__dot--strong {
+  background: #915a22;
+}
+
+.admin-senegal-map__region {
+  cursor: pointer;
+  outline: none;
+  stroke: #fffaf6;
+  stroke-linejoin: round;
+  stroke-width: 5;
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease,
+    stroke 180ms ease,
+    transform 180ms ease;
+}
+
+.admin-senegal-map__region:hover,
+.admin-senegal-map__region:focus-visible,
+.admin-senegal-map__region--selected {
+  filter: drop-shadow(0 14px 15px rgba(92, 56, 28, 0.22));
+  stroke: #2d231c;
+  stroke-width: 7;
+}
+
+.admin-senegal-map__region--empty {
+  fill: #eee6df;
+}
+
+.admin-senegal-map__region--low {
+  fill: #dec5ad;
+}
+
+.admin-senegal-map__region--medium {
+  fill: #bd8249;
+}
+
+.admin-senegal-map__region--strong {
+  fill: #915a22;
+}
+
+.admin-senegal-map__label,
+.admin-senegal-map__value {
+  fill: #2e251f;
+  font-size: 14px;
+  font-weight: 950;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.admin-senegal-map__value {
+  fill: #6f5f55;
   font-size: 12px;
   font-weight: 900;
-  max-width: 84px;
-  overflow: hidden;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.admin-regions-bars small {
-  color: #8b7b72;
+.admin-regions-focus {
+  align-content: start;
+  background: #2d231c;
+  border-radius: 22px;
+  color: #fff;
+  display: grid;
+  gap: 13px;
+  padding: 22px;
+}
+
+.admin-regions-focus > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-regions-focus h3 {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 950;
+  line-height: 1.05;
+  margin: 0 0 6px;
+}
+
+.admin-regions-focus p {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: -4px 0 4px;
+}
+
+.admin-regions-focus div {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  display: grid;
+  gap: 3px;
+  padding: 14px;
+}
+
+.admin-regions-focus strong {
+  color: #fff;
+  font-size: 23px;
+  font-weight: 950;
+}
+
+.admin-regions-focus small {
+  color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
   font-weight: 850;
 }
@@ -250,7 +370,7 @@
   border-top: 1px solid #f3e9e1;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(170px, 1.2fr) repeat(4, minmax(130px, 1fr));
+  grid-template-columns: minmax(170px, 1.2fr) repeat(5, minmax(120px, 1fr));
   padding: 15px 16px;
 }
 
@@ -327,6 +447,7 @@
   .admin-regions-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
 }
 
 @media (max-width: 860px) {
@@ -340,6 +461,34 @@
   }
 
   .admin-regions-row {
-    min-width: 760px;
+    min-width: 930px;
   }
+
+  .admin-senegal-map-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-senegal-map-canvas {
+    min-width: 720px;
+  }
+
+  .admin-senegal-map {
+    min-width: 720px;
+  }
+
+}
+
+@media (max-width: 620px) {
+  .admin-regions-hero,
+  .admin-regions-map-card,
+  .admin-regions-quality,
+  .admin-regions-table-card {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .admin-regions-hero h1 {
+    font-size: 34px;
+  }
+
 }

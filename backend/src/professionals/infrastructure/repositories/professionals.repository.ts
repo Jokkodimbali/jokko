@@ -322,11 +322,10 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     status?: StatutKyc;
     limit?: number;
     offset?: number;
+    search?: string;
   }): Promise<AdminKycProfileView[]> {
     const profiles = await this.prisma.profilProfessionnel.findMany({
-      where: {
-        ...(query?.status ? { statutKyc: query.status } : {}),
-      },
+      where: this.buildAdminKycWhere(query),
       orderBy: [{ creeLe: 'desc' }],
       take: query?.limit ?? 20,
       skip: query?.offset ?? 0,
@@ -334,6 +333,39 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     });
 
     return profiles.map((profile) => this.mapAdminKycProfile(profile));
+  }
+
+  async countKycForAdmin(query?: {
+    status?: StatutKyc;
+    search?: string;
+  }): Promise<number> {
+    return this.prisma.profilProfessionnel.count({
+      where: this.buildAdminKycWhere(query),
+    });
+  }
+
+  private buildAdminKycWhere(query?: {
+    status?: StatutKyc;
+    search?: string;
+  }): Prisma.ProfilProfessionnelWhereInput {
+    const search = query?.search?.trim();
+    return {
+      ...(query?.status ? { statutKyc: query.status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { nomEntreprise: { contains: search, mode: 'insensitive' } },
+              { ville: { contains: search, mode: 'insensitive' } },
+              { utilisateur: { nom: { contains: search, mode: 'insensitive' } } },
+              {
+                utilisateur: {
+                  numeroTelephone: { contains: search, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
   }
 
   async findKycByIdForAdmin(

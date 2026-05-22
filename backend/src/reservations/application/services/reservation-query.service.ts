@@ -202,12 +202,32 @@ export class ReservationQueryService extends ReservationAppService {
     query: ListReservationsQuery,
   ) {
     this.assertAdminRole(requestUser.role);
-    const { startDate, endDate } = this.parseDateRangeOrThrow(query);
+    const filters = this.adminFilters(query);
+    const [items, total] = await Promise.all([
+      this.reservationsRepository.findDetailedByFilters({
+        ...filters,
+        limit: query.limit ?? 20,
+        offset: query.offset ?? 0,
+      }),
+      this.reservationsRepository.countByFilters(filters),
+    ]);
+    return { items, total, limit: query.limit ?? 20, offset: query.offset ?? 0 };
+  }
 
-    return this.reservationsRepository.findAllDetailedByDateRange(
-      startDate,
-      endDate,
-    );
+  private adminFilters(query: ListReservationsQuery) {
+    const sharedFilters = {
+      status: query.status,
+      serviceId: query.serviceId,
+      clientId: query.clientId,
+      professionalId: query.professionalId,
+      search: query.search?.trim() || undefined,
+    };
+    if (!query.startDate && !query.endDate) {
+      return sharedFilters;
+    }
+
+    const { startDate, endDate } = this.parseDateRangeOrThrow(query);
+    return { ...sharedFilters, startDate, endDate };
   }
 
   async getReservationStatistics(
@@ -215,11 +235,8 @@ export class ReservationQueryService extends ReservationAppService {
     query: ListReservationsQuery,
   ) {
     this.assertAdminRole(requestUser.role);
-    const { startDate, endDate } = this.parseDateRangeOrThrow(query);
-
-    const reservations = await this.reservationsRepository.findAllByDateRange(
-      startDate,
-      endDate,
+    const reservations = await this.reservationsRepository.findByFilters(
+      this.adminFilters(query),
     );
 
     const total = reservations.length;
@@ -240,6 +257,13 @@ export class ReservationQueryService extends ReservationAppService {
       cancellationRate,
       completionRate,
     };
+  }
+
+  private async findAdminReservationsByDateRange(
+    query: ListReservationsQuery,
+  ) {
+    const { startDate, endDate } = this.parseDateRangeOrThrow(query);
+    return this.reservationsRepository.findAllByDateRange(startDate, endDate);
   }
 
   private isWithinProfessionalAvailability(

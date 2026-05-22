@@ -40,7 +40,7 @@ describe('AdminRegionsService', () => {
 
     expect(report.totals).toMatchObject({
       clients: 3,
-      regions: 2,
+      regions: 14,
       providers: 2,
       activeProviders: 2,
       verifiedProviders: 2,
@@ -56,6 +56,7 @@ describe('AdminRegionsService', () => {
     expect(report.regions[0].name).toBe('Dakar');
     expect(report.coverage.strongestRegion).toBe('Dakar');
     expect(report.regions[0]).toMatchObject({
+      clients: 2,
       verificationRate: 100,
       completionRate: 50,
       averageRating: 4.5,
@@ -78,14 +79,20 @@ describe('AdminRegionsService', () => {
 });
 
 function prismaMock(providers: unknown[]) {
+  const clients = [
+    { id: 'client-dakar-1', adresse: 'Dakar Plateau' },
+    { id: 'client-dakar-2', adresse: 'Yoff Dakar' },
+    { id: 'client-thies-1', adresse: 'Mbour' },
+  ];
+
   return {
     profilProfessionnel: {
       findMany: jest.fn().mockResolvedValue(providers),
     },
     utilisateur: {
-      count: jest.fn().mockResolvedValue(3),
+      findMany: jest.fn().mockResolvedValue(clients),
     },
-    $transaction: jest.fn().mockResolvedValue([providers, 3]),
+    $transaction: jest.fn().mockResolvedValue([providers, clients]),
   } as never;
 }
 

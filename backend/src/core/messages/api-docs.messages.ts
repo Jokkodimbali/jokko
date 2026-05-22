@@ -454,6 +454,11 @@ export const API_DOCS = {
     summary: 'Recuperer les indicateurs globaux de la plateforme',
     success: 'Tableau de bord admin recupere avec succes',
   },
+  adminArchives: {
+    tag: 'Admin - Archives',
+    summary: 'Recuperer les archives administratives consolidees',
+    success: 'Archives administratives recuperees avec succes',
+  },
   adminRevenue: {
     tag: "Admin - Chiffre d'affaires",
     summary: "Recuperer l'evolution du chiffre d'affaires",

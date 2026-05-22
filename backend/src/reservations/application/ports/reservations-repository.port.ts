@@ -32,6 +32,7 @@ export interface ReservationsRepositoryPort {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
   }): Promise<Reservation[]>;
   findDetailedByFilters(filters: {
     clientId?: string;
@@ -40,7 +41,18 @@ export interface ReservationsRepositoryPort {
     status?: string;
     startDate?: Date;
     endDate?: Date;
+    search?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<ReservationDetailedView[]>;
+  countByFilters(filters: {
+    clientId?: string;
+    professionalId?: string;
+    serviceId?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number>;
   hasTimeSlotConflict(input: {
     professionalId: string;
     dateHeure: Date;

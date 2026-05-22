@@ -517,6 +517,16 @@ describe('Payments (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('clientPayments');
     expect(body.data).toHaveProperty('professionalPayments');
+    const clientPayments = body.data?.['clientPayments'] as {
+      payments?: Array<Record<string, unknown>>;
+    };
+    const firstPayment = clientPayments.payments?.[0];
+    if (firstPayment) {
+      expect(firstPayment).toHaveProperty('id');
+      expect(firstPayment).toHaveProperty('bookingId');
+      expect(firstPayment).toHaveProperty('amount');
+      expect(firstPayment).not.toHaveProperty('_id');
+    }
   });
 
   it('GET /api/v1/admin/payments/statistics → 200 avec token admin', async () => {

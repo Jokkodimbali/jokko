@@ -18,6 +18,12 @@ export class AdminDisputesService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  get(disputeId: string): Observable<AdminDisputeCase> {
+    return this.http
+      .get<ApiResponse<AdminDisputeCase>>(`${this.disputesUrl}/${disputeId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   markInReview(disputeId: string): Observable<AdminDisputeCase> {
     return this.http
       .patch<ApiResponse<AdminDisputeCase>>(`${this.disputesUrl}/${disputeId}/in-review`, {})
@@ -52,6 +58,12 @@ export class AdminDisputesService {
         recipient,
         content,
       })
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  reject(disputeId: string, notes: string): Observable<AdminDisputeCase> {
+    return this.http
+      .patch<ApiResponse<AdminDisputeCase>>(`${this.disputesUrl}/${disputeId}/reject`, { notes })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

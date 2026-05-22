@@ -143,7 +143,12 @@ export interface ProfessionalProfileRepositoryPort {
     status?: KycStatus;
     limit?: number;
     offset?: number;
+    search?: string;
   }): Promise<AdminKycProfileView[]>;
+  countKycForAdmin(query?: {
+    status?: KycStatus;
+    search?: string;
+  }): Promise<number>;
   findKycByIdForAdmin(profileId: string): Promise<AdminKycProfileView | null>;
 }
 

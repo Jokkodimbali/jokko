@@ -432,6 +432,42 @@
   border-right: 1px solid #efe5dc;
 }
 
+.admin-revenue-pagination {
+  align-items: center;
+  border-top: 1px solid #eadbcf;
+  color: #806b5e;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 16px;
+}
+
+.admin-revenue-pagination nav {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-revenue-pagination b {
+  color: #31241d;
+}
+
+.admin-revenue-pagination button {
+  background: #fff;
+  border: 1px solid #decfc3;
+  border-radius: 12px;
+  color: #925b24;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.admin-revenue-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .admin-revenue-status {
   border-radius: 999px;
   display: inline-flex;
@@ -513,5 +549,14 @@
   .admin-revenue-kpis {
     grid-template-columns: 1fr;
   }
-}
 
+  .admin-revenue-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-revenue-pagination nav {
+    justify-content: space-between;
+  }
+}

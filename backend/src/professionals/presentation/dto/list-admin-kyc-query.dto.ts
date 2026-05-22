@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { StatutKyc } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
@@ -42,4 +42,10 @@ export class ListAdminKycQueryDto {
   @IsInt({ message: VALIDATION_MESSAGES.ADMIN_USER_OFFSET_INVALID })
   @Min(0, { message: VALIDATION_MESSAGES.ADMIN_USER_OFFSET_MIN })
   offset?: number;
+
+  @ApiPropertyOptional({ example: 'Touba Dakar 77' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }

@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsOptional, IsUUID } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
@@ -66,4 +67,39 @@ export class ListReservationsQueryDto {
   @IsOptional()
   @IsUUID('4', { message: VALIDATION_MESSAGES.SERVICE_ID_FORMAT })
   serviceId?: string;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsOptional()
+  @IsUUID('4')
+  clientId?: string;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsOptional()
+  @IsUUID('4')
+  professionalId?: string;
+
+  @ApiPropertyOptional({ example: 'Awa plomberie Dakar' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, example: 20 })
+  @Transform(({ value }: { value: unknown }) =>
+    value === undefined ? value : Number(value),
+  )
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({ minimum: 0, example: 0 })
+  @Transform(({ value }: { value: unknown }) =>
+    value === undefined ? value : Number(value),
+  )
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  offset?: number;
 }

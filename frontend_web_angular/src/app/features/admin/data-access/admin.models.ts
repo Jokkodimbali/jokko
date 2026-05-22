@@ -366,6 +366,7 @@ export interface AdminRegionCategory {
 
 export interface AdminRegionRow {
   name: string;
+  clients: number;
   providers: number;
   activeProviders: number;
   verifiedProviders: number;
@@ -408,4 +409,347 @@ export interface AdminRegionsReport {
     regionsWithDisputes: number;
     verifiedCoverageRate: number;
   };
+}
+
+export type AdminArchiveTab = 'closedDisputes' | 'invoices' | 'transactions';
+
+export interface AdminArchiveItem {
+  id: string;
+  reference: string;
+  date: string | Date;
+  type: string;
+  from: string;
+  to: string;
+  amount: number;
+  commission: number;
+  status: string;
+  method: string | null;
+  decision?: string | null;
+  reason?: string | null;
+  netAmount?: number;
+  description?: string;
+  balanceAfter?: number;
+  serviceName?: string | null;
+}
+
+export interface AdminArchivesReport {
+  generatedAt: string | Date;
+  totals: {
+    closedDisputes: number;
+    invoices: number;
+    transactions: number;
+    invoiceGrossAmount: number;
+    invoiceCommissionAmount: number;
+    transactionAmount: number;
+  };
+  closedDisputes: AdminArchiveItem[];
+  invoices: AdminArchiveItem[];
+  transactions: AdminArchiveItem[];
+  pagination: {
+    tab: AdminArchiveTab;
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface AdminArchivesQuery {
+  tab?: AdminArchiveTab;
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
+export interface AdminServiceStructureOption {
+  id: string;
+  label: string;
+  description: string | null;
+  offerCount: number;
+  minPrice: number;
+  maxPrice: number;
+  minDurationMinutes: number;
+  maxDurationMinutes: number;
+}
+
+export interface AdminServiceStructureBranch {
+  id: string;
+  label: string;
+  optionCount: number;
+  options: AdminServiceStructureOption[];
+}
+
+export interface AdminServiceSubCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface AdminServiceStructureCategory {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  sortOrder: number;
+  commissionRate: number;
+  isActive: boolean;
+  declaredServices: number;
+  availableServices: number;
+  requiredServices: number;
+  subCategories: AdminServiceSubCategory[];
+  branches: AdminServiceStructureBranch[];
+}
+
+export interface AdminServiceStructureReport {
+  generatedAt: string | Date;
+  totals: {
+    categories: number;
+    activeCategories: number;
+    subCategories: number;
+    declaredServices: number;
+    availableServices: number;
+    requiredServices: number;
+  };
+  categories: AdminServiceStructureCategory[];
+  availableSubCategories: AdminServiceSubCategory[];
+}
+
+export interface AdminCategoryPayload {
+  name: string;
+  iconUrl?: string | null;
+  sortOrder?: number;
+  commissionRate?: number;
+}
+
+export interface AdminSubCategoryPayload {
+  name: string;
+  description?: string | null;
+  sortOrder?: number;
+}
+
+export interface AdminBulkImportResult<T> {
+  created: T[];
+  skippedExisting: string[];
+  totalRequested: number;
+}
+
+export interface AdminUserProfile {
+  id: string;
+  numeroTelephone: string;
+  nom: string;
+  email: string | null;
+  adresse: string | null;
+  role: string;
+  urlAvatar: string | null;
+  estActif: boolean;
+  creeLe: string | Date;
+  profilProfessionnel: {
+    id: string;
+    nomEntreprise: string | null;
+    categories: string[];
+  } | null;
+}
+
+export interface AdminUserRow extends AdminUserProfile {
+  nombreReservationsClient: number;
+  nombreReservationsPrestataire: number;
+}
+
+export interface AdminUserQuery {
+  role?: string;
+  isActive?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AdminUserHistoryReservation {
+  id: string;
+  statut: string;
+  dateHeure: string | Date;
+  notes: string | null;
+  creeLe: string | Date;
+  service: {
+    id: string;
+    nom: string;
+    prix: number;
+    typePrix: string;
+  };
+}
+
+export interface AdminUserHistory {
+  user: AdminUserProfile;
+  reservationsAsClient: AdminUserHistoryReservation[];
+  reservationsAsProfessional: AdminUserHistoryReservation[];
+  paymentsAsClient: Array<{
+    id: string;
+    bookingId: string;
+    amount: number;
+    status: string;
+    createdAt: string | Date;
+  }>;
+  withdrawalsAsProfessional: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    requestedAt: string | Date;
+  }>;
+  notificationsCount: number;
+}
+
+export interface AdminReservationDetail {
+  id: string;
+  clientId: string;
+  professionnelId: string;
+  serviceId: string;
+  dateHeure: string | Date;
+  adresseClient: string;
+  dureeMinutes: number;
+  statut: string;
+  notes: string | null;
+  prixConvenu: number | null;
+  clientRating: number | null;
+  clientReview: string | null;
+  clientReviewedAt: string | Date | null;
+  raisonAnnulation: string | null;
+  creeLe: string | Date;
+  misAJourLe: string | Date;
+  client?: {
+    id: string;
+    nom: string;
+    numeroTelephone: string;
+    email: string | null;
+    adresse: string | null;
+    urlAvatar: string | null;
+  };
+  service?: {
+    id: string;
+    nom: string;
+    description: string;
+    prix: number;
+    typePrix: string;
+    dureeMinutes: number;
+    categorie?: { nom: string };
+  };
+  professionnel?: {
+    id: string;
+    nomEntreprise: string | null;
+    ville: string | null;
+    utilisateur: {
+      id: string;
+      nom: string;
+      numeroTelephone: string;
+      urlAvatar: string | null;
+    };
+  };
+}
+
+export interface AdminReservationStatistics {
+  total: number;
+  byStatus: Record<string, number>;
+  cancellationRate: number;
+  completionRate: number;
+}
+
+export interface AdminDateRangeQuery {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  serviceId?: string;
+  clientId?: string;
+  professionalId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AdminOffsetPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface AdminReservationsPage {
+  items: AdminReservationDetail[];
+  pagination: AdminOffsetPagination;
+}
+
+export interface AdminPayment {
+  id: string;
+  bookingId: string;
+  clientId?: string;
+  professionalId?: string;
+  status: string;
+  escrowStatus?: string;
+  amount: number;
+  commissionAmount: number;
+  netAmount: number;
+  method: string;
+  createdAt?: string | Date;
+}
+
+export interface AdminPaymentHistory {
+  payments: AdminPayment[];
+  total: number;
+}
+
+export interface AdminPaymentsReport {
+  clientPayments: AdminPaymentHistory;
+  professionalPayments: AdminPaymentHistory;
+}
+
+export interface AdminPaymentsQuery {
+  status?: string;
+  method?: string;
+  bookingId?: string;
+  clientId?: string;
+  professionalId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AdminPaymentStatistics {
+  pendingEscrowReleases: number;
+  totalEscrowAmount: number;
+  totalPayments: number;
+  totalRevenue: number;
+  totalGrossAmount?: number;
+}
+
+export interface AdminPendingEscrowPayment {
+  id: string;
+  bookingId: string;
+  clientId: string;
+  professionalId: string;
+  amount: number;
+  netAmount: number;
+  commissionAmount: number;
+  createdAt: string | Date;
+}
+
+export interface AdminEscrowProcessResult {
+  processedCount: number;
+  processedPayments: Array<{ id: string; status: string }>;
+  failedCount: number;
+  failedPayments: Array<{ id: string; status: string; error: string }>;
+}
+
+export interface AdminPaymentRefundResult {
+  payment: AdminPayment;
+  isRefunded: boolean;
+}
+
+export interface AdminBroadcastPayload {
+  target: 'CLIENT' | 'PRESTATAIRE' | 'ALL';
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+}
+
+export interface AdminBroadcastResult {
+  recipientCount: number;
+  target: AdminBroadcastPayload['target'];
 }

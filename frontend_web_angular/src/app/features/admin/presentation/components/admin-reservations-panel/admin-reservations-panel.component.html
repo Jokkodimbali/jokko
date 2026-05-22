@@ -1,0 +1,71 @@
+<section class="admin-reservations">
+  <header>
+    <div><span><lucide-icon name="calendar-days" size="28"></lucide-icon></span><h1>Reservations</h1><p>Suivi des rendez-vous, des statuts et des dossiers d intervention.</p></div>
+    <form (ngSubmit)="applyFilters()">
+      <label>Du <input name="startDate" type="date" [(ngModel)]="startDate" /></label>
+      <label>Au <input name="endDate" type="date" [(ngModel)]="endDate" /></label>
+      <label><input name="search" type="search" [(ngModel)]="search" placeholder="Client, service, adresse..." /></label>
+      <label>
+        <select name="status" [(ngModel)]="status">
+          <option value="">Tous les statuts</option>
+          <option value="EN_ATTENTE">En attente</option>
+          <option value="CONFIRMEE">Confirmee</option>
+          <option value="PAYEE_SEQUESTRE">Payee sequestre</option>
+          <option value="EN_COURS">En cours</option>
+          <option value="TERMINEE">Terminee</option>
+          <option value="ANNULEE">Annulee</option>
+          <option value="LITIGE">Litige</option>
+        </select>
+      </label>
+      <button type="submit">Filtrer</button>
+    </form>
+  </header>
+  <p class="admin-reservations__error" *ngIf="error()">{{ error() }}</p>
+  <div class="admin-reservations__stats" *ngIf="statistics() as stats">
+    <article><small>Total</small><strong>{{ stats.total }}</strong></article>
+    <article><small>Taux termine</small><strong>{{ stats.completionRate | percent:'1.0-1' }}</strong></article>
+    <article><small>Taux annule</small><strong>{{ stats.cancellationRate | percent:'1.0-1' }}</strong></article>
+    <article><small>Statuts</small><b *ngFor="let status of statusEntries(stats)">{{ status.key }} {{ status.value }}</b></article>
+  </div>
+  <div class="admin-reservations__grid">
+    <article class="admin-reservations__table">
+      <table>
+        <thead><tr><th>Date</th><th>Service</th><th>Client</th><th>Prestataire</th><th>Montant</th><th>Statut</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let reservation of visibleReservations()" (click)="open(reservation.id)">
+            <td>{{ date(reservation.dateHeure) }}</td>
+            <td><b>{{ reservation.service?.nom || reservation.serviceId }}</b><small>{{ reservation.adresseClient }}</small></td>
+            <td>{{ reservation.client?.nom || reservation.clientId }}</td>
+            <td>{{ reservation.professionnel?.utilisateur?.nom || reservation.professionnelId }}</td>
+            <td>{{ money(reservation.prixConvenu ?? reservation.service?.prix ?? 0) }}</td>
+            <td><em>{{ reservation.statut }}</em></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="admin-reservations__state" *ngIf="isLoading()">Chargement des reservations...</div>
+      <div class="admin-reservations__state" *ngIf="!isLoading() && reservations().length === 0">Aucune reservation sur cette periode.</div>
+      <footer class="admin-reservations__pagination" *ngIf="!isLoading() && totalReservations() > 0">
+        <span>{{ pageStart() }}-{{ pageEnd() }} sur {{ totalReservations() }} reservation(s)</span>
+        <nav aria-label="Pagination des reservations">
+          <button type="button" [disabled]="page() <= 1" (click)="previousPage()">Precedent</button>
+          <b>Page {{ page() }} / {{ pageCount() }}</b>
+          <button type="button" [disabled]="page() >= pageCount()" (click)="nextPage()">Suivant</button>
+        </nav>
+      </footer>
+    </article>
+    <article class="admin-reservations__detail" *ngIf="selected() as reservation">
+      <button type="button" (click)="selected.set(null)"><lucide-icon name="x" size="18"></lucide-icon></button>
+      <h2>{{ reservation.service?.nom || 'Reservation' }}</h2>
+      <p>{{ reservation.adresseClient }}</p>
+      <dl>
+        <div><dt>Date</dt><dd>{{ date(reservation.dateHeure) }}</dd></div>
+        <div><dt>Duree</dt><dd>{{ reservation.dureeMinutes }} min</dd></div>
+        <div><dt>Client</dt><dd>{{ reservation.client?.nom || reservation.clientId }}</dd></div>
+        <div><dt>Prestataire</dt><dd>{{ reservation.professionnel?.utilisateur?.nom || reservation.professionnelId }}</dd></div>
+        <div><dt>Montant</dt><dd>{{ money(reservation.prixConvenu ?? reservation.service?.prix ?? 0) }}</dd></div>
+        <div><dt>Statut</dt><dd>{{ reservation.statut }}</dd></div>
+      </dl>
+      <aside *ngIf="reservation.notes || reservation.raisonAnnulation">{{ reservation.notes || reservation.raisonAnnulation }}</aside>
+    </article>
+  </div>
+</section>

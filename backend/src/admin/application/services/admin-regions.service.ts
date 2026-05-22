@@ -26,8 +26,14 @@ type RegionProviderRow = {
   }>;
 };
 
+type RegionClientRow = {
+  id: string;
+  adresse: string | null;
+};
+
 type RegionAccumulator = {
   name: string;
+  clients: number;
   providers: number;
   activeProviders: number;
   verifiedProviders: number;
@@ -60,6 +66,50 @@ type RegionTotals = {
   netRevenue: number;
 };
 
+const SENEGAL_REGIONS = [
+  'Dakar',
+  'Diourbel',
+  'Fatick',
+  'Kaffrine',
+  'Kaolack',
+  'Kedougou',
+  'Kolda',
+  'Louga',
+  'Matam',
+  'Saint-Louis',
+  'Sedhiou',
+  'Tambacounda',
+  'Thies',
+  'Ziguinchor',
+] as const;
+
+const REGION_ALIASES: Record<string, string[]> = {
+  Dakar: [
+    'dakar',
+    'pikine',
+    'guediawaye',
+    'rufisque',
+    'keur massar',
+    'yoff',
+    'ouakam',
+    'parcelles',
+    'plateau',
+  ],
+  Diourbel: ['diourbel', 'touba', 'mbacke', 'bambey'],
+  Fatick: ['fatick', 'foundiougne', 'gossas', 'sokone'],
+  Kaffrine: ['kaffrine', 'birkilane', 'koungheul', 'malem hodar'],
+  Kaolack: ['kaolack', 'guinguineo', 'nioro', 'wack ngouna'],
+  Kedougou: ['kedougou', 'salemata', 'saraya'],
+  Kolda: ['kolda', 'velingara', 'medina yoro foula'],
+  Louga: ['louga', 'kebemer', 'linguere', 'dahra'],
+  Matam: ['matam', 'kanel', 'ranerou', 'ourossogui'],
+  'Saint-Louis': ['saint louis', 'saint-louis', 'dagana', 'podor', 'richard toll'],
+  Sedhiou: ['sedhiou', 'bounkiling', 'goudomp'],
+  Tambacounda: ['tambacounda', 'bakel', 'goudiry', 'koumpentoum'],
+  Thies: ['thies', 'mbour', 'tivaouane', 'popenguine', 'joal'],
+  Ziguinchor: ['ziguinchor', 'bignona', 'oussouye', 'cap skirring'],
+};
+
 @Injectable()
 export class AdminRegionsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -69,7 +119,7 @@ export class AdminRegionsService {
       throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
     }
 
-    const [providers, totalClients] = await this.prisma.$transaction([
+    const [providers, clients] = await this.prisma.$transaction([
       this.prisma.profilProfessionnel.findMany({
         select: {
           id: true,
@@ -102,11 +152,17 @@ export class AdminRegionsService {
         },
         orderBy: { creeLe: 'desc' },
       }),
-      this.prisma.utilisateur.count({ where: { role: 'CLIENT' } }),
+      this.prisma.utilisateur.findMany({
+        where: { role: 'CLIENT' },
+        select: {
+          id: true,
+          adresse: true,
+        },
+      }),
     ]);
 
-    const regions = this.buildRegionRows(providers);
-    const totals = this.buildTotals(regions, totalClients);
+    const regions = this.buildRegionRows(providers, clients);
+    const totals = this.buildTotals(regions, clients.length);
 
     return {
       generatedAt: new Date(),
@@ -127,8 +183,15 @@ export class AdminRegionsService {
     };
   }
 
-  private buildRegionRows(providers: RegionProviderRow[]) {
+  private buildRegionRows(
+    providers: RegionProviderRow[],
+    clients: RegionClientRow[],
+  ) {
     const byRegion = new Map<string, RegionAccumulator>();
+
+    for (const regionName of SENEGAL_REGIONS) {
+      this.ensureRegion(byRegion, regionName);
+    }
 
     for (const provider of providers) {
       const regionName = this.normalizeRegionName(provider.ville);
@@ -176,9 +239,16 @@ export class AdminRegionsService {
       }
     }
 
+    for (const client of clients) {
+      const regionName = this.normalizeRegionName(client.adresse);
+      const row = this.ensureRegion(byRegion, regionName);
+      row.clients += 1;
+    }
+
     return Array.from(byRegion.values())
       .map((region) => ({
         name: region.name,
+        clients: region.clients,
         providers: region.providers,
         activeProviders: region.activeProviders,
         verifiedProviders: region.verifiedProviders,
@@ -208,15 +278,16 @@ export class AdminRegionsService {
         if (a.name === 'Region non renseignee' && b.name !== a.name) return 1;
         if (b.name === 'Region non renseignee' && a.name !== b.name) return -1;
         const scoreA =
-          a.providers * 3 + a.reservations + a.grossRevenue / 10000;
+          a.providers * 3 + a.clients + a.reservations + a.grossRevenue / 10000;
         const scoreB =
-          b.providers * 3 + b.reservations + b.grossRevenue / 10000;
+          b.providers * 3 + b.clients + b.reservations + b.grossRevenue / 10000;
         return scoreB - scoreA;
       });
   }
 
   private buildTotals(
     regions: Array<{
+      clients: number;
       providers: number;
       activeProviders: number;
       verifiedProviders: number;
@@ -234,7 +305,7 @@ export class AdminRegionsService {
     return regions.reduce<RegionTotals>(
       (totals, region) => ({
         clients,
-        regions: regions.length,
+        regions: SENEGAL_REGIONS.length,
         providers: totals.providers + region.providers,
         activeProviders: totals.activeProviders + region.activeProviders,
         verifiedProviders: totals.verifiedProviders + region.verifiedProviders,
@@ -276,6 +347,7 @@ export class AdminRegionsService {
 
     const row: RegionAccumulator = {
       name,
+      clients: 0,
       providers: 0,
       activeProviders: 0,
       verifiedProviders: 0,
@@ -298,6 +370,17 @@ export class AdminRegionsService {
   private normalizeRegionName(value: string | null): string {
     const trimmed = value?.trim();
     if (!trimmed) return 'Region non renseignee';
+    const normalized = this.normalizeSearchValue(trimmed);
+
+    for (const [region, aliases] of Object.entries(REGION_ALIASES)) {
+      const matchesRegion = aliases.some((alias) =>
+        normalized.includes(this.normalizeSearchValue(alias)),
+      );
+      if (matchesRegion) {
+        return region;
+      }
+    }
+
     return trimmed
       .split(/\s+/)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
@@ -314,5 +397,15 @@ export class AdminRegionsService {
   private percentage(value: number, total: number): number {
     if (total <= 0) return 0;
     return Math.round((value / total) * 100);
+  }
+
+  private normalizeSearchValue(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[-_]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .trim();
   }
 }

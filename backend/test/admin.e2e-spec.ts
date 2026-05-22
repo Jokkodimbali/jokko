@@ -28,6 +28,8 @@ describe('Admin governance (e2e)', () => {
   let professionalUserId = '';
   let professionalProfileId = '';
   let categoryId = '';
+  const serviceStructureCategoryIds: string[] = [];
+  const serviceSubCategoryIds: string[] = [];
   let serviceId = '';
   let reservationId = '';
 
@@ -74,24 +76,42 @@ describe('Admin governance (e2e)', () => {
         },
       },
     });
-    await prisma.paiement.deleteMany({
-      where: { reservationId },
-    });
-    await prisma.reservation.deleteMany({
+    if (reservationId) {
+      await prisma.paiement.deleteMany({
+        where: { reservationId },
+      });
+      await prisma.reservation.deleteMany({
+        where: { id: reservationId },
+      });
+    }
+    if (serviceId) {
+      await prisma.service.deleteMany({
+        where: { id: serviceId },
+      });
+    }
+    if (professionalProfileId) {
+      await prisma.profilProfessionnel.deleteMany({
+        where: { id: professionalProfileId },
+      });
+    }
+    if (categoryId) {
+      await prisma.categorie.deleteMany({
+        where: { id: categoryId },
+      });
+    }
+    await prisma.categorieSousCategorie.deleteMany({
       where: {
-        id: reservationId || undefined,
+        OR: [
+          { categorieId: { in: serviceStructureCategoryIds } },
+          { sousCategorieId: { in: serviceSubCategoryIds } },
+        ],
       },
     });
-    await prisma.service.deleteMany({
-      where: {
-        id: serviceId || undefined,
-      },
-    });
-    await prisma.profilProfessionnel.deleteMany({
-      where: { id: professionalProfileId || undefined },
+    await prisma.sousCategorieService.deleteMany({
+      where: { id: { in: serviceSubCategoryIds } },
     });
     await prisma.categorie.deleteMany({
-      where: { id: categoryId || undefined },
+      where: { id: { in: serviceStructureCategoryIds } },
     });
     await prisma.utilisateur.deleteMany({
       where: {
@@ -111,6 +131,8 @@ describe('Admin governance (e2e)', () => {
         name: 'Admin Gouvernance',
         email: `admin-governance-${timestamp}@jokko.sn`,
         password: adminPassword,
+        role: 'CLIENT',
+        adresse: 'Dakar gouvernance admin',
       })
       .expect(201);
     adminUserId = String(
@@ -124,6 +146,8 @@ describe('Admin governance (e2e)', () => {
         name: 'Client Gouvernance',
         email: `client-governance-${timestamp}@jokko.sn`,
         password: clientPassword,
+        role: 'CLIENT',
+        adresse: 'Dakar gouvernance client',
       })
       .expect(201);
     clientUserId = String(
@@ -137,6 +161,8 @@ describe('Admin governance (e2e)', () => {
         name: 'Pro Gouvernance',
         email: `pro-governance-${timestamp}@jokko.sn`,
         password: professionalPassword,
+        role: 'PRESTATAIRE',
+        adresse: 'Dakar gouvernance professionnel',
       })
       .expect(201);
     professionalUserId = String(
@@ -403,5 +429,123 @@ describe('Admin governance (e2e)', () => {
     expect(data).toHaveProperty('reservations');
     expect(data).toHaveProperty('disputes');
     expect(data).toHaveProperty('revenue');
+  });
+
+  it('GET /api/v1/admin/revenue returns payment-backed revenue analytics', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/admin/revenue?period=30d')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const data = (response.body as ApiResponse).data as Record<string, unknown>;
+    expect(data).toMatchObject({
+      period: '30d',
+      totals: expect.objectContaining({
+        gross: expect.any(Number),
+        net: expect.any(Number),
+        commission: expect.any(Number),
+        totalPayments: expect.any(Number),
+      }),
+    });
+    expect(Array.isArray(data['series'])).toBe(true);
+    expect(Array.isArray(data['methods'])).toBe(true);
+    expect(Array.isArray(data['recentPayments'])).toBe(true);
+  });
+
+  it('GET /api/v1/admin/archives returns a paginated archive tab', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/admin/archives?tab=transactions&limit=5&offset=0')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const data = (response.body as ApiResponse).data as Record<string, unknown>;
+    expect(data['pagination']).toMatchObject({
+      tab: 'transactions',
+      limit: 5,
+      offset: 0,
+      total: expect.any(Number),
+    });
+    expect(Array.isArray(data['transactions'])).toBe(true);
+    expect(Array.isArray(data['invoices'])).toBe(true);
+    expect(Array.isArray(data['closedDisputes'])).toBe(true);
+  });
+
+  it('manages the admin service structure with bulk categories and assigned subcategories', async () => {
+    const categoryResponse = await request(app.getHttpServer())
+      .post('/api/v1/admin/service-structure/categories/bulk')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        categories: [
+          {
+            name: `Structure-${timestamp}`,
+            sortOrder: 9,
+            commissionRate: 10,
+          },
+        ],
+      })
+      .expect(201);
+
+    const createdCategories = (categoryResponse.body as ApiResponse).data?.[
+      'created'
+    ] as Array<Record<string, unknown>>;
+    const structureCategoryId = String(createdCategories[0]?.['id'] ?? '');
+    serviceStructureCategoryIds.push(structureCategoryId);
+
+    const firstSubCategory = await request(app.getHttpServer())
+      .post('/api/v1/admin/service-structure/subcategories')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: `Sous categorie ${timestamp}`,
+        description: 'Affectation e2e',
+      })
+      .expect(201);
+    const firstSubCategoryId = String(
+      (firstSubCategory.body as ApiResponse).data?.['id'] ?? '',
+    );
+    serviceSubCategoryIds.push(firstSubCategoryId);
+
+    const bulkSubCategories = await request(app.getHttpServer())
+      .post('/api/v1/admin/service-structure/subcategories/bulk')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        subCategories: [{ name: `Sous categorie bulk ${timestamp}` }],
+      })
+      .expect(201);
+    const bulkCreated = (bulkSubCategories.body as ApiResponse).data?.[
+      'created'
+    ] as Array<Record<string, unknown>>;
+    const bulkSubCategoryId = String(bulkCreated[0]?.['id'] ?? '');
+    serviceSubCategoryIds.push(bulkSubCategoryId);
+
+    const assignmentResponse = await request(app.getHttpServer())
+      .patch(
+        `/api/v1/admin/service-structure/categories/${structureCategoryId}/subcategories`,
+      )
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ subCategoryIds: serviceSubCategoryIds })
+      .expect(200);
+
+    const assignmentData = (assignmentResponse.body as ApiResponse)
+      .data as Record<string, unknown>;
+    expect(assignmentData['subCategories']).toHaveLength(2);
+
+    const structureResponse = await request(app.getHttpServer())
+      .get('/api/v1/admin/service-structure')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const structureData = (structureResponse.body as ApiResponse)
+      .data as Record<string, unknown>;
+    const categories = structureData['categories'] as Array<
+      Record<string, unknown>
+    >;
+    const createdCategory = categories.find(
+      (category) => category['id'] === structureCategoryId,
+    );
+    expect(createdCategory?.['subCategories']).toHaveLength(2);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/service-structure/images')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(400);
   });
 });

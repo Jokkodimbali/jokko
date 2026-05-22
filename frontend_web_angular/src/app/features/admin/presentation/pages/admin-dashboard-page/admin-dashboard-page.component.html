@@ -40,6 +40,7 @@
           [actionId]="kycActionId()"
           (approve)="approveKyc($event)"
           (reject)="rejectKyc($event)"
+          (detailRequested)="loadKycDetail($event)"
         ></app-admin-kyc-validation-panel>
       </ng-container>
 
@@ -62,6 +63,7 @@
             [isLoading]="isDisputesLoading()"
             [actionId]="kycActionId()"
             (action)="handleDisputeAction($event)"
+            (detailRequested)="loadDisputeDetail($event)"
           ></app-admin-disputes-panel>
         </ng-container>
       </ng-template>
@@ -85,6 +87,30 @@
       </ng-template>
 
       <ng-template #nonProvidersContent>
+        <ng-container *ngIf="activeSection() === 'users'; else nonUsersContent">
+          <app-admin-users-panel></app-admin-users-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonUsersContent>
+        <ng-container *ngIf="activeSection() === 'reservations'; else nonReservationsContent">
+          <app-admin-reservations-panel></app-admin-reservations-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonReservationsContent>
+        <ng-container *ngIf="activeSection() === 'payments'; else nonPaymentsContent">
+          <app-admin-payments-panel></app-admin-payments-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonPaymentsContent>
+        <ng-container *ngIf="activeSection() === 'notifications'; else nonNotificationsContent">
+          <app-admin-notifications-panel></app-admin-notifications-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonNotificationsContent>
         <ng-container *ngIf="activeSection() === 'traffic'; else nonTrafficContent">
           <app-admin-traffic-analytics-panel [data]="data"></app-admin-traffic-analytics-panel>
         </ng-container>
@@ -101,11 +127,38 @@
       </ng-template>
 
       <ng-template #nonRevenueContent>
-        <ng-container *ngIf="activeSection() === 'regions'; else overviewContent">
+        <ng-container *ngIf="activeSection() === 'regions'; else nonRegionsContent">
           <app-admin-regions-panel
             [report]="regionsReport()"
             [isLoading]="isRegionsLoading()"
           ></app-admin-regions-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonRegionsContent>
+        <ng-container *ngIf="activeSection() === 'archives'; else nonArchivesContent">
+          <app-admin-archives-panel
+            [report]="archivesReport()"
+            [isLoading]="isArchivesLoading()"
+            (pageChange)="loadArchives($event)"
+          ></app-admin-archives-panel>
+        </ng-container>
+      </ng-template>
+
+      <ng-template #nonArchivesContent>
+        <ng-container *ngIf="activeSection() === 'structure'; else overviewContent">
+          <app-admin-service-structure-panel
+            [report]="serviceStructureReport()"
+            [isLoading]="isStructureLoading()"
+            [actionId]="structureActionId()"
+            (createCategory)="createCategory($event)"
+            (bulkCreateCategories)="bulkCreateCategories($event)"
+            (updateCategory)="updateCategory($event)"
+            (disableCategory)="disableCategory($event)"
+            (createSubCategory)="createSubCategory($event)"
+            (bulkCreateSubCategories)="bulkCreateSubCategories($event)"
+            (assignSubCategories)="assignSubCategories($event)"
+          ></app-admin-service-structure-panel>
         </ng-container>
       </ng-template>
 

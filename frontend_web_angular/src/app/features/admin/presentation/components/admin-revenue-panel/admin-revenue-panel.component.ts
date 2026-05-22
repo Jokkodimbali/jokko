@@ -18,6 +18,8 @@ export class AdminRevenuePanelComponent {
   @Input() report: AdminRevenueReport | null = null;
   @Input() isLoading = false;
   @Output() periodChange = new EventEmitter<AdminRevenuePeriod>();
+  protected recentPaymentsPage = 1;
+  private readonly recentPaymentsPageSize = 5;
 
   protected readonly periods: Array<{ value: AdminRevenuePeriod; label: string }> = [
     { value: '7d', label: '7 jours' },
@@ -28,6 +30,7 @@ export class AdminRevenuePanelComponent {
 
   protected selectPeriod(period: AdminRevenuePeriod): void {
     if (period === this.report?.period || this.isLoading) return;
+    this.recentPaymentsPage = 1;
     this.periodChange.emit(period);
   }
 
@@ -106,5 +109,21 @@ export class AdminRevenuePanelComponent {
       return point.gross > best.gross ? point : best;
     }, null);
   }
-}
 
+  protected visibleRecentPayments(report: AdminRevenueReport) {
+    const start = (this.recentPaymentsPage - 1) * this.recentPaymentsPageSize;
+    return report.recentPayments.slice(start, start + this.recentPaymentsPageSize);
+  }
+
+  protected recentPaymentsPageCount(report: AdminRevenueReport): number {
+    return Math.max(1, Math.ceil(report.recentPayments.length / this.recentPaymentsPageSize));
+  }
+
+  protected previousRecentPaymentsPage(): void {
+    if (this.recentPaymentsPage > 1) this.recentPaymentsPage -= 1;
+  }
+
+  protected nextRecentPaymentsPage(report: AdminRevenueReport): void {
+    if (this.recentPaymentsPage < this.recentPaymentsPageCount(report)) this.recentPaymentsPage += 1;
+  }
+}

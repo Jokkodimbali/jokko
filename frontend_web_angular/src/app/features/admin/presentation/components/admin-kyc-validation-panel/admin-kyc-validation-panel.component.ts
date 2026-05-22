@@ -16,6 +16,7 @@ export class AdminKycValidationPanelComponent implements OnChanges {
   @Input() actionId: string | null = null;
   @Output() approve = new EventEmitter<string>();
   @Output() reject = new EventEmitter<{ profileId: string; reason: string }>();
+  @Output() detailRequested = new EventEmitter<string>();
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly selectedProfile = computed(
@@ -30,6 +31,7 @@ export class AdminKycValidationPanelComponent implements OnChanges {
 
   protected select(profileId: string): void {
     this.selectedId.set(profileId);
+    this.detailRequested.emit(profileId);
   }
 
   protected approveSelected(): void {

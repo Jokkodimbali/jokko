@@ -320,6 +320,41 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
       message: 'Au moins un champ doit etre fourni pour la mise a jour.',
     },
+    ADMIN_SERVICE_STRUCTURE_RETRIEVED: {
+      code: 'ADMIN_SERVICE_STRUCTURE_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Structure des services recuperee avec succes.',
+    },
+    ADMIN_CATEGORIES_BULK_CREATED: {
+      code: 'ADMIN_CATEGORIES_BULK_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Categories importees avec succes.',
+    },
+    ADMIN_SERVICE_SUBCATEGORY_CREATED: {
+      code: 'ADMIN_SERVICE_SUBCATEGORY_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Sous-categorie creee avec succes.',
+    },
+    ADMIN_SERVICE_SUBCATEGORIES_CREATED: {
+      code: 'ADMIN_SERVICE_SUBCATEGORIES_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Sous-categories importees avec succes.',
+    },
+    ADMIN_SERVICE_SUBCATEGORIES_ASSIGNED: {
+      code: 'ADMIN_SERVICE_SUBCATEGORIES_ASSIGNED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Sous-categories affectees avec succes.',
+    },
+    ADMIN_SERVICE_IMAGE_UPLOADED: {
+      code: 'ADMIN_SERVICE_IMAGE_UPLOADED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Image de categorie importee avec succes.',
+    },
+    ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND: {
+      code: 'ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Sous-categorie introuvable.',
+    },
   },
   search: {
     SEARCH_RESULTS_RETRIEVED: {
@@ -797,6 +832,11 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'ADMIN_DASHBOARD_RETRIEVED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Tableau de bord admin recupere avec succes.',
+    },
+    ADMIN_ARCHIVES_RETRIEVED: {
+      code: 'ADMIN_ARCHIVES_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Archives admin recuperees avec succes.',
     },
     ADMIN_MEDICAL_CREDENTIALS_RETRIEVED: {
       code: 'ADMIN_MEDICAL_CREDENTIALS_RETRIEVED',

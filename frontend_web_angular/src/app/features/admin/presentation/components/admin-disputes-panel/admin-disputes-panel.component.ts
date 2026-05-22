@@ -7,6 +7,7 @@ type DisputeAction =
   | 'review'
   | 'refund-client'
   | 'credit-professional'
+  | 'reject'
   | 'message-client'
   | 'message-professional'
   | 'message-both';
@@ -46,6 +47,7 @@ export class AdminDisputesPanelComponent implements OnChanges {
     notes?: string;
     clientRefundPercentage?: number;
   }>();
+  @Output() detailRequested = new EventEmitter<string>();
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly resolutionNote = signal('');
@@ -65,6 +67,7 @@ export class AdminDisputesPanelComponent implements OnChanges {
 
   protected select(disputeId: string): void {
     this.selectedId.set(disputeId);
+    this.detailRequested.emit(disputeId);
     this.resolutionNote.set('');
     this.closeFinancialDecision();
   }

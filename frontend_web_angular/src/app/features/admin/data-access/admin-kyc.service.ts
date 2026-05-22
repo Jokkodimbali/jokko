@@ -19,6 +19,12 @@ export class AdminKycService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  get(profileId: string): Observable<AdminKycProfile> {
+    return this.http
+      .get<ApiResponse<AdminKycProfile>>(`${this.kycUrl}/${profileId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   approve(profileId: string): Observable<AdminKycProfile> {
     return this.http
       .patch<ApiResponse<AdminKycProfile>>(`${this.kycUrl}/${profileId}/approve`, {})

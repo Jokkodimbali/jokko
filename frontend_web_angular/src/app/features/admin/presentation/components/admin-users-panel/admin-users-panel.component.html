@@ -1,0 +1,114 @@
+<section class="admin-users">
+  <header>
+    <div>
+      <span><lucide-icon name="users" size="28"></lucide-icon></span>
+      <h1>Utilisateurs</h1>
+      <p>Recherche, consultation des dossiers et controle des acces des comptes Jokko.</p>
+    </div>
+    <form (ngSubmit)="applySearch()">
+      <label><lucide-icon name="search" size="17"></lucide-icon><input name="search" [(ngModel)]="search" placeholder="Nom, telephone, email..." /></label>
+      <select name="role" [(ngModel)]="role" (change)="applySearch()">
+        <option value="">Tous les roles</option>
+        <option value="CLIENT">Clients</option>
+        <option value="PRESTATAIRE">Prestataires</option>
+        <option value="ADMIN">Administrateurs</option>
+      </select>
+      <select name="active" [(ngModel)]="active" (change)="applySearch()">
+        <option value="">Tous les statuts</option>
+        <option value="true">Actifs</option>
+        <option value="false">Bloques</option>
+      </select>
+      <button type="submit">Actualiser</button>
+    </form>
+  </header>
+
+  <p class="admin-users__error" *ngIf="error()">{{ error() }}</p>
+  <div class="admin-users__layout">
+    <article class="admin-users__list">
+      <div class="admin-users__list-head">
+        <strong>Page {{ page() }}</strong>
+        <span>{{ users().length }} compte(s) affiches</span>
+      </div>
+      <button *ngFor="let user of users()" type="button" (click)="openUser(user.id)">
+        <i>{{ initials(user.nom) }}</i>
+        <span>
+          <b>{{ user.nom }}</b>
+          <small>{{ user.role }} · {{ user.numeroTelephone }}</small>
+        </span>
+        <em [class.admin-users__inactive]="!user.estActif">{{ user.estActif ? 'Actif' : 'Bloque' }}</em>
+      </button>
+      <div class="admin-users__state" *ngIf="isLoading()">Chargement des comptes...</div>
+      <div class="admin-users__state" *ngIf="!isLoading() && users().length === 0">Aucun compte ne correspond aux filtres.</div>
+      <footer class="admin-users__pagination" *ngIf="!isLoading() && (page() > 1 || canLoadNextPage())">
+        <button type="button" [disabled]="page() <= 1" (click)="previousPage()">Precedent</button>
+        <b>Comptes {{ (page() - 1) * pageSize + 1 }}-{{ (page() - 1) * pageSize + users().length }}</b>
+        <button type="button" [disabled]="!canLoadNextPage()" (click)="nextPage()">Suivant</button>
+      </footer>
+    </article>
+
+    <article class="admin-users__detail" *ngIf="selectedUser() as user; else usersPrompt">
+      <div class="admin-users__identity">
+        <i>{{ initials(user.nom) }}</i>
+        <div>
+          <h2>{{ user.nom }}</h2>
+          <p>{{ user.email || 'Email non renseigne' }} · {{ user.numeroTelephone }}</p>
+        </div>
+        <button type="button" (click)="closeDetail()"><lucide-icon name="x" size="18"></lucide-icon></button>
+      </div>
+      <div class="admin-users__profile" *ngIf="user.profilProfessionnel as profile">
+        <span>Profil professionnel</span>
+        <strong>{{ profile.nomEntreprise || user.nom }}</strong>
+        <small>{{ profile.categories.length ? profile.categories.join(', ') : 'Categories a completer' }}</small>
+      </div>
+      <div class="admin-users__facts">
+        <span><small>Role</small><b>{{ user.role }}</b></span>
+        <span><small>Adresse</small><b>{{ user.adresse || 'Non renseignee' }}</b></span>
+        <span><small>Compte cree</small><b>{{ formatDate(user.creeLe) }}</b></span>
+        <span><small>Notifications</small><b>{{ history()?.notificationsCount ?? 0 }}</b></span>
+      </div>
+      <button class="admin-users__activation" type="button" (click)="askActivation(user)">
+        {{ user.estActif ? 'Bloquer ce compte' : 'Reactiver ce compte' }}
+      </button>
+
+      <div class="admin-users__history" *ngIf="history() as userHistory">
+        <section>
+          <h3>Rendez-vous client</h3>
+          <p *ngFor="let booking of userHistory.reservationsAsClient">
+            <b>{{ booking.service.nom }}</b>
+            <span>{{ booking.statut }} · {{ formatDate(booking.dateHeure) }}</span>
+          </p>
+          <small *ngIf="userHistory.reservationsAsClient.length === 0">Aucun historique client.</small>
+        </section>
+        <section>
+          <h3>Paiements et retraits</h3>
+          <p *ngFor="let payment of userHistory.paymentsAsClient">
+            <b>{{ formatMoney(payment.amount) }}</b>
+            <span>{{ payment.status }} · {{ formatDate(payment.createdAt) }}</span>
+          </p>
+          <p *ngFor="let withdrawal of userHistory.withdrawalsAsProfessional">
+            <b>{{ formatMoney(withdrawal.amount) }}</b>
+            <span>Retrait {{ withdrawal.status }} · {{ formatDate(withdrawal.requestedAt) }}</span>
+          </p>
+          <small *ngIf="userHistory.paymentsAsClient.length === 0 && userHistory.withdrawalsAsProfessional.length === 0">Aucun mouvement financier.</small>
+        </section>
+      </div>
+    </article>
+  </div>
+
+  <ng-template #usersPrompt>
+    <article class="admin-users__detail admin-users__detail--empty">
+      {{ isDetailLoading() ? 'Chargement du dossier...' : 'Selectionnez un compte pour consulter son profil et son historique.' }}
+    </article>
+  </ng-template>
+
+  <div class="admin-users__modal" *ngIf="pendingActivation() as user">
+    <article>
+      <h2>{{ user.estActif ? 'Bloquer le compte ?' : 'Reactiver le compte ?' }}</h2>
+      <p>{{ user.nom }} {{ user.estActif ? 'ne pourra plus utiliser les espaces proteges.' : 'retrouvera ses acces autorises.' }}</p>
+      <footer>
+        <button type="button" (click)="pendingActivation.set(null)">Annuler</button>
+        <button type="button" [disabled]="isActionLoading()" (click)="confirmActivation()">Confirmer</button>
+      </footer>
+    </article>
+  </div>
+</section>

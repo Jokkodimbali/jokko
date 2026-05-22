@@ -81,6 +81,10 @@
             <lucide-icon name="wallet-cards" size="14" [strokeWidth]="2"></lucide-icon>
             Indemniser le prestataire
           </button>
+          <button type="button" (click)="runAction('reject')" [disabled]="actionId === dispute.id || !canResolve(dispute)">
+            <lucide-icon name="x" size="14" [strokeWidth]="2"></lucide-icon>
+            Rejeter le litige
+          </button>
         </div>
 
         <textarea

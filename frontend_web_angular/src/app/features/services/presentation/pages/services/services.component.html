@@ -132,19 +132,25 @@
                   <ng-template #providerInitialsTpl>
                     <span>{{ providerInitials(provider.nom) }}</span>
                   </ng-template>
-                  <i aria-hidden="true"></i>
+                  <i [class.provider-avatar__dot--offline]="!provider.isOnline" aria-hidden="true"></i>
                 </div>
-                <div>
+                <div class="provider-copy">
                   <h3>{{ provider.nom }}</h3>
                   <p class="speciality">{{ provider.speciality }}</p>
-                  <p class="location">
-                    <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
-                    {{ provider.location }}
-                  </p>
-                  <p class="status">
-                    <lucide-icon name="clock-3" size="12" [strokeWidth]="2"></lucide-icon>
-                    {{ provider.status }}
-                  </p>
+                  <div class="provider-meta">
+                    <span>
+                      <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
+                      {{ provider.location }}
+                    </span>
+                    <span [class.provider-meta__online]="provider.isOnline">
+                      <lucide-icon name="clock-3" size="12" [strokeWidth]="2"></lucide-icon>
+                      {{ provider.onlineLabel }}
+                    </span>
+                    <span class="provider-meta__rating">
+                      <lucide-icon name="star" size="12" [strokeWidth]="2"></lucide-icon>
+                      {{ providerRatingLabel(provider) }}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -157,6 +163,11 @@
                   <span>{{ provider.speciality }}</span>
                 </div>
               </ng-template>
+
+              <span class="provider-card__cta">
+                <lucide-icon name="info" size="17" [strokeWidth]="2.4"></lucide-icon>
+                En savoir plus
+              </span>
             </a>
 
             <button
@@ -166,7 +177,7 @@
               [attr.aria-label]="isProviderFavorite(provider.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
               (click)="toggleProviderFavorite($event, provider.id)"
             >
-              <lucide-icon name="heart" size="23" [strokeWidth]="2.4"></lucide-icon>
+              <lucide-icon name="bookmark" size="21" [strokeWidth]="2.4"></lucide-icon>
             </button>
           </article>
         </div>

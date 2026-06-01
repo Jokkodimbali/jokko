@@ -63,7 +63,7 @@ export class ProfileService extends ProfessionalAppService {
 
   async getProfessionalById(profileId: string) {
     const profile =
-      await this.professionalsRepository.findVerifiedById(profileId);
+      await this.professionalsRepository.findPublicById(profileId);
     if (!profile) {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }

@@ -39,6 +39,12 @@ export class SearchController {
     description: API_DOCS.search.queryFilter,
   })
   @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: ['PRESTATAIRE', 'MEDECIN'],
+    description: 'Filtre les resultats par type de profil professionnel.',
+  })
+  @ApiQuery({
     name: 'latitude',
     required: false,
     type: Number,
@@ -92,6 +98,7 @@ export class SearchController {
       city: query.city,
       categoryId: query.categoryId,
       query: query.query,
+      role: query.role,
       latitude: query.latitude,
       longitude: query.longitude,
       radiusKm: query.radiusKm,

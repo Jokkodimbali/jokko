@@ -139,6 +139,7 @@ export interface ProfessionalProfileRepositoryPort {
   approveKyc(profileId: string): Promise<ApproveKycResult>;
   rejectKyc(profileId: string, reason: string): Promise<RejectKycResult>;
   findVerifiedById(profileId: string): Promise<ProfessionalProfileView | null>;
+  findPublicById(profileId: string): Promise<ProfessionalProfileView | null>;
   listKycForAdmin(query?: {
     status?: KycStatus;
     limit?: number;

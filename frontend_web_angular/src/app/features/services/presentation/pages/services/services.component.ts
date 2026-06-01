@@ -62,6 +62,10 @@ export class ServicesComponent implements OnInit {
       status: favorite.totalReviews > 0
         ? `${favorite.rating}/5 (${favorite.totalReviews} avis)`
         : 'Favori',
+      rating: favorite.rating,
+      totalReviews: favorite.totalReviews,
+      isOnline: false,
+      onlineLabel: 'Favori',
       avatar: favorite.avatarUrl || undefined,
       photos: [],
       route: `/services/${favorite.professionalId}`,
@@ -94,7 +98,7 @@ export class ServicesComponent implements OnInit {
           {
             id: 'search-results',
             title: `Recherche ${query}`,
-            countLabel: `${result.meta?.total || result.providers.length} Professionnels`,
+            countLabel: `${result.meta?.total || result.providers.length} professionnels`,
             providers: result.providers,
             pagination: result.meta,
           },
@@ -195,6 +199,14 @@ export class ServicesComponent implements OnInit {
 
   providerPhotos(provider: { photos: string[] }): string[] {
     return provider.photos.slice(0, 2);
+  }
+
+  providerRatingLabel(provider: { rating: number; totalReviews: number }): string {
+    if (provider.totalReviews <= 0) {
+      return 'Nouveau';
+    }
+
+    return `${provider.rating.toFixed(1)} (${provider.totalReviews} avis)`;
   }
 
   isProviderFavorite(providerId: string): boolean {

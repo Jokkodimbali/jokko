@@ -23,7 +23,7 @@ export class MedicineService {
     return this.http
       .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
         params: {
-          query: 'medecin',
+          role: 'MEDECIN',
           page: page.toString(),
           limit: limit.toString(),
         },
@@ -85,12 +85,17 @@ export class MedicineService {
     presence: BackendProfessionalPresence | null,
   ): DoctorProfile {
     const primaryService = professional.services[0];
+    const medicalSpecialty = this.extractMedicalSpecialty(professional.bio);
     const nextAvailability = this.buildNextAvailabilityLabels(availabilities);
 
     return {
       id: professional.id,
       name: professional.companyName || professional.name,
-      specialty: primaryService?.name || primaryService?.categoryName || 'Motif non renseigne',
+      specialty:
+        primaryService?.name ||
+        primaryService?.categoryName ||
+        medicalSpecialty ||
+        'Specialite non renseignee',
       rating: professional.rating || 0,
       reviewCount: professional.totalReviews || 0,
       location: (professional.city || 'Localisation non renseignee').toUpperCase(),
@@ -144,5 +149,14 @@ export class MedicineService {
     }
 
     return labels;
+  }
+
+  private extractMedicalSpecialty(bio: string | null): string | null {
+    if (!bio) {
+      return null;
+    }
+
+    const match = bio.match(/Specialite\s*:\s*([^\n]+)/i);
+    return match?.[1]?.trim() || null;
   }
 }

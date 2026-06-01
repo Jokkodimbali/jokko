@@ -13,6 +13,10 @@ export interface Professional {
   speciality: string;
   location: string;
   status: string;
+  rating: number;
+  totalReviews: number;
+  isOnline: boolean;
+  onlineLabel: string;
   avatar?: string;
   photos: string[];
 }

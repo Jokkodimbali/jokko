@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, StatutKyc } from '@prisma/client';
+import {
+  Prisma,
+  StatutKyc,
+  StatutPresenceProfessionnel,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { appHttpException } from '../../core/http/app-http.exception';
 
@@ -14,6 +18,7 @@ const FAVORITE_SELECT = {
       ville: true,
       noteGlobale: true,
       nombreAvis: true,
+      creeLe: true,
       utilisateur: {
         select: {
           id: true,
@@ -38,6 +43,30 @@ const FAVORITE_SELECT = {
               nom: true,
             },
           },
+        },
+      },
+      disponibilites: {
+        where: { estActive: true },
+        select: {
+          jourSemaine: true,
+          heureDebut: true,
+          heureFin: true,
+        },
+      },
+      elementsPortfolio: {
+        orderBy: { creeLe: 'desc' },
+        take: 2,
+        select: {
+          id: true,
+          titre: true,
+          urlImage: true,
+        },
+      },
+      presence: {
+        select: {
+          estEnLigne: true,
+          statut: true,
+          dernierVueLe: true,
         },
       },
     },
@@ -139,6 +168,15 @@ export class FavoritesService {
   private mapFavorite(favorite: RawFavorite) {
     const professional = favorite.profilProfessionnel;
     const primaryService = professional.services[0] ?? null;
+    const presence = professional.presence;
+    const now = new Date();
+    const today = now.getDay() === 0 ? 7 : now.getDay();
+    const hasAvailabilityToday = professional.disponibilites.some(
+      (availability) => availability.jourSemaine === today,
+    );
+    const isOnline =
+      Boolean(presence?.estEnLigne) &&
+      presence?.statut !== StatutPresenceProfessionnel.HORS_LIGNE;
 
     return {
       id: favorite.id,
@@ -151,6 +189,16 @@ export class FavoritesService {
       avatarUrl: professional.utilisateur.urlAvatar,
       rating: professional.noteGlobale.toNumber(),
       totalReviews: professional.nombreAvis,
+      isOnline,
+      presenceStatus: presence?.statut ?? StatutPresenceProfessionnel.HORS_LIGNE,
+      lastSeenAt: presence?.dernierVueLe ?? null,
+      isAvailableToday: hasAvailabilityToday,
+      isNew: this.daysBetween(professional.creeLe, now) <= 30,
+      portfolioImages: professional.elementsPortfolio.map((item) => ({
+        id: item.id,
+        title: item.titre,
+        url: item.urlImage,
+      })),
       service: primaryService
         ? {
             id: primaryService.id,
@@ -162,5 +210,9 @@ export class FavoritesService {
           }
         : null,
     };
+  }
+
+  private daysBetween(start: Date, end: Date) {
+    return Math.floor((end.getTime() - start.getTime()) / 86_400_000);
   }
 }

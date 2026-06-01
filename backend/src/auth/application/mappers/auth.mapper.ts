@@ -6,6 +6,7 @@ export type AuthApiUser = {
   name: string;
   role: string;
   email?: string | null;
+  avatarUrl?: string | null;
 };
 
 export class AuthMapper {
@@ -19,11 +20,15 @@ export class AuthMapper {
   }
 
   static toApiUserWithEmail(
-    user: AuthUserSummary & { email?: string | null },
+    user: AuthUserSummary & {
+      email?: string | null;
+      urlAvatar?: string | null;
+    },
   ): AuthApiUser {
     return {
       ...this.toApiUser(user),
       email: user.email,
+      avatarUrl: user.urlAvatar ?? null,
     };
   }
 }

@@ -1,211 +1,223 @@
-<main class="auth-page auth-page--register">
-  <a routerLink="/services" class="auth-page__back">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10.5 19 3.5 12l7-7 1.4 1.4L7.3 11H21v2H7.3l4.6 4.6L10.5 19Z" />
-    </svg>
-    Retour aux services
-  </a>
-
-  <section class="auth-panel">
-    <div class="auth-panel__story">
-      <a routerLink="/services" class="auth-panel__brand">
-        <img src="/logojokko.png" alt="Jokko Logo" />
-        <span>JOKKO Dimbali</span>
+<main class="register-page">
+  <section class="register-card">
+    <aside class="register-card__visual">
+      <a routerLink="/services" class="register-card__back">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10.5 19 3.5 12l7-7 1.4 1.4L7.3 11H21v2H7.3l4.6 4.6L10.5 19Z" />
+        </svg>
+        Retour
       </a>
 
-      <div class="auth-panel__copy">
-        <p class="auth-panel__eyebrow">Creation de compte</p>
-        <h1>Rejoignez Jokko</h1>
-        <p>
-          Creez un profil client ou prestataire et gardez une experience fluide entre recherche,
-          reservation, paiement et suivi.
-        </p>
+      <div class="register-card__logo">
+        <img src="/logojokko.png" alt="JOKKO Dimbali" />
       </div>
 
-      <div class="auth-panel__proof">
-        <div>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3 3 8l9 5 9-5-9-5Zm-7 8v5l7 4 7-4v-5l-7 4-7-4Z" />
-          </svg>
-          Onboarding structure
-        </div>
-        <div>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2 4 5.5v5.8c0 5 3.4 9.6 8 10.7 4.6-1.1 8-5.7 8-10.7V5.5L12 2Z" />
-          </svg>
-          Donnees protegees
-        </div>
-      </div>
-    </div>
+      <img class="register-card__network" src="/imagehaut1.png" alt="" aria-hidden="true" />
 
-    <div class="auth-panel__form-shell auth-panel__form-shell--wide">
-      <div class="auth-card">
-        <div class="auth-card__header">
-          <span class="auth-card__icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M15 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-8 9v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2H7ZM5 12V9H2V7h3V4h2v3h3v2H7v3H5Z"
-              />
-            </svg>
-          </span>
-          <div>
-            <h2>Inscription</h2>
-            <p>Choisissez votre role et completez vos informations.</p>
-          </div>
+    </aside>
+
+    <section class="register-card__form-panel">
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+        <header class="register-form__header">
+          <h1>Inscription</h1>
+          <p>Rejoignez la plateforme et choisissez votre profil.</p>
+        </header>
+
+        <div class="role-tabs" role="radiogroup" aria-label="Type de compte">
+          <button
+            type="button"
+            [class.role-tabs__item--active]="selectedRole() === 'CLIENT'"
+            (click)="selectRole('CLIENT')"
+          >
+            Client
+          </button>
+          <button
+            type="button"
+            [class.role-tabs__item--active]="selectedRole() === 'PRESTATAIRE'"
+            (click)="selectRole('PRESTATAIRE')"
+          >
+            Prestataire
+          </button>
+          <button
+            type="button"
+            [class.role-tabs__item--active]="selectedRole() === 'MEDECIN'"
+            (click)="selectRole('MEDECIN')"
+          >
+            Medecin
+          </button>
         </div>
 
-        <div *ngIf="errorMessage()" class="auth-alert auth-alert--error" role="alert">
+        <div *ngIf="errorMessage()" class="register-alert" role="alert">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2 1.8 20h20.4L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V8h2v5Z" />
           </svg>
           <p>{{ errorMessage() }}</p>
         </div>
 
-        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
-          <div class="auth-role-grid">
-            <label class="auth-role-card">
-              <input type="radio" name="role" formControlName="role" value="CLIENT" />
-              <span>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.2 0-7 2.1-7 5.2V21h14v-1.8c0-3.1-2.8-5.2-7-5.2Z"
-                  />
-                </svg>
-                Client
-              </span>
-            </label>
-            <label class="auth-role-card">
-              <input type="radio" name="role" formControlName="role" value="PRESTATAIRE" />
-              <span>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h16v12H4V7Zm4-4h8l1 3H7l1-3Zm2 8h4v2h-4v-2Z" />
-                </svg>
-                Prestataire
-              </span>
-            </label>
-          </div>
+        <div class="register-form__grid">
+          <label class="register-field" [class.register-field--invalid]="isFieldInvalid('name')">
+            <span>{{ selectedRole() === 'MEDECIN' ? 'Nom complet du praticien' : 'Nom complet' }}</span>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              [placeholder]="selectedRole() === 'MEDECIN' ? 'Dr. Nom et Prenom' : 'Nom et Prenom'"
+            />
+            <small *ngIf="isFieldInvalid('name')">{{ messages.nameInvalid }}</small>
+          </label>
 
-          <div class="auth-form__grid">
-            <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('name')">
-              <span>Nom complet</span>
-              <div>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.2 0-7 2.1-7 5.2V21h14v-1.8c0-3.1-2.8-5.2-7-5.2Z"
-                  />
-                </svg>
-                <input id="name" type="text" formControlName="name" placeholder="Moussa Diop" />
-              </div>
-              <small *ngIf="isFieldInvalid('name')">{{ messages.nameInvalid }}</small>
-            </label>
+          <label class="register-field" [class.register-field--invalid]="isFieldInvalid('email')">
+            <span>{{ selectedRole() === 'MEDECIN' ? 'Adresse email professionnelle' : 'Email' }}</span>
+            <input id="email" type="email" formControlName="email" placeholder="contact@exemple.com" />
+          </label>
 
-            <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('phoneNumber')">
-              <span>Telephone</span>
-              <div>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M6.6 10.8a15.9 15.9 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.4a1 1 0 0 1 1 1c0 1.2.2 2.4.6 3.6a1 1 0 0 1-.2 1l-2.2 2.2Z"
-                  />
-                </svg>
-                <input
-                  id="registerPhone"
-                  type="tel"
-                  formControlName="phoneNumber"
-                  placeholder="+221770000000"
-                />
-              </div>
-              <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneInvalidShort }}</small>
-            </label>
+          <label
+            class="register-field"
+            [class.register-field--invalid]="isFieldInvalid('phoneNumber')"
+          >
+            <span>Telephone</span>
+            <input
+              id="registerPhone"
+              type="tel"
+              formControlName="phoneNumber"
+              placeholder="+221770000000"
+            />
+            <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneInvalidShort }}</small>
+          </label>
 
-            <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('email')">
-              <span>Email</span>
-              <div>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M3 5h18v14H3V5Zm2 3.2V17h14V8.2l-7 4.4-7-4.4Zm1.1-1.2 5.9 3.7L17.9 7H6.1Z"
-                  />
-                </svg>
-                <input
-                  id="email"
-                  type="email"
-                  formControlName="email"
-                  placeholder="moussa@exemple.sn"
-                />
-              </div>
-            </label>
+          <label class="register-field" [class.register-field--invalid]="isFieldInvalid('adresse')">
+            <span>Adresse</span>
+            <input id="adresse" type="text" formControlName="adresse" placeholder="Dakar, Plateau" />
+          </label>
+        </div>
 
-            <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('adresse')">
-              <span>Adresse</span>
-              <div>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 2.8a7.2 7.2 0 0 0-7.2 7.2c0 5.4 7.2 11.2 7.2 11.2S19.2 15.4 19.2 10A7.2 7.2 0 0 0 12 2.8Zm0 9.7a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
-                  />
-                </svg>
-                <input
-                  id="adresse"
-                  type="text"
-                  formControlName="adresse"
-                  placeholder="Dakar, Plateau"
-                />
-              </div>
-            </label>
-          </div>
+        <ng-container *ngIf="selectedRole() === 'MEDECIN'">
+          <label class="register-field register-field--full">
+            <span>Specialite medicale</span>
+            <select formControlName="medicalSpecialty">
+              <option value="">Selectionner une specialite...</option>
+              <option *ngFor="let specialty of medicalSpecialties()" [value]="specialty">
+                {{ specialty }}
+              </option>
+            </select>
+          </label>
 
-          <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('password')">
-            <span>Mot de passe</span>
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8H4v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Z"
-                />
-              </svg>
+          <section class="document-upload">
+            <p>Diplomes et certifications (PDF, JPG)</p>
+            <label>
               <input
-                id="registerPassword"
-                [type]="showPassword() ? 'text' : 'password'"
-                formControlName="password"
-                placeholder="Mot de passe"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                (change)="onDocumentsSelected($event)"
               />
-              <button
-                type="button"
-                (click)="showPassword.set(!showPassword())"
-                aria-label="Afficher le mot de passe"
-              >
-                <svg *ngIf="!showPassword()" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 5c5.2 0 8.7 4.3 10 7-1.3 2.7-4.8 7-10 7S3.3 14.7 2 12c1.3-2.7 4.8-7 10-7Zm0 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
-                  />
+              <span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3 7 8h3v6h4V8h3l-5-5ZM5 19h14v-5h2v7H3v-7h2v5Z" />
                 </svg>
-                <svg *ngIf="showPassword()" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="m3.3 2 18.4 18.4-1.4 1.4-3.1-3.1A10.7 10.7 0 0 1 12 20c-5.2 0-8.7-4.3-10-7 .7-1.4 2-3.2 3.8-4.6L1.9 4 3.3 2Zm7.5 7.5 3.7 3.7A4 4 0 0 0 10.8 9.5ZM12 4c5.2 0 8.7 4.3 10 7-.5 1-1.3 2.2-2.4 3.3L16.8 11.5A4 4 0 0 0 12.5 7.2L10.2 4.9A10.6 10.6 0 0 1 12 4Z"
-                  />
+              </span>
+              <strong>Cliquez pour uploader vos documents</strong>
+              <em>Formats acceptes : PDF, JPG, PNG (Max 10MB)</em>
+            </label>
+            <ul *ngIf="selectedMedicalDocuments().length">
+              <li *ngFor="let document of selectedMedicalDocuments()">{{ document }}</li>
+            </ul>
+          </section>
+
+          <section class="expertise-table">
+            <h2>Expertises et actes medicaux</h2>
+            <div class="expertise-table__head">
+              <span>Intitule de l'expertise</span>
+              <span>Action</span>
+            </div>
+            <div class="expertise-table__row" *ngFor="let expertise of medicalExpertises(); let i = index">
+              <span>{{ expertise }}</span>
+              <button type="button" (click)="removeExpertise(i)" aria-label="Supprimer l'expertise">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 21q-.8 0-1.4-.6T5 19V7H4V5h5V4h6v1h5v2h-1v12q0 .8-.6 1.4T17 21H7Zm2-4h2V9H9v8Zm4 0h2V9h-2v8Z" />
                 </svg>
               </button>
             </div>
-            <small *ngIf="isFieldInvalid('password')">{{ messages.passwordLength }}</small>
-          </label>
+            <div class="expertise-table__empty" *ngIf="!medicalExpertises().length">
+              Ajoutez vos expertises pour constituer votre dossier medical.
+            </div>
+            <div class="expertise-table__add">
+              <input
+                type="text"
+                [value]="expertiseDraft()"
+                (input)="expertiseDraft.set($any($event.target).value)"
+                placeholder="Ajouter une expertise"
+              />
+              <button type="button" (click)="addExpertise()">Ajouter</button>
+            </div>
+          </section>
+        </ng-container>
 
-          <button
-            type="submit"
-            class="auth-submit"
-            [disabled]="isLoading() || registerForm.invalid"
-          >
-            <svg *ngIf="isLoading()" viewBox="0 0 24 24" aria-hidden="true" class="auth-spin">
-              <path d="M12 2v4a6 6 0 1 1-6 6H2a10 10 0 1 0 10-10Z" />
+        <label class="register-field register-field--full" [class.register-field--invalid]="isFieldInvalid('password')">
+          <span>Mot de passe</span>
+          <div class="register-field__password">
+            <input
+              id="registerPassword"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Votre mot de passe"
+            />
+            <button
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              aria-label="Afficher le mot de passe"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  *ngIf="!showPassword()"
+                  d="M12 5c5.2 0 8.7 4.3 10 7-1.3 2.7-4.8 7-10 7S3.3 14.7 2 12c1.3-2.7 4.8-7 10-7Zm0 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                />
+                <path
+                  *ngIf="showPassword()"
+                  d="m3.3 2 18.4 18.4-1.4 1.4-3.1-3.1A10.7 10.7 0 0 1 12 20c-5.2 0-8.7-4.3-10-7 .7-1.4 2-3.2 3.8-4.6L1.9 4 3.3 2Z"
+                />
+              </svg>
+            </button>
+          </div>
+          <small *ngIf="isFieldInvalid('password')">{{ messages.passwordLength }}</small>
+        </label>
+
+        <label class="terms-check">
+          <input type="checkbox" />
+          <span>
+            En creant un compte, j'accepte les Conditions generales et la
+            <a routerLink="/privacy">Politique de confidentialite</a>.
+          </span>
+        </label>
+
+        <button type="submit" class="register-submit" [disabled]="isLoading() || registerForm.invalid">
+          {{ isLoading() ? 'Creation en cours...' : selectedRole() === 'MEDECIN' ? 'Creer mon compte Medecin' : 'Creer mon compte' }}
+        </button>
+
+        <div class="register-divider">
+          <span></span>
+          <em>Ou continuer avec</em>
+          <span></span>
+        </div>
+
+        <div class="register-social">
+          <a routerLink="/auth/login">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2.3 24 .3 14.8.3 6.9 5.6 3.1 13.3l7.8 6.1C12.8 13.6 17.9 9.5 24 9.5Z" />
+              <path fill="#4285F4" d="M47.5 24.5c0-1.6-.1-2.8-.4-4.1H24v8.2h13.5c-.3 2.1-1.7 5.3-4.9 7.5l7.6 5.9c4.5-4.2 7.3-10.4 7.3-17.5Z" />
+              <path fill="#FBBC05" d="M10.9 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.8-6.1A23.7 23.7 0 0 0 .5 24c0 3.8.9 7.4 2.6 10.7l7.8-6.1Z" />
+              <path fill="#34A853" d="M24 47.7c6.2 0 11.5-2 15.3-5.6l-7.6-5.9c-2 1.4-4.7 2.4-7.7 2.4-6.1 0-11.2-4.1-13.1-9.8l-7.8 6.1C6.9 42.4 14.8 47.7 24 47.7Z" />
             </svg>
-            <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M10 17.6 15.6 12 10 6.4 11.4 5l7 7-7 7-1.4-1.4ZM4 13v-2h13v2H4Z" />
+            Continuer avec Google
+          </a>
+          <button type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16.5 13c0-2.7 2.2-4 2.3-4.1-1.3-1.8-3.2-2-3.9-2-1.7-.2-3.2 1-4.1 1-.8 0-2.1-1-3.5-.9-1.8 0-3.5 1.1-4.4 2.7-1.9 3.3-.5 8.2 1.3 10.9.9 1.3 2 2.7 3.4 2.6 1.4-.1 1.9-.9 3.5-.9 1.7 0 2.1.9 3.6.9 1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.9-1.1-2.9-4.6ZM13.8 5.1c.8-1 1.3-2.3 1.1-3.6-1.1 0-2.5.8-3.3 1.7-.7.8-1.3 2.2-1.2 3.5 1.3.1 2.6-.6 3.4-1.6Z" />
             </svg>
-            {{ isLoading() ? 'Creation en cours...' : 'Creer mon compte' }}
+            Continuer avec Apple
           </button>
-        </form>
-
-        <p class="auth-card__switch">
-          Deja inscrit ?
-          <a routerLink="/auth/login">Se connecter</a>
-        </p>
-      </div>
-    </div>
+        </div>
+      </form>
+    </section>
   </section>
 </main>

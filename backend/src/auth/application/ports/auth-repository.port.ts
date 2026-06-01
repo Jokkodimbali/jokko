@@ -16,6 +16,7 @@ export type AuthUserWithPassword = AuthUserSummary & {
 
 export type AuthUserForGoogle = AuthUserSummary & {
   email: string | null;
+  urlAvatar: string | null;
   identifiantOauth: string | null;
 };
 
@@ -39,6 +40,7 @@ export interface AuthRepositoryPort {
   findByPhoneNumber(phoneNumber: string): Promise<AuthUserSummary | null>;
   findById(userId: string): Promise<AuthUserSummary | null>;
   findByEmail(email: string): Promise<AuthUserForGoogle | null>;
+  findByGoogleIdentity(googleSub: string): Promise<AuthUserForGoogle | null>;
   findWithPasswordByPhoneNumber(
     phoneNumber: string,
   ): Promise<AuthUserWithPassword | null>;
@@ -52,7 +54,16 @@ export interface AuthRepositoryPort {
     passwordHash: string;
     role: RoleUtilisateur;
     adresse: string;
+    medicalSpecialty?: string;
+    medicalExpertises?: string[];
+    medicalDocumentNames?: string[];
   }): Promise<AuthUserSummary | null>;
+  createGoogleClient(data: {
+    email: string;
+    name: string;
+    googleSub: string;
+    avatarUrl?: string | null;
+  }): Promise<AuthUserForGoogle | null>;
   findPublicProfileById(userId: string): Promise<AuthPublicProfile | null>;
   createRefreshSession(
     userId: string,

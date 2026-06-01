@@ -13,4 +13,6 @@ import { AppNavbarComponent } from '../app-navbar/app-navbar.component';
 export class AccountShellComponent {
   @Input({ required: true }) title = '';
   @Input() subtitle = '';
+  @Input() showHeader = true;
+  @Input() contentWide = false;
 }

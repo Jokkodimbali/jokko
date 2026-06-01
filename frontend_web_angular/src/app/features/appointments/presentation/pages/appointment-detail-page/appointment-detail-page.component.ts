@@ -56,7 +56,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   protected readonly canManageProviderStatus = computed(() => {
     const appointment = this.appointment();
     return (
-      this.currentUser()?.role === 'PRESTATAIRE' &&
+      (this.currentUser()?.role === 'PRESTATAIRE' || this.currentUser()?.role === 'MEDECIN') &&
       !!appointment &&
       appointment.status !== 'TERMINEE' &&
       appointment.status !== 'ANNULEE' &&

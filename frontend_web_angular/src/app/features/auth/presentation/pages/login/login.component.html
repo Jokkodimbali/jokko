@@ -1,143 +1,122 @@
-<main class="auth-page auth-page--login">
-  <a routerLink="/services" class="auth-page__back">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10.5 19 3.5 12l7-7 1.4 1.4L7.3 11H21v2H7.3l4.6 4.6L10.5 19Z" />
-    </svg>
-    Retour aux services
-  </a>
-
-  <section class="auth-panel">
-    <div class="auth-panel__story">
-      <a routerLink="/services" class="auth-panel__brand">
-        <img src="/logojokko.png" alt="Jokko Logo" />
-        <span>JOKKO Dimbali</span>
+<main class="login-page">
+  <section class="login-card" aria-label="Connexion Jokko Dimbali">
+    <aside class="login-card__visual">
+      <a routerLink="/services" class="login-card__back">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10.5 19 3.5 12l7-7 1.4 1.4L7.3 11H21v2H7.3l4.6 4.6L10.5 19Z" />
+        </svg>
+        Retour
       </a>
 
-      <div class="auth-panel__copy">
-        <p class="auth-panel__eyebrow">Espace securise</p>
-        <h1>Bienvenue sur Jokko</h1>
-        <p>
-          Retrouvez vos services, vos reservations et vos prestataires dans une experience simple,
-          rapide et coherente avec l'application mobile.
-        </p>
-      </div>
+      <a routerLink="/" class="login-card__logo" aria-label="Accueil Jokko Dimbali">
+        <img src="/logojokko.png" alt="Jokko Dimbali" />
+      </a>
 
-      <div class="auth-panel__proof">
-        <div>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2 4 5.5v5.8c0 5 3.4 9.6 8 10.7 4.6-1.1 8-5.7 8-10.7V5.5L12 2Z" />
-          </svg>
-          Connexion protegee
-        </div>
-        <div>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6.5h16v11H4v-11Zm2 2v7h12v-7H6Zm2 2h8v2H8v-2Z" />
-          </svg>
-          API Jokko synchronisee
-        </div>
-      </div>
-    </div>
+      <img class="login-card__network" src="/imagehaut1.png" alt="" />
+    </aside>
 
-    <div class="auth-panel__form-shell">
-      <div class="auth-card">
-        <div class="auth-card__header">
-          <span class="auth-card__icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.2 0-7 2.1-7 5.2V21h14v-1.8c0-3.1-2.8-5.2-7-5.2Z"
-              />
-            </svg>
-          </span>
-          <div>
-            <h2>Connexion</h2>
-            <p>Accedez a votre compte Jokko.</p>
-          </div>
-        </div>
+    <section class="login-card__form-panel">
+      <div class="login-form">
+        <header class="login-form__header">
+          <h1>Connexion</h1>
+        </header>
 
-        <div *ngIf="errorMessage()" class="auth-alert auth-alert--error" role="alert">
+        <div *ngIf="errorMessage()" class="login-alert" role="alert">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2 1.8 20h20.4L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V8h2v5Z" />
           </svg>
           <p>{{ errorMessage() }}</p>
         </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
-          <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('phoneNumber')">
-            <span>Numero de telephone</span>
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M6.6 10.8a15.9 15.9 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.4a1 1 0 0 1 1 1c0 1.2.2 2.4.6 3.6a1 1 0 0 1-.2 1l-2.2 2.2Z"
-                />
-              </svg>
-              <input
-                id="phoneNumber"
-                type="tel"
-                formControlName="phoneNumber"
-                placeholder="+221770000000"
-              />
-            </div>
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form__body">
+          <label class="login-field" [class.login-field--invalid]="isFieldInvalid('phoneNumber')">
+            <span>Numéro de téléphone</span>
+            <input
+              id="phoneNumber"
+              type="tel"
+              formControlName="phoneNumber"
+              placeholder="+221770000000"
+              autocomplete="tel"
+            />
             <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneRequired }}</small>
           </label>
 
-          <label class="auth-field" [class.auth-field--invalid]="isFieldInvalid('password')">
+          <label class="login-field" [class.login-field--invalid]="isFieldInvalid('password')">
             <span>Mot de passe</span>
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8H4v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Z"
-                />
-              </svg>
+            <div class="login-field__password">
               <input
                 id="password"
                 [type]="showPassword() ? 'text' : 'password'"
                 formControlName="password"
-                placeholder="Mot de passe"
+                placeholder="Votre mot de passe"
+                autocomplete="current-password"
               />
               <button
                 type="button"
                 (click)="showPassword.set(!showPassword())"
-                aria-label="Afficher le mot de passe"
+                [attr.aria-label]="showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
               >
                 <svg *ngIf="!showPassword()" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 5c5.2 0 8.7 4.3 10 7-1.3 2.7-4.8 7-10 7S3.3 14.7 2 12c1.3-2.7 4.8-7 10-7Zm0 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
-                  />
+                  <path d="M12 5c5.2 0 8.7 4.3 10 7-1.3 2.7-4.8 7-10 7S3.3 14.7 2 12c1.3-2.7 4.8-7 10-7Zm0 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
                 </svg>
                 <svg *ngIf="showPassword()" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="m3.3 2 18.4 18.4-1.4 1.4-3.1-3.1A10.7 10.7 0 0 1 12 20c-5.2 0-8.7-4.3-10-7 .7-1.4 2-3.2 3.8-4.6L1.9 4 3.3 2Zm7.5 7.5 3.7 3.7A4 4 0 0 0 10.8 9.5ZM12 4c5.2 0 8.7 4.3 10 7-.5 1-1.3 2.2-2.4 3.3L16.8 11.5A4 4 0 0 0 12.5 7.2L10.2 4.9A10.6 10.6 0 0 1 12 4Z"
-                  />
+                  <path d="m3.3 2 18.4 18.4-1.4 1.4-3.1-3.1A10.7 10.7 0 0 1 12 20c-5.2 0-8.7-4.3-10-7 .7-1.4 2-3.2 3.8-4.6L1.9 4 3.3 2Zm7.5 7.5 3.7 3.7A4 4 0 0 0 10.8 9.5ZM12 4c5.2 0 8.7 4.3 10 7-.5 1-1.3 2.2-2.4 3.3L16.8 11.5A4 4 0 0 0 12.5 7.2L10.2 4.9A10.6 10.6 0 0 1 12 4Z" />
                 </svg>
               </button>
             </div>
             <small *ngIf="isFieldInvalid('password')">{{ messages.passwordLength }}</small>
           </label>
 
-          <div class="auth-form__row">
-            <label class="auth-check">
+          <div class="login-form__options">
+            <label>
               <input type="checkbox" />
               <span>Se souvenir de moi</span>
             </label>
-            <a href="#">Mot de passe oublie</a>
+            <a href="#">Mot de passe oublié ?</a>
           </div>
 
-          <button type="submit" class="auth-submit" [disabled]="isLoading() || loginForm.invalid">
-            <svg *ngIf="isLoading()" viewBox="0 0 24 24" aria-hidden="true" class="auth-spin">
-              <path d="M12 2v4a6 6 0 1 1-6 6H2a10 10 0 1 0 10-10Z" />
-            </svg>
-            <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M10 17.6 15.6 12 10 6.4 11.4 5l7 7-7 7-1.4-1.4ZM4 13v-2h13v2H4Z" />
-            </svg>
+          <button type="submit" class="login-submit" [disabled]="isLoading() || loginForm.invalid">
             {{ isLoading() ? 'Connexion en cours...' : 'Se connecter' }}
           </button>
         </form>
 
-        <p class="auth-card__switch">
-          Nouveau sur Jokko ?
-          <a routerLink="/auth/register">Creer un compte</a>
+        <div class="login-divider">
+          <span></span>
+          <em>Ou continuer avec</em>
+          <span></span>
+        </div>
+
+        <div class="login-social">
+          <div
+            #googleButton
+            class="login-social__google-button"
+            [class.login-social__google-button--loading]="isGoogleLoading()"
+            [class.login-social__google-button--hidden]="googleUnavailable()"
+          ></div>
+          <button *ngIf="googleUnavailable()" type="button" (click)="startGoogleSignIn()">
+            <span class="login-social__google" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.6-.2-2.3H12v4.4h6c-.3 1.4-1 2.5-2.1 3.2v2.7h3.4c2-1.8 3.3-4.5 3.3-8Z" />
+                <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.8l-3.4-2.7c-.9.6-2.2 1-3.9 1-3 0-5.5-2-6.4-4.8H2.1v2.8A11 11 0 0 0 12 23Z" />
+                <path fill="#FBBC05" d="M5.6 13.7a6.6 6.6 0 0 1 0-4.2V6.7H2.1a11 11 0 0 0 0 9.8l3.5-2.8Z" />
+                <path fill="#EA4335" d="M12 5.5c1.6 0 3.1.6 4.2 1.7l3.1-3.1A10.5 10.5 0 0 0 12 1 11 11 0 0 0 2.1 6.7l3.5 2.8C6.5 7.5 9 5.5 12 5.5Z" />
+              </svg>
+            </span>
+            Continuer avec Google
+          </button>
+          <button type="button" disabled>
+            <svg class="login-social__apple" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16.6 12.7c0-2.7 2.2-4 2.3-4.1-1.3-1.8-3.2-2.1-3.9-2.1-1.7-.2-3.2 1-4.1 1-.9 0-2.2-1-3.6-.9-1.9 0-3.6 1.1-4.5 2.8-1.9 3.3-.5 8.1 1.4 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.6-.9 1.7 0 2.1.9 3.6.9 1.5 0 2.5-1.3 3.4-2.7 1.1-1.5 1.5-3 1.5-3.1-.1 0-3.1-1.2-3.1-4.4ZM13.9 4.7c.8-.9 1.3-2.2 1.1-3.5-1.1 0-2.4.7-3.1 1.6-.7.8-1.4 2.2-1.2 3.4 1.2.1 2.4-.6 3.2-1.5Z" />
+            </svg>
+            Continuer avec Apple
+          </button>
+        </div>
+
+        <p class="login-form__switch">
+          Nouveau sur JOKKO Dimbali ?
+          <a routerLink="/auth/register">Créer un compte</a>
         </p>
       </div>
-    </div>
+    </section>
   </section>
 </main>

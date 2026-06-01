@@ -55,7 +55,9 @@ export class AppNavbarComponent implements OnInit {
   protected readonly profileName = computed(() => this.currentUser()?.name || 'Mon Compte');
   protected readonly showDoctorSpace = computed(() => {
     const user = this.currentUser();
-    if (!user || user.role !== 'PRESTATAIRE') return false;
+    if (!user || (user.role !== 'PRESTATAIRE' && user.role !== 'MEDECIN')) return false;
+
+    if (user.role === 'MEDECIN') return true;
 
     const profile = user.professionalProfile;
     if (!profile) return false;

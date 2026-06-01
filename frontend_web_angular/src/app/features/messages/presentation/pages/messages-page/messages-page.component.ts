@@ -129,7 +129,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly canRespondToProposal = computed(() => {
     const proposal = this.visibleProposal();
     return (
-      this.currentUser()?.role === 'PRESTATAIRE' &&
+      this.isProfessionalRole() &&
       proposal?.status === 'EN_ATTENTE_PRESTATAIRE' &&
       Boolean(proposal.negotiationId)
     );
@@ -571,7 +571,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const professionalId =
       conversation.professionalProfileId ?? conversation.counterpart.professionalProfileId;
     const clientId =
-      this.currentUser()?.role === 'PRESTATAIRE'
+      this.isProfessionalRole()
         ? conversation.counterpart.userId
         : this.currentUser()?.id;
     const proposal = this.priceProposals().find(
@@ -591,7 +591,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       conversationId: conversation.id,
       professionalId: proposal.professionnelId,
       providerName:
-        this.currentUser()?.role === 'PRESTATAIRE'
+        this.isProfessionalRole()
           ? 'vous'
           : conversation.counterpart.name,
       serviceName: details.serviceName ?? 'service',
@@ -617,7 +617,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private resolveNegotiationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
     const role = this.authSession.getAuthenticatedRole();
     if (role === 'CLIENT') return 'CLIENT';
-    if (role === 'PRESTATAIRE') return 'PRESTATAIRE';
+    if (role === 'PRESTATAIRE' || role === 'MEDECIN') return 'PRESTATAIRE';
     return null;
   }
 
@@ -825,7 +825,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private validateProposalResponse(proposal: PendingProposal, action: 'accept' | 'reject'): boolean {
-    if (this.currentUser()?.role !== 'PRESTATAIRE') {
+    if (!this.isProfessionalRole()) {
       this.errorMessage.set('Seul le prestataire peut valider ou refuser une proposition.');
       return false;
     }
@@ -906,5 +906,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       address,
       durationMinutes,
     };
+  }
+
+  private isProfessionalRole(): boolean {
+    const role = this.currentUser()?.role;
+    return role === 'PRESTATAIRE' || role === 'MEDECIN';
   }
 }

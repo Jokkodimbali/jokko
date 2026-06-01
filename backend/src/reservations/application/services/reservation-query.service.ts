@@ -14,7 +14,7 @@ export class ReservationQueryService extends ReservationAppService {
 
     if (requestUser.role === 'CLIENT') {
       filters.clientId = requestUser.sub;
-    } else if (requestUser.role === 'PRESTATAIRE') {
+    } else if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       if (query.scope === 'CLIENT') {
         filters.clientId = requestUser.sub;
       } else {

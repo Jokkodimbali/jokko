@@ -83,6 +83,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly roleLabel = computed(() => {
     const role = this.profile()?.role || this.currentUser()?.role;
     if (role === 'PRESTATAIRE') return 'Prestataire';
+    if (role === 'MEDECIN') return 'Medecin';
     if (role === 'ADMIN') return 'Administrateur';
     return 'Client';
   });

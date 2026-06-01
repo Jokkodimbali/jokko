@@ -1,101 +1,136 @@
-<app-account-shell
-  title="Mes favoris"
-  subtitle="Retrouvez rapidement les prestataires et medecins que vous avez gardes de cote."
->
-  <section class="favorites-page__summary" aria-label="Resume des favoris">
-    <article>
-      <span>
-        <lucide-icon name="heart" size="20" [strokeWidth]="2.2"></lucide-icon>
+<app-account-shell title="Mes favoris" [showHeader]="false" [contentWide]="true">
+  <section class="favorites-page">
+    <header class="favorites-page__hero">
+      <span class="favorites-page__hero-icon" aria-hidden="true">
+        <lucide-icon name="bookmark" size="28" [strokeWidth]="2.2"></lucide-icon>
       </span>
-      <strong>{{ totalFavorites() }}</strong>
-      <small>Favoris actifs</small>
-    </article>
-    <article>
-      <span>
-        <lucide-icon name="star" size="20" [strokeWidth]="2.2"></lucide-icon>
-      </span>
-      <strong>{{ averageRating() || '-' }}</strong>
-      <small>Note moyenne</small>
-    </article>
-    <article>
-      <span>
-        <lucide-icon name="message-circle" size="20" [strokeWidth]="2.2"></lucide-icon>
-      </span>
-      <strong>{{ reviewedFavorites() }}</strong>
-      <small>Avec avis clients</small>
-    </article>
-  </section>
 
-  <section *ngIf="favorites().length > 0; else emptyFavorites" class="favorites-page__grid">
-    <article *ngFor="let favorite of favorites()" class="favorites-page__card">
-      <header class="favorites-page__cover">
-        <span class="favorites-page__tag">{{ favorite.service?.categoryName || favorite.subtitle }}</span>
-        <button type="button" class="favorites-page__remove" aria-label="Retirer des favoris" (click)="removeFavorite(favorite.professionalId)">
-          <lucide-icon name="heart" size="22" [strokeWidth]="2.3" fill="currentColor"></lucide-icon>
+      <div class="favorites-page__hero-title">
+        <h1>Mes Favoris</h1>
+        <p>{{ totalFavorites() }} prestataire{{ totalFavorites() > 1 ? 's' : '' }} enregistré{{ totalFavorites() > 1 ? 's' : '' }}</p>
+      </div>
+
+      <dl class="favorites-page__hero-stats">
+        <div>
+          <dt>{{ onlineFavorites() }}</dt>
+          <dd>En ligne</dd>
+        </div>
+        <div>
+          <dt>{{ availableFavorites() }}</dt>
+          <dd>Disponibles</dd>
+        </div>
+        <div>
+          <dt>{{ newFavorites() }}</dt>
+          <dd>Nouveaux</dd>
+        </div>
+      </dl>
+
+      <button type="button" class="favorites-page__share" (click)="shareList()">
+        <lucide-icon name="share-2" size="15" [strokeWidth]="2.3"></lucide-icon>
+        Partager ma liste
+      </button>
+    </header>
+
+    <nav class="favorites-page__breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/">Accueil</a>
+      <lucide-icon name="chevron-right" size="14" [strokeWidth]="2.4"></lucide-icon>
+      <span>Mes Favoris</span>
+    </nav>
+
+    <section class="favorites-page__toolbar" aria-label="Filtres favoris">
+      <div class="favorites-page__categories" role="list">
+        <button
+          *ngFor="let category of categories()"
+          type="button"
+          [class.favorites-page__chip--active]="selectedCategory() === category"
+          (click)="selectCategory(category)"
+        >
+          {{ category }}
         </button>
+      </div>
 
-        <a [routerLink]="detailRoute(favorite)" class="favorites-page__portrait" aria-label="Voir le profil">
-          <img *ngIf="favorite.avatarUrl; else favoriteInitials" [src]="favorite.avatarUrl" [alt]="favorite.name" />
-          <ng-template #favoriteInitials>
-            <span class="favorites-page__initials">{{ favorite.name[0] }}</span>
-          </ng-template>
-        </a>
-      </header>
+      <div class="favorites-page__tools">
+        <label>
+          <lucide-icon name="sliders-horizontal" size="15" [strokeWidth]="2.1"></lucide-icon>
+          <span>Trier par :</span>
+          <select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" aria-label="Trier les favoris">
+            <option value="recent">Récent</option>
+            <option value="rating">Note</option>
+            <option value="name">Nom</option>
+          </select>
+        </label>
 
-      <section class="favorites-page__body">
-        <a [routerLink]="detailRoute(favorite)" class="favorites-page__identity">
-          <strong>{{ favorite.name }}</strong>
-          <span>{{ favorite.subtitle }}</span>
-        </a>
+        <button
+          type="button"
+          class="favorites-page__filter"
+          [class.favorites-page__filter--active]="availableOnly()"
+          (click)="toggleAvailableFilter()"
+        >
+          <lucide-icon name="sliders-horizontal" size="14" [strokeWidth]="2.1"></lucide-icon>
+          Filtrer
+        </button>
+      </div>
+    </section>
 
-        <p class="favorites-page__location">
-          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-          {{ favorite.location }}
-        </p>
+    <section *ngIf="filteredFavorites().length > 0; else emptyFavorites" class="favorites-page__grid">
+      <article *ngFor="let favorite of filteredFavorites()" class="favorites-page__card">
+        <header class="favorites-page__card-head">
+          <a [routerLink]="detailRoute(favorite)" class="favorites-page__avatar" aria-label="Voir le profil">
+            <img *ngIf="favorite.avatarUrl; else favoriteInitials" [src]="favorite.avatarUrl" [alt]="favorite.name" />
+            <ng-template #favoriteInitials>
+              <span>{{ initials(favorite.name) }}</span>
+            </ng-template>
+            <i [class.favorites-page__avatar-dot--online]="favorite.isOnline" aria-hidden="true"></i>
+          </a>
+
+          <div class="favorites-page__identity">
+            <a [routerLink]="detailRoute(favorite)">{{ favorite.name }}</a>
+            <span>{{ favorite.subtitle }}</span>
+          </div>
+
+          <button type="button" class="favorites-page__remove" aria-label="Retirer des favoris" (click)="removeFavorite(favorite.professionalId)">
+            <lucide-icon name="bookmark" size="21" [strokeWidth]="2.4" fill="currentColor"></lucide-icon>
+          </button>
+        </header>
+
+        <div class="favorites-page__meta">
+          <span>
+            <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
+            {{ favorite.location }}
+          </span>
+          <span [class.favorites-page__meta-online]="favorite.isOnline">
+            <lucide-icon name="clock-3" size="13" [strokeWidth]="2.1"></lucide-icon>
+            {{ statusLabel(favorite) }}
+          </span>
+          <span>
+            <lucide-icon name="star" size="13" [strokeWidth]="2.1" fill="currentColor"></lucide-icon>
+            {{ ratingLabel(favorite) }}
+          </span>
+        </div>
+
+        <div class="favorites-page__gallery" *ngIf="gallery(favorite).length > 0">
+          <img *ngFor="let image of gallery(favorite)" [src]="image.url" [alt]="image.title" />
+        </div>
 
         <div class="favorites-page__service" *ngIf="favorite.service">
           <span>{{ favorite.service.name }}</span>
-          <small *ngIf="favorite.service.priceType">{{ favorite.service.priceType }}</small>
+          <strong>{{ formatAmount(favorite.service.price) }}</strong>
         </div>
 
-        <dl class="favorites-page__metrics">
-          <div>
-            <dt>
-              <lucide-icon name="star" size="15" [strokeWidth]="2.2" fill="currentColor"></lucide-icon>
-              Note
-            </dt>
-            <dd>{{ favorite.totalReviews > 0 ? favorite.rating + '/5' : '-' }}</dd>
-          </div>
-          <div>
-            <dt>Avis</dt>
-            <dd>{{ favorite.totalReviews }}</dd>
-          </div>
-          <div>
-            <dt>Tarif</dt>
-            <dd>{{ formatAmount(favorite.service?.price) }}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <footer class="favorites-page__footer">
-        <span>
-          <small>Prochaine action</small>
-          <strong>Consulter le profil</strong>
-        </span>
-        <a [routerLink]="detailRoute(favorite)">
-          Voir le profil
-          <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.4"></lucide-icon>
+        <a [routerLink]="detailRoute(favorite)" class="favorites-page__details">
+          <lucide-icon name="info" size="16" [strokeWidth]="2.5"></lucide-icon>
+          En savoir plus
         </a>
-      </footer>
-    </article>
-  </section>
-
-  <ng-template #emptyFavorites>
-    <section class="favorites-page__empty">
-      <lucide-icon name="heart" size="42" [strokeWidth]="2.2"></lucide-icon>
-      <h2>Aucun favori pour le moment</h2>
-      <p>Ajoutez un prestataire depuis une page detail pour le retrouver ici.</p>
-      <a routerLink="/services">Explorer les services</a>
+      </article>
     </section>
-  </ng-template>
+
+    <ng-template #emptyFavorites>
+      <section class="favorites-page__empty">
+        <lucide-icon name="bookmark" size="42" [strokeWidth]="2.2"></lucide-icon>
+        <h2>Aucun favori pour le moment</h2>
+        <p>Ajoutez un prestataire depuis une page détail pour construire votre liste personnelle.</p>
+        <a routerLink="/services">Explorer les services</a>
+      </section>
+    </ng-template>
+  </section>
 </app-account-shell>

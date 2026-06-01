@@ -6,7 +6,7 @@ import {
 } from '../events/user.events';
 import { UserDomainError } from '../errors/user.domain-error';
 
-export type UserRole = 'PRESTATAIRE' | 'CLIENT' | 'ADMIN';
+export type UserRole = 'PRESTATAIRE' | 'MEDECIN' | 'CLIENT' | 'ADMIN';
 
 /**
  * Aggregate Root for the User bounded entity.
@@ -76,7 +76,7 @@ export class User {
   }
 
   isProfessional(): boolean {
-    return this._role === 'PRESTATAIRE';
+    return this._role === 'PRESTATAIRE' || this._role === 'MEDECIN';
   }
 
   isAdmin(): boolean {
@@ -90,12 +90,12 @@ export class User {
   canBookServices(): boolean {
     return (
       this._isActive &&
-      (this._role === 'CLIENT' || this._role === 'PRESTATAIRE')
+      (this._role === 'CLIENT' || this._role === 'PRESTATAIRE' || this._role === 'MEDECIN')
     );
   }
 
   canProvideServices(): boolean {
-    return this._isActive && this._role === 'PRESTATAIRE';
+    return this._isActive && (this._role === 'PRESTATAIRE' || this._role === 'MEDECIN');
   }
 
   private assertActive(): void {

@@ -11,7 +11,7 @@ export class NegotiationQueryService extends NegotiationAppService {
     query: ListNegotiationsQuery,
   ) {
     const scope =
-      requestUser.role === 'PRESTATAIRE' && query.scope !== 'CLIENT'
+      (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') && query.scope !== 'CLIENT'
         ? 'PRESTATAIRE'
         : 'CLIENT';
 
@@ -37,7 +37,7 @@ export class NegotiationQueryService extends NegotiationAppService {
       return negotiation;
     }
 
-    if (requestUser.role === 'PRESTATAIRE') {
+    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       const profile = await this.getProfessionalProfileOrThrow(requestUser.sub);
       if (profile.id === negotiation.professionnelId) {
         return negotiation;

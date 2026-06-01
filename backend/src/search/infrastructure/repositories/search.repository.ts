@@ -40,6 +40,7 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const queryText = input.query?.trim();
     const city = input.city?.trim();
+    const role = input.role ?? 'PRESTATAIRE';
 
     const geoDistanceFragment = hasGeo
       ? Prisma.sql`
@@ -104,18 +105,28 @@ export class SearchRepository implements SearchRepositoryPort {
       ? Prisma.sql`"distanceKm" ASC NULLS LAST, pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`
       : Prisma.sql`pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`;
 
+    const visibilityFilter =
+      role === 'MEDECIN'
+        ? Prisma.sql`
+            AND u.role = 'MEDECIN'
+            AND pp.kyc_status = 'VERIFIE'
+          `
+        : Prisma.sql`
+            AND u.role = 'PRESTATAIRE'
+            AND pp.kyc_status = 'VERIFIE'
+            AND EXISTS (
+              SELECT 1
+              FROM services s
+              WHERE s.professional_id = pp.id
+                AND s.is_available = true
+            )
+          `;
+
     const baseQuery = Prisma.sql`
       FROM professional_profiles pp
       INNER JOIN users u ON u.id = pp.user_id
-      WHERE pp.kyc_status = 'VERIFIE'
-        AND u.is_active = true
-        AND u.role = 'PRESTATAIRE'
-        AND EXISTS (
-          SELECT 1
-          FROM services s
-          WHERE s.professional_id = pp.id
-            AND s.is_available = true
-        )
+      WHERE u.is_active = true
+        ${visibilityFilter}
         ${cityFilter}
         ${categoryFilter}
         ${queryFilter}

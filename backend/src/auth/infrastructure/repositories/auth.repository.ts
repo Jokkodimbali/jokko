@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { Prisma, RoleUtilisateur } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthRepositoryPort } from '../../application/ports/auth-repository.port';
@@ -35,6 +36,26 @@ export class AuthRepository implements AuthRepositoryPort {
         nom: true,
         role: true,
         email: true,
+        urlAvatar: true,
+        identifiantOauth: true,
+        estActif: true,
+      },
+    });
+  }
+
+  findByGoogleIdentity(googleSub: string) {
+    return this.prisma.utilisateur.findFirst({
+      where: {
+        fournisseurOauth: 'google',
+        identifiantOauth: googleSub,
+      },
+      select: {
+        id: true,
+        numeroTelephone: true,
+        nom: true,
+        role: true,
+        email: true,
+        urlAvatar: true,
         identifiantOauth: true,
         estActif: true,
       },
@@ -83,16 +104,78 @@ export class AuthRepository implements AuthRepositoryPort {
     passwordHash: string;
     role: RoleUtilisateur;
     adresse: string;
+    medicalSpecialty?: string;
+    medicalExpertises?: string[];
+    medicalDocumentNames?: string[];
+  }) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const user = await tx.utilisateur.create({
+          data: {
+            numeroTelephone: data.phoneNumber,
+            nom: data.name,
+            email: data.email,
+            motDePasseHash: data.passwordHash,
+            role: data.role,
+            adresse: data.adresse,
+            estActif: true,
+          },
+        });
+
+        if (
+          data.role === RoleUtilisateur.PRESTATAIRE ||
+          data.role === RoleUtilisateur.MEDECIN
+        ) {
+          await tx.profilProfessionnel.create({
+            data: {
+              utilisateurId: user.id,
+              nomEntreprise: data.name,
+              ville: this.extractCity(data.adresse),
+              biographie: this.buildProfessionalBiography(data),
+              statutKyc: 'EN_ATTENTE',
+            },
+          });
+        }
+
+        return user;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async createGoogleClient(data: {
+    email: string;
+    name: string;
+    googleSub: string;
+    avatarUrl?: string | null;
   }) {
     try {
       return await this.prisma.utilisateur.create({
         data: {
-          numeroTelephone: data.phoneNumber,
+          numeroTelephone: this.googlePhoneNumber(data.googleSub),
           nom: data.name,
           email: data.email,
-          motDePasseHash: data.passwordHash,
-          role: data.role,
-          adresse: data.adresse,
+          role: RoleUtilisateur.CLIENT,
+          urlAvatar: data.avatarUrl,
+          fournisseurOauth: 'google',
+          identifiantOauth: data.googleSub,
+          estActif: true,
+        },
+        select: {
+          id: true,
+          numeroTelephone: true,
+          nom: true,
+          role: true,
+          email: true,
+          urlAvatar: true,
+          identifiantOauth: true,
           estActif: true,
         },
       });
@@ -194,5 +277,42 @@ export class AuthRepository implements AuthRepositoryPort {
         identifiantOauth: googleSub,
       },
     });
+  }
+
+  private googlePhoneNumber(googleSub: string): string {
+    const digest = createHash('sha256').update(googleSub).digest('hex');
+    const numeric = BigInt(`0x${digest}`)
+      .toString()
+      .slice(0, 9)
+      .padEnd(9, '0');
+    return `+221${numeric}`;
+  }
+
+  private extractCity(address: string): string | undefined {
+    const city = address.split(',')[0]?.trim();
+    return city || undefined;
+  }
+
+  private buildProfessionalBiography(data: {
+    role: RoleUtilisateur;
+    medicalSpecialty?: string;
+    medicalExpertises?: string[];
+    medicalDocumentNames?: string[];
+  }): string | undefined {
+    if (data.role !== RoleUtilisateur.MEDECIN) {
+      return undefined;
+    }
+
+    const sections = [
+      data.medicalSpecialty ? `Specialite: ${data.medicalSpecialty}` : null,
+      data.medicalExpertises?.length
+        ? `Expertises: ${data.medicalExpertises.join(', ')}`
+        : null,
+      data.medicalDocumentNames?.length
+        ? `Documents: ${data.medicalDocumentNames.join(', ')}`
+        : null,
+    ].filter(Boolean);
+
+    return sections.length ? sections.join('\n') : 'Profil medecin en attente de verification.';
   }
 }

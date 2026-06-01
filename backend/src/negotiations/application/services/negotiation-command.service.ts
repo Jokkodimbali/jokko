@@ -42,7 +42,7 @@ export class NegotiationCommandService extends NegotiationAppService {
   ) {
     this.assertClientRole(requestUser.role);
 
-    if (requestUser.role === 'PRESTATAIRE') {
+    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       const ownProfile = await this.getProfessionalProfileOrThrow(
         requestUser.sub,
       );
@@ -102,7 +102,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
 
     try {
-      if (requestUser.role === 'PRESTATAIRE') {
+      if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
         entity.counterByProfessional({
           offerId: randomUUID(),
           amount: command.proposedAmount,
@@ -138,7 +138,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
 
     try {
-      if (requestUser.role === 'PRESTATAIRE') {
+      if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
         entity.acceptByProfessional();
       } else {
         entity.acceptByClient();
@@ -214,7 +214,7 @@ export class NegotiationCommandService extends NegotiationAppService {
   ): Promise<NegotiationEntity> {
     const negotiation = await this.getNegotiationOrThrow(negotiationId);
 
-    if (requestUser.role === 'PRESTATAIRE') {
+    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       const profile = await this.getProfessionalProfileOrThrow(requestUser.sub);
       if (profile.id !== negotiation.professionnelId) {
         throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');

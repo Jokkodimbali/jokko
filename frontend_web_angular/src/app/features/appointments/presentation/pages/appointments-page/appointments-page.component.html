@@ -3,43 +3,219 @@
     <app-navbar />
   </div>
 
-  <section class="appointments-page__hero">
-    <h1>Vos rendez-vous,</h1>
-    <p>Suivez vos prochains rendez-vous, retrouvez l'historique</p>
-    <p>de vos visites et gerez vos rendez-vous d'un simple geste</p>
+  <section class="appointments-page__shell">
+    <aside class="appointments-page__sidebar" aria-label="Filtres des rendez-vous">
+      <section class="mini-calendar">
+        <div class="mini-calendar__head">
+          <strong>{{ monthLabel() }}</strong>
+          <span>{{ appointments().length }} rdv</span>
+        </div>
 
-    <button type="button" class="appointments-page__agenda">
-      Voir mon agenda
-      <lucide-icon name="chevron-down" size="19" [strokeWidth]="2.3"></lucide-icon>
-    </button>
+        <div class="mini-calendar__weekdays" aria-hidden="true">
+          <span>L</span>
+          <span>M</span>
+          <span>M</span>
+          <span>J</span>
+          <span>V</span>
+          <span>S</span>
+          <span>D</span>
+        </div>
 
-    <app-appointment-stats [stats]="stats()" />
+        <div class="mini-calendar__days">
+          <span
+            *ngFor="let day of calendarDays()"
+            class="mini-calendar__day"
+            [class.mini-calendar__day--empty]="day.day === 0"
+            [class.mini-calendar__day--today]="day.isToday"
+            [class.mini-calendar__day--has-appointments]="day.hasAppointments"
+          >
+            {{ day.day || '' }}
+          </span>
+        </div>
+      </section>
 
-    <app-appointment-toolbar
-      [futureCount]="futureAppointments().length"
-      [doneCount]="doneAppointments().length"
-      [activeTab]="activeTab()"
-      [search]="search()"
-      (activeTabChange)="setTab($event)"
-      (searchChange)="setSearch($event)"
-    />
-  </section>
+      <section class="appointments-filter">
+        <h2>Par statut</h2>
+        <button
+          *ngFor="let option of statusOptions()"
+          type="button"
+          class="appointments-filter__item"
+          [class]="'appointments-filter__item appointments-filter__item--' + option.tone"
+          [class.appointments-filter__item--active]="activeStatus() === option.key"
+          (click)="setStatusFilter(option.key)"
+        >
+          <span class="appointments-filter__icon">
+            <lucide-icon [name]="option.icon" size="16" [strokeWidth]="2.3"></lucide-icon>
+          </span>
+          <span>{{ option.label }}</span>
+          <strong>{{ option.count }}</strong>
+        </button>
+      </section>
 
-  <section class="appointments-page__content" aria-label="Liste des rendez-vous">
-    <p *ngIf="isLoading()" class="appointments-page__state">Chargement des rendez-vous...</p>
-    <p *ngIf="!isLoading() && !currentUser()" class="appointments-page__state">
-      Connectez-vous pour synchroniser vos rendez-vous Jokko.
-    </p>
-    <p *ngIf="!isLoading() && currentUser() && visibleAppointments().length === 0" class="appointments-page__state">
-      Aucun rendez-vous dans cette categorie.
-    </p>
+      <section class="upcoming-dates">
+        <h2>Prochaines dates</h2>
+        <p *ngIf="upcomingDates().length === 0">Aucune date planifiee.</p>
+        <button *ngFor="let item of upcomingDates()" type="button" class="upcoming-dates__item">
+          <span>
+            <lucide-icon name="calendar-days" size="13" [strokeWidth]="2.1"></lucide-icon>
+            {{ item.label }}
+          </span>
+          <strong>{{ item.count }} rdv</strong>
+        </button>
+      </section>
+    </aside>
 
-    <div *ngIf="!isLoading() && visibleAppointments().length > 0" class="appointments-page__grid">
-      <app-appointment-card
-        *ngFor="let appointment of visibleAppointments()"
-        [appointment]="appointment"
-      />
-    </div>
+    <section class="appointments-page__workspace">
+      <header class="appointments-hero">
+        <div>
+          <h1>Vos rendez-vous</h1>
+          <p>{{ appointments().length }} rendez-vous synchronises avec votre compte Jokko</p>
+        </div>
+
+        <div class="appointments-hero__stats" aria-label="Synthese des rendez-vous">
+          <span><strong>{{ stats().upcoming }}</strong> A venir</span>
+          <span><strong>{{ stats().week }}</strong> Cette semaine</span>
+          <span><strong>{{ stats().cancelled }}</strong> Annules</span>
+        </div>
+      </header>
+
+      <div class="appointments-toolbar">
+        <div class="appointments-tabs" role="tablist" aria-label="Type de rendez-vous">
+          <button
+            type="button"
+            [class.appointments-tabs__button--active]="activeTab() === 'future'"
+            class="appointments-tabs__button"
+            (click)="setTab('future')"
+          >
+            Futurs <span>{{ futureAppointments().length }}</span>
+          </button>
+          <button
+            type="button"
+            [class.appointments-tabs__button--active]="activeTab() === 'done'"
+            class="appointments-tabs__button"
+            (click)="setTab('done')"
+          >
+            Termines <span>{{ doneAppointments().length }}</span>
+          </button>
+        </div>
+
+        <label class="appointments-search">
+          <lucide-icon name="search" size="16" [strokeWidth]="2"></lucide-icon>
+          <input
+            type="search"
+            [value]="search()"
+            (input)="setSearch($any($event.target).value)"
+            placeholder="Recherche..."
+          />
+        </label>
+
+        <label class="appointments-view">
+          <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.1"></lucide-icon>
+          <select [value]="activePeriod()" (change)="setPeriodFilter($any($event.target).value)">
+            <option value="ALL">Toutes les dates</option>
+            <option value="WEEK">Vue semaine</option>
+            <option value="MONTH">Vue mois</option>
+          </select>
+          <lucide-icon name="chevron-down" size="16" [strokeWidth]="2.1"></lucide-icon>
+        </label>
+      </div>
+
+      <section class="appointments-list" aria-label="Liste des rendez-vous">
+        <p *ngIf="isLoading()" class="appointments-state">Chargement de vos rendez-vous...</p>
+        <p *ngIf="!isLoading() && !currentUser()" class="appointments-state">
+          Connectez-vous pour retrouver vos rendez-vous.
+        </p>
+        <p
+          *ngIf="!isLoading() && currentUser() && groupedAppointments().length === 0"
+          class="appointments-state"
+        >
+          Aucun rendez-vous ne correspond a ces criteres.
+        </p>
+
+        <article *ngFor="let group of groupedAppointments()" class="appointment-group">
+          <div class="appointment-group__head">
+            <span>{{ group.label }}</span>
+            <em></em>
+            <strong>{{ group.count }} rendez-vous</strong>
+          </div>
+
+          <div class="appointment-row" *ngFor="let appointment of group.items" [class]="'appointment-row appointment-row--' + rowTone(appointment)">
+            <div class="appointment-row__date">
+              <span>{{ dayName(appointment) }}</span>
+              <strong>{{ dayNumber(appointment) }}</strong>
+              <small>{{ monthShort(appointment) }}</small>
+              <em>
+                <lucide-icon name="clock-3" size="13" [strokeWidth]="2"></lucide-icon>
+                {{ appointment.timeLabel }}
+              </em>
+            </div>
+
+            <div class="appointment-row__provider">
+              <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+              <div>
+                <strong>{{ appointment.doctorName }}</strong>
+                <span>{{ appointment.specialty }}</span>
+                <small>
+                  <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
+                  {{ appointment.locationLabel }}
+                </small>
+                <small>
+                  <lucide-icon name="heart" size="12" [strokeWidth]="2"></lucide-icon>
+                  {{ appointment.serviceName }}
+                </small>
+              </div>
+            </div>
+
+            <div class="appointment-row__status-card">
+              <div class="appointment-row__status-title">
+                <span></span>
+                <strong>{{ statusPanelTitle(appointment) }}</strong>
+                <lucide-icon
+                  [name]="rowTone(appointment) === 'red' ? 'info' : rowTone(appointment) === 'green' ? 'check' : 'send'"
+                  size="14"
+                  [strokeWidth]="2.2"
+                ></lucide-icon>
+              </div>
+              <p>{{ statusPanelMessage(appointment) }}</p>
+              <div class="appointment-row__meta">
+                <strong *ngIf="appointment.agreedPrice">{{ formatAmount(appointment.agreedPrice) }} FCFA</strong>
+                <span *ngIf="appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT'">
+                  Revision en attente
+                </span>
+                <span *ngIf="appointment.clientReview">{{ appointment.clientReview }}</span>
+              </div>
+              <div class="appointment-row__progress" *ngIf="progressValue(appointment) > 0">
+                <i [style.width.%]="progressValue(appointment)"></i>
+                <small>{{ progressValue(appointment) }}%</small>
+              </div>
+            </div>
+
+            <div class="appointment-row__actions">
+              <span class="appointment-row__badge">
+                <lucide-icon
+                  [name]="rowTone(appointment) === 'red' ? 'triangle-alert' : rowTone(appointment) === 'green' ? 'check' : 'clock-3'"
+                  size="13"
+                  [strokeWidth]="2"
+                ></lucide-icon>
+                {{ statusLabel(appointment) }}
+              </span>
+              <a [routerLink]="['/appointments', appointment.id]" class="appointment-row__primary">
+                Voir
+                <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.2"></lucide-icon>
+              </a>
+              <button
+                type="button"
+                class="appointment-row__secondary"
+                [disabled]="!canCancel(appointment)"
+                (click)="cancelAppointment(appointment, $event)"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </article>
+      </section>
+    </section>
   </section>
 
   <app-footer />

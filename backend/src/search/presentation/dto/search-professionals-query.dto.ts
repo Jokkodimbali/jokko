@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNumber,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -45,6 +46,18 @@ export class SearchProfessionalsQueryDto {
   @IsString()
   @MaxLength(150, { message: VALIDATION_MESSAGES.SEARCH_QUERY_MAX })
   query?: string;
+
+  @ApiPropertyOptional({
+    description: 'Role professionnel a inclure dans les resultats',
+    example: 'MEDECIN',
+    enum: ['PRESTATAIRE', 'MEDECIN'],
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsOptional()
+  @IsIn(['PRESTATAIRE', 'MEDECIN'])
+  role?: 'PRESTATAIRE' | 'MEDECIN';
 
   @ApiPropertyOptional({
     description: API_DOCS.search.latitudeField,

@@ -5,7 +5,7 @@ import {
   AuthGoogleAccountLinked,
 } from '../events/auth.events';
 
-export type UserRole = 'PRESTATAIRE' | 'CLIENT' | 'ADMIN';
+export type UserRole = 'PRESTATAIRE' | 'MEDECIN' | 'CLIENT' | 'ADMIN';
 
 /**
  * Aggregate Root for authentication context.
@@ -63,7 +63,7 @@ export class AuthUser {
   }
 
   isProfessional(): boolean {
-    return this._role === 'PRESTATAIRE';
+    return this._role === 'PRESTATAIRE' || this._role === 'MEDECIN';
   }
 
   isAdmin(): boolean {

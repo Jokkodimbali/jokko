@@ -163,7 +163,7 @@ export class LiveTrackingCommandService {
   }
 
   async syncProfessionalConnection(user: AuthUser, isOnline: boolean) {
-    if (user.role !== 'PRESTATAIRE') {
+    if (user.role !== 'PRESTATAIRE' && user.role !== 'MEDECIN') {
       return null;
     }
 
@@ -237,7 +237,7 @@ export class LiveTrackingCommandService {
   }
 
   private async requireProfessionalProfile(user: AuthUser) {
-    if (user.role !== 'PRESTATAIRE') {
+    if (user.role !== 'PRESTATAIRE' && user.role !== 'MEDECIN') {
       throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
     }
 

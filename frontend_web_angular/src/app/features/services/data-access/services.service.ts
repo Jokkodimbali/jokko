@@ -114,7 +114,7 @@ export class ServicesService {
                 ({
                   id: category.id,
                   title: category.nom,
-                  countLabel: `${pResult.meta?.total || pResult.providers.length} Professionnels`,
+                  countLabel: `${pResult.meta?.total || pResult.providers.length} professionnels`,
                   providers: pResult.providers,
                   pagination: pResult.meta,
                 }) as ServiceSection,
@@ -197,11 +197,15 @@ export class ServicesService {
 
     return forkJoin(
       data.map((professional) =>
-        this.getProfessionalPortfolio(professional.id).pipe(
-          map((portfolio) =>
+        forkJoin({
+          portfolio: this.getProfessionalPortfolio(professional.id).pipe(catchError(() => of([]))),
+          presence: this.getProfessionalPresence(professional.id).pipe(catchError(() => of(null))),
+        }).pipe(
+          map(({ portfolio, presence }) =>
             this.mapProfessional(
               professional,
               portfolio.map((item) => item.urlImage).filter(Boolean),
+              presence,
             ),
           ),
           catchError(() => of(this.mapProfessional(professional))),
@@ -210,8 +214,13 @@ export class ServicesService {
     );
   }
 
-  private mapProfessional(data: BackendProfessional, photos: string[] = []): Professional {
+  private mapProfessional(
+    data: BackendProfessional,
+    photos: string[] = [],
+    presence: BackendProfessionalPresence | null = null,
+  ): Professional {
     const primaryService = data.services[0];
+    const isOnline = Boolean(presence?.isOnline);
 
     return {
       id: data.id,
@@ -219,9 +228,37 @@ export class ServicesService {
       speciality: primaryService?.categoryName || primaryService?.name || 'Service',
       location: this.formatLocation(data.city, data.distanceKm),
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
+      rating: data.rating,
+      totalReviews: data.totalReviews,
+      isOnline,
+      onlineLabel: this.formatPresenceLabel(presence),
       avatar: data.avatarUrl || undefined,
       photos,
     };
+  }
+
+  private formatPresenceLabel(presence: BackendProfessionalPresence | null): string {
+    if (!presence?.isOnline) {
+      return 'Hors ligne';
+    }
+
+    if (!presence.lastSeenAt) {
+      return 'En ligne maintenant';
+    }
+
+    const elapsedMs = Date.now() - new Date(presence.lastSeenAt).getTime();
+    const elapsedMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
+
+    if (elapsedMinutes < 1) {
+      return 'En ligne maintenant';
+    }
+
+    if (elapsedMinutes < 60) {
+      return `En ligne - il y a ${elapsedMinutes} min`;
+    }
+
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    return `En ligne - il y a ${elapsedHours} h`;
   }
 
   private formatLocation(city: string | null, distanceKm: number | null): string {

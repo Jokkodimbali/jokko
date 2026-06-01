@@ -54,7 +54,7 @@ export class ReservationCommandService extends ReservationAppService {
   ) {
     this.assertClientRole(requestUser.role);
 
-    if (requestUser.role === 'PRESTATAIRE') {
+    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       const ownProfessionalProfile = await this.getProfessionalProfileOrThrow(
         requestUser.sub,
       );

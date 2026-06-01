@@ -307,8 +307,42 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
         statutKyc: StatutKyc.VERIFIE,
         utilisateur: {
           estActif: true,
-          role: 'PRESTATAIRE' as const,
+          role: { in: ['PRESTATAIRE', 'MEDECIN'] },
         },
+      },
+      select: PROFESSIONAL_SELECT,
+    });
+    if (!profile) return null;
+
+    const coordinates = await this.getProfileCoordinates(profile.id);
+    return this.mapProfile({ ...profile, ...coordinates });
+  }
+
+  async findPublicById(profileId: string) {
+    const profile = await this.prisma.profilProfessionnel.findFirst({
+      where: {
+        id: profileId,
+        OR: [
+          {
+            statutKyc: StatutKyc.VERIFIE,
+            utilisateur: {
+              estActif: true,
+              role: 'MEDECIN',
+            },
+          },
+          {
+            statutKyc: StatutKyc.VERIFIE,
+            services: {
+              some: {
+                estDisponible: true,
+              },
+            },
+            utilisateur: {
+              estActif: true,
+              role: 'PRESTATAIRE',
+            },
+          },
+        ],
       },
       select: PROFESSIONAL_SELECT,
     });
@@ -356,7 +390,9 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             OR: [
               { nomEntreprise: { contains: search, mode: 'insensitive' } },
               { ville: { contains: search, mode: 'insensitive' } },
-              { utilisateur: { nom: { contains: search, mode: 'insensitive' } } },
+              {
+                utilisateur: { nom: { contains: search, mode: 'insensitive' } },
+              },
               {
                 utilisateur: {
                   numeroTelephone: { contains: search, mode: 'insensitive' },

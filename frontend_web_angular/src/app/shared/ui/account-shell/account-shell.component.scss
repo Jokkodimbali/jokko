@@ -61,6 +61,11 @@
   padding: 42px 0 72px;
 }
 
+.account-shell__content--wide {
+  max-width: 1440px;
+  width: min(calc(100% - 40px), 1440px);
+}
+
 /* Mobile: <768px */
 @media (max-width: 767px) {
   .account-shell__header {
@@ -85,6 +90,10 @@
 
   .account-shell__content {
     padding: 32px 0 48px;
+  }
+
+  .account-shell__content--wide {
+    width: min(calc(100% - 24px), 1440px);
   }
 }
 

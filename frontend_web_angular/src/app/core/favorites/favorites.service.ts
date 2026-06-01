@@ -15,6 +15,16 @@ export interface FavoriteItem {
   avatarUrl: string | null;
   rating: number;
   totalReviews: number;
+  isOnline: boolean;
+  presenceStatus: string;
+  lastSeenAt: string | null;
+  isAvailableToday: boolean;
+  isNew: boolean;
+  portfolioImages: {
+    id: string;
+    title: string;
+    url: string;
+  }[];
   service: {
     id: string;
     name: string;

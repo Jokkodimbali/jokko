@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -67,14 +68,14 @@ export class RegisterDto {
   password!: string;
 
   @ApiProperty({
-    description: "Rôle de l'utilisateur (CLIENT ou PRESTATAIRE)",
-    enum: ['CLIENT', 'PRESTATAIRE'],
+    description: "Role de l'utilisateur",
+    enum: ['CLIENT', 'PRESTATAIRE', 'MEDECIN'],
     example: 'CLIENT',
   })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^(CLIENT|PRESTATAIRE)$/)
-  role!: 'CLIENT' | 'PRESTATAIRE';
+  @Matches(/^(CLIENT|PRESTATAIRE|MEDECIN)$/)
+  role!: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
 
   @ApiProperty({
     description: "Adresse physique de l'utilisateur",
@@ -86,4 +87,38 @@ export class RegisterDto {
   @IsString()
   @Length(5, 255)
   adresse!: string;
+
+  @ApiPropertyOptional({
+    description: 'Specialite medicale selectionnee pendant l inscription medecin',
+    example: 'Cardiologie',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  medicalSpecialty?: string;
+
+  @ApiPropertyOptional({
+    description: 'Expertises et actes medicaux declares pendant l inscription',
+    example: ['Consultation generale', 'Suivi cardiologique'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(140, { each: true })
+  medicalExpertises?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Noms des documents selectionnes pendant l inscription medecin',
+    example: ['diplome-medecine.pdf'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(180, { each: true })
+  medicalDocumentNames?: string[];
 }

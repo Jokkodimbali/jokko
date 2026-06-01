@@ -23,13 +23,13 @@ export abstract class ReservationAppService {
   ) {}
 
   protected assertClientRole(role: AuthUser['role']): void {
-    if (role !== 'CLIENT' && role !== 'PRESTATAIRE') {
+    if (role !== 'CLIENT' && role !== 'PRESTATAIRE' && role !== 'MEDECIN') {
       throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
     }
   }
 
   protected assertProfessionalRole(role: AuthUser['role']): void {
-    if (role !== 'PRESTATAIRE') {
+    if (role !== 'PRESTATAIRE' && role !== 'MEDECIN') {
       throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
     }
   }
@@ -95,7 +95,7 @@ export abstract class ReservationAppService {
       return reservation;
     }
 
-    if (requestUser.role === 'PRESTATAIRE') {
+    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
       if (reservation.clientId === requestUser.sub) {
         return reservation;
       }

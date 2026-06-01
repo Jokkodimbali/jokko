@@ -80,12 +80,12 @@
     white-space: normal;
   }
 
-  :host .provider-info p {
+  :host .provider-info .speciality,
+  :host .provider-meta span {
     font-size: 12px !important;
   }
 
-  :host .provider-info .location,
-  :host .provider-info .status {
+  :host .provider-meta {
     flex-wrap: wrap;
   }
 
@@ -146,16 +146,13 @@
   }
 
   :host .provider-card {
-    flex: 1 1 calc((100% - 12px) / 2) !important;
     min-width: min(100%, 280px) !important;
   }
 
-  :host .service-section:not(:first-of-type) .provider-card {
-    flex-basis: calc((100% - 12px) / 2) !important;
-  }
-
   :host .provider-row {
-    flex-wrap: wrap !important;
+    display: grid !important;
+    gap: 14px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     overflow: visible !important;
   }
 

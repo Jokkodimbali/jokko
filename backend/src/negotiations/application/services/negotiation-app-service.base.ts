@@ -23,13 +23,13 @@ export abstract class NegotiationAppService {
   ) {}
 
   protected assertClientRole(role: AuthUser['role']): void {
-    if (role !== 'CLIENT' && role !== 'PRESTATAIRE') {
+    if (role !== 'CLIENT' && role !== 'PRESTATAIRE' && role !== 'MEDECIN') {
       throw appHttpException('NEGOTIATIONS_CLIENT_ROLE_REQUIRED');
     }
   }
 
   protected assertProfessionalRole(role: AuthUser['role']): void {
-    if (role !== 'PRESTATAIRE') {
+    if (role !== 'PRESTATAIRE' && role !== 'MEDECIN') {
       throw appHttpException('NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED');
     }
   }

@@ -3,7 +3,7 @@
     <app-navbar />
   </section>
 
-  <section class="account-shell__header">
+  <section *ngIf="showHeader" class="account-shell__header">
     <div>
       <p>Jokko Dimbali</p>
       <h1>{{ title }}</h1>
@@ -11,7 +11,7 @@
     </div>
   </section>
 
-  <section class="account-shell__content">
+  <section class="account-shell__content" [class.account-shell__content--wide]="contentWide">
     <ng-content />
   </section>
 

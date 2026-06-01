@@ -80,7 +80,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: AuthMapper.toApiUser(user),
+      user: AuthMapper.toApiUserWithEmail(user),
     };
   }
 
@@ -109,6 +109,9 @@ export class AuthService {
       passwordHash,
       role: command.role,
       adresse: command.adresse.trim(),
+      medicalSpecialty: command.medicalSpecialty?.trim(),
+      medicalExpertises: command.medicalExpertises,
+      medicalDocumentNames: command.medicalDocumentNames,
     });
     if (!user) {
       const userByPhone =
@@ -131,7 +134,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: AuthMapper.toApiUser(user),
+      user: AuthMapper.toApiUserWithEmail(user),
     };
   }
 
@@ -208,14 +211,27 @@ export class AuthService {
       throw appHttpException('AUTH_GOOGLE_ACCOUNT_INVALID');
     }
 
-    const user = await this.authRepository.findByEmail(email);
+    let user =
+      await this.authRepository.findByGoogleIdentity(googlePayload.sub);
+    user ??= await this.authRepository.findByEmail(email);
     if (!user) {
-      throw appHttpException('AUTH_GOOGLE_ACCOUNT_NOT_LINKED');
+      user = await this.authRepository.createGoogleClient({
+        email,
+        name: googlePayload.name?.trim() || email.split('@')[0],
+        googleSub: googlePayload.sub,
+        avatarUrl: googlePayload.picture,
+      });
+    }
+
+    if (!user) {
+      throw appHttpException('SYSTEM_INTERNAL_SERVER_ERROR');
     }
 
     this.assertActiveUser(user);
 
-    await this.authRepository.linkGoogleIdentity(user.id, googlePayload.sub);
+    if (user.identifiantOauth !== googlePayload.sub) {
+      await this.authRepository.linkGoogleIdentity(user.id, googlePayload.sub);
+    }
     const { accessToken, refreshToken } =
       await this.issueTokensAndPersistSession(user, context);
 

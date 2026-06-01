@@ -4,6 +4,7 @@ export type SearchProfessionalsInput = {
   city?: string;
   categoryId?: string;
   query?: string;
+  role?: 'PRESTATAIRE' | 'MEDECIN';
   latitude?: number;
   longitude?: number;
   radiusKm?: number;

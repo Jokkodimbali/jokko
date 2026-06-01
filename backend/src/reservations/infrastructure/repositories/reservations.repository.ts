@@ -717,7 +717,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       where.statut = filters.status as $Enums.StatutReservation;
     }
 
-      if (filters.startDate || filters.endDate) {
+    if (filters.startDate || filters.endDate) {
       where.dateHeure = {};
       if (filters.startDate) {
         where.dateHeure.gte = filters.startDate;
@@ -726,8 +726,12 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       if (filters.search) {
         where.OR = [
           { adresseClient: { contains: filters.search, mode: 'insensitive' } },
-          { client: { nom: { contains: filters.search, mode: 'insensitive' } } },
-          { service: { nom: { contains: filters.search, mode: 'insensitive' } } },
+          {
+            client: { nom: { contains: filters.search, mode: 'insensitive' } },
+          },
+          {
+            service: { nom: { contains: filters.search, mode: 'insensitive' } },
+          },
           {
             professionnel: {
               utilisateur: {

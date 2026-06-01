@@ -8,8 +8,11 @@ export interface RegisterRequestDto {
   name: string;
   email?: string;
   password: string;
-  role: 'CLIENT' | 'PRESTATAIRE';
+  role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
   adresse: string;
+  medicalSpecialty?: string;
+  medicalExpertises?: string[];
+  medicalDocumentNames?: string[];
 }
 
 export interface SendOtpRequestDto {
@@ -43,7 +46,7 @@ export interface UserDto {
   phoneNumber: string;
   name: string;
   email?: string;
-  role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
+  role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | string;
   avatarUrl?: string | null;
   professionalProfile?: UserProfessionalProfileDto | null;
 }
@@ -60,7 +63,7 @@ export interface UserProfileDto {
   nom: string;
   email?: string | null;
   adresse?: string | null;
-  role: 'CLIENT' | 'PRESTATAIRE' | 'ADMIN' | string;
+  role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | string;
   urlAvatar?: string | null;
   estActif: boolean;
   creeLe?: string | Date;

@@ -47,15 +47,23 @@ export class SettingsPageComponent implements OnInit {
   protected readonly activeSection = signal<SettingsSection>('health');
   protected readonly isLoading = signal(false);
   protected readonly isSavingProfile = signal(false);
+  protected readonly isSavingProfessionalAbout = signal(false);
   protected readonly isSavingAddress = signal(false);
   protected readonly isSavingAvatar = signal(false);
   protected readonly isSavingPaymentMethod = signal(false);
   protected readonly isSavingMedicalProfile = signal(false);
   protected readonly isSavingTreatment = signal(false);
   protected readonly isSavingPassword = signal(false);
+  protected readonly isUploadingProfessionalDocument = signal(false);
+  protected readonly isSavingProfessionalExpertise = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly lastProfessionalDocumentUpload = signal<{
+    name: string;
+    status: 'pending' | 'success' | 'error';
+  } | null>(null);
   protected readonly isEditingProfile = signal(false);
+  protected readonly isEditingProfessionalAbout = signal(false);
   protected readonly isEditingAddress = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
@@ -72,6 +80,9 @@ export class SettingsPageComponent implements OnInit {
     lastName: '',
     email: '',
   };
+  protected readonly professionalAboutForm = {
+    about: '',
+  };
   protected readonly addressForm = {
     address: '',
   };
@@ -87,6 +98,9 @@ export class SettingsPageComponent implements OnInit {
   protected readonly passwordForm = {
     currentPassword: '',
     newPassword: '',
+  };
+  protected readonly professionalExpertiseForm = {
+    name: '',
   };
   protected readonly medicalProfileForm = {
     bloodGroup: '',
@@ -195,6 +209,54 @@ export class SettingsPageComponent implements OnInit {
   protected readonly medicalTreatments = computed(() => this.medicalProfile()?.treatments ?? []);
   protected readonly recentMedicalActs = computed(() => this.userHistory().slice(0, 4));
   protected readonly hasMedicalData = computed(() => this.recentMedicalActs().length > 0);
+  protected readonly isProfessionalSettings = computed(() => {
+    const role = this.profile()?.role || this.currentUser()?.role;
+    return role === 'MEDECIN' || role === 'PRESTATAIRE';
+  });
+  protected readonly professionalProfile = computed(() => this.profile()?.profilProfessionnel ?? null);
+  protected readonly professionalBiographyLines = computed(() => this.parseProfessionalBiography());
+  protected readonly professionalSpecialty = computed(() => {
+    const explicitSpecialty = this.professionalBiographyLines().specialty;
+    if (explicitSpecialty) return explicitSpecialty;
+    return this.professionalProfile()?.categories[0] || this.roleLabel();
+  });
+  protected readonly professionalTitle = computed(() => {
+    const specialty = this.professionalSpecialty();
+    return specialty && specialty !== this.roleLabel() ? `${specialty} passionne par l'excellence` : 'Professionnel Jokko certifie';
+  });
+  protected readonly professionalAbout = computed(() => {
+    const rawBiography = this.professionalProfile()?.biographie || '';
+    const cleaned = rawBiography
+      .split('\n')
+      .filter((line) => !/^(Specialite|Expertises|Documents):/i.test(line.trim()))
+      .join(' ')
+      .trim();
+
+    if (cleaned && !cleaned.includes('Profil medecin en attente')) return cleaned;
+    return `Bienvenue sur mon profil. Je suis ${this.displayName()}, ${this.professionalSpecialty().toLowerCase()}, et je propose un accompagnement professionnel valide par Jokko Dimbali.`;
+  });
+  protected readonly professionalExpertises = computed(() => this.professionalBiographyLines().expertises);
+  protected readonly professionalDocuments = computed(() => {
+    const diplomas = this.professionalProfile()?.diplomesMedicaux ?? [];
+    if (diplomas.length > 0) {
+      return diplomas.map((diploma) => ({
+        id: diploma.id,
+        label: diploma.titre,
+        meta: diploma.etablissement || 'Document professionnel',
+        status: diploma.statut,
+        url: diploma.urlDocument ?? null,
+      }));
+    }
+
+    return this.professionalBiographyLines().documents.map((document, index) => ({
+      id: `bio-document-${index}`,
+      label: document,
+      meta: 'Document declare a l inscription',
+      status: 'DECLARE',
+      url: null,
+    }));
+  });
+  protected readonly validatedDocumentsCount = computed(() => this.professionalDocuments().length);
 
   ngOnInit(): void {
     if (!this.currentUser()) return;
@@ -278,6 +340,11 @@ export class SettingsPageComponent implements OnInit {
     this.isEditingProfile.set(true);
   }
 
+  protected startProfessionalAboutEdit(): void {
+    this.professionalAboutForm.about = this.professionalAbout();
+    this.isEditingProfessionalAbout.set(true);
+  }
+
   protected startAddressEdit(): void {
     this.syncForms(this.profile());
     this.isEditingAddress.set(true);
@@ -286,6 +353,11 @@ export class SettingsPageComponent implements OnInit {
   protected cancelProfileEdit(): void {
     this.syncForms(this.profile());
     this.isEditingProfile.set(false);
+  }
+
+  protected cancelProfessionalAboutEdit(): void {
+    this.professionalAboutForm.about = this.professionalAbout();
+    this.isEditingProfessionalAbout.set(false);
   }
 
   protected cancelAddressEdit(): void {
@@ -317,6 +389,34 @@ export class SettingsPageComponent implements OnInit {
       });
   }
 
+  protected saveProfessionalAbout(): void {
+    if (this.isSavingProfessionalAbout()) return;
+    const about = this.professionalAboutForm.about.trim();
+    if (about.length < 20) {
+      const message = 'La presentation doit contenir au moins 20 caracteres.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    this.isSavingProfessionalAbout.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .updateMyProfessionalAbout(about)
+      .pipe(finalize(() => this.isSavingProfessionalAbout.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.isEditingProfessionalAbout.set(false);
+          this.applyUpdatedProfile(profile, 'Presentation professionnelle modifiee.');
+        },
+        error: (error) => {
+          const message = getHttpErrorMessage(error, 'Impossible de modifier la presentation.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
   protected saveAddress(): void {
     if (this.isSavingAddress()) return;
     this.isSavingAddress.set(true);
@@ -343,6 +443,7 @@ export class SettingsPageComponent implements OnInit {
 
     if (!file.type.startsWith('image/')) {
       this.errorMessage.set('Selectionnez une image valide.');
+      this.feedback.error('Selectionnez une image valide.');
       return;
     }
 
@@ -354,7 +455,124 @@ export class SettingsPageComponent implements OnInit {
       .subscribe({
         next: (profile) => this.applyUpdatedProfile(profile, 'Photo de profil modifiee.'),
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, "Impossible de modifier l'avatar."));
+          const message = getHttpErrorMessage(error, "Impossible de modifier l'avatar.");
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected uploadProfessionalDocument(event: Event): void {
+    if (this.isUploadingProfessionalDocument()) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const allowedTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ]);
+    if (!allowedTypes.has(file.type)) {
+      const message = 'Selectionnez un document PDF, image ou Word.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      const message = 'Le document ne doit pas depasser 10 Mo.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    this.isUploadingProfessionalDocument.set(true);
+    this.errorMessage.set(null);
+    this.lastProfessionalDocumentUpload.set({ name: file.name, status: 'pending' });
+    this.authService
+      .uploadMyProfessionalCredential(file)
+      .pipe(finalize(() => this.isUploadingProfessionalDocument.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.lastProfessionalDocumentUpload.set({ name: file.name, status: 'success' });
+          this.applyUpdatedProfile(profile, 'Document professionnel ajoute.');
+        },
+        error: (error) => {
+          const message = getHttpErrorMessage(error, "Impossible d'ajouter ce document.");
+          this.lastProfessionalDocumentUpload.set({ name: file.name, status: 'error' });
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected addProfessionalExpertise(): void {
+    if (this.isSavingProfessionalExpertise()) return;
+    const name = this.professionalExpertiseForm.name.trim();
+    if (name.length < 2) {
+      const message = 'Renseignez une expertise valide.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    this.isSavingProfessionalExpertise.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .addMyProfessionalExpertise(name)
+      .pipe(finalize(() => this.isSavingProfessionalExpertise.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.professionalExpertiseForm.name = '';
+          this.applyUpdatedProfile(profile, 'Expertise ajoutee.');
+        },
+        error: (error) => {
+          const message = getHttpErrorMessage(error, "Impossible d'ajouter cette expertise.");
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected deleteProfessionalDocument(document: { id: string; label: string }): void {
+    if (document.id.startsWith('bio-document-')) {
+      this.feedback.error('Ce document declare ne peut pas etre supprime depuis cette action.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Voulez-vous supprimer le document "${document.label}" ?`);
+    if (!confirmed) return;
+
+    this.authService.deleteMyProfessionalCredential(document.id).subscribe({
+      next: (profile) => this.applyUpdatedProfile(profile, 'Document professionnel supprime.'),
+      error: (error) => {
+        const message = getHttpErrorMessage(error, 'Impossible de supprimer ce document.');
+        this.errorMessage.set(message);
+        this.feedback.error(message);
+      },
+    });
+  }
+
+  protected removeProfessionalExpertise(name: string): void {
+    if (this.isSavingProfessionalExpertise()) return;
+
+    this.isSavingProfessionalExpertise.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .removeMyProfessionalExpertise(name)
+      .pipe(finalize(() => this.isSavingProfessionalExpertise.set(false)))
+      .subscribe({
+        next: (profile) => this.applyUpdatedProfile(profile, 'Expertise retiree.'),
+        error: (error) => {
+          const message = getHttpErrorMessage(error, 'Impossible de retirer cette expertise.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
         },
       });
   }
@@ -674,5 +892,30 @@ export class SettingsPageComponent implements OnInit {
 
   private extractLastDigits(value: string | null | undefined): string {
     return (value ?? '').replace(/\D/g, '').slice(-4) || '----';
+  }
+
+  private parseProfessionalBiography(): {
+    specialty: string;
+    expertises: string[];
+    documents: string[];
+  } {
+    const biography = this.professionalProfile()?.biographie || '';
+    const readLine = (label: string): string => {
+      const line = biography
+        .split('\n')
+        .find((item) => item.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+      return line?.split(':').slice(1).join(':').trim() || '';
+    };
+    const splitList = (value: string): string[] =>
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    return {
+      specialty: readLine('Specialite'),
+      expertises: splitList(readLine('Expertises')),
+      documents: splitList(readLine('Documents')),
+    };
   }
 }

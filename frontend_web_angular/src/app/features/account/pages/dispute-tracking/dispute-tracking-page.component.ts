@@ -69,7 +69,9 @@ export class DisputeTrackingPageComponent implements OnInit {
           this.loadDispute(false);
         },
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible d ajouter cette piece.'));
+          const message = getHttpErrorMessage(error, 'Impossible d ajouter cette piece.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
         },
       });
   }

@@ -26,6 +26,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import { randomUUID } from 'node:crypto';
 import { extname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { appMessage } from '../../../core/http/app-http.exception';
@@ -40,6 +41,9 @@ import { UpdateMyAvatarDto } from '../dto/update-my-avatar.dto';
 import { ChangeMyPasswordDto } from '../dto/change-my-password.dto';
 import { UpdateMyMedicalProfileDto } from '../dto/update-my-medical-profile.dto';
 import { UpsertMyMedicalTreatmentDto } from '../dto/upsert-my-medical-treatment.dto';
+import { UploadMyProfessionalCredentialDto } from '../dto/upload-my-professional-credential.dto';
+import { UpsertMyProfessionalExpertiseDto } from '../dto/upsert-my-professional-expertise.dto';
+import { UpdateMyProfessionalAboutDto } from '../dto/update-my-professional-about.dto';
 import { MyHistoryQueryDto } from '../dto/my-history-query.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
@@ -55,15 +59,37 @@ type UploadedAvatarFile = {
   size: number;
 };
 
+type UploadedProfessionalCredentialFile = UploadedAvatarFile & {
+  originalname: string;
+};
+
 const avatarUploadDirectory = join(process.cwd(), 'uploads', 'avatars');
+const professionalCredentialUploadDirectory = join(
+  process.cwd(),
+  'uploads',
+  'medical-credentials',
+);
 const allowedAvatarMimeTypes = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
 ]);
+const allowedProfessionalCredentialMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
 
 function ensureAvatarUploadDirectory(): void {
   mkdirSync(avatarUploadDirectory, { recursive: true });
+}
+
+function ensureProfessionalCredentialUploadDirectory(): void {
+  mkdirSync(professionalCredentialUploadDirectory, { recursive: true });
 }
 
 function buildAvatarFileName(userId: string, originalName: string): string {
@@ -72,6 +98,23 @@ function buildAvatarFileName(userId: string, originalName: string): string {
     ? extension
     : '.jpg';
   return `${userId}-${Date.now()}${safeExtension}`;
+}
+
+function buildProfessionalCredentialFileName(originalName: string): string {
+  const extension = extname(originalName).toLowerCase() || '.bin';
+  const safeExtension = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.pdf',
+    '.doc',
+    '.docx',
+  ].includes(extension)
+    ? extension
+    : '.bin';
+  return `medical-credential-${Date.now()}-${randomUUID()}${safeExtension}`;
 }
 
 @ApiTags(API_DOCS.users.tag)
@@ -341,6 +384,132 @@ export class UsersController {
     return createApiResponse(
       result,
       appMessage('USERS_AVATAR_UPDATED').message,
+    );
+  }
+
+  @Post('me/professional-credentials/upload')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('document', {
+      storage: diskStorage({
+        destination: (
+          _request: unknown,
+          _file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          ensureProfessionalCredentialUploadDirectory();
+          callback(null, professionalCredentialUploadDirectory);
+        },
+        filename: (
+          _request: unknown,
+          file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          callback(null, buildProfessionalCredentialFileName(file.originalname));
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+      fileFilter: (_request, file, callback) => {
+        if (!allowedProfessionalCredentialMimeTypes.has(file.mimetype)) {
+          callback(appHttpException('VALIDATION_REQUEST_INVALID'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Uploader un diplome ou certificat professionnel' })
+  async uploadMyProfessionalCredential(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UploadMyProfessionalCredentialDto,
+    @UploadedFile() file: UploadedProfessionalCredentialFile | undefined,
+    @Req() request: Request,
+  ) {
+    if (!file) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const origin = `${request.protocol}://${request.get('host')}`;
+    const documentUrl = `${origin}/uploads/medical-credentials/${file.filename}`;
+    const result = await this.usersService.uploadMyProfessionalCredential(user, {
+      title: dto.title?.trim() || file.originalname,
+      institution: dto.institution?.trim() || 'Document fourni par le professionnel',
+      graduationYear: dto.graduationYear?.trim() || null,
+      referenceNumber: dto.referenceNumber?.trim() || null,
+      documentUrl,
+    });
+
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFESSIONAL_CREDENTIAL_UPLOADED').message,
+    );
+  }
+
+  @Delete('me/professional-credentials/:credentialId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Supprimer un diplome ou certificat professionnel' })
+  async deleteMyProfessionalCredential(
+    @CurrentUser() user: AuthUser,
+    @Param('credentialId') credentialId: string,
+  ) {
+    const result = await this.usersService.deleteMyProfessionalCredential(
+      user,
+      credentialId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFESSIONAL_CREDENTIAL_DELETED').message,
+    );
+  }
+
+  @Patch('me/professional-about')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Modifier ma presentation professionnelle' })
+  async updateMyProfessionalAbout(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateMyProfessionalAboutDto,
+  ) {
+    const result = await this.usersService.updateMyProfessionalAbout(user, dto);
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFESSIONAL_ABOUT_UPDATED').message,
+    );
+  }
+
+  @Post('me/professional-expertises')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Ajouter une expertise professionnelle' })
+  async addMyProfessionalExpertise(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpsertMyProfessionalExpertiseDto,
+  ) {
+    const result = await this.usersService.addMyProfessionalExpertise(user, dto);
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFESSIONAL_EXPERTISE_ADDED').message,
+    );
+  }
+
+  @Delete('me/professional-expertises')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retirer une expertise professionnelle' })
+  async removeMyProfessionalExpertise(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpsertMyProfessionalExpertiseDto,
+  ) {
+    const result = await this.usersService.removeMyProfessionalExpertise(
+      user,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_PROFESSIONAL_EXPERTISE_REMOVED').message,
     );
   }
 

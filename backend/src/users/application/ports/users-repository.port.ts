@@ -18,8 +18,21 @@ export type UserMeView = {
   creeLe: Date;
   profilProfessionnel: {
     id: string;
+    biographie: string | null;
     nomEntreprise: string | null;
+    statutKyc: string;
+    ville: string | null;
     categories: string[];
+    diplomesMedicaux: Array<{
+      id: string;
+      titre: string;
+      etablissement: string;
+      promotion: string | null;
+      numeroReference: string | null;
+      urlDocument: string | null;
+      statut: string;
+      verifieLe: Date | null;
+    }>;
   } | null;
 };
 
@@ -74,6 +87,17 @@ export type UserHistoryItem = {
   };
 };
 
+export type UserMedicalCredentialView = {
+  id: string;
+  titre: string;
+  etablissement: string;
+  promotion: string | null;
+  numeroReference: string | null;
+  urlDocument: string | null;
+  statut: string;
+  verifieLe: Date | null;
+};
+
 export interface UsersRepositoryPort {
   findMeById(userId: string): Promise<UserMeView | null>;
   findByEmail(email: string): Promise<{ id: string } | null>;
@@ -108,4 +132,29 @@ export interface UsersRepositoryPort {
     userId: string,
     passwordHash: string,
   ): Promise<boolean>;
+  createProfessionalCredentialForUser(
+    userId: string,
+    data: {
+      title: string;
+      institution: string;
+      graduationYear?: string | null;
+      referenceNumber?: string | null;
+      documentUrl: string;
+    },
+  ): Promise<
+    | { status: 'created'; credential: UserMedicalCredentialView }
+    | { status: 'professional_profile_not_found' }
+  >;
+  updateProfessionalBiographyForUser(
+    userId: string,
+    biography: string | null,
+  ): Promise<UserMeView | null>;
+  deleteProfessionalCredentialForUser(
+    userId: string,
+    credentialId: string,
+  ): Promise<
+    | { status: 'deleted'; user: UserMeView }
+    | { status: 'credential_not_found' }
+    | { status: 'professional_profile_not_found' }
+  >;
 }

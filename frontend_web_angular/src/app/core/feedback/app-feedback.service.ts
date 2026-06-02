@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 export interface AppFeedbackMessage {
   id: number;
-  type: 'success';
+  type: 'success' | 'error';
   text: string;
 }
 
@@ -16,13 +16,21 @@ export class AppFeedbackService {
   readonly message = this.messageSignal.asReadonly();
 
   success(text: string): void {
+    this.show('success', text);
+  }
+
+  error(text: string): void {
+    this.show('error', text);
+  }
+
+  private show(type: AppFeedbackMessage['type'], text: string): void {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
 
     this.messageSignal.set({
       id: Date.now(),
-      type: 'success',
+      type,
       text,
     });
 

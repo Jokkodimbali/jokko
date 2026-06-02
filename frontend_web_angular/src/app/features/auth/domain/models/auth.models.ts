@@ -53,8 +53,23 @@ export interface UserDto {
 
 export interface UserProfessionalProfileDto {
   id: string;
+  biographie?: string | null;
   nomEntreprise?: string | null;
+  statutKyc?: string | null;
+  ville?: string | null;
   categories: string[];
+  diplomesMedicaux?: UserMedicalCredentialDto[];
+}
+
+export interface UserMedicalCredentialDto {
+  id: string;
+  titre: string;
+  etablissement: string;
+  promotion?: string | null;
+  numeroReference?: string | null;
+  urlDocument?: string | null;
+  statut: string;
+  verifieLe?: string | Date | null;
 }
 
 export interface UserProfileDto {

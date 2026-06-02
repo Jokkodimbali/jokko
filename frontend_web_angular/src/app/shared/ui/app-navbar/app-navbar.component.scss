@@ -116,6 +116,12 @@
   z-index: 250;
 }
 
+.app-navbar__toast--error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
 .app-navbar__login,
 .app-navbar__profile {
   align-items: center;

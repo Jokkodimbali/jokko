@@ -257,6 +257,11 @@
   align-self: flex-end;
 }
 
+.dispute-chat__row--admin {
+  align-self: center;
+  max-width: min(760px, 72%);
+}
+
 .dispute-chat__author {
   align-items: center;
   color: #111318;
@@ -273,6 +278,13 @@
   font-size: 17px;
 }
 
+.dispute-chat__row--admin .dispute-chat__author {
+  color: #ad3829;
+  display: flex;
+  justify-content: center;
+  margin: 0 0 8px;
+}
+
 .dispute-chat__bubble {
   background: #3bb3f5;
   border-radius: 11px;
@@ -285,6 +297,7 @@
   border-radius: 13px;
   box-shadow: 0 16px 35px rgba(173, 56, 41, 0.16);
   padding: 16px 22px;
+  text-align: center;
 }
 
 .dispute-chat__row--provider .dispute-chat__bubble {
@@ -314,6 +327,11 @@
   font-weight: 850;
   margin-top: 8px;
   text-align: right;
+}
+
+.dispute-chat__row--admin time {
+  color: #5d6675;
+  text-align: center;
 }
 
 .dispute-chat__error,

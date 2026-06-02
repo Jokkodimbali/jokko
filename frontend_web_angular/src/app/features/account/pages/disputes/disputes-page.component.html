@@ -49,17 +49,13 @@
 
           <div class="disputes-page__reservation">
             <strong>{{ appointment.serviceName }}</strong>
+            <span [class]="'disputes-page__status disputes-page__status--' + statusTone(appointment)">
+              {{ statusLabel(appointment) }}
+            </span>
             <span>Avec {{ appointment.doctorName }} - Le {{ appointment.scheduledAt | date:'d MMM y' }}</span>
+            <small>{{ amountLabel(appointment) }}</small>
+            <b>{{ formatMoney(appointment.agreedPrice) }} FCFA</b>
           </div>
-
-          <div class="disputes-page__amount">
-            <span>{{ amountLabel(appointment) }}</span>
-            <strong>{{ formatMoney(appointment.agreedPrice) }} FCFA</strong>
-          </div>
-
-          <span [class]="'disputes-page__status disputes-page__status--' + statusTone(appointment)">
-            {{ statusLabel(appointment) }}
-          </span>
 
           <button
             *ngIf="!isUpcoming(appointment)"
@@ -70,16 +66,11 @@
             (click)="openDisputePage(appointment)"
             [attr.aria-label]="actionLabel(appointment) + ' ' + appointment.serviceName"
           >
-            <ng-container *ngIf="canOpenDispute(appointment); else iconAction">
-              Signaler litige
-            </ng-container>
-            <ng-template #iconAction>
-              <lucide-icon
-                [name]="appointment.status === 'LITIGE' ? 'arrow-right' : 'check'"
-                size="24"
-                [strokeWidth]="2.5"
-              ></lucide-icon>
-            </ng-template>
+            <lucide-icon
+              [name]="appointment.status === 'LITIGE' || canOpenDispute(appointment) ? 'arrow-right' : 'check'"
+              size="24"
+              [strokeWidth]="2.5"
+            ></lucide-icon>
           </button>
         </article>
       </section>

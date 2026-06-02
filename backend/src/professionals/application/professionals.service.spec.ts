@@ -49,6 +49,7 @@ describe('ProfileService', () => {
     findByUserId: jest.fn(),
     updateProfile: jest.fn(),
     findVerifiedById: jest.fn(),
+    findPublicById: jest.fn(),
     listVerified: jest.fn(),
   };
 
@@ -151,7 +152,7 @@ describe('ProfileService', () => {
       const mockProfile = createMockProfileView({
         statutKyc: StatutKyc.VERIFIE,
       });
-      mockRepository.findVerifiedById.mockResolvedValue(mockProfile);
+      mockRepository.findPublicById.mockResolvedValue(mockProfile);
 
       const result = await service.getProfessionalById('profile-123');
 
@@ -159,7 +160,7 @@ describe('ProfileService', () => {
     });
 
     it('should throw when profile not found', async () => {
-      mockRepository.findVerifiedById.mockResolvedValue(null);
+      mockRepository.findPublicById.mockResolvedValue(null);
 
       await expect(
         service.getProfessionalById('missing'),

@@ -124,6 +124,41 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Profil mis a jour avec succes.',
     },
+    USERS_PASSWORD_UPDATED: {
+      code: 'USERS_PASSWORD_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Mot de passe mis a jour avec succes.',
+    },
+    USERS_MEDICAL_PROFILE_RETRIEVED: {
+      code: 'USERS_MEDICAL_PROFILE_RETRIEVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Fiche medicale recuperee avec succes.',
+    },
+    USERS_MEDICAL_PROFILE_UPDATED: {
+      code: 'USERS_MEDICAL_PROFILE_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Fiche medicale mise a jour avec succes.',
+    },
+    USERS_MEDICAL_TREATMENT_CREATED: {
+      code: 'USERS_MEDICAL_TREATMENT_CREATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Traitement medical ajoute avec succes.',
+    },
+    USERS_MEDICAL_TREATMENT_UPDATED: {
+      code: 'USERS_MEDICAL_TREATMENT_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Traitement medical mis a jour avec succes.',
+    },
+    USERS_MEDICAL_TREATMENT_DELETED: {
+      code: 'USERS_MEDICAL_TREATMENT_DELETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Traitement medical supprime avec succes.',
+    },
+    USERS_MEDICAL_TREATMENT_NOT_FOUND: {
+      code: 'USERS_MEDICAL_TREATMENT_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Traitement medical introuvable.',
+    },
     USERS_AVATAR_UPDATED: {
       code: 'USERS_AVATAR_UPDATED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
@@ -556,6 +591,11 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'DISPUTES_MESSAGE_SENT',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
       message: 'Message de mediation envoye avec succes.',
+    },
+    DISPUTES_EVIDENCE_UPLOADED: {
+      code: 'DISPUTES_EVIDENCE_UPLOADED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Preuves du litige ajoutees avec succes.',
     },
     DISPUTES_NOT_FOUND: {
       code: 'DISPUTES_NOT_FOUND',

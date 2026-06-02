@@ -1,0 +1,106 @@
+<main class="disputes-page">
+  <section class="disputes-page__nav" aria-label="Navigation principale">
+    <app-navbar />
+  </section>
+
+  <header class="disputes-page__top">
+    <button type="button" class="disputes-page__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="20" [strokeWidth]="2.3"></lucide-icon>
+      Retour
+    </button>
+  </header>
+
+  <ng-container *ngIf="currentUser(); else loginRequired">
+    <section class="disputes-page__content">
+      <header class="disputes-page__heading">
+        <h1>Mes reservations</h1>
+        <p>Choisissez la reservation pour laquelle vous considerez qu'il y a un litige.</p>
+      </header>
+
+      <nav class="disputes-page__filters" aria-label="Filtres des reservations">
+        <button type="button" [class.active]="activeFilter() === 'all'" (click)="selectFilter('all')">Toutes</button>
+        <button type="button" [class.active]="activeFilter() === 'upcoming'" (click)="selectFilter('upcoming')">
+          A venir
+          <span *ngIf="upcomingCount() > 0">{{ upcomingCount() }}</span>
+        </button>
+        <button type="button" [class.active]="activeFilter() === 'completed'" (click)="selectFilter('completed')">
+          Terminees
+          <span *ngIf="completedCount() > 0">{{ completedCount() }}</span>
+        </button>
+        <button type="button" class="disputes-page__filter-dispute" [class.active]="activeFilter() === 'disputed'" (click)="selectFilter('disputed')">
+          <i></i>
+          Litiges ({{ disputedCount() }})
+        </button>
+      </nav>
+
+      <p *ngIf="isLoading()" class="disputes-page__state">Chargement de vos reservations...</p>
+      <p *ngIf="errorMessage()" class="disputes-page__state disputes-page__state--error">{{ errorMessage() }}</p>
+
+      <section *ngIf="!isLoading() && filteredAppointments().length > 0; else emptyList" class="disputes-page__list">
+        <article
+          *ngFor="let appointment of filteredAppointments(); trackBy: trackById"
+          class="disputes-page__card"
+          [class.disputes-page__card--dispute]="appointment.status === 'LITIGE'"
+          [class.disputes-page__card--actionable]="canOpenDispute(appointment)"
+        >
+          <span class="disputes-page__service-icon">
+            <lucide-icon [name]="appointment.status === 'LITIGE' ? 'scale' : 'wrench'" size="24" [strokeWidth]="2.3"></lucide-icon>
+          </span>
+
+          <div class="disputes-page__reservation">
+            <strong>{{ appointment.serviceName }}</strong>
+            <span>Avec {{ appointment.doctorName }} - Le {{ appointment.scheduledAt | date:'d MMM y' }}</span>
+          </div>
+
+          <div class="disputes-page__amount">
+            <span>{{ amountLabel(appointment) }}</span>
+            <strong>{{ formatMoney(appointment.agreedPrice) }} FCFA</strong>
+          </div>
+
+          <span [class]="'disputes-page__status disputes-page__status--' + statusTone(appointment)">
+            {{ statusLabel(appointment) }}
+          </span>
+
+          <button
+            *ngIf="!isUpcoming(appointment)"
+            type="button"
+            class="disputes-page__action"
+            [class.disputes-page__action--report]="canOpenDispute(appointment)"
+            [disabled]="!canOpenDispute(appointment) && appointment.status !== 'LITIGE'"
+            (click)="openDisputePage(appointment)"
+            [attr.aria-label]="actionLabel(appointment) + ' ' + appointment.serviceName"
+          >
+            <ng-container *ngIf="canOpenDispute(appointment); else iconAction">
+              Signaler litige
+            </ng-container>
+            <ng-template #iconAction>
+              <lucide-icon
+                [name]="appointment.status === 'LITIGE' ? 'arrow-right' : 'check'"
+                size="24"
+                [strokeWidth]="2.5"
+              ></lucide-icon>
+            </ng-template>
+          </button>
+        </article>
+      </section>
+
+      <ng-template #emptyList>
+        <section *ngIf="!isLoading()" class="disputes-page__empty">
+          <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
+          <h2>Aucune reservation a afficher</h2>
+          <p>Les reservations disponibles pour votre compte apparaitront ici.</p>
+        </section>
+      </ng-template>
+    </section>
+  </ng-container>
+
+  <ng-template #loginRequired>
+    <section class="disputes-page__empty disputes-page__empty--login">
+      <h1>Connexion requise</h1>
+      <p>Connectez-vous pour consulter vos reservations et signaler un litige.</p>
+      <a routerLink="/auth/login">Se connecter</a>
+    </section>
+  </ng-template>
+
+  <app-footer />
+</main>

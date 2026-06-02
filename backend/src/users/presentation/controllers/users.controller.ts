@@ -6,8 +6,10 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
+  Put,
   Req,
   Query,
   UseGuards,
@@ -32,8 +34,12 @@ import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
 import { UsersService } from '../../application/services/users.service';
+import { UsersMedicalProfileService } from '../../application/services/users-medical-profile.service';
 import { UpdateMyProfileDto } from '../dto/update-my-profile.dto';
 import { UpdateMyAvatarDto } from '../dto/update-my-avatar.dto';
+import { ChangeMyPasswordDto } from '../dto/change-my-password.dto';
+import { UpdateMyMedicalProfileDto } from '../dto/update-my-medical-profile.dto';
+import { UpsertMyMedicalTreatmentDto } from '../dto/upsert-my-medical-treatment.dto';
 import { MyHistoryQueryDto } from '../dto/my-history-query.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
@@ -72,7 +78,10 @@ function buildAvatarFileName(userId: string, originalName: string): string {
 @ApiBearerAuth()
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly usersMedicalProfileService: UsersMedicalProfileService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -129,6 +138,120 @@ export class UsersController {
     return createApiResponse(
       result,
       appMessage('USERS_PROFILE_UPDATED').message,
+    );
+  }
+
+  @Patch('me/password')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Modifier mon mot de passe' })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('USERS_PASSWORD_UPDATED').message,
+    messageExample: appMessage('USERS_PASSWORD_UPDATED').message,
+    dataSchema: {
+      type: 'null',
+      example: null,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 401,
+    description: API_DOCS.common.unauthorized,
+    errorCode: 'AUTH_INVALID_CREDENTIALS',
+    messageExample: appMessage('AUTH_INVALID_CREDENTIALS').message,
+  })
+  async changeMyPassword(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangeMyPasswordDto,
+  ) {
+    await this.usersService.changeMyPassword(user.sub, dto);
+    return createApiResponse(
+      null,
+      appMessage('USERS_PASSWORD_UPDATED').message,
+    );
+  }
+
+  @Get('me/medical-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Consulter ma fiche medicale' })
+  async myMedicalProfile(@CurrentUser() user: AuthUser) {
+    const result = await this.usersMedicalProfileService.getMyMedicalProfile(
+      user.sub,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_PROFILE_RETRIEVED').message,
+    );
+  }
+
+  @Put('me/medical-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Creer ou modifier ma fiche medicale' })
+  async updateMyMedicalProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateMyMedicalProfileDto,
+  ) {
+    const result = await this.usersMedicalProfileService.updateMyMedicalProfile(
+      user.sub,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_PROFILE_UPDATED').message,
+    );
+  }
+
+  @Post('me/medical-profile/treatments')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Ajouter un traitement medical' })
+  async createMyMedicalTreatment(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpsertMyMedicalTreatmentDto,
+  ) {
+    const result = await this.usersMedicalProfileService.createTreatment(
+      user.sub,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_TREATMENT_CREATED').message,
+    );
+  }
+
+  @Patch('me/medical-profile/treatments/:treatmentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Modifier un traitement medical' })
+  async updateMyMedicalTreatment(
+    @CurrentUser() user: AuthUser,
+    @Param('treatmentId') treatmentId: string,
+    @Body() dto: UpsertMyMedicalTreatmentDto,
+  ) {
+    const result = await this.usersMedicalProfileService.updateTreatment(
+      user.sub,
+      treatmentId,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_TREATMENT_UPDATED').message,
+    );
+  }
+
+  @Delete('me/medical-profile/treatments/:treatmentId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Supprimer un traitement medical' })
+  async deleteMyMedicalTreatment(
+    @CurrentUser() user: AuthUser,
+    @Param('treatmentId') treatmentId: string,
+  ) {
+    const result = await this.usersMedicalProfileService.deleteTreatment(
+      user.sub,
+      treatmentId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_TREATMENT_DELETED').message,
     );
   }
 

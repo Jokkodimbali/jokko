@@ -114,6 +114,21 @@ export interface AdminDisputeMediationMessage {
   };
 }
 
+export interface AdminDisputeEvidence {
+  id: string;
+  uploaderUserId: string;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileUrl: string;
+  createdAt: string | Date;
+  uploader: {
+    id: string;
+    nom: string;
+    role: string;
+  };
+}
+
 export interface AdminDisputeCase {
   id: string;
   reservationId: string;
@@ -174,6 +189,7 @@ export interface AdminDisputeCase {
     userId: string;
     nom: string;
   };
+  evidence: AdminDisputeEvidence[];
 }
 
 export interface AdminProviderProfile {

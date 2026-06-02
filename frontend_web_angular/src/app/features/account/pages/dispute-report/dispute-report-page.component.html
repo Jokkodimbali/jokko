@@ -1,0 +1,136 @@
+<main class="dispute-report">
+  <section class="dispute-report__nav" aria-label="Navigation principale">
+    <app-navbar />
+  </section>
+
+  <header class="dispute-report__top">
+    <button type="button" class="dispute-report__back" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="20" [strokeWidth]="2.3"></lucide-icon>
+      Retour
+    </button>
+  </header>
+
+  <ng-container *ngIf="appointment() as currentAppointment; else loadingOrEmpty">
+    <section class="dispute-report__content">
+      <header class="dispute-report__heading">
+        <span class="dispute-report__alert-icon">
+          <lucide-icon name="triangle-alert" size="34" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+        <div>
+          <h1>Signalez un probleme</h1>
+          <p>Nous sommes desoles que votre experience ne soit pas deroulee comme prevu. Remplissez les etapes ci-dessous pour ouvrir un litige</p>
+        </div>
+      </header>
+
+      <article class="dispute-report__summary">
+        <span class="dispute-report__service-icon">
+          <lucide-icon name="wrench" size="24" [strokeWidth]="2.3"></lucide-icon>
+        </span>
+
+        <div>
+          <strong>{{ currentAppointment.serviceName }}</strong>
+          <span>Avec {{ currentAppointment.doctorName }} - Le {{ currentAppointment.scheduledAt | date:'d MMM y' }}</span>
+        </div>
+
+        <aside>
+          <span>{{ amountLabel(currentAppointment) }}</span>
+          <strong>{{ formatMoney(currentAppointment.agreedPrice) }} FCFA</strong>
+        </aside>
+      </article>
+
+      <p *ngIf="errorMessage()" class="dispute-report__error">{{ errorMessage() }}</p>
+
+      <section class="dispute-report__step">
+        <header>
+          <span>1</span>
+          <h2>Quels est le motif de votre reclamation</h2>
+        </header>
+
+        <div class="dispute-report__reasons">
+          <button
+            *ngFor="let reason of reasonOptions"
+            type="button"
+            [class.active]="selectedReason() === reason.key"
+            (click)="selectReason(reason.key)"
+          >
+            <span>
+              <lucide-icon [name]="reason.icon" size="21" [strokeWidth]="2.1"></lucide-icon>
+            </span>
+            <strong>{{ reason.label }}</strong>
+            <small>{{ reason.caption }}</small>
+            <i *ngIf="selectedReason() === reason.key">
+              <lucide-icon name="check" size="15" [strokeWidth]="3"></lucide-icon>
+            </i>
+          </button>
+        </div>
+      </section>
+
+      <section class="dispute-report__step">
+        <header>
+          <span>2</span>
+          <h2>Decrivez la situation en detail</h2>
+        </header>
+
+        <div class="dispute-report__textarea-wrap">
+          <textarea
+            name="disputeDescription"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+            rows="5"
+            maxlength="850"
+            placeholder="La fuite est reapparue 3 jours apres leur passage. J ai essaye de les contacter mais ils refusent de revenir gratuitement pour corriger le probleme. Je demande un remboursement"
+          ></textarea>
+        </div>
+      </section>
+
+      <section class="dispute-report__step">
+        <header>
+          <span>3</span>
+          <h2>Ajoutez des preuves (photo, facture, etc...)</h2>
+        </header>
+
+        <div class="dispute-report__evidence">
+          <article *ngFor="let file of evidenceFiles(); let index = index" class="dispute-report__file">
+            <button type="button" aria-label="Retirer la preuve" (click)="removeEvidence(index)">
+              <lucide-icon name="x" size="14" [strokeWidth]="2.6"></lucide-icon>
+            </button>
+            <lucide-icon [name]="fileIcon(file)" size="32" [strokeWidth]="2.2"></lucide-icon>
+            <span>{{ file.name }}</span>
+          </article>
+
+          <label class="dispute-report__add-file">
+            <input type="file" accept="image/*,application/pdf" multiple (change)="onEvidenceSelected($event)" />
+            <lucide-icon name="plus" size="34" [strokeWidth]="2"></lucide-icon>
+            <span>Ajouter</span>
+          </label>
+        </div>
+      </section>
+
+      <footer class="dispute-report__actions">
+        <button type="button" class="dispute-report__cancel" (click)="goBack()">Annuler</button>
+        <button
+          type="button"
+          class="dispute-report__submit"
+          [disabled]="!canSubmit(currentAppointment) || isSubmitting()"
+          (click)="submitDispute()"
+        >
+          Soumettre le litige
+          <lucide-icon name="send" size="28" [strokeWidth]="2.2"></lucide-icon>
+        </button>
+      </footer>
+    </section>
+  </ng-container>
+
+  <ng-template #loadingOrEmpty>
+    <section class="dispute-report__empty">
+      <p *ngIf="isLoading(); else emptyState">Chargement de la reservation...</p>
+      <ng-template #emptyState>
+        <h1>Reservation introuvable</h1>
+        <p>{{ errorMessage() || 'Cette reservation ne peut pas etre chargee.' }}</p>
+        <button type="button" (click)="goBack()">Retour aux litiges</button>
+      </ng-template>
+    </section>
+  </ng-template>
+
+  <app-footer />
+</main>

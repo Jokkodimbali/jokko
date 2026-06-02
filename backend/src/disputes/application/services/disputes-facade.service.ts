@@ -46,6 +46,13 @@ export class DisputesFacade {
     return this.disputeQueryService.getById(disputeId);
   }
 
+  getByReservationForUser(requestUser: AuthUser, reservationId: string) {
+    return this.disputeQueryService.getByReservationForUser(
+      requestUser,
+      reservationId,
+    );
+  }
+
   markInReview(requestUser: AuthUser, disputeId: string) {
     return this.disputeCommandService.markInReview(requestUser, disputeId);
   }
@@ -64,5 +71,22 @@ export class DisputesFacade {
 
   reject(requestUser: AuthUser, disputeId: string, input: { notes: string }) {
     return this.disputeCommandService.reject(requestUser, disputeId, input);
+  }
+
+  addEvidenceForReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    files: Array<{
+      originalFileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      fileUrl: string;
+    }>,
+  ) {
+    return this.disputeCommandService.addEvidenceForReservation(
+      requestUser,
+      reservationId,
+      files,
+    );
   }
 }

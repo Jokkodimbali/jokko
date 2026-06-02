@@ -164,3 +164,101 @@ export interface AppointmentStat {
   value: number;
   caption: string;
 }
+
+export interface DisputeEvidenceView {
+  id: string;
+  uploaderUserId: string;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileUrl: string;
+  createdAt: string | Date;
+  uploader: {
+    id: string;
+    nom: string;
+    role: string;
+  };
+}
+
+export interface ReservationDisputeView {
+  id: string;
+  reservationId: string;
+  paiementId: string | null;
+  reporterUserId: string;
+  resolvedByAdminUserId: string | null;
+  statut: 'OUVERT' | 'EN_REVUE' | 'RESOLU' | 'REJETE' | string;
+  priorite: 'BASSE' | 'MOYENNE' | 'HAUTE' | string;
+  raison: string;
+  notesInternes: string | null;
+  decisionResolution: string | null;
+  pourcentageRemboursementClient: number | null;
+  montantRembourseClient: number | null;
+  montantPrestataire: number | null;
+  ouvertLe: string | Date;
+  prisEnChargeLe: string | Date | null;
+  resoluLe: string | Date | null;
+  rejeteLe: string | Date | null;
+  creeLe: string | Date;
+  misAJourLe: string | Date;
+  slaRemainingHours?: number;
+  reservation: {
+    id: string;
+    statut: string;
+    dateHeure: string | Date;
+    adresseClient: string;
+    dureeMinutes: number;
+    prixConvenu: number | null;
+    clientId: string;
+    professionnelId: string;
+    serviceId: string;
+    service: {
+      id: string;
+      nom: string;
+      prix: number;
+    };
+    messages: Array<{
+      id: string;
+      expediteurId: string;
+      contenu: string | null;
+      urlMedia: string | null;
+      creeLe: string | Date;
+      expediteur: {
+        id: string;
+        nom: string;
+        role: string;
+      };
+    }>;
+    mediationMessages: Array<{
+      id: string;
+      destinataire: 'CLIENT' | 'PRESTATAIRE' | 'TOUS';
+      contenu: string;
+      creeLe: string | Date;
+      expediteurAdmin: {
+        id: string;
+        nom: string;
+      };
+    }>;
+  };
+  payment: {
+    id: string;
+    statut: string;
+    escrowStatus: string;
+    montant: number;
+    montantNet: number;
+  } | null;
+  reporter: {
+    id: string;
+    nom: string;
+    role: string;
+  };
+  client: {
+    id: string;
+    nom: string;
+  };
+  professional: {
+    profileId: string;
+    userId: string;
+    nom: string;
+  };
+  evidence: DisputeEvidenceView[];
+}

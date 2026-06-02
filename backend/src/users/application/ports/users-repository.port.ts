@@ -103,4 +103,9 @@ export interface UsersRepositoryPort {
     limit: number,
   ): Promise<AdminUserHistoryView | null>;
   countActiveUsers(): Promise<number>;
+  findPasswordHashById(userId: string): Promise<string | null | undefined>;
+  updatePasswordHashById(
+    userId: string,
+    passwordHash: string,
+  ): Promise<boolean>;
 }

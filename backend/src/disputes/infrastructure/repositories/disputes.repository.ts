@@ -118,6 +118,25 @@ const DISPUTE_INCLUDE = {
     },
     orderBy: { creeLe: 'asc' },
   },
+  preuves: {
+    select: {
+      id: true,
+      uploaderUserId: true,
+      nomFichierOriginal: true,
+      typeMime: true,
+      tailleOctets: true,
+      urlFichier: true,
+      creeLe: true,
+      uploader: {
+        select: {
+          id: true,
+          nom: true,
+          role: true,
+        },
+      },
+    },
+    orderBy: { creeLe: 'asc' },
+  },
 } as const;
 
 type DisputeRecord = Prisma.LitigeGetPayload<{
@@ -420,6 +439,35 @@ export class DisputesRepository implements DisputesRepositoryPort {
     return result;
   }
 
+  async createEvidence(input: {
+    disputeId: string;
+    uploaderUserId: string;
+    files: Array<{
+      originalFileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      fileUrl: string;
+    }>;
+  }): Promise<DisputeAdminListItem> {
+    await this.prisma.preuveLitige.createMany({
+      data: input.files.map((file) => ({
+        litigeId: input.disputeId,
+        uploaderUserId: input.uploaderUserId,
+        nomFichierOriginal: file.originalFileName,
+        typeMime: file.mimeType,
+        tailleOctets: file.sizeBytes,
+        urlFichier: file.fileUrl,
+      })),
+    });
+
+    const dispute = await this.findById(input.disputeId);
+    if (!dispute) {
+      throw new Error('DISPUTE_NOT_FOUND_AFTER_EVIDENCE_UPLOAD');
+    }
+
+    return dispute;
+  }
+
   async listAdminUserIds(): Promise<string[]> {
     const admins = await this.prisma.utilisateur.findMany({
       where: {
@@ -594,6 +642,20 @@ export class DisputesRepository implements DisputesRepositoryPort {
         userId: record.reservation.professionnel.utilisateur.id,
         nom: record.reservation.professionnel.utilisateur.nom,
       },
+      evidence: record.preuves.map((evidence) => ({
+        id: evidence.id,
+        uploaderUserId: evidence.uploaderUserId,
+        originalFileName: evidence.nomFichierOriginal,
+        mimeType: evidence.typeMime,
+        sizeBytes: evidence.tailleOctets,
+        fileUrl: evidence.urlFichier,
+        createdAt: evidence.creeLe,
+        uploader: {
+          id: evidence.uploader.id,
+          nom: evidence.uploader.nom,
+          role: evidence.uploader.role,
+        },
+      })),
     };
   }
 

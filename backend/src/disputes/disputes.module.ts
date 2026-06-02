@@ -9,10 +9,11 @@ import { DisputeQueryService } from './application/services/dispute-query.servic
 import { DisputesFacade } from './application/services/disputes-facade.service';
 import { DisputesRepository } from './infrastructure/repositories/disputes.repository';
 import { AdminDisputesController } from './presentation/controllers/admin-disputes.controller';
+import { UserDisputeEvidenceController } from './presentation/controllers/user-dispute-evidence.controller';
 
 @Module({
   imports: [PrismaModule, NotificationsModule, AuthModule],
-  controllers: [AdminDisputesController],
+  controllers: [AdminDisputesController, UserDisputeEvidenceController],
   providers: [
     DisputesRepository,
     {

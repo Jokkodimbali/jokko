@@ -82,6 +82,12 @@
           </span>
           <span>Mes favoris</span>
         </a>
+        <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+          <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--dispute">
+            <lucide-icon name="scale" size="18" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <span>Litige</span>
+        </a>
         <a routerLink="/settings" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
           <span class="app-navbar__dropdown-icon">
             <lucide-icon name="settings" size="18" [strokeWidth]="2.2"></lucide-icon>
@@ -217,6 +223,10 @@
         <a routerLink="/favorites" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
           <lucide-icon name="heart" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Mes favoris</span>
+        </a>
+        <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__mobile-action-item app-navbar__mobile-action-item--dispute" (click)="closeMobileNav()">
+          <lucide-icon name="scale" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Litige</span>
         </a>
         <a routerLink="/settings" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
           <lucide-icon name="settings" size="22" [strokeWidth]="2.4"></lucide-icon>

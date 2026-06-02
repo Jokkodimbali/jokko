@@ -1,0 +1,340 @@
+:host {
+  display: block;
+}
+
+.disputes-page {
+  background: #ffffff;
+  color: #08090b;
+  min-height: 100vh;
+}
+
+.disputes-page__nav {
+  background: #8d5527;
+  min-height: 88px;
+}
+
+.disputes-page__nav app-navbar {
+  display: block;
+}
+
+.disputes-page__top {
+  align-items: center;
+  border-bottom: 1px solid #d9dee7;
+  display: flex;
+  min-height: 64px;
+  padding: 0 32px;
+}
+
+.disputes-page__back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #667085;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 16px;
+  font-weight: 750;
+  gap: 10px;
+  padding: 0;
+}
+
+.disputes-page__back lucide-icon {
+  align-items: center;
+  border: 1px solid #d9dee7;
+  border-radius: 50%;
+  color: #64748b;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.disputes-page__content {
+  margin: 0 auto;
+  padding: 36px 24px 72px;
+  width: min(100%, 760px);
+}
+
+.disputes-page__heading h1 {
+  font-size: clamp(34px, 4vw, 45px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.disputes-page__heading p {
+  color: #73798a;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: 0;
+  margin: 4px 0 0;
+}
+
+.disputes-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0 30px;
+}
+
+.disputes-page__filters button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #08090b;
+  border-radius: 999px;
+  color: #111318;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 750;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 20px;
+}
+
+.disputes-page__filters button.active {
+  background: #050505;
+  color: #ffffff;
+}
+
+.disputes-page__filters button span {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  min-width: 22px;
+  padding: 2px 7px;
+}
+
+.disputes-page__filter-dispute {
+  border-color: #c45a4b !important;
+  color: #a94639 !important;
+}
+
+.disputes-page__filter-dispute.active {
+  background: #c45a4b !important;
+  color: #ffffff !important;
+}
+
+.disputes-page__filter-dispute i {
+  background: currentColor;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.disputes-page__list {
+  display: grid;
+  gap: 24px;
+}
+
+.disputes-page__card {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dbe6f1;
+  border-radius: 22px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 54px minmax(0, 1fr) 128px auto minmax(52px, auto);
+  min-height: 96px;
+  padding: 18px 20px;
+}
+
+.disputes-page__card--actionable {
+  border-color: #bfcfe2;
+  box-shadow: inset 0 0 0 1px #d4e2ef;
+}
+
+.disputes-page__card--dispute {
+  border-color: #e35f50;
+}
+
+.disputes-page__service-icon {
+  align-items: center;
+  background: #edf0f3;
+  border-radius: 50%;
+  color: #0d1015;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.disputes-page__reservation,
+.disputes-page__amount {
+  display: grid;
+  gap: 5px;
+}
+
+.disputes-page__reservation strong {
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.disputes-page__reservation span,
+.disputes-page__amount span {
+  color: #73798a;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.disputes-page__amount {
+  text-align: right;
+}
+
+.disputes-page__amount strong {
+  color: #0b0c0f;
+  font-size: 17px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.disputes-page__status {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.disputes-page__status--upcoming {
+  background: #ece7e2;
+  color: #111318;
+}
+
+.disputes-page__status--done {
+  background: #e8faf0;
+  color: #16a34a;
+}
+
+.disputes-page__status--dispute {
+  background: #b45246;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.disputes-page__status--neutral {
+  background: #f1f2f4;
+  color: #667085;
+}
+
+.disputes-page__action {
+  align-items: center;
+  background: #42d774;
+  border: 0;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.disputes-page__action--report {
+  background: #16a34a;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 950;
+  height: 38px;
+  min-width: 124px;
+  padding: 0 16px;
+  text-transform: uppercase;
+  width: auto;
+}
+
+.disputes-page__card--dispute .disputes-page__action {
+  background: #b45246;
+}
+
+.disputes-page__action:disabled {
+  background: #edf0f3;
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+
+.disputes-page__state {
+  color: #667085;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.disputes-page__state--error {
+  color: #b42318;
+}
+
+.disputes-page__empty {
+  align-items: center;
+  border: 1px dashed #d6dde7;
+  border-radius: 22px;
+  color: #667085;
+  display: grid;
+  justify-items: center;
+  margin-top: 26px;
+  min-height: 220px;
+  padding: 34px;
+  text-align: center;
+}
+
+.disputes-page__empty h1,
+.disputes-page__empty h2 {
+  color: #0b0c0f;
+  font-size: 24px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.disputes-page__empty p {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+
+.disputes-page__empty a {
+  align-items: center;
+  background: #9a5c20;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 900;
+  margin-top: 18px;
+  min-height: 42px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.disputes-page__empty--login {
+  margin: 80px auto;
+  width: min(calc(100% - 40px), 560px);
+}
+
+@media (max-width: 760px) {
+  .disputes-page__top {
+    padding: 0 18px;
+  }
+
+  .disputes-page__content {
+    padding: 26px 18px 56px;
+  }
+
+  .disputes-page__card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .disputes-page__amount,
+  .disputes-page__status {
+    grid-column: 2 / -1;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .disputes-page__action {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

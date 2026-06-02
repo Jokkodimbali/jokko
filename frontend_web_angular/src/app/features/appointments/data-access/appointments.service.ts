@@ -11,6 +11,7 @@ import {
   BackendReservation,
   PaymentInitiationView,
   PaymentMethod,
+  ReservationDisputeView,
 } from '../domain/appointments.models';
 
 @Injectable({
@@ -107,6 +108,34 @@ export class AppointmentsService {
         {},
       )
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  openDispute(reservationId: string, reason: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/dispute`, {
+        reason,
+      })
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  uploadDisputeEvidence(reservationId: string, files: File[]): Observable<unknown[]> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('evidence', file));
+
+    return this.http
+      .post<ApiResponse<unknown[]>>(
+        `${this.apiUrl}/reservations/${reservationId}/dispute/evidence`,
+        formData,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getReservationDispute(reservationId: string): Observable<ReservationDisputeView> {
+    return this.http
+      .get<ApiResponse<ReservationDisputeView>>(
+        `${this.apiUrl}/reservations/${reservationId}/dispute`,
+      )
+      .pipe(map(unwrapApiResponse));
   }
 
   markProviderOnTheWay(

@@ -31,6 +31,48 @@ export interface SavedPaymentMethodView {
   updatedAt: string;
 }
 
+export interface UserHistoryItemView {
+  id: string;
+  statut: string;
+  dateHeure: string;
+  notes: string | null;
+  creeLe: string;
+  service: {
+    id: string;
+    nom: string;
+    prix: number;
+    typePrix: string;
+  };
+}
+
+export interface MedicalTreatmentView {
+  id: string;
+  name: string;
+  dosage: string | null;
+  frequency: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MedicalProfileView {
+  id: string | null;
+  bloodGroup: string | null;
+  rhesus: string | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  referenceDoctorName: string | null;
+  profession: string | null;
+  allergies: string[];
+  conditions: string[];
+  bmi: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  treatments: MedicalTreatmentView[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -88,6 +130,70 @@ export class AuthService {
       .pipe(map(unwrapApiResponse));
   }
 
+  myUserHistory(limit = 8): Observable<UserHistoryItemView[]> {
+    return this.http
+      .get<ApiResponse<UserHistoryItemView[]>>(`${this.usersApiUrl}/me/history`, {
+        params: { limit },
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getMyMedicalProfile(): Observable<MedicalProfileView> {
+    return this.http
+      .get<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateMyMedicalProfile(data: {
+    bloodGroup?: string | null;
+    rhesus?: string | null;
+    weightKg?: number | null;
+    heightCm?: number | null;
+    referenceDoctorName?: string | null;
+    profession?: string | null;
+    allergies?: string[];
+    conditions?: string[];
+  }): Observable<MedicalProfileView> {
+    return this.http
+      .put<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  createMyMedicalTreatment(data: {
+    name: string;
+    dosage?: string | null;
+    frequency?: string | null;
+    startedAt?: string | null;
+    endedAt?: string | null;
+    notes?: string | null;
+  }): Observable<MedicalProfileView> {
+    return this.http
+      .post<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateMyMedicalTreatment(
+    treatmentId: string,
+    data: {
+      name: string;
+      dosage?: string | null;
+      frequency?: string | null;
+      startedAt?: string | null;
+      endedAt?: string | null;
+      notes?: string | null;
+    },
+  ): Observable<MedicalProfileView> {
+    return this.http
+      .patch<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  deleteMyMedicalTreatment(treatmentId: string): Observable<MedicalProfileView> {
+    return this.http
+      .delete<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
   updateMyProfile(data: {
     name?: string;
     email?: string | null;
@@ -116,6 +222,15 @@ export class AuthService {
   deleteMyAccount(): Observable<void> {
     return this.http
       .delete<ApiResponse<null>>(`${this.usersApiUrl}/me`)
+      .pipe(map(() => undefined));
+  }
+
+  changeMyPassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Observable<void> {
+    return this.http
+      .patch<ApiResponse<null>>(`${this.usersApiUrl}/me/password`, data)
       .pipe(map(() => undefined));
   }
 

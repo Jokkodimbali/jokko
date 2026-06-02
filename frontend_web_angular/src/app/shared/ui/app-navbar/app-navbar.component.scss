@@ -288,6 +288,11 @@
   color: #ffffff;
 }
 
+.app-navbar__dropdown-icon--dispute {
+  background: #f27766;
+  color: #ffffff;
+}
+
 .app-navbar__hamburger {
   align-items: center;
   background: rgba(255, 255, 255, 0.15);
@@ -538,6 +543,10 @@
 
 .app-navbar__mobile-action-item--provider lucide-icon {
   color: #8fb0ff;
+}
+
+.app-navbar__mobile-action-item--dispute lucide-icon {
+  color: #ff8a7a;
 }
 
 /* Mobile Login Button */

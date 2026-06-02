@@ -210,12 +210,52 @@ model Utilisateur {
   negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
   paiementsClient           Paiement[]             @relation("PaymentsClient")
   moyensPaiementEnregistres MoyenPaiementEnregistre[]
+  ficheMedicaleClient       FicheMedicaleClient?
   litigesSignales           Litige[]               @relation("ReportedDisputes")
   litigesResolus            Litige[]               @relation("ResolvedDisputes")
+  preuvesLitigeUploadees    PreuveLitige[]         @relation("DisputeEvidenceUploaders")
   messagesLitigeAdmin       MessageLitige[]        @relation("DisputeAdminMessages")
   sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
 
   @@map("users")
+}
+
+model FicheMedicaleClient {
+  id                String   @id @default(uuid()) @db.Uuid
+  utilisateurId     String   @unique @map("user_id") @db.Uuid
+  groupeSanguin     String?  @map("blood_group") @db.VarChar(8)
+  rhesus            String?  @db.VarChar(20)
+  poidsKg           Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  tailleCm          Int?     @map("height_cm") @db.SmallInt
+  medecinReferent   String?  @map("reference_doctor_name") @db.VarChar(120)
+  profession        String?  @db.VarChar(120)
+  allergies         String[] @default([])
+  antecedents       String[] @default([]) @map("medical_conditions")
+  creeLe            DateTime @default(now()) @map("created_at")
+  misAJourLe        DateTime @updatedAt @map("updated_at")
+
+  utilisateur       Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  traitements       TraitementMedicalClient[]
+
+  @@map("client_medical_profiles")
+}
+
+model TraitementMedicalClient {
+  id                String    @id @default(uuid()) @db.Uuid
+  ficheMedicaleId   String    @map("medical_profile_id") @db.Uuid
+  nom               String    @map("name") @db.VarChar(160)
+  dosage            String?   @db.VarChar(120)
+  frequence         String?   @map("frequency") @db.VarChar(120)
+  dateDebut         DateTime? @map("started_at") @db.Date
+  dateFin           DateTime? @map("ended_at") @db.Date
+  notes             String?   @db.Text
+  creeLe            DateTime  @default(now()) @map("created_at")
+  misAJourLe        DateTime  @updatedAt @map("updated_at")
+
+  ficheMedicale     FicheMedicaleClient @relation(fields: [ficheMedicaleId], references: [id], onDelete: Cascade)
+
+  @@index([ficheMedicaleId, creeLe])
+  @@map("client_medical_treatments")
 }
 
 model SessionAuthentification {
@@ -607,11 +647,30 @@ model Litige {
   reporter                 Utilisateur                 @relation("ReportedDisputes", fields: [reporterUserId], references: [id], onDelete: Cascade)
   resolvedByAdmin          Utilisateur?                @relation("ResolvedDisputes", fields: [resolvedByAdminUserId], references: [id], onDelete: SetNull)
   messagesMediation        MessageLitige[]
+  preuves                  PreuveLitige[]
 
   @@index([statut, priorite, ouvertLe])
   @@index([reporterUserId, ouvertLe])
   @@index([resolvedByAdminUserId, resoluLe])
   @@map("disputes")
+}
+
+model PreuveLitige {
+  id                  String      @id @default(uuid()) @db.Uuid
+  litigeId            String      @map("dispute_id") @db.Uuid
+  uploaderUserId      String      @map("uploader_user_id") @db.Uuid
+  nomFichierOriginal  String      @map("original_file_name") @db.VarChar(255)
+  typeMime            String      @map("mime_type") @db.VarChar(100)
+  tailleOctets        Int         @map("size_bytes")
+  urlFichier          String      @map("file_url") @db.VarChar(500)
+  creeLe              DateTime    @default(now()) @map("created_at")
+
+  litige              Litige      @relation(fields: [litigeId], references: [id], onDelete: Cascade)
+  uploader            Utilisateur @relation("DisputeEvidenceUploaders", fields: [uploaderUserId], references: [id], onDelete: Cascade)
+
+  @@index([litigeId, creeLe])
+  @@index([uploaderUserId, creeLe])
+  @@map("dispute_evidence")
 }
 
 model MessageLitige {

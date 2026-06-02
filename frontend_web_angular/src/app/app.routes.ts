@@ -51,6 +51,34 @@ export const routes: Routes = [
     component: FavoritesPageComponent,
   },
   {
+    path: 'litiges',
+    loadComponent: () =>
+      import('./features/account/pages/disputes/disputes-page.component').then(
+        (m) => m.DisputesPageComponent,
+      ),
+  },
+  {
+    path: 'litiges/:id/suivi',
+    loadComponent: () =>
+      import('./features/account/pages/dispute-tracking/dispute-tracking-page.component').then(
+        (m) => m.DisputeTrackingPageComponent,
+      ),
+  },
+  {
+    path: 'litiges/:id/messages',
+    loadComponent: () =>
+      import('./features/account/pages/dispute-messages/dispute-messages-page.component').then(
+        (m) => m.DisputeMessagesPageComponent,
+      ),
+  },
+  {
+    path: 'litiges/:id',
+    loadComponent: () =>
+      import('./features/account/pages/dispute-report/dispute-report-page.component').then(
+        (m) => m.DisputeReportPageComponent,
+      ),
+  },
+  {
     path: 'settings',
     component: SettingsPageComponent,
   },

@@ -81,6 +81,10 @@ export class AppNavbarComponent implements OnInit {
     return !!user && user.role === 'PRESTATAIRE' && !this.showDoctorSpace();
   });
   protected readonly showAdminSpace = computed(() => this.currentUser()?.role === 'ADMIN');
+  protected readonly showDisputeAccess = computed(() => {
+    const role = this.currentUser()?.role;
+    return !!role && role !== 'ADMIN';
+  });
 
   protected readonly navItems = signal<AppNavItem[]>([
     {

@@ -55,6 +55,19 @@
           <p>{{ dispute.raison }}</p>
           <b>montant en jeu : {{ formatMoney(disputeAmount(dispute)) }} FCFA</b>
         </section>
+
+        <section class="admin-dispute-evidence" *ngIf="dispute.evidence.length > 0">
+          <strong>Preuves ajoutees</strong>
+          <a
+            *ngFor="let evidence of dispute.evidence"
+            [href]="evidence.fileUrl"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <lucide-icon name="file-text" size="14" [strokeWidth]="2"></lucide-icon>
+            {{ evidence.originalFileName }}
+          </a>
+        </section>
       </section>
 
       <section class="admin-dispute-thread" aria-label="Messages du litige">

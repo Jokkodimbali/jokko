@@ -5,12 +5,14 @@ import {
   normalizeAddress,
 } from '../../../shared/utils/string.utils';
 import { appHttpException } from '../../../core/http/app-http.exception';
+import { PasswordHashService } from '../../../auth/application/services/password-hash.service';
 import {
   USERS_REPOSITORY_PORT,
   type UserMeView,
   type UsersRepositoryPort,
 } from '../ports/users-repository.port';
 import type {
+  ChangeMyPasswordCommand,
   GetMyHistoryQuery,
   UpdateMyAvatarCommand,
   UpdateMyProfileCommand,
@@ -21,6 +23,7 @@ export class UsersService {
   constructor(
     @Inject(USERS_REPOSITORY_PORT)
     private readonly usersRepository: UsersRepositoryPort,
+    private readonly passwordHashService: PasswordHashService,
   ) {}
 
   async me(userId: string) {
@@ -76,6 +79,34 @@ export class UsersService {
 
   async updateMyAvatar(userId: string, command: UpdateMyAvatarCommand) {
     return this.updateMe(userId, { avatarUrl: command.avatarUrl });
+  }
+
+  async changeMyPassword(userId: string, command: ChangeMyPasswordCommand) {
+    await this.findUserOrThrow(userId);
+    const currentHash = await this.usersRepository.findPasswordHashById(userId);
+    if (currentHash === undefined) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
+    if (!currentHash) {
+      throw appHttpException('AUTH_INVALID_CREDENTIALS');
+    }
+
+    const isCurrentPasswordValid = await this.passwordHashService.compare(
+      command.currentPassword,
+      currentHash,
+    );
+    if (!isCurrentPasswordValid) {
+      throw appHttpException('AUTH_INVALID_CREDENTIALS');
+    }
+
+    const newHash = await this.passwordHashService.hash(command.newPassword);
+    const updated = await this.usersRepository.updatePasswordHashById(
+      userId,
+      newHash,
+    );
+    if (!updated) {
+      throw appHttpException('USERS_USER_NOT_FOUND');
+    }
   }
 
   async listForAdmin(

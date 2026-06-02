@@ -11,13 +11,16 @@ import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.
 import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import {
   AuthService,
+  MedicalProfileView,
+  MedicalTreatmentView,
   SavedPaymentMethodType,
   SavedPaymentMethodView,
+  UserHistoryItemView,
 } from '../../../auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../auth/domain/auth-ui.messages';
 import { UserProfileDto } from '../../../auth/domain/models/auth.models';
 
-type SettingsSection = 'profile' | 'payment' | 'favorites' | 'reservations';
+type SettingsSection = 'health' | 'account';
 
 @Component({
   selector: 'app-settings-page',
@@ -41,19 +44,29 @@ export class SettingsPageComponent implements OnInit {
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly profile = signal<UserProfileDto | null>(null);
-  protected readonly activeSection = signal<SettingsSection>('profile');
+  protected readonly activeSection = signal<SettingsSection>('health');
   protected readonly isLoading = signal(false);
   protected readonly isSavingProfile = signal(false);
   protected readonly isSavingAddress = signal(false);
   protected readonly isSavingAvatar = signal(false);
   protected readonly isSavingPaymentMethod = signal(false);
+  protected readonly isSavingMedicalProfile = signal(false);
+  protected readonly isSavingTreatment = signal(false);
+  protected readonly isSavingPassword = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly isEditingProfile = signal(false);
   protected readonly isEditingAddress = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
+  protected readonly medicalProfile = signal<MedicalProfileView | null>(null);
+  protected readonly userHistory = signal<UserHistoryItemView[]>([]);
   protected readonly editingPaymentMethodId = signal<string | null>(null);
+  protected readonly editingTreatmentId = signal<string | null>(null);
+  protected readonly isPaymentModalOpen = signal(false);
+  protected readonly isMedicalProfileModalOpen = signal(false);
+  protected readonly isTreatmentModalOpen = signal(false);
+  protected readonly showSensitivePaymentInfo = signal(false);
   protected readonly profileForm = {
     firstName: '',
     lastName: '',
@@ -71,6 +84,28 @@ export class SettingsPageComponent implements OnInit {
   protected readonly waveForm = {
     phoneNumber: '',
   };
+  protected readonly passwordForm = {
+    currentPassword: '',
+    newPassword: '',
+  };
+  protected readonly medicalProfileForm = {
+    bloodGroup: '',
+    rhesus: '',
+    weightKg: null as number | null,
+    heightCm: null as number | null,
+    referenceDoctorName: '',
+    profession: '',
+    allergiesText: '',
+    conditionsText: '',
+  };
+  protected readonly treatmentForm = {
+    name: '',
+    dosage: '',
+    frequency: '',
+    startedAt: '',
+    endedAt: '',
+    notes: '',
+  };
   protected readonly displayName = computed(() => this.profile()?.nom || this.currentUser()?.name || 'Mon profil');
   protected readonly initials = computed(() =>
     this.displayName()
@@ -87,6 +122,7 @@ export class SettingsPageComponent implements OnInit {
     if (role === 'ADMIN') return 'Administrateur';
     return 'Client';
   });
+  protected readonly roleBadge = computed(() => `${this.roleLabel().toUpperCase()} JOKKO`);
   protected readonly addressParts = computed(() => {
     const address = this.profile()?.adresse || '';
     const normalized = address.toLowerCase();
@@ -109,23 +145,69 @@ export class SettingsPageComponent implements OnInit {
   protected readonly savedWaveNumbers = computed(() =>
     this.savedPaymentMethods().filter((method) => method.type === 'WAVE'),
   );
+  protected readonly modalPaymentMethods = computed(() =>
+    this.selectedPaymentType() === 'CARD' ? this.savedCards() : this.savedWaveNumbers(),
+  );
+  protected readonly defaultCard = computed(() => this.savedCards()[0] ?? null);
+  protected readonly defaultWaveNumber = computed(() => this.savedWaveNumbers()[0] ?? null);
+  protected readonly defaultCardLabel = computed(() => this.defaultCard()?.maskedValue || 'Aucune carte');
+  protected readonly defaultWaveLabel = computed(() =>
+    this.defaultWaveNumber()?.maskedValue || this.profile()?.numeroTelephone || 'Non renseigne',
+  );
+  protected readonly visibleCardLabel = computed(() =>
+    this.showSensitivePaymentInfo()
+      ? this.defaultCard()
+        ? 'Carte securisee ' + this.extractLastDigits(this.defaultCard()?.maskedValue)
+        : 'Aucune carte'
+      : this.defaultCard()
+        ? '******** ' + this.extractLastDigits(this.defaultCard()?.maskedValue)
+        : 'Aucune carte',
+  );
+  protected readonly visibleWaveLabel = computed(() =>
+    this.showSensitivePaymentInfo()
+      ? this.defaultWaveLabel()
+      : this.defaultWaveNumber()
+        ? '****** ' + this.extractLastDigits(this.defaultWaveLabel())
+        : this.profile()?.numeroTelephone
+          ? '****** ' + this.extractLastDigits(this.profile()?.numeroTelephone)
+          : 'Non renseigne',
+  );
+  protected readonly medicalOverview = computed(() => {
+    const profile = this.medicalProfile();
+    return [
+      { label: 'Groupe sanguin', value: profile?.bloodGroup || 'Non renseigne', tone: 'orange' },
+      { label: 'Rhesus', value: profile?.rhesus || 'Non renseigne', tone: 'green' },
+      { label: 'Poids', value: profile?.weightKg ? `${profile.weightKg} kg` : 'Non renseigne', tone: 'blue' },
+      { label: 'Medecin ref.', value: profile?.referenceDoctorName || 'Non renseigne', tone: 'dark' },
+      { label: 'Profession', value: profile?.profession || this.roleLabel(), tone: 'orange' },
+      { label: 'Taille', value: profile?.heightCm ? `${profile.heightCm} cm` : 'Non renseigne', tone: 'blue' },
+      { label: 'IMC', value: profile?.bmi ? `${profile.bmi}` : 'Non renseigne', tone: 'dark' },
+    ];
+  });
+  protected readonly medicalAlerts = computed(() => {
+    const profile = this.medicalProfile();
+    if (!profile) return [];
+    return [
+      ...profile.allergies.map((item) => ({ label: `Allergie : ${item}`, tone: 'red' })),
+      ...profile.conditions.map((item) => ({ label: item, tone: 'blue' })),
+    ];
+  });
+  protected readonly medicalTreatments = computed(() => this.medicalProfile()?.treatments ?? []);
+  protected readonly recentMedicalActs = computed(() => this.userHistory().slice(0, 4));
+  protected readonly hasMedicalData = computed(() => this.recentMedicalActs().length > 0);
 
   ngOnInit(): void {
     if (!this.currentUser()) return;
     this.loadProfile();
+    this.loadMedicalProfile();
     this.loadPaymentMethods();
+    this.loadUserHistory();
   }
 
   protected selectSection(section: SettingsSection): void {
     this.activeSection.set(section);
-    if (section === 'payment') {
+    if (section === 'account') {
       this.loadPaymentMethods();
-    }
-    if (section === 'favorites') {
-      this.router.navigate(['/favorites']);
-    }
-    if (section === 'reservations') {
-      this.router.navigate(['/appointments']);
     }
   }
 
@@ -137,6 +219,58 @@ export class SettingsPageComponent implements OnInit {
 
   protected goBack(): void {
     this.router.navigate(['/services']);
+  }
+
+  protected selectAccountPayment(type: SavedPaymentMethodType): void {
+    this.activeSection.set('account');
+    this.selectPaymentType(type);
+    const existing = type === 'CARD' ? this.defaultCard() : this.defaultWaveNumber();
+    if (existing) {
+      this.editPaymentMethod(existing);
+      return;
+    }
+    this.isPaymentModalOpen.set(true);
+  }
+
+  protected closePaymentModal(): void {
+    this.isPaymentModalOpen.set(false);
+    this.clearPaymentEdit();
+  }
+
+  protected openMedicalProfileModal(): void {
+    this.syncMedicalProfileForm(this.medicalProfile());
+    this.isMedicalProfileModalOpen.set(true);
+  }
+
+  protected closeMedicalProfileModal(): void {
+    this.isMedicalProfileModalOpen.set(false);
+  }
+
+  protected openTreatmentModal(): void {
+    this.editingTreatmentId.set(null);
+    this.resetTreatmentForm();
+    this.isTreatmentModalOpen.set(true);
+  }
+
+  protected editTreatment(treatment: MedicalTreatmentView): void {
+    this.editingTreatmentId.set(treatment.id);
+    this.treatmentForm.name = treatment.name;
+    this.treatmentForm.dosage = treatment.dosage || '';
+    this.treatmentForm.frequency = treatment.frequency || '';
+    this.treatmentForm.startedAt = treatment.startedAt || '';
+    this.treatmentForm.endedAt = treatment.endedAt || '';
+    this.treatmentForm.notes = treatment.notes || '';
+    this.isTreatmentModalOpen.set(true);
+  }
+
+  protected closeTreatmentModal(): void {
+    this.isTreatmentModalOpen.set(false);
+    this.editingTreatmentId.set(null);
+    this.resetTreatmentForm();
+  }
+
+  protected toggleSensitivePaymentInfo(): void {
+    this.showSensitivePaymentInfo.update((visible) => !visible);
   }
 
   protected startProfileEdit(): void {
@@ -256,6 +390,7 @@ export class SettingsPageComponent implements OnInit {
         this.feedback.success(editingId ? 'Moyen de paiement modifie.' : 'Moyen de paiement enregistre.');
         this.editingPaymentMethodId.set(null);
         this.resetPaymentForms();
+        this.isPaymentModalOpen.set(false);
         this.loadPaymentMethods();
       },
       error: (error) => {
@@ -267,6 +402,7 @@ export class SettingsPageComponent implements OnInit {
   protected editPaymentMethod(method: SavedPaymentMethodView): void {
     this.selectedPaymentType.set(method.type);
     this.editingPaymentMethodId.set(method.id);
+    this.isPaymentModalOpen.set(true);
     if (method.type === 'CARD') {
       this.cardForm.cardNumber = method.maskedValue;
       this.cardForm.holderName = method.holderName || this.displayName();
@@ -283,6 +419,9 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected deletePaymentMethod(method: SavedPaymentMethodView): void {
+    const confirmed = window.confirm('Voulez-vous supprimer ce moyen de paiement ?');
+    if (!confirmed) return;
+
     this.authService.deleteSavedPaymentMethod(method.id).subscribe({
       next: () => {
         this.feedback.success('Moyen de paiement supprime.');
@@ -290,6 +429,83 @@ export class SettingsPageComponent implements OnInit {
       },
       error: (error) => {
         this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce moyen de paiement.'));
+      },
+    });
+  }
+
+  protected saveMedicalProfile(): void {
+    if (this.isSavingMedicalProfile()) return;
+    this.isSavingMedicalProfile.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .updateMyMedicalProfile({
+        bloodGroup: this.medicalProfileForm.bloodGroup.trim() || null,
+        rhesus: this.medicalProfileForm.rhesus.trim() || null,
+        weightKg: this.medicalProfileForm.weightKg,
+        heightCm: this.medicalProfileForm.heightCm,
+        referenceDoctorName: this.medicalProfileForm.referenceDoctorName.trim() || null,
+        profession: this.medicalProfileForm.profession.trim() || null,
+        allergies: this.parseTextList(this.medicalProfileForm.allergiesText),
+        conditions: this.parseTextList(this.medicalProfileForm.conditionsText),
+      })
+      .pipe(finalize(() => this.isSavingMedicalProfile.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.medicalProfile.set(profile);
+          this.isMedicalProfileModalOpen.set(false);
+          this.feedback.success('Fiche medicale mise a jour.');
+        },
+        error: (error) => {
+          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier la fiche medicale.'));
+        },
+      });
+  }
+
+  protected saveTreatment(): void {
+    if (this.isSavingTreatment()) return;
+    const name = this.treatmentForm.name.trim();
+    if (name.length < 2) {
+      this.errorMessage.set('Le nom du traitement doit contenir au moins 2 caracteres.');
+      return;
+    }
+
+    const payload = {
+      name,
+      dosage: this.treatmentForm.dosage.trim() || null,
+      frequency: this.treatmentForm.frequency.trim() || null,
+      startedAt: this.treatmentForm.startedAt || null,
+      endedAt: this.treatmentForm.endedAt || null,
+      notes: this.treatmentForm.notes.trim() || null,
+    };
+    const editingId = this.editingTreatmentId();
+    const request = editingId
+      ? this.authService.updateMyMedicalTreatment(editingId, payload)
+      : this.authService.createMyMedicalTreatment(payload);
+
+    this.isSavingTreatment.set(true);
+    this.errorMessage.set(null);
+    request.pipe(finalize(() => this.isSavingTreatment.set(false))).subscribe({
+      next: (profile) => {
+        this.medicalProfile.set(profile);
+        this.closeTreatmentModal();
+        this.feedback.success(editingId ? 'Traitement modifie.' : 'Traitement ajoute.');
+      },
+      error: (error) => {
+        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible d enregistrer le traitement.'));
+      },
+    });
+  }
+
+  protected deleteTreatment(treatment: MedicalTreatmentView): void {
+    const confirmed = window.confirm(`Voulez-vous supprimer le traitement "${treatment.name}" ?`);
+    if (!confirmed) return;
+    this.authService.deleteMyMedicalTreatment(treatment.id).subscribe({
+      next: (profile) => {
+        this.medicalProfile.set(profile);
+        this.feedback.success('Traitement supprime.');
+      },
+      error: (error) => {
+        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer le traitement.'));
       },
     });
   }
@@ -306,6 +522,33 @@ export class SettingsPageComponent implements OnInit {
         }),
       )
       .subscribe();
+  }
+
+  protected savePassword(): void {
+    if (this.isSavingPassword()) return;
+    if (this.passwordForm.currentPassword.length < 8 || this.passwordForm.newPassword.length < 8) {
+      this.errorMessage.set('Les mots de passe doivent contenir au moins 8 caracteres.');
+      return;
+    }
+
+    this.isSavingPassword.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .changeMyPassword({
+        currentPassword: this.passwordForm.currentPassword,
+        newPassword: this.passwordForm.newPassword,
+      })
+      .pipe(finalize(() => this.isSavingPassword.set(false)))
+      .subscribe({
+        next: () => {
+          this.passwordForm.currentPassword = '';
+          this.passwordForm.newPassword = '';
+          this.feedback.success('Mot de passe mis a jour avec succes.');
+        },
+        error: (error) => {
+          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier le mot de passe.'));
+        },
+      });
   }
 
   protected deleteAccount(): void {
@@ -355,6 +598,25 @@ export class SettingsPageComponent implements OnInit {
       .subscribe((methods) => this.savedPaymentMethods.set(methods));
   }
 
+  private loadUserHistory(): void {
+    if (!this.currentUser()) return;
+    this.authService
+      .myUserHistory(8)
+      .pipe(catchError(() => of([])))
+      .subscribe((history) => this.userHistory.set(history));
+  }
+
+  private loadMedicalProfile(): void {
+    if (!this.currentUser()) return;
+    this.authService
+      .getMyMedicalProfile()
+      .pipe(catchError(() => of(null)))
+      .subscribe((profile) => {
+        this.medicalProfile.set(profile);
+        this.syncMedicalProfileForm(profile);
+      });
+  }
+
   private applyUpdatedProfile(profile: UserProfileDto, message: string): void {
     this.profile.set(profile);
     this.authSession.saveUserProfile(profile);
@@ -380,5 +642,37 @@ export class SettingsPageComponent implements OnInit {
     this.cardForm.expiryMonth = 12;
     this.cardForm.expiryYear = new Date().getFullYear() + 1;
     this.waveForm.phoneNumber = this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber || '';
+  }
+
+  private syncMedicalProfileForm(profile: MedicalProfileView | null): void {
+    this.medicalProfileForm.bloodGroup = profile?.bloodGroup || '';
+    this.medicalProfileForm.rhesus = profile?.rhesus || '';
+    this.medicalProfileForm.weightKg = profile?.weightKg ?? null;
+    this.medicalProfileForm.heightCm = profile?.heightCm ?? null;
+    this.medicalProfileForm.referenceDoctorName = profile?.referenceDoctorName || '';
+    this.medicalProfileForm.profession = profile?.profession || '';
+    this.medicalProfileForm.allergiesText = (profile?.allergies ?? []).join('\n');
+    this.medicalProfileForm.conditionsText = (profile?.conditions ?? []).join('\n');
+  }
+
+  private resetTreatmentForm(): void {
+    this.treatmentForm.name = '';
+    this.treatmentForm.dosage = '';
+    this.treatmentForm.frequency = '';
+    this.treatmentForm.startedAt = '';
+    this.treatmentForm.endedAt = '';
+    this.treatmentForm.notes = '';
+  }
+
+  private parseTextList(value: string): string[] {
+    return value
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  private extractLastDigits(value: string | null | undefined): string {
+    return (value ?? '').replace(/\D/g, '').slice(-4) || '----';
   }
 }

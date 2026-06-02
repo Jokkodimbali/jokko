@@ -152,6 +152,36 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
+  async findPasswordHashById(
+    userId: string,
+  ): Promise<string | null | undefined> {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: { motDePasseHash: true },
+    });
+    return user?.motDePasseHash;
+  }
+
+  async updatePasswordHashById(
+    userId: string,
+    passwordHash: string,
+  ): Promise<boolean> {
+    try {
+      await this.prisma.utilisateur.update({
+        where: { id: userId },
+        data: { motDePasseHash: passwordHash },
+        select: { id: true },
+      });
+      return true;
+    } catch (error) {
+      const handled = this.handlePrismaError(error, {
+        P2025: 'not_found',
+      });
+      if (handled) return false;
+      throw error;
+    }
+  }
+
   async updateMeById(
     userId: string,
     data: UserProfileUpdateInput,

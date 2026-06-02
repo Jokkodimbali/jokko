@@ -9,13 +9,22 @@ describe('UsersService', () => {
     updateMeById: jest.fn(),
     anonymizeAndRevokeById: jest.fn(),
     listClientHistory: jest.fn(),
+    findPasswordHashById: jest.fn(),
+    updatePasswordHashById: jest.fn(),
+  };
+  const passwordHashService = {
+    compare: jest.fn(),
+    hash: jest.fn(),
   };
 
   let service: UsersService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new UsersService(usersRepository as never);
+    service = new UsersService(
+      usersRepository as never,
+      passwordHashService as never,
+    );
   });
 
   it('me should return current user profile', async () => {
@@ -192,5 +201,37 @@ describe('UsersService', () => {
     const result = await service.getMyHistory('u1', { limit: 10 });
     expect(result).toHaveLength(1);
     expect(usersRepository.listClientHistory).toHaveBeenCalledWith('u1', 10);
+  });
+
+  it('changeMyPassword should verify current password and store a new hash', async () => {
+    usersRepository.findMeById.mockResolvedValue({
+      id: 'u1',
+      numeroTelephone: '+221770000000',
+      nom: 'Test',
+      email: null,
+      adresse: null,
+      role: RoleUtilisateur.CLIENT,
+      urlAvatar: null,
+      estActif: true,
+      creeLe: new Date(),
+    });
+    usersRepository.findPasswordHashById.mockResolvedValue('old-hash');
+    passwordHashService.compare.mockResolvedValue(true);
+    passwordHashService.hash.mockResolvedValue('new-hash');
+    usersRepository.updatePasswordHashById.mockResolvedValue(true);
+
+    await service.changeMyPassword('u1', {
+      currentPassword: 'old-password',
+      newPassword: 'new-password',
+    });
+
+    expect(passwordHashService.compare).toHaveBeenCalledWith(
+      'old-password',
+      'old-hash',
+    );
+    expect(usersRepository.updatePasswordHashById).toHaveBeenCalledWith(
+      'u1',
+      'new-hash',
+    );
   });
 });

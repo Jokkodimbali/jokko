@@ -226,6 +226,58 @@ export class DisputeCommandService {
     return rejected;
   }
 
+  async addEvidenceForReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    files: Array<{
+      originalFileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      fileUrl: string;
+    }>,
+  ) {
+    if (files.length === 0) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const current =
+      await this.disputesRepository.findByReservationId(reservationId);
+    if (!current) {
+      throw appHttpException('DISPUTES_NOT_FOUND');
+    }
+
+    if (
+      requestUser.sub !== current.reporterUserId &&
+      requestUser.sub !== current.client.id &&
+      requestUser.sub !== current.professional.userId
+    ) {
+      throw appHttpException('AUTH_TOKEN_INVALID');
+    }
+
+    if (!['OUVERT', 'EN_REVUE'].includes(current.statut)) {
+      throw appHttpException('DISPUTES_INVALID_STATUS');
+    }
+
+    const updated = await this.disputesRepository.createEvidence({
+      disputeId: current.id,
+      uploaderUserId: requestUser.sub,
+      files,
+    });
+
+    await this.eventBus.publier({
+      nom: 'disputes.evidence-added',
+      dateOccurrence: new Date(),
+      payload: {
+        disputeId: updated.id,
+        reservationId: updated.reservationId,
+        uploaderUserId: requestUser.sub,
+        filesCount: files.length,
+      },
+    });
+
+    return updated;
+  }
+
   private assertAdmin(user: AuthUser): void {
     if (user.role !== 'ADMIN') {
       throw appHttpException('AUTH_TOKEN_INVALID');

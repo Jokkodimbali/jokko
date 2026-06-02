@@ -72,6 +72,20 @@ export type DisputeAdminListItem = Dispute & {
     userId: string;
     nom: string;
   };
+  evidence: Array<{
+    id: string;
+    uploaderUserId: string;
+    originalFileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    fileUrl: string;
+    createdAt: Date;
+    uploader: {
+      id: string;
+      nom: string;
+      role: string;
+    };
+  }>;
 };
 
 export type DisputeListResult = {
@@ -109,6 +123,16 @@ export interface DisputesRepositoryPort {
     decision: DisputeResolutionDecision;
     clientRefundPercentage: number;
   }): Promise<DisputeResolutionResult>;
+  createEvidence(input: {
+    disputeId: string;
+    uploaderUserId: string;
+    files: Array<{
+      originalFileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      fileUrl: string;
+    }>;
+  }): Promise<DisputeAdminListItem>;
   listAdminUserIds(): Promise<string[]>;
 }
 

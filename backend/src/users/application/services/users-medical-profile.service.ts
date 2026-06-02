@@ -1,0 +1,284 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { appHttpException } from '../../../core/http/app-http.exception';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { UpdateMyMedicalProfileDto } from '../../presentation/dto/update-my-medical-profile.dto';
+import { UpsertMyMedicalTreatmentDto } from '../../presentation/dto/upsert-my-medical-treatment.dto';
+
+type MedicalTreatmentRow = {
+  id: string;
+  nom: string;
+  dosage: string | null;
+  frequence: string | null;
+  dateDebut: Date | null;
+  dateFin: Date | null;
+  notes: string | null;
+  creeLe: Date;
+  misAJourLe: Date;
+};
+
+type MedicalProfileRow = {
+  id: string;
+  groupeSanguin: string | null;
+  rhesus: string | null;
+  poidsKg: Prisma.Decimal | null;
+  tailleCm: number | null;
+  medecinReferent: string | null;
+  profession: string | null;
+  allergies: string[];
+  antecedents: string[];
+  creeLe: Date;
+  misAJourLe: Date;
+  traitements: MedicalTreatmentRow[];
+};
+
+export type MedicalTreatmentView = {
+  id: string;
+  name: string;
+  dosage: string | null;
+  frequency: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MedicalProfileView = {
+  id: string | null;
+  bloodGroup: string | null;
+  rhesus: string | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  referenceDoctorName: string | null;
+  profession: string | null;
+  allergies: string[];
+  conditions: string[];
+  bmi: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  treatments: MedicalTreatmentView[];
+};
+
+@Injectable()
+export class UsersMedicalProfileService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getMyMedicalProfile(userId: string): Promise<MedicalProfileView> {
+    const profile = await this.findProfile(userId);
+    return profile ? this.toProfileView(profile) : this.emptyProfile();
+  }
+
+  async updateMyMedicalProfile(
+    userId: string,
+    dto: UpdateMyMedicalProfileDto,
+  ): Promise<MedicalProfileView> {
+    const profile = await this.prisma.ficheMedicaleClient.upsert({
+      where: { utilisateurId: userId },
+      create: {
+        utilisateurId: userId,
+        groupeSanguin: dto.bloodGroup ?? null,
+        rhesus: dto.rhesus ?? null,
+        poidsKg: this.decimalOrNull(dto.weightKg),
+        tailleCm: dto.heightCm ?? null,
+        medecinReferent: dto.referenceDoctorName ?? null,
+        profession: dto.profession ?? null,
+        allergies: dto.allergies ?? [],
+        antecedents: dto.conditions ?? [],
+      },
+      update: {
+        groupeSanguin: dto.bloodGroup ?? null,
+        rhesus: dto.rhesus ?? null,
+        poidsKg: this.decimalOrNull(dto.weightKg),
+        tailleCm: dto.heightCm ?? null,
+        medecinReferent: dto.referenceDoctorName ?? null,
+        profession: dto.profession ?? null,
+        allergies: dto.allergies ?? [],
+        antecedents: dto.conditions ?? [],
+      },
+      include: this.profileInclude(),
+    });
+
+    return this.toProfileView(profile);
+  }
+
+  async createTreatment(
+    userId: string,
+    dto: UpsertMyMedicalTreatmentDto,
+  ): Promise<MedicalProfileView> {
+    const profile = await this.ensureProfile(userId);
+    await this.prisma.traitementMedicalClient.create({
+      data: this.toTreatmentData(profile.id, dto),
+    });
+
+    return this.getMyMedicalProfile(userId);
+  }
+
+  async updateTreatment(
+    userId: string,
+    treatmentId: string,
+    dto: UpsertMyMedicalTreatmentDto,
+  ): Promise<MedicalProfileView> {
+    const treatment = await this.findTreatmentForUser(userId, treatmentId);
+    if (!treatment) {
+      throw appHttpException('USERS_MEDICAL_TREATMENT_NOT_FOUND');
+    }
+
+    await this.prisma.traitementMedicalClient.update({
+      where: { id: treatment.id },
+      data: this.toTreatmentUpdate(dto),
+    });
+
+    return this.getMyMedicalProfile(userId);
+  }
+
+  async deleteTreatment(
+    userId: string,
+    treatmentId: string,
+  ): Promise<MedicalProfileView> {
+    const treatment = await this.findTreatmentForUser(userId, treatmentId);
+    if (!treatment) {
+      throw appHttpException('USERS_MEDICAL_TREATMENT_NOT_FOUND');
+    }
+
+    await this.prisma.traitementMedicalClient.delete({
+      where: { id: treatment.id },
+    });
+
+    return this.getMyMedicalProfile(userId);
+  }
+
+  private async findProfile(userId: string): Promise<MedicalProfileRow | null> {
+    return this.prisma.ficheMedicaleClient.findUnique({
+      where: { utilisateurId: userId },
+      include: this.profileInclude(),
+    });
+  }
+
+  private async ensureProfile(userId: string): Promise<{ id: string }> {
+    return this.prisma.ficheMedicaleClient.upsert({
+      where: { utilisateurId: userId },
+      create: { utilisateurId: userId },
+      update: {},
+      select: { id: true },
+    });
+  }
+
+  private async findTreatmentForUser(
+    userId: string,
+    treatmentId: string,
+  ): Promise<{ id: string } | null> {
+    return this.prisma.traitementMedicalClient.findFirst({
+      where: {
+        id: treatmentId,
+        ficheMedicale: {
+          utilisateurId: userId,
+        },
+      },
+      select: { id: true },
+    });
+  }
+
+  private profileInclude() {
+    return {
+      traitements: {
+        orderBy: [{ dateDebut: 'desc' as const }, { creeLe: 'desc' as const }],
+      },
+    };
+  }
+
+  private toTreatmentData(
+    profileId: string,
+    dto: UpsertMyMedicalTreatmentDto,
+  ): Prisma.TraitementMedicalClientCreateInput {
+    return {
+      ficheMedicale: { connect: { id: profileId } },
+      nom: dto.name,
+      dosage: dto.dosage ?? null,
+      frequence: dto.frequency ?? null,
+      dateDebut: this.dateOrNull(dto.startedAt),
+      dateFin: this.dateOrNull(dto.endedAt),
+      notes: dto.notes ?? null,
+    };
+  }
+
+  private toTreatmentUpdate(
+    dto: UpsertMyMedicalTreatmentDto,
+  ): Prisma.TraitementMedicalClientUpdateInput {
+    return {
+      nom: dto.name,
+      dosage: dto.dosage ?? null,
+      frequence: dto.frequency ?? null,
+      dateDebut: this.dateOrNull(dto.startedAt),
+      dateFin: this.dateOrNull(dto.endedAt),
+      notes: dto.notes ?? null,
+    };
+  }
+
+  private toProfileView(profile: MedicalProfileRow): MedicalProfileView {
+    const weightKg = profile.poidsKg ? Number(profile.poidsKg.toString()) : null;
+    return {
+      id: profile.id,
+      bloodGroup: profile.groupeSanguin,
+      rhesus: profile.rhesus,
+      weightKg,
+      heightCm: profile.tailleCm,
+      referenceDoctorName: profile.medecinReferent,
+      profession: profile.profession,
+      allergies: profile.allergies,
+      conditions: profile.antecedents,
+      bmi: this.calculateBmi(weightKg, profile.tailleCm),
+      createdAt: profile.creeLe.toISOString(),
+      updatedAt: profile.misAJourLe.toISOString(),
+      treatments: profile.traitements.map((treatment) =>
+        this.toTreatmentView(treatment),
+      ),
+    };
+  }
+
+  private toTreatmentView(treatment: MedicalTreatmentRow): MedicalTreatmentView {
+    return {
+      id: treatment.id,
+      name: treatment.nom,
+      dosage: treatment.dosage,
+      frequency: treatment.frequence,
+      startedAt: treatment.dateDebut?.toISOString().slice(0, 10) ?? null,
+      endedAt: treatment.dateFin?.toISOString().slice(0, 10) ?? null,
+      notes: treatment.notes,
+      createdAt: treatment.creeLe.toISOString(),
+      updatedAt: treatment.misAJourLe.toISOString(),
+    };
+  }
+
+  private emptyProfile(): MedicalProfileView {
+    return {
+      id: null,
+      bloodGroup: null,
+      rhesus: null,
+      weightKg: null,
+      heightCm: null,
+      referenceDoctorName: null,
+      profession: null,
+      allergies: [],
+      conditions: [],
+      bmi: null,
+      createdAt: null,
+      updatedAt: null,
+      treatments: [],
+    };
+  }
+
+  private calculateBmi(weightKg: number | null, heightCm: number | null): number | null {
+    if (!weightKg || !heightCm) return null;
+    const heightM = heightCm / 100;
+    return Math.round((weightKg / (heightM * heightM)) * 10) / 10;
+  }
+
+  private decimalOrNull(value: number | null | undefined): Prisma.Decimal | null {
+    return value === null || value === undefined ? null : new Prisma.Decimal(value);
+  }
+
+  private dateOrNull(value: string | null | undefined): Date | null {
+    return value ? new Date(value) : null;
+  }
+}

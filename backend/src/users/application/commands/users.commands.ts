@@ -9,6 +9,11 @@ export type UpdateMyAvatarCommand = {
   avatarUrl: string;
 };
 
+export type ChangeMyPasswordCommand = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 export type GetMyHistoryQuery = {
   limit?: number;
 };

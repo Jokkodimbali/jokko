@@ -69,6 +69,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly pendingProposal = signal<PendingProposal | null>(null);
   protected readonly priceProposals = signal<NegotiationView[]>([]);
   protected readonly appointmentPreview = signal<AppointmentView | null>(null);
+  private readonly requestedConversationId = signal<string | null>(null);
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
   private realtimeMessageSubscription: Subscription | null = null;
 
@@ -400,7 +401,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.messagesService.listConversations().subscribe({
       next: (conversations) => {
         this.conversations.set(conversations);
+        const requestedConversationId = this.requestedConversationId();
         const selectedId =
+          conversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
           this.findProposalConversation(conversations)?.id ?? conversations[0]?.id ?? null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
@@ -514,6 +517,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const query = this.route.snapshot.queryParamMap;
     const rawAmount = Number(query.get('amount'));
     const professionalId = query.get('professionalId');
+    const conversationId = query.get('conversationId');
+
+    this.requestedConversationId.set(conversationId);
 
     if (!professionalId && !Number.isFinite(rawAmount)) {
       return;
@@ -521,7 +527,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.pendingProposal.set({
       negotiationId: query.get('negotiationId'),
-      conversationId: query.get('conversationId'),
+      conversationId,
       professionalId,
       providerName: query.get('providerName') || 'le prestataire',
       serviceName: query.get('serviceName') || 'service',

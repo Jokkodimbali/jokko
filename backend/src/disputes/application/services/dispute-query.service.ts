@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
   DISPUTES_REPOSITORY_PORT,
@@ -43,6 +44,28 @@ export class DisputeQueryService {
     const dispute = await this.disputesRepository.findById(disputeId);
     if (!dispute) {
       throw appHttpException('DISPUTES_NOT_FOUND');
+    }
+
+    return {
+      ...dispute,
+      slaRemainingHours: this.computeSlaRemainingHours(dispute.ouvertLe),
+    };
+  }
+
+  async getByReservationForUser(requestUser: AuthUser, reservationId: string) {
+    const dispute =
+      await this.disputesRepository.findByReservationId(reservationId);
+    if (!dispute) {
+      throw appHttpException('DISPUTES_NOT_FOUND');
+    }
+
+    if (
+      requestUser.sub !== dispute.reporterUserId &&
+      requestUser.sub !== dispute.client.id &&
+      requestUser.sub !== dispute.professional.userId &&
+      requestUser.role !== 'ADMIN'
+    ) {
+      throw appHttpException('AUTH_TOKEN_INVALID');
     }
 
     return {

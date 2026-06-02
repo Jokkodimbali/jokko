@@ -26,7 +26,23 @@ const USER_ME_SELECT = {
   profilProfessionnel: {
     select: {
       id: true,
+      biographie: true,
       nomEntreprise: true,
+      statutKyc: true,
+      ville: true,
+      diplomesMedicaux: {
+        orderBy: { creeLe: 'desc' },
+        select: {
+          id: true,
+          titre: true,
+          etablissement: true,
+          promotion: true,
+          numeroReference: true,
+          urlDocument: true,
+          statut: true,
+          verifieLe: true,
+        },
+      },
       services: {
         where: { estDisponible: true },
         select: {
@@ -59,7 +75,20 @@ export class UsersRepository implements UsersRepositoryPort {
     creeLe: Date;
     profilProfessionnel: {
       id: string;
+      biographie: string | null;
       nomEntreprise: string | null;
+      statutKyc: string;
+      ville: string | null;
+      diplomesMedicaux: Array<{
+        id: string;
+        titre: string;
+        etablissement: string;
+        promotion: string | null;
+        numeroReference: string | null;
+        urlDocument: string | null;
+        statut: string;
+        verifieLe: Date | null;
+      }>;
       services: Array<{
         categorie: {
           nom: string;
@@ -80,7 +109,11 @@ export class UsersRepository implements UsersRepositoryPort {
       profilProfessionnel: user.profilProfessionnel
         ? {
             id: user.profilProfessionnel.id,
+            biographie: user.profilProfessionnel.biographie,
             nomEntreprise: user.profilProfessionnel.nomEntreprise,
+            statutKyc: user.profilProfessionnel.statutKyc,
+            ville: user.profilProfessionnel.ville,
+            diplomesMedicaux: user.profilProfessionnel.diplomesMedicaux,
             categories: Array.from(
               new Set(
                 user.profilProfessionnel.services.map(
@@ -308,7 +341,23 @@ export class UsersRepository implements UsersRepositoryPort {
         profilProfessionnel: {
           select: {
             id: true,
+            biographie: true,
             nomEntreprise: true,
+            statutKyc: true,
+            ville: true,
+            diplomesMedicaux: {
+              orderBy: { creeLe: 'desc' },
+              select: {
+                id: true,
+                titre: true,
+                etablissement: true,
+                promotion: true,
+                numeroReference: true,
+                urlDocument: true,
+                statut: true,
+                verifieLe: true,
+              },
+            },
             services: {
               where: { estDisponible: true },
               select: {
@@ -501,5 +550,120 @@ export class UsersRepository implements UsersRepositoryPort {
     return this.prisma.utilisateur.count({
       where: { estActif: true },
     });
+  }
+
+  async createProfessionalCredentialForUser(
+    userId: string,
+    data: {
+      title: string;
+      institution: string;
+      graduationYear?: string | null;
+      referenceNumber?: string | null;
+      documentUrl: string;
+    },
+  ): Promise<
+    | {
+        status: 'created';
+        credential: {
+          id: string;
+          titre: string;
+          etablissement: string;
+          promotion: string | null;
+          numeroReference: string | null;
+          urlDocument: string | null;
+          statut: string;
+          verifieLe: Date | null;
+        };
+      }
+    | { status: 'professional_profile_not_found' }
+  > {
+    const professionalProfile = await this.prisma.profilProfessionnel.findUnique({
+      where: { utilisateurId: userId },
+      select: { id: true },
+    });
+
+    if (!professionalProfile) {
+      return { status: 'professional_profile_not_found' };
+    }
+
+    const credential = await this.prisma.diplomeMedical.create({
+      data: {
+        profilProfessionnelId: professionalProfile.id,
+        titre: data.title,
+        etablissement: data.institution,
+        promotion: data.graduationYear ?? null,
+        numeroReference: data.referenceNumber ?? null,
+        urlDocument: data.documentUrl,
+      },
+      select: {
+        id: true,
+        titre: true,
+        etablissement: true,
+        promotion: true,
+        numeroReference: true,
+        urlDocument: true,
+        statut: true,
+        verifieLe: true,
+      },
+    });
+
+    return { status: 'created', credential };
+  }
+
+  async updateProfessionalBiographyForUser(
+    userId: string,
+    biography: string | null,
+  ): Promise<UserMeView | null> {
+    const profile = await this.prisma.profilProfessionnel.findUnique({
+      where: { utilisateurId: userId },
+      select: { id: true },
+    });
+
+    if (!profile) {
+      return null;
+    }
+
+    await this.prisma.profilProfessionnel.update({
+      where: { id: profile.id },
+      data: { biographie: biography },
+    });
+
+    return this.findMeById(userId);
+  }
+
+  async deleteProfessionalCredentialForUser(
+    userId: string,
+    credentialId: string,
+  ): Promise<
+    | { status: 'deleted'; user: UserMeView }
+    | { status: 'credential_not_found' }
+    | { status: 'professional_profile_not_found' }
+  > {
+    const profile = await this.prisma.profilProfessionnel.findUnique({
+      where: { utilisateurId: userId },
+      select: { id: true },
+    });
+
+    if (!profile) {
+      return { status: 'professional_profile_not_found' };
+    }
+
+    const deleted = await this.prisma.diplomeMedical.deleteMany({
+      where: {
+        id: credentialId,
+        profilProfessionnelId: profile.id,
+      },
+    });
+
+    if (deleted.count === 0) {
+      return { status: 'credential_not_found' };
+    }
+
+    const user = await this.findMeById(userId);
+    if (!user) {
+      return { status: 'professional_profile_not_found' };
+    }
+
+    return { status: 'deleted', user };
   }
 }

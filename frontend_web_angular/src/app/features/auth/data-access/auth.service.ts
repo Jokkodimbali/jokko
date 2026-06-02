@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
+import { map, Observable, switchMap } from 'rxjs';
 import {
   GoogleLoginRequestDto,
   LoginRequestDto,
@@ -216,6 +216,43 @@ export class AuthService {
     formData.append('avatar', file);
     return this.http
       .post<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/avatar/upload`, formData)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  uploadMyProfessionalCredential(file: File): Observable<UserProfileDto> {
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('title', file.name);
+    return this.http
+      .post<ApiResponse<unknown>>(`${this.usersApiUrl}/me/professional-credentials/upload`, formData)
+      .pipe(
+        switchMap(() => this.myUserProfile()),
+      );
+  }
+
+  deleteMyProfessionalCredential(credentialId: string): Observable<UserProfileDto> {
+    return this.http
+      .delete<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/professional-credentials/${credentialId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateMyProfessionalAbout(about: string): Observable<UserProfileDto> {
+    return this.http
+      .patch<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/professional-about`, { about })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  addMyProfessionalExpertise(name: string): Observable<UserProfileDto> {
+    return this.http
+      .post<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/professional-expertises`, { name })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  removeMyProfessionalExpertise(name: string): Observable<UserProfileDto> {
+    return this.http
+      .delete<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/professional-expertises`, {
+        body: { name },
+      })
       .pipe(map(unwrapApiResponse));
   }
 

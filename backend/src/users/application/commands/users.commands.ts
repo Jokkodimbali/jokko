@@ -17,3 +17,19 @@ export type ChangeMyPasswordCommand = {
 export type GetMyHistoryQuery = {
   limit?: number;
 };
+
+export type UploadMyProfessionalCredentialCommand = {
+  title: string;
+  institution: string;
+  graduationYear?: string | null;
+  referenceNumber?: string | null;
+  documentUrl: string;
+};
+
+export type UpdateMyProfessionalExpertiseCommand = {
+  name: string;
+};
+
+export type UpdateMyProfessionalAboutCommand = {
+  about: string;
+};

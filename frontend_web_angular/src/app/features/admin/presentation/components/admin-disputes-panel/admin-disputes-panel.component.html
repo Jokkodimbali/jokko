@@ -19,7 +19,7 @@
         (click)="select(dispute.id)"
       >
         <strong>{{ title(dispute) }}</strong>
-        <span>{{ statusLabel(dispute.statut) }}</span>
+        <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{ statusLabel(dispute.statut) }}</span>
         <small>{{ serviceLabel(dispute) }} . {{ formatMoney(disputeAmount(dispute)) }} FCFA</small>
         <em>{{ priorityLabel(dispute.priorite) }}</em>
         <time>
@@ -33,7 +33,7 @@
       <section class="admin-dispute-detail__fixed">
         <header>
           <h2>{{ serviceLabel(dispute) }}</h2>
-          <span>{{ statusLabel(dispute.statut) }}</span>
+          <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{ statusLabel(dispute.statut) }}</span>
         </header>
 
         <section class="admin-dispute-parties">

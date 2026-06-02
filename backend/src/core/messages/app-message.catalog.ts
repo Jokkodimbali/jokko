@@ -159,6 +159,46 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
       message: 'Traitement medical introuvable.',
     },
+    USERS_PROFESSIONAL_CREDENTIAL_UPLOADED: {
+      code: 'USERS_PROFESSIONAL_CREDENTIAL_UPLOADED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
+      message: 'Document professionnel ajoute avec succes.',
+    },
+    USERS_PROFESSIONAL_CREDENTIAL_DELETED: {
+      code: 'USERS_PROFESSIONAL_CREDENTIAL_DELETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Document professionnel supprime avec succes.',
+    },
+    USERS_PROFESSIONAL_CREDENTIAL_NOT_FOUND: {
+      code: 'USERS_PROFESSIONAL_CREDENTIAL_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Document professionnel introuvable.',
+    },
+    USERS_PROFESSIONAL_PROFILE_REQUIRED: {
+      code: 'USERS_PROFESSIONAL_PROFILE_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Seuls les prestataires et medecins peuvent ajouter ce document.',
+    },
+    USERS_PROFESSIONAL_PROFILE_NOT_FOUND: {
+      code: 'USERS_PROFESSIONAL_PROFILE_NOT_FOUND',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
+      message: 'Profil professionnel introuvable.',
+    },
+    USERS_PROFESSIONAL_EXPERTISE_ADDED: {
+      code: 'USERS_PROFESSIONAL_EXPERTISE_ADDED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Expertise ajoutee avec succes.',
+    },
+    USERS_PROFESSIONAL_EXPERTISE_REMOVED: {
+      code: 'USERS_PROFESSIONAL_EXPERTISE_REMOVED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Expertise retiree avec succes.',
+    },
+    USERS_PROFESSIONAL_ABOUT_UPDATED: {
+      code: 'USERS_PROFESSIONAL_ABOUT_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Presentation professionnelle mise a jour avec succes.',
+    },
     USERS_AVATAR_UPDATED: {
       code: 'USERS_AVATAR_UPDATED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,

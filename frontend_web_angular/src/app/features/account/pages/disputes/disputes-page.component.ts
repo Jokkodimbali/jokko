@@ -93,6 +93,8 @@ export class DisputesPageComponent implements OnInit {
   }
 
   protected statusLabel(appointment: AppointmentView): string {
+    if (this.canOpenDispute(appointment)) return 'Signalez le litige';
+
     const labels: Record<AppointmentView['status'], string> = {
       EN_ATTENTE: 'A venir',
       CONFIRMEE: 'A venir',
@@ -107,8 +109,8 @@ export class DisputesPageComponent implements OnInit {
   }
 
   protected statusTone(appointment: AppointmentView): string {
+    if (this.canOpenDispute(appointment)) return 'report';
     if (appointment.status === 'LITIGE') return 'dispute';
-    if (this.canOpenDispute(appointment)) return 'done';
     if (this.isUpcoming(appointment)) return 'upcoming';
     return 'neutral';
   }

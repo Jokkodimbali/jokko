@@ -9,7 +9,10 @@ import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { ReservationDisputeView } from '../../../appointments/domain/appointments.models';
-import { MessagesRealtimeService } from '../../../messages/data-access/messages-realtime.service';
+import {
+  DisputeMediationRealtimeMessage,
+  MessagesRealtimeService,
+} from '../../../messages/data-access/messages-realtime.service';
 import { MessagesService } from '../../../messages/data-access/messages.service';
 import { ConversationMessage } from '../../../messages/domain/models/messages.models';
 
@@ -50,7 +53,7 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
   protected readonly isPreparingConversation = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
-  private realtimeSubscription: Subscription | null = null;
+  private realtimeSubscription = new Subscription();
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly suspendedAmount = computed(() => {
@@ -64,7 +67,7 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.realtimeSubscription?.unsubscribe();
+    this.realtimeSubscription.unsubscribe();
     this.messagesRealtime.disconnect();
   }
 
@@ -202,10 +205,18 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
     if (!this.authSession.hasAuthenticatedSession()) return;
 
     this.messagesRealtime.connect();
-    this.realtimeSubscription = this.messagesRealtime.messageCreated$.subscribe((message) => {
-      if (message.conversationId !== this.conversationId()) return;
-      this.upsertThreadItem(this.mapRealtimeMessage(message));
-    });
+    this.realtimeSubscription.add(
+      this.messagesRealtime.messageCreated$.subscribe((message) => {
+        if (message.conversationId !== this.conversationId()) return;
+        this.upsertThreadItem(this.mapRealtimeMessage(message));
+      }),
+    );
+    this.realtimeSubscription.add(
+      this.messagesRealtime.disputeMediationMessageCreated$.subscribe((message) => {
+        if (message.conversationId !== this.conversationId()) return;
+        this.upsertThreadItem(this.mapMediationRealtimeMessage(message));
+      }),
+    );
   }
 
   private buildThread(dispute: ReservationDisputeView): DisputeThreadItem[] {
@@ -222,16 +233,18 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
         source: 'CONVERSATION',
       }));
 
-    const mediationItems = dispute.reservation.mediationMessages.map<DisputeThreadItem>((message) => ({
-      id: message.id,
-      authorId: message.expediteurAdmin.id,
-      authorName: 'Administration Jokko',
-      role: 'ADMIN',
-      content: message.contenu,
-      mediaUrl: null,
-      createdAt: message.creeLe,
-      source: 'MEDIATION',
-    }));
+    const mediationItems = dispute.reservation.mediationMessages
+      .filter((message) => this.canViewMediationMessage(dispute, message.destinataire))
+      .map<DisputeThreadItem>((message) => ({
+        id: message.id,
+        authorId: message.expediteurAdmin.id,
+        authorName: 'Administration Jokko',
+        role: 'ADMIN',
+        content: message.contenu,
+        mediaUrl: null,
+        createdAt: message.creeLe,
+        source: 'MEDIATION',
+      }));
 
     return [...conversationItems, ...mediationItems].sort(
       (first, second) => new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime(),
@@ -257,6 +270,32 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
       createdAt: message.createdAt,
       source: 'CONVERSATION',
     };
+  }
+
+  private mapMediationRealtimeMessage(message: DisputeMediationRealtimeMessage): DisputeThreadItem {
+    return {
+      id: message.id,
+      authorId: message.authorId,
+      authorName: 'Administration Jokko',
+      role: 'ADMIN',
+      content: message.content,
+      mediaUrl: null,
+      createdAt: message.createdAt,
+      source: 'MEDIATION',
+    };
+  }
+
+  private canViewMediationMessage(
+    dispute: ReservationDisputeView,
+    recipient: 'CLIENT' | 'PRESTATAIRE' | 'TOUS',
+  ): boolean {
+    if (recipient === 'TOUS') return true;
+
+    const currentUser = this.currentUser();
+    if (!currentUser) return false;
+    if (currentUser.role === 'ADMIN') return true;
+    if (recipient === 'CLIENT') return currentUser.id === dispute.client.id;
+    return currentUser.id === dispute.professional.userId;
   }
 
   private upsertThreadItem(item: DisputeThreadItem): void {

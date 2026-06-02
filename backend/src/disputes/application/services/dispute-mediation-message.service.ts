@@ -84,6 +84,13 @@ export class DisputeMediationMessageService {
         },
       });
 
+      const conversationId = await this.resolveConversationId(tx, {
+        reservationId: dispute.reservation.id,
+        clientId: dispute.reservation.clientId,
+        professionalUserId: dispute.reservation.professionnel.utilisateurId,
+        existingConversationId: dispute.reservation.conversation?.id ?? null,
+      });
+
       let conversationMessage: {
         id: string;
         conversationId: string;
@@ -100,13 +107,6 @@ export class DisputeMediationMessageService {
       } | null = null;
 
       if (input.recipient === 'TOUS') {
-        const conversationId = await this.resolveConversationId(tx, {
-          reservationId: dispute.reservation.id,
-          clientId: dispute.reservation.clientId,
-          professionalUserId: dispute.reservation.professionnel.utilisateurId,
-          existingConversationId: dispute.reservation.conversation?.id ?? null,
-        });
-
         const message = await tx.message.create({
           data: {
             conversationId,
@@ -168,12 +168,25 @@ export class DisputeMediationMessageService {
         })),
       });
 
-      return { message: created, conversationMessage };
+      return { message: created, conversationId, conversationMessage };
     });
 
     if (result.conversationMessage) {
       this.realtimeEvents.emit('conversation.message.created', {
         message: result.conversationMessage,
+        recipientUserIds: recipients,
+      });
+    } else {
+      this.realtimeEvents.emit('dispute.mediation.message.created', {
+        message: {
+          id: result.message.id,
+          conversationId: result.conversationId,
+          authorId: result.message.expediteurAdmin.id,
+          authorName: result.message.expediteurAdmin.nom,
+          recipient: result.message.destinataire,
+          content: result.message.contenu,
+          createdAt: result.message.creeLe,
+        },
         recipientUserIds: recipients,
       });
     }

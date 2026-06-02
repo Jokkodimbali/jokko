@@ -158,7 +158,9 @@ export class DisputeReportPageComponent implements OnInit {
           this.router.navigate(['/litiges', appointment.id, 'suivi']);
         },
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de soumettre ce litige.'));
+          const message = getHttpErrorMessage(error, 'Impossible de soumettre ce litige.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
         },
       });
   }

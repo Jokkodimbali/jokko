@@ -133,15 +133,15 @@
   border: 1px solid #dbe6f1;
   border-radius: 22px;
   display: grid;
-  gap: 18px;
-  grid-template-columns: 54px minmax(0, 1fr) 128px auto minmax(52px, auto);
-  min-height: 96px;
-  padding: 18px 20px;
+  gap: 16px;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  min-height: 142px;
+  padding: 22px 18px;
 }
 
 .disputes-page__card--actionable {
-  border-color: #bfcfe2;
-  box-shadow: inset 0 0 0 1px #d4e2ef;
+  border-color: #22c55e;
+  box-shadow: none;
 }
 
 .disputes-page__card--dispute {
@@ -162,20 +162,32 @@
 .disputes-page__reservation,
 .disputes-page__amount {
   display: grid;
-  gap: 5px;
+  gap: 3px;
 }
 
 .disputes-page__reservation strong {
   font-size: 18px;
   font-weight: 950;
-  line-height: 1.05;
+  line-height: 1.12;
 }
 
 .disputes-page__reservation span,
+.disputes-page__reservation small,
 .disputes-page__amount span {
   color: #73798a;
   font-size: 13px;
   font-weight: 650;
+}
+
+.disputes-page__reservation small {
+  margin-top: 2px;
+}
+
+.disputes-page__reservation b {
+  color: #0b0c0f;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.1;
 }
 
 .disputes-page__amount {
@@ -199,6 +211,7 @@
   min-height: 26px;
   padding: 0 12px;
   white-space: nowrap;
+  width: max-content;
 }
 
 .disputes-page__status--upcoming {
@@ -214,6 +227,15 @@
 .disputes-page__status--dispute {
   background: #b45246;
   color: #ffffff;
+  text-transform: uppercase;
+}
+
+.disputes-page__status--report {
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 12px;
+  min-height: 24px;
+  padding: 0 10px;
   text-transform: uppercase;
 }
 
@@ -236,16 +258,12 @@
 }
 
 .disputes-page__action--report {
-  background: #16a34a;
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 950;
-  height: 38px;
-  min-width: 124px;
-  padding: 0 16px;
-  text-transform: uppercase;
-  width: auto;
+  background: #22c55e;
+  border-radius: 50%;
+  height: 44px;
+  min-width: 0;
+  padding: 0;
+  width: 44px;
 }
 
 .disputes-page__card--dispute .disputes-page__action {
@@ -326,11 +344,8 @@
     grid-template-columns: 48px minmax(0, 1fr) auto;
   }
 
-  .disputes-page__amount,
   .disputes-page__status {
-    grid-column: 2 / -1;
     justify-self: start;
-    text-align: left;
   }
 
   .disputes-page__action {

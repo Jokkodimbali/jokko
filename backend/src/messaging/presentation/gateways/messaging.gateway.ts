@@ -34,6 +34,16 @@ type ConversationTypingPayload = {
   updatedAt: string;
 };
 
+type DisputeMediationMessagePayload = {
+  id: string;
+  conversationId: string;
+  authorId: string;
+  authorName: string;
+  recipient: 'CLIENT' | 'PRESTATAIRE' | 'TOUS';
+  content: string;
+  createdAt: Date | string;
+};
+
 @WebSocketGateway({
   namespace: '/socket',
   cors: buildSocketCorsOptionsFromProcessEnv(),
@@ -192,6 +202,18 @@ export class MessagingGateway implements OnGatewayConnection {
       this.server
         .to(this.buildUserRoom(recipientUserId))
         .emit('conversation.message.created', payload.message);
+    }
+  }
+
+  @OnEvent('dispute.mediation.message.created')
+  handleDisputeMediationMessageCreated(payload: {
+    message: DisputeMediationMessagePayload;
+    recipientUserIds: string[];
+  }): void {
+    for (const recipientUserId of payload.recipientUserIds) {
+      this.server
+        .to(this.buildUserRoom(recipientUserId))
+        .emit('dispute.mediation.message.created', payload.message);
     }
   }
 

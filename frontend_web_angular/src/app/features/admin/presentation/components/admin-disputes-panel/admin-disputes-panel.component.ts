@@ -182,6 +182,11 @@ export class AdminDisputesPanelComponent implements OnChanges {
     return labels[status] ?? status;
   }
 
+  protected statusClass(status: string): string {
+    const normalizedStatus = status.toLowerCase().replace(/_/g, '-');
+    return `admin-dispute-status--${normalizedStatus}`;
+  }
+
   protected priorityLabel(priority: string): string {
     const labels: Record<string, string> = {
       HAUTE: 'Priorite haute',

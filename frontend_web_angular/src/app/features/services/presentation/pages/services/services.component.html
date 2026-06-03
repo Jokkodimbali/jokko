@@ -116,6 +116,7 @@
             <a
               class="provider-card__link"
               [routerLink]="['/services', provider.id]"
+              [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
               [state]="{
                 provider: provider,
                 avatar: resolveProviderAvatar(provider),

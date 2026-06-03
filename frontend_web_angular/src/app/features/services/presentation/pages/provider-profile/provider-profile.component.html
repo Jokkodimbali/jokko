@@ -80,7 +80,7 @@
       <section class="provider-profile__layout">
         <div class="provider-profile__main">
           <article class="provider-profile__card provider-profile__about">
-            <h2>{{ primaryService()?.description ? speciality() : "L'artisan au service du geste juste." }}</h2>
+            <h2>{{ aboutTitle() }}</h2>
             <p>{{ bio() }}</p>
 
             <div *ngIf="expertiseTags().length > 0" class="provider-profile__expertise-block">
@@ -109,7 +109,7 @@
               <h2>Avis clients</h2>
               <div>
                 <strong>{{ ratingLabel() }}</strong>
-                <span>★★★★★</span>
+                <span>?????</span>
                 <small>{{ reviewTotalLabel() }}</small>
               </div>
             </header>
@@ -145,7 +145,7 @@
             <button
               type="button"
               [routerLink]="['/services', profileId, 'proposition']"
-              [queryParams]="primaryService()?.id ? { serviceId: primaryService()?.id } : null"
+              [queryParams]="serviceQueryParams()"
             >
               <lucide-icon name="banknote" size="25" [strokeWidth]="2.4"></lucide-icon>
               Proposez un prix

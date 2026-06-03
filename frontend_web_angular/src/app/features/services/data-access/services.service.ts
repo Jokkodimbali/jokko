@@ -224,8 +224,10 @@ export class ServicesService {
 
     return {
       id: data.id,
+      serviceId: primaryService?.id,
+      servicePriceType: primaryService?.priceType,
       nom: data.companyName || data.name,
-      speciality: primaryService?.categoryName || primaryService?.name || 'Service',
+      speciality: primaryService?.name || primaryService?.categoryName || 'Service',
       location: this.formatLocation(data.city, data.distanceKm),
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       rating: data.rating,

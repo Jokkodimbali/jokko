@@ -4,51 +4,6 @@
   </section>
 
   <div class="provider-profile__shell">
-    <section
-      class="provider-profile__hero"
-      [style.backgroundImage]="'url(' + coverUrl() + ')'"
-    >
-      <button type="button" class="provider-profile__back" aria-label="Retour" (click)="goBack()">
-        <lucide-icon name="arrow-left" size="27" [strokeWidth]="2.4"></lucide-icon>
-      </button>
-
-      <span
-        *ngIf="!isLoading() && !errorMessage()"
-        class="provider-profile__online"
-        [class.provider-profile__online--offline]="!isOnline()"
-      >
-        <span></span>
-        {{ presenceLabel() }}
-      </span>
-
-      <app-scroll-hint *ngIf="!isLoading() && !errorMessage()" />
-    </section>
-
-    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__identity">
-      <img *ngIf="avatarUrl(); else avatarInitials" class="provider-profile__avatar" [src]="avatarUrl()!" [alt]="displayName()" />
-      <ng-template #avatarInitials>
-        <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
-      </ng-template>
-      <div class="provider-profile__name">
-        <h1>{{ displayName() }}</h1>
-        <p>{{ speciality() }}</p>
-      </div>
-
-      <div class="provider-profile__actions" aria-label="Actions prestataire">
-        <button type="button" aria-label="Partager">
-          <lucide-icon name="share-2" size="26" [strokeWidth]="2.4"></lucide-icon>
-        </button>
-        <button
-          type="button"
-          [class.provider-profile__favorite--active]="isFavorite()"
-          [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-          (click)="toggleFavorite()"
-        >
-          <lucide-icon name="heart" size="30" [strokeWidth]="2.3"></lucide-icon>
-        </button>
-      </div>
-    </section>
-
     <section *ngIf="isLoading()" class="provider-profile__state">
       <p>Chargement du prestataire...</p>
     </section>
@@ -58,85 +13,184 @@
       <button type="button" (click)="loadProviderDetail()">Reessayer</button>
     </section>
 
-    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__stats" aria-label="Statistiques du prestataire">
-      <div>
-        <lucide-icon name="clock-3" size="39" [strokeWidth]="2.5"></lucide-icon>
-        <p><strong>{{ experienceLabel() }}</strong><span>Experience</span></p>
-      </div>
-      <div>
-        <lucide-icon name="users" size="39" [strokeWidth]="2.5"></lucide-icon>
-        <p><strong>{{ servicesCountLabel() }}</strong><span>Services</span></p>
-      </div>
-      <div>
-        <lucide-icon name="star" size="43" [strokeWidth]="2.3"></lucide-icon>
-        <p><strong>{{ reviewsCountLabel() }}</strong><span>Notations</span></p>
-      </div>
-    </section>
+    <ng-container *ngIf="!isLoading() && !errorMessage()">
+      <section
+        class="provider-profile__hero-card"
+        [style.backgroundImage]="'url(' + coverUrl() + ')'"
+      >
+        <button type="button" class="provider-profile__back" aria-label="Retour" (click)="goBack()">
+          <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
+        </button>
 
-    <section *ngIf="!isLoading() && !errorMessage()" class="provider-profile__grid">
-      <article class="provider-profile__card provider-profile__about">
-        <h2>{{ speciality() }}</h2>
-        <p>{{ bio() }}</p>
-      </article>
+        <span
+          class="provider-profile__online"
+          [class.provider-profile__online--offline]="!isOnline()"
+        >
+          <span></span>
+          {{ presenceLabel() || 'Hors ligne' }}
+        </span>
+      </section>
 
-      <aside class="provider-profile__side">
-        <article class="provider-profile__card provider-profile__price">
-          <p><strong>{{ priceLabel() }}</strong> <span>{{ priceTypeLabel() }}</span></p>
+      <section class="provider-profile__identity-card">
+        <img
+          *ngIf="avatarUrl(); else avatarInitials"
+          class="provider-profile__avatar"
+          [src]="avatarUrl()!"
+          [alt]="displayName()"
+        />
+        <ng-template #avatarInitials>
+          <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
+        </ng-template>
+
+        <div class="provider-profile__name">
+          <h1>{{ displayName() }}</h1>
+          <p>{{ speciality() }} - {{ formatLocation() }}</p>
+        </div>
+
+        <div class="provider-profile__actions" aria-label="Actions prestataire">
+          <button type="button" aria-label="Partager">
+            <lucide-icon name="share-2" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </button>
           <button
             type="button"
-            [routerLink]="['/services', profileId, 'proposition']"
-            [queryParams]="primaryService()?.id ? { serviceId: primaryService()?.id } : null"
+            [class.provider-profile__favorite--active]="isFavorite()"
+            [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            (click)="toggleFavorite()"
           >
-            <lucide-icon name="banknote" size="31" [strokeWidth]="2.4"></lucide-icon>
-            Proposez un prix
+            <lucide-icon name="heart" size="21" [strokeWidth]="2.3"></lucide-icon>
           </button>
-        </article>
-
-        <article class="provider-profile__card provider-profile__contact">
-          <h2>Coordonnee</h2>
-          <p><strong>Ville :</strong> {{ formatLocation() }}</p>
-          <p><strong>Telephone :</strong> {{ formatPhone() }}</p>
-          <iframe
-            *ngIf="mapUrl()"
-            [src]="mapUrl()"
-            [title]="'Carte de localisation - ' + formatLocation()"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
-          <p *ngIf="!mapUrl()" class="provider-profile__map-empty">
-            Localisation non renseignee par ce prestataire.
-          </p>
-        </article>
-      </aside>
-
-      <article class="provider-profile__card provider-profile__expertise">
-        <div class="provider-profile__card-head">
-          <h2>Expertises</h2>
-          <lucide-icon name="chevron-down" size="30" [strokeWidth]="2.7"></lucide-icon>
         </div>
-        <div *ngIf="expertiseTags().length > 0; else noExpertise" class="provider-profile__tags">
-          <span *ngFor="let tag of expertiseTags()">
-            {{ tag }}
-          </span>
-        </div>
-        <ng-template #noExpertise>
-          <p class="provider-profile__empty">Aucune expertise renseignee.</p>
-        </ng-template>
-      </article>
 
-      <article class="provider-profile__card provider-profile__hours">
-        <h2>Horaires du cabinet</h2>
-        <div *ngIf="schedule().length > 0; else noSchedule" class="provider-profile__hours-list">
-          <div *ngFor="let row of schedule()">
-            <strong>{{ row.day }} :</strong>
-            <span *ngFor="let slot of row.slots">{{ slot }}</span>
+        <div class="provider-profile__stats" aria-label="Statistiques du prestataire">
+          <div>
+            <span><lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+            <p><strong>{{ experienceLabel() }}</strong><small>Experience</small></p>
+          </div>
+          <div>
+            <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+            <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
+          </div>
+          <div>
+            <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+            <p><strong>{{ reviewsCountLabel() }}</strong><small>Avis</small></p>
           </div>
         </div>
-        <ng-template #noSchedule>
-          <p class="provider-profile__empty">Aucun horaire renseigne.</p>
-        </ng-template>
-      </article>
-    </section>
+      </section>
+
+      <section class="provider-profile__layout">
+        <div class="provider-profile__main">
+          <article class="provider-profile__card provider-profile__about">
+            <h2>{{ primaryService()?.description ? speciality() : "L'artisan au service du geste juste." }}</h2>
+            <p>{{ bio() }}</p>
+
+            <div *ngIf="expertiseTags().length > 0" class="provider-profile__expertise-block">
+              <strong>Expertises</strong>
+              <div class="provider-profile__tags">
+                <span *ngFor="let tag of expertiseTags()">{{ tag }}</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="provider-profile__card provider-profile__gallery">
+            <h2>Galerie des realisations</h2>
+            <div *ngIf="portfolioItems().length > 0; else noPortfolio" class="provider-profile__gallery-grid">
+              <figure *ngFor="let item of portfolioItems()">
+                <img [src]="item.urlImage" [alt]="item.titre" />
+                <figcaption>{{ item.titre }}</figcaption>
+              </figure>
+            </div>
+            <ng-template #noPortfolio>
+              <p class="provider-profile__empty">Aucune realisation publiee pour le moment.</p>
+            </ng-template>
+          </article>
+
+          <article class="provider-profile__card provider-profile__reviews">
+            <header>
+              <h2>Avis clients</h2>
+              <div>
+                <strong>{{ ratingLabel() }}</strong>
+                <span>★★★★★</span>
+                <small>{{ reviewTotalLabel() }}</small>
+              </div>
+            </header>
+
+            <div *ngIf="reviewItems().length > 0; else noReviews" class="provider-profile__review-list">
+              <article *ngFor="let review of reviewItems()" class="provider-profile__review">
+                <img
+                  *ngIf="review.client.urlAvatar; else reviewInitials"
+                  [src]="review.client.urlAvatar"
+                  [alt]="review.client.nom"
+                />
+                <ng-template #reviewInitials>
+                  <span class="provider-profile__review-avatar">{{ review.client.nom.slice(0, 2).toUpperCase() }}</span>
+                </ng-template>
+                <div>
+                  <strong>{{ review.client.nom }}</strong>
+                  <span>{{ starsFor(review.note) }}</span>
+                  <p>{{ review.commentaire || 'Avis sans commentaire.' }}</p>
+                </div>
+                <small>{{ formatReviewDate(review.reviewedAt || review.creeLe || review.dateHeure) }}</small>
+              </article>
+            </div>
+            <ng-template #noReviews>
+              <p class="provider-profile__empty">Aucun avis client pour le moment.</p>
+            </ng-template>
+          </article>
+        </div>
+
+        <aside class="provider-profile__side">
+          <article class="provider-profile__card provider-profile__price">
+            <span>Tarif</span>
+            <p><strong>{{ priceLabel().replace(' FCFA', '') }}</strong> <em>FCFA {{ priceTypeLabel() }}</em></p>
+            <button
+              type="button"
+              [routerLink]="['/services', profileId, 'proposition']"
+              [queryParams]="primaryService()?.id ? { serviceId: primaryService()?.id } : null"
+            >
+              <lucide-icon name="banknote" size="25" [strokeWidth]="2.4"></lucide-icon>
+              Proposez un prix
+            </button>
+          </article>
+
+          <article class="provider-profile__card provider-profile__contact">
+            <h2>Coordonnees</h2>
+            <p>
+              <lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon>
+              <span>{{ formatLocation() }}</span>
+            </p>
+            <p>
+              <lucide-icon name="phone" size="15" [strokeWidth]="2.4"></lucide-icon>
+              <span>{{ formatPhone() }}</span>
+            </p>
+            <iframe
+              *ngIf="mapUrl()"
+              [src]="mapUrl()"
+              [title]="'Carte de localisation - ' + formatLocation()"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+            <p *ngIf="!mapUrl()" class="provider-profile__map-empty">
+              Localisation non renseignee par ce prestataire.
+            </p>
+          </article>
+
+          <article class="provider-profile__card provider-profile__hours">
+            <h2>Horaires du cabinet</h2>
+            <div *ngIf="schedule().length > 0; else noSchedule" class="provider-profile__hours-list">
+              <div *ngFor="let row of schedule()" class="provider-profile__schedule-row">
+                <strong>{{ row.day }} :</strong>
+                <div>
+                  <span *ngFor="let slot of row.slots">{{ slot }}</span>
+                </div>
+              </div>
+            </div>
+            <ng-template #noSchedule>
+              <p class="provider-profile__empty">Aucun horaire renseigne.</p>
+            </ng-template>
+          </article>
+        </aside>
+      </section>
+    </ng-container>
   </div>
 
   <app-footer />

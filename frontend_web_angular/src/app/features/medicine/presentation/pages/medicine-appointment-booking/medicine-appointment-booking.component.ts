@@ -185,6 +185,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         next: ({ detail, user }) => {
           this.detail.set(detail);
           this.user.set(user);
+          const firstService = this.services()[0];
+          if (firstService && !this.selectedServiceId()) {
+            this.selectedServiceId.set(firstService.id);
+          }
+          this.loadAvailability();
         },
         error: (error) =>
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger ce medecin.')),

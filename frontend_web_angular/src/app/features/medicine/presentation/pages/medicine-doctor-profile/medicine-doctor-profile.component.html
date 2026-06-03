@@ -105,16 +105,26 @@
       </article>
 
       <article class="doctor-profile__card doctor-profile__hours">
-        <h2>Horaires du cabinet</h2>
-        <div class="doctor-profile__hours-list">
-          <div *ngFor="let day of schedule()" class="doctor-profile__schedule-row">
-            <strong>{{ day.dayLabel }} :</strong>
-            <span *ngFor="let range of day.ranges">{{ range }}</span>
-            <span *ngIf="day.ranges.length === 0" class="doctor-profile__schedule-unavailable">
-              Indisponible
-            </span>
+        <div class="doctor-profile__hours-head">
+          <span>
+            <lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon>
+          </span>
+          <div>
+            <h2>Heures de consultation</h2>
+            <p>{{ scheduleSummary() }}</p>
           </div>
         </div>
+        <div *ngIf="activeSchedule().length > 0; else noDoctorSchedule" class="doctor-profile__hours-list">
+          <div *ngFor="let day of activeSchedule()" class="doctor-profile__schedule-row">
+            <strong>{{ day.dayLabel }}</strong>
+            <div>
+              <span *ngFor="let range of day.ranges">{{ range }}</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noDoctorSchedule>
+          <p class="doctor-profile__schedule-empty">Aucun horaire renseigne.</p>
+        </ng-template>
       </article>
     </section>
   </div>

@@ -13,7 +13,6 @@ import {
 } from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
-import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -33,7 +32,6 @@ interface ScheduleRow {
     CommonModule,
     AppFooterComponent,
     AppNavbarComponent,
-    AppScrollHintComponent,
     LucideAngularModule,
     RouterLink,
   ],
@@ -75,6 +73,20 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly coverUrl = computed(
     () => this.detail()?.portfolio[0]?.urlImage ?? this.defaultCoverUrl,
   );
+  protected readonly portfolioItems = computed(() =>
+    (this.detail()?.portfolio ?? []).slice(0, 6),
+  );
+  protected readonly reviewItems = computed(() =>
+    (this.detail()?.reviews ?? []).slice(0, 2),
+  );
+  protected readonly ratingLabel = computed(() => {
+    const rating = Number(this.detail()?.profile.noteGlobale ?? 0);
+    return rating > 0 ? rating.toFixed(1).replace('.', ',') : 'Nouveau';
+  });
+  protected readonly reviewTotalLabel = computed(() => {
+    const total = this.detail()?.profile.nombreAvis ?? 0;
+    return `${this.formatNumber(total)} avis`;
+  });
   protected readonly bio = computed(
     () =>
       this.detail()?.profile.biographie ||
@@ -105,6 +117,15 @@ export class ProviderProfileComponent implements OnInit {
     this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
   );
   protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
+  protected readonly scheduleSlotsCount = computed(() =>
+    this.schedule().reduce((total, row) => total + row.slots.length, 0),
+  );
+  protected readonly scheduleSummary = computed(() => {
+    const daysCount = this.schedule().length;
+    const slotsCount = this.scheduleSlotsCount();
+    if (daysCount === 0) return 'Aucun horaire publie';
+    return `${daysCount} jour${daysCount > 1 ? 's' : ''} actif${daysCount > 1 ? 's' : ''} · ${slotsCount} plage${slotsCount > 1 ? 's' : ''}`;
+  });
   protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
     const detail = this.detail();
     const coordinates = this.resolveMapCoordinates(detail);
@@ -150,6 +171,21 @@ export class ProviderProfileComponent implements OnInit {
 
   protected formatPhone(): string {
     return this.detail()?.profile.utilisateur.numeroTelephone || 'Telephone non renseigne';
+  }
+
+  protected formatReviewDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  protected starsFor(value: number): string {
+    const rounded = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
+    return '★'.repeat(rounded).padEnd(5, '☆');
   }
 
   protected toggleFavorite(): void {
@@ -251,8 +287,8 @@ export class ProviderProfileComponent implements OnInit {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
 
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
     return `${hours}h${minutes}`;
   }
 

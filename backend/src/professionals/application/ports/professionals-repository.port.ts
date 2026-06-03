@@ -241,12 +241,21 @@ export type CreateAvailabilityInput = {
   endTime: Date;
 };
 
+export type UpdateAvailabilityInput = CreateAvailabilityInput & {
+  availabilityId: string;
+};
+
 export type CreateAvailabilityResult =
   | { status: 'created'; availability: ProfessionalAvailabilityView }
   | { status: 'profile_not_found' };
 
 export type DisableAvailabilityResult =
   | { status: 'disabled'; availability: ProfessionalAvailabilityView }
+  | { status: 'profile_not_found' }
+  | { status: 'availability_not_found' };
+
+export type UpdateAvailabilityResult =
+  | { status: 'updated'; availability: ProfessionalAvailabilityView }
   | { status: 'profile_not_found' }
   | { status: 'availability_not_found' };
 
@@ -257,6 +266,9 @@ export interface ProfessionalAvailabilityRepositoryPort {
   createAvailability(
     input: CreateAvailabilityInput,
   ): Promise<CreateAvailabilityResult>;
+  updateAvailability(
+    input: UpdateAvailabilityInput,
+  ): Promise<UpdateAvailabilityResult>;
   disableAvailability(
     utilisateurId: string,
     availabilityId: string,

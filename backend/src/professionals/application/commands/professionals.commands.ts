@@ -52,3 +52,5 @@ export type CreateAvailabilityCommand = {
   startTime: string;
   endTime: string;
 };
+
+export type UpdateAvailabilityCommand = CreateAvailabilityCommand;

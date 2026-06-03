@@ -23,6 +23,8 @@ import type {
   ProfessionalsRepositoryPort,
   SubmitKycInput,
   SubmitKycResult,
+  UpdateAvailabilityInput,
+  UpdateAvailabilityResult,
   UpdateServiceInput,
   UpdateServiceResult,
   UpdateProfessionalProfileInput,
@@ -616,6 +618,39 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       select: AVAILABILITY_SELECT,
     });
     return { status: 'created', availability };
+  }
+
+  async updateAvailability(
+    input: UpdateAvailabilityInput,
+  ): Promise<UpdateAvailabilityResult> {
+    const profileId = await this.getProfileIdByUserId(input.utilisateurId);
+    if (!profileId) {
+      return { status: 'profile_not_found' };
+    }
+
+    const updated = await this.prisma.disponibilite.updateMany({
+      where: {
+        id: input.availabilityId,
+        profilProfessionnelId: profileId,
+      },
+      data: {
+        jourSemaine: input.dayOfWeek,
+        heureDebut: input.startTime,
+        heureFin: input.endTime,
+        estActive: true,
+      },
+    });
+
+    if (updated.count === 0) {
+      return { status: 'availability_not_found' };
+    }
+
+    const availability = await this.prisma.disponibilite.findUniqueOrThrow({
+      where: { id: input.availabilityId },
+      select: AVAILABILITY_SELECT,
+    });
+
+    return { status: 'updated', availability };
   }
 
   async disableAvailability(

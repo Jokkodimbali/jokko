@@ -1,0 +1,222 @@
+﻿.doctor-space__wallet {
+  display: grid;
+  gap: 20px;
+  max-width: none;
+  width: 100%;
+}
+
+.doctor-space__wallet-summary {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+}
+
+.doctor-space__wallet-balance,
+.doctor-space__wallet-revenue,
+.doctor-space__wallet-history {
+  background: #fffefd;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+}
+
+.doctor-space__wallet-balance {
+  background: #985f22;
+  border-color: #985f22;
+  color: #fff;
+  min-height: 148px;
+  padding: 17px 16px 15px;
+}
+
+.doctor-space__wallet-balance > div,
+.doctor-space__wallet-revenue header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.doctor-space__wallet-balance > div span,
+.doctor-space__wallet-revenue header span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.doctor-space__wallet-balance strong,
+.doctor-space__wallet-revenue strong {
+  display: block;
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.doctor-space__wallet-balance strong {
+  margin: 22px 0 10px;
+}
+
+.doctor-space__wallet-open-withdraw {
+  align-items: center;
+  background: #fff0df;
+  border: 0;
+  border-radius: 10px;
+  color: #985f22;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 7px;
+  height: 38px;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 0 14px;
+}
+
+.doctor-space__wallet-open-withdraw:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.doctor-space__wallet-revenue {
+  min-height: 148px;
+  padding: 15px 14px 10px;
+}
+
+.doctor-space__wallet-revenue header {
+  color: #786c62;
+}
+
+.doctor-space__wallet-revenue strong {
+  font-size: 26px;
+  margin: 12px 0 3px;
+}
+
+.doctor-space__wallet-revenue small {
+  color: #44bb73;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.doctor-space__wallet-change--down {
+  color: #e7262f !important;
+}
+
+.doctor-space__wallet-revenue dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.doctor-space__wallet-revenue dl div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.doctor-space__wallet-revenue dt,
+.doctor-space__wallet-revenue dd {
+  color: #7e746b;
+  font-size: 10px;
+  margin: 0;
+}
+
+.doctor-space__wallet-revenue dd {
+  color: #111;
+  font-weight: 800;
+}
+
+.doctor-space__wallet-history {
+  min-height: 394px;
+  padding: 16px 15px 22px;
+}
+
+.doctor-space__wallet-history h2 {
+  color: #736458;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 2px 0 12px;
+}
+
+.doctor-space__wallet-empty {
+  border: 1px dashed #ead7c4;
+  border-radius: 10px;
+  color: #7e746b;
+  margin: 0;
+  padding: 22px;
+}
+
+.doctor-space__wallet-transaction {
+  align-items: center;
+  border: 1px solid #ead7c4;
+  border-radius: 9px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 43px minmax(0, 1fr) auto;
+  min-height: 60px;
+  padding: 10px 12px;
+}
+
+.doctor-space__wallet-transaction + .doctor-space__wallet-transaction {
+  margin-top: 7px;
+}
+
+.doctor-space__wallet-transaction-icon {
+  align-items: center;
+  background: #d9f6df;
+  border-radius: 50%;
+  color: #25a852;
+  display: inline-flex;
+  height: 35px;
+  justify-content: center;
+  width: 35px;
+}
+
+.doctor-space__wallet-transaction--out .doctor-space__wallet-transaction-icon {
+  background: #ffdfe2;
+  color: #ed222a;
+}
+
+.doctor-space__wallet-transaction strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__wallet-transaction small {
+  color: #8c8c8c;
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.doctor-space__wallet-transaction em {
+  background: #29a64f;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  min-width: 107px;
+  padding: 9px 11px;
+  text-align: center;
+}
+
+.doctor-space__wallet-transaction--out em {
+  background: #ed222a;
+}
+
+@media (max-width: 860px) {
+.doctor-space__wallet-transaction {
+    grid-template-columns: 1fr;
+  }
+
+.doctor-space__wallet-transaction em {
+    justify-self: start;
+  }
+}
+

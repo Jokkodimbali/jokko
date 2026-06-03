@@ -2,7 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
-export type DoctorSpaceSection = 'availability' | 'consultation' | 'agenda' | 'wallet';
+export type DoctorSpaceSection =
+  | 'availability'
+  | 'consultation'
+  | 'agenda'
+  | 'medical-history'
+  | 'wallet';
 
 @Component({
   selector: 'app-doctor-space-sidebar',

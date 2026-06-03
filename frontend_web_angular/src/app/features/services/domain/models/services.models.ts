@@ -9,6 +9,8 @@ export interface Category {
 
 export interface Professional {
   id: string;
+  serviceId?: string;
+  servicePriceType?: string;
   nom: string;
   speciality: string;
   location: string;

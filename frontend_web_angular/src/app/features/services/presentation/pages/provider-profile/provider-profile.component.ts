@@ -52,6 +52,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
+  protected readonly selectedServiceId = this.route.snapshot.queryParamMap.get('serviceId') || '';
   protected readonly defaultCoverUrl = '/boabab.png';
 
   protected readonly displayName = computed(() => {
@@ -59,8 +60,18 @@ export class ProviderProfileComponent implements OnInit {
     return profile?.nomEntreprise || profile?.utilisateur.nom || 'Prestataire';
   });
 
-  protected readonly primaryService = computed(() => this.detail()?.services[0] ?? null);
+  protected readonly primaryService = computed(() => {
+    const services = this.detail()?.services ?? [];
+    return services.find((service) => service.id === this.selectedServiceId) ?? services[0] ?? null;
+  });
   protected readonly speciality = computed(() => this.primaryService()?.nom || 'Service');
+  protected readonly aboutTitle = computed(() =>
+    this.primaryService()?.description ? this.speciality() : "L'artisan au service du geste juste.",
+  );
+  protected readonly serviceQueryParams = computed(() => {
+    const serviceId = this.primaryService()?.id;
+    return serviceId ? { serviceId } : null;
+  });
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
   protected readonly initials = computed(() =>
     this.displayName()

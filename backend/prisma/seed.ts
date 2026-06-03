@@ -37,11 +37,15 @@ const SEED_IDS = {
   plomberieCategory: '22222222-2222-4222-8222-222222222222',
   professionalProfile: '33333333-3333-4333-8333-333333333333',
   serviceConsultation: '44444444-4444-4444-8444-444444444444',
+  serviceNegotiation: '44444444-4444-4444-8444-444444444445',
   reservationPaid: '55555555-5555-4555-8555-555555555555',
   reservationConfirmed: '66666666-6666-4666-8666-666666666666',
   conversationDemo: '99999999-9999-4999-8999-999999999999',
   paymentPaid: '77777777-7777-4777-8777-777777777777',
   withdrawal: '88888888-8888-4888-8888-888888888888',
+  availabilityMondayMorning: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+  availabilityWednesdayAfternoon: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+  availabilitySaturdayMorning: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
 };
 
 const SEED_USERS = {
@@ -107,13 +111,13 @@ export async function runSeed() {
     },
   });
 
-  await prisma.categorie.upsert({
+  const plomberieCategory = await prisma.categorie.upsert({
     where: { nom: 'Plomberie & Sanitaire' },
-    update: { nom: 'Plomberie & Sanitaire', ordreTri: 2, estActive: true },
+    update: { nom: 'Plomberie & Sanitaire', ordreTri: 0, estActive: true },
     create: {
       id: SEED_IDS.plomberieCategory,
       nom: 'Plomberie & Sanitaire',
-      ordreTri: 2,
+      ordreTri: 0,
       estActive: true,
     },
   });
@@ -160,6 +164,90 @@ export async function runSeed() {
       prix: 10000,
       typePrix: TypePrix.FIXE,
       estDisponible: true,
+    },
+  });
+
+  await prisma.service.upsert({
+    where: { id: SEED_IDS.serviceNegotiation },
+    update: {
+      profilProfessionnelId: professionalProfile.id,
+      categorieId: plomberieCategory.id,
+      nom: 'Reparation fuite cuisine - test negociation',
+      description:
+        'Service de test pour verifier le flux complet de proposition de prix, discussion, acceptation et creation de reservation negociee.',
+      prix: 20000,
+      typePrix: TypePrix.NEGOCIABLE,
+      dureeMinutes: 60,
+      estDisponible: true,
+    },
+    create: {
+      id: SEED_IDS.serviceNegotiation,
+      profilProfessionnelId: professionalProfile.id,
+      categorieId: plomberieCategory.id,
+      nom: 'Reparation fuite cuisine - test negociation',
+      description:
+        'Service de test pour verifier le flux complet de proposition de prix, discussion, acceptation et creation de reservation negociee.',
+      prix: 20000,
+      typePrix: TypePrix.NEGOCIABLE,
+      dureeMinutes: 60,
+      estDisponible: true,
+    },
+  });
+
+  await prisma.disponibilite.upsert({
+    where: { id: SEED_IDS.availabilityMondayMorning },
+    update: {
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 1,
+      heureDebut: new Date('1970-01-01T09:00:00.000Z'),
+      heureFin: new Date('1970-01-01T12:30:00.000Z'),
+      estActive: true,
+    },
+    create: {
+      id: SEED_IDS.availabilityMondayMorning,
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 1,
+      heureDebut: new Date('1970-01-01T09:00:00.000Z'),
+      heureFin: new Date('1970-01-01T12:30:00.000Z'),
+      estActive: true,
+    },
+  });
+
+  await prisma.disponibilite.upsert({
+    where: { id: SEED_IDS.availabilityWednesdayAfternoon },
+    update: {
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 3,
+      heureDebut: new Date('1970-01-01T14:00:00.000Z'),
+      heureFin: new Date('1970-01-01T18:00:00.000Z'),
+      estActive: true,
+    },
+    create: {
+      id: SEED_IDS.availabilityWednesdayAfternoon,
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 3,
+      heureDebut: new Date('1970-01-01T14:00:00.000Z'),
+      heureFin: new Date('1970-01-01T18:00:00.000Z'),
+      estActive: true,
+    },
+  });
+
+  await prisma.disponibilite.upsert({
+    where: { id: SEED_IDS.availabilitySaturdayMorning },
+    update: {
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 6,
+      heureDebut: new Date('1970-01-01T09:00:00.000Z'),
+      heureFin: new Date('1970-01-01T13:00:00.000Z'),
+      estActive: true,
+    },
+    create: {
+      id: SEED_IDS.availabilitySaturdayMorning,
+      profilProfessionnelId: professionalProfile.id,
+      jourSemaine: 6,
+      heureDebut: new Date('1970-01-01T09:00:00.000Z'),
+      heureFin: new Date('1970-01-01T13:00:00.000Z'),
+      estActive: true,
     },
   });
 

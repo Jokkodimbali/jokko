@@ -366,6 +366,35 @@ export class ProfessionalsController {
     return createApiResponse(result);
   }
 
+  @Patch('me/availabilities/:availabilityId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Modifier une disponibilite' })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('PROFESSIONALS_AVAILABILITY_UPDATED').message,
+    messageExample: appMessage('PROFESSIONALS_AVAILABILITY_UPDATED').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.professionals.availabilityData,
+    },
+  })
+  async updateMyAvailability(
+    @CurrentUser() user: AuthUser,
+    @Param('availabilityId') availabilityId: string,
+    @Body() dto: CreateAvailabilityDto,
+  ) {
+    const result = await this.professionalsFacade.updateMyAvailability(
+      user,
+      availabilityId,
+      dto,
+    );
+    return createApiResponse(
+      result,
+      appMessage('PROFESSIONALS_AVAILABILITY_UPDATED').message,
+    );
+  }
+
   @Delete('me/availabilities/:availabilityId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

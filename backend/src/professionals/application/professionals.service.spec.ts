@@ -411,6 +411,7 @@ describe('PortfolioService', () => {
 describe('AvailabilityService', () => {
   const mockRepository = {
     createAvailability: jest.fn(),
+    updateAvailability: jest.fn(),
     disableAvailability: jest.fn(),
     listAvailabilities: jest.fn(),
     findVerifiedById: jest.fn(),
@@ -453,6 +454,40 @@ describe('AvailabilityService', () => {
           endTime: '17:00',
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('updateAvailability', () => {
+    it('should update an existing availability slot', async () => {
+      mockRepository.updateAvailability.mockResolvedValue({
+        status: 'updated',
+        availability: {
+          id: 'avail-123',
+          jourSemaine: 2,
+          heureDebut: new Date(Date.UTC(1970, 0, 1, 10, 0, 0)),
+          heureFin: new Date(Date.UTC(1970, 0, 1, 16, 0, 0)),
+          estActive: true,
+        },
+      });
+
+      const result = await service.updateAvailability(
+        createMockAuthUser(),
+        'avail-123',
+        {
+          dayOfWeek: 2,
+          startTime: '10:00',
+          endTime: '16:00',
+        },
+      );
+
+      expect(result.jourSemaine).toBe(2);
+      expect(mockRepository.updateAvailability).toHaveBeenCalledWith(
+        expect.objectContaining({
+          utilisateurId: 'user-123',
+          availabilityId: 'avail-123',
+          dayOfWeek: 2,
+        }),
+      );
     });
   });
 });

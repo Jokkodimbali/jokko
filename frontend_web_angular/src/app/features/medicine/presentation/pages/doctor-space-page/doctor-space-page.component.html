@@ -100,8 +100,14 @@
 
         <section class="doctor-space__schedule">
           <header>
-            <h2>Horaires hebdomadaires</h2>
-            <p>Activez les jours travaill&eacute;s et d&eacute;finissez vos plages horaires</p>
+            <div>
+              <h2>Horaires hebdomadaires</h2>
+              <p>Activez les jours travaill&eacute;s et d&eacute;finissez vos plages horaires</p>
+            </div>
+            <span class="doctor-space__schedule-badge">
+              <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.2"></lucide-icon>
+              {{ days().length }} jours
+            </span>
           </header>
 
           <article
@@ -120,36 +126,56 @@
               >
                 <span></span>
               </button>
-              <h3>{{ day.label }}</h3>
+              <div class="doctor-space__day-title">
+                <h3>{{ day.label }}</h3>
+                <span
+                  class="doctor-space__day-status"
+                  [class.doctor-space__day-status--active]="day.enabled"
+                >
+                  {{ day.enabled ? 'Disponible' : 'Indisponible' }}
+                </span>
+              </div>
+              <span class="doctor-space__day-count">
+                {{ day.enabled ? day.slots.length + ' plage(s)' : 'Repos' }}
+              </span>
               <button type="button" class="doctor-space__add" [disabled]="isSaving()" (click)="addSlot(day)">
-                <span>+</span>
+                <lucide-icon name="plus" size="15" [strokeWidth]="2.7"></lucide-icon>
                 Ajouter
               </button>
             </div>
 
             <div class="doctor-space__slots" *ngIf="day.enabled">
-              <div *ngFor="let slot of day.slots; trackBy: trackSlot" class="doctor-space__slot">
-                <label>
-                  <input
-                    type="time"
-                    [(ngModel)]="slot.startTime"
-                    [disabled]="isSaving()"
-                    (change)="saveSlot(day, slot)"
-                  />
-                  <lucide-icon name="clock-3" size="16" [strokeWidth]="2"></lucide-icon>
-                </label>
-                <span class="doctor-space__arrow">&rarr;</span>
-                <label>
-                  <input
-                    type="time"
-                    [(ngModel)]="slot.endTime"
-                    [disabled]="isSaving()"
-                    (change)="saveSlot(day, slot)"
-                  />
-                  <lucide-icon name="clock-3" size="16" [strokeWidth]="2"></lucide-icon>
-                </label>
-                <button type="button" class="doctor-space__remove" [disabled]="isSaving()" (click)="removeSlot(day, slot)">
-                  &times;
+              <div *ngFor="let slot of day.slots; let slotIndex = index; trackBy: trackSlot" class="doctor-space__slot">
+                <span class="doctor-space__slot-index">{{ slotIndex + 1 }}</span>
+                <div class="doctor-space__slot-times">
+                  <label>
+                    <small>D&eacute;but</small>
+                    <span>
+                      <input
+                        type="time"
+                        [(ngModel)]="slot.startTime"
+                        [disabled]="isSaving()"
+                        (change)="saveSlot(day, slot)"
+                      />
+                      <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                    </span>
+                  </label>
+                  <span class="doctor-space__arrow">&rarr;</span>
+                  <label>
+                    <small>Fin</small>
+                    <span>
+                      <input
+                        type="time"
+                        [(ngModel)]="slot.endTime"
+                        [disabled]="isSaving()"
+                        (change)="saveSlot(day, slot)"
+                      />
+                      <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                    </span>
+                  </label>
+                </div>
+                <button type="button" class="doctor-space__remove" [disabled]="isSaving()" (click)="removeSlot(day, slot)" aria-label="Supprimer ce cr&eacute;neau">
+                  <lucide-icon name="x" size="16" [strokeWidth]="2.5"></lucide-icon>
                 </button>
               </div>
             </div>
@@ -161,73 +187,144 @@
         <section *ngIf="activeSection() === 'consultation'; else placeholderSection" class="doctor-space__motifs">
           <form class="doctor-space__motif-form" (ngSubmit)="addMotif()">
             <header>
-              <lucide-icon name="plus" size="26" [strokeWidth]="2.4"></lucide-icon>
+              <span class="doctor-space__motif-header-icon">
+                <lucide-icon name="plus" size="18" [strokeWidth]="2.6"></lucide-icon>
+              </span>
               <div>
-                <strong>Nouveau motif</strong>
-                <span>renseignez le nom, la dur&eacute;e et le tarif</span>
+                <strong>{{ editingMotifId() ? 'Modifier le motif' : 'Nouveau motif' }}</strong>
+                <span>Renseignez le nom, la dur&eacute;e et le tarif</span>
               </div>
             </header>
 
             <div class="doctor-space__motif-fields">
-              <label>
+              <label class="doctor-space__motif-field doctor-space__motif-field--full">
                 <span>Nom du motif</span>
-                <input type="text" name="motifName" placeholder="Ex : D&eacute;tartrage" [(ngModel)]="motifForm.name" />
+                <input type="text" name="motifName" placeholder="Ex : Consultation g&eacute;n&eacute;rale" [(ngModel)]="motifForm.name" />
               </label>
-              <label>
-                <span>Dur&eacute;e ( min)</span>
-                <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" />
+              <label class="doctor-space__motif-field">
+                <span>Dur&eacute;e</span>
+                <span class="doctor-space__motif-input-wrap">
+                  <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" />
+                  <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
+                </span>
               </label>
-              <label>
-                <span>Tarif ( FCFA)</span>
-                <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" />
+              <label class="doctor-space__motif-field">
+                <span>Tarif (FCFA)</span>
+                <span class="doctor-space__motif-input-wrap">
+                  <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" />
+                  <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
+                </span>
               </label>
-              <button
-                type="button"
-                class="doctor-space__motif-switch"
-                [class.doctor-space__motif-switch--active]="motifForm.isRequired"
-                (click)="motifForm.isRequired = !motifForm.isRequired"
-                aria-label="Changer le statut obligatoire"
-              >
-                <span></span>
-              </button>
-              <span class="doctor-space__motif-required-label">Obligatoire</span>
-              <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">Ajouter</button>
+              <div class="doctor-space__motif-required-card">
+                <div>
+                  <strong>Motif obligatoire</strong>
+                  <span>Coch&eacute; automatiquement lors du RDV</span>
+                </div>
+                <button
+                  type="button"
+                  class="doctor-space__motif-switch"
+                  [class.doctor-space__motif-switch--active]="motifForm.isRequired"
+                  (click)="motifForm.isRequired = !motifForm.isRequired"
+                  aria-label="Changer le statut obligatoire"
+                >
+                  <span></span>
+                </button>
+              </div>
+              <div class="doctor-space__motif-form-actions">
+                <button *ngIf="editingMotifId()" type="button" class="doctor-space__motif-cancel" [disabled]="isSaving()" (click)="resetMotifForm()">
+                  Annuler
+                </button>
+                <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
+                  <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
+                  {{ editingMotifId() ? 'Enregistrer ce motif' : 'Ajouter ce motif' }}
+                </button>
+              </div>
             </div>
           </form>
 
           <section class="doctor-space__motif-list">
             <header>
-              <lucide-icon name="clipboard" size="28" [strokeWidth]="2.2"></lucide-icon>
-              <h3>Mes motifs ({{ motifs().length }})</h3>
+              <div class="doctor-space__motif-list-title">
+                <span class="doctor-space__motif-list-icon">
+                  <lucide-icon name="clipboard" size="20" [strokeWidth]="2.2"></lucide-icon>
+                </span>
+                <h3>Mes motifs</h3>
+                <span class="doctor-space__motif-count">{{ motifs().length }}</span>
+              </div>
+              <p>
+                <lucide-icon name="info" size="16" [strokeWidth]="2.3"></lucide-icon>
+                Les motifs obligatoires sont coch&eacute;s automatiquement
+              </p>
             </header>
 
             <p *ngIf="motifs().length === 0" class="doctor-space__motif-empty">Aucun motif de consultation enregistr&eacute;.</p>
 
-            <article *ngFor="let motif of motifs()" class="doctor-space__motif-item">
-              <div>
-                <strong>{{ motif.name }}</strong>
-                <span>{{ motif.durationMinutes }} min. {{ motif.price | number: '1.0-0' }} FCFA</span>
+            <div *ngIf="motifs().length > 0" class="doctor-space__motif-table" role="table" aria-label="Motifs de consultation">
+              <div class="doctor-space__motif-table-head" role="row">
+                <span role="columnheader">Motif</span>
+                <span role="columnheader">Dur&eacute;e</span>
+                <span role="columnheader">Tarif</span>
+                <span role="columnheader">Obligatoire</span>
+                <span role="columnheader" aria-label="Actions"></span>
               </div>
-              <span class="doctor-space__motif-required-label">Obligatoire</span>
-              <button
-                type="button"
-                class="doctor-space__motif-switch"
-                [class.doctor-space__motif-switch--active]="motif.isRequired"
-                [disabled]="isSaving()"
-                (click)="toggleMotifRequired(motif)"
-                aria-label="Changer le statut obligatoire du motif"
-              >
-                <span></span>
-              </button>
-              <button type="button" class="doctor-space__motif-delete" [disabled]="isSaving()" (click)="deleteMotif(motif)" aria-label="Supprimer le motif">
-                <lucide-icon name="trash-2" size="22" [strokeWidth]="2.2"></lucide-icon>
-              </button>
-            </article>
+
+              <article *ngFor="let motif of motifs()" class="doctor-space__motif-row" role="row">
+                <div class="doctor-space__motif-name" role="cell">
+                  <span class="doctor-space__motif-row-icon">
+                    <lucide-icon name="clipboard" size="17" [strokeWidth]="2.1"></lucide-icon>
+                  </span>
+                  <strong>{{ motif.name }}</strong>
+                </div>
+                <div class="doctor-space__motif-duration" role="cell">
+                  <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
+                  <span>{{ motif.durationMinutes }} min</span>
+                </div>
+                <div class="doctor-space__motif-price" role="cell">
+                  <strong>{{ motif.price | number: '1.0-0' }}</strong>
+                  <span>FCFA</span>
+                </div>
+                <div class="doctor-space__motif-required-cell" role="cell">
+                  <button
+                    type="button"
+                    class="doctor-space__motif-switch"
+                    [class.doctor-space__motif-switch--active]="motif.isRequired"
+                    [disabled]="isSaving()"
+                    (click)="toggleMotifRequired(motif)"
+                    aria-label="Changer le statut obligatoire du motif"
+                  >
+                    <span></span>
+                  </button>
+                </div>
+                <div class="doctor-space__motif-actions" role="cell">
+                  <button type="button" class="doctor-space__motif-action" [disabled]="isSaving()" (click)="editMotif(motif)" aria-label="Modifier le motif">
+                    <lucide-icon name="pencil" size="16" [strokeWidth]="2"></lucide-icon>
+                  </button>
+                  <button type="button" class="doctor-space__motif-action doctor-space__motif-action--delete" [disabled]="isSaving()" (click)="deleteMotif(motif)" aria-label="Supprimer le motif">
+                    <lucide-icon name="trash-2" size="16" [strokeWidth]="2"></lucide-icon>
+                  </button>
+                </div>
+              </article>
+
+              <footer class="doctor-space__motif-table-foot">
+                <span>
+                  <lucide-icon name="clipboard" size="14" [strokeWidth]="2"></lucide-icon>
+                  {{ motifs().length }} motifs au total
+                </span>
+                <span>
+                  <lucide-icon name="lock" size="14" [strokeWidth]="2"></lucide-icon>
+                  {{ motifRequiredCount() }} obligatoires
+                </span>
+                <strong>
+                  <lucide-icon name="banknote" size="14" [strokeWidth]="2"></lucide-icon>
+                  Tarif moyen : {{ motifAveragePrice() | number: '1.0-0' }} FCFA
+                </strong>
+              </footer>
+            </div>
           </section>
         </section>
 
         <ng-template #placeholderSection>
-        <section *ngIf="activeSection() === 'agenda'; else walletSection" class="doctor-space__agenda">
+        <section *ngIf="activeSection() === 'agenda'; else medicalHistorySection" class="doctor-space__agenda">
           <section class="doctor-space__agenda-stats" aria-label="Indicateurs de l'agenda">
             <article class="doctor-space__agenda-stat doctor-space__agenda-stat--orange">
               <div class="doctor-space__agenda-stat-icon">
@@ -391,6 +488,321 @@
             </div>
           </section>
         </section>
+
+        <ng-template #medicalHistorySection>
+          <section *ngIf="activeSection() === 'medical-history'; else walletSection" class="doctor-space__medical-history">
+            <header class="doctor-space__medical-toolbar">
+              <div class="doctor-space__medical-legend">
+                <span><i class="doctor-space__medical-dot doctor-space__medical-dot--green"></i>RDV &agrave; venir</span>
+                <span><i class="doctor-space__medical-dot doctor-space__medical-dot--red"></i>PDF</span>
+                <span><i class="doctor-space__medical-dot doctor-space__medical-dot--blue"></i>Word / Document</span>
+                <span><i class="doctor-space__medical-dot doctor-space__medical-dot--mint"></i>Image / Radio</span>
+              </div>
+
+              <div class="doctor-space__medical-filters">
+                <label class="doctor-space__medical-search">
+                  <lucide-icon name="search" size="15" [strokeWidth]="2.2"></lucide-icon>
+                  <input
+                    type="search"
+                    placeholder="Rechercher un patient..."
+                    [ngModel]="medicalHistorySearch()"
+                    (ngModelChange)="updateMedicalHistorySearch($event)"
+                  />
+                </label>
+                <label class="doctor-space__medical-select">
+                  <select
+                    [ngModel]="medicalHistoryPatientFilter()"
+                    (ngModelChange)="updateMedicalHistoryPatientFilter($event)"
+                  >
+                    <option value="ALL">Tous les patients</option>
+                    <option *ngFor="let patient of medicalHistoryPatients()" [value]="patient.id">
+                      {{ patient.label }}
+                    </option>
+                  </select>
+                  <lucide-icon name="chevron-down" size="15" [strokeWidth]="2.4"></lucide-icon>
+                </label>
+              </div>
+            </header>
+
+            <div class="doctor-space__medical-tabs" role="tablist" aria-label="Filtrer les rendez-vous de l'historique m&eacute;dical">
+              <button
+                type="button"
+                [class.doctor-space__medical-tab--active]="medicalHistoryTab() === 'future'"
+                (click)="selectMedicalHistoryTab('future')"
+              >
+                RDV Futurs
+                <span>{{ medicalHistoryFutureRows().length }}</span>
+              </button>
+              <button
+                type="button"
+                [class.doctor-space__medical-tab--active]="medicalHistoryTab() === 'past'"
+                (click)="selectMedicalHistoryTab('past')"
+              >
+                RDV Pass&eacute;s
+                <span>{{ medicalHistoryPastRows().length }}</span>
+              </button>
+            </div>
+
+            <ng-container *ngIf="selectedPatientDetail() as detail; else medicalHistoryList">
+              <section class="doctor-space__patient-detail">
+                <header class="doctor-space__patient-hero">
+                  <button type="button" class="doctor-space__patient-back" (click)="closePatientMedicalDetail()" aria-label="Retour a la liste">
+                    <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
+                  </button>
+                  <span class="doctor-space__patient-avatar">
+                    <img *ngIf="detail.avatarUrl; else patientInitials" [src]="detail.avatarUrl" [alt]="detail.patientName" />
+                    <ng-template #patientInitials>{{ detail.patientName.slice(0, 2).toUpperCase() }}</ng-template>
+                    <i></i>
+                  </span>
+                  <div class="doctor-space__patient-title">
+                    <h2>{{ detail.patientName }}</h2>
+                    <p>
+                      {{ detail.genderLabel }}
+                      <span></span>
+                      {{ detail.ageLabel }}
+                      <span></span>
+                      {{ detail.locationLabel }}
+                      <span></span>
+                      {{ detail.phoneLabel }}
+                    </p>
+                  </div>
+                  <button type="button" class="doctor-space__patient-history-button">
+                    <lucide-icon name="clock-3" size="16" [strokeWidth]="2.1"></lucide-icon>
+                    Historique complet
+                  </button>
+                </header>
+
+                <div class="doctor-space__patient-vitals">
+                  <article>
+                    <span>Groupe sanguin</span>
+                    <strong class="doctor-space__patient-vital--orange">{{ medicalValue(detail.profile.bloodGroup) }}</strong>
+                  </article>
+                  <article>
+                    <span>Rh&eacute;sus</span>
+                    <strong class="doctor-space__patient-vital--green">{{ medicalValue(detail.profile.rhesus) }}</strong>
+                  </article>
+                  <article>
+                    <span>Poids</span>
+                    <strong class="doctor-space__patient-vital--blue">{{ medicalValue(detail.profile.weightKg, ' kg') }}</strong>
+                  </article>
+                  <article>
+                    <span>Taille</span>
+                    <strong class="doctor-space__patient-vital--blue">{{ medicalValue(detail.profile.heightCm, ' cm') }}</strong>
+                  </article>
+                  <article>
+                    <span>IMC</span>
+                    <strong class="doctor-space__patient-vital--green">{{ medicalValue(detail.profile.bmi) }}</strong>
+                  </article>
+                  <article>
+                    <span>Profession</span>
+                    <strong class="doctor-space__patient-vital--orange">{{ medicalValue(detail.profile.profession) }}</strong>
+                  </article>
+                  <article>
+                    <span>M&eacute;decin r&eacute;f.</span>
+                    <strong>{{ medicalValue(detail.profile.referenceDoctorName) }}</strong>
+                  </article>
+                </div>
+
+                <div class="doctor-space__patient-alerts">
+                  <strong>Alertes :</strong>
+                  <ng-container *ngIf="detail.alerts.length > 0; else noPatientAlerts">
+                    <span *ngFor="let alert of detail.alerts">
+                      <lucide-icon name="info" size="13" [strokeWidth]="2"></lucide-icon>
+                      {{ alert }}
+                    </span>
+                  </ng-container>
+                  <ng-template #noPatientAlerts>
+                    <em>Aucune alerte renseignee</em>
+                  </ng-template>
+                </div>
+
+                <div class="doctor-space__patient-grid">
+                  <section class="doctor-space__patient-card">
+                    <h3>
+                      <i><lucide-icon name="paperclip" size="16" [strokeWidth]="2.1"></lucide-icon></i>
+                      Traitements en cours
+                    </h3>
+                    <p *ngIf="detail.profile.treatments.length === 0" class="doctor-space__patient-empty">Aucun traitement renseigne.</p>
+                    <article *ngFor="let treatment of detail.profile.treatments" class="doctor-space__patient-line">
+                      <i><lucide-icon name="paperclip" size="14" [strokeWidth]="2"></lucide-icon></i>
+                      <div>
+                        <strong>{{ treatment.name }}</strong>
+                        <span>{{ treatment.dosage || 'Dosage non renseigne' }} — {{ treatment.frequency || 'Frequence non renseignee' }}</span>
+                      </div>
+                      <small>{{ treatment.startedAt ? ('depuis ' + (treatment.startedAt | date: 'MMM y' : undefined : 'fr-FR')) : 'date non renseignee' }}</small>
+                    </article>
+                  </section>
+
+                  <section class="doctor-space__patient-card">
+                    <h3>
+                      <i><lucide-icon name="stethoscope" size="16" [strokeWidth]="2.1"></lucide-icon></i>
+                      Derniers actes medicaux
+                    </h3>
+                    <p *ngIf="detail.medicalActs.length === 0" class="doctor-space__patient-empty">Aucun acte medical issu des rendez-vous.</p>
+                    <article *ngFor="let act of detail.medicalActs" class="doctor-space__patient-line">
+                      <i><lucide-icon name="file-text" size="14" [strokeWidth]="2"></lucide-icon></i>
+                      <div>
+                        <strong>{{ act.title }}</strong>
+                        <span>{{ act.category }}</span>
+                      </div>
+                      <small>{{ act.dateLabel }}</small>
+                    </article>
+                    <button type="button" class="doctor-space__patient-link">
+                      Voir tout l'historique
+                      <lucide-icon name="arrow-right" size="14" [strokeWidth]="2"></lucide-icon>
+                    </button>
+                  </section>
+                </div>
+
+                <div class="doctor-space__patient-workspace">
+                  <section class="doctor-space__patient-specialties">
+                    <header>
+                      <h3>{{ detail.availableSpecialties.length }} specialites disponibles</h3>
+                    </header>
+                    <div>
+                      <button
+                        *ngFor="let specialty of detail.availableSpecialties"
+                        type="button"
+                        class="doctor-space__patient-specialty"
+                        [class]="'doctor-space__patient-specialty doctor-space__patient-specialty--' + specialty.tone"
+                        [class.doctor-space__patient-specialty--selected]="patientActForm.specialty === specialty.label"
+                        (click)="selectPatientActSpecialty(specialty.label)"
+                      >
+                        {{ specialty.label }}
+                      </button>
+                    </div>
+                  </section>
+
+                  <form class="doctor-space__patient-act-form" (ngSubmit)="submitPatientAct()">
+                    <header>
+                      <span>Ajouter un acte medical</span>
+                    </header>
+
+                    <label class="doctor-space__patient-select">
+                      <lucide-icon name="stethoscope" size="16" [strokeWidth]="2.1"></lucide-icon>
+                      <select name="patientActSpecialty" [(ngModel)]="patientActForm.specialty">
+                        <option value="">Specialite medicale...</option>
+                        <option *ngFor="let specialty of detail.availableSpecialties" [value]="specialty.label">
+                          {{ specialty.label }}
+                        </option>
+                      </select>
+                      <lucide-icon name="chevron-down" size="15" [strokeWidth]="2.4"></lucide-icon>
+                    </label>
+
+                    <div class="doctor-space__patient-form-chips">
+                      <button
+                        *ngFor="let specialty of detail.availableSpecialties.slice(0, 8)"
+                        type="button"
+                        class="doctor-space__patient-specialty"
+                        [class]="'doctor-space__patient-specialty doctor-space__patient-specialty--' + specialty.tone"
+                        [class.doctor-space__patient-specialty--selected]="patientActForm.specialty === specialty.label"
+                        (click)="selectPatientActSpecialty(specialty.label)"
+                      >
+                        {{ specialty.label }}
+                      </button>
+                    </div>
+
+                    <input
+                      type="text"
+                      name="patientActTitle"
+                      placeholder="Intitule de l'acte..."
+                      [(ngModel)]="patientActForm.title"
+                    />
+
+                    <div class="doctor-space__patient-form-row">
+                      <input
+                        type="date"
+                        name="patientActDate"
+                        [(ngModel)]="patientActForm.date"
+                        aria-label="Date de l'acte medical"
+                      />
+                      <input
+                        type="text"
+                        name="patientActDoctorName"
+                        placeholder="Dr. Nom..."
+                        [(ngModel)]="patientActForm.doctorName"
+                      />
+                    </div>
+
+                    <textarea
+                      name="patientActNotes"
+                      placeholder="Notes cliniques / observations..."
+                      [(ngModel)]="patientActForm.notes"
+                    ></textarea>
+
+                    <label class="doctor-space__patient-upload">
+                      <span>
+                        <lucide-icon name="paperclip" size="15" [strokeWidth]="2.2"></lucide-icon>
+                        {{ patientActForm.documentName || 'Joindre un document' }}
+                      </span>
+                      <small>PDF, JPG, DOCX</small>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        (change)="onPatientActDocumentSelected($event)"
+                      />
+                    </label>
+
+                    <button type="submit" class="doctor-space__patient-submit">
+                      <lucide-icon name="file-text" size="15" [strokeWidth]="2.3"></lucide-icon>
+                      Enregistrer l'acte
+                    </button>
+                  </form>
+                </div>
+              </section>
+            </ng-container>
+
+            <ng-template #medicalHistoryList>
+              <p *ngIf="isPatientDetailLoading()" class="doctor-space__medical-empty">
+                Chargement de la fiche medicale du patient...
+              </p>
+              <p *ngIf="patientDetailError()" class="doctor-space__medical-empty doctor-space__patient-error">
+                {{ patientDetailError() }}
+              </p>
+
+              <p *ngIf="medicalHistoryVisibleRows().length === 0" class="doctor-space__medical-empty">
+                Aucun rendez-vous ne correspond &agrave; ces filtres.
+              </p>
+
+              <article *ngFor="let row of medicalHistoryVisibleRows()" class="doctor-space__medical-row">
+                <div class="doctor-space__medical-patient">
+                  <span class="doctor-space__medical-avatar">
+                    <img *ngIf="row.avatarUrl; else medicalInitials" [src]="row.avatarUrl" [alt]="row.patientName" />
+                    <ng-template #medicalInitials>{{ row.patientName.slice(0, 2).toUpperCase() }}</ng-template>
+                    <i></i>
+                  </span>
+                  <div>
+                    <strong>{{ row.patientName }}</strong>
+                    <small>{{ row.serviceName }}</small>
+                    <em>Dernier RDV : {{ row.lastAppointmentLabel }}</em>
+                  </div>
+                </div>
+
+                <div class="doctor-space__medical-documents" [class.doctor-space__medical-documents--empty]="row.documents.length === 0">
+                  <ng-container *ngIf="row.documents.length > 0; else noMedicalDocuments">
+                    <span *ngFor="let document of row.documents" class="doctor-space__medical-document doctor-space__medical-document--doc">
+                      <lucide-icon name="file-text" size="13" [strokeWidth]="2.2"></lucide-icon>
+                      <b>{{ document.type }}</b>
+                      {{ document.label }}
+                    </span>
+                  </ng-container>
+                  <ng-template #noMedicalDocuments>
+                    <span>Aucun document transmis</span>
+                  </ng-template>
+                </div>
+
+                <div class="doctor-space__medical-next">
+                  <small>{{ row.isFuture ? 'Prochain RDV' : 'RDV pass&eacute;' }}</small>
+                  <strong>{{ row.appointmentLabel }}</strong>
+                </div>
+
+                <button type="button" class="doctor-space__medical-open" (click)="openPatientMedicalDetail(row)" aria-label="Ouvrir le dossier">
+                  <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.4"></lucide-icon>
+                </button>
+              </article>
+            </ng-template>
+          </section>
+        </ng-template>
 
         <ng-template #walletSection>
           <section class="doctor-space__wallet">

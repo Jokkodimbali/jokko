@@ -159,6 +159,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
       message: 'Traitement medical introuvable.',
     },
+    USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN: {
+      code: 'USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: "Vous n'etes pas autorise a consulter cette fiche medicale.",
+    },
     USERS_PROFESSIONAL_CREDENTIAL_UPLOADED: {
       code: 'USERS_PROFESSIONAL_CREDENTIAL_UPLOADED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
@@ -337,6 +342,11 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'PROFESSIONALS_AVAILABILITY_DISABLED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Disponibilite desactivee avec succes.',
+    },
+    PROFESSIONALS_AVAILABILITY_UPDATED: {
+      code: 'PROFESSIONALS_AVAILABILITY_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Disponibilite modifiee avec succes.',
     },
     PROFESSIONALS_UPDATE_EMPTY: {
       code: 'PROFESSIONALS_UPDATE_EMPTY',

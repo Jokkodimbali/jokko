@@ -1393,3 +1393,315 @@ video {
   cursor: wait;
   opacity: 0.55;
 }
+
+.doctor-space__medical-history {
+  display: grid;
+  gap: 18px;
+}
+
+.doctor-space__medical-toolbar,
+.doctor-space__medical-legend,
+.doctor-space__medical-filters,
+.doctor-space__medical-legend span,
+.doctor-space__medical-search,
+.doctor-space__medical-select,
+.doctor-space__medical-tabs,
+.doctor-space__medical-tabs button,
+.doctor-space__medical-tabs button span,
+.doctor-space__medical-patient,
+.doctor-space__medical-avatar,
+.doctor-space__medical-documents,
+.doctor-space__medical-document,
+.doctor-space__medical-open {
+  align-items: center;
+  display: flex;
+}
+
+.doctor-space__medical-toolbar {
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.doctor-space__medical-legend {
+  color: #697386;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.doctor-space__medical-legend span,
+.doctor-space__medical-filters,
+.doctor-space__medical-document {
+  gap: 8px;
+}
+
+.doctor-space__medical-dot {
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  height: 9px;
+  width: 9px;
+}
+
+.doctor-space__medical-dot--green {
+  background: #44d374;
+  border-color: #44d374;
+}
+
+.doctor-space__medical-dot--red {
+  color: #ef6158;
+}
+
+.doctor-space__medical-dot--blue {
+  color: #2d72e8;
+}
+
+.doctor-space__medical-dot--mint {
+  color: #24a36a;
+}
+
+.doctor-space__medical-search,
+.doctor-space__medical-select {
+  background: #fffefd;
+  border: 1px solid #e3d8cd;
+  border-radius: 999px;
+  box-shadow: 0 2px 7px rgba(24, 18, 12, 0.05);
+  color: #697386;
+  gap: 9px;
+  height: 42px;
+  padding: 0 14px;
+}
+
+.doctor-space__medical-search input,
+.doctor-space__medical-select select {
+  background: transparent;
+  border: 0;
+  color: #1f2937;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  outline: 0;
+}
+
+.doctor-space__medical-search input {
+  min-width: 220px;
+}
+
+.doctor-space__medical-select select {
+  appearance: none;
+  min-width: 158px;
+  padding-right: 6px;
+}
+
+.doctor-space__medical-tabs {
+  background: #fffefd;
+  border: 1px solid #e3d8cd;
+  border-radius: 999px;
+  box-shadow: 0 2px 7px rgba(24, 18, 12, 0.04);
+  gap: 6px;
+  justify-self: start;
+  padding: 7px;
+}
+
+.doctor-space__medical-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #697386;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 9px;
+  height: 38px;
+  padding: 0 18px;
+}
+
+.doctor-space__medical-tabs button span {
+  background: #f2eee9;
+  border-radius: 999px;
+  height: 22px;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 8px;
+}
+
+.doctor-space__medical-tab--active {
+  background: #9a5c20 !important;
+  color: #fff !important;
+}
+
+.doctor-space__medical-tab--active span {
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+.doctor-space__medical-empty,
+.doctor-space__medical-row {
+  background: #fffefd;
+  border: 1px solid #e3d8cd;
+  border-radius: 28px;
+}
+
+.doctor-space__medical-empty {
+  color: #697386;
+  font-weight: 800;
+  margin: 0;
+  padding: 26px 28px;
+}
+
+.doctor-space__medical-row {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(245px, 1.1fr) minmax(260px, 1.2fr) minmax(190px, 0.75fr) 40px;
+  min-height: 112px;
+  padding: 20px 22px;
+}
+
+.doctor-space__medical-patient {
+  gap: 16px;
+  min-width: 0;
+}
+
+.doctor-space__medical-avatar {
+  background: #f0e6dc;
+  border-radius: 50%;
+  color: #8b5421;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  height: 58px;
+  justify-content: center;
+  position: relative;
+  width: 58px;
+}
+
+.doctor-space__medical-avatar img {
+  border-radius: inherit;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.doctor-space__medical-avatar i {
+  background: #44d374;
+  border: 3px solid #fffefd;
+  border-radius: 50%;
+  bottom: 1px;
+  height: 17px;
+  position: absolute;
+  right: -1px;
+  width: 17px;
+}
+
+.doctor-space__medical-patient strong,
+.doctor-space__medical-patient small,
+.doctor-space__medical-patient em,
+.doctor-space__medical-next small,
+.doctor-space__medical-next strong {
+  display: block;
+}
+
+.doctor-space__medical-patient strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.doctor-space__medical-patient small,
+.doctor-space__medical-documents--empty {
+  color: #697386;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.doctor-space__medical-patient em,
+.doctor-space__medical-next small {
+  color: #1f2937;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+.doctor-space__medical-documents {
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.doctor-space__medical-document {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  min-height: 31px;
+  padding: 0 12px;
+}
+
+.doctor-space__medical-document--doc {
+  background: #eaf2ff;
+  color: #1b62c8;
+}
+
+.doctor-space__medical-next {
+  justify-self: end;
+  text-align: right;
+}
+
+.doctor-space__medical-next small {
+  color: #8b95a4;
+  margin-bottom: 5px;
+  margin-top: 0;
+}
+
+.doctor-space__medical-next strong {
+  color: #1269c7;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.doctor-space__medical-open {
+  background: #f8fafc;
+  border: 1px solid #e3e8ef;
+  border-radius: 50%;
+  color: #64748b;
+  cursor: pointer;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+@media (max-width: 860px) {
+  .doctor-space__medical-toolbar,
+  .doctor-space__medical-filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .doctor-space__medical-search,
+  .doctor-space__medical-select,
+  .doctor-space__medical-search input,
+  .doctor-space__medical-select select,
+  .doctor-space__medical-open {
+    width: 100%;
+  }
+
+  .doctor-space__medical-tabs {
+    justify-self: stretch;
+  }
+
+  .doctor-space__medical-tabs button {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  .doctor-space__medical-row {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__medical-next {
+    justify-self: start;
+    text-align: left;
+  }
+}
+

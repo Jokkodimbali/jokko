@@ -36,6 +36,34 @@ export type DoctorWalletView = {
   transactions: DoctorWalletTransaction[];
 };
 
+export type PatientMedicalTreatment = {
+  id: string;
+  name: string;
+  dosage: string | null;
+  frequency: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PatientMedicalProfile = {
+  id: string | null;
+  bloodGroup: string | null;
+  rhesus: string | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  referenceDoctorName: string | null;
+  profession: string | null;
+  allergies: string[];
+  conditions: string[];
+  bmi: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  treatments: PatientMedicalTreatment[];
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -92,6 +120,14 @@ export class DoctorSpaceService {
   listMyReservations(): Observable<BackendReservation[]> {
     return this.http
       .get<ApiResponse<BackendReservation[]>>(`${this.apiUrl}/reservations/my`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getPatientMedicalProfile(clientId: string): Observable<PatientMedicalProfile> {
+    return this.http
+      .get<ApiResponse<PatientMedicalProfile>>(
+        `${this.apiUrl}/users/patients/${clientId}/medical-profile`,
+      )
       .pipe(map(unwrapApiResponse));
   }
 
@@ -176,6 +212,22 @@ export class DoctorSpaceService {
     return this.http
       .post<ApiResponse<BackendProfessionalAvailability>>(
         `${this.apiUrl}/professionals/me/availabilities`,
+        data,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateAvailability(
+    availabilityId: string,
+    data: {
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+    },
+  ): Observable<BackendProfessionalAvailability> {
+    return this.http
+      .patch<ApiResponse<BackendProfessionalAvailability>>(
+        `${this.apiUrl}/professionals/me/availabilities/${availabilityId}`,
         data,
       )
       .pipe(map(unwrapApiResponse));

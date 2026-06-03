@@ -226,6 +226,24 @@ export class UsersController {
     );
   }
 
+  @Get('patients/:clientId/medical-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Consulter la fiche medicale d un patient suivi' })
+  async patientMedicalProfile(
+    @CurrentUser() user: AuthUser,
+    @Param('clientId') clientId: string,
+  ) {
+    const result =
+      await this.usersMedicalProfileService.getPatientMedicalProfileForProfessional(
+        user,
+        clientId,
+      );
+    return createApiResponse(
+      result,
+      appMessage('USERS_MEDICAL_PROFILE_RETRIEVED').message,
+    );
+  }
+
   @Put('me/medical-profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Creer ou modifier ma fiche medicale' })

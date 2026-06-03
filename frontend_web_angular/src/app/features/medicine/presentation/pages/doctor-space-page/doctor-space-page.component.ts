@@ -18,12 +18,18 @@ import {
 } from '../../../../appointments/domain/appointments.models';
 import {
   DoctorSpaceService,
+  PatientMedicalProfile,
   DoctorWalletTransaction,
   DoctorWalletView,
 } from '../../../data-access/doctor-space.service';
 import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
 
-type DoctorSpaceSection = 'availability' | 'consultation' | 'agenda' | 'wallet';
+type DoctorSpaceSection =
+  | 'availability'
+  | 'consultation'
+  | 'agenda'
+  | 'medical-history'
+  | 'wallet';
 
 type AvailabilitySlot = {
   id: string | null;
@@ -61,6 +67,7 @@ type ConsultationMotif = {
 type AgendaFilter = 'ALL' | 'CONFIRMED' | 'CANCELLED';
 type AgendaViewMode = 'day' | 'week' | 'month';
 type AgendaSlotMinutes = 10 | 15 | 25 | 30;
+type MedicalHistoryTab = 'future' | 'past';
 
 type AgendaDay = {
   date: Date;
@@ -79,6 +86,51 @@ type AgendaEvent = {
   rowStart: number;
   rowSpan: number;
   variant: 'confirmed' | 'cancelled';
+};
+
+type MedicalHistoryPatientOption = {
+  id: string;
+  label: string;
+};
+
+type MedicalHistoryDocument = {
+  label: string;
+  type: 'DOC';
+};
+
+type MedicalSpecialtyChip = {
+  label: string;
+  tone: 'red' | 'blue' | 'purple' | 'amber' | 'green' | 'gray' | 'mint' | 'pink';
+};
+
+type MedicalHistoryRow = {
+  id: string;
+  clientId: string;
+  patientName: string;
+  avatarUrl: string | null;
+  serviceName: string;
+  scheduledAt: Date;
+  appointmentLabel: string;
+  lastAppointmentLabel: string;
+  isFuture: boolean;
+  documents: MedicalHistoryDocument[];
+};
+
+type PatientMedicalDetail = MedicalHistoryRow & {
+  reservation: BackendReservation;
+  profile: PatientMedicalProfile;
+  ageLabel: string;
+  genderLabel: string;
+  locationLabel: string;
+  phoneLabel: string;
+  alerts: string[];
+  medicalActs: Array<{
+    id: string;
+    title: string;
+    category: string;
+    dateLabel: string;
+  }>;
+  availableSpecialties: MedicalSpecialtyChip[];
 };
 
 type WithdrawalMethodOption = {
@@ -110,6 +162,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly professionalProfileId = signal<string | null>(null);
   protected readonly days = signal<DaySchedule[]>(this.buildEmptyWeek());
   protected readonly motifs = signal<ConsultationMotif[]>([]);
+  protected readonly editingMotifId = signal<string | null>(null);
   protected readonly categories = signal<Category[]>([]);
   protected readonly reservations = signal<BackendReservation[]>([]);
   protected readonly wallet = signal<DoctorWalletView | null>(null);
@@ -119,6 +172,12 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
   protected readonly agendaViewMode = signal<AgendaViewMode>('day');
   protected readonly agendaSlotMinutes = signal<AgendaSlotMinutes>(30);
+  protected readonly medicalHistoryTab = signal<MedicalHistoryTab>('future');
+  protected readonly medicalHistorySearch = signal('');
+  protected readonly medicalHistoryPatientFilter = signal('ALL');
+  protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
+  protected readonly isPatientDetailLoading = signal(false);
+  protected readonly patientDetailError = signal<string | null>(null);
   protected readonly isWithdrawalModalOpen = signal(false);
   protected readonly agendaPeriodStart = signal('');
   protected readonly agendaPeriodEnd = signal('');
@@ -131,6 +190,14 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly withdrawalForm = {
     amount: 0,
     method: 'WAVE' as 'WAVE' | 'ORANGE_MONEY',
+  };
+  protected readonly patientActForm = {
+    specialty: '',
+    title: '',
+    date: '',
+    doctorName: '',
+    notes: '',
+    documentName: '',
   };
   protected readonly withdrawalMethods: WithdrawalMethodOption[] = [
     {
@@ -163,6 +230,16 @@ export class DoctorSpacePageComponent implements OnInit {
     this.isProviderSpace() ? 'Espace prestataire' : 'Espace medecin',
   );
   protected readonly showConsultationSection = computed(() => !this.isProviderSpace());
+  protected readonly motifRequiredCount = computed(
+    () => this.motifs().filter((motif) => motif.isRequired).length,
+  );
+  protected readonly motifAveragePrice = computed(() => {
+    const motifs = this.motifs();
+    if (motifs.length === 0) return 0;
+    return Math.round(
+      motifs.reduce((total, motif) => total + motif.price, 0) / motifs.length,
+    );
+  });
 
   protected readonly calendarDays = computed(() =>
     this.buildCalendarDays(
@@ -227,6 +304,39 @@ export class DoctorSpacePageComponent implements OnInit {
     if (minutes === 10) return 38;
     return 27;
   });
+  protected readonly medicalHistoryRows = computed(() => this.buildMedicalHistoryRows());
+  protected readonly medicalHistoryFutureRows = computed(() =>
+    this.medicalHistoryRows().filter((row) => row.isFuture),
+  );
+  protected readonly medicalHistoryPastRows = computed(() =>
+    this.medicalHistoryRows().filter((row) => !row.isFuture),
+  );
+  protected readonly medicalHistoryVisibleRows = computed(() => {
+    const selectedRows =
+      this.medicalHistoryTab() === 'future'
+        ? this.medicalHistoryFutureRows()
+        : this.medicalHistoryPastRows();
+    const search = this.medicalHistorySearch().trim().toLowerCase();
+    const patientFilter = this.medicalHistoryPatientFilter();
+
+    return selectedRows.filter((row) => {
+      const matchesPatient = patientFilter === 'ALL' || row.clientId === patientFilter;
+      const matchesSearch =
+        !search ||
+        row.patientName.toLowerCase().includes(search) ||
+        row.serviceName.toLowerCase().includes(search);
+      return matchesPatient && matchesSearch;
+    });
+  });
+  protected readonly medicalHistoryPatients = computed<MedicalHistoryPatientOption[]>(() => {
+    const patients = new Map<string, string>();
+    for (const reservation of this.reservations()) {
+      patients.set(reservation.clientId, this.clientLabel(reservation));
+    }
+    return Array.from(patients, ([id, label]) => ({ id, label })).sort((left, right) =>
+      left.label.localeCompare(right.label, 'fr'),
+    );
+  });
   protected readonly pageTitle = computed(() => {
     switch (this.activeSection()) {
       case 'availability':
@@ -235,6 +345,8 @@ export class DoctorSpacePageComponent implements OnInit {
         return 'Motifs de consultation';
       case 'agenda':
         return 'AGENDA INTERACTIF';
+      case 'medical-history':
+        return 'Historique médical';
       case 'wallet':
         return 'WALLET';
     }
@@ -247,6 +359,8 @@ export class DoctorSpacePageComponent implements OnInit {
         return 'Définissez les motifs du patient. Les motifs obligatoires devront être cochés à la prise de rendez-vous';
       case 'agenda':
         return '';
+      case 'medical-history':
+        return 'Consultez les informations médicales liées aux rendez-vous et aux patients.';
       case 'wallet':
         return 'Suivez vos revenus et retirez vos gains via Wave, Orange Money ou virement bancaire.';
     }
@@ -275,6 +389,73 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected selectAgendaViewMode(mode: AgendaViewMode): void {
     this.agendaViewMode.set(mode);
+  }
+
+  protected selectMedicalHistoryTab(tab: MedicalHistoryTab): void {
+    this.medicalHistoryTab.set(tab);
+  }
+
+  protected updateMedicalHistorySearch(value: string): void {
+    this.medicalHistorySearch.set(value);
+  }
+
+  protected updateMedicalHistoryPatientFilter(value: string): void {
+    this.medicalHistoryPatientFilter.set(value);
+  }
+
+  protected openPatientMedicalDetail(row: MedicalHistoryRow): void {
+    const reservation = this.reservations().find((item) => item.id === row.id);
+    if (!reservation) {
+      this.feedback.error('Impossible de retrouver le rendez-vous selectionne.');
+      return;
+    }
+
+    this.isPatientDetailLoading.set(true);
+    this.patientDetailError.set(null);
+    this.selectedPatientDetail.set(null);
+
+    this.doctorSpaceService
+      .getPatientMedicalProfile(row.clientId)
+      .pipe(finalize(() => this.isPatientDetailLoading.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.selectedPatientDetail.set(this.buildPatientMedicalDetail(row, reservation, profile));
+        },
+        error: (error: unknown) => {
+          this.patientDetailError.set(
+            getHttpErrorMessage(error, 'Impossible de charger la fiche medicale du patient.'),
+          );
+        },
+      });
+  }
+
+  protected closePatientMedicalDetail(): void {
+    this.selectedPatientDetail.set(null);
+    this.patientDetailError.set(null);
+  }
+
+  protected hasMedicalProfileValue(value: string | number | null | undefined): boolean {
+    return value !== null && value !== undefined && `${value}`.trim().length > 0;
+  }
+
+  protected medicalValue(value: string | number | null | undefined, suffix = ''): string {
+    if (!this.hasMedicalProfileValue(value)) return 'Non renseigne';
+    return `${value}${suffix}`;
+  }
+
+  protected selectPatientActSpecialty(label: string): void {
+    this.patientActForm.specialty = label;
+  }
+
+  protected onPatientActDocumentSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.patientActForm.documentName = input.files?.[0]?.name ?? '';
+  }
+
+  protected submitPatientAct(): void {
+    this.feedback.error(
+      "L'enregistrement d'un acte medical patient necessite encore l'endpoint backend dedie.",
+    );
   }
 
   protected walletBalance(): number {
@@ -463,17 +644,12 @@ export class DoctorSpacePageComponent implements OnInit {
 
     this.isSaving.set(true);
     this.doctorSpaceService
-      .deleteAvailability(slot.id)
-      .pipe(
-        switchMap(() =>
-          this.doctorSpaceService.createAvailability({
-            dayOfWeek: day.dayOfWeek,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-          }),
-        ),
-        finalize(() => this.isSaving.set(false)),
-      )
+      .updateAvailability(slot.id, {
+        dayOfWeek: day.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })
+      .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => {
           this.feedback.success('Horaire mis a jour.');
@@ -540,6 +716,7 @@ export class DoctorSpacePageComponent implements OnInit {
     const name = this.motifForm.name.trim();
     const durationMinutes = Number(this.motifForm.durationMinutes);
     const price = Number(this.motifForm.price);
+    const editingMotifId = this.editingMotifId();
 
     if (!categoryId) {
       this.feedback.success('Ajoutez d abord un service medical pour definir la categorie du motif.');
@@ -551,25 +728,58 @@ export class DoctorSpacePageComponent implements OnInit {
     }
 
     this.isSaving.set(true);
-    this.doctorSpaceService
-      .createService({
-        categoryId,
-        name,
-        description: `Motif de consultation: ${name}`,
-        price,
-        priceType: 'FIXE',
-        durationMinutes,
-        isRequired: this.motifForm.isRequired,
-      })
+
+    const request$ = editingMotifId
+      ? this.doctorSpaceService.updateService(editingMotifId, {
+          name,
+          description: `Motif de consultation: ${name}`,
+          price,
+          priceType: 'FIXE',
+          durationMinutes,
+          isRequired: this.motifForm.isRequired,
+        })
+      : this.doctorSpaceService.createService({
+          categoryId,
+          name,
+          description: `Motif de consultation: ${name}`,
+          price,
+          priceType: 'FIXE',
+          durationMinutes,
+          isRequired: this.motifForm.isRequired,
+        });
+
+    request$
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => {
-          this.feedback.success('Motif ajoute.');
-          this.motifForm.name = '';
+          this.feedback.success(editingMotifId ? 'Motif mis a jour.' : 'Motif ajoute.');
+          this.resetMotifForm();
           this.refreshServices();
         },
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Creation du motif impossible.')),
+        error: (error) =>
+          this.feedback.success(
+            getHttpErrorMessage(
+              error,
+              editingMotifId ? 'Mise a jour du motif impossible.' : 'Creation du motif impossible.',
+            ),
+          ),
       });
+  }
+
+  protected editMotif(motif: ConsultationMotif): void {
+    this.editingMotifId.set(motif.id);
+    this.motifForm.name = motif.name;
+    this.motifForm.durationMinutes = motif.durationMinutes;
+    this.motifForm.price = motif.price;
+    this.motifForm.isRequired = motif.isRequired;
+  }
+
+  protected resetMotifForm(): void {
+    this.editingMotifId.set(null);
+    this.motifForm.name = '';
+    this.motifForm.durationMinutes = 15;
+    this.motifForm.price = 10000;
+    this.motifForm.isRequired = true;
   }
 
   protected toggleMotifRequired(motif: ConsultationMotif): void {
@@ -756,6 +966,152 @@ export class DoctorSpacePageComponent implements OnInit {
         } satisfies AgendaEvent;
       })
       .filter((event): event is AgendaEvent => event !== null);
+  }
+
+  private buildMedicalHistoryRows(): MedicalHistoryRow[] {
+    const now = Date.now();
+    return this.reservations()
+      .map((reservation) => {
+        const scheduledAt = new Date(reservation.dateHeure);
+        if (Number.isNaN(scheduledAt.getTime())) return null;
+        if (this.isCancelledStatus(reservation.statut)) return null;
+
+        const isFuture =
+          scheduledAt.getTime() >= now &&
+          reservation.statut !== 'TERMINEE' &&
+          reservation.statut !== 'LITIGE';
+
+        return {
+          id: reservation.id,
+          clientId: reservation.clientId,
+          patientName: this.clientLabel(reservation),
+          avatarUrl: reservation.client?.urlAvatar ?? null,
+          serviceName: reservation.service?.nom ?? 'Consultation',
+          scheduledAt,
+          appointmentLabel: this.formatMedicalHistoryAppointment(scheduledAt),
+          lastAppointmentLabel: this.lastAppointmentLabelForClient(
+            reservation.clientId,
+            reservation.id,
+          ),
+          isFuture,
+          documents: this.medicalHistoryDocuments(reservation),
+        } satisfies MedicalHistoryRow;
+      })
+      .filter((row): row is MedicalHistoryRow => row !== null)
+      .sort((left, right) =>
+        left.isFuture === right.isFuture
+          ? left.isFuture
+            ? left.scheduledAt.getTime() - right.scheduledAt.getTime()
+            : right.scheduledAt.getTime() - left.scheduledAt.getTime()
+          : left.isFuture
+            ? -1
+            : 1,
+      );
+  }
+
+  private buildPatientMedicalDetail(
+    row: MedicalHistoryRow,
+    reservation: BackendReservation,
+    profile: PatientMedicalProfile,
+  ): PatientMedicalDetail {
+    return {
+      ...row,
+      reservation,
+      profile,
+      ageLabel: 'Non renseigne',
+      genderLabel: 'Non renseigne',
+      locationLabel: reservation.client?.adresse || reservation.adresseClient || 'Non renseigne',
+      phoneLabel: reservation.client?.numeroTelephone || 'Non renseigne',
+      alerts: [...profile.allergies, ...profile.conditions],
+      medicalActs: this.patientMedicalActs(row.clientId),
+      availableSpecialties: this.medicalSpecialtyChips(),
+    };
+  }
+
+  private patientMedicalActs(clientId: string): PatientMedicalDetail['medicalActs'] {
+    return this.reservations()
+      .filter((reservation) => reservation.clientId === clientId)
+      .filter((reservation) => !this.isCancelledStatus(reservation.statut))
+      .map((reservation) => {
+        const scheduledAt = new Date(reservation.dateHeure);
+        return {
+          id: reservation.id,
+          title: reservation.service?.nom ?? 'Consultation',
+          category: reservation.service?.categorie?.nom ?? 'Acte medical',
+          dateLabel: Number.isNaN(scheduledAt.getTime())
+            ? 'Date non renseignee'
+            : this.formatMedicalHistoryDate(scheduledAt),
+        };
+      })
+      .sort((left, right) => {
+        const leftDate = new Date(
+          this.reservations().find((reservation) => reservation.id === left.id)?.dateHeure ?? 0,
+        ).getTime();
+        const rightDate = new Date(
+          this.reservations().find((reservation) => reservation.id === right.id)?.dateHeure ?? 0,
+        ).getTime();
+        return rightDate - leftDate;
+      })
+      .slice(0, 6);
+  }
+
+  private medicalSpecialtyChips(): MedicalSpecialtyChip[] {
+    const tones: MedicalSpecialtyChip['tone'][] = [
+      'red',
+      'blue',
+      'purple',
+      'amber',
+      'green',
+      'gray',
+      'mint',
+      'pink',
+    ];
+
+    return this.categories()
+      .slice(0, 20)
+      .map((category, index) => ({
+        label: category.nom,
+        tone: tones[index % tones.length],
+      }));
+  }
+
+  private medicalHistoryDocuments(reservation: BackendReservation): MedicalHistoryDocument[] {
+    const notes = reservation.notes?.trim();
+    if (!notes) return [];
+    return [{ label: 'Notes du rendez-vous', type: 'DOC' }];
+  }
+
+  private lastAppointmentLabelForClient(clientId: string, excludedReservationId: string): string {
+    const pastReservation = this.reservations()
+      .filter((reservation) => reservation.clientId === clientId)
+      .filter((reservation) => reservation.id !== excludedReservationId)
+      .filter((reservation) => !this.isCancelledStatus(reservation.statut))
+      .map((reservation) => new Date(reservation.dateHeure))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .filter((date) => date.getTime() < Date.now())
+      .sort((left, right) => right.getTime() - left.getTime())[0];
+
+    return pastReservation ? this.formatMedicalHistoryDate(pastReservation) : 'Aucun rendez-vous passe';
+  }
+
+  private formatMedicalHistoryAppointment(date: Date): string {
+    const datePart = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+      .format(date)
+      .replace('.', '');
+    return `${datePart} — ${this.formatAgendaTime(date)}`;
+  }
+
+  private formatMedicalHistoryDate(date: Date): string {
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
   }
 
   private sumPeriodRevenue(predicate: (status: AppointmentStatus) => boolean): number {

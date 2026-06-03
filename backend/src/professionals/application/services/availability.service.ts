@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { TimeOfDay } from '../../domain';
-import type { CreateAvailabilityCommand } from '../commands/professionals.commands';
+import type {
+  CreateAvailabilityCommand,
+  UpdateAvailabilityCommand,
+} from '../commands/professionals.commands';
 import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
@@ -36,6 +39,33 @@ export class AvailabilityService extends ProfessionalAppService {
       requestUser.sub,
       availabilityId,
     );
+    if (result.status === 'profile_not_found') {
+      throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
+    }
+    if (result.status === 'availability_not_found') {
+      throw appHttpException('PROFESSIONALS_AVAILABILITY_NOT_FOUND');
+    }
+    return result.availability;
+  }
+
+  async updateAvailability(
+    requestUser: AuthUser,
+    availabilityId: string,
+    command: UpdateAvailabilityCommand,
+  ) {
+    this.assertProfessionalRole(requestUser.role);
+
+    const startTime = TimeOfDay.fromString(command.startTime).toDate();
+    const endTime = TimeOfDay.fromString(command.endTime).toDate();
+
+    const result = await this.professionalsRepository.updateAvailability({
+      utilisateurId: requestUser.sub,
+      availabilityId,
+      dayOfWeek: command.dayOfWeek,
+      startTime,
+      endTime,
+    });
+
     if (result.status === 'profile_not_found') {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }

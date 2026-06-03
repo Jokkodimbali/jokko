@@ -73,6 +73,15 @@ export class MedicineDoctorProfileComponent implements OnInit {
   protected readonly isFavorite = signal(false);
   protected readonly isTogglingFavorite = signal(false);
   protected readonly schedule = signal<DoctorScheduleRow[]>([]);
+  protected readonly activeSchedule = computed(() =>
+    this.schedule().filter((row) => row.ranges.length > 0),
+  );
+  protected readonly scheduleSummary = computed(() => {
+    const daysCount = this.activeSchedule().length;
+    const slotsCount = this.activeSchedule().reduce((total, row) => total + row.ranges.length, 0);
+    if (daysCount === 0) return 'Aucun horaire publie';
+    return `${daysCount} jour${daysCount > 1 ? 's' : ''} actif${daysCount > 1 ? 's' : ''} · ${slotsCount} plage${slotsCount > 1 ? 's' : ''}`;
+  });
 
   ngOnInit(): void {
     const profileId = this.routeProfileId;

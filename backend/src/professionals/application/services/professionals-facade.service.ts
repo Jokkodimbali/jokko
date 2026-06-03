@@ -156,6 +156,18 @@ export class ProfessionalsFacade {
     );
   }
 
+  async updateMyAvailability(
+    requestUser: AuthUser,
+    availabilityId: string,
+    command: Parameters<AvailabilityService['updateAvailability']>[2],
+  ) {
+    return this.availabilityService.updateAvailability(
+      requestUser,
+      availabilityId,
+      command,
+    );
+  }
+
   async listMyAvailabilities(requestUser: AuthUser) {
     return this.availabilityService.listMyAvailabilities(requestUser);
   }

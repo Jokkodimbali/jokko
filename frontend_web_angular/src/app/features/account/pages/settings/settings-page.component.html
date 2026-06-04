@@ -265,7 +265,7 @@
           </div>
           <div>
             <span>Numero de telephone</span>
-            <strong>{{ profile.numeroTelephone || 'Non renseigne' }}</strong>
+            <strong>{{ displayPhoneNumber() || 'Non renseigne' }}</strong>
           </div>
         </div>
 
@@ -282,6 +282,20 @@
             <label class="settings-page__form-wide">
               <span>Adresse email</span>
               <input type="email" name="email" [(ngModel)]="profileForm.email" />
+            </label>
+            <label class="settings-page__form-wide">
+              <span>Numero de telephone</span>
+              <span class="settings-page__phone-input">
+                <b>+221</b>
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  [(ngModel)]="profileForm.phoneNumber"
+                  placeholder="770000000"
+                  inputmode="tel"
+                  maxlength="9"
+                />
+              </span>
             </label>
             <button type="submit" [disabled]="isSavingProfile()">Enregistrer</button>
           </form>
@@ -315,13 +329,24 @@
 
       <article class="settings-page__card">
         <header>
-          <h2>Modifier le mot de passe</h2>
+          <h2>{{ hasLocalPassword() ? 'Modifier le mot de passe' : 'Creer un mot de passe' }}</h2>
           <button type="button" class="settings-page__chip">Modifier</button>
         </header>
+        <p *ngIf="!hasLocalPassword()" class="settings-page__empty-line">
+          Votre compte a ete cree avec Google. Definissez un mot de passe local pour vous connecter aussi par email ou telephone.
+        </p>
         <form class="settings-page__password" (ngSubmit)="savePassword()">
-          <input type="password" name="currentPassword" [(ngModel)]="passwordForm.currentPassword" placeholder="Mot de passe actuel" />
+          <input
+            *ngIf="hasLocalPassword()"
+            type="password"
+            name="currentPassword"
+            [(ngModel)]="passwordForm.currentPassword"
+            placeholder="Mot de passe actuel"
+          />
           <input type="password" name="newPassword" [(ngModel)]="passwordForm.newPassword" placeholder="Nouveau mot de passe" />
-          <button type="submit" [disabled]="isSavingPassword()">Enregistrer le nouveau mot de passe</button>
+          <button type="submit" [disabled]="isSavingPassword()">
+            {{ hasLocalPassword() ? 'Enregistrer le nouveau mot de passe' : 'Creer mon mot de passe' }}
+          </button>
         </form>
       </article>
 

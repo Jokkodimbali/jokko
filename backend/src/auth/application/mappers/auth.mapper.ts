@@ -13,7 +13,7 @@ export class AuthMapper {
   static toApiUser(user: AuthUserSummary): AuthApiUser {
     return {
       id: user.id,
-      phoneNumber: user.numeroTelephone,
+      phoneNumber: this.publicPhoneNumber(user.numeroTelephone),
       name: user.nom,
       role: user.role,
     };
@@ -30,5 +30,9 @@ export class AuthMapper {
       email: user.email,
       avatarUrl: user.urlAvatar ?? null,
     };
+  }
+
+  private static publicPhoneNumber(phoneNumber: string): string {
+    return phoneNumber.startsWith('google-') ? '' : phoneNumber;
   }
 }

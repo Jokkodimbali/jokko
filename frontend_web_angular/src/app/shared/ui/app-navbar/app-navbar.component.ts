@@ -33,8 +33,12 @@ export class AppNavbarComponent implements OnInit {
   protected readonly isMenuOpen = signal(false);
   protected readonly isMobileNavOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
+  protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
-  protected readonly profileAvatarUrl = computed(() => this.currentUser()?.avatarUrl || null);
+  protected readonly profileAvatarUrl = computed(() => {
+    const avatarUrl = this.currentUser()?.avatarUrl || null;
+    return avatarUrl && avatarUrl !== this.failedProfileAvatarUrl() ? avatarUrl : null;
+  });
   protected readonly profileLabel = computed(() => {
     const user = this.currentUser();
     if (!user) return '';
@@ -118,6 +122,11 @@ export class AppNavbarComponent implements OnInit {
     this.isMenuOpen.update((isOpen) => !isOpen);
   }
 
+  protected hideProfileAvatar(): void {
+    const avatarUrl = this.currentUser()?.avatarUrl || null;
+    this.failedProfileAvatarUrl.set(avatarUrl);
+  }
+
   protected closeProfileMenu(): void {
     this.isMenuOpen.set(false);
   }
@@ -165,6 +174,9 @@ export class AppNavbarComponent implements OnInit {
       )
       .subscribe((profile) => {
         if (profile) {
+          if (profile.urlAvatar !== this.failedProfileAvatarUrl()) {
+            this.failedProfileAvatarUrl.set(null);
+          }
           this.authSession.saveUserProfile(profile);
         }
       });

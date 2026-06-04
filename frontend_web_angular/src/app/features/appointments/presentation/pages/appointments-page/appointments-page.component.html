@@ -22,15 +22,29 @@
         </div>
 
         <div class="mini-calendar__days">
-          <span
+          <button
             *ngFor="let day of calendarDays()"
+            type="button"
             class="mini-calendar__day"
             [class.mini-calendar__day--empty]="day.day === 0"
             [class.mini-calendar__day--today]="day.isToday"
             [class.mini-calendar__day--has-appointments]="day.hasAppointments"
+            [class.mini-calendar__day--selected]="selectedCalendarDate() === day.dateKey"
+            [disabled]="day.day === 0"
+            [attr.aria-pressed]="selectedCalendarDate() === day.dateKey"
+            [attr.aria-label]="day.day === 0 ? null : 'Filtrer les rendez-vous du ' + day.day + ' ' + monthLabel()"
+            (click)="selectCalendarDay(day)"
           >
             {{ day.day || '' }}
-          </span>
+            <small *ngIf="day.appointmentCount > 0">{{ day.appointmentCount }}</small>
+          </button>
+        </div>
+
+        <div class="mini-calendar__selection" [class.mini-calendar__selection--active]="selectedCalendarDate()">
+          <p>{{ calendarFilterMessage() }}</p>
+          <button *ngIf="selectedCalendarDate()" type="button" (click)="clearCalendarFilter()">
+            Reinitialiser
+          </button>
         </div>
       </section>
 
@@ -55,7 +69,13 @@
       <section class="upcoming-dates">
         <h2>Prochaines dates</h2>
         <p *ngIf="upcomingDates().length === 0">Aucune date planifiee.</p>
-        <button *ngFor="let item of upcomingDates()" type="button" class="upcoming-dates__item">
+        <button
+          *ngFor="let item of upcomingDates()"
+          type="button"
+          class="upcoming-dates__item"
+          [class.upcoming-dates__item--active]="selectedCalendarDate() === item.key"
+          (click)="selectCalendarDateKey(item.key)"
+        >
           <span>
             <lucide-icon name="calendar-days" size="13" [strokeWidth]="2.1"></lucide-icon>
             {{ item.label }}
@@ -120,16 +140,30 @@
         </label>
       </div>
 
+      <p
+        *ngIf="cancellationMessage()"
+        class="appointments-feedback"
+        [class.appointments-feedback--error]="cancellationMessageTone() === 'error'"
+        [class.appointments-feedback--success]="cancellationMessageTone() === 'success'"
+      >
+        {{ cancellationMessage() }}
+      </p>
+
       <section class="appointments-list" aria-label="Liste des rendez-vous">
         <p *ngIf="isLoading()" class="appointments-state">Chargement de vos rendez-vous...</p>
         <p *ngIf="!isLoading() && !currentUser()" class="appointments-state">
           Connectez-vous pour retrouver vos rendez-vous.
         </p>
+        <p *ngIf="!isLoading() && currentUser() && loadErrorMessage()" class="appointments-state appointments-state--error">
+          {{ loadErrorMessage() }}
+        </p>
         <p
-          *ngIf="!isLoading() && currentUser() && groupedAppointments().length === 0"
+          *ngIf="!isLoading() && currentUser() && !loadErrorMessage() && groupedAppointments().length === 0"
           class="appointments-state"
         >
-          Aucun rendez-vous ne correspond a ces criteres.
+          {{ selectedCalendarDateLabel()
+            ? 'Aucun rendez-vous ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
+            : 'Aucun rendez-vous ne correspond a ces criteres.' }}
         </p>
 
         <article *ngFor="let group of groupedAppointments()" class="appointment-group">
@@ -206,10 +240,11 @@
               <button
                 type="button"
                 class="appointment-row__secondary"
-                [disabled]="!canCancel(appointment)"
+                [disabled]="!canCancel(appointment) || cancellingAppointmentId() === appointment.id"
+                [attr.title]="cancellationDisabledReason(appointment)"
                 (click)="cancelAppointment(appointment, $event)"
               >
-                Annuler
+                {{ cancellingAppointmentId() === appointment.id ? 'Annulation...' : 'Annuler' }}
               </button>
             </div>
           </div>

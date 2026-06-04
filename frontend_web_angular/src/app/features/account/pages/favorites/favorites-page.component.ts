@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { FavoriteItem } from '../../../../core/favorites/favorites.service';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
+import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../core/favorites/favorites.service';
 import { AccountShellComponent } from '../../../../shared/ui/account-shell/account-shell.component';
 
@@ -18,12 +19,15 @@ import { AccountShellComponent } from '../../../../shared/ui/account-shell/accou
 export class FavoritesPageComponent {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly feedback = inject(AppFeedbackService);
 
   protected readonly favorites = this.favoritesService.favorites;
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly selectedCategory = signal('Tous');
   protected readonly sortBy = signal<'recent' | 'rating' | 'name'>('recent');
   protected readonly availableOnly = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly totalFavorites = computed(() => this.favorites().length);
   protected readonly onlineFavorites = computed(() =>
@@ -74,8 +78,15 @@ export class FavoritesPageComponent {
       return;
     }
 
+    this.isLoading.set(true);
     this.favoritesService.list().subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.errorMessage.set(null);
+      },
       error: () => {
+        this.isLoading.set(false);
+        this.errorMessage.set('Impossible de charger vos favoris pour le moment.');
       },
     });
   }
@@ -86,7 +97,9 @@ export class FavoritesPageComponent {
     }
 
     this.favoritesService.remove(professionalId).subscribe({
+      next: () => this.feedback.success('Favori retire de votre liste.'),
       error: () => {
+        this.feedback.error('Impossible de retirer ce favori pour le moment.');
       },
     });
   }

@@ -5,8 +5,6 @@ import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
-import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView, PaymentMethod } from '../../../domain/appointments.models';
 
@@ -19,7 +17,7 @@ interface PaymentOption {
 @Component({
   selector: 'app-appointment-payment-page',
   standalone: true,
-  imports: [CommonModule, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './appointment-payment-page.component.html',
   styleUrl: './appointment-payment-page.component.scss',
 })
@@ -40,11 +38,17 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png' },
     { id: 'ORANGE_MONEY', label: 'Orange Money', logoUrl: '/Orange-Money-logo.png' },
-    { id: 'CARD', label: 'Visa', logoUrl: '/logo vissa.avif' },
+    { id: 'CARD', label: 'Carte Bancaire', logoUrl: '/logo vissa.avif' },
   ];
 
   protected readonly amountLabel = computed(() =>
     this.formatAmount(this.appointment()?.agreedPrice ?? 0),
+  );
+
+  protected readonly amountValueLabel = computed(() =>
+    new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(
+      this.appointment()?.agreedPrice ?? 0,
+    ),
   );
 
   ngOnInit(): void {
@@ -121,7 +125,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isCancelling.set(true);
     this.errorMessage.set(null);
 
-    this.appointmentsService.cancelAppointment(appointment.id).subscribe({
+    this.appointmentsService.cancelAppointment(
+      appointment.id,
+      'Annulation demandee depuis la page de paiement.',
+    ).subscribe({
       next: () => {
         this.feedback.success('Reservation annulee.');
         this.router.navigate(['/appointments']);

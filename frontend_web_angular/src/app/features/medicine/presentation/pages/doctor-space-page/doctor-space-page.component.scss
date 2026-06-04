@@ -255,6 +255,35 @@
   width: 17px;
 }
 
+.doctor-space__appointment-rule {
+  background: #fff7ed;
+  border: 1px solid #ead7c4;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  margin-top: 22px;
+  padding: 12px 14px;
+}
+
+.doctor-space__appointment-rule strong {
+  color: #7d4c22;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.doctor-space__appointment-rule span {
+  color: #1f1f1f;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.doctor-space__appointment-rule small {
+  color: #70665c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .doctor-space__placeholder {
   margin: 0;
   max-width: none;

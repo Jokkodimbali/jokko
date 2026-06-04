@@ -259,7 +259,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.selectedRating.set(appointment.clientRating ?? 0);
         this.isSubmittingReview.set(false);
-        this.feedback.success("Impossible d'enregistrer votre avis pour le moment.");
+        this.feedback.error("Impossible d'enregistrer votre avis pour le moment.");
       },
     });
   }
@@ -311,7 +311,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       },
       error: () => {
         this.isHandlingPriceAdjustment.set(false);
-        this.feedback.success("Impossible d'accepter cet ajustement pour le moment.");
+        this.feedback.error("Impossible d'accepter cet ajustement pour le moment.");
       },
     });
   }
@@ -328,7 +328,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       },
       error: () => {
         this.isHandlingPriceAdjustment.set(false);
-        this.feedback.success('Impossible de refuser cet ajustement pour le moment.');
+        this.feedback.error('Impossible de refuser cet ajustement pour le moment.');
       },
     });
   }
@@ -356,7 +356,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isUpdatingStatus.set(false);
         if (!silent) {
-          this.feedback.success("Impossible d'activer le suivi en route. Verifiez que la reservation est payee.");
+          this.feedback.error("Impossible d'activer le suivi en route. Verifiez que la reservation est payee.");
         }
       },
     });
@@ -382,7 +382,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isUpdatingStatus.set(false);
         if (!silent) {
-          this.feedback.success('Impossible de demarrer. La reservation doit etre payee.');
+          this.feedback.error('Impossible de demarrer. La reservation doit etre payee.');
         }
       },
     });
@@ -408,7 +408,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isUpdatingStatus.set(false);
         if (!silent) {
-          this.feedback.success('Impossible de terminer cette prestation pour le moment.');
+          this.feedback.error('Impossible de terminer cette prestation pour le moment.');
         }
       },
     });

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   AdminCategoryPayload,
   AdminServiceSubCategory,
@@ -37,6 +38,7 @@ type ModalMode =
 })
 export class AdminServiceStructurePanelComponent {
   private readonly adminService = inject(AdminDashboardService);
+  private readonly feedback = inject(AppFeedbackService);
 
   @Input() report: AdminServiceStructureReport | null = null;
   @Input() isLoading = false;
@@ -210,10 +212,12 @@ export class AdminServiceStructurePanelComponent {
         this.form.iconUrl = imageUrl;
         this.isUploadingImage = false;
         input.value = '';
+        this.feedback.success('Icone importee avec succes.');
       },
       error: () => {
         this.isUploadingImage = false;
         input.value = '';
+        this.feedback.error('Impossible d importer cette icone.');
       },
     });
   }

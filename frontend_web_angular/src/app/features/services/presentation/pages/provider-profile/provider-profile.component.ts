@@ -204,7 +204,7 @@ export class ProviderProfileComponent implements OnInit {
     if (!detail) return;
 
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous pour gerer vos favoris.');
       return;
     }
 
@@ -221,7 +221,7 @@ export class ProviderProfileComponent implements OnInit {
         );
       },
       error: () => {
-        this.feedback.success('Connectez-vous pour gerer vos favoris.');
+        this.feedback.error('Impossible de mettre a jour vos favoris pour le moment.');
       },
     });
   }

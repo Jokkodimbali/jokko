@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AdminReservationDetail, AdminReservationStatistics } from '../../../data-access/admin.models';
 import { AdminReservationsService } from '../../../data-access/admin-reservations.service';
 
@@ -15,6 +16,7 @@ import { AdminReservationsService } from '../../../data-access/admin-reservation
 })
 export class AdminReservationsPanelComponent implements OnInit {
   private readonly reservationsService = inject(AdminReservationsService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly pageSize = 10;
   protected readonly reservations = signal<AdminReservationDetail[]>([]);
   protected readonly totalReservations = signal(0);
@@ -34,7 +36,9 @@ export class AdminReservationsPanelComponent implements OnInit {
 
   protected load(): void {
     if (!!this.startDate !== !!this.endDate) {
-      this.error.set('Selectionnez une date de debut et une date de fin pour filtrer la periode.');
+      const message = 'Selectionnez une date de debut et une date de fin pour filtrer la periode.';
+      this.error.set(message);
+      this.feedback.info(message);
       return;
     }
 
@@ -54,7 +58,9 @@ export class AdminReservationsPanelComponent implements OnInit {
     })
       .pipe(
         catchError(() => {
-          this.error.set('Les reservations ne peuvent pas etre chargees pour le moment.');
+          const message = 'Les reservations ne peuvent pas etre chargees pour le moment.';
+          this.error.set(message);
+          this.feedback.error(message);
           return of(null);
         }),
       )
@@ -71,7 +77,12 @@ export class AdminReservationsPanelComponent implements OnInit {
   protected open(reservationId: string): void {
     this.reservationsService
       .get(reservationId)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de charger le detail de cette reservation.');
+          return of(null);
+        }),
+      )
       .subscribe((reservation) => this.selected.set(reservation));
   }
 

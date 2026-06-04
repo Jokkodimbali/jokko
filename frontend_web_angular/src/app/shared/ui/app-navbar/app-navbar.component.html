@@ -1,6 +1,22 @@
 <header class="app-navbar">
-  <div *ngIf="feedbackMessage() as message" class="app-navbar__toast" [class.app-navbar__toast--error]="message.type === 'error'" role="status">
-    {{ message.text }}
+  <div
+    *ngIf="feedbackMessage() as message"
+    class="app-navbar__toast"
+    [class.app-navbar__toast--error]="message.type === 'error'"
+    [class.app-navbar__toast--info]="message.type === 'info'"
+    role="status"
+  >
+    <span class="app-navbar__toast-icon" aria-hidden="true">
+      <lucide-icon
+        [name]="message.type === 'error' ? 'triangle-alert' : message.type === 'info' ? 'info' : 'check'"
+        size="19"
+        [strokeWidth]="2.4"
+      ></lucide-icon>
+    </span>
+    <span class="app-navbar__toast-copy">
+      <strong>{{ message.type === 'error' ? 'Action impossible' : message.type === 'info' ? 'Information' : 'Operation reussie' }}</strong>
+      <small>{{ message.text }}</small>
+    </span>
   </div>
 
   <!-- Brand Logo -->
@@ -52,7 +68,13 @@
         (click)="toggleProfileMenu()"
       >
         <span class="app-navbar__profile-avatar">
-          <img *ngIf="profileAvatarUrl(); else profileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+          <img
+            *ngIf="profileAvatarUrl(); else profileInitials"
+            [src]="profileAvatarUrl()!"
+            [alt]="profileName()"
+            referrerpolicy="no-referrer"
+            (error)="hideProfileAvatar()"
+          />
           <ng-template #profileInitials>{{ profileLabel() }}</ng-template>
         </span>
         <strong>{{ profileName() }}</strong>
@@ -67,7 +89,13 @@
           (click)="closeProfileMenu()"
         >
           <span class="app-navbar__dropdown-avatar">
-            <img *ngIf="profileAvatarUrl(); else dropdownInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <img
+              *ngIf="profileAvatarUrl(); else dropdownInitials"
+              [src]="profileAvatarUrl()!"
+              [alt]="profileName()"
+              referrerpolicy="no-referrer"
+              (error)="hideProfileAvatar()"
+            />
             <ng-template #dropdownInitials>{{ profileLabel() }}</ng-template>
           </span>
           <span class="app-navbar__dropdown-account-copy">
@@ -215,7 +243,13 @@
       <ng-container *ngIf="isAuthenticated(); else mobileGuest">
         <div class="app-navbar__mobile-user">
           <span class="app-navbar__mobile-avatar">
-            <img *ngIf="profileAvatarUrl(); else mobileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <img
+              *ngIf="profileAvatarUrl(); else mobileInitials"
+              [src]="profileAvatarUrl()!"
+              [alt]="profileName()"
+              referrerpolicy="no-referrer"
+              (error)="hideProfileAvatar()"
+            />
             <ng-template #mobileInitials>{{ profileLabel() }}</ng-template>
           </span>
           <span class="app-navbar__mobile-username">{{ profileName() }}</span>

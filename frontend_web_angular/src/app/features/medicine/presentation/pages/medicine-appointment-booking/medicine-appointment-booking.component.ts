@@ -120,12 +120,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     const service = this.selectedService();
     const dateHeure = this.selectedDateTime();
     if (!detail || !service || !dateHeure) {
-      this.feedback.success('Selectionnez un motif et un creneau disponible.');
+      this.feedback.info('Selectionnez un motif et un creneau disponible.');
       return;
     }
     const adresseClient = this.resolveClientAddress(detail);
     if (!adresseClient) {
-      this.feedback.success('Ajoutez une adresse dans votre profil avant de confirmer le rendez-vous.');
+      this.feedback.info('Ajoutez une adresse dans votre profil avant de confirmer le rendez-vous.');
       return;
     }
 
@@ -154,7 +154,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
           }
         },
         error: (error) =>
-          this.feedback.success(getHttpErrorMessage(error, 'Creation du rendez-vous impossible.')),
+          this.feedback.error(getHttpErrorMessage(error, 'Creation du rendez-vous impossible.')),
       });
   }
 

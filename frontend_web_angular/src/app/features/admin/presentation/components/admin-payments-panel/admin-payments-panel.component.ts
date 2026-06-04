@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   AdminEscrowProcessResult,
   AdminPayment,
@@ -20,6 +21,7 @@ import { AdminPaymentsService } from '../../../data-access/admin-payments.servic
 })
 export class AdminPaymentsPanelComponent implements OnInit {
   private readonly paymentsService = inject(AdminPaymentsService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly pageSize = 12;
   protected readonly payments = signal<AdminPayment[]>([]);
   protected readonly totalPayments = signal(0);
@@ -52,7 +54,12 @@ export class AdminPaymentsPanelComponent implements OnInit {
       statistics: this.paymentsService.statistics(),
       escrow: this.paymentsService.pendingEscrow(),
     })
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de charger les paiements admin pour le moment.');
+          return of(null);
+        }),
+      )
       .subscribe((result) => {
         if (result) {
           this.payments.set(result.report.clientPayments.payments);
@@ -97,7 +104,12 @@ export class AdminPaymentsPanelComponent implements OnInit {
   protected open(paymentId: string): void {
     this.paymentsService
       .get(paymentId)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de charger le detail de ce paiement.');
+          return of(null);
+        }),
+      )
       .subscribe((payment) => this.selected.set(payment));
   }
 
@@ -112,9 +124,15 @@ export class AdminPaymentsPanelComponent implements OnInit {
     this.action.set('refund');
     this.paymentsService
       .refund(payment.id, this.refundReason.trim())
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de rembourser ce paiement.');
+          return of(null);
+        }),
+      )
       .subscribe((result) => {
         if (result) {
+          this.feedback.success('Paiement rembourse avec succes.');
           this.selected.set(result.payment);
           this.payments.update((payments) =>
             payments.map((item) => (item.id === result.payment.id ? { ...item, ...result.payment } : item)),
@@ -130,9 +148,15 @@ export class AdminPaymentsPanelComponent implements OnInit {
     this.action.set('escrow');
     this.paymentsService
       .processPendingEscrow()
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de traiter les versements en attente.');
+          return of(null);
+        }),
+      )
       .subscribe((result) => {
         if (result) {
+          this.feedback.success('Versements en attente traites.');
           this.escrowResult.set(result);
           this.load();
         }

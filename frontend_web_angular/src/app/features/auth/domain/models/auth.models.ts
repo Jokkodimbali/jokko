@@ -1,5 +1,5 @@
 export interface LoginRequestDto {
-  phoneNumber: string;
+  identifier: string;
   password: string;
 }
 
@@ -80,6 +80,7 @@ export interface UserProfileDto {
   adresse?: string | null;
   role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | string;
   urlAvatar?: string | null;
+  hasPassword?: boolean;
   estActif: boolean;
   creeLe?: string | Date;
   profilProfessionnel?: UserProfessionalProfileDto | null;

@@ -590,6 +590,36 @@
   gap: 8px;
 }
 
+.settings-page__phone-input {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #dfe4ea;
+  border-radius: 12px;
+  display: flex;
+  min-height: 44px;
+  overflow: hidden;
+}
+
+.settings-page__phone-input b {
+  align-items: center;
+  background: #f8f4ef;
+  border-right: 1px solid #eadfd6;
+  color: #1f1a17;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  height: 44px;
+  justify-content: center;
+  min-width: 64px;
+}
+
+.settings-page__phone-input input {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  min-width: 0;
+}
+
 .settings-page__form-wide,
 .settings-page__form button,
 .settings-page__payment-form button[type='submit'],

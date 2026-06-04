@@ -72,7 +72,7 @@
       </div>
     </section>
 
-    <section *ngIf="filteredFavorites().length > 0; else emptyFavorites" class="favorites-page__grid">
+    <section *ngIf="!isLoading() && !errorMessage() && filteredFavorites().length > 0; else favoritesState" class="favorites-page__grid">
       <article *ngFor="let favorite of filteredFavorites()" class="favorites-page__card">
         <header class="favorites-page__card-head">
           <a [routerLink]="detailRoute(favorite)" class="favorites-page__avatar" aria-label="Voir le profil">
@@ -123,6 +123,52 @@
         </a>
       </article>
     </section>
+
+    <ng-template #favoritesState>
+      <section class="favorites-page__empty">
+        <ng-container *ngIf="!currentUser(); else connectedFavoritesState">
+          <lucide-icon name="lock-keyhole" size="42" [strokeWidth]="2.2"></lucide-icon>
+          <h2>Connexion requise</h2>
+          <p>Connectez-vous pour retrouver vos prestataires favoris et les synchroniser avec votre compte.</p>
+          <a routerLink="/auth/login">Se connecter</a>
+        </ng-container>
+
+        <ng-template #connectedFavoritesState>
+          <ng-container *ngIf="isLoading(); else loadedFavoritesState">
+            <lucide-icon name="loader-circle" size="42" [strokeWidth]="2.2"></lucide-icon>
+            <h2>Chargement des favoris</h2>
+            <p>Nous recuperons votre liste personnelle.</p>
+          </ng-container>
+        </ng-template>
+
+        <ng-template #loadedFavoritesState>
+          <ng-container *ngIf="errorMessage(); else emptyOrFilteredFavorites">
+            <lucide-icon name="triangle-alert" size="42" [strokeWidth]="2.2"></lucide-icon>
+            <h2>Favoris indisponibles</h2>
+            <p>{{ errorMessage() }}</p>
+            <a routerLink="/services">Retour aux services</a>
+          </ng-container>
+        </ng-template>
+
+        <ng-template #emptyOrFilteredFavorites>
+          <ng-container *ngIf="totalFavorites() === 0; else noFilteredFavorites">
+            <lucide-icon name="bookmark" size="42" [strokeWidth]="2.2"></lucide-icon>
+            <h2>Aucun favori pour le moment</h2>
+            <p>Vous n'avez pas encore ajoute de prestataire a vos favoris. Les profils enregistres apparaitront ici.</p>
+            <a routerLink="/services">Explorer les services</a>
+          </ng-container>
+        </ng-template>
+
+        <ng-template #noFilteredFavorites>
+          <lucide-icon name="search" size="42" [strokeWidth]="2.2"></lucide-icon>
+          <h2>Aucun favori avec ces filtres</h2>
+          <p>Votre liste contient des favoris, mais aucun ne correspond au tri ou au filtre actif.</p>
+          <button type="button" (click)="selectedCategory.set('Tous'); availableOnly.set(false)">
+            Reinitialiser les filtres
+          </button>
+        </ng-template>
+      </section>
+    </ng-template>
 
     <ng-template #emptyFavorites>
       <section class="favorites-page__empty">

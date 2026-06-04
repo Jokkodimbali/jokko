@@ -8,6 +8,11 @@ import {
 
 const CURRENT_USER_KEY = 'currentUser';
 const ACCESS_TOKEN_KEY = 'accessToken';
+const AUTH_STORAGE_MODE_KEY = 'authStorageMode';
+const REMEMBERED_LOGIN_IDENTIFIER_KEY = 'rememberedLoginIdentifier';
+const REMEMBERED_LOGIN_PHONE_KEY = 'rememberedLoginPhoneNumber';
+
+type AuthStorageMode = 'local' | 'session';
 
 @Injectable({
   providedIn: 'root',
@@ -20,13 +25,20 @@ export class AuthSessionService {
 
   readonly currentUser = this.currentUserSignal.asReadonly();
 
-  saveAuthResponse(response: AuthResponseDto): void {
-    if (response.user) {
-      this.saveUser(response.user);
+  saveAuthResponse(response: AuthResponseDto, rememberMe = true): void {
+    const storage = this.getWritableStorage(rememberMe ? 'local' : 'session');
+    if (!storage) {
+      return;
     }
-    // Save access token if available (for Authorization header)
-    if ((response as any).accessToken) {
-      this.saveAccessToken((response as any).accessToken);
+
+    this.clearAuthFromStorage(this.getOppositeStorage(rememberMe ? 'local' : 'session'));
+    storage.setItem(AUTH_STORAGE_MODE_KEY, rememberMe ? 'local' : 'session');
+
+    if (response.user) {
+      this.saveUser(response.user, storage);
+    }
+    if (response.accessToken) {
+      this.saveAccessToken(response.accessToken, storage);
     }
   }
 
@@ -54,13 +66,48 @@ export class AuthSessionService {
     });
   }
 
+  isRememberMeEnabled(): boolean {
+    if (!this.canUseStorage()) {
+      return false;
+    }
+
+    return localStorage.getItem(AUTH_STORAGE_MODE_KEY) === 'local';
+  }
+
+  getRememberedLoginIdentifier(): string | null {
+    if (!this.canUseStorage()) {
+      return null;
+    }
+
+    return localStorage.getItem(REMEMBERED_LOGIN_IDENTIFIER_KEY)
+      ?? localStorage.getItem(REMEMBERED_LOGIN_PHONE_KEY);
+  }
+
+  saveRememberedLoginIdentifier(identifier: string): void {
+    if (!this.canUseStorage()) {
+      return;
+    }
+
+    localStorage.setItem(REMEMBERED_LOGIN_IDENTIFIER_KEY, identifier);
+    localStorage.removeItem(REMEMBERED_LOGIN_PHONE_KEY);
+  }
+
+  forgetRememberedLoginIdentifier(): void {
+    if (!this.canUseStorage()) {
+      return;
+    }
+
+    localStorage.removeItem(REMEMBERED_LOGIN_IDENTIFIER_KEY);
+    localStorage.removeItem(REMEMBERED_LOGIN_PHONE_KEY);
+  }
+
   clear(): void {
     if (!this.canUseStorage()) {
       return;
     }
 
-    localStorage.removeItem(CURRENT_USER_KEY);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    this.clearAuthFromStorage(localStorage);
+    this.clearAuthFromStorage(sessionStorage);
     this.currentUserSignal.set(null);
   }
 
@@ -69,24 +116,16 @@ export class AuthSessionService {
       return null;
     }
 
-    return localStorage.getItem(key);
+    return localStorage.getItem(key) ?? sessionStorage.getItem(key);
   }
 
-  private setItem(key: string, value: string): void {
-    if (!this.canUseStorage()) {
-      return;
-    }
-
-    localStorage.setItem(key, value);
-  }
-
-  private saveUser(user: UserDto): void {
+  private saveUser(user: UserDto, storage = this.getCurrentStorage()): void {
     this.currentUserSignal.set(user);
-    this.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    storage?.setItem(CURRENT_USER_KEY, JSON.stringify(user));
   }
 
-  private saveAccessToken(token: string): void {
-    this.setItem(ACCESS_TOKEN_KEY, token);
+  private saveAccessToken(token: string, storage = this.getCurrentStorage()): void {
+    storage?.setItem(ACCESS_TOKEN_KEY, token);
   }
 
   private readStoredUser(): UserDto | null {
@@ -96,7 +135,10 @@ export class AuthSessionService {
     try {
       return JSON.parse(rawUser) as UserDto;
     } catch {
-      localStorage.removeItem(CURRENT_USER_KEY);
+      if (this.canUseStorage()) {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        sessionStorage.removeItem(CURRENT_USER_KEY);
+      }
       return null;
     }
   }
@@ -127,5 +169,50 @@ export class AuthSessionService {
 
   private canUseStorage(): boolean {
     return isPlatformBrowser(this.platformId);
+  }
+
+  private getCurrentStorage(): Storage | null {
+    return this.getWritableStorage(this.resolveStorageMode());
+  }
+
+  private getWritableStorage(mode: AuthStorageMode): Storage | null {
+    if (!this.canUseStorage()) {
+      return null;
+    }
+
+    return mode === 'local' ? localStorage : sessionStorage;
+  }
+
+  private getOppositeStorage(mode: AuthStorageMode): Storage | null {
+    return this.getWritableStorage(mode === 'local' ? 'session' : 'local');
+  }
+
+  private resolveStorageMode(): AuthStorageMode {
+    if (!this.canUseStorage()) {
+      return 'local';
+    }
+
+    const storedMode = localStorage.getItem(AUTH_STORAGE_MODE_KEY)
+      ?? sessionStorage.getItem(AUTH_STORAGE_MODE_KEY);
+
+    if (storedMode === 'local' || storedMode === 'session') {
+      return storedMode;
+    }
+
+    if (localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(CURRENT_USER_KEY)) {
+      return 'local';
+    }
+
+    return 'session';
+  }
+
+  private clearAuthFromStorage(storage: Storage | null): void {
+    if (!storage) {
+      return;
+    }
+
+    storage.removeItem(CURRENT_USER_KEY);
+    storage.removeItem(ACCESS_TOKEN_KEY);
+    storage.removeItem(AUTH_STORAGE_MODE_KEY);
   }
 }

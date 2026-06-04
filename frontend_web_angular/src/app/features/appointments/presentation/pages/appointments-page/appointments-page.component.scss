@@ -88,22 +88,41 @@
 
 .mini-calendar__day {
   align-items: center;
+  background: transparent;
+  border: 0;
   border-radius: 999px;
   color: #312821;
+  cursor: pointer;
   display: inline-flex;
   font-size: 12px;
   font-weight: 800;
   height: 28px;
   justify-content: center;
   position: relative;
+  transition: background 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
+  width: 100%;
 }
 
 .mini-calendar__day--empty {
+  cursor: default;
   visibility: hidden;
+}
+
+.mini-calendar__day:not(.mini-calendar__day--empty):hover {
+  background: #f0e7dc;
+  color: var(--appointment-brown-dark);
+  transform: translateY(-1px);
 }
 
 .mini-calendar__day--today {
   background: var(--appointment-brown);
+  color: #fff;
+}
+
+.mini-calendar__day--selected,
+.mini-calendar__day--selected.mini-calendar__day--today {
+  background: #171511;
+  box-shadow: 0 0 0 3px #f1d5b4;
   color: #fff;
 }
 
@@ -115,6 +134,67 @@
   height: 4px;
   position: absolute;
   width: 4px;
+}
+
+.mini-calendar__day--selected::after {
+  background: #f8c15c;
+}
+
+.mini-calendar__day small {
+  align-items: center;
+  background: #1f9d58;
+  border: 2px solid #fffdf9;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 8px;
+  font-weight: 950;
+  height: 14px;
+  justify-content: center;
+  min-width: 14px;
+  padding: 0 3px;
+  position: absolute;
+  right: -2px;
+  top: -3px;
+}
+
+.mini-calendar__selection {
+  background: #fff8ef;
+  border: 1px solid #ead7c2;
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.mini-calendar__selection--active {
+  background: #f5ece2;
+  border-color: #d7b98f;
+}
+
+.mini-calendar__selection p {
+  color: #6c5d50;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.mini-calendar__selection button {
+  align-items: center;
+  background: #fffdf9;
+  border: 1px solid var(--appointment-border);
+  border-radius: 999px;
+  color: var(--appointment-brown-dark);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  height: 28px;
+  justify-content: center;
+  justify-self: start;
+  padding: 0 12px;
 }
 
 .appointments-filter h2,
@@ -204,14 +284,24 @@
   align-items: center;
   background: transparent;
   border: 0;
+  border-radius: 10px;
   color: #594b41;
+  cursor: pointer;
   display: flex;
   font-size: 13px;
   gap: 10px;
   justify-content: space-between;
   min-height: 32px;
-  padding: 4px 0;
+  padding: 4px 8px;
+  text-align: left;
+  transition: background 180ms ease, color 180ms ease;
   width: 100%;
+}
+
+.upcoming-dates__item:hover,
+.upcoming-dates__item--active {
+  background: #eee5db;
+  color: var(--appointment-brown-dark);
 }
 
 .upcoming-dates__item span {
@@ -387,6 +477,27 @@
   gap: 23px;
 }
 
+.appointments-feedback {
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+  margin: -12px 0 24px;
+  padding: 14px 16px;
+}
+
+.appointments-feedback--success {
+  background: #e8f5ee;
+  border: 1px solid #b9dfc8;
+  color: #1f7a4d;
+}
+
+.appointments-feedback--error {
+  background: #fff1ef;
+  border: 1px solid #f1b8af;
+  color: #b93227;
+}
+
 .appointments-state {
   background: #fffdf9;
   border: 1px solid var(--appointment-border);
@@ -397,6 +508,12 @@
   margin: 0;
   padding: 28px;
   text-align: center;
+}
+
+.appointments-state--error {
+  background: #fff1ef;
+  border-color: #f1b8af;
+  color: #b93227;
 }
 
 .appointment-group {

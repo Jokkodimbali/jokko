@@ -107,6 +107,7 @@ export class ServicesComponent implements OnInit {
       },
       error: () => {
         this.errorMessage.set(SERVICES_UI_MESSAGES.loadServicesFailed);
+        this.feedback.error(SERVICES_UI_MESSAGES.loadServicesFailed);
         this.isLoading.set(false);
       },
     });
@@ -137,6 +138,7 @@ export class ServicesComponent implements OnInit {
       },
       error: () => {
         this.errorMessage.set(SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed);
+        this.feedback.error(SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed);
         this.isLoading.set(false);
       },
     });
@@ -161,6 +163,7 @@ export class ServicesComponent implements OnInit {
       },
       error: () => {
         this.errorMessage.set(SERVICES_UI_MESSAGES.loadServicesFailed);
+        this.feedback.error(SERVICES_UI_MESSAGES.loadServicesFailed);
         this.isLoading.set(false);
       },
     });
@@ -178,7 +181,7 @@ export class ServicesComponent implements OnInit {
 
     this.favoritesService.list().subscribe({
       error: () => {
-        // Les visiteurs non connectes voient simplement l'etat vide.
+        this.feedback.error('Impossible de charger vos favoris pour le moment.');
       },
     });
   }
@@ -220,7 +223,7 @@ export class ServicesComponent implements OnInit {
     event.stopPropagation();
 
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous pour gerer vos favoris.');
       return;
     }
 
@@ -237,7 +240,7 @@ export class ServicesComponent implements OnInit {
         );
       },
       error: () => {
-        this.feedback.success('Connectez-vous pour gerer vos favoris.');
+        this.feedback.error('Impossible de mettre a jour vos favoris pour le moment.');
       },
     });
   }

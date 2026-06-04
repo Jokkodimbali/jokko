@@ -10,6 +10,7 @@ describe('AuthService', () => {
     createClientByPhoneNumber: jest.fn(),
     createClientWithPassword: jest.fn(),
     findWithPasswordByPhoneNumber: jest.fn(),
+    findWithPasswordByEmail: jest.fn(),
     findPublicProfileById: jest.fn(),
     linkGoogleIdentity: jest.fn(),
   };
@@ -143,6 +144,34 @@ describe('AuthService', () => {
     ).rejects.toMatchObject({
       message: appMessage('AUTH_INVALID_CREDENTIALS').message,
     });
+  });
+
+  it('login should find user by normalized email', async () => {
+    authRepository.findWithPasswordByEmail.mockResolvedValue({
+      id: 'u1',
+      numeroTelephone: '+221770000000',
+      nom: 'Test',
+      role: RoleUtilisateur.CLIENT,
+      estActif: true,
+      motDePasseHash: 'hashed',
+    });
+    passwordHashService.compare.mockResolvedValue(true);
+    jwtTokenService.issueTokens.mockResolvedValue({
+      accessToken: 'a',
+      refreshToken: 'r',
+    });
+    jwtTokenService.getRefreshTokenExpiryDate.mockReturnValue(new Date());
+
+    const result = await service.login({
+      identifier: ' TEST@JOKKO.SN ',
+      password: 'Password123',
+    });
+
+    expect(result.accessToken).toBe('a');
+    expect(authRepository.findWithPasswordByEmail).toHaveBeenCalledWith(
+      'test@jokko.sn',
+    );
+    expect(authRepository.findWithPasswordByPhoneNumber).not.toHaveBeenCalled();
   });
 
   it('refresh should rotate tokens from a valid session', async () => {

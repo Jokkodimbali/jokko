@@ -38,6 +38,11 @@ type AvailabilitySlot = {
   isSaving?: boolean;
 };
 
+type AppointmentSlotPreview = {
+  startTime: string;
+  endTime: string;
+};
+
 type DaySchedule = {
   dayOfWeek: number;
   label: string;
@@ -66,7 +71,6 @@ type ConsultationMotif = {
 
 type AgendaFilter = 'ALL' | 'CONFIRMED' | 'CANCELLED';
 type AgendaViewMode = 'day' | 'week' | 'month';
-type AgendaSlotMinutes = 10 | 15 | 25 | 30;
 type MedicalHistoryTab = 'future' | 'past';
 
 type AgendaDay = {
@@ -87,6 +91,8 @@ type AgendaEvent = {
   rowSpan: number;
   variant: 'confirmed' | 'cancelled';
 };
+
+type AgendaReservationDetail = BackendReservation;
 
 type MedicalHistoryPatientOption = {
   id: string;
@@ -171,11 +177,14 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
   protected readonly agendaViewMode = signal<AgendaViewMode>('day');
-  protected readonly agendaSlotMinutes = signal<AgendaSlotMinutes>(30);
   protected readonly medicalHistoryTab = signal<MedicalHistoryTab>('future');
   protected readonly medicalHistorySearch = signal('');
   protected readonly medicalHistoryPatientFilter = signal('ALL');
   protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
+  protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
+  protected readonly isAgendaReservationLoading = signal(false);
+  protected readonly isAgendaReservationCancelling = signal(false);
+  protected readonly agendaReservationError = signal<string | null>(null);
   protected readonly isPatientDetailLoading = signal(false);
   protected readonly patientDetailError = signal<string | null>(null);
   protected readonly isWithdrawalModalOpen = signal(false);
@@ -198,6 +207,9 @@ export class DoctorSpacePageComponent implements OnInit {
     doctorName: '',
     notes: '',
     documentName: '',
+  };
+  protected readonly agendaCancelForm = {
+    reason: '',
   };
   protected readonly withdrawalMethods: WithdrawalMethodOption[] = [
     {
@@ -260,6 +272,12 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly pauseProgress = computed(() =>
     this.progressPercent(this.appointmentPause(), 0, 30),
   );
+  protected readonly appointmentStepMinutes = computed(() =>
+    this.appointmentDuration() + this.appointmentPause(),
+  );
+  protected readonly weeklyAppointmentCapacity = computed(() =>
+    this.days().reduce((total, day) => total + this.dayAppointmentCapacity(day), 0),
+  );
   protected readonly agendaWeekDays = computed(() => this.buildAgendaWeekDays(this.agendaCursor()));
   protected readonly agendaDateLabel = computed(() =>
     new Intl.DateTimeFormat('fr-FR', {
@@ -291,18 +309,15 @@ export class DoctorSpacePageComponent implements OnInit {
     }
   });
   protected readonly agendaZoomPercent = computed(() => {
-    const minutes = this.agendaSlotMinutes();
-    if (minutes === 25) return 125;
-    if (minutes === 15) return 150;
-    if (minutes === 10) return 200;
-    return 100;
+    return this.appointmentStepMinutes();
   });
   protected readonly agendaRowHeight = computed(() => {
-    const minutes = this.agendaSlotMinutes();
-    if (minutes === 25) return 30;
-    if (minutes === 15) return 34;
-    if (minutes === 10) return 38;
-    return 27;
+    const minutes = this.appointmentStepMinutes();
+    if (minutes >= 75) return 48;
+    if (minutes >= 60) return 42;
+    if (minutes >= 45) return 36;
+    if (minutes >= 30) return 31;
+    return 34;
   });
   protected readonly medicalHistoryRows = computed(() => this.buildMedicalHistoryRows());
   protected readonly medicalHistoryFutureRows = computed(() =>
@@ -511,12 +526,12 @@ export class DoctorSpacePageComponent implements OnInit {
   protected requestWalletWithdrawal(): void {
     const amount = Number(this.withdrawalForm.amount);
     if (!Number.isFinite(amount) || amount < 2000) {
-      this.feedback.success('Le montant minimum de retrait est de 2000 FCFA.');
+      this.feedback.info('Le montant minimum de retrait est de 2000 FCFA.');
       return;
     }
 
     if (amount > this.walletBalance()) {
-      this.feedback.success('Le montant dépasse le solde disponible.');
+      this.feedback.info('Le montant depasse le solde disponible.');
       return;
     }
 
@@ -538,28 +553,132 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.success('Retrait demande avec succes.');
         },
         error: (error) =>
-          this.feedback.success(getHttpErrorMessage(error, 'Retrait impossible.')),
+          this.feedback.error(getHttpErrorMessage(error, 'Retrait impossible.')),
       });
   }
 
   protected zoomAgendaIn(): void {
-    const nextByCurrent: Record<AgendaSlotMinutes, AgendaSlotMinutes> = {
-      30: 25,
-      25: 15,
-      15: 10,
-      10: 10,
-    };
-    this.agendaSlotMinutes.set(nextByCurrent[this.agendaSlotMinutes()]);
+    this.updateAppointmentDuration(Math.min(90, this.appointmentDuration() + 5));
+    this.persistAppointmentSettings();
   }
 
   protected zoomAgendaOut(): void {
-    const nextByCurrent: Record<AgendaSlotMinutes, AgendaSlotMinutes> = {
-      10: 15,
-      15: 25,
-      25: 30,
-      30: 30,
+    this.updateAppointmentDuration(Math.max(20, this.appointmentDuration() - 5));
+    this.persistAppointmentSettings();
+  }
+
+  protected openAgendaReservation(event: AgendaEvent): void {
+    this.isAgendaReservationLoading.set(true);
+    this.agendaReservationError.set(null);
+    this.selectedAgendaReservation.set(null);
+    this.agendaCancelForm.reason = '';
+
+    this.doctorSpaceService
+      .getReservationById(event.id)
+      .pipe(finalize(() => this.isAgendaReservationLoading.set(false)))
+      .subscribe({
+        next: (reservation) => {
+          this.selectedAgendaReservation.set(reservation);
+          this.mergeReservation(reservation);
+        },
+        error: (error: unknown) => {
+          this.agendaReservationError.set(
+            getHttpErrorMessage(error, 'Impossible de charger le detail de cette reservation.'),
+          );
+        },
+      });
+  }
+
+  protected closeAgendaReservation(): void {
+    if (this.isAgendaReservationCancelling()) return;
+    this.selectedAgendaReservation.set(null);
+    this.agendaReservationError.set(null);
+    this.agendaCancelForm.reason = '';
+  }
+
+  protected canCancelAgendaReservation(reservation: BackendReservation): boolean {
+    return (
+      !this.isCancelledStatus(reservation.statut) &&
+      reservation.statut !== 'TERMINEE' &&
+      reservation.statut !== 'LITIGE' &&
+      this.isMoreThanHoursBefore(reservation.dateHeure, 24)
+    );
+  }
+
+  protected cancelAgendaReservation(reservation: BackendReservation): void {
+    if (!this.canCancelAgendaReservation(reservation) || this.isAgendaReservationCancelling()) {
+      return;
+    }
+
+    const reason =
+      this.agendaCancelForm.reason.trim() ||
+      'Annulation demandee depuis l agenda professionnel.';
+    this.isAgendaReservationCancelling.set(true);
+    this.agendaReservationError.set(null);
+
+    this.doctorSpaceService
+      .cancelReservation(reservation.id, reason)
+      .pipe(finalize(() => this.isAgendaReservationCancelling.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.mergeReservation(updated);
+          this.selectedAgendaReservation.set(updated);
+          this.agendaCancelForm.reason = '';
+          this.feedback.success('Reservation annulee et client notifie.');
+        },
+        error: (error: unknown) => {
+          this.agendaReservationError.set(
+            getHttpErrorMessage(error, 'Annulation impossible pour cette reservation.'),
+          );
+        },
+      });
+  }
+
+  protected agendaReservationStatusLabel(status: AppointmentStatus): string {
+    const labels: Record<AppointmentStatus, string> = {
+      EN_ATTENTE: 'En attente',
+      CONFIRMEE: 'Confirmee',
+      PAYEE_SEQUESTRE: 'Payee en sequestre',
+      EN_COURS: 'En cours',
+      TERMINEE: 'Terminee',
+      ANNULEE: 'Annulee',
+      NO_SHOW: 'Absent',
+      LITIGE: 'Litige',
     };
-    this.agendaSlotMinutes.set(nextByCurrent[this.agendaSlotMinutes()]);
+
+    return labels[status];
+  }
+
+  protected agendaReservationDateLabel(reservation: BackendReservation): string {
+    const date = new Date(reservation.dateHeure);
+    if (Number.isNaN(date.getTime())) return 'Date non renseignee';
+    return new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  protected agendaReservationEndTimeLabel(reservation: BackendReservation): string {
+    const date = new Date(reservation.dateHeure);
+    if (Number.isNaN(date.getTime())) return '--:--';
+    const end = new Date(date.getTime() + reservation.dureeMinutes * 60 * 1000);
+    return this.formatAgendaTime(end);
+  }
+
+  protected agendaReservationPrice(reservation: BackendReservation): number {
+    return Number(reservation.prixConvenu ?? reservation.service?.prix ?? 0);
+  }
+
+  protected agendaReservationServiceName(reservation: BackendReservation): string {
+    return reservation.service?.nom ?? 'Service non renseigne';
+  }
+
+  protected agendaReservationCategoryName(reservation: BackendReservation): string {
+    return reservation.service?.categorie?.nom ?? 'Categorie non renseignee';
   }
 
   protected previousAgendaWeek(): void {
@@ -630,7 +749,7 @@ export class DoctorSpacePageComponent implements OnInit {
           );
           this.feedback.success('Disponibilite supprimee.');
         },
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Suppression impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression impossible.')),
       });
   }
 
@@ -656,7 +775,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.refreshAvailabilities();
         },
         error: (error) => {
-          this.feedback.success(getHttpErrorMessage(error, 'Mise a jour impossible.'));
+          this.feedback.error(getHttpErrorMessage(error, 'Mise a jour impossible.'));
           this.refreshAvailabilities();
         },
       });
@@ -683,11 +802,34 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected updateAppointmentDuration(value: string | number): void {
-    this.appointmentDuration.set(Number(value));
+    const duration = this.normalizeMinutes(value, 20, 90);
+    this.appointmentDuration.set(duration);
+    this.motifForm.durationMinutes = duration;
   }
 
   protected updateAppointmentPause(value: string | number): void {
-    this.appointmentPause.set(Number(value));
+    this.appointmentPause.set(this.normalizeMinutes(value, 0, 30));
+  }
+
+  protected persistAppointmentSettings(): void {
+    this.syncMotifDurationsWithAppointmentDuration();
+  }
+
+  protected dayAppointmentCapacity(day: DaySchedule): number {
+    if (!day.enabled) return 0;
+    return day.slots.reduce((total, slot) => total + this.availabilitySlotCapacity(slot), 0);
+  }
+
+  protected availabilitySlotCapacity(slot: AvailabilitySlot): number {
+    return this.buildAppointmentSlotPreviews(slot).length;
+  }
+
+  protected availabilitySlotPreviews(slot: AvailabilitySlot): AppointmentSlotPreview[] {
+    return this.buildAppointmentSlotPreviews(slot).slice(0, 6);
+  }
+
+  protected remainingAvailabilitySlotCount(slot: AvailabilitySlot): number {
+    return Math.max(0, this.availabilitySlotCapacity(slot) - this.availabilitySlotPreviews(slot).length);
   }
 
   protected previousYear(): void {
@@ -719,11 +861,11 @@ export class DoctorSpacePageComponent implements OnInit {
     const editingMotifId = this.editingMotifId();
 
     if (!categoryId) {
-      this.feedback.success('Ajoutez d abord un service medical pour definir la categorie du motif.');
+      this.feedback.info('Ajoutez d abord un service medical pour definir la categorie du motif.');
       return;
     }
     if (!name || durationMinutes <= 0 || price <= 0) {
-      this.feedback.success('Renseignez un nom, une duree et un tarif valides.');
+      this.feedback.info('Renseignez un nom, une duree et un tarif valides.');
       return;
     }
 
@@ -777,7 +919,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected resetMotifForm(): void {
     this.editingMotifId.set(null);
     this.motifForm.name = '';
-    this.motifForm.durationMinutes = 15;
+    this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = 10000;
     this.motifForm.isRequired = true;
   }
@@ -789,7 +931,7 @@ export class DoctorSpacePageComponent implements OnInit {
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => this.refreshServices(),
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Mise a jour impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Mise a jour impossible.')),
       });
   }
 
@@ -803,7 +945,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.success('Motif supprime.');
           this.refreshServices();
         },
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Suppression du motif impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression du motif impossible.')),
       });
   }
 
@@ -865,7 +1007,7 @@ export class DoctorSpacePageComponent implements OnInit {
 
     this.doctorSpaceService.listMyAvailabilities().subscribe({
       next: (availabilities) => this.applyAvailabilities(availabilities),
-      error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Synchronisation impossible.')),
+      error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Synchronisation impossible.')),
     });
   }
 
@@ -875,13 +1017,45 @@ export class DoctorSpacePageComponent implements OnInit {
 
     this.doctorSpaceService.listMyServices().subscribe({
       next: (services) => this.applyServices(services),
-      error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Synchronisation des motifs impossible.')),
+      error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Synchronisation des motifs impossible.')),
+    });
+  }
+
+  private syncMotifDurationsWithAppointmentDuration(): void {
+    const durationMinutes = this.appointmentDuration();
+    const motifsToSync = this.motifs().filter((motif) => motif.durationMinutes !== durationMinutes);
+    if (motifsToSync.length === 0) return;
+
+    this.isSaving.set(true);
+    forkJoin(
+      motifsToSync.map((motif) =>
+        this.doctorSpaceService.updateService(motif.id, { durationMinutes }),
+      ),
+    )
+      .pipe(finalize(() => this.isSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.motifs.update((motifs) =>
+            motifs.map((motif) => ({ ...motif, durationMinutes })),
+          );
+          this.feedback.success('Duree des rendez-vous synchronisee avec les motifs.');
+        },
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Synchronisation de la duree impossible.')),
+      });
+  }
+
+  private mergeReservation(updated: BackendReservation): void {
+    this.reservations.update((reservations) => {
+      const exists = reservations.some((reservation) => reservation.id === updated.id);
+      if (!exists) return [...reservations, updated];
+      return reservations.map((reservation) => (reservation.id === updated.id ? updated : reservation));
     });
   }
 
   private buildAgendaRows(): string[] {
     const rows: string[] = [];
-    const slotMinutes = this.agendaSlotMinutes();
+    const slotMinutes = this.appointmentStepMinutes();
     const minMinutes = 7 * 60;
     const maxMinutes = 14 * 60;
 
@@ -941,9 +1115,9 @@ export class DoctorSpacePageComponent implements OnInit {
             localService?.durationMinutes ||
             30,
         );
-        const slotMinutes = this.agendaSlotMinutes();
+        const slotMinutes = this.appointmentStepMinutes();
         const rowStart = 2 + Math.floor((startMinutes - minMinutes) / slotMinutes);
-        const rowSpan = Math.max(1, Math.ceil(duration / slotMinutes));
+        const rowSpan = Math.max(1, Math.ceil((duration + this.appointmentPause()) / slotMinutes));
         const price =
           reservation.prixConvenu ??
           reservation.service?.prix ??
@@ -1180,11 +1354,17 @@ export class DoctorSpacePageComponent implements OnInit {
     return !this.isCancelledStatus(status);
   }
 
-  private isCancelledStatus(status: AppointmentStatus): boolean {
+  protected isCancelledStatus(status: AppointmentStatus): boolean {
     return status === 'ANNULEE' || status === 'NO_SHOW';
   }
 
-  private clientLabel(reservation: BackendReservation): string {
+  private isMoreThanHoursBefore(value: string, hours: number): boolean {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    return date.getTime() - Date.now() > hours * 60 * 60 * 1000;
+  }
+
+  protected clientLabel(reservation: BackendReservation): string {
     return reservation.client?.nom || `Client ${reservation.clientId.slice(0, 6).toUpperCase()}`;
   }
 
@@ -1219,7 +1399,9 @@ export class DoctorSpacePageComponent implements OnInit {
     return date;
   }
 
-  private formatAgendaTime(date: Date): string {
+  protected formatAgendaTime(value: Date | string): string {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '--:--';
     return `${date.getHours().toString().padStart(2, '0')}:${date
       .getMinutes()
       .toString()
@@ -1280,7 +1462,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.success(`${day.label} est maintenant indisponible.`);
         },
         error: (error) => {
-          this.feedback.success(getHttpErrorMessage(error, 'Desactivation impossible.'));
+          this.feedback.error(getHttpErrorMessage(error, 'Desactivation impossible.'));
           this.refreshAvailabilities();
         },
       });
@@ -1298,7 +1480,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.success('Disponibilites activees.');
           this.refreshAvailabilities();
         },
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Activation impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Activation impossible.')),
       });
   }
 
@@ -1312,7 +1494,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.success('Nouvelle disponibilite ajoutee.');
           this.refreshAvailabilities();
         },
-        error: (error) => this.feedback.success(getHttpErrorMessage(error, 'Creation impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Creation impossible.')),
       });
   }
 
@@ -1350,11 +1532,15 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private updateAppointmentSettings(days: DaySchedule[]): void {
     const firstSlot = days.flatMap((day) => day.slots)[0];
-    if (!firstSlot) return;
+    if (!firstSlot) {
+      this.motifForm.durationMinutes = this.appointmentDuration();
+      return;
+    }
 
     const duration = Math.max(20, Math.min(90, this.minutesBetween(firstSlot.startTime, firstSlot.endTime) / 6));
     this.appointmentDuration.set(Math.round(duration / 5) * 5);
     this.appointmentPause.set(0);
+    this.motifForm.durationMinutes = this.appointmentDuration();
   }
 
   private buildEmptyWeek(): DaySchedule[] {
@@ -1473,6 +1659,45 @@ export class DoctorSpacePageComponent implements OnInit {
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
     return endHour * 60 + endMinute - (startHour * 60 + startMinute);
+  }
+
+  private buildAppointmentSlotPreviews(slot: AvailabilitySlot): AppointmentSlotPreview[] {
+    if (!this.isValidSlot(slot)) return [];
+
+    const duration = this.appointmentDuration();
+    const pause = this.appointmentPause();
+    const step = duration + pause;
+    const start = this.timeToMinutes(slot.startTime);
+    const end = this.timeToMinutes(slot.endTime);
+    const previews: AppointmentSlotPreview[] = [];
+
+    for (let cursor = start; cursor + duration <= end; cursor += step) {
+      previews.push({
+        startTime: this.minutesToTime(cursor),
+        endTime: this.minutesToTime(cursor + duration),
+      });
+    }
+
+    return previews;
+  }
+
+  private normalizeMinutes(value: string | number, min: number, max: number): number {
+    const numeric = Math.trunc(Number(value));
+    if (!Number.isFinite(numeric)) return min;
+    const clamped = Math.max(min, Math.min(max, numeric));
+    return Math.round(clamped / 5) * 5;
+  }
+
+  private timeToMinutes(value: string): number {
+    const [hour, minute] = value.split(':').map(Number);
+    return hour * 60 + minute;
+  }
+
+  private minutesToTime(value: number): string {
+    const normalized = ((value % 1440) + 1440) % 1440;
+    const hour = Math.floor(normalized / 60);
+    const minute = normalized % 60;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   }
 
   private toAvailability(

@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -52,6 +53,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly currentUser = this.authSession.currentUser;
@@ -193,7 +195,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.refreshConversationsSilently();
       },
       error: () => {
-        this.errorMessage.set("Impossible d'envoyer le message pour le moment.");
+        const message = "Impossible d'envoyer le message pour le moment.";
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isSending.set(false);
       },
     });
@@ -342,9 +346,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             : current,
         );
         this.isUpdatingProposal.set(false);
+        this.feedback.success('Proposition acceptee.');
       },
       error: () => {
-        this.errorMessage.set("Impossible d'accepter cette proposition.");
+        const message = "Impossible d'accepter cette proposition.";
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isUpdatingProposal.set(false);
       },
     });
@@ -381,9 +388,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             : current,
         );
         this.isUpdatingProposal.set(false);
+        this.feedback.success('Proposition refusee.');
       },
       error: () => {
-        this.errorMessage.set('Impossible de refuser cette proposition.');
+        const message = 'Impossible de refuser cette proposition.';
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isUpdatingProposal.set(false);
       },
     });
@@ -415,7 +425,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        this.errorMessage.set('Impossible de charger vos conversations pour le moment.');
+        const message = 'Impossible de charger vos conversations pour le moment.';
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isLoadingConversations.set(false);
       },
     });
@@ -432,7 +444,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.refreshConversationsSilently();
       },
       error: () => {
-        this.errorMessage.set('Impossible de charger cette conversation.');
+        const message = 'Impossible de charger cette conversation.';
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isLoadingMessages.set(false);
       },
     });

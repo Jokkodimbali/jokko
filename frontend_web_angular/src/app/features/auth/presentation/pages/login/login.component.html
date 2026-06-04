@@ -21,7 +21,7 @@
           <h1>Connexion</h1>
         </header>
 
-        <div *ngIf="errorMessage()" class="login-alert" role="alert">
+        <div *ngIf="errorMessage()" class="login-alert" role="status">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2 1.8 20h20.4L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V8h2v5Z" />
           </svg>
@@ -29,16 +29,33 @@
         </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form__body">
-          <label class="login-field" [class.login-field--invalid]="isFieldInvalid('phoneNumber')">
-            <span>Numéro de téléphone</span>
-            <input
-              id="phoneNumber"
-              type="tel"
-              formControlName="phoneNumber"
-              placeholder="+221770000000"
-              autocomplete="tel"
-            />
-            <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneRequired }}</small>
+          <label class="login-field" [class.login-field--invalid]="isFieldInvalid('identifier')">
+            <span>Telephone ou email</span>
+            <div class="login-identifier-input">
+              <span
+                *ngIf="isPhoneIdentifier()"
+                class="login-identifier-input__country"
+                aria-hidden="true"
+              >
+                <span class="login-identifier-input__flag">
+                  <span></span>
+                </span>
+                <span class="login-identifier-input__dial">{{ senegalDialCode }}</span>
+              </span>
+              <input
+                id="loginIdentifier"
+                type="text"
+                formControlName="identifier"
+                placeholder="770000000 ou nom@exemple.com"
+                autocomplete="username"
+                inputmode="email"
+                (input)="onPhoneInput()"
+                (blur)="onPhoneBlur()"
+              />
+            </div>
+            <small *ngIf="isFieldInvalid('identifier')">
+              {{ messages.loginIdentifierInvalid }}
+            </small>
           </label>
 
           <label class="login-field" [class.login-field--invalid]="isFieldInvalid('password')">
@@ -69,10 +86,10 @@
 
           <div class="login-form__options">
             <label>
-              <input type="checkbox" />
+              <input type="checkbox" formControlName="rememberMe" />
               <span>Se souvenir de moi</span>
             </label>
-            <a href="#">Mot de passe oublié ?</a>
+            <a href="#">Mot de passe oublie ?</a>
           </div>
 
           <button type="submit" class="login-submit" [disabled]="isLoading() || loginForm.invalid">
@@ -114,7 +131,7 @@
 
         <p class="login-form__switch">
           Nouveau sur JOKKO Dimbali ?
-          <a routerLink="/auth/register">Créer un compte</a>
+          <a routerLink="/auth/register">Creer un compte</a>
         </p>
       </div>
     </section>

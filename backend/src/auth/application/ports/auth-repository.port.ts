@@ -44,6 +44,7 @@ export interface AuthRepositoryPort {
   findWithPasswordByPhoneNumber(
     phoneNumber: string,
   ): Promise<AuthUserWithPassword | null>;
+  findWithPasswordByEmail(email: string): Promise<AuthUserWithPassword | null>;
   createClientByPhoneNumber(
     phoneNumber: string,
   ): Promise<AuthUserSummary | null>;

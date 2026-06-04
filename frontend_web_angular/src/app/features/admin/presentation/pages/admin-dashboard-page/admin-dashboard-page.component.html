@@ -177,6 +177,9 @@
         <lucide-icon *ngIf="!isLoading()" name="triangle-alert" size="36" [strokeWidth]="2.2"></lucide-icon>
         <h1>{{ isLoading() ? 'Chargement administration' : 'Tableau de bord indisponible' }}</h1>
         <p>{{ isLoading() ? 'Actualisation des donnees de la console.' : 'Impossible de charger les donnees admin pour le moment.' }}</p>
+        <button *ngIf="!isLoading()" type="button" (click)="loadAdminDashboard()">
+          Reessayer
+        </button>
       </section>
     </ng-template>
   </section>

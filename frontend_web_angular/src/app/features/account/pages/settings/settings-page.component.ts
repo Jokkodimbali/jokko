@@ -18,6 +18,11 @@ import {
   UserHistoryItemView,
 } from '../../../auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../auth/domain/auth-ui.messages';
+import {
+  displaySenegalPhoneNumber,
+  normalizeSenegalPhoneNumber,
+  toSenegalLocalPhoneInput,
+} from '../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../auth/domain/models/auth.models';
 
 type SettingsSection = 'health' | 'account';
@@ -79,6 +84,7 @@ export class SettingsPageComponent implements OnInit {
     firstName: '',
     lastName: '',
     email: '',
+    phoneNumber: '',
   };
   protected readonly professionalAboutForm = {
     about: '',
@@ -166,7 +172,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly defaultWaveNumber = computed(() => this.savedWaveNumbers()[0] ?? null);
   protected readonly defaultCardLabel = computed(() => this.defaultCard()?.maskedValue || 'Aucune carte');
   protected readonly defaultWaveLabel = computed(() =>
-    this.defaultWaveNumber()?.maskedValue || this.profile()?.numeroTelephone || 'Non renseigne',
+    this.defaultWaveNumber()?.maskedValue || this.displayPhoneNumber() || 'Non renseigne',
   );
   protected readonly visibleCardLabel = computed(() =>
     this.showSensitivePaymentInfo()
@@ -182,8 +188,8 @@ export class SettingsPageComponent implements OnInit {
       ? this.defaultWaveLabel()
       : this.defaultWaveNumber()
         ? '****** ' + this.extractLastDigits(this.defaultWaveLabel())
-        : this.profile()?.numeroTelephone
-          ? '****** ' + this.extractLastDigits(this.profile()?.numeroTelephone)
+        : this.displayPhoneNumber()
+          ? '****** ' + this.extractLastDigits(this.displayPhoneNumber())
           : 'Non renseigne',
   );
   protected readonly medicalOverview = computed(() => {
@@ -213,6 +219,10 @@ export class SettingsPageComponent implements OnInit {
     const role = this.profile()?.role || this.currentUser()?.role;
     return role === 'MEDECIN' || role === 'PRESTATAIRE';
   });
+  protected readonly hasLocalPassword = computed(() => this.profile()?.hasPassword ?? true);
+  protected readonly displayPhoneNumber = computed(() =>
+    displaySenegalPhoneNumber(this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber),
+  );
   protected readonly professionalProfile = computed(() => this.profile()?.profilProfessionnel ?? null);
   protected readonly professionalBiographyLines = computed(() => this.parseProfessionalBiography());
   protected readonly professionalSpecialty = computed(() => {
@@ -372,6 +382,13 @@ export class SettingsPageComponent implements OnInit {
       this.errorMessage.set('Le nom doit contenir au moins 2 caracteres.');
       return;
     }
+    const phoneNumber = this.profileForm.phoneNumber.trim();
+    if (phoneNumber && !displaySenegalPhoneNumber(phoneNumber)) {
+      const message = 'Renseignez un numero senegalais valide.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
 
     this.isSavingProfile.set(true);
     this.errorMessage.set(null);
@@ -379,6 +396,7 @@ export class SettingsPageComponent implements OnInit {
       .updateMyProfile({
         name,
         email: this.profileForm.email.trim() || null,
+        phoneNumber: phoneNumber ? normalizeSenegalPhoneNumber(phoneNumber) : undefined,
       })
       .pipe(finalize(() => this.isSavingProfile.set(false)))
       .subscribe({
@@ -744,24 +762,42 @@ export class SettingsPageComponent implements OnInit {
 
   protected savePassword(): void {
     if (this.isSavingPassword()) return;
-    if (this.passwordForm.currentPassword.length < 8 || this.passwordForm.newPassword.length < 8) {
-      this.errorMessage.set('Les mots de passe doivent contenir au moins 8 caracteres.');
+    const currentPassword = this.passwordForm.currentPassword.trim();
+    const newPassword = this.passwordForm.newPassword.trim();
+
+    if (this.hasLocalPassword() && currentPassword.length < 8) {
+      const message = 'Renseignez votre mot de passe actuel.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
       return;
     }
 
+    if (newPassword.length < 8) {
+      const message = 'Le nouveau mot de passe doit contenir au moins 8 caracteres.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    const hadLocalPassword = this.hasLocalPassword();
     this.isSavingPassword.set(true);
     this.errorMessage.set(null);
     this.authService
       .changeMyPassword({
-        currentPassword: this.passwordForm.currentPassword,
-        newPassword: this.passwordForm.newPassword,
+        currentPassword: hadLocalPassword ? currentPassword : undefined,
+        newPassword,
       })
       .pipe(finalize(() => this.isSavingPassword.set(false)))
       .subscribe({
         next: () => {
           this.passwordForm.currentPassword = '';
           this.passwordForm.newPassword = '';
-          this.feedback.success('Mot de passe mis a jour avec succes.');
+          this.profile.update((profile) => (profile ? { ...profile, hasPassword: true } : profile));
+          this.feedback.success(
+            hadLocalPassword
+              ? 'Mot de passe mis a jour avec succes.'
+              : 'Mot de passe local cree avec succes.',
+          );
         },
         error: (error) => {
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier le mot de passe.'));
@@ -849,9 +885,12 @@ export class SettingsPageComponent implements OnInit {
     this.profileForm.firstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
     this.profileForm.lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
     this.profileForm.email = profile?.email || this.currentUser()?.email || '';
+    this.profileForm.phoneNumber = this.displayPhoneNumber()
+      ? toSenegalLocalPhoneInput(this.displayPhoneNumber()!)
+      : '';
     this.addressForm.address = profile?.adresse || '';
     this.cardForm.holderName = profile?.nom || this.currentUser()?.name || '';
-    this.waveForm.phoneNumber = profile?.numeroTelephone || this.currentUser()?.phoneNumber || '';
+    this.waveForm.phoneNumber = this.displayPhoneNumber() || '';
   }
 
   private resetPaymentForms(): void {
@@ -859,7 +898,7 @@ export class SettingsPageComponent implements OnInit {
     this.cardForm.holderName = this.displayName();
     this.cardForm.expiryMonth = 12;
     this.cardForm.expiryYear = new Date().getFullYear() + 1;
-    this.waveForm.phoneNumber = this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber || '';
+    this.waveForm.phoneNumber = this.displayPhoneNumber() || '';
   }
 
   private syncMedicalProfileForm(profile: MedicalProfileView | null): void {

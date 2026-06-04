@@ -168,6 +168,71 @@
   width: 100%;
 }
 
+.login-identifier-input {
+  align-items: center;
+  border: 1px solid #dedede;
+  border-radius: 9px;
+  display: flex;
+  height: 41px;
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.login-identifier-input:focus-within {
+  border-color: #8e5a2f;
+  box-shadow: 0 0 0 3px rgba(142, 90, 47, 0.12);
+}
+
+.login-identifier-input__country {
+  align-items: center;
+  background: #f8f4ef;
+  border-right: 1px solid #eadfd6;
+  display: inline-flex;
+  gap: 7px;
+  height: 100%;
+  justify-content: center;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.login-identifier-input__flag {
+  background: linear-gradient(90deg, #00853f 0 33.33%, #fdef42 33.33% 66.66%, #e31b23 66.66%);
+  border: 1px solid rgba(68, 57, 47, 0.18);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(29, 24, 20, 0.12);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 15px;
+  overflow: hidden;
+  position: relative;
+  width: 23px;
+}
+
+.login-identifier-input__flag span {
+  background: #00853f;
+  clip-path: polygon(50% 0, 61% 34%, 98% 34%, 68% 55%, 79% 90%, 50% 68%, 21% 90%, 32% 55%, 2% 34%, 39% 34%);
+  height: 6px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+}
+
+.login-identifier-input__dial {
+  color: #1f1a17;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.login-identifier-input input {
+  border: 0;
+  box-shadow: none;
+  height: 100%;
+  min-width: 0;
+}
+
 .login-field input::placeholder {
   color: #9c9c9c;
 }
@@ -178,7 +243,8 @@
 }
 
 .login-field--invalid input,
-.login-field--invalid .login-field__password {
+.login-field--invalid .login-field__password,
+.login-field--invalid .login-identifier-input {
   border-color: #e34d3f;
 }
 

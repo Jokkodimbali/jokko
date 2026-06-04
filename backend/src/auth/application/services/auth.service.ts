@@ -139,9 +139,7 @@ export class AuthService {
   }
 
   async login(command: LoginCommand, context: AuthSessionContext = {}) {
-    const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
-    const user =
-      await this.authRepository.findWithPasswordByPhoneNumber(phoneNumber);
+    const user = await this.findUserWithPasswordByLoginIdentifier(command);
     if (!user?.motDePasseHash) {
       throw appHttpException('AUTH_INVALID_CREDENTIALS');
     }
@@ -311,6 +309,24 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  private async findUserWithPasswordByLoginIdentifier(
+    command: LoginCommand,
+  ) {
+    const identifier = (command.identifier ?? command.phoneNumber ?? '').trim();
+
+    if (identifier.includes('@')) {
+      const email = normalizeEmail(identifier);
+      if (!email) {
+        throw appHttpException('AUTH_INVALID_CREDENTIALS');
+      }
+
+      return this.authRepository.findWithPasswordByEmail(email);
+    }
+
+    const phoneNumber = this.normalizePhoneNumber(identifier);
+    return this.authRepository.findWithPasswordByPhoneNumber(phoneNumber);
   }
 
   private assertActiveUser(user: AuthUserSummary): void {

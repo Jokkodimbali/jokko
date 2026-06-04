@@ -197,10 +197,13 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
-  cancelAppointment(reservationId: string): Observable<AppointmentView> {
+  cancelAppointment(
+    reservationId: string,
+    reason = 'Annulation demandee depuis l espace rendez-vous.',
+  ): Observable<AppointmentView> {
     return this.http
       .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/cancel`, {
-        raisonAnnulation: 'Annulation demandee depuis la page de paiement.',
+        reason,
       })
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }

@@ -1,12 +1,8 @@
 <main class="appointment-payment">
-  <section class="appointment-payment__nav" aria-label="Navigation principale">
-    <app-navbar />
-  </section>
-
-  <section class="appointment-payment__topbar">
+  <section class="appointment-payment__topbar" aria-label="Navigation paiement">
     <button type="button" class="appointment-payment__back" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="31" [strokeWidth]="2.6"></lucide-icon>
-      <span>Back</span>
+      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
+      <span>Retour</span>
     </button>
   </section>
 
@@ -20,26 +16,37 @@
       <section class="appointment-payment__checkout" aria-label="Paiement du rendez-vous">
         <header class="appointment-payment__heading">
           <h1>PAYEZ</h1>
-          <lucide-icon name="banknote" size="51" [strokeWidth]="2.8"></lucide-icon>
+          <lucide-icon name="banknote" size="30" [strokeWidth]="2.5"></lucide-icon>
         </header>
 
-        <strong class="appointment-payment__amount">{{ amountLabel() }}</strong>
+        <p class="appointment-payment__amount">
+          <strong>{{ amountValueLabel() }}</strong>
+          <span>FCFA</span>
+        </p>
 
-        <p>Choississez le moyen de paiement</p>
-        <div class="appointment-payment__methods" role="radiogroup" aria-label="Moyens de paiement">
-          <button
-            *ngFor="let option of paymentOptions"
-            type="button"
-            class="appointment-payment__method"
-            [class.appointment-payment__method--selected]="selectedMethod() === option.id"
-            [attr.aria-label]="methodAriaLabel(option)"
-            [attr.aria-checked]="selectedMethod() === option.id"
-            role="radio"
-            (click)="selectMethod(option.id)"
-          >
-            <img [src]="option.logoUrl" [alt]="option.label" />
-          </button>
-        </div>
+        <section class="appointment-payment__method-card" aria-label="Choix du moyen de paiement">
+          <h2>Choisissez le moyen de paiement</h2>
+          <div class="appointment-payment__methods" role="radiogroup" aria-label="Moyens de paiement">
+            <button
+              *ngFor="let option of paymentOptions"
+              type="button"
+              class="appointment-payment__method"
+              [class.appointment-payment__method--selected]="selectedMethod() === option.id"
+              [attr.aria-label]="methodAriaLabel(option)"
+              [attr.aria-checked]="selectedMethod() === option.id"
+              role="radio"
+              (click)="selectMethod(option.id)"
+            >
+              <span class="appointment-payment__method-check" *ngIf="selectedMethod() === option.id">
+                <lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon>
+              </span>
+              <span class="appointment-payment__method-logo" [attr.data-method]="option.id">
+                <img [src]="option.logoUrl" [alt]="option.label" />
+              </span>
+              <strong>{{ option.label }}</strong>
+            </button>
+          </div>
+        </section>
 
         <div class="appointment-payment__actions">
           <button type="button" class="appointment-payment__pay" [disabled]="isPaying()" (click)="pay()">
@@ -62,7 +69,7 @@
           <div>
             <h2>{{ appointment.doctorName }}</h2>
             <p>
-              <lucide-icon name="handshake" size="47" [strokeWidth]="2.6"></lucide-icon>
+              <lucide-icon name="wrench" size="13" [strokeWidth]="2.5"></lucide-icon>
               <span>{{ appointment.serviceName }}</span>
             </p>
           </div>
@@ -73,21 +80,21 @@
         <dl>
           <div>
             <dt>
-              <lucide-icon name="calendar-days" size="35" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon name="calendar-days" size="19" [strokeWidth]="2.4"></lucide-icon>
               <span>Date</span>
             </dt>
             <dd>{{ formatPaymentDate(appointment) }}</dd>
           </div>
           <div>
             <dt>
-              <lucide-icon name="map-pin" size="36" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon name="map-pin" size="19" [strokeWidth]="2.4"></lucide-icon>
               <span>Adresse d'intervention</span>
             </dt>
             <dd>{{ appointment.addressLabel }}</dd>
           </div>
           <div>
             <dt>
-              <lucide-icon name="banknote" size="33" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon name="banknote" size="18" [strokeWidth]="2.4"></lucide-icon>
               <span>Prix proposé</span>
             </dt>
             <dd>{{ amountLabel() }}</dd>
@@ -96,6 +103,4 @@
       </aside>
     </section>
   </ng-container>
-
-  <app-footer />
 </main>

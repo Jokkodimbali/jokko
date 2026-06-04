@@ -8,8 +8,6 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
-import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
@@ -48,8 +46,6 @@ interface ReservationDraft {
   imports: [
     CommonModule,
     FormsModule,
-    AppFooterComponent,
-    AppNavbarComponent,
     LucideAngularModule,
   ],
   templateUrl: './service-proposal.component.html',
@@ -87,14 +83,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly durationMinutes = 60;
 
   protected readonly paymentOptions: PaymentOption[] = [
-    { id: 'WAVE', label: 'WAVE', mark: 'W', logoUrl: '/wave.png' },
+    { id: 'WAVE', label: 'Wave', mark: 'W', logoUrl: '/wave.png' },
     {
       id: 'ORANGE_MONEY',
       label: 'Orange Money',
       mark: 'OM',
       logoUrl: '/Orange-Money-logo.png',
     },
-    { id: 'VISA', label: 'VISA', mark: 'VISA', logoUrl: '/logo vissa.avif' },
+    { id: 'VISA', label: 'Carte bancaire', mark: 'VISA', logoUrl: '/logo vissa.avif' },
   ];
 
   protected readonly currentService = computed<BackendProfessionalDetailService | null>(() => {
@@ -208,7 +204,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected selectAvailabilitySlot(slot: ReservationAvailabilitySlotView): void {
     if (!slot.available) {
-      this.feedback.success(slot.reason || 'Ce creneau nest pas disponible.');
+      this.feedback.info(slot.reason || 'Ce creneau nest pas disponible.');
       return;
     }
 
@@ -233,7 +229,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const service = this.currentService();
 
     if (!this.authSession.getAccessToken()) {
-      this.feedback.success('Connectez-vous pour proposer un prix.');
+      this.feedback.info('Connectez-vous pour proposer un prix.');
       this.router.navigate(['/auth/login']);
       return;
     }
@@ -278,11 +274,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (proposal) => {
           const hasExistingHistory = (proposal.propositions?.length ?? 0) > 1;
-          this.feedback.success(
-            hasExistingHistory
-              ? 'Une discussion est deja ouverte pour ce service.'
-              : 'Votre proposition a ete envoyee au prestataire.',
-          );
+          if (hasExistingHistory) {
+            this.feedback.info('Une discussion est deja ouverte pour ce service.');
+          } else {
+            this.feedback.success('Votre proposition a ete envoyee au prestataire.');
+          }
           this.openConversationThenGoToDiscussion(proposal, draft);
         },
         error: (error) => {
@@ -348,13 +344,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       const errorCode = (error.error as { errorCode?: string } | undefined)?.errorCode;
 
       if (error.status === 401) {
-        this.feedback.success('Votre session a expire. Connectez-vous pour continuer.');
+        this.feedback.info('Votre session a expire. Connectez-vous pour continuer.');
         this.router.navigate(['/auth/login']);
         return;
       }
 
       if (errorCode === 'NEGOTIATIONS_ALREADY_ACTIVE') {
-        this.feedback.success('Une discussion est deja ouverte pour ce service.');
+        this.feedback.info('Une discussion est deja ouverte pour ce service.');
         const service = this.currentService();
         if (service) {
           this.openDirectConversationThenGoToDiscussion(service, this.offerAmount());
@@ -365,7 +361,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       }
     }
 
-    this.feedback.success(
+    this.feedback.error(
       getHttpErrorMessage(error, "Impossible d'envoyer cette proposition pour le moment."),
     );
   }
@@ -420,7 +416,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (!professionalProfileId) {
       this.isSubmitting.set(false);
-      this.feedback.success('Impossible d ouvrir la discussion avec ce prestataire.');
+      this.feedback.error('Impossible d ouvrir la discussion avec ce prestataire.');
       return;
     }
 
@@ -508,53 +504,53 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     service: BackendProfessionalDetailService | null,
   ): ReservationDraft | null {
     if (!service) {
-      this.feedback.success('Selectionnez un service valide avant de confirmer.');
+      this.feedback.info('Selectionnez un service valide avant de confirmer.');
       return null;
     }
 
     const amount = Math.trunc(Number(this.offerAmount()));
     if (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000) {
-      this.feedback.success('Renseignez un montant entre 500 et 10 000 000 FCFA.');
+      this.feedback.info('Renseignez un montant entre 500 et 10 000 000 FCFA.');
       return null;
     }
 
     const dateHeure = this.toIsoDateTime(this.appointmentDate());
     if (!dateHeure || !this.isValidAppointmentDate()) {
-      this.feedback.success('Choisissez une date et une heure future pour le rendez-vous.');
+      this.feedback.info('Choisissez une date et une heure future pour le rendez-vous.');
       return null;
     }
 
     if (this.isCheckingAvailability() || this.isLoadingAvailabilitySlots()) {
-      this.feedback.success('Patientez pendant la verification des creneaux.');
+      this.feedback.info('Patientez pendant la verification des creneaux.');
       return null;
     }
 
     const availabilityStatus = this.availabilityStatus();
     if (!availabilityStatus || availabilityStatus.dateHeure !== dateHeure) {
-      this.feedback.success('Verifiez la disponibilite du creneau avant de confirmer.');
+      this.feedback.info('Verifiez la disponibilite du creneau avant de confirmer.');
       this.checkAvailabilityNow(service, dateHeure);
       return null;
     }
 
     if (!availabilityStatus.available) {
-      this.feedback.success(availabilityStatus.reason || 'Ce creneau nest pas disponible.');
+      this.feedback.info(availabilityStatus.reason || 'Ce creneau nest pas disponible.');
       return null;
     }
 
     const adresseClient = this.address().trim().replace(/\s+/g, ' ');
     if (adresseClient.length < 5 || adresseClient.length > 180) {
-      this.feedback.success('Renseignez une adresse precise entre 5 et 180 caracteres.');
+      this.feedback.info('Renseignez une adresse precise entre 5 et 180 caracteres.');
       return null;
     }
 
     if (!Number.isInteger(this.durationMinutes) || this.durationMinutes < 15 || this.durationMinutes > 1440) {
-      this.feedback.success('La duree du rendez-vous est invalide.');
+      this.feedback.info('La duree du rendez-vous est invalide.');
       return null;
     }
 
     const paymentMethod = this.selectedPayment();
     if (!this.paymentOptions.some((payment) => payment.id === paymentMethod)) {
-      this.feedback.success('Selectionnez un moyen de paiement valide.');
+      this.feedback.info('Selectionnez un moyen de paiement valide.');
       return null;
     }
 

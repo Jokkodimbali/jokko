@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AdminUserHistory, AdminUserProfile, AdminUserRow } from '../../../data-access/admin.models';
 import { AdminUsersService } from '../../../data-access/admin-users.service';
 
@@ -15,6 +16,7 @@ import { AdminUsersService } from '../../../data-access/admin-users.service';
 })
 export class AdminUsersPanelComponent implements OnInit {
   private readonly usersService = inject(AdminUsersService);
+  private readonly feedback = inject(AppFeedbackService);
   protected readonly pageSize = 10;
   protected readonly users = signal<AdminUserRow[]>([]);
   protected readonly page = signal(1);
@@ -47,7 +49,9 @@ export class AdminUsersPanelComponent implements OnInit {
       })
       .pipe(
         catchError(() => {
-          this.error.set('La liste des comptes ne peut pas etre actualisee pour le moment.');
+          const message = 'La liste des comptes ne peut pas etre actualisee pour le moment.';
+          this.error.set(message);
+          this.feedback.error(message);
           return of([]);
         }),
       )
@@ -84,7 +88,9 @@ export class AdminUsersPanelComponent implements OnInit {
     })
       .pipe(
         catchError(() => {
-          this.error.set('Le dossier utilisateur demande est indisponible.');
+          const message = 'Le dossier utilisateur demande est indisponible.';
+          this.error.set(message);
+          this.feedback.error(message);
           return of(null);
         }),
       )
@@ -107,9 +113,15 @@ export class AdminUsersPanelComponent implements OnInit {
     this.isActionLoading.set(true);
     this.usersService
       .setActive(user.id, !user.estActif)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de modifier le statut de ce compte.');
+          return of(null);
+        }),
+      )
       .subscribe((updated) => {
         if (updated) {
+          this.feedback.success(updated.estActif ? 'Compte active.' : 'Compte desactive.');
           this.selectedUser.set(updated);
           this.users.update((users) =>
             users.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),

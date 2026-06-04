@@ -60,8 +60,14 @@
 
       <ng-template #emptyFavorites>
         <div class="empty-favorites">
-          <p>Vos prestataires favoris s'afficheront ici.</p>
-          <a routerLink="/auth/login" class="auth-link">Connectez-vous</a>
+          <ng-container *ngIf="currentUser(); else favoriteLoginPrompt">
+            <p>Vous n'avez pas encore de favoris. Enregistrez un prestataire pour le retrouver rapidement ici.</p>
+            <a routerLink="/favorites" class="auth-link">Voir ma liste</a>
+          </ng-container>
+          <ng-template #favoriteLoginPrompt>
+            <p>Connectez-vous pour enregistrer et retrouver vos prestataires favoris.</p>
+            <a routerLink="/auth/login" class="auth-link">Se connecter</a>
+          </ng-template>
         </div>
       </ng-template>
       <br>
@@ -74,7 +80,7 @@
         <p>Chargement des services en cours...</p>
       </div>
 
-      <div *ngIf="errorMessage()" class="error-state" role="alert">
+      <div *ngIf="errorMessage()" class="error-state" role="status">
         <p>{{ errorMessage() }}</p>
         <button type="button" (click)="loadHomeData()" class="retry-button">Reessayer</button>
       </div>

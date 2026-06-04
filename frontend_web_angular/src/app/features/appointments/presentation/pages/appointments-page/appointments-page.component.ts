@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentStatus, AppointmentView } from '../../../domain/appointments.models';
 
@@ -22,9 +23,11 @@ interface AppointmentGroup {
 
 interface CalendarDay {
   day: number;
+  dateKey: string | null;
   isMuted: boolean;
   isToday: boolean;
   hasAppointments: boolean;
+  appointmentCount: number;
 }
 
 @Component({
@@ -47,10 +50,15 @@ export class AppointmentsPageComponent implements OnInit {
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointments = signal<AppointmentView[]>([]);
   protected readonly isLoading = signal(true);
+  protected readonly loadErrorMessage = signal<string | null>(null);
   protected readonly activeTab = signal<AppointmentTab>('future');
   protected readonly activeStatus = signal<AppointmentStatusFilter>('ALL');
   protected readonly activePeriod = signal<AppointmentPeriodFilter>('ALL');
   protected readonly search = signal('');
+  protected readonly selectedCalendarDate = signal<string | null>(null);
+  protected readonly cancellationMessage = signal<string | null>(null);
+  protected readonly cancellationMessageTone = signal<'success' | 'error'>('success');
+  protected readonly cancellingAppointmentId = signal<string | null>(null);
 
   protected readonly futureAppointments = computed(() =>
     this.sortedAppointments(this.appointments().filter((appointment) => !this.isDone(appointment.status))),
@@ -106,11 +114,13 @@ export class AppointmentsPageComponent implements OnInit {
     const source = this.activeTab() === 'future' ? this.futureAppointments() : this.doneAppointments();
     const status = this.activeStatus();
     const period = this.activePeriod();
+    const selectedDate = this.selectedCalendarDate();
     const term = this.search().trim().toLowerCase();
 
     return source.filter((appointment) => {
       const matchesStatus = status === 'ALL' || this.matchesStatus(appointment, status);
       const matchesPeriod = this.matchesPeriod(appointment, period);
+      const matchesCalendarDate = !selectedDate || this.appointmentDateKey(appointment) === selectedDate;
       const matchesSearch =
         term.length === 0 ||
         [
@@ -121,7 +131,7 @@ export class AppointmentsPageComponent implements OnInit {
           appointment.confirmationLabel,
         ].some((value) => value.toLowerCase().includes(term));
 
-      return matchesStatus && matchesPeriod && matchesSearch;
+      return matchesStatus && matchesPeriod && matchesCalendarDate && matchesSearch;
     });
   });
 
@@ -150,6 +160,14 @@ export class AppointmentsPageComponent implements OnInit {
     const lastDay = new Date(year, month + 1, 0);
     const startOffset = (firstDay.getDay() + 6) % 7;
     const today = new Date();
+    const appointmentCounts = this.appointments()
+      .map((appointment) => this.safeDate(appointment.scheduledAt))
+      .filter((date) => !Number.isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month)
+      .reduce((counts, date) => {
+        const key = this.dateKey(date);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        return counts;
+      }, new Map<string, number>());
     const appointmentDays = new Set(
       this.appointments()
         .map((appointment) => this.safeDate(appointment.scheduledAt))
@@ -159,22 +177,57 @@ export class AppointmentsPageComponent implements OnInit {
     const days: CalendarDay[] = [];
 
     for (let i = 0; i < startOffset; i += 1) {
-      days.push({ day: 0, isMuted: true, isToday: false, hasAppointments: false });
+      days.push({
+        day: 0,
+        dateKey: null,
+        isMuted: true,
+        isToday: false,
+        hasAppointments: false,
+        appointmentCount: 0,
+      });
     }
 
     for (let day = 1; day <= lastDay.getDate(); day += 1) {
+      const date = new Date(year, month, day);
+      const dateKey = this.dateKey(date);
       days.push({
         day,
+        dateKey,
         isMuted: false,
         isToday:
           today.getFullYear() === year &&
           today.getMonth() === month &&
           today.getDate() === day,
         hasAppointments: appointmentDays.has(day),
+        appointmentCount: appointmentCounts.get(dateKey) ?? 0,
       });
     }
 
     return days;
+  });
+
+  protected readonly selectedCalendarDateLabel = computed(() => {
+    const selectedDate = this.selectedCalendarDate();
+    if (!selectedDate) return null;
+    return this.formatDateKey(selectedDate);
+  });
+
+  protected readonly selectedCalendarAppointmentCount = computed(() => {
+    const selectedDate = this.selectedCalendarDate();
+    if (!selectedDate) return 0;
+    return this.appointments().filter((appointment) => this.appointmentDateKey(appointment) === selectedDate).length;
+  });
+
+  protected readonly calendarFilterMessage = computed(() => {
+    const label = this.selectedCalendarDateLabel();
+    if (!label) return 'Cliquez sur une date du calendrier pour filtrer vos rendez-vous.';
+
+    const total = this.selectedCalendarAppointmentCount();
+    if (total === 0) {
+      return `Aucune reservation trouvee pour le ${label}.`;
+    }
+
+    return `${total} reservation${total > 1 ? 's' : ''} trouvee${total > 1 ? 's' : ''} pour le ${label}.`;
   });
 
   protected readonly upcomingDates = computed(() =>
@@ -222,6 +275,19 @@ export class AppointmentsPageComponent implements OnInit {
     if (value === 'ALL' || value === 'WEEK' || value === 'MONTH') {
       this.activePeriod.set(value);
     }
+  }
+
+  protected selectCalendarDay(day: CalendarDay): void {
+    if (!day.dateKey) return;
+    this.selectCalendarDateKey(day.dateKey);
+  }
+
+  protected selectCalendarDateKey(dateKey: string): void {
+    this.selectedCalendarDate.set(this.selectedCalendarDate() === dateKey ? null : dateKey);
+  }
+
+  protected clearCalendarFilter(): void {
+    this.selectedCalendarDate.set(null);
   }
 
   protected rowTone(appointment: AppointmentView): AppointmentTone {
@@ -290,19 +356,49 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected canCancel(appointment: AppointmentView): boolean {
-    return !this.isDone(appointment.status) && appointment.status !== 'EN_COURS';
+    return this.hasCancellableStatus(appointment.status) && this.isMoreThanHoursBefore(appointment.scheduledAt, 24);
+  }
+
+  protected cancellationDisabledReason(appointment: AppointmentView): string {
+    if (!this.hasCancellableStatus(appointment.status)) {
+      return 'Ce rendez-vous est deja cloture ou son statut ne permet plus une annulation.';
+    }
+
+    if (!this.isMoreThanHoursBefore(appointment.scheduledAt, 24)) {
+      return 'Annulation indisponible : le rendez-vous doit etre annule plus de 24h avant l horaire prevu.';
+    }
+
+    return 'Annuler ce rendez-vous.';
   }
 
   protected cancelAppointment(appointment: AppointmentView, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!this.canCancel(appointment)) return;
+    if (!this.canCancel(appointment)) {
+      this.showCancellationMessage(this.cancellationDisabledReason(appointment), 'error');
+      return;
+    }
 
-    this.appointmentsService.cancelAppointment(appointment.id).subscribe({
+    this.cancellingAppointmentId.set(appointment.id);
+    this.cancellationMessage.set(null);
+
+    this.appointmentsService.cancelAppointment(
+      appointment.id,
+      'Annulation demandee depuis la page rendez-vous.',
+    ).subscribe({
       next: (updated) => {
         this.appointments.update((appointments) =>
           appointments.map((item) => (item.id === appointment.id ? updated : item)),
+        );
+        this.cancellingAppointmentId.set(null);
+        this.showCancellationMessage('Reservation annulee avec succes.', 'success');
+      },
+      error: (error) => {
+        this.cancellingAppointmentId.set(null);
+        this.showCancellationMessage(
+          getHttpErrorMessage(error, "Impossible d'annuler cette reservation. Verifiez le statut et le delai de 24h."),
+          'error',
         );
       },
     });
@@ -354,6 +450,7 @@ export class AppointmentsPageComponent implements OnInit {
     }
 
     this.isLoading.set(true);
+    this.loadErrorMessage.set(null);
     this.appointmentsService.listMyAppointments(scope).subscribe({
       next: (appointments) => {
         this.appointments.set(appointments);
@@ -361,6 +458,7 @@ export class AppointmentsPageComponent implements OnInit {
       },
       error: () => {
         this.appointments.set([]);
+        this.loadErrorMessage.set('Impossible de charger vos rendez-vous pour le moment.');
         this.isLoading.set(false);
       },
     });
@@ -368,8 +466,7 @@ export class AppointmentsPageComponent implements OnInit {
 
   private resolveReservationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
     const role = this.authSession.getAuthenticatedRole();
-    if (role === 'CLIENT') return 'CLIENT';
-    if (role === 'PRESTATAIRE' || role === 'MEDECIN') return 'PRESTATAIRE';
+    if (role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN') return 'CLIENT';
     return null;
   }
 
@@ -405,9 +502,11 @@ export class AppointmentsPageComponent implements OnInit {
   private statusCount(filter: AppointmentStatusFilter): number {
     const source = this.activeTab() === 'future' ? this.futureAppointments() : this.doneAppointments();
     const period = this.activePeriod();
+    const selectedDate = this.selectedCalendarDate();
     const term = this.search().trim().toLowerCase();
 
     return source.filter((appointment) => {
+      const matchesCalendarDate = !selectedDate || this.appointmentDateKey(appointment) === selectedDate;
       const matchesSearch =
         term.length === 0 ||
         [
@@ -418,12 +517,39 @@ export class AppointmentsPageComponent implements OnInit {
           appointment.confirmationLabel,
         ].some((value) => value.toLowerCase().includes(term));
 
-      return this.matchesStatus(appointment, filter) && this.matchesPeriod(appointment, period) && matchesSearch;
+      return (
+        this.matchesStatus(appointment, filter) &&
+        this.matchesPeriod(appointment, period) &&
+        matchesCalendarDate &&
+        matchesSearch
+      );
     }).length;
   }
 
   private isDone(status: AppointmentStatus): boolean {
     return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW';
+  }
+
+  private hasCancellableStatus(status: AppointmentStatus): boolean {
+    return (
+      status === 'EN_ATTENTE' ||
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS'
+    );
+  }
+
+  private isMoreThanHoursBefore(value: string, hours: number): boolean {
+    const date = this.safeDate(value);
+    if (Number.isNaN(date.getTime())) return false;
+
+    const threshold = date.getTime() - hours * 60 * 60 * 1000;
+    return Date.now() < threshold;
+  }
+
+  private showCancellationMessage(message: string, tone: 'success' | 'error'): void {
+    this.cancellationMessageTone.set(tone);
+    this.cancellationMessage.set(message);
   }
 
   private isThisWeek(appointment: AppointmentView): boolean {
@@ -456,6 +582,29 @@ export class AppointmentsPageComponent implements OnInit {
       day: 'numeric',
       month: 'long',
     }).format(date).toUpperCase();
+  }
+
+  private appointmentDateKey(appointment: AppointmentView): string | null {
+    const date = this.safeDate(appointment.scheduledAt);
+    return Number.isNaN(date.getTime()) ? null : this.dateKey(date);
+  }
+
+  private dateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatDateKey(dateKey: string): string {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
   }
 
   private safeDate(value: string): Date {

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 export interface AppFeedbackMessage {
   id: number;
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'info';
   text: string;
 }
 
@@ -21,6 +21,10 @@ export class AppFeedbackService {
 
   error(text: string): void {
     this.show('error', text);
+  }
+
+  info(text: string): void {
+    this.show('info', text);
   }
 
   private show(type: AppFeedbackMessage['type'], text: string): void {

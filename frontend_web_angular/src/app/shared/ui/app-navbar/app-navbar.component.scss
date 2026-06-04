@@ -101,25 +101,82 @@
 }
 
 .app-navbar__toast {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  border-radius: 16px;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
-  color: #065f46;
-  font-size: 15px;
-  font-weight: 800;
-  max-width: min(420px, calc(100vw - 40px));
-  padding: 14px 18px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #c9ead6;
+  border-left: 5px solid #1d9b63;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(34, 20, 8, 0.18);
+  color: #133b2a;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: auto minmax(0, 1fr);
+  max-width: min(440px, calc(100vw - 40px));
+  min-height: 74px;
+  padding: 13px 16px 13px 14px;
   position: fixed;
   right: 92px;
   top: 112px;
   z-index: 250;
 }
 
+.app-navbar__toast-icon {
+  align-items: center;
+  background: #e7f7ef;
+  border-radius: 12px;
+  color: #17784e;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.app-navbar__toast-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.app-navbar__toast-copy strong {
+  color: #10281e;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.app-navbar__toast-copy small {
+  color: #52675d;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .app-navbar__toast--error {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #9f1239;
+  border-color: #f2c1bd;
+  border-left-color: #d63b30;
+}
+
+.app-navbar__toast--error .app-navbar__toast-icon {
+  background: #fff0ee;
+  color: #c83228;
+}
+
+.app-navbar__toast--error .app-navbar__toast-copy strong {
+  color: #8e261f;
+}
+
+.app-navbar__toast--info {
+  border-color: #c7dcf7;
+  border-left-color: #2f6edb;
+}
+
+.app-navbar__toast--info .app-navbar__toast-icon {
+  background: #edf5ff;
+  color: #245fbd;
+}
+
+.app-navbar__toast--info .app-navbar__toast-copy strong {
+  color: #1d4f9a;
 }
 
 .app-navbar__login,

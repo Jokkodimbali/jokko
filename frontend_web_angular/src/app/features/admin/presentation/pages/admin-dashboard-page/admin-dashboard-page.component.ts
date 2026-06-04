@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   AdminArchivesReport,
   AdminDashboard,
@@ -89,6 +90,7 @@ export class AdminDashboardPageComponent implements OnInit {
   private readonly adminMedicalCredentialsService = inject(AdminMedicalCredentialsService);
   private readonly adminProvidersService = inject(AdminProvidersService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -178,11 +180,17 @@ export class AdminDashboardPageComponent implements OnInit {
 
     this.restoreSectionFromUrl();
 
+    this.loadAdminDashboard();
+  }
+
+  protected loadAdminDashboard(): void {
+    this.isLoading.set(true);
     this.adminDashboardService
       .getDashboard()
       .pipe(
         catchError(() => {
           this.isLoading.set(false);
+          this.feedback.error('Impossible de charger les donnees admin pour le moment.');
           return of(null);
         }),
       )
@@ -236,6 +244,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isArchivesLoading.set(false);
+          this.feedback.error('Impossible de charger les archives admin pour le moment.');
           return of(null);
         }),
       )
@@ -252,6 +261,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isRegionsLoading.set(false);
+          this.feedback.error('Impossible de charger les donnees regionales pour le moment.');
           return of(null);
         }),
       )
@@ -268,6 +278,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isStructureLoading.set(false);
+          this.feedback.error('Impossible de charger la structure des services pour le moment.');
           return of(null);
         }),
       )
@@ -282,7 +293,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .createCategory(payload)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie creee.'));
   }
 
   protected bulkCreateCategories(payload: AdminCategoryPayload[]): void {
@@ -290,7 +301,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .bulkCreateCategories(payload)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categories importees.'));
   }
 
   protected updateCategory(payload: { categoryId: string; payload: AdminCategoryPayload }): void {
@@ -298,7 +309,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .updateCategory(payload.categoryId, payload.payload)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie mise a jour.'));
   }
 
   protected disableCategory(categoryId: string): void {
@@ -306,7 +317,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .disableCategory(categoryId)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie desactivee.'));
   }
 
   protected createSubCategory(payload: AdminSubCategoryPayload): void {
@@ -314,7 +325,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .createSubCategory(payload)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categorie creee.'));
   }
 
   protected bulkCreateSubCategories(payload: AdminSubCategoryPayload[]): void {
@@ -322,7 +333,7 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .bulkCreateSubCategories(payload)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categories importees.'));
   }
 
   protected assignSubCategories(payload: { categoryId: string; subCategoryIds: string[] }): void {
@@ -330,11 +341,16 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .assignSubCategories(payload.categoryId, payload.subCategoryIds)
       .pipe(catchError(() => of(null)))
-      .subscribe(() => this.afterCategoryMutation());
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categories affectees.'));
   }
 
-  private afterCategoryMutation(): void {
+  private afterCategoryMutation(succeeded: boolean, successMessage: string): void {
     this.structureActionId.set(null);
+    if (succeeded) {
+      this.feedback.success(successMessage);
+    } else {
+      this.feedback.error('Action impossible sur la structure des services.');
+    }
     this.loadServiceStructure();
     this.adminDashboardService
       .getDashboard()
@@ -351,6 +367,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isRevenueLoading.set(false);
+          this.feedback.error('Impossible de charger les indicateurs financiers pour le moment.');
           return of(null);
         }),
       )
@@ -367,6 +384,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isDisputesLoading.set(false);
+          this.feedback.error('Impossible de charger les litiges admin pour le moment.');
           return of([]);
         }),
       )
@@ -396,6 +414,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
+          this.feedback.error('Impossible de traiter ce litige pour le moment.');
           return of(null);
         }),
       )
@@ -459,6 +478,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected afterDisputeMutation(updated: AdminDisputeCase | unknown | null): void {
     this.kycActionId.set(null);
     if (updated && this.isAdminDisputeCase(updated)) {
+      this.feedback.success('Litige mis a jour avec succes.');
       this.disputeCases.set(
         this.disputeCases().map((dispute) => (dispute.id === updated.id ? updated : dispute)),
       );
@@ -480,6 +500,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isProvidersLoading.set(false);
+          this.feedback.error('Impossible de charger les prestataires admin pour le moment.');
           return of(null);
         }),
       )
@@ -501,7 +522,12 @@ export class AdminDashboardPageComponent implements OnInit {
     this.updateAdminUrl({ section: 'providers', providerId });
     this.adminProvidersService
       .get(providerId)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de charger le detail de ce prestataire.');
+          return of(null);
+        }),
+      )
       .subscribe((provider) => this.selectedProviderDetail.set(provider));
   }
 
@@ -516,12 +542,20 @@ export class AdminDashboardPageComponent implements OnInit {
     const request = payload.active
       ? this.adminProvidersService.activate(payload.providerId)
       : this.adminProvidersService.deactivate(payload.providerId);
-    request.pipe(catchError(() => of(null))).subscribe((provider) => this.afterProviderMutation(provider));
+    request
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible de mettre a jour ce prestataire.');
+          return of(null);
+        }),
+      )
+      .subscribe((provider) => this.afterProviderMutation(provider));
   }
 
   private afterProviderMutation(provider: AdminProviderProfile | null): void {
     this.isProviderActionLoading.set(false);
     if (!provider) return;
+    this.feedback.success('Statut du prestataire mis a jour.');
     this.selectedProviderDetail.set(provider);
     this.providerProfiles.set(
       this.providerProfiles().map((item) => (item.id === provider.id ? { ...item, ...provider } : item)),
@@ -579,6 +613,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isKycLoading.set(false);
+          this.feedback.error('Impossible de charger les dossiers KYC pour le moment.');
           return of([]);
         }),
       )
@@ -595,6 +630,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
+          this.feedback.error('Impossible d approuver ce dossier KYC.');
           return of(null);
         }),
       )
@@ -618,6 +654,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
+          this.feedback.error('Impossible de rejeter ce dossier KYC.');
           return of(null);
         }),
       )
@@ -627,6 +664,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected afterKycMutation(updated: AdminKycProfile | null): void {
     this.kycActionId.set(null);
     if (!updated) return;
+    this.feedback.success('Dossier KYC traite avec succes.');
     const remaining = this.kycProfiles().filter((profile) => profile.id !== updated.id);
     this.kycProfiles.set(remaining);
     const dashboard = this.dashboard();
@@ -650,6 +688,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.isMedicalLoading.set(false);
+          this.feedback.error('Impossible de charger les diplomes medecins pour le moment.');
           return of([]);
         }),
       )
@@ -666,6 +705,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
+          this.feedback.error('Impossible de certifier ce medecin.');
           return of(null);
         }),
       )
@@ -679,6 +719,7 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(
         catchError(() => {
           this.kycActionId.set(null);
+          this.feedback.error('Impossible de rejeter ce diplome medecin.');
           return of(null);
         }),
       )
@@ -688,6 +729,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected afterMedicalMutation(profileId: string | null): void {
     this.kycActionId.set(null);
     if (!profileId) return;
+    this.feedback.success('Dossier medecin traite avec succes.');
     const dashboard = this.dashboard();
     const remaining = this.medicalCredentialProfiles().filter((profile) => profile.id !== profileId);
     this.medicalCredentialProfiles.set(remaining);

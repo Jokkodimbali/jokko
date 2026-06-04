@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { MedicineService } from '../../../data-access/medicine.service';
 import { MEDICINE_FILTERS } from '../../../domain/medicine-filter-actions';
@@ -36,6 +37,7 @@ import { MedicineHeroComponent } from '../../components/medicine-hero/medicine-h
 export class MedicinePageComponent implements OnInit {
   private readonly medicineService = inject(MedicineService);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly feedback = inject(AppFeedbackService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly messages = MEDICINE_UI_MESSAGES;
@@ -157,7 +159,9 @@ export class MedicinePageComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: () => {
-        this.errorMessage.set('Impossible de charger les medecins pour le moment.');
+        const message = 'Impossible de charger les medecins pour le moment.';
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isLoading.set(false);
       },
     });

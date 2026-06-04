@@ -116,7 +116,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
 
   protected toggleFavorite(): void {
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.success('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous pour gerer vos favoris.');
       return;
     }
 
@@ -135,7 +135,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       },
       error: () => {
         this.isTogglingFavorite.set(false);
-        this.feedback.success('Impossible de mettre a jour vos favoris.');
+        this.feedback.error('Impossible de mettre a jour vos favoris.');
       },
     };
 

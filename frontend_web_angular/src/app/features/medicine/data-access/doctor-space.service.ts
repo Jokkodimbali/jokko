@@ -123,6 +123,21 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
+  getReservationById(reservationId: string): Observable<BackendReservation> {
+    return this.http
+      .get<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  cancelReservation(reservationId: string, reason: string): Observable<BackendReservation> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/cancel`,
+        { reason },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   getPatientMedicalProfile(clientId: string): Observable<PatientMedicalProfile> {
     return this.http
       .get<ApiResponse<PatientMedicalProfile>>(

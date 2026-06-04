@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, of } from 'rxjs';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AdminBroadcastPayload, AdminBroadcastResult } from '../../../data-access/admin.models';
 import { AdminNotificationsService } from '../../../data-access/admin-notifications.service';
 
@@ -15,6 +16,7 @@ import { AdminNotificationsService } from '../../../data-access/admin-notificati
 })
 export class AdminNotificationsPanelComponent {
   private readonly notifications = inject(AdminNotificationsService);
+  private readonly feedback = inject(AppFeedbackService);
   protected readonly result = signal<AdminBroadcastResult | null>(null);
   protected readonly isSending = signal(false);
   protected readonly error = signal('');
@@ -44,12 +46,14 @@ export class AdminNotificationsPanelComponent {
       .pipe(
         catchError(() => {
           this.error.set('La notification n a pas pu etre envoyee.');
+          this.feedback.error('La notification n a pas pu etre envoyee.');
           return of(null);
         }),
       )
       .subscribe((result) => {
         if (result) {
           this.result.set(result);
+          this.feedback.success('Notification envoyee avec succes.');
           this.title = '';
           this.body = '';
           this.contextJson = '';
@@ -67,6 +71,7 @@ export class AdminNotificationsPanelComponent {
       return parsed as Record<string, unknown>;
     } catch {
       this.error.set('Les donnees optionnelles doivent etre un objet JSON valide.');
+      this.feedback.error('Les donnees optionnelles doivent etre un objet JSON valide.');
       this.confirmOpen = false;
       return null;
     }

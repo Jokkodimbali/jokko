@@ -78,6 +78,7 @@
                 step="5"
                 [ngModel]="appointmentDuration()"
                 (ngModelChange)="updateAppointmentDuration($event)"
+                (change)="persistAppointmentSettings()"
                 [style.--progress]="durationProgress() + '%'"
               />
             </label>
@@ -92,9 +93,16 @@
                 step="5"
                 [ngModel]="appointmentPause()"
                 (ngModelChange)="updateAppointmentPause($event)"
+                (change)="persistAppointmentSettings()"
                 [style.--progress]="pauseProgress() + '%'"
               />
             </label>
+
+            <div class="doctor-space__appointment-rule">
+              <strong>{{ appointmentStepMinutes() }} min</strong>
+              <span>par creneau complet</span>
+              <small>{{ appointmentDuration() }} min de rendez-vous + {{ appointmentPause() }} min de pause</small>
+            </div>
           </article>
         </section>
 
@@ -106,7 +114,7 @@
             </div>
             <span class="doctor-space__schedule-badge">
               <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.2"></lucide-icon>
-              {{ days().length }} jours
+              {{ weeklyAppointmentCapacity() }} creneau(x) / semaine
             </span>
           </header>
 
@@ -136,7 +144,7 @@
                 </span>
               </div>
               <span class="doctor-space__day-count">
-                {{ day.enabled ? day.slots.length + ' plage(s)' : 'Repos' }}
+                {{ day.enabled ? dayAppointmentCapacity(day) + ' rdv possibles' : 'Repos' }}
               </span>
               <button type="button" class="doctor-space__add" [disabled]="isSaving()" (click)="addSlot(day)">
                 <lucide-icon name="plus" size="15" [strokeWidth]="2.7"></lucide-icon>
@@ -177,6 +185,21 @@
                 <button type="button" class="doctor-space__remove" [disabled]="isSaving()" (click)="removeSlot(day, slot)" aria-label="Supprimer ce cr&eacute;neau">
                   <lucide-icon name="x" size="16" [strokeWidth]="2.5"></lucide-icon>
                 </button>
+                <div class="doctor-space__slot-rule">
+                  <strong>{{ availabilitySlotCapacity(slot) }} creneau(x)</strong>
+                  <span>Pas: {{ appointmentDuration() }} min + {{ appointmentPause() }} min</span>
+                </div>
+                <div class="doctor-space__slot-preview" *ngIf="availabilitySlotPreviews(slot).length > 0; else noGeneratedSlots">
+                  <span *ngFor="let preview of availabilitySlotPreviews(slot)">
+                    {{ preview.startTime }}-{{ preview.endTime }}
+                  </span>
+                  <em *ngIf="remainingAvailabilitySlotCount(slot) > 0">
+                    +{{ remainingAvailabilitySlotCount(slot) }}
+                  </em>
+                </div>
+                <ng-template #noGeneratedSlots>
+                  <p class="doctor-space__slot-warning">Plage trop courte pour la duree choisie.</p>
+                </ng-template>
               </div>
             </div>
           </article>
@@ -392,12 +415,12 @@
                 </button>
                 <div
                   class="doctor-space__agenda-zoom"
-                  aria-label="Zoom de la grille horaire"
-                  [title]="'Affichage par tranche de ' + agendaSlotMinutes() + ' minutes'"
+                  aria-label="Regle de decoupage de la grille horaire"
+                  [title]="'Affichage par tranche de ' + appointmentStepMinutes() + ' minutes'"
                 >
-                  <button type="button" (click)="zoomAgendaOut()" aria-label="Reduire le detail horaire">-</button>
-                  <span>{{ agendaZoomPercent() }} %</span>
-                  <button type="button" (click)="zoomAgendaIn()" aria-label="Augmenter le detail horaire">+</button>
+                  <button type="button" (click)="zoomAgendaOut()" aria-label="Reduire la duree des rendez-vous">-</button>
+                  <span>{{ agendaZoomPercent() }} min</span>
+                  <button type="button" (click)="zoomAgendaIn()" aria-label="Augmenter la duree des rendez-vous">+</button>
                 </div>
               </div>
             </div>
@@ -467,12 +490,15 @@
                 ></div>
               </ng-container>
 
-              <article
+              <button
                 *ngFor="let event of agendaEvents(); trackBy: trackAgendaEvent"
+                type="button"
                 class="doctor-space__agenda-event"
                 [class.doctor-space__agenda-event--cancelled]="event.variant === 'cancelled'"
                 [style.gridColumn]="event.dayIndex + 2"
                 [style.gridRow]="event.rowStart + ' / span ' + event.rowSpan"
+                (click)="openAgendaReservation(event)"
+                [attr.aria-label]="'Ouvrir la reservation ' + event.title + ' avec ' + event.clientLabel"
               >
                 <strong><span></span>{{ event.title }}</strong>
                 <small>
@@ -484,8 +510,114 @@
                   {{ event.clientLabel }}
                 </small>
                 <em>{{ event.price | number: '1.0-0' }} FCFA</em>
-              </article>
+              </button>
             </div>
+
+            <section
+              *ngIf="selectedAgendaReservation() || isAgendaReservationLoading() || agendaReservationError()"
+              class="doctor-space__agenda-detail"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="agenda-reservation-title"
+            >
+              <div class="doctor-space__agenda-detail-backdrop" (click)="closeAgendaReservation()"></div>
+              <article class="doctor-space__agenda-detail-panel">
+                <button
+                  type="button"
+                  class="doctor-space__agenda-detail-close"
+                  (click)="closeAgendaReservation()"
+                  aria-label="Fermer le detail de la reservation"
+                >
+                  <lucide-icon name="x" size="22" [strokeWidth]="2.3"></lucide-icon>
+                </button>
+
+                <p *ngIf="isAgendaReservationLoading()" class="doctor-space__agenda-detail-state">
+                  Chargement du detail de la reservation...
+                </p>
+
+                <p *ngIf="agendaReservationError()" class="doctor-space__agenda-detail-state doctor-space__agenda-detail-state--error">
+                  {{ agendaReservationError() }}
+                </p>
+
+                <ng-container *ngIf="selectedAgendaReservation() as reservation">
+                  <header>
+                    <span
+                      class="doctor-space__agenda-detail-status"
+                      [class.doctor-space__agenda-detail-status--cancelled]="isCancelledStatus(reservation.statut)"
+                    >
+                      {{ agendaReservationStatusLabel(reservation.statut) }}
+                    </span>
+                    <h2 id="agenda-reservation-title">{{ agendaReservationServiceName(reservation) }}</h2>
+                    <p>{{ agendaReservationDateLabel(reservation) }}</p>
+                  </header>
+
+                  <dl class="doctor-space__agenda-detail-grid">
+                    <div>
+                      <dt>Patient</dt>
+                      <dd>{{ clientLabel(reservation) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Telephone</dt>
+                      <dd>{{ reservation.client?.numeroTelephone || 'Non renseigne' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Categorie</dt>
+                      <dd>{{ agendaReservationCategoryName(reservation) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Horaire</dt>
+                      <dd>{{ formatAgendaTime(reservation.dateHeure) }} - {{ agendaReservationEndTimeLabel(reservation) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Duree</dt>
+                      <dd>{{ reservation.dureeMinutes }} min</dd>
+                    </div>
+                    <div>
+                      <dt>Montant</dt>
+                      <dd>{{ agendaReservationPrice(reservation) | number: '1.0-0' }} FCFA</dd>
+                    </div>
+                    <div class="doctor-space__agenda-detail-grid-full">
+                      <dt>Adresse</dt>
+                      <dd>{{ reservation.adresseClient || 'Adresse non renseignee' }}</dd>
+                    </div>
+                    <div class="doctor-space__agenda-detail-grid-full" *ngIf="reservation.notes">
+                      <dt>Notes</dt>
+                      <dd>{{ reservation.notes }}</dd>
+                    </div>
+                    <div class="doctor-space__agenda-detail-grid-full" *ngIf="reservation.raisonAnnulation">
+                      <dt>Raison d'annulation</dt>
+                      <dd>{{ reservation.raisonAnnulation }}</dd>
+                    </div>
+                  </dl>
+
+                  <form class="doctor-space__agenda-cancel" (ngSubmit)="cancelAgendaReservation(reservation)">
+                    <label>
+                      <span>Raison de l'annulation</span>
+                      <textarea
+                        name="agendaCancelReason"
+                        rows="3"
+                        maxlength="1000"
+                        placeholder="Expliquez clairement la raison transmise au client..."
+                        [(ngModel)]="agendaCancelForm.reason"
+                        [disabled]="!canCancelAgendaReservation(reservation) || isAgendaReservationCancelling()"
+                      ></textarea>
+                    </label>
+
+                    <p *ngIf="!canCancelAgendaReservation(reservation)" class="doctor-space__agenda-cancel-note">
+                      Cette reservation ne peut plus etre annulee depuis l'agenda: elle est terminee, deja annulee, en litige, ou a moins de 24 h.
+                    </p>
+
+                    <button
+                      type="submit"
+                      [disabled]="!canCancelAgendaReservation(reservation) || isAgendaReservationCancelling()"
+                    >
+                      <lucide-icon name="circle-x" size="16" [strokeWidth]="2.3"></lucide-icon>
+                      {{ isAgendaReservationCancelling() ? 'Annulation...' : 'Annuler la reservation' }}
+                    </button>
+                  </form>
+                </ng-container>
+              </article>
+            </section>
           </section>
         </section>
 

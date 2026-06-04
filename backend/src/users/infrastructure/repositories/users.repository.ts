@@ -21,6 +21,7 @@ const USER_ME_SELECT = {
   adresse: true,
   role: true,
   urlAvatar: true,
+  motDePasseHash: true,
   estActif: true,
   creeLe: true,
   profilProfessionnel: {
@@ -71,6 +72,7 @@ export class UsersRepository implements UsersRepositoryPort {
     adresse: string | null;
     role: string;
     urlAvatar: string | null;
+    motDePasseHash: string | null;
     estActif: boolean;
     creeLe: Date;
     profilProfessionnel: {
@@ -98,12 +100,13 @@ export class UsersRepository implements UsersRepositoryPort {
   }): UserMeView {
     return {
       id: user.id,
-      numeroTelephone: user.numeroTelephone,
+      numeroTelephone: this.publicPhoneNumber(user.numeroTelephone),
       nom: user.nom,
       email: user.email,
       adresse: user.adresse,
       role: user.role as UserMeView['role'],
       urlAvatar: user.urlAvatar,
+      hasPassword: Boolean(user.motDePasseHash),
       estActif: user.estActif,
       creeLe: user.creeLe,
       profilProfessionnel: user.profilProfessionnel
@@ -124,6 +127,10 @@ export class UsersRepository implements UsersRepositoryPort {
           }
         : null,
     };
+  }
+
+  private publicPhoneNumber(phoneNumber: string): string {
+    return phoneNumber.startsWith('google-') ? '' : phoneNumber;
   }
 
   private mapUserHistoryItem(row: {
@@ -185,6 +192,13 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
+  async findByPhoneNumber(phoneNumber: string): Promise<{ id: string } | null> {
+    return this.prisma.utilisateur.findUnique({
+      where: { numeroTelephone: phoneNumber },
+      select: { id: true },
+    });
+  }
+
   async findPasswordHashById(
     userId: string,
   ): Promise<string | null | undefined> {
@@ -227,6 +241,14 @@ export class UsersRepository implements UsersRepositoryPort {
       });
       return { status: 'updated', user: this.mapUserMe(user) };
     } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('phone_number')
+      ) {
+        return { status: 'phone_conflict' };
+      }
       const handled = this.handlePrismaError<UserProfileUpdateResult>(error, {
         P2025: 'not_found',
         P2002: 'email_conflict',

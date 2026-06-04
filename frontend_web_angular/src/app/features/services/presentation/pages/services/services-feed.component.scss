@@ -155,19 +155,27 @@
 }
 
 :host .favorites-manage {
+  align-items: center;
   background: #9a4b24;
   border: 0;
-  border-radius: 999px;
+  border-radius: 12px;
+  box-sizing: border-box;
   color: #fff;
   cursor: pointer;
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 850;
+  justify-content: center;
+  line-height: 1.2;
   margin-top: auto;
-  padding: 11px 24px;
+  min-height: 42px;
+  padding: 10px 14px;
   text-align: center;
   text-decoration: none;
   transition: background 0.2s ease;
+  white-space: normal;
+  width: 100%;
 }
 
 :host .favorites-manage:hover {

@@ -197,6 +197,7 @@ export class AuthService {
   updateMyProfile(data: {
     name?: string;
     email?: string | null;
+    phoneNumber?: string | null;
     address?: string | null;
     avatarUrl?: string | null;
   }): Observable<UserProfileDto> {
@@ -263,7 +264,7 @@ export class AuthService {
   }
 
   changeMyPassword(data: {
-    currentPassword: string;
+    currentPassword?: string;
     newPassword: string;
   }): Observable<void> {
     return this.http

@@ -9,7 +9,11 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AUTH_UI_MESSAGES } from '../../../domain/auth-ui.messages';
-import { AUTH_VALIDATORS } from '../../../domain/auth.validators';
+import {
+  AUTH_VALIDATORS,
+  SENEGAL_PHONE_DIAL_CODE,
+  normalizeSenegalPhoneNumber,
+} from '../../../domain/auth.validators';
 import { ServicesService } from '../../../../services/data-access/services.service';
 
 type RegisterRole = 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
@@ -40,12 +44,13 @@ export class RegisterComponent implements OnInit {
 
   registerForm = this.fb.nonNullable.group({
     name: ['', AUTH_VALIDATORS.name],
-    phoneNumber: ['', AUTH_VALIDATORS.phoneNumber],
+    phoneNumber: [SENEGAL_PHONE_DIAL_CODE, AUTH_VALIDATORS.phoneNumber],
     email: ['', [Validators.email]],
     password: ['', AUTH_VALIDATORS.password],
     role: ['CLIENT' as RegisterRole, [Validators.required]],
     adresse: ['', AUTH_VALIDATORS.address],
     medicalSpecialty: [''],
+    acceptTerms: [false, [Validators.requiredTrue]],
   });
 
   ngOnInit(): void {
@@ -53,6 +58,8 @@ export class RegisterComponent implements OnInit {
   }
 
   onSubmit(): void {
+    this.normalizePhoneControl();
+
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       return;
@@ -105,6 +112,19 @@ export class RegisterComponent implements OnInit {
     this.registerForm.controls.role.setValue(role);
   }
 
+  protected onPhoneInput(): void {
+    const control = this.registerForm.controls.phoneNumber;
+    const normalized = normalizeSenegalPhoneNumber(control.value);
+
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
+  }
+
+  protected onPhoneBlur(): void {
+    this.normalizePhoneControl();
+  }
+
   addExpertise(): void {
     const value = this.expertiseDraft().trim();
     if (!value) return;
@@ -146,5 +166,12 @@ export class RegisterComponent implements OnInit {
 
         this.medicalSpecialties.set(names.length ? names : items.map((category) => category.nom));
       });
+  }
+
+  private normalizePhoneControl(): void {
+    const control = this.registerForm.controls.phoneNumber;
+    const normalized = normalizeSenegalPhoneNumber(control.value);
+    control.setValue(normalized, { emitEvent: false });
+    control.updateValueAndValidity({ emitEvent: false });
   }
 }

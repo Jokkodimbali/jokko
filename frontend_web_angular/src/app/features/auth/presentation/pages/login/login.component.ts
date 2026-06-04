@@ -18,7 +18,13 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AUTH_UI_MESSAGES } from '../../../domain/auth-ui.messages';
-import { AUTH_VALIDATORS } from '../../../domain/auth.validators';
+import {
+  AUTH_VALIDATORS,
+  SENEGAL_PHONE_DIAL_CODE,
+  normalizeLoginIdentifier,
+  toLoginIdentifierInput,
+  toSenegalLocalPhoneInput,
+} from '../../../domain/auth.validators';
 
 declare global {
   interface Window {
@@ -69,12 +75,18 @@ export class LoginComponent implements AfterViewInit {
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
   googleUnavailable = signal(false);
+  private readonly rememberedLoginIdentifier = this.authSession.getRememberedLoginIdentifier();
   protected readonly messages = AUTH_UI_MESSAGES;
   protected readonly googleClientId = environment.googleClientId;
+  protected readonly senegalDialCode = SENEGAL_PHONE_DIAL_CODE;
 
   loginForm = this.fb.nonNullable.group({
-    phoneNumber: ['', AUTH_VALIDATORS.phoneNumber],
+    identifier: [
+      toLoginIdentifierInput(this.rememberedLoginIdentifier),
+      AUTH_VALIDATORS.loginIdentifier,
+    ],
     password: ['', AUTH_VALIDATORS.password],
+    rememberMe: [this.authSession.isRememberMeEnabled()],
   });
 
   ngAfterViewInit(): void {
@@ -82,6 +94,8 @@ export class LoginComponent implements AfterViewInit {
   }
 
   onSubmit(): void {
+    this.normalizeIdentifierDisplayControl();
+
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -90,14 +104,23 @@ export class LoginComponent implements AfterViewInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    const credentials: LoginRequestDto = this.loginForm.getRawValue();
+    const formData = this.loginForm.getRawValue();
+    const credentials: LoginRequestDto = {
+      identifier: normalizeLoginIdentifier(formData.identifier),
+      password: formData.password,
+    };
 
     this.authService
       .login(credentials)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (response) => {
-          this.authSession.saveAuthResponse(response);
+          this.authSession.saveAuthResponse(response, formData.rememberMe);
+          if (formData.rememberMe) {
+            this.authSession.saveRememberedLoginIdentifier(credentials.identifier);
+          } else {
+            this.authSession.forgetRememberedLoginIdentifier();
+          }
           this.feedback.success(AUTH_UI_MESSAGES.loginSuccess);
           this.router.navigate(['/']);
         },
@@ -110,6 +133,27 @@ export class LoginComponent implements AfterViewInit {
   isFieldInvalid(field: string): boolean {
     const control = this.loginForm.get(field);
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  protected onPhoneInput(): void {
+    const control = this.loginForm.controls.identifier;
+    if (!this.looksLikePhone(control.value)) {
+      return;
+    }
+
+    const normalized = toSenegalLocalPhoneInput(control.value);
+
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
+  }
+
+  protected onPhoneBlur(): void {
+    this.normalizeIdentifierDisplayControl();
+  }
+
+  protected isPhoneIdentifier(): boolean {
+    return this.looksLikePhone(this.loginForm.controls.identifier.value);
   }
 
   protected startGoogleSignIn(): void {
@@ -183,6 +227,20 @@ export class LoginComponent implements AfterViewInit {
           });
         },
       });
+  }
+
+  private normalizeIdentifierDisplayControl(): void {
+    const control = this.loginForm.controls.identifier;
+    const normalized = this.looksLikePhone(control.value)
+      ? toSenegalLocalPhoneInput(control.value)
+      : control.value.trim().toLowerCase();
+    control.setValue(normalized, { emitEvent: false });
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private looksLikePhone(value: string): boolean {
+    const trimmed = value.trim();
+    return !trimmed.includes('@') && /^[+0-9().\s-]*$/.test(trimmed);
   }
 
   private loadGoogleScript(): Promise<void> {

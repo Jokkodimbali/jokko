@@ -222,6 +222,20 @@ export class AuthRepository implements AuthRepositoryPort {
     });
   }
 
+  findWithPasswordByEmail(email: string) {
+    return this.prisma.utilisateur.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        numeroTelephone: true,
+        nom: true,
+        role: true,
+        motDePasseHash: true,
+        estActif: true,
+      },
+    });
+  }
+
   findActiveSessionByTokenHash(tokenHash: string) {
     return this.prisma.sessionAuthentification.findFirst({
       where: {
@@ -281,11 +295,7 @@ export class AuthRepository implements AuthRepositoryPort {
 
   private googlePhoneNumber(googleSub: string): string {
     const digest = createHash('sha256').update(googleSub).digest('hex');
-    const numeric = BigInt(`0x${digest}`)
-      .toString()
-      .slice(0, 9)
-      .padEnd(9, '0');
-    return `+221${numeric}`;
+    return `google-${digest.slice(0, 12)}`;
   }
 
   private extractCity(address: string): string | undefined {

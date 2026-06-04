@@ -1,21 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 
 export class ChangeMyPasswordDto {
   @ApiProperty({
-    description: 'Mot de passe actuel du compte connecte.',
+    description:
+      'Mot de passe actuel du compte connecte. Optionnel si le compte Google n a pas encore de mot de passe local.',
     minLength: 8,
     maxLength: 64,
+    required: false,
   })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.PASSWORD_REQUIRED })
   @Length(8, 64, { message: VALIDATION_MESSAGES.PASSWORD_LENGTH })
-  currentPassword!: string;
+  currentPassword?: string;
 
   @ApiProperty({
     description: 'Nouveau mot de passe a enregistrer.',
@@ -26,7 +28,6 @@ export class ChangeMyPasswordDto {
     typeof value === 'string' ? value.trim() : value,
   )
   @IsString()
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.PASSWORD_REQUIRED })
   @Length(8, 64, { message: VALIDATION_MESSAGES.PASSWORD_LENGTH })
   newPassword!: string;
 }

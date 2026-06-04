@@ -1,6 +1,9 @@
 export const VALIDATION_MESSAGE_CATALOG = {
   PHONE_REQUIRED: 'Le numero de telephone est obligatoire.',
-  PHONE_FORMAT: 'Le numero de telephone doit etre au format international.',
+  PHONE_FORMAT:
+    'Le numero de telephone doit etre un numero senegalais valide au format +221770000000.',
+  LOGIN_IDENTIFIER_FORMAT:
+    'Veuillez saisir un numero senegalais valide ou une adresse email valide.',
   OTP_CODE_REQUIRED: 'Le code OTP est obligatoire.',
   OTP_CODE_LENGTH: 'Le code OTP doit contenir exactement 6 chiffres.',
   NAME_REQUIRED: 'Le nom est obligatoire.',

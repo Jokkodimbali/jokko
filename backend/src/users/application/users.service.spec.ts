@@ -6,6 +6,7 @@ describe('UsersService', () => {
   const usersRepository = {
     findMeById: jest.fn(),
     findByEmail: jest.fn(),
+    findByPhoneNumber: jest.fn(),
     updateMeById: jest.fn(),
     anonymizeAndRevokeById: jest.fn(),
     listClientHistory: jest.fn(),
@@ -16,6 +17,9 @@ describe('UsersService', () => {
     compare: jest.fn(),
     hash: jest.fn(),
   };
+  const phoneNumberValidator = {
+    normalizeOrThrow: jest.fn(),
+  };
 
   let service: UsersService;
 
@@ -24,6 +28,7 @@ describe('UsersService', () => {
     service = new UsersService(
       usersRepository as never,
       passwordHashService as never,
+      phoneNumberValidator as never,
     );
   });
 
@@ -81,6 +86,75 @@ describe('UsersService', () => {
     ).rejects.toMatchObject({
       message: appMessage('USERS_EMAIL_ALREADY_USED').message,
     });
+  });
+
+  it('updateMe should update phone number after normalization', async () => {
+    usersRepository.findMeById.mockResolvedValue({
+      id: 'u1',
+      numeroTelephone: '+221770000000',
+      nom: 'Test',
+      email: null,
+      adresse: null,
+      role: RoleUtilisateur.CLIENT,
+      urlAvatar: null,
+      estActif: true,
+      creeLe: new Date(),
+    });
+    phoneNumberValidator.normalizeOrThrow.mockReturnValue('+221710000000');
+    usersRepository.findByPhoneNumber.mockResolvedValue(null);
+    usersRepository.updateMeById.mockResolvedValue({
+      status: 'updated',
+      user: {
+        id: 'u1',
+        numeroTelephone: '+221710000000',
+        nom: 'Test',
+        email: null,
+        adresse: null,
+        role: RoleUtilisateur.CLIENT,
+        urlAvatar: null,
+        estActif: true,
+        creeLe: new Date(),
+      },
+    });
+
+    const result = await service.updateMe('u1', {
+      phoneNumber: '71 000 00 00',
+    });
+
+    expect(phoneNumberValidator.normalizeOrThrow).toHaveBeenCalledWith(
+      '71 000 00 00',
+    );
+    expect(usersRepository.findByPhoneNumber).toHaveBeenCalledWith(
+      '+221710000000',
+    );
+    expect(usersRepository.updateMeById).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ numeroTelephone: '+221710000000' }),
+    );
+    expect(result.numeroTelephone).toBe('+221710000000');
+  });
+
+  it('updateMe should fail if phone number is already used', async () => {
+    usersRepository.findMeById.mockResolvedValue({
+      id: 'u1',
+      numeroTelephone: '+221770000000',
+      nom: 'Test',
+      email: null,
+      adresse: null,
+      role: RoleUtilisateur.CLIENT,
+      urlAvatar: null,
+      estActif: true,
+      creeLe: new Date(),
+    });
+    phoneNumberValidator.normalizeOrThrow.mockReturnValue('+221710000000');
+    usersRepository.findByPhoneNumber.mockResolvedValue({ id: 'u2' });
+
+    await expect(
+      service.updateMe('u1', { phoneNumber: '71 000 00 00' }),
+    ).rejects.toMatchObject({
+      message: appMessage('AUTH_PHONE_ALREADY_USED').message,
+    });
+    expect(usersRepository.updateMeById).not.toHaveBeenCalled();
   });
 
   it('anonymizeMe should revoke sessions and anonymize user', async () => {
@@ -232,6 +306,33 @@ describe('UsersService', () => {
     expect(usersRepository.updatePasswordHashById).toHaveBeenCalledWith(
       'u1',
       'new-hash',
+    );
+  });
+
+  it('changeMyPassword should create first local password when no password exists', async () => {
+    usersRepository.findMeById.mockResolvedValue({
+      id: 'u1',
+      numeroTelephone: '+221770000000',
+      nom: 'Google User',
+      email: 'google@jokko.sn',
+      adresse: null,
+      role: RoleUtilisateur.CLIENT,
+      urlAvatar: null,
+      estActif: true,
+      creeLe: new Date(),
+    });
+    usersRepository.findPasswordHashById.mockResolvedValue(null);
+    passwordHashService.hash.mockResolvedValue('new-local-hash');
+    usersRepository.updatePasswordHashById.mockResolvedValue(true);
+
+    await service.changeMyPassword('u1', {
+      newPassword: 'new-password',
+    });
+
+    expect(passwordHashService.compare).not.toHaveBeenCalled();
+    expect(usersRepository.updatePasswordHashById).toHaveBeenCalledWith(
+      'u1',
+      'new-local-hash',
     );
   });
 });

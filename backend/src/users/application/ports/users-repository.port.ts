@@ -14,6 +14,7 @@ export type UserMeView = {
   adresse: string | null;
   role: RoleUtilisateur;
   urlAvatar: string | null;
+  hasPassword: boolean;
   estActif: boolean;
   creeLe: Date;
   profilProfessionnel: {
@@ -64,6 +65,7 @@ export type AdminUserHistoryView = {
 export type UserProfileUpdateInput = {
   nom?: string;
   email?: string | null;
+  numeroTelephone?: string;
   adresse?: string | null;
   urlAvatar?: string | null;
 };
@@ -71,7 +73,8 @@ export type UserProfileUpdateInput = {
 export type UserProfileUpdateResult =
   | { status: 'updated'; user: UserMeView }
   | { status: 'not_found' }
-  | { status: 'email_conflict' };
+  | { status: 'email_conflict' }
+  | { status: 'phone_conflict' };
 
 export type UserHistoryItem = {
   id: string;
@@ -101,6 +104,7 @@ export type UserMedicalCredentialView = {
 export interface UsersRepositoryPort {
   findMeById(userId: string): Promise<UserMeView | null>;
   findByEmail(email: string): Promise<{ id: string } | null>;
+  findByPhoneNumber(phoneNumber: string): Promise<{ id: string } | null>;
   updateMeById(
     userId: string,
     data: UserProfileUpdateInput,

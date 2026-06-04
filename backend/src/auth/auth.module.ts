@@ -52,6 +52,12 @@ import { OTP_REPOSITORY_PORT } from './application/ports/otp-repository.port';
       useExisting: OtpRepository,
     },
   ],
-  exports: [AuthService, JwtModule, JwtAuthGuard, PasswordHashService],
+  exports: [
+    AuthService,
+    JwtModule,
+    JwtAuthGuard,
+    PasswordHashService,
+    PhoneNumberValidator,
+  ],
 })
 export class AuthModule {}

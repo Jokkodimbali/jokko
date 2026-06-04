@@ -11,6 +11,7 @@ export type RegisterCommand = {
 };
 
 export type LoginCommand = {
-  phoneNumber: string;
+  identifier?: string;
+  phoneNumber?: string;
   password: string;
 };

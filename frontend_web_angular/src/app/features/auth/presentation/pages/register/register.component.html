@@ -81,6 +81,10 @@
               type="tel"
               formControlName="phoneNumber"
               placeholder="+221770000000"
+              autocomplete="tel"
+              inputmode="tel"
+              (input)="onPhoneInput()"
+              (blur)="onPhoneBlur()"
             />
             <small *ngIf="isFieldInvalid('phoneNumber')">{{ messages.phoneInvalidShort }}</small>
           </label>
@@ -183,12 +187,15 @@
         </label>
 
         <label class="terms-check">
-          <input type="checkbox" />
+          <input type="checkbox" formControlName="acceptTerms" />
           <span>
             En creant un compte, j'accepte les Conditions generales et la
             <a routerLink="/privacy">Politique de confidentialite</a>.
           </span>
         </label>
+        <small *ngIf="isFieldInvalid('acceptTerms')" class="register-error">
+          Vous devez accepter les conditions pour creer un compte.
+        </small>
 
         <button type="submit" class="register-submit" [disabled]="isLoading() || registerForm.invalid">
           {{ isLoading() ? 'Creation en cours...' : selectedRole() === 'MEDECIN' ? 'Creer mon compte Medecin' : 'Creer mon compte' }}

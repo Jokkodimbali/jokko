@@ -68,7 +68,13 @@
         (click)="toggleProfileMenu()"
       >
         <span class="app-navbar__profile-avatar">
-          <img *ngIf="profileAvatarUrl(); else profileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+          <img
+            *ngIf="profileAvatarUrl(); else profileInitials"
+            [src]="profileAvatarUrl()!"
+            [alt]="profileName()"
+            referrerpolicy="no-referrer"
+            (error)="hideProfileAvatar()"
+          />
           <ng-template #profileInitials>{{ profileLabel() }}</ng-template>
         </span>
         <strong>{{ profileName() }}</strong>
@@ -83,7 +89,13 @@
           (click)="closeProfileMenu()"
         >
           <span class="app-navbar__dropdown-avatar">
-            <img *ngIf="profileAvatarUrl(); else dropdownInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <img
+              *ngIf="profileAvatarUrl(); else dropdownInitials"
+              [src]="profileAvatarUrl()!"
+              [alt]="profileName()"
+              referrerpolicy="no-referrer"
+              (error)="hideProfileAvatar()"
+            />
             <ng-template #dropdownInitials>{{ profileLabel() }}</ng-template>
           </span>
           <span class="app-navbar__dropdown-account-copy">
@@ -231,7 +243,13 @@
       <ng-container *ngIf="isAuthenticated(); else mobileGuest">
         <div class="app-navbar__mobile-user">
           <span class="app-navbar__mobile-avatar">
-            <img *ngIf="profileAvatarUrl(); else mobileInitials" [src]="profileAvatarUrl()!" [alt]="profileName()" />
+            <img
+              *ngIf="profileAvatarUrl(); else mobileInitials"
+              [src]="profileAvatarUrl()!"
+              [alt]="profileName()"
+              referrerpolicy="no-referrer"
+              (error)="hideProfileAvatar()"
+            />
             <ng-template #mobileInitials>{{ profileLabel() }}</ng-template>
           </span>
           <span class="app-navbar__mobile-username">{{ profileName() }}</span>

@@ -1,6 +1,7 @@
 export type UpdateMyProfileCommand = {
   name?: string;
   email?: string | null;
+  phoneNumber?: string | null;
   address?: string | null;
   avatarUrl?: string | null;
 };
@@ -10,7 +11,7 @@ export type UpdateMyAvatarCommand = {
 };
 
 export type ChangeMyPasswordCommand = {
-  currentPassword: string;
+  currentPassword?: string;
   newPassword: string;
 };
 

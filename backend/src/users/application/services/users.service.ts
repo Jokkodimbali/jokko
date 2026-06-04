@@ -6,6 +6,9 @@ import {
 } from '../../../shared/utils/string.utils';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PasswordHashService } from '../../../auth/application/services/password-hash.service';
+import { PhoneNumberValidator } from '../../../auth/domain/validators/phone-number.validator';
+import { DomainValidationError } from '../../../auth/domain/errors/domain-validation.error';
+import type { AppMessageKey } from '../../../core/http/app-messages';
 import {
   USERS_REPOSITORY_PORT,
   type UserMeView,
@@ -27,6 +30,7 @@ export class UsersService {
     @Inject(USERS_REPOSITORY_PORT)
     private readonly usersRepository: UsersRepositoryPort,
     private readonly passwordHashService: PasswordHashService,
+    private readonly phoneNumberValidator: PhoneNumberValidator,
   ) {}
 
   async me(userId: string) {
@@ -39,11 +43,13 @@ export class UsersService {
     const existingUser = await this.findUserOrThrow(userId);
 
     const emailNormalized = normalizeEmail(command.email);
+    const phoneNumberNormalized = this.normalizeOptionalPhoneNumber(command.phoneNumber);
     const addressNormalized = normalizeAddress(command.address);
 
     const payload = {
       nom: command.name?.trim(),
       email: emailNormalized,
+      numeroTelephone: phoneNumberNormalized,
       adresse: addressNormalized,
       urlAvatar: command.avatarUrl?.trim(),
     };
@@ -51,6 +57,7 @@ export class UsersService {
     const hasUpdate =
       payload.nom !== undefined ||
       emailNormalized !== undefined ||
+      phoneNumberNormalized !== undefined ||
       addressNormalized !== undefined ||
       payload.urlAvatar !== undefined;
 
@@ -65,6 +72,13 @@ export class UsersService {
     ) {
       throw appHttpException('USERS_EMAIL_ALREADY_USED');
     }
+    if (
+      phoneNumberNormalized &&
+      phoneNumberNormalized !== existingUser.numeroTelephone &&
+      (await this.usersRepository.findByPhoneNumber(phoneNumberNormalized))
+    ) {
+      throw appHttpException('AUTH_PHONE_ALREADY_USED');
+    }
 
     const updatedUser = await this.usersRepository.updateMeById(
       userId,
@@ -75,6 +89,9 @@ export class UsersService {
     }
     if (updatedUser.status === 'email_conflict') {
       throw appHttpException('USERS_EMAIL_ALREADY_USED');
+    }
+    if (updatedUser.status === 'phone_conflict') {
+      throw appHttpException('AUTH_PHONE_ALREADY_USED');
     }
 
     return updatedUser.user;
@@ -90,16 +107,18 @@ export class UsersService {
     if (currentHash === undefined) {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
-    if (!currentHash) {
-      throw appHttpException('AUTH_INVALID_CREDENTIALS');
-    }
+    if (currentHash) {
+      if (!command.currentPassword) {
+        throw appHttpException('AUTH_INVALID_CREDENTIALS');
+      }
 
-    const isCurrentPasswordValid = await this.passwordHashService.compare(
-      command.currentPassword,
-      currentHash,
-    );
-    if (!isCurrentPasswordValid) {
-      throw appHttpException('AUTH_INVALID_CREDENTIALS');
+      const isCurrentPasswordValid = await this.passwordHashService.compare(
+        command.currentPassword,
+        currentHash,
+      );
+      if (!isCurrentPasswordValid) {
+        throw appHttpException('AUTH_INVALID_CREDENTIALS');
+      }
     }
 
     const newHash = await this.passwordHashService.hash(command.newPassword);
@@ -292,6 +311,28 @@ export class UsersService {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
     return user;
+  }
+
+  private normalizeOptionalPhoneNumber(
+    phoneNumber: string | null | undefined,
+  ): string | undefined {
+    if (phoneNumber === null || phoneNumber === undefined) {
+      return undefined;
+    }
+
+    const trimmed = phoneNumber.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    try {
+      return this.phoneNumberValidator.normalizeOrThrow(trimmed);
+    } catch (error) {
+      if (error instanceof DomainValidationError) {
+        throw appHttpException(error.code as AppMessageKey);
+      }
+      throw error;
+    }
   }
 
   private async findProfessionalProfileOrThrow(requestUser: {

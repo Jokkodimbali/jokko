@@ -13,6 +13,10 @@ import {
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
+import {
+  SENEGAL_PHONE_PATTERN,
+  normalizeSenegalPhoneNumber,
+} from '../../domain/validators/phone-number.validator';
 
 export class RegisterDto {
   @ApiProperty({
@@ -20,11 +24,11 @@ export class RegisterDto {
     example: '+221770000000',
   })
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === 'string' ? normalizeSenegalPhoneNumber(value) : value,
   )
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PHONE_REQUIRED })
   @IsString()
-  @Matches(/^\+?[1-9]\d{7,14}$/, {
+  @Matches(SENEGAL_PHONE_PATTERN, {
     message: VALIDATION_MESSAGES.PHONE_FORMAT,
   })
   phoneNumber!: string;

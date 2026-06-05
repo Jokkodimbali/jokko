@@ -19,11 +19,11 @@
 
   <!-- Desktop Profile Dropdown Backdrop -->
   <button
-    *ngIf="isMenuOpen()"
+    *ngIf="isMenuOpen() || isNotificationsOpen()"
     type="button"
     class="app-navbar__blur-backdrop"
-    aria-label="Fermer le menu profil"
-    (click)="closeProfileMenu()"
+    aria-label="Fermer les menus"
+    (click)="closeProfileMenu(); closeNotificationsMenu()"
   ></button>
 
   <!-- Desktop Actions -->
@@ -38,6 +38,18 @@
     </a>
 
     <ng-template #connectedProfile>
+      <button
+        type="button"
+        class="app-navbar__notification"
+        [class.app-navbar__notification--open]="isNotificationsOpen()"
+        aria-label="Ouvrir les notifications"
+        [attr.aria-expanded]="isNotificationsOpen()"
+        aria-haspopup="menu"
+        (click)="openNotifications()"
+      >
+        <lucide-icon name="bell" size="22" [strokeWidth]="2.5"></lucide-icon>
+        <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
+      </button>
       <button
         type="button"
         class="app-navbar__profile"
@@ -89,6 +101,12 @@
             <lucide-icon name="heart" size="19" [strokeWidth]="2.2"></lucide-icon>
           </span>
           <span>Mes favoris</span>
+        </a>
+        <a routerLink="/notifications" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+          <span class="app-navbar__dropdown-icon">
+            <lucide-icon name="bell" size="18" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <span>Notifications</span>
         </a>
         <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
           <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--dispute">
@@ -151,8 +169,84 @@
           <span>D&eacute;connexion</span>
         </button>
       </section>
+
+      <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications" role="menu" aria-label="Notifications recentes">
+        <header>
+          <div>
+            <strong>Notifications</strong>
+            <small>{{ unreadNotificationsCount() }} non lue(s)</small>
+          </div>
+          <a routerLink="/notifications" (click)="closeNotificationsMenu()">Tout voir</a>
+        </header>
+
+        <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
+        <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
+          Aucune notification pour le moment.
+        </p>
+
+        <button
+          *ngFor="let notification of notificationPreview()"
+          type="button"
+          class="app-navbar__notification-item"
+          [class.app-navbar__notification-item--unread]="!isRead(notification)"
+          (click)="openNotification(notification)"
+        >
+          <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
+          <span>
+            <small>{{ notificationTypeLabel(notification.type) }}</small>
+            <strong>{{ notificationTitle(notification) }}</strong>
+            <em>{{ notificationBody(notification) }}</em>
+            <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
+          </span>
+        </button>
+      </section>
     </ng-template>
   </div>
+
+  <button
+    *ngIf="isAuthenticated()"
+    type="button"
+    class="app-navbar__notification app-navbar__notification--mobile"
+    [class.app-navbar__notification--open]="isNotificationsOpen()"
+    aria-label="Ouvrir les notifications"
+    [attr.aria-expanded]="isNotificationsOpen()"
+    aria-haspopup="menu"
+    (click)="openNotifications()"
+  >
+    <lucide-icon name="bell" size="21" [strokeWidth]="2.5"></lucide-icon>
+    <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
+  </button>
+
+  <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications app-navbar__notifications--mobile" role="menu" aria-label="Notifications recentes">
+    <header>
+      <div>
+        <strong>Notifications</strong>
+        <small>{{ unreadNotificationsCount() }} non lue(s)</small>
+      </div>
+      <a routerLink="/notifications" (click)="closeNotificationsMenu()">Tout voir</a>
+    </header>
+
+    <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
+    <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
+      Aucune notification pour le moment.
+    </p>
+
+    <button
+      *ngFor="let notification of notificationPreview()"
+      type="button"
+      class="app-navbar__notification-item"
+      [class.app-navbar__notification-item--unread]="!isRead(notification)"
+      (click)="openNotification(notification)"
+    >
+      <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
+      <span>
+        <small>{{ notificationTypeLabel(notification.type) }}</small>
+        <strong>{{ notificationTitle(notification) }}</strong>
+        <em>{{ notificationBody(notification) }}</em>
+        <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
+      </span>
+    </button>
+  </section>
 
   <!-- Hamburger Button (visible on mobile/tablet only) -->
   <button
@@ -238,6 +332,11 @@
           <lucide-icon name="heart" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Mes favoris</span>
         </a>
+        <button type="button" class="app-navbar__mobile-action-item" (click)="closeMobileNav(); toggleNotificationsMenu()">
+          <lucide-icon name="bell" size="22" [strokeWidth]="2.4"></lucide-icon>
+          <span>Notifications</span>
+          <b *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</b>
+        </button>
         <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__mobile-action-item app-navbar__mobile-action-item--dispute" (click)="closeMobileNav()">
           <lucide-icon name="scale" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Litige</span>

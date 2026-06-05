@@ -184,6 +184,14 @@
     <section *ngIf="canManageProviderStatus()" class="appointment-detail__provider-controls">
       <button
         type="button"
+        (click)="confirmAppointment(appointment)"
+        [disabled]="isUpdatingStatus() || !canConfirmAppointment()"
+      >
+        <lucide-icon name="badge-check" size="18" [strokeWidth]="2.5"></lucide-icon>
+        Confirmer
+      </button>
+      <button
+        type="button"
         (click)="markOnTheWay(appointment)"
         [disabled]="isUpdatingStatus() || appointment.status !== 'PAYEE_SEQUESTRE'"
       >
@@ -205,6 +213,22 @@
       >
         <lucide-icon name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
         Terminer
+      </button>
+      <button
+        type="button"
+        (click)="openPriceAdjustmentModal(appointment)"
+        [disabled]="isHandlingPriceAdjustment() || appointment.status === 'ANNULEE' || appointment.status === 'TERMINEE'"
+      >
+        <lucide-icon name="receipt" size="18" [strokeWidth]="2.5"></lucide-icon>
+        Ajuster le prix
+      </button>
+      <button
+        type="button"
+        (click)="markNoShow(appointment)"
+        [disabled]="isUpdatingStatus() || appointment.status === 'TERMINEE' || appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW'"
+      >
+        <lucide-icon name="user-x" size="18" [strokeWidth]="2.5"></lucide-icon>
+        Absence
       </button>
     </section>
 
@@ -294,15 +318,15 @@
         </div>
 
         <div class="appointment-detail__actions">
-          <button type="button">
+          <button type="button" (click)="syncAppointmentToCalendar(appointment)">
             <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.4"></lucide-icon>
             Synchroniser le RDV
           </button>
-          <button type="button">
+          <button type="button" (click)="openRescheduleModal(appointment)" [disabled]="isUpdatingStatus() || !canCancelAppointment()">
             <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2.4"></lucide-icon>
             Reprogrammer
           </button>
-          <button type="button">
+          <button type="button" (click)="cancelAppointment(appointment)" [disabled]="isUpdatingStatus() || !canCancelAppointment()">
             <lucide-icon name="circle-x" size="15" [strokeWidth]="2.4"></lucide-icon>
             Annuler
           </button>
@@ -376,15 +400,15 @@
               <lucide-icon name="banknote" size="15" [strokeWidth]="2.4"></lucide-icon>
               Payer
             </button>
-            <button type="button">
+            <button type="button" (click)="syncAppointmentToCalendar(appointment)">
               <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.4"></lucide-icon>
               Synchroniser le RDV
             </button>
-            <button type="button">
+            <button type="button" (click)="openRescheduleModal(appointment)" [disabled]="isUpdatingStatus() || !canCancelAppointment()">
               <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2.4"></lucide-icon>
               Reprogrammer
             </button>
-            <button type="button">
+            <button type="button" (click)="cancelAppointment(appointment)" [disabled]="isUpdatingStatus() || !canCancelAppointment()">
               <lucide-icon name="circle-x" size="15" [strokeWidth]="2.4"></lucide-icon>
               Annuler
             </button>
@@ -460,6 +484,68 @@
           </div>
         </article>
       </div>
+    </section>
+
+    <section *ngIf="isRescheduleModalOpen()" class="appointment-detail__modal" role="dialog" aria-modal="true" aria-label="Reprogrammer le rendez-vous">
+      <form class="appointment-detail__modal-card" (ngSubmit)="saveReschedule(appointment)">
+        <header>
+          <h2>Reprogrammer le rendez-vous</h2>
+          <button type="button" aria-label="Fermer" (click)="closeRescheduleModal()">
+            <lucide-icon name="x" size="20" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </header>
+        <label>
+          <span>Nouvelle date et heure</span>
+          <input
+            type="datetime-local"
+            name="rescheduleDateTime"
+            [min]="minRescheduleDateTime()"
+            [ngModel]="rescheduleDateTime()"
+            (ngModelChange)="rescheduleDateTime.set($event)"
+            required
+          />
+        </label>
+        <footer>
+          <button type="button" (click)="closeRescheduleModal()">Annuler</button>
+          <button type="submit" [disabled]="isUpdatingStatus()">Enregistrer</button>
+        </footer>
+      </form>
+    </section>
+
+    <section *ngIf="isPriceAdjustmentModalOpen()" class="appointment-detail__modal" role="dialog" aria-modal="true" aria-label="Proposer un ajustement de prix">
+      <form class="appointment-detail__modal-card" (ngSubmit)="submitPriceAdjustment(appointment)">
+        <header>
+          <h2>Ajustement de prix</h2>
+          <button type="button" aria-label="Fermer" (click)="closePriceAdjustmentModal()">
+            <lucide-icon name="x" size="20" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </header>
+        <label>
+          <span>Nouveau montant</span>
+          <input
+            type="number"
+            name="proposedPrice"
+            min="500"
+            step="100"
+            [(ngModel)]="priceAdjustmentForm.proposedPrice"
+            required
+          />
+        </label>
+        <label>
+          <span>Raison de l'ajustement</span>
+          <textarea
+            name="priceAdjustmentReason"
+            rows="4"
+            [(ngModel)]="priceAdjustmentForm.reason"
+            placeholder="Expliquez clairement pourquoi le prix change."
+            required
+          ></textarea>
+        </label>
+        <footer>
+          <button type="button" (click)="closePriceAdjustmentModal()">Annuler</button>
+          <button type="submit" [disabled]="isHandlingPriceAdjustment()">Envoyer au client</button>
+        </footer>
+      </form>
     </section>
   </ng-container>
 

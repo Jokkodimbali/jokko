@@ -71,26 +71,26 @@ export class RegisterDto {
   @Length(8, 64, { message: VALIDATION_MESSAGES.PASSWORD_LENGTH })
   password!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Role de l'utilisateur",
     enum: ['CLIENT', 'PRESTATAIRE', 'MEDECIN'],
     example: 'CLIENT',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Matches(/^(CLIENT|PRESTATAIRE|MEDECIN)$/)
-  role!: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
+  role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' = 'CLIENT';
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Adresse physique de l'utilisateur",
     example: 'Dakar, Plateau, Rue 12',
     minLength: 5,
     maxLength: 255,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Length(5, 255)
-  adresse!: string;
+  adresse = 'Adresse non renseignee';
 
   @ApiPropertyOptional({
     description: 'Specialite medicale selectionnee pendant l inscription medecin',

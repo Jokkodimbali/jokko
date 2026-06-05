@@ -1,6 +1,6 @@
 import { DomainValidationError } from '../errors/domain-validation.error';
 
-export const SENEGAL_PHONE_PATTERN = /^\+221(?:3[03-9]|7[015678])\d{7}$/;
+export const SENEGAL_PHONE_PATTERN = /^\+221(?:3[03-9]|7\d)\d{7}$/;
 
 export function normalizeSenegalPhoneNumber(phoneNumber: string): string {
   const sanitized = phoneNumber.trim().replace(/[()\s.-]/g, '');

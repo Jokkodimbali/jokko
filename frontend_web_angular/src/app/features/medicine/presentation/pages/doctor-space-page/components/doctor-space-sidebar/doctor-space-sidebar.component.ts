@@ -3,6 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
 export type DoctorSpaceSection =
+  | 'profile'
   | 'availability'
   | 'consultation'
   | 'agenda'
@@ -20,6 +21,7 @@ export class DoctorSpaceSidebarComponent {
   @Input({ required: true }) activeSection: DoctorSpaceSection = 'availability';
   @Input({ required: true }) ariaLabel = 'Navigation de l espace professionnel';
   @Input() showConsultationSection = true;
+  @Input() serviceSectionLabel = 'Services';
 
   @Output() readonly backRequested = new EventEmitter<void>();
   @Output() readonly sectionSelected = new EventEmitter<DoctorSpaceSection>();

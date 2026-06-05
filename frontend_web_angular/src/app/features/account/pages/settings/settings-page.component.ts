@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, finalize, of } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
@@ -13,9 +13,12 @@ import {
   AuthService,
   MedicalProfileView,
   MedicalTreatmentView,
+  PaymentEscrowStatusView,
+  PaymentHistoryView,
   SavedPaymentMethodType,
   SavedPaymentMethodView,
   UserHistoryItemView,
+  WithdrawalRequestView,
 } from '../../../auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../auth/domain/auth-ui.messages';
 import {
@@ -46,6 +49,7 @@ export class SettingsPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly profile = signal<UserProfileDto | null>(null);
@@ -56,6 +60,8 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isSavingAddress = signal(false);
   protected readonly isSavingAvatar = signal(false);
   protected readonly isSavingPaymentMethod = signal(false);
+  protected readonly isLoadingPayments = signal(false);
+  protected readonly paymentActionId = signal<string | null>(null);
   protected readonly isSavingMedicalProfile = signal(false);
   protected readonly isSavingTreatment = signal(false);
   protected readonly isSavingPassword = signal(false);
@@ -72,6 +78,9 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isEditingAddress = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
+  protected readonly paymentHistory = signal<PaymentHistoryView[]>([]);
+  protected readonly withdrawalRequests = signal<WithdrawalRequestView[]>([]);
+  protected readonly paymentEscrowStatuses = signal<Record<string, PaymentEscrowStatusView>>({});
   protected readonly medicalProfile = signal<MedicalProfileView | null>(null);
   protected readonly userHistory = signal<UserHistoryItemView[]>([]);
   protected readonly editingPaymentMethodId = signal<string | null>(null);
@@ -192,6 +201,11 @@ export class SettingsPageComponent implements OnInit {
           ? '****** ' + this.extractLastDigits(this.displayPhoneNumber())
           : 'Non renseigne',
   );
+  protected readonly recentPayments = computed(() => {
+    const history = this.paymentHistory();
+    return Array.isArray(history) ? history.slice(0, 6) : [];
+  });
+  protected readonly recentWithdrawals = computed(() => this.withdrawalRequests().slice(0, 4));
   protected readonly medicalOverview = computed(() => {
     const profile = this.medicalProfile();
     return [
@@ -270,9 +284,16 @@ export class SettingsPageComponent implements OnInit {
 
   ngOnInit(): void {
     if (!this.currentUser()) return;
+    const requestedSection = this.route.snapshot.queryParamMap.get('section');
+    if (requestedSection === 'account') {
+      this.activeSection.set('account');
+    }
     this.loadProfile();
     this.loadMedicalProfile();
     this.loadPaymentMethods();
+    if (this.activeSection() === 'account') {
+      this.loadPaymentActivity();
+    }
     this.loadUserHistory();
   }
 
@@ -280,6 +301,7 @@ export class SettingsPageComponent implements OnInit {
     this.activeSection.set(section);
     if (section === 'account') {
       this.loadPaymentMethods();
+      this.loadPaymentActivity();
     }
   }
 
@@ -669,6 +691,109 @@ export class SettingsPageComponent implements OnInit {
     });
   }
 
+  protected releaseEscrow(payment: PaymentHistoryView): void {
+    const paymentId = payment.id;
+    if (!paymentId || this.paymentActionId()) return;
+    this.paymentActionId.set(paymentId);
+    this.authService
+      .releasePaymentEscrow(paymentId)
+      .pipe(finalize(() => this.paymentActionId.set(null)))
+      .subscribe({
+        next: (updated) => {
+          this.patchPayment(updated);
+          this.loadPaymentEscrowStatus(paymentId);
+          this.feedback.success('Paiement libere avec succes.');
+        },
+        error: (error) => {
+          this.feedback.error(getHttpErrorMessage(error, 'Impossible de liberer ce paiement.'));
+        },
+      });
+  }
+
+  protected disputeEscrow(payment: PaymentHistoryView): void {
+    const paymentId = payment.id;
+    if (!paymentId || this.paymentActionId()) return;
+    this.paymentActionId.set(paymentId);
+    this.authService
+      .disputePaymentEscrow(paymentId, 'Contestation ouverte depuis les parametres client.')
+      .pipe(finalize(() => this.paymentActionId.set(null)))
+      .subscribe({
+        next: (updated) => {
+          this.patchPayment(updated);
+          this.loadPaymentEscrowStatus(paymentId);
+          this.feedback.success('Contestation du paiement transmise.');
+        },
+        error: (error) => {
+          this.feedback.error(getHttpErrorMessage(error, 'Impossible de contester ce paiement.'));
+        },
+      });
+  }
+
+  protected refreshPayment(payment: PaymentHistoryView): void {
+    if (this.paymentActionId()) return;
+    this.paymentActionId.set(payment.id);
+    this.authService
+      .getPayment(payment.id)
+      .pipe(finalize(() => this.paymentActionId.set(null)))
+      .subscribe({
+        next: (updated) => {
+          this.patchPayment(updated);
+          this.loadPaymentEscrowStatus(payment.id);
+          this.feedback.success('Paiement synchronise.');
+        },
+        error: (error) => {
+          this.feedback.error(getHttpErrorMessage(error, 'Impossible de synchroniser ce paiement.'));
+        },
+      });
+  }
+
+  protected paymentAmount(payment: PaymentHistoryView): number {
+    return Number(payment.amount ?? payment.montant ?? 0);
+  }
+
+  protected paymentStatus(payment: PaymentHistoryView): string {
+    return payment.status || payment.statut || 'STATUT_NON_RENSEIGNE';
+  }
+
+  protected paymentMethod(payment: PaymentHistoryView): string {
+    return payment.method || payment.methode || 'Methode non renseignee';
+  }
+
+  protected paymentDate(payment: PaymentHistoryView): string | null {
+    return payment.createdAt || payment.creeLe || null;
+  }
+
+  protected withdrawalId(withdrawal: WithdrawalRequestView): string {
+    return withdrawal.id || withdrawal.withdrawalId || 'retrait';
+  }
+
+  protected withdrawalAmount(withdrawal: WithdrawalRequestView): number {
+    const amount = withdrawal.amount;
+    if (typeof amount === 'number') return amount;
+    if (typeof amount === 'object' && amount !== null && 'value' in amount) return (amount as any).value || 0;
+    return 0;
+  }
+
+  protected withdrawalDate(withdrawal: WithdrawalRequestView): string | null {
+    return withdrawal.requestedAt || withdrawal.createdAt || null;
+  }
+
+  protected escrowStatus(payment: PaymentHistoryView): PaymentEscrowStatusView | null {
+    return this.paymentEscrowStatuses()[payment.id] ?? null;
+  }
+
+  protected canReleaseEscrow(payment: PaymentHistoryView): boolean {
+    const status = this.escrowStatus(payment);
+    if (status?.canRelease !== undefined) return status.canRelease;
+    return ['HELD', 'PENDING', 'EN_ATTENTE'].includes((payment.escrowStatus || '').toUpperCase());
+  }
+
+  protected canDisputeEscrow(payment: PaymentHistoryView): boolean {
+    const status = this.escrowStatus(payment);
+    if (status?.canDispute !== undefined) return status.canDispute;
+    return ['HELD', 'PENDING', 'EN_ATTENTE'].includes((payment.escrowStatus || '').toUpperCase());
+  }
+
   protected saveMedicalProfile(): void {
     if (this.isSavingMedicalProfile()) return;
     this.isSavingMedicalProfile.set(true);
@@ -850,6 +975,53 @@ export class SettingsPageComponent implements OnInit {
       .listSavedPaymentMethods()
       .pipe(catchError(() => of([])))
       .subscribe((methods) => this.savedPaymentMethods.set(methods));
+  }
+
+  private loadPaymentActivity(): void {
+    if (!this.currentUser()) return;
+    this.isLoadingPayments.set(true);
+    this.authService
+      .listPaymentHistory()
+      .pipe(
+        catchError(() => of([])),
+        finalize(() => this.isLoadingPayments.set(false)),
+      )
+      .subscribe((payments) => {
+        const paymentsList = Array.isArray(payments) ? payments : [];
+        this.paymentHistory.set(paymentsList);
+        paymentsList.slice(0, 6).forEach((payment) => this.loadPaymentEscrowStatus(payment.id));
+      });
+
+    // Only load withdrawals for professionals
+    if (this.isProfessionalSettings()) {
+      this.authService
+        .listWithdrawalRequests()
+        .pipe(catchError(() => of([])))
+        .subscribe((withdrawals) => {
+          const withdrawalsList = Array.isArray(withdrawals) ? withdrawals : [];
+          this.withdrawalRequests.set(withdrawalsList);
+        });
+    }
+  }
+
+  private loadPaymentEscrowStatus(paymentId: string): void {
+    if (!paymentId) return;
+    this.authService
+      .getPaymentEscrowStatus(paymentId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((status) => {
+        if (!status) return;
+        this.paymentEscrowStatuses.update((statuses) => ({
+          ...statuses,
+          [paymentId]: status,
+        }));
+      });
+  }
+
+  private patchPayment(updated: PaymentHistoryView): void {
+    this.paymentHistory.update((payments) =>
+      payments.map((payment) => (payment.id === updated.id ? { ...payment, ...updated } : payment)),
+    );
   }
 
   private loadUserHistory(): void {

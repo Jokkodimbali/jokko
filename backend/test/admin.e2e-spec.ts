@@ -161,7 +161,7 @@ describe('Admin governance (e2e)', () => {
         name: 'Pro Gouvernance',
         email: `pro-governance-${timestamp}@jokko.sn`,
         password: professionalPassword,
-        role: 'PRESTATAIRE',
+        role: 'CLIENT',
         adresse: 'Dakar gouvernance professionnel',
       })
       .expect(201);

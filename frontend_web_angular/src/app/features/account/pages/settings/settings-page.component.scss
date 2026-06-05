@@ -771,6 +771,115 @@
   font-weight: 950;
 }
 
+.settings-page__payment-activity {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.settings-page__payment-activity > article {
+  background: #ffffff;
+  border: 1px solid #e7e2de;
+  border-radius: 20px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.08);
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.settings-page__payment-activity header {
+  align-items: center;
+  border-bottom: 1px solid #e7e9ec;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.settings-page__payment-activity h3 {
+  font-size: 20px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.settings-page__payment-activity header span {
+  color: #8d5527;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.settings-page__payment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-page__payment-row-card {
+  align-items: center;
+  background: #faf7f4;
+  border: 1px solid #eee3da;
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.settings-page__payment-row-card i {
+  align-items: center;
+  background: #fff0df;
+  border-radius: 13px;
+  color: #8d5527;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.settings-page__payment-row-card strong,
+.settings-page__payment-row-card span,
+.settings-page__payment-row-card small {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.settings-page__payment-row-card span,
+.settings-page__payment-row-card small {
+  color: #69707d;
+  margin-top: 3px;
+}
+
+.settings-page__payment-row-card nav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.settings-page__payment-row-card button {
+  background: #8d5527;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 950;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.settings-page__payment-row-card .settings-page__payment-danger {
+  background: #fff0ef;
+  color: #9d2f23;
+}
+
+.settings-page__payment-row-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .settings-page__payment-editor {
   background: #ffffff;
   border: 1px solid #e7e2de;
@@ -1079,6 +1188,7 @@
   .settings-page__switcher,
   .settings-page__medical-grid,
   .settings-page__payment-cards,
+  .settings-page__payment-activity,
   .settings-page__payment-editor-grid,
   .settings-page__security-grid {
     grid-template-columns: 1fr;
@@ -1100,6 +1210,16 @@
   .settings-page__treatment-item {
     align-items: start;
     grid-template-columns: 34px 1fr;
+  }
+
+  .settings-page__payment-row-card {
+    align-items: start;
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .settings-page__payment-row-card nav {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 
   .settings-page__treatment-item nav {

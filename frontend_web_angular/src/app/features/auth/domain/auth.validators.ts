@@ -1,8 +1,8 @@
 import { ValidatorFn, Validators } from '@angular/forms';
 
 export const SENEGAL_PHONE_DIAL_CODE = '+221';
-export const SENEGAL_PHONE_PATTERN = '^\\+221(?:3[03-9]|7[015678])\\d{7}$';
-export const SENEGAL_LOCAL_PHONE_PATTERN = '^(?:3[03-9]|7[015678])\\d{7}$';
+export const SENEGAL_PHONE_PATTERN = '^\\+221(?:3[03-9]|7\\d)\\d{7}$';
+export const SENEGAL_LOCAL_PHONE_PATTERN = '^(?:3[03-9]|7\\d)\\d{7}$';
 export const EMAIL_PATTERN = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
 export const LOGIN_IDENTIFIER_PATTERN = `(?:${SENEGAL_PHONE_PATTERN.slice(1, -1)}|${SENEGAL_LOCAL_PHONE_PATTERN.slice(1, -1)}|${EMAIL_PATTERN.slice(1, -1)})`;
 export const OTP_CODE_PATTERN = '^[0-9]{6}$';

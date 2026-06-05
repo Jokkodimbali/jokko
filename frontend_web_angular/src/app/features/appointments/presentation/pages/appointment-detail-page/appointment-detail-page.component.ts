@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -16,6 +18,7 @@ import { AppointmentTrackingView, AppointmentView } from '../../../domain/appoin
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     AppFooterComponent,
     AppNavbarComponent,
     LucideAngularModule,
@@ -42,6 +45,13 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   protected readonly alertEnabled = signal(false);
   protected readonly isUpdatingStatus = signal(false);
   protected readonly isHandlingPriceAdjustment = signal(false);
+  protected readonly isRescheduleModalOpen = signal(false);
+  protected readonly isPriceAdjustmentModalOpen = signal(false);
+  protected readonly rescheduleDateTime = signal('');
+  protected readonly priceAdjustmentForm = {
+    proposedPrice: 0,
+    reason: '',
+  };
   protected readonly isSubmittingReview = signal(false);
   protected readonly selectedRating = signal(0);
   protected readonly reviewStars = [1, 2, 3, 4, 5];
@@ -63,6 +73,15 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       appointment.status !== 'NO_SHOW'
     );
   });
+  protected readonly canConfirmAppointment = computed(() => {
+    const appointment = this.appointment();
+    return this.canManageProviderStatus() && appointment?.status === 'EN_ATTENTE';
+  });
+  protected readonly canCancelAppointment = computed(() => {
+    const status = this.appointment()?.status;
+    return !!status && status !== 'TERMINEE' && status !== 'ANNULEE' && status !== 'NO_SHOW' && status !== 'LITIGE';
+  });
+  protected readonly minRescheduleDateTime = computed(() => this.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)));
   protected readonly isAppointmentCompleted = computed(() => this.appointment()?.status === 'TERMINEE');
   protected readonly currentPriceLabel = computed(() =>
     this.formatCurrency(this.appointment()?.agreedPrice ?? 0),
@@ -287,6 +306,40 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     URL.revokeObjectURL(url);
   }
 
+  protected syncAppointmentToCalendar(appointment: AppointmentView): void {
+    const start = new Date(appointment.scheduledAt);
+    if (Number.isNaN(start.getTime())) {
+      this.feedback.error('Impossible de synchroniser ce rendez-vous : date invalide.');
+      return;
+    }
+
+    const end = new Date(start.getTime() + Math.max(15, appointment.durationMinutes || 30) * 60000);
+    const stamp = this.toCalendarDate(new Date());
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Jokko//Reservation//FR',
+      'BEGIN:VEVENT',
+      `UID:${appointment.id}@jokko`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${this.toCalendarDate(start)}`,
+      `DTEND:${this.toCalendarDate(end)}`,
+      `SUMMARY:${this.escapeCalendarText(appointment.serviceName)} avec ${this.escapeCalendarText(appointment.doctorName)}`,
+      `LOCATION:${this.escapeCalendarText(appointment.addressLabel)}`,
+      `DESCRIPTION:${this.escapeCalendarText(appointment.notes || 'Rendez-vous reserve sur Jokko Dimbali.')}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ];
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rendez-vous-jokko-${appointment.id.slice(0, 8)}.ics`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.feedback.success('Fichier calendrier genere.');
+  }
+
   protected mapDirectionsUrl(appointment: AppointmentView): string {
     const latitude = this.trackingLatitude();
     const longitude = this.trackingLongitude();
@@ -329,6 +382,132 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isHandlingPriceAdjustment.set(false);
         this.feedback.error('Impossible de refuser cet ajustement pour le moment.');
+      },
+    });
+  }
+
+  protected confirmAppointment(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus()) return;
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.confirmAppointment(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Rendez-vous confirme.');
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error('Impossible de confirmer ce rendez-vous pour le moment.');
+      },
+    });
+  }
+
+  protected openRescheduleModal(appointment: AppointmentView): void {
+    this.rescheduleDateTime.set(this.toDateTimeLocalValue(new Date(appointment.scheduledAt)));
+    this.isRescheduleModalOpen.set(true);
+  }
+
+  protected closeRescheduleModal(): void {
+    if (this.isUpdatingStatus()) return;
+    this.isRescheduleModalOpen.set(false);
+  }
+
+  protected saveReschedule(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus()) return;
+    const date = new Date(this.rescheduleDateTime());
+    if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      this.feedback.info('Choisissez une nouvelle date future pour le rendez-vous.');
+      return;
+    }
+
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService
+      .rescheduleAppointment(appointment.id, { newDateTime: date.toISOString() })
+      .subscribe({
+        next: (updated) => {
+          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.isUpdatingStatus.set(false);
+          this.isRescheduleModalOpen.set(false);
+          this.feedback.success('Rendez-vous reprogramme.');
+        },
+        error: () => {
+          this.isUpdatingStatus.set(false);
+          this.feedback.error('Impossible de reprogrammer ce rendez-vous.');
+        },
+      });
+  }
+
+  protected cancelAppointment(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus() || !this.canCancelAppointment()) return;
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService
+      .cancelAppointment(appointment.id, 'Annulation demandee depuis le detail du rendez-vous.')
+      .subscribe({
+        next: (updated) => {
+          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.isUpdatingStatus.set(false);
+          this.feedback.success('Rendez-vous annule.');
+        },
+        error: () => {
+          this.isUpdatingStatus.set(false);
+          this.feedback.error("Impossible d'annuler ce rendez-vous.");
+        },
+      });
+  }
+
+  protected openPriceAdjustmentModal(appointment: AppointmentView): void {
+    this.priceAdjustmentForm.proposedPrice = appointment.agreedPrice ?? 0;
+    this.priceAdjustmentForm.reason = '';
+    this.isPriceAdjustmentModalOpen.set(true);
+  }
+
+  protected closePriceAdjustmentModal(): void {
+    if (this.isHandlingPriceAdjustment()) return;
+    this.isPriceAdjustmentModalOpen.set(false);
+  }
+
+  protected submitPriceAdjustment(appointment: AppointmentView): void {
+    if (this.isHandlingPriceAdjustment()) return;
+    const proposedPrice = Math.trunc(Number(this.priceAdjustmentForm.proposedPrice));
+    const reason = this.priceAdjustmentForm.reason.trim();
+    if (!Number.isFinite(proposedPrice) || proposedPrice < 500) {
+      this.feedback.info('Renseignez un montant valide a partir de 500 FCFA.');
+      return;
+    }
+    if (reason.length < 8) {
+      this.feedback.info('Expliquez clairement la raison de cet ajustement.');
+      return;
+    }
+
+    this.isHandlingPriceAdjustment.set(true);
+    this.appointmentsService
+      .proposePriceAdjustment(appointment.id, { proposedPrice, reason })
+      .subscribe({
+        next: (updated) => {
+          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.isHandlingPriceAdjustment.set(false);
+          this.isPriceAdjustmentModalOpen.set(false);
+          this.feedback.success('Ajustement de prix envoye au client.');
+        },
+        error: () => {
+          this.isHandlingPriceAdjustment.set(false);
+          this.feedback.error("Impossible d'envoyer cet ajustement de prix.");
+        },
+      });
+  }
+
+  protected markNoShow(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus()) return;
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.markNoShow(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Absence signalee sur ce rendez-vous.');
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error("Impossible de signaler l'absence pour ce rendez-vous.");
       },
     });
   }
@@ -434,8 +613,14 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
         this.startTrackingPolling(appointment.id);
         this.startAutomaticStatusSync();
       },
-      error: () => {
-        this.errorMessage.set('Impossible de charger ce rendez-vous.');
+      error: (error) => {
+        const notFoundOrForbidden =
+          error instanceof HttpErrorResponse && (error.status === 403 || error.status === 404);
+        this.errorMessage.set(
+          notFoundOrForbidden
+            ? "Ce rendez-vous n'existe plus ou n'est pas accessible avec votre compte."
+            : 'Impossible de charger ce rendez-vous.',
+        );
         this.isLoading.set(false);
       },
     });
@@ -553,6 +738,23 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     })
       .format(value)
       .replace(':', 'h');
+  }
+
+  private toDateTimeLocalValue(value: Date): string {
+    if (Number.isNaN(value.getTime())) {
+      return this.toDateTimeLocalValue(new Date(Date.now() + 60 * 60 * 1000));
+    }
+
+    const localDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+  }
+
+  private toCalendarDate(value: Date): string {
+    return value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  }
+
+  private escapeCalendarText(value: string): string {
+    return value.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
   }
 
   private resolveCurrentLocation(fallbackLabel: string): Promise<{

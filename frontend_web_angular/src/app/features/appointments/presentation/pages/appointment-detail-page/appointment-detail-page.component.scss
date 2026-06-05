@@ -1246,6 +1246,129 @@
   font-weight: 850;
 }
 
+.appointment-detail__modal {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.58);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 80;
+}
+
+.appointment-detail__modal-card {
+  background: #ffffff;
+  border: 1px solid #e1d7ce;
+  border-radius: 20px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  display: grid;
+  gap: 18px;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 22px;
+  width: min(100%, 480px);
+}
+
+.appointment-detail__modal-card header,
+.appointment-detail__modal-card footer {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.appointment-detail__modal-card header {
+  border-bottom: 1px solid #e7e9ec;
+  padding-bottom: 14px;
+}
+
+.appointment-detail__modal-card h2 {
+  color: #111827;
+  font-size: 24px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.appointment-detail__modal-card header button {
+  align-items: center;
+  background: #f2f4f7;
+  border: 0;
+  border-radius: 50%;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.appointment-detail__modal-card label {
+  display: grid;
+  gap: 8px;
+}
+
+.appointment-detail__modal-card label span {
+  color: #8d5527;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.appointment-detail__modal-card input,
+.appointment-detail__modal-card textarea {
+  background: #f8fafc;
+  border: 1px solid #dfe4ea;
+  border-radius: 14px;
+  color: #111827;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  min-height: 52px;
+  outline: 0;
+  padding: 0 16px;
+}
+
+.appointment-detail__modal-card textarea {
+  line-height: 1.45;
+  min-height: 110px;
+  padding: 14px 16px;
+  resize: vertical;
+}
+
+.appointment-detail__modal-card input:focus,
+.appointment-detail__modal-card textarea:focus {
+  border-color: #8d5527;
+  box-shadow: 0 0 0 3px rgba(141, 85, 39, 0.12);
+}
+
+.appointment-detail__modal-card footer {
+  border-top: 1px solid #e7e9ec;
+  padding-top: 14px;
+}
+
+.appointment-detail__modal-card footer button {
+  background: #f3f4f6;
+  border: 0;
+  border-radius: 12px;
+  color: #111827;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 950;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.appointment-detail__modal-card footer button:last-child {
+  background: #8d5527;
+  color: #ffffff;
+}
+
+.appointment-detail__modal-card footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 920px) {
   .appointment-detail__topbar {
     grid-template-columns: 48px 1fr;

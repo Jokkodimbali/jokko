@@ -1,0 +1,73 @@
+<main class="notifications-page">
+  <section class="notifications-page__nav">
+    <app-navbar />
+  </section>
+
+  <section class="notifications-page__hero">
+    <a routerLink="/services" class="notifications-page__back">
+      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.5"></lucide-icon>
+      Retour
+    </a>
+    <div>
+      <span>Centre de notifications</span>
+      <h1>Vos alertes Jokko</h1>
+      <p>Retrouvez ici les informations importantes de vos reservations, paiements, messages et validations de profil.</p>
+    </div>
+    <aside>
+      <strong>{{ unreadCount() }}</strong>
+      <span>Non lues</span>
+    </aside>
+  </section>
+
+  <section class="notifications-page__content">
+    <header class="notifications-page__toolbar">
+      <div>
+        <h2>Notifications recentes</h2>
+        <p>{{ notifications().length }} notification(s), {{ readCount() }} deja lue(s).</p>
+      </div>
+      <button type="button" [disabled]="isSaving() || unreadCount() === 0" (click)="markAllAsRead()">
+        <lucide-icon name="check" size="18" [strokeWidth]="2.4"></lucide-icon>
+        Tout marquer comme lu
+      </button>
+    </header>
+
+    <p *ngIf="isLoading()" class="notifications-page__state">Chargement de vos notifications...</p>
+    <p *ngIf="errorMessage()" class="notifications-page__state notifications-page__state--error">{{ errorMessage() }}</p>
+
+    <div *ngIf="!isLoading() && notifications().length > 0; else emptyNotifications" class="notifications-page__list">
+      <article
+        *ngFor="let notification of notifications()"
+        class="notifications-page__item"
+        [class.notifications-page__item--unread]="!isRead(notification)"
+        role="button"
+        tabindex="0"
+        (click)="openNotification(notification)"
+        (keydown.enter)="openNotification(notification)"
+        (keydown.space)="openNotification(notification)"
+      >
+        <i>
+          <lucide-icon name="bell" size="20" [strokeWidth]="2.4"></lucide-icon>
+        </i>
+        <div>
+          <span>{{ typeLabel(notification.type) }}</span>
+          <h3>{{ title(notification) }}</h3>
+          <p>{{ body(notification) }}</p>
+          <time *ngIf="date(notification)">{{ date(notification) | date:'d MMM yyyy, HH:mm' }}</time>
+        </div>
+        <button type="button" [disabled]="isRead(notification)" (click)="$event.stopPropagation(); markAsRead(notification)">
+          {{ isRead(notification) ? 'Lue' : 'Marquer comme lue' }}
+        </button>
+      </article>
+    </div>
+
+    <ng-template #emptyNotifications>
+      <section *ngIf="!isLoading()" class="notifications-page__empty">
+        <lucide-icon name="bell-off" size="38" [strokeWidth]="2.2"></lucide-icon>
+        <h2>Aucune notification pour le moment</h2>
+        <p>Quand une reservation, un paiement, un message ou une validation evolue, vous le verrez clairement ici.</p>
+      </section>
+    </ng-template>
+  </section>
+
+  <app-footer />
+</main>

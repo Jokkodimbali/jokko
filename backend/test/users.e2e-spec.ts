@@ -44,6 +44,23 @@ describe('UsersModule (e2e)', () => {
     data?: ApiObjectData | ApiHistoryItem[];
   };
 
+  function readRefreshCookie(response: request.Response): string {
+    const setCookieHeader = response.headers['set-cookie'];
+    const cookies = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : typeof setCookieHeader === 'string'
+        ? [setCookieHeader]
+        : [];
+    const refreshCookie = cookies.find((cookie) =>
+      cookie.startsWith('jokko_refresh_token='),
+    );
+    return refreshCookie
+      ? decodeURIComponent(
+          refreshCookie.split(';')[0]?.split('=').slice(1).join('=') ?? '',
+        )
+      : '';
+  }
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -99,7 +116,7 @@ describe('UsersModule (e2e)', () => {
     const data = body.data as ApiObjectData;
 
     accessToken = data.accessToken ?? '';
-    refreshToken = data.refreshToken ?? '';
+    refreshToken = readRefreshCookie(response);
     expect(accessToken).not.toHaveLength(0);
     expect(refreshToken).not.toHaveLength(0);
   });

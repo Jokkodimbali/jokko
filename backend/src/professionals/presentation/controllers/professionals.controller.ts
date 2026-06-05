@@ -9,22 +9,36 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
+  ApiConsumes,
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import type { Request } from 'express';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+import { extname, join } from 'node:path';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
 import { SearchQueryService } from '../../../search/application/services/search-query.service';
 import { SearchProfessionalsQueryDto } from '../../../search/presentation/dto/search-professionals-query.dto';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import { appMessage } from '../../../core/http/app-http.exception';
+import {
+  appHttpException,
+  appMessage,
+} from '../../../core/http/app-http.exception';
 import { CreateProfessionalProfileDto } from '../dto/create-professional-profile.dto';
 import { SubmitKycDto } from '../dto/submit-kyc.dto';
 import { UpdateProfessionalProfileDto } from '../dto/update-professional-profile.dto';
@@ -42,6 +56,40 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
+
+type UploadedProfessionalAssetFile = {
+  filename: string;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
+const professionalUploadDirectory = join(
+  process.cwd(),
+  'uploads',
+  'professionals',
+);
+
+const allowedProfessionalAssetMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+]);
+
+function ensureProfessionalUploadDirectory(): void {
+  mkdirSync(professionalUploadDirectory, { recursive: true });
+}
+
+function buildProfessionalAssetFileName(originalName: string): string {
+  const extension = extname(originalName).toLowerCase() || '.bin';
+  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(
+    extension,
+  )
+    ? extension
+    : '.bin';
+  return `professional-${Date.now()}-${randomUUID()}${safeExtension}`;
+}
 
 @ApiTags(API_DOCS.professionals.tag)
 @Controller('professionals')
@@ -318,6 +366,65 @@ export class ProfessionalsController {
   }
 
   // ─── Availabilities (Authenticated) ───────────────────────────────────────
+
+  @Post('me/uploads')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (
+          _request: unknown,
+          _file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          ensureProfessionalUploadDirectory();
+          callback(null, professionalUploadDirectory);
+        },
+        filename: (
+          _request: unknown,
+          file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          callback(null, buildProfessionalAssetFileName(file.originalname));
+        },
+      }),
+      limits: { fileSize: 8 * 1024 * 1024 },
+      fileFilter: (_request, file, callback) => {
+        if (!allowedProfessionalAssetMimeTypes.has(file.mimetype)) {
+          callback(appHttpException('VALIDATION_REQUEST_INVALID'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Uploader un fichier professionnel pour KYC ou portfolio',
+  })
+  async uploadMyProfessionalAsset(
+    @UploadedFile() file: UploadedProfessionalAssetFile | undefined,
+    @Req() request: Request,
+  ) {
+    if (!file) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const origin = `${request.protocol}://${request.get('host')}`;
+    const fileUrl = `${origin}/uploads/professionals/${file.filename}`;
+    return createApiResponse(
+      {
+        fileUrl,
+        imageUrl: fileUrl,
+        originalFileName: file.originalname,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+      },
+      'Fichier professionnel uploade avec succes.',
+    );
+  }
 
   @Post('me/availabilities')
   @UseGuards(JwtAuthGuard)

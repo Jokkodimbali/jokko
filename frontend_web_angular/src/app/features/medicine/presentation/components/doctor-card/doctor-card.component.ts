@@ -44,7 +44,10 @@ export class DoctorCardComponent {
     event.stopPropagation();
 
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.info('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous d abord pour gerer vos favoris.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
       return;
     }
 

@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { environment } from '../../../../../../environments/environment';
 import { AuthService } from '../../../data-access/auth.service';
@@ -65,6 +65,7 @@ export class LoginComponent implements AfterViewInit {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly ngZone = inject(NgZone);
 
   @ViewChild('googleButton', { static: false })
@@ -122,7 +123,7 @@ export class LoginComponent implements AfterViewInit {
             this.authSession.forgetRememberedLoginIdentifier();
           }
           this.feedback.success(AUTH_UI_MESSAGES.loginSuccess);
-          this.router.navigate(['/']);
+          this.navigateAfterLogin();
         },
         error: (error: unknown) => {
           this.errorMessage.set(getHttpErrorMessage(error, AUTH_UI_MESSAGES.loginFailed));
@@ -218,7 +219,7 @@ export class LoginComponent implements AfterViewInit {
           this.ngZone.run(() => {
             this.authSession.saveAuthResponse(response);
             this.feedback.success(AUTH_UI_MESSAGES.loginSuccess);
-            this.router.navigate(['/']);
+            this.navigateAfterLogin();
           });
         },
         error: (error: unknown) => {
@@ -241,6 +242,15 @@ export class LoginComponent implements AfterViewInit {
   private looksLikePhone(value: string): boolean {
     const trimmed = value.trim();
     return !trimmed.includes('@') && /^[+0-9().\s-]*$/.test(trimmed);
+  }
+
+  private navigateAfterLogin(): void {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.router.navigateByUrl(this.isSafeReturnUrl(returnUrl) ? returnUrl! : '/services');
+  }
+
+  private isSafeReturnUrl(returnUrl: string | null): boolean {
+    return !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//');
   }
 
   private loadGoogleScript(): Promise<void> {

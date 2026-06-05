@@ -1,24 +1,4 @@
 <header class="app-navbar">
-  <div
-    *ngIf="feedbackMessage() as message"
-    class="app-navbar__toast"
-    [class.app-navbar__toast--error]="message.type === 'error'"
-    [class.app-navbar__toast--info]="message.type === 'info'"
-    role="status"
-  >
-    <span class="app-navbar__toast-icon" aria-hidden="true">
-      <lucide-icon
-        [name]="message.type === 'error' ? 'triangle-alert' : message.type === 'info' ? 'info' : 'check'"
-        size="19"
-        [strokeWidth]="2.4"
-      ></lucide-icon>
-    </span>
-    <span class="app-navbar__toast-copy">
-      <strong>{{ message.type === 'error' ? 'Action impossible' : message.type === 'info' ? 'Information' : 'Operation reussie' }}</strong>
-      <small>{{ message.text }}</small>
-    </span>
-  </div>
-
   <!-- Brand Logo -->
   <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
     <img [src]="logo" alt="" />

@@ -1,134 +1,323 @@
 <main class="medicine-booking">
-  <section class="medicine-booking__nav" aria-label="Navigation principale">
-    <app-navbar />
-  </section>
-
   <section class="medicine-booking__hero">
     <button type="button" class="medicine-booking__back" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="24" [strokeWidth]="2.6"></lucide-icon>
+      <lucide-icon name="arrow-left" size="21" [strokeWidth]="2.6"></lucide-icon>
       Retour
     </button>
 
-    <header>
-      <lucide-icon name="heart-pulse" size="48" [strokeWidth]="2.4"></lucide-icon>
-      <span>{{ doctorName() }}</span>
+    <div class="medicine-booking__hero-inner">
+      <span class="medicine-booking__eyebrow">
+        <lucide-icon name="heart-pulse" size="20" [strokeWidth]="2.5"></lucide-icon>
+        {{ doctorName() }}
+      </span>
       <h1>Prendre rendez-vous</h1>
       <p>
-        R&eacute;servez une consultation en quelques &eacute;tapes.<br />
-        Chaque cr&eacute;neau dure environ {{ selectedService()?.dureeMinutes ?? 15 }} minutes
+        Choisissez le patient, le motif et un creneau disponible. Les horaires sont synchronises
+        avec l'agenda du medecin.
       </p>
-    </header>
+    </div>
   </section>
 
-  <section class="medicine-booking__panel">
+  <section class="medicine-booking__shell">
     <p *ngIf="isLoading()" class="medicine-booking__state">Chargement du medecin...</p>
     <p *ngIf="errorMessage()" class="medicine-booking__state medicine-booking__state--error">{{ errorMessage() }}</p>
 
     <ng-container *ngIf="!isLoading() && !errorMessage()">
-      <section class="medicine-booking__step">
-        <span class="medicine-booking__step-number">1</span>
-        <h2>Qui prend rendez -vous ?</h2>
+      <section class="medicine-booking__layout">
+        <div class="medicine-booking__main">
+          <article class="medicine-booking__card medicine-booking__patient">
+            <header class="medicine-booking__section-head">
+              <span>1</span>
+              <div>
+                <h2>Patient concerne</h2>
+                <p>Selectionnez la personne pour qui vous prenez ce rendez-vous.</p>
+              </div>
+            </header>
 
-        <div class="medicine-booking__audience">
-          <button
-            type="button"
-            [class.medicine-booking__audience-card--active]="appointmentFor() === 'ME'"
-            (click)="selectAppointmentFor('ME')"
-          >
-            <lucide-icon name="users" size="22" [strokeWidth]="2"></lucide-icon>
-            <span>
-              <strong>Pour moi</strong>
-              <small>Rendez-vous personnel</small>
-            </span>
-            <lucide-icon name="check" size="16" [strokeWidth]="2.5"></lucide-icon>
-          </button>
-          <button
-            type="button"
-            [class.medicine-booking__audience-card--active]="appointmentFor() === 'RELATIVE'"
-            (click)="selectAppointmentFor('RELATIVE')"
-          >
-            <lucide-icon name="users" size="22" [strokeWidth]="2"></lucide-icon>
-            <span>
-              <strong>Pour un proche</strong>
-              <small>Enfant, parent, conjoint ....</small>
-            </span>
-          </button>
+            <div class="medicine-booking__audience">
+              <button
+                type="button"
+                [class.medicine-booking__choice--active]="appointmentFor() === 'ME'"
+                (click)="selectAppointmentFor('ME')"
+              >
+                <lucide-icon name="users" size="23" [strokeWidth]="2.3"></lucide-icon>
+                <span>
+                  <strong>Pour moi</strong>
+                  <small>Mes informations sont recuperees automatiquement</small>
+                </span>
+                <lucide-icon *ngIf="appointmentFor() === 'ME'" name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
+              </button>
+
+              <button
+                type="button"
+                [class.medicine-booking__choice--active]="appointmentFor() === 'RELATIVE'"
+                (click)="selectAppointmentFor('RELATIVE')"
+              >
+                <lucide-icon name="users" size="23" [strokeWidth]="2.3"></lucide-icon>
+                <span>
+                  <strong>Pour un proche</strong>
+                  <small>Vous renseignez ses informations patient</small>
+                </span>
+                <lucide-icon *ngIf="appointmentFor() === 'RELATIVE'" name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
+              </button>
+            </div>
+
+            <section *ngIf="appointmentFor() === 'ME'" class="medicine-booking__self-card">
+              <div>
+                <small>Nom complet</small>
+                <strong>{{ userName() }}</strong>
+              </div>
+              <div>
+                <small>Telephone</small>
+                <strong>{{ userPhone() }}</strong>
+              </div>
+              <div>
+                <small>Adresse</small>
+                <strong>{{ appointmentAddressOverride() || userAddress() || 'Adresse non renseignee' }}</strong>
+              </div>
+              <button
+                type="button"
+                class="medicine-booking__location-button"
+                [disabled]="isLocatingAddress()"
+                (click)="useCurrentLocationForAppointment()"
+              >
+                <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
+                {{ isLocatingAddress() ? 'Localisation...' : 'Utiliser ma position exacte' }}
+              </button>
+              <p *ngIf="appointmentLocation()" class="medicine-booking__location-status">
+                Position exacte ajoutee : {{ locationSummary() }}
+              </p>
+              <p *ngIf="fieldErrors().selfAddress" class="medicine-booking__error-text">
+                {{ fieldErrors().selfAddress }}
+              </p>
+            </section>
+
+            <section *ngIf="appointmentFor() === 'RELATIVE'" class="medicine-booking__relative-form">
+              <label>
+                <span>Nom complet du patient</span>
+                <input
+                  type="text"
+                  [ngModel]="relativePatient().fullName"
+                  (ngModelChange)="updateRelativePatient('fullName', $event)"
+                  placeholder="Exemple : Awa Diop"
+                />
+                <small *ngIf="fieldErrors().fullName">{{ fieldErrors().fullName }}</small>
+              </label>
+
+              <label>
+                <span>Telephone du patient</span>
+                <input
+                  type="tel"
+                  [ngModel]="relativePatient().phoneNumber"
+                  (ngModelChange)="updateRelativePatient('phoneNumber', $event)"
+                  inputmode="tel"
+                  placeholder="77 000 00 00"
+                />
+                <small *ngIf="fieldErrors().phoneNumber">{{ fieldErrors().phoneNumber }}</small>
+              </label>
+
+              <label>
+                <span>Lien avec le patient</span>
+                <input
+                  type="text"
+                  [ngModel]="relativePatient().relationship"
+                  (ngModelChange)="updateRelativePatient('relationship', $event)"
+                  placeholder="Enfant, parent, conjoint..."
+                />
+                <small *ngIf="fieldErrors().relationship">{{ fieldErrors().relationship }}</small>
+              </label>
+
+              <label>
+                <span>Adresse du rendez-vous</span>
+                <input
+                  #relativeAddressInput
+                  type="text"
+                  [ngModel]="relativePatient().address"
+                  (ngModelChange)="updateRelativePatient('address', $event)"
+                  (focus)="initializeAddressSuggestions()"
+                  placeholder="Dakar Plateau, Rue..."
+                />
+                <small *ngIf="fieldErrors().address">{{ fieldErrors().address }}</small>
+                <span *ngIf="mapsSuggestionsReady()" class="medicine-booking__helper">
+                  Suggestions Google Maps activees.
+                </span>
+                <span *ngIf="mapsSuggestionsUnavailable()" class="medicine-booking__helper">
+                  Renseignez une cle Google Maps Places pour activer les suggestions automatiques.
+                </span>
+              </label>
+
+              <div class="medicine-booking__location-tools">
+                <button
+                  type="button"
+                  class="medicine-booking__location-button"
+                  [disabled]="isLocatingAddress()"
+                  (click)="useCurrentLocationForAppointment()"
+                >
+                  <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
+                  {{ isLocatingAddress() ? 'Localisation...' : 'Pointer ma position exacte' }}
+                </button>
+                <p *ngIf="appointmentLocation()" class="medicine-booking__location-status">
+                  Position exacte ajoutee : {{ locationSummary() }}
+                </p>
+              </div>
+
+              <label class="medicine-booking__relative-notes">
+                <span>Informations utiles pour le medecin</span>
+                <textarea
+                  rows="4"
+                  [ngModel]="relativePatient().notes"
+                  (ngModelChange)="updateRelativePatient('notes', $event)"
+                  maxlength="500"
+                  placeholder="Symptomes, contexte, preference horaire..."
+                ></textarea>
+                <small *ngIf="fieldErrors().notes">{{ fieldErrors().notes }}</small>
+              </label>
+            </section>
+          </article>
+
+          <article class="medicine-booking__card">
+            <header class="medicine-booking__section-head">
+              <span>2</span>
+              <div>
+                <h2>Motif de consultation</h2>
+                <p>La duree et les horaires disponibles s'adaptent au motif choisi.</p>
+              </div>
+            </header>
+
+            <label class="medicine-booking__select">
+              <select [ngModel]="selectedServiceId()" (ngModelChange)="selectService($event)">
+                <option value="">Selectionnez un motif</option>
+                <option *ngFor="let service of services()" [value]="service.id">
+                  {{ serviceLabel(service) }}
+                </option>
+              </select>
+              <lucide-icon name="chevron-down" size="24" [strokeWidth]="2.5"></lucide-icon>
+            </label>
+          </article>
+
+          <article class="medicine-booking__card medicine-booking__availability">
+            <header class="medicine-booking__section-head">
+              <span>3</span>
+              <div>
+                <h2>Disponibilite du medecin</h2>
+                <p>Choisissez une date, puis consultez les heures disponibles ou deja reservees.</p>
+              </div>
+            </header>
+
+            <div class="medicine-booking__availability-board">
+              <section class="medicine-booking__calendar-panel">
+                <header>
+                  <h3>Calendrier</h3>
+                  <p>Lundi a dimanche</p>
+                </header>
+                <div class="medicine-booking__calendar">
+                  <span *ngFor="let weekday of weekdayHeaders" class="medicine-booking__weekday">{{ weekday }}</span>
+                  <button
+                    type="button"
+                    *ngFor="let day of calendarDays()"
+                    [class.medicine-booking__calendar-day--active]="selectedDateIso() === day.isoDate"
+                    [class.medicine-booking__calendar-day--past]="day.isPast"
+                    (click)="selectCalendarDate(day)"
+                  >
+                    <strong>{{ day.dayNumber }}</strong>
+                    <span>{{ day.monthLabel }}</span>
+                    <b *ngIf="day.isToday">Auj.</b>
+                  </button>
+                </div>
+              </section>
+
+              <section class="medicine-booking__slot-panel">
+                <header>
+                  <div>
+                    <h3>{{ selectedDateLabel() }}</h3>
+                    <p>{{ selectedService()?.dureeMinutes ?? 15 }} minutes par consultation</p>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Dispo.</dt>
+                      <dd>{{ availableSlotsCount() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Res.</dt>
+                      <dd>{{ reservedSlotsCount() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Indisp.</dt>
+                      <dd>{{ unavailableSlotsCount() }}</dd>
+                    </div>
+                  </dl>
+                </header>
+
+                <div class="medicine-booking__legend">
+                  <span><i></i> Disponible</span>
+                  <span><i></i> Deja reserve</span>
+                  <span><i></i> Indisponible ou depasse</span>
+                </div>
+
+                <p *ngIf="isLoadingSlots()" class="medicine-booking__state">Chargement des heures...</p>
+
+                <div *ngIf="!isLoadingSlots() && selectedDateSlots().length > 0" class="medicine-booking__slots-grid">
+                  <button
+                    type="button"
+                    *ngFor="let slot of selectedDateSlots()"
+                    [class.medicine-booking__slot--selected]="selectedDateTime() === slot.dateHeure"
+                    [class.medicine-booking__slot--reserved]="slot.status === 'RESERVED'"
+                    [class.medicine-booking__slot--unavailable]="!slot.available && slot.status !== 'RESERVED'"
+                    [disabled]="!slot.available"
+                    (click)="selectSlot(slot)"
+                  >
+                    <strong>{{ slot.label }}</strong>
+                    <small>{{ slotStatusLabel(slot) }}</small>
+                  </button>
+                </div>
+
+                <p *ngIf="!isLoadingSlots() && selectedDateSlots().length === 0" class="medicine-booking__state">
+                  Aucun horaire publie pour cette date.
+                </p>
+              </section>
+            </div>
+          </article>
         </div>
-      </section>
 
-      <section class="medicine-booking__step medicine-booking__step--motif">
-        <span class="medicine-booking__step-number">2</span>
-        <h2>Motif de consultation</h2>
-
-        <label class="medicine-booking__select">
-          <select [ngModel]="selectedServiceId()" (ngModelChange)="selectService($event)">
-            <option value="">S&eacute;lectionnez un motif</option>
-            <option *ngFor="let service of services()" [value]="service.id">
-              {{ serviceLabel(service) }}
-            </option>
-          </select>
-          <lucide-icon name="chevron-down" size="24" [strokeWidth]="2.5"></lucide-icon>
-        </label>
-      </section>
-
-      <section class="medicine-booking__step medicine-booking__step--availability">
-        <span class="medicine-booking__step-number">3</span>
-        <h2>Disponibilit&eacute; du m&eacute;decin</h2>
-
-        <p *ngIf="selectedService() && bookingDays().length === 0" class="medicine-booking__state">
-          Aucun cr&eacute;neau disponible pour ce motif.
-        </p>
-
-        <article
-          *ngFor="let day of bookingDays()"
-          class="medicine-booking__day"
-          [class.medicine-booking__day--open]="expandedDay() === day.isoDate"
-        >
-          <button type="button" class="medicine-booking__day-head" (click)="toggleDay(day)">
-            <lucide-icon name="calendar-days" size="28" [strokeWidth]="2"></lucide-icon>
-            <span>
-              <strong>{{ day.label }}</strong>
-              <small>
-                {{ day.availableCount }} cr&eacute;neaux du planning du m&eacute;decin sont disponibles. Dur&eacute;e moyenne de
-                {{ day.averageDuration }} minutes
-              </small>
+        <aside class="medicine-booking__summary">
+          <article>
+            <span class="medicine-booking__summary-icon">
+              <lucide-icon name="calendar-days" size="24" [strokeWidth]="2.4"></lucide-icon>
             </span>
-            <lucide-icon
-              [name]="expandedDay() === day.isoDate ? 'chevron-down' : 'chevron-right'"
-              size="25"
-              [strokeWidth]="2.5"
-            ></lucide-icon>
-          </button>
+            <h2>Resume</h2>
 
-          <div *ngIf="expandedDay() === day.isoDate" class="medicine-booking__slots">
-            <button
-              type="button"
-              *ngFor="let slot of daySlots(day)"
-              [class.medicine-booking__slot--selected]="selectedDateTime() === slot.dateHeure"
-              (click)="selectSlot(slot.dateHeure)"
-            >
-              {{ slot.label }}
+            <dl>
+              <div>
+                <dt>Patient</dt>
+                <dd>{{ patientSummaryName() }}</dd>
+              </div>
+              <div>
+                <dt>Adresse</dt>
+                <dd>{{ patientSummaryAddress() }}</dd>
+              </div>
+              <div>
+                <dt>Motif</dt>
+                <dd>{{ selectedService()?.nom || 'Motif a choisir' }}</dd>
+              </div>
+              <div>
+                <dt>Creneau</dt>
+                <dd>{{ selectedSlotLabel() }}</dd>
+              </div>
+              <div>
+                <dt>Montant</dt>
+                <dd>{{ priceLabel() }}</dd>
+              </div>
+            </dl>
+
+            <button type="button" [disabled]="!canConfirm()" (click)="confirmAppointment()">
+              <lucide-icon name="check" size="22" [strokeWidth]="2.5"></lucide-icon>
+              {{ isSubmitting() ? 'Confirmation...' : 'Confirmer le rendez-vous' }}
             </button>
-            <button
-              type="button"
-              *ngIf="day.availableCount > daySlots(day).length"
-              class="medicine-booking__more"
-              (click)="showMoreSlots(day)"
-            >
-              VOIR PLUS
-            </button>
-          </div>
-        </article>
+
+            <p>Vous serez redirige vers le paiement apres creation du rendez-vous.</p>
+          </article>
+        </aside>
       </section>
-
-      <footer class="medicine-booking__footer">
-        <span>Compl&eacute;tez les &eacute;tapes pour confirmer.</span>
-        <button type="button" [disabled]="!canConfirm()" (click)="confirmAppointment()">
-          Confirmer les rendez-vous
-        </button>
-      </footer>
     </ng-container>
   </section>
-
-  <app-footer />
 </main>

@@ -196,21 +196,22 @@ export class AuthService {
       this.buildSessionMetadata(context.userAgent),
     );
 
-    return newTokens;
+    return {
+      ...newTokens,
+      user: AuthMapper.toApiUserWithEmail(user),
+    };
   }
 
-  async loginWithGoogle(
-    idToken: string,
-    context: AuthSessionContext = {},
-  ) {
+  async loginWithGoogle(idToken: string, context: AuthSessionContext = {}) {
     const googlePayload = await this.googleAuthService.verifyIdToken(idToken);
     const email = googlePayload.email?.toLowerCase();
     if (!email) {
       throw appHttpException('AUTH_GOOGLE_ACCOUNT_INVALID');
     }
 
-    let user =
-      await this.authRepository.findByGoogleIdentity(googlePayload.sub);
+    let user = await this.authRepository.findByGoogleIdentity(
+      googlePayload.sub,
+    );
     user ??= await this.authRepository.findByEmail(email);
     if (!user) {
       user = await this.authRepository.createGoogleClient({
@@ -286,7 +287,9 @@ export class AuthService {
     };
   }
 
-  private classifyClientPlatform(userAgent?: string): 'web' | 'ios' | 'android' {
+  private classifyClientPlatform(
+    userAgent?: string,
+  ): 'web' | 'ios' | 'android' {
     const value = (userAgent ?? '').toLowerCase();
     if (value.includes('jokko-ios') || value.includes('jokko-dimbali-ios')) {
       return 'ios';
@@ -311,9 +314,7 @@ export class AuthService {
     }
   }
 
-  private async findUserWithPasswordByLoginIdentifier(
-    command: LoginCommand,
-  ) {
+  private async findUserWithPasswordByLoginIdentifier(command: LoginCommand) {
     const identifier = (command.identifier ?? command.phoneNumber ?? '').trim();
 
     if (identifier.includes('@')) {

@@ -1,17 +1,24 @@
 import { CommonModule, Location } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
+import { environment } from '../../../../../../environments/environment';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
-import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AuthService } from '../../../../auth/data-access/auth.service';
+import {
+  SENEGAL_PHONE_PATTERN,
+  normalizeSenegalPhoneNumber,
+} from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
-import { ServiceProposalService } from '../../../../services/data-access/service-proposal.service';
+import {
+  ReservationAvailabilitySlotView,
+  ServiceProposalService,
+} from '../../../../services/data-access/service-proposal.service';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalDetailService,
@@ -19,34 +26,97 @@ import {
 } from '../../../../services/domain/models/services.models';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
+type PatientFormField = 'fullName' | 'phoneNumber' | 'relationship' | 'address' | 'notes';
 
-type BookingDay = {
+interface RelativePatientForm {
+  fullName: string;
+  phoneNumber: string;
+  relationship: string;
+  address: string;
+  notes: string;
+}
+
+interface AppointmentLocation {
+  label: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  source: 'GPS' | 'GOOGLE_PLACES';
+}
+
+type CalendarDay = {
   date: Date;
   isoDate: string;
-  label: string;
-  availableCount: number;
-  averageDuration: number;
-  slots: Array<{
-    dateHeure: string;
-    label: string;
-    available: boolean;
-  }>;
+  weekdayLabel: string;
+  dayNumber: string;
+  monthLabel: string;
+  isToday: boolean;
+  isPast: boolean;
 };
+
+type GooglePlacesAutocomplete = new (
+  input: HTMLInputElement,
+  options?: {
+    componentRestrictions?: { country: string };
+    fields?: string[];
+    types?: string[];
+  },
+) => {
+  addListener: (eventName: 'place_changed', callback: () => void) => void;
+  getPlace: () => {
+    formatted_address?: string;
+    name?: string;
+    geometry?: {
+      location?: {
+        lat: () => number;
+        lng: () => number;
+      };
+    };
+  };
+};
+
+type GoogleGeocoderResult = {
+  formatted_address?: string;
+};
+
+type GoogleGeocoderConstructor = new () => {
+  geocode: (
+    request: { location: { lat: number; lng: number } },
+    callback: (results: GoogleGeocoderResult[] | null, status: string) => void,
+  ) => void;
+};
+
+type GoogleMapsNamespace = {
+  maps?: {
+    Geocoder?: GoogleGeocoderConstructor;
+    places?: {
+      Autocomplete?: GooglePlacesAutocomplete;
+    };
+  };
+};
+
+const IDEAL_GPS_ACCURACY_METERS = 80;
+const MAX_ACCEPTED_GPS_ACCURACY_METERS = 150;
+const GPS_COLLECTION_TIMEOUT_MS = 12_000;
 
 @Component({
   selector: 'app-medicine-appointment-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, AppNavbarComponent, AppFooterComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './medicine-appointment-booking.component.html',
   styleUrl: './medicine-appointment-booking.component.scss',
 })
 export class MedicineAppointmentBookingComponent implements OnInit {
+  @ViewChild('relativeAddressInput')
+  private readonly relativeAddressInput?: ElementRef<HTMLInputElement>;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly authService = inject(AuthService);
+  private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
 
   protected readonly isLoading = signal(true);
@@ -56,10 +126,26 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly user = signal<UserProfileDto | null>(null);
   protected readonly appointmentFor = signal<AppointmentFor>('ME');
   protected readonly selectedServiceId = signal<string>('');
-  protected readonly expandedDay = signal<string | null>(null);
+  protected readonly selectedDateIso = signal<string>('');
   protected readonly selectedDateTime = signal<string | null>(null);
-  protected readonly bookingDays = signal<BookingDay[]>([]);
-  protected readonly visibleSlots = signal(6);
+  protected readonly calendarDays = signal<CalendarDay[]>([]);
+  protected readonly selectedDateSlots = signal<ReservationAvailabilitySlotView[]>([]);
+  protected readonly isLoadingSlots = signal(false);
+  protected readonly weekdayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  protected readonly relativePatient = signal<RelativePatientForm>({
+    fullName: '',
+    phoneNumber: '',
+    relationship: '',
+    address: '',
+    notes: '',
+  });
+  protected readonly fieldErrors = signal<Partial<Record<PatientFormField | 'selfAddress', string>>>({});
+  protected readonly appointmentAddressOverride = signal('');
+  protected readonly appointmentLocation = signal<AppointmentLocation | null>(null);
+  protected readonly isLocatingAddress = signal(false);
+  protected readonly mapsSuggestionsReady = signal(false);
+  protected readonly mapsSuggestionsUnavailable = signal(false);
+  private googleAutocompleteAttached = false;
 
   protected readonly doctorName = computed(() => {
     const detail = this.detail();
@@ -71,8 +157,51 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly services = computed(() =>
     (this.detail()?.services ?? []).filter((service) => service.estDisponible),
   );
+  protected readonly userName = computed(() => this.user()?.nom?.trim() || 'Nom non renseigne');
+  protected readonly userPhone = computed(
+    () => this.user()?.numeroTelephone?.trim() || 'Telephone non renseigne',
+  );
+  protected readonly userAddress = computed(() => this.user()?.adresse?.trim() || '');
+  protected readonly locationSummary = computed(() => {
+    const location = this.appointmentLocation();
+    if (!location) return 'Adresse textuelle uniquement';
+    const accuracy = location.accuracyMeters === null
+      ? 'precision Google Maps'
+      : `precision ${Math.round(location.accuracyMeters)} m`;
+    return `${location.label} - ${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)} (${accuracy})`;
+  });
+  protected readonly selectedSlotLabel = computed(() => {
+    const dateHeure = this.selectedDateTime();
+    if (!dateHeure) return 'Aucun creneau choisi';
+
+    const slot = this.selectedDateSlots().find((item) => item.dateHeure === dateHeure);
+    if (slot) return `${this.selectedDateLabel()} a ${slot.label}`;
+
+    return 'Creneau selectionne';
+  });
+  protected readonly selectedDateLabel = computed(() => {
+    const selected = this.calendarDays().find((day) => day.isoDate === this.selectedDateIso());
+    if (!selected) return 'Date a choisir';
+    return this.formatFullDate(selected.date);
+  });
+  protected readonly availableSlotsCount = computed(
+    () => this.selectedDateSlots().filter((slot) => slot.available).length,
+  );
+  protected readonly reservedSlotsCount = computed(
+    () => this.selectedDateSlots().filter((slot) => slot.status === 'RESERVED').length,
+  );
+  protected readonly unavailableSlotsCount = computed(
+    () => this.selectedDateSlots().filter((slot) => slot.status === 'UNAVAILABLE').length,
+  );
+  protected readonly priceLabel = computed(() => {
+    const price = Number(this.selectedService()?.prix ?? 0);
+    return `${price.toLocaleString('fr-FR')} FCFA`;
+  });
   protected readonly canConfirm = computed(
-    () => Boolean(this.selectedService()) && Boolean(this.selectedDateTime()) && !this.isSubmitting(),
+    () =>
+      Boolean(this.selectedService()) &&
+      Boolean(this.selectedDateTime()) &&
+      !this.isSubmitting(),
   );
 
   ngOnInit(): void {
@@ -85,37 +214,184 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   protected selectAppointmentFor(value: AppointmentFor): void {
     this.appointmentFor.set(value);
+    this.fieldErrors.set({});
+    this.appointmentLocation.set(null);
+    this.appointmentAddressOverride.set('');
   }
 
   protected selectService(serviceId: string): void {
     this.selectedServiceId.set(serviceId);
     this.selectedDateTime.set(null);
-    this.expandedDay.set(null);
-    this.visibleSlots.set(6);
-    this.loadAvailability();
+    this.loadAvailabilityForSelectedDate();
   }
 
-  protected toggleDay(day: BookingDay): void {
-    this.expandedDay.set(this.expandedDay() === day.isoDate ? null : day.isoDate);
-    this.visibleSlots.set(6);
+  protected selectCalendarDate(day: CalendarDay): void {
+    if (this.selectedDateIso() === day.isoDate) return;
+    this.selectedDateIso.set(day.isoDate);
+    this.selectedDateTime.set(null);
+    this.loadAvailabilityForSelectedDate();
   }
 
-  protected daySlots(day: BookingDay): BookingDay['slots'] {
-    return day.slots.filter((slot) => slot.available).slice(0, this.visibleSlots());
-  }
-
-  protected showMoreSlots(day: BookingDay): void {
-    if (this.expandedDay() !== day.isoDate) {
-      this.expandedDay.set(day.isoDate);
+  protected selectSlot(slot: ReservationAvailabilitySlotView): void {
+    if (!slot.available) {
+      this.feedback.info(this.slotStatusLabel(slot));
+      return;
     }
-    this.visibleSlots.update((value) => value + 6);
-  }
 
-  protected selectSlot(slotDateTime: string): void {
+    const scheduledAt = new Date(slot.dateHeure);
+    if (scheduledAt.getTime() <= Date.now()) {
+      this.feedback.info('Ce creneau est deja depasse.');
+      return;
+    }
+
+    const slotDateTime = slot.dateHeure;
     this.selectedDateTime.set(slotDateTime);
   }
 
+  protected slotStatusLabel(slot: ReservationAvailabilitySlotView): string {
+    if (slot.available) return 'Disponible';
+    if (slot.status === 'RESERVED') return 'Deja reserve';
+    if (new Date(slot.dateHeure).getTime() <= Date.now()) return 'Heure depassee';
+    return slot.reason || 'Indisponible';
+  }
+
+  protected updateRelativePatient(field: keyof RelativePatientForm, value: string): void {
+    this.relativePatient.update((form) => ({ ...form, [field]: value }));
+    if (field === 'address') {
+      this.appointmentLocation.set(null);
+    }
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[field];
+      return next;
+    });
+  }
+
+  protected initializeAddressSuggestions(): void {
+    if (this.googleAutocompleteAttached || this.mapsSuggestionsReady()) return;
+
+    if (!environment.googleMapsApiKey) {
+      this.mapsSuggestionsUnavailable.set(true);
+      return;
+    }
+
+    this.loadGoogleMapsPlacesScript()
+      .then(() => {
+        const input = this.relativeAddressInput?.nativeElement;
+        const autocompleteCtor = this.getGooglePlacesAutocomplete();
+        if (!input || !autocompleteCtor) {
+          this.mapsSuggestionsUnavailable.set(true);
+          return;
+        }
+
+        const autocomplete = new autocompleteCtor(input, {
+          componentRestrictions: { country: 'sn' },
+          fields: ['formatted_address', 'geometry', 'name'],
+          types: ['geocode', 'establishment'],
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          const label = place.formatted_address || place.name || input.value;
+          const latitude = place.geometry?.location?.lat();
+          const longitude = place.geometry?.location?.lng();
+
+          this.updateRelativePatient('address', label);
+          if (typeof latitude === 'number' && typeof longitude === 'number') {
+            this.appointmentLocation.set({
+              label,
+              latitude,
+              longitude,
+              accuracyMeters: null,
+              source: 'GOOGLE_PLACES',
+            });
+          }
+        });
+
+        this.googleAutocompleteAttached = true;
+        this.mapsSuggestionsReady.set(true);
+      })
+      .catch(() => this.mapsSuggestionsUnavailable.set(true));
+  }
+
+  protected useCurrentLocationForAppointment(): void {
+    if (!navigator.geolocation) {
+      this.feedback.info('La geolocalisation nest pas disponible sur cet appareil.');
+      return;
+    }
+
+    this.isLocatingAddress.set(true);
+    this.feedback.info('Autorisez le partage de votre position pour renseigner le lieu exact du rendez-vous.');
+
+    let bestPosition: GeolocationPosition | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let watchId: number | null = null;
+
+    const stopWatching = () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    const completeWithBestPosition = () => {
+      stopWatching();
+      if (!bestPosition) {
+        this.isLocatingAddress.set(false);
+        this.feedback.error('Position introuvable. Autorisez la geolocalisation puis reessayez.');
+        return;
+      }
+
+      void this.applyGpsPosition(bestPosition);
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const currentAccuracy = this.normalizeAccuracy(position.coords.accuracy);
+        const bestAccuracy = bestPosition
+          ? this.normalizeAccuracy(bestPosition.coords.accuracy)
+          : Number.POSITIVE_INFINITY;
+
+        if (!bestPosition || currentAccuracy < bestAccuracy) {
+          bestPosition = position;
+        }
+
+        if (currentAccuracy <= IDEAL_GPS_ACCURACY_METERS) {
+          completeWithBestPosition();
+        }
+      },
+      (error) => {
+        stopWatching();
+        this.isLocatingAddress.set(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          this.feedback.error('Autorisez la geolocalisation dans votre navigateur pour pointer le rendez-vous.');
+          return;
+        }
+        this.feedback.error('Impossible de recuperer votre position. Verifiez que le GPS est active.');
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: GPS_COLLECTION_TIMEOUT_MS,
+      },
+    );
+
+    timeoutId = setTimeout(completeWithBestPosition, GPS_COLLECTION_TIMEOUT_MS);
+  }
+
   protected confirmAppointment(): void {
+    if (!this.authSession.hasAuthenticatedSession()) {
+      this.feedback.info('Connectez-vous d abord pour confirmer ce rendez-vous.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
+    }
+
     const detail = this.detail();
     const service = this.selectedService();
     const dateHeure = this.selectedDateTime();
@@ -123,9 +399,10 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       this.feedback.info('Selectionnez un motif et un creneau disponible.');
       return;
     }
-    const adresseClient = this.resolveClientAddress(detail);
-    if (!adresseClient) {
-      this.feedback.info('Ajoutez une adresse dans votre profil avant de confirmer le rendez-vous.');
+
+    const patientDraft = this.buildPatientDraft();
+    if (!patientDraft) {
+      this.feedback.info('Completez les informations du patient avant de confirmer.');
       return;
     }
 
@@ -135,12 +412,9 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         professionnelId: detail.profile.id,
         serviceId: service.id,
         dateHeure,
-        adresseClient,
+        adresseClient: patientDraft.adresseClient,
         dureeMinutes: service.dureeMinutes ?? 15,
-        notes:
-          this.appointmentFor() === 'RELATIVE'
-            ? 'Rendez-vous pris pour un proche depuis l espace medecine.'
-            : 'Rendez-vous medical pris depuis l espace medecine.',
+        notes: patientDraft.notes,
       })
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
@@ -162,6 +436,18 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     return `${service.nom} - ${service.dureeMinutes ?? 15} min - ${Number(service.prix).toLocaleString('fr-FR')} FCFA`;
   }
 
+  protected patientSummaryName(): string {
+    if (this.appointmentFor() === 'ME') return this.userName();
+    return this.normalizeText(this.relativePatient().fullName) || 'Patient a renseigner';
+  }
+
+  protected patientSummaryAddress(): string {
+    if (this.appointmentFor() === 'ME') {
+      return this.appointmentAddressOverride() || this.userAddress() || 'Adresse a ajouter au profil';
+    }
+    return this.normalizeText(this.relativePatient().address) || 'Adresse du proche a renseigner';
+  }
+
   private loadPage(): void {
     const profileId = this.route.snapshot.paramMap.get('id');
     if (!profileId) {
@@ -176,7 +462,9 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         switchMap((detail) =>
           forkJoin({
             detail: of(detail),
-            user: this.authService.myUserProfile().pipe(catchError(() => of(null))),
+            user: this.authSession.hasAuthenticatedSession()
+              ? this.authService.myUserProfile().pipe(catchError(() => of(null)))
+              : of(null),
           }),
         ),
         finalize(() => this.isLoading.set(false)),
@@ -189,68 +477,289 @@ export class MedicineAppointmentBookingComponent implements OnInit {
           if (firstService && !this.selectedServiceId()) {
             this.selectedServiceId.set(firstService.id);
           }
-          this.loadAvailability();
+          const days = this.buildCalendarDays(21);
+          this.calendarDays.set(days);
+          const todayIso = this.toIsoDate(new Date());
+          this.selectedDateIso.set(days.find((day) => day.isoDate === todayIso)?.isoDate ?? days[0]?.isoDate ?? '');
+          this.loadAvailabilityForSelectedDate();
         },
         error: (error) =>
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger ce medecin.')),
       });
   }
 
-  private loadAvailability(): void {
+  private loadAvailabilityForSelectedDate(): void {
     const detail = this.detail();
     const service = this.selectedService();
-    if (!detail || !service) return;
+    const selectedDate = this.selectedDateIso();
+    if (!detail || !service || !selectedDate) return;
 
-    const dates = this.nextAppointmentDates(8);
-    forkJoin(
-      dates.map((date) =>
-        this.proposalService
-          .listReservationAvailabilitySlots({
-            professionalId: detail.profile.id,
-            date: this.toIsoDate(date),
-            dureeMinutes: service.dureeMinutes ?? 15,
-          })
-          .pipe(catchError(() => of(null))),
+    this.isLoadingSlots.set(true);
+    this.proposalService
+      .listReservationAvailabilitySlots({
+        professionalId: detail.profile.id,
+        date: selectedDate,
+        dureeMinutes: service.dureeMinutes ?? 15,
+      })
+      .pipe(finalize(() => this.isLoadingSlots.set(false)))
+      .subscribe({
+        next: (result) => this.selectedDateSlots.set(result.slots ?? []),
+        error: () => {
+          this.selectedDateSlots.set([]);
+          this.feedback.error('Impossible de charger les creneaux de cette date.');
+        },
+      });
+  }
+
+  private buildCalendarDays(count: number): CalendarDay[] {
+    const weekdayFormatter = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
+    const monthFormatter = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: CalendarDay[] = [];
+    const cursor = new Date(today);
+    const mondayOffset = (cursor.getDay() + 6) % 7;
+    cursor.setDate(cursor.getDate() - mondayOffset);
+
+    while (days.length < count) {
+      const date = new Date(cursor);
+      date.setHours(0, 0, 0, 0);
+      days.push({
+        date,
+        isoDate: this.toIsoDate(date),
+        weekdayLabel: weekdayFormatter.format(date).replace('.', ''),
+        dayNumber: date.getDate().toString().padStart(2, '0'),
+        monthLabel: monthFormatter.format(date).replace('.', ''),
+        isToday: date.getTime() === today.getTime(),
+        isPast: date.getTime() < today.getTime(),
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return days;
+  }
+
+  private buildPatientDraft(): { adresseClient: string; notes: string } | null {
+    if (this.appointmentFor() === 'ME') {
+      const address = this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
+      if (address.length < 5) {
+        this.fieldErrors.set({
+          selfAddress: 'Ajoutez une adresse complete dans vos parametres avant de continuer.',
+        });
+        return null;
+      }
+
+      this.fieldErrors.set({});
+      return {
+        adresseClient: address,
+        notes: this.limitNotes(
+          [
+            'Rendez-vous medical pris depuis l espace medecine.',
+            `Patient: ${this.userName()}.`,
+            `Telephone: ${this.userPhone()}.`,
+            this.formatLocationNote(),
+          ].join(' '),
+        ),
+      };
+    }
+
+    const validation = this.validateRelativePatient();
+    if (!validation.valid) {
+      this.fieldErrors.set(validation.errors);
+      return null;
+    }
+
+    this.fieldErrors.set({});
+    const patient = validation.patient;
+    return {
+      adresseClient: patient.address,
+      notes: this.limitNotes(
+        [
+          'Rendez-vous medical pris pour un proche depuis l espace medecine.',
+          `Patient: ${patient.fullName}.`,
+          `Lien: ${patient.relationship}.`,
+          `Telephone: ${patient.phoneNumber}.`,
+          this.formatLocationNote(),
+          patient.notes ? `Notes patient: ${patient.notes}.` : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
       ),
-    ).subscribe((results) => {
-      const days = results
-        .map((result, index) => {
-          const date = dates[index];
-          const slots = result?.slots ?? [];
-          const availableSlots = slots.filter((slot) => slot.available);
-          return {
-            date,
-            isoDate: this.toIsoDate(date),
-            label: this.formatFullDate(date),
-            availableCount: availableSlots.length,
-            averageDuration: service.dureeMinutes ?? 15,
-            slots,
-          } satisfies BookingDay;
-        })
-        .filter((day) => day.availableCount > 0);
+    };
+  }
 
-      this.bookingDays.set(days);
-      this.expandedDay.set(days[0]?.isoDate ?? null);
+  private validateRelativePatient(
+    includeErrors = true,
+  ):
+    | { valid: true; patient: Required<RelativePatientForm> }
+    | { valid: false; errors: Partial<Record<PatientFormField, string>> } {
+    const raw = this.relativePatient();
+    const patient = {
+      fullName: this.normalizeText(raw.fullName),
+      phoneNumber: normalizeSenegalPhoneNumber(raw.phoneNumber),
+      relationship: this.normalizeText(raw.relationship),
+      address: this.normalizeText(raw.address),
+      notes: this.normalizeText(raw.notes),
+    };
+    const errors: Partial<Record<PatientFormField, string>> = {};
+
+    if (patient.fullName.length < 2) {
+      errors.fullName = 'Renseignez le nom complet du patient.';
+    }
+
+    if (!new RegExp(SENEGAL_PHONE_PATTERN).test(patient.phoneNumber)) {
+      errors.phoneNumber = 'Renseignez un numero senegalais valide.';
+    }
+
+    if (patient.relationship.length < 2) {
+      errors.relationship = 'Precisez le lien avec le patient.';
+    }
+
+    if (patient.address.length < 5) {
+      errors.address = 'Renseignez une adresse complete pour le rendez-vous.';
+    }
+
+    if (patient.notes.length > 500) {
+      errors.notes = 'Les notes patient ne doivent pas depasser 500 caracteres.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      if (includeErrors) this.fieldErrors.set(errors);
+      return { valid: false, errors };
+    }
+
+    return {
+      valid: true,
+      patient,
+    };
+  }
+
+  private normalizeText(value: string): string {
+    return value.trim().replace(/\s+/g, ' ');
+  }
+
+  private limitNotes(value: string): string {
+    return value.length <= 1000 ? value : value.slice(0, 997).trimEnd() + '...';
+  }
+
+  private formatLocationNote(): string {
+    const location = this.appointmentLocation();
+    if (!location) return '';
+
+    const accuracy = location.accuracyMeters === null
+      ? ''
+      : ` Precision GPS: ${Math.round(location.accuracyMeters)} metres.`;
+    return `Localisation exacte (${location.source}): ${location.latitude}, ${location.longitude}.${accuracy} Adresse selectionnee: ${location.label}.`;
+  }
+
+  private async resolveAddressLabelFromCoordinates(
+    latitude: number,
+    longitude: number,
+    fallbackLabel: string,
+  ): Promise<string> {
+    if (!environment.googleMapsApiKey) {
+      return fallbackLabel;
+    }
+
+    try {
+      await this.loadGoogleMapsPlacesScript();
+      const Geocoder = this.getGoogleGeocoder();
+      if (!Geocoder) return fallbackLabel;
+
+      return await new Promise<string>((resolve) => {
+        const geocoder = new Geocoder();
+        geocoder.geocode(
+          { location: { lat: latitude, lng: longitude } },
+          (results: GoogleGeocoderResult[] | null, status: string) => {
+            if (status === 'OK') {
+              const formattedAddress = results?.find((item: GoogleGeocoderResult) => item.formatted_address)
+                ?.formatted_address;
+              resolve(formattedAddress || fallbackLabel);
+              return;
+            }
+
+            resolve(fallbackLabel);
+          },
+        );
+      });
+    } catch {
+      return fallbackLabel;
+    }
+  }
+
+  private async applyGpsPosition(position: GeolocationPosition): Promise<void> {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracyMeters = this.normalizeAccuracy(position.coords.accuracy);
+
+    if (accuracyMeters > MAX_ACCEPTED_GPS_ACCURACY_METERS) {
+      this.isLocatingAddress.set(false);
+      this.feedback.error(
+        `Position encore trop imprecise (${Math.round(accuracyMeters)} m). Activez le GPS precis de votre appareil puis reessayez.`,
+      );
+      return;
+    }
+
+    const fallbackLabel = `Position GPS precise: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    const label = await this.resolveAddressLabelFromCoordinates(latitude, longitude, fallbackLabel);
+    this.isLocatingAddress.set(false);
+
+    if (this.appointmentFor() === 'ME') {
+      this.appointmentAddressOverride.set(label);
+    } else {
+      this.updateRelativePatient('address', label);
+    }
+
+    this.appointmentLocation.set({
+      label,
+      latitude,
+      longitude,
+      accuracyMeters: Number.isFinite(accuracyMeters) ? accuracyMeters : null,
+      source: 'GPS',
+    });
+
+    this.feedback.success('Position exacte ajoutee au rendez-vous.');
+  }
+
+  private normalizeAccuracy(value: number | null | undefined): number {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : Number.POSITIVE_INFINITY;
+  }
+
+  private loadGoogleMapsPlacesScript(): Promise<void> {
+    if (this.getGooglePlacesAutocomplete()) {
+      return Promise.resolve();
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-jokko-google-maps-places="true"]',
+    );
+    if (existing) {
+      return new Promise((resolve, reject) => {
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(), { once: true });
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.dataset['jokkoGoogleMapsPlaces'] = 'true';
+      script.onload = () => resolve();
+      script.onerror = () => reject();
+      document.head.appendChild(script);
     });
   }
 
-  private nextAppointmentDates(count: number): Date[] {
-    const dates: Date[] = [];
-    const current = new Date();
-    current.setDate(current.getDate() + 1);
-    current.setHours(0, 0, 0, 0);
-
-    while (dates.length < count) {
-      dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
+  private getGooglePlacesAutocomplete(): GooglePlacesAutocomplete | undefined {
+    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places?.Autocomplete;
   }
 
-  private resolveClientAddress(detail: ProviderProfileDetail): string {
-    void detail;
-    return this.user()?.adresse?.trim() || '';
+  private getGoogleGeocoder(): GoogleGeocoderConstructor | undefined {
+    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.Geocoder;
   }
 
   private toIsoDate(date: Date): string {

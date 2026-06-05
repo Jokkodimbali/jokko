@@ -3,6 +3,7 @@
     [activeSection]="activeSection()"
     [ariaLabel]="spaceAriaLabel()"
     [showConsultationSection]="showConsultationSection()"
+    [serviceSectionLabel]="serviceSectionLabel()"
     (backRequested)="goBack()"
     (sectionSelected)="selectSection($event)"
   ></app-doctor-space-sidebar>
@@ -16,8 +17,132 @@
     <p *ngIf="isLoading()" class="doctor-space__state">Chargement de l'espace professionnel...</p>
     <p *ngIf="errorMessage()" class="doctor-space__state doctor-space__state--error">{{ errorMessage() }}</p>
 
-    <ng-container *ngIf="!isLoading() && !errorMessage()">
-      <ng-container *ngIf="activeSection() === 'availability'; else secondarySection">
+      <ng-container *ngIf="!isLoading() && !errorMessage() && (activeSection() === 'profile' || activeSection() === 'availability')">
+        <section *ngIf="activeSection() === 'profile'" class="doctor-space__profile">
+          <article class="doctor-space__profile-card doctor-space__profile-card--hero">
+            <div>
+              <span class="doctor-space__profile-eyebrow">Fiche publique</span>
+              <h2>{{ professionalProfile()?.nomEntreprise || professionalName() }}</h2>
+              <p>
+                {{ professionalProfile()?.biographie || 'Presentez clairement votre activite, votre experience et votre zone d intervention.' }}
+              </p>
+            </div>
+            <span class="doctor-space__kyc-badge" [class.doctor-space__kyc-badge--verified]="professionalProfile()?.statutKyc === 'VERIFIE'">
+              <lucide-icon name="shield-check" size="16" [strokeWidth]="2.4"></lucide-icon>
+              {{ kycStatusLabel() }}
+            </span>
+          </article>
+
+          <section class="doctor-space__profile-grid">
+            <form class="doctor-space__profile-panel" (ngSubmit)="saveProfessionalProfile()">
+              <header>
+                <span><lucide-icon name="user-round-cog" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+                <div>
+                  <h3>{{ hasProfessionalProfile() ? 'Modifier mon profil' : 'Creer mon profil professionnel' }}</h3>
+                  <p>Ces informations sont affichees sur votre fiche publique.</p>
+                </div>
+              </header>
+
+              <label>
+                <span>Nom professionnel ou entreprise</span>
+                <input type="text" name="profileCompanyName" maxlength="150" placeholder="Ex : Cabinet Dia Sante" [(ngModel)]="profileForm.companyName" />
+              </label>
+              <label>
+                <span>Ville principale</span>
+                <input type="text" name="profileCity" maxlength="100" placeholder="Ex : Dakar" [(ngModel)]="profileForm.city" />
+              </label>
+              <label>
+                <span>Biographie</span>
+                <textarea name="profileBio" maxlength="1000" rows="5" placeholder="Expliquez votre expertise, vos services et vos disponibilites." [(ngModel)]="profileForm.bio"></textarea>
+              </label>
+
+              <button type="submit" [disabled]="isProfileSaving()">
+                <lucide-icon name="check" size="17" [strokeWidth]="2.5"></lucide-icon>
+                {{ isProfileSaving() ? 'Enregistrement...' : hasProfessionalProfile() ? 'Enregistrer le profil' : 'Creer le profil' }}
+              </button>
+            </form>
+
+            <form class="doctor-space__profile-panel" (ngSubmit)="submitProfessionalKyc()">
+              <header>
+                <span><lucide-icon name="shield-check" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+                <div>
+                  <h3>Verification KYC</h3>
+                  <p>Soumettez les liens securises de vos justificatifs.</p>
+                </div>
+              </header>
+
+              <div class="doctor-space__profile-status">
+                <strong>{{ kycStatusLabel() }}</strong>
+                <small *ngIf="professionalProfile()?.raisonRejetKyc">{{ professionalProfile()?.raisonRejetKyc }}</small>
+                <small *ngIf="!hasProfessionalProfile()">Creez le profil avant de soumettre un dossier.</small>
+              </div>
+
+              <label>
+                <span>Document recto</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'kyc-front')" />
+                <small *ngIf="kycFileNames.idCardUrl || kycForm.idCardUrl">
+                  {{ uploadingProfessionalAsset() === 'kyc-front' ? 'Upload en cours...' : kycFileNames.idCardUrl || 'Document recto charge' }}
+                </small>
+              </label>
+              <label>
+                <span>Document verso</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'kyc-back')" />
+                <small *ngIf="kycFileNames.idCardUrlVerso || kycForm.idCardUrlVerso">
+                  {{ uploadingProfessionalAsset() === 'kyc-back' ? 'Upload en cours...' : kycFileNames.idCardUrlVerso || 'Document verso charge' }}
+                </small>
+              </label>
+
+              <button type="submit" [disabled]="!hasProfessionalProfile() || isKycSubmitting()">
+                <lucide-icon name="send" size="17" [strokeWidth]="2.5"></lucide-icon>
+                {{ isKycSubmitting() ? 'Soumission...' : 'Soumettre le KYC' }}
+              </button>
+            </form>
+          </section>
+
+          <section class="doctor-space__portfolio-panel">
+            <header>
+              <div>
+                <h3>Portfolio et realisations</h3>
+                <p>Ajoutez les preuves visuelles de vos interventions, cabinets, travaux ou prestations.</p>
+              </div>
+              <span>{{ portfolioItems().length }} element(s)</span>
+            </header>
+
+            <form class="doctor-space__portfolio-form" (ngSubmit)="addPortfolioItem()">
+              <input type="text" name="portfolioTitle" placeholder="Titre" [(ngModel)]="portfolioForm.title" [disabled]="!hasProfessionalProfile()" />
+              <label class="doctor-space__portfolio-upload">
+                <span>{{ uploadingProfessionalAsset() === 'portfolio' ? 'Upload en cours...' : portfolioFileName() || 'Choisir une image' }}</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'portfolio')" />
+              </label>
+              <input type="text" name="portfolioDescription" placeholder="Description courte" [(ngModel)]="portfolioForm.description" [disabled]="!hasProfessionalProfile()" />
+              <button type="submit" [disabled]="!hasProfessionalProfile() || isPortfolioSaving()">
+                <lucide-icon name="plus" size="16" [strokeWidth]="2.6"></lucide-icon>
+                Ajouter
+              </button>
+            </form>
+
+            <p *ngIf="!hasProfessionalProfile()" class="doctor-space__profile-note">
+              Creez votre profil professionnel pour ajouter des services, disponibilites, KYC et portfolio.
+            </p>
+            <p *ngIf="hasProfessionalProfile() && portfolioItems().length === 0" class="doctor-space__profile-note">
+              Aucun portfolio ajoute pour le moment.
+            </p>
+
+            <div class="doctor-space__portfolio-grid" *ngIf="portfolioItems().length > 0">
+              <article *ngFor="let item of portfolioItems()" class="doctor-space__portfolio-item">
+                <img [src]="item.urlImage" [alt]="item.titre" />
+                <div>
+                  <strong>{{ item.titre }}</strong>
+                  <p>{{ item.description || 'Aucune description renseignee.' }}</p>
+                </div>
+                <button type="button" (click)="deletePortfolioItem(item)" [disabled]="isPortfolioSaving()" aria-label="Supprimer cet element du portfolio">
+                  <lucide-icon name="trash-2" size="16" [strokeWidth]="2.3"></lucide-icon>
+                </button>
+              </article>
+            </div>
+          </section>
+        </section>
+      <ng-container *ngIf="activeSection() === 'availability'">
         <section class="doctor-space__cards" aria-label="Parametres rapides">
           <article class="doctor-space__blocked-card">
             <header>
@@ -205,9 +330,9 @@
           </article>
         </section>
       </ng-container>
+      </ng-container>
 
-      <ng-template #secondarySection>
-        <section *ngIf="activeSection() === 'consultation'; else placeholderSection" class="doctor-space__motifs">
+        <section *ngIf="!isLoading() && !errorMessage() && activeSection() === 'consultation'" class="doctor-space__motifs">
           <form class="doctor-space__motif-form" (ngSubmit)="addMotif()">
             <header>
               <span class="doctor-space__motif-header-icon">
@@ -346,8 +471,7 @@
           </section>
         </section>
 
-        <ng-template #placeholderSection>
-        <section *ngIf="activeSection() === 'agenda'; else medicalHistorySection" class="doctor-space__agenda">
+        <section *ngIf="!isLoading() && !errorMessage() && activeSection() === 'agenda'" class="doctor-space__agenda">
           <section class="doctor-space__agenda-stats" aria-label="Indicateurs de l'agenda">
             <article class="doctor-space__agenda-stat doctor-space__agenda-stat--orange">
               <div class="doctor-space__agenda-stat-icon">
@@ -621,8 +745,7 @@
           </section>
         </section>
 
-        <ng-template #medicalHistorySection>
-          <section *ngIf="activeSection() === 'medical-history'; else walletSection" class="doctor-space__medical-history">
+          <section *ngIf="!isLoading() && !errorMessage() && activeSection() === 'medical-history'" class="doctor-space__medical-history">
             <header class="doctor-space__medical-toolbar">
               <div class="doctor-space__medical-legend">
                 <span><i class="doctor-space__medical-dot doctor-space__medical-dot--green"></i>RDV &agrave; venir</span>
@@ -934,10 +1057,7 @@
               </article>
             </ng-template>
           </section>
-        </ng-template>
-
-        <ng-template #walletSection>
-          <section class="doctor-space__wallet">
+          <section *ngIf="!isLoading() && !errorMessage() && activeSection() === 'wallet'" class="doctor-space__wallet">
             <section class="doctor-space__wallet-summary">
               <article class="doctor-space__wallet-balance">
                 <div>
@@ -1077,9 +1197,5 @@
               </form>
             </section>
           </section>
-        </ng-template>
-        </ng-template>
-      </ng-template>
-    </ng-container>
   </section>
 </main>

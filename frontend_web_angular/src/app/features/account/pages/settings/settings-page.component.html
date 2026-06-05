@@ -325,6 +325,75 @@
             <strong>{{ visibleWaveLabel() }}</strong>
           </article>
         </div>
+
+        <section class="settings-page__payment-activity">
+          <article>
+            <header>
+              <h3>Historique des paiements</h3>
+              <span *ngIf="isLoadingPayments()">Synchronisation...</span>
+            </header>
+            <div *ngIf="recentPayments().length > 0; else noPaymentHistory" class="settings-page__payment-list">
+              <div *ngFor="let payment of recentPayments()" class="settings-page__payment-row-card">
+                <i><lucide-icon name="receipt" size="17" [strokeWidth]="2.4"></lucide-icon></i>
+                <div>
+                  <strong>{{ paymentAmount(payment) | number:'1.0-0' }} FCFA</strong>
+                  <span>{{ paymentMethod(payment) }} - {{ paymentStatus(payment) }}</span>
+                  <small *ngIf="paymentDate(payment)">{{ paymentDate(payment) | date:'d MMM yyyy, HH:mm' }}</small>
+                  <small *ngIf="escrowStatus(payment) as escrow">Sequestre : {{ escrow.escrowStatus || escrow.status || 'statut non renseigne' }}</small>
+                </div>
+                <nav>
+                  <button
+                    type="button"
+                    [disabled]="paymentActionId() === payment.id"
+                    (click)="refreshPayment(payment)"
+                  >
+                    Verifier
+                  </button>
+                  <button
+                    type="button"
+                    *ngIf="canReleaseEscrow(payment)"
+                    [disabled]="paymentActionId() === payment.id"
+                    (click)="releaseEscrow(payment)"
+                  >
+                    Liberer
+                  </button>
+                  <button
+                    type="button"
+                    *ngIf="canDisputeEscrow(payment)"
+                    class="settings-page__payment-danger"
+                    [disabled]="paymentActionId() === payment.id"
+                    (click)="disputeEscrow(payment)"
+                  >
+                    Contester
+                  </button>
+                </nav>
+              </div>
+            </div>
+            <ng-template #noPaymentHistory>
+              <p class="settings-page__empty-line">Aucun paiement n'est encore rattache a votre compte.</p>
+            </ng-template>
+          </article>
+
+          <article>
+            <header>
+              <h3>Demandes de retrait</h3>
+            </header>
+            <div *ngIf="recentWithdrawals().length > 0; else noWithdrawalHistory" class="settings-page__payment-list">
+              <div *ngFor="let withdrawal of recentWithdrawals()" class="settings-page__payment-row-card">
+                <i><lucide-icon name="wallet-cards" size="17" [strokeWidth]="2.4"></lucide-icon></i>
+                <div>
+                  <strong>{{ withdrawalAmount(withdrawal) | number:'1.0-0' }} FCFA</strong>
+                  <span>{{ withdrawal.method }} - {{ withdrawal.status }}</span>
+                  <small>{{ withdrawalId(withdrawal) }}</small>
+                  <small *ngIf="withdrawalDate(withdrawal)">{{ withdrawalDate(withdrawal) | date:'d MMM yyyy, HH:mm' }}</small>
+                </div>
+              </div>
+            </div>
+            <ng-template #noWithdrawalHistory>
+              <p class="settings-page__empty-line">Aucune demande de retrait n'a encore ete creee.</p>
+            </ng-template>
+          </article>
+        </section>
       </section>
 
       <article class="settings-page__card">

@@ -6,6 +6,14 @@
   <nav [attr.aria-label]="ariaLabel">
     <button
       type="button"
+      [class.doctor-space-sidebar__nav-item--active]="activeSection === 'profile'"
+      (click)="sectionSelected.emit('profile')"
+    >
+      <lucide-icon name="user-round-cog" size="34" [strokeWidth]="2.1"></lucide-icon>
+      <span>Profil pro</span>
+    </button>
+    <button
+      type="button"
       [class.doctor-space-sidebar__nav-item--active]="activeSection === 'availability'"
       (click)="sectionSelected.emit('availability')"
     >
@@ -19,7 +27,7 @@
       (click)="sectionSelected.emit('consultation')"
     >
       <lucide-icon name="clipboard" size="34" [strokeWidth]="2.1"></lucide-icon>
-      <span>Motif de consultation</span>
+      <span>{{ serviceSectionLabel }}</span>
     </button>
     <button
       type="button"

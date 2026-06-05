@@ -35,7 +35,7 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
 
   async listActive(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
   ): Promise<{ items: CategoryView[]; total: number }> {
     const skip = (page - 1) * limit;
 

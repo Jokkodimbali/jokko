@@ -10,6 +10,8 @@ import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils
 import {
   BackendProfessionalAvailability,
   BackendProfessionalDetailService,
+  BackendProfessionalPortfolioItem,
+  BackendProfessionalProfile,
   Category,
 } from '../../../../services/domain/models/services.models';
 import {
@@ -25,6 +27,7 @@ import {
 import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
 
 type DoctorSpaceSection =
+  | 'profile'
   | 'availability'
   | 'consultation'
   | 'agenda'
@@ -147,6 +150,25 @@ type WithdrawalMethodOption = {
   enabled: boolean;
 };
 
+type ProfessionalProfileForm = {
+  companyName: string;
+  city: string;
+  bio: string;
+};
+
+type ProfessionalKycForm = {
+  idCardUrl: string;
+  idCardUrlVerso: string;
+};
+
+type ProfessionalPortfolioForm = {
+  title: string;
+  description: string;
+  imageUrl: string;
+};
+
+type ProfessionalUploadTarget = 'kyc-front' | 'kyc-back' | 'portfolio';
+
 @Component({
   selector: 'app-doctor-space-page',
   standalone: true,
@@ -160,12 +182,18 @@ export class DoctorSpacePageComponent implements OnInit {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
 
-  protected readonly activeSection = signal<DoctorSpaceSection>('availability');
+  protected readonly activeSection = signal<DoctorSpaceSection>('profile');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
+  protected readonly isProfileSaving = signal(false);
+  protected readonly isKycSubmitting = signal(false);
+  protected readonly isPortfolioSaving = signal(false);
+  protected readonly uploadingProfessionalAsset = signal<ProfessionalUploadTarget | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly professionalName = signal('Mon espace professionnel');
+  protected readonly professionalProfile = signal<BackendProfessionalProfile | null>(null);
   protected readonly professionalProfileId = signal<string | null>(null);
+  protected readonly portfolioItems = signal<BackendProfessionalPortfolioItem[]>([]);
   protected readonly days = signal<DaySchedule[]>(this.buildEmptyWeek());
   protected readonly motifs = signal<ConsultationMotif[]>([]);
   protected readonly editingMotifId = signal<string | null>(null);
@@ -211,6 +239,25 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly agendaCancelForm = {
     reason: '',
   };
+  protected readonly profileForm: ProfessionalProfileForm = {
+    companyName: '',
+    city: '',
+    bio: '',
+  };
+  protected readonly kycForm: ProfessionalKycForm = {
+    idCardUrl: '',
+    idCardUrlVerso: '',
+  };
+  protected readonly kycFileNames: ProfessionalKycForm = {
+    idCardUrl: '',
+    idCardUrlVerso: '',
+  };
+  protected readonly portfolioForm: ProfessionalPortfolioForm = {
+    title: '',
+    description: '',
+    imageUrl: '',
+  };
+  protected readonly portfolioFileName = signal('');
   protected readonly withdrawalMethods: WithdrawalMethodOption[] = [
     {
       id: 'WAVE',
@@ -241,7 +288,22 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly spaceAriaLabel = computed(() =>
     this.isProviderSpace() ? 'Espace prestataire' : 'Espace medecin',
   );
-  protected readonly showConsultationSection = computed(() => !this.isProviderSpace());
+  protected readonly showConsultationSection = computed(() => true);
+  protected readonly serviceSectionLabel = computed(() =>
+    this.isProviderSpace() ? 'Mes services' : 'Services / motifs',
+  );
+  protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
+  protected readonly kycStatusLabel = computed(() => {
+    const status = this.professionalProfile()?.statutKyc;
+    if (!status) return 'Profil a creer';
+    const labels: Record<BackendProfessionalProfile['statutKyc'], string> = {
+      NON_SOUMIS: 'Non soumis',
+      EN_ATTENTE: 'En verification',
+      VERIFIE: 'Verifie',
+      REJETE: 'Rejete',
+    };
+    return labels[status];
+  });
   protected readonly motifRequiredCount = computed(
     () => this.motifs().filter((motif) => motif.isRequired).length,
   );
@@ -354,10 +416,12 @@ export class DoctorSpacePageComponent implements OnInit {
   });
   protected readonly pageTitle = computed(() => {
     switch (this.activeSection()) {
+      case 'profile':
+        return 'Profil professionnel';
       case 'availability':
         return 'Mes disponibilités';
       case 'consultation':
-        return 'Motifs de consultation';
+        return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
       case 'agenda':
         return 'AGENDA INTERACTIF';
       case 'medical-history':
@@ -368,6 +432,8 @@ export class DoctorSpacePageComponent implements OnInit {
   });
   protected readonly pageSubtitle = computed(() => {
     switch (this.activeSection()) {
+      case 'profile':
+        return 'Completez votre fiche publique, vos justificatifs KYC et vos realisations.';
       case 'availability':
         return "Vos modifications s'appliquent immédiatement à l'agenda des rendez-vous";
       case 'consultation':
@@ -390,6 +456,12 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected selectSection(section: DoctorSpaceSection): void {
+    if (section !== 'profile' && !this.professionalProfileId()) {
+      this.feedback.info('Creez votre profil professionnel pour activer cette section.');
+      this.activeSection.set('profile');
+      return;
+    }
+
     if (section === 'consultation' && !this.showConsultationSection()) {
       this.activeSection.set('availability');
       return;
@@ -408,6 +480,156 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected selectMedicalHistoryTab(tab: MedicalHistoryTab): void {
     this.medicalHistoryTab.set(tab);
+  }
+
+  protected saveProfessionalProfile(): void {
+    const payload = {
+      companyName: this.profileForm.companyName.trim() || null,
+      city: this.profileForm.city.trim() || null,
+      bio: this.profileForm.bio.trim() || null,
+    };
+    const hasContent = !!(payload.companyName || payload.city || payload.bio);
+
+    if (!hasContent) {
+      this.feedback.info('Renseignez au moins un nom professionnel, une ville ou une biographie.');
+      return;
+    }
+
+    const isUpdate = !!this.professionalProfileId();
+    const request$ = isUpdate
+      ? this.doctorSpaceService.updateMyProfessionalProfile(payload)
+      : this.doctorSpaceService.createMyProfessionalProfile(payload);
+
+    this.isProfileSaving.set(true);
+    request$
+      .pipe(finalize(() => this.isProfileSaving.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.professionalProfile.set(profile);
+          this.professionalProfileId.set(profile.id);
+          this.professionalName.set(profile.utilisateur.nom);
+          this.patchProfileForm(profile);
+          this.feedback.success(
+            isUpdate ? 'Profil professionnel enregistre.' : 'Profil professionnel cree.',
+          );
+          this.loadSchedule();
+        },
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Enregistrement du profil impossible.')),
+      });
+  }
+
+  protected submitProfessionalKyc(): void {
+    const idCardUrl = this.kycForm.idCardUrl.trim();
+    const idCardUrlVerso = this.kycForm.idCardUrlVerso.trim();
+
+    if (!this.professionalProfileId()) {
+      this.feedback.info('Creez votre profil professionnel avant de soumettre le KYC.');
+      return;
+    }
+
+    if (!idCardUrl) {
+      this.feedback.info('Ajoutez le lien du document recto avant de soumettre le KYC.');
+      return;
+    }
+
+    this.isKycSubmitting.set(true);
+    this.doctorSpaceService
+      .submitMyKyc({
+        idCardUrl,
+        ...(idCardUrlVerso ? { idCardUrlVerso } : {}),
+      })
+      .pipe(finalize(() => this.isKycSubmitting.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.professionalProfile.set(profile);
+          this.patchProfileForm(profile);
+          this.kycForm.idCardUrl = '';
+          this.kycForm.idCardUrlVerso = '';
+          this.feedback.success('Dossier KYC soumis pour verification.');
+        },
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Soumission KYC impossible.')),
+      });
+  }
+
+  protected uploadProfessionalAsset(event: Event, target: ProfessionalUploadTarget): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) return;
+
+    this.uploadingProfessionalAsset.set(target);
+    this.doctorSpaceService
+      .uploadProfessionalAsset(file)
+      .pipe(finalize(() => this.uploadingProfessionalAsset.set(null)))
+      .subscribe({
+        next: (uploaded) => {
+          if (target === 'kyc-front') {
+            this.kycForm.idCardUrl = uploaded.fileUrl;
+            this.kycFileNames.idCardUrl = uploaded.originalFileName;
+          } else if (target === 'kyc-back') {
+            this.kycForm.idCardUrlVerso = uploaded.fileUrl;
+            this.kycFileNames.idCardUrlVerso = uploaded.originalFileName;
+          } else {
+            this.portfolioForm.imageUrl = uploaded.imageUrl || uploaded.fileUrl;
+            this.portfolioFileName.set(uploaded.originalFileName);
+          }
+          this.feedback.success('Fichier uploade avec succes.');
+        },
+        error: (error) => {
+          input.value = '';
+          this.feedback.error(getHttpErrorMessage(error, 'Upload du fichier impossible.'));
+        },
+      });
+  }
+
+  protected addPortfolioItem(): void {
+    const title = this.portfolioForm.title.trim();
+    const description = this.portfolioForm.description.trim();
+    const imageUrl = this.portfolioForm.imageUrl.trim();
+
+    if (!this.professionalProfileId()) {
+      this.feedback.info('Creez votre profil professionnel avant d ajouter un portfolio.');
+      return;
+    }
+
+    if (!title || !imageUrl) {
+      this.feedback.info('Renseignez le titre et le lien image du portfolio.');
+      return;
+    }
+
+    this.isPortfolioSaving.set(true);
+    this.doctorSpaceService
+      .createPortfolioItem({
+        title,
+        imageUrl,
+        description: description || null,
+      })
+      .pipe(finalize(() => this.isPortfolioSaving.set(false)))
+      .subscribe({
+        next: (item) => {
+          this.portfolioItems.update((items) => [item, ...items]);
+          this.portfolioForm.title = '';
+          this.portfolioForm.description = '';
+          this.portfolioForm.imageUrl = '';
+          this.portfolioFileName.set('');
+          this.feedback.success('Element portfolio ajoute.');
+        },
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Ajout du portfolio impossible.')),
+      });
+  }
+
+  protected deletePortfolioItem(item: BackendProfessionalPortfolioItem): void {
+    this.isPortfolioSaving.set(true);
+    this.doctorSpaceService
+      .deletePortfolioItem(item.id)
+      .pipe(finalize(() => this.isPortfolioSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.portfolioItems.update((items) => items.filter((current) => current.id !== item.id));
+          this.feedback.success('Element portfolio supprime.');
+        },
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression du portfolio impossible.')),
+      });
   }
 
   protected updateMedicalHistorySearch(value: string): void {
@@ -956,25 +1178,45 @@ export class DoctorSpacePageComponent implements OnInit {
     this.doctorSpaceService
       .getMyProfile()
       .pipe(
+        catchError(() => of(null as BackendProfessionalProfile | null)),
         switchMap((profile) => {
-          this.professionalName.set(profile.utilisateur.nom);
-          this.professionalProfileId.set(profile.id);
+          this.professionalProfile.set(profile);
+          this.professionalProfileId.set(profile?.id ?? null);
+          this.professionalName.set(profile?.utilisateur.nom ?? 'Mon espace professionnel');
+          this.patchProfileForm(profile);
+          if (!profile) {
+            this.activeSection.set('profile');
+          }
+
           return forkJoin({
-            availabilities: this.doctorSpaceService
-              .listMyAvailabilities()
-              .pipe(catchError(() => of([] as BackendProfessionalAvailability[]))),
-            services: this.doctorSpaceService
-              .listMyServices()
-              .pipe(catchError(() => of([] as BackendProfessionalDetailService[]))),
+            availabilities: profile
+              ? this.doctorSpaceService
+                  .listMyAvailabilities()
+                  .pipe(catchError(() => of([] as BackendProfessionalAvailability[])))
+              : of([] as BackendProfessionalAvailability[]),
+            services: profile
+              ? this.doctorSpaceService
+                  .listMyServices()
+                  .pipe(catchError(() => of([] as BackendProfessionalDetailService[])))
+              : of([] as BackendProfessionalDetailService[]),
             categories: this.doctorSpaceService
               .listCategories()
               .pipe(catchError(() => of([] as Category[]))),
-            reservations: this.doctorSpaceService
-              .listMyReservations()
-              .pipe(catchError(() => of([] as BackendReservation[]))),
-            wallet: this.doctorSpaceService
-              .getWallet()
-              .pipe(catchError(() => of(null as DoctorWalletView | null))),
+            reservations: profile
+              ? this.doctorSpaceService
+                  .listMyReservations()
+                  .pipe(catchError(() => of([] as BackendReservation[])))
+              : of([] as BackendReservation[]),
+            wallet: profile
+              ? this.doctorSpaceService
+                  .getWallet()
+                  .pipe(catchError(() => of(null as DoctorWalletView | null)))
+              : of(null as DoctorWalletView | null),
+            portfolio: profile
+              ? this.doctorSpaceService
+                  .listPortfolio(profile.id)
+                  .pipe(catchError(() => of([] as BackendProfessionalPortfolioItem[])))
+              : of([] as BackendProfessionalPortfolioItem[]),
           });
         }),
         catchError((error) => {
@@ -985,16 +1227,18 @@ export class DoctorSpacePageComponent implements OnInit {
             categories: [],
             reservations: [],
             wallet: null,
+            portfolio: [],
           });
         }),
         finalize(() => this.isLoading.set(false)),
       )
-      .subscribe(({ availabilities, services, categories, reservations, wallet }) => {
+      .subscribe(({ availabilities, services, categories, reservations, wallet, portfolio }) => {
         this.applyAvailabilities(availabilities);
         this.applyServices(services);
         this.categories.set(categories);
         this.reservations.set(reservations);
         this.wallet.set(wallet);
+        this.portfolioItems.set(portfolio);
       });
   }
 
@@ -1009,6 +1253,12 @@ export class DoctorSpacePageComponent implements OnInit {
       next: (availabilities) => this.applyAvailabilities(availabilities),
       error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Synchronisation impossible.')),
     });
+  }
+
+  private patchProfileForm(profile: BackendProfessionalProfile | null): void {
+    this.profileForm.companyName = profile?.nomEntreprise ?? '';
+    this.profileForm.city = profile?.ville ?? '';
+    this.profileForm.bio = profile?.biographie ?? '';
   }
 
   private refreshServices(): void {

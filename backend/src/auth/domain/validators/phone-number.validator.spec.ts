@@ -19,7 +19,7 @@ describe('PhoneNumberValidator', () => {
     expect(validator.normalizeOrThrow(input)).toBe(expected);
   });
 
-  it.each(['+33123456789', '+221740000000', '+22177000000', 'abc'])(
+  it.each(['+33123456789', '+221690000000', '+22177000000', 'abc'])(
     'rejects invalid Senegal phone number %s',
     (input) => {
       expect(() => validator.normalizeOrThrow(input)).toThrow();

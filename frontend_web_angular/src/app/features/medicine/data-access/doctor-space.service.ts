@@ -7,6 +7,7 @@ import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import {
   BackendProfessionalAvailability,
   BackendProfessionalDetailService,
+  BackendProfessionalPortfolioItem,
   BackendProfessionalProfile,
   Category,
 } from '../../services/domain/models/services.models';
@@ -34,6 +35,14 @@ export type DoctorWalletView = {
     refundedCancellationCount: number;
   };
   transactions: DoctorWalletTransaction[];
+};
+
+export type ProfessionalUploadView = {
+  fileUrl: string;
+  imageUrl: string;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes: number;
 };
 
 export type PatientMedicalTreatment = {
@@ -77,6 +86,60 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
+  createMyProfessionalProfile(data: {
+    bio?: string | null;
+    companyName?: string | null;
+    city?: string | null;
+  }): Observable<BackendProfessionalProfile> {
+    return this.http
+      .post<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/profile`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateMyProfessionalProfile(data: {
+    bio?: string | null;
+    companyName?: string | null;
+    city?: string | null;
+  }): Observable<BackendProfessionalProfile> {
+    return this.http
+      .patch<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/me`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  submitMyKyc(data: {
+    idCardUrl: string;
+    idCardUrlVerso?: string;
+  }): Observable<BackendProfessionalProfile> {
+    return this.http
+      .patch<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/me/kyc/submit`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  createPortfolioItem(data: {
+    title: string;
+    description?: string | null;
+    imageUrl: string;
+  }): Observable<BackendProfessionalPortfolioItem> {
+    return this.http
+      .post<ApiResponse<BackendProfessionalPortfolioItem>>(`${this.apiUrl}/professionals/me/portfolio`, data)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  deletePortfolioItem(itemId: string): Observable<void> {
+    return this.http
+      .delete<ApiResponse<null>>(`${this.apiUrl}/professionals/me/portfolio/${itemId}`)
+      .pipe(map(() => undefined));
+  }
+
+  uploadProfessionalAsset(file: File): Observable<ProfessionalUploadView> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http
+      .post<ApiResponse<ProfessionalUploadView>>(`${this.apiUrl}/professionals/me/uploads`, formData)
+      .pipe(map(unwrapApiResponse));
+  }
+
   listAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
     return this.http
       .get<ApiResponse<BackendProfessionalAvailability[]>>(
@@ -97,6 +160,14 @@ export class DoctorSpaceService {
     return this.http
       .get<ApiResponse<BackendProfessionalDetailService[]>>(
         `${this.apiUrl}/professionals/${profileId}/services`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  listPortfolio(profileId: string): Observable<BackendProfessionalPortfolioItem[]> {
+    return this.http
+      .get<ApiResponse<BackendProfessionalPortfolioItem[]>>(
+        `${this.apiUrl}/professionals/${profileId}/portfolio`,
       )
       .pipe(map(unwrapApiResponse));
   }

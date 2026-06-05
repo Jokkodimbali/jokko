@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
   IsString,
   Length,
   Validate,
+  ValidateIf,
   ValidatorConstraint,
   type ValidatorConstraintInterface,
   isEmail,
@@ -49,10 +50,22 @@ export class LoginDto {
     example: '+221770000000',
   })
   @Transform(({ value }: { value: unknown }) => normalizeLoginIdentifier(value))
+  @ValidateIf((dto: LoginDto) => !dto.phoneNumber || Boolean(dto.identifier))
   @IsNotEmpty({ message: VALIDATION_MESSAGES.LOGIN_IDENTIFIER_FORMAT })
   @IsString()
   @Validate(LoginIdentifierConstraint)
-  identifier!: string;
+  identifier?: string;
+
+  @ApiPropertyOptional({
+    description: 'Alias historique du numero de telephone pour compatibilite',
+    example: '+221770000000',
+  })
+  @Transform(({ value }: { value: unknown }) => normalizeLoginIdentifier(value))
+  @ValidateIf((dto: LoginDto) => !dto.identifier || Boolean(dto.phoneNumber))
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.LOGIN_IDENTIFIER_FORMAT })
+  @IsString()
+  @Validate(LoginIdentifierConstraint)
+  phoneNumber?: string;
 
   @ApiProperty({
     description: 'Mot de passe',

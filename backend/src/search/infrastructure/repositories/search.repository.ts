@@ -44,10 +44,21 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const geoDistanceFragment = hasGeo
       ? Prisma.sql`
-          ST_Distance(
-            pp.localisation,
-            ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography
-          ) / 1000.0
+          (
+            6371.0 * acos(
+              least(
+                1.0,
+                greatest(
+                  -1.0,
+                  cos(radians(${input.latitude}))
+                  * cos(radians(ST_Y(pp.localisation::geometry)))
+                  * cos(radians(ST_X(pp.localisation::geometry)) - radians(${input.longitude}))
+                  + sin(radians(${input.latitude}))
+                  * sin(radians(ST_Y(pp.localisation::geometry)))
+                )
+              )
+            )
+          )
         `
       : Prisma.sql`NULL`;
 
@@ -93,11 +104,21 @@ export class SearchRepository implements SearchRepositoryPort {
     const geoFilter = hasGeo
       ? Prisma.sql`
           AND pp.localisation IS NOT NULL
-          AND ST_DWithin(
-            pp.localisation,
-            ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography,
-            ${radiusKm * 1000}
-          )
+          AND (
+            6371.0 * acos(
+              least(
+                1.0,
+                greatest(
+                  -1.0,
+                  cos(radians(${input.latitude}))
+                  * cos(radians(ST_Y(pp.localisation::geometry)))
+                  * cos(radians(ST_X(pp.localisation::geometry)) - radians(${input.longitude}))
+                  + sin(radians(${input.latitude}))
+                  * sin(radians(ST_Y(pp.localisation::geometry)))
+                )
+              )
+            )
+          ) <= ${radiusKm}
         `
       : Prisma.empty;
 
@@ -215,22 +236,26 @@ export class SearchRepository implements SearchRepositoryPort {
       servicesByProfile.set(service.profilProfessionnelId, existing);
     }
 
-    const items: SearchProfessionalView[] = rows.map((row) => ({
-      id: row.id,
-      userId: row.userId,
-      name: row.name,
-      avatarUrl: row.avatarUrl,
-      companyName: row.companyName,
-      bio: row.bio,
-      city: row.city,
-      latitude: row.latitude === null ? null : Number(row.latitude),
-      longitude: row.longitude === null ? null : Number(row.longitude),
-      rating: Number(row.rating),
-      totalReviews: row.totalReviews,
-      distanceKm:
-        row.distanceKm === null ? null : Number(row.distanceKm.toFixed(2)),
-      services: servicesByProfile.get(row.id) ?? [],
-    }));
+    const items: SearchProfessionalView[] = rows.map((row) => {
+      const distance =
+        row.distanceKm === null ? null : Number(row.distanceKm);
+
+      return {
+        id: row.id,
+        userId: row.userId,
+        name: row.name,
+        avatarUrl: row.avatarUrl,
+        companyName: row.companyName,
+        bio: row.bio,
+        city: row.city,
+        latitude: row.latitude === null ? null : Number(row.latitude),
+        longitude: row.longitude === null ? null : Number(row.longitude),
+        rating: Number(row.rating),
+        totalReviews: row.totalReviews,
+        distanceKm: distance === null ? null : Number(distance.toFixed(2)),
+        services: servicesByProfile.get(row.id) ?? [],
+      };
+    });
 
     return {
       items,

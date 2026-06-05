@@ -159,6 +159,12 @@ export class ServiceProposalService {
       );
   }
 
+  getPriceProposal(negotiationId: string): Observable<NegotiationView> {
+    return this.http
+      .get<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   counterPriceProposal(
     negotiationId: string,
     payload: CreatePriceProposalPayload,
@@ -192,6 +198,17 @@ export class ServiceProposalService {
   rejectPriceProposal(negotiationId: string, reason: string): Observable<NegotiationView> {
     return this.http
       .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/reject`, {
+        reason,
+      })
+      .pipe(
+        map((response) => unwrapApiResponse(response)),
+        tap(() => this.clearProposalsCache()),
+      );
+  }
+
+  cancelPriceProposal(negotiationId: string, reason?: string): Observable<NegotiationView> {
+    return this.http
+      .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/cancel`, {
         reason,
       })
       .pipe(

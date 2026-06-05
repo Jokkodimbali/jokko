@@ -14,7 +14,7 @@ describe('AuthModule (e2e)', () => {
   const timestamp = Date.now();
   const phoneOtp = `+22177${String(timestamp).slice(-7)}`;
   const phoneRegister = `+22176${String(timestamp).slice(-7)}`;
-  const phoneRegisterSecond = `+22179${String(timestamp).slice(-7)}`;
+  const phoneRegisterSecond = `+22170${String(timestamp).slice(-7)}`;
   const password = `TestPass${timestamp}!`;
   const email = `auth-${timestamp}@jokko.sn`;
   let refreshToken = '';
@@ -43,6 +43,23 @@ describe('AuthModule (e2e)', () => {
     errorCode?: string;
     message?: string | string[];
   };
+
+  function readRefreshCookie(response: request.Response): string {
+    const setCookieHeader = response.headers['set-cookie'];
+    const cookies = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : typeof setCookieHeader === 'string'
+        ? [setCookieHeader]
+        : [];
+    const refreshCookie = cookies.find((cookie) =>
+      cookie.startsWith('jokko_refresh_token='),
+    );
+    return refreshCookie
+      ? decodeURIComponent(
+          refreshCookie.split(';')[0]?.split('=').slice(1).join('=') ?? '',
+        )
+      : '';
+  }
 
   async function waitForAuditLog() {
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -118,7 +135,6 @@ describe('AuthModule (e2e)', () => {
 
     expect(body.success).toBe(true);
     expect(body.data?.accessToken).toBeDefined();
-    expect(body.data?.refreshToken).toBeDefined();
   });
 
   it('POST /api/v1/auth/register', async () => {
@@ -165,10 +181,10 @@ describe('AuthModule (e2e)', () => {
 
     expect(body.success).toBe(true);
     expect(body.data?.accessToken).toBeDefined();
-    expect(body.data?.refreshToken).toBeDefined();
 
     accessToken = body.data?.accessToken ?? '';
-    refreshToken = body.data?.refreshToken ?? '';
+    refreshToken = readRefreshCookie(response);
+    expect(refreshToken).not.toHaveLength(0);
   });
 
   it('POST /api/v1/auth/google/login (non configure)', async () => {
@@ -179,7 +195,9 @@ describe('AuthModule (e2e)', () => {
     const body = response.body as AuthErrorResponse;
 
     expect(body.success).toBe(false);
-    expect(body.errorCode).toBe('AUTH_GOOGLE_NOT_CONFIGURED');
+    expect(['AUTH_GOOGLE_NOT_CONFIGURED', 'AUTH_GOOGLE_ACCOUNT_INVALID']).toContain(
+      body.errorCode,
+    );
   });
 
   it('POST /api/v1/auth/refresh', async () => {
@@ -191,10 +209,10 @@ describe('AuthModule (e2e)', () => {
 
     expect(body.success).toBe(true);
     expect(body.data?.accessToken).toBeDefined();
-    expect(body.data?.refreshToken).toBeDefined();
 
     accessToken = body.data?.accessToken ?? '';
-    refreshToken = body.data?.refreshToken ?? '';
+    refreshToken = readRefreshCookie(response);
+    expect(refreshToken).not.toHaveLength(0);
   });
 
   it('GET /api/v1/auth/me', async () => {

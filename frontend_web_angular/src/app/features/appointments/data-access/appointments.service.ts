@@ -110,6 +110,29 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 
+  confirmAppointment(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/confirm`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  rescheduleAppointment(
+    reservationId: string,
+    data: {
+      newDateTime: string;
+    },
+  ): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/reschedule`,
+        data,
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
   openDispute(reservationId: string, reason: string): Observable<AppointmentView> {
     return this.http
       .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/dispute`, {
@@ -223,6 +246,27 @@ export class AppointmentsService {
         `${this.apiUrl}/reservations/${reservationId}/price-adjustment/reject`,
         {},
       )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  proposePriceAdjustment(
+    reservationId: string,
+    data: {
+      proposedPrice: number;
+      reason: string;
+    },
+  ): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/propose`,
+        data,
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  markNoShow(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/no-show`, {})
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 

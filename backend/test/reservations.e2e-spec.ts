@@ -15,7 +15,7 @@ describe('ReservationsModule (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const uniqueSeed = randomUUID().replaceAll('-', '');
-  const phoneSuffix = `${Date.now().toString().slice(-6)}${Math.floor(
+  const phoneSuffix = `${Date.now().toString().slice(-4)}${Math.floor(
     Math.random() * 1000,
   )
     .toString()

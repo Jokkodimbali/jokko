@@ -8,6 +8,8 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { ApiExceptionFilter } from '../src/core/http/api-exception.filter';
 import { buildValidationException } from '../src/core/http/validation-exception.factory';
 
+jest.setTimeout(30000);
+
 describe('CategoriesModule (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;

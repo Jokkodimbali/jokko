@@ -32,7 +32,7 @@ export class CategoriesController {
     @Query('limit') limit?: string,
   ) {
     const p = page ? parseInt(page) : 1;
-    const l = limit ? parseInt(limit) : 10;
+    const l = limit ? parseInt(limit) : 100;
     const result = await this.categoriesFacade.listActiveCategories(p, l);
     return createPaginatedResponse(result.items, result.total, p, l);
   }

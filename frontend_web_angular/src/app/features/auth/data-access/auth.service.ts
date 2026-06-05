@@ -31,6 +31,40 @@ export interface SavedPaymentMethodView {
   updatedAt: string;
 }
 
+export interface PaymentHistoryView {
+  id: string;
+  reservationId?: string | null;
+  amount?: number;
+  montant?: number;
+  status?: string;
+  statut?: string;
+  method?: string;
+  methode?: string;
+  escrowStatus?: string | null;
+  createdAt?: string;
+  creeLe?: string;
+}
+
+export interface WithdrawalRequestView {
+  id?: string;
+  withdrawalId?: string;
+  professionalId?: string;
+  amount: number;
+  method: string;
+  status: string;
+  requestedAt?: string;
+  createdAt?: string;
+}
+
+export interface PaymentEscrowStatusView {
+  paymentId?: string;
+  status?: string;
+  escrowStatus?: string;
+  amount?: number;
+  canRelease?: boolean;
+  canDispute?: boolean;
+}
+
 export interface UserHistoryItemView {
   id: string;
   statut: string;
@@ -312,6 +346,44 @@ export class AuthService {
     return this.http
       .delete<ApiResponse<null>>(`${this.paymentsApiUrl}/methods/saved/${methodId}`)
       .pipe(map(() => undefined));
+  }
+
+  listPaymentHistory(): Observable<PaymentHistoryView[]> {
+    return this.http
+      .get<ApiResponse<PaymentHistoryView[]>>(`${this.paymentsApiUrl}/history`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  listWithdrawalRequests(): Observable<WithdrawalRequestView[]> {
+    return this.http
+      .get<ApiResponse<WithdrawalRequestView[]>>(`${this.paymentsApiUrl}/withdrawals`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getPayment(paymentId: string): Observable<PaymentHistoryView> {
+    return this.http
+      .get<ApiResponse<PaymentHistoryView>>(`${this.paymentsApiUrl}/${paymentId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  releasePaymentEscrow(paymentId: string): Observable<PaymentHistoryView> {
+    return this.http
+      .patch<ApiResponse<PaymentHistoryView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/release`, {})
+      .pipe(map(unwrapApiResponse));
+  }
+
+  disputePaymentEscrow(paymentId: string, reason?: string): Observable<PaymentHistoryView> {
+    return this.http
+      .patch<ApiResponse<PaymentHistoryView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/dispute`, {
+        reason,
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getPaymentEscrowStatus(paymentId: string): Observable<PaymentEscrowStatusView> {
+    return this.http
+      .get<ApiResponse<PaymentEscrowStatusView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/status`)
+      .pipe(map(unwrapApiResponse));
   }
 
   logout(): Observable<void> {

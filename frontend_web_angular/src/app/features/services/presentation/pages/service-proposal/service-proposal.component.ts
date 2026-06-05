@@ -229,8 +229,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const service = this.currentService();
 
     if (!this.authSession.getAccessToken()) {
-      this.feedback.info('Connectez-vous pour proposer un prix.');
-      this.router.navigate(['/auth/login']);
+      this.feedback.info('Connectez-vous d abord pour proposer un prix.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
       return;
     }
 
@@ -345,7 +347,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
       if (error.status === 401) {
         this.feedback.info('Votre session a expire. Connectez-vous pour continuer.');
-        this.router.navigate(['/auth/login']);
+        this.router.navigate(['/auth/login'], {
+          queryParams: { returnUrl: this.router.url },
+        });
         return;
       }
 

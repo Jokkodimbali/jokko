@@ -106,10 +106,10 @@ export class AuthService {
       .pipe(map(unwrapApiResponse));
   }
 
-  refresh(data: RefreshTokenRequestDto = {}): Observable<void> {
+  refresh(data: RefreshTokenRequestDto = {}): Observable<AuthResponseDto> {
     return this.http
-      .post<ApiResponse<null>>(`${this.apiUrl}/refresh`, data)
-      .pipe(map(() => undefined));
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/refresh`, data)
+      .pipe(map(unwrapApiResponse));
   }
 
   googleLogin(data: GoogleLoginRequestDto): Observable<AuthResponseDto> {

@@ -234,8 +234,10 @@ export class AuthController {
     const result = await this.authService.refresh(refreshToken, {
       userAgent: this.readUserAgent(request),
     });
-    this.setAuthCookies(response, result.accessToken, result.refreshToken);
-    return createApiResponse(null, API_DOCS.auth.refreshSuccess);
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.refreshSuccess,
+    );
   }
 
   @Post('logout')

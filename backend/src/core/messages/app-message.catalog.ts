@@ -77,6 +77,12 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED,
       message: "Le token d'authentification est invalide.",
     },
+    AUTH_FORBIDDEN: {
+      code: 'AUTH_FORBIDDEN',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message:
+        "Vous n'avez pas les droits necessaires pour acceder a cette ressource.",
+    },
     AUTH_OTP_INVALID_OR_EXPIRED: {
       code: 'AUTH_OTP_INVALID_OR_EXPIRED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED,
@@ -182,7 +188,8 @@ export const APP_MESSAGES_BY_MODULE = {
     USERS_PROFESSIONAL_PROFILE_REQUIRED: {
       code: 'USERS_PROFESSIONAL_PROFILE_REQUIRED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
-      message: 'Seuls les prestataires et medecins peuvent ajouter ce document.',
+      message:
+        'Seuls les prestataires et medecins peuvent ajouter ce document.',
     },
     USERS_PROFESSIONAL_PROFILE_NOT_FOUND: {
       code: 'USERS_PROFESSIONAL_PROFILE_NOT_FOUND',

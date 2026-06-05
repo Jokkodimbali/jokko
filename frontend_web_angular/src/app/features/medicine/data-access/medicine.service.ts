@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
@@ -29,37 +29,12 @@ export class MedicineService {
         },
       })
       .pipe(
-        switchMap((response) => {
-          const professionals = unwrapApiResponse(response);
-          if (professionals.length === 0) {
-            return of({
-              doctors: [],
-              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-            });
-          }
-
-          return forkJoin(
-            professionals.map((professional) =>
-              forkJoin({
-                availabilities: this.getProfessionalAvailabilities(professional.id).pipe(
-                  catchError(() => of([])),
-                ),
-                presence: this.getProfessionalPresence(professional.id).pipe(
-                  catchError(() => of(null)),
-                ),
-              }).pipe(
-                map(({ availabilities, presence }) =>
-                  this.mapDoctor(professional, availabilities, presence),
-                ),
-              ),
-            ),
-          ).pipe(
-            map((doctors) => ({
-              doctors,
-              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-            })),
-          );
-        }),
+        map((response) => ({
+          doctors: unwrapApiResponse(response).map((professional) =>
+            this.mapDoctor(professional),
+          ),
+          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+        })),
       );
   }
 
@@ -81,8 +56,8 @@ export class MedicineService {
 
   private mapDoctor(
     professional: BackendProfessional,
-    availabilities: BackendProfessionalAvailability[],
-    presence: BackendProfessionalPresence | null,
+    availabilities: BackendProfessionalAvailability[] = [],
+    presence: BackendProfessionalPresence | null = null,
   ): DoctorProfile {
     const primaryService = professional.services[0];
     const medicalSpecialty = this.extractMedicalSpecialty(professional.bio);

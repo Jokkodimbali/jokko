@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -43,6 +43,7 @@ export class ServicesComponent implements OnInit {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly router = inject(Router);
 
   protected readonly heroIllustration = '/image%20haut.png';
 
@@ -223,7 +224,10 @@ export class ServicesComponent implements OnInit {
     event.stopPropagation();
 
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.info('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous d abord pour gerer vos favoris.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: '/services' },
+      });
       return;
     }
 

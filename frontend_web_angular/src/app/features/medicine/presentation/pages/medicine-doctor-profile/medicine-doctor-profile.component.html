@@ -6,15 +6,13 @@
   <div class="doctor-profile__shell">
     <section class="doctor-profile__hero" [style.backgroundImage]="'url(' + coverUrl + ')'">
       <button type="button" class="doctor-profile__back" aria-label="Retour" (click)="goBack()">
-        <lucide-icon name="arrow-left" size="27" [strokeWidth]="2.4"></lucide-icon>
+        <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
       </button>
 
-      <span *ngIf="doctor().isOnline" class="doctor-profile__online">
+      <span class="doctor-profile__online" [class.doctor-profile__online--offline]="!doctor().isOnline">
         <span></span>
-        En ligne
+        {{ doctor().isOnline ? 'En ligne' : 'Hors ligne' }}
       </span>
-
-      <app-scroll-hint />
     </section>
 
     <section class="doctor-profile__identity">
@@ -27,7 +25,7 @@
 
       <div class="doctor-profile__actions" aria-label="Actions medecin">
         <button type="button" aria-label="Partager">
-          <lucide-icon name="share-2" size="26" [strokeWidth]="2.4"></lucide-icon>
+          <lucide-icon name="share-2" size="20" [strokeWidth]="2.4"></lucide-icon>
         </button>
         <button
           type="button"
@@ -36,24 +34,24 @@
           [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
           (click)="toggleFavorite()"
         >
-          <lucide-icon name="heart" size="30" [strokeWidth]="2.3" [attr.fill]="isFavorite() ? 'currentColor' : 'none'"></lucide-icon>
+          <lucide-icon name="heart" size="21" [strokeWidth]="2.3" [attr.fill]="isFavorite() ? 'currentColor' : 'none'"></lucide-icon>
         </button>
       </div>
-    </section>
 
-    <section class="doctor-profile__stats" aria-label="Statistiques du medecin">
-      <div>
-        <lucide-icon name="clock-3" size="39" [strokeWidth]="2.5"></lucide-icon>
-        <p><strong>Disponible</strong><span>Planning</span></p>
-      </div>
-      <div>
-        <lucide-icon name="users" size="39" [strokeWidth]="2.5"></lucide-icon>
-        <p><strong>Medecine</strong><span>Specialite</span></p>
-      </div>
-      <div>
-        <lucide-icon name="star" size="43" [strokeWidth]="2.3"></lucide-icon>
-        <p><strong>{{ doctor().reviewCount }}</strong><span>Notations</span></p>
-      </div>
+      <section class="doctor-profile__stats" aria-label="Statistiques du medecin">
+        <div>
+          <span><lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+          <p><strong>Disponible</strong><small>Planning</small></p>
+        </div>
+        <div>
+          <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+          <p><strong>Medecine</strong><small>Specialite</small></p>
+        </div>
+        <div>
+          <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+          <p><strong>{{ doctor().reviewCount }}</strong><small>Avis</small></p>
+        </div>
+      </section>
     </section>
 
     <section class="doctor-profile__grid">
@@ -68,17 +66,24 @@
 
       <aside class="doctor-profile__side">
         <article class="doctor-profile__card doctor-profile__price">
-          <p><strong>Sur rendez-vous</strong> <span>/consultation</span></p>
+          <span>Consultation</span>
+          <p><strong>Sur rendez-vous</strong> <em>/consultation</em></p>
           <button type="button" [routerLink]="['/medecine', doctor().id, 'rendez-vous']">
-            <lucide-icon name="calendar-days" size="28" [strokeWidth]="2.4"></lucide-icon>
+            <lucide-icon name="calendar-days" size="25" [strokeWidth]="2.4"></lucide-icon>
             Prendre RDV
           </button>
         </article>
 
         <article class="doctor-profile__card doctor-profile__contact">
-          <h2>Coordonnee</h2>
-          <p><strong>Ville :</strong> {{ doctor().location }}</p>
-          <p><strong>Telephone :</strong> {{ phoneLabel() }}</p>
+          <h2>Coordonnees</h2>
+          <p>
+            <lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon>
+            <span>{{ doctor().location }}</span>
+          </p>
+          <p>
+            <lucide-icon name="phone" size="15" [strokeWidth]="2.4"></lucide-icon>
+            <span>{{ phoneLabel() }}</span>
+          </p>
           <iframe
             *ngIf="mapUrl()"
             [src]="mapUrl()"

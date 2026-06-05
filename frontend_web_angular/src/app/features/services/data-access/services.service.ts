@@ -52,14 +52,12 @@ export class ServicesService {
         params: { categoryId, page: page.toString(), limit: limit.toString() },
       })
       .pipe(
-        switchMap((response) =>
-          this.attachPortfolioPhotos(unwrapApiResponse(response)).pipe(
-            map((providers) => ({
-              providers,
-              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-            })),
+        map((response) => ({
+          providers: unwrapApiResponse(response).map((professional) =>
+            this.mapProfessional(professional),
           ),
-        ),
+          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+        })),
       );
   }
 
@@ -87,14 +85,12 @@ export class ServicesService {
         params,
       })
       .pipe(
-        switchMap((response) =>
-          this.attachPortfolioPhotos(unwrapApiResponse(response)).pipe(
-            map((providers) => ({
-              providers,
-              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-            })),
+        map((response) => ({
+          providers: unwrapApiResponse(response).map((professional) =>
+            this.mapProfessional(professional),
           ),
-        ),
+          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+        })),
       );
   }
 
@@ -188,30 +184,6 @@ export class ServicesService {
         `${this.apiUrl}/professionals/${profileId}/presence`,
       )
       .pipe(map((response) => unwrapApiResponse(response)));
-  }
-
-  private attachPortfolioPhotos(data: BackendProfessional[]): Observable<Professional[]> {
-    if (data.length === 0) {
-      return of([]);
-    }
-
-    return forkJoin(
-      data.map((professional) =>
-        forkJoin({
-          portfolio: this.getProfessionalPortfolio(professional.id).pipe(catchError(() => of([]))),
-          presence: this.getProfessionalPresence(professional.id).pipe(catchError(() => of(null))),
-        }).pipe(
-          map(({ portfolio, presence }) =>
-            this.mapProfessional(
-              professional,
-              portfolio.map((item) => item.urlImage).filter(Boolean),
-              presence,
-            ),
-          ),
-          catchError(() => of(this.mapProfessional(professional))),
-        ),
-      ),
-    );
   }
 
   private mapProfessional(

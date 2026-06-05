@@ -1,14 +1,13 @@
 import { CommonModule, Location } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
-import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -29,7 +28,6 @@ interface DoctorScheduleRow {
     RouterLink,
     AppFooterComponent,
     AppNavbarComponent,
-    AppScrollHintComponent,
     LucideAngularModule,
   ],
   templateUrl: './medicine-doctor-profile.component.html',
@@ -37,6 +35,7 @@ interface DoctorScheduleRow {
 })
 export class MedicineDoctorProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly feedback = inject(AppFeedbackService);
@@ -116,7 +115,10 @@ export class MedicineDoctorProfileComponent implements OnInit {
 
   protected toggleFavorite(): void {
     if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.info('Connectez-vous pour gerer vos favoris.');
+      this.feedback.info('Connectez-vous d abord pour gerer vos favoris.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
       return;
     }
 

@@ -10,7 +10,26 @@ if [ "${PRISMA_SKIP_MIGRATIONS:-false}" != "true" ]; then
 
   # Increase connection and query timeout for Prisma migrations
   export PRISMA_CLIENT_ENGINE_TIMEOUT=300000
-  npx prisma migrate deploy
+
+  max_attempts="${PRISMA_MIGRATE_MAX_ATTEMPTS:-5}"
+  attempt=1
+  while [ "$attempt" -le "$max_attempts" ]; do
+    echo "Tentative Prisma migrate deploy ${attempt}/${max_attempts}..."
+    if npx prisma migrate deploy; then
+      echo "Migrations Prisma appliquees avec succes."
+      break
+    fi
+
+    if [ "$attempt" -eq "$max_attempts" ]; then
+      echo "Erreur: impossible d'appliquer les migrations Prisma apres ${max_attempts} tentative(s)." >&2
+      exit 1
+    fi
+
+    sleep_seconds=$((attempt * 10))
+    echo "Migration Prisma temporairement indisponible. Nouvelle tentative dans ${sleep_seconds}s..."
+    sleep "$sleep_seconds"
+    attempt=$((attempt + 1))
+  done
 fi
 
 exec "$@"

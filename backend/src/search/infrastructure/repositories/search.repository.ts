@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
+  SearchProfessionalPortfolioImageView,
   SearchProfessionalServiceView,
   SearchProfessionalView,
   SearchProfessionalsInput,
@@ -236,6 +237,39 @@ export class SearchRepository implements SearchRepositoryPort {
       servicesByProfile.set(service.profilProfessionnelId, existing);
     }
 
+    const portfolioItems = profileIds.length
+      ? await this.prisma.elementPortfolio.findMany({
+          where: {
+            profilProfessionnelId: { in: profileIds },
+          },
+          orderBy: [{ creeLe: 'desc' }],
+          select: {
+            id: true,
+            titre: true,
+            urlImage: true,
+            profilProfessionnelId: true,
+          },
+        })
+      : [];
+
+    const portfolioByProfile = new Map<
+      string,
+      SearchProfessionalPortfolioImageView[]
+    >();
+    for (const item of portfolioItems) {
+      const existing = portfolioByProfile.get(item.profilProfessionnelId) ?? [];
+      if (existing.length >= 2) {
+        continue;
+      }
+
+      existing.push({
+        id: item.id,
+        title: item.titre,
+        url: item.urlImage,
+      });
+      portfolioByProfile.set(item.profilProfessionnelId, existing);
+    }
+
     const items: SearchProfessionalView[] = rows.map((row) => {
       const distance =
         row.distanceKm === null ? null : Number(row.distanceKm);
@@ -254,6 +288,7 @@ export class SearchRepository implements SearchRepositoryPort {
         totalReviews: row.totalReviews,
         distanceKm: distance === null ? null : Number(distance.toFixed(2)),
         services: servicesByProfile.get(row.id) ?? [],
+        portfolioImages: portfolioByProfile.get(row.id) ?? [],
       };
     });
 

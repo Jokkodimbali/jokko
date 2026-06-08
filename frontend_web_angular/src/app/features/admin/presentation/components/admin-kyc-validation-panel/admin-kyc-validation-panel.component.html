@@ -1,13 +1,39 @@
 <section class="admin-validation-page">
-  <header class="admin-section-heading">
-    <h1>Validation en attente</h1>
-    <p>Verifiez les documents avant d'approuver les prestataires</p>
+  <header class="admin-validation-hero">
+    <div>
+      <span>
+        <lucide-icon name="shield-check" size="20" [strokeWidth]="2.4"></lucide-icon>
+        Validation des prestataires
+      </span>
+      <h1>Dossiers professionnels a verifier</h1>
+      <p>Controlez l'identite, les informations et les documents avant d'ouvrir l'acces professionnel.</p>
+    </div>
+
+    <div class="admin-validation-stats">
+      <article>
+        <small>En attente</small>
+        <strong>{{ profiles.length }}</strong>
+      </article>
+      <article *ngIf="selectedProfile() as profile">
+        <small>Documents</small>
+        <strong>{{ providedDocumentsCount(profile) }}/{{ documents(profile).length }}</strong>
+      </article>
+    </div>
   </header>
 
-  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des dossiers KYC...</section>
+  <section class="admin-validation-empty" *ngIf="isLoading">
+    <lucide-icon name="loader-circle" size="34" [strokeWidth]="2.4"></lucide-icon>
+    <strong>Chargement des dossiers KYC...</strong>
+    <span>Preparation des profils en attente de validation.</span>
+  </section>
 
   <div class="admin-validation-layout" *ngIf="!isLoading && profiles.length > 0; else noValidation">
-    <aside class="admin-validation-list">
+    <aside class="admin-validation-list" aria-label="Dossiers en attente">
+      <div class="admin-validation-list__head">
+        <strong>Dossiers</strong>
+        <span>{{ profiles.length }} a traiter</span>
+      </div>
+
       <button
         *ngFor="let profile of profiles"
         type="button"
@@ -27,39 +53,52 @@
     </aside>
 
     <article class="admin-validation-detail" *ngIf="selectedProfile() as profile">
-      <header>
+      <section class="admin-validation-profile">
         <img *ngIf="profile.utilisateur.urlAvatar; else detailAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
         <ng-template #detailAvatar>
           <span>{{ initials(profile) }}</span>
         </ng-template>
+
         <div>
+          <small>Dossier selectionne</small>
           <h2>{{ title(profile) }}</h2>
           <p>{{ subtitle(profile) }}</p>
-          <small>{{ profile.biographie || 'Dossier professionnel soumis pour verification' }}</small>
         </div>
-      </header>
 
-      <dl class="admin-validation-meta">
-        <div>
-          <lucide-icon name="map-pin" size="13" [strokeWidth]="2"></lucide-icon>
-          <span>{{ profile.ville || 'Adresse non renseignee' }}</span>
-        </div>
-        <div>
-          <lucide-icon name="phone" size="13" [strokeWidth]="2"></lucide-icon>
-          <span>{{ profile.utilisateur.numeroTelephone }}</span>
-        </div>
-        <div>
-          <lucide-icon name="mail" size="13" [strokeWidth]="2"></lucide-icon>
-          <span>{{ profile.utilisateur.nom }}</span>
-        </div>
-        <div>
-          <lucide-icon name="calendar-days" size="13" [strokeWidth]="2"></lucide-icon>
-          <span>Soumis le {{ formatDate(profile) }}</span>
-        </div>
-      </dl>
+        <b>{{ profile.statutKyc }}</b>
+      </section>
+
+      <section class="admin-validation-summary">
+        <article>
+          <lucide-icon name="map-pin" size="17" [strokeWidth]="2.3"></lucide-icon>
+          <span>Ville</span>
+          <strong>{{ profile.ville || 'Non renseignee' }}</strong>
+        </article>
+        <article>
+          <lucide-icon name="phone" size="17" [strokeWidth]="2.3"></lucide-icon>
+          <span>Telephone</span>
+          <strong>{{ profile.utilisateur.numeroTelephone }}</strong>
+        </article>
+        <article>
+          <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.3"></lucide-icon>
+          <span>Soumission</span>
+          <strong>{{ formatDate(profile) }}</strong>
+        </article>
+      </section>
+
+      <section class="admin-validation-bio">
+        <h3>Presentation</h3>
+        <p>{{ profile.biographie || 'Aucune biographie professionnelle renseignee pour ce dossier.' }}</p>
+      </section>
 
       <section class="admin-validation-documents">
-        <h3>Documents fournis</h3>
+        <header>
+          <div>
+            <h3>Documents fournis</h3>
+            <p>{{ providedDocumentsCount(profile) }} document(s) disponible(s) sur {{ documents(profile).length }}</p>
+          </div>
+        </header>
+
         <a
           *ngFor="let document of documents(profile)"
           [href]="document.url || null"
@@ -67,10 +106,13 @@
           target="_blank"
           rel="noreferrer"
         >
-          <lucide-icon name="file-text" size="14" [strokeWidth]="2"></lucide-icon>
-          <span>{{ document.label }}</span>
+          <lucide-icon name="file-text" size="17" [strokeWidth]="2.3"></lucide-icon>
+          <span>
+            <strong>{{ document.label }}</strong>
+            <small>{{ document.url ? 'Cliquez pour ouvrir le document' : 'Document manquant' }}</small>
+          </span>
           <b>{{ document.url ? 'Fourni' : 'Manquant' }}</b>
-          <lucide-icon name="eye" size="13" [strokeWidth]="2"></lucide-icon>
+          <lucide-icon name="eye" size="15" [strokeWidth]="2.2"></lucide-icon>
         </a>
       </section>
 
@@ -86,8 +128,34 @@
       </footer>
     </article>
   </div>
+
+  <div class="admin-validation-modal" *ngIf="rejectionProfileId()">
+    <form (ngSubmit)="confirmReject()">
+      <header>
+        <span><lucide-icon name="triangle-alert" size="22" [strokeWidth]="2.4"></lucide-icon></span>
+        <div>
+          <h2>Rejeter le dossier</h2>
+          <p>Indiquez un motif clair pour {{ selectedProfileTitle() }}.</p>
+        </div>
+      </header>
+
+      <label>
+        Motif du rejet
+        <textarea name="rejectionReason" [(ngModel)]="rejectionReason" rows="4" placeholder="Ex : Piece d'identite illisible ou informations incompletes."></textarea>
+      </label>
+
+      <footer>
+        <button type="button" (click)="closeRejectModal()">Annuler</button>
+        <button type="submit" [disabled]="!rejectionReason.trim()">Confirmer le rejet</button>
+      </footer>
+    </form>
+  </div>
 </section>
 
 <ng-template #noValidation>
-  <section class="admin-validation-empty" *ngIf="!isLoading">Aucune validation en attente.</section>
+  <section class="admin-validation-empty" *ngIf="!isLoading">
+    <lucide-icon name="shield-check" size="34" [strokeWidth]="2.4"></lucide-icon>
+    <strong>Aucune validation en attente.</strong>
+    <span>Tous les dossiers professionnels soumis ont ete traites.</span>
+  </section>
 </ng-template>

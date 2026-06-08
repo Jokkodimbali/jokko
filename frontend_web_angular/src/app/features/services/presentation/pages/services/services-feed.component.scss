@@ -287,11 +287,11 @@
 
 :host .provider-card__favorite {
   align-items: center;
-  background: #955d24;
-  border: 0;
+  background: #ffffff;
+  border: 1px solid #ead8c7;
   border-radius: 12px;
-  box-shadow: none;
-  color: #fff;
+  box-shadow: 0 10px 24px rgba(44, 26, 12, 0.12);
+  color: #955d24;
   cursor: pointer;
   display: inline-flex;
   height: 31px;
@@ -308,11 +308,24 @@
 }
 
 :host .provider-card__favorite:hover,
-:host .provider-card__favorite:focus-visible,
-:host .provider-card__favorite--active {
-  background: #7f4b1d;
-  color: #fff;
+:host .provider-card__favorite:focus-visible {
+  background: #fff7ef;
+  border-color: #c99d77;
+  color: #7f4b1d;
   transform: scale(1.06);
+}
+
+:host .provider-card__favorite--active {
+  background: #955d24;
+  border-color: #955d24;
+  color: #fff;
+}
+
+:host .provider-card__favorite--active:hover,
+:host .provider-card__favorite--active:focus-visible {
+  background: #7f4b1d;
+  border-color: #7f4b1d;
+  color: #fff;
 }
 
 :host .provider-card__favorite--active lucide-icon {
@@ -440,18 +453,59 @@
 
 /* ─── Photo strip ───────────────────────────────────────────────── */
 :host .photo-strip {
-  display: grid !important;
+  border-radius: 10px;
+  display: block !important;
   gap: 8px !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   margin-bottom: 15px;
+  min-height: 96px;
+  overflow: hidden;
+  position: relative;
+}
+
+:host .photo-strip__track {
+  display: flex;
+  gap: 8px;
+  height: 100%;
+  min-height: 96px;
+  width: 100%;
+}
+
+:host .photo-strip--carousel .photo-strip__track {
+  animation: portfolio-strip-scroll 18s linear infinite;
+}
+
+:host .provider-card:hover .photo-strip--carousel .photo-strip__track,
+:host .provider-card:focus-within .photo-strip--carousel .photo-strip__track {
+  animation-play-state: paused;
 }
 
 :host .photo-strip img {
   aspect-ratio: 1.78 !important;
   border-radius: 8px;
+  flex: 0 0 calc(50% - 4px);
   height: auto;
   object-fit: cover;
-  width: 100%;
+  width: calc(50% - 4px);
+}
+
+@keyframes portfolio-strip-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host .photo-strip--carousel .photo-strip__track {
+    animation: none;
+  }
+
+  :host .photo-strip {
+    overflow-x: auto;
+  }
 }
 
 :host .photo-strip--empty {

@@ -50,6 +50,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly failedImageUrls = signal<Set<string>>(new Set());
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly selectedServiceId = this.route.snapshot.queryParamMap.get('serviceId') || '';
@@ -81,9 +82,7 @@ export class ProviderProfileComponent implements OnInit {
       .map((part) => part[0]?.toUpperCase())
       .join(''),
   );
-  protected readonly coverUrl = computed(
-    () => this.detail()?.portfolio[0]?.urlImage ?? this.defaultCoverUrl,
-  );
+  protected readonly coverUrl = computed(() => this.defaultCoverUrl);
   protected readonly portfolioItems = computed(() =>
     (this.detail()?.portfolio ?? []).slice(0, 6),
   );
@@ -197,6 +196,28 @@ export class ProviderProfileComponent implements OnInit {
   protected starsFor(value: number): string {
     const rounded = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
     return '★'.repeat(rounded).padEnd(5, '☆');
+  }
+
+  protected visibleImageUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value || this.failedImageUrls().has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  protected handleImageError(url: string | null | undefined): void {
+    const value = url?.trim();
+    if (!value) {
+      return;
+    }
+
+    this.failedImageUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(value);
+      return next;
+    });
   }
 
   protected toggleFavorite(): void {

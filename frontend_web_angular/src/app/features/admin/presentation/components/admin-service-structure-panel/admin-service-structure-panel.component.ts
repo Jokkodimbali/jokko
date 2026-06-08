@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
@@ -62,6 +62,7 @@ export class AdminServiceStructurePanelComponent {
   protected categoryPendingDisable: AdminServiceStructureCategory | null = null;
   protected selectedSubCategoryIds = new Set<string>();
   protected isUploadingImage = false;
+  private readonly failedIconUrls = signal<Set<string>>(new Set());
 
   protected visibleCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
     return report.categories;
@@ -244,6 +245,29 @@ export class AdminServiceStructurePanelComponent {
     if (normalized.includes('plomberie') || normalized.includes('sanitaire')) return 'wrench';
     if (normalized.includes('menuiser') || normalized.includes('metal')) return 'archive';
     return 'git-fork';
+  }
+
+  protected visibleCategoryIconUrl(category: AdminServiceStructureCategory): string | null {
+    const iconUrl = category.iconUrl?.trim();
+    if (!iconUrl || this.failedIconUrls().has(iconUrl)) return null;
+    if (this.isLegacyBrokenCdnUrl(iconUrl)) return null;
+    return iconUrl;
+  }
+
+  protected handleCategoryIconError(iconUrl: string): void {
+    this.failedIconUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(iconUrl);
+      return next;
+    });
+  }
+
+  private isLegacyBrokenCdnUrl(iconUrl: string): boolean {
+    try {
+      return new URL(iconUrl).hostname === 'cdn.jokko.sn';
+    } catch {
+      return false;
+    }
   }
 
   protected formatMoney(value: number): string {

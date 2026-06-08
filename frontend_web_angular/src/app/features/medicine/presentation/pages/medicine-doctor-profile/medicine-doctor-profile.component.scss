@@ -98,11 +98,17 @@
 }
 
 .doctor-profile__avatar {
+  align-items: center;
   background: #9a5f28;
   border: 6px solid #fff;
   border-radius: 26px;
   box-shadow: 0 14px 30px rgba(42, 36, 31, 0.22);
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 28px;
+  font-weight: 950;
   height: 116px;
+  justify-content: center;
   margin-top: -54px;
   object-fit: cover;
   position: relative;

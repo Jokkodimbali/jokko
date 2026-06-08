@@ -33,10 +33,11 @@
 
       <section class="provider-profile__identity-card">
         <img
-          *ngIf="avatarUrl(); else avatarInitials"
+          *ngIf="visibleImageUrl(avatarUrl()) as avatar; else avatarInitials"
           class="provider-profile__avatar"
-          [src]="avatarUrl()!"
+          [src]="avatar"
           [alt]="displayName()"
+          (error)="handleImageError(avatar)"
         />
         <ng-template #avatarInitials>
           <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
@@ -95,7 +96,17 @@
             <h2>Galerie des realisations</h2>
             <div *ngIf="portfolioItems().length > 0; else noPortfolio" class="provider-profile__gallery-grid">
               <figure *ngFor="let item of portfolioItems()">
-                <img [src]="item.urlImage" [alt]="item.titre" />
+                <img
+                  *ngIf="visibleImageUrl(item.urlImage) as imageUrl; else portfolioImageFallback"
+                  [src]="imageUrl"
+                  [alt]="item.titre"
+                  (error)="handleImageError(imageUrl)"
+                />
+                <ng-template #portfolioImageFallback>
+                  <span class="provider-profile__gallery-fallback">
+                    {{ item.titre.slice(0, 2).toUpperCase() }}
+                  </span>
+                </ng-template>
                 <figcaption>{{ item.titre }}</figcaption>
               </figure>
             </div>
@@ -117,9 +128,10 @@
             <div *ngIf="reviewItems().length > 0; else noReviews" class="provider-profile__review-list">
               <article *ngFor="let review of reviewItems()" class="provider-profile__review">
                 <img
-                  *ngIf="review.client.urlAvatar; else reviewInitials"
-                  [src]="review.client.urlAvatar"
+                  *ngIf="visibleImageUrl(review.client.urlAvatar) as reviewAvatar; else reviewInitials"
+                  [src]="reviewAvatar"
                   [alt]="review.client.nom"
+                  (error)="handleImageError(reviewAvatar)"
                 />
                 <ng-template #reviewInitials>
                   <span class="provider-profile__review-avatar">{{ review.client.nom.slice(0, 2).toUpperCase() }}</span>

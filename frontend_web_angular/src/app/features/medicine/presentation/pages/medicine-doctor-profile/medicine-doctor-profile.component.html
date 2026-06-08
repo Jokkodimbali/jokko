@@ -16,7 +16,16 @@
     </section>
 
     <section class="doctor-profile__identity">
-      <img class="doctor-profile__avatar" [src]="doctor().imageUrl" [alt]="doctor().name" />
+      <img
+        *ngIf="visibleImageUrl(doctor().imageUrl) as imageUrl; else doctorProfileInitials"
+        class="doctor-profile__avatar"
+        [src]="imageUrl"
+        [alt]="doctor().name"
+        (error)="handleImageError(imageUrl)"
+      />
+      <ng-template #doctorProfileInitials>
+        <span class="doctor-profile__avatar doctor-profile__avatar-initials">{{ doctorInitials() }}</span>
+      </ng-template>
       <div class="doctor-profile__name">
         <h1>{{ doctor().name }}</h1>
         <p>{{ doctor().specialty }}</p>

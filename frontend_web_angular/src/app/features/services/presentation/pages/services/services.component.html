@@ -45,6 +45,7 @@
               *ngIf="resolveProviderAvatar(provider) as avatar; else favoriteInitials"
               [src]="avatar"
               [alt]="provider.nom"
+              (error)="handleImageError(avatar)"
             />
             <ng-template #favoriteInitials>
               <span class="favorite-avatar__initials">{{ providerInitials(provider.nom) }}</span>
@@ -134,6 +135,7 @@
                     *ngIf="resolveProviderAvatar(provider) as avatar; else providerInitialsTpl"
                     [src]="avatar"
                     [alt]="provider.nom"
+                    (error)="handleImageError(avatar)"
                   />
                   <ng-template #providerInitialsTpl>
                     <span>{{ providerInitials(provider.nom) }}</span>
@@ -160,8 +162,24 @@
                 </div>
               </div>
 
-              <div class="photo-strip" *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio">
-                <img *ngFor="let photo of providerPhotos(provider)" [src]="photo" alt="" />
+              <div
+                class="photo-strip"
+                [class.photo-strip--carousel]="providerPhotos(provider).length > 1"
+                *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio"
+              >
+                <div class="photo-strip__track">
+                  <ng-container *ngFor="let photo of providerPhotos(provider)">
+                    <img [src]="photo" [alt]="'Realisation - ' + provider.nom" (error)="handleImageError(photo)" />
+                  </ng-container>
+                  <ng-container *ngIf="providerPhotos(provider).length > 1">
+                    <img
+                      *ngFor="let photo of providerPhotos(provider)"
+                      [src]="photo"
+                      [alt]="'Realisation - ' + provider.nom"
+                      (error)="handleImageError(photo)"
+                    />
+                  </ng-container>
+                </div>
               </div>
               <ng-template #emptyPortfolio>
                 <div class="photo-strip photo-strip--empty">
@@ -183,7 +201,12 @@
               [attr.aria-label]="isProviderFavorite(provider.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
               (click)="toggleProviderFavorite($event, provider.id)"
             >
-              <lucide-icon name="bookmark" size="21" [strokeWidth]="2.4"></lucide-icon>
+              <lucide-icon
+                name="bookmark"
+                size="21"
+                [strokeWidth]="2.4"
+                [attr.fill]="isProviderFavorite(provider.id) ? 'currentColor' : 'none'"
+              ></lucide-icon>
             </button>
           </article>
         </div>

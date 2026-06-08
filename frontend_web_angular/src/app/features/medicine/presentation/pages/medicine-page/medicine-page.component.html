@@ -35,11 +35,14 @@
             <i></i>
             En ligne
           </span>
-          <img [src]="doctor.imageUrl" [alt]="doctor.name" />
+          <img *ngIf="doctor.imageUrl; else mapDoctorInitials" [src]="doctor.imageUrl" [alt]="doctor.name" />
+          <ng-template #mapDoctorInitials>
+            <span class="medicine-page__map-initials">{{ doctorInitials(doctor) }}</span>
+          </ng-template>
           <span class="medicine-page__map-copy">
             <strong>{{ doctor.name }}</strong>
             <small>{{ doctor.specialty }}</small>
-            <b>{{ doctor.rating }} ({{ doctor.reviewCount }} review)</b>
+            <b>{{ doctor.rating }} ({{ doctor.reviewCount }} avis)</b>
             <em>Prendre RDV</em>
           </span>
         </a>

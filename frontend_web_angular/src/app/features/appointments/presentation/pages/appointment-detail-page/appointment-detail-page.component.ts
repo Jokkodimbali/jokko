@@ -263,6 +263,21 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     return `${appointment.durationMinutes || 30} MIN`;
   }
 
+  protected avatarInitials(appointment: AppointmentView): string {
+    return (
+      appointment.doctorName
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
+  }
+
+  protected serviceDescriptionLabel(appointment: AppointmentView): string {
+    return appointment.notes?.trim() || 'Aucune note particuliere n a ete ajoutee a ce rendez-vous.';
+  }
+
   protected setRating(rating: number): void {
     this.selectedRating.set(rating);
     const appointment = this.appointment();

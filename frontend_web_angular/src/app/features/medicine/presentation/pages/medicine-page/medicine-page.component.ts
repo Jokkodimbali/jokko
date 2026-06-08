@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { MedicineService } from '../../../data-access/medicine.service';
@@ -37,6 +38,7 @@ import { MedicineHeroComponent } from '../../components/medicine-hero/medicine-h
 export class MedicinePageComponent implements OnInit {
   private readonly medicineService = inject(MedicineService);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly sanitizer = inject(DomSanitizer);
 
@@ -62,7 +64,9 @@ export class MedicinePageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDoctors();
-    this.favoritesService.list().subscribe({ error: () => undefined });
+    if (this.authSession.hasAuthenticatedSession()) {
+      this.favoritesService.list().subscribe({ error: () => undefined });
+    }
   }
 
   protected handleFilter(filter: MedicineFilterAction): void {
@@ -86,6 +90,17 @@ export class MedicinePageComponent implements OnInit {
       left: `${this.clamp(left, 12, 88)}%`,
       top: `${this.clamp(top, 16, 84)}%`,
     };
+  }
+
+  protected doctorInitials(doctor: DoctorProfile): string {
+    return (
+      doctor.name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
   }
 
   private mapCenter(): { latitude: number; longitude: number } | null {

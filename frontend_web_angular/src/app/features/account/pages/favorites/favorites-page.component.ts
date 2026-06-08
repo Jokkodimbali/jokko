@@ -74,7 +74,7 @@ export class FavoritesPageComponent {
   });
 
   constructor() {
-    if (!this.authSession.hasAuthenticatedSession()) {
+    if (!this.hasUsableFavoriteSession()) {
       return;
     }
 
@@ -189,5 +189,32 @@ export class FavoritesPageComponent {
     if (hours < 24) return `il y a ${hours} h`;
 
     return 'maintenant';
+  }
+
+  private hasUsableFavoriteSession(): boolean {
+    const token = this.authSession.getAccessToken();
+    if (!this.currentUser() || !token) return false;
+
+    const [, payload] = token.split('.');
+    if (!payload) return false;
+
+    try {
+      const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedPayload = normalizedPayload.padEnd(
+        normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+        '=',
+      );
+      const decoded = JSON.parse(window.atob(paddedPayload)) as { exp?: unknown };
+      if (typeof decoded.exp !== 'number') return true;
+      const isExpired = decoded.exp * 1000 <= Date.now();
+      if (isExpired) {
+        this.authSession.clear();
+        return false;
+      }
+      return true;
+    } catch {
+      this.authSession.clear();
+      return false;
+    }
   }
 }

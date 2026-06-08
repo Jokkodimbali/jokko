@@ -305,15 +305,23 @@
 
 .settings-page__chip,
 .settings-page__security header span {
+  align-items: center;
   background: #e6e7eb;
   border: 0;
   border-radius: 999px;
   color: #4b5563;
   cursor: pointer;
+  display: inline-flex;
   font-size: 17px;
   font-weight: 950;
+  justify-content: center;
   min-height: 42px;
   padding: 0 22px;
+}
+
+.settings-page__chip--link {
+  color: #8d5527;
+  text-decoration: none;
 }
 
 .settings-page__medical-grid,
@@ -1036,6 +1044,48 @@
 
 .settings-page__modal-card .settings-page__payment-form button[type='submit'] {
   min-height: 48px;
+}
+
+.settings-page__confirm-card {
+  gap: 18px;
+}
+
+.settings-page__confirm-card p {
+  color: #4b5563;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.settings-page__confirm-card footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.settings-page__confirm-card footer button {
+  border: 0;
+  border-radius: 13px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 950;
+  min-height: 44px;
+  padding: 0 18px;
+}
+
+.settings-page__confirm-cancel {
+  background: #eef0f3;
+  color: #374151;
+}
+
+.settings-page__confirm-submit {
+  background: #8d5527;
+  color: #ffffff;
+}
+
+.settings-page__confirm-card--danger .settings-page__confirm-submit {
+  background: #c2410c;
 }
 
 .settings-page__medical-form {

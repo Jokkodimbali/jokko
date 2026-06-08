@@ -30,7 +30,12 @@
       <header>
         <button type="button" class="service-category-main" (click)="toggleCategory(category.id)">
           <span class="service-category-icon">
-            <img *ngIf="category.iconUrl; else categoryFallback" [src]="category.iconUrl" alt="" />
+            <img
+              *ngIf="visibleCategoryIconUrl(category) as iconUrl; else categoryFallback"
+              [src]="iconUrl"
+              alt=""
+              (error)="handleCategoryIconError(iconUrl)"
+            />
             <ng-template #categoryFallback>
               <lucide-icon [name]="categoryIconName(category)" size="20" [strokeWidth]="2.2"></lucide-icon>
             </ng-template>
@@ -42,11 +47,12 @@
         </button>
 
         <div class="service-category-actions">
-          <button type="button" title="Modifier" (click)="openEditForm(category)">
+          <button type="button" title="Modifier la categorie" aria-label="Modifier la categorie" (click)="openEditForm(category)">
             <lucide-icon name="pencil" size="16" [strokeWidth]="2.2"></lucide-icon>
           </button>
-          <button type="button" title="Affecter les sous-categories" (click)="openAssignmentForm(category)">
+          <button type="button" class="service-category-action--assign" title="Affecter ou desaffecter les sous-categories" aria-label="Affecter ou desaffecter les sous-categories" (click)="openAssignmentForm(category)">
             <lucide-icon name="clipboard" size="16" [strokeWidth]="2.2"></lucide-icon>
+            <span>Affecter</span>
           </button>
           <button
             type="button"
@@ -98,11 +104,19 @@
 
         <button type="button" class="service-add-subcategory" (click)="openSubCategoryForm(category)">
           <lucide-icon name="plus" size="14" [strokeWidth]="2.3"></lucide-icon>
-          Ajouter une sous-categorie
+          Creer une sous-categorie
+        </button>
+
+        <button type="button" class="service-add-subcategory service-add-subcategory--assign" (click)="openAssignmentForm(category)">
+          <lucide-icon name="clipboard" size="14" [strokeWidth]="2.3"></lucide-icon>
+          Affecter / desaffecter
         </button>
 
         <ng-template #categoryEmpty>
-          <div class="service-category-empty">Aucune sous-categorie affectee a cette categorie.</div>
+          <div class="service-category-empty">
+            <strong>Aucune sous-categorie affectee.</strong>
+            <span>Creez une sous-categorie ou affectez une sous-categorie existante a cette categorie.</span>
+          </div>
         </ng-template>
       </div>
     </article>
@@ -111,44 +125,67 @@
   <div class="service-structure-modal" *ngIf="modalMode">
     <form (ngSubmit)="submitForm()">
       <header>
-        <h2 *ngIf="modalMode === 'category'">{{ form.id ? 'Modifier la categorie' : 'Nouvelle categorie' }}</h2>
-        <h2 *ngIf="modalMode === 'bulk-categories'">Ajout en masse des categories</h2>
-        <h2 *ngIf="modalMode === 'subcategory'">Nouvelle sous-categorie</h2>
-        <h2 *ngIf="modalMode === 'bulk-subcategories'">Ajout en masse des sous-categories</h2>
-        <h2 *ngIf="modalMode === 'assign-subcategories'">Affectation des sous-categories</h2>
-        <h2 *ngIf="modalMode === 'confirm-disable-category'">Confirmer la desactivation</h2>
+        <div class="service-modal-title">
+          <span>
+            <lucide-icon
+              [name]="modalMode === 'confirm-disable-category' ? 'triangle-alert' : modalMode === 'assign-subcategories' ? 'clipboard' : 'git-fork'"
+              size="20"
+              [strokeWidth]="2.3"
+            ></lucide-icon>
+          </span>
+          <div>
+            <h2 *ngIf="modalMode === 'category'">{{ form.id ? 'Modifier la categorie' : 'Nouvelle categorie' }}</h2>
+            <h2 *ngIf="modalMode === 'bulk-categories'">Import des categories</h2>
+            <h2 *ngIf="modalMode === 'subcategory'">Nouvelle sous-categorie</h2>
+            <h2 *ngIf="modalMode === 'bulk-subcategories'">Import des sous-categories</h2>
+            <h2 *ngIf="modalMode === 'assign-subcategories'">Affecter les sous-categories</h2>
+            <h2 *ngIf="modalMode === 'confirm-disable-category'">Confirmer la desactivation</h2>
+            <small *ngIf="modalMode === 'category'">Renseignez les informations visibles par les utilisateurs.</small>
+            <small *ngIf="modalMode === 'subcategory'">Creez un regroupement simple a affecter ensuite a une categorie.</small>
+            <small *ngIf="modalMode === 'bulk-categories' || modalMode === 'bulk-subcategories'">Ajoutez une ligne par element pour gagner du temps.</small>
+            <small *ngIf="modalMode === 'assign-subcategories'">Selectionnez uniquement ce qui doit apparaitre dans cette categorie.</small>
+            <small *ngIf="modalMode === 'confirm-disable-category'">Cette action retire la categorie de la structure active.</small>
+          </div>
+        </div>
         <button type="button" (click)="closeModal()">
           <lucide-icon name="x" size="20" [strokeWidth]="2.2"></lucide-icon>
         </button>
       </header>
 
       <ng-container *ngIf="modalMode === 'category'">
-        <label>
-          Nom de la categorie
-          <input name="categoryName" [(ngModel)]="form.name" required maxlength="100" placeholder="Ex : Plomberie & Sanitaires" />
-        </label>
+        <div class="service-modal-section">
+          <label>
+            <span>Nom de la categorie</span>
+            <input name="categoryName" [(ngModel)]="form.name" required maxlength="100" placeholder="Ex : Plomberie & Sanitaires" />
+          </label>
 
-        <div class="service-upload-field">
-          <span>Image de la categorie</span>
-          <div>
-            <figure *ngIf="form.iconUrl">
-              <img [src]="form.iconUrl" alt="" />
-            </figure>
-            <label class="service-upload-button">
-              <lucide-icon name="camera" size="17" [strokeWidth]="2.3"></lucide-icon>
-              {{ isUploadingImage ? 'Import en cours...' : 'Uploader une image' }}
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="uploadIcon($event)" />
-            </label>
+          <div class="service-upload-field">
+            <span>Image de la categorie</span>
+            <div>
+              <figure *ngIf="form.iconUrl; else uploadPreviewEmpty">
+                <img [src]="form.iconUrl" alt="" />
+              </figure>
+              <ng-template #uploadPreviewEmpty>
+                <figure>
+                  <lucide-icon name="camera" size="20" [strokeWidth]="2.3"></lucide-icon>
+                </figure>
+              </ng-template>
+              <label class="service-upload-button">
+                <lucide-icon name="upload-cloud" size="17" [strokeWidth]="2.3"></lucide-icon>
+                {{ isUploadingImage ? 'Import en cours...' : 'Importer une image' }}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="uploadIcon($event)" />
+              </label>
+            </div>
           </div>
         </div>
 
         <div class="service-structure-form-grid">
           <label>
-            Ordre
+            <span>Ordre d'affichage</span>
             <input name="categorySortOrder" type="number" min="0" max="32767" [(ngModel)]="form.sortOrder" />
           </label>
           <label>
-            Commission (%)
+            <span>Commission (%)</span>
             <input name="categoryCommissionRate" type="number" min="0" max="100" step="0.01" [(ngModel)]="form.commissionRate" />
           </label>
         </div>
@@ -161,15 +198,15 @@
 
       <ng-container *ngIf="modalMode === 'subcategory'">
         <label>
-          Nom
+          <span>Nom de la sous-categorie</span>
           <input name="subCategoryName" [(ngModel)]="subCategoryForm.name" required maxlength="120" placeholder="Ex : Installation" />
         </label>
         <label>
-          Description
+          <span>Description</span>
           <input name="subCategoryDescription" [(ngModel)]="subCategoryForm.description" maxlength="500" placeholder="Optionnel" />
         </label>
         <label>
-          Ordre
+          <span>Ordre d'affichage</span>
           <input name="subCategorySortOrder" type="number" min="0" max="32767" [(ngModel)]="subCategoryForm.sortOrder" />
         </label>
       </ng-container>
@@ -180,8 +217,14 @@
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'assign-subcategories' && report as currentReport">
-        <p class="service-modal-lead">Categorie : <b>{{ assignmentCategory?.name }}</b></p>
-        <p>Selectionne les sous-categories qui doivent apparaitre dans cette categorie.</p>
+        <div class="service-assignment-summary">
+          <p class="service-modal-lead">Categorie : <b>{{ assignmentCategory?.name }}</b></p>
+          <div>
+            <span>{{ selectedSubCategoryIds.size }} selectionnee(s)</span>
+            <span>{{ currentReport.availableSubCategories.length }} disponible(s)</span>
+          </div>
+        </div>
+        <p>Selectionnez les sous-categories a afficher. Decochez une ligne pour la desaffecter.</p>
         <div class="service-checkbox-list" *ngIf="currentReport.availableSubCategories.length > 0; else noSubCategories">
           <label *ngFor="let subCategory of currentReport.availableSubCategories">
             <input
@@ -193,6 +236,7 @@
               <b>{{ subCategory.name }}</b>
               <small>{{ subCategory.description || 'Sous-categorie disponible' }}</small>
             </span>
+            <em>{{ isSubCategorySelected(subCategory) ? 'Affectee' : 'Disponible' }}</em>
           </label>
         </div>
         <ng-template #noSubCategories>
@@ -208,7 +252,7 @@
       </ng-container>
 
       <footer>
-        <button type="button" (click)="closeModal()">Annuler</button>
+        <button type="button" class="service-structure-secondary" (click)="closeModal()">Annuler</button>
         <button *ngIf="modalMode === 'category'" type="submit" class="service-structure-primary">
           {{ form.id ? 'Enregistrer' : 'Ajouter' }}
         </button>

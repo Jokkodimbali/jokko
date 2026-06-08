@@ -97,12 +97,26 @@
   z-index: 2;
 }
 
-.medicine-page__map-doctor img {
+.medicine-page__map-doctor img,
+.medicine-page__map-initials {
   align-self: end;
   height: 142px;
+  width: 104px;
+}
+
+.medicine-page__map-doctor img {
   object-fit: cover;
   object-position: center top;
-  width: 104px;
+}
+
+.medicine-page__map-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 26px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .medicine-page__map-copy {

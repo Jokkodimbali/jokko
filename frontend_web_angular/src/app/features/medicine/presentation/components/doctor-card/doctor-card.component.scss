@@ -66,13 +66,27 @@
   position: relative;
 }
 
-.doctor-card__portrait img {
+.doctor-card__portrait img,
+.doctor-card__portrait-initials {
   border-radius: 12px;
-  display: block;
   height: 100%;
+  width: 100%;
+}
+
+.doctor-card__portrait img {
+  display: block;
   object-fit: cover;
   object-position: center top;
-  width: 100%;
+}
+
+.doctor-card__portrait-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: flex;
+  font-size: 34px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .doctor-card__status {

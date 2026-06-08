@@ -76,7 +76,7 @@ export class MedicineService {
       location: (professional.city || 'Localisation non renseignee').toUpperCase(),
       latitude: professional.latitude,
       longitude: professional.longitude,
-      imageUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
+      imageUrl: this.absoluteAssetUrl(professional.avatarUrl) || '',
       isOnline: Boolean(presence?.isOnline),
       nextAvailability,
       availability: [
@@ -133,5 +133,22 @@ export class MedicineService {
 
     const match = bio.match(/Specialite\s*:\s*([^\n]+)/i);
     return match?.[1]?.trim() || null;
+  }
+
+  private absoluteAssetUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value) {
+      return null;
+    }
+
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+      return value;
+    }
+
+    if (value.startsWith('/')) {
+      return `${new URL(this.apiUrl).origin}${value}`;
+    }
+
+    return value;
   }
 }

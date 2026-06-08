@@ -51,6 +51,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   protected readonly doctor = signal<DoctorProfile>(this.initialDoctor);
   protected readonly coverUrl = '/boabab.png';
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly failedImageUrls = signal<Set<string>>(new Set());
   protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
     const doctor = this.doctor();
     if (
@@ -113,6 +114,39 @@ export class MedicineDoctorProfileComponent implements OnInit {
     this.location.back();
   }
 
+  protected doctorInitials(): string {
+    return (
+      this.doctor()
+        .name.split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
+  }
+
+  protected visibleImageUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value || this.failedImageUrls().has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  protected handleImageError(url: string | null | undefined): void {
+    const value = url?.trim();
+    if (!value) {
+      return;
+    }
+
+    this.failedImageUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(value);
+      return next;
+    });
+  }
+
   protected toggleFavorite(): void {
     if (!this.authSession.hasAuthenticatedSession()) {
       this.feedback.info('Connectez-vous d abord pour gerer vos favoris.');
@@ -163,7 +197,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       location: (profile.ville || 'Localisation non renseignee').toUpperCase(),
       latitude: profile.latitude,
       longitude: profile.longitude,
-      imageUrl: profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+      imageUrl: profile.utilisateur.urlAvatar || '',
       isOnline: detail.presence.isOnline,
       nextAvailability,
       availability: [
@@ -244,7 +278,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       location: 'Localisation non renseignee',
       latitude: null,
       longitude: null,
-      imageUrl: '/medicine-doctor-charle-diouf.png',
+      imageUrl: '',
       isOnline: false,
       availability: [],
       nextAvailability: [],

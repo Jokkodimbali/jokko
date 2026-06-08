@@ -1,61 +1,75 @@
 import { Routes } from '@angular/router';
-import { ServicesComponent } from './features/services/presentation/pages/services/services.component';
-import { MedicinePageComponent } from './features/medicine/presentation/pages/medicine-page/medicine-page.component';
-import { MedicineDoctorProfileComponent } from './features/medicine/presentation/pages/medicine-doctor-profile/medicine-doctor-profile.component';
-import { MedicineAppointmentBookingComponent } from './features/medicine/presentation/pages/medicine-appointment-booking/medicine-appointment-booking.component';
-import { DoctorSpacePageComponent } from './features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component';
-import { ProviderProfileComponent } from './features/services/presentation/pages/provider-profile/provider-profile.component';
-import { ServiceProposalComponent } from './features/services/presentation/pages/service-proposal/service-proposal.component';
-import { FavoritesPageComponent } from './features/account/pages/favorites/favorites-page.component';
-import { SettingsPageComponent } from './features/account/pages/settings/settings-page.component';
-import { AppointmentsPageComponent } from './features/appointments/presentation/pages/appointments-page/appointments-page.component';
-import { AppointmentDetailPageComponent } from './features/appointments/presentation/pages/appointment-detail-page/appointment-detail-page.component';
-import { AppointmentPaymentPageComponent } from './features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component';
-import { MessagesPageComponent } from './features/messages/presentation/pages/messages-page/messages-page.component';
 import { authGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
     path: 'services',
-    component: ServicesComponent,
+    loadComponent: () =>
+      import('./features/services/presentation/pages/services/services.component').then(
+        (m) => m.ServicesComponent,
+      ),
   },
   {
     path: 'services/:id/proposition',
-    component: ServiceProposalComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/services/presentation/pages/service-proposal/service-proposal.component').then(
+        (m) => m.ServiceProposalComponent,
+      ),
   },
   {
     path: 'services/:id',
-    component: ProviderProfileComponent,
+    loadComponent: () =>
+      import('./features/services/presentation/pages/provider-profile/provider-profile.component').then(
+        (m) => m.ProviderProfileComponent,
+      ),
   },
   {
     path: 'medecine',
-    component: MedicinePageComponent,
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/medicine-page/medicine-page.component').then(
+        (m) => m.MedicinePageComponent,
+      ),
   },
   {
     path: 'medecine/espace',
-    component: DoctorSpacePageComponent,
     canActivate: [roleGuard],
     data: { roles: ['MEDECIN', 'PRESTATAIRE'] },
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component').then(
+        (m) => m.DoctorSpacePageComponent,
+      ),
   },
   {
     path: 'prestataire/espace',
-    component: DoctorSpacePageComponent,
     canActivate: [roleGuard],
     data: { roles: ['PRESTATAIRE'] },
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component').then(
+        (m) => m.DoctorSpacePageComponent,
+      ),
   },
   {
     path: 'medecine/:id/rendez-vous',
-    component: MedicineAppointmentBookingComponent,
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/medicine-appointment-booking/medicine-appointment-booking.component').then(
+        (m) => m.MedicineAppointmentBookingComponent,
+      ),
   },
   {
     path: 'medecine/:id',
-    component: MedicineDoctorProfileComponent,
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/medicine-doctor-profile/medicine-doctor-profile.component').then(
+        (m) => m.MedicineDoctorProfileComponent,
+      ),
   },
   {
     path: 'favorites',
-    component: FavoritesPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/account/pages/favorites/favorites-page.component').then(
+        (m) => m.FavoritesPageComponent,
+      ),
   },
   {
     path: 'notifications',
@@ -99,28 +113,43 @@ export const routes: Routes = [
   },
   {
     path: 'settings',
-    component: SettingsPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/account/pages/settings/settings-page.component').then(
+        (m) => m.SettingsPageComponent,
+      ),
   },
   {
     path: 'appointments',
-    component: AppointmentsPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointments-page/appointments-page.component').then(
+        (m) => m.AppointmentsPageComponent,
+      ),
   },
   {
     path: 'appointments/:id/payment',
-    component: AppointmentPaymentPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component').then(
+        (m) => m.AppointmentPaymentPageComponent,
+      ),
   },
   {
     path: 'appointments/:id',
-    component: AppointmentDetailPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-detail-page/appointment-detail-page.component').then(
+        (m) => m.AppointmentDetailPageComponent,
+      ),
   },
   {
     path: 'messages',
-    component: MessagesPageComponent,
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/messages/presentation/pages/messages-page/messages-page.component').then(
+        (m) => m.MessagesPageComponent,
+      ),
   },
   {
     path: 'admin',

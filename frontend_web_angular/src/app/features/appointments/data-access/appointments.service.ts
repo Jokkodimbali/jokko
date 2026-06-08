@@ -49,7 +49,7 @@ export class AppointmentsService {
                       detail.profile.utilisateur.nom ||
                       'Prestataire non renseigne',
                     specialty: service?.nom || 'Service non renseigne',
-                    avatarUrl: detail.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+                    avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                     serviceName: service?.nom || 'Service non renseigne',
                   });
                 }),
@@ -83,7 +83,7 @@ export class AppointmentsService {
                   detail.profile.utilisateur.nom ||
                   'Prestataire non renseigne',
                 specialty: service?.nom || 'Service non renseigne',
-                avatarUrl: detail.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+                avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 serviceName: service?.nom || 'Service non renseigne',
               });
             }),
@@ -305,7 +305,7 @@ export class AppointmentsService {
       locationLabel: reservation.adresseClient || 'Adresse non renseignee',
       doctorName: professional.doctorName || 'Prestataire non renseigne',
       specialty: professional.specialty || 'Service non renseigne',
-      avatarUrl: professional.avatarUrl || '/medicine-doctor-charle-diouf.png',
+      avatarUrl: professional.avatarUrl || '',
       serviceName: professional.serviceName || 'Service non renseigne',
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
@@ -359,7 +359,7 @@ export class AppointmentsService {
         reservation.professionnel.utilisateur.nom ||
         'Prestataire non renseigne',
       specialty: reservation.service.nom,
-      avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+      avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '',
       serviceName: reservation.service.nom,
     });
   }

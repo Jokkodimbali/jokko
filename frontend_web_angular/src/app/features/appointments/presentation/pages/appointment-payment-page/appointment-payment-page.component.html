@@ -65,7 +65,10 @@
 
       <aside class="appointment-payment__summary" aria-label="Details du rendez-vous">
         <header class="appointment-payment__provider">
-          <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <img *ngIf="appointment.avatarUrl; else paymentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <ng-template #paymentProviderInitials>
+            <span class="appointment-payment__provider-initials">{{ avatarInitials(appointment) }}</span>
+          </ng-template>
           <div>
             <h2>{{ appointment.doctorName }}</h2>
             <p>

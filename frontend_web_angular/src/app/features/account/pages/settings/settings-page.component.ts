@@ -30,6 +30,14 @@ import { UserProfileDto } from '../../../auth/domain/models/auth.models';
 
 type SettingsSection = 'health' | 'account';
 
+type ConfirmationDialogState = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone: 'default' | 'danger';
+  action: () => void;
+};
+
 @Component({
   selector: 'app-settings-page',
   standalone: true,
@@ -88,6 +96,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isPaymentModalOpen = signal(false);
   protected readonly isMedicalProfileModalOpen = signal(false);
   protected readonly isTreatmentModalOpen = signal(false);
+  protected readonly confirmationDialog = signal<ConfirmationDialogState | null>(null);
   protected readonly showSensitivePaymentInfo = signal(false);
   protected readonly profileForm = {
     firstName: '',
@@ -232,6 +241,10 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isProfessionalSettings = computed(() => {
     const role = this.profile()?.role || this.currentUser()?.role;
     return role === 'MEDECIN' || role === 'PRESTATAIRE';
+  });
+  protected readonly professionalSpaceRoute = computed(() => {
+    const role = this.profile()?.role || this.currentUser()?.role;
+    return role === 'MEDECIN' ? '/medecine/espace' : '/prestataire/espace';
   });
   protected readonly hasLocalPassword = computed(() => this.profile()?.hasPassword ?? true);
   protected readonly displayPhoneNumber = computed(() =>
@@ -586,15 +599,20 @@ export class SettingsPageComponent implements OnInit {
       return;
     }
 
-    const confirmed = window.confirm(`Voulez-vous supprimer le document "${document.label}" ?`);
-    if (!confirmed) return;
-
-    this.authService.deleteMyProfessionalCredential(document.id).subscribe({
-      next: (profile) => this.applyUpdatedProfile(profile, 'Document professionnel supprime.'),
-      error: (error) => {
-        const message = getHttpErrorMessage(error, 'Impossible de supprimer ce document.');
-        this.errorMessage.set(message);
-        this.feedback.error(message);
+    this.openConfirmation({
+      title: 'Supprimer ce document ?',
+      message: `Le document "${document.label}" sera retire de votre profil professionnel.`,
+      confirmLabel: 'Supprimer le document',
+      tone: 'danger',
+      action: () => {
+        this.authService.deleteMyProfessionalCredential(document.id).subscribe({
+          next: (profile) => this.applyUpdatedProfile(profile, 'Document professionnel supprime.'),
+          error: (error) => {
+            const message = getHttpErrorMessage(error, 'Impossible de supprimer ce document.');
+            this.errorMessage.set(message);
+            this.feedback.error(message);
+          },
+        });
       },
     });
   }
@@ -677,16 +695,21 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected deletePaymentMethod(method: SavedPaymentMethodView): void {
-    const confirmed = window.confirm('Voulez-vous supprimer ce moyen de paiement ?');
-    if (!confirmed) return;
-
-    this.authService.deleteSavedPaymentMethod(method.id).subscribe({
-      next: () => {
-        this.feedback.success('Moyen de paiement supprime.');
-        this.loadPaymentMethods();
-      },
-      error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce moyen de paiement.'));
+    this.openConfirmation({
+      title: 'Supprimer ce moyen de paiement ?',
+      message: `Le moyen "${method.label || method.type}" ne sera plus propose au paiement.`,
+      confirmLabel: 'Supprimer',
+      tone: 'danger',
+      action: () => {
+        this.authService.deleteSavedPaymentMethod(method.id).subscribe({
+          next: () => {
+            this.feedback.success('Moyen de paiement supprime.');
+            this.loadPaymentMethods();
+          },
+          error: (error) => {
+            this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce moyen de paiement.'));
+          },
+        });
       },
     });
   }
@@ -858,15 +881,21 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected deleteTreatment(treatment: MedicalTreatmentView): void {
-    const confirmed = window.confirm(`Voulez-vous supprimer le traitement "${treatment.name}" ?`);
-    if (!confirmed) return;
-    this.authService.deleteMyMedicalTreatment(treatment.id).subscribe({
-      next: (profile) => {
-        this.medicalProfile.set(profile);
-        this.feedback.success('Traitement supprime.');
-      },
-      error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer le traitement.'));
+    this.openConfirmation({
+      title: 'Supprimer ce traitement ?',
+      message: `Le traitement "${treatment.name}" sera retire de votre dossier medical.`,
+      confirmLabel: 'Supprimer le traitement',
+      tone: 'danger',
+      action: () => {
+        this.authService.deleteMyMedicalTreatment(treatment.id).subscribe({
+          next: (profile) => {
+            this.medicalProfile.set(profile);
+            this.feedback.success('Traitement supprime.');
+          },
+          error: (error) => {
+            this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer le traitement.'));
+          },
+        });
       },
     });
   }
@@ -932,23 +961,44 @@ export class SettingsPageComponent implements OnInit {
 
   protected deleteAccount(): void {
     if (this.isDeleting()) return;
-    const confirmed = window.confirm('Voulez-vous vraiment supprimer ce compte ? Cette action est definitive.');
-    if (!confirmed) return;
+    this.openConfirmation({
+      title: 'Supprimer definitivement le compte ?',
+      message:
+        'Cette action supprime votre profil et revoque vos sessions. Elle ne peut pas etre annulee.',
+      confirmLabel: 'Supprimer mon compte',
+      tone: 'danger',
+      action: () => {
+        this.isDeleting.set(true);
+        this.authService
+          .deleteMyAccount()
+          .pipe(finalize(() => this.isDeleting.set(false)))
+          .subscribe({
+            next: () => {
+              this.authSession.clear();
+              this.feedback.success('Compte supprime avec succes.');
+              this.router.navigate(['/services']);
+            },
+            error: (error) => {
+              this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce compte.'));
+            },
+          });
+      },
+    });
+  }
 
-    this.isDeleting.set(true);
-    this.authService
-      .deleteMyAccount()
-      .pipe(finalize(() => this.isDeleting.set(false)))
-      .subscribe({
-        next: () => {
-          this.authSession.clear();
-          this.feedback.success('Compte supprime avec succes.');
-          this.router.navigate(['/services']);
-        },
-        error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce compte.'));
-        },
-      });
+  protected closeConfirmation(): void {
+    this.confirmationDialog.set(null);
+  }
+
+  protected confirmDialogAction(): void {
+    const dialog = this.confirmationDialog();
+    if (!dialog) return;
+    this.confirmationDialog.set(null);
+    dialog.action();
+  }
+
+  private openConfirmation(dialog: ConfirmationDialogState): void {
+    this.confirmationDialog.set(dialog);
   }
 
   private loadProfile(): void {

@@ -70,6 +70,17 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.selectedMethod.set(method);
   }
 
+  protected avatarInitials(appointment: AppointmentView): string {
+    return (
+      appointment.doctorName
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
+  }
+
   protected pay(): void {
     const appointment = this.appointment();
 

@@ -470,12 +470,26 @@
   grid-template-columns: 66px minmax(0, 1fr);
 }
 
-.service-proposal__provider img {
+.service-proposal__provider img,
+.service-proposal__provider-initials {
   background: #d9e2ea;
   border-radius: 24px;
   height: 66px;
-  object-fit: cover;
   width: 66px;
+}
+
+.service-proposal__provider img {
+  object-fit: cover;
+}
+
+.service-proposal__provider-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 20px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .service-proposal__provider h2 {

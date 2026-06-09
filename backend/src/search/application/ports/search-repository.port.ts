@@ -21,6 +21,12 @@ export type SearchProfessionalServiceView = {
   categoryName: string;
 };
 
+export type SearchProfessionalPortfolioImageView = {
+  id: string;
+  title: string;
+  url: string;
+};
+
 export type SearchProfessionalView = {
   id: string;
   userId: string;
@@ -35,6 +41,7 @@ export type SearchProfessionalView = {
   totalReviews: number;
   distanceKm: number | null;
   services: SearchProfessionalServiceView[];
+  portfolioImages: SearchProfessionalPortfolioImageView[];
 };
 
 export type SearchProfessionalsResult = {

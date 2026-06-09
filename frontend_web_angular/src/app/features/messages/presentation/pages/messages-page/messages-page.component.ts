@@ -71,6 +71,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly pendingProposal = signal<PendingProposal | null>(null);
   protected readonly priceProposals = signal<NegotiationView[]>([]);
   protected readonly appointmentPreview = signal<AppointmentView | null>(null);
+  protected readonly failedAvatarUrls = signal<Set<string>>(new Set());
   private readonly requestedConversationId = signal<string | null>(null);
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
   private realtimeMessageSubscription: Subscription | null = null;
@@ -215,6 +216,28 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       .map((part) => part[0])
       .join('')
       .toUpperCase();
+  }
+
+  protected visibleAvatarUrl(url: string | null | undefined): string | null {
+    const normalizedUrl = url?.trim();
+    if (!normalizedUrl || this.failedAvatarUrls().has(normalizedUrl)) {
+      return null;
+    }
+
+    return normalizedUrl;
+  }
+
+  protected handleAvatarError(url: string | null | undefined): void {
+    const normalizedUrl = url?.trim();
+    if (!normalizedUrl) {
+      return;
+    }
+
+    this.failedAvatarUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(normalizedUrl);
+      return next;
+    });
   }
 
   protected conversationPreview(conversation: Conversation): string {

@@ -37,6 +37,9 @@
   "prisma": {
     "seed": "node -r ts-node/register prisma/seed.ts"
   },
+  "overrides": {
+    "@hono/node-server": "^1.19.13"
+  },
   "dependencies": {
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",

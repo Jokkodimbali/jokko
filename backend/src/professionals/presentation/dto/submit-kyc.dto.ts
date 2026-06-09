@@ -16,7 +16,11 @@ export class SubmitKycDto {
   @IsNotEmpty({ message: VALIDATION_MESSAGES.KYC_ID_CARD_URL_REQUIRED })
   @IsString()
   @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      protocols: ['http', 'https'],
+      require_protocol: true,
+      require_tld: false,
+    },
     {
       message: VALIDATION_MESSAGES.KYC_ID_CARD_URL_INVALID,
     },
@@ -35,7 +39,11 @@ export class SubmitKycDto {
   @IsOptional()
   @IsString()
   @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      protocols: ['http', 'https'],
+      require_protocol: true,
+      require_tld: false,
+    },
     {
       message: VALIDATION_MESSAGES.KYC_ID_CARD_URL_INVALID,
     },

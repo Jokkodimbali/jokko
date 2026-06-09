@@ -143,7 +143,18 @@ export class ServicesService {
   private getProfessionalProfile(profileId: string): Observable<BackendProfessionalProfile> {
     return this.http
       .get<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/${profileId}`)
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) => {
+          const profile = unwrapApiResponse(response);
+          return {
+            ...profile,
+            utilisateur: {
+              ...profile.utilisateur,
+              urlAvatar: this.absoluteAssetUrl(profile.utilisateur.urlAvatar),
+            },
+          };
+        }),
+      );
   }
 
   private getProfessionalServices(profileId: string): Observable<BackendProfessionalDetailService[]> {
@@ -159,7 +170,14 @@ export class ServicesService {
       .get<ApiResponse<BackendProfessionalPortfolioItem[]>>(
         `${this.apiUrl}/professionals/${profileId}/portfolio`,
       )
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) =>
+          unwrapApiResponse(response).map((item) => ({
+            ...item,
+            urlImage: this.absoluteAssetUrl(item.urlImage) ?? item.urlImage,
+          })),
+        ),
+      );
   }
 
   private getProfessionalAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
@@ -188,7 +206,7 @@ export class ServicesService {
 
   private mapProfessional(
     data: BackendProfessional,
-    photos: string[] = [],
+    photos: string[] = this.mapPortfolioPhotos(data),
     presence: BackendProfessionalPresence | null = null,
   ): Professional {
     const primaryService = data.services[0];
@@ -206,9 +224,32 @@ export class ServicesService {
       totalReviews: data.totalReviews,
       isOnline,
       onlineLabel: this.formatPresenceLabel(presence),
-      avatar: data.avatarUrl || undefined,
+      avatar: this.absoluteAssetUrl(data.avatarUrl) || undefined,
       photos,
     };
+  }
+
+  private mapPortfolioPhotos(data: BackendProfessional): string[] {
+    return (data.portfolioImages ?? [])
+      .map((image) => this.absoluteAssetUrl(image.url))
+      .filter((url): url is string => Boolean(url));
+  }
+
+  private absoluteAssetUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value) {
+      return null;
+    }
+
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+      return value;
+    }
+
+    if (value.startsWith('/')) {
+      return `${new URL(this.apiUrl).origin}${value}`;
+    }
+
+    return value;
   }
 
   private formatPresenceLabel(presence: BackendProfessionalPresence | null): string {

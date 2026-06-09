@@ -360,11 +360,25 @@
   position: relative;
 }
 
-.provider-profile__gallery img {
+.provider-profile__gallery img,
+.provider-profile__gallery-fallback {
   display: block;
   height: 100%;
-  object-fit: cover;
   width: 100%;
+}
+
+.provider-profile__gallery img {
+  object-fit: cover;
+}
+
+.provider-profile__gallery-fallback {
+  align-items: center;
+  background: linear-gradient(135deg, #f8efe5, #ead8c4);
+  color: #865221;
+  display: inline-flex;
+  font-size: 28px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .provider-profile__gallery figcaption {

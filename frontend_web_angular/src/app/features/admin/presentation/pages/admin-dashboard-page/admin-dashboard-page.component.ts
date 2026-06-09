@@ -121,6 +121,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly structureActionId = signal<string | null>(null);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
+  protected readonly adminSearchQuery = signal('');
   protected readonly user = this.authSession.currentUser;
   protected readonly userInitials = computed(() => {
     const name = this.user()?.name ?? 'MD';
@@ -202,12 +203,22 @@ export class AdminDashboardPageComponent implements OnInit {
 
   protected selectSection(section: AdminSection): void {
     this.activeSection.set(section);
+    this.adminSearchQuery.set('');
     if (section !== 'providers') {
       this.selectedProviderId.set(null);
       this.selectedProviderDetail.set(null);
     }
     this.updateAdminUrl({ section, providerId: null });
     this.loadSectionData(section);
+  }
+
+  protected updateAdminSearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.adminSearchQuery.set(input.value);
+  }
+
+  protected clearAdminSearch(): void {
+    this.adminSearchQuery.set('');
   }
 
   private loadSectionData(section: AdminSection): void {
@@ -320,6 +331,22 @@ export class AdminDashboardPageComponent implements OnInit {
       .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie desactivee.'));
   }
 
+  protected activateCategory(categoryId: string): void {
+    this.structureActionId.set(categoryId);
+    this.adminDashboardService
+      .activateCategory(categoryId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie activee.'));
+  }
+
+  protected deleteEmptyCategory(categoryId: string): void {
+    this.structureActionId.set(categoryId);
+    this.adminDashboardService
+      .deleteEmptyCategory(categoryId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie supprimee definitivement.'));
+  }
+
   protected createSubCategory(payload: AdminSubCategoryPayload): void {
     this.structureActionId.set('subcategory');
     this.adminDashboardService
@@ -342,6 +369,14 @@ export class AdminDashboardPageComponent implements OnInit {
       .assignSubCategories(payload.categoryId, payload.subCategoryIds)
       .pipe(catchError(() => of(null)))
       .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categories affectees.'));
+  }
+
+  protected deleteUnusedSubCategory(subCategoryId: string): void {
+    this.structureActionId.set(subCategoryId);
+    this.adminDashboardService
+      .deleteUnusedSubCategory(subCategoryId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categorie supprimee definitivement.'));
   }
 
   private afterCategoryMutation(succeeded: boolean, successMessage: string): void {

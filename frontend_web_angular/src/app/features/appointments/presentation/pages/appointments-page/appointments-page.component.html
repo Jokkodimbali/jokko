@@ -185,7 +185,10 @@
             </div>
 
             <div class="appointment-row__provider">
-              <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+              <img *ngIf="appointment.avatarUrl; else appointmentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+              <ng-template #appointmentProviderInitials>
+                <span class="appointment-row__avatar-initials">{{ avatarInitials(appointment) || 'JD' }}</span>
+              </ng-template>
               <div>
                 <strong>{{ appointment.doctorName }}</strong>
                 <span>{{ appointment.specialty }}</span>

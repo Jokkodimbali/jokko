@@ -402,6 +402,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
       message: 'Categorie desactivee avec succes.',
     },
+    CATEGORIES_CATEGORY_ACTIVATED: {
+      code: 'CATEGORIES_CATEGORY_ACTIVATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Categorie activee avec succes.',
+    },
     CATEGORIES_COMMISSION_RATE_INVALID: {
       code: 'CATEGORIES_COMMISSION_RATE_INVALID',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
@@ -446,6 +451,34 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
       message: 'Sous-categorie introuvable.',
+    },
+    ADMIN_SERVICE_CATEGORY_DELETED: {
+      code: 'ADMIN_SERVICE_CATEGORY_DELETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Categorie supprimee definitivement avec succes.',
+    },
+    ADMIN_SERVICE_CATEGORY_NOT_EMPTY: {
+      code: 'ADMIN_SERVICE_CATEGORY_NOT_EMPTY',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Cette categorie contient encore des services ou des sous-categories affectees.',
+    },
+    ADMIN_SERVICE_SUBCATEGORY_DELETED: {
+      code: 'ADMIN_SERVICE_SUBCATEGORY_DELETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Sous-categorie supprimee definitivement avec succes.',
+    },
+    ADMIN_SERVICE_SUBCATEGORY_IN_USE: {
+      code: 'ADMIN_SERVICE_SUBCATEGORY_IN_USE',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Cette sous-categorie est encore affectee a une ou plusieurs categories.',
+    },
+    ADMIN_SERVICE_SUBCATEGORY_ALREADY_ASSIGNED: {
+      code: 'ADMIN_SERVICE_SUBCATEGORY_ALREADY_ASSIGNED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Une ou plusieurs sous-categories selectionnees sont deja affectees a une autre categorie.',
     },
   },
   search: {

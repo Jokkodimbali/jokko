@@ -25,6 +25,7 @@ export class DoctorCardComponent {
 
   protected readonly messages = MEDICINE_UI_MESSAGES;
   protected readonly isTogglingFavorite = signal(false);
+  protected readonly failedImageUrls = signal<Set<string>>(new Set());
   protected readonly isFavorite = computed(() =>
     this.favoritesService
       .favorites()
@@ -36,6 +37,39 @@ export class DoctorCardComponent {
     event.stopPropagation();
     this.router.navigate(['/medecine', this.doctor.id, 'rendez-vous'], {
       state: { doctor: this.doctor },
+    });
+  }
+
+  protected doctorInitials(): string {
+    return (
+      this.doctor?.name
+        ?.split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
+  }
+
+  protected visibleImageUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value || this.failedImageUrls().has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  protected handleImageError(url: string | null | undefined): void {
+    const value = url?.trim();
+    if (!value) {
+      return;
+    }
+
+    this.failedImageUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(value);
+      return next;
     });
   }
 

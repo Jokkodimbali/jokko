@@ -16,7 +16,15 @@
 
   <div class="doctor-card__summary">
     <div class="doctor-card__portrait">
-      <img [src]="doctor.imageUrl" [alt]="doctor.name" />
+      <img
+        *ngIf="visibleImageUrl(doctor.imageUrl) as imageUrl; else doctorPortraitInitials"
+        [src]="imageUrl"
+        [alt]="doctor.name"
+        (error)="handleImageError(imageUrl)"
+      />
+      <ng-template #doctorPortraitInitials>
+        <span class="doctor-card__portrait-initials">{{ doctorInitials() }}</span>
+      </ng-template>
       <span *ngIf="doctor.isOnline" class="doctor-card__status">
         <i aria-hidden="true"></i>
         En ligne

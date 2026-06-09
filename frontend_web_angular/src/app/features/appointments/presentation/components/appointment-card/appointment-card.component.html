@@ -25,7 +25,10 @@
   </div>
 
   <section class="appointment-card__doctor">
-    <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+    <img *ngIf="appointment.avatarUrl; else appointmentCardInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+    <ng-template #appointmentCardInitials>
+      <span class="appointment-card__doctor-initials">{{ avatarInitials() }}</span>
+    </ng-template>
     <p>
       <strong>{{ appointment.doctorName }}</strong>
       <small>{{ appointment.specialty }}</small>

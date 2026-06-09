@@ -158,4 +158,44 @@ export class AdminCategoriesController {
       appMessage('CATEGORIES_CATEGORY_DISABLED').message,
     );
   }
+
+  @Patch(':categoryId/activate')
+  @Roles(RoleUtilisateur.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: API_DOCS.adminCategories.activateSummary })
+  @ApiParam({
+    name: 'categoryId',
+    description: API_DOCS.adminCategories.categoryIdParam,
+  })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: appMessage('CATEGORIES_CATEGORY_ACTIVATED').message,
+    messageExample: appMessage('CATEGORIES_CATEGORY_ACTIVATED').message,
+    dataSchema: {
+      type: 'object',
+      example: {
+        ...SWAGGER_RESPONSE_EXAMPLES.categories.detailData,
+        estActive: true,
+      },
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 404,
+    description: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
+    errorCode: 'CATEGORIES_CATEGORY_NOT_FOUND',
+    messageExample: appMessage('CATEGORIES_CATEGORY_NOT_FOUND').message,
+  })
+  async activateCategory(
+    @CurrentUser() user: AuthUser,
+    @Param('categoryId') categoryId: string,
+  ) {
+    const result = await this.categoriesFacade.activateCategory(
+      user,
+      categoryId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('CATEGORIES_CATEGORY_ACTIVATED').message,
+    );
+  }
 }

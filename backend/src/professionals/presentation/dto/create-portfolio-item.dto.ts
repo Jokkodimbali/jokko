@@ -47,7 +47,11 @@ export class CreatePortfolioItemDto {
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_REQUIRED })
   @IsString()
   @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      protocols: ['http', 'https'],
+      require_protocol: true,
+      require_tld: false,
+    },
     {
       message: VALIDATION_MESSAGES.PORTFOLIO_IMAGE_URL_INVALID,
     },

@@ -1,60 +1,74 @@
-<footer class="app-footer">
-  <div class="app-footer__primary">
-    <div class="app-footer__brand">
-      <h2>D&eacute;couvrir JOKKO DIMBALI</h2>
-      <a routerLink="/">&Agrave; propos de nous</a>
-      <a href="#">Nous contacter</a>
-      <a href="#">Politique de confidentialit&eacute;</a>
-    </div>
-
-    <nav aria-label="Informations legales" class="app-footer__nav">
-      <h2>Mention l&eacute;gale</h2>
-      <a href="#">Conditions G&eacute;n&eacute;rales</a>
-      <a href="#">Confidentialit&eacute;</a>
-      <a href="#">Cookies</a>
-    </nav>
-
-    <div class="app-footer__download">
-      <div class="app-footer__badges">
-        <a href="#" class="app-footer__store-badge">
-          <img src="/download-removebg-preview.png" alt="Telecharger l'application sur Google Play et App Store" />
+<footer class="app-footer" aria-labelledby="footer-title">
+  <div class="app-footer__inner">
+    <section class="app-footer__main" aria-label="Pied de page Jokko">
+      <div class="app-footer__brand">
+        <a routerLink="/services" class="app-footer__logo" aria-label="Retour a l'accueil Jokko">
+          <img src="/logojokko.png" alt="Jokko Dimbali" loading="lazy" />
         </a>
-      
+        <div>
+          <h2 id="footer-title">Jokko Dimbali</h2>
+          <p>Services, sant&eacute; et rendez-vous au S&eacute;n&eacute;gal, simplement.</p>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div class="app-footer__secondary">
-    <div class="app-footer__social">
-      <h2>R&eacute;seaux sociaux</h2>
-      <div class="app-footer__social-links">
-        <a href="#" aria-label="Facebook">
-          <img src="/Facebook_Logo_2023.png" alt="" />
-        </a>
-        <a href="#" aria-label="Twitter">
-          <img src="/Twitter-Logo.png" alt="" />
-        </a>
-        <a href="#" aria-label="YouTube">
-          <img src="/youtubelogo.png" alt="" />
-        </a>
-        <a href="#" aria-label="Instagram">
-          <img src="/logo-instagram-png.webp" alt="" />
-        </a>
-        <a href="#" aria-label="TikTok">
-          <img src="/tiktoklogo.avif" alt="" />
-        </a>
-      </div>
-    </div>
+      <nav class="app-footer__column" aria-label="Navigation principale">
+        <h3>Explorer</h3>
+        <a routerLink="/services">Services</a>
+        <a routerLink="/medecine">M&eacute;decine</a>
+        <a routerLink="/appointments">Rendez-vous</a>
+      </nav>
 
-    <div class="app-footer__newsletter">
-      <div>
-        <h3>Newsletter :</h3>
-        <p>Inscrivez-vous &agrave; notre newsletter et restez &agrave; jour.</p>
+      <nav class="app-footer__column" aria-label="Espace utilisateur">
+        <h3>Mon espace</h3>
+        <a routerLink="/messages">Messages</a>
+        <a routerLink="/notifications">Notifications</a>
+        <a routerLink="/settings">Param&egrave;tres</a>
+      </nav>
+
+      <div class="app-footer__column app-footer__download" aria-label="Telecharger l'application">
+        <h3>Application</h3>
+        <div class="app-footer__badges">
+          <a href="#" aria-label="Telecharger Jokko sur App Store">
+            <img src="/app-store-badge.svg" alt="Telecharger dans l App Store" loading="lazy" />
+          </a>
+          <a href="#" aria-label="Telecharger Jokko sur Google Play">
+            <img src="/google-play-badge.svg" alt="Disponible sur Google Play" loading="lazy" />
+          </a>
+        </div>
       </div>
-      <form class="app-footer__newsletter-form">
-        <input type="email" placeholder="Entrez votre Email" required />
-        <button type="submit">INSCRIPTION</button>
+    </section>
+
+    <section class="app-footer__extras" aria-label="Newsletter et contact">
+      <form class="app-footer__newsletter" (submit)="subscribeNewsletter($event, newsletterEmail.value)">
+        <label for="footer-newsletter">Newsletter</label>
+        <div>
+          <input #newsletterEmail id="footer-newsletter" type="email" placeholder="Votre email" autocomplete="email" />
+          <button type="submit">S'inscrire</button>
+        </div>
+        @if (newsletterMessage()) {
+          <p>{{ newsletterMessage() }}</p>
+        }
       </form>
-    </div>
+
+      <div class="app-footer__contact" aria-label="Contact et reseaux sociaux">
+        <a href="mailto:support@jokko.sn">support&#64;jokko.sn</a>
+        <span>S&eacute;n&eacute;gal</span>
+        <div class="app-footer__social" aria-label="Reseaux sociaux">
+          <a href="#" aria-label="Facebook"><img src="/Facebook_Logo_2023.png" alt="" loading="lazy" /></a>
+          <a href="#" aria-label="X"><img src="/x-logo.svg" alt="" loading="lazy" /></a>
+          <a href="#" aria-label="Instagram"><img src="/logo-instagram-png.webp" alt="" loading="lazy" /></a>
+          <a href="#" aria-label="TikTok"><img src="/tiktoklogo.avif" alt="" loading="lazy" /></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-footer__bottom" aria-label="Informations legales">
+      <p>&copy; 2026 Jokko Dimbali. Tous droits r&eacute;serv&eacute;s.</p>
+      <nav>
+        <a href="#">Conditions</a>
+        <a href="#">Confidentialit&eacute;</a>
+        <a href="#">Cookies</a>
+      </nav>
+    </section>
   </div>
 </footer>

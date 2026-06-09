@@ -104,8 +104,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return profile?.nomEntreprise || profile?.utilisateur.nom || 'Prestataire';
   });
 
-  protected readonly avatarUrl = computed(
-    () => this.detail()?.profile.utilisateur.urlAvatar || '/medicine-doctor-charle-diouf.png',
+  protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar || '');
+
+  protected readonly providerInitials = computed(
+    () =>
+      this.displayName()
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD',
   );
 
   protected readonly categoryLabel = computed(() => this.currentService()?.nom || 'Service Jokko');

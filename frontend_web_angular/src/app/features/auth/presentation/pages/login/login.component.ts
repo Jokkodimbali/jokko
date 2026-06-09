@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   ElementRef,
   NgZone,
@@ -59,7 +58,7 @@ declare global {
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent implements AfterViewInit {
+export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
@@ -75,7 +74,7 @@ export class LoginComponent implements AfterViewInit {
   isGoogleLoading = signal(false);
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
-  googleUnavailable = signal(false);
+  googleUnavailable = signal(true);
   private readonly rememberedLoginIdentifier = this.authSession.getRememberedLoginIdentifier();
   protected readonly messages = AUTH_UI_MESSAGES;
   protected readonly googleClientId = environment.googleClientId;
@@ -89,10 +88,6 @@ export class LoginComponent implements AfterViewInit {
     password: ['', AUTH_VALIDATORS.password],
     rememberMe: [this.authSession.isRememberMeEnabled()],
   });
-
-  ngAfterViewInit(): void {
-    this.initializeGoogleSignIn();
-  }
 
   onSubmit(): void {
     this.normalizeIdentifierDisplayControl();
@@ -161,6 +156,13 @@ export class LoginComponent implements AfterViewInit {
     if (!this.googleClientId) {
       this.errorMessage.set(
         'Connexion Google indisponible : ajoutez le Web Client ID Google dans les environnements frontend et backend.',
+      );
+      return;
+    }
+
+    if (this.isLocalhostGoogleOrigin()) {
+      this.errorMessage.set(
+        "Connexion Google indisponible en local : ajoutez http://localhost:4200 dans les origines autorisees du client OAuth Google, puis rechargez la page.",
       );
       return;
     }
@@ -251,6 +253,10 @@ export class LoginComponent implements AfterViewInit {
 
   private isSafeReturnUrl(returnUrl: string | null): boolean {
     return !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//');
+  }
+
+  private isLocalhostGoogleOrigin(): boolean {
+    return ['localhost', '127.0.0.1'].includes(window.location.hostname);
   }
 
   private loadGoogleScript(): Promise<void> {

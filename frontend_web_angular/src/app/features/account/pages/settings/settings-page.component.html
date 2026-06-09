@@ -51,36 +51,26 @@
     <section *ngIf="activeSection() === 'health' && isProfessionalSettings() && profile() as profile" class="settings-page__panel settings-page__panel--professional">
       <article class="settings-page__card settings-page__about-card">
         <header>
-          <h2>A propos de vous</h2>
-          <button *ngIf="!isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="startProfessionalAboutEdit()">Modifier</button>
-          <button *ngIf="isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="cancelProfessionalAboutEdit()">Annuler</button>
+          <h2>Resume professionnel</h2>
+          <a class="settings-page__chip settings-page__chip--link" [routerLink]="professionalSpaceRoute()">Gerer mon profil pro</a>
         </header>
-        <ng-container *ngIf="!isEditingProfessionalAbout(); else editProfessionalAbout">
-          <i></i>
-          <h3>{{ professionalTitle() }}</h3>
-          <p>{{ professionalAbout() }}</p>
-        </ng-container>
-        <ng-template #editProfessionalAbout>
-          <form class="settings-page__about-form" (ngSubmit)="saveProfessionalAbout()">
-            <label>
-              <span>Presentation professionnelle</span>
-              <textarea name="professionalAbout" [(ngModel)]="professionalAboutForm.about" rows="6" maxlength="2000" [disabled]="isSavingProfessionalAbout()"></textarea>
-            </label>
-            <button type="submit" [disabled]="isSavingProfessionalAbout()">
-              {{ isSavingProfessionalAbout() ? 'Enregistrement...' : 'Enregistrer la presentation' }}
-            </button>
-          </form>
-        </ng-template>
+        <i></i>
+        <h3>{{ professionalTitle() }}</h3>
+        <p>{{ professionalAbout() }}</p>
+        <div class="settings-page__professional-source">
+          <lucide-icon name="info" size="18" [strokeWidth]="2.4"></lucide-icon>
+          <span>Les services, disponibilites, justificatifs KYC et realisations se gerent dans votre espace professionnel pour garder une seule source fiable.</span>
+        </div>
       </article>
 
       <article class="settings-page__card settings-page__professional-card">
         <header>
-          <h2>Informations medicales & competences</h2>
-          <span class="settings-page__professional-badge">Profil professionnel</span>
+          <h2>Donnees publiques</h2>
+          <span class="settings-page__professional-badge">Lecture seule</span>
         </header>
 
         <section class="settings-page__specialty">
-          <h3>Specialite medicale</h3>
+          <h3>Specialite ou activite principale</h3>
           <div>
             <img *ngIf="profile.urlAvatar; else specialtyInitials" [src]="profile.urlAvatar" [alt]="displayName()" />
             <ng-template #specialtyInitials><b>{{ initials() }}</b></ng-template>
@@ -92,8 +82,8 @@
 
         <section class="settings-page__documents">
           <header>
-            <h3>Diplomes et certifications (PDF, JPG, Word)</h3>
-            <span>{{ validatedDocumentsCount() }} documents valides</span>
+            <h3>Documents et justificatifs</h3>
+            <span>{{ validatedDocumentsCount() }} document(s)</span>
           </header>
           <article *ngFor="let document of professionalDocuments(); let index = index">
             <i>{{ document.label.split('.').pop()?.toUpperCase() || 'DOC' }}</i>
@@ -105,43 +95,25 @@
             <ng-template #lockedDocumentAction>
               <button type="button" disabled aria-label="Document sans fichier consultable"><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon></button>
             </ng-template>
-            <button type="button" (click)="deleteProfessionalDocument(document)" aria-label="Supprimer le document"><lucide-icon name="trash-2" size="15" [strokeWidth]="2.3"></lucide-icon></button>
           </article>
-          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">Aucun document valide n'est rattache a ce profil.</p>
-          <label class="settings-page__upload-zone" [class.settings-page__upload-zone--loading]="isUploadingProfessionalDocument()">
-            <ng-container *ngIf="lastProfessionalDocumentUpload() as upload; else emptyProfessionalUpload">
-              <lucide-icon [name]="upload.status === 'success' ? 'check' : upload.status === 'error' ? 'triangle-alert' : 'file-text'" size="34" [strokeWidth]="2.2"></lucide-icon>
-              <strong>{{ upload.name }}</strong>
-              <span>{{ upload.status === 'success' ? 'Document ajoute et visible dans votre dossier' : upload.status === 'error' ? 'Upload refuse, reessayez avec un fichier valide' : 'Upload du document en cours...' }}</span>
-            </ng-container>
-            <ng-template #emptyProfessionalUpload>
-              <lucide-icon name="upload-cloud" size="34" [strokeWidth]="2.1"></lucide-icon>
-              <strong>Cliquez pour uploader vos documents</strong>
-              <span>Formats acceptes : PDF, images, Word (Max 10MB)</span>
-            </ng-template>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.doc,.docx,application/pdf,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" [disabled]="isUploadingProfessionalDocument()" (change)="uploadProfessionalDocument($event)" />
-          </label>
+          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">Aucun document rattache a ce profil. Ajoutez vos justificatifs depuis votre espace professionnel.</p>
         </section>
 
         <section class="settings-page__expertise-table">
-          <h3>Expertises et actes medicaux</h3>
+          <h3>Expertises declarees</h3>
           <div class="settings-page__expertise-head">
             <span>Intitule de l'expertise</span>
-            <span>Action</span>
           </div>
           <article *ngFor="let expertise of professionalExpertises()">
             <span>{{ expertise }}</span>
-            <button type="button" [disabled]="isSavingProfessionalExpertise()" (click)="removeProfessionalExpertise(expertise)" aria-label="Supprimer l'expertise"><lucide-icon name="trash-2" size="15" [strokeWidth]="2.3"></lucide-icon></button>
           </article>
-          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">Aucune expertise medicale renseignee.</p>
-          <form class="settings-page__expertise-form" (ngSubmit)="addProfessionalExpertise()">
-            <input type="text" name="professionalExpertise" [(ngModel)]="professionalExpertiseForm.name" placeholder="Ajouter une expertise" [disabled]="isSavingProfessionalExpertise()" />
-            <button type="submit" class="settings-page__dashed-action" [disabled]="isSavingProfessionalExpertise()">
-              <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
-              {{ isSavingProfessionalExpertise() ? 'Enregistrement...' : 'Ajouter une expertise' }}
-            </button>
-          </form>
+          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">Aucune expertise renseignee. Completez votre fiche depuis votre espace professionnel.</p>
         </section>
+
+        <a class="settings-page__professional-open" [routerLink]="professionalSpaceRoute()">
+          <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.5"></lucide-icon>
+          Ouvrir l'espace professionnel
+        </a>
       </article>
 
     </section>
@@ -584,6 +556,22 @@
           </label>
           <button type="submit" [disabled]="isSavingTreatment()">{{ editingTreatmentId() ? 'Modifier le traitement' : 'Ajouter le traitement' }}</button>
         </form>
+      </div>
+    </section>
+
+    <section *ngIf="confirmationDialog() as dialog" class="settings-page__modal" role="dialog" aria-modal="true" aria-labelledby="settingsConfirmationTitle">
+      <div class="settings-page__modal-card settings-page__confirm-card" [class.settings-page__confirm-card--danger]="dialog.tone === 'danger'">
+        <header>
+          <h2 id="settingsConfirmationTitle">{{ dialog.title }}</h2>
+          <button type="button" aria-label="Fermer" (click)="closeConfirmation()">
+            <lucide-icon name="x" size="20" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+        </header>
+        <p>{{ dialog.message }}</p>
+        <footer>
+          <button type="button" class="settings-page__confirm-cancel" (click)="closeConfirmation()">Annuler</button>
+          <button type="button" class="settings-page__confirm-submit" (click)="confirmDialogAction()">{{ dialog.confirmLabel }}</button>
+        </footer>
       </div>
     </section>
   </ng-container>

@@ -27,7 +27,8 @@
     min-width: min(290px, calc(100vw - 42px));
   }
 
-  .medicine-page__map-doctor img {
+  .medicine-page__map-doctor img,
+  .medicine-page__map-initials {
     height: 124px;
     width: 82px;
   }

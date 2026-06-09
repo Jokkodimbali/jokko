@@ -82,12 +82,26 @@
   padding: 8px 9px;
 }
 
-.appointment-card__doctor img {
+.appointment-card__doctor img,
+.appointment-card__doctor-initials {
   border-radius: 9px;
   height: 50px;
+  width: 50px;
+}
+
+.appointment-card__doctor img {
   object-fit: cover;
   object-position: center top;
-  width: 50px;
+}
+
+.appointment-card__doctor-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .appointment-card__doctor p {

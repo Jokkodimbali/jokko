@@ -144,7 +144,10 @@
 
       <aside class="service-proposal__summary" aria-label="Recapitulatif du rendez-vous">
         <div class="service-proposal__provider">
-          <img [src]="avatarUrl()" [alt]="displayName()" />
+          <img *ngIf="avatarUrl(); else serviceProposalInitials" [src]="avatarUrl()" [alt]="displayName()" />
+          <ng-template #serviceProposalInitials>
+            <span class="service-proposal__provider-initials">{{ providerInitials() }}</span>
+          </ng-template>
           <div>
             <h2>{{ displayName() }}</h2>
             <span>

@@ -52,6 +52,7 @@ export class ServicesComponent implements OnInit {
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   searchTerm = signal<string>('');
+  failedImageUrls = signal<Set<string>>(new Set());
   readonly locationValue = 'Toute zone';
   protected readonly currentUser = this.authSession.currentUser;
   favoriteProviders = computed(() =>
@@ -68,7 +69,7 @@ export class ServicesComponent implements OnInit {
       isOnline: false,
       onlineLabel: 'Favori',
       avatar: favorite.avatarUrl || undefined,
-      photos: [],
+      photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
       route: `/services/${favorite.professionalId}`,
     })),
   );
@@ -188,7 +189,29 @@ export class ServicesComponent implements OnInit {
   }
 
   resolveProviderAvatar(provider: { avatar?: string }): string | null {
-    return provider.avatar || null;
+    return this.visibleImageUrl(provider.avatar);
+  }
+
+  visibleImageUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value || this.failedImageUrls().has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  handleImageError(url: string | null | undefined): void {
+    const value = url?.trim();
+    if (!value) {
+      return;
+    }
+
+    this.failedImageUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(value);
+      return next;
+    });
   }
 
   providerInitials(name: string): string {
@@ -202,7 +225,10 @@ export class ServicesComponent implements OnInit {
   }
 
   providerPhotos(provider: { photos: string[] }): string[] {
-    return provider.photos.slice(0, 2);
+    return provider.photos
+      .map((photo) => photo.trim())
+      .filter((photo) => photo.length > 0 && !this.failedImageUrls().has(photo))
+      .slice(0, 6);
   }
 
   providerRatingLabel(provider: { rating: number; totalReviews: number }): string {

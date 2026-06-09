@@ -13,4 +13,15 @@ import { AppointmentView } from '../../../domain/appointments.models';
 })
 export class AppointmentCardComponent {
   @Input({ required: true }) appointment!: AppointmentView;
+
+  protected avatarInitials(): string {
+    return (
+      this.appointment?.doctorName
+        ?.split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || 'JD'
+    );
+  }
 }

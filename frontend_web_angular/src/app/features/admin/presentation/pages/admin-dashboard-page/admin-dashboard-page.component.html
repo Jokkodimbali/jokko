@@ -27,7 +27,12 @@
       <p><span>Console</span> / <strong>Administration</strong></p>
       <label>
         <lucide-icon name="search" size="18" [strokeWidth]="2.2"></lucide-icon>
-        <input type="search" placeholder="Recherche, prestataire, litige, transaction..." />
+        <input
+          type="search"
+          [value]="adminSearchQuery()"
+          (input)="updateAdminSearch($event)"
+          [placeholder]="activeSection() === 'structure' ? 'Rechercher categorie, sous-categorie, service...' : 'Recherche dans la section active...'"
+        />
       </label>
       
     </header>
@@ -151,13 +156,18 @@
             [report]="serviceStructureReport()"
             [isLoading]="isStructureLoading()"
             [actionId]="structureActionId()"
+            [searchQuery]="adminSearchQuery()"
+            (clearSearch)="clearAdminSearch()"
             (createCategory)="createCategory($event)"
             (bulkCreateCategories)="bulkCreateCategories($event)"
             (updateCategory)="updateCategory($event)"
             (disableCategory)="disableCategory($event)"
+            (activateCategory)="activateCategory($event)"
+            (deleteCategoryPermanently)="deleteEmptyCategory($event)"
             (createSubCategory)="createSubCategory($event)"
             (bulkCreateSubCategories)="bulkCreateSubCategories($event)"
             (assignSubCategories)="assignSubCategories($event)"
+            (deleteSubCategoryPermanently)="deleteUnusedSubCategory($event)"
           ></app-admin-service-structure-panel>
         </ng-container>
       </ng-template>

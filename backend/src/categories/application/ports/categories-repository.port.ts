@@ -37,6 +37,10 @@ export type DisableCategoryResult =
   | { status: 'disabled'; category: CategoryView }
   | { status: 'not_found' };
 
+export type ActivateCategoryResult =
+  | { status: 'activated'; category: CategoryView }
+  | { status: 'not_found' };
+
 export interface CategoriesRepositoryPort {
   listActive(
     page?: number,
@@ -47,4 +51,5 @@ export interface CategoriesRepositoryPort {
   create(input: CreateCategoryInput): Promise<CreateCategoryResult>;
   update(input: UpdateCategoryInput): Promise<UpdateCategoryResult>;
   disable(categoryId: string): Promise<DisableCategoryResult>;
+  activate(categoryId: string): Promise<ActivateCategoryResult>;
 }

@@ -1005,11 +1005,25 @@
   padding: 12px;
 }
 
-.appointment-detail__provider img {
+.appointment-detail__provider img,
+.appointment-detail__provider-initials {
   border-radius: 13px;
   height: 82px;
-  object-fit: cover;
   width: 82px;
+}
+
+.appointment-detail__provider img {
+  object-fit: cover;
+}
+
+.appointment-detail__provider-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 23px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .appointment-detail__provider h2 {

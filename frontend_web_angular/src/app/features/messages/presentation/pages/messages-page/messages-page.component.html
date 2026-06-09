@@ -46,9 +46,10 @@
         >
           <span class="messages-page__avatar">
             <img
-              *ngIf="conversation.counterpart.avatarUrl; else conversationInitials"
-              [src]="conversation.counterpart.avatarUrl"
+              *ngIf="visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl; else conversationInitials"
+              [src]="avatarUrl"
               [alt]="conversation.counterpart.name"
+              (error)="handleAvatarError(avatarUrl)"
             />
             <ng-template #conversationInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
@@ -83,9 +84,10 @@
         <span class="messages-page__chat-identity">
           <span class="messages-page__avatar messages-page__avatar--large">
             <img
-              *ngIf="conversation.counterpart.avatarUrl; else selectedInitials"
-              [src]="conversation.counterpart.avatarUrl"
+              *ngIf="visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl; else selectedInitials"
+              [src]="avatarUrl"
               [alt]="conversation.counterpart.name"
+              (error)="handleAvatarError(avatarUrl)"
             />
             <ng-template #selectedInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
@@ -118,9 +120,10 @@
         >
           <span class="messages-page__message-avatar">
             <img
-              *ngIf="message.sender.avatarUrl; else messageInitials"
-              [src]="message.sender.avatarUrl"
+              *ngIf="visibleAvatarUrl(message.sender.avatarUrl) as avatarUrl; else messageInitials"
+              [src]="avatarUrl"
               [alt]="message.sender.name"
+              (error)="handleAvatarError(avatarUrl)"
             />
             <ng-template #messageInitials>
               <i>{{ initials(message.sender.name) }}</i>
@@ -188,7 +191,17 @@
 
         <article *ngIf="appointmentPreview() as appointment" class="messages-page__appointment-row">
           <section class="messages-page__appointment-card" aria-label="Resume du rendez-vous">
-            <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+            <img
+              *ngIf="visibleAvatarUrl(appointment.avatarUrl) as avatarUrl; else appointmentInitials"
+              [src]="avatarUrl"
+              [alt]="appointment.doctorName"
+              (error)="handleAvatarError(avatarUrl)"
+            />
+            <ng-template #appointmentInitials>
+              <span class="messages-page__appointment-initials">
+                {{ initials(appointment.doctorName) }}
+              </span>
+            </ng-template>
             <div class="messages-page__appointment-info">
               <p>
                 <lucide-icon name="handshake" size="31" [strokeWidth]="2.4"></lucide-icon>

@@ -68,6 +68,7 @@ export interface BackendProfessional {
   totalReviews: number;
   distanceKm: number | null;
   services: BackendProfessionalService[];
+  portfolioImages?: BackendProfessionalPortfolioImage[];
 }
 
 export interface BackendProfessionalService {
@@ -77,6 +78,12 @@ export interface BackendProfessionalService {
   priceType: string;
   categoryId: string;
   categoryName: string;
+}
+
+export interface BackendProfessionalPortfolioImage {
+  id: string;
+  title: string;
+  url: string;
 }
 
 export interface BackendProfessionalDetailService {

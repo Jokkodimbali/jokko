@@ -253,12 +253,12 @@
             Arrive sur place
           </div>
           <div class="appointment-detail__work-radius" *ngIf="hasTrackingCoordinates()"></div>
-          <img
-            class="appointment-detail__work-avatar"
-            [src]="appointment.avatarUrl"
-            [alt]="appointment.doctorName"
-            *ngIf="hasTrackingCoordinates()"
-          />
+        <img
+          class="appointment-detail__work-avatar"
+          [src]="appointment.avatarUrl"
+          [alt]="appointment.doctorName"
+          *ngIf="hasTrackingCoordinates() && appointment.avatarUrl"
+        />
         </div>
 
         <div class="appointment-detail__work-info">
@@ -291,11 +291,10 @@
         </span>
         <div class="appointment-detail__service-copy">
           <h2>{{ appointment.serviceName }}</h2>
-          <p>{{ appointment.notes || 'Diagnostic et reparation. Module materiel inclus' }}</p>
+          <p>{{ serviceDescriptionLabel(appointment) }}</p>
           <div class="appointment-detail__badges">
-            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Diagnostic</span>
-            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Garantie 30J</span>
-            <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Materiel inclus</span>
+            <span><lucide-icon name="info" size="16" [strokeWidth]="2.4"></lucide-icon> {{ statusLabel() }}</span>
+            <span><lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon> {{ durationLabel(appointment) }}</span>
           </div>
         </div>
 
@@ -356,7 +355,7 @@
           class="appointment-detail__map-avatar"
           [src]="appointment.avatarUrl"
           [alt]="appointment.doctorName"
-          *ngIf="hasTrackingCoordinates()"
+          *ngIf="hasTrackingCoordinates() && appointment.avatarUrl"
         />
       </article>
     </section>
@@ -369,11 +368,10 @@
           </span>
           <div class="appointment-detail__service-copy">
             <h2>{{ appointment.serviceName }}</h2>
-            <p>{{ appointment.notes || 'Diagnostic et reparation. Module materiel inclus' }}</p>
-            <div class="appointment-detail__badges">
-              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Diagnostic</span>
-              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Garantie 30J</span>
-              <span><lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon> Materiel inclus</span>
+            <p>{{ serviceDescriptionLabel(appointment) }}</p>
+            <div class="appointment-detail__badges" *ngIf="appointment.status as status">
+              <span><lucide-icon name="info" size="16" [strokeWidth]="2.4"></lucide-icon> {{ statusLabel() }}</span>
+              <span><lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon> {{ durationLabel(appointment) }}</span>
             </div>
           </div>
 
@@ -416,11 +414,14 @@
         </article>
 
         <article class="appointment-detail__card appointment-detail__provider">
-          <img [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <img *ngIf="appointment.avatarUrl; else appointmentDetailInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+          <ng-template #appointmentDetailInitials>
+            <span class="appointment-detail__provider-initials">{{ avatarInitials(appointment) }}</span>
+          </ng-template>
           <div>
             <h2>{{ appointment.doctorName }}</h2>
-            <p>{{ appointment.specialty }} <span>// 500 intervention</span></p>
-            <strong><lucide-icon name="star" size="18" [strokeWidth]="2.2"></lucide-icon> 4.9/5 (125 avis)</strong>
+            <p>{{ appointment.specialty }}</p>
+            <strong><lucide-icon name="calendar-days" size="18" [strokeWidth]="2.2"></lucide-icon> {{ appointment.confirmationLabel }}</strong>
           </div>
           <a [routerLink]="['/services', appointment.professionalId]">
             PROFIL

@@ -625,11 +625,25 @@
   grid-template-columns: 48px minmax(0, 1fr);
 }
 
-.appointment-row__provider img {
+.appointment-row__provider img,
+.appointment-row__avatar-initials {
   border-radius: 50%;
   height: 48px;
-  object-fit: cover;
   width: 48px;
+}
+
+.appointment-row__provider img {
+  object-fit: cover;
+}
+
+.appointment-row__avatar-initials {
+  align-items: center;
+  background: #8d5527;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 950;
+  justify-content: center;
 }
 
 .appointment-row__provider strong {

@@ -88,6 +88,18 @@ export class AdminDashboardService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  activateCategory(categoryId: string): Observable<AdminServiceStructureCategory> {
+    return this.http
+      .patch<ApiResponse<AdminServiceStructureCategory>>(`${environment.apiUrl}/admin/categories/${categoryId}/activate`, {})
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  deleteEmptyCategory(categoryId: string): Observable<{ id: string }> {
+    return this.http
+      .delete<ApiResponse<{ id: string }>>(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   createSubCategory(payload: AdminSubCategoryPayload): Observable<AdminServiceSubCategory> {
     return this.http
       .post<ApiResponse<AdminServiceSubCategory>>(
@@ -112,6 +124,12 @@ export class AdminDashboardService {
         `${environment.apiUrl}/admin/service-structure/categories/${categoryId}/subcategories`,
         { subCategoryIds },
       )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  deleteUnusedSubCategory(subCategoryId: string): Observable<{ id: string }> {
+    return this.http
+      .delete<ApiResponse<{ id: string }>>(`${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

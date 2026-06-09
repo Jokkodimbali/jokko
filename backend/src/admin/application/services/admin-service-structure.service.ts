@@ -226,6 +226,20 @@ export class AdminServiceStructureService {
       throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND');
     }
 
+    const assignedElsewhere = await this.prisma.categorieSousCategorie.findFirst(
+      {
+        where: {
+          categorieId: { not: categoryId },
+          sousCategorieId: { in: uniqueIds },
+        },
+        select: { id: true },
+      },
+    );
+
+    if (assignedElsewhere) {
+      throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_ALREADY_ASSIGNED');
+    }
+
     await this.prisma.$transaction(async (tx) => {
       await tx.categorieSousCategorie.deleteMany({
         where: { categorieId: categoryId },
@@ -251,6 +265,55 @@ export class AdminServiceStructureService {
     }
 
     return this.mapCategory(refreshed);
+  }
+
+  async deleteEmptyCategory(requestUser: AuthUser, categoryId: string) {
+    this.assertAdmin(requestUser);
+
+    const category = await this.prisma.categorie.findUnique({
+      where: { id: categoryId },
+      select: {
+        id: true,
+        services: { select: { id: true }, take: 1 },
+        sousCategories: { select: { id: true }, take: 1 },
+      },
+    });
+
+    if (!category) {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    if (category.services.length > 0 || category.sousCategories.length > 0) {
+      throw appHttpException('ADMIN_SERVICE_CATEGORY_NOT_EMPTY');
+    }
+
+    await this.prisma.categorie.delete({ where: { id: categoryId } });
+    return { id: categoryId };
+  }
+
+  async deleteUnusedSubCategory(requestUser: AuthUser, subCategoryId: string) {
+    this.assertAdmin(requestUser);
+
+    const subCategory = await this.prisma.sousCategorieService.findUnique({
+      where: { id: subCategoryId },
+      select: {
+        id: true,
+        categories: { select: { id: true }, take: 1 },
+      },
+    });
+
+    if (!subCategory) {
+      throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND');
+    }
+
+    if (subCategory.categories.length > 0) {
+      throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_IN_USE');
+    }
+
+    await this.prisma.sousCategorieService.delete({
+      where: { id: subCategoryId },
+    });
+    return { id: subCategoryId };
   }
 
   private findCategories() {
@@ -465,7 +528,7 @@ export class AdminServiceStructureService {
 
   private async listAvailableSubCategories() {
     const subCategories = await this.prisma.sousCategorieService.findMany({
-      where: { estActive: true },
+      where: { estActive: true, categories: { none: {} } },
       orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
     });
 

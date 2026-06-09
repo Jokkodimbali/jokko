@@ -112,6 +112,8 @@ export class AuthService {
       medicalSpecialty: command.medicalSpecialty?.trim(),
       medicalExpertises: command.medicalExpertises,
       medicalDocumentNames: command.medicalDocumentNames,
+      categoryIds: command.categoryIds,
+      subCategoryIds: command.subCategoryIds,
     });
     if (!user) {
       const userByPhone =

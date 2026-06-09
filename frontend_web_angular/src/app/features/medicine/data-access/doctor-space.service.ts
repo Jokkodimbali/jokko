@@ -10,6 +10,8 @@ import {
   BackendProfessionalPortfolioItem,
   BackendProfessionalProfile,
   Category,
+  CategoryStructure,
+  ServiceSubCategory,
 } from '../../services/domain/models/services.models';
 import { BackendReservation } from '../../appointments/domain/appointments.models';
 
@@ -43,6 +45,11 @@ export type ProfessionalUploadView = {
   originalFileName: string;
   mimeType: string;
   sizeBytes: number;
+};
+
+type CategoryStructureApiView = Omit<CategoryStructure, 'subCategories'> & {
+  subCategories?: Array<ServiceSubCategory & { isActive?: boolean }>;
+  sousCategories?: Array<ServiceSubCategory & { isActive?: boolean }>;
 };
 
 export type PatientMedicalTreatment = {
@@ -186,6 +193,25 @@ export class DoctorSpaceService {
         params: { page: '1', limit: '100' },
       })
       .pipe(map(unwrapApiResponse));
+  }
+
+  listCategoryStructure(): Observable<CategoryStructure[]> {
+    return this.http
+      .get<ApiResponse<CategoryStructureApiView[]>>(`${this.apiUrl}/categories/structure`)
+      .pipe(
+        map(unwrapApiResponse),
+        map((categories) =>
+          categories.map((category) => ({
+            ...category,
+            subCategories: (category.subCategories ?? category.sousCategories ?? []).map(
+              (subCategory) => ({
+                ...subCategory,
+                estActive: subCategory.estActive ?? subCategory.isActive ?? true,
+              }),
+            ),
+          })),
+        ),
+      );
   }
 
   listMyReservations(): Observable<BackendReservation[]> {

@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Matches,
   MaxLength,
@@ -116,7 +117,8 @@ export class RegisterDto {
   medicalExpertises?: string[];
 
   @ApiPropertyOptional({
-    description: 'Noms des documents selectionnes pendant l inscription medecin',
+    description:
+      'Noms des documents selectionnes pendant l inscription medecin',
     example: ['diplome-medecine.pdf'],
     type: [String],
   })
@@ -125,4 +127,26 @@ export class RegisterDto {
   @IsString({ each: true })
   @MaxLength(180, { each: true })
   medicalDocumentNames?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Categories professionnelles selectionnees pendant l inscription',
+    example: ['8f0a4f71-2b5c-4e53-8a1d-76f651de2533'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  categoryIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Sous-categories professionnelles selectionnees pendant l inscription',
+    example: ['4c54f8ec-3274-43ff-9b7a-e769f1c21c76'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  subCategoryIds?: string[];
 }

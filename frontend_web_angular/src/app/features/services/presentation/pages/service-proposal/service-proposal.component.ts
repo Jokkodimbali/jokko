@@ -117,6 +117,33 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
 
   protected readonly categoryLabel = computed(() => this.currentService()?.nom || 'Service Jokko');
+  protected readonly isFixedPriceService = computed(
+    () => this.currentService()?.typePrix === 'FIXE',
+  );
+  protected readonly pageTitle = computed(() =>
+    this.isFixedPriceService()
+      ? "Confirmez votre rendez-vous"
+      : "Proposez un prix et choisissez votre rendez-vous",
+  );
+  protected readonly priceSectionTitle = computed(() =>
+    this.isFixedPriceService() ? 'Tarif fixe du service' : 'Proposez un prix au prestataire',
+  );
+  protected readonly offerFieldLabel = computed(() =>
+    this.isFixedPriceService() ? 'Tarif fixe' : 'Votre offre',
+  );
+  protected readonly summaryPriceLabel = computed(() =>
+    this.isFixedPriceService() ? 'PRIX FIXE' : 'PRIX PROPOSE',
+  );
+  protected readonly checkoutTotalLabel = computed(() =>
+    this.isFixedPriceService() ? 'TOTAL A PAYER' : 'TOTAL A AUTORISER',
+  );
+  protected readonly submitButtonLabel = computed(() => {
+    if (this.isSubmitting()) {
+      return this.isFixedPriceService() ? 'Creation du rendez-vous...' : 'Envoi en cours...';
+    }
+
+    return this.isFixedPriceService() ? 'Confirmer le rendez-vous' : 'Envoyer la proposition';
+  });
 
   protected readonly ratingLabel = computed(() => {
     const profile = this.detail()?.profile;
@@ -338,8 +365,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         ].join(' '),
       })
       .subscribe({
-        next: () => {
-          this.feedback.success('Votre reservation a ete envoyee au prestataire.');
+        next: (reservation) => {
+          this.feedback.success('Votre rendez-vous a ete cree avec succes.');
+          if (reservation.id) {
+            this.router.navigate(['/appointments', reservation.id, 'payment']);
+            return;
+          }
+
           this.router.navigate(['/appointments']);
         },
         error: (error) => {
@@ -390,9 +422,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }).subscribe({
       next: ({ detail, user }) => {
         this.detail.set(detail);
-        const service = this.currentService();
-        this.selectedServiceId.set(service?.id || '');
-        this.offerAmount.set(service?.prix ?? 0);
+    const service = this.currentService();
+    this.selectedServiceId.set(service?.id || '');
+    this.offerAmount.set(service?.prix ?? 0);
         this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
         this.isLoading.set(false);
         this.scheduleAvailabilityCheck();
@@ -520,8 +552,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return null;
     }
 
-    const amount = Math.trunc(Number(this.offerAmount()));
-    if (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000) {
+    const amount = service.typePrix === 'FIXE'
+      ? Math.trunc(Number(service.prix))
+      : Math.trunc(Number(this.offerAmount()));
+    if (service.typePrix === 'FIXE' && (!Number.isFinite(amount) || amount <= 0)) {
+      this.feedback.info('Ce service fixe doit avoir un tarif renseigne avant la reservation.');
+      return null;
+    }
+
+    if (
+      service.typePrix === 'NEGOCIABLE' &&
+      (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000)
+    ) {
       this.feedback.info('Renseignez un montant entre 500 et 10 000 000 FCFA.');
       return null;
     }

@@ -217,9 +217,9 @@ export class ServiceProposalService {
       );
   }
 
-  createDirectReservation(payload: CreateDirectReservationPayload): Observable<unknown> {
+  createDirectReservation(payload: CreateDirectReservationPayload): Observable<{ id?: string }> {
     return this.http
-      .post<ApiResponse<unknown>>(`${this.apiUrl}/reservations`, payload)
+      .post<ApiResponse<{ id?: string }>>(`${this.apiUrl}/reservations`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

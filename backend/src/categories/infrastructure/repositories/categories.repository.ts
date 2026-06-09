@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CategoriesRepositoryPort,
   ActivateCategoryResult,
+  CategoryWithSubCategoriesView,
   CategoryView,
   CreateCategoryInput,
   CreateCategoryResult,
@@ -41,13 +42,44 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
     const skip = (page - 1) * limit;
 
     const [categories, total] = await Promise.all([
-      this.prisma.categorie.findMany({
-        where: { estActive: true },
-        orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
-        select: CATEGORY_SELECT,
-        skip,
-        take: limit,
-      }),
+      this.prisma.$queryRaw<RawCategory[]>(Prisma.sql`
+        SELECT
+          c.id,
+          c.name AS nom,
+          c.icon_url AS "urlIcone",
+          c.sort_order AS "ordreTri",
+          c.commission_rate AS "tauxCommission",
+          c.is_active AS "estActive"
+        FROM categories c
+        LEFT JOIN services s
+          ON s.category_id = c.id
+          AND s.is_available = true
+        LEFT JOIN professional_profiles service_pp
+          ON service_pp.id = s.professional_id
+          AND service_pp.kyc_status = 'VERIFIE'
+        LEFT JOIN users service_u
+          ON service_u.id = service_pp.user_id
+          AND service_u.is_active = true
+          AND service_u.role IN ('PRESTATAIRE', 'MEDECIN')
+        LEFT JOIN professional_specialties ps
+          ON ps.category_id = c.id
+        LEFT JOIN professional_profiles specialty_pp
+          ON specialty_pp.id = ps.professional_id
+          AND specialty_pp.kyc_status = 'VERIFIE'
+        LEFT JOIN users specialty_u
+          ON specialty_u.id = specialty_pp.user_id
+          AND specialty_u.is_active = true
+          AND specialty_u.role IN ('PRESTATAIRE', 'MEDECIN')
+        WHERE c.is_active = true
+        GROUP BY c.id
+        ORDER BY
+          COUNT(DISTINCT service_u.id) DESC,
+          COUNT(DISTINCT specialty_u.id) DESC,
+          c.sort_order ASC,
+          c.name ASC
+        OFFSET ${skip}
+        LIMIT ${limit}
+      `),
       this.prisma.categorie.count({ where: { estActive: true } }),
     ]);
 
@@ -64,6 +96,42 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
     });
 
     return category ? this.mapCategory(category) : null;
+  }
+
+  async listActiveWithSubCategories(): Promise<CategoryWithSubCategoriesView[]> {
+    const categories = await this.prisma.categorie.findMany({
+      where: { estActive: true },
+      orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
+      select: {
+        ...CATEGORY_SELECT,
+        sousCategories: {
+          orderBy: [{ ordreTri: 'asc' }, { sousCategorie: { nom: 'asc' } }],
+          where: { sousCategorie: { estActive: true } },
+          select: {
+            sousCategorie: {
+              select: {
+                id: true,
+                nom: true,
+                description: true,
+                ordreTri: true,
+                estActive: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return categories.map((category) => ({
+      ...this.mapCategory(category),
+      subCategories: category.sousCategories.map((assignment) => ({
+        id: assignment.sousCategorie.id,
+        nom: assignment.sousCategorie.nom,
+        description: assignment.sousCategorie.description,
+        ordreTri: assignment.sousCategorie.ordreTri,
+        estActive: assignment.sousCategorie.estActive,
+      })),
+    }));
   }
 
   async findByName(name: string): Promise<{ id: string } | null> {

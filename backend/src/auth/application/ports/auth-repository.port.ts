@@ -58,6 +58,8 @@ export interface AuthRepositoryPort {
     medicalSpecialty?: string;
     medicalExpertises?: string[];
     medicalDocumentNames?: string[];
+    categoryIds?: string[];
+    subCategoryIds?: string[];
   }): Promise<AuthUserSummary | null>;
   createGoogleClient(data: {
     email: string;

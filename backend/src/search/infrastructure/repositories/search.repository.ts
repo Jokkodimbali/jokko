@@ -23,6 +23,7 @@ type SearchProfessionalRow = {
   rating: Prisma.Decimal | number | string;
   totalReviews: number;
   distanceKm: number | null;
+  hasServices: boolean;
 };
 
 @Injectable()
@@ -82,6 +83,18 @@ export class SearchRepository implements SearchRepositoryPort {
                   OR c2.name ILIKE ${`%${queryText}%`}
                 )
             )
+            OR EXISTS (
+              SELECT 1
+              FROM professional_specialties ps2
+              INNER JOIN categories c3 ON c3.id = ps2.category_id
+              LEFT JOIN service_subcategories sc2 ON sc2.id = ps2.subcategory_id
+              WHERE ps2.professional_id = pp.id
+                AND (
+                  c3.name ILIKE ${`%${queryText}%`}
+                  OR sc2.name ILIKE ${`%${queryText}%`}
+                  OR sc2.description ILIKE ${`%${queryText}%`}
+                )
+            )
           )
         `
       : Prisma.empty;
@@ -92,12 +105,20 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const categoryFilter = input.categoryId
       ? Prisma.sql`
-          AND EXISTS (
-            SELECT 1
-            FROM services s3
-            WHERE s3.professional_id = pp.id
-              AND s3.category_id = ${input.categoryId}::uuid
-              AND s3.is_available = true
+          AND (
+            EXISTS (
+              SELECT 1
+              FROM services s3
+              WHERE s3.professional_id = pp.id
+                AND s3.category_id = ${input.categoryId}::uuid
+                AND s3.is_available = true
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM professional_specialties ps3
+              WHERE ps3.professional_id = pp.id
+                AND ps3.category_id = ${input.categoryId}::uuid
+            )
           )
         `
       : Prisma.empty;
@@ -124,8 +145,8 @@ export class SearchRepository implements SearchRepositoryPort {
       : Prisma.empty;
 
     const orderBy = hasGeo
-      ? Prisma.sql`"distanceKm" ASC NULLS LAST, pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`
-      : Prisma.sql`pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`;
+      ? Prisma.sql`"distanceKm" ASC NULLS LAST, "hasServices" DESC, pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`
+      : Prisma.sql`"hasServices" DESC, pp.global_rating DESC, pp.total_reviews DESC, pp.id DESC`;
 
     const visibilityFilter =
       role === 'MEDECIN'
@@ -136,11 +157,18 @@ export class SearchRepository implements SearchRepositoryPort {
         : Prisma.sql`
             AND u.role = 'PRESTATAIRE'
             AND pp.kyc_status = 'VERIFIE'
-            AND EXISTS (
-              SELECT 1
-              FROM services s
-              WHERE s.professional_id = pp.id
-                AND s.is_available = true
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM services s
+                WHERE s.professional_id = pp.id
+                  AND s.is_available = true
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM professional_specialties ps
+                WHERE ps.professional_id = pp.id
+              )
             )
           `;
 
@@ -176,7 +204,18 @@ export class SearchRepository implements SearchRepositoryPort {
         END AS longitude,
         pp.global_rating AS rating,
         pp.total_reviews AS "totalReviews",
-        ${geoDistanceFragment} AS "distanceKm"
+        ${geoDistanceFragment} AS "distanceKm",
+        EXISTS (
+          SELECT 1
+          FROM services s_rank
+          WHERE s_rank.professional_id = pp.id
+            AND s_rank.is_available = true
+            ${
+              input.categoryId
+                ? Prisma.sql`AND s_rank.category_id = ${input.categoryId}::uuid`
+                : Prisma.empty
+            }
+        ) AS "hasServices"
       ${baseQuery}
       ORDER BY ${orderBy}
       OFFSET ${offset}
@@ -237,6 +276,51 @@ export class SearchRepository implements SearchRepositoryPort {
       servicesByProfile.set(service.profilProfessionnelId, existing);
     }
 
+    const specialties = profileIds.length
+      ? await this.prisma.specialiteProfessionnelle.findMany({
+          where: {
+            profilProfessionnelId: { in: profileIds },
+            ...(input.categoryId ? { categorieId: input.categoryId } : {}),
+          },
+          orderBy: [{ creeLe: 'desc' }],
+          select: {
+            id: true,
+            profilProfessionnelId: true,
+            categorieId: true,
+            categorie: {
+              select: {
+                nom: true,
+              },
+            },
+            sousCategorie: {
+              select: {
+                nom: true,
+              },
+            },
+          },
+        })
+      : [];
+
+    const specialtiesByProfile = new Map<
+      string,
+      SearchProfessionalServiceView[]
+    >();
+    for (const specialty of specialties) {
+      const mappedSpecialty: SearchProfessionalServiceView = {
+        id: specialty.id,
+        name: specialty.sousCategorie?.nom ?? specialty.categorie.nom,
+        price: 0,
+        priceType: 'SPECIALTY',
+        categoryId: specialty.categorieId,
+        categoryName: specialty.categorie.nom,
+      };
+
+      const existing =
+        specialtiesByProfile.get(specialty.profilProfessionnelId) ?? [];
+      existing.push(mappedSpecialty);
+      specialtiesByProfile.set(specialty.profilProfessionnelId, existing);
+    }
+
     const portfolioItems = profileIds.length
       ? await this.prisma.elementPortfolio.findMany({
           where: {
@@ -288,6 +372,7 @@ export class SearchRepository implements SearchRepositoryPort {
         totalReviews: row.totalReviews,
         distanceKm: distance === null ? null : Number(distance.toFixed(2)),
         services: servicesByProfile.get(row.id) ?? [],
+        specialties: specialtiesByProfile.get(row.id) ?? [],
         portfolioImages: portfolioByProfile.get(row.id) ?? [],
       };
     });

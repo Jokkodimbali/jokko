@@ -7,6 +7,18 @@ export interface Category {
   estActive: boolean;
 }
 
+export interface ServiceSubCategory {
+  id: string;
+  nom: string;
+  description: string | null;
+  ordreTri: number;
+  estActive: boolean;
+}
+
+export interface CategoryStructure extends Category {
+  subCategories: ServiceSubCategory[];
+}
+
 export interface Professional {
   id: string;
   serviceId?: string;
@@ -68,6 +80,7 @@ export interface BackendProfessional {
   totalReviews: number;
   distanceKm: number | null;
   services: BackendProfessionalService[];
+  specialties?: BackendProfessionalService[];
   portfolioImages?: BackendProfessionalPortfolioImage[];
 }
 

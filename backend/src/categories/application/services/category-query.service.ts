@@ -14,4 +14,8 @@ export class CategoryQueryService {
   async listActiveCategories(page?: number, limit?: number) {
     return this.categoriesRepository.listActive(page, limit);
   }
+
+  async listActiveCategoryStructure() {
+    return this.categoriesRepository.listActiveWithSubCategories();
+  }
 }

@@ -8,6 +8,8 @@ export type RegisterCommand = {
   medicalSpecialty?: string;
   medicalExpertises?: string[];
   medicalDocumentNames?: string[];
+  categoryIds?: string[];
+  subCategoryIds?: string[];
 };
 
 export type LoginCommand = {

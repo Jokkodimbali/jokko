@@ -13,6 +13,10 @@ export class CategoryIconUrl {
       return null;
     }
 
+    if (/^lucide:[a-z0-9-]+$/.test(normalized)) {
+      return new CategoryIconUrl(normalized);
+    }
+
     try {
       const parsedUrl = new URL(normalized);
       if (!['http:', 'https:'].includes(parsedUrl.protocol)) {

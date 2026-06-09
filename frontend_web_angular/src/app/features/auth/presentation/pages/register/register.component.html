@@ -95,16 +95,80 @@
           </label>
         </div>
 
+        <section class="specialty-picker" *ngIf="requiresProfessionalSpecialties()">
+          <header>
+            <div>
+              <h2>{{ selectedRole() === 'MEDECIN' ? 'Specialites medicales' : 'Categories de services' }}</h2>
+              <p>
+                {{ selectedRole() === 'MEDECIN'
+                  ? 'Choisissez uniquement les domaines medicaux qui correspondent a votre pratique.'
+                  : 'Choisissez les familles de services que vous proposez aux clients.' }}
+              </p>
+            </div>
+            <span>{{ selectedCategoryIds().length }} selectionnee(s)</span>
+          </header>
+
+          <div class="specialty-picker__empty" *ngIf="availableCategories().length === 0">
+            Aucune categorie compatible n'est disponible pour ce type de compte.
+          </div>
+
+          <div class="specialty-picker__fields" *ngIf="availableCategories().length > 0">
+            <label>
+              <span>Categorie</span>
+              <select [value]="categorySelectValue()" (change)="addSelectedCategory($event)">
+                <option value="">Selectionner une categorie...</option>
+                <option
+                  *ngFor="let category of availableCategories()"
+                  [value]="category.id"
+                  [disabled]="isCategorySelected(category.id)"
+                >
+                  {{ category.nom }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              <span>Sous-categorie</span>
+              <select
+                [value]="subCategorySelectValue()"
+                (change)="addSelectedSubCategory($event)"
+                [disabled]="selectedCategories().length === 0 || availableSubCategoriesForSelectedCategories().length === 0"
+              >
+                <option value="">
+                  {{ selectedCategories().length === 0 ? 'Selectionnez d abord une categorie...' : 'Selectionner une sous-categorie...' }}
+                </option>
+                <option *ngFor="let subCategory of availableSubCategoriesForSelectedCategories()" [value]="subCategory.id">
+                  {{ subCategory.nom }}
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <div class="specialty-picker__selection" *ngIf="selectedCategories().length > 0">
+            <div>
+              <span>Categories choisies</span>
+              <button *ngFor="let category of selectedCategories()" type="button" (click)="removeSelectedCategory(category)">
+                {{ category.nom }}
+                <em>Retirer</em>
+              </button>
+            </div>
+
+            <div *ngIf="selectedSubCategories().length > 0">
+              <span>Sous-categories choisies</span>
+              <button *ngFor="let subCategory of selectedSubCategories()" type="button" (click)="removeSelectedSubCategory(subCategory)">
+                {{ subCategory.nom }}
+                <em>Retirer</em>
+              </button>
+            </div>
+
+            <p *ngIf="selectedSubCategories().length === 0" class="specialty-picker__hint">
+              Les sous-categories sont optionnelles. Ajoutez-les si vous voulez preciser vos specialites.
+            </p>
+          </div>
+        </section>
+
         <ng-container *ngIf="selectedRole() === 'MEDECIN'">
-          <label class="register-field register-field--full">
-            <span>Specialite medicale</span>
-            <select formControlName="medicalSpecialty">
-              <option value="">Selectionner une specialite...</option>
-              <option *ngFor="let specialty of medicalSpecialties()" [value]="specialty">
-                {{ specialty }}
-              </option>
-            </select>
-          </label>
+          <input type="hidden" formControlName="medicalSpecialty" />
 
           <section class="document-upload">
             <p>Diplomes et certifications (PDF, JPG)</p>

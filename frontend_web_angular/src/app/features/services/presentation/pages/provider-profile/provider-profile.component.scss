@@ -513,7 +513,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 0 0 28px;
+  margin: 0 0 14px;
 }
 
 .provider-profile__price strong {
@@ -528,6 +528,15 @@
   font-size: 20px;
   font-style: normal;
   font-weight: 750;
+}
+
+.provider-profile__price-helper {
+  color: #6f7a82;
+  display: block;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0 0 24px;
 }
 
 .provider-profile__price button {

@@ -23,6 +23,13 @@ import type {
 import { NegotiationDomainError, NegotiationEntity } from '../../domain';
 import { NegotiationAppService } from './negotiation-app-service.base';
 
+type NegotiationParticipantActor = 'CLIENT' | 'PRESTATAIRE';
+
+type AuthorizedNegotiation = {
+  entity: NegotiationEntity;
+  actor: NegotiationParticipantActor;
+};
+
 @Injectable()
 export class NegotiationCommandService extends NegotiationAppService {
   constructor(
@@ -96,13 +103,13 @@ export class NegotiationCommandService extends NegotiationAppService {
     negotiationId: string,
     command: CounterNegotiationCommand,
   ) {
-    const entity = await this.getAuthorizedEntityOrThrow(
+    const { entity, actor } = await this.getAuthorizedNegotiationOrThrow(
       requestUser,
       negotiationId,
     );
 
     try {
-      if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
+      if (actor === 'PRESTATAIRE') {
         entity.counterByProfessional({
           offerId: randomUUID(),
           amount: command.proposedAmount,
@@ -116,6 +123,9 @@ export class NegotiationCommandService extends NegotiationAppService {
           offerId: randomUUID(),
           amount: command.proposedAmount,
           message: command.message,
+          dateHeureProposee: command.dateHeure,
+          adresseClientProposee: command.adresseClient,
+          dureeMinutesProposee: command.dureeMinutes,
         });
       }
     } catch (error) {
@@ -132,13 +142,13 @@ export class NegotiationCommandService extends NegotiationAppService {
   }
 
   async acceptNegotiation(requestUser: AuthUser, negotiationId: string) {
-    const entity = await this.getAuthorizedEntityOrThrow(
+    const { entity, actor } = await this.getAuthorizedNegotiationOrThrow(
       requestUser,
       negotiationId,
     );
 
     try {
-      if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
+      if (actor === 'PRESTATAIRE') {
         entity.acceptByProfessional();
       } else {
         entity.acceptByClient();
@@ -161,11 +171,13 @@ export class NegotiationCommandService extends NegotiationAppService {
     negotiationId: string,
     command: RejectNegotiationCommand,
   ) {
-    this.assertProfessionalRole(requestUser.role);
-    const entity = await this.getAuthorizedEntityOrThrow(
+    const { entity, actor } = await this.getAuthorizedNegotiationOrThrow(
       requestUser,
       negotiationId,
     );
+    if (actor !== 'PRESTATAIRE') {
+      throw appHttpException('NEGOTIATIONS_PROFESSIONAL_ROLE_REQUIRED');
+    }
 
     try {
       entity.rejectByProfessional(command.reason);
@@ -187,11 +199,13 @@ export class NegotiationCommandService extends NegotiationAppService {
     negotiationId: string,
     command: CancelNegotiationCommand,
   ) {
-    this.assertClientRole(requestUser.role);
-    const entity = await this.getAuthorizedEntityOrThrow(
+    const { entity, actor } = await this.getAuthorizedNegotiationOrThrow(
       requestUser,
       negotiationId,
     );
+    if (actor !== 'CLIENT') {
+      throw appHttpException('NEGOTIATIONS_CLIENT_ROLE_REQUIRED');
+    }
 
     try {
       entity.cancelByClient(command.reason);
@@ -208,22 +222,34 @@ export class NegotiationCommandService extends NegotiationAppService {
     return updated;
   }
 
-  private async getAuthorizedEntityOrThrow(
+  private async getAuthorizedNegotiationOrThrow(
     requestUser: AuthUser,
     negotiationId: string,
-  ): Promise<NegotiationEntity> {
+  ): Promise<AuthorizedNegotiation> {
     const negotiation = await this.getNegotiationOrThrow(negotiationId);
 
-    if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
-      const profile = await this.getProfessionalProfileOrThrow(requestUser.sub);
-      if (profile.id !== negotiation.professionnelId) {
-        throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
-      }
-    } else if (negotiation.clientId !== requestUser.sub) {
-      throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+    if (negotiation.clientId === requestUser.sub) {
+      return {
+        entity: NegotiationEntity.reconstitute(negotiation),
+        actor: 'CLIENT',
+      };
     }
 
-    return NegotiationEntity.reconstitute(negotiation);
+    if (this.isProfessionalRole(requestUser.role)) {
+      const profile = await this.getProfessionalProfileOrThrow(requestUser.sub);
+      if (profile.id === negotiation.professionnelId) {
+        return {
+          entity: NegotiationEntity.reconstitute(negotiation),
+          actor: 'PRESTATAIRE',
+        };
+      }
+    }
+
+    throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+  }
+
+  private isProfessionalRole(role: AuthUser['role']): boolean {
+    return role === 'PRESTATAIRE' || role === 'MEDECIN';
   }
 
   private toCreateInput(entity: NegotiationEntity) {

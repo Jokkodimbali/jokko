@@ -1,6 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { createPaginatedResponse } from '../../../shared/dto/api-response.dto';
+import {
+  createApiResponse,
+  createPaginatedResponse,
+} from '../../../shared/dto/api-response.dto';
 import { CategoriesFacade } from '../../application/services/categories-facade.service';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { ApiStandardSuccessResponse } from '../../../shared/swagger/api-response-swagger.dto';
@@ -10,6 +13,18 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesFacade: CategoriesFacade) {}
+
+  @Get('structure')
+  @ApiOperation({
+    summary: 'Lister les categories actives avec leurs sous-categories',
+  })
+  async listActiveStructure() {
+    const result = await this.categoriesFacade.listActiveCategoryStructure();
+    return createApiResponse(
+      result,
+      'Structure des categories recuperee avec succes.',
+    );
+  }
 
   @Get()
   @ApiOperation({ summary: API_DOCS.categories.listSummary })

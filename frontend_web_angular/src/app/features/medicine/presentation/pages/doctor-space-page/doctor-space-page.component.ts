@@ -13,6 +13,8 @@ import {
   BackendProfessionalPortfolioItem,
   BackendProfessionalProfile,
   Category,
+  CategoryStructure,
+  ServiceSubCategory,
 } from '../../../../services/domain/models/services.models';
 import {
   AppointmentStatus,
@@ -23,6 +25,7 @@ import {
   PatientMedicalProfile,
   DoctorWalletTransaction,
   DoctorWalletView,
+  ProfessionalUploadView,
 } from '../../../data-access/doctor-space.service';
 import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
 
@@ -67,6 +70,8 @@ type ConsultationMotif = {
   id: string;
   categoryId: string;
   name: string;
+  description: string;
+  specialtyNames: string[];
   durationMinutes: number;
   price: number;
   isRequired: boolean;
@@ -169,6 +174,14 @@ type ProfessionalPortfolioForm = {
 
 type ProfessionalUploadTarget = 'kyc-front' | 'kyc-back' | 'portfolio';
 
+type UploadPreview = {
+  url: string;
+  name: string;
+  mimeType: string;
+  isImage: boolean;
+  isLocal?: boolean;
+};
+
 @Component({
   selector: 'app-doctor-space-page',
   standalone: true,
@@ -197,7 +210,9 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly days = signal<DaySchedule[]>(this.buildEmptyWeek());
   protected readonly motifs = signal<ConsultationMotif[]>([]);
   protected readonly editingMotifId = signal<string | null>(null);
-  protected readonly categories = signal<Category[]>([]);
+  protected readonly categories = signal<CategoryStructure[]>([]);
+  protected readonly selectedMotifCategoryId = signal('');
+  protected readonly selectedMotifSubCategoryIds = signal<string[]>([]);
   protected readonly reservations = signal<BackendReservation[]>([]);
   protected readonly wallet = signal<DoctorWalletView | null>(null);
   protected readonly appointmentDuration = signal(20);
@@ -219,6 +234,8 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly agendaPeriodStart = signal('');
   protected readonly agendaPeriodEnd = signal('');
   protected readonly motifForm = {
+    categoryId: '',
+    subCategoryIds: [] as string[],
     name: '',
     durationMinutes: 15,
     price: 10000,
@@ -252,12 +269,18 @@ export class DoctorSpacePageComponent implements OnInit {
     idCardUrl: '',
     idCardUrlVerso: '',
   };
+  protected readonly kycFrontPreview = signal<UploadPreview | null>(null);
+  protected readonly kycBackPreview = signal<UploadPreview | null>(null);
+  protected readonly kycFrontFile = signal<File | null>(null);
+  protected readonly kycBackFile = signal<File | null>(null);
   protected readonly portfolioForm: ProfessionalPortfolioForm = {
     title: '',
     description: '',
     imageUrl: '',
   };
   protected readonly portfolioFileName = signal('');
+  protected readonly portfolioPreview = signal<UploadPreview | null>(null);
+  protected readonly portfolioFile = signal<File | null>(null);
   protected readonly withdrawalMethods: WithdrawalMethodOption[] = [
     {
       id: 'WAVE',
@@ -313,6 +336,95 @@ export class DoctorSpacePageComponent implements OnInit {
     return Math.round(
       motifs.reduce((total, motif) => total + motif.price, 0) / motifs.length,
     );
+  });
+  protected readonly profileCompletionItems = computed(() => [
+    {
+      label: 'Profil',
+      done: this.hasProfessionalProfile(),
+      hint: this.hasProfessionalProfile() ? 'Fiche creee' : 'Nom, ville et bio',
+    },
+    {
+      label: 'KYC',
+      done: this.professionalProfile()?.statutKyc === 'VERIFIE',
+      hint: this.kycStatusLabel(),
+    },
+    {
+      label: this.serviceSectionLabel(),
+      done: this.motifs().length > 0,
+      hint: `${this.motifs().length} enregistre(s)`,
+    },
+    {
+      label: 'Portfolio',
+      done: this.portfolioItems().length > 0,
+      hint: `${this.portfolioItems().length} realisation(s)`,
+    },
+  ]);
+  protected readonly profileCompletionPercent = computed(() => {
+    const items = this.profileCompletionItems();
+    if (items.length === 0) return 0;
+    return Math.round((items.filter((item) => item.done).length / items.length) * 100);
+  });
+  protected readonly defaultServicePriceType = computed<'FIXE' | 'NEGOCIABLE'>(() =>
+    this.isProviderSpace() ? 'NEGOCIABLE' : 'FIXE',
+  );
+  protected readonly serviceFormTitle = computed(() => {
+    if (this.editingMotifId()) {
+      return this.isProviderSpace() ? 'Modifier ce service' : 'Modifier ce motif';
+    }
+
+    return this.isProviderSpace() ? 'Nouveau service' : 'Nouveau motif';
+  });
+  protected readonly serviceFormSubtitle = computed(() =>
+    this.isProviderSpace()
+      ? 'Choisissez la categorie, nommez la specialite et indiquez le prix de depart negociable.'
+      : 'Choisissez la categorie medicale, nommez le motif et indiquez le tarif fixe.',
+  );
+  protected readonly serviceNameLabel = computed(() =>
+    this.isProviderSpace() ? 'Specialite ou prestation' : 'Nom du motif',
+  );
+  protected readonly serviceNamePlaceholder = computed(() =>
+    this.isProviderSpace()
+      ? 'Ex : Plomberie sanitaire, installation chauffe-eau'
+      : 'Ex : Consultation generale',
+  );
+  protected readonly servicePriceHelp = computed(() =>
+    this.isProviderSpace()
+      ? 'Prix de depart affiche. Le client pourra negocier avec vous.'
+      : 'Prix fixe affiche au client avant reservation.',
+  );
+  protected readonly serviceListTitle = computed(() =>
+    this.isProviderSpace() ? 'Mes services et specialites' : 'Mes motifs',
+  );
+  protected readonly serviceEmptyLabel = computed(() =>
+    this.isProviderSpace()
+      ? 'Aucun service enregistre. Ajoutez au moins un service pour apparaitre clairement sur la page d accueil.'
+      : 'Aucun motif de consultation enregistre.',
+  );
+  protected readonly selectedMotifCategory = computed(() =>
+    this.categories().find((category) => category.id === this.selectedMotifCategoryId()) ?? null,
+  );
+  protected readonly availableSubCategories = computed(() =>
+    (this.selectedMotifCategory()?.subCategories ?? []).filter((subCategory) => subCategory.estActive !== false),
+  );
+  protected readonly selectedSubCategoryNames = computed(() =>
+    this.availableSubCategories()
+      .filter((subCategory) => this.selectedMotifSubCategoryIds().includes(subCategory.id))
+      .map((subCategory) => subCategory.nom),
+  );
+  protected readonly shouldShowCustomServiceName = computed(
+    () => this.selectedMotifCategoryId() !== '' && this.availableSubCategories().length === 0,
+  );
+  protected readonly serviceNamePreview = computed(() => {
+    const categoryName = this.selectedMotifCategory()?.nom ?? '';
+    const specialties = this.selectedSubCategoryNames();
+    if (!categoryName) return 'Selectionnez d abord une categorie.';
+    if (specialties.length === 0) return categoryName;
+    return `${categoryName} - ${specialties.join(', ')}`;
+  });
+  protected readonly specialtySelectorHelp = computed(() => {
+    if (!this.selectedMotifCategoryId()) return 'Selectionnez une categorie pour afficher ses specialites.';
+    if (this.availableSubCategories().length === 0) return 'Aucune specialite active disponible pour cette categorie.';
+    return `${this.selectedSubCategoryNames().length} specialite(s) selectionnee(s).`;
   });
 
   protected readonly calendarDays = computed(() =>
@@ -522,89 +634,121 @@ export class DoctorSpacePageComponent implements OnInit {
   protected submitProfessionalKyc(): void {
     const idCardUrl = this.kycForm.idCardUrl.trim();
     const idCardUrlVerso = this.kycForm.idCardUrlVerso.trim();
+    const frontFile = this.kycFrontFile();
+    const backFile = this.kycBackFile();
 
     if (!this.professionalProfileId()) {
       this.feedback.info('Creez votre profil professionnel avant de soumettre le KYC.');
       return;
     }
 
-    if (!idCardUrl) {
-      this.feedback.info('Ajoutez le lien du document recto avant de soumettre le KYC.');
+    if (!idCardUrl && !frontFile) {
+      this.feedback.info('Ajoutez le document recto avant de soumettre le KYC.');
       return;
     }
 
     this.isKycSubmitting.set(true);
-    this.doctorSpaceService
-      .submitMyKyc({
-        idCardUrl,
-        ...(idCardUrlVerso ? { idCardUrlVerso } : {}),
-      })
-      .pipe(finalize(() => this.isKycSubmitting.set(false)))
+    this.uploadingProfessionalAsset.set(frontFile ? 'kyc-front' : backFile ? 'kyc-back' : null);
+    forkJoin({
+      front: frontFile ? this.doctorSpaceService.uploadProfessionalAsset(frontFile) : of(null),
+      back: backFile ? this.doctorSpaceService.uploadProfessionalAsset(backFile) : of(null),
+    })
+      .pipe(
+        switchMap(({ front, back }) =>
+          this.doctorSpaceService.submitMyKyc({
+            idCardUrl: front?.fileUrl ?? idCardUrl,
+            ...((back?.fileUrl ?? idCardUrlVerso)
+              ? { idCardUrlVerso: back?.fileUrl ?? idCardUrlVerso }
+              : {}),
+          }),
+        ),
+        finalize(() => {
+          this.isKycSubmitting.set(false);
+          this.uploadingProfessionalAsset.set(null);
+        }),
+      )
       .subscribe({
         next: (profile) => {
           this.professionalProfile.set(profile);
           this.patchProfileForm(profile);
           this.kycForm.idCardUrl = '';
           this.kycForm.idCardUrlVerso = '';
+          this.kycFileNames.idCardUrl = '';
+          this.kycFileNames.idCardUrlVerso = '';
+          this.kycFrontFile.set(null);
+          this.kycBackFile.set(null);
+          this.kycFrontPreview.set(null);
+          this.kycBackPreview.set(null);
           this.feedback.success('Dossier KYC soumis pour verification.');
         },
         error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Soumission KYC impossible.')),
       });
   }
 
-  protected uploadProfessionalAsset(event: Event, target: ProfessionalUploadTarget): void {
+  protected selectProfessionalAsset(event: Event, target: ProfessionalUploadTarget): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     if (!file) return;
 
-    this.uploadingProfessionalAsset.set(target);
-    this.doctorSpaceService
-      .uploadProfessionalAsset(file)
-      .pipe(finalize(() => this.uploadingProfessionalAsset.set(null)))
-      .subscribe({
-        next: (uploaded) => {
-          if (target === 'kyc-front') {
-            this.kycForm.idCardUrl = uploaded.fileUrl;
-            this.kycFileNames.idCardUrl = uploaded.originalFileName;
-          } else if (target === 'kyc-back') {
-            this.kycForm.idCardUrlVerso = uploaded.fileUrl;
-            this.kycFileNames.idCardUrlVerso = uploaded.originalFileName;
-          } else {
-            this.portfolioForm.imageUrl = uploaded.imageUrl || uploaded.fileUrl;
-            this.portfolioFileName.set(uploaded.originalFileName);
-          }
-          this.feedback.success('Fichier uploade avec succes.');
-        },
-        error: (error) => {
-          input.value = '';
-          this.feedback.error(getHttpErrorMessage(error, 'Upload du fichier impossible.'));
-        },
-      });
+    if (!this.isValidProfessionalAsset(file, target)) {
+      input.value = '';
+      return;
+    }
+
+    const preview = this.toLocalUploadPreview(file);
+    if (target === 'kyc-front') {
+      this.kycFrontFile.set(file);
+      this.kycFileNames.idCardUrl = file.name;
+      this.kycFrontPreview.set(preview);
+      this.kycForm.idCardUrl = '';
+    } else if (target === 'kyc-back') {
+      this.kycBackFile.set(file);
+      this.kycFileNames.idCardUrlVerso = file.name;
+      this.kycBackPreview.set(preview);
+      this.kycForm.idCardUrlVerso = '';
+    } else {
+      this.portfolioFile.set(file);
+      this.portfolioFileName.set(file.name);
+      this.portfolioPreview.set(preview);
+      this.portfolioForm.imageUrl = '';
+    }
   }
 
   protected addPortfolioItem(): void {
     const title = this.portfolioForm.title.trim();
     const description = this.portfolioForm.description.trim();
     const imageUrl = this.portfolioForm.imageUrl.trim();
+    const file = this.portfolioFile();
 
     if (!this.professionalProfileId()) {
       this.feedback.info('Creez votre profil professionnel avant d ajouter un portfolio.');
       return;
     }
 
-    if (!title || !imageUrl) {
-      this.feedback.info('Renseignez le titre et le lien image du portfolio.');
+    if (!title || (!imageUrl && !file)) {
+      this.feedback.info('Renseignez le titre et choisissez une image du portfolio.');
       return;
     }
 
     this.isPortfolioSaving.set(true);
-    this.doctorSpaceService
-      .createPortfolioItem({
-        title,
-        imageUrl,
-        description: description || null,
-      })
-      .pipe(finalize(() => this.isPortfolioSaving.set(false)))
+    this.uploadingProfessionalAsset.set(file ? 'portfolio' : null);
+    const upload$ = file
+      ? this.doctorSpaceService.uploadProfessionalAsset(file)
+      : of(null as ProfessionalUploadView | null);
+    upload$
+      .pipe(
+        switchMap((uploaded) =>
+          this.doctorSpaceService.createPortfolioItem({
+            title,
+            imageUrl: uploaded?.imageUrl || uploaded?.fileUrl || imageUrl,
+            description: description || null,
+          }),
+        ),
+        finalize(() => {
+          this.isPortfolioSaving.set(false);
+          this.uploadingProfessionalAsset.set(null);
+        }),
+      )
       .subscribe({
         next: (item) => {
           this.portfolioItems.update((items) => [item, ...items]);
@@ -612,6 +756,8 @@ export class DoctorSpacePageComponent implements OnInit {
           this.portfolioForm.description = '';
           this.portfolioForm.imageUrl = '';
           this.portfolioFileName.set('');
+          this.portfolioPreview.set(null);
+          this.portfolioFile.set(null);
           this.feedback.success('Element portfolio ajoute.');
         },
         error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Ajout du portfolio impossible.')),
@@ -1075,19 +1221,55 @@ export class DoctorSpacePageComponent implements OnInit {
     this.selectedCalendarDate.set(this.startOfDay(day.date));
   }
 
+  protected onMotifCategoryChange(categoryId: string): void {
+    this.motifForm.categoryId = categoryId;
+    this.motifForm.subCategoryIds = [];
+    this.selectedMotifCategoryId.set(categoryId);
+    this.selectedMotifSubCategoryIds.set([]);
+  }
+
+  protected isSubCategorySelected(subCategoryId: string): boolean {
+    return this.selectedMotifSubCategoryIds().includes(subCategoryId);
+  }
+
+  protected toggleSubCategory(subCategory: ServiceSubCategory): void {
+    const currentIds = new Set(this.selectedMotifSubCategoryIds());
+    if (currentIds.has(subCategory.id)) {
+      currentIds.delete(subCategory.id);
+    } else {
+      currentIds.add(subCategory.id);
+    }
+    const nextIds = Array.from(currentIds);
+    this.motifForm.subCategoryIds = nextIds;
+    this.selectedMotifSubCategoryIds.set(nextIds);
+  }
+
   protected addMotif(): void {
-    const categoryId = this.resolveMotifCategoryId();
-    const name = this.motifForm.name.trim();
+    const categoryId = this.motifForm.categoryId || this.resolveMotifCategoryId();
     const durationMinutes = Number(this.motifForm.durationMinutes);
     const price = Number(this.motifForm.price);
     const editingMotifId = this.editingMotifId();
+    const availableSubCategories = this.availableSubCategories();
+    const selectedSubCategoryNames = this.selectedSubCategoryNames();
+    const selectedCategoryName = this.selectedMotifCategory()?.nom.trim() ?? '';
+    const name = availableSubCategories.length > 0
+      ? selectedCategoryName
+      : this.motifForm.name.trim();
 
     if (!categoryId) {
-      this.feedback.info('Ajoutez d abord un service medical pour definir la categorie du motif.');
+      this.feedback.info('Selectionnez une categorie avant d enregistrer ce service.');
+      return;
+    }
+    if (!editingMotifId && availableSubCategories.length > 0 && selectedSubCategoryNames.length === 0) {
+      this.feedback.info('Selectionnez au moins une specialite pour ce service.');
       return;
     }
     if (!name || durationMinutes <= 0 || price <= 0) {
-      this.feedback.info('Renseignez un nom, une duree et un tarif valides.');
+      this.feedback.info(
+        availableSubCategories.length > 0
+          ? 'Renseignez une duree et un tarif valides.'
+          : 'Renseignez un nom, une duree et un tarif valides.',
+      );
       return;
     }
 
@@ -1096,18 +1278,18 @@ export class DoctorSpacePageComponent implements OnInit {
     const request$ = editingMotifId
       ? this.doctorSpaceService.updateService(editingMotifId, {
           name,
-          description: `Motif de consultation: ${name}`,
+          description: this.buildServiceDescription(name, selectedSubCategoryNames),
           price,
-          priceType: 'FIXE',
+          priceType: this.defaultServicePriceType(),
           durationMinutes,
           isRequired: this.motifForm.isRequired,
         })
       : this.doctorSpaceService.createService({
           categoryId,
           name,
-          description: `Motif de consultation: ${name}`,
+          description: this.buildServiceDescription(name, selectedSubCategoryNames),
           price,
-          priceType: 'FIXE',
+          priceType: this.defaultServicePriceType(),
           durationMinutes,
           isRequired: this.motifForm.isRequired,
         });
@@ -1121,7 +1303,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.refreshServices();
         },
         error: (error) =>
-          this.feedback.success(
+          this.feedback.error(
             getHttpErrorMessage(
               error,
               editingMotifId ? 'Mise a jour du motif impossible.' : 'Creation du motif impossible.',
@@ -1132,6 +1314,10 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected editMotif(motif: ConsultationMotif): void {
     this.editingMotifId.set(motif.id);
+    this.motifForm.categoryId = motif.categoryId;
+    this.motifForm.subCategoryIds = this.subCategoryIdsFromNames(motif.categoryId, motif.specialtyNames);
+    this.selectedMotifCategoryId.set(motif.categoryId);
+    this.selectedMotifSubCategoryIds.set(this.motifForm.subCategoryIds);
     this.motifForm.name = motif.name;
     this.motifForm.durationMinutes = motif.durationMinutes;
     this.motifForm.price = motif.price;
@@ -1140,6 +1326,10 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected resetMotifForm(): void {
     this.editingMotifId.set(null);
+    this.motifForm.categoryId = '';
+    this.motifForm.subCategoryIds = [];
+    this.selectedMotifCategoryId.set('');
+    this.selectedMotifSubCategoryIds.set([]);
     this.motifForm.name = '';
     this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = 10000;
@@ -1200,8 +1390,8 @@ export class DoctorSpacePageComponent implements OnInit {
                   .pipe(catchError(() => of([] as BackendProfessionalDetailService[])))
               : of([] as BackendProfessionalDetailService[]),
             categories: this.doctorSpaceService
-              .listCategories()
-              .pipe(catchError(() => of([] as Category[]))),
+              .listCategoryStructure()
+              .pipe(catchError(() => of([] as CategoryStructure[]))),
             reservations: profile
               ? this.doctorSpaceService
                   .listMyReservations()
@@ -1259,6 +1449,55 @@ export class DoctorSpacePageComponent implements OnInit {
     this.profileForm.companyName = profile?.nomEntreprise ?? '';
     this.profileForm.city = profile?.ville ?? '';
     this.profileForm.bio = profile?.biographie ?? '';
+  }
+
+  private toUploadPreview(uploaded: {
+    fileUrl: string;
+    imageUrl?: string;
+    originalFileName: string;
+    mimeType: string;
+  }): UploadPreview {
+    const previewUrl = uploaded.imageUrl || uploaded.fileUrl;
+    return {
+      url: previewUrl,
+      name: uploaded.originalFileName,
+      mimeType: uploaded.mimeType,
+      isImage: uploaded.mimeType.startsWith('image/'),
+    };
+  }
+
+  private toLocalUploadPreview(file: File): UploadPreview {
+    return {
+      url: URL.createObjectURL(file),
+      name: file.name,
+      mimeType: file.type,
+      isImage: file.type.startsWith('image/'),
+      isLocal: true,
+    };
+  }
+
+  private isValidProfessionalAsset(file: File, target: ProfessionalUploadTarget): boolean {
+    const allowedTypes =
+      target === 'portfolio'
+        ? ['image/png', 'image/jpeg', 'image/webp']
+        : ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+    const maxSizeMb = target === 'portfolio' ? 5 : 8;
+
+    if (!allowedTypes.includes(file.type)) {
+      this.feedback.info(
+        target === 'portfolio'
+          ? 'Choisissez une image PNG, JPG ou WEBP pour le portfolio.'
+          : 'Choisissez une image PNG, JPG, WEBP ou un PDF pour le KYC.',
+      );
+      return false;
+    }
+
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      this.feedback.info(`Le fichier ne doit pas depasser ${maxSizeMb} Mo.`);
+      return false;
+    }
+
+    return true;
   }
 
   private refreshServices(): void {
@@ -1666,6 +1905,8 @@ export class DoctorSpacePageComponent implements OnInit {
           id: service.id,
           categoryId: service.categorieId,
           name: service.nom,
+          description: service.description,
+          specialtyNames: this.extractSpecialtyNames(service.description),
           durationMinutes: service.dureeMinutes ?? 15,
           price: Number(service.prix),
           isRequired: service.estObligatoire ?? false,
@@ -1694,6 +1935,54 @@ export class DoctorSpacePageComponent implements OnInit {
       )?.id ??
       null
     );
+  }
+
+  private buildServiceDescription(name: string, specialtyNames: string[] = []): string {
+    const base = this.isProviderSpace()
+      ? `Service professionnel: ${name}`
+      : `Motif de consultation: ${name}`;
+    const specialties = specialtyNames
+      .map((specialty) => specialty.trim())
+      .filter(Boolean);
+
+    return specialties.length > 0
+      ? `${base}\nSpecialites: ${specialties.join(', ')}`
+      : base;
+  }
+
+  private extractSpecialtyNames(description: string | null | undefined): string[] {
+    if (!description) return [];
+    const line = description
+      .split(/\r?\n/)
+      .find((part) => part.trim().toLowerCase().startsWith('specialites:'));
+
+    if (!line) return [];
+    return line
+      .replace(/^specialites:/i, '')
+      .split(',')
+      .map((specialty) => specialty.trim())
+      .filter(Boolean);
+  }
+
+  private subCategoryIdsFromNames(categoryId: string, names: string[]): string[] {
+    if (names.length === 0) return [];
+    const normalizedNames = new Set(names.map((name) => this.normalizeSearchValue(name)));
+    return (
+      this.categories()
+        .find((category) => category.id === categoryId)
+        ?.subCategories.filter((subCategory) =>
+          normalizedNames.has(this.normalizeSearchValue(subCategory.nom)),
+        )
+        .map((subCategory) => subCategory.id) ?? []
+    );
+  }
+
+  private normalizeSearchValue(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
   }
 
   private disableDay(day: DaySchedule): void {

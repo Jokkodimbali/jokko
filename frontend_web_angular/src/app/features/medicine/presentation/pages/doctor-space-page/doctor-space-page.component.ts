@@ -1212,7 +1212,7 @@ export class DoctorSpacePageComponent implements OnInit {
                   .getWallet()
                   .pipe(catchError(() => of(null as DoctorWalletView | null)))
               : of(null as DoctorWalletView | null),
-            portfolio: profile
+            portfolio: profile?.statutKyc === 'VERIFIE'
               ? this.doctorSpaceService
                   .listPortfolio(profile.id)
                   .pipe(catchError(() => of([] as BackendProfessionalPortfolioItem[])))

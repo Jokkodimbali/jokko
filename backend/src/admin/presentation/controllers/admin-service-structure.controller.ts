@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -161,6 +162,46 @@ export class AdminServiceStructureController {
     return createApiResponse(
       result,
       appMessage('ADMIN_SERVICE_SUBCATEGORIES_ASSIGNED').message,
+    );
+  }
+
+  @Delete('categories/:categoryId')
+  @Roles(RoleUtilisateur.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Supprimer definitivement une categorie vide',
+  })
+  async deleteEmptyCategory(
+    @CurrentUser() user: AuthUser,
+    @Param('categoryId') categoryId: string,
+  ) {
+    const result = await this.serviceStructure.deleteEmptyCategory(
+      user,
+      categoryId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('ADMIN_SERVICE_CATEGORY_DELETED').message,
+    );
+  }
+
+  @Delete('subcategories/:subCategoryId')
+  @Roles(RoleUtilisateur.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Supprimer definitivement une sous-categorie non affectee',
+  })
+  async deleteUnusedSubCategory(
+    @CurrentUser() user: AuthUser,
+    @Param('subCategoryId') subCategoryId: string,
+  ) {
+    const result = await this.serviceStructure.deleteUnusedSubCategory(
+      user,
+      subCategoryId,
+    );
+    return createApiResponse(
+      result,
+      appMessage('ADMIN_SERVICE_SUBCATEGORY_DELETED').message,
     );
   }
 

@@ -27,7 +27,13 @@ type ModalMode =
   | 'bulk-subcategories'
   | 'assign-subcategories'
   | 'confirm-disable-category'
+  | 'confirm-activate-category'
+  | 'confirm-delete-category'
+  | 'confirm-delete-subcategory'
   | null;
+
+type CategoryFilter = 'all' | 'active' | 'inactive' | 'with-subcategories' | 'without-subcategories' | 'with-services' | 'without-services';
+type SubCategoryFilter = 'all' | 'assigned' | 'unassigned';
 
 @Component({
   selector: 'app-admin-service-structure-panel',
@@ -43,14 +49,19 @@ export class AdminServiceStructurePanelComponent {
   @Input() report: AdminServiceStructureReport | null = null;
   @Input() isLoading = false;
   @Input() actionId: string | null = null;
+  @Input() searchQuery = '';
 
   @Output() createCategory = new EventEmitter<AdminCategoryPayload>();
   @Output() updateCategory = new EventEmitter<{ categoryId: string; payload: AdminCategoryPayload }>();
   @Output() disableCategory = new EventEmitter<string>();
+  @Output() activateCategory = new EventEmitter<string>();
+  @Output() deleteCategoryPermanently = new EventEmitter<string>();
   @Output() bulkCreateCategories = new EventEmitter<AdminCategoryPayload[]>();
   @Output() createSubCategory = new EventEmitter<AdminSubCategoryPayload>();
   @Output() bulkCreateSubCategories = new EventEmitter<AdminSubCategoryPayload[]>();
   @Output() assignSubCategories = new EventEmitter<{ categoryId: string; subCategoryIds: string[] }>();
+  @Output() deleteSubCategoryPermanently = new EventEmitter<string>();
+  @Output() clearSearch = new EventEmitter<void>();
 
   protected expandedCategoryId: string | null = null;
   protected modalMode: ModalMode = null;
@@ -60,12 +71,73 @@ export class AdminServiceStructurePanelComponent {
   protected bulkSubCategoriesText = '';
   protected assignmentCategory: AdminServiceStructureCategory | null = null;
   protected categoryPendingDisable: AdminServiceStructureCategory | null = null;
+  protected categoryPendingActivation: AdminServiceStructureCategory | null = null;
+  protected categoryPendingDelete: AdminServiceStructureCategory | null = null;
+  protected subCategoryPendingDelete: AdminServiceSubCategory | null = null;
   protected selectedSubCategoryIds = new Set<string>();
   protected isUploadingImage = false;
+  protected categoryFilter: CategoryFilter = 'all';
+  protected subCategoryFilter: SubCategoryFilter = 'all';
   private readonly failedIconUrls = signal<Set<string>>(new Set());
 
   protected visibleCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
     return report.categories;
+  }
+
+  protected filteredCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
+    const term = this.normalizedSearchQuery();
+
+    return this.visibleCategories(report).filter((category) => {
+      if (!this.matchesCategoryFilter(category)) return false;
+      if (!term) return true;
+      return this.categoryMatchesSearch(category, term);
+    });
+  }
+
+  protected filteredSubCategories(category: AdminServiceStructureCategory): AdminServiceSubCategory[] {
+    const term = this.normalizedSearchQuery();
+
+    return category.subCategories.filter((subCategory) => {
+      if (!this.matchesSubCategoryFilter(subCategory)) return false;
+      if (!term) return true;
+      return this.subCategoryMatchesSearch(subCategory, term);
+    });
+  }
+
+  protected filteredAvailableSubCategories(report: AdminServiceStructureReport): AdminServiceSubCategory[] {
+    const term = this.normalizedSearchQuery();
+
+    return report.availableSubCategories.filter((subCategory) => {
+      if (this.subCategoryFilter === 'assigned') return false;
+      if (!term) return true;
+      return this.subCategoryMatchesSearch(subCategory, term);
+    });
+  }
+
+  protected filteredCategoryCount(report: AdminServiceStructureReport): number {
+    return this.filteredCategories(report).length;
+  }
+
+  protected activeFilterCount(): number {
+    let count = 0;
+    if (this.categoryFilter !== 'all') count += 1;
+    if (this.subCategoryFilter !== 'all') count += 1;
+    if (this.searchQuery.trim()) count += 1;
+    return count;
+  }
+
+  protected setCategoryFilter(filter: CategoryFilter): void {
+    this.categoryFilter = filter;
+  }
+
+  protected setSubCategoryFilter(filter: SubCategoryFilter): void {
+    this.subCategoryFilter = filter;
+  }
+
+  protected clearFilters(): void {
+    this.categoryFilter = 'all';
+    this.subCategoryFilter = 'all';
+    this.clearSearch.emit();
   }
 
   protected toggleCategory(categoryId: string): void {
@@ -118,6 +190,9 @@ export class AdminServiceStructurePanelComponent {
     this.subCategoryForm = this.emptySubCategoryForm();
     this.assignmentCategory = null;
     this.categoryPendingDisable = null;
+    this.categoryPendingActivation = null;
+    this.categoryPendingDelete = null;
+    this.subCategoryPendingDelete = null;
     this.selectedSubCategoryIds.clear();
   }
 
@@ -202,6 +277,43 @@ export class AdminServiceStructurePanelComponent {
     return this.selectedSubCategoryIds.has(subCategory.id);
   }
 
+  protected assignmentOptions(report: AdminServiceStructureReport): AdminServiceSubCategory[] {
+    const current = this.assignmentCategory?.subCategories ?? [];
+    const byId = new Map<string, AdminServiceSubCategory>();
+
+    [...current, ...report.availableSubCategories].forEach((subCategory) => {
+      byId.set(subCategory.id, subCategory);
+    });
+
+    return Array.from(byId.values()).sort((first, second) => {
+      const sortDelta = first.sortOrder - second.sortOrder;
+      return sortDelta !== 0 ? sortDelta : first.name.localeCompare(second.name, 'fr');
+    });
+  }
+
+  protected filteredAssignmentOptions(report: AdminServiceStructureReport): AdminServiceSubCategory[] {
+    const term = this.normalizedSearchQuery();
+
+    return this.assignmentOptions(report).filter((subCategory) => {
+      if (!this.matchesSubCategoryFilter(subCategory)) return false;
+      if (!term) return true;
+      return this.subCategoryMatchesSearch(subCategory, term);
+    });
+  }
+
+  protected allAssignmentOptionsSelected(report: AdminServiceStructureReport): boolean {
+    const options = this.filteredAssignmentOptions(report);
+    return options.length > 0 && options.every((subCategory) => this.selectedSubCategoryIds.has(subCategory.id));
+  }
+
+  protected selectAllAssignmentOptions(report: AdminServiceStructureReport): void {
+    this.selectedSubCategoryIds = new Set(this.filteredAssignmentOptions(report).map((subCategory) => subCategory.id));
+  }
+
+  protected clearAssignmentSelection(): void {
+    this.selectedSubCategoryIds.clear();
+  }
+
   protected uploadIcon(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -235,8 +347,60 @@ export class AdminServiceStructurePanelComponent {
     this.closeModal();
   }
 
+  protected requestActivate(category: AdminServiceStructureCategory): void {
+    if (category.isActive || this.actionId === category.id) return;
+    this.categoryPendingActivation = category;
+    this.modalMode = 'confirm-activate-category';
+  }
+
+  protected confirmActivateCategory(): void {
+    if (!this.categoryPendingActivation) return;
+    this.activateCategory.emit(this.categoryPendingActivation.id);
+    this.closeModal();
+  }
+
+  protected canDeleteCategory(category: AdminServiceStructureCategory): boolean {
+    return category.declaredServices === 0 && category.subCategories.length === 0;
+  }
+
+  protected requestDeleteCategory(category: AdminServiceStructureCategory): void {
+    if (!this.canDeleteCategory(category) || this.actionId === category.id) return;
+    this.categoryPendingDelete = category;
+    this.modalMode = 'confirm-delete-category';
+  }
+
+  protected confirmDeleteCategory(): void {
+    if (!this.categoryPendingDelete) return;
+    this.deleteCategoryPermanently.emit(this.categoryPendingDelete.id);
+    this.closeModal();
+  }
+
+  protected isSubCategoryAssignedAnywhere(subCategory: AdminServiceSubCategory): boolean {
+    return (this.report?.categories ?? []).some((category) =>
+      category.subCategories.some((item) => item.id === subCategory.id),
+    );
+  }
+
+  protected requestDeleteSubCategory(subCategory: AdminServiceSubCategory, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.isSubCategoryAssignedAnywhere(subCategory) || this.actionId === subCategory.id) return;
+    this.subCategoryPendingDelete = subCategory;
+    this.modalMode = 'confirm-delete-subcategory';
+  }
+
+  protected confirmDeleteSubCategory(): void {
+    if (!this.subCategoryPendingDelete) return;
+    this.deleteSubCategoryPermanently.emit(this.subCategoryPendingDelete.id);
+    this.closeModal();
+  }
+
   protected subCategoryCount(category: AdminServiceStructureCategory): number {
     return category.subCategories.length;
+  }
+
+  protected filteredSubCategoryCount(category: AdminServiceStructureCategory): number {
+    return this.filteredSubCategories(category).length;
   }
 
   protected categoryIconName(category: AdminServiceStructureCategory): string {
@@ -286,6 +450,66 @@ export class AdminServiceStructurePanelComponent {
 
   protected categoryTrackBy(_: number, category: AdminServiceStructureCategory): string {
     return category.id;
+  }
+
+  protected subCategoryTrackBy(_: number, subCategory: AdminServiceSubCategory): string {
+    return subCategory.id;
+  }
+
+  private matchesCategoryFilter(category: AdminServiceStructureCategory): boolean {
+    if (this.categoryFilter === 'active') return category.isActive;
+    if (this.categoryFilter === 'inactive') return !category.isActive;
+    if (this.categoryFilter === 'with-subcategories') return category.subCategories.length > 0;
+    if (this.categoryFilter === 'without-subcategories') return category.subCategories.length === 0;
+    if (this.categoryFilter === 'with-services') return category.declaredServices > 0;
+    if (this.categoryFilter === 'without-services') return category.declaredServices === 0;
+    return true;
+  }
+
+  private matchesSubCategoryFilter(subCategory: AdminServiceSubCategory): boolean {
+    if (this.subCategoryFilter === 'assigned') return this.isSubCategoryAssignedAnywhere(subCategory);
+    if (this.subCategoryFilter === 'unassigned') return !this.isSubCategoryAssignedAnywhere(subCategory);
+    return true;
+  }
+
+  private categoryMatchesSearch(category: AdminServiceStructureCategory, term: string): boolean {
+    const directValues = [
+      category.name,
+      String(category.commissionRate),
+      String(category.sortOrder),
+      category.isActive ? 'active actif disponible' : 'inactive inactif desactive',
+    ];
+
+    const branchValues = category.branches.flatMap((branch) => [
+      branch.label,
+      ...branch.options.flatMap((option) => [
+        option.label,
+        option.description ?? '',
+        String(option.offerCount),
+        String(option.minPrice),
+        String(option.maxPrice),
+      ]),
+    ]);
+
+    return [...directValues, ...branchValues].some((value) => this.normalizeSearch(value).includes(term))
+      || category.subCategories.some((subCategory) => this.subCategoryMatchesSearch(subCategory, term));
+  }
+
+  private subCategoryMatchesSearch(subCategory: AdminServiceSubCategory, term: string): boolean {
+    return [subCategory.name, subCategory.description ?? '', subCategory.isActive ? 'active actif disponible' : 'inactive inactif']
+      .some((value) => this.normalizeSearch(value).includes(term));
+  }
+
+  private normalizedSearchQuery(): string {
+    return this.normalizeSearch(this.searchQuery);
+  }
+
+  private normalizeSearch(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 
   private emptyForm(): CategoryForm {

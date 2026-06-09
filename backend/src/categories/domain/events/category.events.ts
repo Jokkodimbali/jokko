@@ -27,3 +27,9 @@ export class CategoryDisabled extends DomainEvent {
     super(aggregateId);
   }
 }
+
+export class CategoryActivated extends DomainEvent {
+  constructor(aggregateId: string) {
+    super(aggregateId);
+  }
+}

@@ -298,6 +298,7 @@ export const API_DOCS = {
     adminOnly: 'Acces reserve aux administrateurs',
     updateSummary: 'Mettre a jour une categorie',
     disableSummary: 'Desactiver une categorie',
+    activateSummary: 'Reactiver une categorie',
     categoryIdParam: 'Identifiant de la categorie',
   },
   reservations: {

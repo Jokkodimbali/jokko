@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CategoriesRepositoryPort,
+  ActivateCategoryResult,
   CategoryView,
   CreateCategoryInput,
   CreateCategoryResult,
@@ -134,6 +135,24 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
       });
 
       return { status: 'disabled', category: this.mapCategory(category) };
+    } catch (error) {
+      if (this.isPrismaError(error, 'P2025')) {
+        return { status: 'not_found' };
+      }
+
+      throw error;
+    }
+  }
+
+  async activate(categoryId: string): Promise<ActivateCategoryResult> {
+    try {
+      const category = await this.prisma.categorie.update({
+        where: { id: categoryId },
+        data: { estActive: true },
+        select: CATEGORY_SELECT,
+      });
+
+      return { status: 'activated', category: this.mapCategory(category) };
     } catch (error) {
       if (this.isPrismaError(error, 'P2025')) {
         return { status: 'not_found' };

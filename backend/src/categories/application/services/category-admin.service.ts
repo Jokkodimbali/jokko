@@ -164,4 +164,31 @@ export class CategoryAdminService extends CategoryAppService {
 
     return result.category;
   }
+
+  async activateCategory(requestUser: AuthUser, categoryId: string) {
+    this.assertAdminRole(requestUser.role);
+
+    const existingCategory =
+      await this.categoriesRepository.findById(categoryId);
+    if (!existingCategory) {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    const category = Category.reconstitute({
+      id: existingCategory.id,
+      name: existingCategory.nom,
+      iconUrl: existingCategory.urlIcone,
+      sortOrder: existingCategory.ordreTri,
+      commissionRate: existingCategory.tauxCommission,
+      isActive: existingCategory.estActive,
+    });
+    category.activate();
+
+    const result = await this.categoriesRepository.activate(categoryId);
+    if (result.status === 'not_found') {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    return result.category;
+  }
 }

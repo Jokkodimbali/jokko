@@ -37,4 +37,8 @@ export class CategoriesFacade {
   async disableCategory(requestUser: AuthUser, categoryId: string) {
     return this.categoryAdminService.disableCategory(requestUser, categoryId);
   }
+
+  async activateCategory(requestUser: AuthUser, categoryId: string) {
+    return this.categoryAdminService.activateCategory(requestUser, categoryId);
+  }
 }

@@ -1,4 +1,5 @@
 import {
+  CategoryActivated,
   CategoryCreated,
   CategoryDisabled,
   CategoryUpdated,
@@ -17,6 +18,7 @@ export class Category {
     private readonly domainEvents: (
       | CategoryCreated
       | CategoryUpdated
+      | CategoryActivated
       | CategoryDisabled
     )[] = [],
   ) {}
@@ -123,9 +125,15 @@ export class Category {
     this.domainEvents.push(new CategoryDisabled(this._id));
   }
 
+  activate(): void {
+    this._isActive = true;
+    this.domainEvents.push(new CategoryActivated(this._id));
+  }
+
   getDomainEvents(): readonly (
     | CategoryCreated
     | CategoryUpdated
+    | CategoryActivated
     | CategoryDisabled
   )[] {
     return [...this.domainEvents];

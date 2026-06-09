@@ -401,6 +401,7 @@ model CategorieSousCategorie {
   sousCategorie   SousCategorieService  @relation(fields: [sousCategorieId], references: [id], onDelete: Cascade)
 
   @@unique([categorieId, sousCategorieId])
+  @@unique([sousCategorieId])
   @@index([sousCategorieId])
   @@map("category_service_subcategories")
 }

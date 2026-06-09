@@ -23,7 +23,7 @@
     <section class="service-proposal__content">
       <div class="service-proposal__form">
         <header class="service-proposal__intro">
-          <h1>Choisissez une date et l'adresse de rendez-vous</h1>
+          <h1>{{ pageTitle() }}</h1>
           
         </header>
 
@@ -103,19 +103,20 @@
           <span>
             <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.2"></lucide-icon>
           </span>
-          Proposez un prix au prestataire
+          {{ priceSectionTitle() }}
         </div>
 
-        <label class="service-proposal__offer">
-          <span>Votre offre</span>
+        <label class="service-proposal__offer" [class.service-proposal__offer--readonly]="isFixedPriceService()">
+          <span>{{ offerFieldLabel() }}</span>
           <lucide-icon name="pencil" size="21" [strokeWidth]="2.3"></lucide-icon>
           <input
             type="number"
             min="1"
             step="500"
+            [readonly]="isFixedPriceService()"
             [ngModel]="offerAmount()"
             (ngModelChange)="updateOfferAmount($event)"
-            aria-label="Votre offre"
+            [attr.aria-label]="offerFieldLabel()"
           />
           <strong>FCFA</strong>
         </label>
@@ -183,18 +184,18 @@
           <span>
             <lucide-icon name="wallet-cards" size="18" [strokeWidth]="2.2"></lucide-icon>
           </span>
-          <p><small>PRIX PROPOSÉ</small><strong>{{ formattedOffer() }} FCFA</strong></p>
+          <p><small>{{ summaryPriceLabel() }}</small><strong>{{ formattedOffer() }} FCFA</strong></p>
         </div>
       </aside>
     </section>
 
     <section class="service-proposal__checkout" aria-label="Confirmation de la reservation">
       <div>
-        <small>TOTAL À AUTORISER</small>
+        <small>{{ checkoutTotalLabel() }}</small>
         <strong>{{ formattedOffer() }} FCFA</strong>
       </div>
       <button type="button" (click)="submitProposal()" [disabled]="isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()">
-        {{ isSubmitting() ? 'Envoi en cours...' : 'Confirmez la réservation' }}
+        {{ submitButtonLabel() }}
         <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.3"></lucide-icon>
       </button>
     </section>

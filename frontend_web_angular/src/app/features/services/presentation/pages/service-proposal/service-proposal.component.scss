@@ -343,6 +343,15 @@
   width: 100%;
 }
 
+.service-proposal__offer--readonly {
+  background: #f7fbfa;
+  border-color: #b7f8ec;
+}
+
+.service-proposal__offer--readonly input {
+  cursor: default;
+}
+
 .service-proposal__offer input::-webkit-outer-spin-button,
 .service-proposal__offer input::-webkit-inner-spin-button {
   appearance: none;

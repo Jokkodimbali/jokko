@@ -11,6 +11,7 @@ import {
   BackendProfessionalProfile,
   BackendProfessionalReview,
   Category,
+  CategoryStructure,
   Professional,
   ProviderProfileDetail,
   ServiceSection,
@@ -40,6 +41,12 @@ export class ServicesService {
           meta: response.meta?.['pagination'] as PaginationMeta | undefined,
         })),
       );
+  }
+
+  getCategoryStructure(): Observable<CategoryStructure[]> {
+    return this.http
+      .get<ApiResponse<CategoryStructure[]>>(`${this.apiUrl}/categories/structure`)
+      .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   getProfessionalsByCategory(
@@ -210,6 +217,7 @@ export class ServicesService {
     presence: BackendProfessionalPresence | null = null,
   ): Professional {
     const primaryService = data.services[0];
+    const primarySpecialty = data.specialties?.[0];
     const isOnline = Boolean(presence?.isOnline);
 
     return {
@@ -217,7 +225,12 @@ export class ServicesService {
       serviceId: primaryService?.id,
       servicePriceType: primaryService?.priceType,
       nom: data.companyName || data.name,
-      speciality: primaryService?.name || primaryService?.categoryName || 'Service',
+      speciality:
+        primaryService?.name ||
+        primaryService?.categoryName ||
+        primarySpecialty?.name ||
+        primarySpecialty?.categoryName ||
+        'Service',
       location: this.formatLocation(data.city, data.distanceKm),
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       rating: data.rating,

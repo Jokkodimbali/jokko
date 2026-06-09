@@ -16,6 +16,16 @@ export type CreateCategoryInput = {
   commissionRate: number;
 };
 
+export type CategoryWithSubCategoriesView = CategoryView & {
+  subCategories: Array<{
+    id: string;
+    nom: string;
+    description: string | null;
+    ordreTri: number;
+    estActive: boolean;
+  }>;
+};
+
 export type UpdateCategoryInput = {
   categoryId: string;
   name: string;
@@ -46,6 +56,7 @@ export interface CategoriesRepositoryPort {
     page?: number,
     limit?: number,
   ): Promise<{ items: CategoryView[]; total: number }>;
+  listActiveWithSubCategories(): Promise<CategoryWithSubCategoriesView[]>;
   findById(categoryId: string): Promise<CategoryView | null>;
   findByName(name: string): Promise<{ id: string } | null>;
   create(input: CreateCategoryInput): Promise<CreateCategoryResult>;

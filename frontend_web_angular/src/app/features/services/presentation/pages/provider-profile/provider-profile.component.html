@@ -154,13 +154,14 @@
           <article class="provider-profile__card provider-profile__price">
             <span>Tarif</span>
             <p><strong>{{ priceLabel().replace(' FCFA', '') }}</strong> <em>FCFA {{ priceTypeLabel() }}</em></p>
+            <small class="provider-profile__price-helper">{{ priceHelper() }}</small>
             <button
               type="button"
               [routerLink]="['/services', profileId, 'proposition']"
               [queryParams]="serviceQueryParams()"
             >
-              <lucide-icon name="banknote" size="25" [strokeWidth]="2.4"></lucide-icon>
-              Proposez un prix
+              <lucide-icon [name]="priceActionIcon()" size="25" [strokeWidth]="2.4"></lucide-icon>
+              {{ priceActionLabel() }}
             </button>
           </article>
 

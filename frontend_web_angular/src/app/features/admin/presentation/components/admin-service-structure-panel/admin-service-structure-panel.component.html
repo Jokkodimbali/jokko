@@ -65,6 +65,7 @@
     </header>
     <div>
       <span *ngFor="let subCategory of filteredAvailableSubCategories(data); trackBy: subCategoryTrackBy">
+        <lucide-icon [name]="subCategoryIconName(subCategory)" size="15" [strokeWidth]="2.2"></lucide-icon>
         <b>{{ subCategory.name }}</b>
         <small>{{ subCategory.description || 'Non affectee' }}</small>
         <button
@@ -149,7 +150,7 @@
         <ng-container *ngIf="filteredSubCategories(category).length > 0; else categoryEmpty">
           <section class="service-branch" *ngFor="let subCategory of filteredSubCategories(category); trackBy: subCategoryTrackBy">
             <h3>
-              <lucide-icon name="git-fork" size="15" [strokeWidth]="2.2"></lucide-icon>
+              <lucide-icon [name]="subCategoryIconName(subCategory)" size="15" [strokeWidth]="2.2"></lucide-icon>
               {{ subCategory.name }}
               <small>Sous-categorie</small>
             </h3>
@@ -236,22 +237,25 @@
             <input name="categoryName" [(ngModel)]="form.name" required maxlength="100" placeholder="Ex : Plomberie & Sanitaires" />
           </label>
 
-          <div class="service-upload-field">
-            <span>Image de la categorie</span>
+          <div class="service-icon-field">
             <div>
-              <figure *ngIf="form.iconUrl; else uploadPreviewEmpty">
-                <img [src]="form.iconUrl" alt="" />
-              </figure>
-              <ng-template #uploadPreviewEmpty>
-                <figure>
-                  <lucide-icon name="camera" size="20" [strokeWidth]="2.3"></lucide-icon>
-                </figure>
-              </ng-template>
-              <label class="service-upload-button">
-                <lucide-icon name="upload-cloud" size="17" [strokeWidth]="2.3"></lucide-icon>
-                {{ isUploadingImage ? 'Import en cours...' : 'Importer une image' }}
-                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="uploadIcon($event)" />
-              </label>
+              <span>Icone de la categorie</span>
+              <small>Choisissez une icone simple. Elle ne cassera pas en production.</small>
+            </div>
+            <figure>
+              <lucide-icon [name]="categoryFormIconName()" size="22" [strokeWidth]="2.3"></lucide-icon>
+            </figure>
+            <div class="service-icon-options" aria-label="Choix de l'icone de categorie">
+              <button
+                type="button"
+                *ngFor="let option of iconOptions"
+                [class.service-icon-option--active]="isCategoryIconSelected(option)"
+                (click)="selectCategoryIcon(option)"
+                [title]="option.label"
+              >
+                <lucide-icon [name]="option.icon" size="17" [strokeWidth]="2.3"></lucide-icon>
+                <span>{{ option.label }}</span>
+              </button>
             </div>
           </div>
         </div>

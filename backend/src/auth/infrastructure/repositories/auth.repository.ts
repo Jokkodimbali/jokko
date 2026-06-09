@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { Prisma, RoleUtilisateur } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthRepositoryPort } from '../../application/ports/auth-repository.port';
 
 @Injectable()
@@ -107,6 +108,8 @@ export class AuthRepository implements AuthRepositoryPort {
     medicalSpecialty?: string;
     medicalExpertises?: string[];
     medicalDocumentNames?: string[];
+    categoryIds?: string[];
+    subCategoryIds?: string[];
   }) {
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -126,7 +129,7 @@ export class AuthRepository implements AuthRepositoryPort {
           data.role === RoleUtilisateur.PRESTATAIRE ||
           data.role === RoleUtilisateur.MEDECIN
         ) {
-          await tx.profilProfessionnel.create({
+          const professionalProfile = await tx.profilProfessionnel.create({
             data: {
               utilisateurId: user.id,
               nomEntreprise: data.name,
@@ -134,6 +137,13 @@ export class AuthRepository implements AuthRepositoryPort {
               biographie: this.buildProfessionalBiography(data),
               statutKyc: 'EN_ATTENTE',
             },
+          });
+
+          await this.createProfessionalSpecialties(tx, {
+            professionalProfileId: professionalProfile.id,
+            role: data.role,
+            categoryIds: data.categoryIds,
+            subCategoryIds: data.subCategoryIds,
           });
         }
 
@@ -323,6 +333,172 @@ export class AuthRepository implements AuthRepositoryPort {
         : null,
     ].filter(Boolean);
 
-    return sections.length ? sections.join('\n') : 'Profil medecin en attente de verification.';
+    return sections.length
+      ? sections.join('\n')
+      : 'Profil medecin en attente de verification.';
+  }
+
+  private async createProfessionalSpecialties(
+    tx: Prisma.TransactionClient,
+    data: {
+      professionalProfileId: string;
+      role: RoleUtilisateur;
+      categoryIds?: string[];
+      subCategoryIds?: string[];
+    },
+  ): Promise<void> {
+    const categoryIds = this.uniqueIds(data.categoryIds);
+    const subCategoryIds = this.uniqueIds(data.subCategoryIds);
+
+    if (categoryIds.length === 0) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const categories = await tx.categorie.findMany({
+      where: { id: { in: categoryIds }, estActive: true },
+      select: {
+        id: true,
+        nom: true,
+        sousCategories: {
+          where: { sousCategorie: { estActive: true } },
+          select: {
+            sousCategorieId: true,
+            sousCategorie: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    if (categories.length !== categoryIds.length) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    if (
+      data.role === RoleUtilisateur.MEDECIN &&
+      categories.some((category) => !this.isMedicalCategoryName(category.nom))
+    ) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const subCategoryToCategory = new Map<string, string>();
+    categories.forEach((category) => {
+      category.sousCategories.forEach((assignment) => {
+        subCategoryToCategory.set(assignment.sousCategorie.id, category.id);
+      });
+    });
+
+    if (
+      subCategoryIds.some(
+        (subCategoryId) => !subCategoryToCategory.has(subCategoryId),
+      )
+    ) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const subCategoriesByCategory = new Map<string, string[]>();
+    subCategoryIds.forEach((subCategoryId) => {
+      const categoryId = subCategoryToCategory.get(subCategoryId);
+      if (!categoryId) return;
+      const current = subCategoriesByCategory.get(categoryId) ?? [];
+      current.push(subCategoryId);
+      subCategoriesByCategory.set(categoryId, current);
+    });
+
+    const specialties: Array<{
+      categorieId: string;
+      sousCategorieId: string | null;
+    }> = [];
+
+    categoryIds.forEach((categoryId) => {
+      const selectedSubCategories = subCategoriesByCategory.get(categoryId) ?? [];
+      if (selectedSubCategories.length === 0) {
+        specialties.push({ categorieId: categoryId, sousCategorieId: null });
+        return;
+      }
+
+      selectedSubCategories.forEach((subCategoryId) =>
+        specialties.push({
+          categorieId: categoryId,
+          sousCategorieId: subCategoryId,
+      }));
+    });
+
+    await tx.specialiteProfessionnelle.createMany({
+      data: specialties.map((specialty) => ({
+        profilProfessionnelId: data.professionalProfileId,
+        categorieId: specialty.categorieId,
+        sousCategorieId: specialty.sousCategorieId,
+      })),
+      skipDuplicates: true,
+    });
+
+    const selectedSubCategoryNames = subCategoryIds.length
+      ? await tx.sousCategorieService.findMany({
+          where: { id: { in: subCategoryIds }, estActive: true },
+          select: { id: true, nom: true },
+        })
+      : [];
+    const subCategoryNameById = new Map(
+      selectedSubCategoryNames.map((subCategory) => [
+        subCategory.id,
+        subCategory.nom,
+      ]),
+    );
+
+    await tx.service.createMany({
+      data: categories.map((category) => {
+        const specialtyNames = (
+          subCategoriesByCategory.get(category.id) ?? []
+        )
+          .map((subCategoryId) => subCategoryNameById.get(subCategoryId))
+          .filter((name): name is string => Boolean(name));
+
+        return {
+          profilProfessionnelId: data.professionalProfileId,
+          categorieId: category.id,
+          nom: category.nom,
+          description: specialtyNames.length
+            ? `Service ${category.nom}. Specialites: ${specialtyNames.join(', ')}.`
+            : `Service ${category.nom}.`,
+          prix: 0,
+          typePrix:
+            data.role === RoleUtilisateur.MEDECIN ? 'FIXE' : 'NEGOCIABLE',
+          dureeMinutes: 30,
+          estObligatoire: false,
+          estDisponible: true,
+        };
+      }),
+    });
+  }
+
+  private uniqueIds(ids?: string[]): string[] {
+    return Array.from(
+      new Set((ids ?? []).map((id) => id.trim()).filter(Boolean)),
+    );
+  }
+
+  private isMedicalCategoryName(name: string): boolean {
+    const normalized = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return [
+      'medec',
+      'medical',
+      'sante',
+      'soin',
+      'clinique',
+      'hopital',
+      'pharma',
+      'dent',
+      'chirurg',
+      'gyneco',
+      'pediatr',
+      'cardio',
+      'doct',
+      'infirm',
+      'cabinet',
+    ].some((keyword) => normalized.includes(keyword));
   }
 }

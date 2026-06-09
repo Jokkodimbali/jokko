@@ -33,6 +33,28 @@
             </span>
           </article>
 
+          <section class="doctor-space__completion" aria-label="Progression du profil professionnel">
+            <div class="doctor-space__completion-meter">
+              <span>Profil complete a {{ profileCompletionPercent() }}%</span>
+              <strong>{{ profileCompletionPercent() }}%</strong>
+              <i [style.width.%]="profileCompletionPercent()"></i>
+            </div>
+            <div class="doctor-space__completion-items">
+              <article
+                *ngFor="let item of profileCompletionItems()"
+                [class.doctor-space__completion-item--done]="item.done"
+              >
+                <span>
+                  <lucide-icon [name]="item.done ? 'check' : 'circle'" size="15" [strokeWidth]="2.6"></lucide-icon>
+                </span>
+                <div>
+                  <strong>{{ item.label }}</strong>
+                  <small>{{ item.hint }}</small>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section class="doctor-space__profile-grid">
             <form class="doctor-space__profile-panel" (ngSubmit)="saveProfessionalProfile()">
               <header>
@@ -77,19 +99,43 @@
                 <small *ngIf="!hasProfessionalProfile()">Creez le profil avant de soumettre un dossier.</small>
               </div>
 
-              <label>
+              <label class="doctor-space__upload-field">
                 <span>Document recto</span>
-                <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'kyc-front')" />
-                <small *ngIf="kycFileNames.idCardUrl || kycForm.idCardUrl">
-                  {{ uploadingProfessionalAsset() === 'kyc-front' ? 'Upload en cours...' : kycFileNames.idCardUrl || 'Document recto charge' }}
-                </small>
+                <div class="doctor-space__upload-box" [class.doctor-space__upload-box--ready]="kycFrontPreview() || kycForm.idCardUrl">
+                  <ng-container *ngIf="kycFrontPreview() as preview; else kycFrontPlaceholder">
+                    <img *ngIf="preview.isImage; else kycFrontDocument" [src]="preview.url" [alt]="preview.name" />
+                    <ng-template #kycFrontDocument>
+                      <span class="doctor-space__upload-document"><lucide-icon name="file-text" size="24" [strokeWidth]="2.2"></lucide-icon></span>
+                    </ng-template>
+                    <strong>{{ preview.name }}</strong>
+                    <small>Document recto charge</small>
+                  </ng-container>
+                  <ng-template #kycFrontPlaceholder>
+                    <lucide-icon name="upload-cloud" size="24" [strokeWidth]="2.2"></lucide-icon>
+                    <strong>{{ uploadingProfessionalAsset() === 'kyc-front' ? 'Upload en cours...' : 'Ajouter le recto' }}</strong>
+                    <small>Image ou PDF</small>
+                  </ng-template>
+                  <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="selectProfessionalAsset($event, 'kyc-front')" />
+                </div>
               </label>
-              <label>
+              <label class="doctor-space__upload-field">
                 <span>Document verso</span>
-                <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'kyc-back')" />
-                <small *ngIf="kycFileNames.idCardUrlVerso || kycForm.idCardUrlVerso">
-                  {{ uploadingProfessionalAsset() === 'kyc-back' ? 'Upload en cours...' : kycFileNames.idCardUrlVerso || 'Document verso charge' }}
-                </small>
+                <div class="doctor-space__upload-box" [class.doctor-space__upload-box--ready]="kycBackPreview() || kycForm.idCardUrlVerso">
+                  <ng-container *ngIf="kycBackPreview() as preview; else kycBackPlaceholder">
+                    <img *ngIf="preview.isImage; else kycBackDocument" [src]="preview.url" [alt]="preview.name" />
+                    <ng-template #kycBackDocument>
+                      <span class="doctor-space__upload-document"><lucide-icon name="file-text" size="24" [strokeWidth]="2.2"></lucide-icon></span>
+                    </ng-template>
+                    <strong>{{ preview.name }}</strong>
+                    <small>Document verso charge</small>
+                  </ng-container>
+                  <ng-template #kycBackPlaceholder>
+                    <lucide-icon name="upload-cloud" size="24" [strokeWidth]="2.2"></lucide-icon>
+                    <strong>{{ uploadingProfessionalAsset() === 'kyc-back' ? 'Upload en cours...' : 'Ajouter le verso' }}</strong>
+                    <small>Optionnel selon le document</small>
+                  </ng-template>
+                  <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="selectProfessionalAsset($event, 'kyc-back')" />
+                </div>
               </label>
 
               <button type="submit" [disabled]="!hasProfessionalProfile() || isKycSubmitting()">
@@ -109,10 +155,17 @@
             </header>
 
             <form class="doctor-space__portfolio-form" (ngSubmit)="addPortfolioItem()">
-              <input type="text" name="portfolioTitle" placeholder="Titre" [(ngModel)]="portfolioForm.title" [disabled]="!hasProfessionalProfile()" />
+              <input type="text" name="portfolioTitle" placeholder="Titre" [(ngModel)]="portfolioForm.title" [disabled]="!hasProfessionalProfile()" required />
               <label class="doctor-space__portfolio-upload">
-                <span>{{ uploadingProfessionalAsset() === 'portfolio' ? 'Upload en cours...' : portfolioFileName() || 'Choisir une image' }}</span>
-                <input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="uploadProfessionalAsset($event, 'portfolio')" />
+                <ng-container *ngIf="portfolioPreview() as preview; else portfolioUploadPlaceholder">
+                  <img *ngIf="preview.isImage" [src]="preview.url" [alt]="preview.name" />
+                  <span>{{ preview.name }}</span>
+                </ng-container>
+                <ng-template #portfolioUploadPlaceholder>
+                  <lucide-icon name="image-plus" size="18" [strokeWidth]="2.2"></lucide-icon>
+                  <span>{{ uploadingProfessionalAsset() === 'portfolio' ? 'Upload en cours...' : portfolioFileName() || 'Choisir une image' }}</span>
+                </ng-template>
+                <input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="!hasProfessionalProfile() || uploadingProfessionalAsset() !== null" (change)="selectProfessionalAsset($event, 'portfolio')" />
               </label>
               <input type="text" name="portfolioDescription" placeholder="Description courte" [(ngModel)]="portfolioForm.description" [disabled]="!hasProfessionalProfile()" />
               <button type="submit" [disabled]="!hasProfessionalProfile() || isPortfolioSaving()">
@@ -339,34 +392,69 @@
                 <lucide-icon name="plus" size="18" [strokeWidth]="2.6"></lucide-icon>
               </span>
               <div>
-                <strong>{{ editingMotifId() ? 'Modifier le motif' : 'Nouveau motif' }}</strong>
-                <span>Renseignez le nom, la dur&eacute;e et le tarif</span>
+                <strong>{{ serviceFormTitle() }}</strong>
+                <span>{{ serviceFormSubtitle() }}</span>
               </div>
             </header>
 
             <div class="doctor-space__motif-fields">
               <label class="doctor-space__motif-field doctor-space__motif-field--full">
-                <span>Nom du motif</span>
-                <input type="text" name="motifName" placeholder="Ex : Consultation g&eacute;n&eacute;rale" [(ngModel)]="motifForm.name" />
+                <span>Categorie du service</span>
+                <select name="motifCategory" [ngModel]="motifForm.categoryId" (ngModelChange)="onMotifCategoryChange($event)" [disabled]="!!editingMotifId()" required>
+                  <option value="">Selectionnez une categorie</option>
+                  <option *ngFor="let category of categories()" [value]="category.id">
+                    {{ category.nom }}
+                  </option>
+                </select>
+              </label>
+              <div class="doctor-space__specialty-selector doctor-space__motif-field--full">
+                <div>
+                  <span>Specialites disponibles</span>
+                  <small>{{ specialtySelectorHelp() }}</small>
+                </div>
+                <div class="doctor-space__specialty-list" *ngIf="availableSubCategories().length > 0; else noSpecialtyList">
+                  <button
+                    type="button"
+                    *ngFor="let subCategory of availableSubCategories()"
+                    class="doctor-space__specialty-chip"
+                    [class.doctor-space__specialty-chip--active]="isSubCategorySelected(subCategory.id)"
+                    (click)="toggleSubCategory(subCategory)"
+                  >
+                    <lucide-icon [name]="isSubCategorySelected(subCategory.id) ? 'check' : 'plus'" size="13" [strokeWidth]="2.5"></lucide-icon>
+                    {{ subCategory.nom }}
+                  </button>
+                </div>
+                <ng-template #noSpecialtyList>
+                  <p class="doctor-space__specialty-empty">Aucune specialite a choisir pour cette categorie.</p>
+                </ng-template>
+              </div>
+              <div *ngIf="availableSubCategories().length > 0" class="doctor-space__service-preview doctor-space__motif-field--full">
+                <span>{{ isProviderSpace() ? 'Service qui sera affiche' : 'Motif qui sera affiche' }}</span>
+                <strong>{{ serviceNamePreview() }}</strong>
+              </div>
+              <label *ngIf="shouldShowCustomServiceName()" class="doctor-space__motif-field doctor-space__motif-field--full">
+                <span>{{ serviceNameLabel() }}</span>
+                <input type="text" name="motifName" [placeholder]="serviceNamePlaceholder()" [(ngModel)]="motifForm.name" required />
               </label>
               <label class="doctor-space__motif-field">
                 <span>Dur&eacute;e</span>
                 <span class="doctor-space__motif-input-wrap">
-                  <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" />
+                  <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" required />
                   <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
                 </span>
               </label>
               <label class="doctor-space__motif-field">
                 <span>Tarif (FCFA)</span>
                 <span class="doctor-space__motif-input-wrap">
-                  <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" />
+                  <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" required />
                   <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
                 </span>
+                <small>{{ servicePriceHelp() }}</small>
               </label>
               <div class="doctor-space__motif-required-card">
                 <div>
-                  <strong>Motif obligatoire</strong>
-                  <span>Coch&eacute; automatiquement lors du RDV</span>
+                  <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
+                  <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
                 </div>
                 <button
                   type="button"
@@ -384,7 +472,7 @@
                 </button>
                 <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
                   <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
-                  {{ editingMotifId() ? 'Enregistrer ce motif' : 'Ajouter ce motif' }}
+                  {{ editingMotifId() ? 'Enregistrer' : isProviderSpace() ? 'Ajouter ce service' : 'Ajouter ce motif' }}
                 </button>
               </div>
             </div>
@@ -396,16 +484,16 @@
                 <span class="doctor-space__motif-list-icon">
                   <lucide-icon name="clipboard" size="20" [strokeWidth]="2.2"></lucide-icon>
                 </span>
-                <h3>Mes motifs</h3>
+                <h3>{{ serviceListTitle() }}</h3>
                 <span class="doctor-space__motif-count">{{ motifs().length }}</span>
               </div>
               <p>
                 <lucide-icon name="info" size="16" [strokeWidth]="2.3"></lucide-icon>
-                Les motifs obligatoires sont coch&eacute;s automatiquement
+                {{ isProviderSpace() ? 'Les services negotiables ouvrent une discussion avec le client' : 'Les motifs obligatoires sont coches automatiquement' }}
               </p>
             </header>
 
-            <p *ngIf="motifs().length === 0" class="doctor-space__motif-empty">Aucun motif de consultation enregistr&eacute;.</p>
+            <p *ngIf="motifs().length === 0" class="doctor-space__motif-empty">{{ serviceEmptyLabel() }}</p>
 
             <div *ngIf="motifs().length > 0" class="doctor-space__motif-table" role="table" aria-label="Motifs de consultation">
               <div class="doctor-space__motif-table-head" role="row">
@@ -422,6 +510,9 @@
                     <lucide-icon name="clipboard" size="17" [strokeWidth]="2.1"></lucide-icon>
                   </span>
                   <strong>{{ motif.name }}</strong>
+                  <small *ngIf="motif.specialtyNames.length > 0">
+                    {{ motif.specialtyNames.join(' · ') }}
+                  </small>
                 </div>
                 <div class="doctor-space__motif-duration" role="cell">
                   <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
@@ -456,7 +547,7 @@
               <footer class="doctor-space__motif-table-foot">
                 <span>
                   <lucide-icon name="clipboard" size="14" [strokeWidth]="2"></lucide-icon>
-                  {{ motifs().length }} motifs au total
+                  {{ motifs().length }} {{ isProviderSpace() ? 'services' : 'motifs' }} au total
                 </span>
                 <span>
                   <lucide-icon name="lock" size="14" [strokeWidth]="2"></lucide-icon>

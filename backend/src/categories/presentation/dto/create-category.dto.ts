@@ -6,7 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -33,7 +33,7 @@ export class CreateCategoryDto {
 
   @ApiProperty({
     description: API_DOCS.categories.iconUrlField,
-    example: 'https://cdn.jokko.sn/icons/plomberie.png',
+    example: 'lucide:wrench',
     required: false,
   })
   @Transform(({ value }: { value: unknown }) => {
@@ -50,10 +50,9 @@ export class CreateCategoryDto {
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.CATEGORY_ICON_URL_INVALID })
-  @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
-    { message: VALIDATION_MESSAGES.CATEGORY_ICON_URL_INVALID },
-  )
+  @Matches(/^(lucide:[a-z0-9-]+|https?:\/\/\S+)$/, {
+    message: VALIDATION_MESSAGES.CATEGORY_ICON_URL_INVALID,
+  })
   iconUrl?: string | null;
 
   @ApiProperty({

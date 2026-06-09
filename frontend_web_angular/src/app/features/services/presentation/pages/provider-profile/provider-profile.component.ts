@@ -105,10 +105,28 @@ export class ProviderProfileComponent implements OnInit {
   );
   protected readonly priceLabel = computed(() => {
     const price = this.primaryService()?.prix;
-    return typeof price === 'number' ? `${this.formatNumber(price)} FCFA` : 'Prix sur devis';
+    if (typeof price !== 'number' || price <= 0) {
+      return this.isFixedPriceService() ? 'Tarif a renseigner' : 'Prix sur devis';
+    }
+
+    return `${this.formatNumber(price)} FCFA`;
   });
+  protected readonly isFixedPriceService = computed(
+    () => this.primaryService()?.typePrix === 'FIXE',
+  );
   protected readonly priceTypeLabel = computed(() =>
-    this.primaryService()?.typePrix === 'NEGOCIABLE' ? '/negociable' : '/par session',
+    this.isFixedPriceService() ? '/prix fixe' : '/negociable',
+  );
+  protected readonly priceActionLabel = computed(() =>
+    this.isFixedPriceService() ? 'Prendre rendez-vous' : 'Proposer un prix',
+  );
+  protected readonly priceActionIcon = computed(() =>
+    this.isFixedPriceService() ? 'calendar-check' : 'banknote',
+  );
+  protected readonly priceHelper = computed(() =>
+    this.isFixedPriceService()
+      ? 'Ce service est a tarif fixe. Choisissez une date et confirmez votre rendez-vous.'
+      : 'Ce service est negociable. Envoyez votre proposition au prestataire pour ouvrir la discussion.',
   );
   protected readonly experienceLabel = computed(() => {
     const createdAt = this.detail()?.profile.creeLe;

@@ -322,8 +322,27 @@ model ProfilProfessionnel {
   sessionsTracking SessionTrackingReservation[]
   favoris          FavoriProfessionnel[]
   diplomesMedicaux DiplomeMedical[]
+  specialites      SpecialiteProfessionnelle[]
 
   @@map("professional_profiles")
+}
+
+model SpecialiteProfessionnelle {
+  id                    String   @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String   @map("professional_id") @db.Uuid
+  categorieId           String   @map("category_id") @db.Uuid
+  sousCategorieId       String?  @map("subcategory_id") @db.Uuid
+  creeLe                DateTime @default(now()) @map("created_at")
+
+  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  categorie             Categorie           @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  sousCategorie         SousCategorieService? @relation(fields: [sousCategorieId], references: [id], onDelete: SetNull)
+
+  @@unique([profilProfessionnelId, categorieId, sousCategorieId])
+  @@index([profilProfessionnelId])
+  @@index([categorieId])
+  @@index([sousCategorieId])
+  @@map("professional_specialties")
 }
 
 model DiplomeMedical {
@@ -372,6 +391,7 @@ model Categorie {
 
   services        Service[]
   sousCategories  CategorieSousCategorie[]
+  specialitesProfessionnelles SpecialiteProfessionnelle[]
 
   @@map("categories")
 }
@@ -386,6 +406,7 @@ model SousCategorieService {
   misAJourLe  DateTime @updatedAt @map("updated_at")
 
   categories  CategorieSousCategorie[]
+  specialitesProfessionnelles SpecialiteProfessionnelle[]
 
   @@map("service_subcategories")
 }

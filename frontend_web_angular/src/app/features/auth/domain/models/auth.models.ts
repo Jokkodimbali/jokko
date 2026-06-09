@@ -13,6 +13,8 @@ export interface RegisterRequestDto {
   medicalSpecialty?: string;
   medicalExpertises?: string[];
   medicalDocumentNames?: string[];
+  categoryIds?: string[];
+  subCategoryIds?: string[];
 }
 
 export interface SendOtpRequestDto {

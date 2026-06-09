@@ -15,6 +15,7 @@ import {
   normalizeSenegalPhoneNumber,
 } from '../../../domain/auth.validators';
 import { ServicesService } from '../../../../services/data-access/services.service';
+import { CategoryStructure, ServiceSubCategory } from '../../../../services/domain/models/services.models';
 
 type RegisterRole = 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
 
@@ -36,10 +37,14 @@ export class RegisterComponent implements OnInit {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
-  medicalSpecialties = signal<string[]>([]);
+  categoryStructure = signal<CategoryStructure[]>([]);
   selectedMedicalDocuments = signal<string[]>([]);
   medicalExpertises = signal<string[]>([]);
   expertiseDraft = signal('');
+  selectedCategoryIds = signal<string[]>([]);
+  selectedSubCategoryIds = signal<string[]>([]);
+  categorySelectValue = signal('');
+  subCategorySelectValue = signal('');
   protected readonly messages = AUTH_UI_MESSAGES;
 
   registerForm = this.fb.nonNullable.group({
@@ -54,7 +59,7 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadMedicalSpecialties();
+    this.loadProfessionalCategoryStructure();
   }
 
   onSubmit(): void {
@@ -69,6 +74,15 @@ export class RegisterComponent implements OnInit {
     this.errorMessage.set(null);
 
     const formData = this.registerForm.getRawValue();
+    if (this.requiresProfessionalSpecialties() && this.selectedCategoryIds().length === 0) {
+      this.errorMessage.set(
+        formData.role === 'MEDECIN'
+          ? 'Selectionnez au moins une categorie medicale pour creer votre compte medecin.'
+          : 'Selectionnez au moins une categorie de service pour creer votre compte prestataire.',
+      );
+      return;
+    }
+
     const payload: RegisterRequestDto = {
       phoneNumber: formData.phoneNumber,
       name: formData.name,
@@ -77,6 +91,11 @@ export class RegisterComponent implements OnInit {
       adresse: formData.adresse,
       email: formData.email ? formData.email : undefined,
     };
+
+    if (formData.role === 'PRESTATAIRE' || formData.role === 'MEDECIN') {
+      payload.categoryIds = this.selectedCategoryIds();
+      payload.subCategoryIds = this.selectedSubCategoryIds();
+    }
 
     if (formData.role === 'MEDECIN') {
       payload.medicalSpecialty = formData.medicalSpecialty || undefined;
@@ -110,6 +129,119 @@ export class RegisterComponent implements OnInit {
 
   selectRole(role: RegisterRole): void {
     this.registerForm.controls.role.setValue(role);
+    this.selectedCategoryIds.set([]);
+    this.selectedSubCategoryIds.set([]);
+    this.categorySelectValue.set('');
+    this.subCategorySelectValue.set('');
+    this.registerForm.controls.medicalSpecialty.setValue('');
+    this.errorMessage.set(null);
+  }
+
+  protected requiresProfessionalSpecialties(): boolean {
+    return this.selectedRole() === 'PRESTATAIRE' || this.selectedRole() === 'MEDECIN';
+  }
+
+  protected availableCategories(): CategoryStructure[] {
+    const categories = this.categoryStructure();
+    return this.selectedRole() === 'MEDECIN'
+      ? categories.filter((category) => this.isMedicalCategory(category.nom))
+      : categories;
+  }
+
+  protected selectedCategories(): CategoryStructure[] {
+    const selected = new Set(this.selectedCategoryIds());
+    return this.availableCategories().filter((category) => selected.has(category.id));
+  }
+
+  protected selectedSubCategories(): ServiceSubCategory[] {
+    const selected = new Set(this.selectedSubCategoryIds());
+    return this.selectedCategories()
+      .flatMap((category) => category.subCategories)
+      .filter((subCategory) => selected.has(subCategory.id));
+  }
+
+  protected availableSubCategoriesForSelectedCategories(): ServiceSubCategory[] {
+    const selected = new Set(this.selectedSubCategoryIds());
+    return this.selectedCategories()
+      .flatMap((category) => category.subCategories)
+      .filter((subCategory) => !selected.has(subCategory.id))
+      .sort((first, second) => first.ordreTri - second.ordreTri || first.nom.localeCompare(second.nom, 'fr'));
+  }
+
+  protected isCategorySelected(categoryId: string): boolean {
+    return this.selectedCategoryIds().includes(categoryId);
+  }
+
+  protected isSubCategorySelected(subCategoryId: string): boolean {
+    return this.selectedSubCategoryIds().includes(subCategoryId);
+  }
+
+  protected toggleCategory(category: CategoryStructure): void {
+    const selected = new Set(this.selectedCategoryIds());
+    if (selected.has(category.id)) {
+      selected.delete(category.id);
+      const subCategoryIds = new Set(category.subCategories.map((subCategory) => subCategory.id));
+      this.selectedSubCategoryIds.update((ids) => ids.filter((id) => !subCategoryIds.has(id)));
+    } else {
+      selected.add(category.id);
+    }
+
+    this.selectedCategoryIds.set(Array.from(selected));
+    this.syncMedicalSpecialtyFromSelection();
+  }
+
+  protected addSelectedCategory(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const categoryId = select.value;
+    const category = this.availableCategories().find((item) => item.id === categoryId);
+    if (category && !this.isCategorySelected(category.id)) {
+      this.toggleCategory(category);
+    }
+    this.categorySelectValue.set('');
+    select.value = '';
+  }
+
+  protected addSelectedSubCategory(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const subCategoryId = select.value;
+    const category = this.selectedCategories().find((item) =>
+      item.subCategories.some((subCategory) => subCategory.id === subCategoryId),
+    );
+    const subCategory = category?.subCategories.find((item) => item.id === subCategoryId);
+    if (category && subCategory && !this.isSubCategorySelected(subCategory.id)) {
+      this.toggleSubCategory(category, subCategory);
+    }
+    this.subCategorySelectValue.set('');
+    select.value = '';
+  }
+
+  protected removeSelectedCategory(category: CategoryStructure): void {
+    if (this.isCategorySelected(category.id)) {
+      this.toggleCategory(category);
+    }
+  }
+
+  protected removeSelectedSubCategory(subCategory: ServiceSubCategory): void {
+    const category = this.selectedCategories().find((item) =>
+      item.subCategories.some((candidate) => candidate.id === subCategory.id),
+    );
+    if (category) {
+      this.toggleSubCategory(category, subCategory);
+    }
+  }
+
+  protected toggleSubCategory(category: CategoryStructure, subCategory: ServiceSubCategory): void {
+    if (!this.isCategorySelected(category.id)) {
+      this.toggleCategory(category);
+    }
+
+    const selected = new Set(this.selectedSubCategoryIds());
+    if (selected.has(subCategory.id)) {
+      selected.delete(subCategory.id);
+    } else {
+      selected.add(subCategory.id);
+    }
+    this.selectedSubCategoryIds.set(Array.from(selected));
   }
 
   protected onPhoneInput(): void {
@@ -147,24 +279,12 @@ export class RegisterComponent implements OnInit {
     this.selectedMedicalDocuments.set(files.map((file) => file.name));
   }
 
-  private loadMedicalSpecialties(): void {
+  private loadProfessionalCategoryStructure(): void {
     this.servicesService
-      .getCategories(1, 100)
-      .pipe(catchError(() => of({ items: [] })))
-      .subscribe(({ items }) => {
-        const names = items
-          .map((category) => category.nom)
-          .filter((name) => {
-            const normalized = name
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .toLowerCase();
-            return ['medec', 'sante', 'soin', 'chirurg', 'dent'].some((keyword) =>
-              normalized.includes(keyword),
-            );
-          });
-
-        this.medicalSpecialties.set(names.length ? names : items.map((category) => category.nom));
+      .getCategoryStructure()
+      .pipe(catchError(() => of([])))
+      .subscribe((items) => {
+        this.categoryStructure.set(items);
       });
   }
 
@@ -173,5 +293,36 @@ export class RegisterComponent implements OnInit {
     const normalized = normalizeSenegalPhoneNumber(control.value);
     control.setValue(normalized, { emitEvent: false });
     control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private syncMedicalSpecialtyFromSelection(): void {
+    if (this.selectedRole() !== 'MEDECIN') return;
+    const firstCategory = this.selectedCategories()[0];
+    this.registerForm.controls.medicalSpecialty.setValue(firstCategory?.nom ?? '');
+  }
+
+  private isMedicalCategory(name: string): boolean {
+    const normalized = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return [
+      'medec',
+      'medical',
+      'sante',
+      'soin',
+      'clinique',
+      'hopital',
+      'pharma',
+      'dent',
+      'chirurg',
+      'gyneco',
+      'pediatr',
+      'cardio',
+      'doct',
+      'infirm',
+      'cabinet',
+    ].some((keyword) => normalized.includes(keyword));
   }
 }

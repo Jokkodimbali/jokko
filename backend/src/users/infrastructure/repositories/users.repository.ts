@@ -54,6 +54,15 @@ const USER_ME_SELECT = {
           },
         },
       },
+      specialites: {
+        select: {
+          categorie: {
+            select: {
+              nom: true,
+            },
+          },
+        },
+      },
     },
   },
 } as const;
@@ -96,6 +105,11 @@ export class UsersRepository implements UsersRepositoryPort {
           nom: string;
         };
       }>;
+      specialites: Array<{
+        categorie: {
+          nom: string;
+        };
+      }>;
     } | null;
   }): UserMeView {
     return {
@@ -118,11 +132,14 @@ export class UsersRepository implements UsersRepositoryPort {
             ville: user.profilProfessionnel.ville,
             diplomesMedicaux: user.profilProfessionnel.diplomesMedicaux,
             categories: Array.from(
-              new Set(
-                user.profilProfessionnel.services.map(
+              new Set([
+                ...user.profilProfessionnel.specialites.map(
+                  (specialty) => specialty.categorie.nom,
+                ),
+                ...user.profilProfessionnel.services.map(
                   (service) => service.categorie.nom,
                 ),
-              ),
+              ]),
             ),
           }
         : null,
@@ -390,6 +407,15 @@ export class UsersRepository implements UsersRepositoryPort {
                 },
               },
             },
+            specialites: {
+              select: {
+                categorie: {
+                  select: {
+                    nom: true,
+                  },
+                },
+              },
+            },
             _count: {
               select: {
                 reservations: true,
@@ -600,9 +626,9 @@ export class UsersRepository implements UsersRepositoryPort {
     | { status: 'professional_profile_not_found' }
   > {
     const professionalProfile = await this.prisma.profilProfessionnel.findUnique({
-      where: { utilisateurId: userId },
-      select: { id: true },
-    });
+        where: { utilisateurId: userId },
+        select: { id: true },
+      });
 
     if (!professionalProfile) {
       return { status: 'professional_profile_not_found' };

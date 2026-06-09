@@ -18,6 +18,10 @@ export class CategoriesFacade {
     return this.categoryQueryService.listActiveCategories(page, limit);
   }
 
+  async listActiveCategoryStructure() {
+    return this.categoryQueryService.listActiveCategoryStructure();
+  }
+
   async createCategory(requestUser: AuthUser, command: CreateCategoryCommand) {
     return this.categoryAdminService.createCategory(requestUser, command);
   }

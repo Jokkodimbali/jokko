@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
   AdminCategoryPayload,
   AdminServiceSubCategory,
@@ -10,7 +9,6 @@ import {
   AdminServiceStructureReport,
   AdminSubCategoryPayload,
 } from '../../../data-access/admin.models';
-import { AdminDashboardService } from '../../../data-access/admin-dashboard.service';
 
 type CategoryForm = {
   id: string | null;
@@ -18,6 +16,13 @@ type CategoryForm = {
   iconUrl: string;
   sortOrder: number;
   commissionRate: number;
+};
+
+type IconOption = {
+  token: `lucide:${string}`;
+  icon: string;
+  label: string;
+  keywords: string[];
 };
 
 type ModalMode =
@@ -43,9 +48,6 @@ type SubCategoryFilter = 'all' | 'assigned' | 'unassigned';
   styleUrl: './admin-service-structure-panel.component.scss',
 })
 export class AdminServiceStructurePanelComponent {
-  private readonly adminService = inject(AdminDashboardService);
-  private readonly feedback = inject(AppFeedbackService);
-
   @Input() report: AdminServiceStructureReport | null = null;
   @Input() isLoading = false;
   @Input() actionId: string | null = null;
@@ -75,9 +77,22 @@ export class AdminServiceStructurePanelComponent {
   protected categoryPendingDelete: AdminServiceStructureCategory | null = null;
   protected subCategoryPendingDelete: AdminServiceSubCategory | null = null;
   protected selectedSubCategoryIds = new Set<string>();
-  protected isUploadingImage = false;
   protected categoryFilter: CategoryFilter = 'all';
   protected subCategoryFilter: SubCategoryFilter = 'all';
+  protected readonly iconOptions: IconOption[] = [
+    { token: 'lucide:wrench', icon: 'wrench', label: 'Technique', keywords: ['plomberie', 'sanitaire', 'mecanique', 'reparation', 'depannage', 'btp', 'construction', 'batiment', 'artisanat'] },
+    { token: 'lucide:power', icon: 'power', label: 'Electricite', keywords: ['electric', 'energie', 'solaire', 'telecommunication', 'domotique', 'ascenseur'] },
+    { token: 'lucide:stethoscope', icon: 'stethoscope', label: 'Sante', keywords: ['sante', 'medecine', 'medical', 'medecin', 'veterinaire', 'pharmacie'] },
+    { token: 'lucide:heart-pulse', icon: 'heart-pulse', label: 'Bien-etre', keywords: ['beaute', 'bien-etre', 'sport', 'fitness', 'massage'] },
+    { token: 'lucide:map-pinned', icon: 'map-pinned', label: 'Localisation', keywords: ['transport', 'logistique', 'livraison', 'regions', 'chauffeur'] },
+    { token: 'lucide:banknote', icon: 'banknote', label: 'Finance', keywords: ['finance', 'commerce', 'distribution', 'paiement', 'assurance'] },
+    { token: 'lucide:gavel', icon: 'gavel', label: 'Administratif', keywords: ['administratif', 'juridique', 'formalites', 'securite', 'gardiennage'] },
+    { token: 'lucide:users', icon: 'users', label: 'Personnes', keywords: ['personne', 'domicile', 'education', 'formation', 'social'] },
+    { token: 'lucide:smartphone', icon: 'smartphone', label: 'Digital', keywords: ['informatique', 'digital', 'telephone', 'mobile', 'reseau'] },
+    { token: 'lucide:globe-2', icon: 'globe-2', label: 'General', keywords: ['agriculture', 'elevage', 'peche', 'environnement', 'voyage'] },
+    { token: 'lucide:archive', icon: 'archive', label: 'Materiel', keywords: ['stockage', 'materiel', 'menuiserie', 'mobilier'] },
+    { token: 'lucide:git-fork', icon: 'git-fork', label: 'Structure', keywords: [] },
+  ];
   private readonly failedIconUrls = signal<Set<string>>(new Set());
 
   protected visibleCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
@@ -146,6 +161,7 @@ export class AdminServiceStructurePanelComponent {
 
   protected openCreateForm(): void {
     this.form = this.emptyForm();
+    this.form.iconUrl = this.resolveIconTokenForName(this.form.name);
     this.modalMode = 'category';
   }
 
@@ -197,9 +213,13 @@ export class AdminServiceStructurePanelComponent {
   }
 
   protected submitForm(): void {
+    const iconUrl =
+      !this.form.iconUrl || this.form.iconUrl === 'lucide:git-fork'
+        ? this.resolveIconTokenForName(this.form.name)
+        : this.form.iconUrl;
     const payload: AdminCategoryPayload = {
       name: this.form.name.trim(),
-      iconUrl: this.form.iconUrl.trim() || null,
+      iconUrl: iconUrl.trim() || null,
       sortOrder: Number(this.form.sortOrder || 0),
       commissionRate: Number(this.form.commissionRate || 0),
     };
@@ -219,7 +239,7 @@ export class AdminServiceStructurePanelComponent {
   protected submitBulkCategories(): void {
     const payload = this.parseLines(this.bulkCategoriesText).map((line, index) => ({
       name: line,
-      iconUrl: null,
+      iconUrl: this.resolveIconTokenForName(line),
       sortOrder: index,
       commissionRate: 10,
     }));
@@ -314,27 +334,6 @@ export class AdminServiceStructurePanelComponent {
     this.selectedSubCategoryIds.clear();
   }
 
-  protected uploadIcon(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    this.isUploadingImage = true;
-    this.adminService.uploadServiceCategoryImage(file).subscribe({
-      next: ({ imageUrl }) => {
-        this.form.iconUrl = imageUrl;
-        this.isUploadingImage = false;
-        input.value = '';
-        this.feedback.success('Icone importee avec succes.');
-      },
-      error: () => {
-        this.isUploadingImage = false;
-        input.value = '';
-        this.feedback.error('Impossible d importer cette icone.');
-      },
-    });
-  }
-
   protected requestDisable(category: AdminServiceStructureCategory): void {
     if (!category.isActive || this.actionId === category.id) return;
     this.categoryPendingDisable = category;
@@ -404,18 +403,31 @@ export class AdminServiceStructurePanelComponent {
   }
 
   protected categoryIconName(category: AdminServiceStructureCategory): string {
-    const normalized = category.name.toLowerCase();
-    if (normalized.includes('electric')) return 'power';
-    if (normalized.includes('plomberie') || normalized.includes('sanitaire')) return 'wrench';
-    if (normalized.includes('menuiser') || normalized.includes('metal')) return 'archive';
-    return 'git-fork';
+    return this.iconNameFromToken(category.iconUrl) || this.iconNameForLabel(category.name);
   }
 
   protected visibleCategoryIconUrl(category: AdminServiceStructureCategory): string | null {
     const iconUrl = category.iconUrl?.trim();
     if (!iconUrl || this.failedIconUrls().has(iconUrl)) return null;
+    if (this.iconNameFromToken(iconUrl)) return null;
     if (this.isLegacyBrokenCdnUrl(iconUrl)) return null;
     return iconUrl;
+  }
+
+  protected categoryFormIconName(): string {
+    return this.iconNameFromToken(this.form.iconUrl) || this.iconNameForLabel(this.form.name);
+  }
+
+  protected selectCategoryIcon(option: IconOption): void {
+    this.form.iconUrl = option.token;
+  }
+
+  protected isCategoryIconSelected(option: IconOption): boolean {
+    return (this.form.iconUrl || this.resolveIconTokenForName(this.form.name)) === option.token;
+  }
+
+  protected subCategoryIconName(subCategory: AdminServiceSubCategory): string {
+    return this.iconNameForLabel(`${subCategory.name} ${subCategory.description ?? ''}`);
   }
 
   protected handleCategoryIconError(iconUrl: string): void {
@@ -516,10 +528,30 @@ export class AdminServiceStructurePanelComponent {
     return {
       id: null,
       name: '',
-      iconUrl: '',
+      iconUrl: 'lucide:git-fork',
       sortOrder: 0,
       commissionRate: 10,
     };
+  }
+
+  private iconNameFromToken(value: string | null | undefined): string | null {
+    const token = value?.trim();
+    if (!token?.startsWith('lucide:')) return null;
+    const iconName = token.slice('lucide:'.length);
+    return iconName || null;
+  }
+
+  private iconNameForLabel(label: string): string {
+    return this.iconNameFromToken(this.resolveIconTokenForName(label)) ?? 'git-fork';
+  }
+
+  private resolveIconTokenForName(name: string): `lucide:${string}` {
+    const normalized = this.normalizeSearch(name);
+    const option = this.iconOptions.find((candidate) =>
+      candidate.keywords.some((keyword) => normalized.includes(this.normalizeSearch(keyword))),
+    );
+
+    return option?.token ?? 'lucide:git-fork';
   }
 
   private emptySubCategoryForm(): AdminSubCategoryPayload {

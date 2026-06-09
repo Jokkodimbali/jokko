@@ -41,6 +41,7 @@ export type SearchProfessionalView = {
   totalReviews: number;
   distanceKm: number | null;
   services: SearchProfessionalServiceView[];
+  specialties: SearchProfessionalServiceView[];
   portfolioImages: SearchProfessionalPortfolioImageView[];
 };
 

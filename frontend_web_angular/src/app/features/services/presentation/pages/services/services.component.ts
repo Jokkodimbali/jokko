@@ -11,7 +11,7 @@ import {
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
 import { ServicesService } from '../../../data-access/services.service';
-import { ServiceSection, PaginationMeta } from '../../../domain/models/services.models';
+import { ServiceSection, PaginationMeta, Professional } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -237,6 +237,33 @@ export class ServicesComponent implements OnInit {
     }
 
     return `${provider.rating.toFixed(1)} (${provider.totalReviews} avis)`;
+  }
+
+  providerMovementTitle(provider: Professional): string {
+    return provider.servicePriceType?.toUpperCase() === 'FIXE'
+      ? 'Vous vous deplacez'
+      : 'Se deplace chez vous';
+  }
+
+  providerMovementSubtitle(provider: Professional): string {
+    return provider.servicePriceType?.toUpperCase() === 'FIXE'
+      ? 'Rendez-vous chez le prestataire'
+      : 'Intervention a votre domicile';
+  }
+
+  openNegotiation(provider: Professional): void {
+    if (!this.authSession.hasAuthenticatedSession()) {
+      this.feedback.info('Connectez-vous d abord pour negocier avec ce prestataire.');
+    }
+
+    this.router.navigate(['/services', provider.id, 'proposition'], {
+      queryParams: provider.serviceId ? { serviceId: provider.serviceId } : undefined,
+      state: {
+        provider,
+        avatar: this.resolveProviderAvatar(provider),
+        photos: this.providerPhotos(provider),
+      },
+    });
   }
 
   isProviderFavorite(providerId: string): boolean {

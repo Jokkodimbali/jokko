@@ -160,7 +160,7 @@ export class NegotiationEntity {
     adresseClientProposee?: string | null;
     dureeMinutesProposee?: number | null;
   }): void {
-    this.assertOpen();
+    this.assertPendingStatus('EN_ATTENTE_CLIENT');
     this.applyCounterOffer('CLIENT', input);
   }
 

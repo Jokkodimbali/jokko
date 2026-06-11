@@ -736,7 +736,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   private formatCurrency(value: number): string {
     return `${new Intl.NumberFormat('fr-FR', {
       maximumFractionDigits: 0,
-    }).format(value || 0)} FCFA`;
+    })
+      .format(value || 0)
+      .replace(/\s/g, ' ')} FCFA`;
   }
 
   private formatTimeFromValue(value: string | null | undefined): string {

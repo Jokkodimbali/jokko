@@ -1,10 +1,21 @@
 import { CommonModule, Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
+import { environment } from '../../../../../../environments/environment';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -40,6 +51,46 @@ interface ReservationDraft {
   paymentMethod: PaymentMethod;
 }
 
+interface AcceptedReservationSummary {
+  reservationId: string;
+  proposal: NegotiationView;
+  dateHeure: string;
+  adresseClient: string;
+  dureeMinutes: number;
+}
+
+interface AddressSuggestion {
+  id: string;
+  label: string;
+  detail: string;
+  latitude: number | null;
+  longitude: number | null;
+  source: 'GOOGLE_PLACES' | 'OPENSTREETMAP';
+}
+
+type GooglePlacesAutocomplete = new (
+  input: HTMLInputElement,
+  options?: {
+    componentRestrictions?: { country: string };
+    fields?: string[];
+    types?: string[];
+  },
+) => {
+  addListener: (eventName: 'place_changed', callback: () => void) => void;
+  getPlace: () => {
+    formatted_address?: string;
+    name?: string;
+  };
+};
+
+type GoogleMapsNamespace = {
+  maps?: {
+    places?: {
+      Autocomplete?: GooglePlacesAutocomplete;
+    };
+  };
+};
+
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
@@ -51,7 +102,10 @@ interface ReservationDraft {
   templateUrl: './service-proposal.component.html',
   styleUrl: './service-proposal.component.scss',
 })
-export class ServiceProposalComponent implements OnDestroy, OnInit {
+export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, OnInit {
+  @ViewChild('addressInput')
+  private readonly addressInput?: ElementRef<HTMLInputElement>;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -70,6 +124,20 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly availabilityStatus = signal<ReservationAvailabilityView | null>(null);
   protected readonly availabilitySlots = signal<ReservationAvailabilitySlotView[]>([]);
+  protected readonly pendingProposal = signal<NegotiationView | null>(null);
+  protected readonly acceptedReservation = signal<AcceptedReservationSummary | null>(null);
+  protected readonly isCancellingProposal = signal(false);
+  protected readonly isRespondingToCounterOffer = signal(false);
+  protected readonly mapsSuggestionsReady = signal(false);
+  protected readonly mapsSuggestionsUnavailable = signal(false);
+  protected readonly addressSuggestions = signal<AddressSuggestion[]>([]);
+  protected readonly isLoadingAddressSuggestions = signal(false);
+  protected readonly isAddressSuggestionsOpen = signal(false);
+  protected readonly isLocatingAddress = signal(false);
+  private googleAutocompleteAttached = false;
+  private addressSuggestionTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private addressSuggestionAbortController: AbortController | null = null;
+  private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly selectedServiceId = signal(
@@ -81,6 +149,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly address = signal('');
   protected readonly offerAmount = signal(0);
   protected readonly durationMinutes = 60;
+  protected readonly offerSteps = [100, 250, 500];
+  protected readonly selectedOfferStep = signal(250);
 
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', mark: 'W', logoUrl: '/wave.png' },
@@ -163,8 +233,119 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }).format(date).toUpperCase().replace('.', '');
   });
 
+  protected readonly formattedTime = computed(() => {
+    const date = new Date(this.appointmentDate());
+    if (Number.isNaN(date.getTime())) return 'Heure a choisir';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .format(date)
+      .replace(':', 'h');
+  });
+
+  protected readonly initialPriceLabel = computed(() => {
+    const price = this.currentService()?.prix ?? 0;
+    return price > 0 ? `${this.formatAmount(price)} FCFA` : 'A definir';
+  });
+
+  protected readonly offerDifferenceLabel = computed(() => {
+    const servicePrice = Number(this.currentService()?.prix ?? 0);
+    const offer = Number(this.offerAmount());
+
+    if (!Number.isFinite(servicePrice) || servicePrice <= 0 || !Number.isFinite(offer) || offer <= 0) {
+      return 'Montant a confirmer avec le prestataire';
+    }
+
+    const difference = Math.trunc(Math.abs(offer - servicePrice));
+    if (difference === 0) {
+      return "Votre offre correspond au prix initial du service";
+    }
+
+    const direction = offer < servicePrice ? "moins cher que l'offre du prestataire" : "plus que l'offre du prestataire";
+    return `${this.formatAmount(difference)} FCFA ${direction}`;
+  });
+
   protected readonly shortAddress = computed(() => this.truncate(this.address(), 28));
   protected readonly formattedOffer = computed(() => this.formatAmount(this.offerAmount()));
+  protected readonly pendingOfferAmountLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    return this.formatAmount(proposal?.montantCourant ?? this.offerAmount());
+  });
+  protected readonly hasProviderCounterOffer = computed(
+    () => this.pendingProposal()?.statut === 'EN_ATTENTE_CLIENT',
+  );
+  protected readonly initialOfferAmountLabel = computed(() =>
+    this.formatAmount(this.pendingProposal()?.montantInitial ?? this.offerAmount()),
+  );
+  protected readonly providerCounterAmountLabel = computed(() =>
+    this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
+  );
+  protected readonly counterDifferenceLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return '';
+    const difference = Math.trunc(proposal.montantCourant - proposal.montantInitial);
+    if (difference === 0) return 'La proposition correspond a votre offre initiale';
+
+    const direction = difference > 0 ? 'de plus que votre offre' : 'de moins que votre offre';
+    return `${this.formatAmount(Math.abs(difference))} FCFA ${direction}`;
+  });
+  protected readonly counterActionLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return "valider l'offre";
+    return this.offerAmount() === proposal.montantCourant ? "valider l'offre" : 'Envoyer ma contre-offre';
+  });
+  protected readonly acceptedAmountLabel = computed(() =>
+    this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount()),
+  );
+  protected readonly acceptedTotalLabel = computed(() =>
+    `${this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount())} FCFA`,
+  );
+  protected readonly acceptedDateTimeLabel = computed(() => {
+    const accepted = this.acceptedReservation();
+    return accepted ? this.formatAcceptedDateTime(accepted.dateHeure) : `${this.formattedDate()} a ${this.formattedTime()}`;
+  });
+  protected readonly acceptedDateLabel = computed(() => {
+    const accepted = this.acceptedReservation();
+    return accepted ? this.formatAcceptedDate(accepted.dateHeure) : this.formattedDate();
+  });
+  protected readonly acceptedTimeLabel = computed(() => {
+    const accepted = this.acceptedReservation();
+    return accepted ? this.formatAcceptedTime(accepted.dateHeure) : this.formattedTime();
+  });
+  protected readonly acceptedAddressLabel = computed(() =>
+    this.acceptedReservation()?.adresseClient || this.address().trim() || 'Adresse a confirmer',
+  );
+  protected readonly acceptedComparisonLabel = computed(() => {
+    const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
+    const acceptedAmount = this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant);
+
+    if (!servicePrice) {
+      return 'Prix initial';
+    }
+
+    if (!acceptedAmount || servicePrice === acceptedAmount) {
+      return 'Difference';
+    }
+
+    return acceptedAmount < servicePrice ? 'Economie' : 'Ajustement';
+  });
+  protected readonly acceptedComparisonAmountLabel = computed(() => {
+    const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
+    const acceptedAmount = this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant);
+
+    if (!servicePrice) {
+      return 'A confirmer';
+    }
+
+    if (!acceptedAmount || servicePrice === acceptedAmount) {
+      return '0 FCFA';
+    }
+
+    const difference = Math.abs(servicePrice - acceptedAmount);
+    return `+${this.formatAmount(difference)} FCFA`;
+  });
   protected readonly minAppointmentDate = computed(() =>
     this.toDateInputValue(new Date(Date.now() + 5 * 60 * 1000)),
   );
@@ -204,10 +385,23 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.loadDetail();
   }
 
+  ngAfterViewChecked(): void {
+    if (this.addressInput && environment.googleMapsApiKey && !this.googleAutocompleteAttached) {
+      this.initializeAddressSuggestions();
+    }
+  }
+
   ngOnDestroy(): void {
     if (this.availabilityCheckTimeoutId) {
       clearTimeout(this.availabilityCheckTimeoutId);
     }
+
+    if (this.addressSuggestionTimeoutId) {
+      clearTimeout(this.addressSuggestionTimeoutId);
+    }
+
+    this.addressSuggestionAbortController?.abort();
+    this.stopProposalRefresh();
   }
 
   protected goBack(): void {
@@ -219,8 +413,125 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected updateOfferAmount(value: number | string): void {
-    const amount = Number(value);
+    const amount = Number(String(value).replace(/[^\d]/g, ''));
     this.offerAmount.set(Number.isFinite(amount) ? amount : 0);
+  }
+
+  protected selectOfferStep(step: number): void {
+    this.selectedOfferStep.set(step);
+  }
+
+  protected decreaseOffer(): void {
+    if (this.isFixedPriceService()) {
+      return;
+    }
+
+    const nextAmount = Math.max(500, Math.trunc(this.offerAmount() - this.selectedOfferStep()));
+    this.offerAmount.set(nextAmount);
+  }
+
+  protected increaseOffer(): void {
+    if (this.isFixedPriceService()) {
+      return;
+    }
+
+    const nextAmount = Math.min(10_000_000, Math.trunc(this.offerAmount() + this.selectedOfferStep()));
+    this.offerAmount.set(nextAmount);
+  }
+
+  protected messageProvider(): void {
+    if (!this.authSession.getAccessToken()) {
+      this.feedback.info('Connectez-vous d abord pour ecrire au prestataire.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
+    }
+
+    const service = this.currentService();
+    if (!service?.profilProfessionnelId) {
+      this.feedback.error('Impossible d ouvrir la discussion avec ce prestataire.');
+      return;
+    }
+
+    this.messagesService.createConversation({ professionalProfileId: service.profilProfessionnelId }).subscribe({
+      next: (conversation) => {
+        this.router.navigate(['/messages'], {
+          queryParams: {
+            conversationId: conversation.id,
+            professionalId: service.profilProfessionnelId,
+            providerName: this.displayName(),
+            serviceName: service.nom || this.categoryLabel(),
+          },
+        });
+      },
+      error: (error) => this.handleProposalError(error),
+    });
+  }
+
+  protected cancelPendingProposal(): void {
+    const proposal = this.pendingProposal();
+    if (!proposal || this.isCancellingProposal()) {
+      return;
+    }
+
+    this.isCancellingProposal.set(true);
+    this.proposalService.cancelPriceProposal(proposal.id, 'Annulation demandee par le client.').subscribe({
+      next: () => {
+        this.feedback.success("Votre offre a ete annulee.");
+        this.pendingProposal.set(null);
+        this.stopProposalRefresh();
+        this.isCancellingProposal.set(false);
+      },
+      error: (error) => {
+        this.isCancellingProposal.set(false);
+        this.handleProposalError(error);
+      },
+    });
+  }
+
+  protected respondToProviderCounterOffer(): void {
+    const proposal = this.pendingProposal();
+    const service = this.currentService();
+    if (!proposal || !service || this.isRespondingToCounterOffer()) {
+      return;
+    }
+
+    const amount = Math.trunc(Number(this.offerAmount()));
+    if (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000) {
+      this.feedback.info('Renseignez un montant entre 500 et 10 000 000 FCFA.');
+      return;
+    }
+
+    if (amount !== proposal.montantCourant) {
+      this.sendClientCounterOffer(proposal, service, amount);
+      return;
+    }
+
+    this.acceptProviderCounterOffer(proposal);
+  }
+
+  protected refuseProviderCounterOffer(): void {
+    const proposal = this.pendingProposal();
+    if (!proposal || this.isCancellingProposal()) {
+      return;
+    }
+
+    this.isCancellingProposal.set(true);
+    this.proposalService
+      .cancelPriceProposal(proposal.id, 'Contre-proposition refusee par le client.')
+      .subscribe({
+        next: () => {
+          this.feedback.success('La proposition du prestataire a ete refusee.');
+          this.pendingProposal.set(null);
+          this.stopProposalRefresh();
+          this.isCancellingProposal.set(false);
+        },
+        error: (error) => {
+          this.isCancellingProposal.set(false);
+          this.handleProposalError(error);
+        },
+      });
   }
 
   protected updateAppointmentDate(value: string): void {
@@ -235,6 +546,155 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.appointmentDate.set(`${value}T10:00`);
     this.scheduleAvailabilityCheck();
+  }
+
+  protected initializeAddressSuggestions(): void {
+    if (!environment.googleMapsApiKey) {
+      this.mapsSuggestionsReady.set(true);
+      this.mapsSuggestionsUnavailable.set(false);
+      return;
+    }
+
+    if (this.googleAutocompleteAttached || this.mapsSuggestionsReady()) {
+      return;
+    }
+
+    this.loadGoogleMapsPlacesScript()
+      .then(() => {
+        const input = this.addressInput?.nativeElement;
+        const autocompleteCtor = this.getGooglePlacesAutocomplete();
+        if (!input || !autocompleteCtor) {
+          this.mapsSuggestionsUnavailable.set(true);
+          return;
+        }
+
+        const autocomplete = new autocompleteCtor(input, {
+          componentRestrictions: { country: 'sn' },
+          fields: ['formatted_address', 'name'],
+          types: ['geocode', 'establishment'],
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          const label = (place.formatted_address || place.name || input.value).trim();
+          if (label) {
+            this.address.set(label);
+          }
+        });
+
+        this.googleAutocompleteAttached = true;
+        this.mapsSuggestionsReady.set(true);
+        this.mapsSuggestionsUnavailable.set(false);
+      })
+      .catch(() => this.mapsSuggestionsUnavailable.set(true));
+  }
+
+  protected handleAddressFocus(): void {
+    this.initializeAddressSuggestions();
+    const query = this.address().trim();
+    if (query.length >= 1 && this.addressSuggestions().length > 0) {
+      this.isAddressSuggestionsOpen.set(true);
+    }
+  }
+
+  protected updateAddress(value: string): void {
+    this.address.set(value);
+    this.initializeAddressSuggestions();
+    this.scheduleOpenStreetMapAddressSuggestions(value);
+  }
+
+  protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
+    this.address.set(suggestion.label);
+    this.addressSuggestions.set([]);
+    this.isAddressSuggestionsOpen.set(false);
+  }
+
+  protected closeAddressSuggestionsSoon(): void {
+    setTimeout(() => this.isAddressSuggestionsOpen.set(false), 160);
+  }
+
+  protected useCurrentLocationForAddress(): void {
+    if (!navigator.geolocation) {
+      this.feedback.info('La geolocalisation nest pas disponible sur cet appareil.');
+      return;
+    }
+
+    this.isLocatingAddress.set(true);
+    this.feedback.info('Autorisez le partage de votre position pour renseigner votre adresse exacte.');
+
+    let bestPosition: GeolocationPosition | null = null;
+    let completed = false;
+    let watchId: number | null = null;
+    const idealAccuracyMeters = 35;
+
+    const stopWatching = () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    };
+
+    const finishWithBestPosition = () => {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      stopWatching();
+
+      if (!bestPosition) {
+        this.isLocatingAddress.set(false);
+        this.feedback.info('Impossible de recuperer une position precise pour le moment.');
+        return;
+      }
+
+      const { latitude, longitude, accuracy } = bestPosition.coords;
+      const gpsLabel = this.formatExactGpsLabel(latitude, longitude, accuracy);
+
+      this.resolveOpenStreetMapAddressFromCoordinates(latitude, longitude)
+        .then((label) => {
+          this.address.set(label ? `${label} - ${gpsLabel}` : gpsLabel);
+          this.addressSuggestions.set([]);
+          this.isAddressSuggestionsOpen.set(false);
+          this.feedback.success(
+            accuracy
+              ? `Position exacte recuperee avec une precision d'environ ${Math.round(accuracy)} m.`
+              : 'Position exacte recuperee.',
+          );
+        })
+        .catch(() => {
+          this.address.set(gpsLabel);
+          this.feedback.info('Position exacte recuperee. Le nom de la localisation nest pas disponible.');
+        })
+        .finally(() => this.isLocatingAddress.set(false));
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        if (
+          !bestPosition ||
+          position.coords.accuracy < bestPosition.coords.accuracy
+        ) {
+          bestPosition = position;
+        }
+
+        if (position.coords.accuracy <= idealAccuracyMeters) {
+          finishWithBestPosition();
+        }
+      },
+      () => {
+        this.isLocatingAddress.set(false);
+        stopWatching();
+        this.feedback.info('Autorisez la localisation precise pour renseigner automatiquement votre adresse.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15_000,
+        maximumAge: 0,
+      },
+    );
+
+    setTimeout(finishWithBestPosition, 15_000);
   }
 
   protected selectAvailabilitySlot(slot: ReservationAvailabilitySlotView): void {
@@ -316,7 +776,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           } else {
             this.feedback.success('Votre proposition a ete envoyee au prestataire.');
           }
-          this.openConversationThenGoToDiscussion(proposal, draft);
+          this.showPendingProposal(proposal, draft);
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -329,6 +789,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     activeProposal: NegotiationView,
     draft: ReservationDraft,
   ): void {
+    if (activeProposal.statut !== 'EN_ATTENTE_CLIENT') {
+      this.feedback.info('Une proposition est deja en attente de reponse du prestataire.');
+      this.showPendingProposal(activeProposal, draft);
+      return;
+    }
+
     this.proposalService
       .counterPriceProposal(activeProposal.id, {
         serviceId: draft.service.id,
@@ -341,7 +807,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (proposal) => {
           this.feedback.success('Votre nouvelle proposition a ete envoyee.');
-          this.openConversationThenGoToDiscussion(proposal, draft);
+          this.showPendingProposal(proposal, draft);
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -379,6 +845,176 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.handleProposalError(error);
         },
       });
+  }
+
+  private showPendingProposal(proposal: NegotiationView, draft: ReservationDraft): void {
+    this.acceptedReservation.set(null);
+    this.pendingProposal.set(proposal);
+    this.offerAmount.set(proposal.montantCourant || draft.amount);
+    if (proposal.statut === 'EN_ATTENTE_CLIENT') {
+      this.selectedOfferStep.set(1000);
+    }
+    if (proposal.dateHeureProposee) {
+      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+    }
+    if (proposal.adresseClientProposee?.trim()) {
+      this.address.set(proposal.adresseClientProposee.trim());
+    }
+    this.isSubmitting.set(false);
+    this.startProposalRefresh(proposal.id);
+  }
+
+  private acceptProviderCounterOffer(proposal: NegotiationView): void {
+    this.isRespondingToCounterOffer.set(true);
+    this.proposalService.acceptPriceProposal(proposal.id).subscribe({
+      next: (acceptedProposal) => {
+        this.pendingProposal.set(acceptedProposal);
+        this.createReservationFromAcceptedNegotiation(acceptedProposal);
+      },
+      error: (error) => {
+        this.isRespondingToCounterOffer.set(false);
+        this.handleProposalError(error);
+      },
+    });
+  }
+
+  private sendClientCounterOffer(
+    proposal: NegotiationView,
+    service: BackendProfessionalDetailService,
+    amount: number,
+  ): void {
+    this.isRespondingToCounterOffer.set(true);
+    this.proposalService
+      .counterPriceProposal(proposal.id, {
+        serviceId: service.id,
+        proposedAmount: amount,
+        message: this.buildProposalMessage({
+          service,
+          amount,
+          dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? '',
+          adresseClient: this.address().trim() || proposal.adresseClientProposee || '',
+          dureeMinutes: this.durationMinutes,
+          paymentMethod: this.selectedPayment(),
+        }),
+        dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? undefined,
+        adresseClient: this.address().trim() || proposal.adresseClientProposee || undefined,
+        dureeMinutes: this.durationMinutes,
+      })
+      .subscribe({
+        next: (updatedProposal) => {
+          this.pendingProposal.set(updatedProposal);
+          this.offerAmount.set(updatedProposal.montantCourant);
+          this.feedback.success('Votre contre-offre a ete envoyee au prestataire.');
+          this.isRespondingToCounterOffer.set(false);
+          this.startProposalRefresh(updatedProposal.id);
+        },
+        error: (error) => {
+          this.isRespondingToCounterOffer.set(false);
+          this.handleProposalError(error);
+        },
+      });
+  }
+
+  private createReservationFromAcceptedNegotiation(proposal: NegotiationView): void {
+    const dateHeure = proposal.dateHeureProposee || this.toIsoDateTime(this.appointmentDate());
+    const adresseClient = proposal.adresseClientProposee || this.address().trim();
+    const dureeMinutes = proposal.dureeMinutesProposee || this.durationMinutes;
+
+    if (!dateHeure || !adresseClient) {
+      this.isRespondingToCounterOffer.set(false);
+      this.feedback.error('Date ou adresse manquante pour creer la reservation.');
+      return;
+    }
+
+    this.proposalService
+      .createReservationFromNegotiation({
+        negotiationId: proposal.id,
+        dateHeure,
+        adresseClient,
+        dureeMinutes,
+        notes: `Reservation creee apres acceptation du prix propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,
+      })
+      .subscribe({
+        next: (reservation) => {
+          const reservationId = reservation.id;
+          this.isRespondingToCounterOffer.set(false);
+          this.stopProposalRefresh();
+          this.feedback.success('Offre acceptee. Vous pouvez finaliser le paiement.');
+          if (!reservationId) {
+            this.feedback.error('Reservation creee, mais identifiant de paiement manquant.');
+            return;
+          }
+
+          this.acceptedReservation.set({
+            reservationId,
+            proposal,
+            dateHeure,
+            adresseClient,
+            dureeMinutes,
+          });
+        },
+        error: (error) => {
+          this.isRespondingToCounterOffer.set(false);
+          this.handleProposalError(error);
+        },
+      });
+  }
+
+  protected payAcceptedReservation(): void {
+    const accepted = this.acceptedReservation();
+    if (!accepted?.reservationId) {
+      this.feedback.error('Impossible de retrouver cette reservation pour le paiement.');
+      return;
+    }
+
+    this.router.navigate(['/appointments', accepted.reservationId, 'payment']);
+  }
+
+  private startProposalRefresh(negotiationId: string): void {
+    this.stopProposalRefresh();
+    this.proposalRefreshIntervalId = setInterval(() => {
+      this.refreshPendingProposal(negotiationId);
+    }, 5000);
+  }
+
+  private stopProposalRefresh(): void {
+    if (this.proposalRefreshIntervalId) {
+      clearInterval(this.proposalRefreshIntervalId);
+      this.proposalRefreshIntervalId = null;
+    }
+  }
+
+  private refreshPendingProposal(negotiationId: string): void {
+    this.proposalService.getPriceProposal(negotiationId).subscribe({
+      next: (proposal) => {
+        const previous = this.pendingProposal();
+        this.pendingProposal.set(proposal);
+        if (!(proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut === 'EN_ATTENTE_CLIENT')) {
+          this.offerAmount.set(proposal.montantCourant);
+        }
+        if (proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut !== 'EN_ATTENTE_CLIENT') {
+          this.selectedOfferStep.set(1000);
+        }
+        if (proposal.dateHeureProposee) {
+          this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+        }
+        if (proposal.adresseClientProposee?.trim()) {
+          this.address.set(proposal.adresseClientProposee.trim());
+        }
+
+        if (
+          proposal.statut === 'ACCEPTEE' ||
+          proposal.statut === 'REFUSEE' ||
+          proposal.statut === 'ANNULEE' ||
+          proposal.statut === 'CONVERTIE_EN_RESERVATION'
+        ) {
+          this.stopProposalRefresh();
+        }
+      },
+      error: () => {
+        this.stopProposalRefresh();
+      },
+    });
   }
 
   private handleProposalError(error: unknown): void {
@@ -675,6 +1311,242 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       });
   }
 
+  private loadGoogleMapsPlacesScript(): Promise<void> {
+    if (this.getGooglePlacesAutocomplete()) {
+      return Promise.resolve();
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-jokko-google-maps-places="true"]',
+    );
+    if (existing) {
+      return new Promise((resolve, reject) => {
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(), { once: true });
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.dataset['jokkoGoogleMapsPlaces'] = 'true';
+      script.onload = () => resolve();
+      script.onerror = () => reject();
+      document.head.appendChild(script);
+    });
+  }
+
+  private getGooglePlacesAutocomplete(): GooglePlacesAutocomplete | undefined {
+    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places?.Autocomplete;
+  }
+
+  private scheduleOpenStreetMapAddressSuggestions(value: string): void {
+    const query = value.trim().replace(/\s+/g, ' ');
+
+    if (this.addressSuggestionTimeoutId) {
+      clearTimeout(this.addressSuggestionTimeoutId);
+    }
+
+    if (query.length < 1) {
+      this.addressSuggestionAbortController?.abort();
+      this.addressSuggestions.set([]);
+      this.isAddressSuggestionsOpen.set(false);
+      this.isLoadingAddressSuggestions.set(false);
+      return;
+    }
+
+    this.addressSuggestionTimeoutId = setTimeout(() => {
+      this.loadOpenStreetMapAddressSuggestions(query);
+    }, 320);
+  }
+
+  private loadOpenStreetMapAddressSuggestions(query: string): void {
+    this.addressSuggestionAbortController?.abort();
+    const controller = new AbortController();
+    this.addressSuggestionAbortController = controller;
+    this.isLoadingAddressSuggestions.set(true);
+
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      addressdetails: '1',
+      countrycodes: 'sn',
+      limit: '6',
+      q: query,
+    });
+
+    fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((items: unknown) => {
+        if (!Array.isArray(items)) {
+          this.addressSuggestions.set([]);
+          this.isAddressSuggestionsOpen.set(false);
+          return;
+        }
+
+        const suggestions = items
+          .map((item, index) => this.mapOpenStreetMapSuggestion(item, index))
+          .filter((item): item is AddressSuggestion => item !== null);
+
+        this.addressSuggestions.set(suggestions);
+        this.isAddressSuggestionsOpen.set(suggestions.length > 0);
+        this.mapsSuggestionsReady.set(true);
+        this.mapsSuggestionsUnavailable.set(false);
+      })
+      .catch((error) => {
+        if ((error as { name?: string })?.name === 'AbortError') {
+          return;
+        }
+
+        this.addressSuggestions.set([]);
+        this.isAddressSuggestionsOpen.set(false);
+        this.mapsSuggestionsUnavailable.set(true);
+      })
+      .finally(() => {
+        if (this.addressSuggestionAbortController === controller) {
+          this.isLoadingAddressSuggestions.set(false);
+        }
+      });
+  }
+
+  private mapOpenStreetMapSuggestion(item: unknown, index: number): AddressSuggestion | null {
+    const value = item as {
+      place_id?: number | string;
+      display_name?: string;
+      name?: string;
+      lat?: string;
+      lon?: string;
+      type?: string;
+      address?: {
+        amenity?: string;
+        road?: string;
+        quarter?: string;
+        neighbourhood?: string;
+        suburb?: string;
+        city?: string;
+        town?: string;
+        village?: string;
+        county?: string;
+        state?: string;
+        country?: string;
+      };
+    };
+
+    const address = value.address ?? {};
+    const label = this.cleanAddressPart(
+      value.name ||
+        address.amenity ||
+        address.road ||
+        address.quarter ||
+        address.neighbourhood ||
+        address.suburb ||
+        address.city ||
+        address.town ||
+        address.village ||
+        value.display_name?.split(',')[0],
+    );
+    if (!label) {
+      return null;
+    }
+
+    const detailParts = [
+      address.neighbourhood,
+      address.suburb,
+      address.city || address.town || address.village,
+      address.state,
+    ]
+      .map((part) => this.cleanAddressPart(part))
+      .filter((part, partIndex, parts): part is string => Boolean(part) && parts.indexOf(part) === partIndex && part !== label);
+    const detail = detailParts.slice(0, 2).join(' - ') || 'Senegal';
+    const latitude = Number(value.lat);
+    const longitude = Number(value.lon);
+
+    return {
+      id: String(value.place_id ?? `${label}-${index}`),
+      label,
+      detail: detail || value.type || 'Adresse au Senegal',
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      source: 'OPENSTREETMAP',
+    };
+  }
+
+  private resolveOpenStreetMapAddressFromCoordinates(
+    latitude: number,
+    longitude: number,
+  ): Promise<string> {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: String(latitude),
+      lon: String(longitude),
+      addressdetails: '1',
+      zoom: '18',
+    });
+
+    return fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((item: unknown) => {
+        const value = item as {
+          display_name?: string;
+          name?: string;
+          address?: {
+            amenity?: string;
+            road?: string;
+            quarter?: string;
+            neighbourhood?: string;
+            suburb?: string;
+            city?: string;
+            town?: string;
+            village?: string;
+            state?: string;
+            country?: string;
+          };
+        };
+
+        const address = value.address ?? {};
+        const locality = [
+          address.amenity,
+          address.road,
+          address.quarter,
+          address.neighbourhood,
+          address.suburb,
+          address.city || address.town || address.village,
+          address.state,
+        ]
+          .map((part) => this.cleanAddressPart(part))
+          .filter((part, index, parts): part is string => Boolean(part) && parts.indexOf(part) === index)
+          .slice(0, 4)
+          .join(', ');
+
+        return locality || this.cleanAddressPart(value.display_name) || '';
+      });
+  }
+
+  private formatExactGpsLabel(latitude: number, longitude: number, accuracy: number | null): string {
+    const precision = Number.isFinite(Number(accuracy))
+      ? `, precision ${Math.round(Number(accuracy))} m`
+      : '';
+    return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
+  }
+
+  private cleanAddressPart(value: string | null | undefined): string {
+    return (value || '')
+      .replace(/\b(commune|communes|arrondissement|arrondissements|departement|region)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s,-]+|[\s,-]+$/g, '')
+      .trim();
+  }
+
   private checkAvailabilityNow(
     service: BackendProfessionalDetailService,
     dateHeure: string,
@@ -759,8 +1631,44 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .replace(',', '');
   }
 
-  private formatAmount(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0);
+  protected formatAmount(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
+      .format(value || 0)
+      .replace(/\s/g, ' ');
+  }
+
+  private toPositiveAmount(value: number | null | undefined): number | null {
+    const amount = Number(value ?? 0);
+    return Number.isFinite(amount) && amount > 0 ? Math.trunc(amount) : null;
+  }
+
+  private formatAcceptedDateTime(value: string): string {
+    return `${this.formatAcceptedDate(value)} a ${this.formatAcceptedTime(value)}`;
+  }
+
+  private formatAcceptedDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Date a confirmer';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+      .format(date)
+      .replace('.', '');
+  }
+
+  private formatAcceptedTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Heure a confirmer';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .format(date)
+      .replace(':', 'h');
   }
 
   private truncate(value: string, maxLength: number): string {

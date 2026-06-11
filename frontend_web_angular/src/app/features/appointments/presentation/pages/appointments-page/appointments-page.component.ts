@@ -61,11 +61,11 @@ export class AppointmentsPageComponent implements OnInit {
   protected readonly cancellingAppointmentId = signal<string | null>(null);
 
   protected readonly futureAppointments = computed(() =>
-    this.sortedAppointments(this.appointments().filter((appointment) => !this.isDone(appointment.status))),
+    this.sortedAppointments(this.appointments().filter((appointment) => this.isFutureAppointment(appointment))),
   );
 
   protected readonly doneAppointments = computed(() =>
-    this.sortedAppointments(this.appointments().filter((appointment) => this.isDone(appointment.status))),
+    this.sortedAppointments(this.appointments().filter((appointment) => !this.isFutureAppointment(appointment))),
   );
 
   protected readonly monthLabel = computed(() => {
@@ -291,6 +291,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected rowTone(appointment: AppointmentView): AppointmentTone {
+    if (this.isOverdueAppointment(appointment)) return 'neutral';
     if (this.matchesStatus(appointment, 'URGENT')) return 'red';
     if (appointment.status === 'TERMINEE' || appointment.status === 'CONFIRMEE') return 'green';
     if (appointment.status === 'EN_ATTENTE' || appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW') {
@@ -300,6 +301,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected statusLabel(appointment: AppointmentView): string {
+    if (this.isOverdueAppointment(appointment)) return 'Date passee';
     if (this.matchesStatus(appointment, 'URGENT')) return 'Urgent';
 
     const labels: Record<AppointmentStatus, string> = {
@@ -317,16 +319,22 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected statusPanelTitle(appointment: AppointmentView): string {
+    if (this.isOverdueAppointment(appointment)) return 'Rendez-vous depasse';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Demande en cours';
     if (appointment.status === 'TERMINEE') return 'Prestation terminee';
     if (appointment.status === 'EN_COURS' || appointment.status === 'PAYEE_SEQUESTRE') {
       return 'Prestation en cours';
     }
-    if (appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW') return 'Rendez-vous annule';
+    if (appointment.status === 'ANNULEE') return 'Rendez-vous annule';
+    if (appointment.status === 'NO_SHOW') return 'Rendez-vous non honore';
     return 'Prestation prevue';
   }
 
   protected statusPanelMessage(appointment: AppointmentView): string {
+    if (this.isOverdueAppointment(appointment)) {
+      return 'La date prevue est passee. Ce rendez-vous doit etre cloture, marque absent ou reprogramme selon la situation.';
+    }
+
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') {
       const amount = appointment.proposedAdjustedPrice
         ? `${this.formatAmount(appointment.proposedAdjustedPrice)} FCFA`
@@ -348,6 +356,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected progressValue(appointment: AppointmentView): number {
+    if (this.isOverdueAppointment(appointment)) return 0;
     if (appointment.status === 'TERMINEE') return 100;
     if (appointment.status === 'EN_COURS') return 65;
     if (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'CONFIRMEE') return 43;
@@ -424,7 +433,7 @@ export class AppointmentsPageComponent implements OnInit {
 
   protected formatAmount(value: number | null): string {
     if (value === null) return 'Montant a confirmer';
-    return new Intl.NumberFormat('fr-FR').format(value);
+    return new Intl.NumberFormat('fr-FR').format(value).replace(/\s/g, ' ');
   }
 
   protected avatarInitials(appointment: AppointmentView): string {
@@ -528,6 +537,20 @@ export class AppointmentsPageComponent implements OnInit {
 
   private isDone(status: AppointmentStatus): boolean {
     return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW';
+  }
+
+  private isFutureAppointment(appointment: AppointmentView): boolean {
+    if (this.isDone(appointment.status) || appointment.status === 'LITIGE') return false;
+    return !this.isPastAppointment(appointment);
+  }
+
+  private isOverdueAppointment(appointment: AppointmentView): boolean {
+    return !this.isDone(appointment.status) && appointment.status !== 'LITIGE' && this.isPastAppointment(appointment);
+  }
+
+  private isPastAppointment(appointment: AppointmentView): boolean {
+    const date = this.safeDate(appointment.scheduledAt);
+    return Number.isNaN(date.getTime()) || date.getTime() < Date.now();
   }
 
   private hasCancellableStatus(status: AppointmentStatus): boolean {

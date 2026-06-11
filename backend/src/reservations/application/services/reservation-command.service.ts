@@ -128,6 +128,7 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -232,12 +233,10 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
-    const professional = await this.getProfessionalProfileOrThrow(
-      requestUser.sub,
+    const professional = await this.assertProfessionalOwnsReservation(
+      requestUser,
+      reservation,
     );
-    if (reservation.professionnelId !== professional.id) {
-      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
-    }
 
     if (
       await this.reservationsRepository.hasPaymentForReservation(reservationId)
@@ -362,11 +361,12 @@ export class ReservationCommandService extends ReservationAppService {
   }
 
   async completeReservation(requestUser: AuthUser, reservationId: string) {
-    this.assertClientRole(requestUser.role);
+    this.assertProfessionalRole(requestUser.role);
     const reservation = await this.getAccessibleReservationOrThrow(
       requestUser,
       reservationId,
     );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -422,6 +422,7 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -446,6 +447,9 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
+    if (reservation.clientId !== requestUser.sub) {
+      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    }
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -463,6 +467,7 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -527,6 +532,20 @@ export class ReservationCommandService extends ReservationAppService {
     throw error;
   }
 
+  private async assertProfessionalOwnsReservation(
+    requestUser: AuthUser,
+    reservation: { professionnelId: string },
+  ) {
+    const professional = await this.getProfessionalProfileOrThrow(
+      requestUser.sub,
+    );
+    if (reservation.professionnelId !== professional.id) {
+      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    }
+
+    return professional;
+  }
+
   private async createReservationFromAcceptedNegotiation(
     requestUser: AuthUser,
     command: CreateReservationFromNegotiationCommand,
@@ -540,7 +559,11 @@ export class ReservationCommandService extends ReservationAppService {
       negotiation.professionnelId,
     );
     const service = await this.getServiceOrThrow(negotiation.serviceId);
-    const scheduledAt = this.parseDateOrThrow(command.dateHeure);
+    const details = this.resolveAcceptedNegotiationReservationDetails(
+      negotiation,
+      command,
+    );
+    const scheduledAt = this.parseDateOrThrow(details.dateHeure);
 
     try {
       const reservation = ReservationEntity.create({
@@ -549,8 +572,8 @@ export class ReservationCommandService extends ReservationAppService {
         professionnelId: negotiation.professionnelId,
         serviceId: negotiation.serviceId,
         dateHeure: scheduledAt,
-        adresseClient: command.adresseClient,
-        dureeMinutes: command.dureeMinutes,
+        adresseClient: details.adresseClient,
+        dureeMinutes: details.dureeMinutes,
         notes: trimString(command.notes) ?? null,
         prixConvenu: negotiation.montantAccepte ?? negotiation.montantCourant,
       });
@@ -590,5 +613,56 @@ export class ReservationCommandService extends ReservationAppService {
       this.handleDomainError(error);
       throw error;
     }
+  }
+
+  private resolveAcceptedNegotiationReservationDetails(
+    negotiation: {
+      dateHeureProposee: Date | string | null;
+      adresseClientProposee: string | null;
+      dureeMinutesProposee: number | null;
+    },
+    command: CreateReservationFromNegotiationCommand,
+  ): {
+    dateHeure: string;
+    adresseClient: string;
+    dureeMinutes: number;
+  } {
+    const negotiatedDate = negotiation.dateHeureProposee
+      ? new Date(negotiation.dateHeureProposee)
+      : null;
+    const requestedDate = this.parseDateOrThrow(command.dateHeure);
+
+    if (
+      negotiatedDate &&
+      !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() !== requestedDate.getTime()
+    ) {
+      throw appHttpException('RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH');
+    }
+
+    const negotiatedAddress = trimString(negotiation.adresseClientProposee);
+    const requestedAddress = trimString(command.adresseClient);
+    if (
+      negotiatedAddress &&
+      requestedAddress &&
+      negotiatedAddress.toLowerCase() !== requestedAddress.toLowerCase()
+    ) {
+      throw appHttpException('RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH');
+    }
+
+    if (
+      negotiation.dureeMinutesProposee !== null &&
+      negotiation.dureeMinutesProposee !== command.dureeMinutes
+    ) {
+      throw appHttpException('RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH');
+    }
+
+    return {
+      dateHeure: negotiatedDate && !Number.isNaN(negotiatedDate.getTime())
+        ? negotiatedDate.toISOString()
+        : command.dateHeure,
+      adresseClient: negotiatedAddress ?? requestedAddress ?? command.adresseClient,
+      dureeMinutes: negotiation.dureeMinutesProposee ?? command.dureeMinutes,
+    };
   }
 }

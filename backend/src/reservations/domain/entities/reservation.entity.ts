@@ -468,7 +468,7 @@ export class ReservationEntity {
   }
 
   private canBePaid(): boolean {
-    return this._statut === 'CONFIRMEE';
+    return this._statut === 'EN_ATTENTE' || this._statut === 'CONFIRMEE';
   }
 
   private canBeStarted(): boolean {

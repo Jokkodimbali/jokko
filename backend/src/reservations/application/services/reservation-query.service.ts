@@ -10,11 +10,16 @@ import { ReservationAppService } from './reservation-app-service.base';
 @Injectable()
 export class ReservationQueryService extends ReservationAppService {
   async getMyReservations(requestUser: AuthUser, query: ListReservationsQuery) {
+    await this.syncOverdueReservations();
+
     const filters: ReservationFilters = {};
 
     if (requestUser.role === 'CLIENT') {
       filters.clientId = requestUser.sub;
-    } else if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
+    } else if (
+      requestUser.role === 'PRESTATAIRE' ||
+      requestUser.role === 'MEDECIN'
+    ) {
       if (query.scope === 'CLIENT') {
         filters.clientId = requestUser.sub;
       } else {
@@ -45,6 +50,8 @@ export class ReservationQueryService extends ReservationAppService {
   }
 
   async getReservationById(requestUser: AuthUser, reservationId: string) {
+    await this.syncOverdueReservations();
+
     await this.getAccessibleReservationOrThrow(requestUser, reservationId);
     const reservation =
       await this.reservationsRepository.findDetailedById(reservationId);
@@ -202,6 +209,8 @@ export class ReservationQueryService extends ReservationAppService {
     query: ListReservationsQuery,
   ) {
     this.assertAdminRole(requestUser.role);
+    await this.syncOverdueReservations();
+
     const filters = this.adminFilters(query);
     const [items, total] = await Promise.all([
       this.reservationsRepository.findDetailedByFilters({
@@ -211,7 +220,12 @@ export class ReservationQueryService extends ReservationAppService {
       }),
       this.reservationsRepository.countByFilters(filters),
     ]);
-    return { items, total, limit: query.limit ?? 20, offset: query.offset ?? 0 };
+    return {
+      items,
+      total,
+      limit: query.limit ?? 20,
+      offset: query.offset ?? 0,
+    };
   }
 
   private adminFilters(query: ListReservationsQuery) {
@@ -235,6 +249,8 @@ export class ReservationQueryService extends ReservationAppService {
     query: ListReservationsQuery,
   ) {
     this.assertAdminRole(requestUser.role);
+    await this.syncOverdueReservations();
+
     const reservations = await this.reservationsRepository.findByFilters(
       this.adminFilters(query),
     );
@@ -259,11 +275,15 @@ export class ReservationQueryService extends ReservationAppService {
     };
   }
 
-  private async findAdminReservationsByDateRange(
-    query: ListReservationsQuery,
-  ) {
+  private async findAdminReservationsByDateRange(query: ListReservationsQuery) {
+    await this.syncOverdueReservations();
+
     const { startDate, endDate } = this.parseDateRangeOrThrow(query);
     return this.reservationsRepository.findAllByDateRange(startDate, endDate);
+  }
+
+  private async syncOverdueReservations(): Promise<void> {
+    await this.reservationsRepository.syncOverdueReservations(new Date());
   }
 
   private isWithinProfessionalAvailability(

@@ -51,6 +51,7 @@ export class AppointmentsService {
                     specialty: service?.nom || 'Service non renseigne',
                     avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                     serviceName: service?.nom || 'Service non renseigne',
+                    servicePrice: service?.prix ?? null,
                   });
                 }),
                 catchError(() => of(this.mapAppointment(reservation))),
@@ -85,6 +86,7 @@ export class AppointmentsService {
                 specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 serviceName: service?.nom || 'Service non renseigne',
+                servicePrice: service?.prix ?? null,
               });
             }),
             catchError(() => of(this.mapAppointment(reservation))),
@@ -201,6 +203,7 @@ export class AppointmentsService {
   initiatePayment(
     reservationId: string,
     method: PaymentMethod,
+    options?: { successPath?: string; cancelPath?: string },
   ): Observable<PaymentInitiationView> {
     return this.http
       .post<ApiResponse<PaymentInitiationView>>(
@@ -208,8 +211,8 @@ export class AppointmentsService {
         {
           bookingId: reservationId,
           method,
-          successUrl: this.absoluteUrl(`/appointments/${reservationId}`),
-          cancelUrl: this.absoluteUrl(`/appointments/${reservationId}/payment`),
+          successUrl: this.absoluteUrl(options?.successPath ?? `/appointments/${reservationId}`),
+          cancelUrl: this.absoluteUrl(options?.cancelPath ?? `/appointments/${reservationId}/payment`),
         },
         {
           headers: {
@@ -286,6 +289,7 @@ export class AppointmentsService {
       specialty?: string;
       avatarUrl?: string;
       serviceName?: string;
+      servicePrice?: number | null;
     } = {},
   ): AppointmentView {
     const date = new Date(reservation.dateHeure);
@@ -304,9 +308,10 @@ export class AppointmentsService {
       timeLabel: this.formatTime(date),
       locationLabel: reservation.adresseClient || 'Adresse non renseignee',
       doctorName: professional.doctorName || 'Prestataire non renseigne',
-      specialty: professional.specialty || 'Service non renseigne',
+      specialty: professional.specialty || reservation.service?.nom || 'Service non renseigne',
       avatarUrl: professional.avatarUrl || '',
-      serviceName: professional.serviceName || 'Service non renseigne',
+      serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
+      servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',

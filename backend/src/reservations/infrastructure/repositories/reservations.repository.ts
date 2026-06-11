@@ -157,6 +157,52 @@ type ReservationDetailRecord = ReservationRecord & {
 export class ReservationsRepository implements ReservationsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
+  async syncOverdueReservations(now: Date): Promise<number> {
+    const candidates = await this.prisma.reservation.findMany({
+      where: {
+        statut: {
+          in: [$Enums.StatutReservation.EN_ATTENTE],
+        },
+        dateHeure: {
+          lt: now,
+        },
+      },
+      select: {
+        id: true,
+        dateHeure: true,
+        dureeMinutes: true,
+      },
+      take: 500,
+    });
+
+    const overdueIds = candidates
+      .filter((reservation) => {
+        const durationMinutes = Math.max(0, reservation.dureeMinutes || 0);
+        const endAt = reservation.dateHeure.getTime() + durationMinutes * 60_000;
+        return endAt <= now.getTime();
+      })
+      .map((reservation) => reservation.id);
+
+    if (overdueIds.length === 0) {
+      return 0;
+    }
+
+    const result = await this.prisma.reservation.updateMany({
+      where: {
+        id: { in: overdueIds },
+        statut: {
+          in: [$Enums.StatutReservation.EN_ATTENTE],
+        },
+      },
+      data: {
+        statut: $Enums.StatutReservation.NO_SHOW,
+        misAJourLe: now,
+      },
+    });
+
+    return result.count;
+  }
+
   async findById(id: string): Promise<Reservation | null> {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },

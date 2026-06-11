@@ -1,9 +1,14 @@
 <main class="appointment-payment">
   <section class="appointment-payment__topbar" aria-label="Navigation paiement">
     <button type="button" class="appointment-payment__back" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
+      <lucide-icon name="arrow-left" size="17" [strokeWidth]="2.4"></lucide-icon>
       <span>Retour</span>
     </button>
+
+    <span class="appointment-payment__secure">
+      <lucide-icon name="shield-check" size="13" [strokeWidth]="2.4"></lucide-icon>
+      Paiement securise
+    </span>
   </section>
 
   <section class="appointment-payment__state" *ngIf="isLoading()">Chargement du paiement...</section>
@@ -13,97 +18,82 @@
 
   <ng-container *ngIf="!isLoading() && appointment() as appointment">
     <section class="appointment-payment__content">
-      <section class="appointment-payment__checkout" aria-label="Paiement du rendez-vous">
-        <header class="appointment-payment__heading">
-          <h1>PAYEZ</h1>
-          <lucide-icon name="banknote" size="30" [strokeWidth]="2.5"></lucide-icon>
+      <section class="appointment-payment__accepted" aria-label="Reservation acceptee">
+        <header class="appointment-payment__accepted-hero">
+          <div class="appointment-payment__accepted-avatar">
+            <img *ngIf="appointment.avatarUrl; else paymentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+            <ng-template #paymentProviderInitials>
+              <span>{{ avatarInitials(appointment) }}</span>
+            </ng-template>
+            <i aria-hidden="true">
+              <lucide-icon name="check" size="17" [strokeWidth]="3"></lucide-icon>
+            </i>
+          </div>
+          <small>Prestation acceptee</small>
+          <h1>Vous avez accepte l'offre de {{ appointment.doctorName }}</h1>
+          <p>Rendez-vous le <strong>{{ acceptedDateTimeLabel() }}</strong></p>
         </header>
 
-        <p class="appointment-payment__amount">
-          <strong>{{ amountValueLabel() }}</strong>
-          <span>FCFA</span>
-        </p>
+        <div class="appointment-payment__accepted-price">
+          <span>
+            <small>Prix convenu</small>
+            <strong>{{ amountValueLabel() }} <em>FCFA</em></strong>
+          </span>
+          <span>
+            <small>{{ comparisonLabel() }}</small>
+            <strong>{{ comparisonAmountLabel() }}</strong>
+          </span>
+        </div>
+      </section>
 
-        <section class="appointment-payment__method-card" aria-label="Choix du moyen de paiement">
-          <h2>Choisissez le moyen de paiement</h2>
-          <div class="appointment-payment__methods" role="radiogroup" aria-label="Moyens de paiement">
-            <button
-              *ngFor="let option of paymentOptions"
-              type="button"
-              class="appointment-payment__method"
-              [class.appointment-payment__method--selected]="selectedMethod() === option.id"
-              [attr.aria-label]="methodAriaLabel(option)"
-              [attr.aria-checked]="selectedMethod() === option.id"
-              role="radio"
-              (click)="selectMethod(option.id)"
-            >
-              <span class="appointment-payment__method-check" *ngIf="selectedMethod() === option.id">
-                <lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon>
-              </span>
-              <span class="appointment-payment__method-logo" [attr.data-method]="option.id">
-                <img [src]="option.logoUrl" [alt]="option.label" />
-              </span>
-              <strong>{{ option.label }}</strong>
-            </button>
-          </div>
-        </section>
-
-        <div class="appointment-payment__actions">
-          <button type="button" class="appointment-payment__pay" [disabled]="isPaying()" (click)="pay()">
-            {{ isPaying() ? 'Paiement...' : 'Payez' }}
-          </button>
+      <section class="appointment-payment__method-card" aria-label="Choix du moyen de paiement">
+        <h2>Choisissez le moyen de paiement</h2>
+        <div class="appointment-payment__methods" role="radiogroup" aria-label="Moyens de paiement">
           <button
+            *ngFor="let option of paymentOptions"
             type="button"
-            class="appointment-payment__cancel"
-            [disabled]="isCancelling()"
-            (click)="cancelReservation()"
+            class="appointment-payment__method"
+            [class.appointment-payment__method--selected]="selectedMethod() === option.id"
+            [attr.aria-label]="methodAriaLabel(option)"
+            [attr.aria-checked]="selectedMethod() === option.id"
+            role="radio"
+            (click)="selectMethod(option.id)"
           >
-            {{ isCancelling() ? 'Annulation...' : 'Annulez la reservation' }}
+            <span class="appointment-payment__method-check" *ngIf="selectedMethod() === option.id">
+              <lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon>
+            </span>
+            <span class="appointment-payment__method-logo" [attr.data-method]="option.id">
+              <img [src]="option.logoUrl" [alt]="option.label" />
+            </span>
+            <strong>{{ option.label }}</strong>
           </button>
         </div>
       </section>
 
-      <aside class="appointment-payment__summary" aria-label="Details du rendez-vous">
-        <header class="appointment-payment__provider">
-          <img *ngIf="appointment.avatarUrl; else paymentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
-          <ng-template #paymentProviderInitials>
-            <span class="appointment-payment__provider-initials">{{ avatarInitials(appointment) }}</span>
-          </ng-template>
-          <div>
-            <h2>{{ appointment.doctorName }}</h2>
-            <p>
-              <lucide-icon name="wrench" size="13" [strokeWidth]="2.5"></lucide-icon>
-              <span>{{ appointment.serviceName }}</span>
-            </p>
-          </div>
-        </header>
+      <button type="button" class="appointment-payment__message" (click)="messageProvider()">
+        <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Message au prestataire
+      </button>
 
-        <h3>Détails du rendez-vous</h3>
-
-        <dl>
-          <div>
-            <dt>
-              <lucide-icon name="calendar-days" size="19" [strokeWidth]="2.4"></lucide-icon>
-              <span>Date</span>
-            </dt>
-            <dd>{{ formatPaymentDate(appointment) }}</dd>
-          </div>
-          <div>
-            <dt>
-              <lucide-icon name="map-pin" size="19" [strokeWidth]="2.4"></lucide-icon>
-              <span>Adresse d'intervention</span>
-            </dt>
-            <dd>{{ appointment.addressLabel }}</dd>
-          </div>
-          <div>
-            <dt>
-              <lucide-icon name="banknote" size="18" [strokeWidth]="2.4"></lucide-icon>
-              <span>Prix proposé</span>
-            </dt>
-            <dd>{{ amountLabel() }}</dd>
-          </div>
-        </dl>
-      </aside>
+      <button
+        type="button"
+        class="appointment-payment__cancel"
+        [disabled]="isCancelling()"
+        (click)="cancelReservation()"
+      >
+        {{ isCancelling() ? 'Annulation...' : 'Annuler la reservation' }}
+      </button>
     </section>
+
+    <footer class="appointment-payment__checkout-bar">
+      <span>
+        <small>Total a payer</small>
+        <strong>{{ amountValueLabel() }}<em>FCFA</em></strong>
+      </span>
+      <button type="button" [disabled]="isPaying()" (click)="pay()">
+        {{ isPaying() ? 'Paiement...' : 'Payez la reservation' }}
+        <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.4"></lucide-icon>
+      </button>
+    </footer>
   </ng-container>
 </main>

@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView, PaymentMethod } from '../../../domain/appointments.models';
 
@@ -26,6 +27,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly appointmentsService = inject(AppointmentsService);
+  private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
 
   protected readonly appointment = signal<AppointmentView | null>(null);
@@ -46,10 +48,45 @@ export class AppointmentPaymentPageComponent implements OnInit {
   );
 
   protected readonly amountValueLabel = computed(() =>
-    new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(
-      this.appointment()?.agreedPrice ?? 0,
-    ),
+    new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
+      .format(this.appointment()?.agreedPrice ?? 0)
+      .replace(/\s/g, ' '),
   );
+  protected readonly acceptedDateTimeLabel = computed(() => {
+    const appointment = this.appointment();
+    return appointment ? `${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}` : 'Date a confirmer';
+  });
+  protected readonly comparisonLabel = computed(() => {
+    const appointment = this.appointment();
+    const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
+    const agreedPrice = this.toPositiveAmount(appointment?.agreedPrice);
+
+    if (!servicePrice) {
+      return 'Prix initial';
+    }
+
+    if (!agreedPrice || servicePrice === agreedPrice) {
+      return 'Difference';
+    }
+
+    return agreedPrice < servicePrice ? 'Economie' : 'Ajustement';
+  });
+  protected readonly comparisonAmountLabel = computed(() => {
+    const appointment = this.appointment();
+    const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
+    const agreedPrice = this.toPositiveAmount(appointment?.agreedPrice);
+
+    if (!servicePrice) {
+      return 'A confirmer';
+    }
+
+    if (!agreedPrice || servicePrice === agreedPrice) {
+      return '0 FCFA';
+    }
+
+    const difference = Math.abs(servicePrice - agreedPrice);
+    return `+${this.formatAmountValue(difference)} FCFA`;
+  });
 
   ngOnInit(): void {
     const reservationId = this.route.snapshot.paramMap.get('id');
@@ -96,7 +133,11 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaying.set(true);
     this.errorMessage.set(null);
 
-    this.appointmentsService.initiatePayment(appointment.id, this.selectedMethod()).subscribe({
+    this.appointmentsService.initiatePayment(
+      appointment.id,
+      this.selectedMethod(),
+      this.buildPaymentRedirectOptions(appointment),
+    ).subscribe({
       next: (payment) => {
         this.isPaying.set(false);
         this.feedback.success('Paiement initialise avec succes.');
@@ -111,8 +152,8 @@ export class AppointmentPaymentPageComponent implements OnInit {
             'Paiement simule confirme pour le test web.',
           );
           this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
-            next: () => this.router.navigate(['/appointments', appointment.id]),
-            error: () => this.router.navigate(['/appointments', appointment.id]),
+            next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
+            error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
           });
           return;
         }
@@ -120,8 +161,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
         this.router.navigate(['/appointments', appointment.id]);
       },
       error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'initialiser le paiement."));
-        this.isPaying.set(false);
+        this.handlePaymentInitiationError(error, appointment);
       },
     });
   }
@@ -149,6 +189,143 @@ export class AppointmentPaymentPageComponent implements OnInit {
         this.isCancelling.set(false);
       },
     });
+  }
+
+  protected messageProvider(): void {
+    const appointment = this.appointment();
+    if (!appointment) {
+      return;
+    }
+
+    this.messagesService.createConversation({ professionalProfileId: appointment.professionalId }).subscribe({
+      next: (conversation) => {
+        this.router.navigate(['/messages'], {
+          queryParams: {
+            conversationId: conversation.id,
+            professionalId: appointment.professionalId,
+            providerName: appointment.doctorName,
+            serviceName: appointment.serviceName,
+            amount: appointment.agreedPrice ?? 0,
+            reservationId: appointment.id,
+            appointmentDate: appointment.scheduledAt,
+            address: appointment.addressLabel,
+            status: appointment.status,
+          },
+        });
+      },
+      error: (error) => {
+        this.feedback.error(getHttpErrorMessage(error, "Impossible d'ouvrir la discussion avec ce prestataire."));
+      },
+    });
+  }
+
+  private handlePaidAppointment(appointment: AppointmentView): void {
+    this.isPaying.set(false);
+    if (!this.shouldReturnToMessages()) {
+      this.router.navigate(['/appointments', appointment.id]);
+      return;
+    }
+
+    this.messagesService.createConversation({ professionalProfileId: appointment.professionalId }).subscribe({
+      next: (conversation) => {
+        const message = [
+          `Paiement confirme pour ${appointment.serviceName}.`,
+          `Montant paye: ${this.formatAmount(appointment.agreedPrice ?? 0)}.`,
+          `Rendez-vous le ${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}.`,
+        ].join(' ');
+
+        this.messagesService.sendMessage(conversation.id, message).subscribe({
+          next: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
+          error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
+        });
+      },
+      error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
+    });
+  }
+
+  private handlePaymentInitiationError(error: unknown, appointment: AppointmentView): void {
+    const errorCode = (error as { error?: { errorCode?: string } })?.error?.errorCode;
+    if (errorCode === 'PAYMENT_ALREADY_PROCESSED') {
+      this.feedback.info('Paiement deja initie. Confirmation de la reservation en cours.');
+      this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
+        next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
+        error: (markPaidError) => {
+          this.errorMessage.set(
+            getHttpErrorMessage(markPaidError, 'Paiement deja initie, mais la reservation na pas pu etre confirmee.'),
+          );
+          this.isPaying.set(false);
+        },
+      });
+      return;
+    }
+
+    this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'initialiser le paiement."));
+    this.isPaying.set(false);
+  }
+
+  private buildPaymentRedirectOptions(appointment: AppointmentView): {
+    successPath?: string;
+    cancelPath?: string;
+  } | undefined {
+    if (!this.shouldReturnToMessages()) {
+      return undefined;
+    }
+
+    return {
+      successPath: this.buildMessagesPath(appointment, 'PAYEE_SEQUESTRE'),
+      cancelPath: this.router.url,
+    };
+  }
+
+  private navigateAfterPayment(
+    appointment: AppointmentView,
+    status: string,
+    conversationId?: string,
+  ): void {
+    if (!this.shouldReturnToMessages()) {
+      this.router.navigate(['/appointments', appointment.id]);
+      return;
+    }
+
+    this.router.navigate(['/messages'], {
+      queryParams: this.buildMessagesQueryParams(appointment, status, conversationId),
+    });
+  }
+
+  private buildMessagesPath(appointment: AppointmentView, status: string): string {
+    const params = new URLSearchParams();
+    const queryParams = this.buildMessagesQueryParams(appointment, status);
+    Object.entries(queryParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+
+    const query = params.toString();
+    return query ? `/messages?${query}` : '/messages';
+  }
+
+  private buildMessagesQueryParams(
+    appointment: AppointmentView,
+    status: string,
+    conversationId = this.route.snapshot.queryParamMap.get('conversationId') || undefined,
+  ): Record<string, string | number | undefined> {
+    return {
+      conversationId,
+      returnTo: 'messages',
+      professionalId: appointment.professionalId,
+      providerName: appointment.doctorName,
+      serviceName: appointment.serviceName,
+      amount: appointment.agreedPrice ?? 0,
+      reservationId: appointment.id,
+      appointmentDate: appointment.scheduledAt,
+      address: appointment.addressLabel,
+      status,
+    };
+  }
+
+  private shouldReturnToMessages(): boolean {
+    return this.route.snapshot.queryParamMap.get('returnTo') === 'messages';
   }
 
   protected formatPaymentDate(appointment: AppointmentView): string {
@@ -188,7 +365,18 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   private formatAmount(value: number): string {
-    return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0)} FCFA`;
+    return `${this.formatAmountValue(value)} FCFA`;
+  }
+
+  private formatAmountValue(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
+      .format(value || 0)
+      .replace(/\s/g, ' ');
+  }
+
+  private toPositiveAmount(value: number | null | undefined): number | null {
+    const amount = Number(value ?? 0);
+    return Number.isFinite(amount) && amount > 0 ? Math.trunc(amount) : null;
   }
 
   private canRedirectToPaymentUrl(paymentUrl?: string): boolean {

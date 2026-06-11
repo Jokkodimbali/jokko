@@ -88,6 +88,7 @@ export interface AppointmentView {
   specialty: string;
   avatarUrl: string;
   serviceName: string;
+  servicePrice: number | null;
   notes: string | null;
   agreedPrice: number | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';

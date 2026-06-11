@@ -138,7 +138,7 @@
         </article>
 
         <article
-          *ngIf="visibleProposal() as proposal"
+          *ngIf="visibleProposalStep() as proposal"
           class="messages-page__proposal-row"
           [class.messages-page__proposal-row--accepted]="isProposalAccepted()"
         >
@@ -149,12 +149,12 @@
             <span>
               {{
                 isProposalAccepted()
-                  ? proposal.providerName + ' a accepte le montant propose'
+                  ? proposal.providerName + ' a accepté le montant proposé'
                   : 'En attente de validation par ' + proposal.providerName
               }}
             </span>
-            <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
-            <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
+            <p>{{ isProposalAccepted() ? 'Montant convenu' : 'Montant proposé à ' + proposal.providerName + ', ' + proposal.serviceName }}</p>
+            <strong><b>{{ formatAmount(proposal.amount) }}</b><small>FCFA</small></strong>
             <div *ngIf="canRespondToProposal()" class="messages-page__proposal-actions">
               <button
                 type="button"
@@ -166,12 +166,46 @@
               </button>
               <button
                 type="button"
+                class="messages-page__proposal-counter"
+                [disabled]="isUpdatingProposal()"
+                (click)="openCounterOffer()"
+              >
+                Contre-proposer
+              </button>
+              <button
+                type="button"
                 class="messages-page__proposal-cancel"
                 [disabled]="isUpdatingProposal()"
                 (click)="rejectProposal()"
               >
                 Refuser
               </button>
+            </div>
+            <div *ngIf="canRespondToProposal() && isCounterOfferOpen()" class="messages-page__counter-offer">
+              <label>
+                <span>Nouvelle offre</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  [value]="counterOfferAmountLabel()"
+                  (input)="updateCounterOfferAmount($any($event.target).value)"
+                />
+                <small>FCFA</small>
+              </label>
+              <div class="messages-page__counter-offer-actions">
+                <button type="button" class="messages-page__proposal-cancel" (click)="closeCounterOffer()">
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  class="messages-page__proposal-pay"
+                  [disabled]="isUpdatingProposal()"
+                  (click)="sendCounterOffer()"
+                >
+                  {{ isUpdatingProposal() ? 'Envoi...' : 'Envoyer' }}
+                </button>
+              </div>
             </div>
             <div *ngIf="canPayAcceptedProposal()" class="messages-page__proposal-actions">
               <button
@@ -180,16 +214,22 @@
                 [disabled]="isPreparingPayment()"
                 (click)="payAcceptedProposal()"
               >
-                {{ isPreparingPayment() ? 'Preparation...' : 'Payez' }}
+                <lucide-icon name="banknote" size="13" [strokeWidth]="2.4"></lucide-icon>
+                {{ acceptedPaymentActionLabel() }}
               </button>
-              <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
-                Annuler la reservation
+              <button
+                type="button"
+                class="messages-page__proposal-cancel"
+                [disabled]="isCancellingAcceptedProposal()"
+                (click)="cancelAcceptedProposal()"
+              >
+                {{ acceptedCancelActionLabel() }}
               </button>
             </div>
           </div>
         </article>
 
-        <article *ngIf="appointmentPreview() as appointment" class="messages-page__appointment-row">
+        <article *ngIf="paidAppointmentPreview() as appointment" class="messages-page__appointment-row">
           <section class="messages-page__appointment-card" aria-label="Resume du rendez-vous">
             <img
               *ngIf="visibleAvatarUrl(appointment.avatarUrl) as avatarUrl; else appointmentInitials"
@@ -209,7 +249,7 @@
               </p>
               <strong>Le {{ appointment.fullDateLabel }}</strong>
             </div>
-            <a [routerLink]="['/appointments', appointment.id, 'payment']">
+            <a [routerLink]="['/appointments', appointment.id]">
               Plus de détails
               <lucide-icon name="chevron-right" size="19" [strokeWidth]="3"></lucide-icon>
             </a>
@@ -250,7 +290,7 @@
 
     <ng-template #emptyThread>
       <section
-        *ngIf="visibleProposal() as proposal; else noConversationSelected"
+        *ngIf="visibleProposalStep() as proposal; else noConversationSelected"
         class="messages-page__chat messages-page__chat--proposal-only"
       >
         <header class="messages-page__chat-head">
@@ -272,14 +312,14 @@
               [class.messages-page__proposal-card--accepted]="isProposalAccepted()"
             >
               <span>
-                {{
-                  isProposalAccepted()
-                    ? proposal.providerName + ' a accepte le montant propose'
+              {{
+                isProposalAccepted()
+                    ? proposal.providerName + ' a accepté le montant proposé'
                     : 'En attente de validation par ' + proposal.providerName
-                }}
-              </span>
-              <p>Montant propose a {{ proposal.providerName }}, {{ proposal.serviceName }}</p>
-              <strong>{{ formatAmount(proposal.amount) }} FCFA</strong>
+              }}
+            </span>
+              <p>{{ isProposalAccepted() ? 'Montant convenu' : 'Montant proposé à ' + proposal.providerName + ', ' + proposal.serviceName }}</p>
+              <strong><b>{{ formatAmount(proposal.amount) }}</b><small>FCFA</small></strong>
               <div *ngIf="canRespondToProposal()" class="messages-page__proposal-actions">
                 <button
                   type="button"
@@ -291,12 +331,46 @@
                 </button>
                 <button
                   type="button"
+                  class="messages-page__proposal-counter"
+                  [disabled]="isUpdatingProposal()"
+                  (click)="openCounterOffer()"
+                >
+                  Contre-proposer
+                </button>
+                <button
+                  type="button"
                   class="messages-page__proposal-cancel"
                   [disabled]="isUpdatingProposal()"
                   (click)="rejectProposal()"
                 >
                   Refuser
                 </button>
+              </div>
+              <div *ngIf="canRespondToProposal() && isCounterOfferOpen()" class="messages-page__counter-offer">
+                <label>
+                  <span>Nouvelle offre</span>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    [value]="counterOfferAmountLabel()"
+                    (input)="updateCounterOfferAmount($any($event.target).value)"
+                  />
+                  <small>FCFA</small>
+                </label>
+                <div class="messages-page__counter-offer-actions">
+                  <button type="button" class="messages-page__proposal-cancel" (click)="closeCounterOffer()">
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    class="messages-page__proposal-pay"
+                    [disabled]="isUpdatingProposal()"
+                    (click)="sendCounterOffer()"
+                  >
+                    {{ isUpdatingProposal() ? 'Envoi...' : 'Envoyer' }}
+                  </button>
+                </div>
               </div>
               <div *ngIf="canPayAcceptedProposal()" class="messages-page__proposal-actions">
                 <button
@@ -305,10 +379,16 @@
                   [disabled]="isPreparingPayment()"
                   (click)="payAcceptedProposal()"
                 >
-                  {{ isPreparingPayment() ? 'Preparation...' : 'Payez' }}
+                  <lucide-icon name="banknote" size="13" [strokeWidth]="2.4"></lucide-icon>
+                  {{ acceptedPaymentActionLabel() }}
                 </button>
-                <button type="button" class="messages-page__proposal-cancel" (click)="cancelAcceptedProposal()">
-                  Annuler la reservation
+                <button
+                  type="button"
+                  class="messages-page__proposal-cancel"
+                  [disabled]="isCancellingAcceptedProposal()"
+                  (click)="cancelAcceptedProposal()"
+                >
+                  {{ acceptedCancelActionLabel() }}
                 </button>
               </div>
             </div>

@@ -51,6 +51,14 @@ describe('ReservationEntity', () => {
     expect(() => reservation.markAsCompleted()).toThrow(/doit etre payee/i);
   });
 
+  it('allows marking a pending reservation as paid after negotiation payment', () => {
+    const reservation = buildEntity();
+
+    reservation.markAsPaid();
+
+    expect(reservation.toView().statut).toBe('PAYEE_SEQUESTRE');
+  });
+
   it('rejects invalid reconstituted dates', () => {
     expect(() =>
       ReservationEntity.reconstitute({

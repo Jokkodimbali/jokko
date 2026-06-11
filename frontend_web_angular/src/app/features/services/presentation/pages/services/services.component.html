@@ -119,17 +119,17 @@
             *ngFor="let provider of section.providers; let providerIndex = index"
             class="provider-card"
           >
-            <a
-              class="provider-card__link"
-              [routerLink]="['/services', provider.id]"
-              [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
-              [state]="{
-                provider: provider,
-                avatar: resolveProviderAvatar(provider),
-                photos: providerPhotos(provider)
-              }"
-            >
-              <div class="provider-info">
+            <div class="provider-card__header">
+              <a
+                class="provider-info"
+                [routerLink]="['/services', provider.id]"
+                [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
+                [state]="{
+                  provider: provider,
+                  avatar: resolveProviderAvatar(provider),
+                  photos: providerPhotos(provider)
+                }"
+              >
                 <div class="provider-avatar">
                   <img
                     *ngIf="resolveProviderAvatar(provider) as avatar; else providerInitialsTpl"
@@ -160,54 +160,80 @@
                     </span>
                   </div>
                 </div>
-              </div>
+              </a>
 
-              <div
-                class="photo-strip"
-                [class.photo-strip--carousel]="providerPhotos(provider).length > 1"
-                *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio"
+              <button
+                type="button"
+                class="provider-card__favorite"
+                [class.provider-card__favorite--active]="isProviderFavorite(provider.id)"
+                [attr.aria-label]="isProviderFavorite(provider.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                (click)="toggleProviderFavorite($event, provider.id)"
               >
-                <div class="photo-strip__track">
-                  <ng-container *ngFor="let photo of providerPhotos(provider)">
-                    <img [src]="photo" [alt]="'Realisation - ' + provider.nom" (error)="handleImageError(photo)" />
-                  </ng-container>
-                  <ng-container *ngIf="providerPhotos(provider).length > 1">
-                    <img
-                      *ngFor="let photo of providerPhotos(provider)"
-                      [src]="photo"
-                      [alt]="'Realisation - ' + provider.nom"
-                      (error)="handleImageError(photo)"
-                    />
-                  </ng-container>
-                </div>
-              </div>
-              <ng-template #emptyPortfolio>
-                <div class="photo-strip photo-strip--empty">
-                  <span>Portfolio</span>
-                  <span>{{ provider.speciality }}</span>
-                </div>
-              </ng-template>
+                <lucide-icon
+                  name="bookmark"
+                  size="19"
+                  [strokeWidth]="2.4"
+                  [attr.fill]="isProviderFavorite(provider.id) ? 'currentColor' : 'none'"
+                ></lucide-icon>
+              </button>
+            </div>
 
-              <span class="provider-card__cta">
-                <lucide-icon name="info" size="17" [strokeWidth]="2.4"></lucide-icon>
-                En savoir plus
+            <div class="provider-card__visit">
+              <span class="provider-card__visit-icon">
+                <lucide-icon name="wrench" size="16" [strokeWidth]="2.5"></lucide-icon>
               </span>
-            </a>
+              <span class="provider-card__visit-copy">
+                <strong>{{ providerMovementTitle(provider) }}</strong>
+                <small>{{ providerMovementSubtitle(provider) }}</small>
+              </span>
+              <lucide-icon class="provider-card__visit-check" name="check" size="18" [strokeWidth]="2.6"></lucide-icon>
+            </div>
 
-            <button
-              type="button"
-              class="provider-card__favorite"
-              [class.provider-card__favorite--active]="isProviderFavorite(provider.id)"
-              [attr.aria-label]="isProviderFavorite(provider.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-              (click)="toggleProviderFavorite($event, provider.id)"
+            <div
+              class="photo-strip"
+              [class.photo-strip--carousel]="providerPhotos(provider).length > 2"
+              *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio"
             >
-              <lucide-icon
-                name="bookmark"
-                size="21"
-                [strokeWidth]="2.4"
-                [attr.fill]="isProviderFavorite(provider.id) ? 'currentColor' : 'none'"
-              ></lucide-icon>
-            </button>
+              <div class="photo-strip__track">
+                <ng-container *ngFor="let photo of providerPhotos(provider)">
+                  <img [src]="photo" [alt]="'Realisation - ' + provider.nom" (error)="handleImageError(photo)" />
+                </ng-container>
+                <ng-container *ngIf="providerPhotos(provider).length > 2">
+                  <img
+                    *ngFor="let photo of providerPhotos(provider)"
+                    [src]="photo"
+                    [alt]="'Realisation - ' + provider.nom"
+                    (error)="handleImageError(photo)"
+                  />
+                </ng-container>
+              </div>
+            </div>
+            <ng-template #emptyPortfolio>
+              <div class="photo-strip photo-strip--empty">
+                <span>Portfolio</span>
+                <span>{{ provider.speciality }}</span>
+              </div>
+            </ng-template>
+
+            <div class="provider-card__actions">
+              <button type="button" class="provider-card__action provider-card__action--negotiate" (click)="openNegotiation(provider)">
+                <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>
+                N&eacute;gocier le prix
+              </button>
+              <a
+                class="provider-card__action provider-card__action--profile"
+                [routerLink]="['/services', provider.id]"
+                [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
+                [state]="{
+                  provider: provider,
+                  avatar: resolveProviderAvatar(provider),
+                  photos: providerPhotos(provider)
+                }"
+              >
+                <lucide-icon name="info" size="15" [strokeWidth]="2.4"></lucide-icon>
+                voir son compte
+              </a>
+            </div>
           </article>
         </div>
 

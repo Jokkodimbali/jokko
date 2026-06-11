@@ -370,10 +370,10 @@
 
 .messages-page__proposal-row {
   align-items: center;
-  align-self: flex-end;
+  align-self: center;
   display: flex;
   gap: 90px;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: auto;
   padding: 18px 8px 10px;
   width: min(100%, 610px);
@@ -381,7 +381,7 @@
 
 .messages-page__proposal-row--accepted {
   justify-content: center;
-  width: min(100%, 360px);
+  width: min(100%, 420px);
 }
 
 .messages-page__proposal-card {
@@ -393,16 +393,22 @@
   flex-direction: column;
   justify-content: center;
   min-height: 72px;
-  min-width: 236px;
+  min-width: 300px;
   padding: 14px 20px 10px;
   position: relative;
   text-align: center;
 }
 
 .messages-page__proposal-card--accepted {
-  min-height: 98px;
-  min-width: 270px;
-  padding: 18px 18px 8px;
+  border: 1px solid #5f914d;
+  border-radius: 10px;
+  box-shadow: none;
+  min-height: 128px;
+  min-width: min(300px, 100%);
+  overflow: hidden;
+  padding: 0 0 8px;
+  width: fit-content;
+  max-width: min(420px, 100%);
 }
 
 .messages-page__proposal-card span {
@@ -420,6 +426,52 @@
   white-space: nowrap;
 }
 
+.messages-page__proposal-card--accepted span {
+  align-items: center;
+  align-self: stretch;
+  background: #5f914d;
+  border-radius: 0;
+  box-sizing: border-box;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  justify-content: center;
+  left: auto;
+  line-height: 1.2;
+  min-height: 38px;
+  overflow: visible;
+  padding: 6px 10px;
+  position: relative;
+  text-align: center;
+  top: 0;
+  transform: none;
+  white-space: normal;
+  width: 100%;
+  word-break: normal;
+}
+
+.messages-page__proposal-card--accepted span::before {
+  align-self: center;
+  border: 1.5px solid #ffffff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: #ffffff;
+  content: "✓";
+  display: inline-flex;
+  flex: 0 0 14px;
+  font-size: 9px;
+  font-weight: 950;
+  height: 14px;
+  justify-content: center;
+  line-height: 1;
+  position: relative;
+  width: 14px;
+}
+
+.messages-page__proposal-card--accepted span::after {
+  content: none;
+}
+
 .messages-page__proposal-card p {
   font-size: 10px;
   font-weight: 900;
@@ -427,19 +479,62 @@
   margin: 0 0 7px;
 }
 
+.messages-page__proposal-card--accepted p {
+  color: #667085;
+  font-size: 8px;
+  letter-spacing: 0;
+  margin: 7px 0 5px;
+  text-transform: uppercase;
+}
+
 .messages-page__proposal-card strong {
+  align-items: baseline;
   color: #005847;
+  display: inline-flex;
+  gap: 6px;
   font-size: 24px;
   font-weight: 950;
   line-height: 1;
 }
 
+.messages-page__proposal-card strong b {
+  font: inherit;
+}
+
+.messages-page__proposal-card strong small {
+  color: #334155;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.messages-page__proposal-card--accepted strong {
+  margin-bottom: 12px;
+  max-width: calc(100% - 14px);
+  white-space: nowrap;
+}
+
+.messages-page__proposal-card--accepted strong b {
+  font-size: 29px;
+}
+
 .messages-page__proposal-actions {
   align-items: flex-end;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   margin-top: 10px;
   width: 100%;
+}
+
+.messages-page__proposal-card--accepted .messages-page__proposal-actions {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: max-content max-content;
+  justify-content: center;
+  margin-top: 0;
+  padding: 0 12px;
 }
 
 .messages-page__proposal-actions button {
@@ -451,14 +546,120 @@
   font-weight: 900;
   min-height: 23px;
   padding: 0 8px;
+  flex: 1 1 auto;
+}
+
+.messages-page__proposal-card--accepted .messages-page__proposal-actions button {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+  justify-content: center;
+  line-height: 1.1;
+  min-height: 28px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.messages-page__proposal-card--accepted .messages-page__proposal-cancel {
+  background: #e5e7eb;
+  color: #111827;
+  min-width: 86px;
+}
+
+.messages-page__proposal-card--accepted .messages-page__proposal-pay {
+  min-width: 154px;
 }
 
 .messages-page__proposal-pay {
   background: #5f914d;
 }
 
+.messages-page__proposal-counter {
+  background: #955d24;
+}
+
 .messages-page__proposal-cancel {
   background: #6d6e68;
+}
+
+.messages-page__counter-offer {
+  background: #f8faf8;
+  border: 1px solid rgba(138, 178, 128, 0.5);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+}
+
+.messages-page__counter-offer label {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe5dc;
+  border-radius: 7px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr minmax(86px, 120px) auto;
+  min-height: 42px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.messages-page__counter-offer label span {
+  background: transparent;
+  border-radius: 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  left: auto;
+  line-height: 1.1;
+  padding: 0;
+  position: static;
+  text-transform: uppercase;
+  transform: none;
+  white-space: normal;
+}
+
+.messages-page__counter-offer input {
+  border: 0;
+  color: #111827;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 950;
+  min-width: 0;
+  outline: none;
+  text-align: right;
+  width: 100%;
+}
+
+.messages-page__counter-offer small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.messages-page__counter-offer-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.messages-page__counter-offer-actions button {
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  min-height: 32px;
+}
+
+.messages-page__proposal-actions button:disabled {
+  cursor: wait;
+  opacity: 0.66;
 }
 
 .messages-page__appointment-row {
@@ -825,6 +1026,11 @@
 
   .messages-page__proposal-card {
     min-width: min(260px, 100%);
+  }
+
+  .messages-page__proposal-card--accepted {
+    min-width: min(300px, 100%);
+    width: fit-content;
   }
 
   .messages-page__appointment-row {

@@ -5,6 +5,7 @@ export const RESERVATIONS_REPOSITORY_PORT = Symbol(
 );
 
 export interface ReservationsRepositoryPort {
+  syncOverdueReservations(now: Date): Promise<number>;
   findAllByDateRange(startDate: Date, endDate: Date): Promise<Reservation[]>;
   findAllDetailedByDateRange(
     startDate: Date,

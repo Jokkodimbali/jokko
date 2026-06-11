@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -55,6 +55,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly conversations = signal<Conversation[]>([]);
@@ -67,6 +68,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly isSending = signal(false);
   protected readonly isPreparingPayment = signal(false);
   protected readonly isUpdatingProposal = signal(false);
+  protected readonly isCancellingAcceptedProposal = signal(false);
+  protected readonly isLoadingAppointmentPreview = signal(false);
+  protected readonly isCounterOfferOpen = signal(false);
+  protected readonly counterOfferAmount = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly pendingProposal = signal<PendingProposal | null>(null);
   protected readonly priceProposals = signal<NegotiationView[]>([]);
@@ -79,6 +84,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly selectedConversation = computed(() =>
     this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
   );
+
+  protected readonly paidAppointmentPreview = computed(() => {
+    const appointment = this.appointmentPreview();
+    return appointment && this.isPaidAppointmentStatus(appointment.status) ? appointment : null;
+  });
 
   protected readonly filteredConversations = computed(() => {
     const query = this.search().trim().toLowerCase();
@@ -125,13 +135,26 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return this.proposalFromConversation(conversation);
   });
 
+  protected readonly visibleProposalStep = computed<PendingProposal | null>(() => {
+    const proposal = this.visibleProposal();
+    if (
+      this.paidAppointmentPreview() ||
+      this.isPaidConversationStatus(proposal?.status) ||
+      (Boolean(proposal?.reservationId) && this.isLoadingAppointmentPreview())
+    ) {
+      return null;
+    }
+
+    return proposal;
+  });
+
   protected readonly isProposalAccepted = computed(() => {
-    const status = this.visibleProposal()?.status;
+    const status = this.visibleProposalStep()?.status;
     return status === 'ACCEPTEE' || status === 'CONVERTIE_EN_RESERVATION';
   });
 
   protected readonly canRespondToProposal = computed(() => {
-    const proposal = this.visibleProposal();
+    const proposal = this.visibleProposalStep();
     return (
       this.isProfessionalRole() &&
       proposal?.status === 'EN_ATTENTE_PRESTATAIRE' &&
@@ -142,6 +165,26 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly canPayAcceptedProposal = computed(
     () => this.currentUser()?.role === 'CLIENT' && this.isProposalAccepted(),
   );
+
+  protected readonly counterOfferAmountLabel = computed(() =>
+    this.formatAmount(this.counterOfferAmount() ?? this.visibleProposalStep()?.amount ?? 0),
+  );
+
+  protected readonly acceptedPaymentActionLabel = computed(() => {
+    if (this.isPreparingPayment()) {
+      return 'Preparation...';
+    }
+
+    return this.visibleProposalStep()?.reservationId ? 'Payez maintenant' : 'Preparer le paiement';
+  });
+
+  protected readonly acceptedCancelActionLabel = computed(() => {
+    if (this.isCancellingAcceptedProposal()) {
+      return 'Annulation...';
+    }
+
+    return this.visibleProposalStep()?.reservationId ? 'Annuler la reservation' : "Annuler l'offre";
+  });
 
   ngOnInit(): void {
     this.readPendingProposalFromQuery();
@@ -268,7 +311,90 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected formatAmount(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
+      .format(value || 0)
+      .replace(/\s/g, ' ');
+  }
+
+  protected openCounterOffer(): void {
+    const proposal = this.visibleProposalStep();
+    if (!proposal || !this.canRespondToProposal()) {
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.counterOfferAmount.set(Math.max(500, Math.round(proposal.amount || 0)));
+    this.isCounterOfferOpen.set(true);
+  }
+
+  protected closeCounterOffer(): void {
+    if (this.isUpdatingProposal()) {
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.isCounterOfferOpen.set(false);
+  }
+
+  protected updateCounterOfferAmount(value: string): void {
+    const amount = Number(value.replace(/[^\d]/g, ''));
+    this.counterOfferAmount.set(Number.isFinite(amount) ? amount : 0);
+  }
+
+  protected sendCounterOffer(): void {
+    const proposal = this.visibleProposalStep();
+    if (!proposal || this.isUpdatingProposal()) {
+      return;
+    }
+
+    if (!this.validateProposalResponse(proposal, 'counter')) {
+      return;
+    }
+
+    const negotiationId = proposal.negotiationId;
+    const amount = Math.round(this.counterOfferAmount() ?? 0);
+    if (!negotiationId || !this.validateCounterOfferAmount(proposal, amount)) {
+      return;
+    }
+
+    this.isUpdatingProposal.set(true);
+    this.errorMessage.set(null);
+
+    this.proposalService
+      .counterPriceProposal(negotiationId, {
+        serviceId: proposal.professionalId ?? negotiationId,
+        proposedAmount: amount,
+        message: `Nouvelle offre du prestataire: ${this.formatAmount(amount)} FCFA.`,
+        dateHeure: proposal.appointmentDate ?? undefined,
+        adresseClient: proposal.address ?? undefined,
+        dureeMinutes: proposal.durationMinutes,
+      })
+      .subscribe({
+        next: (updatedProposal) => {
+          this.upsertProposal(updatedProposal);
+          this.pendingProposal.update((current) =>
+            current?.negotiationId === updatedProposal.id
+              ? {
+                  ...current,
+                  amount: updatedProposal.montantCourant,
+                  status: updatedProposal.statut,
+                  reservationId: updatedProposal.reservationId,
+                }
+              : current,
+          );
+          this.isUpdatingProposal.set(false);
+          this.isCounterOfferOpen.set(false);
+          this.counterOfferAmount.set(null);
+          this.feedback.success('Nouvelle offre envoyee au client.');
+          this.notifyCounterOfferInConversation(updatedProposal);
+        },
+        error: () => {
+          const message = "Impossible d'envoyer cette nouvelle offre.";
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+          this.isUpdatingProposal.set(false);
+        },
+      });
   }
 
   protected formatUnreadCount(value: number): string {
@@ -276,14 +402,16 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected payAcceptedProposal(): void {
-    const proposal = this.visibleProposal();
+    const proposal = this.visibleProposalStep();
 
     if (!proposal || this.isPreparingPayment()) {
       return;
     }
 
     if (proposal.reservationId) {
-      this.loadAppointmentPreview(proposal.reservationId);
+      this.router.navigate(['/appointments', proposal.reservationId, 'payment'], {
+        queryParams: this.buildPaymentReturnQuery(proposal),
+      });
       return;
     }
 
@@ -321,7 +449,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
                 }
               : current,
           );
-          this.loadAppointmentPreview(reservation.id);
+          this.router.navigate(['/appointments', reservation.id, 'payment'], {
+            queryParams: this.buildPaymentReturnQuery({
+              ...proposal,
+              reservationId: reservation.id,
+            }),
+          });
           this.loadPriceProposals();
           this.refreshConversationsSilently();
         },
@@ -335,11 +468,72 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected cancelAcceptedProposal(): void {
-    this.pendingProposal.set(null);
+    const proposal = this.visibleProposalStep();
+
+    if (!proposal || this.isCancellingAcceptedProposal()) {
+      return;
+    }
+
+    if (proposal.reservationId) {
+      this.isCancellingAcceptedProposal.set(true);
+      this.appointmentsService
+        .cancelAppointment(proposal.reservationId, 'Annulation demandee depuis la messagerie.')
+        .subscribe({
+          next: () => {
+            this.feedback.success('Reservation annulee.');
+            this.appointmentPreview.set(null);
+            this.pendingProposal.update((current) =>
+              current?.negotiationId === proposal.negotiationId
+                ? { ...current, status: 'ANNULEE', reservationId: null }
+                : current,
+            );
+            this.isCancellingAcceptedProposal.set(false);
+            this.loadPriceProposals();
+            this.refreshConversationsSilently();
+          },
+          error: (error) => {
+            this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'annuler cette reservation."));
+            this.isCancellingAcceptedProposal.set(false);
+          },
+        });
+      return;
+    }
+
+    if (!proposal.negotiationId) {
+      this.errorMessage.set("Impossible d'annuler cette offre: identifiant manquant.");
+      return;
+    }
+
+    this.isCancellingAcceptedProposal.set(true);
+    this.proposalService
+      .cancelPriceProposal(proposal.negotiationId, 'Annulation demandee par le client depuis la messagerie.')
+      .subscribe({
+        next: (updatedProposal) => {
+          this.upsertProposal(updatedProposal);
+          this.pendingProposal.update((current) =>
+            current?.negotiationId === updatedProposal.id
+              ? {
+                  ...current,
+                  amount: updatedProposal.montantCourant,
+                  status: updatedProposal.statut,
+                  reservationId: updatedProposal.reservationId,
+                }
+              : current,
+          );
+          this.feedback.success('Offre annulee.');
+          this.isCancellingAcceptedProposal.set(false);
+          this.loadPriceProposals();
+          this.refreshConversationsSilently();
+        },
+        error: (error) => {
+          this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'annuler cette offre."));
+          this.isCancellingAcceptedProposal.set(false);
+        },
+      });
   }
 
   protected acceptProposal(): void {
-    const proposal = this.visibleProposal();
+    const proposal = this.visibleProposalStep();
     if (!proposal || this.isUpdatingProposal()) {
       return;
     }
@@ -369,6 +563,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             : current,
         );
         this.isUpdatingProposal.set(false);
+        this.isCounterOfferOpen.set(false);
         this.feedback.success('Proposition acceptee.');
       },
       error: () => {
@@ -381,7 +576,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected rejectProposal(): void {
-    const proposal = this.visibleProposal();
+    const proposal = this.visibleProposalStep();
     if (!proposal || this.isUpdatingProposal()) {
       return;
     }
@@ -411,6 +606,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             : current,
         );
         this.isUpdatingProposal.set(false);
+        this.isCounterOfferOpen.set(false);
         this.feedback.success('Proposition refusee.');
       },
       error: () => {
@@ -754,7 +950,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private loadAppointmentPreviewForVisibleProposal(): void {
     const proposal = this.visibleProposal();
-    if (!proposal?.reservationId || this.currentUser()?.role !== 'CLIENT') {
+    if (!proposal?.reservationId) {
       return;
     }
 
@@ -766,10 +962,15 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private loadAppointmentPreview(reservationId: string): void {
+    this.isLoadingAppointmentPreview.set(true);
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
-      next: (appointment) => this.appointmentPreview.set(appointment),
+      next: (appointment) => {
+        this.appointmentPreview.set(appointment);
+        this.isLoadingAppointmentPreview.set(false);
+      },
       error: () => {
         this.errorMessage.set('Impossible de charger le resume du rendez-vous.');
+        this.isLoadingAppointmentPreview.set(false);
       },
     });
   }
@@ -867,9 +1068,85 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
-  private validateProposalResponse(proposal: PendingProposal, action: 'accept' | 'reject'): boolean {
+  private notifyCounterOfferInConversation(proposal: NegotiationView): void {
+    const conversationId = this.selectedConversationId();
+    if (!conversationId) {
+      return;
+    }
+
+    const message = `J'ai refuse l'offre initiale et propose ${this.formatAmount(
+      proposal.montantCourant,
+    )} FCFA.`;
+
+    this.messagesService.sendMessage(conversationId, message).subscribe({
+      next: (createdMessage) => {
+        this.upsertMessage(createdMessage);
+        this.refreshConversationsSilently();
+      },
+      error: () => undefined,
+    });
+  }
+
+  private buildPaymentReturnQuery(proposal: PendingProposal): Record<string, string | number> {
+    const query: Record<string, string | number> = {
+      returnTo: 'messages',
+      reservationId: proposal.reservationId || '',
+      professionalId: proposal.professionalId || '',
+      providerName: proposal.providerName,
+      serviceName: proposal.serviceName,
+      amount: proposal.amount,
+      status: proposal.status || '',
+    };
+
+    const conversationId = proposal.conversationId || this.selectedConversationId();
+    if (conversationId) {
+      query['conversationId'] = conversationId;
+    }
+
+    if (proposal.negotiationId) {
+      query['negotiationId'] = proposal.negotiationId;
+    }
+
+    if (proposal.appointmentDate) {
+      query['appointmentDate'] = proposal.appointmentDate;
+    }
+
+    if (proposal.address) {
+      query['address'] = proposal.address;
+    }
+
+    if (proposal.durationMinutes) {
+      query['durationMinutes'] = proposal.durationMinutes;
+    }
+
+    return query;
+  }
+
+  private validateCounterOfferAmount(proposal: PendingProposal, amount: number): boolean {
+    if (!Number.isFinite(amount) || amount < 500) {
+      this.errorMessage.set('Saisissez une nouvelle offre valide, a partir de 500 FCFA.');
+      return false;
+    }
+
+    if (amount > 100_000_000) {
+      this.errorMessage.set('Le montant de la nouvelle offre est trop eleve.');
+      return false;
+    }
+
+    if (amount === Math.round(proposal.amount)) {
+      this.errorMessage.set('La contre-proposition doit etre differente du prix propose par le client.');
+      return false;
+    }
+
+    return true;
+  }
+
+  private validateProposalResponse(
+    proposal: PendingProposal,
+    action: 'accept' | 'reject' | 'counter',
+  ): boolean {
     if (!this.isProfessionalRole()) {
-      this.errorMessage.set('Seul le prestataire peut valider ou refuser une proposition.');
+      this.errorMessage.set('Seul le prestataire peut traiter cette proposition.');
       return false;
     }
 
@@ -879,11 +1156,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     if (proposal.status !== 'EN_ATTENTE_PRESTATAIRE') {
-      this.errorMessage.set(
-        action === 'accept'
-          ? 'Cette proposition ne peut plus etre acceptee.'
-          : 'Cette proposition ne peut plus etre refusee.',
-      );
+      const actionLabel =
+        action === 'accept' ? 'acceptee' : action === 'reject' ? 'refusee' : 'modifiee';
+      this.errorMessage.set(`Cette proposition ne peut plus etre ${actionLabel}.`);
       return false;
     }
 
@@ -954,5 +1229,18 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private isProfessionalRole(): boolean {
     const role = this.currentUser()?.role;
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
+  }
+
+  private isPaidAppointmentStatus(status: AppointmentView['status']): boolean {
+    return this.isPaidConversationStatus(status);
+  }
+
+  private isPaidConversationStatus(status: string | null | undefined): boolean {
+    return (
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS' ||
+      status === 'TERMINEE' ||
+      status === 'LITIGE'
+    );
   }
 }

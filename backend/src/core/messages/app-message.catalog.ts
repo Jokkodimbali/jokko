@@ -787,6 +787,12 @@ export const APP_MESSAGES_BY_MODULE = {
       message:
         'Ce service necessite une negotiation de prix avant de creer une reservation.',
     },
+    RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH: {
+      code: 'RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Les details de reservation ne correspondent pas a la negotiation acceptee.',
+    },
     RESERVATIONS_NEGOTIATION_NOT_AVAILABLE: {
       code: 'RESERVATIONS_NEGOTIATION_NOT_AVAILABLE',
       httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.NOT_IMPLEMENTED,

@@ -377,30 +377,31 @@ export class AdminProvidersService {
       };
     }
 
-    const [verifiedCount, activeCount, reservationsCount, paymentTotals] =] = await this.prisma.$transaction([
-      this.prisma.profilProfessionnel.count({
-        where: { id: { in: providerIds }, statutKyc: 'VERIFIE' },
-      }),
-      this.prisma.profilProfessionnel.count({
-        where: {
-          id: { in: providerIds },
-          utilisateur: { estActif: true },
-        },
-      }),
-      this.prisma.reservation.count({
-        where: { professionnelId: { in: providerIds } },
-      }),
-      this.prisma.paiement.aggregate({
-        where: {
-          professionalId: { in: providerIds },
-          statut: 'SUCCES',
-        },
-        _sum: {
-          montant: true,
-          montantNet: true,
-        },
-      }),
-    ]);
+    const [verifiedCount, activeCount, reservationsCount, paymentTotals] =
+      await this.prisma.$transaction([
+        this.prisma.profilProfessionnel.count({
+          where: { id: { in: providerIds }, statutKyc: 'VERIFIE' },
+        }),
+        this.prisma.profilProfessionnel.count({
+          where: {
+            id: { in: providerIds },
+            utilisateur: { estActif: true },
+          },
+        }),
+        this.prisma.reservation.count({
+          where: { professionnelId: { in: providerIds } },
+        }),
+        this.prisma.paiement.aggregate({
+          where: {
+            professionalId: { in: providerIds },
+            statut: 'SUCCES',
+          },
+          _sum: {
+            montant: true,
+            montantNet: true,
+          },
+        }),
+      ]);
 
     return {
       totalProviders,

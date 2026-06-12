@@ -1,7 +1,7 @@
 import { CommonModule, Location } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
@@ -14,8 +14,14 @@ import {
   BackendProfessionalProfile,
   Category,
   CategoryStructure,
+  ServiceTravelMode,
   ServiceSubCategory,
 } from '../../../../services/domain/models/services.models';
+import {
+  NegotiationStatus,
+  NegotiationView,
+  ServiceProposalService,
+} from '../../../../services/data-access/service-proposal.service';
 import {
   AppointmentStatus,
   BackendReservation,
@@ -23,6 +29,7 @@ import {
 import {
   DoctorSpaceService,
   PatientMedicalProfile,
+  DoctorWalletPendingEscrow,
   DoctorWalletTransaction,
   DoctorWalletView,
   ProfessionalUploadView,
@@ -33,9 +40,20 @@ type DoctorSpaceSection =
   | 'profile'
   | 'availability'
   | 'consultation'
+  | 'negotiations'
   | 'agenda'
   | 'medical-history'
   | 'wallet';
+
+const DOCTOR_SPACE_SECTIONS: readonly DoctorSpaceSection[] = [
+  'profile',
+  'availability',
+  'consultation',
+  'negotiations',
+  'agenda',
+  'medical-history',
+  'wallet',
+];
 
 type AvailabilitySlot = {
   id: string | null;
@@ -71,15 +89,44 @@ type ConsultationMotif = {
   categoryId: string;
   name: string;
   description: string;
-  specialtyNames: string[];
   durationMinutes: number;
   price: number;
   isRequired: boolean;
+  travelMode: ServiceTravelMode;
 };
 
-type AgendaFilter = 'ALL' | 'CONFIRMED' | 'CANCELLED';
+type TravelModeOption = {
+  value: ServiceTravelMode;
+  icon: string;
+  title: string;
+  description: string;
+};
+
+type AgendaFilter = 'ALL' | 'ACTIVE' | 'DONE' | 'CANCELLED' | 'DISPUTE';
 type AgendaViewMode = 'day' | 'week' | 'month';
 type MedicalHistoryTab = 'future' | 'past';
+type ProviderHistoryFilter = 'ALL' | 'TERMINEE' | 'ANNULEE' | 'NO_SHOW';
+type ProviderNegotiationFilter = 'ALL' | NegotiationStatus;
+
+type ProviderNegotiationGroup = {
+  key: string;
+  label: string;
+  items: NegotiationView[];
+};
+
+type ProviderReservationGroup = {
+  key: string;
+  label: string;
+  items: BackendReservation[];
+};
+
+type ProviderNegotiationCalendarDay = {
+  key: string;
+  day: number | null;
+  count: number;
+};
+
+const PROVIDER_HISTORY_PAGE_SIZE_OPTIONS = [8, 12, 20] as const;
 
 type AgendaDay = {
   date: Date;
@@ -94,13 +141,31 @@ type AgendaEvent = {
   clientLabel: string;
   price: number;
   status: AppointmentStatus;
+  statusLabel: string;
   dayIndex: number;
   rowStart: number;
   rowSpan: number;
-  variant: 'confirmed' | 'cancelled';
+  variant: 'pending' | 'confirmed' | 'paid' | 'active' | 'done' | 'cancelled' | 'absent' | 'dispute';
 };
 
 type AgendaReservationDetail = BackendReservation;
+
+type NextAgendaReservationView = {
+  reservation: BackendReservation;
+  patientName: string;
+  avatarUrl: string | null;
+  initials: string;
+  serviceName: string;
+  locationLabel: string;
+  timeLabel: string;
+  dayLabel: string;
+  monthLabel: string;
+  durationLabel: string;
+  delayLabel: string;
+  progress: number;
+  statusLabel: string;
+  confirmationLabel: string;
+};
 
 type MedicalHistoryPatientOption = {
   id: string;
@@ -128,6 +193,27 @@ type MedicalHistoryRow = {
   lastAppointmentLabel: string;
   isFuture: boolean;
   documents: MedicalHistoryDocument[];
+};
+
+type ProviderAppointmentHistoryRow = {
+  id: string;
+  clientName: string;
+  avatarUrl: string | null;
+  initials: string;
+  serviceName: string;
+  scheduledAt: Date;
+  timeLabel: string;
+  dateLabel: string;
+  locationLabel: string;
+  amount: number;
+  status: AppointmentStatus;
+  statusLabel: string;
+  statusTone: 'done' | 'cancelled' | 'absent' | 'pending';
+};
+
+type ProviderHistoryMonthOption = {
+  value: string;
+  label: string;
 };
 
 type PatientMedicalDetail = MedicalHistoryRow & {
@@ -191,9 +277,11 @@ type UploadPreview = {
 })
 export class DoctorSpacePageComponent implements OnInit {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
+  private readonly proposalService = inject(ServiceProposalService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly location = inject(Location);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly activeSection = signal<DoctorSpaceSection>('profile');
   protected readonly isLoading = signal(false);
@@ -211,18 +299,26 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly motifs = signal<ConsultationMotif[]>([]);
   protected readonly editingMotifId = signal<string | null>(null);
   protected readonly categories = signal<CategoryStructure[]>([]);
-  protected readonly selectedMotifCategoryId = signal('');
-  protected readonly selectedMotifSubCategoryIds = signal<string[]>([]);
   protected readonly reservations = signal<BackendReservation[]>([]);
+  protected readonly negotiations = signal<NegotiationView[]>([]);
   protected readonly wallet = signal<DoctorWalletView | null>(null);
+  protected readonly releasingEscrowId = signal<string | null>(null);
   protected readonly appointmentDuration = signal(20);
   protected readonly appointmentPause = signal(0);
+  protected readonly selectedTravelMode = signal<ServiceTravelMode>('PRESTATAIRE_SE_DEPLACE');
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
   protected readonly agendaViewMode = signal<AgendaViewMode>('day');
   protected readonly medicalHistoryTab = signal<MedicalHistoryTab>('future');
   protected readonly medicalHistorySearch = signal('');
   protected readonly medicalHistoryPatientFilter = signal('ALL');
+  protected readonly providerHistorySearch = signal('');
+  protected readonly providerHistoryFilter = signal<ProviderHistoryFilter>('ALL');
+  protected readonly providerHistoryMonth = signal(this.monthInputValue(new Date()));
+  protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
+  protected readonly negotiationMonth = signal(this.monthInputValue(new Date()));
+  protected readonly providerHistoryPage = signal(1);
+  protected readonly providerHistoryPageSize = signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
   protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
   protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
   protected readonly isAgendaReservationLoading = signal(false);
@@ -233,14 +329,34 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly isWithdrawalModalOpen = signal(false);
   protected readonly agendaPeriodStart = signal('');
   protected readonly agendaPeriodEnd = signal('');
+  protected readonly todayDate = signal(this.startOfDay(new Date()));
   protected readonly motifForm = {
     categoryId: '',
-    subCategoryIds: [] as string[],
     name: '',
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
   };
+  protected readonly travelModeOptions: TravelModeOption[] = [
+    {
+      value: 'PRESTATAIRE_SE_DEPLACE',
+      icon: 'wrench',
+      title: 'Le prestataire se deplace',
+      description: "Vous vous rendez chez le client a l'adresse indiquee lors de la reservation.",
+    },
+    {
+      value: 'CLIENT_SE_DEPLACE',
+      icon: 'map-pin',
+      title: 'Le client se deplace',
+      description: 'Le client vient vous retrouver a votre adresse ou point de rendez-vous defini.',
+    },
+    {
+      value: 'TRANSPORT_COLIS',
+      icon: 'clipboard',
+      title: 'Transport de colis',
+      description: 'Vous transportez un colis du point A au point B choisis par le client.',
+    },
+  ];
   protected readonly withdrawalForm = {
     amount: 0,
     method: 'WAVE' as 'WAVE' | 'ORANGE_MONEY',
@@ -315,6 +431,9 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly serviceSectionLabel = computed(() =>
     this.isProviderSpace() ? 'Mes services' : 'Services / motifs',
   );
+  protected readonly appointmentHistorySectionLabel = computed(() =>
+    this.isProviderSpace() ? 'Historique des RDV' : 'Historique médical',
+  );
   protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
   protected readonly kycStatusLabel = computed(() => {
     const status = this.professionalProfile()?.statutKyc;
@@ -376,11 +495,11 @@ export class DoctorSpacePageComponent implements OnInit {
   });
   protected readonly serviceFormSubtitle = computed(() =>
     this.isProviderSpace()
-      ? 'Choisissez la categorie, nommez la specialite et indiquez le prix de depart negociable.'
-      : 'Choisissez la categorie medicale, nommez le motif et indiquez le tarif fixe.',
+      ? 'Nommez votre service et indiquez le prix de depart negociable.'
+      : 'Nommez le motif de consultation et indiquez le tarif fixe.',
   );
   protected readonly serviceNameLabel = computed(() =>
-    this.isProviderSpace() ? 'Specialite ou prestation' : 'Nom du motif',
+    this.isProviderSpace() ? 'Nom du service' : 'Nom du motif',
   );
   protected readonly serviceNamePlaceholder = computed(() =>
     this.isProviderSpace()
@@ -400,32 +519,6 @@ export class DoctorSpacePageComponent implements OnInit {
       ? 'Aucun service enregistre. Ajoutez au moins un service pour apparaitre clairement sur la page d accueil.'
       : 'Aucun motif de consultation enregistre.',
   );
-  protected readonly selectedMotifCategory = computed(() =>
-    this.categories().find((category) => category.id === this.selectedMotifCategoryId()) ?? null,
-  );
-  protected readonly availableSubCategories = computed(() =>
-    (this.selectedMotifCategory()?.subCategories ?? []).filter((subCategory) => subCategory.estActive !== false),
-  );
-  protected readonly selectedSubCategoryNames = computed(() =>
-    this.availableSubCategories()
-      .filter((subCategory) => this.selectedMotifSubCategoryIds().includes(subCategory.id))
-      .map((subCategory) => subCategory.nom),
-  );
-  protected readonly shouldShowCustomServiceName = computed(
-    () => this.selectedMotifCategoryId() !== '' && this.availableSubCategories().length === 0,
-  );
-  protected readonly serviceNamePreview = computed(() => {
-    const categoryName = this.selectedMotifCategory()?.nom ?? '';
-    const specialties = this.selectedSubCategoryNames();
-    if (!categoryName) return 'Selectionnez d abord une categorie.';
-    if (specialties.length === 0) return categoryName;
-    return `${categoryName} - ${specialties.join(', ')}`;
-  });
-  protected readonly specialtySelectorHelp = computed(() => {
-    if (!this.selectedMotifCategoryId()) return 'Selectionnez une categorie pour afficher ses specialites.';
-    if (this.availableSubCategories().length === 0) return 'Aucune specialite active disponible pour cette categorie.';
-    return `${this.selectedSubCategoryNames().length} specialite(s) selectionnee(s).`;
-  });
 
   protected readonly calendarDays = computed(() =>
     this.buildCalendarDays(
@@ -463,15 +556,31 @@ export class DoctorSpacePageComponent implements OnInit {
       .format(this.agendaCursor())
       .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
   );
+  protected readonly agendaWeekLabel = computed(() => {
+    const start = this.startOfWeek(this.agendaCursor());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const startLabel = new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+    }).format(start);
+    const endLabel = new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(end);
+    return `Semaine du ${startLabel} au ${endLabel}`;
+  });
   protected readonly agendaRows = computed(() => this.buildAgendaRows());
   protected readonly agendaEvents = computed(() => this.buildAgendaEvents());
   protected readonly agendaRevenue = computed(() =>
-    this.sumPeriodRevenue((status) => status !== 'ANNULEE' && status !== 'NO_SHOW'),
+    this.sumPeriodRevenue((status) => this.isAgendaRevenueStatus(status)),
   );
   protected readonly agendaCancelledRevenue = computed(() =>
     this.sumPeriodRevenue((status) => status === 'ANNULEE' || status === 'NO_SHOW'),
   );
-  protected readonly agendaNextDelayLabel = computed(() => this.nextDelayLabel());
+  protected readonly nextAgendaReservation = computed(() => this.buildNextAgendaReservationView());
+  protected readonly agendaNextDelayLabel = computed(() => this.nextAgendaReservation()?.delayLabel ?? '--');
   protected readonly agendaPeriodCaption = computed(() => {
     switch (this.agendaViewMode()) {
       case 'day':
@@ -526,6 +635,222 @@ export class DoctorSpacePageComponent implements OnInit {
       left.label.localeCompare(right.label, 'fr'),
     );
   });
+  protected readonly providerHistoryRows = computed(() => this.buildProviderHistoryRows());
+  protected readonly providerHistoryMonthOptions = computed<ProviderHistoryMonthOption[]>(() => {
+    const months = new Map<string, Date>();
+    for (const row of this.providerHistoryRows()) {
+      const value = this.monthInputValue(row.scheduledAt);
+      if (!months.has(value)) {
+        months.set(value, new Date(row.scheduledAt.getFullYear(), row.scheduledAt.getMonth(), 1));
+      }
+    }
+
+    if (!months.has(this.providerHistoryMonth())) {
+      const fallback = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
+      months.set(this.providerHistoryMonth(), new Date(fallback.getFullYear(), fallback.getMonth(), 1));
+    }
+
+    return Array.from(months, ([value, date]) => ({
+      value,
+      label: this.formatProviderHistoryMonth(date),
+    })).sort((left, right) => right.value.localeCompare(left.value));
+  });
+  protected readonly providerHistoryMonthRows = computed(() => {
+    const selectedMonth = this.providerHistoryMonth();
+    return this.providerHistoryRows().filter((row) => this.monthInputValue(row.scheduledAt) === selectedMonth);
+  });
+  protected readonly providerHistoryVisibleRows = computed(() => {
+    const search = this.providerHistorySearch().trim().toLowerCase();
+    const filter = this.providerHistoryFilter();
+
+    return this.providerHistoryMonthRows().filter((row) => {
+      const matchesFilter = filter === 'ALL' || row.status === filter;
+      const matchesSearch =
+        !search ||
+        row.clientName.toLowerCase().includes(search) ||
+        row.serviceName.toLowerCase().includes(search) ||
+        row.locationLabel.toLowerCase().includes(search);
+      return matchesFilter && matchesSearch;
+    });
+  });
+  protected readonly providerHistoryPageSizeOptions = PROVIDER_HISTORY_PAGE_SIZE_OPTIONS;
+  protected readonly providerHistoryTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.providerHistoryVisibleRows().length / this.providerHistoryPageSize())),
+  );
+  protected readonly providerHistoryCurrentPage = computed(() =>
+    Math.min(this.providerHistoryPage(), this.providerHistoryTotalPages()),
+  );
+  protected readonly providerHistoryPagedRows = computed(() => {
+    const page = this.providerHistoryCurrentPage();
+    const pageSize = this.providerHistoryPageSize();
+    const start = (page - 1) * pageSize;
+    return this.providerHistoryVisibleRows().slice(start, start + pageSize);
+  });
+  protected readonly providerHistoryPageStart = computed(() => {
+    if (this.providerHistoryVisibleRows().length === 0) return 0;
+    return (this.providerHistoryCurrentPage() - 1) * this.providerHistoryPageSize() + 1;
+  });
+  protected readonly providerHistoryPageEnd = computed(() =>
+    Math.min(
+      this.providerHistoryPageStart() + this.providerHistoryPagedRows().length - 1,
+      this.providerHistoryVisibleRows().length,
+    ),
+  );
+  protected readonly providerHistoryTotalCount = computed(() => this.providerHistoryMonthRows().length);
+  protected readonly providerHistoryMonthLabel = computed(() => {
+    const month = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
+    return this.formatProviderHistoryMonth(month);
+  });
+  protected readonly providerHistoryTotalRevenue = computed(() =>
+    this.sumProviderRows(this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE')),
+  );
+  protected readonly providerHistoryDoneCount = computed(
+    () => this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE').length,
+  );
+  protected readonly providerHistoryCancelledCount = computed(
+    () => this.providerHistoryMonthRows().filter((row) => row.status === 'ANNULEE').length,
+  );
+  protected readonly providerHistoryAbsentCount = computed(
+    () => this.providerHistoryMonthRows().filter((row) => row.status === 'NO_SHOW').length,
+  );
+  protected readonly providerHistoryVisibleTotal = computed(() => this.sumProviderRows(this.providerHistoryVisibleRows()));
+  protected readonly negotiationMonthOptions = computed(() => {
+    const months = new Map<string, Date>();
+    for (const negotiation of this.negotiations()) {
+      const date = this.negotiationDate(negotiation);
+      months.set(this.monthInputValue(date), new Date(date.getFullYear(), date.getMonth(), 1));
+    }
+    for (const reservation of this.reservations()) {
+      const date = new Date(reservation.dateHeure);
+      if (!Number.isNaN(date.getTime())) {
+        months.set(this.monthInputValue(date), new Date(date.getFullYear(), date.getMonth(), 1));
+      }
+    }
+    if (!months.has(this.negotiationMonth())) {
+      const selected = this.parseMonthValue(this.negotiationMonth()) ?? new Date();
+      months.set(this.negotiationMonth(), selected);
+    }
+    return Array.from(months, ([value, date]) => ({
+      value,
+      label: this.formatProviderHistoryMonth(date),
+    })).sort((left, right) => right.value.localeCompare(left.value));
+  });
+  protected readonly negotiationMonthRows = computed(() =>
+    this.negotiations().filter(
+      (negotiation) => this.monthInputValue(this.negotiationDate(negotiation)) === this.negotiationMonth(),
+    ),
+  );
+  protected readonly negotiationVisibleRows = computed(() => {
+    const filter = this.negotiationFilter();
+    return this.negotiationMonthRows().filter(
+      (negotiation) =>
+        !negotiation.reservationId && (filter === 'ALL' || negotiation.statut === filter),
+    );
+  });
+  protected readonly negotiationGroups = computed<ProviderNegotiationGroup[]>(() => {
+    const groups = new Map<string, NegotiationView[]>();
+    for (const negotiation of this.negotiationVisibleRows()) {
+      const key = this.dateInputValue(this.negotiationDate(negotiation));
+      groups.set(key, [...(groups.get(key) ?? []), negotiation]);
+    }
+    return Array.from(groups, ([key, items]) => ({
+      key,
+      label: new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(this.negotiationDate(items[0])).toUpperCase(),
+      items,
+    })).sort((left, right) => right.key.localeCompare(left.key));
+  });
+  protected readonly negotiationReservationMonthRows = computed(() =>
+    this.reservations().filter(
+      (reservation) => this.monthInputValue(new Date(reservation.dateHeure)) === this.negotiationMonth(),
+    ),
+  );
+  protected readonly negotiationReservationVisibleRows = computed(() => {
+    const filter = this.negotiationFilter();
+    if (filter === 'ALL') return this.negotiationReservationMonthRows();
+    if (filter === 'CONVERTIE_EN_RESERVATION') {
+      return this.negotiationReservationMonthRows().filter(
+        (reservation) =>
+          reservation.statut === 'CONFIRMEE' ||
+          reservation.statut === 'PAYEE_SEQUESTRE' ||
+          reservation.statut === 'EN_COURS' ||
+          reservation.statut === 'TERMINEE',
+      );
+    }
+    if (filter === 'ANNULEE') {
+      return this.negotiationReservationMonthRows().filter(
+        (reservation) => reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW',
+      );
+    }
+    return [];
+  });
+  protected readonly negotiationReservationGroups = computed<ProviderReservationGroup[]>(() => {
+    const groups = new Map<string, BackendReservation[]>();
+    for (const reservation of this.negotiationReservationVisibleRows()) {
+      const date = new Date(reservation.dateHeure);
+      const key = this.dateInputValue(date);
+      groups.set(key, [...(groups.get(key) ?? []), reservation]);
+    }
+    return Array.from(groups, ([key, items]) => ({
+      key,
+      label: new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(new Date(items[0].dateHeure)).toUpperCase(),
+      items,
+    })).sort((left, right) => right.key.localeCompare(left.key));
+  });
+  protected readonly negotiationCalendarDays = computed<ProviderNegotiationCalendarDay[]>(() => {
+    const month = this.parseMonthValue(this.negotiationMonth()) ?? new Date();
+    const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const leading = (firstDay.getDay() + 6) % 7;
+    const counts = new Map<string, number>();
+    for (const negotiation of this.negotiationMonthRows()) {
+      const key = this.dateInputValue(this.negotiationDate(negotiation));
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    for (const reservation of this.negotiationReservationMonthRows()) {
+      const key = this.dateInputValue(new Date(reservation.dateHeure));
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from({ length: leading + daysInMonth }, (_, index) => {
+      if (index < leading) return { key: `blank-${index}`, day: null, count: 0 };
+      const day = index - leading + 1;
+      const date = new Date(month.getFullYear(), month.getMonth(), day);
+      const key = this.dateInputValue(date);
+      return { key, day, count: counts.get(key) ?? 0 };
+    });
+  });
+  protected readonly negotiationPendingCount = computed(() =>
+    this.negotiationMonthRows().filter(
+      (item) => item.statut === 'EN_ATTENTE_PRESTATAIRE' || item.statut === 'EN_ATTENTE_CLIENT',
+    ).length,
+  );
+  protected readonly negotiationAcceptedCount = computed(() =>
+    this.negotiationMonthRows().filter((item) => item.statut === 'ACCEPTEE').length,
+  );
+  protected readonly negotiationConfirmedCount = computed(() =>
+    this.negotiationReservationMonthRows().filter(
+      (item) =>
+        item.statut === 'CONFIRMEE' ||
+        item.statut === 'PAYEE_SEQUESTRE' ||
+        item.statut === 'EN_COURS' ||
+        item.statut === 'TERMINEE',
+    ).length,
+  );
+  protected readonly negotiationClosedCount = computed(() =>
+    this.negotiationMonthRows().filter(
+      (item) => item.statut === 'REFUSEE' || item.statut === 'ANNULEE',
+    ).length +
+    this.negotiationReservationMonthRows().filter(
+      (item) => item.statut === 'ANNULEE' || item.statut === 'NO_SHOW',
+    ).length,
+  );
   protected readonly pageTitle = computed(() => {
     switch (this.activeSection()) {
       case 'profile':
@@ -534,10 +859,12 @@ export class DoctorSpacePageComponent implements OnInit {
         return 'Mes disponibilités';
       case 'consultation':
         return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
+      case 'negotiations':
+        return 'Liste des RDV NÉGOCIATION';
       case 'agenda':
-        return 'AGENDA INTERACTIF';
+        return 'Gestion RDV';
       case 'medical-history':
-        return 'Historique médical';
+        return this.isProviderSpace() ? 'Historique des rendez-vous' : 'Historique médical';
       case 'wallet':
         return 'WALLET';
     }
@@ -550,16 +877,21 @@ export class DoctorSpacePageComponent implements OnInit {
         return "Vos modifications s'appliquent immédiatement à l'agenda des rendez-vous";
       case 'consultation':
         return 'Définissez les motifs du patient. Les motifs obligatoires devront être cochés à la prise de rendez-vous';
+      case 'negotiations':
+        return '';
       case 'agenda':
         return '';
       case 'medical-history':
-        return 'Consultez les informations médicales liées aux rendez-vous et aux patients.';
+        return this.isProviderSpace()
+          ? `${this.providerHistoryTotalCount()} rendez-vous · ${this.providerHistoryMonthLabel()}`
+          : 'Consultez les informations médicales liées aux rendez-vous et aux patients.';
       case 'wallet':
         return 'Suivez vos revenus et retirez vos gains via Wave, Orange Money ou virement bancaire.';
     }
   });
 
   ngOnInit(): void {
+    this.activeSection.set(this.resolveSectionFromRoute());
     this.loadSchedule();
   }
 
@@ -567,19 +899,42 @@ export class DoctorSpacePageComponent implements OnInit {
     this.location.back();
   }
 
+  private resolveSectionFromRoute(): DoctorSpaceSection {
+    const section = this.route.snapshot.queryParamMap.get('section');
+    return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
+      ? (section as DoctorSpaceSection)
+      : 'profile';
+  }
+
+  private setActiveSection(section: DoctorSpaceSection): void {
+    this.activeSection.set(section);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
   protected selectSection(section: DoctorSpaceSection): void {
     if (section !== 'profile' && !this.professionalProfileId()) {
       this.feedback.info('Creez votre profil professionnel pour activer cette section.');
-      this.activeSection.set('profile');
+      this.setActiveSection('profile');
       return;
     }
 
     if (section === 'consultation' && !this.showConsultationSection()) {
-      this.activeSection.set('availability');
+      this.setActiveSection('availability');
       return;
     }
 
-    this.activeSection.set(section);
+    this.setActiveSection(section);
+    if (section === 'negotiations') {
+      this.refreshNegotiations();
+    }
+    if (section === 'wallet') {
+      this.refreshWallet();
+    }
   }
 
   protected selectAgendaFilter(filter: AgendaFilter): void {
@@ -786,6 +1141,170 @@ export class DoctorSpacePageComponent implements OnInit {
     this.medicalHistoryPatientFilter.set(value);
   }
 
+  protected updateProviderHistorySearch(value: string): void {
+    this.providerHistorySearch.set(value);
+    this.resetProviderHistoryPagination();
+  }
+
+  protected selectProviderHistoryFilter(filter: ProviderHistoryFilter): void {
+    this.providerHistoryFilter.set(filter);
+    this.resetProviderHistoryPagination();
+  }
+
+  protected updateProviderHistoryMonth(value: string): void {
+    this.providerHistoryMonth.set(value);
+    this.resetProviderHistoryPagination();
+  }
+
+  protected selectNegotiationFilter(filter: ProviderNegotiationFilter): void {
+    this.negotiationFilter.set(filter);
+  }
+
+  protected updateNegotiationMonth(value: string): void {
+    this.negotiationMonth.set(value);
+  }
+
+  protected shiftNegotiationMonth(direction: -1 | 1): void {
+    const month = this.parseMonthValue(this.negotiationMonth()) ?? new Date();
+    month.setMonth(month.getMonth() + direction);
+    this.negotiationMonth.set(this.monthInputValue(month));
+  }
+
+  protected openNegotiation(negotiation: NegotiationView): void {
+    if (negotiation.reservationId) {
+      this.router.navigate(['/appointments', negotiation.reservationId]);
+      return;
+    }
+
+    this.router.navigate(['/services', negotiation.professionnelId, 'proposition'], {
+      queryParams: {
+        negotiationId: negotiation.id,
+        serviceId: negotiation.serviceId,
+        mode: 'prestataire',
+      },
+    });
+  }
+
+  protected negotiationStatusLabel(status: NegotiationStatus): string {
+    const labels: Record<NegotiationStatus, string> = {
+      EN_ATTENTE_PRESTATAIRE: 'À valider',
+      EN_ATTENTE_CLIENT: 'Attente client',
+      ACCEPTEE: 'Prix accepté',
+      REFUSEE: 'Refusée',
+      ANNULEE: 'Annulée',
+      CONVERTIE_EN_RESERVATION: 'Confirmé',
+    };
+    return labels[status];
+  }
+
+  protected negotiationBannerLabel(negotiation: NegotiationView): string {
+    const labels: Record<NegotiationStatus, string> = {
+      EN_ATTENTE_PRESTATAIRE: 'Le client a propose un nouveau prix',
+      EN_ATTENTE_CLIENT: 'Vous avez proposé un nouveau prix',
+      ACCEPTEE: 'Consensus sur le prix',
+      REFUSEE: 'Proposition refusée',
+      ANNULEE: 'Négociation annulée',
+      CONVERTIE_EN_RESERVATION: 'Le RDV est confirmé',
+    };
+    return labels[negotiation.statut];
+  }
+
+  protected negotiationTone(negotiation: NegotiationView): string {
+    if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'pending';
+    if (negotiation.statut === 'EN_ATTENTE_CLIENT') return 'counter';
+    if (negotiation.statut === 'ACCEPTEE') return 'accepted';
+    if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'confirmed';
+    if (negotiation.statut === 'REFUSEE') return 'rejected';
+    return 'cancelled';
+  }
+
+  protected negotiationClientName(negotiation: NegotiationView): string {
+    return negotiation.client?.nom || `Client ${negotiation.clientId.slice(0, 6).toUpperCase()}`;
+  }
+
+  protected negotiationInitials(negotiation: NegotiationView): string {
+    return this.initialsForName(this.negotiationClientName(negotiation));
+  }
+
+  protected negotiationDateValue(negotiation: NegotiationView): Date {
+    return this.negotiationDate(negotiation);
+  }
+
+  protected negotiationLocation(negotiation: NegotiationView): string {
+    return negotiation.adresseClientProposee || negotiation.client?.adresse || 'Lieu à confirmer';
+  }
+
+  protected shouldShowNegotiationPriceComparison(negotiation: NegotiationView): boolean {
+    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' || negotiation.statut === 'EN_ATTENTE_CLIENT';
+  }
+
+  protected negotiationOldPriceLabel(negotiation: NegotiationView): string {
+    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' ? 'Votre offre' : 'Offre du client';
+  }
+
+  protected negotiationOldPriceAmount(negotiation: NegotiationView): number {
+    if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') {
+      return negotiation.service?.prix || negotiation.montantInitial || negotiation.montantCourant;
+    }
+
+    return negotiation.montantInitial || negotiation.montantCourant;
+  }
+
+  protected negotiationNewPriceLabel(negotiation: NegotiationView): string {
+    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' ? 'Offre du client' : 'Votre offre';
+  }
+
+  protected negotiationActionLabel(negotiation: NegotiationView): string {
+    return this.shouldShowNegotiationPriceComparison(negotiation) ? 'Négocier' : 'En savoir plus';
+  }
+
+  protected openNegotiationReservation(reservation: BackendReservation): void {
+    this.router.navigate(['/appointments', reservation.id]);
+  }
+
+  protected negotiationReservationClientName(reservation: BackendReservation): string {
+    return reservation.client?.nom || `Client ${reservation.clientId.slice(0, 6).toUpperCase()}`;
+  }
+
+  protected negotiationReservationInitials(reservation: BackendReservation): string {
+    return this.initialsForName(this.negotiationReservationClientName(reservation));
+  }
+
+  protected negotiationReservationStatusLabel(status: AppointmentStatus): string {
+    return this.agendaReservationStatusLabel(status);
+  }
+
+  protected negotiationReservationTone(status: AppointmentStatus): string {
+    if (status === 'ANNULEE' || status === 'NO_SHOW') return 'cancelled';
+    if (status === 'LITIGE') return 'rejected';
+    return 'confirmed';
+  }
+
+  protected updateProviderHistoryPageSize(value: string | number): void {
+    const pageSize = Number(value);
+    if (PROVIDER_HISTORY_PAGE_SIZE_OPTIONS.some((option) => option === pageSize)) {
+      this.providerHistoryPageSize.set(pageSize as (typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]);
+      this.resetProviderHistoryPagination();
+    }
+  }
+
+  protected goToProviderHistoryPage(page: number): void {
+    const nextPage = Math.min(Math.max(page, 1), this.providerHistoryTotalPages());
+    this.providerHistoryPage.set(nextPage);
+  }
+
+  protected previousProviderHistoryPage(): void {
+    this.goToProviderHistoryPage(this.providerHistoryPage() - 1);
+  }
+
+  protected nextProviderHistoryPage(): void {
+    this.goToProviderHistoryPage(this.providerHistoryPage() + 1);
+  }
+
+  protected openProviderHistoryReservation(row: ProviderAppointmentHistoryRow): void {
+    this.router.navigate(['/appointments', row.id]);
+  }
+
   protected openPatientMedicalDetail(row: MedicalHistoryRow): void {
     const reservation = this.reservations().find((item) => item.id === row.id);
     if (!reservation) {
@@ -875,6 +1394,49 @@ export class DoctorSpacePageComponent implements OnInit {
     return this.wallet()?.transactions ?? [];
   }
 
+  protected walletPendingEscrow(): DoctorWalletPendingEscrow[] {
+    return this.wallet()?.pendingEscrow ?? [];
+  }
+
+  protected walletPendingEscrowTotal(): number {
+    return this.walletPendingEscrow().reduce(
+      (total, escrow) => total + Number(escrow.netAmount || escrow.amount || 0),
+      0,
+    );
+  }
+
+  protected escrowReleaseStatusLabel(escrow: DoctorWalletPendingEscrow): string {
+    if (escrow.reservationStatus === 'TERMINEE') return 'Pret a liberer';
+    if (escrow.reservationStatus === 'LITIGE') return 'Bloque par un litige';
+    if (escrow.reservationStatus === 'ANNULEE') return 'Annule ou remboursable';
+    return 'Bloque jusqu a la fin de la prestation';
+  }
+
+  protected canRequestEscrowRelease(escrow: DoctorWalletPendingEscrow): boolean {
+    return escrow.canRequestRelease && this.releasingEscrowId() !== escrow.paymentId;
+  }
+
+  protected requestEscrowRelease(escrow: DoctorWalletPendingEscrow): void {
+    if (!this.canRequestEscrowRelease(escrow)) {
+      return;
+    }
+
+    this.releasingEscrowId.set(escrow.paymentId);
+    this.doctorSpaceService
+      .releaseEscrow(escrow.paymentId)
+      .pipe(finalize(() => this.releasingEscrowId.set(null)))
+      .subscribe({
+        next: () => {
+          this.feedback.success('Fonds liberes dans votre portefeuille.');
+          this.refreshWallet();
+        },
+        error: (error) =>
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Impossible de liberer ces fonds.'),
+          ),
+      });
+  }
+
   protected openWithdrawalModal(): void {
     const balance = Math.floor(this.walletBalance());
     this.withdrawalForm.amount = balance >= 2000 ? Math.min(balance, 50000) : 0;
@@ -936,13 +1498,21 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected openAgendaReservation(event: AgendaEvent): void {
+    this.openAgendaReservationById(event.id);
+  }
+
+  protected openNextAgendaReservation(next: NextAgendaReservationView): void {
+    this.router.navigate(['/appointments', next.reservation.id]);
+  }
+
+  private openAgendaReservationById(reservationId: string): void {
     this.isAgendaReservationLoading.set(true);
     this.agendaReservationError.set(null);
     this.selectedAgendaReservation.set(null);
     this.agendaCancelForm.reason = '';
 
     this.doctorSpaceService
-      .getReservationById(event.id)
+      .getReservationById(reservationId)
       .pipe(finalize(() => this.isAgendaReservationLoading.set(false)))
       .subscribe({
         next: (reservation) => {
@@ -1006,7 +1576,7 @@ export class DoctorSpacePageComponent implements OnInit {
     const labels: Record<AppointmentStatus, string> = {
       EN_ATTENTE: 'En attente',
       CONFIRMEE: 'Confirmee',
-      PAYEE_SEQUESTRE: 'Payee en sequestre',
+      PAYEE_SEQUESTRE: 'Payee et confirmee',
       EN_COURS: 'En cours',
       TERMINEE: 'Terminee',
       ANNULEE: 'Annulee',
@@ -1058,7 +1628,17 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected goToTodayAgenda(): void {
-    this.agendaCursor.set(this.startOfDay(new Date()));
+    const today = this.startOfDay(new Date());
+    this.todayDate.set(today);
+    this.agendaCursor.set(today);
+  }
+
+  protected isAgendaDayActive(date: Date): boolean {
+    return this.isSameDay(date, this.agendaCursor());
+  }
+
+  protected isSameAgendaDay(left: Date, right: Date): boolean {
+    return this.isSameDay(left, right);
   }
 
   protected updateAgendaPeriodStart(value: string): void {
@@ -1179,6 +1759,38 @@ export class DoctorSpacePageComponent implements OnInit {
     this.appointmentPause.set(this.normalizeMinutes(value, 0, 30));
   }
 
+  protected selectTravelMode(mode: ServiceTravelMode): void {
+    this.selectedTravelMode.set(mode);
+  }
+
+  protected saveTravelMode(): void {
+    const mode = this.selectedTravelMode();
+    const motifs = this.motifs().filter((motif) => motif.travelMode !== mode);
+
+    if (motifs.length === 0) {
+      this.feedback.success('Mode de deplacement enregistre.');
+      return;
+    }
+
+    this.isSaving.set(true);
+    forkJoin(
+      motifs.map((motif) =>
+        this.doctorSpaceService.updateService(motif.id, { travelMode: mode }),
+      ),
+    )
+      .pipe(finalize(() => this.isSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.feedback.success('Mode de deplacement mis a jour.');
+          this.refreshServices();
+        },
+        error: (error) =>
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Mise a jour du mode de deplacement impossible.'),
+          ),
+      });
+  }
+
   protected persistAppointmentSettings(): void {
     this.syncMotifDurationsWithAppointmentDuration();
   }
@@ -1221,54 +1833,20 @@ export class DoctorSpacePageComponent implements OnInit {
     this.selectedCalendarDate.set(this.startOfDay(day.date));
   }
 
-  protected onMotifCategoryChange(categoryId: string): void {
-    this.motifForm.categoryId = categoryId;
-    this.motifForm.subCategoryIds = [];
-    this.selectedMotifCategoryId.set(categoryId);
-    this.selectedMotifSubCategoryIds.set([]);
-  }
-
-  protected isSubCategorySelected(subCategoryId: string): boolean {
-    return this.selectedMotifSubCategoryIds().includes(subCategoryId);
-  }
-
-  protected toggleSubCategory(subCategory: ServiceSubCategory): void {
-    const currentIds = new Set(this.selectedMotifSubCategoryIds());
-    if (currentIds.has(subCategory.id)) {
-      currentIds.delete(subCategory.id);
-    } else {
-      currentIds.add(subCategory.id);
-    }
-    const nextIds = Array.from(currentIds);
-    this.motifForm.subCategoryIds = nextIds;
-    this.selectedMotifSubCategoryIds.set(nextIds);
-  }
-
   protected addMotif(): void {
     const categoryId = this.motifForm.categoryId || this.resolveMotifCategoryId();
     const durationMinutes = Number(this.motifForm.durationMinutes);
     const price = Number(this.motifForm.price);
     const editingMotifId = this.editingMotifId();
-    const availableSubCategories = this.availableSubCategories();
-    const selectedSubCategoryNames = this.selectedSubCategoryNames();
-    const selectedCategoryName = this.selectedMotifCategory()?.nom.trim() ?? '';
-    const name = availableSubCategories.length > 0
-      ? selectedCategoryName
-      : this.motifForm.name.trim();
+    const name = this.motifForm.name.trim();
 
     if (!categoryId) {
       this.feedback.info('Selectionnez une categorie avant d enregistrer ce service.');
       return;
     }
-    if (!editingMotifId && availableSubCategories.length > 0 && selectedSubCategoryNames.length === 0) {
-      this.feedback.info('Selectionnez au moins une specialite pour ce service.');
-      return;
-    }
     if (!name || durationMinutes <= 0 || price <= 0) {
       this.feedback.info(
-        availableSubCategories.length > 0
-          ? 'Renseignez une duree et un tarif valides.'
-          : 'Renseignez un nom, une duree et un tarif valides.',
+        'Renseignez un nom, une duree et un tarif valides.',
       );
       return;
     }
@@ -1278,18 +1856,20 @@ export class DoctorSpacePageComponent implements OnInit {
     const request$ = editingMotifId
       ? this.doctorSpaceService.updateService(editingMotifId, {
           name,
-          description: this.buildServiceDescription(name, selectedSubCategoryNames),
+          description: this.buildServiceDescription(name),
           price,
           priceType: this.defaultServicePriceType(),
+          travelMode: this.selectedTravelMode(),
           durationMinutes,
           isRequired: this.motifForm.isRequired,
         })
       : this.doctorSpaceService.createService({
           categoryId,
           name,
-          description: this.buildServiceDescription(name, selectedSubCategoryNames),
+          description: this.buildServiceDescription(name),
           price,
           priceType: this.defaultServicePriceType(),
+          travelMode: this.selectedTravelMode(),
           durationMinutes,
           isRequired: this.motifForm.isRequired,
         });
@@ -1315,9 +1895,6 @@ export class DoctorSpacePageComponent implements OnInit {
   protected editMotif(motif: ConsultationMotif): void {
     this.editingMotifId.set(motif.id);
     this.motifForm.categoryId = motif.categoryId;
-    this.motifForm.subCategoryIds = this.subCategoryIdsFromNames(motif.categoryId, motif.specialtyNames);
-    this.selectedMotifCategoryId.set(motif.categoryId);
-    this.selectedMotifSubCategoryIds.set(this.motifForm.subCategoryIds);
     this.motifForm.name = motif.name;
     this.motifForm.durationMinutes = motif.durationMinutes;
     this.motifForm.price = motif.price;
@@ -1327,9 +1904,6 @@ export class DoctorSpacePageComponent implements OnInit {
   protected resetMotifForm(): void {
     this.editingMotifId.set(null);
     this.motifForm.categoryId = '';
-    this.motifForm.subCategoryIds = [];
-    this.selectedMotifCategoryId.set('');
-    this.selectedMotifSubCategoryIds.set([]);
     this.motifForm.name = '';
     this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = 10000;
@@ -1375,7 +1949,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.professionalName.set(profile?.utilisateur.nom ?? 'Mon espace professionnel');
           this.patchProfileForm(profile);
           if (!profile) {
-            this.activeSection.set('profile');
+            this.setActiveSection('profile');
           }
 
           return forkJoin({
@@ -1397,11 +1971,12 @@ export class DoctorSpacePageComponent implements OnInit {
                   .listMyReservations()
                   .pipe(catchError(() => of([] as BackendReservation[])))
               : of([] as BackendReservation[]),
-            wallet: profile
-              ? this.doctorSpaceService
-                  .getWallet()
-                  .pipe(catchError(() => of(null as DoctorWalletView | null)))
-              : of(null as DoctorWalletView | null),
+            negotiations: profile && this.isProviderSpace()
+              ? this.proposalService
+                  .listMyPriceProposals('PRESTATAIRE')
+                  .pipe(catchError(() => of([] as NegotiationView[])))
+              : of([] as NegotiationView[]),
+            wallet: of(null as DoctorWalletView | null),
             portfolio: profile?.statutKyc === 'VERIFIE'
               ? this.doctorSpaceService
                   .listPortfolio(profile.id)
@@ -1416,20 +1991,39 @@ export class DoctorSpacePageComponent implements OnInit {
             services: [],
             categories: [],
             reservations: [],
+            negotiations: [],
             wallet: null,
             portfolio: [],
           });
         }),
         finalize(() => this.isLoading.set(false)),
       )
-      .subscribe(({ availabilities, services, categories, reservations, wallet, portfolio }) => {
+      .subscribe(({ availabilities, services, categories, reservations, negotiations, wallet, portfolio }) => {
         this.applyAvailabilities(availabilities);
         this.applyServices(services);
         this.categories.set(categories);
         this.reservations.set(reservations);
+        this.syncAgendaCursorWithReservations(reservations);
+        this.negotiations.set(negotiations);
         this.wallet.set(wallet);
         this.portfolioItems.set(portfolio);
+        this.ensureActiveSectionIsAvailable();
+        if (this.activeSection() === 'wallet') {
+          this.refreshWallet();
+        }
       });
+  }
+
+  private ensureActiveSectionIsAvailable(): void {
+    const section = this.activeSection();
+    if (section !== 'profile' && !this.professionalProfileId()) {
+      this.setActiveSection('profile');
+      return;
+    }
+
+    if (section === 'consultation' && !this.showConsultationSection()) {
+      this.setActiveSection('availability');
+    }
   }
 
   private refreshAvailabilities(): void {
@@ -1510,6 +2104,27 @@ export class DoctorSpacePageComponent implements OnInit {
     });
   }
 
+  private refreshNegotiations(): void {
+    if (!this.professionalProfileId() || !this.isProviderSpace()) return;
+
+    this.proposalService.listMyPriceProposals('PRESTATAIRE').subscribe({
+      next: (negotiations) => this.negotiations.set(negotiations),
+      error: (error) =>
+        this.feedback.error(
+          getHttpErrorMessage(error, 'Impossible de charger les négociations clients.'),
+        ),
+    });
+  }
+
+  private refreshWallet(): void {
+    if (!this.professionalProfileId()) return;
+
+    this.doctorSpaceService
+      .getWallet()
+      .pipe(catchError(() => of(null as DoctorWalletView | null)))
+      .subscribe((wallet) => this.wallet.set(wallet));
+  }
+
   private syncMotifDurationsWithAppointmentDuration(): void {
     const durationMinutes = this.appointmentDuration();
     const motifsToSync = this.motifs().filter((motif) => motif.durationMinutes !== durationMinutes);
@@ -1542,11 +2157,49 @@ export class DoctorSpacePageComponent implements OnInit {
     });
   }
 
+  private syncAgendaCursorWithReservations(reservations: BackendReservation[]): void {
+    if (reservations.length === 0) return;
+
+    const currentWeekStart = this.startOfWeek(this.agendaCursor());
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+
+    const datedReservations = reservations
+      .map((reservation) => ({
+        reservation,
+        scheduledAt: new Date(reservation.dateHeure),
+      }))
+      .filter(({ scheduledAt }) => !Number.isNaN(scheduledAt.getTime()));
+
+    const currentWeekHasReservation = datedReservations.some(
+      ({ scheduledAt, reservation }) =>
+        scheduledAt >= currentWeekStart &&
+        scheduledAt <= currentWeekEnd &&
+        this.matchesAgendaFilter(reservation.statut),
+    );
+    if (currentWeekHasReservation) return;
+
+    const now = new Date();
+    const target =
+      datedReservations
+        .filter(({ scheduledAt, reservation }) =>
+          scheduledAt >= now && this.matchesAgendaFilter(reservation.statut),
+        )
+        .sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())[0] ??
+      datedReservations
+        .filter(({ reservation }) => this.matchesAgendaFilter(reservation.statut))
+        .sort((left, right) => right.scheduledAt.getTime() - left.scheduledAt.getTime())[0];
+
+    if (target) {
+      this.agendaCursor.set(this.startOfDay(target.scheduledAt));
+    }
+  }
+
   private buildAgendaRows(): string[] {
     const rows: string[] = [];
     const slotMinutes = this.appointmentStepMinutes();
-    const minMinutes = 7 * 60;
-    const maxMinutes = 14 * 60;
+    const { minMinutes, maxMinutes } = this.agendaTimeBounds();
 
     for (let minutes = minMinutes; minutes <= maxMinutes; minutes += slotMinutes) {
       const hour = Math.floor(minutes / 60);
@@ -1554,11 +2207,36 @@ export class DoctorSpacePageComponent implements OnInit {
       rows.push(`${hour}:${minute.toString().padStart(2, '0')}`);
     }
 
-    if (rows[rows.length - 1] !== '14:00') {
-      rows.push('14:00');
+    const lastLabel = `${Math.floor(maxMinutes / 60)}:${(maxMinutes % 60).toString().padStart(2, '0')}`;
+    if (rows[rows.length - 1] !== lastLabel) {
+      rows.push(lastLabel);
     }
 
     return rows;
+  }
+
+  private agendaTimeBounds(): { minMinutes: number; maxMinutes: number } {
+    const weekDays = this.agendaWeekDays();
+    const startBoundary = this.parsePeriodBoundary(this.agendaPeriodStart(), false);
+    const endBoundary = this.parsePeriodBoundary(this.agendaPeriodEnd(), true);
+    let minMinutes = 7 * 60;
+    let maxMinutes = 14 * 60;
+
+    for (const reservation of this.reservations()) {
+      const scheduledAt = new Date(reservation.dateHeure);
+      if (Number.isNaN(scheduledAt.getTime())) continue;
+      if (startBoundary && scheduledAt < startBoundary) continue;
+      if (endBoundary && scheduledAt > endBoundary) continue;
+      if (!this.matchesAgendaFilter(reservation.statut)) continue;
+      if (!weekDays.some((day) => this.isSameDay(day.date, scheduledAt))) continue;
+
+      const start = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
+      const end = start + Math.max(30, reservation.dureeMinutes || reservation.service?.dureeMinutes || 30);
+      minMinutes = Math.min(minMinutes, Math.max(0, Math.floor(start / 60) * 60));
+      maxMinutes = Math.max(maxMinutes, Math.min(24 * 60, Math.ceil(end / 60) * 60));
+    }
+
+    return { minMinutes, maxMinutes };
   }
 
   private buildAgendaWeekDays(date: Date): AgendaDay[] {
@@ -1579,6 +2257,7 @@ export class DoctorSpacePageComponent implements OnInit {
     const services = new Map(this.motifs().map((motif) => [motif.id, motif]));
     const startBoundary = this.parsePeriodBoundary(this.agendaPeriodStart(), false);
     const endBoundary = this.parsePeriodBoundary(this.agendaPeriodEnd(), true);
+    const { minMinutes, maxMinutes } = this.agendaTimeBounds();
 
     return this.reservations()
       .map((reservation) => {
@@ -1592,8 +2271,6 @@ export class DoctorSpacePageComponent implements OnInit {
         if (dayIndex < 0) return null;
 
         const startMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
-        const minMinutes = 7 * 60;
-        const maxMinutes = 14 * 60;
         if (startMinutes < minMinutes || startMinutes >= maxMinutes) return null;
 
         const localService = services.get(reservation.serviceId);
@@ -1622,10 +2299,11 @@ export class DoctorSpacePageComponent implements OnInit {
           clientLabel: this.clientLabel(reservation),
           price,
           status: reservation.statut,
+          statusLabel: this.agendaReservationStatusLabel(reservation.statut),
           dayIndex,
           rowStart,
           rowSpan,
-          variant: this.isCancelledStatus(reservation.statut) ? 'cancelled' : 'confirmed',
+          variant: this.agendaEventVariant(reservation.statut),
         } satisfies AgendaEvent;
       })
       .filter((event): event is AgendaEvent => event !== null);
@@ -1670,6 +2348,38 @@ export class DoctorSpacePageComponent implements OnInit {
             ? -1
             : 1,
       );
+  }
+
+  private buildProviderHistoryRows(): ProviderAppointmentHistoryRow[] {
+    return this.reservations()
+      .map((reservation) => {
+        const scheduledAt = new Date(reservation.dateHeure);
+        if (Number.isNaN(scheduledAt.getTime())) return null;
+        const clientName = this.clientLabel(reservation);
+        return {
+          id: reservation.id,
+          clientName,
+          avatarUrl: reservation.client?.urlAvatar ?? null,
+          initials: this.initialsForName(clientName),
+          serviceName: reservation.service?.nom ?? 'Service non renseigne',
+          scheduledAt,
+          timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
+          dateLabel: new Intl.DateTimeFormat('fr-FR', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+            .format(scheduledAt)
+            .replace('.', ''),
+          locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Lieu non renseigne',
+          amount: this.agendaReservationPrice(reservation),
+          status: reservation.statut,
+          statusLabel: this.providerHistoryStatusLabel(reservation.statut),
+          statusTone: this.providerHistoryStatusTone(reservation.statut),
+        } satisfies ProviderAppointmentHistoryRow;
+      })
+      .filter((row): row is ProviderAppointmentHistoryRow => row !== null)
+      .sort((left, right) => right.scheduledAt.getTime() - left.scheduledAt.getTime());
   }
 
   private buildPatientMedicalDetail(
@@ -1818,18 +2528,53 @@ export class DoctorSpacePageComponent implements OnInit {
     return { start, end };
   }
 
-  private nextDelayLabel(): string {
+  private buildNextAgendaReservationView(): NextAgendaReservationView | null {
     const now = new Date();
-    const next = this.reservations()
-      .map((reservation) => new Date(reservation.dateHeure))
-      .filter((date, index) => {
-        const reservation = this.reservations()[index];
-        return date.getTime() > now.getTime() && !this.isCancelledStatus(reservation.statut);
+    const nextReservation = this.reservations()
+      .map((reservation) => ({
+        reservation,
+        scheduledAt: new Date(reservation.dateHeure),
+      }))
+      .filter(({ reservation, scheduledAt }) => {
+        return (
+          !Number.isNaN(scheduledAt.getTime()) &&
+          scheduledAt.getTime() > now.getTime() &&
+          this.isAgendaUpcomingStatus(reservation.statut)
+        );
       })
-      .sort((left, right) => left.getTime() - right.getTime())[0];
+      .sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())[0];
 
-    if (!next) return '--';
-    const minutes = Math.max(1, Math.round((next.getTime() - now.getTime()) / 60000));
+    if (!nextReservation) return null;
+
+    const { reservation, scheduledAt } = nextReservation;
+    const patientName = this.clientLabel(reservation);
+    const minutes = Math.max(1, Math.round((scheduledAt.getTime() - now.getTime()) / 60000));
+
+    return {
+      reservation,
+      patientName,
+      avatarUrl: reservation.client?.urlAvatar ?? null,
+      initials: patientName.slice(0, 2).toUpperCase(),
+      serviceName: reservation.service?.nom ?? 'Consultation',
+      locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
+      timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
+      dayLabel: scheduledAt.getDate().toString().padStart(2, '0'),
+      monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+        .format(scheduledAt)
+        .replace('.', '')
+        .toUpperCase(),
+      durationLabel: this.formatDelayLabel(Math.max(1, reservation.dureeMinutes || 0)),
+      delayLabel: this.formatDelayLabel(minutes),
+      progress: Math.max(8, Math.min(100, 100 - (minutes / (24 * 60)) * 100)),
+      statusLabel: this.agendaReservationStatusLabel(reservation.statut),
+      confirmationLabel:
+        this.isAgendaUpcomingStatus(reservation.statut)
+          ? 'LE RDV EST CONFIRME'
+          : this.agendaReservationStatusLabel(reservation.statut).toUpperCase(),
+    };
+  }
+
+  private formatDelayLabel(minutes: number): string {
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;
@@ -1839,12 +2584,58 @@ export class DoctorSpacePageComponent implements OnInit {
   private matchesAgendaFilter(status: AppointmentStatus): boolean {
     const filter = this.agendaFilter();
     if (filter === 'ALL') return true;
+    if (filter === 'ACTIVE') return this.isAgendaActiveStatus(status);
+    if (filter === 'DONE') return status === 'TERMINEE';
     if (filter === 'CANCELLED') return this.isCancelledStatus(status);
-    return !this.isCancelledStatus(status);
+    return status === 'LITIGE';
   }
 
   protected isCancelledStatus(status: AppointmentStatus): boolean {
     return status === 'ANNULEE' || status === 'NO_SHOW';
+  }
+
+  private isAgendaConfirmedStatus(status: AppointmentStatus): boolean {
+    return (
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS' ||
+      status === 'TERMINEE'
+    );
+  }
+
+  private isAgendaActiveStatus(status: AppointmentStatus): boolean {
+    return (
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS'
+    );
+  }
+
+  private isAgendaRevenueStatus(status: AppointmentStatus): boolean {
+    return (
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS' ||
+      status === 'TERMINEE'
+    );
+  }
+
+  private isAgendaUpcomingStatus(status: AppointmentStatus): boolean {
+    return status === 'CONFIRMEE' || status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
+  }
+
+  private agendaEventVariant(status: AppointmentStatus): AgendaEvent['variant'] {
+    const variants: Record<AppointmentStatus, AgendaEvent['variant']> = {
+      EN_ATTENTE: 'pending',
+      CONFIRMEE: 'confirmed',
+      PAYEE_SEQUESTRE: 'paid',
+      EN_COURS: 'active',
+      TERMINEE: 'done',
+      ANNULEE: 'cancelled',
+      NO_SHOW: 'absent',
+      LITIGE: 'dispute',
+    };
+    return variants[status];
   }
 
   private isMoreThanHoursBefore(value: string, hours: number): boolean {
@@ -1855,6 +2646,70 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected clientLabel(reservation: BackendReservation): string {
     return reservation.client?.nom || `Client ${reservation.clientId.slice(0, 6).toUpperCase()}`;
+  }
+
+  protected providerHistoryFilterCount(filter: ProviderHistoryFilter): number {
+    if (filter === 'ALL') return this.providerHistoryMonthRows().length;
+    return this.providerHistoryMonthRows().filter((row) => row.status === filter).length;
+  }
+
+  private resetProviderHistoryPagination(): void {
+    this.providerHistoryPage.set(1);
+  }
+
+  private providerHistoryStatusLabel(status: AppointmentStatus): string {
+    if (status === 'TERMINEE') return 'Terminé';
+    if (status === 'ANNULEE') return 'Annulé';
+    if (status === 'NO_SHOW') return 'Absent';
+    return this.agendaReservationStatusLabel(status);
+  }
+
+  private providerHistoryStatusTone(status: AppointmentStatus): ProviderAppointmentHistoryRow['statusTone'] {
+    if (status === 'TERMINEE') return 'done';
+    if (status === 'ANNULEE') return 'cancelled';
+    if (status === 'NO_SHOW') return 'absent';
+    return 'pending';
+  }
+
+  private sumProviderRows(rows: ProviderAppointmentHistoryRow[]): number {
+    return rows.reduce((total, row) => total + row.amount, 0);
+  }
+
+  private initialsForName(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  private monthInputValue(date: Date): string {
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+  }
+
+  private dateInputValue(date: Date): string {
+    return `${this.monthInputValue(date)}-${date.getDate().toString().padStart(2, '0')}`;
+  }
+
+  private negotiationDate(negotiation: NegotiationView): Date {
+    const date = new Date(negotiation.dateHeureProposee || negotiation.creeLe);
+    return Number.isNaN(date.getTime()) ? new Date() : date;
+  }
+
+  private parseMonthValue(value: string): Date | null {
+    const [year, month] = value.split('-').map(Number);
+    if (!year || !month || month < 1 || month > 12) return null;
+    return new Date(year, month - 1, 1);
+  }
+
+  private formatProviderHistoryMonth(date: Date): string {
+    const label = new Intl.DateTimeFormat('fr-FR', {
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+    return label.replace(/^\p{L}/u, (letter) => letter.toUpperCase());
   }
 
   private shiftAgendaPeriod(direction: -1 | 1): void {
@@ -1898,18 +2753,22 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   private applyServices(services: BackendProfessionalDetailService[]): void {
+    const activeServices = services.filter((service) => service.estDisponible);
+    const firstTravelMode = activeServices.find((service) => service.modeDeplacement)?.modeDeplacement;
+    if (firstTravelMode) {
+      this.selectedTravelMode.set(firstTravelMode);
+    }
+
     this.motifs.set(
-      services
-        .filter((service) => service.estDisponible)
-        .map((service) => ({
+      activeServices.map((service) => ({
           id: service.id,
           categoryId: service.categorieId,
           name: service.nom,
           description: service.description,
-          specialtyNames: this.extractSpecialtyNames(service.description),
           durationMinutes: service.dureeMinutes ?? 15,
           price: Number(service.prix),
           isRequired: service.estObligatoire ?? false,
+          travelMode: service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
         })),
     );
   }
@@ -1933,56 +2792,15 @@ export class DoctorSpacePageComponent implements OnInit {
           .toLowerCase()
           .includes('medec'),
       )?.id ??
+      this.categories().find((category) => category.estActive !== false)?.id ??
       null
     );
   }
 
-  private buildServiceDescription(name: string, specialtyNames: string[] = []): string {
-    const base = this.isProviderSpace()
+  private buildServiceDescription(name: string): string {
+    return this.isProviderSpace()
       ? `Service professionnel: ${name}`
       : `Motif de consultation: ${name}`;
-    const specialties = specialtyNames
-      .map((specialty) => specialty.trim())
-      .filter(Boolean);
-
-    return specialties.length > 0
-      ? `${base}\nSpecialites: ${specialties.join(', ')}`
-      : base;
-  }
-
-  private extractSpecialtyNames(description: string | null | undefined): string[] {
-    if (!description) return [];
-    const line = description
-      .split(/\r?\n/)
-      .find((part) => part.trim().toLowerCase().startsWith('specialites:'));
-
-    if (!line) return [];
-    return line
-      .replace(/^specialites:/i, '')
-      .split(',')
-      .map((specialty) => specialty.trim())
-      .filter(Boolean);
-  }
-
-  private subCategoryIdsFromNames(categoryId: string, names: string[]): string[] {
-    if (names.length === 0) return [];
-    const normalizedNames = new Set(names.map((name) => this.normalizeSearchValue(name)));
-    return (
-      this.categories()
-        .find((category) => category.id === categoryId)
-        ?.subCategories.filter((subCategory) =>
-          normalizedNames.has(this.normalizeSearchValue(subCategory.nom)),
-        )
-        .map((subCategory) => subCategory.id) ?? []
-    );
-  }
-
-  private normalizeSearchValue(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim()
-      .toLowerCase();
   }
 
   private disableDay(day: DaySchedule): void {
@@ -2254,3 +3072,4 @@ export class DoctorSpacePageComponent implements OnInit {
     };
   }
 }
+

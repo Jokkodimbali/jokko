@@ -73,10 +73,6 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       appointment.status !== 'NO_SHOW'
     );
   });
-  protected readonly canConfirmAppointment = computed(() => {
-    const appointment = this.appointment();
-    return this.canManageProviderStatus() && appointment?.status === 'EN_ATTENTE';
-  });
   protected readonly canCancelAppointment = computed(() => {
     const status = this.appointment()?.status;
     return !!status && status !== 'TERMINEE' && status !== 'ANNULEE' && status !== 'NO_SHOW' && status !== 'LITIGE';
@@ -397,22 +393,6 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isHandlingPriceAdjustment.set(false);
         this.feedback.error('Impossible de refuser cet ajustement pour le moment.');
-      },
-    });
-  }
-
-  protected confirmAppointment(appointment: AppointmentView): void {
-    if (this.isUpdatingStatus()) return;
-    this.isUpdatingStatus.set(true);
-    this.appointmentsService.confirmAppointment(appointment.id).subscribe({
-      next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
-        this.isUpdatingStatus.set(false);
-        this.feedback.success('Rendez-vous confirme.');
-      },
-      error: () => {
-        this.isUpdatingStatus.set(false);
-        this.feedback.error('Impossible de confirmer ce rendez-vous pour le moment.');
       },
     });
   }

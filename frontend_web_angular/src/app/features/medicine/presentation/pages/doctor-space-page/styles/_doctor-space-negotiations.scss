@@ -1,0 +1,153 @@
+.doctor-space__negotiations { display: grid; gap: 34px; }
+
+.doctor-space__negotiation-overview {
+  border-bottom: 1px solid #ddd7cf;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(250px, 1fr) minmax(220px, .9fr) minmax(210px, .75fr);
+  padding: 14px 24px 34px;
+}
+
+.doctor-space__negotiation-calendar header { align-items: center; display: flex; gap: 8px; justify-content: space-between; margin-bottom: 18px; }
+.doctor-space__negotiation-calendar header button {
+  align-items: center; background: #fff; border: 1px solid #ddd7cf; border-radius: 50%; color: #19243a;
+  cursor: pointer; display: inline-flex; height: 30px; justify-content: center; padding: 0; width: 30px;
+}
+.doctor-space__negotiation-calendar label { flex: 1; }
+.doctor-space__negotiation-calendar select {
+  appearance: none; background: transparent; border: 0; color: #17213a; cursor: pointer; font: inherit;
+  font-size: 14px; font-weight: 900; outline: none; text-align: center; width: 100%;
+}
+.doctor-space__negotiation-weekdays, .doctor-space__negotiation-days {
+  display: grid; gap: 7px; grid-template-columns: repeat(7, 30px); justify-content: center;
+}
+.doctor-space__negotiation-weekdays { color: #8b8a86; font-size: 10px; font-weight: 850; margin-bottom: 8px; text-align: center; }
+.doctor-space__negotiation-days span {
+  align-items: center; border-radius: 50%; color: #222; display: inline-flex; font-size: 12px; font-weight: 750;
+  height: 30px; justify-content: center; position: relative; width: 30px;
+}
+.doctor-space__negotiation-day--active { background: #9a652e; color: #fff !important; font-weight: 950 !important; }
+.doctor-space__negotiation-day--multiple::after {
+  background: #efb34e; border: 2px solid #fff; border-radius: 50%; content: ''; height: 7px;
+  position: absolute; right: -1px; top: -1px; width: 7px;
+}
+
+.doctor-space__negotiation-statuses h2, .doctor-space__negotiation-upcoming h2 {
+  color: #8b8a86; font-size: 11px; font-weight: 950; letter-spacing: .08em; margin: 0 0 16px; text-transform: uppercase;
+}
+.doctor-space__negotiation-statuses { display: grid; gap: 10px; }
+.doctor-space__negotiation-statuses button {
+  align-items: center; background: transparent; border: 0; color: #555b64; cursor: pointer;
+  display: flex; font: inherit; justify-content: space-between; padding: 0;
+}
+.doctor-space__negotiation-statuses button span {
+  align-items: center; border-radius: 999px; display: inline-flex; font-size: 12px; font-weight: 850;
+  gap: 7px; min-height: 30px; padding: 0 12px;
+}
+.doctor-space__negotiation-statuses button strong {
+  align-items: center; background: #f0efed; border-radius: 50%; color: #7d7c79; display: inline-flex;
+  font-size: 11px; height: 24px; justify-content: center; min-width: 24px;
+}
+.doctor-space__negotiation-statuses button.is-active span { background: #111; color: #fff; }
+.doctor-space__negotiation-upcoming { align-content: start; display: grid; }
+.doctor-space__negotiation-upcoming p {
+  align-items: center; color: #565b64; display: grid; font-size: 12px; gap: 8px;
+  grid-template-columns: 16px 1fr auto; margin: 0 0 12px;
+}
+.doctor-space__negotiation-upcoming p strong { color: #9b9a96; font-size: 11px; font-weight: 750; }
+
+.doctor-space__negotiation-group { display: grid; gap: 14px; }
+.doctor-space__negotiation-group > header {
+  align-items: center; color: #85847f; display: grid; gap: 14px; grid-template-columns: auto 1fr auto; padding: 0 6px;
+}
+.doctor-space__negotiation-group > header strong { font-size: 12px; font-weight: 950; }
+.doctor-space__negotiation-group > header span { border-top: 1px solid #ddd7cf; }
+.doctor-space__negotiation-group > header small { font-size: 11px; }
+
+.doctor-space__negotiation-card { background: #fff; border: 1px solid #e5dfd7; border-radius: 16px; overflow: hidden; }
+.doctor-space__negotiation-card > header {
+  align-items: center; background: #929392; color: #fff; display: flex; justify-content: space-between; min-height: 40px; padding: 0 18px;
+}
+.doctor-space__negotiation-card > header strong { font-size: 12px; font-weight: 900; }
+.doctor-space__negotiation-card > header span {
+  align-items: center; background: #111; border-radius: 999px; display: inline-flex; font-size: 11px;
+  gap: 7px; min-height: 28px; padding: 0 12px;
+}
+.doctor-space__negotiation-card[data-tone='counter'] > header { background: #963b29; }
+.doctor-space__negotiation-card[data-tone='accepted'] > header,
+.doctor-space__negotiation-card[data-tone='confirmed'] > header { background: #37bd73; }
+.doctor-space__negotiation-card[data-tone='rejected'] > header { background: #dc4b4b; }
+.doctor-space__negotiation-card[data-tone='cancelled'] > header { background: #7b8190; }
+
+.doctor-space__negotiation-card-body {
+  align-items: stretch; display: grid; grid-template-columns: 110px minmax(250px, 1fr) minmax(280px, 1.55fr) auto;
+  min-height: 132px; padding: 18px;
+}
+.doctor-space__negotiation-date { align-content: center; border-right: 1px solid #dedbd6; display: grid; justify-items: center; }
+.doctor-space__negotiation-date span { color: #7d7c79; font-size: 11px; font-weight: 850; }
+.doctor-space__negotiation-date strong { color: #17191d; font-size: 34px; line-height: 1.1; }
+.doctor-space__negotiation-date small { color: #878681; margin-top: 8px; }
+.doctor-space__negotiation-client {
+  align-items: center; border-right: 1px solid #dedbd6; display: flex; gap: 14px; min-width: 0; padding: 0 22px;
+}
+.doctor-space__negotiation-avatar {
+  align-items: center; background: #eee8f4; border-radius: 50%; color: #674a85; display: inline-flex;
+  flex: 0 0 auto; font-size: 12px; font-weight: 950; height: 48px; justify-content: center; overflow: hidden; width: 48px;
+}
+.doctor-space__negotiation-avatar img { height: 100%; object-fit: cover; width: 100%; }
+.doctor-space__negotiation-client > div { display: grid; gap: 3px; min-width: 0; }
+.doctor-space__negotiation-client strong { color: #17191d; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doctor-space__negotiation-client span, .doctor-space__negotiation-client small { color: #898884; font-size: 11px; }
+.doctor-space__negotiation-client small { align-items: center; display: inline-flex; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.doctor-space__negotiation-offer { align-items: center; display: flex; gap: 18px; min-width: 0; padding: 0 24px; position: relative; }
+.doctor-space__negotiation-offer > small {
+  color: #969590; font-size: 11px; letter-spacing: .08em; position: absolute; top: 12px; text-transform: uppercase;
+}
+.doctor-space__negotiation-offer > strong { color: #17191d; font-size: 38px; white-space: nowrap; }
+.doctor-space__negotiation-offer > strong span { font-size: 15px; font-weight: 750; }
+.doctor-space__negotiation-old-price, .doctor-space__negotiation-new-price {
+  border-radius: 9px; display: grid; gap: 5px; min-width: 135px; padding: 12px 14px;
+}
+.doctor-space__negotiation-old-price { background: #f5f6f8; color: #8a93a2; }
+.doctor-space__negotiation-old-price strong { text-decoration: line-through; }
+.doctor-space__negotiation-new-price { background: #83cd57; color: #fff; }
+.doctor-space__negotiation-old-price small, .doctor-space__negotiation-new-price small { font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.doctor-space__negotiation-consensus, .doctor-space__negotiation-confirmed {
+  align-items: center; color: #32b96e; display: flex; font-size: 19px; font-weight: 950;
+  gap: 22px; letter-spacing: .06em; text-transform: uppercase;
+}
+.doctor-space__negotiation-confirmed--closed { color: #d64747; }
+.doctor-space__negotiation-confirmed--dispute { color: #b06a24; }
+.doctor-space__negotiation-reservation-price {
+  border-left: 1px solid #dedbd6;
+  font-size: 22px !important;
+  margin-left: auto;
+  padding-left: 22px;
+}
+.doctor-space__negotiation-more {
+  align-items: center; align-self: end; background: #f1eadf; border: 0; border-radius: 999px; color: #252525;
+  cursor: pointer; display: inline-flex; font: inherit; font-size: 11px; font-weight: 800; gap: 5px;
+  min-height: 34px; padding: 0 15px; white-space: nowrap;
+}
+.doctor-space__negotiation-empty {
+  background: #fff; border: 1px solid #e5dfd7; border-radius: 14px; color: #77736d;
+  font-weight: 800; margin: 0; padding: 34px; text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .doctor-space__negotiation-overview { gap: 28px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .doctor-space__negotiation-upcoming { grid-column: 1 / -1; }
+  .doctor-space__negotiation-card-body { grid-template-columns: 95px minmax(220px, 1fr) minmax(250px, 1.25fr); }
+  .doctor-space__negotiation-more { grid-column: 3; justify-self: end; margin-top: 12px; }
+}
+
+@media (max-width: 760px) {
+  .doctor-space__negotiation-overview { grid-template-columns: 1fr; padding-inline: 0; }
+  .doctor-space__negotiation-upcoming { grid-column: auto; }
+  .doctor-space__negotiation-card-body { gap: 18px; grid-template-columns: 70px minmax(0, 1fr); }
+  .doctor-space__negotiation-client { border-right: 0; padding: 0 0 0 16px; }
+  .doctor-space__negotiation-offer { border-top: 1px solid #dedbd6; grid-column: 1 / -1; min-height: 100px; padding: 20px 0 0; }
+  .doctor-space__negotiation-offer > strong { font-size: 30px; }
+  .doctor-space__negotiation-more { grid-column: 1 / -1; justify-self: end; }
+}

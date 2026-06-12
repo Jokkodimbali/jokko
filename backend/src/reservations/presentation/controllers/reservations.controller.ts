@@ -23,7 +23,10 @@ import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
 import { appMessage } from '../../../core/http/app-http.exception';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
-import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import {
+  createApiResponse,
+  createPaginatedResponse,
+} from '../../../shared/dto/api-response.dto';
 import {
   ApiStandardErrorResponse,
   ApiStandardSuccessResponse,
@@ -163,6 +166,18 @@ export class ReservationsController {
     type: String,
     description: API_DOCS.reservations.endDateField,
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Nombre maximum de rendez-vous a retourner.',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Nombre de rendez-vous a ignorer avant la page courante.',
+  })
   @ApiStandardSuccessResponse({
     status: 200,
     description: API_DOCS.reservations.listMineSuccess,
@@ -183,6 +198,20 @@ export class ReservationsController {
     @CurrentUser() user: AuthUser,
     @Query() query: ListReservationsQueryDto,
   ) {
+    if (query.limit !== undefined || query.offset !== undefined) {
+      const result = await this.reservationsFacade.getMyReservationsPage(
+        user,
+        query,
+      );
+      const page = Math.floor(result.offset / result.limit) + 1;
+      return createPaginatedResponse(
+        result.items,
+        result.total,
+        page,
+        result.limit,
+      );
+    }
+
     const result = await this.reservationsFacade.getMyReservations(user, query);
     return createApiResponse(result);
   }

@@ -155,7 +155,7 @@ describe('ReservationCommandService', () => {
     expect(reservationsRepository.update).not.toHaveBeenCalled();
   });
 
-  it('rejects professional status transitions when the requester only has client access', async () => {
+  it('rejects provider reservation confirmation because client booking is already confirmed', async () => {
     const { service, reservationsRepository } = buildService({
       reservation: buildReservation({
         clientId: 'professional-user-id',
@@ -169,7 +169,7 @@ describe('ReservationCommandService', () => {
       service.confirmReservation(professionalUser, 'reservation-id'),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
-        errorCode: 'RESERVATIONS_UNAUTHORIZED',
+        errorCode: 'RESERVATIONS_CONFIRMATION_NOT_REQUIRED',
       }),
     });
     expect(reservationsRepository.update).not.toHaveBeenCalled();

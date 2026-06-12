@@ -125,6 +125,27 @@ export class PaymentDomainError extends ValidationError {
     );
   }
 
+  static escrowReleaseProfessionalOnly(): ValidationError {
+    return new ValidationError(
+      'ESCROW_RELEASE_PROFESSIONAL_ONLY',
+      domainMessage('ESCROW_RELEASE_PROFESSIONAL_ONLY'),
+    );
+  }
+
+  static escrowReleaseRequiresCompletedReservation(): ConflictError {
+    return new ConflictError(
+      'ESCROW_RELEASE_REQUIRES_COMPLETED_RESERVATION',
+      domainMessage('ESCROW_RELEASE_REQUIRES_COMPLETED_RESERVATION'),
+    );
+  }
+
+  static escrowReleaseForbiddenDuringDispute(): ConflictError {
+    return new ConflictError(
+      'ESCROW_RELEASE_FORBIDDEN_DURING_DISPUTE',
+      domainMessage('ESCROW_RELEASE_FORBIDDEN_DURING_DISPUTE'),
+    );
+  }
+
   static withdrawalTooSoon(hoursRemaining: number): ValidationError {
     return new ValidationError(
       'WITHDRAWAL_TOO_SOON',

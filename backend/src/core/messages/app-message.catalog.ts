@@ -809,6 +809,12 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
       message: 'La reservation doit etre en attente pour cette action.',
     },
+    RESERVATIONS_CONFIRMATION_NOT_REQUIRED: {
+      code: 'RESERVATIONS_CONFIRMATION_NOT_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Le prestataire ne confirme pas les reservations. Le rendez-vous est confirme par la reservation du client puis securise par le paiement.',
+    },
     RESERVATIONS_STATUS_ACTIVE_REQUIRED: {
       code: 'RESERVATIONS_STATUS_ACTIVE_REQUIRED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,

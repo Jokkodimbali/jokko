@@ -1,0 +1,8 @@
+CREATE TYPE "ModeDeplacementService" AS ENUM (
+  'PRESTATAIRE_SE_DEPLACE',
+  'CLIENT_SE_DEPLACE',
+  'TRANSPORT_COLIS'
+);
+
+ALTER TABLE "services"
+ADD COLUMN "travel_mode" "ModeDeplacementService" NOT NULL DEFAULT 'PRESTATAIRE_SE_DEPLACE';

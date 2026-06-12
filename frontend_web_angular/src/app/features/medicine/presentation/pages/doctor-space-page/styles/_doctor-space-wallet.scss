@@ -13,6 +13,7 @@
 
 .doctor-space__wallet-balance,
 .doctor-space__wallet-revenue,
+.doctor-space__wallet-escrow,
 .doctor-space__wallet-history {
   background: #fffefd;
   border: 1px solid #ead7c4;
@@ -125,6 +126,132 @@
   font-weight: 800;
 }
 
+.doctor-space__wallet-escrow {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.doctor-space__wallet-escrow header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.doctor-space__wallet-escrow header div {
+  align-items: center;
+  color: #6d5f54;
+  display: flex;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.doctor-space__wallet-escrow header strong {
+  color: #101828;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.doctor-space__wallet-escrow-item {
+  align-items: center;
+  background: #fbf8f4;
+  border: 1px solid #ead7c4;
+  border-radius: 9px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.doctor-space__wallet-escrow-item--ready {
+  background: #f3fbf5;
+  border-color: #bdecc9;
+}
+
+.doctor-space__wallet-escrow-icon {
+  align-items: center;
+  background: #efe6dc;
+  border-radius: 50%;
+  color: #985f22;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.doctor-space__wallet-escrow-item--ready .doctor-space__wallet-escrow-icon {
+  background: #dff7e8;
+  color: #1f9f55;
+}
+
+.doctor-space__wallet-escrow-main {
+  min-width: 0;
+}
+
+.doctor-space__wallet-escrow-main strong,
+.doctor-space__wallet-escrow-main small,
+.doctor-space__wallet-escrow-main span {
+  display: block;
+}
+
+.doctor-space__wallet-escrow-main strong {
+  color: #101828;
+  font-size: 15px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__wallet-escrow-main small {
+  color: #7e746b;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.doctor-space__wallet-escrow-main span {
+  color: #985f22;
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 5px;
+}
+
+.doctor-space__wallet-escrow-item--ready .doctor-space__wallet-escrow-main span {
+  color: #168947;
+}
+
+.doctor-space__wallet-escrow-item em {
+  color: #101828;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.doctor-space__wallet-escrow-item button {
+  background: #985f22;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.doctor-space__wallet-escrow-item button:disabled {
+  background: #efe8df;
+  color: #9b9188;
+  cursor: not-allowed;
+}
+
 .doctor-space__wallet-history {
   min-height: 394px;
   padding: 16px 15px 22px;
@@ -211,6 +338,25 @@
 }
 
 @media (max-width: 860px) {
+.doctor-space__wallet-summary {
+    grid-template-columns: 1fr;
+  }
+
+.doctor-space__wallet-escrow header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+.doctor-space__wallet-escrow-item {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+.doctor-space__wallet-escrow-item em,
+.doctor-space__wallet-escrow-item button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
 .doctor-space__wallet-transaction {
     grid-template-columns: 1fr;
   }

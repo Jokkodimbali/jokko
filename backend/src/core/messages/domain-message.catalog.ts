@@ -159,6 +159,12 @@ export const DOMAIN_MESSAGE_CATALOG = {
     'Une demande de paiement identique est deja en cours de traitement.',
   ESCROW_ALREADY_RELEASED: 'Les fonds sous sequestre ont deja ete liberes',
   ESCROW_ALREADY_DISPUTED: 'Ces fonds sont deja en litige',
+  ESCROW_RELEASE_PROFESSIONAL_ONLY:
+    'Seul le prestataire proprietaire de la reservation ou un administrateur peut liberer les fonds.',
+  ESCROW_RELEASE_REQUIRES_COMPLETED_RESERVATION:
+    'Les fonds ne peuvent etre liberes qu apres une prestation terminee.',
+  ESCROW_RELEASE_FORBIDDEN_DURING_DISPUTE:
+    'Les fonds ne peuvent pas etre liberes pendant un litige.',
   WITHDRAWAL_TOO_SOON: ({ hoursRemaining }: { hoursRemaining: number }) =>
     `Impossible de retirer. Veuillez patienter ${hoursRemaining} heures.`,
   WITHDRAWAL_AMOUNT_TOO_LOW: ({

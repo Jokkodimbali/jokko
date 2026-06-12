@@ -11,6 +11,21 @@ import type {
 } from '../../application/ports/negotiations-repository.port';
 
 const NEGOTIATION_INCLUDE = {
+  client: {
+    select: {
+      id: true,
+      nom: true,
+      adresse: true,
+      urlAvatar: true,
+    },
+  },
+  service: {
+    select: {
+      id: true,
+      nom: true,
+      prix: true,
+    },
+  },
   propositions: {
     orderBy: { creeLe: 'asc' as const },
   },
@@ -246,6 +261,11 @@ export class NegotiationsRepository implements NegotiationsRepositoryPort {
       propositions: record.propositions.map((offer) =>
         this.toOfferView(record.id, offer),
       ),
+      client: record.client,
+      service: {
+        ...record.service,
+        prix: record.service.prix.toNumber(),
+      },
     };
   }
 

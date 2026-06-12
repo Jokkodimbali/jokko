@@ -35,7 +35,6 @@ describe('ReservationEntity', () => {
 
   it('does not allow cancelling a no-show reservation', () => {
     const reservation = buildEntity();
-    reservation.confirm();
     reservation.markAsPaid();
     reservation.markAsNoShow();
 
@@ -46,12 +45,17 @@ describe('ReservationEntity', () => {
 
   it('requires payment before completing a confirmed reservation', () => {
     const reservation = buildEntity();
-    reservation.confirm();
 
     expect(() => reservation.markAsCompleted()).toThrow(/doit etre payee/i);
   });
 
-  it('allows marking a pending reservation as paid after negotiation payment', () => {
+  it('creates client reservations as confirmed without provider confirmation', () => {
+    const reservation = buildEntity();
+
+    expect(reservation.toView().statut).toBe('CONFIRMEE');
+  });
+
+  it('allows marking a confirmed reservation as paid after client payment', () => {
     const reservation = buildEntity();
 
     reservation.markAsPaid();

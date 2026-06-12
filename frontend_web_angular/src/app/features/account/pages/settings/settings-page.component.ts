@@ -806,6 +806,11 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected canReleaseEscrow(payment: PaymentHistoryView): boolean {
+    const role = this.currentUser()?.role;
+    if (role !== 'PRESTATAIRE' && role !== 'MEDECIN' && role !== 'ADMIN') {
+      return false;
+    }
+
     const status = this.escrowStatus(payment);
     if (status?.canRelease !== undefined) return status.canRelease;
     return ['HELD', 'PENDING', 'EN_ATTENTE'].includes((payment.escrowStatus || '').toUpperCase());

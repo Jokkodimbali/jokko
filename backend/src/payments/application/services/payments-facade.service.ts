@@ -213,7 +213,8 @@ export class PaymentsFacade {
   }
 
   async releaseEscrowForUser(requestUser: AuthUser, paymentId: string) {
-    await this.assertCanAccessPayment(requestUser, paymentId);
+    const payment = await this.assertCanReleaseEscrow(requestUser, paymentId);
+    await this.assertReservationAllowsEscrowRelease(requestUser, payment);
     return this.escrowService.releaseEscrow(paymentId);
   }
 
@@ -251,6 +252,11 @@ export class PaymentsFacade {
   }
 
   async processAutomaticEscrowRelease(paymentId: string) {
+    const payment = await this.getPaymentById(paymentId);
+    await this.assertReservationAllowsEscrowRelease(
+      { sub: 'system', role: RoleUtilisateur.ADMIN, phoneNumber: '' },
+      payment,
+    );
     return this.escrowService.processAutomaticEscrowRelease(paymentId);
   }
 
@@ -272,7 +278,7 @@ export class PaymentsFacade {
   }
 
   async getProfessionalWalletForUser(requestUser: AuthUser) {
-    if (requestUser.role !== RoleUtilisateur.PRESTATAIRE) {
+    if (!this.isProfessionalWalletRole(requestUser.role)) {
       throw PaymentDomainError.unauthorizedAccess('wallet');
     }
 
@@ -295,7 +301,7 @@ export class PaymentsFacade {
       return;
     }
 
-    if (requestUser.role === RoleUtilisateur.PRESTATAIRE) {
+    if (this.isProfessionalWalletRole(requestUser.role)) {
       const profile = await this.professionalsRepository.findByUserId(
         requestUser.sub,
       );
@@ -307,10 +313,52 @@ export class PaymentsFacade {
     throw PaymentDomainError.unauthorizedAccess(paymentId);
   }
 
+  private async assertCanReleaseEscrow(
+    requestUser: AuthUser,
+    paymentId: string,
+  ) {
+    const payment = await this.paymentQueryService.getPaymentById(paymentId);
+
+    if (requestUser.role === RoleUtilisateur.ADMIN) {
+      return payment;
+    }
+
+    if (!this.isProfessionalWalletRole(requestUser.role)) {
+      throw PaymentDomainError.escrowReleaseProfessionalOnly();
+    }
+
+    const profile = await this.professionalsRepository.findByUserId(
+      requestUser.sub,
+    );
+    if (profile?.id !== payment.professionalId) {
+      throw PaymentDomainError.unauthorizedAccess(paymentId);
+    }
+
+    return payment;
+  }
+
+  private async assertReservationAllowsEscrowRelease(
+    requestUser: AuthUser,
+    payment: Awaited<ReturnType<PaymentQueryService['getPaymentById']>>,
+  ): Promise<void> {
+    const reservation = await this.reservationsFacade.getReservationById(
+      requestUser,
+      payment.bookingId,
+    );
+
+    if (reservation.statut === 'LITIGE') {
+      throw PaymentDomainError.escrowReleaseForbiddenDuringDispute();
+    }
+
+    if (reservation.statut !== 'TERMINEE') {
+      throw PaymentDomainError.escrowReleaseRequiresCompletedReservation();
+    }
+  }
+
   private async getProfessionalProfileId(
     requestUser: AuthUser,
   ): Promise<string> {
-    if (requestUser.role !== RoleUtilisateur.PRESTATAIRE) {
+    if (!this.isProfessionalWalletRole(requestUser.role)) {
       throw PaymentDomainError.unauthorizedAccess('withdrawals');
     }
 
@@ -322,6 +370,10 @@ export class PaymentsFacade {
     }
 
     return profile.id;
+  }
+
+  private isProfessionalWalletRole(role: RoleUtilisateur): boolean {
+    return role === RoleUtilisateur.PRESTATAIRE || role === RoleUtilisateur.MEDECIN;
   }
 
   private mapToPaymentStatus(status?: string): PaymentStatus | undefined {

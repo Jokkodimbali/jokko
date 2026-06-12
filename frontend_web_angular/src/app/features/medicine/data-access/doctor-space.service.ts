@@ -11,6 +11,7 @@ import {
   BackendProfessionalProfile,
   Category,
   CategoryStructure,
+  ServiceTravelMode,
   ServiceSubCategory,
 } from '../../services/domain/models/services.models';
 import { BackendReservation } from '../../appointments/domain/appointments.models';
@@ -26,6 +27,18 @@ export type DoctorWalletTransaction = {
   reference: string;
 };
 
+export type DoctorWalletPendingEscrow = {
+  paymentId: string;
+  reservationId: string;
+  serviceName: string;
+  clientName: string;
+  date: string;
+  amount: number;
+  netAmount: number;
+  reservationStatus: string;
+  canRequestRelease: boolean;
+};
+
 export type DoctorWalletView = {
   professionalId: string;
   availableBalance: number;
@@ -37,6 +50,7 @@ export type DoctorWalletView = {
     refundedCancellationCount: number;
   };
   transactions: DoctorWalletTransaction[];
+  pendingEscrow: DoctorWalletPendingEscrow[];
 };
 
 export type ProfessionalUploadView = {
@@ -272,12 +286,25 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
+  releaseEscrow(paymentId: string): Observable<{
+    payment: unknown;
+    escrowReleased: boolean;
+  }> {
+    return this.http
+      .patch<ApiResponse<{ payment: unknown; escrowReleased: boolean }>>(
+        `${this.apiUrl}/payments/${paymentId}/escrow/release`,
+        {},
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   createService(data: {
     categoryId: string;
     name: string;
     description: string;
     price: number;
     priceType: 'FIXE' | 'NEGOCIABLE';
+    travelMode?: ServiceTravelMode;
     durationMinutes: number;
     isRequired: boolean;
   }): Observable<BackendProfessionalDetailService> {
@@ -296,6 +323,7 @@ export class DoctorSpaceService {
       description?: string;
       price?: number;
       priceType?: 'FIXE' | 'NEGOCIABLE';
+      travelMode?: ServiceTravelMode;
       durationMinutes?: number;
       isRequired?: boolean;
     },

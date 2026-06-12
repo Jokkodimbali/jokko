@@ -32,7 +32,24 @@ export interface NegotiationView {
   reservationId: string | null;
   creeLe: string;
   misAJourLe: string;
-  propositions?: Array<{ id: string }>;
+  propositions?: Array<{
+    id: string;
+    proposePar?: 'CLIENT' | 'PRESTATAIRE';
+    montant?: number;
+    message?: string | null;
+    creeLe?: string;
+  }>;
+  client?: {
+    id: string;
+    nom: string;
+    adresse: string | null;
+    urlAvatar: string | null;
+  };
+  service?: {
+    id: string;
+    nom: string;
+    prix: number;
+  };
 }
 
 export interface CreatePriceProposalPayload {

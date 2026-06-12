@@ -17,7 +17,19 @@ export type NegotiationListQuery = {
   offset: number;
 };
 
-export type NegotiationView = Negotiation;
+export type NegotiationView = Negotiation & {
+  client?: {
+    id: string;
+    nom: string;
+    adresse: string | null;
+    urlAvatar: string | null;
+  };
+  service?: {
+    id: string;
+    nom: string;
+    prix: number;
+  };
+};
 export type NegotiationOfferView = NegotiationOffer;
 
 export type CreateNegotiationInput = {

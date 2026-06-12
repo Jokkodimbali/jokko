@@ -13,6 +13,15 @@
       <span>Profil pro</span>
     </button>
     <button
+      *ngIf="showNegotiationsSection"
+      type="button"
+      [class.doctor-space-sidebar__nav-item--active]="activeSection === 'negotiations'"
+      (click)="sectionSelected.emit('negotiations')"
+    >
+      <lucide-icon name="handshake" size="34" [strokeWidth]="2.1"></lucide-icon>
+      <span>N&eacute;gociations clients</span>
+    </button>
+    <button
       type="button"
       [class.doctor-space-sidebar__nav-item--active]="activeSection === 'availability'"
       (click)="sectionSelected.emit('availability')"
@@ -35,7 +44,7 @@
       (click)="sectionSelected.emit('agenda')"
     >
       <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
-      <span>Agenda</span>
+      <span>Gestion RDV</span>
     </button>
     <button
       type="button"
@@ -43,7 +52,7 @@
       (click)="sectionSelected.emit('medical-history')"
     >
       <lucide-icon name="file-text" size="34" [strokeWidth]="2.1"></lucide-icon>
-      <span>Historique m&eacute;dical</span>
+      <span>{{ appointmentHistorySectionLabel }}</span>
     </button>
     <button
       type="button"

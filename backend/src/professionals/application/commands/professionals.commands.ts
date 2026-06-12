@@ -28,6 +28,10 @@ export type CreateProfessionalServiceCommand = {
   description: string;
   price: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
+  travelMode?:
+    | 'PRESTATAIRE_SE_DEPLACE'
+    | 'CLIENT_SE_DEPLACE'
+    | 'TRANSPORT_COLIS';
   durationMinutes?: number;
   isRequired?: boolean;
 };
@@ -37,6 +41,10 @@ export type UpdateProfessionalServiceCommand = {
   description?: string;
   price?: number;
   priceType?: 'FIXE' | 'NEGOCIABLE';
+  travelMode?:
+    | 'PRESTATAIRE_SE_DEPLACE'
+    | 'CLIENT_SE_DEPLACE'
+    | 'TRANSPORT_COLIS';
   durationMinutes?: number;
   isRequired?: boolean;
 };

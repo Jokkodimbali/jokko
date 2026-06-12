@@ -377,12 +377,7 @@ export class AdminProvidersService {
       };
     }
 
-    const [
-      verifiedCount,
-      activeCount,
-      reservationsCount,
-      paymentTotals,
-    ] = await this.prisma.$transaction([
+    const [verifiedCount, activeCount, reservationsCount, paymentTotals] =] = await this.prisma.$transaction([
       this.prisma.profilProfessionnel.count({
         where: { id: { in: providerIds }, statutKyc: 'VERIFIE' },
       }),

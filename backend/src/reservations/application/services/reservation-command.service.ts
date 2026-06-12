@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EscrowStatus, StatutPaiement } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -30,6 +31,7 @@ import { ReservationClientNotificationService } from '../../../notifications/app
 import { ReservationAppService } from './reservation-app-service.base';
 import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
 import { LiveTrackingFacade } from '../../../live-tracking/application/services/live-tracking-facade.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
@@ -44,6 +46,7 @@ export class ReservationCommandService extends ReservationAppService {
     private readonly reservationClientNotificationService: ReservationClientNotificationService,
     private readonly disputesFacade: DisputesFacade,
     private readonly liveTrackingFacade: LiveTrackingFacade,
+    private readonly prisma: PrismaService,
   ) {
     super(reservationsRepository, professionalsRepository);
   }
@@ -123,39 +126,9 @@ export class ReservationCommandService extends ReservationAppService {
   }
 
   async confirmReservation(requestUser: AuthUser, reservationId: string) {
-    this.assertProfessionalRole(requestUser.role);
-    const reservation = await this.getAccessibleReservationOrThrow(
-      requestUser,
-      reservationId,
-    );
-    await this.assertProfessionalOwnsReservation(requestUser, reservation);
-
-    try {
-      const entity = ReservationEntity.reconstitute(reservation);
-      entity.confirm();
-      const updated = await this.reservationsRepository.update(entity.toView());
-
-      // Notify client
-      const professional = await this.getVerifiedProfessionalOrThrow(
-        reservation.professionnelId,
-      );
-      const service = await this.getServiceOrThrow(reservation.serviceId);
-      await this.reservationClientNotificationService.notifyReservationConfirmed(
-        {
-          reservationId: updated.id,
-          clientId: updated.clientId,
-          serviceName: service.nom,
-          professionalName: professional.utilisateur.nom,
-          dateHeure: updated.dateHeure,
-          adresseClient: updated.adresseClient,
-        },
-      );
-
-      return updated;
-    } catch (error) {
-      this.handleDomainError(error);
-      throw error;
-    }
+    void requestUser;
+    void reservationId;
+    throw appHttpException('RESERVATIONS_CONFIRMATION_NOT_REQUIRED');
   }
 
   async cancelReservation(
@@ -172,6 +145,10 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.cancel(trimString(command.reason) ?? null);
       const updated = await this.reservationsRepository.update(entity.toView());
+      await this.refundLockedPaymentOnCancellation(
+        updated.id,
+        trimString(command.reason) ?? 'Reservation annulee par un utilisateur autorise.',
+      );
       await this.liveTrackingFacade.finalizeReservationTracking({
         reservationId: updated.id,
         professionalId: updated.professionnelId,
@@ -200,6 +177,25 @@ export class ReservationCommandService extends ReservationAppService {
       this.handleDomainError(error);
       throw error;
     }
+  }
+
+  private async refundLockedPaymentOnCancellation(
+    reservationId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.prisma.paiement.updateMany({
+      where: {
+        reservationId,
+        statut: StatutPaiement.SUCCES,
+        escrowStatus: EscrowStatus.LOCKED,
+      },
+      data: {
+        statut: StatutPaiement.REMBOURSE,
+        escrowStatus: EscrowStatus.REFUNDED,
+        raisonRemboursement: reason,
+        misAJourLe: new Date(),
+      },
+    });
   }
 
   async rescheduleReservation(

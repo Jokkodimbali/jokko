@@ -224,6 +224,7 @@ export class ServicesService {
       id: data.id,
       serviceId: primaryService?.id,
       servicePriceType: primaryService?.priceType,
+      serviceTravelMode: primaryService?.travelMode,
       nom: data.companyName || data.name,
       speciality:
         primaryService?.name ||

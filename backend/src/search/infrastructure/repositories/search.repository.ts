@@ -245,6 +245,7 @@ export class SearchRepository implements SearchRepositoryPort {
             nom: true,
             prix: true,
             typePrix: true,
+            modeDeplacement: true,
             profilProfessionnelId: true,
             categorieId: true,
             categorie: {
@@ -266,6 +267,7 @@ export class SearchRepository implements SearchRepositoryPort {
         name: service.nom,
         price: Number(service.prix),
         priceType: service.typePrix,
+        travelMode: service.modeDeplacement,
         categoryId: service.categorieId,
         categoryName: service.categorie.nom,
       };
@@ -311,6 +313,7 @@ export class SearchRepository implements SearchRepositoryPort {
         name: specialty.sousCategorie?.nom ?? specialty.categorie.nom,
         price: 0,
         priceType: 'SPECIALTY',
+        travelMode: 'PRESTATAIRE_SE_DEPLACE',
         categoryId: specialty.categorieId,
         categoryName: specialty.categorie.nom,
       };
@@ -355,8 +358,7 @@ export class SearchRepository implements SearchRepositoryPort {
     }
 
     const items: SearchProfessionalView[] = rows.map((row) => {
-      const distance =
-        row.distanceKm === null ? null : Number(row.distanceKm);
+      const distance = row.distanceKm === null ? null : Number(row.distanceKm);
 
       return {
         id: row.id,

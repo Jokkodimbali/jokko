@@ -48,14 +48,20 @@ export class AdminArchivesService {
         where: { statut: { in: [StatutLitige.RESOLU, StatutLitige.REJETE] } },
       }),
       this.prisma.paiement.count({
-        where: { statut: { in: [StatutPaiement.SUCCES, StatutPaiement.REMBOURSE] } },
+        where: {
+          statut: { in: [StatutPaiement.SUCCES, StatutPaiement.REMBOURSE] },
+        },
       }),
       this.prisma.transactionPortefeuille.count(),
       this.prisma.paiement.aggregate({
-        where: { statut: { in: [StatutPaiement.SUCCES, StatutPaiement.REMBOURSE] } },
+        where: {
+          statut: { in: [StatutPaiement.SUCCES, StatutPaiement.REMBOURSE] },
+        },
         _sum: { montant: true, montantCommission: true },
       }),
-      this.prisma.transactionPortefeuille.aggregate({ _sum: { montant: true } }),
+      this.prisma.transactionPortefeuille.aggregate({
+        _sum: { montant: true },
+      }),
       this.findTabRows(tab, limit, offset, query.search?.trim()),
     ]);
 
@@ -66,7 +72,9 @@ export class AdminArchivesService {
         invoices: invoicesCount,
         transactions: transactionsCount,
         invoiceGrossAmount: this.toNumber(invoiceTotals._sum.montant),
-        invoiceCommissionAmount: this.toNumber(invoiceTotals._sum.montantCommission),
+        invoiceCommissionAmount: this.toNumber(
+          invoiceTotals._sum.montantCommission,
+        ),
         transactionAmount: this.toNumber(transactionTotals._sum.montant),
       },
       pagination: {
@@ -81,17 +89,29 @@ export class AdminArchivesService {
       },
       closedDisputes:
         tab === 'closedDisputes'
-          ? (rows as ClosedDisputeRow[]).map((row) => this.mapClosedDispute(row))
+          ? (rows as ClosedDisputeRow[]).map((row) =>
+              this.mapClosedDispute(row),
+            )
           : [],
-      invoices: tab === 'invoices' ? (rows as InvoiceRow[]).map((row) => this.mapInvoice(row)) : [],
+      invoices:
+        tab === 'invoices'
+          ? (rows as InvoiceRow[]).map((row) => this.mapInvoice(row))
+          : [],
       transactions:
         tab === 'transactions'
-          ? (rows as WalletTransactionRow[]).map((row) => this.mapTransaction(row))
+          ? (rows as WalletTransactionRow[]).map((row) =>
+              this.mapTransaction(row),
+            )
           : [],
     };
   }
 
-  private findTabRows(tab: AdminArchiveTab, limit: number, offset: number, search?: string) {
+  private findTabRows(
+    tab: AdminArchiveTab,
+    limit: number,
+    offset: number,
+    search?: string,
+  ) {
     if (tab === 'closedDisputes') return this.findClosedDisputes(limit, offset, search);
     if (tab === 'invoices') return this.findInvoices(limit, offset, search);
     return this.findWalletTransactions(limit, offset, search);
@@ -112,8 +132,16 @@ export class AdminArchivesService {
           ? {
               OR: [
                 { raison: { contains: search, mode: 'insensitive' } },
-                { reservation: { client: { nom: { contains: search, mode: 'insensitive' } } } },
-                { reservation: { service: { nom: { contains: search, mode: 'insensitive' } } } },
+                {
+                  reservation: {
+                    client: { nom: { contains: search, mode: 'insensitive' } },
+                  },
+                },
+                {
+                  reservation: {
+                    service: { nom: { contains: search, mode: 'insensitive' } },
+                  },
+                },
               ],
             }
           : {}),
@@ -173,10 +201,24 @@ export class AdminArchivesService {
         ...(search
           ? {
               OR: [
-                { referenceTransaction: { contains: search, mode: 'insensitive' } },
-                { referenceFournisseur: { contains: search, mode: 'insensitive' } },
+                {
+                  referenceTransaction: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  referenceFournisseur: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
                 { client: { nom: { contains: search, mode: 'insensitive' } } },
-                { reservation: { service: { nom: { contains: search, mode: 'insensitive' } } } },
+                {
+                  reservation: {
+                    service: { nom: { contains: search, mode: 'insensitive' } },
+                  },
+                },
               ],
             }
           : {}),
@@ -214,7 +256,11 @@ export class AdminArchivesService {
     });
   }
 
-  private findWalletTransactions(limit: number, offset: number, search?: string) {
+  private findWalletTransactions(
+    limit: number,
+    offset: number,
+    search?: string,
+  ) {
     return this.prisma.transactionPortefeuille.findMany({
       where: search
         ? {
@@ -223,7 +269,9 @@ export class AdminArchivesService {
               { description: { contains: search, mode: 'insensitive' } },
               {
                 profilProfessionnel: {
-                  utilisateur: { nom: { contains: search, mode: 'insensitive' } },
+                  utilisateur: {
+                    nom: { contains: search, mode: 'insensitive' },
+                  },
                 },
               },
             ],

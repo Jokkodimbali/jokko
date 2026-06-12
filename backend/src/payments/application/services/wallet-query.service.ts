@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   EscrowStatus,
   StatutPaiement,
+  StatutReservation,
   StatutRetrait,
   TypeTransactionPortefeuille,
 } from '@prisma/client';
@@ -29,6 +30,17 @@ export type ProfessionalWalletView = {
     type: TypeTransactionPortefeuille | 'RETRAIT_EN_ATTENTE';
     status: 'TERMINE' | 'EN_ATTENTE';
     reference: string;
+  }>;
+  pendingEscrow: Array<{
+    paymentId: string;
+    reservationId: string;
+    serviceName: string;
+    clientName: string;
+    date: Date;
+    amount: number;
+    netAmount: number;
+    reservationStatus: StatutReservation;
+    canRequestRelease: boolean;
   }>;
 };
 
@@ -62,6 +74,7 @@ export class WalletQueryService {
       refundedPayments,
       ledgerTransactions,
       pendingWithdrawals,
+      lockedEscrowPayments,
     ] = await this.prisma.$transaction([
       this.prisma.paiement.findMany({
         where: {
@@ -131,6 +144,23 @@ export class WalletQueryService {
         orderBy: { demandeLe: 'desc' },
         take: 5,
       }),
+      this.prisma.paiement.findMany({
+        where: {
+          professionalId: profile.id,
+          statut: StatutPaiement.SUCCES,
+          escrowStatus: EscrowStatus.LOCKED,
+        },
+        orderBy: { creeLe: 'desc' },
+        take: 20,
+        include: {
+          reservation: {
+            include: {
+              client: true,
+              service: true,
+            },
+          },
+        },
+      }),
     ]);
 
     const withdrawalIds = ledgerTransactions
@@ -193,6 +223,18 @@ export class WalletQueryService {
       reference: `withdrawal:pending:${withdrawal.id}`,
     }));
 
+    const pendingEscrow = lockedEscrowPayments.map((payment) => ({
+      paymentId: payment.id,
+      reservationId: payment.reservationId,
+      serviceName: payment.reservation.service.nom,
+      clientName: payment.reservation.client.nom,
+      date: payment.reservation.dateHeure,
+      amount: Number(payment.montant),
+      netAmount: Number(payment.montantNet),
+      reservationStatus: payment.reservation.statut,
+      canRequestRelease: payment.reservation.statut === StatutReservation.TERMINEE,
+    }));
+
     return {
       professionalId: profile.id,
       availableBalance: Number(profile.soldePortefeuille),
@@ -206,6 +248,7 @@ export class WalletQueryService {
       transactions: [...pendingWithdrawalTransactions, ...completedTransactions]
         .sort((left, right) => right.date.getTime() - left.date.getTime())
         .slice(0, 20),
+      pendingEscrow,
     };
   }
 

@@ -23,6 +23,7 @@ export interface Professional {
   id: string;
   serviceId?: string;
   servicePriceType?: string;
+  serviceTravelMode?: ServiceTravelMode;
   nom: string;
   speciality: string;
   location: string;
@@ -34,6 +35,11 @@ export interface Professional {
   avatar?: string;
   photos: string[];
 }
+
+export type ServiceTravelMode =
+  | 'PRESTATAIRE_SE_DEPLACE'
+  | 'CLIENT_SE_DEPLACE'
+  | 'TRANSPORT_COLIS';
 
 export interface ProviderProfileDetail {
   profile: BackendProfessionalProfile;
@@ -89,6 +95,7 @@ export interface BackendProfessionalService {
   name: string;
   price: number;
   priceType: string;
+  travelMode?: ServiceTravelMode;
   categoryId: string;
   categoryName: string;
 }
@@ -107,6 +114,7 @@ export interface BackendProfessionalDetailService {
   description: string;
   prix: number;
   typePrix: 'FIXE' | 'NEGOCIABLE';
+  modeDeplacement?: ServiceTravelMode;
   dureeMinutes?: number;
   estObligatoire?: boolean;
   estDisponible: boolean;

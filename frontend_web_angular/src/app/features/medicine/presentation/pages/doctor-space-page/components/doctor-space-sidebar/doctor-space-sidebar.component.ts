@@ -6,6 +6,7 @@ export type DoctorSpaceSection =
   | 'profile'
   | 'availability'
   | 'consultation'
+  | 'negotiations'
   | 'agenda'
   | 'medical-history'
   | 'wallet';
@@ -22,6 +23,8 @@ export class DoctorSpaceSidebarComponent {
   @Input({ required: true }) ariaLabel = 'Navigation de l espace professionnel';
   @Input() showConsultationSection = true;
   @Input() serviceSectionLabel = 'Services';
+  @Input() appointmentHistorySectionLabel = 'Historique medical';
+  @Input() showNegotiationsSection = false;
 
   @Output() readonly backRequested = new EventEmitter<void>();
   @Output() readonly sectionSelected = new EventEmitter<DoctorSpaceSection>();

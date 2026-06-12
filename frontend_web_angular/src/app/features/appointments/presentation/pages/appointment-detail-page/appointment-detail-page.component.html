@@ -184,14 +184,6 @@
     <section *ngIf="canManageProviderStatus()" class="appointment-detail__provider-controls">
       <button
         type="button"
-        (click)="confirmAppointment(appointment)"
-        [disabled]="isUpdatingStatus() || !canConfirmAppointment()"
-      >
-        <lucide-icon name="badge-check" size="18" [strokeWidth]="2.5"></lucide-icon>
-        Confirmer
-      </button>
-      <button
-        type="button"
         (click)="markOnTheWay(appointment)"
         [disabled]="isUpdatingStatus() || appointment.status !== 'PAYEE_SEQUESTRE'"
       >
@@ -219,7 +211,7 @@
         (click)="openPriceAdjustmentModal(appointment)"
         [disabled]="isHandlingPriceAdjustment() || appointment.status === 'ANNULEE' || appointment.status === 'TERMINEE'"
       >
-        <lucide-icon name="receipt" size="18" [strokeWidth]="2.5"></lucide-icon>
+        <lucide-icon name="clipboard" size="18" [strokeWidth]="2.5"></lucide-icon>
         Ajuster le prix
       </button>
       <button
@@ -227,7 +219,7 @@
         (click)="markNoShow(appointment)"
         [disabled]="isUpdatingStatus() || appointment.status === 'TERMINEE' || appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW'"
       >
-        <lucide-icon name="user-x" size="18" [strokeWidth]="2.5"></lucide-icon>
+        <lucide-icon name="circle-x" size="18" [strokeWidth]="2.5"></lucide-icon>
         Absence
       </button>
     </section>

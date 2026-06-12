@@ -43,6 +43,16 @@ export class ReservationsFacade {
     return this.reservationQueryService.getMyReservations(requestUser, query);
   }
 
+  async getMyReservationsPage(
+    requestUser: AuthUser,
+    query: ListReservationsQuery,
+  ) {
+    return this.reservationQueryService.getMyReservationsPage(
+      requestUser,
+      query,
+    );
+  }
+
   async checkAvailability(query: {
     professionalId: string;
     dateHeure: string;

@@ -240,15 +240,39 @@ export class ServicesComponent implements OnInit {
   }
 
   providerMovementTitle(provider: Professional): string {
-    return provider.servicePriceType?.toUpperCase() === 'FIXE'
-      ? 'Vous vous deplacez'
-      : 'Se deplace chez vous';
+    switch (provider.serviceTravelMode) {
+      case 'CLIENT_SE_DEPLACE':
+        return 'Le client se deplace';
+      case 'TRANSPORT_COLIS':
+        return 'Transport de colis';
+      case 'PRESTATAIRE_SE_DEPLACE':
+      default:
+        return 'Le prestataire se deplace';
+    }
+  }
+
+  providerMovementIcon(provider: Professional): string {
+    switch (provider.serviceTravelMode) {
+      case 'CLIENT_SE_DEPLACE':
+        return 'map-pin';
+      case 'TRANSPORT_COLIS':
+        return 'clipboard';
+      case 'PRESTATAIRE_SE_DEPLACE':
+      default:
+        return 'wrench';
+    }
   }
 
   providerMovementSubtitle(provider: Professional): string {
-    return provider.servicePriceType?.toUpperCase() === 'FIXE'
-      ? 'Rendez-vous chez le prestataire'
-      : 'Intervention a votre domicile';
+    switch (provider.serviceTravelMode) {
+      case 'CLIENT_SE_DEPLACE':
+        return 'Rendez-vous chez le prestataire';
+      case 'TRANSPORT_COLIS':
+        return 'Colis pris en charge du point A au point B';
+      case 'PRESTATAIRE_SE_DEPLACE':
+      default:
+        return 'Intervention a votre adresse';
+    }
   }
 
   openNegotiation(provider: Professional): void {

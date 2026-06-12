@@ -66,13 +66,15 @@
 
 .doctor-space__motif-fields {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
 }
 
 .doctor-space__motif-field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .doctor-space__motif-field--full,
@@ -92,14 +94,27 @@
 .doctor-space__motif-field input {
   background: #f8f3ee;
   border: 1px solid #e3d7cc;
-  border-radius: 999px;
+  border-radius: 14px;
   color: #5d6675;
   font: inherit;
   font-size: 14px;
-  height: 44px;
+  font-weight: 750;
+  height: 48px;
+  min-width: 0;
   outline: none;
   padding: 0 16px;
   width: 100%;
+}
+
+.doctor-space__motif-field input[type='number'] {
+  appearance: textfield;
+  padding-right: 48px;
+}
+
+.doctor-space__motif-field input[type='number']::-webkit-inner-spin-button,
+.doctor-space__motif-field input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .doctor-space__motif-field input:focus {
@@ -108,17 +123,32 @@
 }
 
 .doctor-space__motif-input-wrap {
-  display: block;
+  display: flex;
+  min-width: 0;
   position: relative;
 }
 
 .doctor-space__motif-input-wrap lucide-icon {
+  align-items: center;
+  background: #f8f3ee;
   color: #9a5c20;
+  display: flex;
+  height: 24px;
+  justify-content: center;
   pointer-events: none;
   position: absolute;
-  right: 14px;
+  right: 15px;
   top: 50%;
   transform: translateY(-50%);
+  width: 24px;
+  z-index: 1;
+}
+
+.doctor-space__motif-field small {
+  color: #7c8491;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .doctor-space__motif-required-card {

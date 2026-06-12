@@ -178,7 +178,7 @@ export class ReservationEntity {
       new Date(input.dateHeure),
       input.adresseClient.trim(),
       input.dureeMinutes,
-      'EN_ATTENTE',
+      'CONFIRMEE',
       this.normalizeText(input.notes),
       input.prixConvenu ?? null,
       'AUCUN',

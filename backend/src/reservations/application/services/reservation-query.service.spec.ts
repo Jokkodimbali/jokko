@@ -16,6 +16,12 @@ describe('ReservationQueryService', () => {
     phoneNumber: '+221771234567',
   };
 
+  const professionalUser: AuthUser = {
+    sub: 'professional-user-id',
+    role: 'PRESTATAIRE',
+    phoneNumber: '+221771111111',
+  };
+
   const buildService = () => {
     const reservationsRepository = {
       syncOverdueReservations: jest.fn().mockResolvedValue(1),
@@ -23,7 +29,12 @@ describe('ReservationQueryService', () => {
       findByFilters: jest.fn().mockResolvedValue([]),
     } as unknown as jest.Mocked<ReservationsRepositoryPort>;
 
-    const professionalsRepository = {} as jest.Mocked<ProfessionalsRepositoryPort>;
+    const professionalsRepository = {
+      findByUserId: jest.fn().mockResolvedValue({
+        id: 'professional-id',
+        userId: professionalUser.sub,
+      }),
+    } as unknown as jest.Mocked<ProfessionalsRepositoryPort>;
 
     return {
       service: new ReservationQueryService(
@@ -31,6 +42,7 @@ describe('ReservationQueryService', () => {
         professionalsRepository,
       ),
       reservationsRepository,
+      professionalsRepository,
     };
   };
 
@@ -48,6 +60,33 @@ describe('ReservationQueryService', () => {
     ).toBeLessThan(
       reservationsRepository.findDetailedByFilters.mock.invocationCallOrder[0],
     );
+  });
+
+  it('lists all provider reservations without applying a status filter by default', async () => {
+    const { service, reservationsRepository, professionalsRepository } =
+      buildService();
+
+    await service.getMyReservations(professionalUser, {});
+
+    expect(professionalsRepository.findByUserId).toHaveBeenCalledWith(
+      professionalUser.sub,
+    );
+    expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
+      professionalId: 'professional-id',
+    });
+  });
+
+  it('applies the provider status filter only when explicitly requested', async () => {
+    const { service, reservationsRepository } = buildService();
+
+    await service.getMyReservations(professionalUser, {
+      status: 'PAYEE_SEQUESTRE',
+    });
+
+    expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
+      professionalId: 'professional-id',
+      status: 'PAYEE_SEQUESTRE',
+    });
   });
 
   it('synchronizes overdue reservations before admin statistics', async () => {

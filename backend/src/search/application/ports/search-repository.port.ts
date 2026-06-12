@@ -17,6 +17,7 @@ export type SearchProfessionalServiceView = {
   name: string;
   price: number;
   priceType: string;
+  travelMode: string;
   categoryId: string;
   categoryName: string;
 };

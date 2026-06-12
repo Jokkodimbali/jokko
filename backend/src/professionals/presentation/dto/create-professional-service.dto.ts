@@ -20,6 +20,12 @@ export enum ServicePriceType {
   NEGOCIABLE = 'NEGOCIABLE',
 }
 
+export enum ServiceTravelMode {
+  PRESTATAIRE_SE_DEPLACE = 'PRESTATAIRE_SE_DEPLACE',
+  CLIENT_SE_DEPLACE = 'CLIENT_SE_DEPLACE',
+  TRANSPORT_COLIS = 'TRANSPORT_COLIS',
+}
+
 export class CreateProfessionalServiceDto {
   @ApiProperty({
     description: API_DOCS.professionals.categoryIdField,
@@ -79,6 +85,18 @@ export class CreateProfessionalServiceDto {
   priceType!: ServicePriceType;
 
   @ApiProperty({
+    description: 'Mode de deplacement applique au service',
+    enum: ServiceTravelMode,
+    example: ServiceTravelMode.PRESTATAIRE_SE_DEPLACE,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(ServiceTravelMode, {
+    message: VALIDATION_MESSAGES.NON_WHITELISTED_FIELD,
+  })
+  travelMode?: ServiceTravelMode;
+
+  @ApiProperty({
     description: 'Duree du motif de consultation en minutes',
     example: 15,
     required: false,
@@ -93,7 +111,8 @@ export class CreateProfessionalServiceDto {
   durationMinutes?: number;
 
   @ApiProperty({
-    description: 'Indique si le motif est obligatoire pour la prise de rendez-vous',
+    description:
+      'Indique si le motif est obligatoire pour la prise de rendez-vous',
     example: true,
     required: false,
   })

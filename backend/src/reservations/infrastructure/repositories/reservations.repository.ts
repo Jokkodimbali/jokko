@@ -178,7 +178,8 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     const overdueIds = candidates
       .filter((reservation) => {
         const durationMinutes = Math.max(0, reservation.dureeMinutes || 0);
-        const endAt = reservation.dateHeure.getTime() + durationMinutes * 60_000;
+        const endAt =
+          reservation.dateHeure.getTime() + durationMinutes * 60_000;
         return endAt <= now.getTime();
       })
       .map((reservation) => reservation.id);

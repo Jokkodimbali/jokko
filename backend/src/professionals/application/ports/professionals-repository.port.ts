@@ -1,5 +1,9 @@
 export type KycStatus = 'EN_ATTENTE' | 'VERIFIE' | 'REJETE' | 'NON_SOUMIS';
 export type PriceType = 'FIXE' | 'NEGOCIABLE';
+export type ServiceTravelMode =
+  | 'PRESTATAIRE_SE_DEPLACE'
+  | 'CLIENT_SE_DEPLACE'
+  | 'TRANSPORT_COLIS';
 
 export const PROFESSIONALS_REPOSITORY_PORT = Symbol(
   'PROFESSIONALS_REPOSITORY_PORT',
@@ -44,6 +48,7 @@ export type ProfessionalServiceView = {
   description: string;
   prix: number;
   typePrix: PriceType;
+  modeDeplacement: ServiceTravelMode;
   dureeMinutes: number;
   estObligatoire: boolean;
   estDisponible: boolean;
@@ -162,6 +167,7 @@ export type CreateServiceInput = {
   description: string;
   price: number;
   priceType: PriceType;
+  travelMode?: ServiceTravelMode;
   durationMinutes?: number;
   isRequired?: boolean;
 };
@@ -173,6 +179,7 @@ export type UpdateServiceInput = {
   description?: string;
   price?: number;
   priceType?: PriceType;
+  travelMode?: ServiceTravelMode;
   durationMinutes?: number;
   isRequired?: boolean;
 };

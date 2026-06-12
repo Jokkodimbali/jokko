@@ -12,41 +12,30 @@ export class ReservationQueryService extends ReservationAppService {
   async getMyReservations(requestUser: AuthUser, query: ListReservationsQuery) {
     await this.syncOverdueReservations();
 
-    const filters: ReservationFilters = {};
-
-    if (requestUser.role === 'CLIENT') {
-      filters.clientId = requestUser.sub;
-    } else if (
-      requestUser.role === 'PRESTATAIRE' ||
-      requestUser.role === 'MEDECIN'
-    ) {
-      if (query.scope === 'CLIENT') {
-        filters.clientId = requestUser.sub;
-      } else {
-        const profile = await this.getProfessionalProfileOrThrow(
-          requestUser.sub,
-        );
-        filters.professionalId = profile.id;
-      }
-    } else {
-      throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
-    }
-
-    if (query.startDate || query.endDate) {
-      const { startDate, endDate } = this.parseDateRangeOrThrow(query);
-      filters.startDate = startDate;
-      filters.endDate = endDate;
-    }
-
-    if (query.status) {
-      filters.status = query.status;
-    }
-
-    if (query.serviceId) {
-      filters.serviceId = query.serviceId;
-    }
+    const filters = await this.myReservationFilters(requestUser, query);
 
     return this.reservationsRepository.findDetailedByFilters(filters);
+  }
+
+  async getMyReservationsPage(
+    requestUser: AuthUser,
+    query: ListReservationsQuery,
+  ) {
+    await this.syncOverdueReservations();
+
+    const filters = await this.myReservationFilters(requestUser, query);
+    const limit = query.limit ?? 20;
+    const offset = query.offset ?? 0;
+    const [items, total] = await Promise.all([
+      this.reservationsRepository.findDetailedByFilters({
+        ...filters,
+        limit,
+        offset,
+      }),
+      this.reservationsRepository.countByFilters(filters),
+    ]);
+
+    return { items, total, limit, offset };
   }
 
   async getReservationById(requestUser: AuthUser, reservationId: string) {
@@ -242,6 +231,47 @@ export class ReservationQueryService extends ReservationAppService {
 
     const { startDate, endDate } = this.parseDateRangeOrThrow(query);
     return { ...sharedFilters, startDate, endDate };
+  }
+
+  private async myReservationFilters(
+    requestUser: AuthUser,
+    query: ListReservationsQuery,
+  ): Promise<ReservationFilters> {
+    const filters: ReservationFilters = {};
+
+    if (requestUser.role === 'CLIENT') {
+      filters.clientId = requestUser.sub;
+    } else if (
+      requestUser.role === 'PRESTATAIRE' ||
+      requestUser.role === 'MEDECIN'
+    ) {
+      if (query.scope === 'CLIENT') {
+        filters.clientId = requestUser.sub;
+      } else {
+        const profile = await this.getProfessionalProfileOrThrow(
+          requestUser.sub,
+        );
+        filters.professionalId = profile.id;
+      }
+    } else {
+      throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
+    }
+
+    if (query.startDate || query.endDate) {
+      const { startDate, endDate } = this.parseDateRangeOrThrow(query);
+      filters.startDate = startDate;
+      filters.endDate = endDate;
+    }
+
+    if (query.status) {
+      filters.status = query.status;
+    }
+
+    if (query.serviceId) {
+      filters.serviceId = query.serviceId;
+    }
+
+    return filters;
   }
 
   async getReservationStatistics(

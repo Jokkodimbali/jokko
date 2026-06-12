@@ -125,6 +125,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly availabilityStatus = signal<ReservationAvailabilityView | null>(null);
   protected readonly availabilitySlots = signal<ReservationAvailabilitySlotView[]>([]);
   protected readonly pendingProposal = signal<NegotiationView | null>(null);
+  protected readonly isProviderProposalSubmitting = signal(false);
+  protected readonly isProviderOfferDirty = signal(false);
   protected readonly acceptedReservation = signal<AcceptedReservationSummary | null>(null);
   protected readonly isCancellingProposal = signal(false);
   protected readonly isRespondingToCounterOffer = signal(false);
@@ -140,6 +142,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
+  protected readonly negotiationId = this.route.snapshot.queryParamMap.get('negotiationId') || '';
+  protected readonly isProviderProposalMode =
+    this.route.snapshot.queryParamMap.get('mode') === 'prestataire';
   protected readonly selectedServiceId = signal(
     this.route.snapshot.queryParamMap.get('serviceId') || '',
   );
@@ -185,6 +190,108 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
         .map((part) => part[0]?.toUpperCase())
         .join('') || 'JD',
   );
+  protected readonly proposalClientName = computed(
+    () => this.pendingProposal()?.client?.nom || 'Client',
+  );
+  protected readonly proposalClientInitials = computed(() =>
+    this.proposalClientName()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join(''),
+  );
+  protected readonly canProviderRespond = computed(
+    () => this.pendingProposal()?.statut === 'EN_ATTENTE_PRESTATAIRE',
+  );
+  protected readonly providerProposalStatusLabel = computed(() => {
+    const status = this.pendingProposal()?.statut;
+    if (status === 'EN_ATTENTE_PRESTATAIRE') return 'En attente de votre réponse';
+    if (status === 'EN_ATTENTE_CLIENT') return 'Contre-proposition envoyée au client';
+    if (status === 'ACCEPTEE') return 'Le prix a été accepté';
+    if (status === 'CONVERTIE_EN_RESERVATION') return 'La réservation est confirmée';
+    if (status === 'REFUSEE') return 'Proposition refusée';
+    if (status === 'ANNULEE') return 'Négociation annulée';
+    return 'Proposition de prix';
+  });
+
+  protected readonly providerBaseOfferAmount = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return this.currentService()?.prix ?? 0;
+
+    const lastProviderProposal = [...(proposal.propositions ?? [])]
+      .reverse()
+      .find((item) => item.proposePar === 'PRESTATAIRE' && Number.isFinite(Number(item.montant)));
+
+    return Math.trunc(
+      Number(lastProviderProposal?.montant ?? proposal.service?.prix ?? this.currentService()?.prix ?? proposal.montantInitial),
+    );
+  });
+  protected readonly providerBaseOfferLabel = computed(() =>
+    this.formatAmount(this.providerBaseOfferAmount()),
+  );
+  protected readonly providerCurrentClientOfferLabel = computed(() =>
+    this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
+  );
+  protected readonly providerCounterDifferenceLabel = computed(() => {
+    const base = this.providerBaseOfferAmount();
+    const amount = Math.trunc(Number(this.offerAmount()));
+    if (!base || !Number.isFinite(amount) || amount <= 0) {
+      return 'Montant a confirmer avec le client';
+    }
+
+    const difference = Math.abs(amount - base);
+    if (difference === 0) return 'Votre contre-offre correspond a votre offre';
+
+    const direction = amount < base ? 'moins cher que votre offre' : 'plus cher que votre offre';
+    return `${this.formatAmount(difference)} FCFA ${direction}`;
+  });
+  protected readonly providerCounterActionLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return "Accepter l'offre";
+    return Math.trunc(Number(this.offerAmount())) === Math.trunc(Number(proposal.montantCourant))
+      ? "Accepter l'offre"
+      : 'Proposer au client';
+  });
+  protected readonly providerSummaryPriceLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return 'OFFRE DU CLIENT';
+    if (proposal.statut === 'EN_ATTENTE_CLIENT') return 'VOTRE CONTRE-OFFRE';
+    return 'OFFRE DU CLIENT';
+  });
+  protected readonly providerSummaryAmountLabel = computed(() =>
+    this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
+  );
+  protected readonly providerProposalFinalized = computed(() => {
+    const proposal = this.pendingProposal();
+    if (!proposal) return null;
+    return proposal.reservationId || proposal.statut === 'CONVERTIE_EN_RESERVATION' ? proposal : null;
+  });
+  protected readonly providerFinalizedAmountLabel = computed(() =>
+    this.formatAmount(
+      this.providerProposalFinalized()?.montantAccepte ??
+        this.providerProposalFinalized()?.montantCourant ??
+        this.offerAmount(),
+    ),
+  );
+  protected readonly providerFinalizedComparisonLabel = computed(() => {
+    const base = this.toPositiveAmount(this.providerBaseOfferAmount());
+    const accepted = this.toPositiveAmount(
+      this.providerProposalFinalized()?.montantAccepte ?? this.providerProposalFinalized()?.montantCourant,
+    );
+
+    if (!base || !accepted || base === accepted) return 'Prix initial';
+    return accepted < base ? 'Remise accordee' : 'Ajustement';
+  });
+  protected readonly providerFinalizedComparisonAmountLabel = computed(() => {
+    const base = this.toPositiveAmount(this.providerBaseOfferAmount());
+    const accepted = this.toPositiveAmount(
+      this.providerProposalFinalized()?.montantAccepte ?? this.providerProposalFinalized()?.montantCourant,
+    );
+
+    if (!base || !accepted || base === accepted) return '0 FCFA';
+    return `${accepted > base ? '+' : '-'}${this.formatAmount(Math.abs(accepted - base))} FCFA`;
+  });
 
   protected readonly categoryLabel = computed(() => this.currentService()?.nom || 'Service Jokko');
   protected readonly isFixedPriceService = computed(
@@ -415,6 +522,101 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected updateOfferAmount(value: number | string): void {
     const amount = Number(String(value).replace(/[^\d]/g, ''));
     this.offerAmount.set(Number.isFinite(amount) ? amount : 0);
+    if (this.isProviderProposalMode && this.canProviderRespond()) {
+      this.isProviderOfferDirty.set(true);
+    }
+  }
+
+  protected respondToClientProposal(): void {
+    const proposal = this.pendingProposal();
+    const amount = Math.trunc(Number(this.offerAmount()));
+    if (!proposal || !this.canProviderRespond() || this.isProviderProposalSubmitting()) return;
+
+    if (amount === Math.trunc(Number(proposal.montantCourant))) {
+      this.acceptClientProposal();
+      return;
+    }
+
+    this.submitProviderCounterOffer();
+  }
+
+  protected submitProviderCounterOffer(): void {
+    const proposal = this.pendingProposal();
+    const amount = Math.trunc(Number(this.offerAmount()));
+    if (!proposal || !this.canProviderRespond() || this.isProviderProposalSubmitting()) return;
+    if (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000) {
+      this.feedback.info('Renseignez un montant entre 500 et 10 000 000 FCFA.');
+      return;
+    }
+    if (amount === Math.trunc(proposal.montantCourant)) {
+      this.feedback.info('La contre-proposition doit être différente du montant proposé par le client.');
+      return;
+    }
+
+    this.isProviderProposalSubmitting.set(true);
+    this.proposalService
+      .counterPriceProposal(proposal.id, {
+        serviceId: proposal.serviceId,
+        proposedAmount: amount,
+        message: `Contre-proposition du prestataire: ${this.formatAmount(amount)} FCFA.`,
+        dateHeure: proposal.dateHeureProposee || undefined,
+        adresseClient: proposal.adresseClientProposee || undefined,
+        dureeMinutes: proposal.dureeMinutesProposee || undefined,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.pendingProposal.set(updated);
+          this.offerAmount.set(updated.montantCourant);
+          this.isProviderOfferDirty.set(false);
+          this.isProviderProposalSubmitting.set(false);
+          this.feedback.success('Votre contre-proposition a été envoyée au client.');
+          this.startProposalRefresh(updated.id);
+        },
+        error: (error) => {
+          this.isProviderProposalSubmitting.set(false);
+          this.handleProposalError(error);
+        },
+      });
+  }
+
+  protected acceptClientProposal(): void {
+    const proposal = this.pendingProposal();
+    if (!proposal || !this.canProviderRespond() || this.isProviderProposalSubmitting()) return;
+
+    this.isProviderProposalSubmitting.set(true);
+    this.proposalService.acceptPriceProposal(proposal.id).subscribe({
+      next: (updated) => {
+        this.pendingProposal.set(updated);
+        this.offerAmount.set(updated.montantCourant);
+        this.isProviderOfferDirty.set(false);
+        this.isProviderProposalSubmitting.set(false);
+        this.feedback.success('Le prix proposé par le client a été accepté.');
+        this.startProposalRefresh(updated.id);
+      },
+      error: (error) => {
+        this.isProviderProposalSubmitting.set(false);
+        this.handleProposalError(error);
+      },
+    });
+  }
+
+  protected rejectClientProposal(): void {
+    const proposal = this.pendingProposal();
+    if (!proposal || !this.canProviderRespond() || this.isProviderProposalSubmitting()) return;
+
+    this.isProviderProposalSubmitting.set(true);
+    this.proposalService.rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.').subscribe({
+      next: (updated) => {
+        this.pendingProposal.set(updated);
+        this.isProviderOfferDirty.set(false);
+        this.isProviderProposalSubmitting.set(false);
+        this.feedback.success('La proposition a été refusée.');
+      },
+      error: (error) => {
+        this.isProviderProposalSubmitting.set(false);
+        this.handleProposalError(error);
+      },
+    });
   }
 
   protected selectOfferStep(step: number): void {
@@ -428,6 +630,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     const nextAmount = Math.max(500, Math.trunc(this.offerAmount() - this.selectedOfferStep()));
     this.offerAmount.set(nextAmount);
+    if (this.isProviderProposalMode && this.canProviderRespond()) {
+      this.isProviderOfferDirty.set(true);
+    }
   }
 
   protected increaseOffer(): void {
@@ -437,6 +642,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     const nextAmount = Math.min(10_000_000, Math.trunc(this.offerAmount() + this.selectedOfferStep()));
     this.offerAmount.set(nextAmount);
+    if (this.isProviderProposalMode && this.canProviderRespond()) {
+      this.isProviderOfferDirty.set(true);
+    }
   }
 
   protected messageProvider(): void {
@@ -970,6 +1178,16 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     this.router.navigate(['/appointments', accepted.reservationId, 'payment']);
   }
 
+  protected openProviderFinalizedReservation(): void {
+    const reservationId = this.providerProposalFinalized()?.reservationId;
+    if (!reservationId) {
+      this.feedback.info('La reservation est en cours de finalisation.');
+      return;
+    }
+
+    this.router.navigate(['/appointments', reservationId]);
+  }
+
   private startProposalRefresh(negotiationId: string): void {
     this.stopProposalRefresh();
     this.proposalRefreshIntervalId = setInterval(() => {
@@ -989,7 +1207,14 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       next: (proposal) => {
         const previous = this.pendingProposal();
         this.pendingProposal.set(proposal);
-        if (!(proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut === 'EN_ATTENTE_CLIENT')) {
+        const shouldKeepProviderDraft =
+          this.isProviderProposalMode &&
+          this.isProviderOfferDirty() &&
+          proposal.statut === 'EN_ATTENTE_PRESTATAIRE';
+        if (
+          !shouldKeepProviderDraft &&
+          !(proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut === 'EN_ATTENTE_CLIENT')
+        ) {
           this.offerAmount.set(proposal.montantCourant);
         }
         if (proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut !== 'EN_ATTENTE_CLIENT') {
@@ -1000,6 +1225,18 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
         }
         if (proposal.adresseClientProposee?.trim()) {
           this.address.set(proposal.adresseClientProposee.trim());
+        }
+
+        if (
+          !this.isProviderProposalMode &&
+          proposal.statut === 'ACCEPTEE' &&
+          previous?.statut !== 'ACCEPTEE' &&
+          !proposal.reservationId &&
+          !this.isRespondingToCounterOffer()
+        ) {
+          this.isRespondingToCounterOffer.set(true);
+          this.createReservationFromAcceptedNegotiation(proposal);
+          return;
         }
 
         if (
@@ -1030,13 +1267,30 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       }
 
       if (errorCode === 'NEGOTIATIONS_ALREADY_ACTIVE') {
-        this.feedback.info('Une discussion est deja ouverte pour ce service.');
+        this.feedback.info('Une proposition de prix est deja ouverte pour ce service.');
         const service = this.currentService();
         if (service) {
-          this.openDirectConversationThenGoToDiscussion(service, this.offerAmount());
-        } else {
-          this.router.navigate(['/messages']);
+          this.proposalService.findActiveProposalForService(service.id).subscribe({
+            next: (proposal) => {
+              this.isSubmitting.set(false);
+              if (proposal) {
+                this.showPendingProposal(
+                  proposal,
+                  this.buildFallbackReservationDraft(service, this.offerAmount()),
+                );
+                return;
+              }
+
+              this.feedback.error('Impossible de retrouver la proposition active.');
+            },
+            error: () => {
+              this.isSubmitting.set(false);
+              this.feedback.error('Impossible de retrouver la proposition active.');
+            },
+          });
+          return;
         }
+        this.isSubmitting.set(false);
         return;
       }
     }
@@ -1052,18 +1306,40 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     forkJoin({
       detail: this.servicesService.getProviderProfileDetail(this.profileId),
+      proposal: this.isProviderProposalMode && this.negotiationId
+        ? this.proposalService.getPriceProposal(this.negotiationId)
+        : of(null as NegotiationView | null),
       user: this.authSession.hasAuthenticatedSession()
         ? this.authService.myUserProfile().pipe(catchError(() => of(null)))
         : of(null),
     }).subscribe({
-      next: ({ detail, user }) => {
+      next: ({ detail, proposal, user }) => {
         this.detail.set(detail);
-    const service = this.currentService();
-    this.selectedServiceId.set(service?.id || '');
-    this.offerAmount.set(service?.prix ?? 0);
-        this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
+        if (proposal) {
+          this.pendingProposal.set(proposal);
+          this.selectedServiceId.set(proposal.serviceId);
+          this.offerAmount.set(proposal.montantCourant);
+          this.isProviderOfferDirty.set(false);
+          this.selectedOfferStep.set(1000);
+          this.address.set(
+            proposal.adresseClientProposee || proposal.client?.adresse || '',
+          );
+          if (proposal.dateHeureProposee) {
+            this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+          }
+        } else {
+          const service = this.currentService();
+          this.selectedServiceId.set(service?.id || '');
+          this.offerAmount.set(service?.prix ?? 0);
+          this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
+        }
         this.isLoading.set(false);
-        this.scheduleAvailabilityCheck();
+        if (proposal) {
+          this.startProposalRefresh(proposal.id);
+        }
+        if (!this.isProviderProposalMode) {
+          this.scheduleAvailabilityCheck();
+        }
       },
       error: () => {
         this.errorMessage.set('Impossible de charger les informations du rendez-vous.');

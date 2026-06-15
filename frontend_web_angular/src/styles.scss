@@ -1,6 +1,7 @@
 @use './app/features/medicine/presentation/pages/doctor-space-page/styles/doctor-space-negotiations';
 
 /* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import '@fontsource/inter/latin.css';
 @import '@fontsource/inter/latin-ext.css';
 @tailwind base;
@@ -43,7 +44,10 @@ video {
 
 /* ─── Design Tokens ──────────────────────────────────────────────── */
 :root {
-  --font-app: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-app:
+    'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-brand: #865221;
   --color-brand-alt: #8b551f;
   --color-brand-soft: #fff3e5;
@@ -262,7 +266,6 @@ video {
   max-width: 560px;
   text-align: center;
 }
-
 
 .services-page .location-control,
 .services-page .filter-button {
@@ -1706,4 +1709,3 @@ video {
     text-align: left;
   }
 }
-

@@ -1,0 +1,593 @@
+﻿:host {
+  display: block;
+}
+
+/* Reservation negotiation */
+.negotiation {
+  background: #f6f7f8;
+  color: #111424;
+  padding: 34px clamp(20px, 5vw, 72px) 64px;
+}
+
+.negotiation__heading {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 46px 1fr auto;
+  margin: 0 auto 28px;
+  max-width: 1240px;
+}
+
+.negotiation__heading > button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  color: #111424;
+  cursor: pointer;
+  display: flex;
+  height: 46px;
+  justify-content: center;
+  transition: 180ms ease;
+  width: 46px;
+}
+
+.negotiation__heading > button:hover {
+  box-shadow: 0 8px 24px rgba(17, 20, 36, 0.1);
+  transform: translateX(-2px);
+}
+
+.negotiation__heading span,
+.negotiation__price-top span,
+.negotiation__amount small {
+  color: #969ba5;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.negotiation__heading h2 {
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  margin: 4px 0;
+}
+
+.negotiation__heading p {
+  color: #757b86;
+  font-size: 13px;
+  margin: 0;
+}
+
+.negotiation__heading > strong {
+  align-items: center;
+  background: #e9f6e5;
+  border-radius: 999px;
+  color: #537f39;
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.negotiation__heading > strong i {
+  animation: negotiation-pulse 1.8s infinite;
+  background: #5d8b40;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.negotiation__heading > strong.negotiation__status--pending {
+  background: #fff5dc;
+  color: #996e13;
+}
+
+.negotiation__layout {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.75fr);
+  margin: 0 auto;
+  max-width: 1240px;
+}
+
+.negotiation__main,
+.negotiation__sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.negotiation__price-card,
+.negotiation__details,
+.negotiation__provider {
+  background: #fff;
+  border: 1px solid #ebedf0;
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(17, 20, 36, 0.045);
+}
+
+.negotiation__price-card {
+  overflow: hidden;
+  padding: clamp(24px, 4vw, 44px);
+}
+
+.negotiation__price-top {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.negotiation__price-top > div {
+  display: grid;
+  gap: 6px;
+}
+
+.negotiation__price-top strong {
+  color: #6f7580;
+  font-size: 15px;
+}
+
+.negotiation__price-state {
+  background: #f2f4f5;
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+.negotiation__amount {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 42px 0 36px;
+}
+
+.negotiation__amount--pulse label {
+  animation: negotiation-price-pop 240ms ease;
+}
+
+.negotiation__amount label {
+  align-items: baseline;
+  display: flex;
+  justify-content: center;
+}
+
+.negotiation__amount input {
+  appearance: textfield;
+  background: transparent;
+  border: 0;
+  color: #111424;
+  font: inherit;
+  font-size: clamp(52px, 8vw, 88px);
+  font-weight: 950;
+  letter-spacing: -0.07em;
+  max-width: 500px;
+  outline: 0;
+  text-align: right;
+  width: 7ch;
+}
+
+.negotiation__amount label span {
+  color: #5d8b40;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 950;
+  margin-left: 12px;
+}
+
+.negotiation__controls {
+  align-items: center;
+  border-top: 1px solid #eef0f2;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr auto 1fr;
+  padding-top: 26px;
+}
+
+.negotiation__controls > button {
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #dfe3e7;
+  border-radius: 999px;
+  color: #111424;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: center;
+  min-height: 48px;
+  text-transform: uppercase;
+  transition: 180ms ease;
+}
+
+.negotiation__controls > button:hover:not(:disabled) {
+  border-color: #5d8b40;
+  transform: translateY(-2px);
+}
+
+.negotiation__controls button:disabled,
+.negotiation__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.negotiation__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  max-width: 270px;
+}
+
+.negotiation__steps span {
+  flex-basis: 100%;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.negotiation__steps button {
+  background: #f5f6f7;
+  border: 0;
+  border-radius: 8px;
+  color: #747a84;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  padding: 7px 9px;
+}
+
+.negotiation__steps button.active {
+  background: #e8f2e3;
+  color: #4f7a36;
+}
+
+.negotiation__reason {
+  align-items: center;
+  background: #fff8e9;
+  border: 1px solid #f5e5bc;
+  border-radius: 14px;
+  color: #795b1b;
+  display: flex;
+  font-size: 12px;
+  font-weight: 750;
+  gap: 10px;
+  margin: 24px 0 0;
+  padding: 14px 16px;
+}
+
+.negotiation__details {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  overflow: hidden;
+}
+
+.negotiation__details > div,
+.negotiation__details > button {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-right: 1px solid #edf0f2;
+  display: grid;
+  gap: 3px 10px;
+  grid-template-columns: 42px 1fr 20px;
+  min-width: 0;
+  padding: 21px;
+  text-align: left;
+}
+
+.negotiation__details > button {
+  cursor: pointer;
+}
+
+.negotiation__details > :last-child {
+  border-right: 0;
+}
+
+.negotiation__details > div > span,
+.negotiation__details > button > span {
+  align-items: center;
+  background: #f2f4f5;
+  border-radius: 50%;
+  color: #77808a;
+  display: flex;
+  grid-row: 1 / 3;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.negotiation__details small {
+  color: #a0a5ad;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.negotiation__details strong {
+  font-size: 12px;
+  grid-column: 2;
+  grid-row: 2;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.negotiation__details > button > lucide-icon {
+  color: #b0b4ba;
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+.negotiation__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.negotiation__actions button {
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  min-height: 56px;
+  padding: 0 25px;
+  text-transform: uppercase;
+  transition: 180ms ease;
+}
+
+.negotiation__actions button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.negotiation__primary {
+  align-items: center;
+  background: #5d8b40;
+  border: 0;
+  box-shadow: 0 12px 28px rgba(93, 139, 64, 0.22);
+  color: #fff;
+  display: flex;
+  flex: 1;
+  gap: 9px;
+  justify-content: center;
+}
+
+.negotiation__primary--visual {
+  animation: negotiation-button-breathe 2.6s ease-in-out infinite;
+}
+
+.negotiation__arrow {
+  animation: negotiation-arrow 1.2s ease-in-out infinite;
+}
+
+.negotiation__secondary {
+  background: #fff;
+  border: 1.5px solid #dfe3e7;
+  color: #111424;
+  min-width: 150px;
+}
+
+.negotiation__provider {
+  padding: 24px;
+}
+
+.negotiation__provider-head {
+  align-items: center;
+  display: flex;
+  gap: 13px;
+  padding-bottom: 20px;
+}
+
+.negotiation__provider-head img,
+.negotiation__provider-head > span {
+  align-items: center;
+  background: #e8f2e3;
+  border-radius: 50%;
+  color: #4f7a36;
+  display: flex;
+  font-size: 14px;
+  font-weight: 950;
+  height: 52px;
+  justify-content: center;
+  object-fit: cover;
+  width: 52px;
+}
+
+.negotiation__provider-head > .negotiation__initials {
+  font-size: 16px;
+  letter-spacing: 0.03em;
+}
+
+.negotiation__provider-head h3 {
+  font-size: 15px;
+  font-weight: 950;
+  margin: 0 0 3px;
+}
+
+.negotiation__provider-head p,
+.negotiation__provider-head small {
+  color: #7f858f;
+  font-size: 11px;
+  margin: 0 0 4px;
+}
+
+.negotiation__provider dl {
+  border-bottom: 1px solid #edf0f2;
+  border-top: 1px solid #edf0f2;
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 20px 0;
+}
+
+.negotiation__provider dt {
+  align-items: center;
+  color: #9a9fa8;
+  display: flex;
+  font-size: 9px;
+  font-weight: 900;
+  gap: 8px;
+  letter-spacing: 0.1em;
+}
+
+.negotiation__provider dd {
+  font-size: 12px;
+  font-weight: 850;
+  margin: 5px 0 0 25px;
+  overflow-wrap: anywhere;
+}
+
+.negotiation__provider-offer {
+  background: #eaf8e6;
+  border-radius: 18px;
+  display: grid;
+  gap: 5px;
+  margin: 20px 0 14px;
+  padding: 17px;
+}
+
+.negotiation__provider-offer span {
+  color: #5d8b40;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.negotiation__provider-offer strong {
+  color: #4f7a36;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.negotiation__message {
+  align-items: center;
+  background: #5d8b40;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 950;
+  gap: 8px;
+  justify-content: center;
+  min-height: 48px;
+  text-transform: uppercase;
+  transition: 180ms ease;
+  width: 100%;
+}
+
+.negotiation__message:hover {
+  background: #4e7535;
+  transform: scale(1.01);
+}
+
+.negotiation__help {
+  align-items: flex-start;
+  background: #eef0f2;
+  border-radius: 15px;
+  color: #777e88;
+  display: flex;
+  font-size: 10px;
+  gap: 10px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 16px;
+}
+
+@keyframes negotiation-price-pop {
+  50% {
+    color: #5d8b40;
+    transform: scale(1.035);
+  }
+}
+
+@keyframes negotiation-pulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(93, 139, 64, 0.12);
+  }
+}
+
+@keyframes negotiation-button-breathe {
+  50% {
+    box-shadow: 0 14px 34px rgba(93, 139, 64, 0.36);
+    transform: scale(1.006);
+  }
+}
+
+@keyframes negotiation-arrow {
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 980px) {
+  .negotiation {
+    padding-inline: 18px;
+  }
+  .negotiation__layout {
+    grid-template-columns: 1fr;
+  }
+  .negotiation__sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.7fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .negotiation {
+    padding: 24px 14px 120px;
+  }
+  .negotiation__heading {
+    align-items: start;
+    grid-template-columns: 42px 1fr;
+  }
+  .negotiation__heading > strong {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .negotiation__price-card {
+    border-radius: 22px;
+    padding: 22px 16px;
+  }
+  .negotiation__amount {
+    padding: 34px 0 28px;
+  }
+  .negotiation__amount input {
+    font-size: 52px;
+    max-width: 260px;
+  }
+  .negotiation__controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .negotiation__steps {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    max-width: none;
+  }
+  .negotiation__details {
+    grid-template-columns: 1fr;
+  }
+  .negotiation__details > div,
+  .negotiation__details > button {
+    border-bottom: 1px solid #edf0f2;
+    border-right: 0;
+  }
+  .negotiation__actions {
+    background: rgba(255, 255, 255, 0.94);
+    bottom: 0;
+    box-shadow: 0 -10px 35px rgba(17, 20, 36, 0.1);
+    left: 0;
+    padding: 14px;
+    position: fixed;
+    right: 0;
+    z-index: 55;
+  }
+  .negotiation__actions button {
+    min-height: 52px;
+  }
+  .negotiation__sidebar {
+    grid-template-columns: 1fr;
+  }
+}

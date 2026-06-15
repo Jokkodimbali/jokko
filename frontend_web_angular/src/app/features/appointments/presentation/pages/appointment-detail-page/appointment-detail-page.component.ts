@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -12,6 +12,8 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentTrackingView, AppointmentView } from '../../../domain/appointments.models';
+import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
+import { ReservationNegotiationComponent } from '../../components/reservation-negotiation/reservation-negotiation.component';
 
 @Component({
   selector: 'app-appointment-detail-page',
@@ -21,8 +23,9 @@ import { AppointmentTrackingView, AppointmentView } from '../../../domain/appoin
     FormsModule,
     AppFooterComponent,
     AppNavbarComponent,
+    AppointmentDetailLoadingComponent,
     LucideAngularModule,
-    RouterLink,
+    ReservationNegotiationComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrl: './appointment-detail-page.component.scss',
@@ -63,6 +66,10 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       Number.isFinite(appointment.proposedAdjustedPrice)
     );
   });
+  protected readonly isProviderViewer = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'PRESTATAIRE' || role === 'MEDECIN';
+  });
   protected readonly canManageProviderStatus = computed(() => {
     const appointment = this.appointment();
     return (
@@ -75,20 +82,26 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   });
   protected readonly canCancelAppointment = computed(() => {
     const status = this.appointment()?.status;
-    return !!status && status !== 'TERMINEE' && status !== 'ANNULEE' && status !== 'NO_SHOW' && status !== 'LITIGE';
+    return (
+      !!status &&
+      status !== 'TERMINEE' &&
+      status !== 'ANNULEE' &&
+      status !== 'NO_SHOW' &&
+      status !== 'LITIGE'
+    );
   });
-  protected readonly minRescheduleDateTime = computed(() => this.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)));
-  protected readonly isAppointmentCompleted = computed(() => this.appointment()?.status === 'TERMINEE');
+  protected readonly minRescheduleDateTime = computed(() =>
+    this.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)),
+  );
+  protected readonly isAppointmentCompleted = computed(
+    () => this.appointment()?.status === 'TERMINEE',
+  );
   protected readonly currentPriceLabel = computed(() =>
     this.formatCurrency(this.appointment()?.agreedPrice ?? 0),
   );
   protected readonly finalPriceLabel = computed(() => {
     const appointment = this.appointment();
-    return this.formatCurrency(
-      appointment?.proposedAdjustedPrice ??
-        appointment?.agreedPrice ??
-        0,
-    );
+    return this.formatCurrency(appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0);
   });
   protected readonly invoiceNumberLabel = computed(() => {
     const appointmentId = this.appointment()?.id ?? '';
@@ -137,12 +150,17 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   protected readonly isProviderWorking = computed(() => {
     if (this.isAppointmentCompleted()) return false;
     const tracking = this.tracking();
-    return tracking?.presence.status === 'EN_PRESTATION' || this.appointment()?.status === 'EN_COURS';
+    return (
+      tracking?.presence.status === 'EN_PRESTATION' || this.appointment()?.status === 'EN_COURS'
+    );
   });
   protected readonly isProviderOnTheWay = computed(() => {
     if (this.isAppointmentCompleted()) return false;
     const tracking = this.tracking();
-    return !this.isProviderWorking() && (tracking?.trackingStatus === 'EN_ROUTE' || tracking?.presence.status === 'EN_ROUTE');
+    return (
+      !this.isProviderWorking() &&
+      (tracking?.trackingStatus === 'EN_ROUTE' || tracking?.presence.status === 'EN_ROUTE')
+    );
   });
   protected readonly statusLabel = computed(() => {
     if (this.isAppointmentCompleted()) return 'Prestation terminee';
@@ -172,8 +190,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     }
 
     const delta = 0.006;
-    const url =
-      `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - delta}%2C${latitude - delta}%2C${longitude + delta}%2C${latitude + delta}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+    const url = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - delta}%2C${latitude - delta}%2C${longitude + delta}%2C${latitude + delta}&layer=mapnik&marker=${latitude}%2C${longitude}`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   });
   protected readonly remainingDistanceLabel = computed(() => {
@@ -271,7 +288,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   }
 
   protected serviceDescriptionLabel(appointment: AppointmentView): string {
-    return appointment.notes?.trim() || 'Aucune note particuliere n a ete ajoutee a ce rendez-vous.';
+    return (
+      appointment.notes?.trim() || 'Aucune note particuliere n a ete ajoutee a ce rendez-vous.'
+    );
   }
 
   protected setRating(rating: number): void {
@@ -282,7 +301,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isSubmittingReview.set(true);
     this.appointmentsService.submitReview(appointment.id, rating).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.isSubmittingReview.set(false);
         this.feedback.success('Merci, votre avis a ete enregistre.');
       },
@@ -369,7 +390,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isHandlingPriceAdjustment.set(true);
     this.appointmentsService.acceptPriceAdjustment(appointment.id).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.isHandlingPriceAdjustment.set(false);
         this.feedback.success('Ajustement du prix accepte.');
       },
@@ -386,7 +409,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isHandlingPriceAdjustment.set(true);
     this.appointmentsService.rejectPriceAdjustment(appointment.id).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.isHandlingPriceAdjustment.set(false);
         this.feedback.success('Ajustement du prix refuse.');
       },
@@ -395,6 +420,12 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
         this.feedback.error('Impossible de refuser cet ajustement pour le moment.');
       },
     });
+  }
+
+  protected submitNegotiation(appointment: AppointmentView, proposedPrice: number): void {
+    this.priceAdjustmentForm.proposedPrice = proposedPrice;
+    this.priceAdjustmentForm.reason = 'Ajustement propose depuis la negociation de reservation.';
+    this.submitPriceAdjustment(appointment);
   }
 
   protected openRescheduleModal(appointment: AppointmentView): void {
@@ -420,7 +451,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       .rescheduleAppointment(appointment.id, { newDateTime: date.toISOString() })
       .subscribe({
         next: (updated) => {
-          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.appointment.update((current) =>
+            this.mergeAppointment(current ?? appointment, updated),
+          );
           this.isUpdatingStatus.set(false);
           this.isRescheduleModalOpen.set(false);
           this.feedback.success('Rendez-vous reprogramme.');
@@ -439,7 +472,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       .cancelAppointment(appointment.id, 'Annulation demandee depuis le detail du rendez-vous.')
       .subscribe({
         next: (updated) => {
-          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.appointment.update((current) =>
+            this.mergeAppointment(current ?? appointment, updated),
+          );
           this.isUpdatingStatus.set(false);
           this.feedback.success('Rendez-vous annule.');
         },
@@ -479,7 +514,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       .proposePriceAdjustment(appointment.id, { proposedPrice, reason })
       .subscribe({
         next: (updated) => {
-          this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+          this.appointment.update((current) =>
+            this.mergeAppointment(current ?? appointment, updated),
+          );
           this.isHandlingPriceAdjustment.set(false);
           this.isPriceAdjustmentModalOpen.set(false);
           this.feedback.success('Ajustement de prix envoye au client.');
@@ -496,7 +533,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isUpdatingStatus.set(true);
     this.appointmentsService.markNoShow(appointment.id).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.isUpdatingStatus.set(false);
         this.feedback.success('Absence signalee sur ce rendez-vous.');
       },
@@ -511,10 +550,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     await this.transitionOnTheWay(appointment, false);
   }
 
-  private async transitionOnTheWay(
-    appointment: AppointmentView,
-    silent: boolean,
-  ): Promise<void> {
+  private async transitionOnTheWay(appointment: AppointmentView, silent: boolean): Promise<void> {
     if (this.isUpdatingStatus()) return;
 
     this.isUpdatingStatus.set(true);
@@ -530,7 +566,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       error: () => {
         this.isUpdatingStatus.set(false);
         if (!silent) {
-          this.feedback.error("Impossible d'activer le suivi en route. Verifiez que la reservation est payee.");
+          this.feedback.error(
+            "Impossible d'activer le suivi en route. Verifiez que la reservation est payee.",
+          );
         }
       },
     });
@@ -546,7 +584,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isUpdatingStatus.set(true);
     this.appointmentsService.startAppointment(appointment.id).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.refreshTracking(appointment.id);
         this.isUpdatingStatus.set(false);
         if (!silent) {
@@ -572,7 +612,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
     this.isUpdatingStatus.set(true);
     this.appointmentsService.completeAppointment(appointment.id).subscribe({
       next: (updated) => {
-        this.appointment.update((current) => this.mergeAppointment(current ?? appointment, updated));
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
         this.refreshTracking(appointment.id);
         this.isUpdatingStatus.set(false);
         if (!silent) {
@@ -671,11 +713,7 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (
-      appointment.status === 'PAYEE_SEQUESTRE' &&
-      this.isProviderOnTheWay() &&
-      now >= startAt
-    ) {
+    if (appointment.status === 'PAYEE_SEQUESTRE' && this.isProviderOnTheWay() && now >= startAt) {
       this.transitionStartWork(appointment, true);
       return;
     }
@@ -747,11 +785,18 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
   }
 
   private toCalendarDate(value: Date): string {
-    return value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+    return value
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}Z$/, 'Z');
   }
 
   private escapeCalendarText(value: string): string {
-    return value.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
   }
 
   private resolveCurrentLocation(fallbackLabel: string): Promise<{
@@ -774,13 +819,9 @@ export class AppointmentDetailPageComponent implements OnDestroy, OnInit {
             longitude: position.coords.longitude,
             accuracyMeters: position.coords.accuracy,
             headingDegrees:
-              typeof position.coords.heading === 'number'
-                ? position.coords.heading
-                : null,
+              typeof position.coords.heading === 'number' ? position.coords.heading : null,
             speedKmh:
-              typeof position.coords.speed === 'number'
-                ? position.coords.speed * 3.6
-                : null,
+              typeof position.coords.speed === 'number' ? position.coords.speed * 3.6 : null,
             locationLabel: fallbackLabel,
           });
         },

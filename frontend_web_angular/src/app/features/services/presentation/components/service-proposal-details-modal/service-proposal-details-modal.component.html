@@ -1,0 +1,185 @@
+<section
+  class="details-modal"
+  [class.details-modal--address-expanded]="mode === 'address' && isAddressMapExpanded"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="mode"
+>
+  <button
+    type="button"
+    class="details-modal__backdrop"
+    (click)="close.emit()"
+    aria-label="Fermer"
+  ></button>
+  <article class="details-modal__card" [class.details-modal__card--address]="mode === 'address'">
+    <header *ngIf="!isCreatingCustomService">
+      <div>
+        <small *ngIf="mode === 'service'">Selection</small>
+        <small *ngIf="mode === 'schedule'">Calendrier</small>
+        <small *ngIf="mode === 'address'">Localisation</small>
+        <h2 *ngIf="mode === 'service'">Motif de prestation</h2>
+        <h2 *ngIf="mode === 'schedule'">Planifier le RDV</h2>
+        <h2 *ngIf="mode === 'address'">Adresse d'intervention</h2>
+      </div>
+      <button type="button" (click)="close.emit()" aria-label="Fermer la modale">
+        <lucide-icon name="x" size="19" [strokeWidth]="2.5" />
+      </button>
+    </header>
+
+    <div
+      class="details-modal__body details-modal__body--service"
+      *ngIf="mode === 'service' && !isCreatingCustomService"
+    >
+      <button
+        type="button"
+        class="details-modal__custom-service"
+        (click)="openCustomServiceCreation()"
+      >
+        <span><lucide-icon name="handshake" size="18" [strokeWidth]="2.4" /></span>
+        <div>
+          <strong>Autre prestation</strong>
+          <small>Cr&eacute;ez votre prestation sur mesure</small>
+        </div>
+        <em>Nouveau</em>
+      </button>
+
+      <div class="details-modal__service-separator" aria-hidden="true"></div>
+
+      <button
+        *ngFor="let service of services"
+        type="button"
+        class="details-modal__service"
+        [class.active]="service.id === selectedServiceId"
+        (click)="selectService(service.id)"
+      >
+        <span><lucide-icon [name]="serviceIcon(service)" size="19" [strokeWidth]="2.3" /></span>
+        <div>
+          <strong>{{ serviceName(service) }}</strong>
+        </div>
+        <lucide-icon
+          *ngIf="service.id === selectedServiceId"
+          name="check"
+          size="12"
+          [strokeWidth]="3"
+        />
+        <em *ngIf="service.id !== selectedServiceId">Choisir</em>
+      </button>
+    </div>
+
+    <div
+      class="details-modal__custom-creation"
+      *ngIf="mode === 'service' && isCreatingCustomService"
+    >
+      <header class="details-modal__custom-header">
+        <button type="button" (click)="closeCustomServiceCreation()">
+          <lucide-icon name="arrow-left" size="14" [strokeWidth]="2.3" />
+          Retour
+        </button>
+        <div>
+          <small>Cr&eacute;ation</small>
+          <h2>Service personnalis&eacute;</h2>
+        </div>
+      </header>
+
+      <form (ngSubmit)="createCustomService()">
+        <label for="custom-service-name">Quel service souhaitez-vous ?</label>
+        <input
+          id="custom-service-name"
+          name="customServiceName"
+          type="text"
+          minlength="3"
+          maxlength="200"
+          required
+          autocomplete="off"
+          placeholder="ex : Soudure de portail, Peinture..."
+          [(ngModel)]="customServiceName"
+        />
+        <button
+          type="submit"
+          [disabled]="customServiceName.trim().length < 3"
+        >
+          <lucide-icon name="check" size="16" [strokeWidth]="2.6" />
+          Cr&eacute;er ma prestation
+        </button>
+      </form>
+    </div>
+
+    <div class="details-modal__body details-modal__body--schedule" *ngIf="mode === 'schedule'">
+      <label class="details-modal__date">
+        <span><lucide-icon name="calendar" size="12" [strokeWidth]="2.5" /> Choisir la date</span>
+        <input
+          type="date"
+          [min]="minAppointmentDay"
+          [ngModel]="appointmentDay"
+          (ngModelChange)="dayChanged.emit($event)"
+        />
+      </label>
+      <p class="details-modal__availability" [class.loading]="loadingSlots">
+        <lucide-icon
+          [name]="loadingSlots ? 'loader-circle' : 'clock-3'"
+          size="17"
+          [strokeWidth]="2.3"
+        />
+        {{ availabilityLabel }}
+      </p>
+      <div class="details-modal__slots">
+        <button
+          *ngFor="let slot of slots"
+          type="button"
+          [class.active]="isSelectedSlot(slot)"
+          [class.unavailable]="!slot.available"
+          [disabled]="!slot.available"
+          (click)="slotSelected.emit(slot)"
+        >
+          {{ slot.label }}
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="details-modal__body details-modal__body--address"
+      [class.details-modal__body--address-expanded]="isAddressMapExpanded"
+      *ngIf="mode === 'address'"
+    >
+      <div class="details-modal__address-copy">
+        <p>
+          Pointez le curseur de la carte sur votre zone d'intervention ou recherchez une adresse
+          manuellement a l'aide de la barre avec propositions.
+        </p>
+        <button
+          type="button"
+          class="details-modal__gps"
+          [disabled]="locatingAddress"
+          (click)="locate.emit()"
+        >
+          <lucide-icon
+            [name]="locatingAddress ? 'loader-circle' : 'locate-fixed'"
+            size="15"
+            [strokeWidth]="2.5"
+          />
+          {{ locatingAddress ? 'Localisation...' : 'Utiliser ma position actuelle' }}
+        </button>
+      </div>
+
+      <section class="details-modal__map-panel" aria-label="Selectionner sur la carte">
+        <label>Selectionner sur la carte</label>
+        <app-service-proposal-interactive-map
+          [address]="address"
+          [expanded]="isAddressMapExpanded"
+          (addressSelected)="addressChanged.emit($event)"
+          (expandedChange)="isAddressMapExpanded = $event"
+        />
+      </section>
+
+      <button type="button" class="details-modal__address-save" (click)="saveAddress()">
+        Enregistrer l'adresse
+      </button>
+    </div>
+
+    <footer *ngIf="mode === 'schedule'">
+      <button type="button" *ngIf="mode === 'schedule'" (click)="close.emit()">
+        Appliquer la date & heure
+      </button>
+    </footer>
+  </article>
+</section>

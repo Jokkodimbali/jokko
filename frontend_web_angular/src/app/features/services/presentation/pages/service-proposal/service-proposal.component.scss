@@ -1762,3 +1762,15 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+.service-proposal__offer-display{text-align:center}
+.service-proposal__offer-display label{align-items:baseline;display:inline-flex;justify-content:center;margin-inline:auto;width:auto}
+.service-proposal__offer-display input{flex:0 1 auto;min-width:4ch;max-width:10ch;text-align:center;width:7ch}
+.service-proposal__offer-display strong{flex:0 0 auto;padding-bottom:0}
+.service-proposal__steps{grid-template-columns:76px minmax(220px,360px) 76px;justify-content:center;margin-inline:auto;max-width:620px;width:100%}
+.service-proposal__steps-title{justify-self:start}
+.service-proposal__steps output{justify-self:end}
+@media(max-width:640px){
+  .service-proposal__offer-display input{max-width:9ch;width:6.5ch}
+  .service-proposal__steps{grid-template-columns:62px minmax(110px,1fr) 72px;margin-inline:0}
+}

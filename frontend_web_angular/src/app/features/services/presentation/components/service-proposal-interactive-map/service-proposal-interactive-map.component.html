@@ -1,0 +1,67 @@
+<div class="interactive-map" [class.interactive-map--expanded]="expanded">
+  <div class="interactive-map__toolbar">
+    <form class="interactive-map__search" (ngSubmit)="submitSearch()">
+      <lucide-icon name="search" size="14" [strokeWidth]="2.4" />
+      <input
+        #searchInput
+        type="text"
+        [ngModel]="searchQuery"
+        name="searchQuery"
+        (ngModelChange)="updateSearch($event)"
+        placeholder="Rechercher une avenue, quartier, lieu..."
+        aria-label="Rechercher une adresse"
+        autocomplete="off"
+      />
+      <button type="submit" [disabled]="isSearching" aria-label="Rechercher l'adresse">
+        <lucide-icon
+          [name]="isSearching ? 'loader-circle' : 'corner-down-left'"
+          size="13"
+          [strokeWidth]="2.5"
+        />
+      </button>
+    </form>
+
+    <div class="interactive-map__styles" aria-label="Style de carte">
+      <button
+        type="button"
+        [class.active]="mapStyle === 'roadmap'"
+        (click)="setMapStyle('roadmap')"
+        aria-label="Carte plan"
+      >
+        <lucide-icon name="map" size="14" [strokeWidth]="2.4" />
+      </button>
+      <button
+        type="button"
+        [class.active]="mapStyle === 'satellite'"
+        (click)="setMapStyle('satellite')"
+        aria-label="Carte satellite"
+      >
+        <lucide-icon name="globe" size="14" [strokeWidth]="2.4" />
+      </button>
+    </div>
+  </div>
+
+  <div class="interactive-map__canvas-wrap">
+    <button
+      type="button"
+      class="interactive-map__expand"
+      (click)="toggleExpanded()"
+      *ngIf="!loading"
+    >
+      <lucide-icon [name]="expanded ? 'minimize-2' : 'maximize-2'" size="11" [strokeWidth]="2.5" />
+      {{ expanded ? 'Reduire' : 'Agrandir' }}
+    </button>
+
+    <div class="interactive-map__loading" *ngIf="loading">
+      <lucide-icon name="loader-circle" size="24" [strokeWidth]="2.4" />
+      <span>Chargement de la carte...</span>
+    </div>
+
+    <div #mapContainer class="interactive-map__canvas"></div>
+  </div>
+
+  <p class="interactive-map__status" *ngIf="geocodingStatus">
+    <lucide-icon name="check" size="13" [strokeWidth]="2.6" />
+    {{ geocodingStatus }}
+  </p>
+</div>

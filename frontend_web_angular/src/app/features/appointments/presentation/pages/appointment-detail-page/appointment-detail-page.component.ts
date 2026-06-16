@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
@@ -19,6 +19,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentTrackingView, AppointmentView } from '../../../domain/appointments.models';
 import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
@@ -40,6 +41,14 @@ type LeafletLayerInstance = {
   setLatLng?: (latlng: [number, number]) => void;
   setLatLngs?: (latlngs: Array<[number, number]>) => void;
 };
+type AppointmentDetailUiState =
+  | 'loading'
+  | 'error'
+  | 'completed'
+  | 'working'
+  | 'route'
+  | 'upcoming'
+  | 'negotiation';
 
 @Component({
   selector: 'app-appointment-detail-page',
@@ -81,7 +90,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly appointmentsService = inject(AppointmentsService);
+  private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
   private trackingSubscription?: Subscription;
@@ -214,14 +225,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return `${sign} ${this.formatCurrency(Math.abs(delta))}`;
   });
   protected readonly isProviderWorking = computed(() => {
-    if (this.isAppointmentCompleted()) return false;
+    const appointment = this.appointment();
+    if (!appointment || this.isAppointmentCompleted() || !this.canShowLiveTracking(appointment)) {
+      return false;
+    }
+
     const tracking = this.tracking();
-    return (
-      tracking?.presence.status === 'EN_PRESTATION' || this.appointment()?.status === 'EN_COURS'
-    );
+    return tracking?.presence.status === 'EN_PRESTATION' || appointment.status === 'EN_COURS';
   });
   protected readonly isProviderOnTheWay = computed(() => {
-    if (this.isAppointmentCompleted()) return false;
+    const appointment = this.appointment();
+    if (!appointment || this.isAppointmentCompleted() || !this.canShowLiveTracking(appointment)) {
+      return false;
+    }
+
     const tracking = this.tracking();
     return (
       !this.isProviderWorking() &&
@@ -297,6 +314,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (minutes <= 0) return 0;
     return Math.max(18, Math.min(82, 100 - minutes * 4));
   });
+  protected readonly routeProgressLabel = computed(() => `${this.routeProgress()}%`);
+  protected readonly routeDistanceLabel = computed(() => {
+    const distance = this.routeDistanceKm();
+    return distance !== null && distance > 0 ? this.formatDistance(distance) : '-- km';
+  });
+  protected readonly routeEtaLabel = computed(() => {
+    const minutes = this.estimatedArrivalMinutes();
+    return minutes > 0 ? `${minutes} min` : '-- min';
+  });
+  protected readonly routeDestinationTitle = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return 'Destination';
+
+    return `Destination de ${appointment.serviceName}`;
+  });
   protected readonly lastPositionLabel = computed(() => {
     const tracking = this.tracking();
     return (
@@ -341,6 +373,88 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     startDate.setMinutes(startDate.getMinutes() + (appointment.durationMinutes || 30));
     return this.formatTimeFromDate(startDate);
   });
+  protected readonly showUpcomingDetail = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      !this.isAppointmentCompleted() &&
+      !this.hasPendingPriceAdjustment() &&
+      (appointment.status === 'CONFIRMEE' || appointment.status === 'PAYEE_SEQUESTRE') &&
+      this.isAppointmentInFuture(appointment)
+    );
+  });
+  protected readonly showImmersiveDetail = computed(
+    () => this.showUpcomingDetail() || this.isProviderOnTheWay(),
+  );
+  protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
+    if (this.isLoading()) return 'loading';
+    if (this.errorMessage()) return 'error';
+    if (this.isAppointmentCompleted()) return 'completed';
+    if (this.isProviderWorking()) return 'working';
+    if (this.isProviderOnTheWay()) return 'route';
+    if (this.showUpcomingDetail()) return 'upcoming';
+    return 'negotiation';
+  });
+  protected readonly upcomingCountdownLabel = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return 'A venir';
+
+    const scheduledAt = new Date(appointment.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) return 'A venir';
+
+    const today = new Date();
+    const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const startAppointment = new Date(
+      scheduledAt.getFullYear(),
+      scheduledAt.getMonth(),
+      scheduledAt.getDate(),
+    ).getTime();
+    const days = Math.ceil((startAppointment - startToday) / 86400000);
+
+    if (days <= 0) return "Aujourd'hui";
+    if (days === 1) return 'Demain';
+    return `Dans ${days} jours`;
+  });
+  protected readonly upcomingPreparationProgress = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return 20;
+
+    const scheduledAt = new Date(appointment.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) return 20;
+
+    const hoursRemaining = (scheduledAt.getTime() - Date.now()) / 3600000;
+    if (hoursRemaining <= 6) return 90;
+    if (hoursRemaining <= 24) return 70;
+    if (hoursRemaining <= 72) return 45;
+    return 20;
+  });
+  protected readonly reservationNumberLabel = computed(() => {
+    const id = this.appointment()?.id ?? '';
+    const compact = id.replace(/-/g, '').toUpperCase();
+    return `#RDV-${compact.slice(0, 4) || '----'}-${compact.slice(-5) || '-----'}`;
+  });
+  protected readonly upcomingMissionItems = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return [];
+
+    const rawItems = (appointment.notes || '')
+      .split(/\n|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const items = rawItems.length
+      ? rawItems
+      : [
+          appointment.serviceName,
+          `Adresse: ${appointment.addressLabel}`,
+          `Rendez-vous a ${appointment.timeLabel}`,
+        ];
+
+    return items.slice(0, 3).map((label, index) => ({
+      code: `INFO${index + 1}`,
+      label,
+      caption: `Detail ${index + 1}`,
+    }));
+  });
 
   ngOnInit(): void {
     const appointmentId = this.route.snapshot.paramMap.get('id');
@@ -365,7 +479,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected goBack(): void {
     const returnUrl = this.safeReturnUrl();
-    this.router.navigateByUrl(returnUrl || '/appointments');
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    this.location.back();
   }
 
   protected durationLabel(appointment: AppointmentView): string {
@@ -478,6 +597,45 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     return `https://www.openstreetmap.org/search?query=${destination}`;
+  }
+
+  protected messageProvider(appointment: AppointmentView): void {
+    this.messagesService
+      .createConversation({
+        reservationId: appointment.id,
+        professionalProfileId: appointment.professionalId,
+      })
+      .subscribe({
+        next: (conversation) => {
+          this.router.navigate(['/messages'], {
+            queryParams: {
+              conversationId: conversation.id,
+              professionalId: appointment.professionalId,
+              providerName: appointment.doctorName,
+              serviceName: appointment.serviceName,
+              reservationId: appointment.id,
+              appointmentDate: appointment.scheduledAt,
+              address: appointment.addressLabel,
+              status: appointment.status,
+            },
+          });
+        },
+        error: () => {
+          this.feedback.error("Impossible d'ouvrir la discussion avec ce prestataire.");
+        },
+      });
+  }
+
+  protected contactProviderByPhone(): void {
+    this.feedback.info('Le contact telephonique sera disponible depuis la messagerie.');
+  }
+
+  protected reportAppointment(): void {
+    this.feedback.info('Le signalement sera rattache a ce rendez-vous dans votre espace litige.');
+  }
+
+  protected showQrPendingMessage(): void {
+    this.feedback.info('Le QR code sera disponible le jour de la prestation.');
   }
 
   protected acceptPriceAdjustment(appointment: AppointmentView): void {
@@ -899,6 +1057,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       scheduledAt.getMonth() === today.getMonth() &&
       scheduledAt.getDate() === today.getDate()
     );
+  }
+
+  private isAppointmentInFuture(appointment: AppointmentView): boolean {
+    const scheduledAt = new Date(appointment.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) return false;
+
+    return scheduledAt.getTime() > Date.now();
+  }
+
+  private canShowLiveTracking(appointment: AppointmentView): boolean {
+    return !this.isAppointmentInFuture(appointment) || this.isServiceDay(appointment);
   }
 
   private async initializeLeafletMaps(): Promise<void> {

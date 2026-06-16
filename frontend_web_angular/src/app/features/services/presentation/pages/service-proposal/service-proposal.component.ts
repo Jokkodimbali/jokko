@@ -1,9 +1,8 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewChecked,
   Component,
-  ElementRef,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -32,6 +31,10 @@ import {
   BackendProfessionalDetailService,
   ProviderProfileDetail,
 } from '../../../domain/models/services.models';
+import {
+  ProposalDetailsModal,
+  ServiceProposalDetailsModalComponent,
+} from '../../components/service-proposal-details-modal/service-proposal-details-modal.component';
 
 type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'VISA';
 
@@ -94,21 +97,19 @@ type GoogleMapsNamespace = {
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    LucideAngularModule,
-  ],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ServiceProposalDetailsModalComponent],
   templateUrl: './service-proposal.component.html',
-  styleUrl: './service-proposal.component.scss',
+  styleUrls: [
+    './service-proposal.component.scss',
+    './service-proposal-redesign.component.scss',
+  ],
 })
 export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, OnInit {
-  @ViewChild('addressInput')
-  private readonly addressInput?: ElementRef<HTMLInputElement>;
+  @ViewChild(ServiceProposalDetailsModalComponent)
+  private readonly detailsModal?: ServiceProposalDetailsModalComponent;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly messagesService = inject(MessagesService);
@@ -136,9 +137,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly isLoadingAddressSuggestions = signal(false);
   protected readonly isAddressSuggestionsOpen = signal(false);
   protected readonly isLocatingAddress = signal(false);
+  protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
   private googleAutocompleteAttached = false;
-  private addressSuggestionTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private addressSuggestionAbortController: AbortController | null = null;
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -148,9 +148,12 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly selectedServiceId = signal(
     this.route.snapshot.queryParamMap.get('serviceId') || '',
   );
+  protected readonly customServiceName = signal('');
   protected readonly selectedPayment = signal<PaymentMethod>('WAVE');
 
-  protected readonly appointmentDate = signal(this.toDateInputValue(this.getDefaultAppointmentDate()));
+  protected readonly appointmentDate = signal(
+    this.toDateInputValue(this.getDefaultAppointmentDate()),
+  );
   protected readonly address = signal('');
   protected readonly offerAmount = signal(0);
   protected readonly durationMinutes = 60;
@@ -224,7 +227,12 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       .find((item) => item.proposePar === 'PRESTATAIRE' && Number.isFinite(Number(item.montant)));
 
     return Math.trunc(
-      Number(lastProviderProposal?.montant ?? proposal.service?.prix ?? this.currentService()?.prix ?? proposal.montantInitial),
+      Number(
+        lastProviderProposal?.montant ??
+          proposal.service?.prix ??
+          this.currentService()?.prix ??
+          proposal.montantInitial,
+      ),
     );
   });
   protected readonly providerBaseOfferLabel = computed(() =>
@@ -265,7 +273,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly providerProposalFinalized = computed(() => {
     const proposal = this.pendingProposal();
     if (!proposal) return null;
-    return proposal.reservationId || proposal.statut === 'CONVERTIE_EN_RESERVATION' ? proposal : null;
+    return proposal.reservationId || proposal.statut === 'CONVERTIE_EN_RESERVATION'
+      ? proposal
+      : null;
   });
   protected readonly providerFinalizedAmountLabel = computed(() =>
     this.formatAmount(
@@ -277,7 +287,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly providerFinalizedComparisonLabel = computed(() => {
     const base = this.toPositiveAmount(this.providerBaseOfferAmount());
     const accepted = this.toPositiveAmount(
-      this.providerProposalFinalized()?.montantAccepte ?? this.providerProposalFinalized()?.montantCourant,
+      this.providerProposalFinalized()?.montantAccepte ??
+        this.providerProposalFinalized()?.montantCourant,
     );
 
     if (!base || !accepted || base === accepted) return 'Prix initial';
@@ -286,22 +297,32 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly providerFinalizedComparisonAmountLabel = computed(() => {
     const base = this.toPositiveAmount(this.providerBaseOfferAmount());
     const accepted = this.toPositiveAmount(
-      this.providerProposalFinalized()?.montantAccepte ?? this.providerProposalFinalized()?.montantCourant,
+      this.providerProposalFinalized()?.montantAccepte ??
+        this.providerProposalFinalized()?.montantCourant,
     );
 
     if (!base || !accepted || base === accepted) return '0 FCFA';
     return `${accepted > base ? '+' : '-'}${this.formatAmount(Math.abs(accepted - base))} FCFA`;
   });
 
-  protected readonly categoryLabel = computed(() => this.currentService()?.nom || 'Service Jokko');
+  protected readonly categoryLabel = computed(
+    () => this.customServiceName() || this.currentService()?.nom || 'Service Jokko',
+  );
   protected readonly isFixedPriceService = computed(
-    () => this.currentService()?.typePrix === 'FIXE',
+    () => !this.customServiceName() && this.currentService()?.typePrix === 'FIXE',
   );
   protected readonly pageTitle = computed(() =>
     this.isFixedPriceService()
-      ? "Confirmez votre rendez-vous"
-      : "Proposez un prix et choisissez votre rendez-vous",
+      ? 'Confirmez votre rendez-vous'
+      : 'Proposez un prix et choisissez votre rendez-vous',
   );
+  protected readonly finalReservationTitle = computed(() =>
+    this.isFixedPriceService() ? 'Reservation finale' : 'Reservation finale',
+  );
+  protected readonly providerOnlineLabel = computed(() => {
+    const presence = this.detail()?.presence;
+    return presence?.isOnline ? 'En ligne' : 'Disponible';
+  });
   protected readonly priceSectionTitle = computed(() =>
     this.isFixedPriceService() ? 'Tarif fixe du service' : 'Proposez un prix au prestataire',
   );
@@ -321,6 +342,13 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     return this.isFixedPriceService() ? 'Confirmer le rendez-vous' : 'Envoyer la proposition';
   });
+  protected readonly submitButtonVisualLabel = computed(() =>
+    this.isSubmitting()
+      ? this.submitButtonLabel()
+      : this.isOfferAdjusted()
+        ? 'Envoyer la contre-offre'
+        : 'Finaliser la reservation',
+  );
 
   protected readonly ratingLabel = computed(() => {
     const profile = this.detail()?.profile;
@@ -337,7 +365,10 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(date).toUpperCase().replace('.', '');
+    })
+      .format(date)
+      .toUpperCase()
+      .replace('.', '');
   });
 
   protected readonly formattedTime = computed(() => {
@@ -361,18 +392,49 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     const servicePrice = Number(this.currentService()?.prix ?? 0);
     const offer = Number(this.offerAmount());
 
-    if (!Number.isFinite(servicePrice) || servicePrice <= 0 || !Number.isFinite(offer) || offer <= 0) {
+    if (
+      !Number.isFinite(servicePrice) ||
+      servicePrice <= 0 ||
+      !Number.isFinite(offer) ||
+      offer <= 0
+    ) {
       return 'Montant a confirmer avec le prestataire';
     }
 
     const difference = Math.trunc(Math.abs(offer - servicePrice));
     if (difference === 0) {
-      return "Votre offre correspond au prix initial du service";
+      return 'Votre offre correspond au prix initial du service';
     }
 
-    const direction = offer < servicePrice ? "moins cher que l'offre du prestataire" : "plus que l'offre du prestataire";
+    const direction =
+      offer < servicePrice
+        ? "moins cher que l'offre du prestataire"
+        : "plus que l'offre du prestataire";
     return `${this.formatAmount(difference)} FCFA ${direction}`;
   });
+  protected readonly isOfferAdjusted = computed(() => {
+    if (this.isFixedPriceService()) {
+      return false;
+    }
+
+    const servicePrice = Math.trunc(Number(this.currentService()?.prix ?? 0));
+    const offer = Math.trunc(Number(this.offerAmount()));
+    return servicePrice > 0 && offer > 0 && servicePrice !== offer;
+  });
+  protected readonly offerDifferenceIcon = computed(() => {
+    const servicePrice = Number(this.currentService()?.prix ?? 0);
+    const offer = Number(this.offerAmount());
+    if (!servicePrice || !offer || servicePrice === offer) {
+      return 'check';
+    }
+
+    return offer < servicePrice ? 'arrow-down' : 'arrow-up-right';
+  });
+  protected readonly offerEquityLabel = computed(() =>
+    this.isFixedPriceService()
+      ? 'Tarif du prestataire, pret a etre reserve.'
+      : 'Offre equitable pour le prestataire, pret a etre reserve.',
+  );
 
   protected readonly shortAddress = computed(() => this.truncate(this.address(), 28));
   protected readonly formattedOffer = computed(() => this.formatAmount(this.offerAmount()));
@@ -401,17 +463,22 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly counterActionLabel = computed(() => {
     const proposal = this.pendingProposal();
     if (!proposal) return "valider l'offre";
-    return this.offerAmount() === proposal.montantCourant ? "valider l'offre" : 'Envoyer ma contre-offre';
+    return this.offerAmount() === proposal.montantCourant
+      ? "valider l'offre"
+      : 'Envoyer ma contre-offre';
   });
   protected readonly acceptedAmountLabel = computed(() =>
     this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount()),
   );
-  protected readonly acceptedTotalLabel = computed(() =>
-    `${this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount())} FCFA`,
+  protected readonly acceptedTotalLabel = computed(
+    () =>
+      `${this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount())} FCFA`,
   );
   protected readonly acceptedDateTimeLabel = computed(() => {
     const accepted = this.acceptedReservation();
-    return accepted ? this.formatAcceptedDateTime(accepted.dateHeure) : `${this.formattedDate()} a ${this.formattedTime()}`;
+    return accepted
+      ? this.formatAcceptedDateTime(accepted.dateHeure)
+      : `${this.formattedDate()} a ${this.formattedTime()}`;
   });
   protected readonly acceptedDateLabel = computed(() => {
     const accepted = this.acceptedReservation();
@@ -421,12 +488,15 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     const accepted = this.acceptedReservation();
     return accepted ? this.formatAcceptedTime(accepted.dateHeure) : this.formattedTime();
   });
-  protected readonly acceptedAddressLabel = computed(() =>
-    this.acceptedReservation()?.adresseClient || this.address().trim() || 'Adresse a confirmer',
+  protected readonly acceptedAddressLabel = computed(
+    () =>
+      this.acceptedReservation()?.adresseClient || this.address().trim() || 'Adresse a confirmer',
   );
   protected readonly acceptedComparisonLabel = computed(() => {
     const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
-    const acceptedAmount = this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant);
+    const acceptedAmount = this.toPositiveAmount(
+      this.acceptedReservation()?.proposal.montantCourant,
+    );
 
     if (!servicePrice) {
       return 'Prix initial';
@@ -440,7 +510,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   });
   protected readonly acceptedComparisonAmountLabel = computed(() => {
     const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
-    const acceptedAmount = this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant);
+    const acceptedAmount = this.toPositiveAmount(
+      this.acceptedReservation()?.proposal.montantCourant,
+    );
 
     if (!servicePrice) {
       return 'A confirmer';
@@ -493,7 +565,11 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   }
 
   ngAfterViewChecked(): void {
-    if (this.addressInput && environment.googleMapsApiKey && !this.googleAutocompleteAttached) {
+    if (
+      this.detailsModal?.getAddressInputElement() &&
+      environment.googleMapsApiKey &&
+      !this.googleAutocompleteAttached
+    ) {
       this.initializeAddressSuggestions();
     }
   }
@@ -503,16 +579,22 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       clearTimeout(this.availabilityCheckTimeoutId);
     }
 
-    if (this.addressSuggestionTimeoutId) {
-      clearTimeout(this.addressSuggestionTimeoutId);
-    }
-
-    this.addressSuggestionAbortController?.abort();
     this.stopProposalRefresh();
   }
 
   protected goBack(): void {
-    this.location.back();
+    const returnUrl = this.safeReturnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    if (this.isProviderProposalMode) {
+      this.router.navigate(['/prestataire/espace']);
+      return;
+    }
+
+    this.router.navigate(['/services', this.profileId || this.detail()?.profile.id || '']);
   }
 
   protected selectPayment(method: PaymentMethod): void {
@@ -525,6 +607,45 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     if (this.isProviderProposalMode && this.canProviderRespond()) {
       this.isProviderOfferDirty.set(true);
     }
+  }
+
+  protected openDetailsModal(modal: ProposalDetailsModal): void {
+    this.activeDetailsModal.set(modal);
+    if (modal === 'address') {
+      this.initializeAddressSuggestions();
+      this.handleAddressFocus();
+    }
+  }
+
+  protected closeDetailsModal(): void {
+    this.activeDetailsModal.set(null);
+    this.isAddressSuggestionsOpen.set(false);
+  }
+
+  protected selectService(serviceId: string): void {
+    const service = this.detail()?.services.find((item) => item.id === serviceId);
+    if (!service) return;
+
+    this.customServiceName.set('');
+    this.selectedServiceId.set(service.id);
+    this.offerAmount.set(service.prix ?? 0);
+    this.availabilityStatus.set(null);
+    this.availabilitySlots.set([]);
+    this.scheduleAvailabilityCheck();
+  }
+
+  protected selectCustomService(name: string): void {
+    const normalizedName = name.trim().replace(/\s+/g, ' ');
+    if (normalizedName.length < 3 || normalizedName.length > 200) {
+      this.feedback.info('Le motif doit contenir entre 3 et 200 caracteres.');
+      return;
+    }
+
+    this.customServiceName.set(normalizedName);
+    this.availabilityStatus.set(null);
+    this.availabilitySlots.set([]);
+    this.scheduleAvailabilityCheck();
+    this.feedback.success('Le nouveau motif a ete ajoute a votre proposition.');
   }
 
   protected respondToClientProposal(): void {
@@ -549,7 +670,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return;
     }
     if (amount === Math.trunc(proposal.montantCourant)) {
-      this.feedback.info('La contre-proposition doit être différente du montant proposé par le client.');
+      this.feedback.info(
+        'La contre-proposition doit être différente du montant proposé par le client.',
+      );
       return;
     }
 
@@ -605,22 +728,33 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     if (!proposal || !this.canProviderRespond() || this.isProviderProposalSubmitting()) return;
 
     this.isProviderProposalSubmitting.set(true);
-    this.proposalService.rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.').subscribe({
-      next: (updated) => {
-        this.pendingProposal.set(updated);
-        this.isProviderOfferDirty.set(false);
-        this.isProviderProposalSubmitting.set(false);
-        this.feedback.success('La proposition a été refusée.');
-      },
-      error: (error) => {
-        this.isProviderProposalSubmitting.set(false);
-        this.handleProposalError(error);
-      },
-    });
+    this.proposalService
+      .rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.')
+      .subscribe({
+        next: (updated) => {
+          this.pendingProposal.set(updated);
+          this.isProviderOfferDirty.set(false);
+          this.isProviderProposalSubmitting.set(false);
+          this.feedback.success('La proposition a été refusée.');
+        },
+        error: (error) => {
+          this.isProviderProposalSubmitting.set(false);
+          this.handleProposalError(error);
+        },
+      });
   }
 
   protected selectOfferStep(step: number): void {
     this.selectedOfferStep.set(step);
+  }
+
+  protected updateOfferStep(value: number | string): void {
+    const step = Math.trunc(Number(value));
+    if (!Number.isFinite(step)) {
+      return;
+    }
+
+    this.selectedOfferStep.set(Math.min(1000, Math.max(100, step)));
   }
 
   protected decreaseOffer(): void {
@@ -640,7 +774,10 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return;
     }
 
-    const nextAmount = Math.min(10_000_000, Math.trunc(this.offerAmount() + this.selectedOfferStep()));
+    const nextAmount = Math.min(
+      10_000_000,
+      Math.trunc(this.offerAmount() + this.selectedOfferStep()),
+    );
     this.offerAmount.set(nextAmount);
     if (this.isProviderProposalMode && this.canProviderRespond()) {
       this.isProviderOfferDirty.set(true);
@@ -662,19 +799,21 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return;
     }
 
-    this.messagesService.createConversation({ professionalProfileId: service.profilProfessionnelId }).subscribe({
-      next: (conversation) => {
-        this.router.navigate(['/messages'], {
-          queryParams: {
-            conversationId: conversation.id,
-            professionalId: service.profilProfessionnelId,
-            providerName: this.displayName(),
-            serviceName: service.nom || this.categoryLabel(),
-          },
-        });
-      },
-      error: (error) => this.handleProposalError(error),
-    });
+    this.messagesService
+      .createConversation({ professionalProfileId: service.profilProfessionnelId })
+      .subscribe({
+        next: (conversation) => {
+          this.router.navigate(['/messages'], {
+            queryParams: {
+              conversationId: conversation.id,
+              professionalId: service.profilProfessionnelId,
+              providerName: this.displayName(),
+              serviceName: service.nom || this.categoryLabel(),
+            },
+          });
+        },
+        error: (error) => this.handleProposalError(error),
+      });
   }
 
   protected cancelPendingProposal(): void {
@@ -684,18 +823,20 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     }
 
     this.isCancellingProposal.set(true);
-    this.proposalService.cancelPriceProposal(proposal.id, 'Annulation demandee par le client.').subscribe({
-      next: () => {
-        this.feedback.success("Votre offre a ete annulee.");
-        this.pendingProposal.set(null);
-        this.stopProposalRefresh();
-        this.isCancellingProposal.set(false);
-      },
-      error: (error) => {
-        this.isCancellingProposal.set(false);
-        this.handleProposalError(error);
-      },
-    });
+    this.proposalService
+      .cancelPriceProposal(proposal.id, 'Annulation demandee par le client.')
+      .subscribe({
+        next: () => {
+          this.feedback.success('Votre offre a ete annulee.');
+          this.pendingProposal.set(null);
+          this.stopProposalRefresh();
+          this.isCancellingProposal.set(false);
+        },
+        error: (error) => {
+          this.isCancellingProposal.set(false);
+          this.handleProposalError(error);
+        },
+      });
   }
 
   protected respondToProviderCounterOffer(): void {
@@ -769,7 +910,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     this.loadGoogleMapsPlacesScript()
       .then(() => {
-        const input = this.addressInput?.nativeElement;
+        const input = this.detailsModal?.getAddressInputElement();
         const autocompleteCtor = this.getGooglePlacesAutocomplete();
         if (!input || !autocompleteCtor) {
           this.mapsSuggestionsUnavailable.set(true);
@@ -808,7 +949,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected updateAddress(value: string): void {
     this.address.set(value);
     this.initializeAddressSuggestions();
-    this.scheduleOpenStreetMapAddressSuggestions(value);
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
@@ -828,7 +968,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     }
 
     this.isLocatingAddress.set(true);
-    this.feedback.info('Autorisez le partage de votre position pour renseigner votre adresse exacte.');
+    this.feedback.info(
+      'Autorisez le partage de votre position pour renseigner votre adresse exacte.',
+    );
 
     let bestPosition: GeolocationPosition | null = null;
     let completed = false;
@@ -859,30 +1001,20 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       const { latitude, longitude, accuracy } = bestPosition.coords;
       const gpsLabel = this.formatExactGpsLabel(latitude, longitude, accuracy);
 
-      this.resolveOpenStreetMapAddressFromCoordinates(latitude, longitude)
-        .then((label) => {
-          this.address.set(label ? `${label} - ${gpsLabel}` : gpsLabel);
-          this.addressSuggestions.set([]);
-          this.isAddressSuggestionsOpen.set(false);
-          this.feedback.success(
-            accuracy
-              ? `Position exacte recuperee avec une precision d'environ ${Math.round(accuracy)} m.`
-              : 'Position exacte recuperee.',
-          );
-        })
-        .catch(() => {
-          this.address.set(gpsLabel);
-          this.feedback.info('Position exacte recuperee. Le nom de la localisation nest pas disponible.');
-        })
-        .finally(() => this.isLocatingAddress.set(false));
+      this.address.set(gpsLabel);
+      this.addressSuggestions.set([]);
+      this.isAddressSuggestionsOpen.set(false);
+      this.isLocatingAddress.set(false);
+      this.feedback.success(
+        accuracy
+          ? `Position exacte recuperee avec une precision d'environ ${Math.round(accuracy)} m.`
+          : 'Position exacte recuperee.',
+      );
     };
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
-        if (
-          !bestPosition ||
-          position.coords.accuracy < bestPosition.coords.accuracy
-        ) {
+        if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
           bestPosition = position;
         }
 
@@ -893,7 +1025,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       () => {
         this.isLocatingAddress.set(false);
         stopWatching();
-        this.feedback.info('Autorisez la localisation precise pour renseigner automatiquement votre adresse.');
+        this.feedback.info(
+          'Autorisez la localisation precise pour renseigner automatiquement votre adresse.',
+        );
       },
       {
         enableHighAccuracy: true,
@@ -1042,7 +1176,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
         next: (reservation) => {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
           if (reservation.id) {
-            this.router.navigate(['/appointments', reservation.id, 'payment']);
+            this.router.navigate(['/appointments', reservation.id, 'payment'], {
+              queryParams: { returnUrl: this.router.url },
+            });
             return;
           }
 
@@ -1057,19 +1193,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   private showPendingProposal(proposal: NegotiationView, draft: ReservationDraft): void {
     this.acceptedReservation.set(null);
-    this.pendingProposal.set(proposal);
-    this.offerAmount.set(proposal.montantCourant || draft.amount);
-    if (proposal.statut === 'EN_ATTENTE_CLIENT') {
-      this.selectedOfferStep.set(1000);
-    }
-    if (proposal.dateHeureProposee) {
-      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
-    }
-    if (proposal.adresseClientProposee?.trim()) {
-      this.address.set(proposal.adresseClientProposee.trim());
-    }
+    this.applyPendingProposalState(proposal, { fallbackAmount: draft.amount });
     this.isSubmitting.set(false);
-    this.startProposalRefresh(proposal.id);
   }
 
   private acceptProviderCounterOffer(proposal: NegotiationView): void {
@@ -1104,7 +1229,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
           dureeMinutes: this.durationMinutes,
           paymentMethod: this.selectedPayment(),
         }),
-        dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? undefined,
+        dateHeure:
+          this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? undefined,
         adresseClient: this.address().trim() || proposal.adresseClientProposee || undefined,
         dureeMinutes: this.durationMinutes,
       })
@@ -1175,7 +1301,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return;
     }
 
-    this.router.navigate(['/appointments', accepted.reservationId, 'payment']);
+    this.router.navigate(['/appointments', accepted.reservationId, 'payment'], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   protected openProviderFinalizedReservation(): void {
@@ -1306,7 +1434,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     forkJoin({
       detail: this.servicesService.getProviderProfileDetail(this.profileId),
-      proposal: this.isProviderProposalMode && this.negotiationId
+      proposal: this.negotiationId
         ? this.proposalService.getPriceProposal(this.negotiationId)
         : of(null as NegotiationView | null),
       user: this.authSession.hasAuthenticatedSession()
@@ -1316,27 +1444,23 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       next: ({ detail, proposal, user }) => {
         this.detail.set(detail);
         if (proposal) {
-          this.pendingProposal.set(proposal);
-          this.selectedServiceId.set(proposal.serviceId);
-          this.offerAmount.set(proposal.montantCourant);
-          this.isProviderOfferDirty.set(false);
-          this.selectedOfferStep.set(1000);
-          this.address.set(
-            proposal.adresseClientProposee || proposal.client?.adresse || '',
-          );
-          if (proposal.dateHeureProposee) {
-            this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+          this.applyPendingProposalState(proposal);
+          this.isLoading.set(false);
+          if (!this.isProviderProposalMode) {
+            this.scheduleAvailabilityCheck();
           }
+          return;
         } else {
           const service = this.currentService();
           this.selectedServiceId.set(service?.id || '');
           this.offerAmount.set(service?.prix ?? 0);
           this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
+          if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
+            this.resumeActiveClientProposal(service);
+            return;
+          }
         }
         this.isLoading.set(false);
-        if (proposal) {
-          this.startProposalRefresh(proposal.id);
-        }
         if (!this.isProviderProposalMode) {
           this.scheduleAvailabilityCheck();
         }
@@ -1348,6 +1472,81 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     });
   }
 
+  private resumeActiveClientProposal(service: BackendProfessionalDetailService): void {
+    this.proposalService.findActiveProposalForService(service.id).subscribe({
+      next: (proposal) => {
+        if (proposal) {
+          this.applyPendingProposalState(proposal);
+        }
+        this.isLoading.set(false);
+        this.scheduleAvailabilityCheck();
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.scheduleAvailabilityCheck();
+      },
+    });
+  }
+
+  private applyPendingProposalState(
+    proposal: NegotiationView,
+    options: { fallbackAmount?: number; syncUrl?: boolean; startRefresh?: boolean } = {},
+  ): void {
+    this.pendingProposal.set(proposal);
+    this.selectedServiceId.set(proposal.serviceId);
+    this.offerAmount.set(proposal.montantCourant || options.fallbackAmount || 0);
+    this.isProviderOfferDirty.set(false);
+
+    if (proposal.statut === 'EN_ATTENTE_CLIENT') {
+      this.selectedOfferStep.set(1000);
+    }
+
+    if (proposal.dateHeureProposee) {
+      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+    }
+
+    const proposedAddress = proposal.adresseClientProposee?.trim() || proposal.client?.adresse || '';
+    if (proposedAddress) {
+      this.address.set(proposedAddress);
+    }
+
+    if (options.syncUrl !== false) {
+      this.syncNegotiationUrl(proposal);
+    }
+
+    if (options.startRefresh !== false) {
+      this.startProposalRefresh(proposal.id);
+    }
+  }
+
+  private syncNegotiationUrl(proposal: NegotiationView): void {
+    const currentNegotiationId = this.route.snapshot.queryParamMap.get('negotiationId');
+    const currentServiceId = this.route.snapshot.queryParamMap.get('serviceId');
+    if (currentNegotiationId === proposal.id && currentServiceId === proposal.serviceId) {
+      return;
+    }
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        negotiationId: proposal.id,
+        serviceId: proposal.serviceId,
+        mode: this.isProviderProposalMode ? 'prestataire' : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private safeReturnUrl(): string | null {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim();
+    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      return null;
+    }
+
+    return returnUrl;
+  }
+
   private resolveInitialAddress(detail: ProviderProfileDetail): string {
     void detail;
     return '';
@@ -1355,7 +1554,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   private buildProposalMessage(draft: ReservationDraft): string {
     return [
-      `Service: ${draft.service.nom || this.categoryLabel()}.`,
+      `Service: ${this.customServiceName() || draft.service.nom || this.categoryLabel()}.`,
       `Proposition de prix: ${this.formatAmount(draft.amount)} FCFA.`,
       `Date souhaitee: ${this.formatProposalDate(draft.dateHeure)}.`,
       `Adresse: ${draft.adresseClient}.`,
@@ -1378,16 +1577,14 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     this.messagesService.createConversation({ professionalProfileId }).subscribe({
       next: (conversation) => {
-        const queryParams = this.buildDiscussionQueryParams(
-          proposal,
-          draft,
-          conversation.id,
-        );
+        const queryParams = this.buildDiscussionQueryParams(proposal, draft, conversation.id);
 
-        this.messagesService.sendMessage(conversation.id, this.buildProposalMessage(draft)).subscribe({
-          next: () => this.navigateToDiscussion(queryParams),
-          error: () => this.navigateToDiscussion(queryParams),
-        });
+        this.messagesService
+          .sendMessage(conversation.id, this.buildProposalMessage(draft))
+          .subscribe({
+            next: () => this.navigateToDiscussion(queryParams),
+            error: () => this.navigateToDiscussion(queryParams),
+          });
       },
       error: (error) => {
         this.isSubmitting.set(false);
@@ -1437,7 +1634,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
           ? draft.amount
           : proposal?.montantCourant || 0,
       providerName: this.displayName(),
-      serviceName: draft.service.nom || this.categoryLabel(),
+      serviceName: this.customServiceName() || draft.service.nom || this.categoryLabel(),
       status: proposal?.statut || 'EN_ATTENTE_PRESTATAIRE',
     };
   }
@@ -1464,9 +1661,10 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return null;
     }
 
-    const amount = service.typePrix === 'FIXE'
-      ? Math.trunc(Number(service.prix))
-      : Math.trunc(Number(this.offerAmount()));
+    const amount =
+      service.typePrix === 'FIXE'
+        ? Math.trunc(Number(service.prix))
+        : Math.trunc(Number(this.offerAmount()));
     if (service.typePrix === 'FIXE' && (!Number.isFinite(amount) || amount <= 0)) {
       this.feedback.info('Ce service fixe doit avoir un tarif renseigne avant la reservation.');
       return null;
@@ -1509,7 +1707,11 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return null;
     }
 
-    if (!Number.isInteger(this.durationMinutes) || this.durationMinutes < 15 || this.durationMinutes > 1440) {
+    if (
+      !Number.isInteger(this.durationMinutes) ||
+      this.durationMinutes < 15 ||
+      this.durationMinutes > 1440
+    ) {
       this.feedback.info('La duree du rendez-vous est invalide.');
       return null;
     }
@@ -1549,10 +1751,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     }, 450);
   }
 
-  private loadAvailabilitySlots(
-    service: BackendProfessionalDetailService,
-    date: string,
-  ): void {
+  private loadAvailabilitySlots(service: BackendProfessionalDetailService, date: string): void {
     this.isLoadingAvailabilitySlots.set(true);
     this.availabilitySlots.set([]);
     this.proposalService
@@ -1615,218 +1814,22 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   }
 
   private getGooglePlacesAutocomplete(): GooglePlacesAutocomplete | undefined {
-    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places?.Autocomplete;
+    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places
+      ?.Autocomplete;
   }
 
-  private scheduleOpenStreetMapAddressSuggestions(value: string): void {
-    const query = value.trim().replace(/\s+/g, ' ');
-
-    if (this.addressSuggestionTimeoutId) {
-      clearTimeout(this.addressSuggestionTimeoutId);
-    }
-
-    if (query.length < 1) {
-      this.addressSuggestionAbortController?.abort();
-      this.addressSuggestions.set([]);
-      this.isAddressSuggestionsOpen.set(false);
-      this.isLoadingAddressSuggestions.set(false);
-      return;
-    }
-
-    this.addressSuggestionTimeoutId = setTimeout(() => {
-      this.loadOpenStreetMapAddressSuggestions(query);
-    }, 320);
-  }
-
-  private loadOpenStreetMapAddressSuggestions(query: string): void {
-    this.addressSuggestionAbortController?.abort();
-    const controller = new AbortController();
-    this.addressSuggestionAbortController = controller;
-    this.isLoadingAddressSuggestions.set(true);
-
-    const params = new URLSearchParams({
-      format: 'jsonv2',
-      addressdetails: '1',
-      countrycodes: 'sn',
-      limit: '6',
-      q: query,
-    });
-
-    fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-      },
-    })
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((items: unknown) => {
-        if (!Array.isArray(items)) {
-          this.addressSuggestions.set([]);
-          this.isAddressSuggestionsOpen.set(false);
-          return;
-        }
-
-        const suggestions = items
-          .map((item, index) => this.mapOpenStreetMapSuggestion(item, index))
-          .filter((item): item is AddressSuggestion => item !== null);
-
-        this.addressSuggestions.set(suggestions);
-        this.isAddressSuggestionsOpen.set(suggestions.length > 0);
-        this.mapsSuggestionsReady.set(true);
-        this.mapsSuggestionsUnavailable.set(false);
-      })
-      .catch((error) => {
-        if ((error as { name?: string })?.name === 'AbortError') {
-          return;
-        }
-
-        this.addressSuggestions.set([]);
-        this.isAddressSuggestionsOpen.set(false);
-        this.mapsSuggestionsUnavailable.set(true);
-      })
-      .finally(() => {
-        if (this.addressSuggestionAbortController === controller) {
-          this.isLoadingAddressSuggestions.set(false);
-        }
-      });
-  }
-
-  private mapOpenStreetMapSuggestion(item: unknown, index: number): AddressSuggestion | null {
-    const value = item as {
-      place_id?: number | string;
-      display_name?: string;
-      name?: string;
-      lat?: string;
-      lon?: string;
-      type?: string;
-      address?: {
-        amenity?: string;
-        road?: string;
-        quarter?: string;
-        neighbourhood?: string;
-        suburb?: string;
-        city?: string;
-        town?: string;
-        village?: string;
-        county?: string;
-        state?: string;
-        country?: string;
-      };
-    };
-
-    const address = value.address ?? {};
-    const label = this.cleanAddressPart(
-      value.name ||
-        address.amenity ||
-        address.road ||
-        address.quarter ||
-        address.neighbourhood ||
-        address.suburb ||
-        address.city ||
-        address.town ||
-        address.village ||
-        value.display_name?.split(',')[0],
-    );
-    if (!label) {
-      return null;
-    }
-
-    const detailParts = [
-      address.neighbourhood,
-      address.suburb,
-      address.city || address.town || address.village,
-      address.state,
-    ]
-      .map((part) => this.cleanAddressPart(part))
-      .filter((part, partIndex, parts): part is string => Boolean(part) && parts.indexOf(part) === partIndex && part !== label);
-    const detail = detailParts.slice(0, 2).join(' - ') || 'Senegal';
-    const latitude = Number(value.lat);
-    const longitude = Number(value.lon);
-
-    return {
-      id: String(value.place_id ?? `${label}-${index}`),
-      label,
-      detail: detail || value.type || 'Adresse au Senegal',
-      latitude: Number.isFinite(latitude) ? latitude : null,
-      longitude: Number.isFinite(longitude) ? longitude : null,
-      source: 'OPENSTREETMAP',
-    };
-  }
-
-  private resolveOpenStreetMapAddressFromCoordinates(
+  private formatExactGpsLabel(
     latitude: number,
     longitude: number,
-  ): Promise<string> {
-    const params = new URLSearchParams({
-      format: 'jsonv2',
-      lat: String(latitude),
-      lon: String(longitude),
-      addressdetails: '1',
-      zoom: '18',
-    });
-
-    return fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-      headers: {
-        Accept: 'application/json',
-      },
-    })
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((item: unknown) => {
-        const value = item as {
-          display_name?: string;
-          name?: string;
-          address?: {
-            amenity?: string;
-            road?: string;
-            quarter?: string;
-            neighbourhood?: string;
-            suburb?: string;
-            city?: string;
-            town?: string;
-            village?: string;
-            state?: string;
-            country?: string;
-          };
-        };
-
-        const address = value.address ?? {};
-        const locality = [
-          address.amenity,
-          address.road,
-          address.quarter,
-          address.neighbourhood,
-          address.suburb,
-          address.city || address.town || address.village,
-          address.state,
-        ]
-          .map((part) => this.cleanAddressPart(part))
-          .filter((part, index, parts): part is string => Boolean(part) && parts.indexOf(part) === index)
-          .slice(0, 4)
-          .join(', ');
-
-        return locality || this.cleanAddressPart(value.display_name) || '';
-      });
-  }
-
-  private formatExactGpsLabel(latitude: number, longitude: number, accuracy: number | null): string {
+    accuracy: number | null,
+  ): string {
     const precision = Number.isFinite(Number(accuracy))
       ? `, precision ${Math.round(Number(accuracy))} m`
       : '';
     return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
   }
 
-  private cleanAddressPart(value: string | null | undefined): string {
-    return (value || '')
-      .replace(/\b(commune|communes|arrondissement|arrondissements|departement|region)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .replace(/^[\s,-]+|[\s,-]+$/g, '')
-      .trim();
-  }
-
-  private checkAvailabilityNow(
-    service: BackendProfessionalDetailService,
-    dateHeure: string,
-  ): void {
+  private checkAvailabilityNow(service: BackendProfessionalDetailService, dateHeure: string): void {
     this.isCheckingAvailability.set(true);
     this.proposalService
       .checkReservationAvailability({
@@ -1864,8 +1867,13 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     return {
       service,
-      amount: Number.isFinite(fallbackAmount) && fallbackAmount > 0 ? Math.trunc(fallbackAmount) : service.prix || 0,
-      dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? this.getDefaultAppointmentDate().toISOString(),
+      amount:
+        Number.isFinite(fallbackAmount) && fallbackAmount > 0
+          ? Math.trunc(fallbackAmount)
+          : service.prix || 0,
+      dateHeure:
+        this.toIsoDateTime(this.appointmentDate()) ??
+        this.getDefaultAppointmentDate().toISOString(),
       adresseClient: this.address().trim() || (detail ? this.resolveInitialAddress(detail) : ''),
       dureeMinutes: this.durationMinutes,
       paymentMethod: this.selectedPayment(),

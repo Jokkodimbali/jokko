@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
@@ -29,7 +30,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly authSession = inject(AuthSessionService);
 
+  protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
   protected readonly isLoading = signal(true);
@@ -40,7 +43,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png' },
     { id: 'ORANGE_MONEY', label: 'Orange Money', logoUrl: '/Orange-Money-logo.png' },
-    { id: 'CARD', label: 'Carte Bancaire', logoUrl: '/logo vissa.avif' },
+    { id: 'CARD', label: 'Carte bancaire', logoUrl: '/logo vissa.avif' },
   ];
 
   protected readonly amountLabel = computed(() =>
@@ -52,6 +55,23 @@ export class AppointmentPaymentPageComponent implements OnInit {
       .format(this.appointment()?.agreedPrice ?? 0)
       .replace(/\s/g, ' '),
   );
+  protected readonly isPaymentConfirmed = computed(() => {
+    const status = this.appointment()?.status;
+    return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS' || status === 'TERMINEE';
+  });
+  protected readonly selectedPaymentOption = computed(
+    () =>
+      this.paymentOptions.find((option) => option.id === this.selectedMethod()) ??
+      this.paymentOptions[0],
+  );
+  protected readonly clientNameLabel = computed(
+    () => this.currentUser()?.name || 'Client Jokko',
+  );
+  protected readonly reservationNumberLabel = computed(() => {
+    const id = this.appointment()?.id ?? '';
+    const compact = id.replace(/-/g, '').toUpperCase();
+    return `#RDV-${compact.slice(0, 4) || '----'}-${compact.slice(-5) || '-----'}`;
+  });
   protected readonly acceptedDateTimeLabel = computed(() => {
     const appointment = this.appointment();
     return appointment ? `${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}` : 'Date a confirmer';
@@ -100,6 +120,20 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected goBack(): void {
+    const returnUrl = this.safeReturnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    const appointment = this.appointment();
+    if (appointment?.id) {
+      this.router.navigate(['/appointments', appointment.id], {
+        queryParams: { returnUrl: '/appointments' },
+      });
+      return;
+    }
+
     this.location.back();
   }
 
@@ -219,10 +253,64 @@ export class AppointmentPaymentPageComponent implements OnInit {
     });
   }
 
+  protected openAppointmentPage(appointment: AppointmentView): void {
+    this.router.navigate(['/appointments', appointment.id], {
+      queryParams: { returnUrl: '/appointments' },
+    });
+  }
+
+  protected goHome(): void {
+    this.router.navigate(['/']);
+  }
+
+  protected downloadReceipt(appointment: AppointmentView): void {
+    const lines = [
+      'Jokko - Recu de paiement',
+      this.reservationNumberLabel(),
+      `Reservation: ${appointment.id}`,
+      `Client: ${this.clientNameLabel()}`,
+      `Prestataire: ${appointment.doctorName}`,
+      `Service: ${appointment.serviceName}`,
+      `Date: ${this.formatPaymentDate(appointment)} - ${appointment.timeLabel}`,
+      `Adresse: ${appointment.addressLabel}`,
+      `Moyen de paiement: ${this.selectedPaymentOption().label}`,
+      `Total paye: ${this.amountLabel()}`,
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `recu-jokko-${appointment.id.slice(0, 8)}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected shareReceipt(appointment: AppointmentView): void {
+    const text = `Paiement confirme sur Jokko: ${appointment.serviceName} avec ${appointment.doctorName}, ${this.amountLabel()}, ${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}.`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ title: 'Reservation Jokko confirmee', text }).catch(() => undefined);
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => this.feedback.success('Informations de reservation copiees.'),
+        () => this.feedback.info(text),
+      );
+      return;
+    }
+
+    this.feedback.info(text);
+  }
+
   private handlePaidAppointment(appointment: AppointmentView): void {
     this.isPaying.set(false);
     if (!this.shouldReturnToMessages()) {
-      this.router.navigate(['/appointments', appointment.id]);
+      this.appointment.set(appointment);
+      this.router.navigate(['/appointments', appointment.id, 'payment'], {
+        queryParams: { confirmed: '1', returnUrl: this.safeReturnUrl() ?? '/appointments' },
+        replaceUrl: true,
+      });
       return;
     }
 
@@ -326,6 +414,15 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   private shouldReturnToMessages(): boolean {
     return this.route.snapshot.queryParamMap.get('returnTo') === 'messages';
+  }
+
+  private safeReturnUrl(): string | null {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim();
+    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      return null;
+    }
+
+    return returnUrl;
   }
 
   protected formatPaymentDate(appointment: AppointmentView): string {

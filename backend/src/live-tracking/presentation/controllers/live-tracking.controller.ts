@@ -105,6 +105,42 @@ export class LiveTrackingController {
     );
   }
 
+  @Patch('reservations/:reservationId/live-tracking/location')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Mettre a jour la position GPS du prestataire en route',
+  })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.liveTracking.reservationIdParam,
+  })
+  @ApiBody({ type: TrackingLocationDto })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: 'Position GPS enregistree pour le suivi en temps reel.',
+    messageExample: appMessage('LIVE_TRACKING_LOCATION_UPDATED').message,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.liveTracking.trackingData,
+    },
+  })
+  async updateTrackingLocation(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() body: TrackingLocationDto,
+  ) {
+    const result = await this.liveTrackingFacade.updateLocation(
+      user,
+      reservationId,
+      body,
+    );
+    return createApiResponse(
+      result,
+      appMessage('LIVE_TRACKING_LOCATION_UPDATED').message,
+    );
+  }
+
   @Get('professionals/:professionalId/presence')
   @ApiOperation({
     summary: API_DOCS.liveTracking.getProfessionalPresenceSummary,

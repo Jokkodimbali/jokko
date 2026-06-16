@@ -1,0 +1,121 @@
+:host {
+  display: block;
+}
+
+.loading {
+  display: grid;
+  gap: 24px;
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: 34px clamp(20px, 5vw, 72px) 64px;
+}
+
+.loading__heading,
+.loading__grid article,
+.loading__grid aside {
+  background: #fff;
+  border: 1px solid #dce5e9;
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.loading__heading {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  padding: 18px;
+}
+
+.loading__heading > span,
+.loading i,
+.loading b,
+.loading strong {
+  animation: loading-shimmer 1.4s ease-in-out infinite;
+  background: linear-gradient(90deg, #edf1f3 25%, #f8fafb 50%, #edf1f3 75%);
+  background-size: 200% 100%;
+  border-radius: 10px;
+  display: block;
+}
+
+.loading__heading > span {
+  border-radius: 50%;
+  height: 46px;
+  width: 46px;
+}
+.loading__heading > div {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+}
+.loading__heading i:nth-child(1) {
+  height: 9px;
+  width: 120px;
+}
+.loading__heading i:nth-child(2) {
+  height: 28px;
+  width: min(360px, 75%);
+}
+.loading__heading i:nth-child(3) {
+  height: 10px;
+  width: min(470px, 90%);
+}
+.loading__grid {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.75fr);
+}
+.loading__grid article,
+.loading__grid aside {
+  display: grid;
+  gap: 20px;
+  padding: 34px;
+}
+.loading__grid article > i:first-child {
+  height: 11px;
+  width: 120px;
+}
+.loading__grid article > i:nth-child(2) {
+  height: 76px;
+  margin: 30px auto;
+  width: 55%;
+}
+.loading__grid article > strong {
+  height: 1px;
+  width: 100%;
+}
+.loading__grid article > div {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.loading__grid article b {
+  height: 52px;
+}
+.loading__grid aside i {
+  height: 42px;
+}
+.loading__grid aside strong {
+  height: 82px;
+}
+.loading > p {
+  color: #617079;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0;
+  text-align: center;
+}
+
+@keyframes loading-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 780px) {
+  .loading__grid {
+    grid-template-columns: 1fr;
+  }
+  .loading__grid article > div {
+    grid-template-columns: 1fr;
+  }
+}

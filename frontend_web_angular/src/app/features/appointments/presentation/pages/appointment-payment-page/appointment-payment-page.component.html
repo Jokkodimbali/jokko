@@ -1,9 +1,20 @@
 <main class="appointment-payment">
   <section class="appointment-payment__topbar" aria-label="Navigation paiement">
-    <button type="button" class="appointment-payment__back" (click)="goBack()">
+    <button
+      *ngIf="!isPaymentConfirmed(); else reservationFinalizedLabel"
+      type="button"
+      class="appointment-payment__back"
+      (click)="goBack()"
+    >
       <lucide-icon name="arrow-left" size="17" [strokeWidth]="2.4"></lucide-icon>
       <span>Retour</span>
     </button>
+    <ng-template #reservationFinalizedLabel>
+      <span class="appointment-payment__finalized-label">
+        <lucide-icon name="check" size="15" [strokeWidth]="2.5"></lucide-icon>
+        Reservation finalisee
+      </span>
+    </ng-template>
 
     <span class="appointment-payment__secure">
       <lucide-icon name="shield-check" size="13" [strokeWidth]="2.4"></lucide-icon>
@@ -17,6 +28,104 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && appointment() as appointment">
+    <section
+      *ngIf="isPaymentConfirmed(); else paymentForm"
+      class="appointment-payment__confirmed"
+      aria-label="Paiement confirme"
+    >
+      <div class="appointment-payment__confirmed-icon">
+        <lucide-icon name="check" size="32" [strokeWidth]="2.6"></lucide-icon>
+      </div>
+      <h1>Paiement confirme !</h1>
+      <p>Votre reservation est maintenant finalisee et confirmee.</p>
+
+      <article class="appointment-payment__receipt">
+        <header class="appointment-payment__receipt-provider">
+          <div class="appointment-payment__receipt-avatar">
+            <img
+              *ngIf="appointment.avatarUrl; else confirmedProviderInitials"
+              [src]="appointment.avatarUrl"
+              [alt]="appointment.doctorName"
+            />
+            <ng-template #confirmedProviderInitials>
+              <span>{{ avatarInitials(appointment) }}</span>
+            </ng-template>
+            <i><lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon></i>
+          </div>
+          <div>
+            <small>Prestataire</small>
+            <h2>{{ appointment.doctorName }}</h2>
+            <p>
+              {{ appointment.specialty || appointment.serviceName }} certifie
+              <b>4.8</b> (124 avis)
+            </p>
+          </div>
+        </header>
+
+        <dl class="appointment-payment__receipt-details">
+          <div>
+            <dt><lucide-icon name="users" size="15" [strokeWidth]="2.2"></lucide-icon> Client</dt>
+            <dd>{{ clientNameLabel() }}</dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="calendar-days" size="15" [strokeWidth]="2.2"></lucide-icon> Date & heure</dt>
+            <dd>{{ formatPaymentDate(appointment) }} - {{ appointment.timeLabel }}</dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="map-pin" size="15" [strokeWidth]="2.2"></lucide-icon> Adresse</dt>
+            <dd>{{ appointment.addressLabel }}</dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="wallet-cards" size="18" [strokeWidth]="2.2"></lucide-icon> Moyen de paiement</dt>
+            <dd class="appointment-payment__receipt-method">
+              <span [attr.data-method]="selectedPaymentOption().id">
+                <img [src]="selectedPaymentOption().logoUrl" [alt]="selectedPaymentOption().label" />
+              </span>
+              {{ selectedPaymentOption().label }}
+            </dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="file-text" size="15" [strokeWidth]="2.2"></lucide-icon> N de reservation</dt>
+            <dd>{{ reservationNumberLabel() }}</dd>
+          </div>
+        </dl>
+
+        <footer>
+          <span>Total paye</span>
+          <strong>{{ amountValueLabel() }} <em>FCFA</em></strong>
+        </footer>
+      </article>
+
+      <aside class="appointment-payment__sms">
+        <lucide-icon name="info" size="14" [strokeWidth]="2.3"></lucide-icon>
+        <span>
+          Un SMS de confirmation vous a ete envoye. Vous pouvez retrouver cette reservation dans
+          votre historique.
+        </span>
+      </aside>
+
+      <button type="button" class="appointment-payment__message" (click)="messageProvider()">
+        <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Message au prestataire
+      </button>
+
+      <div class="appointment-payment__confirmed-actions">
+        <button type="button" (click)="downloadReceipt(appointment)">
+          <lucide-icon name="receipt" size="17" [strokeWidth]="2.4"></lucide-icon>
+          Telecharger le recu
+        </button>
+        <button type="button" (click)="shareReceipt(appointment)">
+          <lucide-icon name="share-2" size="15" [strokeWidth]="2.4"></lucide-icon>
+          Partager
+        </button>
+      </div>
+
+      <button type="button" class="appointment-payment__home" (click)="goHome()">
+        Retour a l'accueil
+      </button>
+    </section>
+
+    <ng-template #paymentForm>
     <section class="appointment-payment__content">
       <section class="appointment-payment__accepted" aria-label="Reservation acceptee">
         <header class="appointment-payment__accepted-hero">
@@ -84,14 +193,22 @@
         {{ isCancelling() ? 'Annulation...' : 'Annuler la reservation' }}
       </button>
     </section>
+    </ng-template>
 
-    <footer class="appointment-payment__checkout-bar">
+    <footer *ngIf="!isPaymentConfirmed()" class="appointment-payment__checkout-bar">
       <span>
         <small>Total a payer</small>
         <strong>{{ amountValueLabel() }}<em>FCFA</em></strong>
       </span>
       <button type="button" [disabled]="isPaying()" (click)="pay()">
         {{ isPaying() ? 'Paiement...' : 'Payez la reservation' }}
+        <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.4"></lucide-icon>
+      </button>
+    </footer>
+
+    <footer *ngIf="isPaymentConfirmed()" class="appointment-payment__confirmed-bar">
+      <button type="button" (click)="openAppointmentPage(appointment)">
+        Page de RDV
         <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.4"></lucide-icon>
       </button>
     </footer>

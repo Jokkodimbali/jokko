@@ -71,7 +71,10 @@ export class ProviderProfileComponent implements OnInit {
   );
   protected readonly serviceQueryParams = computed(() => {
     const serviceId = this.primaryService()?.id;
-    return serviceId ? { serviceId } : null;
+    return {
+      ...(serviceId ? { serviceId } : {}),
+      returnUrl: `/services/${this.profileId}`,
+    };
   });
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
   protected readonly initials = computed(() =>

@@ -1181,6 +1181,7 @@ export class DoctorSpacePageComponent implements OnInit {
         negotiationId: negotiation.id,
         serviceId: negotiation.serviceId,
         mode: 'prestataire',
+        returnUrl: this.router.url,
       },
     });
   }

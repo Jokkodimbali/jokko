@@ -182,6 +182,25 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
+  updateProviderTrackingLocation(
+    reservationId: string,
+    location: {
+      latitude: number;
+      longitude: number;
+      accuracyMeters?: number | null;
+      headingDegrees?: number | null;
+      speedKmh?: number | null;
+      locationLabel?: string | null;
+    },
+  ): Observable<AppointmentTrackingView> {
+    return this.http
+      .patch<ApiResponse<AppointmentTrackingView>>(
+        `${this.apiUrl}/reservations/${reservationId}/live-tracking/location`,
+        location,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   startAppointment(reservationId: string): Observable<AppointmentView> {
     return this.http
       .patch<ApiResponse<BackendReservation>>(

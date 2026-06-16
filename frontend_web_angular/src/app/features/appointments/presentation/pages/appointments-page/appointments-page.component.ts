@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -46,6 +46,7 @@ interface CalendarDay {
 export class AppointmentsPageComponent implements OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly router = inject(Router);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointments = signal<AppointmentView[]>([]);
@@ -368,6 +369,29 @@ export class AppointmentsPageComponent implements OnInit {
     return this.hasCancellableStatus(appointment.status) && this.isMoreThanHoursBefore(appointment.scheduledAt, 24);
   }
 
+  protected primaryActionLabel(appointment: AppointmentView): string {
+    if (this.shouldPayAppointment(appointment)) return 'Payer';
+    if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
+    if (appointment.status === 'EN_ATTENTE') return 'Finaliser';
+    return 'Voir';
+  }
+
+  protected primaryActionIcon(appointment: AppointmentView): string {
+    if (this.shouldPayAppointment(appointment)) return 'arrow-right';
+    if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'send';
+    return 'arrow-right';
+  }
+
+  protected primaryActionRoute(appointment: AppointmentView): string[] {
+    return this.shouldPayAppointment(appointment)
+      ? ['/appointments', appointment.id, 'payment']
+      : ['/appointments', appointment.id];
+  }
+
+  protected primaryActionQueryParams(): { returnUrl: string } {
+    return { returnUrl: this.router.url || '/appointments' };
+  }
+
   protected cancellationDisabledReason(appointment: AppointmentView): string {
     if (!this.hasCancellableStatus(appointment.status)) {
       return 'Ce rendez-vous est deja cloture ou son statut ne permet plus une annulation.';
@@ -559,6 +583,14 @@ export class AppointmentsPageComponent implements OnInit {
       status === 'CONFIRMEE' ||
       status === 'PAYEE_SEQUESTRE' ||
       status === 'EN_COURS'
+    );
+  }
+
+  private shouldPayAppointment(appointment: AppointmentView): boolean {
+    return (
+      !!appointment.agreedPrice &&
+      appointment.agreedPrice > 0 &&
+      (appointment.status === 'EN_ATTENTE' || appointment.status === 'CONFIRMEE')
     );
   }
 

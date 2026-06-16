@@ -65,6 +65,30 @@
 .service-proposal__help-card h2{align-items:center;display:flex;font-size:12px;font-weight:950;gap:8px;margin:0 0 8px;text-transform:uppercase}
 .service-proposal__help-card p{color:#667085;font-family:var(--font-mono,"JetBrains Mono",monospace);font-size:11px;font-weight:600;line-height:1.55;margin:0}
 .service-proposal__help-card strong{color:#0b1020;font-weight:900}
+.service-proposal__content--accepted{gap:14px;grid-template-columns:minmax(320px,412px);justify-content:center;padding:18px 16px 112px}
+.service-proposal__content--accepted .service-proposal__accepted{border-color:#dce1e8;border-radius:20px;box-shadow:0 2px 0 rgb(17 24 39/6%),0 18px 44px rgb(15 23 42/5%);overflow:hidden}
+.service-proposal__content--accepted .service-proposal__accepted-hero{background:#4f883a;min-height:186px;padding:24px 24px 28px}
+.service-proposal__content--accepted .service-proposal__accepted-avatar{border:3px solid rgb(255 255 255/26%);border-radius:50%;height:64px;margin-bottom:11px;width:64px}
+.service-proposal__content--accepted .service-proposal__accepted-avatar img,.service-proposal__content--accepted .service-proposal__accepted-avatar span{border-radius:50%}
+.service-proposal__content--accepted .service-proposal__accepted-avatar i{border:2px solid #4f883a;bottom:-7px;height:24px;right:-7px;width:24px}
+.service-proposal__content--accepted .service-proposal__accepted-hero small{font-size:10px;letter-spacing:.13em}
+.service-proposal__content--accepted .service-proposal__accepted-hero h1{font-size:19px;line-height:1.15;margin:8px 0 8px}
+.service-proposal__content--accepted .service-proposal__accepted-hero p{font-size:12px}
+.service-proposal__content--accepted .service-proposal__accepted-body{gap:14px;padding:18px 24px 22px}
+.service-proposal__content--accepted .service-proposal__accepted-price{border-radius:13px;min-height:62px;padding:13px 16px}
+.service-proposal__content--accepted .service-proposal__accepted-price strong{font-size:22px}
+.service-proposal__content--accepted .service-proposal__accepted-row{gap:11px;grid-template-columns:28px minmax(0,1fr);min-height:34px}
+.service-proposal__content--accepted .service-proposal__accepted-row>span{height:28px;width:28px}
+.service-proposal__content--accepted .service-proposal__accepted-row strong{font-size:12px;margin-top:4px}
+.service-proposal__content--accepted .service-proposal__accepted-message{border-radius:12px;box-shadow:0 10px 18px rgb(61 108 43/24%);min-height:40px;transition:background 170ms ease,box-shadow 170ms ease,transform 170ms ease}
+.service-proposal__content--accepted .service-proposal__accepted-message:not(:disabled):hover{background:#477b34;box-shadow:0 14px 28px rgb(61 108 43/28%);transform:translateY(-2px) scale(1.01)}
+.service-proposal__content--accepted .service-proposal__accepted-message:not(:disabled):active{transform:scale(.98)}
+.service-proposal__checkout-bar{min-height:66px;padding:10px 44px 10px 40px}
+.service-proposal__checkout-bar small{color:#98a2b3;letter-spacing:.08em}
+.service-proposal__checkout-bar strong{font-size:24px}
+.service-proposal__checkout-bar button{transition:background 170ms ease,box-shadow 170ms ease,transform 170ms ease}
+.service-proposal__checkout-bar button:not(:disabled):hover{background:#477b34;box-shadow:0 12px 24px rgb(61 108 43/24%);transform:translateY(-2px) scale(1.015)}
+.service-proposal__checkout-bar button:not(:disabled):active{transform:scale(.98)}
 .service-proposal__pending:not(.service-proposal__pending--counter){background:#fbfcff;border:1px solid #dfe5ee;border-radius:22px;display:grid;justify-items:center;margin:0;padding:48px 64px 34px}
 .service-proposal__waiting-copy{text-align:center}
 .service-proposal__waiting-copy h1{color:#0b1020;font-size:23px;font-weight:950;margin:0 0 12px}
@@ -86,6 +110,29 @@
 .service-proposal__waiting-details .service-proposal__service-field,.service-proposal__waiting-details .service-proposal__field{cursor:default}
 .service-proposal__waiting-details .service-proposal__service-field:hover,.service-proposal__waiting-details .service-proposal__field:hover{box-shadow:none;transform:none}
 .service-proposal__cancel-offer{margin-top:22px}
+.service-proposal__counter-shell{background:#fff;border:1px solid #e1e5eb;border-radius:30px;box-shadow:0 2px 0 rgb(17 24 39/5%),0 22px 60px rgb(15 23 42/4%);overflow:hidden}
+.service-proposal__counter-shell .service-proposal__panel-body{gap:24px;padding:32px}
+.service-proposal__pending--inside{background:#fbfcff;border:1px solid #dfe5ee;border-radius:22px;margin:0;padding:48px 64px 34px}
+.service-proposal__counter-modern{background:#fff;border:1px solid #eef1f5;border-radius:22px;display:grid;gap:24px;padding:24px}
+.service-proposal__panel.service-proposal__counter-modern{border-radius:0;border-width:0;box-shadow:none;margin:0;padding:32px}
+.service-proposal__counter-offer-card{background:#fbfcff;border-radius:22px;display:grid;gap:18px;padding:24px 34px;text-align:center}
+.service-proposal__counter-offer-card h2{color:#0b1020;font-size:13px;font-weight:950;letter-spacing:.04em;line-height:1.35;margin:0;text-transform:uppercase}
+.service-proposal__counter-offer-values{align-items:center;display:grid;gap:22px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.service-proposal__counter-offer-values>lucide-icon{color:#b5bdc8}
+.service-proposal__counter-offer-values span{display:grid;gap:7px;justify-items:center;min-width:0}
+.service-proposal__counter-offer-values small{color:#9aa3ad;font-size:10px;font-weight:950;letter-spacing:.07em;text-transform:uppercase}
+.service-proposal__counter-offer-values strong{align-items:baseline;color:#0b1020;display:inline-flex;font-size:17px;font-weight:950;gap:4px;white-space:nowrap}
+.service-proposal__counter-offer-values strong em{font-size:12px;font-style:normal;font-weight:950}
+.service-proposal__counter-offer-values span:first-child strong{color:#9aa3ad;text-decoration:line-through;text-decoration-thickness:2px}
+.service-proposal__counter-offer-values span:last-child small{color:#05b978}
+.service-proposal__price-card--counter{margin:0}
+.service-proposal__counter-modern-actions{display:grid;gap:12px}
+.service-proposal__counter-modern-actions .service-proposal__submit{margin-top:0}
+.service-proposal__counter-details{display:grid;gap:16px}
+.service-proposal__counter-details .service-proposal__service-field,.service-proposal__counter-details .service-proposal__field{width:100%}
+.service-proposal__counter-refuse--modern{background:#fff;border:1px solid #fed7dd;border-radius:14px;color:#cf2646;font-size:12px;font-weight:950;min-height:46px;text-transform:uppercase;transition:background 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease}
+.service-proposal__counter-refuse--modern:not(:disabled):hover{background:#fff0f2;border-color:#ff9dab;box-shadow:0 10px 22px rgb(207 38 70/12%);transform:translateY(-2px) scale(1.01)}
+.service-proposal__counter-refuse--modern:not(:disabled):active{transform:scale(.98)}
 @keyframes service-proposal-wait-spin{to{transform:rotate(360deg)}}
 @keyframes service-proposal-wait-pulse{0%{left:0;transform:scaleX(.7)}50%{left:calc(100% - 14px);transform:scaleX(1.15)}100%{left:0;transform:scaleX(.7)}}
 @media(min-width:901px){.service-proposal,.service-proposal__content{max-height:none;overflow:visible}}
@@ -98,7 +145,14 @@
   .service-proposal__amount-actions,.service-proposal__fields{grid-template-columns:1fr;padding-inline:0}
   .service-proposal__steps{gap:12px;grid-template-columns:62px minmax(110px,1fr) 72px;margin-inline:0}
   .service-proposal__pending:not(.service-proposal__pending--counter){padding:34px 18px 24px}
+  .service-proposal__counter-shell .service-proposal__panel-body{padding:18px}
+  .service-proposal__pending--inside{padding:34px 18px 24px}
   .service-proposal__waiting-track{grid-template-columns:62px minmax(120px,1fr) 62px;padding:16px}
   .service-proposal__waiting-spinner{height:92px;width:92px}
   .service-proposal__waiting-details{margin-top:20px}
+  .service-proposal__counter-modern{padding:16px}
+  .service-proposal__panel.service-proposal__counter-modern{padding:18px}
+  .service-proposal__counter-offer-card{padding:20px 16px}
+  .service-proposal__counter-offer-values{gap:12px;grid-template-columns:1fr}
+  .service-proposal__counter-offer-values>lucide-icon{transform:rotate(90deg)}
 }

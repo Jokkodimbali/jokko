@@ -648,13 +648,6 @@
   position: relative;
 }
 
-.appointment-detail__work-map iframe {
-  border: 0;
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 .appointment-detail__arrived-badge {
   align-items: center;
   background: #ffffff;
@@ -785,34 +778,43 @@
 }
 
 .appointment-detail__live-map {
-  border-radius: 0;
+  border-radius: 18px;
   min-height: 335px;
   overflow: hidden;
   position: relative;
   background: #dbe7ef;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
 }
 
-.appointment-detail__live-map iframe {
-  border: 0;
+.appointment-detail__leaflet-map {
   display: block;
   height: 100%;
   min-height: 335px;
   width: 100%;
+  z-index: 1;
+}
+
+.appointment-detail__work-map .appointment-detail__leaflet-map {
+  min-height: 289px;
 }
 
 .appointment-detail__map-empty {
   align-items: center;
+  background: linear-gradient(135deg, rgba(219, 231, 239, 0.92), rgba(242, 247, 249, 0.9));
   color: #425466;
   display: grid;
   font-weight: 900;
   gap: 12px;
   height: 335px;
+  inset: 0;
   justify-items: center;
+  position: absolute;
+  z-index: 2;
 }
 
 .appointment-detail__map-badge {
   align-items: center;
-  background: #e91616;
+  background: rgba(7, 11, 18, 0.88);
   border-radius: 999px;
   color: #ffffff;
   display: inline-flex;
@@ -821,15 +823,18 @@
   gap: 7px;
   left: 8px;
   min-height: 28px;
+  max-width: calc(100% - 22px);
   padding: 0 11px;
   position: absolute;
   top: 7px;
-  z-index: 2;
+  z-index: 420;
 }
 
 .appointment-detail__map-badge span {
-  background: #ffffff;
+  background: #1eb980;
   border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(30, 185, 128, 0.2);
+  flex: 0 0 auto;
   height: 8px;
   width: 8px;
 }
@@ -849,21 +854,7 @@
   right: 11px;
   text-decoration: none;
   top: 8px;
-  z-index: 2;
-}
-
-.appointment-detail__route-line {
-  background: #1eb980;
-  border-radius: 999px;
-  bottom: 22px;
-  box-shadow: 0 0 0 4px rgba(30, 185, 128, 0.18);
-  height: 7px;
-  position: absolute;
-  right: 82px;
-  transform: rotate(56deg);
-  transform-origin: right center;
-  width: 185px;
-  z-index: 2;
+  z-index: 420;
 }
 
 .appointment-detail__map-avatar {
@@ -876,6 +867,80 @@
   right: 42px;
   width: 42px;
   z-index: 3;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin,
+:host ::ng-deep .appointment-detail__leaflet-destination-pin {
+  background: transparent;
+  border: 0;
+}
+
+:host ::ng-deep .leaflet-marker-icon.appointment-detail__leaflet-provider-pin {
+  transition: transform 0.75s linear;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span {
+  align-items: center;
+  background: #111827;
+  border: 4px solid #1eb980;
+  border-radius: 12px 12px 16px 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.3), 0 0 0 10px rgba(30, 185, 128, 0.16);
+  display: block;
+  height: 34px;
+  position: relative;
+  transform: rotate(-12deg);
+  width: 38px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::before,
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::after {
+  background: #ffffff;
+  border-radius: 50%;
+  bottom: -5px;
+  content: '';
+  height: 9px;
+  position: absolute;
+  width: 9px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::before {
+  left: 6px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::after {
+  right: 6px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin i {
+  background: linear-gradient(135deg, #dff8ec, #68d6a1);
+  border-radius: 7px 7px 4px 4px;
+  display: block;
+  height: 11px;
+  left: 8px;
+  position: absolute;
+  top: 5px;
+  width: 20px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-destination-pin span {
+  background: #ffffff;
+  border: 7px solid #568d42;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+  display: block;
+  height: 30px;
+  transform: rotate(-45deg);
+  width: 30px;
+}
+
+:host ::ng-deep .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.15);
+}
+
+:host ::ng-deep .leaflet-control-zoom a {
+  color: #111827;
+  font-weight: 950;
 }
 
 .appointment-detail__card {

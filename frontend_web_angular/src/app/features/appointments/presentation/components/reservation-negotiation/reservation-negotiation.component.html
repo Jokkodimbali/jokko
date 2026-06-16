@@ -120,7 +120,7 @@
 
       <div class="negotiation__actions" *ngIf="!providerViewer && !hasPendingAdjustment">
         <button type="button" class="negotiation__primary negotiation__primary--visual">
-          <lucide-icon name="circle-check-big" size="18" [strokeWidth]="2.7" />
+          <lucide-icon name="check" size="18" [strokeWidth]="2.7" />
           Finaliser la reservation
           <lucide-icon
             class="negotiation__arrow"
@@ -172,11 +172,11 @@
           <span>OFFRE DU PRESTATAIRE</span><strong>{{ formatPrice(providerPrice) }}</strong>
         </div>
         <button type="button" class="negotiation__message">
-          <lucide-icon name="message-square" size="16" [strokeWidth]="2.6" /> Message au prestataire
+          <lucide-icon name="message-circle" size="16" [strokeWidth]="2.6" /> Message au prestataire
         </button>
       </article>
       <p class="negotiation__help">
-        <lucide-icon name="circle-help" size="16" [strokeWidth]="2.4" />
+        <lucide-icon name="info" size="16" [strokeWidth]="2.4" />
         Les montants, le prestataire, le service, la date et l'adresse proviennent de cette
         reservation Jokko.
       </p>

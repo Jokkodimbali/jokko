@@ -236,9 +236,17 @@
                 ></lucide-icon>
                 {{ statusLabel(appointment) }}
               </span>
-              <a [routerLink]="['/appointments', appointment.id]" class="appointment-row__primary">
-                Voir
-                <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.2"></lucide-icon>
+              <a
+                [routerLink]="primaryActionRoute(appointment)"
+                [queryParams]="primaryActionQueryParams()"
+                class="appointment-row__primary"
+              >
+                {{ primaryActionLabel(appointment) }}
+                <lucide-icon
+                  [name]="primaryActionIcon(appointment)"
+                  size="13"
+                  [strokeWidth]="2.2"
+                ></lucide-icon>
               </a>
               <button
                 type="button"

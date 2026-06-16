@@ -66,18 +66,10 @@
 
     <section *ngIf="isAppointmentCompleted()" class="appointment-detail__completion-card">
       <div class="appointment-detail__completion-map">
-        <iframe
-          *ngIf="mapEmbedUrl(); else completedMapPending"
-          title="Carte de la prestation terminee"
-          [src]="mapEmbedUrl()"
-          loading="lazy"
-        ></iframe>
-        <ng-template #completedMapPending>
-          <div class="appointment-detail__map-empty">
-            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-            Position finale en attente
-          </div>
-        </ng-template>
+        <div class="appointment-detail__map-empty">
+          <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+          Position finale enregistree
+        </div>
         <div class="appointment-detail__completion-overlay"></div>
         <span class="appointment-detail__completion-time">
           <lucide-icon name="check" size="13" [strokeWidth]="2.8"></lucide-icon>
@@ -149,7 +141,13 @@
 
       <ng-template #movingOrConfirmedHero>
         <ng-container *ngIf="isProviderOnTheWay(); else confirmedHero">
-          <h2>{{ appointment.doctorName }} arrive dans {{ estimatedArrivalMinutes() }} min</h2>
+          <h2>
+            {{
+              estimatedArrivalMinutes()
+                ? appointment.doctorName + ' arrive dans ' + estimatedArrivalMinutes() + ' min'
+                : appointment.doctorName + ' est en route'
+            }}
+          </h2>
           <p>{{ remainingDistanceLabel() }}. Suivez sa position en temps reel.</p>
           <div class="appointment-detail__progress">
             <small>Progression du trajet</small>
@@ -181,7 +179,7 @@
       <button
         type="button"
         (click)="markOnTheWay(appointment)"
-        [disabled]="isUpdatingStatus() || appointment.status !== 'PAYEE_SEQUESTRE'"
+        [disabled]="isUpdatingStatus() || !canProviderMarkOnTheWay()"
       >
         <lucide-icon name="send" size="18" [strokeWidth]="2.5"></lucide-icon>
         Je suis en route
@@ -189,9 +187,7 @@
       <button
         type="button"
         (click)="startWork(appointment)"
-        [disabled]="
-          isUpdatingStatus() || (appointment.status !== 'PAYEE_SEQUESTRE' && !isProviderOnTheWay())
-        "
+        [disabled]="isUpdatingStatus() || !canProviderStartWork()"
       >
         <lucide-icon name="wrench" size="18" [strokeWidth]="2.5"></lucide-icon>
         Commencer
@@ -238,18 +234,15 @@
     >
       <article class="appointment-detail__work-card">
         <div class="appointment-detail__work-map">
-          <iframe
-            *ngIf="mapEmbedUrl(); else workMapPending"
-            title="Carte de la prestation en cours"
-            [src]="mapEmbedUrl()"
-            loading="lazy"
-          ></iframe>
-          <ng-template #workMapPending>
-            <div class="appointment-detail__map-empty">
-              <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-              Position GPS en attente
-            </div>
-          </ng-template>
+          <div
+            #workTrackingMap
+            class="appointment-detail__leaflet-map"
+            aria-label="Carte temps reel de la prestation en cours"
+          ></div>
+          <div class="appointment-detail__map-empty" *ngIf="!hasTrackingCoordinates()">
+            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+            Position GPS en attente
+          </div>
           <div class="appointment-detail__map-badge"><span></span>EN DIRECT</div>
           <div class="appointment-detail__arrived-badge">
             <lucide-icon name="check" size="14" [strokeWidth]="3"></lucide-icon>
@@ -360,19 +353,16 @@
       </article>
 
       <article class="appointment-detail__live-map">
-        <iframe
-          *ngIf="mapEmbedUrl(); else routePending"
-          title="Carte de suivi du prestataire"
-          [src]="mapEmbedUrl()"
-          loading="lazy"
-        ></iframe>
-        <ng-template #routePending>
-          <div class="appointment-detail__map-empty">
-            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-            Position GPS en attente
-          </div>
-        </ng-template>
-        <div class="appointment-detail__map-badge"><span></span>EN DIRECT</div>
+        <div
+          #trackingMap
+          class="appointment-detail__leaflet-map"
+          aria-label="Carte temps reel du trajet prestataire"
+        ></div>
+        <div class="appointment-detail__map-empty" *ngIf="!hasTrackingCoordinates()">
+          <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
+          Position GPS en attente
+        </div>
+        <div class="appointment-detail__map-badge"><span></span>{{ routeMapStatusLabel() }}</div>
         <a [href]="mapDirectionsUrl(appointment)" target="_blank" rel="noopener">
           <lucide-icon name="map-pin" size="15" [strokeWidth]="2.3"></lucide-icon>
           {{
@@ -381,13 +371,6 @@
               : lastPositionLabel()
           }}
         </a>
-        <div class="appointment-detail__route-line" *ngIf="hasTrackingCoordinates()"></div>
-        <img
-          class="appointment-detail__map-avatar"
-          [src]="appointment.avatarUrl"
-          [alt]="appointment.doctorName"
-          *ngIf="hasTrackingCoordinates() && appointment.avatarUrl"
-        />
       </article>
     </section>
 

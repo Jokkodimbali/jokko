@@ -281,7 +281,10 @@ export class ServicesComponent implements OnInit {
     }
 
     this.router.navigate(['/services', provider.id, 'proposition'], {
-      queryParams: provider.serviceId ? { serviceId: provider.serviceId } : undefined,
+      queryParams: {
+        ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
+        returnUrl: this.router.url,
+      },
       state: {
         provider,
         avatar: this.resolveProviderAvatar(provider),

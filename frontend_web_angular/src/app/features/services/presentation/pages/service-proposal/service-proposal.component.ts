@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewChecked,
@@ -110,7 +110,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly messagesService = inject(MessagesService);
@@ -584,7 +583,18 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   }
 
   protected goBack(): void {
-    this.location.back();
+    const returnUrl = this.safeReturnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    if (this.isProviderProposalMode) {
+      this.router.navigate(['/prestataire/espace']);
+      return;
+    }
+
+    this.router.navigate(['/services', this.profileId || this.detail()?.profile.id || '']);
   }
 
   protected selectPayment(method: PaymentMethod): void {
@@ -1166,7 +1176,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
         next: (reservation) => {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
           if (reservation.id) {
-            this.router.navigate(['/appointments', reservation.id, 'payment']);
+            this.router.navigate(['/appointments', reservation.id, 'payment'], {
+              queryParams: { returnUrl: this.router.url },
+            });
             return;
           }
 
@@ -1181,19 +1193,8 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   private showPendingProposal(proposal: NegotiationView, draft: ReservationDraft): void {
     this.acceptedReservation.set(null);
-    this.pendingProposal.set(proposal);
-    this.offerAmount.set(proposal.montantCourant || draft.amount);
-    if (proposal.statut === 'EN_ATTENTE_CLIENT') {
-      this.selectedOfferStep.set(1000);
-    }
-    if (proposal.dateHeureProposee) {
-      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
-    }
-    if (proposal.adresseClientProposee?.trim()) {
-      this.address.set(proposal.adresseClientProposee.trim());
-    }
+    this.applyPendingProposalState(proposal, { fallbackAmount: draft.amount });
     this.isSubmitting.set(false);
-    this.startProposalRefresh(proposal.id);
   }
 
   private acceptProviderCounterOffer(proposal: NegotiationView): void {
@@ -1300,7 +1301,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       return;
     }
 
-    this.router.navigate(['/appointments', accepted.reservationId, 'payment']);
+    this.router.navigate(['/appointments', accepted.reservationId, 'payment'], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   protected openProviderFinalizedReservation(): void {
@@ -1431,10 +1434,9 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
     forkJoin({
       detail: this.servicesService.getProviderProfileDetail(this.profileId),
-      proposal:
-        this.isProviderProposalMode && this.negotiationId
-          ? this.proposalService.getPriceProposal(this.negotiationId)
-          : of(null as NegotiationView | null),
+      proposal: this.negotiationId
+        ? this.proposalService.getPriceProposal(this.negotiationId)
+        : of(null as NegotiationView | null),
       user: this.authSession.hasAuthenticatedSession()
         ? this.authService.myUserProfile().pipe(catchError(() => of(null)))
         : of(null),
@@ -1442,25 +1444,23 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       next: ({ detail, proposal, user }) => {
         this.detail.set(detail);
         if (proposal) {
-          this.pendingProposal.set(proposal);
-          this.selectedServiceId.set(proposal.serviceId);
-          this.offerAmount.set(proposal.montantCourant);
-          this.isProviderOfferDirty.set(false);
-          this.selectedOfferStep.set(1000);
-          this.address.set(proposal.adresseClientProposee || proposal.client?.adresse || '');
-          if (proposal.dateHeureProposee) {
-            this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+          this.applyPendingProposalState(proposal);
+          this.isLoading.set(false);
+          if (!this.isProviderProposalMode) {
+            this.scheduleAvailabilityCheck();
           }
+          return;
         } else {
           const service = this.currentService();
           this.selectedServiceId.set(service?.id || '');
           this.offerAmount.set(service?.prix ?? 0);
           this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
+          if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
+            this.resumeActiveClientProposal(service);
+            return;
+          }
         }
         this.isLoading.set(false);
-        if (proposal) {
-          this.startProposalRefresh(proposal.id);
-        }
         if (!this.isProviderProposalMode) {
           this.scheduleAvailabilityCheck();
         }
@@ -1470,6 +1470,81 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
         this.isLoading.set(false);
       },
     });
+  }
+
+  private resumeActiveClientProposal(service: BackendProfessionalDetailService): void {
+    this.proposalService.findActiveProposalForService(service.id).subscribe({
+      next: (proposal) => {
+        if (proposal) {
+          this.applyPendingProposalState(proposal);
+        }
+        this.isLoading.set(false);
+        this.scheduleAvailabilityCheck();
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.scheduleAvailabilityCheck();
+      },
+    });
+  }
+
+  private applyPendingProposalState(
+    proposal: NegotiationView,
+    options: { fallbackAmount?: number; syncUrl?: boolean; startRefresh?: boolean } = {},
+  ): void {
+    this.pendingProposal.set(proposal);
+    this.selectedServiceId.set(proposal.serviceId);
+    this.offerAmount.set(proposal.montantCourant || options.fallbackAmount || 0);
+    this.isProviderOfferDirty.set(false);
+
+    if (proposal.statut === 'EN_ATTENTE_CLIENT') {
+      this.selectedOfferStep.set(1000);
+    }
+
+    if (proposal.dateHeureProposee) {
+      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+    }
+
+    const proposedAddress = proposal.adresseClientProposee?.trim() || proposal.client?.adresse || '';
+    if (proposedAddress) {
+      this.address.set(proposedAddress);
+    }
+
+    if (options.syncUrl !== false) {
+      this.syncNegotiationUrl(proposal);
+    }
+
+    if (options.startRefresh !== false) {
+      this.startProposalRefresh(proposal.id);
+    }
+  }
+
+  private syncNegotiationUrl(proposal: NegotiationView): void {
+    const currentNegotiationId = this.route.snapshot.queryParamMap.get('negotiationId');
+    const currentServiceId = this.route.snapshot.queryParamMap.get('serviceId');
+    if (currentNegotiationId === proposal.id && currentServiceId === proposal.serviceId) {
+      return;
+    }
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        negotiationId: proposal.id,
+        serviceId: proposal.serviceId,
+        mode: this.isProviderProposalMode ? 'prestataire' : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private safeReturnUrl(): string | null {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim();
+    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      return null;
+    }
+
+    return returnUrl;
   }
 
   private resolveInitialAddress(detail: ProviderProfileDetail): string {

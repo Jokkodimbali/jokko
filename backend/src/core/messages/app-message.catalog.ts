@@ -715,6 +715,11 @@ export const APP_MESSAGES_BY_MODULE = {
       message:
         'Le suivi temps reel de la reservation a ete recupere avec succes.',
     },
+    LIVE_TRACKING_LOCATION_UPDATED: {
+      code: 'LIVE_TRACKING_LOCATION_UPDATED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'La position GPS du prestataire a ete mise a jour.',
+    },
     LIVE_TRACKING_PRESENCE_RETRIEVED: {
       code: 'LIVE_TRACKING_PRESENCE_RETRIEVED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,

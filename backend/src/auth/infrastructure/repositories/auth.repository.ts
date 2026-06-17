@@ -410,7 +410,8 @@ export class AuthRepository implements AuthRepositoryPort {
     }> = [];
 
     categoryIds.forEach((categoryId) => {
-      const selectedSubCategories = subCategoriesByCategory.get(categoryId) ?? [];
+      const selectedSubCategories =
+        subCategoriesByCategory.get(categoryId) ?? [];
       if (selectedSubCategories.length === 0) {
         specialties.push({ categorieId: categoryId, sousCategorieId: null });
         return;
@@ -420,7 +421,8 @@ export class AuthRepository implements AuthRepositoryPort {
         specialties.push({
           categorieId: categoryId,
           sousCategorieId: subCategoryId,
-      }));
+        }),
+      );
     });
 
     await tx.specialiteProfessionnelle.createMany({
@@ -447,9 +449,7 @@ export class AuthRepository implements AuthRepositoryPort {
 
     await tx.service.createMany({
       data: categories.map((category) => {
-        const specialtyNames = (
-          subCategoriesByCategory.get(category.id) ?? []
-        )
+        const specialtyNames = (subCategoriesByCategory.get(category.id) ?? [])
           .map((subCategoryId) => subCategoryNameById.get(subCategoryId))
           .filter((name): name is string => Boolean(name));
 

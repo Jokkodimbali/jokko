@@ -15,6 +15,8 @@ import {
 } from '../../../../services/domain/models/services.models';
 import { DoctorProfile } from '../../../domain/models/medicine.models';
 
+import { MEDICINE_UI_MESSAGES } from '../../../domain/medicine-ui.messages';
+
 interface DoctorScheduleRow {
   dayLabel: string;
   ranges: string[];
@@ -73,6 +75,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   protected readonly isFavorite = signal(false);
   protected readonly isTogglingFavorite = signal(false);
   protected readonly schedule = signal<DoctorScheduleRow[]>([]);
+  protected readonly messages = MEDICINE_UI_MESSAGES;
   protected readonly activeSchedule = computed(() =>
     this.schedule().filter((row) => row.ranges.length > 0),
   );
@@ -186,12 +189,18 @@ export class MedicineDoctorProfileComponent implements OnInit {
   private mapDoctor(detail: ProviderProfileDetail): DoctorProfile {
     const primaryService = detail.services.find((service) => service.estDisponible) ?? detail.services[0];
     const profile = detail.profile;
+    const medicalSpecialty = this.extractMedicalSpecialty(profile.biographie);
     const nextAvailability = this.buildNextAvailabilityLabels(detail.availabilities);
+    const modes = Array.from(new Set(
+      detail.services
+        .map(s => s.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)
+        .filter(Boolean) as string[]
+    ));
 
     return {
       id: profile.id,
       name: profile.nomEntreprise || profile.utilisateur.nom,
-      specialty: primaryService?.nom || 'Motif non renseigne',
+      specialty: primaryService?.nom || medicalSpecialty || 'Médecin', // Use service name as priority
       rating: profile.noteGlobale || 0,
       reviewCount: profile.nombreAvis || 0,
       location: (profile.ville || 'Localisation non renseignee').toUpperCase(),
@@ -199,6 +208,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       longitude: profile.longitude,
       imageUrl: profile.utilisateur.urlAvatar || '',
       isOnline: detail.presence.isOnline,
+      modes: modes,
       nextAvailability,
       availability: [
         {
@@ -231,15 +241,17 @@ export class MedicineDoctorProfileComponent implements OnInit {
       date.setDate(cursor.getDate() + offset);
       if (!activeWeekdays.has(date.getDay())) continue;
 
-      labels.push(
-        formatter
-          .format(date)
-          .replace('.', '')
-          .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
-      );
+      const label = formatter.format(date).replace('.', '').trim();
+      labels.push(label.charAt(0).toUpperCase() + label.slice(1));
     }
 
     return labels;
+  }
+
+  private extractMedicalSpecialty(bio: string | null): string | null {
+    if (!bio) return null;
+    const match = bio.match(/Specialite\s*:\s*([^\n]+)/i);
+    return match?.[1]?.trim() || null;
   }
 
   private buildSchedule(availabilities: BackendProfessionalAvailability[]): DoctorScheduleRow[] {
@@ -280,6 +292,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       longitude: null,
       imageUrl: '',
       isOnline: false,
+      modes: [],
       availability: [],
       nextAvailability: [],
     };

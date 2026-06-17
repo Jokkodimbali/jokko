@@ -63,6 +63,32 @@ describe('ReservationEntity', () => {
     expect(reservation.toView().statut).toBe('PAYEE_SEQUESTRE');
   });
 
+  it('allows opening a dispute for a paid reservation after the scheduled end', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      dureeMinutes: 60,
+      statut: 'PAYEE_SEQUESTRE',
+    });
+
+    reservation.openDispute('Le prestataire ne sest pas presente.');
+
+    expect(reservation.toView().statut).toBe('LITIGE');
+  });
+
+  it('rejects opening a dispute for a paid reservation before the scheduled end', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: new Date(Date.now() - 15 * 60 * 1000),
+      dureeMinutes: 60,
+      statut: 'PAYEE_SEQUESTRE',
+    });
+
+    expect(() => reservation.openDispute('Trop tot.')).toThrow(
+      /litige/i,
+    );
+  });
+
   it('rejects invalid reconstituted dates', () => {
     expect(() =>
       ReservationEntity.reconstitute({

@@ -17,6 +17,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
@@ -34,13 +35,47 @@ type LeafletNamespace = NonNullable<Window['L']> & {
 };
 type LeafletMapInstance = ReturnType<NonNullable<Window['L']>['map']> & {
   fitBounds?: (bounds: Array<[number, number]>, options?: Record<string, unknown>) => void;
+  on?: (eventName: string, handler: () => void) => void;
+  removeLayer?: (layer: LeafletLayerInstance) => void;
 };
 type LeafletLayerInstance = {
   addTo(map: LeafletMapInstance): LeafletLayerInstance;
   remove?: () => void;
+  addEventListener?: (eventName: string, handler: () => void) => void;
+  setIcon?: (icon: unknown) => void;
   setLatLng?: (latlng: [number, number]) => void;
   setLatLngs?: (latlngs: Array<[number, number]>) => void;
 };
+type LeafletTileLayerInstance = LeafletLayerInstance;
+type GeocodeCandidate = {
+  lat?: string;
+  lon?: string;
+  display_name?: string;
+  importance?: number;
+  address?: {
+    country_code?: string;
+  };
+};
+type RouteAlternativeView = {
+  id: string;
+  label: string;
+  distanceLabel: string;
+  durationLabel: string;
+  isSelected: boolean;
+};
+type RouteOption = {
+  id: string;
+  coordinates: Array<[number, number]>;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+};
+const SENEGAL_GEO_BOUNDS = {
+  minLat: 12,
+  maxLat: 17.2,
+  minLng: -18.7,
+  maxLng: -11,
+} as const;
+
 type AppointmentDetailUiState =
   | 'loading'
   | 'error'
@@ -63,7 +98,10 @@ type AppointmentDetailUiState =
     ReservationNegotiationComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
-  styleUrl: './appointment-detail-page.component.scss',
+  styleUrls: [
+    './appointment-detail-page.component.scss',
+    './appointment-detail-map.component.scss',
+  ],
 })
 export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('trackingMap')
@@ -99,13 +137,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private leafletLoadPromise?: Promise<LeafletNamespace>;
   private routeMap?: LeafletMapInstance;
   private workMap?: LeafletMapInstance;
+  private routeStreetLayer?: LeafletTileLayerInstance;
+  private routeSatelliteLayer?: LeafletTileLayerInstance;
   private routeProviderMarker?: LeafletLayerInstance;
   private routeDestinationMarker?: LeafletLayerInstance;
   private routePolyline?: LeafletLayerInstance;
+  private routeAlternativePolylines: LeafletLayerInstance[] = [];
   private workProviderMarker?: LeafletLayerInstance;
+  private routeMapUserInteracted = false;
+  private routeAutoFitKey = '';
   private providerLocationWatchId: number | null = null;
   private lastProviderLocationPushAt = 0;
   private routeCoordinates: Array<[number, number]> = [];
+  private routeOptions: RouteOption[] = [];
   private routeCoordinatesKey = '';
   private trackingMapElement?: HTMLElement;
   private workTrackingMapElement?: HTMLElement;
@@ -130,6 +174,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly routeDistanceKm = signal<number | null>(null);
   protected readonly routeDurationMinutes = signal<number | null>(null);
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
+  protected readonly isSatelliteMapEnabled = signal(false);
+  protected readonly selectedRouteId = signal('route-0');
+  protected readonly routeAlternatives = signal<RouteAlternativeView[]>([]);
   protected readonly destinationStatus = signal<'idle' | 'resolving' | 'ready' | 'unavailable'>(
     'idle',
   );
@@ -180,10 +227,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const appointment = this.appointment();
     return this.formatCurrency(appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0);
   });
+  protected readonly finalPriceAmount = computed(() => {
+    const appointment = this.appointment();
+    return appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0;
+  });
   protected readonly invoiceNumberLabel = computed(() => {
     const appointmentId = this.appointment()?.id ?? '';
     const suffix = appointmentId.replace(/-/g, '').slice(-4).toUpperCase();
     return `Facture Numero ${suffix || '----'}`;
+  });
+  protected readonly invoiceCodeLabel = computed(() => {
+    const compact = (this.appointment()?.id ?? '').replace(/-/g, '').toUpperCase();
+    return `#FCT-${compact.slice(0, 4) || '----'}-${compact.slice(-4) || '----'}`;
   });
   protected readonly completedAtLabel = computed(() => {
     const tracking = this.tracking();
@@ -194,6 +249,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         tracking?.lastPositionAt ||
         appointment?.scheduledAt,
     );
+  });
+  protected readonly completedPaymentLabel = computed(() => {
+    const tracking = this.tracking();
+    const appointment = this.appointment();
+    return `Paiement confirme le ${this.formatLongDateTime(
+      tracking?.endedAt ||
+        tracking?.updatedAt ||
+        tracking?.lastPositionAt ||
+        appointment?.scheduledAt,
+    )}`;
   });
   protected readonly realDurationLabel = computed(() => {
     const tracking = this.tracking();
@@ -259,11 +324,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     () => this.tracking()?.lastLongitude ?? this.tracking()?.presence.lastLongitude ?? null,
   );
   protected readonly hasTrackingCoordinates = computed(
-    () =>
-      typeof this.trackingLatitude() === 'number' &&
-      Number.isFinite(this.trackingLatitude()) &&
-      typeof this.trackingLongitude() === 'number' &&
-      Number.isFinite(this.trackingLongitude()),
+    () => {
+      const latitude = this.trackingLatitude();
+      const longitude = this.trackingLongitude();
+      return (
+        typeof latitude === 'number' &&
+        typeof longitude === 'number' &&
+        this.isCoordinateInSenegal(latitude, longitude)
+      );
+    },
   );
   protected readonly canStartRouteToday = computed(() => {
     const appointment = this.appointment();
@@ -290,6 +359,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.isProviderOnTheWay()
     );
   });
+  protected readonly canProviderCompleteWork = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.canManageProviderStatus() &&
+      !this.isAppointmentInFuture(appointment) &&
+      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
+    );
+  });
+  protected readonly canProviderMarkClientAbsent = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.canManageProviderStatus() &&
+      !this.isAppointmentInFuture(appointment) &&
+      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
+    );
+  });
   protected readonly remainingDistanceLabel = computed(() => {
     if (!this.isProviderOnTheWay()) return 'Suivi inactif';
     const routeDistance = this.routeDistanceKm();
@@ -310,24 +397,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return minutes !== null && minutes > 0 ? minutes : 0;
   });
   protected readonly routeProgress = computed(() => {
+    if (this.isProviderWorking()) return 100;
     const minutes = this.estimatedArrivalMinutes();
     if (minutes <= 0) return 0;
     return Math.max(18, Math.min(82, 100 - minutes * 4));
   });
   protected readonly routeProgressLabel = computed(() => `${this.routeProgress()}%`);
-  protected readonly routeDistanceLabel = computed(() => {
+  protected readonly routeRemainingBadgeLabel = computed(() => {
+    if (this.isProviderWorking()) return 'Arrive';
     const distance = this.routeDistanceKm();
-    return distance !== null && distance > 0 ? this.formatDistance(distance) : '-- km';
+    const minutes = this.routeDurationMinutes();
+    if (distance !== null && distance > 0) return this.formatDistance(distance);
+    if (minutes !== null && minutes > 0) return `${minutes} min`;
+    return 'GPS';
   });
   protected readonly routeEtaLabel = computed(() => {
+    if (this.isProviderWorking()) return 'Arrive';
     const minutes = this.estimatedArrivalMinutes();
     return minutes > 0 ? `${minutes} min` : '-- min';
-  });
-  protected readonly routeDestinationTitle = computed(() => {
-    const appointment = this.appointment();
-    if (!appointment) return 'Destination';
-
-    return `Destination de ${appointment.serviceName}`;
   });
   protected readonly lastPositionLabel = computed(() => {
     const tracking = this.tracking();
@@ -384,7 +471,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   });
   protected readonly showImmersiveDetail = computed(
-    () => this.showUpcomingDetail() || this.isProviderOnTheWay(),
+    () =>
+      this.showUpcomingDetail() ||
+      this.isProviderOnTheWay() ||
+      this.isProviderWorking() ||
+      this.isAppointmentCompleted(),
   );
   protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
     if (this.isLoading()) return 'loading';
@@ -437,22 +528,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const appointment = this.appointment();
     if (!appointment) return [];
 
-    const rawItems = (appointment.notes || '')
+    const rawItems = [appointment.notes, appointment.serviceDescription]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join('\n')
       .split(/\n|;/)
       .map((item) => item.trim())
       .filter(Boolean);
-    const items = rawItems.length
-      ? rawItems
-      : [
-          appointment.serviceName,
-          `Adresse: ${appointment.addressLabel}`,
-          `Rendez-vous a ${appointment.timeLabel}`,
-        ];
 
-    return items.slice(0, 3).map((label, index) => ({
+    return rawItems.slice(0, 3).map((label, index) => ({
       code: `INFO${index + 1}`,
       label,
-      caption: `Detail ${index + 1}`,
+      caption: `Info ${index + 1}`,
     }));
   });
 
@@ -492,19 +578,39 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected avatarInitials(appointment: AppointmentView): string {
+    return this.initialsFromName(appointment.doctorName, 'JD');
+  }
+
+  protected clientInitials(appointment: AppointmentView): string {
+    return this.initialsFromName(appointment.clientName, 'CL');
+  }
+
+  protected providerRatingLabel(appointment: AppointmentView): string {
+    const rating = appointment.professionalRating;
+    const reviews = appointment.professionalReviews;
+    if (typeof rating !== 'number' || reviews <= 0) {
+      return 'Nouveau';
+    }
+
+    return `${rating.toFixed(1)} · ${reviews} avis`;
+  }
+
+  private initialsFromName(name: string, fallback: string): string {
     return (
-      appointment.doctorName
+      name
         .split(' ')
         .filter(Boolean)
         .slice(0, 2)
         .map((part) => part[0]?.toUpperCase())
-        .join('') || 'JD'
+        .join('') || fallback
     );
   }
 
   protected serviceDescriptionLabel(appointment: AppointmentView): string {
     return (
-      appointment.notes?.trim() || 'Aucune note particuliere n a ete ajoutee a ce rendez-vous.'
+      appointment.notes?.trim() ||
+      appointment.serviceDescription?.trim() ||
+      'Aucune note particuliere n a ete ajoutee a ce rendez-vous.'
     );
   }
 
@@ -626,16 +732,80 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       });
   }
 
-  protected contactProviderByPhone(): void {
-    this.feedback.info('Le contact telephonique sera disponible depuis la messagerie.');
+  protected bookAgain(appointment: AppointmentView): void {
+    this.router.navigate(['/services'], {
+      queryParams: {
+        professionalId: appointment.professionalId,
+        serviceId: appointment.serviceId,
+        serviceName: appointment.serviceName,
+      },
+    });
+  }
+
+  protected contactProviderByPhone(appointment: AppointmentView): void {
+    this.callPhoneNumber(appointment.professionalPhone, 'Le numero du prestataire nest pas renseigne.');
+  }
+
+  protected contactClientByPhone(appointment: AppointmentView): void {
+    this.callPhoneNumber(appointment.clientPhone, 'Le numero du client nest pas renseigne.');
+  }
+
+  private callPhoneNumber(phoneNumber: string | null, missingMessage: string): void {
+    const phone = phoneNumber?.trim();
+    if (!phone) {
+      this.feedback.info(missingMessage);
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+    }
   }
 
   protected reportAppointment(): void {
-    this.feedback.info('Le signalement sera rattache a ce rendez-vous dans votre espace litige.');
+    const appointment = this.appointment();
+    if (!appointment || this.isUpdatingStatus()) return;
+
+    const reason = this.isProviderViewer()
+      ? "Signalement prestataire : incident constate sur le rendez-vous."
+      : "Signalement client : le prestataire ne s'est pas presente ou la prestation n'a pas ete honoree.";
+
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.openDispute(appointment.id, reason).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Signalement envoye. Le rendez-vous est passe en litige.');
+      },
+      error: (error) => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error(
+          getHttpErrorMessage(
+            error,
+            "Impossible d'ouvrir un litige pour le moment. La reservation doit etre terminee, non honoree, ou depassee.",
+          ),
+        );
+      },
+    });
   }
 
-  protected showQrPendingMessage(): void {
-    this.feedback.info('Le QR code sera disponible le jour de la prestation.');
+  protected openQrCodePage(
+    appointment: AppointmentView,
+    type: 'expediteur' | 'destinataire',
+  ): void {
+    this.router.navigate(['/appointments', appointment.id, 'qr', type], {
+      queryParams: { returnUrl: this.router.url },
+    });
+  }
+
+  protected arrivalDestinationLabel(appointment: AppointmentView): string {
+    const service = (appointment.serviceName || '').trim().toLowerCase();
+    if (service) return service;
+
+    const address = (appointment.addressLabel || '').trim();
+    return address ? address : 'la prestation';
   }
 
   protected acceptPriceAdjustment(appointment: AppointmentView): void {
@@ -784,6 +954,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected markNoShow(appointment: AppointmentView): void {
     if (this.isUpdatingStatus()) return;
+    if (!this.canProviderMarkClientAbsent()) {
+      this.feedback.info(
+        "L'absence client peut etre signalee apres l'heure du rendez-vous, sur une reservation payee ou en cours.",
+      );
+      return;
+    }
+
     this.isUpdatingStatus.set(true);
     this.appointmentsService.markNoShow(appointment.id).subscribe({
       next: (updated) => {
@@ -791,7 +968,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.mergeAppointment(current ?? appointment, updated),
         );
         this.isUpdatingStatus.set(false);
-        this.feedback.success('Absence signalee sur ce rendez-vous.');
+        this.feedback.success('Absence client signalee sur ce rendez-vous.');
       },
       error: () => {
         this.isUpdatingStatus.set(false);
@@ -802,6 +979,60 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected async markOnTheWay(appointment: AppointmentView): Promise<void> {
     await this.transitionOnTheWay(appointment, false);
+  }
+
+  protected shareProviderLocation(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus() || !this.isProviderViewer()) return;
+
+    this.isUpdatingStatus.set(true);
+    this.resolveCurrentLocation('Position GPS du prestataire')
+      .then((location) => {
+        const handleSuccess = (tracking: AppointmentTrackingView): void => {
+          this.setTrackingSafely(tracking);
+          this.startProviderLocationSharing(appointment.id);
+          this.isUpdatingStatus.set(false);
+          this.feedback.success('Position partagee. Le trajet peut demarrer.');
+        };
+
+        this.appointmentsService.markProviderOnTheWay(appointment.id, location).subscribe({
+          next: handleSuccess,
+          error: () => {
+            this.stopProviderLocationSharing();
+            this.refreshTracking(appointment.id);
+          this.isUpdatingStatus.set(false);
+          this.feedback.error(
+            "Impossible de partager la position. Verifiez le GPS et l'etat de la reservation.",
+          );
+          },
+        });
+      })
+      .catch(() => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error(
+          "Impossible de recuperer votre position exacte. Autorisez la localisation GPS.",
+        );
+      });
+  }
+
+  protected toggleSatelliteMap(): void {
+    this.isSatelliteMapEnabled.update((enabled) => !enabled);
+    this.updateRouteBaseLayer();
+  }
+
+  protected selectRouteAlternative(routeId: string): void {
+    const route = this.routeOptions.find((option) => option.id === routeId);
+    if (!route) return;
+
+    this.selectedRouteId.set(routeId);
+    this.applySelectedRoute(route);
+    const leaflet = window.L as LeafletNamespace | undefined;
+    const destination = this.destinationCoordinates();
+    const latitude = this.trackingLatitude();
+    const longitude = this.trackingLongitude();
+    if (leaflet && destination && typeof latitude === 'number' && typeof longitude === 'number') {
+      this.renderRoutePolyline(leaflet, [latitude, longitude], [destination.lat, destination.lng]);
+    }
+    this.refreshRouteAlternatives();
   }
 
   private async transitionOnTheWay(appointment: AppointmentView, silent: boolean): Promise<void> {
@@ -816,7 +1047,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.isUpdatingStatus.set(true);
-    const location = await this.resolveCurrentLocation(appointment.addressLabel).catch(() => null);
+    const location = await this.resolveCurrentLocation('Position GPS du prestataire').catch(() => null);
     if (!location) {
       this.isUpdatingStatus.set(false);
       if (!silent) {
@@ -889,6 +1120,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private transitionCompleteWork(appointment: AppointmentView, silent: boolean): void {
     if (this.isUpdatingStatus()) return;
+    if (!this.canProviderCompleteWork()) {
+      if (!silent) {
+        this.feedback.info(
+          "Vous pourrez terminer la prestation apres l'heure du rendez-vous, si elle est payee ou deja en cours.",
+        );
+      }
+      return;
+    }
 
     this.isUpdatingStatus.set(true);
     this.appointmentsService.completeAppointment(appointment.id).subscribe({
@@ -1006,6 +1245,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.providerLocationWatchId = navigator.geolocation.watchPosition(
       (position) => {
+        if (!this.isProviderOnTheWay()) {
+          this.stopProviderLocationSharing();
+          return;
+        }
+
+        if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
+          return;
+        }
+
         const now = Date.now();
         if (now - this.lastProviderLocationPushAt < 8000) return;
         this.lastProviderLocationPushAt = now;
@@ -1019,9 +1267,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               typeof position.coords.heading === 'number' ? position.coords.heading : null,
             speedKmh:
               typeof position.coords.speed === 'number' ? position.coords.speed * 3.6 : null,
-            locationLabel: this.appointment()?.addressLabel ?? null,
+            locationLabel: 'Position GPS du prestataire',
           })
-          .pipe(catchError(() => of(null)))
+          .pipe(
+            catchError((error) => {
+              if (error instanceof HttpErrorResponse && error.status === 409) {
+                this.stopProviderLocationSharing();
+                this.refreshTracking(appointmentId);
+              }
+              return of(null);
+            }),
+          )
           .subscribe((tracking) => {
             if (tracking) {
               this.setTrackingSafely(tracking);
@@ -1076,33 +1332,48 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const defaultCenter: [number, number] = [14.7167, -17.4677];
 
     if (this.trackingMapElement && !this.routeMap) {
-      this.routeMap = leaflet.map(this.trackingMapElement, {
+      const map = leaflet.map(this.trackingMapElement, {
         attributionControl: false,
         zoomControl: true,
       });
-      leaflet
+      this.routeMap = map;
+      this.routeStreetLayer = leaflet
         .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap',
-        })
-        .addTo(this.routeMap);
-      this.safeSetView(this.routeMap, defaultCenter, 13);
-      window.setTimeout(() => this.safeInvalidateSize(this.routeMap), 80);
+        });
+      this.routeSatelliteLayer = leaflet.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; Esri',
+        },
+      );
+      this.updateRouteBaseLayer();
+      map.on?.('zoomstart', () => {
+        this.routeMapUserInteracted = true;
+      });
+      map.on?.('dragstart', () => {
+        this.routeMapUserInteracted = true;
+      });
+      this.safeSetView(map, defaultCenter, 13);
+      window.setTimeout(() => this.safeInvalidateSize(map), 80);
     }
 
     if (this.workTrackingMapElement && !this.workMap) {
-      this.workMap = leaflet.map(this.workTrackingMapElement, {
+      const map = leaflet.map(this.workTrackingMapElement, {
         attributionControl: false,
         zoomControl: true,
       });
+      this.workMap = map;
       leaflet
         .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap',
         })
-        .addTo(this.workMap);
-      this.safeSetView(this.workMap, defaultCenter, 15);
-      window.setTimeout(() => this.safeInvalidateSize(this.workMap), 80);
+        .addTo(map);
+      this.safeSetView(map, defaultCenter, 15);
+      window.setTimeout(() => this.safeInvalidateSize(map), 80);
     }
 
     this.updateLeafletMaps();
@@ -1132,6 +1403,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.routeMap) {
       if (this.routeProviderMarker?.setLatLng) {
         this.routeProviderMarker.setLatLng(provider);
+        this.routeProviderMarker.setIcon?.(this.leafletProviderIcon());
       } else {
         this.routeProviderMarker = leaflet
           .marker(provider, { icon: this.leafletProviderIcon() })
@@ -1149,9 +1421,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         }
 
         this.loadRouteCoordinates(provider, destinationPoint);
-        this.safeFitBounds(this.routeMap, [provider, destinationPoint], { padding: [44, 44] });
+        this.fitRouteOnce(provider, destinationPoint);
       } else {
-        this.safeSetView(this.routeMap, provider, 15);
+        if (!this.routeMapUserInteracted) {
+          this.safeSetView(this.routeMap, provider, 15);
+        }
       }
     }
 
@@ -1226,10 +1500,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       // Leaflet can throw if Angular already detached the pane.
     }
     this.routeMap = undefined;
+    this.routeStreetLayer = undefined;
+    this.routeSatelliteLayer = undefined;
     this.routeProviderMarker = undefined;
     this.routeDestinationMarker = undefined;
     this.routePolyline = undefined;
+    this.routeAlternativePolylines = [];
     this.trackingMapElement = undefined;
+    this.routeMapUserInteracted = false;
+    this.routeAutoFitKey = '';
   }
 
   private destroyWorkMap(): void {
@@ -1249,15 +1528,36 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     destinationPoint: [number, number],
   ): void {
     if (!this.routeMap || !leaflet.polyline) return;
+    const createPolyline = leaflet.polyline;
 
-    const points = this.routeCoordinates.length > 1 ? this.routeCoordinates : [provider, destinationPoint];
+    const points = this.routeCoordinates;
+    if (points.length < 2) return;
+
+    this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
+    this.routeAlternativePolylines = [];
+
+    this.routeOptions
+      .filter((option) => option.id !== this.selectedRouteId() && option.coordinates.length > 1)
+      .forEach((option, index) => {
+        const alternative = createPolyline(option.coordinates, {
+            color: index === 0 ? '#f97316' : '#2f80ed',
+            dashArray: index === 0 ? '14 8' : '8 8',
+            lineCap: 'round',
+            lineJoin: 'round',
+            opacity: 0.86,
+            weight: 7,
+          })
+          .addTo(this.routeMap as LeafletMapInstance);
+        alternative.addEventListener?.('click', () => this.selectRouteAlternative(option.id));
+        this.routeAlternativePolylines.push(alternative);
+      });
+
     if (this.routePolyline?.setLatLngs) {
       this.routePolyline.setLatLngs(points);
       return;
     }
 
-    this.routePolyline = leaflet
-      .polyline(points, {
+    this.routePolyline = createPolyline(points, {
         color: '#1eb980',
         lineCap: 'round',
         lineJoin: 'round',
@@ -1268,10 +1568,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private loadRouteCoordinates(provider: [number, number], destinationPoint: [number, number]): void {
-    const key = `${provider.join(',')}|${destinationPoint.join(',')}`;
+    const key = `${this.routePointKey(provider)}|${this.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
     this.routeCoordinatesKey = key;
     this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeAlternatives.set([]);
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);
     this.routeStatus.set('calculating');
@@ -1279,7 +1581,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const url =
       `https://router.project-osrm.org/route/v1/driving/` +
       `${provider[1]},${provider[0]};${destinationPoint[1]},${destinationPoint[0]}` +
-      '?overview=full&geometries=geojson';
+      '?alternatives=3&continue_straight=false&steps=false&overview=full&geometries=geojson';
 
     fetch(url, { headers: { Accept: 'application/json' } })
       .then((response) => (response.ok ? response.json() : null))
@@ -1289,23 +1591,60 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           duration?: number;
           geometry?: { coordinates?: Array<[number, number]> };
         }>;
+        waypoints?: Array<{ distance?: number }>;
       } | null) => {
-        const route = payload?.routes?.[0];
-        const coordinates = route?.geometry?.coordinates;
-        if (!coordinates?.length) {
+        const routes = (payload?.routes ?? [])
+          .map((route, index): RouteOption | null => {
+            const coordinates = route.geometry?.coordinates
+              ?.map(([lng, lat]) => [lat, lng] as [number, number])
+              .filter(([lat, lng]) => this.isCoordinateInSenegal(lat, lng));
+            if (!coordinates || coordinates.length < 2) return null;
+
+            return {
+              id: `route-${index}`,
+              coordinates,
+              distanceKm:
+                typeof route.distance === 'number' ? Math.max(0.1, route.distance / 1000) : null,
+              durationMinutes:
+                typeof route.duration === 'number'
+                  ? Math.max(1, Math.round(route.duration / 60))
+                  : null,
+            };
+          })
+          .filter((route): route is RouteOption => !!route)
+          .sort((left, right) => (left.durationMinutes ?? 99999) - (right.durationMinutes ?? 99999));
+        const route = routes[0];
+        if (
+          !route ||
+          !this.hasReliableRoadSnap(payload?.waypoints) ||
+          !this.isCoordinateInSenegal(provider[0], provider[1]) ||
+          !this.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
+        ) {
+          this.routeCoordinates = [];
+          this.routeOptions = [];
+          this.routeAlternatives.set([]);
+          this.routePolyline?.remove?.();
+          this.routePolyline = undefined;
+          this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
+          this.routeAlternativePolylines = [];
           this.routeStatus.set('unavailable');
           return;
         }
 
-        this.routeCoordinates = coordinates
-          .map(([lng, lat]) => [lat, lng] as [number, number])
-          .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
-        this.routeDistanceKm.set(
-          typeof route?.distance === 'number' ? Math.max(0.1, route.distance / 1000) : null,
-        );
-        this.routeDurationMinutes.set(
-          typeof route?.duration === 'number' ? Math.max(1, Math.round(route.duration / 60)) : null,
-        );
+        this.routeOptions = routes.map((option, index) => ({
+          ...option,
+          id: `route-${index}`,
+        }));
+        this.selectedRouteId.set(this.routeOptions[0]?.id ?? 'route-0');
+        this.applySelectedRoute(this.routeOptions[0]);
+        if (this.routeCoordinates.length < 2) {
+          this.routePolyline?.remove?.();
+          this.routePolyline = undefined;
+          this.routeStatus.set('unavailable');
+          return;
+        }
+
+        this.refreshRouteAlternatives();
         this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
         const leaflet = window.L as LeafletNamespace | undefined;
         if (leaflet) {
@@ -1314,8 +1653,71 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.updateLeafletMaps();
       })
       .catch(() => {
+        this.routeCoordinates = [];
+        this.routeOptions = [];
+        this.routeAlternatives.set([]);
+        this.routePolyline?.remove?.();
+        this.routePolyline = undefined;
+        this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
+        this.routeAlternativePolylines = [];
+        this.routeDistanceKm.set(null);
+        this.routeDurationMinutes.set(null);
         this.routeStatus.set('unavailable');
       });
+  }
+
+  private applySelectedRoute(route: RouteOption | undefined): void {
+    if (!route) return;
+
+    this.routeCoordinates = route.coordinates;
+    this.routeDistanceKm.set(route.distanceKm);
+    this.routeDurationMinutes.set(route.durationMinutes);
+  }
+
+  private refreshRouteAlternatives(): void {
+    this.routeAlternatives.set(
+      this.routeOptions.map((route, index) => ({
+        id: route.id,
+        label: index === 0 ? 'Plus rapide' : `Alternative ${index + 1}`,
+        distanceLabel: route.distanceKm ? this.formatDistance(route.distanceKm) : '-- km',
+        durationLabel: route.durationMinutes ? `${route.durationMinutes} min` : '-- min',
+        isSelected: route.id === this.selectedRouteId(),
+      })),
+    );
+  }
+
+  private updateRouteBaseLayer(): void {
+    if (!this.routeMap) return;
+
+    const activeLayer = this.isSatelliteMapEnabled()
+      ? this.routeSatelliteLayer
+      : this.routeStreetLayer;
+    const inactiveLayer = this.isSatelliteMapEnabled()
+      ? this.routeStreetLayer
+      : this.routeSatelliteLayer;
+
+    if (inactiveLayer) {
+      try {
+        this.routeMap.removeLayer?.(inactiveLayer);
+      } catch {
+        // Leaflet ignores layers that are not currently attached.
+      }
+    }
+
+    activeLayer?.addTo(this.routeMap);
+  }
+
+  private hasReliableRoadSnap(waypoints: Array<{ distance?: number }> | undefined): boolean {
+    if (!waypoints || waypoints.length < 2) return true;
+
+    return waypoints.every((waypoint) => {
+      const distanceMeters = waypoint.distance;
+      return (
+        typeof distanceMeters === 'number' &&
+        Number.isFinite(distanceMeters) &&
+        distanceMeters <= 1500
+      );
+    });
   }
 
   private loadLeaflet(): Promise<LeafletNamespace> {
@@ -1343,12 +1745,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.leafletLoadPromise;
   }
 
+  private fitRouteOnce(provider: [number, number], destinationPoint: [number, number]): void {
+    if (!this.routeMap || this.routeMapUserInteracted) return;
+
+    const key = `${this.routePointKey(provider)}|${this.routePointKey(destinationPoint)}`;
+    if (this.routeAutoFitKey === key) return;
+    this.routeAutoFitKey = key;
+    this.safeFitBounds(this.routeMap, [provider, destinationPoint], { padding: [84, 84] });
+  }
+
+  private routePointKey(point: [number, number]): string {
+    return point.map((value) => value.toFixed(5)).join(',');
+  }
+
   private leafletProviderIcon(): unknown {
     return window.L?.divIcon({
       className: 'appointment-detail__leaflet-provider-pin',
-      html: '<span><i></i></span>',
-      iconAnchor: [18, 18],
-      iconSize: [36, 36],
+      html: `<em>${this.routeRemainingBadgeLabel()}</em><span><i></i></span>`,
+      iconAnchor: [21, 28],
+      iconSize: [80, 58],
     });
   }
 
@@ -1366,16 +1781,42 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.destinationStatus.set('idle');
     this.routeStatus.set('idle');
     this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeAlternatives.set([]);
     this.routeCoordinatesKey = '';
+    this.routeAutoFitKey = '';
+    this.routeMapUserInteracted = false;
+    this.routeDestinationMarker?.remove?.();
+    this.routePolyline?.remove?.();
+    this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
+    this.routeDestinationMarker = undefined;
+    this.routePolyline = undefined;
+    this.routeAlternativePolylines = [];
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);
-    const query = addressLabel?.trim();
+    const query = this.normalizeAddressQuery(addressLabel);
     if (!query || typeof window === 'undefined') return;
+    const explicitCoordinates = this.extractCoordinatesFromAddress(query);
+    if (!explicitCoordinates && this.hasCoordinateLikeAddress(query)) {
+      this.destinationStatus.set('unavailable');
+      return;
+    }
+
+    if (explicitCoordinates) {
+      this.destinationCoordinates.set(explicitCoordinates);
+      this.destinationStatus.set('ready');
+      this.updateLeafletMaps();
+      return;
+    }
+
     this.destinationStatus.set('resolving');
 
     const params = new URLSearchParams({
       format: 'json',
-      limit: '1',
+      addressdetails: '1',
+      countrycodes: 'sn',
+      dedupe: '1',
+      limit: '8',
       q: `${query}, Senegal`,
     });
 
@@ -1383,11 +1824,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       headers: { Accept: 'application/json' },
     })
       .then((response) => (response.ok ? response.json() : []))
-      .then((results: Array<{ lat?: string; lon?: string }>) => {
-        const first = results[0];
-        const lat = Number(first?.lat);
-        const lng = Number(first?.lon);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      .then((results: GeocodeCandidate[]) => {
+        const best = this.selectBestDestinationCandidate(query, results);
+        const lat = Number(best?.lat);
+        const lng = Number(best?.lon);
+        if (this.isCoordinateInSenegal(lat, lng)) {
           this.destinationCoordinates.set({ lat, lng });
           this.destinationStatus.set('ready');
           this.updateLeafletMaps();
@@ -1400,6 +1841,121 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       });
   }
 
+  private normalizeAddressQuery(value: string): string {
+    return value
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private extractCoordinatesFromAddress(value: string): LeafletLatLng | null {
+    const match = value.match(/(-?\d{1,2}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
+    if (!match) return null;
+
+    const lat = Number(match[1].replace(',', '.'));
+    const lng = Number(match[2].replace(',', '.'));
+    if (!this.isCoordinateInSenegal(lat, lng)) return null;
+
+    return { lat, lng };
+  }
+
+  private hasCoordinateLikeAddress(value: string): boolean {
+    return /-?\d{1,2}(?:[.,]\d+)?\s*[,;]\s*-?\d{1,3}(?:[.,]\d+)?/.test(value);
+  }
+
+  private selectBestDestinationCandidate(
+    query: string,
+    results: GeocodeCandidate[],
+  ): GeocodeCandidate | null {
+    const queryTokens = this.addressTokens(query);
+    const candidates = results
+      .filter((candidate) => {
+        const lat = Number(candidate.lat);
+        const lng = Number(candidate.lon);
+        return (
+          candidate.address?.country_code === 'sn' ||
+          this.isCoordinateInSenegal(lat, lng)
+        );
+      })
+      .map((candidate) => {
+        const displayName = candidate.display_name ?? '';
+        const displayTokens = this.addressTokens(displayName);
+        const matched = queryTokens.filter((token) => displayTokens.includes(token)).length;
+        const score =
+          queryTokens.length === 0
+            ? 0
+            : matched / queryTokens.length + (candidate.importance ?? 0) * 0.08;
+
+        return { candidate, score };
+      })
+      .sort((left, right) => right.score - left.score);
+
+    const best = candidates[0];
+    if (!best || best.score < 0.45) {
+      return null;
+    }
+
+    return best.candidate;
+  }
+
+  private addressTokens(value: string): string[] {
+    const stopWords = new Set([
+      'adresse',
+      'domicile',
+      'senegal',
+      'sn',
+      'rue',
+      'avenue',
+      'av',
+      'de',
+      'du',
+      'des',
+      'la',
+      'le',
+      'les',
+      'a',
+    ]);
+
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 1 && !stopWords.has(token));
+  }
+
+  private isValidCoordinatePair(lat: number, lng: number): boolean {
+    return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  }
+
+  private isCoordinateInSenegal(lat: number, lng: number): boolean {
+    return (
+      this.isValidCoordinatePair(lat, lng) &&
+      lat >= SENEGAL_GEO_BOUNDS.minLat &&
+      lat <= SENEGAL_GEO_BOUNDS.maxLat &&
+      lng >= SENEGAL_GEO_BOUNDS.minLng &&
+      lng <= SENEGAL_GEO_BOUNDS.maxLng
+    );
+  }
+
+  private distanceBetweenPoints(start: [number, number], end: [number, number]): number {
+    const earthRadiusKm = 6371;
+    const dLat = this.degreesToRadians(end[0] - start[0]);
+    const dLng = this.degreesToRadians(end[1] - start[1]);
+    const lat1 = this.degreesToRadians(start[0]);
+    const lat2 = this.degreesToRadians(end[0]);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return Math.max(0.1, earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  private degreesToRadians(value: number): number {
+    return (value * Math.PI) / 180;
+  }
+
   private mergeAppointment(current: AppointmentView, updated: AppointmentView): AppointmentView {
     return {
       ...current,
@@ -1407,7 +1963,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       doctorName: current.doctorName,
       specialty: current.specialty,
       avatarUrl: current.avatarUrl,
+      professionalPhone: current.professionalPhone,
+      professionalRating: current.professionalRating,
+      professionalReviews: current.professionalReviews,
+      clientName: current.clientName,
+      clientPhone: current.clientPhone,
+      clientAvatarUrl: current.clientAvatarUrl,
       serviceName: current.serviceName,
+      serviceDescription: current.serviceDescription,
     };
   }
 
@@ -1438,6 +2001,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       minute: '2-digit',
     })
       .format(value)
+      .replace(':', 'h');
+  }
+
+  private formatLongDateTime(value: string | null | undefined): string {
+    if (!value) return 'date non renseignee';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'date non renseignee';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .format(date)
+      .replace(',', ' a')
       .replace(':', 'h');
   }
 
@@ -1485,6 +2065,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             !Number.isFinite(position.coords.longitude)
           ) {
             reject(new Error('Invalid geolocation coordinates'));
+            return;
+          }
+
+          if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
+            reject(new Error('Geolocation outside Senegal'));
             return;
           }
 

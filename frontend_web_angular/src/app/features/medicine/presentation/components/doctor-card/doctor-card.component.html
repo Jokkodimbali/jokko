@@ -25,9 +25,9 @@
       <ng-template #doctorPortraitInitials>
         <span class="doctor-card__portrait-initials">{{ doctorInitials() }}</span>
       </ng-template>
-      <span *ngIf="doctor.isOnline" class="doctor-card__status">
+      <span class="doctor-card__status" [class.doctor-card__status--offline]="!doctor.isOnline">
         <i aria-hidden="true"></i>
-        En ligne
+        {{ doctor.isOnline ? messages.status.online : messages.status.offline }}
       </span>
     </div>
 
@@ -38,11 +38,17 @@
         <lucide-icon name="star" size="15" [strokeWidth]="0" fill="#ffb21b"></lucide-icon>
         <strong>{{ doctor.rating }}</strong>
         <span>({{ doctor.reviewCount }})</span>
-        <i aria-hidden="true"></i>
+        <i aria-hidden="true" class="doctor-card__dot"></i>
         <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
         <span>{{ doctor.location }}</span>
       </div>
 
+      <div class="doctor-card__modes" *ngIf="doctor.modes.length > 0">
+        <span *ngFor="let mode of doctor.modes" [class.doctor-card__mode--remote]="mode === messages.modes.remote">
+          <lucide-icon *ngIf="mode === messages.modes.remote" name="video" size="14" [strokeWidth]="2"></lucide-icon>
+          {{ mode }}
+        </span>
+      </div>
     </div>
   </div>
 
@@ -56,7 +62,7 @@
       <span *ngFor="let day of doctor.nextAvailability">{{ day }}</span>
     </div>
     <ng-template #noAvailability>
-      <p class="doctor-card__empty-availability">Aucune disponibilit&eacute; publi&eacute;e</p>
+      <p class="doctor-card__empty-availability">{{ messages.noAvailability }}</p>
     </ng-template>
   </section>
 

@@ -11,7 +11,7 @@
 
       <span class="doctor-profile__online" [class.doctor-profile__online--offline]="!doctor().isOnline">
         <span></span>
-        {{ doctor().isOnline ? 'En ligne' : 'Hors ligne' }}
+        {{ doctor().isOnline ? messages.status.online : messages.status.offline }}
       </span>
     </section>
 
@@ -79,7 +79,7 @@
           <p><strong>Sur rendez-vous</strong> <em>/consultation</em></p>
           <button type="button" [routerLink]="['/medecine', doctor().id, 'rendez-vous']">
             <lucide-icon name="calendar-days" size="25" [strokeWidth]="2.4"></lucide-icon>
-            Prendre RDV
+            Prendre Rendez-vous
           </button>
         </article>
 

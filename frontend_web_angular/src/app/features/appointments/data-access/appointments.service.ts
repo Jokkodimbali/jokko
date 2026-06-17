@@ -50,7 +50,11 @@ export class AppointmentsService {
                       'Prestataire non renseigne',
                     specialty: service?.nom || 'Service non renseigne',
                     avatarUrl: detail.profile.utilisateur.urlAvatar || '',
+                    professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
+                    professionalRating: detail.profile.noteGlobale ?? null,
+                    professionalReviews: detail.profile.nombreAvis ?? 0,
                     serviceName: service?.nom || 'Service non renseigne',
+                    serviceDescription: service?.description || null,
                     servicePrice: service?.prix ?? null,
                   });
                 }),
@@ -85,7 +89,11 @@ export class AppointmentsService {
                   'Prestataire non renseigne',
                 specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
+                professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
+                professionalRating: detail.profile.noteGlobale ?? null,
+                professionalReviews: detail.profile.nombreAvis ?? 0,
                 serviceName: service?.nom || 'Service non renseigne',
+                serviceDescription: service?.description || null,
                 servicePrice: service?.prix ?? null,
               });
             }),
@@ -307,7 +315,11 @@ export class AppointmentsService {
       doctorName?: string;
       specialty?: string;
       avatarUrl?: string;
+      professionalPhone?: string | null;
+      professionalRating?: number | null;
+      professionalReviews?: number;
       serviceName?: string;
+      serviceDescription?: string | null;
       servicePrice?: number | null;
     } = {},
   ): AppointmentView {
@@ -329,7 +341,17 @@ export class AppointmentsService {
       doctorName: professional.doctorName || 'Prestataire non renseigne',
       specialty: professional.specialty || reservation.service?.nom || 'Service non renseigne',
       avatarUrl: professional.avatarUrl || '',
+      professionalPhone:
+        professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
+      professionalRating:
+        professional.professionalRating ?? reservation.professionnel?.noteGlobale ?? null,
+      professionalReviews:
+        professional.professionalReviews ?? reservation.professionnel?.nombreAvis ?? 0,
+      clientName: reservation.client?.nom || 'Client non renseigne',
+      clientPhone: reservation.client?.numeroTelephone || null,
+      clientAvatarUrl: reservation.client?.urlAvatar || '',
       serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
+      serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
@@ -384,7 +406,11 @@ export class AppointmentsService {
         'Prestataire non renseigne',
       specialty: reservation.service.nom,
       avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '',
+      professionalPhone: reservation.professionnel.utilisateur.numeroTelephone || null,
+      professionalRating: reservation.professionnel.noteGlobale,
+      professionalReviews: reservation.professionnel.nombreAvis,
       serviceName: reservation.service.nom,
+      serviceDescription: reservation.service.description,
     });
   }
 

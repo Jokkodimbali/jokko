@@ -302,7 +302,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected statusLabel(appointment: AppointmentView): string {
-    if (this.isOverdueAppointment(appointment)) return 'Date passee';
+    if (this.isOverdueAppointment(appointment)) return 'A cloturer';
     if (this.matchesStatus(appointment, 'URGENT')) return 'Urgent';
 
     const labels: Record<AppointmentStatus, string> = {
@@ -310,7 +310,7 @@ export class AppointmentsPageComponent implements OnInit {
       CONFIRMEE: 'Confirme',
       PAYEE_SEQUESTRE: 'En cours',
       EN_COURS: 'En cours',
-      TERMINEE: 'Confirme',
+      TERMINEE: 'Terminee',
       ANNULEE: 'Annule',
       NO_SHOW: 'Absent',
       LITIGE: 'Urgent',
@@ -320,7 +320,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected statusPanelTitle(appointment: AppointmentView): string {
-    if (this.isOverdueAppointment(appointment)) return 'Rendez-vous depasse';
+    if (this.isOverdueAppointment(appointment)) return 'Rendez-vous a cloturer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Demande en cours';
     if (appointment.status === 'TERMINEE') return 'Prestation terminee';
     if (appointment.status === 'EN_COURS' || appointment.status === 'PAYEE_SEQUESTRE') {
@@ -333,7 +333,7 @@ export class AppointmentsPageComponent implements OnInit {
 
   protected statusPanelMessage(appointment: AppointmentView): string {
     if (this.isOverdueAppointment(appointment)) {
-      return 'La date prevue est passee. Ce rendez-vous doit etre cloture, marque absent ou reprogramme selon la situation.';
+      return 'La date prevue est passee, mais la prestation ne sera terminee que lorsque le prestataire la marquera comme terminee.';
     }
 
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') {
@@ -370,6 +370,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected primaryActionLabel(appointment: AppointmentView): string {
+    if (this.canProviderCloseAppointment(appointment)) return 'Cloturer';
     if (this.shouldPayAppointment(appointment)) return 'Payer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
     if (appointment.status === 'EN_ATTENTE') return 'Finaliser';
@@ -377,6 +378,7 @@ export class AppointmentsPageComponent implements OnInit {
   }
 
   protected primaryActionIcon(appointment: AppointmentView): string {
+    if (this.canProviderCloseAppointment(appointment)) return 'check';
     if (this.shouldPayAppointment(appointment)) return 'arrow-right';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'send';
     return 'arrow-right';
@@ -499,7 +501,8 @@ export class AppointmentsPageComponent implements OnInit {
 
   private resolveReservationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
     const role = this.authSession.getAuthenticatedRole();
-    if (role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN') return 'CLIENT';
+    if (role === 'CLIENT') return 'CLIENT';
+    if (role === 'PRESTATAIRE' || role === 'MEDECIN') return 'PRESTATAIRE';
     return null;
   }
 
@@ -591,6 +594,15 @@ export class AppointmentsPageComponent implements OnInit {
       !!appointment.agreedPrice &&
       appointment.agreedPrice > 0 &&
       (appointment.status === 'EN_ATTENTE' || appointment.status === 'CONFIRMEE')
+    );
+  }
+
+  private canProviderCloseAppointment(appointment: AppointmentView): boolean {
+    const role = this.currentUser()?.role;
+    return (
+      (role === 'PRESTATAIRE' || role === 'MEDECIN') &&
+      this.isOverdueAppointment(appointment) &&
+      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
     );
   }
 

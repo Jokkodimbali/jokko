@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
@@ -11,6 +11,8 @@ import {
   PaginationMeta,
 } from '../../services/domain/models/services.models';
 import { DoctorProfile } from '../domain/models/medicine.models';
+
+import { MEDICINE_UI_MESSAGES } from '../domain/medicine-ui.messages';
 
 @Injectable({
   providedIn: 'root',
@@ -29,12 +31,28 @@ export class MedicineService {
         },
       })
       .pipe(
-        map((response) => ({
-          doctors: unwrapApiResponse(response).map((professional) =>
-            this.mapDoctor(professional),
-          ),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
+        switchMap((response) => {
+          const professionals = unwrapApiResponse(response);
+          if (professionals.length === 0) {
+            return of({ doctors: [], meta: response.meta?.['pagination'] as PaginationMeta | undefined });
+          }
+
+          const doctorRequests = professionals.map((professional) =>
+            forkJoin({
+              availabilities: this.getProfessionalAvailabilities(professional.id).pipe(catchError(() => of([]))),
+              presence: this.getProfessionalPresence(professional.id).pipe(catchError(() => of(null))),
+            }).pipe(
+              map(({ availabilities, presence }) => this.mapDoctor(professional, availabilities, presence)),
+            ),
+          );
+
+          return forkJoin(doctorRequests).pipe(
+            map((doctors) => ({
+              doctors,
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            })),
+          );
+        }),
       );
   }
 
@@ -62,22 +80,29 @@ export class MedicineService {
     const primaryService = professional.services[0];
     const medicalSpecialty = this.extractMedicalSpecialty(professional.bio);
     const nextAvailability = this.buildNextAvailabilityLabels(availabilities);
+    const modes = Array.from(new Set(
+      professional.services
+        .map(s => s.travelMode === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)
+        .filter(Boolean) as string[]
+    ));
 
     return {
       id: professional.id,
       name: professional.companyName || professional.name,
       specialty:
-        primaryService?.name ||
-        primaryService?.categoryName ||
+        primaryService?.name || // Use service name (sub-category) as specialty
         medicalSpecialty ||
-        'Specialite non renseignee',
+        professional.specialties?.[0]?.name ||
+        primaryService?.categoryName ||
+        'Médecin',
       rating: professional.rating || 0,
       reviewCount: professional.totalReviews || 0,
       location: (professional.city || 'Localisation non renseignee').toUpperCase(),
       latitude: professional.latitude,
       longitude: professional.longitude,
       imageUrl: this.absoluteAssetUrl(professional.avatarUrl) || '',
-      isOnline: Boolean(presence?.isOnline),
+      isOnline: presence ? presence.isOnline : (professional as any).isOnline ?? false,
+      modes: modes.length > 0 ? modes : [],
       nextAvailability,
       availability: [
         {
@@ -115,12 +140,8 @@ export class MedicineService {
         continue;
       }
 
-      labels.push(
-        formatter
-          .format(date)
-          .replace('.', '')
-          .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
-      );
+      const label = formatter.format(date).replace('.', '').trim();
+      labels.push(label.charAt(0).toUpperCase() + label.slice(1));
     }
 
     return labels;

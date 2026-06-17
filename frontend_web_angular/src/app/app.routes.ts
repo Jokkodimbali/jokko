@@ -136,6 +136,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'appointments/:id/qr/:type',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-qr-code-page/appointment-qr-code-page.component').then(
+        (m) => m.AppointmentQrCodePageComponent,
+      ),
+  },
+  {
     path: 'appointments/:id',
     canActivate: [authGuard],
     loadComponent: () =>

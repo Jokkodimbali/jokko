@@ -14,6 +14,7 @@ export interface DoctorProfile {
   longitude: number | null;
   imageUrl: string;
   isOnline: boolean;
+  modes: string[];
   availability: AvailabilitySlot[];
   nextAvailability: string[];
 }

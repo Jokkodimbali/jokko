@@ -87,7 +87,14 @@ export interface AppointmentView {
   doctorName: string;
   specialty: string;
   avatarUrl: string;
+  professionalPhone: string | null;
+  professionalRating: number | null;
+  professionalReviews: number;
+  clientName: string;
+  clientPhone: string | null;
+  clientAvatarUrl: string;
   serviceName: string;
+  serviceDescription: string | null;
   servicePrice: number | null;
   notes: string | null;
   agreedPrice: number | null;

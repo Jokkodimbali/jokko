@@ -52,12 +52,12 @@
                 <h2>{{ appointment.doctorName }}</h2>
                 <p>
                   <span>★</span>
-                  4.8 · {{ appointment.specialty || appointment.serviceName }}
+                  {{ providerRatingLabel(appointment) }} · {{ appointment.specialty || appointment.serviceName }}
                 </p>
               </div>
             </div>
             <nav aria-label="Contacter le prestataire">
-              <button type="button" aria-label="Appeler" (click)="contactProviderByPhone()">
+              <button type="button" aria-label="Appeler" (click)="contactProviderByPhone(appointment)">
                 <lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon>
               </button>
               <button type="button" aria-label="Message" (click)="messageProvider(appointment)">
@@ -71,15 +71,22 @@
           <header>
             <small>DESTINATAIRE</small>
             <div>
-              <span class="appointment-detail__route-client-avatar">
-                {{ (currentUser()?.name || 'Client').slice(0, 2).toUpperCase() }}
-              </span>
+              <img
+                *ngIf="appointment.clientAvatarUrl; else panelClientInitials"
+                [src]="appointment.clientAvatarUrl"
+                [alt]="appointment.clientName"
+              />
+              <ng-template #panelClientInitials>
+                <span class="appointment-detail__route-client-avatar">
+                  {{ clientInitials(appointment) }}
+                </span>
+              </ng-template>
               <div>
-                <h2>{{ currentUser()?.name || 'Client Jokko' }}</h2>
+                <h2>{{ appointment.clientName }}</h2>
               </div>
             </div>
             <nav aria-label="Contacter le client">
-              <button type="button" aria-label="Appeler" (click)="contactProviderByPhone()">
+              <button type="button" aria-label="Appeler" (click)="contactClientByPhone(appointment)">
                 <lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon>
               </button>
               <button type="button" aria-label="Message" (click)="messageProvider(appointment)">
@@ -96,7 +103,7 @@
               <lucide-icon name="briefcase-business" size="19" [strokeWidth]="2.4"></lucide-icon>
             </span>
             <strong>{{ appointment.serviceName }}</strong>
-            <em>CONFIRME</em>
+            <em>{{ appointment.confirmationLabel }}</em>
           </div>
 
           <div class="appointment-detail__upcoming-dategrid">
@@ -122,9 +129,9 @@
             <strong>{{ serviceDescriptionLabel(appointment) }}</strong>
           </div>
 
-          <div class="appointment-detail__upcoming-items">
+          <div class="appointment-detail__upcoming-items" *ngIf="upcomingMissionItems().length > 0">
             <header>
-              <strong>Elements a preparer</strong>
+              <strong>Informations mission</strong>
               <span>{{ upcomingMissionItems().length }}</span>
             </header>
             <p *ngFor="let item of upcomingMissionItems()">
@@ -397,68 +404,10 @@
     </section>
 
     <section
-      *ngIf="!isAppointmentCompleted() && isProviderWorking()"
-      class="appointment-detail__work-layout"
-      aria-label="Prestation en cours"
-    >
-      <article class="appointment-detail__work-card">
-        <div class="appointment-detail__work-map">
-          <div
-            #workTrackingMap
-            class="appointment-detail__leaflet-map"
-            aria-label="Carte temps reel de la prestation en cours"
-          ></div>
-          <div class="appointment-detail__map-empty" *ngIf="!hasTrackingCoordinates()">
-            <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-            Position GPS en attente
-          </div>
-          <div class="appointment-detail__map-badge"><span></span>EN DIRECT</div>
-          <div class="appointment-detail__arrived-badge">
-            <lucide-icon name="check" size="14" [strokeWidth]="3"></lucide-icon>
-            Arrive sur place
-          </div>
-          <div class="appointment-detail__work-radius" *ngIf="hasTrackingCoordinates()"></div>
-          <img
-            class="appointment-detail__work-avatar"
-            [src]="appointment.avatarUrl"
-            [alt]="appointment.doctorName"
-            *ngIf="hasTrackingCoordinates() && appointment.avatarUrl"
-          />
-        </div>
-
-        <div class="appointment-detail__work-info">
-          <span class="appointment-detail__work-icon">
-            <lucide-icon name="wrench" size="32" [strokeWidth]="2.6"></lucide-icon>
-          </span>
-          <div>
-            <h2>{{ appointment.serviceName }}</h2>
-            <p>{{ appointment.doctorName }} est arrive a {{ arrivedAtLabel() }}</p>
-          </div>
-        </div>
-
-        <div class="appointment-detail__work-facts">
-          <strong>
-            <small
-              ><lucide-icon name="map-pin" size="14" [strokeWidth]="2.4"></lucide-icon>
-              ADRESSE</small
-            >
-            {{ appointment.addressLabel }}
-          </strong>
-          <strong>
-            <small
-              ><lucide-icon name="clock-3" size="14" [strokeWidth]="2.4"></lucide-icon> FIN
-              ESTIMEE</small
-            >
-            = {{ estimatedEndLabel() }}
-          </strong>
-        </div>
-      </article>
-    </section>
-
-    <section
-      *ngIf="!isAppointmentCompleted() && isProviderOnTheWay()"
+      *ngIf="!isAppointmentCompleted() && (isProviderOnTheWay() || isProviderWorking())"
       class="appointment-detail__route-layout"
-      aria-label="Suivi du prestataire en route"
+      [class.appointment-detail__route-layout--arrived]="isProviderWorking()"
+      [attr.aria-label]="isProviderWorking() ? 'Prestataire arrive a destination' : 'Suivi du prestataire en route'"
     >
       <header class="appointment-detail__route-topbar">
         <div class="appointment-detail__upcoming-heading">
@@ -467,7 +416,7 @@
           </button>
           <div>
             <span>Rendez-vous confirme</span>
-            <strong>Prestataire en route</strong>
+            <strong>{{ isProviderWorking() ? 'Prestataire est arrive' : 'Prestataire en route' }}</strong>
           </div>
         </div>
 
@@ -476,7 +425,7 @@
         <div class="appointment-detail__route-status">
           <span>
             <i></i>
-            En route · {{ routeEtaLabel() }}
+            {{ isProviderWorking() ? 'Arrive sur place' : 'En route · ' + routeEtaLabel() }}
           </span>
           <em>Trajet</em>
           <b><i [style.width.%]="routeProgress()"></i></b>
@@ -496,26 +445,63 @@
         ></div>
         <div class="appointment-detail__map-empty" *ngIf="!hasTrackingCoordinates()">
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-          Position GPS en attente
-        </div>
-        <div class="appointment-detail__route-destination-card">
-          <span>
-            <strong>{{ routeEtaLabel().replace(' min', '') }}</strong>
-            MIN
-          </span>
-          <div>
-            <strong>{{ routeDestinationTitle() }}</strong>
-            <small>{{ routeDistanceLabel() }}</small>
-          </div>
+          <strong>Position GPS en attente</strong>
+          <small>
+            {{
+              isProviderViewer()
+                ? 'Partagez votre position exacte pour lancer le trajet.'
+                : 'Le prestataire doit partager sa position pour lancer l’itinéraire.'
+            }}
+          </small>
+          <button
+            *ngIf="isProviderViewer()"
+            type="button"
+            (click)="shareProviderLocation(appointment)"
+            [disabled]="isUpdatingStatus()"
+          >
+            <lucide-icon name="send" size="16" [strokeWidth]="2.6"></lucide-icon>
+            Partager ma position
+          </button>
         </div>
         <a [href]="mapDirectionsUrl(appointment)" target="_blank" rel="noopener">
           <lucide-icon name="map-pin" size="15" [strokeWidth]="2.3"></lucide-icon>
           {{
-            estimatedArrivalMinutes()
+            isProviderWorking()
+              ? 'Arrive a destination'
+              : estimatedArrivalMinutes()
               ? 'Arrive dans ' + estimatedArrivalMinutes() + ' min'
               : lastPositionLabel()
           }}
         </a>
+        <button
+          *ngIf="!isProviderWorking()"
+          type="button"
+          class="appointment-detail__map-layer-toggle"
+          (click)="toggleSatelliteMap()"
+        >
+          {{ isSatelliteMapEnabled() ? 'Plan' : 'Satellite' }}
+        </button>
+        <div class="appointment-detail__route-alternatives" *ngIf="!isProviderWorking() && routeAlternatives().length > 0">
+          <button
+            *ngFor="let route of routeAlternatives()"
+            type="button"
+            [class.is-active]="route.isSelected"
+            (click)="selectRouteAlternative(route.id)"
+          >
+            <span>{{ route.label }}</span>
+            <strong>{{ route.durationLabel }}</strong>
+            <em>{{ route.distanceLabel }}</em>
+          </button>
+          <p *ngIf="routeAlternatives().length === 1">
+            Aucune autre route fiable trouvee.
+          </p>
+        </div>
+        <div class="appointment-detail__arrival-toast" *ngIf="isProviderWorking()">
+          <span>
+            <lucide-icon name="check" size="31" [strokeWidth]="3"></lucide-icon>
+          </span>
+          <strong>Arrive a destination de {{ arrivalDestinationLabel(appointment) }}</strong>
+        </div>
         <div class="appointment-detail__route-bottom">
           <span>
             <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>

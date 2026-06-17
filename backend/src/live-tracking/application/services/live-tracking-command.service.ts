@@ -20,6 +20,13 @@ import {
 } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
 
+const SENEGAL_GEO_BOUNDS = {
+  minLat: 12,
+  maxLat: 17.2,
+  minLng: -18.7,
+  maxLng: -11,
+} as const;
+
 @Injectable()
 export class LiveTrackingCommandService {
   constructor(
@@ -134,6 +141,7 @@ export class LiveTrackingCommandService {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
 
+    this.assertLocationPair(dto);
     if (dto.latitude === undefined || dto.longitude === undefined) {
       throw LiveTrackingDomainError.invalidLocation();
     }
@@ -257,5 +265,24 @@ export class LiveTrackingCommandService {
     if (hasLatitude !== hasLongitude) {
       throw LiveTrackingDomainError.invalidLocation();
     }
+
+    if (
+      dto.latitude !== undefined &&
+      dto.longitude !== undefined &&
+      !this.isCoordinateInSenegal(dto.latitude, dto.longitude)
+    ) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+  }
+
+  private isCoordinateInSenegal(lat: number, lng: number): boolean {
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= SENEGAL_GEO_BOUNDS.minLat &&
+      lat <= SENEGAL_GEO_BOUNDS.maxLat &&
+      lng >= SENEGAL_GEO_BOUNDS.minLng &&
+      lng <= SENEGAL_GEO_BOUNDS.maxLng
+    );
   }
 }

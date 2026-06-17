@@ -17,6 +17,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
@@ -100,7 +101,6 @@ type AppointmentDetailUiState =
   styleUrls: [
     './appointment-detail-page.component.scss',
     './appointment-detail-map.component.scss',
-    './appointment-detail-completed.component.scss',
   ],
 })
 export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy, OnInit {
@@ -357,6 +357,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.canStartRouteToday() &&
       appointment.status === 'PAYEE_SEQUESTRE' &&
       this.isProviderOnTheWay()
+    );
+  });
+  protected readonly canProviderCompleteWork = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.canManageProviderStatus() &&
+      !this.isAppointmentInFuture(appointment) &&
+      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
+    );
+  });
+  protected readonly canProviderMarkClientAbsent = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.canManageProviderStatus() &&
+      !this.isAppointmentInFuture(appointment) &&
+      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
     );
   });
   protected readonly remainingDistanceLabel = computed(() => {
@@ -745,11 +763,41 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected reportAppointment(): void {
-    this.feedback.info('Le signalement sera rattache a ce rendez-vous dans votre espace litige.');
+    const appointment = this.appointment();
+    if (!appointment || this.isUpdatingStatus()) return;
+
+    const reason = this.isProviderViewer()
+      ? "Signalement prestataire : incident constate sur le rendez-vous."
+      : "Signalement client : le prestataire ne s'est pas presente ou la prestation n'a pas ete honoree.";
+
+    this.isUpdatingStatus.set(true);
+    this.appointmentsService.openDispute(appointment.id, reason).subscribe({
+      next: (updated) => {
+        this.appointment.update((current) =>
+          this.mergeAppointment(current ?? appointment, updated),
+        );
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Signalement envoye. Le rendez-vous est passe en litige.');
+      },
+      error: (error) => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error(
+          getHttpErrorMessage(
+            error,
+            "Impossible d'ouvrir un litige pour le moment. La reservation doit etre terminee, non honoree, ou depassee.",
+          ),
+        );
+      },
+    });
   }
 
-  protected showQrPendingMessage(): void {
-    this.feedback.info('Le QR code sera disponible le jour de la prestation.');
+  protected openQrCodePage(
+    appointment: AppointmentView,
+    type: 'expediteur' | 'destinataire',
+  ): void {
+    this.router.navigate(['/appointments', appointment.id, 'qr', type], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   protected arrivalDestinationLabel(appointment: AppointmentView): string {
@@ -906,6 +954,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected markNoShow(appointment: AppointmentView): void {
     if (this.isUpdatingStatus()) return;
+    if (!this.canProviderMarkClientAbsent()) {
+      this.feedback.info(
+        "L'absence client peut etre signalee apres l'heure du rendez-vous, sur une reservation payee ou en cours.",
+      );
+      return;
+    }
+
     this.isUpdatingStatus.set(true);
     this.appointmentsService.markNoShow(appointment.id).subscribe({
       next: (updated) => {
@@ -913,7 +968,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.mergeAppointment(current ?? appointment, updated),
         );
         this.isUpdatingStatus.set(false);
-        this.feedback.success('Absence signalee sur ce rendez-vous.');
+        this.feedback.success('Absence client signalee sur ce rendez-vous.');
       },
       error: () => {
         this.isUpdatingStatus.set(false);
@@ -1065,6 +1120,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private transitionCompleteWork(appointment: AppointmentView, silent: boolean): void {
     if (this.isUpdatingStatus()) return;
+    if (!this.canProviderCompleteWork()) {
+      if (!silent) {
+        this.feedback.info(
+          "Vous pourrez terminer la prestation apres l'heure du rendez-vous, si elle est payee ou deja en cours.",
+        );
+      }
+      return;
+    }
 
     this.isUpdatingStatus.set(true);
     this.appointmentsService.completeAppointment(appointment.id).subscribe({

@@ -1,0 +1,82 @@
+<main class="parcel-qr">
+  <header class="parcel-qr__topbar">
+    <button type="button" aria-label="Retour" (click)="goBack()">
+      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
+    </button>
+    <h1>
+      <lucide-icon name="archive" size="17" [strokeWidth]="2.5"></lucide-icon>
+      {{ title() }}
+    </h1>
+    <span aria-hidden="true"></span>
+  </header>
+
+  <section *ngIf="isLoading()" class="parcel-qr__state">
+    Chargement du QR code...
+  </section>
+
+  <section *ngIf="!isLoading() && errorMessage()" class="parcel-qr__state parcel-qr__state--error">
+    {{ errorMessage() }}
+  </section>
+
+  <section *ngIf="!isLoading() && !errorMessage() && appointment()" class="parcel-qr__layout">
+    <article class="parcel-qr__card">
+      <div class="parcel-qr__notice">
+        <lucide-icon name="users" size="16" [strokeWidth]="2.3"></lucide-icon>
+        <p>{{ infoText() }}</p>
+      </div>
+
+      <div class="parcel-qr__code" aria-label="QR code de validation colis">
+        <img
+          *ngIf="qrImageUrl()"
+          class="parcel-qr__image"
+          [src]="qrImageUrl()"
+          alt="QR code de validation colis"
+        />
+      </div>
+
+      <dl class="parcel-qr__details">
+        <div>
+          <dt>Numero de colis</dt>
+          <dd>{{ parcelNumber() }}</dd>
+        </div>
+        <div>
+          <dt>{{ targetRoleLabel() }}</dt>
+          <dd>{{ targetName() }}</dd>
+        </div>
+      </dl>
+
+      <div class="parcel-qr__status">
+        <i></i>
+        {{ statusLabel() }}
+      </div>
+
+      <button type="button" class="parcel-qr__download" (click)="downloadQrPdf()">
+        <lucide-icon name="arrow-down" size="17" [strokeWidth]="2.5"></lucide-icon>
+        Telecharger le QR code en PDF
+      </button>
+    </article>
+
+    <aside class="parcel-qr__side">
+      <div class="parcel-qr__side-notice">
+        <lucide-icon name="clock-3" size="17" [strokeWidth]="2.4"></lucide-icon>
+        <p>{{ sideNotice() }}</p>
+      </div>
+
+      <div class="parcel-qr__steps">
+        <div *ngFor="let step of steps(); trackBy: trackByIndex" class="parcel-qr__step">
+          <span>
+            <lucide-icon [name]="step.icon" size="17" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <div>
+            <small>{{ step.title }}</small>
+            <p>{{ step.text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="parcel-qr__warning">
+        Ce QR code est valable uniquement pour ces colis. Ne le partagez pas avec des tiers.
+      </p>
+    </aside>
+  </section>
+</main>

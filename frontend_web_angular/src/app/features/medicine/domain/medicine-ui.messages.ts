@@ -4,9 +4,18 @@ export const MEDICINE_UI_MESSAGES = {
   map: 'Afficher la carte',
   filter: 'Filtre',
   availability: 'Disponibilité',
-  appointment: 'Prendre RDV',
-  nextAvailability: 'Prochaines disponibilité',
+  appointment: 'Prendre rendez-vous',
+  nextAvailability: 'Prochaines dispos',
   scrollHint: 'Glissez vers le bas',
   locationTitle: 'Localisation',
   locationValue: 'Position selon les medecins disponibles',
+  noAvailability: 'Aucune disponibilité publiée',
+  modes: {
+    remote: 'Téléconsult',
+    office: 'Cabinet',
+  },
+  status: {
+    online: 'En ligne',
+    offline: 'Hors ligne',
+  },
 } as const;

@@ -29,7 +29,9 @@
     >
       <aside
         [ngClass]="
-          layout === 'route'
+          layout === 'completed'
+            ? 'appointment-detail__route-sidebar appointment-detail__completed-sidebar'
+            : layout === 'route'
             ? 'appointment-detail__route-sidebar'
             : 'appointment-detail__upcoming-sidebar'
         "
@@ -155,11 +157,19 @@
             <lucide-icon name="circle-x" size="16" [strokeWidth]="2.4"></lucide-icon>
             Annuler et se faire rembourser
           </button>
-          <button type="button" class="appointment-detail__upcoming-qr" (click)="showQrPendingMessage()">
+          <button
+            type="button"
+            class="appointment-detail__upcoming-qr"
+            (click)="openQrCodePage(appointment, 'expediteur')"
+          >
             QR code Expediteur
             <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
           </button>
-          <button type="button" class="appointment-detail__upcoming-qr" (click)="showQrPendingMessage()">
+          <button
+            type="button"
+            class="appointment-detail__upcoming-qr"
+            (click)="openQrCodePage(appointment, 'destinataire')"
+          >
             QR code Destinataire
             <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
           </button>
@@ -236,83 +246,102 @@
       </div>
     </section>
 
-    <section *ngIf="isAppointmentCompleted()" class="appointment-detail__completed-hero">
-      <span>
-        <lucide-icon name="check" size="22" [strokeWidth]="2.8"></lucide-icon>
-        PRESTATION TERMINEE
-      </span>
-      <lucide-icon
-        class="appointment-detail__completed-icon"
-        name="check"
-        size="54"
-        [strokeWidth]="2.8"
-      ></lucide-icon>
-      <h2>Mission accomplie par {{ appointment.doctorName }}</h2>
-      <p>Votre avis nous aide a ameliorer la qualite du service</p>
-
-      <div class="appointment-detail__completed-actions">
-        <div class="appointment-detail__rating" aria-label="Note de la prestation">
-          <button
-            *ngFor="let rating of reviewStars"
-            type="button"
-            [class.appointment-detail__rating-star--active]="selectedRating() >= rating"
-            [disabled]="isSubmittingReview() || !!appointment.clientReviewedAt"
-            [attr.aria-label]="'Noter ' + rating + ' sur 5'"
-            (click)="setRating(rating)"
-          >
-            <lucide-icon name="star" size="34" [strokeWidth]="2.2"></lucide-icon>
+    <section
+      *ngIf="isAppointmentCompleted()"
+      class="appointment-detail__completed-page"
+      aria-label="Mission terminee"
+    >
+      <header class="appointment-detail__completed-topbar">
+        <div class="appointment-detail__upcoming-heading">
+          <button type="button" aria-label="Retour" (click)="goBack()">
+            <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
           </button>
+          <div>
+            <span>Mission demarree</span>
+            <strong>Intervention {{ appointment.serviceName }}</strong>
+          </div>
         </div>
-        <span class="appointment-detail__invoice-pill">
-          <lucide-icon name="clipboard" size="20" [strokeWidth]="2.3"></lucide-icon>
-          {{ invoiceNumberLabel() }}
-        </span>
-        <span class="appointment-detail__invoice-pill">{{ finalPriceLabel() }}</span>
-      </div>
 
-      <button
-        type="button"
-        class="appointment-detail__download"
-        (click)="downloadInvoice(appointment)"
-      >
-        <lucide-icon name="clipboard" size="23" [strokeWidth]="2.4"></lucide-icon>
-        Telechargez la facture
-      </button>
-    </section>
+        <div class="appointment-detail__upcoming-device" aria-hidden="true"></div>
 
-    <section *ngIf="isAppointmentCompleted()" class="appointment-detail__completion-card">
-      <div class="appointment-detail__completion-map">
-        <div class="appointment-detail__map-empty">
-          <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-          Position finale enregistree
+        <div class="appointment-detail__completed-status">
+          <span><i></i> Terminee</span>
         </div>
-        <div class="appointment-detail__completion-overlay"></div>
-        <span class="appointment-detail__completion-time">
-          <lucide-icon name="check" size="13" [strokeWidth]="2.8"></lucide-icon>
-          Termine a {{ completedAtLabel() }}
-        </span>
-        <span class="appointment-detail__completion-duration">
-          <lucide-icon name="clock-3" size="14" [strokeWidth]="2.5"></lucide-icon>
-          Duree reelle : {{ realDurationLabel() }}
-        </span>
-        <div class="appointment-detail__completion-message">
-          <lucide-icon name="check" size="34" [strokeWidth]="2.8"></lucide-icon>
-          <h2>Intervention terminee</h2>
-          <p>Merci d'avoir confiance a {{ appointment.doctorName }}</p>
-        </div>
-      </div>
+      </header>
 
-      <div class="appointment-detail__completion-footer">
-        <strong>
-          <small
-            ><lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon> ADRESSE</small
-          >
-          {{ appointment.addressLabel }}
-        </strong>
-        <span>
-          <lucide-icon name="check" size="15" [strokeWidth]="2.8"></lucide-icon>
-          Visite achevee
-        </span>
+      <div class="appointment-detail__completed-grid">
+        <ng-container
+          *ngTemplateOutlet="
+            appointmentDetailPanel;
+            context: {
+              $implicit: appointment,
+              layout: 'completed',
+              showRecipient: false,
+              showCancel: false
+            }
+          "
+        />
+
+        <section class="appointment-detail__completed-invoice">
+          <header>
+            <div>
+              <span>FACTURE</span>
+              <strong>{{ invoiceCodeLabel() }}</strong>
+            </div>
+            <em>
+              <lucide-icon name="check" size="14" [strokeWidth]="2.4"></lucide-icon>
+              Payee
+            </em>
+          </header>
+
+          <div class="appointment-detail__invoice-table">
+            <small>Prestation</small>
+            <small>Qte</small>
+            <small>Montant</small>
+            <strong>{{ appointment.serviceName }}</strong>
+            <span>1</span>
+            <b>{{ finalPriceLabel() }}</b>
+          </div>
+
+          <div class="appointment-detail__invoice-row">
+            <span>Sous-total</span>
+            <strong>{{ finalPriceLabel() }}</strong>
+          </div>
+          <div class="appointment-detail__invoice-total">
+            <span>Total paye</span>
+            <strong>{{ finalPriceLabel() }}</strong>
+          </div>
+          <p>
+            <lucide-icon name="info" size="16" [strokeWidth]="2.4"></lucide-icon>
+            {{ completedPaymentLabel() }}
+          </p>
+        </section>
+
+        <aside class="appointment-detail__completed-aside">
+          <section class="appointment-detail__mission-valid">
+            <span>
+              <lucide-icon name="check" size="30" [strokeWidth]="3"></lucide-icon>
+            </span>
+            <strong>Mission validee</strong>
+            <p>Vous avez confirme la fin de la mission a {{ completedAtLabel() }}</p>
+          </section>
+
+          <section class="appointment-detail__completed-actions-card">
+            <h3>ACTIONS</h3>
+            <button type="button" class="is-primary" (click)="downloadInvoice(appointment)">
+              <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
+              Telecharger la facture PDF
+            </button>
+            <button type="button" (click)="messageProvider(appointment)">
+              <lucide-icon name="message-circle" size="16" [strokeWidth]="2.4"></lucide-icon>
+              Contacter le prestataire
+            </button>
+            <button type="button" (click)="bookAgain(appointment)">
+              <lucide-icon name="plus" size="16" [strokeWidth]="2.4"></lucide-icon>
+              Reserver a nouveau
+            </button>
+          </section>
+        </aside>
       </div>
     </section>
 
@@ -371,7 +400,7 @@
       <button
         type="button"
         (click)="completeWork(appointment)"
-        [disabled]="isUpdatingStatus() || !isProviderWorking()"
+        [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
       >
         <lucide-icon name="check" size="18" [strokeWidth]="2.8"></lucide-icon>
         Terminer
@@ -391,15 +420,10 @@
       <button
         type="button"
         (click)="markNoShow(appointment)"
-        [disabled]="
-          isUpdatingStatus() ||
-          appointment.status === 'TERMINEE' ||
-          appointment.status === 'ANNULEE' ||
-          appointment.status === 'NO_SHOW'
-        "
+        [disabled]="isUpdatingStatus() || !canProviderMarkClientAbsent()"
       >
         <lucide-icon name="circle-x" size="18" [strokeWidth]="2.5"></lucide-icon>
-        Absence
+        Absence client
       </button>
     </section>
 
@@ -500,8 +524,21 @@
           <span>
             <lucide-icon name="check" size="31" [strokeWidth]="3"></lucide-icon>
           </span>
-          <strong>Arrive a destination de {{ arrivalDestinationLabel(appointment) }}</strong>
+          <div>
+            <strong>Arrive a destination de {{ arrivalDestinationLabel(appointment) }}</strong>
+            <small *ngIf="!isProviderViewer()">En attente de validation de fin par le prestataire.</small>
+          </div>
         </div>
+        <button
+          *ngIf="isProviderWorking() && isProviderViewer()"
+          type="button"
+          class="appointment-detail__finish-work-button"
+          (click)="completeWork(appointment)"
+          [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
+        >
+          <lucide-icon name="check" size="17" [strokeWidth]="2.8"></lucide-icon>
+          Terminer la prestation
+        </button>
         <div class="appointment-detail__route-bottom">
           <span>
             <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>

@@ -476,7 +476,20 @@ export class ReservationEntity {
   }
 
   private canOpenDispute(): boolean {
-    return this._statut === 'TERMINEE' || this._statut === 'NO_SHOW';
+    return (
+      this._statut === 'TERMINEE' ||
+      this._statut === 'NO_SHOW' ||
+      ((this._statut === 'PAYEE_SEQUESTRE' || this._statut === 'EN_COURS') &&
+        this.isPastScheduledEnd())
+    );
+  }
+
+  private isPastScheduledEnd(): boolean {
+    const durationMinutes = Math.max(0, this._dureeMinutes || 0);
+    const scheduledEnd = new Date(
+      this._dateHeure.getTime() + durationMinutes * 60 * 1000,
+    );
+    return Date.now() >= scheduledEnd.getTime();
   }
 
   private isMoreThanHoursBefore(hours: number): boolean {

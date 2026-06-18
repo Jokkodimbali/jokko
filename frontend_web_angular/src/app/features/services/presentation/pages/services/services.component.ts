@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
@@ -11,12 +11,20 @@ import {
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
 import { ServicesService } from '../../../data-access/services.service';
-import { ServiceSection, PaginationMeta, Professional } from '../../../domain/models/services.models';
+import {
+  CategoryStructure,
+  ServiceSection,
+  PaginationMeta,
+  Professional,
+  ServiceSubCategory,
+} from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
+
+type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
 
 @Component({
   selector: 'app-services',
@@ -38,7 +46,7 @@ import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/a
     './services-responsive.component.scss',
   ],
 })
-export class ServicesComponent implements OnInit {
+export class ServicesComponent implements OnInit, OnDestroy {
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
@@ -52,9 +60,18 @@ export class ServicesComponent implements OnInit {
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   searchTerm = signal<string>('');
+  activeFilter = signal<ProfessionalFilter>('ALL');
+  activeCategoryId = signal<string | null>(null);
+  activeSubCategoryId = signal<string | null>(null);
+  categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
   readonly locationValue = 'Toute zone';
-  protected readonly currentUser = this.authSession.currentUser;
+  protected readonly filters: Array<{ value: ProfessionalFilter; label: string; countLabel: string }> = [
+    { value: 'ALL', label: 'Tous', countLabel: 'profils disponibles' },
+    { value: 'MEDECIN', label: 'Medecins', countLabel: 'medecins disponibles' },
+    { value: 'PRESTATAIRE', label: 'Prestataires', countLabel: 'prestataires disponibles' },
+  ];
+  protected readonly typeFilters = this.filters.filter((filter) => filter.value !== 'ALL');
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
       id: favorite.professionalId,
@@ -66,53 +83,134 @@ export class ServicesComponent implements OnInit {
         : 'Favori',
       rating: favorite.rating,
       totalReviews: favorite.totalReviews,
-      isOnline: false,
-      onlineLabel: 'Favori',
+      isOnline: favorite.isOnline,
+      onlineLabel: favorite.isOnline ? 'En ligne' : 'Favori',
       avatar: favorite.avatarUrl || undefined,
       photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
       route: `/services/${favorite.professionalId}`,
     })),
   );
+  protected readonly activeFilterLabel = computed(() => {
+    const activeSubCategory = this.activeSubCategory();
+    if (activeSubCategory) {
+      return activeSubCategory.nom;
+    }
+
+    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    if (activeCategory) {
+      return activeCategory.nom;
+    }
+
+    if (this.activeFilter() === 'MEDECIN') {
+      return 'Medecins';
+    }
+
+    if (this.activeFilter() === 'PRESTATAIRE') {
+      return 'Prestataires';
+    }
+
+    return 'Toutes categories';
+  });
+  protected readonly activeSubCategories = computed(() => {
+    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    return this.visibleSubCategories(activeCategory?.subCategories ?? []);
+  });
+  protected readonly activeSubCategory = computed(() => {
+    const subCategoryId = this.activeSubCategoryId();
+    if (!subCategoryId) {
+      return null;
+    }
+
+    for (const category of this.categories()) {
+      const found = this.visibleSubCategories(category.subCategories).find(
+        (subCategory) => subCategory.id === subCategoryId,
+      );
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  });
+  private searchDebounce: ReturnType<typeof setTimeout> | null = null;
+  private requestVersion = 0;
 
   ngOnInit(): void {
-    this.loadHomeData();
+    this.loadCategories();
     this.loadFavorites();
+    this.loadHomeData();
+  }
+
+  ngOnDestroy(): void {
+    this.clearSearchDebounce();
   }
 
   onSearchTermChange(value: string): void {
     this.searchTerm.set(value);
+    this.clearSearchDebounce();
+    this.searchDebounce = setTimeout(() => {
+      this.loadProfessionals(1);
+    }, 280);
   }
 
   submitSearch(value: string): void {
-    const query = value.trim();
+    this.searchTerm.set(value.trim());
+    this.clearSearchDebounce();
+    this.loadProfessionals(1);
+  }
 
-    if (!query) {
-      this.loadHomeData();
+  clearSearch(): void {
+    this.searchTerm.set('');
+    this.clearSearchDebounce();
+    this.loadProfessionals(1);
+  }
+
+  selectFilter(filter: ProfessionalFilter): void {
+    if (this.activeFilter() === filter) {
+      if (filter !== 'ALL') {
+        this.activeFilter.set('ALL');
+        this.activeCategoryId.set(null);
+        this.activeSubCategoryId.set(null);
+        this.loadProfessionals(1);
+      }
       return;
     }
 
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-    this.categoryPagination.set(undefined);
-    this.servicesService.searchProfessionals(query, 1, 6).subscribe({
-      next: (result) => {
-        this.sections.set([
-          {
-            id: 'search-results',
-            title: `Recherche ${query}`,
-            countLabel: `${result.meta?.total || result.providers.length} professionnels`,
-            providers: result.providers,
-            pagination: result.meta,
-          },
-        ]);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.errorMessage.set(SERVICES_UI_MESSAGES.loadServicesFailed);
-        this.feedback.error(SERVICES_UI_MESSAGES.loadServicesFailed);
-        this.isLoading.set(false);
-      },
-    });
+    this.activeFilter.set(filter);
+    this.activeCategoryId.set(null);
+    this.activeSubCategoryId.set(null);
+    this.loadProfessionals(1);
+  }
+
+  selectCategory(categoryId: string | null): void {
+    if (this.activeFilter() === 'ALL' && this.activeCategoryId() === categoryId && this.activeSubCategoryId() === null) {
+      return;
+    }
+
+    this.activeFilter.set('ALL');
+    this.activeCategoryId.set(categoryId);
+    this.activeSubCategoryId.set(null);
+    this.loadProfessionals(1);
+  }
+
+  selectSubCategory(categoryId: string, subCategoryId: string): void {
+    if (
+      this.activeFilter() === 'ALL' &&
+      this.activeCategoryId() === categoryId &&
+      this.activeSubCategoryId() === subCategoryId
+    ) {
+      return;
+    }
+
+    this.activeFilter.set('ALL');
+    this.activeCategoryId.set(categoryId);
+    this.activeSubCategoryId.set(subCategoryId);
+    this.loadProfessionals(1);
+  }
+
+  cycleFilter(): void {
+    const filtersElement = document.getElementById('services-filters');
+    filtersElement?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   }
 
   onViewAll(section: ServiceSection): void {
@@ -121,29 +219,7 @@ export class ServicesComponent implements OnInit {
       return;
     }
 
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-    this.servicesService.getProfessionalsByCategory(section.id, nextPage, 6).subscribe({
-      next: (result) => {
-        this.sections.update((sects) =>
-          sects.map((s) =>
-            s.id === section.id
-              ? {
-                  ...s,
-                  providers: [...s.providers, ...result.providers],
-                  pagination: result.meta,
-                }
-              : s,
-          ),
-        );
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.errorMessage.set(SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed);
-        this.feedback.error(SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed);
-        this.isLoading.set(false);
-      },
-    });
+    this.loadProfessionals(nextPage, section);
   }
 
   loadHomeData(page: number = 1): void {
@@ -151,29 +227,138 @@ export class ServicesComponent implements OnInit {
       this.searchTerm.set('');
     }
 
+    this.loadProfessionals(page);
+  }
+
+  loadMoreCategories(): void {
+    const section = this.sections()[0];
+    if (!section) {
+      return;
+    }
+
+    this.onViewAll(section);
+  }
+
+  private loadProfessionals(page: number = 1, appendToSection?: ServiceSection): void {
+    const query = this.searchTerm().trim();
+    const requestId = ++this.requestVersion;
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.servicesService.getServiceHomeData(page, 5).subscribe({
+    this.fetchProfessionals(query, page).subscribe({
       next: (result) => {
-        if (page === 1) {
-          this.sections.set(result.sections);
+        if (requestId !== this.requestVersion) {
+          return;
+        }
+
+        const section = this.buildSection(result, query);
+        if (appendToSection || page > 1) {
+          this.sections.update((sections) =>
+            sections.map((current) =>
+              current.id === (appendToSection?.id ?? section.id)
+                ? {
+                    ...current,
+                    providers: [...current.providers, ...section.providers],
+                    pagination: section.pagination,
+                    countLabel: section.countLabel,
+                  }
+                : current,
+            ),
+          );
         } else {
-          this.sections.update((s) => [...s, ...result.sections]);
+          this.sections.set([section]);
         }
         this.categoryPagination.set(result.meta);
         this.isLoading.set(false);
       },
       error: () => {
-        this.errorMessage.set(SERVICES_UI_MESSAGES.loadServicesFailed);
-        this.feedback.error(SERVICES_UI_MESSAGES.loadServicesFailed);
+        if (requestId !== this.requestVersion) {
+          return;
+        }
+
+        const message = page > 1
+          ? SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed
+          : SERVICES_UI_MESSAGES.loadServicesFailed;
+        this.errorMessage.set(message);
+        this.feedback.error(message);
         this.isLoading.set(false);
       },
     });
   }
 
-  loadMoreCategories(): void {
-    const nextPage = (this.categoryPagination()?.page || 1) + 1;
-    this.loadHomeData(nextPage);
+  private fetchProfessionals(
+    query: string,
+    page: number,
+  ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
+    const filter = this.activeFilter();
+    const categoryId = this.activeCategoryId() ?? undefined;
+    const subCategoryId = this.activeSubCategoryId() ?? undefined;
+
+    if (filter === 'ALL') {
+      return this.servicesService.searchUnifiedProfessionals(query, page, 24, undefined, categoryId, subCategoryId);
+    }
+
+    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, undefined, categoryId, subCategoryId);
+  }
+
+  private buildSection(
+    result: { providers: Professional[]; meta?: PaginationMeta },
+    query: string,
+  ): ServiceSection {
+    const activeFilter = this.filters.find((filter) => filter.value === this.activeFilter()) ?? this.filters[0];
+    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    const activeSubCategory = this.activeSubCategory();
+    const total = result.meta?.total || result.providers.length;
+    const title = query
+      ? `Recherche ${query}`
+      : activeSubCategory
+        ? activeSubCategory.nom
+        : activeCategory
+        ? activeCategory.nom
+        : this.activeFilter() === 'ALL'
+          ? 'Tous les prestataires'
+          : activeFilter.label;
+
+    return {
+      id: `providers-${this.activeFilter().toLowerCase()}-${this.activeCategoryId() ?? 'all'}-${this.activeSubCategoryId() ?? 'all'}`,
+      title,
+      countLabel: `${total} ${activeCategory || activeSubCategory ? 'profils disponibles' : activeFilter.countLabel}`,
+      providers: result.providers,
+      pagination: result.meta,
+    };
+  }
+
+  private loadCategories(): void {
+    this.servicesService.getCategoryStructure().subscribe({
+      next: (categories) => {
+        this.categories.set(
+          categories
+            .filter((category) => category.estActive !== false)
+            .map((category) => ({
+              ...category,
+              subCategories: this.visibleSubCategories(category.subCategories),
+            }))
+            .sort((a, b) => a.ordreTri - b.ordreTri || a.nom.localeCompare(b.nom)),
+        );
+      },
+      error: () => {
+        this.categories.set([]);
+      },
+    });
+  }
+
+  private visibleSubCategories(subCategories: ServiceSubCategory[]): ServiceSubCategory[] {
+    const seen = new Set<string>();
+    return subCategories
+      .filter((subCategory) => subCategory.estActive !== false)
+      .filter((subCategory) => {
+        if (seen.has(subCategory.id)) {
+          return false;
+        }
+        seen.add(subCategory.id);
+        return true;
+      })
+      .sort((a, b) => a.ordreTri - b.ordreTri || a.nom.localeCompare(b.nom));
   }
 
   private loadFavorites(): void {
@@ -186,6 +371,15 @@ export class ServicesComponent implements OnInit {
         this.feedback.error('Impossible de charger vos favoris pour le moment.');
       },
     });
+  }
+
+  private clearSearchDebounce(): void {
+    if (!this.searchDebounce) {
+      return;
+    }
+
+    clearTimeout(this.searchDebounce);
+    this.searchDebounce = null;
   }
 
   resolveProviderAvatar(provider: { avatar?: string }): string | null {
@@ -240,6 +434,10 @@ export class ServicesComponent implements OnInit {
   }
 
   providerMovementTitle(provider: Professional): string {
+    if (provider.profileType === 'MEDECIN') {
+      return 'Le client se deplace';
+    }
+
     switch (provider.serviceTravelMode) {
       case 'CLIENT_SE_DEPLACE':
         return 'Le client se deplace';
@@ -252,6 +450,10 @@ export class ServicesComponent implements OnInit {
   }
 
   providerMovementIcon(provider: Professional): string {
+    if (provider.profileType === 'MEDECIN') {
+      return 'map-pin';
+    }
+
     switch (provider.serviceTravelMode) {
       case 'CLIENT_SE_DEPLACE':
         return 'map-pin';
@@ -264,6 +466,10 @@ export class ServicesComponent implements OnInit {
   }
 
   providerMovementSubtitle(provider: Professional): string {
+    if (provider.profileType === 'MEDECIN') {
+      return 'Rendez-vous au cabinet ou au point de consultation';
+    }
+
     switch (provider.serviceTravelMode) {
       case 'CLIENT_SE_DEPLACE':
         return 'Rendez-vous chez le prestataire';
@@ -275,22 +481,23 @@ export class ServicesComponent implements OnInit {
     }
   }
 
-  openNegotiation(provider: Professional): void {
-    if (!this.authSession.hasAuthenticatedSession()) {
-      this.feedback.info('Connectez-vous d abord pour negocier avec ce prestataire.');
+  providerProfileCommands(provider: Professional): unknown[] {
+    return ['/services', provider.id];
+  }
+
+  providerActionLabel(provider: Professional): string {
+    return provider.profileType === 'MEDECIN' ? 'Prendre rendez-vous' : 'Negocier le prix';
+  }
+
+  providerPrimaryAction(provider: Professional): void {
+    if (provider.profileType === 'MEDECIN') {
+      this.router.navigate(['/medecine', provider.id, 'rendez-vous'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
     }
 
-    this.router.navigate(['/services', provider.id, 'proposition'], {
-      queryParams: {
-        ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
-        returnUrl: this.router.url,
-      },
-      state: {
-        provider,
-        avatar: this.resolveProviderAvatar(provider),
-        photos: this.providerPhotos(provider),
-      },
-    });
+    this.openNegotiation(provider);
   }
 
   isProviderFavorite(providerId: string): boolean {
@@ -311,20 +518,37 @@ export class ServicesComponent implements OnInit {
       return;
     }
 
-    const action: Observable<FavoriteItem | FavoriteStatus> = this.isProviderFavorite(providerId)
+    const wasFavorite = this.isProviderFavorite(providerId);
+    const action: Observable<FavoriteItem | FavoriteStatus> = wasFavorite
       ? this.favoritesService.remove(providerId)
       : this.favoritesService.add(providerId);
 
     action.subscribe({
       next: () => {
         this.feedback.success(
-          this.isProviderFavorite(providerId)
-            ? 'Prestataire ajoute aux favoris.'
-            : 'Prestataire retire des favoris.',
+          wasFavorite ? 'Prestataire retire des favoris.' : 'Prestataire ajoute aux favoris.',
         );
       },
       error: () => {
         this.feedback.error('Impossible de mettre a jour vos favoris pour le moment.');
+      },
+    });
+  }
+
+  openNegotiation(provider: Professional): void {
+    if (!this.authSession.hasAuthenticatedSession()) {
+      this.feedback.info('Connectez-vous d abord pour negocier avec ce prestataire.');
+    }
+
+    this.router.navigate(['/services', provider.id, 'proposition'], {
+      queryParams: {
+        ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
+        returnUrl: this.router.url,
+      },
+      state: {
+        provider,
+        avatar: this.resolveProviderAvatar(provider),
+        photos: this.providerPhotos(provider),
       },
     });
   }

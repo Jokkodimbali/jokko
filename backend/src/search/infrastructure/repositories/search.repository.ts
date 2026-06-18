@@ -123,6 +123,18 @@ export class SearchRepository implements SearchRepositoryPort {
         `
       : Prisma.empty;
 
+    const subCategoryFilter = input.subCategoryId
+      ? Prisma.sql`
+          AND EXISTS (
+            SELECT 1
+            FROM professional_specialties ps4
+            WHERE ps4.professional_id = pp.id
+              AND ps4.subcategory_id = ${input.subCategoryId}::uuid
+              ${input.categoryId ? Prisma.sql`AND ps4.category_id = ${input.categoryId}::uuid` : Prisma.empty}
+          )
+        `
+      : Prisma.empty;
+
     const geoFilter = hasGeo
       ? Prisma.sql`
           AND pp.localisation IS NOT NULL
@@ -179,6 +191,7 @@ export class SearchRepository implements SearchRepositoryPort {
         ${visibilityFilter}
         ${cityFilter}
         ${categoryFilter}
+        ${subCategoryFilter}
         ${queryFilter}
         ${geoFilter}
     `;
@@ -283,6 +296,7 @@ export class SearchRepository implements SearchRepositoryPort {
           where: {
             profilProfessionnelId: { in: profileIds },
             ...(input.categoryId ? { categorieId: input.categoryId } : {}),
+            ...(input.subCategoryId ? { sousCategorieId: input.subCategoryId } : {}),
           },
           orderBy: [{ creeLe: 'desc' }],
           select: {

@@ -16,7 +16,7 @@ import { AppointmentsService } from '../../../features/appointments/data-access/
 
 interface AppNavItem {
   label: string;
-  icon: 'users' | 'heart-plus' | 'calendar-days' | 'message-circle' | 'layout-dashboard';
+  icon: 'users' | 'calendar-days' | 'message-circle' | 'layout-dashboard';
   route: string;
 }
 
@@ -110,11 +110,6 @@ export class AppNavbarComponent implements OnInit {
       label: 'Services',
       icon: 'users',
       route: '/services',
-    },
-    {
-      label: 'Médecine',
-      icon: 'heart-plus',
-      route: '/medecine',
     },
     {
       label: 'Rendez vous',

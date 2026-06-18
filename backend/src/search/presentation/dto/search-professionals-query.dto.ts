@@ -36,6 +36,14 @@ export class SearchProfessionalsQueryDto {
   categoryId?: string;
 
   @ApiPropertyOptional({
+    description: 'Identifiant de la sous-categorie de service a filtrer.',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: VALIDATION_MESSAGES.SEARCH_CATEGORY_ID_FORMAT })
+  subCategoryId?: string;
+
+  @ApiPropertyOptional({
     description: API_DOCS.search.queryField,
     example: 'plombier urgence',
   })

@@ -33,6 +33,12 @@ export class SearchController {
     description: API_DOCS.search.categoryIdFilter,
   })
   @ApiQuery({
+    name: 'subCategoryId',
+    required: false,
+    type: String,
+    description: 'Filtre les resultats par sous-categorie de service.',
+  })
+  @ApiQuery({
     name: 'query',
     required: false,
     type: String,
@@ -97,6 +103,7 @@ export class SearchController {
     const result = await this.searchQueryService.searchProfessionals({
       city: query.city,
       categoryId: query.categoryId,
+      subCategoryId: query.subCategoryId,
       query: query.query,
       role: query.role,
       latitude: query.latitude,

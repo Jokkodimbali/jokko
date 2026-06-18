@@ -7,7 +7,6 @@
   <button type="button" class="app-search-bar__location">
     <lucide-icon name="map-pin" size="22" [strokeWidth]="3"></lucide-icon>
     <span><strong>{{ locationTitle }}</strong>{{ locationValue }}</span>
-    <lucide-icon name="chevron-down" size="15" [strokeWidth]="3"></lucide-icon>
   </button>
 
   <label class="app-search-bar__field">
@@ -20,8 +19,11 @@
     />
   </label>
 
-  <button type="button" class="app-search-bar__filter" aria-label="Ouvrir les filtres">
-    <lucide-icon name="sliders-horizontal" size="36" [strokeWidth]="3"></lucide-icon>
-    {{ filterLabel }}
+  <button type="button" class="app-search-bar__filter" aria-label="Ouvrir les filtres" (click)="onFilterClick()">
+    <lucide-icon name="sliders-horizontal" size="30" [strokeWidth]="3"></lucide-icon>
+    <span>
+      <strong>{{ filterLabel }}</strong>
+      <small *ngIf="filterValueLabel">{{ filterValueLabel }}</small>
+    </span>
   </button>
 </form>

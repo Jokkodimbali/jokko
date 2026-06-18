@@ -26,10 +26,8 @@ export const routes: Routes = [
   },
   {
     path: 'medecine',
-    loadComponent: () =>
-      import('./features/medicine/presentation/pages/medicine-page/medicine-page.component').then(
-        (m) => m.MedicinePageComponent,
-      ),
+    pathMatch: 'full',
+    redirectTo: 'services',
   },
   {
     path: 'medecine/espace',

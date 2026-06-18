@@ -1,11 +1,6 @@
 <main class="settings-page">
-  <section class="settings-page__nav" aria-label="Navigation principale">
-    <app-navbar />
-  </section>
-
   <ng-container *ngIf="currentUser(); else loginRequired">
-    <section class="settings-page__hero">
-      <img src="/boabab.png" alt="" />
+    <section class="settings-page__hero" [style.backgroundImage]="'url(' + coverUrl + ')'">
       <button type="button" class="settings-page__back" (click)="goBack()">
         <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.5"></lucide-icon>
         Retour
@@ -51,33 +46,84 @@
     <section *ngIf="activeSection() === 'health' && isProfessionalSettings() && profile() as profile" class="settings-page__panel settings-page__panel--professional">
       <article class="settings-page__card settings-page__about-card">
         <header>
-          <h2>Resume professionnel</h2>
-          <a class="settings-page__chip settings-page__chip--link" [routerLink]="professionalSpaceRoute()">Gerer mon profil pro</a>
+          <h2>Presentation professionnelle</h2>
+          <button *ngIf="!isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="startProfessionalAboutEdit()">Modifier</button>
+          <button *ngIf="isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="cancelProfessionalAboutEdit()">Annuler</button>
         </header>
         <i></i>
-        <h3>{{ professionalTitle() }}</h3>
-        <p>{{ professionalAbout() }}</p>
-        <div class="settings-page__professional-source">
-          <lucide-icon name="info" size="18" [strokeWidth]="2.4"></lucide-icon>
-          <span>Les services, disponibilites, justificatifs KYC et realisations se gerent dans votre espace professionnel pour garder une seule source fiable.</span>
-        </div>
+        <ng-container *ngIf="!isEditingProfessionalAbout(); else editProfessionalAbout">
+          <section class="settings-page__summary-specialty">
+            <span>Specialite ou activite principale</span>
+            <strong>{{ professionalSpecialty() }}</strong>
+            <small>Information publique issue du profil professionnel, non modifiable ici.</small>
+          </section>
+          <h3>{{ professionalCompanyName() }}</h3>
+          <div class="settings-page__summary-meta">
+            <span>{{ professionalCity() }}</span>
+            <span>{{ professionalKycLabel() }}</span>
+          </div>
+          <p>{{ professionalAbout() }}</p>
+        </ng-container>
+        <ng-template #editProfessionalAbout>
+          <form class="settings-page__form" (ngSubmit)="saveProfessionalAbout()">
+            <label>
+              <span>Nom professionnel ou entreprise</span>
+              <input type="text" name="professionalCompanyName" [(ngModel)]="professionalAboutForm.companyName" placeholder="Ex : Cabinet Dia Sante" />
+            </label>
+            <label>
+              <span>Ville principale</span>
+              <input type="text" name="professionalCity" [(ngModel)]="professionalAboutForm.city" placeholder="Ex : Dakar" />
+            </label>
+            <label class="settings-page__form-wide">
+              <span>Bio publique</span>
+              <textarea name="professionalAbout" [(ngModel)]="professionalAboutForm.about" rows="5" placeholder="Presentez votre parcours, vos services et votre maniere de travailler."></textarea>
+            </label>
+            <button type="submit" [disabled]="isSavingProfessionalAbout()">Enregistrer la presentation</button>
+          </form>
+        </ng-template>
       </article>
 
       <article class="settings-page__card settings-page__professional-card">
         <header>
-          <h2>Donnees publiques</h2>
-          <span class="settings-page__professional-badge">Lecture seule</span>
+          <h2>Partie pro centralisee</h2>
+          <span class="settings-page__professional-badge">Modifiable</span>
         </header>
 
-        <section class="settings-page__specialty">
-          <h3>Specialite ou activite principale</h3>
-          <div>
-            <img *ngIf="profile.urlAvatar; else specialtyInitials" [src]="profile.urlAvatar" [alt]="displayName()" />
-            <ng-template #specialtyInitials><b>{{ initials() }}</b></ng-template>
-            <strong>{{ professionalSpecialty() }}</strong>
-            <small>Specialite principale validee</small>
-            <span><lucide-icon name="lock" size="12" [strokeWidth]="2.4"></lucide-icon> Non modifiable</span>
+        <section class="settings-page__portfolio">
+          <header>
+            <h3>Portfolio / Realisations</h3>
+            <span>{{ portfolioItems().length }} element(s)</span>
+          </header>
+          <form class="settings-page__portfolio-form" (ngSubmit)="addPortfolioItem()">
+            <label class="settings-page__portfolio-upload">
+              <ng-container *ngIf="portfolioPreview() as preview; else portfolioUploadPlaceholder">
+                <img [src]="preview.url" [alt]="preview.name" />
+              </ng-container>
+              <ng-template #portfolioUploadPlaceholder>
+                <lucide-icon name="image-plus" size="25" [strokeWidth]="2.5"></lucide-icon>
+                <span>{{ portfolioFileName() || 'Choisir une image' }}</span>
+              </ng-template>
+              <input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="isPortfolioSaving()" (change)="selectPortfolioImage($event)" />
+            </label>
+            <input type="text" name="portfolioTitle" placeholder="Titre de la realisation" [(ngModel)]="portfolioForm.title" />
+            <input type="text" name="portfolioDescription" placeholder="Description courte" [(ngModel)]="portfolioForm.description" />
+            <button type="submit" [disabled]="isPortfolioSaving()">Ajouter au portfolio</button>
+          </form>
+          <div *ngIf="portfolioItems().length > 0; else noPortfolio" class="settings-page__portfolio-grid">
+            <article *ngFor="let item of portfolioItems()">
+              <img [src]="item.urlImage" [alt]="item.titre" />
+              <div>
+                <strong>{{ item.titre }}</strong>
+                <p>{{ item.description || 'Realisation professionnelle' }}</p>
+              </div>
+              <button type="button" (click)="deletePortfolioItem(item)" [disabled]="isPortfolioSaving()" aria-label="Supprimer cette realisation">
+                <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
+              </button>
+            </article>
           </div>
+          <ng-template #noPortfolio>
+            <p class="settings-page__empty-line">Aucune realisation publiee. Ajoutez vos photos directement ici.</p>
+          </ng-template>
         </section>
 
         <section class="settings-page__documents">
@@ -91,29 +137,42 @@
               <strong>{{ document.label }}</strong>
               <small>{{ document.meta }} - {{ document.status }}</small>
             </div>
-            <a *ngIf="document.url; else lockedDocumentAction" [href]="document.url" target="_blank" rel="noreferrer" aria-label="Voir le document"><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon></a>
-            <ng-template #lockedDocumentAction>
-              <button type="button" disabled aria-label="Document sans fichier consultable"><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon></button>
-            </ng-template>
+            <nav>
+              <a *ngIf="document.url" [href]="document.url" target="_blank" rel="noreferrer" aria-label="Voir le document"><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon></a>
+              <a *ngIf="document.url" [href]="document.url" download aria-label="Telecharger le document"><lucide-icon name="download" size="15" [strokeWidth]="2.3"></lucide-icon></a>
+              <button type="button" (click)="deleteProfessionalDocument(document)" aria-label="Supprimer le document"><lucide-icon name="trash-2" size="15" [strokeWidth]="2.3"></lucide-icon></button>
+            </nav>
           </article>
-          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">Aucun document rattache a ce profil. Ajoutez vos justificatifs depuis votre espace professionnel.</p>
+          <label class="settings-page__upload-zone" [class.settings-page__upload-zone--loading]="isUploadingProfessionalDocument()">
+            <lucide-icon name="file-up" size="28" [strokeWidth]="2.4"></lucide-icon>
+            <strong>{{ isUploadingProfessionalDocument() ? 'Upload en cours...' : 'Ajouter un justificatif' }}</strong>
+            <span>PDF, image ou Word - 10 Mo maximum</span>
+            <input type="file" accept="application/pdf,.doc,.docx,image/png,image/jpeg,image/webp,image/gif" [disabled]="isUploadingProfessionalDocument()" (change)="uploadProfessionalDocument($event)" />
+          </label>
+          <p *ngIf="lastProfessionalDocumentUpload() as upload" class="settings-page__document-feedback" [class.settings-page__document-feedback--error]="upload.status === 'error'">
+            {{ upload.name }} - {{ upload.status === 'pending' ? 'envoi en cours' : upload.status === 'success' ? 'ajoute' : 'erreur upload' }}
+          </p>
+          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">Aucun document rattache a ce profil. Ajoutez vos justificatifs directement ici.</p>
         </section>
 
         <section class="settings-page__expertise-table">
           <h3>Expertises declarees</h3>
           <div class="settings-page__expertise-head">
             <span>Intitule de l'expertise</span>
+            <span>Action</span>
           </div>
           <article *ngFor="let expertise of professionalExpertises()">
             <span>{{ expertise }}</span>
+            <button type="button" (click)="removeProfessionalExpertise(expertise)" [disabled]="isSavingProfessionalExpertise()" aria-label="Supprimer cette expertise">
+              <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
+            </button>
           </article>
-          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">Aucune expertise renseignee. Completez votre fiche depuis votre espace professionnel.</p>
+          <form class="settings-page__expertise-form" (ngSubmit)="addProfessionalExpertise()">
+            <input type="text" name="professionalExpertise" [(ngModel)]="professionalExpertiseForm.name" placeholder="Ajouter une expertise" />
+            <button type="submit" [disabled]="isSavingProfessionalExpertise()">Ajouter</button>
+          </form>
+          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">Aucune expertise renseignee. Ajoutez vos competences directement ici.</p>
         </section>
-
-        <a class="settings-page__professional-open" [routerLink]="professionalSpaceRoute()">
-          <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.5"></lucide-icon>
-          Ouvrir l'espace professionnel
-        </a>
       </article>
 
     </section>
@@ -215,7 +274,7 @@
     </section>
 
     <section *ngIf="activeSection() === 'account' && profile() as profile" class="settings-page__panel">
-      <article class="settings-page__card">
+      <article class="settings-page__card settings-page__account-card">
         <header>
           <h2>Information personnelles</h2>
           <button *ngIf="!isEditingProfile()" type="button" class="settings-page__chip" (click)="startProfileEdit()">Modifier</button>
@@ -239,10 +298,14 @@
             <span>Numero de telephone</span>
             <strong>{{ displayPhoneNumber() || 'Non renseigne' }}</strong>
           </div>
+          <div>
+            <span>Adresse</span>
+            <strong>{{ profile.adresse || 'Non renseignee' }}</strong>
+          </div>
         </div>
 
         <ng-template #editProfile>
-          <form class="settings-page__form" (ngSubmit)="saveProfile()">
+          <form class="settings-page__form settings-page__profile-form" (ngSubmit)="saveProfile()">
             <label>
               <span>Prenom</span>
               <input type="text" name="firstName" [(ngModel)]="profileForm.firstName" required />
@@ -251,11 +314,11 @@
               <span>Nom</span>
               <input type="text" name="lastName" [(ngModel)]="profileForm.lastName" />
             </label>
-            <label class="settings-page__form-wide">
+            <label>
               <span>Adresse email</span>
               <input type="email" name="email" [(ngModel)]="profileForm.email" />
             </label>
-            <label class="settings-page__form-wide">
+            <label>
               <span>Numero de telephone</span>
               <span class="settings-page__phone-input">
                 <b>+221</b>
@@ -269,9 +332,35 @@
                 />
               </span>
             </label>
+            <label>
+              <span>Adresse personnelle</span>
+              <input type="text" name="address" [(ngModel)]="addressForm.address" placeholder="Dakar, Plateau" />
+            </label>
             <button type="submit" [disabled]="isSavingProfile()">Enregistrer</button>
           </form>
         </ng-template>
+
+        <section class="settings-page__password-block">
+          <header>
+            <h3>{{ hasLocalPassword() ? 'Modifier le mot de passe' : 'Creer un mot de passe' }}</h3>
+          </header>
+          <p *ngIf="!hasLocalPassword()" class="settings-page__empty-line">
+            Votre compte a ete cree avec Google. Definissez un mot de passe local pour vous connecter aussi par email ou telephone.
+          </p>
+          <form class="settings-page__password" (ngSubmit)="savePassword()">
+            <input
+              *ngIf="hasLocalPassword()"
+              type="password"
+              name="currentPassword"
+              [(ngModel)]="passwordForm.currentPassword"
+              placeholder="Mot de passe actuel"
+            />
+            <input type="password" name="newPassword" [(ngModel)]="passwordForm.newPassword" placeholder="Nouveau mot de passe" />
+            <button type="submit" [disabled]="isSavingPassword()">
+              {{ hasLocalPassword() ? 'Enregistrer' : 'Creer mon mot de passe' }}
+            </button>
+          </form>
+        </section>
       </article>
 
       <section class="settings-page__payments">
@@ -298,98 +387,7 @@
           </article>
         </div>
 
-        <section class="settings-page__payment-activity">
-          <article>
-            <header>
-              <h3>Historique des paiements</h3>
-              <span *ngIf="isLoadingPayments()">Synchronisation...</span>
-            </header>
-            <div *ngIf="recentPayments().length > 0; else noPaymentHistory" class="settings-page__payment-list">
-              <div *ngFor="let payment of recentPayments()" class="settings-page__payment-row-card">
-                <i><lucide-icon name="receipt" size="17" [strokeWidth]="2.4"></lucide-icon></i>
-                <div>
-                  <strong>{{ paymentAmount(payment) | number:'1.0-0' }} FCFA</strong>
-                  <span>{{ paymentMethod(payment) }} - {{ paymentStatus(payment) }}</span>
-                  <small *ngIf="paymentDate(payment)">{{ paymentDate(payment) | date:'d MMM yyyy, HH:mm' }}</small>
-                  <small *ngIf="escrowStatus(payment) as escrow">Sequestre : {{ escrow.escrowStatus || escrow.status || 'statut non renseigne' }}</small>
-                </div>
-                <nav>
-                  <button
-                    type="button"
-                    [disabled]="paymentActionId() === payment.id"
-                    (click)="refreshPayment(payment)"
-                  >
-                    Verifier
-                  </button>
-                  <button
-                    type="button"
-                    *ngIf="canReleaseEscrow(payment)"
-                    [disabled]="paymentActionId() === payment.id"
-                    (click)="releaseEscrow(payment)"
-                  >
-                    Liberer
-                  </button>
-                  <button
-                    type="button"
-                    *ngIf="canDisputeEscrow(payment)"
-                    class="settings-page__payment-danger"
-                    [disabled]="paymentActionId() === payment.id"
-                    (click)="disputeEscrow(payment)"
-                  >
-                    Contester
-                  </button>
-                </nav>
-              </div>
-            </div>
-            <ng-template #noPaymentHistory>
-              <p class="settings-page__empty-line">Aucun paiement n'est encore rattache a votre compte.</p>
-            </ng-template>
-          </article>
-
-          <article>
-            <header>
-              <h3>Demandes de retrait</h3>
-            </header>
-            <div *ngIf="recentWithdrawals().length > 0; else noWithdrawalHistory" class="settings-page__payment-list">
-              <div *ngFor="let withdrawal of recentWithdrawals()" class="settings-page__payment-row-card">
-                <i><lucide-icon name="wallet-cards" size="17" [strokeWidth]="2.4"></lucide-icon></i>
-                <div>
-                  <strong>{{ withdrawalAmount(withdrawal) | number:'1.0-0' }} FCFA</strong>
-                  <span>{{ withdrawal.method }} - {{ withdrawal.status }}</span>
-                  <small>{{ withdrawalId(withdrawal) }}</small>
-                  <small *ngIf="withdrawalDate(withdrawal)">{{ withdrawalDate(withdrawal) | date:'d MMM yyyy, HH:mm' }}</small>
-                </div>
-              </div>
-            </div>
-            <ng-template #noWithdrawalHistory>
-              <p class="settings-page__empty-line">Aucune demande de retrait n'a encore ete creee.</p>
-            </ng-template>
-          </article>
-        </section>
       </section>
-
-      <article class="settings-page__card">
-        <header>
-          <h2>{{ hasLocalPassword() ? 'Modifier le mot de passe' : 'Creer un mot de passe' }}</h2>
-          <button type="button" class="settings-page__chip">Modifier</button>
-        </header>
-        <p *ngIf="!hasLocalPassword()" class="settings-page__empty-line">
-          Votre compte a ete cree avec Google. Definissez un mot de passe local pour vous connecter aussi par email ou telephone.
-        </p>
-        <form class="settings-page__password" (ngSubmit)="savePassword()">
-          <input
-            *ngIf="hasLocalPassword()"
-            type="password"
-            name="currentPassword"
-            [(ngModel)]="passwordForm.currentPassword"
-            placeholder="Mot de passe actuel"
-          />
-          <input type="password" name="newPassword" [(ngModel)]="passwordForm.newPassword" placeholder="Nouveau mot de passe" />
-          <button type="submit" [disabled]="isSavingPassword()">
-            {{ hasLocalPassword() ? 'Enregistrer le nouveau mot de passe' : 'Creer mon mot de passe' }}
-          </button>
-        </form>
-      </article>
 
       <article class="settings-page__card settings-page__security">
         <header>

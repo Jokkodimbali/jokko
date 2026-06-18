@@ -23,8 +23,6 @@ import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navb
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentTrackingView, AppointmentView } from '../../../domain/appointments.models';
-import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
-import { ReservationNegotiationComponent } from '../../components/reservation-negotiation/reservation-negotiation.component';
 
 type LeafletLatLng = { lat: number; lng: number };
 type LeafletNamespace = NonNullable<Window['L']> & {
@@ -82,8 +80,7 @@ type AppointmentDetailUiState =
   | 'completed'
   | 'working'
   | 'route'
-  | 'upcoming'
-  | 'negotiation';
+  | 'upcoming';
 
 @Component({
   selector: 'app-appointment-detail-page',
@@ -93,9 +90,7 @@ type AppointmentDetailUiState =
     FormsModule,
     AppFooterComponent,
     AppNavbarComponent,
-    AppointmentDetailLoadingComponent,
     LucideAngularModule,
-    ReservationNegotiationComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [
@@ -484,7 +479,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isProviderWorking()) return 'working';
     if (this.isProviderOnTheWay()) return 'route';
     if (this.showUpcomingDetail()) return 'upcoming';
-    return 'negotiation';
+    return 'upcoming';
   });
   protected readonly upcomingCountdownLabel = computed(() => {
     const appointment = this.appointment();

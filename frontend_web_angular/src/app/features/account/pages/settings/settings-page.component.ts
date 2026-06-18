@@ -3,12 +3,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, finalize, of, switchMap } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
+import {
+  DoctorSpaceService,
+  ProfessionalUploadView,
+} from '../../../medicine/data-access/doctor-space.service';
+import { BackendProfessionalPortfolioItem } from '../../../services/domain/models/services.models';
 import {
   AuthService,
   MedicalProfileView,
@@ -30,6 +34,11 @@ import { UserProfileDto } from '../../../auth/domain/models/auth.models';
 
 type SettingsSection = 'health' | 'account';
 
+type PortfolioPreview = {
+  url: string;
+  name: string;
+};
+
 type ConfirmationDialogState = {
   title: string;
   message: string;
@@ -47,7 +56,6 @@ type ConfirmationDialogState = {
     RouterLink,
     LucideAngularModule,
     AppFooterComponent,
-    AppNavbarComponent,
   ],
   templateUrl: './settings-page.component.html',
   styleUrl: './settings-page.component.scss',
@@ -58,6 +66,9 @@ export class SettingsPageComponent implements OnInit {
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly doctorSpaceService = inject(DoctorSpaceService);
+
+  protected readonly coverUrl = '/boabab.png';
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly profile = signal<UserProfileDto | null>(null);
@@ -67,6 +78,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isSavingProfessionalAbout = signal(false);
   protected readonly isSavingAddress = signal(false);
   protected readonly isSavingAvatar = signal(false);
+  protected readonly isPortfolioSaving = signal(false);
   protected readonly isSavingPaymentMethod = signal(false);
   protected readonly isLoadingPayments = signal(false);
   protected readonly paymentActionId = signal<string | null>(null);
@@ -105,6 +117,8 @@ export class SettingsPageComponent implements OnInit {
     phoneNumber: '',
   };
   protected readonly professionalAboutForm = {
+    companyName: '',
+    city: '',
     about: '',
   };
   protected readonly addressForm = {
@@ -126,6 +140,14 @@ export class SettingsPageComponent implements OnInit {
   protected readonly professionalExpertiseForm = {
     name: '',
   };
+  protected readonly portfolioForm = {
+    title: '',
+    description: '',
+  };
+  protected readonly portfolioItems = signal<BackendProfessionalPortfolioItem[]>([]);
+  protected readonly portfolioFile = signal<File | null>(null);
+  protected readonly portfolioFileName = signal('');
+  protected readonly portfolioPreview = signal<PortfolioPreview | null>(null);
   protected readonly medicalProfileForm = {
     bloodGroup: '',
     rhesus: '',
@@ -242,15 +264,25 @@ export class SettingsPageComponent implements OnInit {
     const role = this.profile()?.role || this.currentUser()?.role;
     return role === 'MEDECIN' || role === 'PRESTATAIRE';
   });
-  protected readonly professionalSpaceRoute = computed(() => {
-    const role = this.profile()?.role || this.currentUser()?.role;
-    return role === 'MEDECIN' ? '/medecine/espace' : '/prestataire/espace';
-  });
   protected readonly hasLocalPassword = computed(() => this.profile()?.hasPassword ?? true);
   protected readonly displayPhoneNumber = computed(() =>
     displaySenegalPhoneNumber(this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber),
   );
   protected readonly professionalProfile = computed(() => this.profile()?.profilProfessionnel ?? null);
+  protected readonly professionalProfileId = computed(() => this.professionalProfile()?.id ?? null);
+  protected readonly professionalCompanyName = computed(() =>
+    this.professionalProfile()?.nomEntreprise || this.displayName(),
+  );
+  protected readonly professionalCity = computed(() =>
+    this.professionalProfile()?.ville || this.profile()?.adresse || 'Ville non renseignee',
+  );
+  protected readonly professionalKycLabel = computed(() => {
+    const status = this.professionalProfile()?.statutKyc;
+    if (status === 'VERIFIE') return 'Profil verifie';
+    if (status === 'EN_ATTENTE') return 'Verification en cours';
+    if (status === 'REJETE') return 'Verification rejetee';
+    return 'Verification non soumise';
+  });
   protected readonly professionalBiographyLines = computed(() => this.parseProfessionalBiography());
   protected readonly professionalSpecialty = computed(() => {
     const explicitSpecialty = this.professionalBiographyLines().specialty;
@@ -304,9 +336,6 @@ export class SettingsPageComponent implements OnInit {
     this.loadProfile();
     this.loadMedicalProfile();
     this.loadPaymentMethods();
-    if (this.activeSection() === 'account') {
-      this.loadPaymentActivity();
-    }
     this.loadUserHistory();
   }
 
@@ -314,7 +343,6 @@ export class SettingsPageComponent implements OnInit {
     this.activeSection.set(section);
     if (section === 'account') {
       this.loadPaymentMethods();
-      this.loadPaymentActivity();
     }
   }
 
@@ -386,6 +414,8 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected startProfessionalAboutEdit(): void {
+    this.professionalAboutForm.companyName = this.professionalCompanyName();
+    this.professionalAboutForm.city = this.professionalProfile()?.ville || '';
     this.professionalAboutForm.about = this.professionalAbout();
     this.isEditingProfessionalAbout.set(true);
   }
@@ -401,6 +431,8 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected cancelProfessionalAboutEdit(): void {
+    this.professionalAboutForm.companyName = this.professionalCompanyName();
+    this.professionalAboutForm.city = this.professionalProfile()?.ville || '';
     this.professionalAboutForm.about = this.professionalAbout();
     this.isEditingProfessionalAbout.set(false);
   }
@@ -432,6 +464,7 @@ export class SettingsPageComponent implements OnInit {
         name,
         email: this.profileForm.email.trim() || null,
         phoneNumber: phoneNumber ? normalizeSenegalPhoneNumber(phoneNumber) : undefined,
+        address: this.addressForm.address.trim() || null,
       })
       .pipe(finalize(() => this.isSavingProfile.set(false)))
       .subscribe({
@@ -454,8 +487,20 @@ export class SettingsPageComponent implements OnInit {
 
     this.isSavingProfessionalAbout.set(true);
     this.errorMessage.set(null);
-    this.authService
-      .updateMyProfessionalAbout(about)
+    const request = this.professionalProfileId()
+      ? this.doctorSpaceService.updateMyProfessionalProfile({
+          bio: about,
+          companyName: this.professionalAboutForm.companyName.trim() || null,
+          city: this.professionalAboutForm.city.trim() || null,
+        })
+      : this.doctorSpaceService.createMyProfessionalProfile({
+          bio: about,
+          companyName: this.professionalAboutForm.companyName.trim() || null,
+          city: this.professionalAboutForm.city.trim() || null,
+        });
+
+    request
+      .pipe(switchMap(() => this.authService.myUserProfile()))
       .pipe(finalize(() => this.isSavingProfessionalAbout.set(false)))
       .subscribe({
         next: (profile) => {
@@ -563,6 +608,109 @@ export class SettingsPageComponent implements OnInit {
           this.feedback.error(message);
         },
       });
+  }
+
+  protected selectPortfolioImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      const message = 'Choisissez une image PNG, JPG ou WEBP pour le portfolio.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      const message = 'L image du portfolio ne doit pas depasser 5 Mo.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    this.portfolioFile.set(file);
+    this.portfolioFileName.set(file.name);
+    this.portfolioPreview.set({
+      url: URL.createObjectURL(file),
+      name: file.name,
+    });
+  }
+
+  protected addPortfolioItem(): void {
+    if (this.isPortfolioSaving()) return;
+    const title = this.portfolioForm.title.trim();
+    const description = this.portfolioForm.description.trim();
+    const file = this.portfolioFile();
+
+    if (!this.professionalProfileId()) {
+      const message = 'Votre profil professionnel doit etre cree avant d ajouter une realisation.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    if (!title || !file) {
+      const message = 'Ajoutez un titre et une image pour la realisation.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return;
+    }
+
+    this.isPortfolioSaving.set(true);
+    this.errorMessage.set(null);
+    this.doctorSpaceService
+      .uploadProfessionalAsset(file)
+      .pipe(
+        switchMap((uploaded: ProfessionalUploadView) =>
+          this.doctorSpaceService.createPortfolioItem({
+            title,
+            description: description || null,
+            imageUrl: uploaded.imageUrl || uploaded.fileUrl,
+          }),
+        ),
+        finalize(() => this.isPortfolioSaving.set(false)),
+      )
+      .subscribe({
+        next: (item) => {
+          this.portfolioItems.update((items) => [item, ...items]);
+          this.resetPortfolioForm();
+          this.feedback.success('Realisation ajoutee au portfolio.');
+        },
+        error: (error) => {
+          const message = getHttpErrorMessage(error, 'Ajout du portfolio impossible.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected deletePortfolioItem(item: BackendProfessionalPortfolioItem): void {
+    if (this.isPortfolioSaving()) return;
+    this.openConfirmation({
+      title: 'Supprimer cette realisation ?',
+      message: `La realisation "${item.titre}" sera retiree de votre portfolio public.`,
+      confirmLabel: 'Supprimer la realisation',
+      tone: 'danger',
+      action: () => {
+        this.isPortfolioSaving.set(true);
+        this.doctorSpaceService
+          .deletePortfolioItem(item.id)
+          .pipe(finalize(() => this.isPortfolioSaving.set(false)))
+          .subscribe({
+            next: () => {
+              this.portfolioItems.update((items) => items.filter((current) => current.id !== item.id));
+              this.feedback.success('Realisation supprimee.');
+            },
+            error: (error) => {
+              const message = getHttpErrorMessage(error, 'Suppression du portfolio impossible.');
+              this.errorMessage.set(message);
+              this.feedback.error(message);
+            },
+          });
+      },
+    });
   }
 
   protected addProfessionalExpertise(): void {
@@ -1017,6 +1165,7 @@ export class SettingsPageComponent implements OnInit {
           this.profile.set(profile);
           this.authSession.saveUserProfile(profile);
           this.syncForms(profile);
+          this.loadProfessionalPortfolio(profile);
         },
         error: (error) => {
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger le profil.'));
@@ -1098,10 +1247,24 @@ export class SettingsPageComponent implements OnInit {
       });
   }
 
+  private loadProfessionalPortfolio(profile: UserProfileDto | null = this.profile()): void {
+    const profileId = profile?.profilProfessionnel?.id;
+    if (!profileId) {
+      this.portfolioItems.set([]);
+      return;
+    }
+
+    this.doctorSpaceService
+      .listPortfolio(profileId)
+      .pipe(catchError(() => of([] as BackendProfessionalPortfolioItem[])))
+      .subscribe((items) => this.portfolioItems.set(items));
+  }
+
   private applyUpdatedProfile(profile: UserProfileDto, message: string): void {
     this.profile.set(profile);
     this.authSession.saveUserProfile(profile);
     this.syncForms(profile);
+    this.loadProfessionalPortfolio(profile);
     this.isEditingProfile.set(false);
     this.isEditingAddress.set(false);
     this.feedback.success(message);
@@ -1146,6 +1309,18 @@ export class SettingsPageComponent implements OnInit {
     this.treatmentForm.startedAt = '';
     this.treatmentForm.endedAt = '';
     this.treatmentForm.notes = '';
+  }
+
+  private resetPortfolioForm(): void {
+    this.portfolioForm.title = '';
+    this.portfolioForm.description = '';
+    this.portfolioFile.set(null);
+    this.portfolioFileName.set('');
+    const preview = this.portfolioPreview();
+    if (preview?.url.startsWith('blob:')) {
+      URL.revokeObjectURL(preview.url);
+    }
+    this.portfolioPreview.set(null);
   }
 
   private parseTextList(value: string): string[] {

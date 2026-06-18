@@ -45,7 +45,7 @@
 
         <div class="provider-profile__name">
           <h1>{{ displayName() }}</h1>
-          <p>{{ speciality() }} - {{ formatLocation() }}</p>
+          <p>{{ formatLocation() }}</p>
         </div>
 
         <div class="provider-profile__actions" aria-label="Actions prestataire">
@@ -58,7 +58,12 @@
             [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
             (click)="toggleFavorite()"
           >
-            <lucide-icon name="heart" size="21" [strokeWidth]="2.3"></lucide-icon>
+            <lucide-icon
+              name="heart"
+              size="21"
+              [strokeWidth]="2.3"
+              [attr.fill]="isFavorite() ? 'currentColor' : 'none'"
+            ></lucide-icon>
           </button>
         </div>
 

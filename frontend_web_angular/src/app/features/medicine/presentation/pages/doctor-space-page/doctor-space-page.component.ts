@@ -283,7 +283,7 @@ export class DoctorSpacePageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly activeSection = signal<DoctorSpaceSection>('profile');
+  protected readonly activeSection = signal<DoctorSpaceSection>('availability');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -901,9 +901,10 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private resolveSectionFromRoute(): DoctorSpaceSection {
     const section = this.route.snapshot.queryParamMap.get('section');
+    if (section === 'profile') return 'availability';
     return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
       ? (section as DoctorSpaceSection)
-      : 'profile';
+      : 'availability';
   }
 
   private setActiveSection(section: DoctorSpaceSection): void {
@@ -918,8 +919,8 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected selectSection(section: DoctorSpaceSection): void {
     if (section !== 'profile' && !this.professionalProfileId()) {
-      this.feedback.info('Creez votre profil professionnel pour activer cette section.');
-      this.setActiveSection('profile');
+      this.feedback.info('Completez votre profil professionnel dans les parametres pour activer cette section.');
+      this.router.navigate(['/settings'], { queryParams: { section: 'health' } });
       return;
     }
 

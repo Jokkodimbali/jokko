@@ -247,7 +247,7 @@ export class ServicesComponent implements OnInit {
         return 'Transport de colis';
       case 'PRESTATAIRE_SE_DEPLACE':
       default:
-        return 'Le prestataire se deplace';
+        return 'Se deplace chez vous';
     }
   }
 
@@ -271,7 +271,7 @@ export class ServicesComponent implements OnInit {
         return 'Colis pris en charge du point A au point B';
       case 'PRESTATAIRE_SE_DEPLACE':
       default:
-        return 'Intervention a votre adresse';
+        return 'Intervention a votre domicile';
     }
   }
 

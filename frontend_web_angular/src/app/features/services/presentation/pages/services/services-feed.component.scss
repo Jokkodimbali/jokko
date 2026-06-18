@@ -582,12 +582,13 @@
 }
 
 :host .provider-card {
-  border-radius: 17px !important;
+  border-radius: 16px !important;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', var(--font-app, system-ui, sans-serif);
   min-height: 264px;
-  padding: 14px 13px 13px !important;
+  padding: 14px !important;
 }
 
 :host .provider-card__header {
@@ -627,11 +628,13 @@
 
 :host .provider-info h3 {
   font-size: 13px !important;
+  font-weight: 700 !important;
   line-height: 1.12 !important;
 }
 
 :host .provider-info .speciality {
   font-size: 10px !important;
+  font-weight: 400 !important;
   margin-bottom: 6px;
 }
 
@@ -642,14 +645,15 @@
 
 :host .provider-meta span {
   font-size: 9px;
+  font-weight: 500;
 }
 
 :host .provider-card__favorite {
-  background: #955d24;
-  border-color: #955d24;
+  background: #ffffff;
+  border-color: #c99d77;
   border-radius: 11px;
   box-shadow: none;
-  color: #fff;
+  color: #955d24;
   flex: 0 0 auto;
   height: 29px;
   position: static;
@@ -657,22 +661,38 @@
 }
 
 :host .provider-card__favorite lucide-icon {
-  color: #fff;
+  color: currentColor;
+  fill: none;
 }
 
 :host .provider-card__favorite:hover,
-:host .provider-card__favorite:focus-visible,
+:host .provider-card__favorite:focus-visible {
+  background: #fff7ef;
+  border-color: #955d24;
+  color: #7f4b1d;
+}
+
+:host .provider-card__favorite--active {
+  background: #955d24;
+  border-color: #955d24;
+  color: #ffffff;
+}
+
 :host .provider-card__favorite--active:hover,
 :host .provider-card__favorite--active:focus-visible {
   background: #7f4b1d;
   border-color: #7f4b1d;
-  color: #fff;
+  color: #ffffff;
+}
+
+:host .provider-card__favorite--active lucide-icon {
+  fill: currentColor;
 }
 
 :host .provider-card__visit {
   align-items: center;
   background: #f3e6d8;
-  border-radius: 10px;
+  border-radius: 11px;
   color: #955d24;
   display: grid;
   gap: 8px;
@@ -701,7 +721,7 @@
 :host .provider-card__visit-copy strong {
   color: #8b501d;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -711,6 +731,7 @@
 :host .provider-card__visit-copy small {
   color: #9d8776;
   font-size: 10px;
+  font-weight: 400;
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -724,6 +745,7 @@
 :host .photo-strip {
   margin-bottom: 10px;
   min-height: 65px;
+  border-radius: 9px;
 }
 
 :host .photo-strip__track {
@@ -733,6 +755,7 @@
 
 :host .photo-strip img {
   aspect-ratio: 1.58 !important;
+  border-radius: 7px;
 }
 
 :host .photo-strip--empty {
@@ -754,7 +777,7 @@
   cursor: pointer;
   display: inline-flex;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   gap: 6px;
   justify-content: center;
   line-height: 1;

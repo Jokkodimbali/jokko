@@ -11,7 +11,6 @@
     <span></span>
   </header>
 
-  <app-appointment-detail-loading *ngIf="isLoading()" />
   <section
     class="appointment-detail__state appointment-detail__state--error"
     *ngIf="!isLoading() && errorMessage()"
@@ -564,17 +563,6 @@
       />
     </section>
 
-    <app-reservation-negotiation
-      *ngIf="detailUiState() === 'negotiation'"
-      [appointment]="appointment"
-      [providerViewer]="isProviderViewer()"
-      [handlingPriceAdjustment]="isHandlingPriceAdjustment()"
-      (back)="goBack()"
-      (reschedule)="openRescheduleModal(appointment)"
-      (acceptPrice)="acceptPriceAdjustment(appointment)"
-      (rejectPrice)="rejectPriceAdjustment(appointment)"
-      (proposePrice)="submitNegotiation(appointment, $event)"
-    />
     <section
       *ngIf="isRescheduleModalOpen()"
       class="appointment-detail__modal"

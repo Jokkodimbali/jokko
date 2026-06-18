@@ -21,6 +21,7 @@ export interface CategoryStructure extends Category {
 
 export interface Professional {
   id: string;
+  profileType?: 'PRESTATAIRE' | 'MEDECIN';
   serviceId?: string;
   servicePriceType?: string;
   serviceTravelMode?: ServiceTravelMode;

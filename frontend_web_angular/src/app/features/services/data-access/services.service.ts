@@ -74,6 +74,82 @@ export class ServicesService {
     limit: number = 6,
     city?: string,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
+    return this.fetchProfessionals({ query, page, limit, city });
+  }
+
+  searchUnifiedProfessionals(
+    query: string = '',
+    page: number = 1,
+    limit: number = 24,
+    city?: string,
+    categoryId?: string,
+    subCategoryId?: string,
+  ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
+    return forkJoin([
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role: 'PRESTATAIRE' }).pipe(
+        catchError(() => of({ providers: [], meta: undefined })),
+      ),
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role: 'MEDECIN' }).pipe(
+        catchError(() => of({ providers: [], meta: undefined })),
+      ),
+    ]).pipe(
+      map(([providersResult, doctorsResult]) => {
+        const providers = this.mergeProfessionals(
+          providersResult.providers,
+          doctorsResult.providers.map((provider) => ({ ...provider, profileType: 'MEDECIN' as const })),
+        );
+        const total =
+          (providersResult.meta?.total ?? providersResult.providers.length) +
+          (doctorsResult.meta?.total ?? doctorsResult.providers.length);
+        const totalPages = Math.max(
+          providersResult.meta?.totalPages ?? 1,
+          doctorsResult.meta?.totalPages ?? 1,
+        );
+
+        return {
+          providers,
+          meta: {
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNext: Boolean(providersResult.meta?.hasNext || doctorsResult.meta?.hasNext),
+            hasPrevious: page > 1,
+          },
+        };
+      }),
+    );
+  }
+
+  searchProfessionalsByRole(
+    role: 'PRESTATAIRE' | 'MEDECIN',
+    query: string = '',
+    page: number = 1,
+    limit: number = 24,
+    city?: string,
+    categoryId?: string,
+    subCategoryId?: string,
+  ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
+    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role });
+  }
+
+  private fetchProfessionals({
+    query,
+    page,
+    limit,
+    city,
+    categoryId,
+    subCategoryId,
+    role,
+  }: {
+    query: string;
+    page: number;
+    limit: number;
+    city?: string;
+    categoryId?: string;
+    subCategoryId?: string;
+    role?: 'PRESTATAIRE' | 'MEDECIN';
+  }): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     const params: Record<string, string> = {
       page: page.toString(),
       limit: limit.toString(),
@@ -87,6 +163,18 @@ export class ServicesService {
       params['city'] = city.trim();
     }
 
+    if (categoryId?.trim()) {
+      params['categoryId'] = categoryId.trim();
+    }
+
+    if (subCategoryId?.trim()) {
+      params['subCategoryId'] = subCategoryId.trim();
+    }
+
+    if (role) {
+      params['role'] = role;
+    }
+
     return this.http
       .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
         params,
@@ -94,7 +182,7 @@ export class ServicesService {
       .pipe(
         map((response) => ({
           providers: unwrapApiResponse(response).map((professional) =>
-            this.mapProfessional(professional),
+            this.mapProfessional(professional, undefined, null, role),
           ),
           meta: response.meta?.['pagination'] as PaginationMeta | undefined,
         })),
@@ -215,6 +303,7 @@ export class ServicesService {
     data: BackendProfessional,
     photos: string[] = this.mapPortfolioPhotos(data),
     presence: BackendProfessionalPresence | null = null,
+    profileType?: 'PRESTATAIRE' | 'MEDECIN',
   ): Professional {
     const primaryService = data.services[0];
     const primarySpecialty = data.specialties?.[0];
@@ -222,9 +311,10 @@ export class ServicesService {
 
     return {
       id: data.id,
+      profileType,
       serviceId: primaryService?.id,
       servicePriceType: primaryService?.priceType,
-      serviceTravelMode: primaryService?.travelMode,
+      serviceTravelMode: profileType === 'MEDECIN' ? 'CLIENT_SE_DEPLACE' : primaryService?.travelMode,
       nom: data.companyName || data.name,
       speciality:
         primaryService?.name ||
@@ -241,6 +331,21 @@ export class ServicesService {
       avatar: this.absoluteAssetUrl(data.avatarUrl) || undefined,
       photos,
     };
+  }
+
+  private mergeProfessionals(...groups: Professional[][]): Professional[] {
+    const professionals = new Map<string, Professional>();
+
+    for (const professional of groups.flat()) {
+      const existing = professionals.get(professional.id);
+      professionals.set(professional.id, {
+        ...existing,
+        ...professional,
+        profileType: professional.profileType ?? existing?.profileType,
+      });
+    }
+
+    return [...professionals.values()];
   }
 
   private mapPortfolioPhotos(data: BackendProfessional): string[] {

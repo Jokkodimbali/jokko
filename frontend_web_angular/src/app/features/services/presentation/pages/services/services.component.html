@@ -11,8 +11,11 @@
           ariaLabel="Recherche de services"
           [value]="searchTerm()"
           [locationValue]="locationValue"
+          placeholder="Service, medecin, prestataire..."
+          [filterValueLabel]="activeFilterLabel()"
           (valueChange)="onSearchTermChange($event)"
           (searchSubmit)="submitSearch($event)"
+          (filterClick)="cycleFilter()"
         />
       </div>
 
@@ -36,7 +39,7 @@
 
       <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list">
         <a
-          *ngFor="let provider of favoriteProviders(); let providerIndex = index"
+          *ngFor="let provider of favoriteProviders()"
           class="favorite-row"
           [routerLink]="provider.route"
         >
@@ -61,17 +64,11 @@
 
       <ng-template #emptyFavorites>
         <div class="empty-favorites">
-          <ng-container *ngIf="currentUser(); else favoriteLoginPrompt">
-            <p>Vous n'avez pas encore de favoris. Enregistrez un prestataire pour le retrouver rapidement ici.</p>
-            <a routerLink="/favorites" class="auth-link">Voir ma liste</a>
-          </ng-container>
-          <ng-template #favoriteLoginPrompt>
-            <p>Connectez-vous pour enregistrer et retrouver vos prestataires favoris.</p>
-            <a routerLink="/auth/login" class="auth-link">Se connecter</a>
-          </ng-template>
+          <p>Ajoutez des prestataires en favoris pour les retrouver rapidement ici.</p>
+          <a routerLink="/favorites" class="auth-link">Voir ma liste</a>
         </div>
       </ng-template>
-      <a routerLink="/favorites" class="favorites-manage">Gérer mes favoris</a>
+      <a routerLink="/favorites" class="favorites-manage">Gerer mes favoris</a>
     </aside>
 
     <div class="service-feed">
@@ -107,6 +104,48 @@
       </div>
 
       <section *ngFor="let section of sections()" class="service-section">
+        <div id="services-filters" class="service-filters" aria-label="Filtres des prestataires">
+          <button
+            type="button"
+            class="service-filters__button"
+            [class.service-filters__button--active]="activeFilter() === 'ALL' && activeCategoryId() === null"
+            (click)="selectCategory(null)"
+          >
+            <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Toutes categories
+          </button>
+          <button
+            *ngFor="let filter of typeFilters"
+            type="button"
+            class="service-filters__button"
+            [class.service-filters__button--active]="activeFilter() === filter.value"
+            (click)="selectFilter(filter.value)"
+          >
+            <lucide-icon *ngIf="filter.value === 'MEDECIN'" name="stethoscope" size="16" [strokeWidth]="2.4"></lucide-icon>
+            <lucide-icon *ngIf="filter.value === 'PRESTATAIRE'" name="briefcase-business" size="16" [strokeWidth]="2.4"></lucide-icon>
+            {{ filter.label }}
+          </button>
+          <button
+            *ngFor="let category of categories()"
+            type="button"
+            class="service-filters__button"
+            [class.service-filters__button--active]="activeCategoryId() === category.id && activeSubCategoryId() === null"
+            [class.service-filters__button--parent]="activeCategoryId() === category.id && activeSubCategoryId() !== null"
+            (click)="selectCategory(category.id)"
+          >
+            {{ category.nom }}
+          </button>
+          <button
+            *ngFor="let subCategory of activeSubCategories()"
+            type="button"
+            class="service-filters__button service-filters__button--sub"
+            [class.service-filters__button--active]="activeSubCategoryId() === subCategory.id"
+            (click)="selectSubCategory(activeCategoryId()!, subCategory.id)"
+          >
+            {{ subCategory.nom }}
+          </button>
+        </div>
+
         <div class="section-heading">
           <div class="section-title-group">
             <h2>{{ section.title }}</h2>
@@ -122,7 +161,7 @@
             <div class="provider-card__header">
               <a
                 class="provider-info"
-                [routerLink]="['/services', provider.id]"
+                [routerLink]="providerProfileCommands(provider)"
                 [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
                 [state]="{
                   provider: provider,
@@ -180,7 +219,9 @@
 
             <div class="provider-card__visit">
               <span class="provider-card__visit-icon">
-                <lucide-icon [name]="providerMovementIcon(provider)" size="16" [strokeWidth]="2.5"></lucide-icon>
+                <lucide-icon *ngIf="providerMovementIcon(provider) === 'map-pin'" name="map-pin" size="16" [strokeWidth]="2.5"></lucide-icon>
+                <lucide-icon *ngIf="providerMovementIcon(provider) === 'clipboard'" name="clipboard" size="16" [strokeWidth]="2.5"></lucide-icon>
+                <lucide-icon *ngIf="providerMovementIcon(provider) === 'wrench'" name="wrench" size="16" [strokeWidth]="2.5"></lucide-icon>
               </span>
               <span class="provider-card__visit-copy">
                 <strong>{{ providerMovementTitle(provider) }}</strong>
@@ -216,13 +257,16 @@
             </ng-template>
 
             <div class="provider-card__actions">
-              <button type="button" class="provider-card__action provider-card__action--negotiate" (click)="openNegotiation(provider)">
-                <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>
-                N&eacute;gocier le prix
+              <button type="button" class="provider-card__action provider-card__action--negotiate" (click)="providerPrimaryAction(provider)">
+                <lucide-icon *ngIf="provider.profileType === 'MEDECIN'; else negotiationIcon" name="calendar-check" size="15" [strokeWidth]="2.4"></lucide-icon>
+                <ng-template #negotiationIcon>
+                  <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>
+                </ng-template>
+                {{ providerActionLabel(provider) }}
               </button>
               <a
                 class="provider-card__action provider-card__action--profile"
-                [routerLink]="['/services', provider.id]"
+                [routerLink]="providerProfileCommands(provider)"
                 [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
                 [state]="{
                   provider: provider,
@@ -254,7 +298,7 @@
           [disabled]="isLoading()"
           class="load-more-btn"
         >
-          {{ isLoading() ? 'Chargement...' : 'Charger plus de categories' }}
+          {{ isLoading() ? 'Chargement...' : 'Charger plus de prestataires' }}
           <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
           </svg>

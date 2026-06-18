@@ -15,17 +15,34 @@ export class AppSearchBarComponent {
   @Input() locationValue = 'Toute zone';
   @Input() placeholder = 'Recherche';
   @Input() filterLabel = 'Filtrage';
-  @Input() value = '';
   @Input() variant: 'default' | 'compact' = 'default';
+  @Input() filterValueLabel = '';
+
+  private searchValue = '';
+
+  @Input()
+  set value(value: string | null | undefined) {
+    this.searchValue = value ?? '';
+  }
+
+  get value(): string {
+    return this.searchValue;
+  }
 
   @Output() valueChange = new EventEmitter<string>();
   @Output() searchSubmit = new EventEmitter<string>();
+  @Output() filterClick = new EventEmitter<void>();
 
   onInput(value: string): void {
+    this.searchValue = value;
     this.valueChange.emit(value);
   }
 
   onSubmit(): void {
-    this.searchSubmit.emit(this.value.trim());
+    this.searchSubmit.emit(this.searchValue.trim());
+  }
+
+  onFilterClick(): void {
+    this.filterClick.emit();
   }
 }

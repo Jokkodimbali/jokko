@@ -67,7 +67,7 @@ export class ProviderProfileComponent implements OnInit {
   });
   protected readonly speciality = computed(() => this.primaryService()?.nom || 'Service');
   protected readonly aboutTitle = computed(() =>
-    this.primaryService()?.description ? this.speciality() : "L'artisan au service du geste juste.",
+    this.primaryService()?.description ? 'Presentation du service' : "L'artisan au service du geste juste.",
   );
   protected readonly serviceQueryParams = computed(() => {
     const serviceId = this.primaryService()?.id;
@@ -144,9 +144,10 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
   protected readonly isFavorite = signal(false);
   protected readonly currentUser = this.authSession.currentUser;
-  protected readonly expertiseTags = computed(() =>
-    this.detail()?.services.map((service) => service.nom).filter(Boolean) ?? [],
-  );
+  protected readonly expertiseTags = computed(() => {
+    const services = this.detail()?.services ?? [];
+    return [...new Set(services.map((service) => service.nom).filter(Boolean))];
+  });
   protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
   protected readonly scheduleSlotsCount = computed(() =>
     this.schedule().reduce((total, row) => total + row.slots.length, 0),

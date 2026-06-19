@@ -49,7 +49,14 @@ COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node scripts/docker/entrypoint.sh ./scripts/docker/entrypoint.sh
 
-RUN chmod +x ./scripts/docker/entrypoint.sh
+RUN mkdir -p ./uploads/avatars \
+    ./uploads/conversation-media \
+    ./uploads/dispute-evidence \
+    ./uploads/medical-credentials \
+    ./uploads/professionals \
+    ./uploads/service-categories \
+  && chown -R node:node ./uploads \
+  && chmod +x ./scripts/docker/entrypoint.sh
 
 USER node
 

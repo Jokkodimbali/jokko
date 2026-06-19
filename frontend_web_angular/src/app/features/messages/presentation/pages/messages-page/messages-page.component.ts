@@ -315,7 +315,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected isOwnMessage(message: ConversationMessage): boolean {
-    return message.senderId === this.currentUser()?.id;
+    return this.isCurrentUserId(message.senderId) || this.isCurrentUserId(message.sender?.id);
   }
 
   protected initials(name: string): string {
@@ -1200,8 +1200,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private upsertConversationFromMessage(message: ConversationMessage, isOpen: boolean): void {
-    const currentUserId = this.currentUser()?.id;
-    const shouldIncrementUnread = !isOpen && message.senderId !== currentUserId;
+    const shouldIncrementUnread = !isOpen && !this.isOwnMessage(message);
 
     this.conversations.update((items) => {
       const nextItems = items.map((conversation) => {
@@ -1522,6 +1521,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private isProfessionalRole(): boolean {
     const role = this.currentUser()?.role;
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
+  }
+
+  private isCurrentUserId(userId: string | null | undefined): boolean {
+    const currentUserId = this.currentUser()?.id;
+    return Boolean(userId && currentUserId && userId.trim() === currentUserId.trim());
   }
 
   private isPaidAppointmentStatus(status: AppointmentView['status']): boolean {

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map, switchMap, of, catchError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import {
   BackendProfessionalAvailability,
   BackendProfessional,
@@ -360,15 +361,7 @@ export class ServicesService {
       return null;
     }
 
-    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
-      return value;
-    }
-
-    if (value.startsWith('/')) {
-      return `${new URL(this.apiUrl).origin}${value}`;
-    }
-
-    return value;
+    return publicAssetUrl(value);
   }
 
   private formatPresenceLabel(presence: BackendProfessionalPresence | null): string {

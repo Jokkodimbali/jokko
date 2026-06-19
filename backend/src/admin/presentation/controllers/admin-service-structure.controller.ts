@@ -35,6 +35,7 @@ import {
   appMessage,
 } from '../../../core/http/app-http.exception';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { AdminServiceStructureService } from '../../application/services/admin-service-structure.service';
 import { AssignServiceSubCategoriesDto } from '../dto/assign-service-subcategories.dto';
@@ -247,8 +248,10 @@ export class AdminServiceStructureController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
-    const imageUrl = `${origin}/uploads/service-categories/${file.filename}`;
+    const imageUrl = buildPublicUploadUrl(
+      request,
+      `/uploads/service-categories/${file.filename}`,
+    );
     return createApiResponse(
       { imageUrl },
       appMessage('ADMIN_SERVICE_IMAGE_UPLOADED').message,

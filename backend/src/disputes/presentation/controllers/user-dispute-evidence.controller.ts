@@ -31,6 +31,7 @@ import {
   appHttpException,
   appMessage,
 } from '../../../core/http/app-http.exception';
+import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { DisputesFacade } from '../../application/services/disputes-facade.service';
 
@@ -133,7 +134,6 @@ export class UserDisputeEvidenceController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
     const result = await this.disputesFacade.addEvidenceForReservation(
       user,
       reservationId,
@@ -141,7 +141,10 @@ export class UserDisputeEvidenceController {
         originalFileName: file.originalname,
         mimeType: file.mimetype,
         sizeBytes: file.size,
-        fileUrl: `${origin}/uploads/dispute-evidence/${file.filename}`,
+        fileUrl: buildPublicUploadUrl(
+          request,
+          `/uploads/dispute-evidence/${file.filename}`,
+        ),
       })),
     );
 

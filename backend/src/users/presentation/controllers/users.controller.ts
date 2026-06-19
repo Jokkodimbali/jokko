@@ -52,6 +52,7 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
+import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 
 type UploadedAvatarFile = {
   filename: string;
@@ -394,8 +395,10 @@ export class UsersController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
-    const avatarUrl = `${origin}/uploads/avatars/${file.filename}`;
+    const avatarUrl = buildPublicUploadUrl(
+      request,
+      `/uploads/avatars/${file.filename}`,
+    );
     const result = await this.usersService.updateMyAvatar(user.sub, {
       avatarUrl,
     });
@@ -451,8 +454,10 @@ export class UsersController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
-    const documentUrl = `${origin}/uploads/medical-credentials/${file.filename}`;
+    const documentUrl = buildPublicUploadUrl(
+      request,
+      `/uploads/medical-credentials/${file.filename}`,
+    );
     const result = await this.usersService.uploadMyProfessionalCredential(user, {
       title: dto.title?.trim() || file.originalname,
       institution: dto.institution?.trim() || 'Document fourni par le professionnel',

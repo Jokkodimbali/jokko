@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { ServicesService } from '../../services/data-access/services.service';
@@ -340,7 +341,7 @@ export class AppointmentsService {
       locationLabel: reservation.adresseClient || 'Adresse non renseignee',
       doctorName: professional.doctorName || 'Prestataire non renseigne',
       specialty: professional.specialty || reservation.service?.nom || 'Service non renseigne',
-      avatarUrl: professional.avatarUrl || '',
+      avatarUrl: publicAssetUrl(professional.avatarUrl) || '',
       professionalPhone:
         professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
       professionalRating:
@@ -349,7 +350,7 @@ export class AppointmentsService {
         professional.professionalReviews ?? reservation.professionnel?.nombreAvis ?? 0,
       clientName: reservation.client?.nom || 'Client non renseigne',
       clientPhone: reservation.client?.numeroTelephone || null,
-      clientAvatarUrl: reservation.client?.urlAvatar || '',
+      clientAvatarUrl: publicAssetUrl(reservation.client?.urlAvatar) || '',
       serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
       serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,

@@ -16,6 +16,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
+  app.set('trust proxy', configService.get<boolean>('TRUST_PROXY', true));
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -25,7 +26,6 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
   app.enableCors(buildCorsOptions(configService));
-  app.set('trust proxy', configService.get<boolean>('TRUST_PROXY', false));
 
   app.useGlobalPipes(
     new ValidationPipe({

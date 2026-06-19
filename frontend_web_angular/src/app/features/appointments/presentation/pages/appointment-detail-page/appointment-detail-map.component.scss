@@ -189,12 +189,23 @@
   margin-top: 3px;
 }
 
+.appointment-detail__route-provider-actions {
+  bottom: 68px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  z-index: 435;
+}
+
 .appointment-detail__finish-work-button {
   align-items: center;
   background: #568d42;
   border: 0;
   border-radius: 999px;
-  bottom: 68px;
   box-shadow: 0 18px 38px rgba(86, 141, 66, 0.3);
   color: #ffffff;
   cursor: pointer;
@@ -204,21 +215,17 @@
   font-weight: 950;
   gap: 8px;
   justify-content: center;
-  left: 50%;
   min-height: 44px;
   min-width: 230px;
   padding: 0 22px;
-  position: absolute;
   text-transform: uppercase;
-  transform: translateX(-50%);
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  z-index: 435;
 }
 
 .appointment-detail__finish-work-button:hover:not(:disabled) {
   background: #477938;
   box-shadow: 0 22px 44px rgba(86, 141, 66, 0.34);
-  transform: translateX(-50%) translateY(-1px) scale(1.01);
+  transform: translateY(-1px) scale(1.01);
 }
 
 .appointment-detail__finish-work-button:disabled {

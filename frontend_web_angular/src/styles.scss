@@ -61,6 +61,98 @@ video {
   --color-white: #fff;
   --color-ink: #2c2c2c;
   --color-success: #22c55e;
+  --motion-fast: 160ms;
+  --motion-medium: 240ms;
+  --motion-premium: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled),
+  a,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    transition-duration: var(--motion-medium);
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-timing-function: var(--motion-premium);
+  }
+
+  button:not(:disabled):active,
+  [role='button']:active {
+    transform: scale(0.97);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    transform: translateY(-1px);
+  }
+
+  .app-navbar__nav-item,
+  .app-navbar__dropdown-item,
+  .app-navbar__info-dropdown-item,
+  .services-page .provider-card,
+  .contact-card,
+  .auth-card,
+  .doctor-space__blocked-card,
+  .doctor-space__params-card,
+  .doctor-space__travel-option,
+  .doctor-space__medical-row,
+  .doctor-space__withdraw-methods > button {
+    transition-duration: var(--motion-medium);
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-timing-function: var(--motion-premium);
+  }
+
+  .services-page .provider-card:hover,
+  .contact-card:hover,
+  .doctor-space__blocked-card:hover,
+  .doctor-space__params-card:hover,
+  .doctor-space__medical-row:hover,
+  .doctor-space__withdraw-methods > button:hover:not(:disabled) {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes doctor-calendar-select {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.72);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.13);
+  }
+
+  100% {
+    transform: translateY(-3px) scale(1.08);
+  }
+}
+
+@keyframes doctor-calendar-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(3.4);
+  }
+
+  50% {
+    opacity: 0.42;
+    transform: scale(6.2);
+  }
 }
 
 .services-page {

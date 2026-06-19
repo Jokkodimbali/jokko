@@ -1,0 +1,148 @@
+<main class="about-page">
+  <app-navbar />
+
+  <section class="about-hero">
+    <div class="about-hero__inner reveal">
+      <span class="about-pill">
+        <lucide-icon name="building-2" size="15" [strokeWidth]="2.4"></lucide-icon>
+        A propos de Jokko Dimbali
+      </span>
+      <h1>Une plateforme locale pour relier les clients aux bons professionnels.</h1>
+      <p>
+        Jokko Dimbali centralise services, medecins, rendez-vous, messages et favoris pour offrir
+        une experience simple, lisible et fiable au quotidien.
+      </p>
+      <div class="about-actions">
+        <a routerLink="/services" class="about-button about-button--primary">
+          <lucide-icon name="search" size="18" [strokeWidth]="2.5"></lucide-icon>
+          Explorer les services
+        </a>
+        <a routerLink="/contact" class="about-button about-button--ghost">
+          <lucide-icon name="message-square-text" size="18" [strokeWidth]="2.5"></lucide-icon>
+          Nous contacter
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-summary" aria-label="Points forts Jokko">
+    <article *ngFor="let value of values" class="about-card reveal">
+      <span>
+        <lucide-icon [name]="value.icon" size="22" [strokeWidth]="2.4"></lucide-icon>
+      </span>
+      <small>{{ value.title }}</small>
+      <p>{{ value.text }}</p>
+    </article>
+  </section>
+
+  <section class="about-content">
+    <aside class="about-story reveal">
+      <span class="about-section-kicker">
+        <lucide-icon name="handshake" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Notre mission
+      </span>
+      <h2>Rendre les services fiables plus faciles a trouver.</h2>
+      <p>
+        Nous voulons que chaque client comprenne rapidement qui fait quoi, quelle specialite est
+        proposee, comment contacter le professionnel et quelle action lancer ensuite.
+      </p>
+      <p>
+        Les medecins et prestataires sont regroupes dans une logique simple : ce sont des
+        professionnels de service, accessibles depuis une seule page claire.
+      </p>
+    </aside>
+
+    <section class="about-journey reveal reveal--late">
+      <h2>Comment ca marche</h2>
+      <article *ngFor="let milestone of milestones; let index = index">
+        <span>0{{ index + 1 }}</span>
+        <strong>{{ milestone }}</strong>
+      </article>
+    </section>
+  </section>
+
+  <section class="about-explain reveal" aria-label="Comprendre Jokko Dimbali">
+    <div class="about-explain__header">
+      <span class="about-section-kicker">
+        <lucide-icon name="sparkles" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Comprendre l'application
+      </span>
+      <h2>Jokko Dimbali est organise pour que chacun sache ou aller et quoi faire.</h2>
+      <p>
+        L'application evite de separer inutilement les services. Le client part d'un besoin,
+        trouve le professionnel correspondant, puis choisit l'action adaptee : discuter, negocier,
+        prendre rendez-vous, ajouter en favoris ou suivre son historique.
+      </p>
+    </div>
+
+    <div class="about-audiences">
+      <article *ngFor="let audience of audiences">
+        <strong>{{ audience.title }}</strong>
+        <p>{{ audience.text }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="about-strengths reveal" aria-label="Points forts de Jokko">
+    <div>
+      <span class="about-section-kicker">Points forts</span>
+      <h2>Ce que Jokko apporte concretement.</h2>
+      <p>
+        Les informations importantes sont exposees tot : nom, specialite, disponibilite, zone,
+        mode de deplacement, avis, portfolio et action principale.
+      </p>
+    </div>
+    <ul>
+      <li *ngFor="let strength of strengths">
+        <lucide-icon name="check" size="17" [strokeWidth]="2.6"></lucide-icon>
+        {{ strength }}
+      </li>
+    </ul>
+  </section>
+
+  <section class="about-processes reveal" aria-label="Fonctionnalites importantes de Jokko">
+    <div class="about-processes__header">
+      <span class="about-section-kicker">
+        <lucide-icon name="info" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Details importants
+      </span>
+      <h2>Negociation, litige, suivi et messagerie : le client sait exactement quoi faire.</h2>
+      <p>
+        Ces fonctions existent pour eviter la confusion. Chaque situation a son parcours : une
+        negociation pour un service, un rendez-vous pour un medecin, un signalement pour un probleme,
+        et un suivi pour garder le contexte.
+      </p>
+    </div>
+
+    <div class="about-process-grid">
+      <article *ngFor="let process of detailedProcesses">
+        <span>
+          <lucide-icon [name]="process.icon" size="22" [strokeWidth]="2.4"></lucide-icon>
+        </span>
+        <h3>{{ process.title }}</h3>
+        <p>{{ process.text }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="about-network reveal" aria-label="Ecosysteme Jokko">
+    <div class="about-network__map">
+      <span class="about-network__node about-network__node--client">Client</span>
+      <span class="about-network__line about-network__line--one"></span>
+      <span class="about-network__node about-network__node--center">Jokko</span>
+      <span class="about-network__line about-network__line--two"></span>
+      <span class="about-network__node about-network__node--provider">Prestataire</span>
+      <span class="about-network__node about-network__node--doctor">Medecin</span>
+    </div>
+    <div>
+      <span class="about-section-kicker">Plateforme unifiee</span>
+      <h2>Un seul espace pour chercher, comparer, discuter et reserver.</h2>
+      <p>
+        L'objectif est une experience fluide : moins d'ecrans disperses, plus de contexte, et des
+        informations visibles au bon moment.
+      </p>
+    </div>
+  </section>
+
+  <app-footer />
+</main>

@@ -158,6 +158,25 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'contact',
+    loadComponent: () =>
+      import('./features/public/pages/contact-page/contact-page.component').then(
+        (m) => m.ContactPageComponent,
+      ),
+  },
+  {
+    path: 'a-propos',
+    loadComponent: () =>
+      import('./features/public/pages/about-page/about-page.component').then(
+        (m) => m.AboutPageComponent,
+      ),
+  },
+  {
+    path: 'faq',
+    redirectTo: 'contact',
+    pathMatch: 'full',
+  },
+  {
     path: 'admin',
     canActivate: [roleGuard],
     data: { roles: ['ADMIN'] },

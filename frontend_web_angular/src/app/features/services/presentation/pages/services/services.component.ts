@@ -115,6 +115,13 @@ export class ServicesComponent implements OnInit, OnDestroy {
     const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
     return this.visibleSubCategories(activeCategory?.subCategories ?? []);
   });
+  protected readonly isSearchOrFilterActive = computed(
+    () =>
+      this.searchTerm().trim().length > 0 ||
+      this.activeFilter() !== 'ALL' ||
+      this.activeCategoryId() !== null ||
+      this.activeSubCategoryId() !== null,
+  );
   protected readonly activeSubCategory = computed(() => {
     const subCategoryId = this.activeSubCategoryId();
     if (!subCategoryId) {

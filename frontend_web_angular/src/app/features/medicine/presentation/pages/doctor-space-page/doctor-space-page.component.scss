@@ -696,12 +696,27 @@
 }
 
 .doctor-space__calendar {
-  background: #fff;
-  border: 1px solid #f0e1d0;
-  border-radius: 12px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 237, 213, 0.8), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid #ecdac7;
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(86, 50, 18, 0.1);
   font-size: 13px;
-  padding: 14px 16px 16px;
+  overflow: hidden;
+  padding: 18px 18px 20px;
+  position: relative;
   width: 100%;
+}
+
+.doctor-space__calendar::before {
+  background: linear-gradient(90deg, transparent, rgba(134, 82, 33, 0.18), transparent);
+  content: '';
+  height: 1px;
+  left: 18px;
+  position: absolute;
+  right: 18px;
+  top: 58px;
 }
 
 .doctor-space__calendar-head,
@@ -713,95 +728,212 @@
 
 .doctor-space__calendar-head {
   align-items: center;
-  color: #aaa;
+  color: #8b6a4e;
   grid-template-columns: 30px 30px minmax(0, 1fr) 30px 30px;
   gap: 4px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .doctor-space__calendar-head button {
   align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  color: #c2b8ad;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(134, 82, 33, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(86, 50, 18, 0.06);
+  color: #9b6a3c;
   cursor: pointer;
   display: inline-flex;
   font-size: 14px;
   font-weight: 900;
-  height: 26px;
+  height: 30px;
   justify-content: center;
   padding: 0;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.22s ease,
+    transform 0.22s ease;
 }
 
 .doctor-space__calendar-head button:hover,
 .doctor-space__calendar-head button:focus-visible {
-  background: #f5eadf;
-  color: #915a22;
+  background: #865221;
+  border-color: #865221;
+  box-shadow: 0 12px 22px rgba(134, 82, 33, 0.22);
+  color: #ffffff;
   outline: none;
+  transform: translateY(-2px);
 }
 
 .doctor-space__calendar-head strong {
-  color: #333;
-  font-size: 15px;
-  font-weight: 800;
+  color: #2b1608;
+  font-size: 16px;
+  font-weight: 950;
   text-transform: capitalize;
 }
 
 .doctor-space__calendar-week {
-  color: #606060;
+  color: #8a6a50;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 950;
   gap: 7px;
   grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .doctor-space__calendar-grid {
-  gap: 8px;
+  gap: clamp(8px, 1.1vw, 14px);
   grid-template-columns: repeat(7, 1fr);
 }
 
 .doctor-space__calendar-grid button {
   align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  color: #303030;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: #2d2117;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  height: 30px;
+  font-size: 13px;
+  font-weight: 850;
+  aspect-ratio: 1;
   justify-content: center;
+  min-height: 42px;
+  overflow: hidden;
   padding: 0;
+  position: relative;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.22s ease,
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.doctor-space__calendar-grid button:hover:not(:disabled),
+.doctor-space__calendar-grid button:focus-visible:not(:disabled) {
+  background: #fff4e8;
+  border-color: #e7c9aa;
+  box-shadow: 0 10px 22px rgba(86, 50, 18, 0.12);
+  outline: none;
+  transform: translateY(-3px) scale(1.04);
+}
+
+.doctor-space__calendar-grid button:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+.doctor-space__calendar-day-number {
+  position: relative;
+  z-index: 2;
+}
+
+.doctor-space__calendar-day-glow {
+  background: rgba(255, 255, 255, 0.32);
+  border-radius: 50%;
+  height: 6px;
+  opacity: 0;
+  position: absolute;
+  transform: scale(0.4);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+  width: 6px;
+  z-index: 1;
 }
 
 .doctor-space__calendar-day--empty {
   color: transparent !important;
   cursor: default !important;
+  opacity: 0;
 }
 
 .doctor-space__calendar-day--selected {
-  background: #3aa4ff;
-  border: 1px solid #915a22;
+  animation: doctor-calendar-select 0.42s cubic-bezier(0.18, 0.95, 0.22, 1.25);
+  background: #8c4a12 !important;
+  border-color: #8c4a12;
+  border-radius: 18px;
+  box-shadow: 0 18px 32px rgba(140, 74, 18, 0.28);
   color: #ffffff !important;
-  font-weight: 800;
+  font-weight: 950;
+  transform: translateY(-3px) scale(1.08);
+}
+
+.doctor-space__calendar-day--selected .doctor-space__calendar-day-glow {
+  animation: doctor-calendar-pulse 1.45s ease infinite;
+  opacity: 1;
+  transform: scale(5);
 }
 
 .doctor-space__calendar-day--today:not(.doctor-space__calendar-day--selected) {
-  border: 1px solid #915a22;
+  border-color: #865221;
+  box-shadow: inset 0 0 0 1px rgba(134, 82, 33, 0.2);
 }
 
 .doctor-space__calendar-day--working:not(.doctor-space__calendar-day--selected) {
-  background: #f5eadf;
-  color: #7b4619 !important;
-  font-weight: 700;
+  background: #f7eadc;
+  color: #6e3e16 !important;
+  font-weight: 950;
 }
 
 .doctor-space__calendar-day--blocked:not(.doctor-space__calendar-day--selected) {
-  color: #b7a99c !important;
+  background: rgba(255, 255, 255, 0.42);
+  color: #b6a596 !important;
+}
+
+.doctor-space__blocked-summary {
+  border-top: 1px solid #ead7c4;
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 14px;
+}
+
+.doctor-space__blocked-summary > span {
+  color: #8b5421;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.doctor-space__blocked-summary div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.doctor-space__blocked-summary button {
+  align-items: center;
+  background: #ffdfbd;
+  border: 1px solid rgba(134, 82, 33, 0.12);
+  border-radius: 999px;
+  color: #6f3c12;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 11px;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.doctor-space__blocked-summary button:hover,
+.doctor-space__blocked-summary button:focus-visible {
+  background: #f8c78f;
+  box-shadow: 0 8px 18px rgba(86, 50, 18, 0.12);
+  outline: none;
+  transform: translateY(-2px) scale(1.03);
+}
+
+.doctor-space__blocked-summary button b {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .doctor-space__params-card {

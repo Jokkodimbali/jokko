@@ -7,18 +7,32 @@ import {
   Param,
   Post,
   Query,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import type { Request } from 'express';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+import { extname, join } from 'node:path';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
-import { appMessage } from '../../../core/http/app-http.exception';
+import {
+  appHttpException,
+  appMessage,
+} from '../../../core/http/app-http.exception';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import {
@@ -31,6 +45,66 @@ import { MessagingGateway } from '../gateways/messaging.gateway';
 import { CreateConversationDto } from '../dto/create-conversation.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
 import { ListConversationsQueryDto } from '../dto/list-conversations-query.dto';
+
+type UploadedConversationMediaFile = {
+  filename: string;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
+const conversationMediaUploadDirectory = join(
+  process.cwd(),
+  'uploads',
+  'conversation-media',
+);
+
+const allowedConversationMediaMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+  'audio/webm',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/wav',
+]);
+
+function ensureConversationMediaUploadDirectory(): void {
+  mkdirSync(conversationMediaUploadDirectory, { recursive: true });
+}
+
+function buildConversationMediaFileName(originalName: string): string {
+  const extension = extname(originalName).toLowerCase() || '.bin';
+  const safeExtension = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.txt',
+    '.webm',
+    '.mp3',
+    '.m4a',
+    '.ogg',
+    '.wav',
+  ].includes(extension)
+    ? extension
+    : '.bin';
+  return `conversation-media-${Date.now()}-${randomUUID()}${safeExtension}`;
+}
 
 @ApiTags(API_DOCS.messaging.tag)
 @ApiBearerAuth()
@@ -83,6 +157,56 @@ export class ConversationsController {
       result,
       appMessage('MESSAGING_CONVERSATION_CREATED').message,
     );
+  }
+
+  @Post('media')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('media', {
+      storage: diskStorage({
+        destination: (
+          _request: unknown,
+          _file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          ensureConversationMediaUploadDirectory();
+          callback(null, conversationMediaUploadDirectory);
+        },
+        filename: (
+          _request: unknown,
+          file: DiskStorageFile,
+          callback: DiskStorageCallback,
+        ) => {
+          callback(null, buildConversationMediaFileName(file.originalname));
+        },
+      }),
+      limits: { fileSize: 12 * 1024 * 1024 },
+      fileFilter: (_request, file, callback) => {
+        if (!allowedConversationMediaMimeTypes.has(file.mimetype)) {
+          callback(appHttpException('VALIDATION_REQUEST_INVALID'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Uploader un media pour une conversation' })
+  uploadConversationMedia(
+    @UploadedFile() file: UploadedConversationMediaFile | undefined,
+    @Req() request: Request,
+  ) {
+    if (!file) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const origin = `${request.protocol}://${request.get('host')}`;
+    return createApiResponse({
+      mediaUrl: `${origin}/uploads/conversation-media/${file.filename}`,
+      originalFileName: file.originalname,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+    });
   }
 
   @Get(':conversationId/messages')

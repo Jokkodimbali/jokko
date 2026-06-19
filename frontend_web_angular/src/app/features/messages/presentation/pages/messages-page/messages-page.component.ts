@@ -40,6 +40,8 @@ interface ReservationPaymentDraft {
   durationMinutes: number;
 }
 
+type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
+
 @Component({
   selector: 'app-messages-page',
   standalone: true,
@@ -63,9 +65,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly selectedConversationId = signal<string | null>(null);
   protected readonly search = signal('');
   protected readonly draft = signal('');
+  protected readonly conversationFilter = signal<ConversationFilter>('ALL');
+  protected readonly favoriteConversationIds = signal<Set<string>>(new Set());
   protected readonly isLoadingConversations = signal(true);
   protected readonly isLoadingMessages = signal(false);
   protected readonly isSending = signal(false);
+  protected readonly isUploadingMedia = signal(false);
+  protected readonly isRecordingVoice = signal(false);
+  protected readonly selectedAttachmentName = signal<string | null>(null);
+  protected readonly pendingMediaUrl = signal<string | null>(null);
+  protected readonly pendingMediaKind = signal<'image' | 'file' | 'audio' | null>(null);
+  protected readonly pendingVoiceDurationSeconds = signal(0);
+  protected readonly voiceRecordingSeconds = signal(0);
+  protected readonly voiceLevel = signal(0);
   protected readonly isPreparingPayment = signal(false);
   protected readonly isUpdatingProposal = signal(false);
   protected readonly isCancellingAcceptedProposal = signal(false);
@@ -80,6 +92,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly requestedConversationId = signal<string | null>(null);
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
   private realtimeMessageSubscription: Subscription | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private voiceChunks: Blob[] = [];
+  private voiceRecordingTimer: ReturnType<typeof setInterval> | null = null;
+  private voiceAudioContext: AudioContext | null = null;
+  private voiceAnalyser: AnalyserNode | null = null;
+  private voiceLevelFrame: number | null = null;
 
   protected readonly selectedConversation = computed(() =>
     this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
@@ -92,17 +110,28 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected readonly filteredConversations = computed(() => {
     const query = this.search().trim().toLowerCase();
-
-    if (!query) {
-      return this.conversations();
-    }
+    const filter = this.conversationFilter();
 
     return this.conversations().filter((conversation) => {
       const lastMessage = conversation.lastMessage?.content ?? '';
-      return (
+      const matchesSearch = !query || (
         conversation.counterpart.name.toLowerCase().includes(query) ||
         lastMessage.toLowerCase().includes(query)
       );
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (filter === 'UNREAD') {
+        return conversation.unreadCount > 0;
+      }
+
+      if (filter === 'FAVORITES') {
+        return this.favoriteConversationIds().has(conversation.id);
+      }
+
+      return true;
     });
   });
 
@@ -197,6 +226,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     if (this.proposalStatusRefreshId) {
       clearInterval(this.proposalStatusRefreshId);
     }
+    this.clearVoiceRecordingTimer();
+    this.stopVoiceLevelMeter();
+    this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
     this.realtimeMessageSubscription?.unsubscribe();
     this.messagesRealtime.disconnect();
   }
@@ -218,23 +250,49 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.search.set(value);
   }
 
+  protected selectConversationFilter(filter: ConversationFilter): void {
+    this.conversationFilter.set(filter);
+  }
+
+  protected toggleConversationFavorite(event: Event, conversationId: string): void {
+    event.stopPropagation();
+    this.favoriteConversationIds.update((ids) => {
+      const next = new Set(ids);
+      if (next.has(conversationId)) {
+        next.delete(conversationId);
+      } else {
+        next.add(conversationId);
+      }
+      return next;
+    });
+  }
+
+  protected isFavoriteConversation(conversationId: string): boolean {
+    return this.favoriteConversationIds().has(conversationId);
+  }
+
   protected updateDraft(value: string): void {
     this.draft.set(value);
   }
 
   protected sendMessage(): void {
-    const conversation = this.selectedConversation();
-    const content = this.draft().trim();
+    this.sendMessageWithMedia(this.pendingMediaUrl() ?? undefined);
+  }
 
-    if (!conversation || !content || this.isSending()) {
+  protected sendMessageWithMedia(mediaUrl?: string, fallbackContent = ''): void {
+    const conversation = this.selectedConversation();
+    const content = this.draft().trim() || fallbackContent;
+
+    if (!conversation || (!content && !mediaUrl) || this.isSending()) {
       return;
     }
 
     this.isSending.set(true);
-    this.messagesService.sendMessage(conversation.id, content).subscribe({
+    this.messagesService.sendMessage(conversation.id, content, mediaUrl).subscribe({
       next: (message) => {
         this.upsertMessage(message);
         this.draft.set('');
+        this.clearPendingMedia();
         this.isSending.set(false);
         this.refreshConversationsSilently();
       },
@@ -245,6 +303,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.isSending.set(false);
       },
     });
+  }
+
+  protected selectImage(event: Event): void {
+    this.handleMediaInput(event, 'image');
+  }
+
+  protected selectAttachment(event: Event): void {
+    this.handleMediaInput(event, 'file');
   }
 
   protected isOwnMessage(message: ConversationMessage): boolean {
@@ -284,7 +350,69 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected conversationPreview(conversation: Conversation): string {
-    return conversation.lastMessage?.content || conversation.lastMessage?.mediaUrl || 'Conversation ouverte';
+    if (conversation.lastMessage?.content) {
+      return conversation.lastMessage.content;
+    }
+
+    if (conversation.lastMessage?.mediaUrl) {
+      if (this.isAudioMedia(conversation.lastMessage.mediaUrl)) return 'Message vocal';
+      if (this.isImageMedia(conversation.lastMessage.mediaUrl)) return 'Image';
+      return 'Piece jointe';
+    }
+
+    return 'Conversation ouverte';
+  }
+
+  protected isImageMedia(url: string | null | undefined): boolean {
+    return /\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(url ?? '');
+  }
+
+  protected isAudioMedia(url: string | null | undefined): boolean {
+    return /\.(webm|mp3|m4a|wav|ogg)(\?|#|$)/i.test(url ?? '');
+  }
+
+  protected mediaFileName(url: string | null | undefined): string {
+    if (!url) {
+      return 'Piece jointe';
+    }
+
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    return decodeURIComponent(cleanUrl.split('/').pop() || 'Piece jointe');
+  }
+
+  protected pendingMediaLabel(): string {
+    const kind = this.pendingMediaKind();
+    if (kind === 'audio') {
+      return `Message vocal - ${this.formatDuration(this.pendingVoiceDurationSeconds())}`;
+    }
+
+    if (kind === 'image') {
+      return this.selectedAttachmentName() || 'Image prete a envoyer';
+    }
+
+    return this.selectedAttachmentName() || 'Piece jointe prete a envoyer';
+  }
+
+  protected formatDuration(totalSeconds: number): string {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  protected voiceInsightLevel(index: number): number {
+    const level = this.voiceLevel();
+    const wave = Math.abs(Math.sin((this.voiceRecordingSeconds() + index) * 0.85));
+    const fallback = this.isRecordingVoice() ? 0.28 + wave * 0.52 : 0.2;
+    const liveLevel = Math.min(1, Math.max(0.12, level * (0.55 + index * 0.08)));
+    return this.isRecordingVoice() && level > 0.02 ? liveLevel : fallback;
+  }
+
+  protected clearPendingMedia(): void {
+    this.pendingMediaUrl.set(null);
+    this.pendingMediaKind.set(null);
+    this.selectedAttachmentName.set(null);
+    this.pendingVoiceDurationSeconds.set(0);
   }
 
   protected formatDate(value: string | null): string {
@@ -314,6 +442,170 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
       .format(value || 0)
       .replace(/\s/g, ' ');
+  }
+
+  private handleMediaInput(event: Event, kind: 'image' | 'file'): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const maxSize = kind === 'image' ? 8 * 1024 * 1024 : 12 * 1024 * 1024;
+    if (file.size > maxSize) {
+      this.feedback.error(kind === 'image'
+        ? "L'image ne doit pas depasser 8 Mo."
+        : 'La piece jointe ne doit pas depasser 12 Mo.');
+      return;
+    }
+
+    this.uploadMediaForComposer(file, kind);
+  }
+
+  private uploadMediaForComposer(file: File, kind: 'image' | 'file' | 'audio', durationSeconds = 0): void {
+    const conversation = this.selectedConversation();
+    if (!conversation || this.isUploadingMedia() || this.isSending()) {
+      return;
+    }
+
+    this.selectedAttachmentName.set(file.name);
+    this.isUploadingMedia.set(true);
+    this.messagesService.uploadMedia(file).subscribe({
+      next: ({ mediaUrl }) => {
+        this.isUploadingMedia.set(false);
+        this.pendingMediaUrl.set(mediaUrl);
+        this.pendingMediaKind.set(kind);
+        this.pendingVoiceDurationSeconds.set(durationSeconds);
+      },
+      error: () => {
+        this.isUploadingMedia.set(false);
+        this.selectedAttachmentName.set(null);
+        this.feedback.error("Impossible d'envoyer ce media pour le moment.");
+      },
+    });
+  }
+
+  protected startVoiceRecording(): void {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      this.feedback.error("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+      return;
+    }
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        this.voiceChunks = [];
+        this.mediaRecorder = new MediaRecorder(stream);
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.voiceChunks.push(event.data);
+          }
+        };
+        this.mediaRecorder.onstop = () => {
+          const durationSeconds = this.voiceRecordingSeconds();
+          this.clearVoiceRecordingTimer();
+          this.stopVoiceLevelMeter();
+          stream.getTracks().forEach((track) => track.stop());
+          const voiceBlob = new Blob(this.voiceChunks, { type: 'audio/webm' });
+          this.voiceChunks = [];
+          if (voiceBlob.size === 0) {
+            return;
+          }
+
+          const file = new File([voiceBlob], `message-vocal-${Date.now()}.webm`, {
+            type: 'audio/webm',
+          });
+          this.uploadMediaForComposer(file, 'audio', durationSeconds);
+        };
+        this.mediaRecorder.start();
+        this.startVoiceLevelMeter(stream);
+        this.isRecordingVoice.set(true);
+        this.voiceRecordingSeconds.set(0);
+        this.voiceRecordingTimer = setInterval(() => {
+          this.voiceRecordingSeconds.update((seconds) => seconds + 1);
+        }, 1000);
+      })
+      .catch(() => {
+        this.feedback.error("Autorisez le micro pour envoyer un message vocal.");
+      });
+  }
+
+  protected stopVoiceRecording(): void {
+    if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+      this.isRecordingVoice.set(false);
+      return;
+    }
+
+    this.mediaRecorder.stop();
+    this.isRecordingVoice.set(false);
+  }
+
+  protected cancelVoiceRecording(): void {
+    this.voiceChunks = [];
+    this.clearVoiceRecordingTimer();
+    this.stopVoiceLevelMeter();
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      this.mediaRecorder.onstop = null;
+      this.mediaRecorder.stop();
+    }
+    this.mediaRecorder = null;
+    this.isRecordingVoice.set(false);
+    this.voiceRecordingSeconds.set(0);
+    this.voiceLevel.set(0);
+  }
+
+  private clearVoiceRecordingTimer(): void {
+    if (!this.voiceRecordingTimer) {
+      return;
+    }
+
+    clearInterval(this.voiceRecordingTimer);
+    this.voiceRecordingTimer = null;
+  }
+
+  private startVoiceLevelMeter(stream: MediaStream): void {
+    const AudioContextCtor = window.AudioContext || (
+      window as typeof window & { webkitAudioContext?: typeof AudioContext }
+    ).webkitAudioContext;
+
+    if (!AudioContextCtor) {
+      return;
+    }
+
+    this.stopVoiceLevelMeter();
+    this.voiceAudioContext = new AudioContextCtor();
+    this.voiceAnalyser = this.voiceAudioContext.createAnalyser();
+    this.voiceAnalyser.fftSize = 256;
+    const source = this.voiceAudioContext.createMediaStreamSource(stream);
+    source.connect(this.voiceAnalyser);
+    const data = new Uint8Array(this.voiceAnalyser.frequencyBinCount);
+
+    const tick = () => {
+      if (!this.voiceAnalyser) {
+        return;
+      }
+
+      this.voiceAnalyser.getByteFrequencyData(data);
+      const average = data.reduce((sum, value) => sum + value, 0) / data.length;
+      this.voiceLevel.set(Math.min(1, average / 92));
+      this.voiceLevelFrame = requestAnimationFrame(tick);
+    };
+
+    tick();
+  }
+
+  private stopVoiceLevelMeter(): void {
+    if (this.voiceLevelFrame !== null) {
+      cancelAnimationFrame(this.voiceLevelFrame);
+      this.voiceLevelFrame = null;
+    }
+    this.voiceAnalyser = null;
+    this.voiceAudioContext?.close().catch(() => undefined);
+    this.voiceAudioContext = null;
+    this.voiceLevel.set(0);
   }
 
   protected openCounterOffer(): void {

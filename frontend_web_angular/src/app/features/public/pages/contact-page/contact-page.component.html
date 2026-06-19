@@ -1,0 +1,133 @@
+<main class="contact-page">
+  <app-navbar />
+
+  <section class="contact-hero">
+    <div class="contact-hero__inner reveal">
+      <span class="contact-pill">
+        <lucide-icon name="message-square-text" size="15" [strokeWidth]="2.4"></lucide-icon>
+        Assistance et contact
+      </span>
+      <h1>Une question ? <strong>Nous sommes la.</strong></h1>
+      <p>
+        Notre equipe basee a Dakar vous accompagne pour vos demandes de service, vos rendez-vous,
+        vos messages, vos paiements et le suivi de votre compte Jokko Dimbali.
+      </p>
+      <nav class="contact-breadcrumb" aria-label="Fil d Ariane">
+        <a routerLink="/services">Accueil</a>
+        <span>Contact</span>
+      </nav>
+    </div>
+  </section>
+
+  <section class="contact-cards" aria-label="Coordonnees Jokko Dimbali">
+    <article *ngFor="let channel of channels" class="contact-card reveal">
+      <span class="contact-card__icon">
+        <lucide-icon [name]="channel.icon" size="22" [strokeWidth]="2.4"></lucide-icon>
+      </span>
+      <div>
+        <small>{{ channel.title }}</small>
+        <strong>{{ channel.value }}</strong>
+        <p>{{ channel.detail }}</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="contact-layout">
+    <aside class="contact-info reveal">
+      <span class="contact-section-kicker">
+        <lucide-icon name="handshake" size="17" [strokeWidth]="2.4"></lucide-icon>
+        Jokko Dimbali
+      </span>
+      <h2>Un support clair pour avancer sans perdre de temps.</h2>
+      <p>
+        Nous aidons les clients a trouver le bon professionnel, comprendre une reservation,
+        contacter un prestataire, suivre un paiement ou signaler une difficulte.
+      </p>
+
+      <div class="contact-official">
+        <h3>Contacts officiels</h3>
+        <a *ngFor="let item of officialContacts" [href]="item.href" target="_blank" rel="noreferrer">
+          <small>{{ item.label }}</small>
+          <strong>{{ item.value }}</strong>
+        </a>
+      </div>
+
+      <div id="faq" class="contact-faq">
+        <h3>Questions frequentes</h3>
+        <details *ngFor="let item of faqs">
+          <summary>
+            {{ item.question }}
+            <lucide-icon name="chevron-down" size="18" [strokeWidth]="2.6"></lucide-icon>
+          </summary>
+          <p>{{ item.answer }}</p>
+        </details>
+      </div>
+
+      <div class="contact-socials" aria-label="Reseaux sociaux">
+        <h3>Reseaux Jokko</h3>
+        <div>
+          <a
+            *ngFor="let social of socialLinks"
+            [href]="social.href"
+            target="_blank"
+            rel="noreferrer"
+            [attr.aria-label]="social.label"
+            [style.color]="social.color"
+          >
+            <svg [attr.viewBox]="social.viewBox" aria-hidden="true">
+              <path *ngFor="let path of social.paths" [attr.d]="path"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <section class="contact-form-card reveal reveal--late" aria-label="Formulaire de contact">
+      <h2>Envoyez-nous un message</h2>
+      <p>Tous les champs marques d'un * sont obligatoires.</p>
+
+      <form class="contact-form">
+        <label>
+          <span>Prenom *</span>
+          <input type="text" placeholder="Ex. Moustapha" autocomplete="given-name" />
+        </label>
+
+        <label>
+          <span>Nom *</span>
+          <input type="text" placeholder="Ex. Ndiaye" autocomplete="family-name" />
+        </label>
+
+        <label>
+          <span>E-mail *</span>
+          <input type="email" placeholder="vous@example.sn" autocomplete="email" />
+        </label>
+
+        <label>
+          <span>Telephone</span>
+          <input type="tel" placeholder="+221 77 000 00 00" autocomplete="tel" />
+        </label>
+
+        <label class="contact-form__full">
+          <span>Sujet *</span>
+          <select>
+            <option value="">-- Selectionnez un sujet --</option>
+            <option *ngFor="let subject of subjects">{{ subject }}</option>
+          </select>
+        </label>
+
+        <label class="contact-form__full">
+          <span>Message *</span>
+          <textarea rows="6" placeholder="Decrivez votre demande en detail..."></textarea>
+          <small>0 caracteres</small>
+        </label>
+
+        <button type="button" class="contact-submit">
+          <lucide-icon name="send" size="18" [strokeWidth]="2.6"></lucide-icon>
+          Envoyer le message
+        </button>
+      </form>
+    </section>
+  </section>
+
+  <app-footer />
+</main>

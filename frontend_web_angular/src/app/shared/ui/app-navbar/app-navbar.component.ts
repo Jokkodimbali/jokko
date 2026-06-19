@@ -16,8 +16,16 @@ import { AppointmentsService } from '../../../features/appointments/data-access/
 
 interface AppNavItem {
   label: string;
-  icon: 'users' | 'calendar-days' | 'message-circle' | 'layout-dashboard';
+  icon: 'users' | 'calendar-days' | 'message-circle';
   route: string;
+}
+
+interface AppInfoNavItem {
+  label: string;
+  description: string;
+  icon: 'building-2' | 'phone';
+  route: string;
+  fragment?: string;
 }
 
 @Component({
@@ -40,6 +48,7 @@ export class AppNavbarComponent implements OnInit {
   protected readonly isMenuOpen = signal(false);
   protected readonly isMobileNavOpen = signal(false);
   protected readonly isNotificationsOpen = signal(false);
+  protected readonly isInfoMenuOpen = signal(false);
   protected readonly isNotificationsLoading = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly unreadNotificationsCount = signal(0);
@@ -122,13 +131,48 @@ export class AppNavbarComponent implements OnInit {
       route: '/messages',
     },
   ]);
+  protected readonly infoNavItems = signal<AppInfoNavItem[]>([
+    {
+      label: 'A propos',
+      description: 'Notre mission et notre vision',
+      icon: 'building-2',
+      route: '/a-propos',
+    },
+    {
+      label: 'Contact',
+      description: 'Formulaire, telephone et assistance',
+      icon: 'phone',
+      route: '/contact',
+    },
+  ]);
 
   protected isActive(route: string): boolean {
     return this.router.url.startsWith(route);
   }
 
+  protected isInfoActive(): boolean {
+    return this.infoNavItems().some((item) => this.isActive(item.route));
+  }
+
+  protected toggleInfoMenu(): void {
+    this.closeProfileMenu();
+    this.closeNotificationsMenu();
+    this.isInfoMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected openInfoMenu(): void {
+    this.closeProfileMenu();
+    this.closeNotificationsMenu();
+    this.isInfoMenuOpen.set(true);
+  }
+
+  protected closeInfoMenu(): void {
+    this.isInfoMenuOpen.set(false);
+  }
+
   protected toggleProfileMenu(): void {
     if (!this.isAuthenticated()) return;
+    this.closeInfoMenu();
     this.closeNotificationsMenu();
     this.isMenuOpen.update((isOpen) => !isOpen);
   }
@@ -144,6 +188,7 @@ export class AppNavbarComponent implements OnInit {
 
   protected toggleNotificationsMenu(): void {
     if (!this.isAuthenticated()) return;
+    this.closeInfoMenu();
     this.closeProfileMenu();
     this.isNotificationsOpen.update((isOpen) => !isOpen);
     if (this.isNotificationsOpen() && this.notificationPreview().length === 0) {
@@ -158,6 +203,7 @@ export class AppNavbarComponent implements OnInit {
   protected toggleMobileNav(): void {
     this.isMobileNavOpen.update((v) => !v);
     if (this.isMobileNavOpen()) {
+      this.closeInfoMenu();
       this.closeProfileMenu();
       this.closeNotificationsMenu();
     }
@@ -165,6 +211,7 @@ export class AppNavbarComponent implements OnInit {
 
   protected closeMobileNav(): void {
     this.isMobileNavOpen.set(false);
+    this.closeInfoMenu();
   }
 
   protected logout(): void {

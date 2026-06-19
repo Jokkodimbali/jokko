@@ -78,10 +78,10 @@
 
 .appointment-payment__content {
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(320px, 405px);
+  gap: 16px;
+  grid-template-columns: minmax(360px, 560px);
   justify-content: center;
-  padding: 10px 16px 20px;
+  padding: 28px 16px 24px;
 }
 
 .appointment-payment__confirmed {
@@ -391,18 +391,18 @@
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  min-height: 158px;
-  padding: 26px 24px 18px;
+  min-height: 206px;
+  padding: 34px 34px 26px;
   text-align: center;
 }
 
 .appointment-payment__accepted-avatar {
   border: 3px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
-  height: 56px;
+  height: 72px;
   margin-bottom: 11px;
   position: relative;
-  width: 56px;
+  width: 72px;
 }
 
 .appointment-payment__accepted-avatar img,
@@ -451,7 +451,7 @@
 }
 
 .appointment-payment__accepted-hero h1 {
-  font-size: 19px;
+  font-size: 26px;
   font-weight: 950;
   line-height: 1.2;
   margin: 8px 0 6px;
@@ -459,7 +459,7 @@
 
 .appointment-payment__accepted-hero p {
   color: rgba(255, 255, 255, 0.74);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
   margin: 0;
 }
@@ -477,9 +477,9 @@
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  margin: 20px 24px 12px;
-  min-height: 66px;
-  padding: 13px 15px;
+  margin: 24px 30px 18px;
+  min-height: 82px;
+  padding: 18px 20px;
 }
 
 .appointment-payment__accepted-price span {
@@ -508,7 +508,7 @@
 
 .appointment-payment__accepted-price strong {
   color: #007463;
-  font-size: 23px;
+  font-size: 30px;
   font-weight: 950;
   line-height: 1;
 }
@@ -521,8 +521,8 @@
 
 .appointment-payment__method-card {
   display: grid;
-  gap: 13px;
-  padding: 18px 14px 16px;
+  gap: 18px;
+  padding: 24px 22px 22px;
 }
 
 .appointment-payment__method-card h2 {
@@ -548,7 +548,7 @@
   display: grid;
   gap: 8px;
   justify-items: center;
-  min-height: 100px;
+  min-height: 122px;
   min-width: 0;
   padding: 12px 8px 10px;
   position: relative;
@@ -635,7 +635,7 @@
   font-size: 12px;
   font-weight: 950;
   justify-content: center;
-  min-height: 40px;
+  min-height: 48px;
   width: 100%;
   transition: background 170ms ease, box-shadow 170ms ease, transform 170ms ease, opacity 170ms ease;
 }

@@ -420,7 +420,7 @@ export class DoctorSpacePageComponent implements OnInit {
     },
   ];
   protected readonly calendarCursor = signal(this.startOfMonth(new Date()));
-  protected readonly selectedCalendarDate = signal(this.startOfDay(new Date()));
+  protected readonly blockedCalendarDates = signal<ReadonlySet<string>>(new Set<string>());
   protected readonly isProviderSpace = computed(() =>
     this.router.url.startsWith('/prestataire/espace'),
   );
@@ -524,8 +524,16 @@ export class DoctorSpacePageComponent implements OnInit {
     this.buildCalendarDays(
       this.calendarCursor(),
       this.days(),
-      this.selectedCalendarDate(),
+      this.blockedCalendarDates(),
     ),
+  );
+  protected readonly blockedCalendarDateLabels = computed(() =>
+    Array.from(this.blockedCalendarDates())
+      .sort()
+      .map((key) => ({
+        key,
+        label: this.formatBlockedCalendarDate(key),
+      })),
   );
   protected readonly monthLabel = computed(() =>
     new Intl.DateTimeFormat('fr-FR', {
@@ -537,7 +545,7 @@ export class DoctorSpacePageComponent implements OnInit {
     this.progressPercent(this.appointmentDuration(), 20, 90),
   );
   protected readonly pauseProgress = computed(() =>
-    this.progressPercent(this.appointmentPause(), 0, 30),
+    this.progressPercent(this.appointmentPause(), 0, 15),
   );
   protected readonly appointmentStepMinutes = computed(() =>
     this.appointmentDuration() + this.appointmentPause(),
@@ -1758,7 +1766,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected updateAppointmentPause(value: string | number): void {
-    this.appointmentPause.set(this.normalizeMinutes(value, 0, 30));
+    this.appointmentPause.set(this.normalizeMinutes(value, 0, 15));
   }
 
   protected selectTravelMode(mode: ServiceTravelMode): void {
@@ -1832,7 +1840,15 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected selectCalendarDay(day: CalendarDay): void {
     if (!day.date || day.isOutside) return;
-    this.selectedCalendarDate.set(this.startOfDay(day.date));
+    this.toggleBlockedCalendarDate(this.dateKey(day.date));
+  }
+
+  protected removeBlockedCalendarDate(key: string): void {
+    this.blockedCalendarDates.update((dates) => {
+      const next = new Set(dates);
+      next.delete(key);
+      return next;
+    });
   }
 
   protected addMotif(): void {
@@ -2914,7 +2930,7 @@ export class DoctorSpacePageComponent implements OnInit {
     ];
   }
 
-  private buildCalendarDays(date: Date, days: DaySchedule[], selectedDate: Date): CalendarDay[] {
+  private buildCalendarDays(date: Date, days: DaySchedule[], selectedDateKeys: ReadonlySet<string>): CalendarDay[] {
     const today = new Date();
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -2945,7 +2961,7 @@ export class DoctorSpacePageComponent implements OnInit {
           day === today.getDate() &&
           month === today.getMonth() &&
           year === today.getFullYear(),
-        isSelected: this.isSameDay(cellDate, selectedDate),
+        isSelected: selectedDateKeys.has(this.dateKey(cellDate)),
         date: cellDate,
         isWorkingDay,
         isBlocked: !isWorkingDay,
@@ -2970,7 +2986,6 @@ export class DoctorSpacePageComponent implements OnInit {
     const current = this.calendarCursor();
     const next = new Date(current.getFullYear(), current.getMonth() + monthDelta, 1);
     this.calendarCursor.set(next);
-    this.selectedCalendarDate.set(this.startOfDay(next));
   }
 
   private startOfMonth(date: Date): Date {
@@ -2979,6 +2994,34 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private startOfDay(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  private toggleBlockedCalendarDate(key: string): void {
+    this.blockedCalendarDates.update((dates) => {
+      const next = new Set(dates);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  private dateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatBlockedCalendarDate(key: string): string {
+    const [year, month, day] = key.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+    }).format(date);
   }
 
   private isSameDay(left: Date, right: Date): boolean {

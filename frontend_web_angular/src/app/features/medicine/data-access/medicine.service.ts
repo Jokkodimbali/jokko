@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import {
@@ -162,14 +163,6 @@ export class MedicineService {
       return null;
     }
 
-    if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
-      return value;
-    }
-
-    if (value.startsWith('/')) {
-      return `${new URL(this.apiUrl).origin}${value}`;
-    }
-
-    return value;
+    return publicAssetUrl(value);
   }
 }

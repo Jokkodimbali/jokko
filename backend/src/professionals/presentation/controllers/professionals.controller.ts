@@ -39,6 +39,7 @@ import {
   appHttpException,
   appMessage,
 } from '../../../core/http/app-http.exception';
+import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 import { CreateProfessionalProfileDto } from '../dto/create-professional-profile.dto';
 import { SubmitKycDto } from '../dto/submit-kyc.dto';
 import { UpdateProfessionalProfileDto } from '../dto/update-professional-profile.dto';
@@ -412,8 +413,10 @@ export class ProfessionalsController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
-    const fileUrl = `${origin}/uploads/professionals/${file.filename}`;
+    const fileUrl = buildPublicUploadUrl(
+      request,
+      `/uploads/professionals/${file.filename}`,
+    );
     return createApiResponse(
       {
         fileUrl,

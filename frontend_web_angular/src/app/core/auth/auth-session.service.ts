@@ -5,6 +5,7 @@ import {
   UserDto,
   UserProfileDto,
 } from '../../features/auth/domain/models/auth.models';
+import { publicAssetUrl } from '../../shared/utils/public-asset-url';
 
 const CURRENT_USER_KEY = 'currentUser';
 const ACCESS_TOKEN_KEY = 'accessToken';
@@ -61,7 +62,7 @@ export class AuthSessionService {
       name: profile.nom,
       email: profile.email ?? undefined,
       role: profile.role,
-      avatarUrl: profile.urlAvatar ?? null,
+      avatarUrl: publicAssetUrl(profile.urlAvatar),
       professionalProfile: profile.profilProfessionnel ?? null,
     });
   }
@@ -120,8 +121,9 @@ export class AuthSessionService {
   }
 
   private saveUser(user: UserDto, storage = this.getCurrentStorage()): void {
-    this.currentUserSignal.set(user);
-    storage?.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    const normalizedUser = this.normalizeUser(user);
+    this.currentUserSignal.set(normalizedUser);
+    storage?.setItem(CURRENT_USER_KEY, JSON.stringify(normalizedUser));
   }
 
   private saveAccessToken(token: string, storage = this.getCurrentStorage()): void {
@@ -133,7 +135,7 @@ export class AuthSessionService {
     if (!rawUser) return null;
 
     try {
-      return JSON.parse(rawUser) as UserDto;
+      return this.normalizeUser(JSON.parse(rawUser) as UserDto);
     } catch {
       if (this.canUseStorage()) {
         localStorage.removeItem(CURRENT_USER_KEY);
@@ -214,5 +216,12 @@ export class AuthSessionService {
     storage.removeItem(CURRENT_USER_KEY);
     storage.removeItem(ACCESS_TOKEN_KEY);
     storage.removeItem(AUTH_STORAGE_MODE_KEY);
+  }
+
+  private normalizeUser(user: UserDto): UserDto {
+    return {
+      ...user,
+      avatarUrl: publicAssetUrl(user.avatarUrl),
+    };
   }
 }

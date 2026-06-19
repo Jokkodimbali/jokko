@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
@@ -328,7 +329,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected visibleAvatarUrl(url: string | null | undefined): string | null {
-    const normalizedUrl = url?.trim();
+    const normalizedUrl = publicAssetUrl(url);
     if (!normalizedUrl || this.failedAvatarUrls().has(normalizedUrl)) {
       return null;
     }
@@ -337,7 +338,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected handleAvatarError(url: string | null | undefined): void {
-    const normalizedUrl = url?.trim();
+    const normalizedUrl = publicAssetUrl(url);
     if (!normalizedUrl) {
       return;
     }

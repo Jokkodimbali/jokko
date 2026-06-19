@@ -40,6 +40,7 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
+import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 import { MessagingFacade } from '../../application/services/messaging-facade.service';
 import { MessagingGateway } from '../gateways/messaging.gateway';
 import { CreateConversationDto } from '../dto/create-conversation.dto';
@@ -200,9 +201,11 @@ export class ConversationsController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const origin = `${request.protocol}://${request.get('host')}`;
     return createApiResponse({
-      mediaUrl: `${origin}/uploads/conversation-media/${file.filename}`,
+      mediaUrl: buildPublicUploadUrl(
+        request,
+        `/uploads/conversation-media/${file.filename}`,
+      ),
       originalFileName: file.originalname,
       mimeType: file.mimetype,
       sizeBytes: file.size,

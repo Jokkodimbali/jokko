@@ -3,6 +3,11 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const migrationDatabaseUrl =
+  process.env["PRISMA_MIGRATE_DATABASE_URL"] ||
+  process.env["DIRECT_URL"] ||
+  process.env["DATABASE_URL"];
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +15,6 @@ export default defineConfig({
     seed: "ts-node prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: migrationDatabaseUrl,
   },
 });

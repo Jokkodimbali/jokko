@@ -20,6 +20,9 @@ export class CreateMessageDto {
     example: 'https://cdn.jokko.sn/messages/photo-001.jpg',
   })
   @IsOptional()
-  @IsUrl({}, { message: VALIDATION_MESSAGES.MESSAGING_MEDIA_URL_INVALID })
+  @IsUrl(
+    { require_tld: false },
+    { message: VALIDATION_MESSAGES.MESSAGING_MEDIA_URL_INVALID },
+  )
   mediaUrl?: string;
 }

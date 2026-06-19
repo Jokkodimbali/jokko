@@ -6,24 +6,45 @@
   <section class="messages-page__workspace" aria-label="Messagerie">
     <aside class="messages-page__sidebar">
       <header class="messages-page__sidebar-head">
-        <div>
-          <h1>Tout les messages</h1>
-          <lucide-icon name="message-circle" size="35" [strokeWidth]="2.6"></lucide-icon>
-        </div>
-        <button type="button" aria-label="Options des messages">
-          <lucide-icon name="more-vertical" size="27" [strokeWidth]="3"></lucide-icon>
-        </button>
+        <h1>Messages</h1>
       </header>
 
       <label class="messages-page__search">
-        <lucide-icon name="search" size="30" [strokeWidth]="2.4"></lucide-icon>
+        <lucide-icon name="search" size="17" [strokeWidth]="2.2"></lucide-icon>
         <input
           type="search"
           [value]="search()"
-          placeholder="Recherche de message"
+          placeholder="Rechercher un message..."
           (input)="updateSearch($any($event.target).value)"
         />
       </label>
+
+      <div class="messages-page__tabs" aria-label="Filtres des conversations">
+        <button
+          type="button"
+          class="messages-page__tab"
+          [class.messages-page__tab--active]="conversationFilter() === 'ALL'"
+          (click)="selectConversationFilter('ALL')"
+        >
+          Tous
+        </button>
+        <button
+          type="button"
+          class="messages-page__tab"
+          [class.messages-page__tab--active]="conversationFilter() === 'UNREAD'"
+          (click)="selectConversationFilter('UNREAD')"
+        >
+          Non lus
+        </button>
+        <button
+          type="button"
+          class="messages-page__tab"
+          [class.messages-page__tab--active]="conversationFilter() === 'FAVORITES'"
+          (click)="selectConversationFilter('FAVORITES')"
+        >
+          Favoris
+        </button>
+      </div>
 
       <p *ngIf="isLoadingConversations()" class="messages-page__state">Chargement des conversations...</p>
       <p *ngIf="!isLoadingConversations() && !currentUser()" class="messages-page__state">
@@ -58,22 +79,27 @@
           <span class="messages-page__conversation-copy">
             <strong>{{ conversation.counterpart.name }}</strong>
             <small>{{ conversationPreview(conversation) }}</small>
-            <em>
-              <lucide-icon name="clock-3" size="13" [strokeWidth]="2"></lucide-icon>
-              {{ formatDate(conversation.lastMessageAt || conversation.createdAt) }}
-              <span>{{ formatTime(conversation.lastMessageAt || conversation.createdAt) }}</span>
-            </em>
           </span>
           <span class="messages-page__conversation-meta">
+            <time>{{ formatTime(conversation.lastMessageAt || conversation.createdAt) }}</time>
             <span *ngIf="conversation.unreadCount > 0" class="messages-page__unread-badge">
               {{ formatUnreadCount(conversation.unreadCount) }}
             </span>
-            <lucide-icon
+            <button
               *ngIf="conversation.unreadCount === 0"
-              name="chevron-right"
-              size="22"
-              [strokeWidth]="2.4"
-            ></lucide-icon>
+              type="button"
+              class="messages-page__favorite"
+              [class.messages-page__favorite--active]="isFavoriteConversation(conversation.id)"
+              [attr.aria-label]="isFavoriteConversation(conversation.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+              (click)="toggleConversationFavorite($event, conversation.id)"
+            >
+              <lucide-icon
+                name="star"
+                size="17"
+                [strokeWidth]="2"
+                [attr.fill]="isFavoriteConversation(conversation.id) ? 'currentColor' : 'none'"
+              ></lucide-icon>
+            </button>
           </span>
         </button>
       </div>
@@ -93,18 +119,15 @@
               <i>{{ initials(conversation.counterpart.name) }}</i>
             </ng-template>
           </span>
-          <strong>{{ conversation.counterpart.name }}</strong>
+          <span class="messages-page__chat-title">
+            <strong>{{ conversation.counterpart.name }}</strong>
+            <small>En ligne</small>
+          </span>
         </span>
 
         <span class="messages-page__chat-actions">
-          <button type="button" aria-label="Favori">
-            <lucide-icon name="star" size="33" [strokeWidth]="2.5"></lucide-icon>
-          </button>
           <button type="button" aria-label="Rechercher dans la conversation">
-            <lucide-icon name="search" size="29" [strokeWidth]="2.5"></lucide-icon>
-          </button>
-          <button type="button" aria-label="Options de la conversation">
-            <lucide-icon name="more-vertical" size="30" [strokeWidth]="3"></lucide-icon>
+            <lucide-icon name="search" size="18" [strokeWidth]="2"></lucide-icon>
           </button>
         </span>
       </header>
@@ -118,22 +141,32 @@
           class="messages-page__bubble-row"
           [class.messages-page__bubble-row--own]="isOwnMessage(message)"
         >
-          <span class="messages-page__message-avatar">
-            <img
-              *ngIf="visibleAvatarUrl(message.sender.avatarUrl) as avatarUrl; else messageInitials"
-              [src]="avatarUrl"
-              [alt]="message.sender.name"
-              (error)="handleAvatarError(avatarUrl)"
-            />
-            <ng-template #messageInitials>
-              <i>{{ initials(message.sender.name) }}</i>
-            </ng-template>
-          </span>
           <span class="messages-page__bubble-stack">
-            <strong>{{ message.sender.name }}</strong>
             <time>{{ formatDate(message.createdAt) }}</time>
-            <p class="messages-page__bubble">{{ message.content || 'Piece jointe' }}</p>
-            <small>{{ formatTime(message.createdAt) }}</small>
+            <p class="messages-page__bubble" *ngIf="message.content">{{ message.content }}</p>
+            <ng-container *ngIf="message.mediaUrl as mediaUrl">
+              <img
+                *ngIf="isImageMedia(mediaUrl); else nonImageMedia"
+                class="messages-page__media-image"
+                [src]="mediaUrl"
+                [alt]="message.content || 'Image envoyee'"
+              />
+              <ng-template #nonImageMedia>
+                <audio
+                  *ngIf="isAudioMedia(mediaUrl); else attachmentMedia"
+                  class="messages-page__media-audio"
+                  [src]="mediaUrl"
+                  controls
+                ></audio>
+                <ng-template #attachmentMedia>
+                  <a class="messages-page__media-file" [href]="mediaUrl" target="_blank" rel="noreferrer">
+                    <lucide-icon name="paperclip" size="16" [strokeWidth]="2.3"></lucide-icon>
+                    {{ mediaFileName(mediaUrl) }}
+                  </a>
+                </ng-template>
+              </ng-template>
+            </ng-container>
+            <small>{{ formatDate(message.createdAt) }} a {{ formatTime(message.createdAt) }}</small>
           </span>
         </article>
 
@@ -264,27 +297,95 @@
           class="messages-page__amount"
           aria-label="Proposer un montant pour cette conversation"
         >
-          <lucide-icon name="banknote" size="25" [strokeWidth]="2.4"></lucide-icon>
-          Proposez un montant
+          <lucide-icon name="banknote" size="31" [strokeWidth]="2.4"></lucide-icon>
+          Negocier le prix
         </button>
-        <button type="button" aria-label="Ajouter une photo">
-          <lucide-icon name="camera" size="24" [strokeWidth]="2.5"></lucide-icon>
-        </button>
-        <button type="button" aria-label="Ajouter une piece jointe">
-          <lucide-icon name="plus" size="25" [strokeWidth]="2.6"></lucide-icon>
-        </button>
-        <label>
-          <input
-            type="text"
-            [value]="draft()"
-            placeholder="Tapez votre message"
-            (input)="updateDraft($any($event.target).value)"
-            (keydown.enter)="sendMessage()"
-          />
-          <button type="button" aria-label="Envoyer le message" [disabled]="isSending()" (click)="sendMessage()">
-            <lucide-icon name="send" size="22" [strokeWidth]="2.5"></lucide-icon>
-          </button>
+        <label class="messages-page__composer-file" aria-label="Envoyer une image">
+          <lucide-icon name="camera" size="18" [strokeWidth]="2.4"></lucide-icon>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" (change)="selectImage($event)" />
         </label>
+        <label class="messages-page__composer-file" aria-label="Envoyer une piece jointe">
+          <lucide-icon name="paperclip" size="18" [strokeWidth]="2.4"></lucide-icon>
+          <input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" (change)="selectAttachment($event)" />
+        </label>
+        <div class="messages-page__voice-panel" *ngIf="isRecordingVoice(); else normalComposerField">
+          <button type="button" class="messages-page__voice-cancel" aria-label="Annuler le vocal" (click)="cancelVoiceRecording()">
+            <lucide-icon name="x" size="16" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+          <span class="messages-page__voice-timer">{{ formatDuration(voiceRecordingSeconds()) }}</span>
+          <span class="messages-page__voice-wave" aria-hidden="true">
+            <i
+              *ngFor="let index of [0,1,2,3,4,5,6,7,8,9,10,11]"
+              [style.transform]="'scaleY(' + voiceInsightLevel(index) + ')'"
+            ></i>
+          </span>
+          <span class="messages-page__voice-hint">Parlez maintenant</span>
+          <button type="button" class="messages-page__voice-finish" aria-label="Terminer le message vocal" (click)="stopVoiceRecording()">
+            <lucide-icon name="mic" size="23" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+        </div>
+        <ng-template #normalComposerField>
+        <div class="messages-page__composer-field">
+          <span *ngIf="pendingMediaUrl() || isRecordingVoice()" class="messages-page__pending-media">
+            <lucide-icon
+              [name]="isRecordingVoice() ? 'mic' : pendingMediaKind() === 'audio' ? 'mic' : pendingMediaKind() === 'image' ? 'camera' : 'paperclip'"
+              size="15"
+              [strokeWidth]="2.4"
+            ></lucide-icon>
+            {{ isRecordingVoice() ? 'Enregistrement vocal - ' + formatDuration(voiceRecordingSeconds()) : pendingMediaLabel() }}
+            <button
+              type="button"
+              [attr.aria-label]="isRecordingVoice() ? 'Annuler le vocal' : 'Retirer le media'"
+              (click)="isRecordingVoice() ? cancelVoiceRecording() : clearPendingMedia()"
+            >
+              <lucide-icon name="x" size="14" [strokeWidth]="2.5"></lucide-icon>
+            </button>
+          </span>
+          <span class="messages-page__composer-input">
+            <input
+              type="text"
+              [value]="draft()"
+              [disabled]="isRecordingVoice()"
+              [placeholder]="isRecordingVoice() ? 'Parlez maintenant...' : isUploadingMedia() ? 'Preparation du media...' : 'Tapez votre message...'"
+              (input)="updateDraft($any($event.target).value)"
+              (keydown.enter)="sendMessage()"
+            />
+            <button
+              *ngIf="isRecordingVoice(); else sendOrVoiceButton"
+              type="button"
+              class="messages-page__voice"
+              [class.messages-page__voice--recording]="true"
+              aria-label="Terminer le message vocal"
+              [disabled]="isUploadingMedia() || isSending()"
+              (click)="stopVoiceRecording()"
+            >
+              <lucide-icon name="mic" size="20" [strokeWidth]="2.5"></lucide-icon>
+            </button>
+            <ng-template #sendOrVoiceButton>
+              <button
+                *ngIf="draft().trim() || pendingMediaUrl(); else voiceButton"
+                type="button"
+                aria-label="Envoyer le message"
+                [disabled]="isSending() || isUploadingMedia()"
+                (click)="sendMessage()"
+              >
+                <lucide-icon name="send" size="21" [strokeWidth]="2.5"></lucide-icon>
+              </button>
+              <ng-template #voiceButton>
+                <button
+                  type="button"
+                  class="messages-page__voice"
+                  aria-label="Enregistrer un message vocal"
+                  [disabled]="isUploadingMedia() || isSending()"
+                  (click)="startVoiceRecording()"
+                >
+                  <lucide-icon name="mic" size="20" [strokeWidth]="2.5"></lucide-icon>
+                </button>
+              </ng-template>
+            </ng-template>
+          </span>
+        </div>
+        </ng-template>
       </footer>
     </section>
 
@@ -298,7 +399,10 @@
             <span class="messages-page__avatar messages-page__avatar--large">
               <i>{{ initials(proposal.providerName) }}</i>
             </span>
-            <strong>{{ proposal.providerName }}</strong>
+            <span class="messages-page__chat-title">
+              <strong>{{ proposal.providerName }}</strong>
+              <small>En ligne</small>
+            </span>
           </span>
         </header>
 
@@ -396,14 +500,14 @@
         </div>
 
         <footer class="messages-page__composer">
-          <button type="button" aria-label="Ajouter une photo">
-            <lucide-icon name="camera" size="24" [strokeWidth]="2.5"></lucide-icon>
+          <button type="button" aria-label="Ajouter une photo" disabled>
+            <lucide-icon name="camera" size="18" [strokeWidth]="2.4"></lucide-icon>
           </button>
           <button type="button" aria-label="Ajouter une piece jointe" disabled>
-            <lucide-icon name="plus" size="25" [strokeWidth]="2.6"></lucide-icon>
+            <lucide-icon name="paperclip" size="18" [strokeWidth]="2.4"></lucide-icon>
           </button>
           <label>
-            <input type="text" placeholder="Tapez votre message" disabled />
+            <input type="text" placeholder="Tapez votre message..." disabled />
             <button type="button" aria-label="Envoyer le message" disabled>
               <lucide-icon name="send" size="22" [strokeWidth]="2.5"></lucide-icon>
             </button>

@@ -7,6 +7,10 @@
   max-width: 100% !important;
 }
 
+:host .content-shell--focused {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 /* ─── Favorites sidebar ─────────────────────────────────────────── */
 :host .favorites {
   background-color: #955d24;
@@ -227,6 +231,11 @@
   min-width: 0;
 }
 
+:host .content-shell--focused .service-section,
+:host .content-shell--focused .service-section:first-of-type {
+  grid-column: 1 / -1;
+}
+
 :host .section-heading {
   display: block !important;
   margin-bottom: 20px !important;
@@ -260,9 +269,15 @@
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  padding: 2px 2px 10px;
-  scrollbar-color: #c99d77 #f8efe5;
-  scrollbar-width: thin;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+:host .service-filters::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
 }
 
 :host .service-filters__button {
@@ -885,6 +900,15 @@
 :host .provider-card__action--negotiate:hover,
 :host .provider-card__action--negotiate:focus-visible {
   background: #326a29;
+}
+
+:host .provider-card__action--appointment {
+  background: #1f8cf0;
+}
+
+:host .provider-card__action--appointment:hover,
+:host .provider-card__action--appointment:focus-visible {
+  background: #0f74d8;
 }
 
 :host .provider-card__action--profile {

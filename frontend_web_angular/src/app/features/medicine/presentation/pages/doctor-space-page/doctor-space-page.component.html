@@ -54,11 +54,28 @@
                   [class.doctor-space__calendar-day--today]="day.isToday"
                   [class.doctor-space__calendar-day--working]="day.isWorkingDay"
                   [class.doctor-space__calendar-day--blocked]="day.isBlocked"
+                  [attr.aria-pressed]="day.isSelected"
                   [disabled]="day.isOutside"
                   (click)="selectCalendarDay(day)"
                 >
-                  {{ day.isOutside ? '' : day.dayOfMonth }}
+                  <span class="doctor-space__calendar-day-number">
+                    {{ day.isOutside ? '' : day.dayOfMonth }}
+                  </span>
+                  <span *ngIf="!day.isOutside" class="doctor-space__calendar-day-glow"></span>
                 </button>
+              </div>
+              <div class="doctor-space__blocked-summary" *ngIf="blockedCalendarDateLabels().length > 0">
+                <span>{{ blockedCalendarDateLabels().length }} jour(s) bloque(s)</span>
+                <div>
+                  <button
+                    type="button"
+                    *ngFor="let blockedDate of blockedCalendarDateLabels()"
+                    (click)="removeBlockedCalendarDate(blockedDate.key)"
+                  >
+                    {{ blockedDate.label }}
+                    <b aria-hidden="true">x</b>
+                  </button>
+                </div>
               </div>
             </div>
           </article>
@@ -91,7 +108,7 @@
               <input
                 type="range"
                 min="0"
-                max="30"
+                max="15"
                 step="5"
                 [ngModel]="appointmentPause()"
                 (ngModelChange)="updateAppointmentPause($event)"

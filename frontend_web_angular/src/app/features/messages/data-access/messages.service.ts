@@ -44,11 +44,25 @@ export class MessagesService {
       .pipe(map(unwrapApiResponse));
   }
 
-  sendMessage(conversationId: string, content: string): Observable<ConversationMessage> {
+  sendMessage(
+    conversationId: string,
+    content: string,
+    mediaUrl?: string,
+  ): Observable<ConversationMessage> {
     return this.http
       .post<ApiResponse<ConversationMessage>>(`${this.apiUrl}/${conversationId}/messages`, {
         content,
+        ...(mediaUrl ? { mediaUrl } : {}),
       })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  uploadMedia(file: File): Observable<{ mediaUrl: string }> {
+    const formData = new FormData();
+    formData.append('media', file);
+
+    return this.http
+      .post<ApiResponse<{ mediaUrl: string }>>(`${this.apiUrl}/media`, formData)
       .pipe(map(unwrapApiResponse));
   }
 }

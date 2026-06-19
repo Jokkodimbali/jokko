@@ -25,8 +25,8 @@
     </div>
   </section>
 
-  <section class="content-shell">
-    <aside class="favorites" aria-label="Vos favoris">
+  <section class="content-shell" [class.content-shell--focused]="isSearchOrFilterActive()">
+    <aside *ngIf="!isSearchOrFilterActive()" class="favorites" aria-label="Vos favoris">
       <div class="favorites-header">
         <button type="button" class="favorites-header__icon" aria-label="Vos favoris">
           <lucide-icon name="heart" size="20" [strokeWidth]="2"></lucide-icon>
@@ -125,25 +125,28 @@
             <lucide-icon *ngIf="filter.value === 'PRESTATAIRE'" name="briefcase-business" size="16" [strokeWidth]="2.4"></lucide-icon>
             {{ filter.label }}
           </button>
-          <button
-            *ngFor="let category of categories()"
-            type="button"
-            class="service-filters__button"
-            [class.service-filters__button--active]="activeCategoryId() === category.id && activeSubCategoryId() === null"
-            [class.service-filters__button--parent]="activeCategoryId() === category.id && activeSubCategoryId() !== null"
-            (click)="selectCategory(category.id)"
-          >
-            {{ category.nom }}
-          </button>
-          <button
-            *ngFor="let subCategory of activeSubCategories()"
-            type="button"
-            class="service-filters__button service-filters__button--sub"
-            [class.service-filters__button--active]="activeSubCategoryId() === subCategory.id"
-            (click)="selectSubCategory(activeCategoryId()!, subCategory.id)"
-          >
-            {{ subCategory.nom }}
-          </button>
+          <ng-container *ngFor="let category of categories()">
+            <button
+              type="button"
+              class="service-filters__button"
+              [class.service-filters__button--active]="activeCategoryId() === category.id && activeSubCategoryId() === null"
+              [class.service-filters__button--parent]="activeCategoryId() === category.id && activeSubCategoryId() !== null"
+              (click)="selectCategory(category.id)"
+            >
+              {{ category.nom }}
+            </button>
+            <ng-container *ngIf="activeCategoryId() === category.id">
+              <button
+                *ngFor="let subCategory of activeSubCategories()"
+                type="button"
+                class="service-filters__button service-filters__button--sub"
+                [class.service-filters__button--active]="activeSubCategoryId() === subCategory.id"
+                (click)="selectSubCategory(category.id, subCategory.id)"
+              >
+                {{ subCategory.nom }}
+              </button>
+            </ng-container>
+          </ng-container>
         </div>
 
         <div class="section-heading">
@@ -257,7 +260,12 @@
             </ng-template>
 
             <div class="provider-card__actions">
-              <button type="button" class="provider-card__action provider-card__action--negotiate" (click)="providerPrimaryAction(provider)">
+              <button
+                type="button"
+                class="provider-card__action provider-card__action--negotiate"
+                [class.provider-card__action--appointment]="provider.profileType === 'MEDECIN'"
+                (click)="providerPrimaryAction(provider)"
+              >
                 <lucide-icon *ngIf="provider.profileType === 'MEDECIN'; else negotiationIcon" name="calendar-check" size="15" [strokeWidth]="2.4"></lucide-icon>
                 <ng-template #negotiationIcon>
                   <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>

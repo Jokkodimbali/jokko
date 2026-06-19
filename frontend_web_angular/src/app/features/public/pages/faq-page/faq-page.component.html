@@ -1,0 +1,58 @@
+<main class="info-page faq-page">
+  <app-navbar />
+
+  <section class="faq-hero">
+    <div class="reveal">
+      <span class="info-kicker">FAQ</span>
+      <h1>Les reponses essentielles pour utiliser Jokko Dimbali sans confusion.</h1>
+      <p>
+        Recherche, rendez-vous, favoris, messagerie et negociation : les points importants sont
+        regroupes ici pour vous guider rapidement.
+      </p>
+    </div>
+    <div class="faq-hero__search reveal reveal--late">
+      <lucide-icon name="circle-help" size="34" [strokeWidth]="2.4"></lucide-icon>
+      <strong>Besoin d'une reponse precise ?</strong>
+      <span>Parcourez les blocs ou contactez l'assistance.</span>
+    </div>
+  </section>
+
+  <section class="faq-grid">
+    <article *ngFor="let topic of topics" class="faq-topic reveal">
+      <header>
+        <span>
+          <lucide-icon [name]="topic.icon" size="24" [strokeWidth]="2.5"></lucide-icon>
+        </span>
+        <h2>{{ topic.title }}</h2>
+      </header>
+
+      <details *ngFor="let item of topic.questions">
+        <summary>
+          {{ item.q }}
+          <lucide-icon name="chevron-down" size="18" [strokeWidth]="2.5"></lucide-icon>
+        </summary>
+        <p>{{ item.a }}</p>
+      </details>
+    </article>
+  </section>
+
+  <section class="faq-support reveal">
+    <div>
+      <span class="info-kicker">Encore bloque ?</span>
+      <h2>Le support peut vous orienter vers la bonne action.</h2>
+      <p>Expliquez votre besoin, le type de service recherche et le contexte de votre demande.</p>
+    </div>
+    <div class="faq-support__actions">
+      <a routerLink="/contact" class="info-button info-button--primary">
+        <lucide-icon name="headphones" size="19" [strokeWidth]="2.5"></lucide-icon>
+        Contacter le support
+      </a>
+      <a routerLink="/services" class="info-button info-button--ghost">
+        <lucide-icon name="users" size="19" [strokeWidth]="2.5"></lucide-icon>
+        Voir les services
+      </a>
+    </div>
+  </section>
+
+  <app-footer />
+</main>

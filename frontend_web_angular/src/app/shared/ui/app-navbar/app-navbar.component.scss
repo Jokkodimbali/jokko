@@ -10,8 +10,8 @@
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
   display: grid;
-  gap: 28px;
-  grid-template-columns: 271px minmax(0, 1fr) auto;
+  gap: 18px;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
   height: 153px;
   inset: 0 0 auto;
   max-width: none;
@@ -34,7 +34,7 @@
   padding: 8px;
   text-decoration: none;
   width: 145px;
-  margin-left: 58px;  
+  margin-left: 42px;  
 }
 
 .app-navbar__brand img {
@@ -48,25 +48,33 @@
 .app-navbar__nav {
   align-items: center;
   display: flex;
-  gap: clamp(32px, 5.8vw, 96px);
+  gap: clamp(8px, 1.4vw, 22px);
   justify-content: center;
+  position: relative;
+  z-index: 130;
 }
 
 .app-navbar__nav-item {
   align-items: center;
-  border: 3px solid transparent;
-  border-radius: 15px;
+  border: 2px solid transparent;
+  border-radius: 14px;
   color: var(--color-white, #fff);
   display: inline-flex;
-  font-size: 16px;
-  font-weight: 700;
-  gap: 13px;
-  height: 58px;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 8px;
+  height: 50px;
   justify-content: center;
   min-width: 0;
-  padding: 0 18px;
+  padding: 0 12px;
   text-decoration: none;
   width: auto;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.22s ease,
+    transform 0.22s ease;
 }
 
 .app-navbar__nav-item:hover,
@@ -76,7 +84,118 @@
   border-color: var(--color-white, #fff);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
   color: var(--color-brand, #865221);
-  transform: scale(1.04);
+  transform: translateY(-1px);
+}
+
+.app-navbar__nav-item--button {
+  background: transparent;
+  border-color: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.app-navbar__nav-item--button span,
+.app-navbar__nav-item--button lucide-icon {
+  display: inline-flex;
+  color: currentColor;
+}
+
+.app-navbar__info-menu {
+  position: relative;
+}
+
+.app-navbar__info-dropdown {
+  animation: navbar-dropdown-in 0.2s ease both;
+  background: #ffffff;
+  border: 1px solid rgba(18, 25, 33, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 26px 70px rgba(18, 25, 33, 0.22);
+  color: #101827;
+  display: grid;
+  gap: 7px;
+  left: 50%;
+  min-width: 302px;
+  padding: 10px;
+  position: absolute;
+  top: calc(100% + 12px);
+  transform-origin: top center;
+  width: 302px;
+  z-index: 140;
+}
+
+.app-navbar__info-dropdown::before {
+  background: #ffffff;
+  border-left: 1px solid rgba(18, 25, 33, 0.08);
+  border-top: 1px solid rgba(18, 25, 33, 0.08);
+  content: '';
+  height: 13px;
+  left: 50%;
+  position: absolute;
+  top: -7px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 13px;
+}
+
+.app-navbar__info-dropdown-item {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: #101827;
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-height: 66px;
+  padding: 9px;
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.app-navbar__info-dropdown-item:hover,
+.app-navbar__info-dropdown-item:focus-visible,
+.app-navbar__info-dropdown-item--active {
+  background: #fff8f1;
+  border-color: #ead7c4;
+  outline: none;
+  transform: translateX(3px);
+}
+
+.app-navbar__info-dropdown-item span {
+  align-items: center;
+  background: #fff3e5;
+  border-radius: 13px;
+  color: #865221;
+  display: inline-flex;
+  grid-row: 1 / span 2;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.app-navbar__info-dropdown-item strong {
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.app-navbar__info-dropdown-item small {
+  color: #6a7482;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@keyframes navbar-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 .app-navbar__actions {
@@ -937,30 +1056,30 @@
   }
 
   .app-navbar {
-    grid-template-columns: clamp(200px, 20vw, 271px) minmax(0, 1fr) auto;
+    grid-template-columns: clamp(170px, 16vw, 220px) minmax(0, 1fr) auto;
     height: clamp(120px, 12vw, 153px);
     padding: clamp(14px, 1.5vw, 17px) clamp(60px, 8vw, 92px) clamp(14px, 1.5vw, 17px) clamp(14px, 1.5vw, 18px);
   }
 
   .app-navbar__brand img {
-    height: clamp(112px, 10vw, 128px);
-    width: clamp(112px, 10vw, 128px);
+    height: clamp(90px, 8vw, 118px);
+    width: clamp(90px, 8vw, 118px);
   }
 
   .app-navbar__nav {
-    gap: clamp(28px, 3vw, 60px);
+    gap: clamp(8px, 1vw, 16px);
   }
 
   .app-navbar__nav-item {
-    font-size: clamp(14px, 1.5vw, 16px);
-    height: clamp(50px, 4vw, 58px);
+    font-size: clamp(12px, 1.15vw, 13px);
+    height: clamp(44px, 3.5vw, 50px);
     min-width: 44px;
-    padding: 0 clamp(12px, 1.5vw, 18px);
+    padding: 0 clamp(9px, 1vw, 12px);
   }
 
   .app-navbar__nav-item lucide-icon {
-    height: clamp(28px, 3vw, 36px);
-    width: clamp(28px, 3vw, 36px);
+    height: clamp(20px, 2vw, 26px);
+    width: clamp(20px, 2vw, 26px);
   }
 
   .app-navbar__actions {
@@ -991,13 +1110,13 @@
 /* ─── Large Desktop (≥1200px) ─────────────────────────────────── */
 @media (min-width: 1200px) {
   .app-navbar {
-    grid-template-columns: 271px minmax(0, 1fr) auto;
+    grid-template-columns: 220px minmax(0, 1fr) auto;
     height: 153px;
     padding: 17px 92px 17px 18px;
   }
 
   .app-navbar__nav {
-    gap: clamp(32px, 3vw, 96px);
+    gap: clamp(8px, 1.2vw, 20px);
   }
 
   .app-navbar__toast {

@@ -15,15 +15,47 @@
       <lucide-icon [name]="item.icon" size="36" [strokeWidth]="2.6"></lucide-icon>
       <span>{{ item.label }}</span>
     </a>
+    <div class="app-navbar__info-menu" (mouseenter)="openInfoMenu()">
+      <button
+        type="button"
+        class="app-navbar__nav-item app-navbar__nav-item--button"
+        [class.app-navbar__nav-item--active]="isInfoActive() || isInfoMenuOpen()"
+        [attr.aria-expanded]="isInfoMenuOpen()"
+        aria-haspopup="menu"
+        (click)="toggleInfoMenu()"
+      >
+        <lucide-icon name="building-2" size="30" [strokeWidth]="2.5"></lucide-icon>
+        <span>Infos</span>
+        <lucide-icon name="chevron-down" size="17" [strokeWidth]="2.8"></lucide-icon>
+      </button>
+
+      <section *ngIf="isInfoMenuOpen()" class="app-navbar__info-dropdown" role="menu">
+        <a
+          *ngFor="let item of infoNavItems()"
+          class="app-navbar__info-dropdown-item"
+          [class.app-navbar__info-dropdown-item--active]="isActive(item.route)"
+          [routerLink]="item.route"
+          [fragment]="item.fragment"
+          role="menuitem"
+          (click)="closeInfoMenu()"
+        >
+          <span>
+            <lucide-icon [name]="item.icon" size="19" [strokeWidth]="2.4"></lucide-icon>
+          </span>
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.description }}</small>
+        </a>
+      </section>
+    </div>
   </nav>
 
   <!-- Desktop Profile Dropdown Backdrop -->
   <button
-    *ngIf="isMenuOpen() || isNotificationsOpen()"
+    *ngIf="isMenuOpen() || isNotificationsOpen() || isInfoMenuOpen()"
     type="button"
     class="app-navbar__blur-backdrop"
     aria-label="Fermer les menus"
-    (click)="closeProfileMenu(); closeNotificationsMenu()"
+    (click)="closeProfileMenu(); closeNotificationsMenu(); closeInfoMenu()"
   ></button>
 
   <!-- Desktop Actions -->
@@ -305,6 +337,17 @@
         class="app-navbar__mobile-nav-item"
         [class.app-navbar__mobile-nav-item--active]="isActive(item.route)"
         [routerLink]="item.route"
+        (click)="closeMobileNav()"
+      >
+        <lucide-icon [name]="item.icon" size="24" [strokeWidth]="2.5"></lucide-icon>
+        <span>{{ item.label }}</span>
+      </a>
+      <a
+        *ngFor="let item of infoNavItems()"
+        class="app-navbar__mobile-nav-item"
+        [class.app-navbar__mobile-nav-item--active]="isActive(item.route)"
+        [routerLink]="item.route"
+        [fragment]="item.fragment"
         (click)="closeMobileNav()"
       >
         <lucide-icon [name]="item.icon" size="24" [strokeWidth]="2.5"></lucide-icon>

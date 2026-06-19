@@ -345,7 +345,7 @@
     </section>
 
     <section
-      *ngIf="!isAppointmentCompleted() && isProviderWorking()"
+      *ngIf="false && !isAppointmentCompleted() && isProviderWorking()"
       class="appointment-detail__hero"
       [class.appointment-detail__hero--working]="isProviderWorking()"
     >
@@ -528,16 +528,28 @@
             <small *ngIf="!isProviderViewer()">En attente de validation de fin par le prestataire.</small>
           </div>
         </div>
-        <button
-          *ngIf="isProviderWorking() && isProviderViewer()"
-          type="button"
-          class="appointment-detail__finish-work-button"
-          (click)="completeWork(appointment)"
-          [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
-        >
-          <lucide-icon name="check" size="17" [strokeWidth]="2.8"></lucide-icon>
-          Terminer la prestation
-        </button>
+        <div *ngIf="isProviderViewer()" class="appointment-detail__route-provider-actions">
+          <button
+            *ngIf="!isProviderWorking()"
+            type="button"
+            class="appointment-detail__finish-work-button"
+            (click)="startWork(appointment)"
+            [disabled]="isUpdatingStatus() || !canProviderStartWork()"
+          >
+            <lucide-icon name="wrench" size="17" [strokeWidth]="2.8"></lucide-icon>
+            Commencer la prestation
+          </button>
+          <button
+            *ngIf="isProviderWorking()"
+            type="button"
+            class="appointment-detail__finish-work-button"
+            (click)="completeWork(appointment)"
+            [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
+          >
+            <lucide-icon name="check" size="17" [strokeWidth]="2.8"></lucide-icon>
+            Terminer la prestation
+          </button>
+        </div>
         <div class="appointment-detail__route-bottom">
           <span>
             <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>

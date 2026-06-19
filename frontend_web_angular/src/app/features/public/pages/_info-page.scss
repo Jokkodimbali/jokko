@@ -1,0 +1,697 @@
+:host {
+  display: block;
+}
+
+.info-page {
+  background:
+    linear-gradient(180deg, #fffaf4 0%, #f7fbfc 42%, #fff 100%);
+  color: #17212b;
+  font-family: var(--font-app, system-ui, sans-serif);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.info-page app-navbar {
+  --app-navbar-backdrop-height: 153px;
+}
+
+.info-hero,
+.about-hero,
+.faq-hero,
+.info-section,
+.contact-flow,
+.contact-panel,
+.about-statement,
+.about-journey,
+.about-cta,
+.faq-grid,
+.faq-support {
+  margin: 0 auto;
+  max-width: 1120px;
+  width: min(1120px, calc(100% - 40px));
+}
+
+.info-hero,
+.about-hero,
+.faq-hero {
+  align-items: center;
+  display: grid;
+  gap: clamp(28px, 4.5vw, 58px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+  min-height: min(720px, calc(100svh - var(--app-navbar-height, 153px)));
+  padding: clamp(46px, 6vw, 74px) 0 clamp(34px, 5vw, 58px);
+}
+
+.faq-hero {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+
+.info-kicker {
+  align-items: center;
+  color: #7b4f24;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  gap: 10px;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.info-kicker::before {
+  background: #7b4f24;
+  border-radius: 999px;
+  content: '';
+  height: 2px;
+  width: 34px;
+}
+
+.info-hero h1,
+.about-hero h1,
+.faq-hero h1 {
+  color: #111923;
+  font-size: clamp(34px, 4.2vw, 56px);
+  font-weight: 900;
+  line-height: 1.04;
+  margin: 0;
+  max-width: 760px;
+}
+
+.about-statement h2 {
+  color: #111923;
+  font-size: clamp(29px, 3vw, 42px);
+  font-weight: 900;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 880px;
+}
+
+.info-hero p,
+.about-hero p,
+.faq-hero p,
+.contact-flow p,
+.about-journey p,
+.contact-panel p,
+.faq-support p {
+  color: #5a6875;
+  font-size: clamp(15px, 1.22vw, 17px);
+  font-weight: 600;
+  line-height: 1.74;
+  margin: 18px 0 0;
+  max-width: 650px;
+}
+
+.info-hero__actions,
+.faq-support__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.info-button {
+  align-items: center;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 10px;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  text-decoration: none;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.info-button:hover,
+.info-button:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.info-button--primary {
+  background: #116dff;
+  border: 1px solid #116dff;
+  box-shadow: 0 16px 34px rgba(17, 109, 255, 0.22);
+  color: #fff;
+}
+
+.info-button--primary:hover,
+.info-button--primary:focus-visible {
+  background: #0d5fdc;
+  box-shadow: 0 20px 44px rgba(17, 109, 255, 0.28);
+}
+
+.info-button--ghost {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #d9e2e9;
+  color: #17212b;
+}
+
+.info-button--ghost:hover,
+.info-button--ghost:focus-visible {
+  background: #fff;
+  border-color: #a77748;
+  box-shadow: 0 16px 34px rgba(37, 27, 18, 0.1);
+  color: #7b4f24;
+}
+
+.info-section--cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 20px 0 72px;
+}
+
+.info-card,
+.contact-flow,
+.about-journey,
+.contact-panel,
+.about-cta,
+.faq-support,
+.faq-topic,
+.contact-console,
+.about-map,
+.faq-hero__search {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(218, 225, 231, 0.92);
+  box-shadow: 0 22px 70px rgba(31, 42, 51, 0.08);
+}
+
+.info-card {
+  border-radius: 18px;
+  min-height: 218px;
+  padding: 24px;
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+
+.info-card:hover {
+  border-color: #b99068;
+  box-shadow: 0 30px 80px rgba(31, 42, 51, 0.13);
+  transform: translateY(-5px);
+}
+
+.info-card__icon {
+  align-items: center;
+  background: #eef8f7;
+  border-radius: 14px;
+  color: #14737a;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  margin-bottom: 22px;
+  width: 48px;
+}
+
+.info-card h2 {
+  color: #111923;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1.15;
+  margin: 0 0 10px;
+}
+
+.info-card strong {
+  color: #7b4f24;
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.info-card p {
+  color: #61707c;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.62;
+  margin: 0;
+}
+
+.reveal {
+  animation: info-reveal 0.62s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.reveal--late {
+  animation-delay: 0.08s;
+}
+
+@keyframes info-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: info-scroll-reveal both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 28%;
+  }
+
+  @keyframes info-scroll-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.contact-console {
+  border-radius: 24px;
+  color: #fff;
+  min-height: 368px;
+  padding: 22px;
+  position: relative;
+  background:
+    linear-gradient(145deg, rgba(17, 25, 35, 0.96), rgba(22, 38, 45, 0.96)),
+    #15191d;
+}
+
+.contact-console__top {
+  display: flex;
+  gap: 8px;
+}
+
+.contact-console__top span {
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+}
+
+.contact-console__top span:nth-child(1) {
+  background: #ff725e;
+}
+
+.contact-console__top span:nth-child(2) {
+  background: #f3c75c;
+}
+
+.contact-console__top span:nth-child(3) {
+  background: #43d17a;
+}
+
+.contact-console__route {
+  display: grid;
+  gap: 14px;
+  margin-top: 42px;
+}
+
+.contact-console__route strong,
+.contact-console__message {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 15px;
+}
+
+.contact-console__route i {
+  animation: route-pulse 1.8s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, #43d17a, #8bd3ff);
+  border-radius: 999px;
+  display: block;
+  height: 4px;
+  transform-origin: left;
+  width: 58%;
+}
+
+@keyframes route-pulse {
+  to {
+    transform: scaleX(1.35);
+  }
+}
+
+.contact-console__message {
+  bottom: 22px;
+  left: 22px;
+  position: absolute;
+  right: 22px;
+}
+
+.contact-console__message small {
+  color: #8bd3ff;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.contact-console__message p {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 8px 0 0;
+}
+
+.contact-flow,
+.about-journey,
+.contact-panel,
+.about-cta,
+.faq-support {
+  border-radius: 24px;
+  margin-bottom: 72px;
+  padding: clamp(24px, 3.5vw, 38px);
+}
+
+.contact-flow,
+.about-journey {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+}
+
+.contact-flow h2,
+.about-journey h2,
+.contact-panel h2,
+.about-cta h2,
+.faq-support h2 {
+  color: #111923;
+  font-size: clamp(25px, 2.45vw, 36px);
+  font-weight: 900;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.contact-flow__steps,
+.about-journey__rail {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.contact-flow__steps li,
+.about-journey__rail article {
+  align-items: center;
+  background: #f7fbfc;
+  border: 1px solid #dde8ed;
+  border-radius: 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 50px minmax(0, 1fr);
+  min-height: 74px;
+  padding: 14px;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.contact-flow__steps li:hover,
+.about-journey__rail article:hover {
+  background: #fff;
+  border-color: #cbdde5;
+  transform: translateX(5px);
+}
+
+.contact-flow__steps span,
+.about-journey__rail span {
+  align-items: center;
+  background: #865221;
+  border-radius: 14px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.contact-flow__steps strong,
+.about-journey__rail strong {
+  color: #17212b;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.contact-panel,
+.about-cta,
+.faq-support {
+  align-items: center;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.about-map {
+  border-radius: 26px;
+  min-height: 386px;
+  position: relative;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(17, 109, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(134, 82, 33, 0.12), transparent 31%),
+    rgba(255, 255, 255, 0.88);
+}
+
+.about-map__node {
+  align-items: center;
+  border-radius: 999px;
+  box-shadow: 0 16px 34px rgba(28, 35, 42, 0.08);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 18px;
+  position: absolute;
+}
+
+.about-map__node--center {
+  background: #865221;
+  color: #fff;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+}
+
+.about-map__node--client {
+  background: #eaf5ff;
+  color: #0f6090;
+  left: 10%;
+  top: 16%;
+}
+
+.about-map__node--provider {
+  background: #fff4e8;
+  color: #865221;
+  right: 8%;
+  top: 22%;
+}
+
+.about-map__node--doctor {
+  background: #eaf8ef;
+  color: #167649;
+  bottom: 16%;
+  right: 17%;
+}
+
+.about-map__line {
+  background: #cbdde5;
+  border-radius: 999px;
+  height: 5px;
+  position: absolute;
+}
+
+.about-map__line--one {
+  left: 27%;
+  top: 34%;
+  transform: rotate(24deg);
+  width: 160px;
+}
+
+.about-map__line--two {
+  right: 24%;
+  top: 53%;
+  transform: rotate(-28deg);
+  width: 150px;
+}
+
+.about-statement {
+  padding: 18px 0 64px;
+}
+
+.faq-hero__search {
+  background: #17212b;
+  border-radius: 24px;
+  color: #fff;
+  display: grid;
+  gap: 10px;
+  min-height: 230px;
+  padding: 28px;
+}
+
+.faq-hero__search lucide-icon {
+  color: #8bd3ff;
+}
+
+.faq-hero__search strong {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.faq-hero__search span {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 700;
+}
+
+.faq-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 20px 0 72px;
+}
+
+.faq-topic {
+  border-radius: 22px;
+  padding: 22px;
+}
+
+.faq-topic header {
+  align-items: center;
+  display: flex;
+  gap: 13px;
+  margin-bottom: 14px;
+}
+
+.faq-topic header span {
+  align-items: center;
+  background: #eef8f7;
+  border-radius: 14px;
+  color: #14737a;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.faq-topic h2 {
+  color: #111923;
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.faq-topic details {
+  border-top: 1px solid #edf2f5;
+  padding: 15px 0;
+}
+
+.faq-topic summary {
+  align-items: center;
+  color: #17212b;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.faq-topic summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-topic summary lucide-icon {
+  color: #865221;
+  transition: transform 0.2s ease;
+}
+
+.faq-topic details[open] summary lucide-icon {
+  transform: rotate(180deg);
+}
+
+.faq-topic details p {
+  color: #61707c;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.62;
+  margin: 12px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 960px) {
+  .info-hero,
+  .about-hero,
+  .faq-hero,
+  .contact-flow,
+  .about-journey {
+    grid-template-columns: 1fr;
+  }
+
+  .info-section--cards,
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-panel,
+  .about-cta,
+  .faq-support {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .about-map {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 640px) {
+  .info-hero,
+  .about-hero,
+  .faq-hero {
+    min-height: auto;
+    padding-top: 34px;
+  }
+
+  .info-hero h1,
+  .about-hero h1,
+  .faq-hero h1 {
+    font-size: clamp(30px, 9vw, 42px);
+  }
+
+  .about-statement h2 {
+    font-size: clamp(25px, 7vw, 34px);
+  }
+
+  .info-button,
+  .info-hero__actions,
+  .faq-support__actions {
+    width: 100%;
+  }
+
+  .contact-console,
+  .about-map {
+    min-height: 320px;
+  }
+}

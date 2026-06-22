@@ -15,4 +15,3 @@ export class BulkCreateServiceSubCategoriesDto {
   @Type(() => CreateServiceSubCategoryDto)
   subCategories!: CreateServiceSubCategoryDto[];
 }
-

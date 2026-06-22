@@ -11,7 +11,8 @@ export class NegotiationQueryService extends NegotiationAppService {
     query: ListNegotiationsQuery,
   ) {
     const scope =
-      (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') && query.scope !== 'CLIENT'
+      (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') &&
+      query.scope !== 'CLIENT'
         ? 'PRESTATAIRE'
         : 'CLIENT';
 

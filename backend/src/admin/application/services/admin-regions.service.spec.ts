@@ -12,10 +12,7 @@ describe('AdminRegionsService', () => {
           city: 'dakar',
           active: true,
           verified: true,
-          services: [
-            serviceRow('Sante', true),
-            serviceRow('Maison', false),
-          ],
+          services: [serviceRow('Sante', true), serviceRow('Maison', false)],
           reservations: [
             reservationRow('TERMINEE', false),
             reservationRow('EN_COURS', true),

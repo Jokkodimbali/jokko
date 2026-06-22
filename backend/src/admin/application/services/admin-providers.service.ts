@@ -1,14 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, type StatutReservation } from '@prisma/client';
+import { Prisma, type StatutKyc, type StatutReservation } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import type { ListAdminProvidersQueryDto } from '../../presentation/dto/list-admin-providers-query.dto';
 
 type ProviderBooking = {
   statut: StatutReservation;
   dateHeure: Date;
   litige: { id: string } | null;
+};
+
+type ListAdminProvidersQuery = {
+  search?: string;
+  kycStatus?: StatutKyc;
+  active?: boolean;
+  page?: number;
+  limit?: number;
 };
 
 @Injectable()
@@ -17,7 +24,7 @@ export class AdminProvidersService {
 
   async listProviders(
     requestUser: AuthUser,
-    query: ListAdminProvidersQueryDto = {},
+    query: ListAdminProvidersQuery = {},
   ) {
     if (requestUser.role !== 'ADMIN') {
       throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
@@ -328,7 +335,7 @@ export class AdminProvidersService {
   }
 
   private buildProviderWhere(
-    query: ListAdminProvidersQueryDto,
+    query: ListAdminProvidersQuery,
   ): Prisma.ProfilProfessionnelWhereInput {
     const search = query.search?.trim();
     return {

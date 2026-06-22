@@ -41,7 +41,8 @@ export class ListAdminProvidersQueryDto {
   @Transform(({ value }: { value: unknown }) => {
     if (value === undefined || value === null || value === '') return undefined;
     if (typeof value === 'boolean') return value;
-    return String(value).toLowerCase() === 'true';
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    return value;
   })
   @IsOptional()
   @IsBoolean()

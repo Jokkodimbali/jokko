@@ -16,7 +16,8 @@ export class SendDisputeMessageDto {
   recipient!: (typeof DISPUTE_MESSAGE_RECIPIENTS)[keyof typeof DISPUTE_MESSAGE_RECIPIENTS];
 
   @ApiProperty({
-    example: "Merci d'envoyer les images demandees afin que la mediation puisse avancer.",
+    example:
+      "Merci d'envoyer les images demandees afin que la mediation puisse avancer.",
   })
   @IsString()
   @MinLength(2)

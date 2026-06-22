@@ -285,12 +285,9 @@ export class ReservationsController {
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
   ) {
-    const result = await this.reservationsFacade.confirmReservation(
-      user,
-      reservationId,
-    );
+    this.reservationsFacade.confirmReservation(user, reservationId);
     return createApiResponse(
-      result,
+      null,
       appMessage('RESERVATIONS_CONFIRMED').message,
     );
   }

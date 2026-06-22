@@ -3,9 +3,11 @@ import { MethodePaiement, StatutPaiement } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
-import type { AdminRevenuePeriod } from '../../presentation/dto/admin-revenue-query.dto';
 
-type PaymentRow = Awaited<ReturnType<AdminRevenueService['findPayments']>>[number];
+type AdminRevenuePeriod = '7d' | '30d' | '90d' | '12m';
+type PaymentRow = Awaited<
+  ReturnType<AdminRevenueService['findPayments']>
+>[number];
 
 @Injectable()
 export class AdminRevenueService {
@@ -123,7 +125,9 @@ export class AdminRevenueService {
       averageTicket:
         successfulCount > 0 ? Math.round(gross / successfulCount) : 0,
       successRate:
-        totalPayments > 0 ? Math.round((successfulCount / totalPayments) * 100) : 0,
+        totalPayments > 0
+          ? Math.round((successfulCount / totalPayments) * 100)
+          : 0,
     };
   }
 
@@ -260,10 +264,7 @@ export class AdminRevenueService {
     });
   }
 
-  private isInBucket(
-    date: Date,
-    bucket: { start: Date; end: Date },
-  ): boolean {
+  private isInBucket(date: Date, bucket: { start: Date; end: Date }): boolean {
     return date >= bucket.start && date <= bucket.end;
   }
 
@@ -293,4 +294,3 @@ export class AdminRevenueService {
     return Number(value ?? 0);
   }
 }
-

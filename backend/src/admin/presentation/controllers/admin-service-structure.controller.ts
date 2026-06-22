@@ -21,8 +21,11 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleUtilisateur } from '@prisma/client';
-import { diskStorage } from 'multer';
-import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import {
+  diskStorage,
+  type DiskStorageCallback,
+  type DiskStorageFile,
+} from 'multer';
 import type { Request } from 'express';
 import { extname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
@@ -240,7 +243,7 @@ export class AdminServiceStructureController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Uploader une image de categorie' })
-  async uploadCategoryImage(
+  uploadCategoryImage(
     @UploadedFile() file: UploadedServiceImageFile | undefined,
     @Req() request: Request,
   ) {

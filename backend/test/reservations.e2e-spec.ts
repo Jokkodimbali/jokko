@@ -144,7 +144,11 @@ describe('ReservationsModule (e2e)', () => {
     return new Date(Date.now() + hoursAhead * 60 * 60 * 1000).toISOString();
   }
 
-  function buildFutureUtcSlot(daysAhead: number, hour: number, minute = 0): string {
+  function buildFutureUtcSlot(
+    daysAhead: number,
+    hour: number,
+    minute = 0,
+  ): string {
     const date = new Date();
     date.setUTCDate(date.getUTCDate() + daysAhead);
     date.setUTCHours(hour, minute, 0, 0);
@@ -1267,7 +1271,8 @@ describe('ReservationsModule (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    const statisticsBody = statisticsResponse.body as ReservationSuccessResponse;
+    const statisticsBody =
+      statisticsResponse.body as ReservationSuccessResponse;
     expect(statisticsBody.success).toBe(true);
     expect(statisticsBody.data).toHaveProperty('total');
     expect(statisticsBody.data).toHaveProperty('byStatus');

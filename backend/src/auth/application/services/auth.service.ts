@@ -84,10 +84,7 @@ export class AuthService {
     };
   }
 
-  async register(
-    command: RegisterCommand,
-    context: AuthSessionContext = {},
-  ) {
+  async register(command: RegisterCommand, context: AuthSessionContext = {}) {
     const phoneNumber = this.normalizePhoneNumber(command.phoneNumber);
     const normalizedEmail = normalizeEmail(command.email);
     const existing = await this.authRepository.findByPhoneNumber(phoneNumber);

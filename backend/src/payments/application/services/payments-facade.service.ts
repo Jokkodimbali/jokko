@@ -373,7 +373,9 @@ export class PaymentsFacade {
   }
 
   private isProfessionalWalletRole(role: RoleUtilisateur): boolean {
-    return role === RoleUtilisateur.PRESTATAIRE || role === RoleUtilisateur.MEDECIN;
+    return (
+      role === RoleUtilisateur.PRESTATAIRE || role === RoleUtilisateur.MEDECIN
+    );
   }
 
   private mapToPaymentStatus(status?: string): PaymentStatus | undefined {

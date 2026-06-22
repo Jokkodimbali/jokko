@@ -50,7 +50,9 @@ describe('ReservationCommandService', () => {
       findById: jest
         .fn()
         .mockResolvedValue(overrides?.reservation ?? buildReservation()),
-      update: jest.fn(async (reservation: Reservation) => reservation),
+      update: jest.fn((reservation: Reservation) =>
+        Promise.resolve(reservation),
+      ),
       hasPaymentForReservation: jest.fn().mockResolvedValue(false),
     };
     const professionalsRepository = {
@@ -101,6 +103,11 @@ describe('ReservationCommandService', () => {
     const liveTrackingFacade = {
       finalizeReservationTracking: jest.fn(),
     };
+    const prisma = {
+      paiement: {
+        updateMany: jest.fn(),
+      },
+    };
 
     return {
       service: new ReservationCommandService(
@@ -111,6 +118,7 @@ describe('ReservationCommandService', () => {
         reservationClientNotificationService as never,
         disputesFacade as never,
         liveTrackingFacade as never,
+        prisma as never,
       ),
       reservationsRepository,
       professionalsRepository,

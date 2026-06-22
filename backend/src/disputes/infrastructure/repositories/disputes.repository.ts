@@ -596,18 +596,19 @@ export class DisputesRepository implements DisputesRepositoryPort {
           nom: record.reservation.service.nom,
           prix: Number(record.reservation.service.prix),
         },
-        messages: record.reservation.conversation?.messages.map((message) => ({
-          id: message.id,
-          expediteurId: message.expediteurId,
-          contenu: message.contenu,
-          urlMedia: message.urlMedia,
-          creeLe: message.creeLe,
-          expediteur: {
-            id: message.expediteur.id,
-            nom: message.expediteur.nom,
-            role: message.expediteur.role,
-          },
-        })) ?? [],
+        messages:
+          record.reservation.conversation?.messages.map((message) => ({
+            id: message.id,
+            expediteurId: message.expediteurId,
+            contenu: message.contenu,
+            urlMedia: message.urlMedia,
+            creeLe: message.creeLe,
+            expediteur: {
+              id: message.expediteur.id,
+              nom: message.expediteur.nom,
+              role: message.expediteur.role,
+            },
+          })) ?? [],
         mediationMessages: record.messagesMediation.map((message) => ({
           id: message.id,
           destinataire: message.destinataire,

@@ -96,8 +96,8 @@ export class ReservationsFacade {
     );
   }
 
-  async confirmReservation(requestUser: AuthUser, reservationId: string) {
-    return this.reservationCommandService.confirmReservation(
+  confirmReservation(requestUser: AuthUser, reservationId: string) {
+    this.reservationCommandService.confirmReservation(
       requestUser,
       reservationId,
     );

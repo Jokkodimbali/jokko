@@ -94,7 +94,8 @@ export class RegisterDto {
   adresse = 'Adresse non renseignee';
 
   @ApiPropertyOptional({
-    description: 'Specialite medicale selectionnee pendant l inscription medecin',
+    description:
+      'Specialite medicale selectionnee pendant l inscription medecin',
     example: 'Cardiologie',
   })
   @Transform(({ value }: { value: unknown }) =>

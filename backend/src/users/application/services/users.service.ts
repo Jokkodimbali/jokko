@@ -43,7 +43,9 @@ export class UsersService {
     const existingUser = await this.findUserOrThrow(userId);
 
     const emailNormalized = normalizeEmail(command.email);
-    const phoneNumberNormalized = this.normalizeOptionalPhoneNumber(command.phoneNumber);
+    const phoneNumberNormalized = this.normalizeOptionalPhoneNumber(
+      command.phoneNumber,
+    );
     const addressNormalized = normalizeAddress(command.address);
 
     const payload = {
@@ -142,10 +144,11 @@ export class UsersService {
       throw appHttpException('USERS_PROFESSIONAL_PROFILE_REQUIRED');
     }
 
-    const result = await this.usersRepository.createProfessionalCredentialForUser(
-      requestUser.sub,
-      command,
-    );
+    const result =
+      await this.usersRepository.createProfessionalCredentialForUser(
+        requestUser.sub,
+        command,
+      );
 
     if (result.status === 'professional_profile_not_found') {
       throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
@@ -199,10 +202,11 @@ export class UsersService {
     const nextBiography = [command.about.trim(), ...metadataLines]
       .filter(Boolean)
       .join('\n');
-    const updated = await this.usersRepository.updateProfessionalBiographyForUser(
-      user.id,
-      nextBiography,
-    );
+    const updated =
+      await this.usersRepository.updateProfessionalBiographyForUser(
+        user.id,
+        nextBiography,
+      );
 
     if (!updated) {
       throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
@@ -216,10 +220,11 @@ export class UsersService {
     credentialId: string,
   ) {
     await this.findProfessionalProfileOrThrow(requestUser);
-    const result = await this.usersRepository.deleteProfessionalCredentialForUser(
-      requestUser.sub,
-      credentialId,
-    );
+    const result =
+      await this.usersRepository.deleteProfessionalCredentialForUser(
+        requestUser.sub,
+        credentialId,
+      );
 
     if (result.status === 'professional_profile_not_found') {
       throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
@@ -364,10 +369,11 @@ export class UsersService {
       'Expertises',
       expertises,
     );
-    const updated = await this.usersRepository.updateProfessionalBiographyForUser(
-      user.id,
-      nextBiography,
-    );
+    const updated =
+      await this.usersRepository.updateProfessionalBiographyForUser(
+        user.id,
+        nextBiography,
+      );
 
     if (!updated) {
       throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
@@ -401,7 +407,9 @@ export class UsersService {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-      .filter((line) => !line.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+      .filter(
+        (line) => !line.toLowerCase().startsWith(`${label.toLowerCase()}:`),
+      );
 
     if (values.length > 0) {
       lines.push(`${label}: ${values.join(', ')}`);

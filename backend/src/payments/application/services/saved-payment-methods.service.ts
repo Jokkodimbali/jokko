@@ -2,11 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { appHttpException } from '../../../core/http/app-http.exception';
-import {
-  SavedPaymentMethodType,
-  SavePaymentMethodDto,
-  UpdateSavedPaymentMethodDto,
-} from '../../presentation/dto/saved-payment-method.dto';
+
+type SavedPaymentMethodType = 'CARD' | 'WAVE' | 'OTHER';
+type SavePaymentMethodInput = {
+  type: SavedPaymentMethodType;
+  label?: string;
+  cardNumber?: string;
+  holderName?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  phoneNumber?: string;
+};
+type UpdateSavedPaymentMethodInput = Omit<SavePaymentMethodInput, 'type'>;
+
+const SAVED_PAYMENT_METHOD_TYPE = {
+  CARD: 'CARD',
+  WAVE: 'WAVE',
+  OTHER: 'OTHER',
+} as const satisfies Record<string, SavedPaymentMethodType>;
 
 type SavedPaymentMethodRow = {
   id: string;
@@ -49,7 +62,10 @@ export class SavedPaymentMethodsService {
     return rows.map((row) => this.toView(row));
   }
 
-  async create(userId: string, dto: SavePaymentMethodDto): Promise<SavedPaymentMethodView> {
+  async create(
+    userId: string,
+    dto: SavePaymentMethodInput,
+  ): Promise<SavedPaymentMethodView> {
     const normalized = this.normalizeCreate(dto);
     const id = randomUUID();
     const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
@@ -74,7 +90,7 @@ export class SavedPaymentMethodsService {
   async update(
     userId: string,
     methodId: string,
-    dto: UpdateSavedPaymentMethodDto,
+    dto: UpdateSavedPaymentMethodInput,
   ): Promise<SavedPaymentMethodView> {
     const existing = await this.findOwned(userId, methodId);
     const normalized = this.normalizeUpdate(existing, dto);
@@ -101,7 +117,10 @@ export class SavedPaymentMethodsService {
     `;
   }
 
-  private async findOwned(userId: string, methodId: string): Promise<SavedPaymentMethodRow> {
+  private async findOwned(
+    userId: string,
+    methodId: string,
+  ): Promise<SavedPaymentMethodRow> {
     const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
       SELECT id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year, is_default, created_at, updated_at
       FROM saved_payment_methods
@@ -114,8 +133,8 @@ export class SavedPaymentMethodsService {
     return rows[0];
   }
 
-  private normalizeCreate(dto: SavePaymentMethodDto) {
-    if (dto.type === SavedPaymentMethodType.CARD) {
+  private normalizeCreate(dto: SavePaymentMethodInput) {
+    if (dto.type === SAVED_PAYMENT_METHOD_TYPE.CARD) {
       return {
         type: dto.type,
         label: dto.label?.trim() || 'Carte de credit',
@@ -126,7 +145,7 @@ export class SavedPaymentMethodsService {
       };
     }
 
-    if (dto.type === SavedPaymentMethodType.WAVE) {
+    if (dto.type === SAVED_PAYMENT_METHOD_TYPE.WAVE) {
       return {
         type: dto.type,
         label: dto.label?.trim() || 'Wave',
@@ -147,12 +166,19 @@ export class SavedPaymentMethodsService {
     };
   }
 
-  private normalizeUpdate(existing: SavedPaymentMethodRow, dto: UpdateSavedPaymentMethodDto) {
+  private normalizeUpdate(
+    existing: SavedPaymentMethodRow,
+    dto: UpdateSavedPaymentMethodInput,
+  ) {
     const label = dto.label?.trim() || existing.label;
     const maskedValue =
-      existing.type === SavedPaymentMethodType.CARD && dto.cardNumber && !dto.cardNumber.includes('*')
+      existing.type === SAVED_PAYMENT_METHOD_TYPE.CARD &&
+      dto.cardNumber &&
+      !dto.cardNumber.includes('*')
         ? this.maskCard(dto.cardNumber)
-        : existing.type === SavedPaymentMethodType.WAVE && dto.phoneNumber && !dto.phoneNumber.includes('*')
+        : existing.type === SAVED_PAYMENT_METHOD_TYPE.WAVE &&
+            dto.phoneNumber &&
+            !dto.phoneNumber.includes('*')
           ? this.maskPhone(dto.phoneNumber)
           : existing.masked_value;
 

@@ -51,12 +51,15 @@ describe('ReservationQueryService', () => {
 
     await service.getMyReservations(clientUser, {});
 
-    expect(reservationsRepository.syncOverdueReservations).toHaveBeenCalledTimes(1);
+    expect(
+      reservationsRepository.syncOverdueReservations,
+    ).toHaveBeenCalledTimes(1);
     expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
       clientId: clientUser.sub,
     });
     expect(
-      reservationsRepository.syncOverdueReservations.mock.invocationCallOrder[0],
+      reservationsRepository.syncOverdueReservations.mock
+        .invocationCallOrder[0],
     ).toBeLessThan(
       reservationsRepository.findDetailedByFilters.mock.invocationCallOrder[0],
     );
@@ -94,7 +97,9 @@ describe('ReservationQueryService', () => {
 
     await service.getReservationStatistics(adminUser, {});
 
-    expect(reservationsRepository.syncOverdueReservations).toHaveBeenCalledTimes(1);
+    expect(
+      reservationsRepository.syncOverdueReservations,
+    ).toHaveBeenCalledTimes(1);
     expect(reservationsRepository.findByFilters).toHaveBeenCalledWith({
       status: undefined,
       serviceId: undefined,

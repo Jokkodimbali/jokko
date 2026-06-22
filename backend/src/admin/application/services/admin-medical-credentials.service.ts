@@ -205,8 +205,9 @@ export class AdminMedicalCredentialsService {
   private buildCouncilLine(
     diplomas: Array<{ numeroReference: string | null }>,
   ): string | null {
-    const reference = diplomas.find((diploma) => diploma.numeroReference)
-      ?.numeroReference;
+    const reference = diplomas.find(
+      (diploma) => diploma.numeroReference,
+    )?.numeroReference;
     return reference ? `Conseil de l'ordre - ${reference}` : null;
   }
 }

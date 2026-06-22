@@ -3,15 +3,30 @@ import { Prisma } from '@prisma/client';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type { CreateCategoryDto } from '../../../categories/presentation/dto/create-category.dto';
-import type { AssignServiceSubCategoriesDto } from '../../presentation/dto/assign-service-subcategories.dto';
-import type { CreateServiceSubCategoryDto } from '../../presentation/dto/create-service-subcategory.dto';
+
+type CreateCategoryInput = {
+  name: string;
+  iconUrl?: string | null;
+  sortOrder?: number;
+  commissionRate?: number;
+};
+
+type CreateServiceSubCategoryInput = {
+  name: string;
+  description?: string | null;
+  sortOrder?: number;
+};
+
+type AssignServiceSubCategoriesInput = {
+  subCategoryIds: string[];
+};
 
 type ServiceStructureCategory = Awaited<
   ReturnType<AdminServiceStructureService['findCategories']>
 >[number];
 
-type ServiceStructureOptionSource = ServiceStructureCategory['services'][number];
+type ServiceStructureOptionSource =
+  ServiceStructureCategory['services'][number];
 
 type ServiceOptionAccumulator = {
   id: string;
@@ -79,7 +94,7 @@ export class AdminServiceStructureService {
 
   async bulkCreateCategories(
     requestUser: AuthUser,
-    categories: CreateCategoryDto[],
+    categories: CreateCategoryInput[],
   ) {
     this.assertAdmin(requestUser);
 
@@ -133,7 +148,7 @@ export class AdminServiceStructureService {
 
   async createSubCategory(
     requestUser: AuthUser,
-    input: CreateServiceSubCategoryDto,
+    input: CreateServiceSubCategoryInput,
   ) {
     this.assertAdmin(requestUser);
 
@@ -159,7 +174,7 @@ export class AdminServiceStructureService {
 
   async bulkCreateSubCategories(
     requestUser: AuthUser,
-    subCategories: CreateServiceSubCategoryDto[],
+    subCategories: CreateServiceSubCategoryInput[],
   ) {
     this.assertAdmin(requestUser);
 
@@ -203,7 +218,7 @@ export class AdminServiceStructureService {
   async assignSubCategories(
     requestUser: AuthUser,
     categoryId: string,
-    input: AssignServiceSubCategoriesDto,
+    input: AssignServiceSubCategoriesInput,
   ) {
     this.assertAdmin(requestUser);
 
@@ -226,15 +241,14 @@ export class AdminServiceStructureService {
       throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND');
     }
 
-    const assignedElsewhere = await this.prisma.categorieSousCategorie.findFirst(
-      {
+    const assignedElsewhere =
+      await this.prisma.categorieSousCategorie.findFirst({
         where: {
           categorieId: { not: categoryId },
           sousCategorieId: { in: uniqueIds },
         },
         select: { id: true },
-      },
-    );
+      });
 
     if (assignedElsewhere) {
       throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_ALREADY_ASSIGNED');

@@ -125,7 +125,7 @@ export class ReservationCommandService extends ReservationAppService {
     return this.createReservationFromAcceptedNegotiation(requestUser, command);
   }
 
-  async confirmReservation(requestUser: AuthUser, reservationId: string) {
+  confirmReservation(requestUser: AuthUser, reservationId: string) {
     void requestUser;
     void reservationId;
     throw appHttpException('RESERVATIONS_CONFIRMATION_NOT_REQUIRED');
@@ -147,7 +147,8 @@ export class ReservationCommandService extends ReservationAppService {
       const updated = await this.reservationsRepository.update(entity.toView());
       await this.refundLockedPaymentOnCancellation(
         updated.id,
-        trimString(command.reason) ?? 'Reservation annulee par un utilisateur autorise.',
+        trimString(command.reason) ??
+          'Reservation annulee par un utilisateur autorise.',
       );
       await this.liveTrackingFacade.finalizeReservationTracking({
         reservationId: updated.id,
@@ -654,10 +655,12 @@ export class ReservationCommandService extends ReservationAppService {
     }
 
     return {
-      dateHeure: negotiatedDate && !Number.isNaN(negotiatedDate.getTime())
-        ? negotiatedDate.toISOString()
-        : command.dateHeure,
-      adresseClient: negotiatedAddress ?? requestedAddress ?? command.adresseClient,
+      dateHeure:
+        negotiatedDate && !Number.isNaN(negotiatedDate.getTime())
+          ? negotiatedDate.toISOString()
+          : command.dateHeure,
+      adresseClient:
+        negotiatedAddress ?? requestedAddress ?? command.adresseClient,
       dureeMinutes: negotiation.dureeMinutesProposee ?? command.dureeMinutes,
     };
   }

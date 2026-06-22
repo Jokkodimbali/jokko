@@ -1,4 +1,4 @@
-import { RoleUtilisateur, StatutPaiement } from '@prisma/client';
+import { RoleUtilisateur, type StatutPaiement } from '@prisma/client';
 import { AdminRevenueService } from './admin-revenue.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
@@ -153,4 +153,3 @@ function payment(input: {
     },
   };
 }
-

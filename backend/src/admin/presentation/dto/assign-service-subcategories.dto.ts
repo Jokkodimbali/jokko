@@ -11,4 +11,3 @@ export class AssignServiceSubCategoriesDto {
   @IsUUID('4', { each: true })
   subCategoryIds!: string[];
 }
-

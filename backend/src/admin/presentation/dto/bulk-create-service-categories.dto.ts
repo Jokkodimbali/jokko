@@ -11,4 +11,3 @@ export class BulkCreateServiceCategoriesDto {
   @Type(() => CreateCategoryDto)
   categories!: CreateCategoryDto[];
 }
-

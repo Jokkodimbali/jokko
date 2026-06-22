@@ -32,19 +32,25 @@ export class SavePaymentMethodDto {
   label?: string;
 
   @ApiPropertyOptional({ example: '5412 1235 4512 2353' })
-  @ValidateIf((dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD)
+  @ValidateIf(
+    (dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD,
+  )
   @IsString()
   @MaxLength(30)
   cardNumber?: string;
 
   @ApiPropertyOptional({ example: 'Dia Mamadou Thiam' })
-  @ValidateIf((dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD)
+  @ValidateIf(
+    (dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD,
+  )
   @IsString()
   @MaxLength(100)
   holderName?: string;
 
   @ApiPropertyOptional({ example: 12 })
-  @ValidateIf((dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD)
+  @ValidateIf(
+    (dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD,
+  )
   @Transform(({ value }: { value: unknown }) => Number(value))
   @IsInt()
   @Min(1)
@@ -52,7 +58,9 @@ export class SavePaymentMethodDto {
   expiryMonth?: number;
 
   @ApiPropertyOptional({ example: 2028 })
-  @ValidateIf((dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD)
+  @ValidateIf(
+    (dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.CARD,
+  )
   @Transform(({ value }: { value: unknown }) => Number(value))
   @IsInt()
   @Min(2024)
@@ -60,7 +68,9 @@ export class SavePaymentMethodDto {
   expiryYear?: number;
 
   @ApiPropertyOptional({ example: '+221770000000' })
-  @ValidateIf((dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.WAVE)
+  @ValidateIf(
+    (dto: SavePaymentMethodDto) => dto.type === SavedPaymentMethodType.WAVE,
+  )
   @IsString()
   @MaxLength(30)
   phoneNumber?: string;

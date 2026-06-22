@@ -50,4 +50,3 @@ export class CreateServiceSubCategoryDto {
   @Max(32767, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MAX })
   sortOrder?: number;
 }
-

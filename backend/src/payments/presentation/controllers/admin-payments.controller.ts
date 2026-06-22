@@ -106,9 +106,7 @@ export class AdminPaymentsController {
     return createApiResponse({
       clientPayments: {
         ...allClientPayments,
-        payments: allClientPayments.payments.map((payment) =>
-          payment.toView(),
-        ),
+        payments: allClientPayments.payments.map((payment) => payment.toView()),
       },
       professionalPayments: {
         ...allProfessionalPayments,

@@ -7,12 +7,14 @@ import {
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type {
-  AdminArchivesQueryDto,
-  AdminArchiveTab,
-} from '../../presentation/dto/admin-archives-query.dto';
-
 type DecimalLike = { toNumber(): number };
+type AdminArchiveTab = 'closedDisputes' | 'invoices' | 'transactions';
+type AdminArchivesQuery = {
+  tab?: AdminArchiveTab;
+  limit?: number;
+  offset?: number;
+  search?: string;
+};
 
 type ClosedDisputeRow = Awaited<
   ReturnType<AdminArchivesService['findClosedDisputes']>
@@ -28,7 +30,7 @@ type WalletTransactionRow = Awaited<
 export class AdminArchivesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getArchives(requestUser: AuthUser, query: AdminArchivesQueryDto = {}) {
+  async getArchives(requestUser: AuthUser, query: AdminArchivesQuery = {}) {
     if (requestUser.role !== 'ADMIN') {
       throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
     }
@@ -112,7 +114,8 @@ export class AdminArchivesService {
     offset: number,
     search?: string,
   ) {
-    if (tab === 'closedDisputes') return this.findClosedDisputes(limit, offset, search);
+    if (tab === 'closedDisputes')
+      return this.findClosedDisputes(limit, offset, search);
     if (tab === 'invoices') return this.findInvoices(limit, offset, search);
     return this.findWalletTransactions(limit, offset, search);
   }
@@ -395,7 +398,7 @@ export class AdminArchivesService {
     return professional.nomEntreprise ?? professional.utilisateur.nom;
   }
 
-  private toNumber(value: DecimalLike | number | null | undefined | unknown) {
+  private toNumber(value: unknown) {
     if (!value) return 0;
     if (typeof value === 'number') return value;
     if (

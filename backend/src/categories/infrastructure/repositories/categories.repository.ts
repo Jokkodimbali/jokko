@@ -98,7 +98,9 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
     return category ? this.mapCategory(category) : null;
   }
 
-  async listActiveWithSubCategories(): Promise<CategoryWithSubCategoriesView[]> {
+  async listActiveWithSubCategories(): Promise<
+    CategoryWithSubCategoriesView[]
+  > {
     const categories = await this.prisma.categorie.findMany({
       where: { estActive: true },
       orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],

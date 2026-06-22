@@ -625,7 +625,8 @@ export class UsersRepository implements UsersRepositoryPort {
       }
     | { status: 'professional_profile_not_found' }
   > {
-    const professionalProfile = await this.prisma.profilProfessionnel.findUnique({
+    const professionalProfile =
+      await this.prisma.profilProfessionnel.findUnique({
         where: { utilisateurId: userId },
         select: { id: true },
       });

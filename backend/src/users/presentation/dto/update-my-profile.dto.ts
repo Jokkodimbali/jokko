@@ -55,7 +55,9 @@ export class UpdateMyProfileDto {
     if (value === null || value === undefined) return value;
     if (typeof value !== 'string') return value;
     const trimmed = value.trim();
-    return trimmed.length === 0 ? undefined : normalizeSenegalPhoneNumber(trimmed);
+    return trimmed.length === 0
+      ? undefined
+      : normalizeSenegalPhoneNumber(trimmed);
   })
   @IsOptional()
   @IsString()

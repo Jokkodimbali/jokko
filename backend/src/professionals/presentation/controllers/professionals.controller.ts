@@ -23,8 +23,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import {
+  diskStorage,
+  type DiskStorageCallback,
+  type DiskStorageFile,
+} from 'multer';
 import type { Request } from 'express';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -405,7 +408,7 @@ export class ProfessionalsController {
   @ApiOperation({
     summary: 'Uploader un fichier professionnel pour KYC ou portfolio',
   })
-  async uploadMyProfessionalAsset(
+  uploadMyProfessionalAsset(
     @UploadedFile() file: UploadedProfessionalAssetFile | undefined,
     @Req() request: Request,
   ) {

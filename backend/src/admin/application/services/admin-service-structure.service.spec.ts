@@ -1,8 +1,16 @@
 import { AdminServiceStructureService } from './admin-service-structure.service';
 
 describe('AdminServiceStructureService', () => {
-  const adminUser = { sub: 'admin-1', role: 'ADMIN', phoneNumber: '+221770000000' } as never;
-  const clientUser = { sub: 'client-1', role: 'CLIENT', phoneNumber: '+221771111111' } as never;
+  const adminUser = {
+    sub: 'admin-1',
+    role: 'ADMIN',
+    phoneNumber: '+221770000000',
+  } as never;
+  const clientUser = {
+    sub: 'client-1',
+    role: 'CLIENT',
+    phoneNumber: '+221771111111',
+  } as never;
 
   it('builds the service tree from real categories and declared services', async () => {
     const service = new AdminServiceStructureService(

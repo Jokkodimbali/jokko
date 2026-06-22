@@ -24,13 +24,18 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import {
+  diskStorage,
+  type DiskStorageCallback,
+  type DiskStorageFile,
+} from 'multer';
 import { randomUUID } from 'node:crypto';
 import { extname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
-import { appMessage } from '../../../core/http/app-http.exception';
-import { appHttpException } from '../../../core/http/app-http.exception';
+import {
+  appHttpException,
+  appMessage,
+} from '../../../core/http/app-http.exception';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -394,7 +399,10 @@ export class UsersController {
           file: DiskStorageFile,
           callback: DiskStorageCallback,
         ) => {
-          callback(null, buildProfessionalCredentialFileName(file.originalname));
+          callback(
+            null,
+            buildProfessionalCredentialFileName(file.originalname),
+          );
         },
       }),
       limits: {
@@ -425,13 +433,17 @@ export class UsersController {
       request,
       `/uploads/medical-credentials/${file.filename}`,
     );
-    const result = await this.usersService.uploadMyProfessionalCredential(user, {
-      title: dto.title?.trim() || file.originalname,
-      institution: dto.institution?.trim() || 'Document fourni par le professionnel',
-      graduationYear: dto.graduationYear?.trim() || null,
-      referenceNumber: dto.referenceNumber?.trim() || null,
-      documentUrl,
-    });
+    const result = await this.usersService.uploadMyProfessionalCredential(
+      user,
+      {
+        title: dto.title?.trim() || file.originalname,
+        institution:
+          dto.institution?.trim() || 'Document fourni par le professionnel',
+        graduationYear: dto.graduationYear?.trim() || null,
+        referenceNumber: dto.referenceNumber?.trim() || null,
+        documentUrl,
+      },
+    );
 
     return createApiResponse(
       result,
@@ -478,7 +490,10 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
     @Body() dto: UpsertMyProfessionalExpertiseDto,
   ) {
-    const result = await this.usersService.addMyProfessionalExpertise(user, dto);
+    const result = await this.usersService.addMyProfessionalExpertise(
+      user,
+      dto,
+    );
     return createApiResponse(
       result,
       appMessage('USERS_PROFESSIONAL_EXPERTISE_ADDED').message,

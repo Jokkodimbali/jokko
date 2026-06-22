@@ -18,8 +18,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import type { DiskStorageCallback, DiskStorageFile } from 'multer';
+import {
+  diskStorage,
+  type DiskStorageCallback,
+  type DiskStorageFile,
+} from 'multer';
 import type { Request } from 'express';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -78,7 +81,10 @@ export class UserDisputeEvidenceController {
 
   @Get()
   @ApiOperation({ summary: 'Recuperer le suivi du litige d une reservation' })
-  @ApiParam({ name: 'reservationId', description: 'Identifiant de reservation' })
+  @ApiParam({
+    name: 'reservationId',
+    description: 'Identifiant de reservation',
+  })
   async getDisputeForReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
@@ -123,7 +129,10 @@ export class UserDisputeEvidenceController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Uploader les preuves associees a un litige' })
-  @ApiParam({ name: 'reservationId', description: 'Identifiant de reservation' })
+  @ApiParam({
+    name: 'reservationId',
+    description: 'Identifiant de reservation',
+  })
   async uploadEvidence(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,

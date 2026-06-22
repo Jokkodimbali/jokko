@@ -296,7 +296,9 @@ export class SearchRepository implements SearchRepositoryPort {
           where: {
             profilProfessionnelId: { in: profileIds },
             ...(input.categoryId ? { categorieId: input.categoryId } : {}),
-            ...(input.subCategoryId ? { sousCategorieId: input.subCategoryId } : {}),
+            ...(input.subCategoryId
+              ? { sousCategorieId: input.subCategoryId }
+              : {}),
           },
           orderBy: [{ creeLe: 'desc' }],
           select: {

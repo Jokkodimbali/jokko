@@ -2,8 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, RoleUtilisateur } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UpdateMyMedicalProfileDto } from '../../presentation/dto/update-my-medical-profile.dto';
-import { UpsertMyMedicalTreatmentDto } from '../../presentation/dto/upsert-my-medical-treatment.dto';
+
+type UpdateMyMedicalProfileInput = {
+  bloodGroup?: string | null;
+  rhesus?: string | null;
+  weightKg?: number | null;
+  heightCm?: number | null;
+  referenceDoctorName?: string | null;
+  profession?: string | null;
+  allergies?: string[];
+  conditions?: string[];
+};
+
+type UpsertMyMedicalTreatmentInput = {
+  name: string;
+  dosage?: string | null;
+  frequency?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  notes?: string | null;
+};
 
 type MedicalTreatmentRow = {
   id: string;
@@ -82,10 +100,11 @@ export class UsersMedicalProfileService {
     }
 
     if (requester.role !== RoleUtilisateur.ADMIN) {
-      const professionalProfile = await this.prisma.profilProfessionnel.findUnique({
-        where: { utilisateurId: requester.sub },
-        select: { id: true },
-      });
+      const professionalProfile =
+        await this.prisma.profilProfessionnel.findUnique({
+          where: { utilisateurId: requester.sub },
+          select: { id: true },
+        });
 
       if (!professionalProfile) {
         throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
@@ -110,7 +129,7 @@ export class UsersMedicalProfileService {
 
   async updateMyMedicalProfile(
     userId: string,
-    dto: UpdateMyMedicalProfileDto,
+    dto: UpdateMyMedicalProfileInput,
   ): Promise<MedicalProfileView> {
     const profile = await this.prisma.ficheMedicaleClient.upsert({
       where: { utilisateurId: userId },
@@ -143,7 +162,7 @@ export class UsersMedicalProfileService {
 
   async createTreatment(
     userId: string,
-    dto: UpsertMyMedicalTreatmentDto,
+    dto: UpsertMyMedicalTreatmentInput,
   ): Promise<MedicalProfileView> {
     const profile = await this.ensureProfile(userId);
     await this.prisma.traitementMedicalClient.create({
@@ -156,7 +175,7 @@ export class UsersMedicalProfileService {
   async updateTreatment(
     userId: string,
     treatmentId: string,
-    dto: UpsertMyMedicalTreatmentDto,
+    dto: UpsertMyMedicalTreatmentInput,
   ): Promise<MedicalProfileView> {
     const treatment = await this.findTreatmentForUser(userId, treatmentId);
     if (!treatment) {
@@ -228,7 +247,7 @@ export class UsersMedicalProfileService {
 
   private toTreatmentData(
     profileId: string,
-    dto: UpsertMyMedicalTreatmentDto,
+    dto: UpsertMyMedicalTreatmentInput,
   ): Prisma.TraitementMedicalClientCreateInput {
     return {
       ficheMedicale: { connect: { id: profileId } },
@@ -242,7 +261,7 @@ export class UsersMedicalProfileService {
   }
 
   private toTreatmentUpdate(
-    dto: UpsertMyMedicalTreatmentDto,
+    dto: UpsertMyMedicalTreatmentInput,
   ): Prisma.TraitementMedicalClientUpdateInput {
     return {
       nom: dto.name,
@@ -255,7 +274,9 @@ export class UsersMedicalProfileService {
   }
 
   private toProfileView(profile: MedicalProfileRow): MedicalProfileView {
-    const weightKg = profile.poidsKg ? Number(profile.poidsKg.toString()) : null;
+    const weightKg = profile.poidsKg
+      ? Number(profile.poidsKg.toString())
+      : null;
     return {
       id: profile.id,
       bloodGroup: profile.groupeSanguin,
@@ -275,7 +296,9 @@ export class UsersMedicalProfileService {
     };
   }
 
-  private toTreatmentView(treatment: MedicalTreatmentRow): MedicalTreatmentView {
+  private toTreatmentView(
+    treatment: MedicalTreatmentRow,
+  ): MedicalTreatmentView {
     return {
       id: treatment.id,
       name: treatment.nom,
@@ -307,14 +330,21 @@ export class UsersMedicalProfileService {
     };
   }
 
-  private calculateBmi(weightKg: number | null, heightCm: number | null): number | null {
+  private calculateBmi(
+    weightKg: number | null,
+    heightCm: number | null,
+  ): number | null {
     if (!weightKg || !heightCm) return null;
     const heightM = heightCm / 100;
     return Math.round((weightKg / (heightM * heightM)) * 10) / 10;
   }
 
-  private decimalOrNull(value: number | null | undefined): Prisma.Decimal | null {
-    return value === null || value === undefined ? null : new Prisma.Decimal(value);
+  private decimalOrNull(
+    value: number | null | undefined,
+  ): Prisma.Decimal | null {
+    return value === null || value === undefined
+      ? null
+      : new Prisma.Decimal(value);
   }
 
   private dateOrNull(value: string | null | undefined): Date | null {

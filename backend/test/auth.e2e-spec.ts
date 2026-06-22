@@ -195,9 +195,10 @@ describe('AuthModule (e2e)', () => {
     const body = response.body as AuthErrorResponse;
 
     expect(body.success).toBe(false);
-    expect(['AUTH_GOOGLE_NOT_CONFIGURED', 'AUTH_GOOGLE_ACCOUNT_INVALID']).toContain(
-      body.errorCode,
-    );
+    expect([
+      'AUTH_GOOGLE_NOT_CONFIGURED',
+      'AUTH_GOOGLE_ACCOUNT_INVALID',
+    ]).toContain(body.errorCode);
   });
 
   it('POST /api/v1/auth/refresh', async () => {

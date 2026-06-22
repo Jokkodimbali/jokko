@@ -13,7 +13,12 @@ import { ProfessionalAppService } from './professional-app-service.base';
 export class KycService extends ProfessionalAppService {
   async listKycForAdmin(
     requestUser: AuthUser,
-    query?: { status?: KycStatus; limit?: number; offset?: number; search?: string },
+    query?: {
+      status?: KycStatus;
+      limit?: number;
+      offset?: number;
+      search?: string;
+    },
   ) {
     this.assertAdminRole(requestUser.role);
     const [items, total] = await Promise.all([

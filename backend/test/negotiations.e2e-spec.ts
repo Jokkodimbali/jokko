@@ -323,7 +323,8 @@ describe('NegotiationsModule (e2e)', () => {
       .send({
         serviceId: negotiableServiceId,
         proposedAmount: 17500,
-        message: 'Nouvelle proposition pour un autre creneau apres acceptation.',
+        message:
+          'Nouvelle proposition pour un autre creneau apres acceptation.',
       })
       .expect(201);
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   EscrowStatus,
+  MethodePaiement,
   StatutPaiement,
   StatutReservation,
   StatutRetrait,
@@ -10,6 +11,7 @@ import { PaymentDomainError } from '../../domain/errors/payment.domain-error';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 type WalletTransactionDirection = 'IN' | 'OUT';
+type WithdrawalMethodRow = { id: string; methode: MethodePaiement };
 
 export type ProfessionalWalletView = {
   professionalId: string;
@@ -66,7 +68,11 @@ export class WalletQueryService {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
 
     const [
       currentMonthPayments,
@@ -164,20 +170,32 @@ export class WalletQueryService {
     ]);
 
     const withdrawalIds = ledgerTransactions
-      .filter((transaction) => transaction.type === TypeTransactionPortefeuille.DEBIT_RETRAIT)
-      .map((transaction) => transaction.reference.replace('wallet:withdrawal:', ''))
+      .filter(
+        (transaction) =>
+          transaction.type === TypeTransactionPortefeuille.DEBIT_RETRAIT,
+      )
+      .map((transaction) =>
+        transaction.reference.replace('wallet:withdrawal:', ''),
+      )
       .filter((reference) => reference.length > 0);
 
     const withdrawalsById =
       withdrawalIds.length > 0
         ? new Map(
             (
-              await this.prisma.demandeRetrait.findMany({
+              await this.prisma.demandeRetrait.findMany<{
+                where: { id: { in: string[] } };
+                select: { id: true; methode: true };
+              }>({
                 where: { id: { in: withdrawalIds } },
+                select: { id: true, methode: true },
               })
-            ).map((withdrawal) => [withdrawal.id, withdrawal]),
+            ).map((withdrawal: WithdrawalMethodRow) => [
+              withdrawal.id,
+              withdrawal,
+            ]),
           )
-        : new Map();
+        : new Map<string, WithdrawalMethodRow>();
 
     const currentRevenue = currentMonthPayments.reduce(
       (total, payment) => total + Number(payment.montantNet),
@@ -188,12 +206,18 @@ export class WalletQueryService {
       0,
     );
     const teleconsultationCount = currentMonthPayments.filter((payment) =>
-      this.isTeleconsultation(payment.reservation.service.nom, payment.reservation.service.categorie.nom),
+      this.isTeleconsultation(
+        payment.reservation.service.nom,
+        payment.reservation.service.categorie.nom,
+      ),
     ).length;
 
     const completedTransactions = ledgerTransactions.map((transaction) => {
       const amount = Number(transaction.montant);
-      const withdrawalId = transaction.reference.replace('wallet:withdrawal:', '');
+      const withdrawalId = transaction.reference.replace(
+        'wallet:withdrawal:',
+        '',
+      );
       const withdrawal = withdrawalsById.get(withdrawalId);
       return {
         id: transaction.id,
@@ -212,16 +236,18 @@ export class WalletQueryService {
       };
     });
 
-    const pendingWithdrawalTransactions = pendingWithdrawals.map((withdrawal) => ({
-      id: withdrawal.id,
-      title: `Retrait ${this.formatWithdrawalMethod(withdrawal.methode)}`,
-      date: withdrawal.demandeLe,
-      amount: -Number(withdrawal.montant),
-      direction: 'OUT' as const,
-      type: 'RETRAIT_EN_ATTENTE' as const,
-      status: 'EN_ATTENTE' as const,
-      reference: `withdrawal:pending:${withdrawal.id}`,
-    }));
+    const pendingWithdrawalTransactions = pendingWithdrawals.map(
+      (withdrawal) => ({
+        id: withdrawal.id,
+        title: `Retrait ${this.formatWithdrawalMethod(withdrawal.methode)}`,
+        date: withdrawal.demandeLe,
+        amount: -Number(withdrawal.montant),
+        direction: 'OUT' as const,
+        type: 'RETRAIT_EN_ATTENTE' as const,
+        status: 'EN_ATTENTE' as const,
+        reference: `withdrawal:pending:${withdrawal.id}`,
+      }),
+    );
 
     const pendingEscrow = lockedEscrowPayments.map((payment) => ({
       paymentId: payment.id,
@@ -232,7 +258,8 @@ export class WalletQueryService {
       amount: Number(payment.montant),
       netAmount: Number(payment.montantNet),
       reservationStatus: payment.reservation.statut,
-      canRequestRelease: payment.reservation.statut === StatutReservation.TERMINEE,
+      canRequestRelease:
+        payment.reservation.statut === StatutReservation.TERMINEE,
     }));
 
     return {
@@ -240,7 +267,10 @@ export class WalletQueryService {
       availableBalance: Number(profile.soldePortefeuille),
       monthlyRevenue: {
         amount: currentRevenue,
-        changePercent: this.calculateChangePercent(currentRevenue, previousRevenue),
+        changePercent: this.calculateChangePercent(
+          currentRevenue,
+          previousRevenue,
+        ),
         consultationCount: currentMonthPayments.length - teleconsultationCount,
         teleconsultationCount,
         refundedCancellationCount: refundedPayments.length,
@@ -257,7 +287,10 @@ export class WalletQueryService {
     return Math.round(((current - previous) / previous) * 100);
   }
 
-  private isTeleconsultation(serviceName: string, categoryName: string): boolean {
+  private isTeleconsultation(
+    serviceName: string,
+    categoryName: string,
+  ): boolean {
     const normalized = `${serviceName} ${categoryName}`
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')

@@ -9,11 +9,16 @@ describe('AdminArchivesService', () => {
       prismaMock({
         disputes: [closedDispute()],
         invoices: [invoice(45000, 4500), invoice(120000, 12000)],
-        transactions: [walletTransaction('CREDIT_ESCROW', 40000), walletTransaction('COMMISSION', 4000)],
+        transactions: [
+          walletTransaction('CREDIT_ESCROW', 40000),
+          walletTransaction('COMMISSION', 4000),
+        ],
       }),
     );
 
-    const report = await service.getArchives(adminUser, { tab: 'transactions' });
+    const report = await service.getArchives(adminUser, {
+      tab: 'transactions',
+    });
 
     expect(report.totals).toMatchObject({
       closedDisputes: 1,
@@ -23,7 +28,9 @@ describe('AdminArchivesService', () => {
       invoiceCommissionAmount: 16500,
       transactionAmount: 44000,
     });
-    const disputesReport = await service.getArchives(adminUser, { tab: 'closedDisputes' });
+    const disputesReport = await service.getArchives(adminUser, {
+      tab: 'closedDisputes',
+    });
     expect(disputesReport.closedDisputes[0]).toMatchObject({
       reference: 'LT-DISPUTE1',
       from: 'Awa Ndiaye',
@@ -66,8 +73,30 @@ function prismaMock(input: {
       count: jest.fn().mockResolvedValue(input.invoices.length),
       aggregate: jest.fn().mockResolvedValue({
         _sum: {
-          montant: decimal(input.invoices.reduce((total, row) => total + Number((row as { montant: { toNumber(): number } }).montant.toNumber()), 0)),
-          montantCommission: decimal(input.invoices.reduce((total, row) => total + Number((row as { montantCommission: { toNumber(): number } }).montantCommission.toNumber()), 0)),
+          montant: decimal(
+            input.invoices.reduce(
+              (total, row) =>
+                total +
+                Number(
+                  (
+                    row as { montant: { toNumber(): number } }
+                  ).montant.toNumber(),
+                ),
+              0,
+            ),
+          ),
+          montantCommission: decimal(
+            input.invoices.reduce(
+              (total, row) =>
+                total +
+                Number(
+                  (
+                    row as { montantCommission: { toNumber(): number } }
+                  ).montantCommission.toNumber(),
+                ),
+              0,
+            ),
+          ),
         },
       }),
       findMany: jest.fn().mockResolvedValue(input.invoices),
@@ -76,7 +105,18 @@ function prismaMock(input: {
       count: jest.fn().mockResolvedValue(input.transactions.length),
       aggregate: jest.fn().mockResolvedValue({
         _sum: {
-          montant: decimal(input.transactions.reduce((total, row) => total + Number((row as { montant: { toNumber(): number } }).montant.toNumber()), 0)),
+          montant: decimal(
+            input.transactions.reduce(
+              (total, row) =>
+                total +
+                Number(
+                  (
+                    row as { montant: { toNumber(): number } }
+                  ).montant.toNumber(),
+                ),
+              0,
+            ),
+          ),
         },
       }),
       findMany: jest.fn().mockResolvedValue(input.transactions),

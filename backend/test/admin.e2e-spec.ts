@@ -40,6 +40,10 @@ describe('Admin governance (e2e)', () => {
     data?: Record<string, unknown> | Record<string, unknown>[];
   };
 
+  function stringFromRecordValue(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+  }
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -488,7 +492,9 @@ describe('Admin governance (e2e)', () => {
     const createdCategories = (categoryResponse.body as ApiResponse).data?.[
       'created'
     ] as Array<Record<string, unknown>>;
-    const structureCategoryId = String(createdCategories[0]?.['id'] ?? '');
+    const structureCategoryId = stringFromRecordValue(
+      createdCategories[0]?.['id'],
+    );
     serviceStructureCategoryIds.push(structureCategoryId);
 
     const firstSubCategory = await request(app.getHttpServer())
@@ -514,7 +520,7 @@ describe('Admin governance (e2e)', () => {
     const bulkCreated = (bulkSubCategories.body as ApiResponse).data?.[
       'created'
     ] as Array<Record<string, unknown>>;
-    const bulkSubCategoryId = String(bulkCreated[0]?.['id'] ?? '');
+    const bulkSubCategoryId = stringFromRecordValue(bulkCreated[0]?.['id']);
     serviceSubCategoryIds.push(bulkSubCategoryId);
 
     const assignmentResponse = await request(app.getHttpServer())

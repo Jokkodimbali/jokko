@@ -302,7 +302,11 @@ export class PaymentsController {
     @Param('methodId') methodId: string,
     @Body() dto: UpdateSavedPaymentMethodDto,
   ) {
-    const method = await this.savedPaymentMethods.update(user.sub, methodId, dto);
+    const method = await this.savedPaymentMethods.update(
+      user.sub,
+      methodId,
+      dto,
+    );
     return createApiResponse(method, 'Moyen de paiement modifie.');
   }
 

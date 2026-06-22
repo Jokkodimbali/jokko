@@ -84,9 +84,7 @@ describe('ReservationEntity', () => {
       statut: 'PAYEE_SEQUESTRE',
     });
 
-    expect(() => reservation.openDispute('Trop tot.')).toThrow(
-      /litige/i,
-    );
+    expect(() => reservation.openDispute('Trop tot.')).toThrow(/litige/i);
   });
 
   it('rejects invalid reconstituted dates', () => {

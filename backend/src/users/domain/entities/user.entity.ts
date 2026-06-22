@@ -90,12 +90,17 @@ export class User {
   canBookServices(): boolean {
     return (
       this._isActive &&
-      (this._role === 'CLIENT' || this._role === 'PRESTATAIRE' || this._role === 'MEDECIN')
+      (this._role === 'CLIENT' ||
+        this._role === 'PRESTATAIRE' ||
+        this._role === 'MEDECIN')
     );
   }
 
   canProvideServices(): boolean {
-    return this._isActive && (this._role === 'PRESTATAIRE' || this._role === 'MEDECIN');
+    return (
+      this._isActive &&
+      (this._role === 'PRESTATAIRE' || this._role === 'MEDECIN')
+    );
   }
 
   private assertActive(): void {

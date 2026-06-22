@@ -232,7 +232,10 @@ export class MessagingCommandService extends MessagingAppService {
       if (reservation.clientId !== requestUser.sub) {
         throw appHttpException('MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH');
       }
-    } else if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
+    } else if (
+      requestUser.role === 'PRESTATAIRE' ||
+      requestUser.role === 'MEDECIN'
+    ) {
       const connectedProfessional =
         await this.getProfessionalProfileByUserIdOrThrow(requestUser.sub);
       if (connectedProfessional.id !== reservation.professionnelId) {

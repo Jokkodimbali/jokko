@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  StatutKyc,
-  StatutPresenceProfessionnel,
-} from '@prisma/client';
+import { Prisma, StatutKyc, StatutPresenceProfessionnel } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { appHttpException } from '../../core/http/app-http.exception';
 
@@ -190,7 +186,8 @@ export class FavoritesService {
       rating: professional.noteGlobale.toNumber(),
       totalReviews: professional.nombreAvis,
       isOnline,
-      presenceStatus: presence?.statut ?? StatutPresenceProfessionnel.HORS_LIGNE,
+      presenceStatus:
+        presence?.statut ?? StatutPresenceProfessionnel.HORS_LIGNE,
       lastSeenAt: presence?.dernierVueLe ?? null,
       isAvailableToday: hasAvailabilityToday,
       isNew: this.daysBetween(professional.creeLe, now) <= 30,

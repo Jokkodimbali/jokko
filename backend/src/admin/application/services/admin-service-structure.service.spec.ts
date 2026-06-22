@@ -1,5 +1,25 @@
 import { AdminServiceStructureService } from './admin-service-structure.service';
 
+type CategoryFixture = {
+  id: string;
+  nom: string;
+  urlIcone: string | null;
+  ordreTri: number;
+  tauxCommission: ReturnType<typeof decimal>;
+  estActive: boolean;
+  sousCategories: Array<{
+    ordreTri: number;
+    sousCategorie: {
+      id: string;
+      nom: string;
+      description: string | null;
+      ordreTri: number;
+      estActive: boolean;
+    };
+  }>;
+  services: ReturnType<typeof serviceRow>[];
+};
+
 describe('AdminServiceStructureService', () => {
   const adminUser = {
     sub: 'admin-1',
@@ -93,7 +113,7 @@ describe('AdminServiceStructureService', () => {
   });
 });
 
-function prismaMock(categories: unknown[]) {
+function prismaMock(categories: CategoryFixture[]) {
   return {
     categorie: {
       findMany: jest.fn().mockResolvedValue(categories),

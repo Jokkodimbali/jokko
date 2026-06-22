@@ -40,32 +40,6 @@
     padding: 0 !important;
   }
 
-  :host .provider-card {
-    min-height: 0 !important;
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  :host .provider-card__head {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  :host .provider-card__identity a {
-    font-size: 17px;
-  }
-
-  :host .photo-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  :host .provider-card__actions {
-    grid-template-columns: 1fr;
-  }
-
-  :host .provider-card__action {
-    min-height: 40px;
-  }
-
   :host .see-all {
     font-size: 15px !important;
     min-height: 40px !important;

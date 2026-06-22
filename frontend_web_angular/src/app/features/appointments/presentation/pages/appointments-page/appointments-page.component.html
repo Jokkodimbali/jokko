@@ -124,14 +124,14 @@
           <input
             type="search"
             [value]="search()"
-            (input)="setSearch($any($event.target).value)"
+            (input)="setSearchFromEvent($event)"
             placeholder="Recherche..."
           />
         </label>
 
         <label class="appointments-view">
           <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.1"></lucide-icon>
-          <select [value]="activePeriod()" (change)="setPeriodFilter($any($event.target).value)">
+          <select [value]="activePeriod()" (change)="setPeriodFilterFromEvent($event)">
             <option value="ALL">Toutes les dates</option>
             <option value="WEEK">Vue semaine</option>
             <option value="MONTH">Vue mois</option>

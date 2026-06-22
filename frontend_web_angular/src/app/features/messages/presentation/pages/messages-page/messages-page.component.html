@@ -15,7 +15,7 @@
           type="search"
           [value]="search()"
           placeholder="Rechercher un message..."
-          (input)="updateSearch($any($event.target).value)"
+          (input)="updateSearchFromEvent($event)"
         />
       </label>
 
@@ -222,7 +222,7 @@
                   inputmode="numeric"
                   autocomplete="off"
                   [value]="counterOfferAmountLabel()"
-                  (input)="updateCounterOfferAmount($any($event.target).value)"
+                  (input)="updateCounterOfferAmountFromEvent($event)"
                 />
                 <small>FCFA</small>
               </label>
@@ -347,7 +347,7 @@
               [value]="draft()"
               [disabled]="isRecordingVoice()"
               [placeholder]="isRecordingVoice() ? 'Parlez maintenant...' : isUploadingMedia() ? 'Preparation du media...' : 'Tapez votre message...'"
-              (input)="updateDraft($any($event.target).value)"
+              (input)="updateDraftFromEvent($event)"
               (keydown.enter)="sendMessage()"
             />
             <button
@@ -458,7 +458,7 @@
                     inputmode="numeric"
                     autocomplete="off"
                     [value]="counterOfferAmountLabel()"
-                    (input)="updateCounterOfferAmount($any($event.target).value)"
+                    (input)="updateCounterOfferAmountFromEvent($event)"
                   />
                   <small>FCFA</small>
                 </label>

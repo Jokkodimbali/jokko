@@ -21,6 +21,8 @@ export type SearchProfessionalServiceView = {
   travelMode: string;
   categoryId: string;
   categoryName: string;
+  subCategoryId?: string | null;
+  subCategoryName?: string | null;
 };
 
 export type SearchProfessionalPortfolioImageView = {

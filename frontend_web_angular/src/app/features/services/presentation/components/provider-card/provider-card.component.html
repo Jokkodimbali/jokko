@@ -1,0 +1,118 @@
+<article class="provider-card">
+  <div class="provider-card__media">
+    <img
+      class="provider-card__cover"
+      [src]="provider.coverUrl"
+      [alt]="provider.title"
+      (error)="onImageError(provider.coverUrl)"
+    />
+
+    <div class="provider-card__movement" [attr.aria-label]="provider.movementTitle">
+      <span>{{ provider.movementTitle }}</span>
+      <lucide-icon
+        *ngFor="let icon of movementIcons"
+        [name]="icon"
+        size="15"
+        [strokeWidth]="2.6"
+      ></lucide-icon>
+    </div>
+
+    <button
+      type="button"
+      class="provider-card__favorite"
+      [class.provider-card__favorite--active]="isFavorite"
+      [attr.aria-label]="isFavorite ? favoriteActiveLabel : favoriteLabel"
+      (click)="onFavoriteClick($event)"
+    >
+      <lucide-icon
+        name="bookmark"
+        size="19"
+        [strokeWidth]="2.5"
+        [attr.fill]="isFavorite ? 'currentColor' : 'none'"
+      ></lucide-icon>
+    </button>
+
+    <a
+      class="provider-card__avatar"
+      [routerLink]="provider.profileCommands"
+      [queryParams]="provider.queryParams"
+      [state]="provider.state"
+      [attr.aria-label]="'Voir le profil de ' + provider.name"
+    >
+      <img
+        *ngIf="provider.avatarUrl; else avatarInitials"
+        [src]="provider.avatarUrl"
+        [alt]="provider.name"
+        (error)="onImageError(provider.avatarUrl)"
+      />
+      <ng-template #avatarInitials>
+        <span>{{ provider.initials }}</span>
+      </ng-template>
+      <i [class.provider-card__avatar-dot--online]="provider.isOnline" aria-hidden="true"></i>
+    </a>
+
+    <div class="provider-card__rating" aria-label="Note">
+      <lucide-icon name="star" size="12" [strokeWidth]="2.3" fill="currentColor"></lucide-icon>
+      <strong>{{ ratingText }}</strong>
+      <span *ngIf="reviewsText">{{ reviewsText }}</span>
+    </div>
+  </div>
+
+  <div class="provider-card__body">
+    <div class="provider-card__identity">
+      <a
+        [routerLink]="provider.profileCommands"
+        [queryParams]="provider.queryParams"
+        [state]="provider.state"
+      >
+        {{ provider.name }}
+      </a>
+      <span>{{ provider.category }}</span>
+    </div>
+    <p>{{ provider.title }}</p>
+
+    <div class="provider-card__location">
+      <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
+      <span>{{ provider.location }}</span>
+    </div>
+
+    <div class="provider-card__gallery">
+      <ng-container *ngIf="provider.images.length > 0; else emptyGallery">
+        <figure *ngFor="let image of provider.images">
+          <img [src]="image.url" [alt]="image.label" (error)="onImageError(image.url)" />
+          <figcaption>{{ image.label }}</figcaption>
+        </figure>
+      </ng-container>
+      <ng-template #emptyGallery>
+        <span *ngFor="let slot of emptySlots" class="provider-card__empty-photo">
+          <lucide-icon [name]="slot === 0 ? 'image-plus' : 'briefcase-business'" size="18" [strokeWidth]="2.2"></lucide-icon>
+        </span>
+      </ng-template>
+    </div>
+
+    <div class="provider-card__actions">
+      <button
+        type="button"
+        class="provider-card__action provider-card__action--primary"
+        [class.provider-card__action--medical]="provider.isMedical"
+        (click)="primaryAction.emit()"
+      >
+        <lucide-icon
+          [name]="provider.isMedical ? 'calendar-check' : 'wallet-cards'"
+          size="14"
+          [strokeWidth]="2.4"
+        ></lucide-icon>
+        {{ provider.primaryActionLabel }}
+      </button>
+      <a
+        class="provider-card__action provider-card__action--profile"
+        [routerLink]="provider.profileCommands"
+        [queryParams]="provider.queryParams"
+        [state]="provider.state"
+      >
+        <lucide-icon name="info" size="14" [strokeWidth]="2.4"></lucide-icon>
+        voir son compte
+      </a>
+    </div>
+  </div>
+</article>

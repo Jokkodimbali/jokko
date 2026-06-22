@@ -93,6 +93,21 @@
         class="service-proposal__content service-proposal__content--provider"
         *ngIf="!providerProposalFinalized() && pendingProposal() as proposal"
       >
+        <ng-container *ngIf="closedProposal() as closed; else providerOpenNegotiation">
+          <section class="service-proposal__panel service-proposal__closed" aria-label="Negociation cloturee">
+            <span class="service-proposal__closed-icon">
+              <lucide-icon name="x" size="24" [strokeWidth]="2.8"></lucide-icon>
+            </span>
+            <small>{{ providerProposalStatusLabel() }}</small>
+            <h1>{{ closedNegotiationTitle(closed) }}</h1>
+            <p>{{ closedNegotiationMessage(closed) }}</p>
+            <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
+              Quitter la negociation
+            </button>
+          </section>
+        </ng-container>
+
+        <ng-template #providerOpenNegotiation>
         <ng-container *ngIf="!canProviderRespond(); else providerActionPanel">
           <section
             class="service-proposal__panel service-proposal__pending service-proposal__pending--provider-wait"
@@ -422,6 +437,7 @@
             <lucide-icon name="circle-dollar-sign" size="20" [strokeWidth]="2.3"></lucide-icon>
           </div>
         </aside>
+        </ng-template>
       </section>
     </ng-container>
 
@@ -680,6 +696,21 @@
               </header>
 
               <div class="service-proposal__panel-body">
+              <ng-container *ngIf="closedProposal() as closed; else clientOpenNegotiation">
+                <section class="service-proposal__closed" aria-label="Negociation cloturee">
+                  <span class="service-proposal__closed-icon">
+                    <lucide-icon name="x" size="24" [strokeWidth]="2.8"></lucide-icon>
+                  </span>
+                  <small>{{ providerProposalStatusLabel() }}</small>
+                  <h1>{{ closedNegotiationTitle(closed) }}</h1>
+                  <p>{{ closedNegotiationMessage(closed) }}</p>
+                  <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
+                    Quitter la negociation
+                  </button>
+                </section>
+              </ng-container>
+
+              <ng-template #clientOpenNegotiation>
               <ng-container *ngIf="!hasProviderCounterOffer(); else providerCounterOfferPanel">
                 <section
                   class="service-proposal__pending service-proposal__pending--inside"
@@ -930,6 +961,7 @@
                     </div>
                   </div>
                 </div>
+              </ng-template>
               </ng-template>
               </div>
             </section>

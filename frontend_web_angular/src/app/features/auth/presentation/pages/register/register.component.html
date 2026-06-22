@@ -213,7 +213,7 @@
               <input
                 type="text"
                 [value]="expertiseDraft()"
-                (input)="expertiseDraft.set($any($event.target).value)"
+                (input)="updateExpertiseDraft($event)"
                 placeholder="Ajouter une expertise"
               />
               <button type="button" (click)="addExpertise()">Ajouter</button>

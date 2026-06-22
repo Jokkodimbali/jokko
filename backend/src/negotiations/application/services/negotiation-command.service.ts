@@ -14,6 +14,8 @@ import {
   PROFESSIONALS_REPOSITORY_PORT,
   type ProfessionalsRepositoryPort,
 } from '../../../professionals/application/ports/professionals-repository.port';
+import { NotificationsService } from '../../../notifications/application/services/notifications.service';
+import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
 import type {
   CancelNegotiationCommand,
   CounterNegotiationCommand,
@@ -39,6 +41,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     professionalsRepository: ProfessionalsRepositoryPort,
     @Inject(DOMAINE_EVENT_BUS)
     private readonly eventBus: DomaineEventBusPort,
+    private readonly notificationsService: NotificationsService,
   ) {
     super(negotiationsRepository, professionalsRepository);
   }
@@ -138,6 +141,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationClosed(updated, 'REFUSEE');
     return updated;
   }
 
@@ -163,7 +167,50 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationClosed(updated, 'ANNULEE');
     return updated;
+  }
+
+  private async notifyNegotiationClosed(
+    negotiation: Awaited<ReturnType<NegotiationsRepositoryPort['update']>>,
+    status: 'REFUSEE' | 'ANNULEE',
+  ): Promise<void> {
+    const recipientUserId =
+      status === 'ANNULEE'
+        ? negotiation.professionnel?.utilisateurId
+        : negotiation.clientId;
+
+    if (!recipientUserId) {
+      return;
+    }
+
+    const actorName =
+      status === 'ANNULEE'
+        ? negotiation.client?.nom || 'Le client'
+        : negotiation.professionnel?.nomEntreprise ||
+          negotiation.professionnel?.utilisateur.nom ||
+          'Le prestataire';
+    const serviceName = negotiation.service?.nom || 'la prestation';
+    const title =
+      status === 'ANNULEE'
+        ? 'Negociation annulee'
+        : 'Negociation refusee';
+    const body =
+      status === 'ANNULEE'
+        ? `${actorName} a annule la negociation pour ${serviceName}.`
+        : `${actorName} a refuse la negociation pour ${serviceName}.`;
+
+    await this.notificationsService.createInAppNotification({
+      userId: recipientUserId,
+      type: NOTIFICATION_TYPES.AJUSTEMENT_PRIX_REFUSE,
+      title,
+      body,
+      data: {
+        negotiationId: negotiation.id,
+        serviceId: negotiation.serviceId,
+        status,
+      },
+    });
   }
 
   async rejectNegotiation(

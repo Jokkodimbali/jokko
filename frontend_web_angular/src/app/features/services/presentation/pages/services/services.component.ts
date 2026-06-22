@@ -23,6 +23,10 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
+import {
+  ProviderCardComponent,
+  ProviderCardView,
+} from '../../components/provider-card/provider-card.component';
 
 type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
 
@@ -36,6 +40,7 @@ type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
     AppNavbarComponent,
     AppScrollHintComponent,
     AppSearchBarComponent,
+    ProviderCardComponent,
     LucideAngularModule,
   ],
   templateUrl: './services.component.html',
@@ -77,6 +82,8 @@ export class ServicesComponent implements OnInit, OnDestroy {
       id: favorite.professionalId,
       nom: favorite.name,
       categoryName: favorite.subtitle,
+      subCategoryName: favorite.service?.subCategoryName || favorite.subtitle,
+      subCategoryNames: favorite.service?.subCategoryNames || [favorite.service?.subCategoryName || favorite.subtitle].filter(Boolean),
       professionName: favorite.subtitle,
       speciality: favorite.subtitle,
       location: favorite.location,
@@ -434,20 +441,22 @@ export class ServicesComponent implements OnInit, OnDestroy {
       .slice(0, 6);
   }
 
-  providerCoverPhoto(provider: Professional): string {
-    return this.providerPhotos(provider)[0] || '/boabab.png';
-  }
-
-  providerSecondaryPhotos(provider: Professional): string[] {
-    return this.providerPhotos(provider).slice(0, 2);
-  }
-
   providerCategoryLabel(provider: Professional): string {
     return (provider.categoryName || provider.speciality || 'Service').toUpperCase();
   }
 
   providerProfessionLabel(provider: Professional): string {
     return provider.professionName || provider.speciality || 'Profession non renseignee';
+  }
+
+  providerSubCategoryLabel(provider: Professional): string {
+    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+      .map((label) => label?.trim())
+      .filter((label): label is string => Boolean(label));
+
+    return labels.length > 0
+      ? labels.join(' • ')
+      : provider.professionName || provider.speciality || 'Sous categorie non renseignee';
   }
 
   providerPortfolioLabel(provider: Professional, index: number): string {
@@ -460,14 +469,6 @@ export class ServicesComponent implements OnInit, OnDestroy {
       : provider.profileType === 'MEDECIN'
         ? 'Consultation'
         : 'Intervention';
-  }
-
-  providerRatingLabel(provider: { rating: number; totalReviews: number }): string {
-    if (provider.totalReviews <= 0) {
-      return 'Nouveau';
-    }
-
-    return `${provider.rating.toFixed(1)} (${provider.totalReviews} avis)`;
   }
 
   providerMovementTitle(provider: Professional): string {
@@ -486,48 +487,47 @@ export class ServicesComponent implements OnInit, OnDestroy {
     }
   }
 
-  providerMovementAriaLabel(provider: Professional): string {
-    return `${this.providerMovementTitle(provider)} - ${this.providerMovementSubtitle(provider)}`;
-  }
-
-  providerMovementIcon(provider: Professional): string {
-    if (provider.profileType === 'MEDECIN') {
-      return 'map-pin';
-    }
-
-    switch (provider.serviceTravelMode) {
-      case 'CLIENT_SE_DEPLACE':
-        return 'map-pin';
-      case 'TRANSPORT_COLIS':
-        return 'clipboard';
-      case 'PRESTATAIRE_SE_DEPLACE':
-      default:
-        return 'wrench';
-    }
-  }
-
-  providerMovementSubtitle(provider: Professional): string {
-    if (provider.profileType === 'MEDECIN') {
-      return 'Rendez-vous au cabinet ou au point de consultation';
-    }
-
-    switch (provider.serviceTravelMode) {
-      case 'CLIENT_SE_DEPLACE':
-        return 'Rendez-vous chez le prestataire';
-      case 'TRANSPORT_COLIS':
-        return 'Colis pris en charge du point A au point B';
-      case 'PRESTATAIRE_SE_DEPLACE':
-      default:
-        return 'Intervention a votre domicile';
-    }
-  }
-
   providerProfileCommands(provider: Professional): unknown[] {
     return ['/services', provider.id];
   }
 
   providerActionLabel(provider: Professional): string {
     return provider.profileType === 'MEDECIN' ? 'Prendre rendez-vous' : 'Negocier le prix';
+  }
+
+  providerCardView(provider: Professional): ProviderCardView {
+    const photos = this.providerPhotos(provider);
+    const queryParams = provider.serviceId ? { serviceId: provider.serviceId } : null;
+    const profileCommands = this.providerProfileCommands(provider);
+
+    return {
+      id: provider.id,
+      name: provider.nom,
+      title: this.providerSubCategoryLabel(provider),
+      category: this.providerCategoryLabel(provider),
+      location: provider.location,
+      rating: provider.rating,
+      totalReviews: provider.totalReviews,
+      isOnline: provider.isOnline,
+      avatarUrl: this.resolveProviderAvatar(provider),
+      initials: this.providerInitials(provider.nom),
+      coverUrl: '/boabab.png',
+      movementTitle: this.providerMovementTitle(provider),
+      travelMode: provider.profileType === 'MEDECIN' ? 'CLIENT_SE_DEPLACE' : provider.serviceTravelMode,
+      isMedical: provider.profileType === 'MEDECIN',
+      images: photos.slice(0, 2).map((url, index) => ({
+        url,
+        label: this.providerPortfolioLabel(provider, index),
+      })),
+      primaryActionLabel: this.providerActionLabel(provider),
+      profileCommands,
+      queryParams,
+      state: {
+        provider,
+        avatar: this.resolveProviderAvatar(provider),
+        photos,
+      },
+    };
   }
 
   providerPrimaryAction(provider: Professional): void {
@@ -547,10 +547,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
       .some((favorite) => favorite.professionalId === providerId);
   }
 
-  toggleProviderFavorite(event: Event, providerId: string): void {
-    event.preventDefault();
-    event.stopPropagation();
-
+  toggleProviderFavorite(providerId: string): void {
     if (!this.authSession.hasAuthenticatedSession()) {
       this.feedback.info('Connectez-vous d abord pour gerer vos favoris.');
       this.router.navigate(['/auth/login'], {

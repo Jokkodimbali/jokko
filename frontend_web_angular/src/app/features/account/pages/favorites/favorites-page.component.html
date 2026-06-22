@@ -73,55 +73,15 @@
     </section>
 
     <section *ngIf="!isLoading() && !errorMessage() && filteredFavorites().length > 0; else favoritesState" class="favorites-page__grid">
-      <article *ngFor="let favorite of filteredFavorites()" class="favorites-page__card">
-        <header class="favorites-page__card-head">
-          <a [routerLink]="detailRoute(favorite)" class="favorites-page__avatar" aria-label="Voir le profil">
-            <img *ngIf="favorite.avatarUrl; else favoriteInitials" [src]="favorite.avatarUrl" [alt]="favorite.name" />
-            <ng-template #favoriteInitials>
-              <span>{{ initials(favorite.name) }}</span>
-            </ng-template>
-            <i [class.favorites-page__avatar-dot--online]="favorite.isOnline" aria-hidden="true"></i>
-          </a>
-
-          <div class="favorites-page__identity">
-            <a [routerLink]="detailRoute(favorite)">{{ favorite.name }}</a>
-            <span>{{ favorite.subtitle }}</span>
-          </div>
-
-          <button type="button" class="favorites-page__remove" aria-label="Retirer des favoris" (click)="removeFavorite(favorite.professionalId)">
-            <lucide-icon name="bookmark" size="21" [strokeWidth]="2.4" fill="currentColor"></lucide-icon>
-          </button>
-        </header>
-
-        <div class="favorites-page__meta">
-          <span>
-            <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
-            {{ favorite.location }}
-          </span>
-          <span [class.favorites-page__meta-online]="favorite.isOnline">
-            <lucide-icon name="clock-3" size="13" [strokeWidth]="2.1"></lucide-icon>
-            {{ statusLabel(favorite) }}
-          </span>
-          <span>
-            <lucide-icon name="star" size="13" [strokeWidth]="2.1" fill="currentColor"></lucide-icon>
-            {{ ratingLabel(favorite) }}
-          </span>
-        </div>
-
-        <div class="favorites-page__gallery" *ngIf="gallery(favorite).length > 0">
-          <img *ngFor="let image of gallery(favorite)" [src]="image.url" [alt]="image.title" />
-        </div>
-
-        <div class="favorites-page__service" *ngIf="favorite.service">
-          <span>{{ favorite.service.name }}</span>
-          <strong>{{ formatAmount(favorite.service.price) }}</strong>
-        </div>
-
-        <a [routerLink]="detailRoute(favorite)" class="favorites-page__details">
-          <lucide-icon name="info" size="16" [strokeWidth]="2.5"></lucide-icon>
-          En savoir plus
-        </a>
-      </article>
+      <app-provider-card
+        *ngFor="let favorite of filteredFavorites()"
+        [provider]="favoriteCardView(favorite)"
+        [isFavorite]="true"
+        favoriteActiveLabel="Retirer des favoris"
+        (favoriteToggle)="removeFavorite(favorite.professionalId)"
+        (primaryAction)="openFavoritePrimaryAction(favorite)"
+        (imageError)="handleImageError($event)"
+      ></app-provider-card>
     </section>
 
     <ng-template #favoritesState>

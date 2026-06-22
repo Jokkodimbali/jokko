@@ -29,6 +29,14 @@ export type NegotiationView = Negotiation & {
     nom: string;
     prix: number;
   };
+  professionnel?: {
+    id: string;
+    utilisateurId: string;
+    nomEntreprise: string | null;
+    utilisateur: {
+      nom: string;
+    };
+  };
 };
 export type NegotiationOfferView = NegotiationOffer;
 

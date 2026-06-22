@@ -281,7 +281,7 @@ export class ReservationsController {
     errorCode: 'RESERVATIONS_STATUS_PENDING_REQUIRED',
     messageExample: API_DOCS.reservations.confirmPendingRequired,
   })
-  async confirmReservation(
+  confirmReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
   ) {

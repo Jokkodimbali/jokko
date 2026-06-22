@@ -1,10 +1,17 @@
 import { $Enums } from '@prisma/client';
 import { ReservationsRepository } from './reservations.repository';
 
+type ReservationPrismaMock = {
+  reservation: {
+    findMany: jest.Mock;
+    updateMany: jest.Mock;
+  };
+};
+
 describe('ReservationsRepository', () => {
   it('marks only overdue pending reservations as no-show automatically', async () => {
     const now = new Date('2026-06-11T12:00:00.000Z');
-    const prisma = {
+    const prisma: ReservationPrismaMock = {
       reservation: {
         findMany: jest.fn().mockResolvedValue([
           {
@@ -44,7 +51,7 @@ describe('ReservationsRepository', () => {
 
   it('does not mark a pending reservation before its planned end time', async () => {
     const now = new Date('2026-06-11T10:30:00.000Z');
-    const prisma = {
+    const prisma: ReservationPrismaMock = {
       reservation: {
         findMany: jest.fn().mockResolvedValue([
           {

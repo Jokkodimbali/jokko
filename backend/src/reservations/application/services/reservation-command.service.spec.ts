@@ -173,13 +173,15 @@ describe('ReservationCommandService', () => {
       professionalId: 'professional-id',
     });
 
-    await expect(
+    expect(() =>
       service.confirmReservation(professionalUser, 'reservation-id'),
-    ).rejects.toMatchObject({
-      response: expect.objectContaining({
-        errorCode: 'RESERVATIONS_CONFIRMATION_NOT_REQUIRED',
+    ).toThrow(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          errorCode: 'RESERVATIONS_CONFIRMATION_NOT_REQUIRED',
+        }),
       }),
-    });
+    );
     expect(reservationsRepository.update).not.toHaveBeenCalled();
   });
 

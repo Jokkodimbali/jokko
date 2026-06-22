@@ -3,6 +3,8 @@ import { AdminRevenueService } from './admin-revenue.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 
+type PaymentFixture = ReturnType<typeof payment>;
+
 describe('AdminRevenueService', () => {
   const adminUser: AuthUser = {
     sub: 'admin-id',
@@ -112,7 +114,7 @@ describe('AdminRevenueService', () => {
   });
 });
 
-function mockPrisma(payments: unknown[]): PrismaService {
+function mockPrisma(payments: PaymentFixture[]): PrismaService {
   return {
     paiement: {
       findMany: jest.fn().mockResolvedValue(payments),

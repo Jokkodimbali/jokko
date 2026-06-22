@@ -96,7 +96,7 @@ type AppointmentDetailUiState =
 })
 export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('trackingMap')
-  private set trackingMapRef(value: ElementRef<HTMLElement> | undefined) {
+  set trackingMapRef(value: ElementRef<HTMLElement> | undefined) {
     if (!value) {
       this.destroyRouteMap();
       return;
@@ -107,7 +107,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   @ViewChild('workTrackingMap')
-  private set workTrackingMapRef(value: ElementRef<HTMLElement> | undefined) {
+  set workTrackingMapRef(value: ElementRef<HTMLElement> | undefined) {
     if (!value) {
       this.destroyWorkMap();
       return;
@@ -1021,7 +1021,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const latitude = this.trackingLatitude();
     const longitude = this.trackingLongitude();
     if (leaflet && destination && typeof latitude === 'number' && typeof longitude === 'number') {
-      this.renderRoutePolyline(leaflet, [latitude, longitude], [destination.lat, destination.lng]);
+      this.renderRoutePolyline(leaflet);
     }
     this.refreshRouteAlternatives();
   }
@@ -1513,11 +1513,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.workTrackingMapElement = undefined;
   }
 
-  private renderRoutePolyline(
-    leaflet: LeafletNamespace,
-    provider: [number, number],
-    destinationPoint: [number, number],
-  ): void {
+  private renderRoutePolyline(leaflet: LeafletNamespace): void {
     if (!this.routeMap || !leaflet.polyline) return;
     const createPolyline = leaflet.polyline;
 
@@ -1639,7 +1635,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
         const leaflet = window.L as LeafletNamespace | undefined;
         if (leaflet) {
-          this.renderRoutePolyline(leaflet, provider, destinationPoint);
+          this.renderRoutePolyline(leaflet);
         }
         this.updateLeafletMaps();
       })
@@ -1929,22 +1925,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       lng >= SENEGAL_GEO_BOUNDS.minLng &&
       lng <= SENEGAL_GEO_BOUNDS.maxLng
     );
-  }
-
-  private distanceBetweenPoints(start: [number, number], end: [number, number]): number {
-    const earthRadiusKm = 6371;
-    const dLat = this.degreesToRadians(end[0] - start[0]);
-    const dLng = this.degreesToRadians(end[1] - start[1]);
-    const lat1 = this.degreesToRadians(start[0]);
-    const lat2 = this.degreesToRadians(end[0]);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    return Math.max(0.1, earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-  }
-
-  private degreesToRadians(value: number): number {
-    return (value * Math.PI) / 180;
   }
 
   private mergeAppointment(current: AppointmentView, updated: AppointmentView): AppointmentView {

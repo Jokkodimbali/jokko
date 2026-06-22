@@ -1,5 +1,9 @@
 import { AdminArchivesService } from './admin-archives.service';
 
+type DecimalStub = { toNumber(): number };
+type InvoiceFixture = { montant: DecimalStub; montantCommission: DecimalStub };
+type WalletTransactionFixture = { montant: DecimalStub };
+
 describe('AdminArchivesService', () => {
   const adminUser = { id: 'admin-1', role: 'ADMIN' } as never;
   const clientUser = { id: 'client-1', role: 'CLIENT' } as never;
@@ -60,9 +64,9 @@ describe('AdminArchivesService', () => {
 });
 
 function prismaMock(input: {
-  disputes: unknown[];
-  invoices: unknown[];
-  transactions: unknown[];
+  disputes: ReturnType<typeof closedDispute>[];
+  invoices: ReturnType<typeof invoice>[];
+  transactions: ReturnType<typeof walletTransaction>[];
 }) {
   return {
     litige: {
@@ -76,24 +80,14 @@ function prismaMock(input: {
           montant: decimal(
             input.invoices.reduce(
               (total, row) =>
-                total +
-                Number(
-                  (
-                    row as { montant: { toNumber(): number } }
-                  ).montant.toNumber(),
-                ),
+                total + (row as InvoiceFixture).montant.toNumber(),
               0,
             ),
           ),
           montantCommission: decimal(
             input.invoices.reduce(
               (total, row) =>
-                total +
-                Number(
-                  (
-                    row as { montantCommission: { toNumber(): number } }
-                  ).montantCommission.toNumber(),
-                ),
+                total + (row as InvoiceFixture).montantCommission.toNumber(),
               0,
             ),
           ),
@@ -108,12 +102,7 @@ function prismaMock(input: {
           montant: decimal(
             input.transactions.reduce(
               (total, row) =>
-                total +
-                Number(
-                  (
-                    row as { montant: { toNumber(): number } }
-                  ).montant.toNumber(),
-                ),
+                total + (row as WalletTransactionFixture).montant.toNumber(),
               0,
             ),
           ),

@@ -305,6 +305,7 @@ export class SearchRepository implements SearchRepositoryPort {
             id: true,
             profilProfessionnelId: true,
             categorieId: true,
+            sousCategorieId: true,
             categorie: {
               select: {
                 nom: true,
@@ -332,6 +333,8 @@ export class SearchRepository implements SearchRepositoryPort {
         travelMode: 'PRESTATAIRE_SE_DEPLACE',
         categoryId: specialty.categorieId,
         categoryName: specialty.categorie.nom,
+        subCategoryId: specialty.sousCategorieId,
+        subCategoryName: specialty.sousCategorie?.nom ?? null,
       };
 
       const existing =

@@ -1,18 +1,29 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { FavoriteItem } from '../../../../core/favorites/favorites.service';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../core/favorites/favorites.service';
 import { AccountShellComponent } from '../../../../shared/ui/account-shell/account-shell.component';
+import {
+  ProviderCardComponent,
+  ProviderCardView,
+} from '../../../services/presentation/components/provider-card/provider-card.component';
 
 @Component({
   selector: 'app-favorites-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, AccountShellComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    LucideAngularModule,
+    AccountShellComponent,
+    ProviderCardComponent,
+  ],
   templateUrl: './favorites-page.component.html',
   styleUrl: './favorites-page.component.scss',
 })
@@ -20,6 +31,7 @@ export class FavoritesPageComponent {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly router = inject(Router);
 
   protected readonly favorites = this.favoritesService.favorites;
   protected readonly currentUser = this.authSession.currentUser;
@@ -28,6 +40,7 @@ export class FavoritesPageComponent {
   protected readonly availableOnly = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly failedImageUrls = signal<Set<string>>(new Set());
 
   protected readonly totalFavorites = computed(() => this.favorites().length);
   protected readonly onlineFavorites = computed(() =>
@@ -141,32 +154,6 @@ export class FavoritesPageComponent {
       : ['/services', favorite.professionalId];
   }
 
-  protected formatAmount(value: number | null | undefined): string {
-    if (!Number.isFinite(value) || !value) return 'Tarif non renseigne';
-
-    return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value)} FCFA`;
-  }
-
-  protected ratingLabel(favorite: FavoriteItem): string {
-    if (favorite.totalReviews <= 0) return 'Aucun avis';
-    return `${favorite.rating} (${favorite.totalReviews} avis)`;
-  }
-
-  protected statusLabel(favorite: FavoriteItem): string {
-    if (favorite.isOnline) {
-      return favorite.lastSeenAt
-        ? `En ligne - ${this.relativeTime(favorite.lastSeenAt)}`
-        : 'En ligne maintenant';
-    }
-
-    if (favorite.isAvailableToday) return "Disponible aujourd'hui";
-    return 'Disponible prochainement';
-  }
-
-  protected gallery(favorite: FavoriteItem) {
-    return favorite.portfolioImages.slice(0, 2);
-  }
-
   protected initials(name: string): string {
     return name
       .split(/\s+/)
@@ -176,19 +163,130 @@ export class FavoritesPageComponent {
       .join('');
   }
 
-  private relativeTime(value: string): string {
-    const diffMinutes = Math.max(
-      0,
-      Math.round((Date.now() - new Date(value).getTime()) / 60_000),
-    );
+  protected favoriteCardView(favorite: FavoriteItem): ProviderCardView {
+    const images = this.favoriteImages(favorite);
+    const route = this.detailRoute(favorite);
+    const serviceId = favorite.service?.id;
+    const queryParams = serviceId ? { serviceId } : null;
+    const isMedical = this.isMedicalFavorite(favorite);
+    const travelMode = this.favoriteTravelMode(favorite);
 
-    if (diffMinutes < 1) return 'maintenant';
-    if (diffMinutes < 60) return `il y a ${diffMinutes} min`;
+    return {
+      id: favorite.professionalId,
+      name: favorite.name,
+      title:
+        favorite.service?.subCategoryNames?.filter(Boolean).join(' • ') ||
+        favorite.service?.subCategoryName ||
+        favorite.subtitle ||
+        favorite.service?.name ||
+        'Sous categorie non renseignee',
+      category: (favorite.service?.categoryName || favorite.subtitle || 'Service').toUpperCase(),
+      location: favorite.location,
+      rating: favorite.rating,
+      totalReviews: favorite.totalReviews,
+      isOnline: favorite.isOnline,
+      avatarUrl: this.visibleImageUrl(favorite.avatarUrl),
+      initials: this.initials(favorite.name),
+      coverUrl: '/boabab.png',
+      movementTitle: this.favoriteMovementTitle(travelMode),
+      travelMode,
+      isMedical,
+      images,
+      primaryActionLabel: isMedical ? 'Prendre rendez-vous' : 'Negocier le prix',
+      profileCommands: route,
+      queryParams,
+      state: { favorite },
+    };
+  }
 
-    const hours = Math.round(diffMinutes / 60);
-    if (hours < 24) return `il y a ${hours} h`;
+  protected handleImageError(url: string | null | undefined): void {
+    const value = url?.trim();
+    if (!value) {
+      return;
+    }
 
-    return 'maintenant';
+    this.failedImageUrls.update((urls) => {
+      const next = new Set(urls);
+      next.add(value);
+      return next;
+    });
+  }
+
+  protected openFavoritePrimaryAction(favorite: FavoriteItem): void {
+    if (this.isMedicalFavorite(favorite)) {
+      this.router.navigate(['/medecine', favorite.professionalId, 'rendez-vous'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
+    }
+
+    this.router.navigate(['/services', favorite.professionalId, 'proposition'], {
+      queryParams: {
+        ...(favorite.service?.id ? { serviceId: favorite.service.id } : {}),
+        returnUrl: this.router.url,
+      },
+      state: { favorite },
+    });
+  }
+
+  private visibleImageUrl(url: string | null | undefined): string | null {
+    const value = url?.trim();
+    if (!value || this.failedImageUrls().has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  private favoriteImages(favorite: FavoriteItem) {
+    return favorite.portfolioImages
+      .map((image) => ({
+        url: image.url.trim(),
+        label: image.title || favorite.service?.name || favorite.subtitle || 'Realisation',
+      }))
+      .filter((image) => image.url.length > 0 && !this.failedImageUrls().has(image.url))
+      .slice(0, 2);
+  }
+
+  private favoriteMovementTitle(travelMode: NonNullable<ProviderCardView['travelMode']>): string {
+    switch (travelMode) {
+      case 'CLIENT_SE_DEPLACE':
+        return 'Vous vous deplacez chez lui';
+      case 'TRANSPORT_COLIS':
+        return 'Trajet personnalise';
+      case 'PRESTATAIRE_SE_DEPLACE':
+      default:
+        return 'Il se deplace chez vous';
+    }
+  }
+
+  private isMedicalFavorite(favorite: FavoriteItem): boolean {
+    const category = this.favoriteSearchText(favorite);
+    return category.includes('medecin') || category.includes('sante');
+  }
+
+  private favoriteTravelMode(favorite: FavoriteItem): NonNullable<ProviderCardView['travelMode']> {
+    if (this.isMedicalFavorite(favorite)) {
+      return 'CLIENT_SE_DEPLACE';
+    }
+
+    return favorite.service?.travelMode ?? this.legacyFavoriteTravelMode(favorite);
+  }
+
+  private legacyFavoriteTravelMode(favorite: FavoriteItem): NonNullable<ProviderCardView['travelMode']> {
+    return this.isTransportFavorite(favorite) ? 'TRANSPORT_COLIS' : 'PRESTATAIRE_SE_DEPLACE';
+  }
+
+  private isTransportFavorite(favorite: FavoriteItem): boolean {
+    const category = this.favoriteSearchText(favorite);
+    return category.includes('transport') || category.includes('livraison');
+  }
+
+  private favoriteSearchText(favorite: FavoriteItem): string {
+    return `${favorite.service?.categoryName ?? ''} ${favorite.subtitle ?? ''} ${favorite.service?.name ?? ''}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
 
   private hasUsableFavoriteSession(): boolean {

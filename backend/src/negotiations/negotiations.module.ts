@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CoreModule } from '../core/core.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { NEGOTIATIONS_REPOSITORY_PORT } from './application/ports/negotiations-repository.port';
 import { NegotiationCommandService } from './application/services/negotiation-command.service';
 import { NegotiationQueryService } from './application/services/negotiation-query.service';
@@ -11,7 +12,7 @@ import { NegotiationsRepository } from './infrastructure/repositories/negotiatio
 import { NegotiationsController } from './presentation/controllers/negotiations.controller';
 
 @Module({
-  imports: [PrismaModule, AuthModule, CoreModule, ProfessionalsModule],
+  imports: [PrismaModule, AuthModule, CoreModule, ProfessionalsModule, NotificationsModule],
   controllers: [NegotiationsController],
   providers: [
     NegotiationsRepository,

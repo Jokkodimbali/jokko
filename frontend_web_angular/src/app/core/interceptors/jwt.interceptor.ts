@@ -68,7 +68,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
               withCredentials: true,
             }));
           }),
-          catchError((refreshError) => {
+          catchError(() => {
             refreshTokenSignal.next('FAILED');
             handleExpiredSession(authSession, feedback, router);
             return EMPTY;

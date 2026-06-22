@@ -13,10 +13,8 @@ import {
   BackendProfessionalDetailService,
   BackendProfessionalPortfolioItem,
   BackendProfessionalProfile,
-  Category,
   CategoryStructure,
   ServiceTravelMode,
-  ServiceSubCategory,
 } from '../../../../services/domain/models/services.models';
 import {
   NegotiationStatus,
@@ -2074,21 +2072,6 @@ export class DoctorSpacePageComponent implements OnInit {
     this.profileForm.bio = profile?.biographie ?? '';
   }
 
-  private toUploadPreview(uploaded: {
-    fileUrl: string;
-    imageUrl?: string;
-    originalFileName: string;
-    mimeType: string;
-  }): UploadPreview {
-    const previewUrl = publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ?? uploaded.imageUrl ?? uploaded.fileUrl;
-    return {
-      url: previewUrl,
-      name: uploaded.originalFileName,
-      mimeType: uploaded.mimeType,
-      isImage: uploaded.mimeType.startsWith('image/'),
-    };
-  }
-
   private toLocalUploadPreview(file: File): UploadPreview {
     return {
       url: URL.createObjectURL(file),
@@ -2621,15 +2604,6 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected isCancelledStatus(status: AppointmentStatus): boolean {
     return status === 'ANNULEE' || status === 'NO_SHOW';
-  }
-
-  private isAgendaConfirmedStatus(status: AppointmentStatus): boolean {
-    return (
-      status === 'CONFIRMEE' ||
-      status === 'PAYEE_SEQUESTRE' ||
-      status === 'EN_COURS' ||
-      status === 'TERMINEE'
-    );
   }
 
   private isAgendaActiveStatus(status: AppointmentStatus): boolean {

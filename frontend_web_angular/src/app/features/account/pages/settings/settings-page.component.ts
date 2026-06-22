@@ -342,6 +342,7 @@ export class SettingsPageComponent implements OnInit {
     this.loadProfile();
     this.loadMedicalProfile();
     this.loadPaymentMethods();
+    this.loadPaymentActivity();
     this.loadUserHistory();
   }
 
@@ -964,7 +965,6 @@ export class SettingsPageComponent implements OnInit {
   protected withdrawalAmount(withdrawal: WithdrawalRequestView): number {
     const amount = withdrawal.amount;
     if (typeof amount === 'number') return amount;
-    if (typeof amount === 'object' && amount !== null && 'value' in amount) return (amount as any).value || 0;
     return 0;
   }
 

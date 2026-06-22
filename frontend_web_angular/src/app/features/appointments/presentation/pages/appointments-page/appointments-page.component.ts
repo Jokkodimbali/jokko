@@ -268,6 +268,10 @@ export class AppointmentsPageComponent implements OnInit {
     this.search.set(value);
   }
 
+  protected setSearchFromEvent(event: Event): void {
+    this.setSearch((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
   protected setStatusFilter(filter: AppointmentStatusFilter): void {
     this.activeStatus.set(this.activeStatus() === filter ? 'ALL' : filter);
   }
@@ -276,6 +280,10 @@ export class AppointmentsPageComponent implements OnInit {
     if (value === 'ALL' || value === 'WEEK' || value === 'MONTH') {
       this.activePeriod.set(value);
     }
+  }
+
+  protected setPeriodFilterFromEvent(event: Event): void {
+    this.setPeriodFilter((event.target as HTMLSelectElement | null)?.value ?? '');
   }
 
   protected selectCalendarDay(day: CalendarDay): void {

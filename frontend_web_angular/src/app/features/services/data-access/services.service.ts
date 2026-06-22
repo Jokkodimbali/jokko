@@ -308,6 +308,12 @@ export class ServicesService {
   ): Professional {
     const primaryService = data.services[0];
     const primarySpecialty = data.specialties?.[0];
+    const subCategoryNames = this.uniqueLabels(
+      [
+        ...(data.specialties ?? []).map((specialty) => specialty.subCategoryName || specialty.name),
+        ...(data.services ?? []).map((service) => service.subCategoryName),
+      ],
+    );
     const isOnline = Boolean(presence?.isOnline);
 
     return {
@@ -321,6 +327,12 @@ export class ServicesService {
         primaryService?.categoryName ||
         primarySpecialty?.categoryName ||
         (profileType === 'MEDECIN' ? 'MEDECINE' : 'SERVICE'),
+      subCategoryName:
+        subCategoryNames[0] ||
+        primarySpecialty?.subCategoryName ||
+        primaryService?.subCategoryName ||
+        null,
+      subCategoryNames,
       professionName:
         primaryService?.name ||
         primarySpecialty?.name ||
@@ -342,6 +354,31 @@ export class ServicesService {
       avatar: this.absoluteAssetUrl(data.avatarUrl) || undefined,
       photos,
     };
+  }
+
+  private uniqueLabels(values: Array<string | null | undefined>): string[] {
+    const seen = new Set<string>();
+    const labels: string[] = [];
+
+    for (const value of values) {
+      const label = value?.trim();
+      if (!label) {
+        continue;
+      }
+
+      const key = label
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      labels.push(label);
+    }
+
+    return labels;
   }
 
   private mergeProfessionals(...groups: Professional[][]): Professional[] {

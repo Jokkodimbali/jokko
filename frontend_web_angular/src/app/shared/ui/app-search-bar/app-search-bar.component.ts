@@ -38,6 +38,10 @@ export class AppSearchBarComponent {
     this.valueChange.emit(value);
   }
 
+  onInputEvent(event: Event): void {
+    this.onInput((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
   onSubmit(): void {
     this.searchSubmit.emit(this.searchValue.trim());
   }

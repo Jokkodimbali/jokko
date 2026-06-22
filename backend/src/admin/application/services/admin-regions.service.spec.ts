@@ -1,5 +1,7 @@
 import { AdminRegionsService } from './admin-regions.service';
 
+type ProviderFixture = ReturnType<typeof provider>;
+
 describe('AdminRegionsService', () => {
   const adminUser = { id: 'admin-1', role: 'ADMIN' } as never;
   const clientUser = { id: 'client-1', role: 'CLIENT' } as never;
@@ -75,7 +77,7 @@ describe('AdminRegionsService', () => {
   });
 });
 
-function prismaMock(providers: unknown[]) {
+function prismaMock(providers: ProviderFixture[]) {
   const clients = [
     { id: 'client-dakar-1', adresse: 'Dakar Plateau' },
     { id: 'client-dakar-2', adresse: 'Yoff Dakar' },

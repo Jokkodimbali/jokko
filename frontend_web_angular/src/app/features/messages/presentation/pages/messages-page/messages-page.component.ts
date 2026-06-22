@@ -193,6 +193,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly canShowNegotiationButton = computed(() => {
     const proposal = this.visibleProposalStep();
     return (
+      this.currentUser()?.role === 'CLIENT' &&
       Boolean(proposal?.negotiationId) &&
       (proposal?.status === 'EN_ATTENTE_CLIENT' ||
         proposal?.status === 'EN_ATTENTE_PRESTATAIRE')
@@ -258,6 +259,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.search.set(value);
   }
 
+  protected updateSearchFromEvent(event: Event): void {
+    this.updateSearch((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
   protected selectConversationFilter(filter: ConversationFilter): void {
     this.conversationFilter.set(filter);
   }
@@ -281,6 +286,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected updateDraft(value: string): void {
     this.draft.set(value);
+  }
+
+  protected updateDraftFromEvent(event: Event): void {
+    this.updateDraft((event.target as HTMLTextAreaElement | null)?.value ?? '');
   }
 
   protected sendMessage(): void {
@@ -639,6 +648,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected updateCounterOfferAmount(value: string): void {
     const amount = Number(value.replace(/[^\d]/g, ''));
     this.counterOfferAmount.set(Number.isFinite(amount) ? amount : 0);
+  }
+
+  protected updateCounterOfferAmountFromEvent(event: Event): void {
+    this.updateCounterOfferAmount((event.target as HTMLInputElement | null)?.value ?? '');
   }
 
   protected sendCounterOffer(): void {

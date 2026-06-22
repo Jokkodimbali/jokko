@@ -33,9 +33,21 @@ const FAVORITE_SELECT = {
           nom: true,
           prix: true,
           typePrix: true,
+          modeDeplacement: true,
           categorie: {
             select: {
               id: true,
+              nom: true,
+            },
+          },
+        },
+      },
+      specialites: {
+        orderBy: { creeLe: 'desc' },
+        select: {
+          sousCategorieId: true,
+          sousCategorie: {
+            select: {
               nom: true,
             },
           },
@@ -164,6 +176,10 @@ export class FavoritesService {
   private mapFavorite(favorite: RawFavorite) {
     const professional = favorite.profilProfessionnel;
     const primaryService = professional.services[0] ?? null;
+    const primarySpecialty = professional.specialites[0] ?? null;
+    const subCategoryNames = this.uniqueLabels(
+      professional.specialites.map((specialty) => specialty.sousCategorie?.nom),
+    );
     const presence = professional.presence;
     const now = new Date();
     const today = now.getDay() === 0 ? 7 : now.getDay();
@@ -180,7 +196,10 @@ export class FavoritesService {
       createdAt: favorite.creeLe,
       name: professional.nomEntreprise || professional.utilisateur.nom,
       subtitle:
-        primaryService?.categorie.nom || primaryService?.nom || 'Prestataire',
+        primarySpecialty?.sousCategorie?.nom ||
+        primaryService?.categorie.nom ||
+        primaryService?.nom ||
+        'Prestataire',
       location: professional.ville || 'Senegal',
       avatarUrl: professional.utilisateur.urlAvatar,
       rating: professional.noteGlobale.toNumber(),
@@ -202,11 +221,40 @@ export class FavoritesService {
             name: primaryService.nom,
             price: primaryService.prix.toNumber(),
             priceType: primaryService.typePrix,
+            travelMode: primaryService.modeDeplacement,
             categoryId: primaryService.categorie.id,
             categoryName: primaryService.categorie.nom,
+            subCategoryId: primarySpecialty?.sousCategorieId ?? null,
+            subCategoryName: subCategoryNames[0] ?? null,
+            subCategoryNames,
           }
         : null,
     };
+  }
+
+  private uniqueLabels(values: Array<string | null | undefined>): string[] {
+    const seen = new Set<string>();
+    const labels: string[] = [];
+
+    for (const value of values) {
+      const label = value?.trim();
+      if (!label) {
+        continue;
+      }
+
+      const key = label
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      labels.push(label);
+    }
+
+    return labels;
   }
 
   private daysBetween(start: Date, end: Date) {

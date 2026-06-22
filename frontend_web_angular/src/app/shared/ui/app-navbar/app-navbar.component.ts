@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -145,6 +145,18 @@ export class AppNavbarComponent implements OnInit {
       route: '/contact',
     },
   ]);
+
+  @HostListener('document:click', ['$event'])
+  protected closeMenusOnOutsideClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    if (target.closest('app-navbar')) return;
+
+    this.closeProfileMenu();
+    this.closeNotificationsMenu();
+    this.closeInfoMenu();
+  }
 
   protected isActive(route: string): boolean {
     return this.router.url.startsWith(route);

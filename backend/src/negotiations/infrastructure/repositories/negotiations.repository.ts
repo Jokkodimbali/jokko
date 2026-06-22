@@ -26,6 +26,18 @@ const NEGOTIATION_INCLUDE = {
       prix: true,
     },
   },
+  professionnel: {
+    select: {
+      id: true,
+      utilisateurId: true,
+      nomEntreprise: true,
+      utilisateur: {
+        select: {
+          nom: true,
+        },
+      },
+    },
+  },
   propositions: {
     orderBy: { creeLe: 'asc' as const },
   },
@@ -266,6 +278,7 @@ export class NegotiationsRepository implements NegotiationsRepositoryPort {
         ...record.service,
         prix: record.service.prix.toNumber(),
       },
+      professionnel: record.professionnel,
     };
   }
 

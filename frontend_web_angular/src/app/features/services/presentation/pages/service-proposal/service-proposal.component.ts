@@ -277,6 +277,10 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       ? proposal
       : null;
   });
+  protected readonly closedProposal = computed(() => {
+    const proposal = this.pendingProposal();
+    return proposal && this.isNegotiationClosed(proposal) ? proposal : null;
+  });
   protected readonly providerFinalizedAmountLabel = computed(() =>
     this.formatAmount(
       this.providerProposalFinalized()?.montantAccepte ??
@@ -1316,6 +1320,41 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     this.router.navigate(['/appointments', reservationId]);
   }
 
+  protected isNegotiationClosed(proposal: NegotiationView | null): boolean {
+    return proposal?.statut === 'ANNULEE' || proposal?.statut === 'REFUSEE';
+  }
+
+  protected closedNegotiationTitle(proposal: NegotiationView): string {
+    if (proposal.statut === 'ANNULEE') {
+      return this.isProviderProposalMode
+        ? 'Le client a annule la negociation'
+        : 'Negociation annulee';
+    }
+
+    return this.isProviderProposalMode
+      ? 'Negociation refusee'
+      : 'Le prestataire a refuse la negociation';
+  }
+
+  protected closedNegotiationMessage(proposal: NegotiationView): string {
+    const serviceName = proposal.service?.nom || this.categoryLabel();
+    if (proposal.statut === 'ANNULEE') {
+      return this.isProviderProposalMode
+        ? `${this.proposalClientName()} a annule la negociation pour ${serviceName}. Vous pouvez quitter cet ecran.`
+        : `Cette negociation pour ${serviceName} est annulee. Vous pouvez choisir un autre prestataire ou quitter cet ecran.`;
+    }
+
+    return this.isProviderProposalMode
+      ? `Vous avez refuse cette negociation pour ${serviceName}.`
+      : `${this.displayName()} a refuse la negociation pour ${serviceName}. Vous pouvez quitter cet ecran.`;
+  }
+
+  protected exitClosedNegotiation(): void {
+    this.pendingProposal.set(null);
+    this.stopProposalRefresh();
+    this.goBack();
+  }
+
   private startProposalRefresh(negotiationId: string): void {
     this.stopProposalRefresh();
     this.proposalRefreshIntervalId = setInterval(() => {
@@ -1561,87 +1600,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
       `Duree: ${draft.dureeMinutes} minutes.`,
       `Paiement choisi: ${draft.paymentMethod}.`,
     ].join(' ');
-  }
-
-  private openConversationThenGoToDiscussion(
-    proposal: NegotiationView,
-    draft: ReservationDraft,
-  ): void {
-    const professionalProfileId = proposal.professionnelId || draft.service.profilProfessionnelId;
-
-    if (!professionalProfileId) {
-      this.isSubmitting.set(false);
-      this.feedback.error('Impossible d ouvrir la discussion avec ce prestataire.');
-      return;
-    }
-
-    this.messagesService.createConversation({ professionalProfileId }).subscribe({
-      next: (conversation) => {
-        const queryParams = this.buildDiscussionQueryParams(proposal, draft, conversation.id);
-
-        this.messagesService
-          .sendMessage(conversation.id, this.buildProposalMessage(draft))
-          .subscribe({
-            next: () => this.navigateToDiscussion(queryParams),
-            error: () => this.navigateToDiscussion(queryParams),
-          });
-      },
-      error: (error) => {
-        this.isSubmitting.set(false);
-        this.handleProposalError(error);
-      },
-    });
-  }
-
-  private openDirectConversationThenGoToDiscussion(
-    service: BackendProfessionalDetailService,
-    fallbackAmount: number,
-  ): void {
-    this.messagesService
-      .createConversation({ professionalProfileId: service.profilProfessionnelId })
-      .subscribe({
-        next: (conversation) => {
-          this.isSubmitting.set(false);
-          this.router.navigate(['/messages'], {
-            queryParams: this.buildDiscussionQueryParams(
-              null,
-              this.buildFallbackReservationDraft(service, fallbackAmount),
-              conversation.id,
-            ),
-          });
-        },
-        error: (error) => {
-          this.isSubmitting.set(false);
-          this.handleProposalError(error);
-        },
-      });
-  }
-
-  private buildDiscussionQueryParams(
-    proposal: NegotiationView | null,
-    draft: ReservationDraft,
-    conversationId?: string,
-  ) {
-    return {
-      conversationId,
-      negotiationId: proposal?.id,
-      professionalId: proposal?.professionnelId || draft.service.profilProfessionnelId,
-      appointmentDate: draft.dateHeure,
-      address: draft.adresseClient,
-      durationMinutes: draft.dureeMinutes,
-      amount:
-        Number.isFinite(draft.amount) && draft.amount > 0
-          ? draft.amount
-          : proposal?.montantCourant || 0,
-      providerName: this.displayName(),
-      serviceName: this.customServiceName() || draft.service.nom || this.categoryLabel(),
-      status: proposal?.statut || 'EN_ATTENTE_PRESTATAIRE',
-    };
-  }
-
-  private navigateToDiscussion(queryParams: Record<string, unknown>): void {
-    this.isSubmitting.set(false);
-    this.router.navigate(['/messages'], { queryParams });
   }
 
   private isValidAppointmentDate(): boolean {

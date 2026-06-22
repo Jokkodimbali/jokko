@@ -269,6 +269,10 @@ export class RegisterComponent implements OnInit {
     this.expertiseDraft.set('');
   }
 
+  updateExpertiseDraft(event: Event): void {
+    this.expertiseDraft.set((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
   removeExpertise(index: number): void {
     this.medicalExpertises.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
   }

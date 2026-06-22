@@ -304,7 +304,7 @@
   align-items: center;
   background: var(--color-white, #fff);
   border: 0;
-  border-radius: 20px;
+  border-radius: 10px;
   color: #000;
   display: inline-flex;
   height: 51px;
@@ -312,7 +312,7 @@
 }
 
 .app-navbar__notification {
-  border-radius: 17px;
+  border-radius: 10px;
   color: #865221;
   cursor: pointer;
   flex: 0 0 auto;
@@ -499,8 +499,8 @@
 .app-navbar__profile {
   cursor: pointer;
   gap: 10px;
-  max-width: 230px;
-  min-width: 166px;
+  max-width: min(230px, calc(100vw - 118px));
+  min-width: 0;
   padding: 0 12px;
   width: auto;
 }
@@ -545,16 +545,17 @@
 
 .app-navbar__dropdown {
   background: var(--color-white, #fff);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 13px 26px rgba(0, 0, 0, 0.22);
   color: var(--color-strong, #0d1117);
   display: grid;
   gap: 17px;
   padding: 14px 20px 17px 22px;
   position: absolute;
+  max-width: calc(100vw - 24px);
   right: 0;
-  top: calc(100% + 10px);
-  width: 210px;
+  top: calc(100% + 8px);
+  width: min(230px, calc(100vw - 24px));
   z-index: 120;
 }
 
@@ -1097,8 +1098,8 @@
 
   .app-navbar__dropdown {
     right: 0;
-    top: calc(100% + 10px);
-    width: 210px;
+    top: calc(100% + 8px);
+    width: min(230px, calc(100vw - 24px));
   }
 
   .app-navbar__toast {

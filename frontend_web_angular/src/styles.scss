@@ -490,13 +490,6 @@ video {
   padding: 8px 0 18px;
 }
 
-.services-page .provider-card {
-  border: 2px solid #ccd7e5;
-  border-radius: 22px;
-  flex: 0 0 390px;
-  padding: 22px;
-}
-
 .services-page .provider-info {
   align-items: center;
   display: flex;
@@ -577,11 +570,6 @@ video {
     width: 100%;
   }
 
-  .services-page .provider-card {
-    flex-basis: 100%;
-    min-width: 280px;
-  }
-
   .services-page .provider-info,
   .services-page .favorite-row {
     align-items: flex-start;
@@ -606,11 +594,6 @@ video {
     grid-template-columns: 280px 1fr;
   }
 
-  .services-page .provider-card {
-    flex-basis: calc(50% - 12px);
-    min-width: 300px;
-  }
-
   .services-page .photo-strip {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -622,10 +605,6 @@ video {
     grid-template-columns: 330px minmax(0, 1fr);
   }
 
-  .services-page .provider-card {
-    flex-basis: calc(33.333% - 16px);
-    min-width: 320px;
-  }
 }
 
 .loading-state,
@@ -1211,11 +1190,6 @@ video {
   padding: 20px 0 !important;
   scroll-behavior: smooth !important;
   -webkit-overflow-scrolling: touch !important;
-}
-
-.services-page .provider-card {
-  flex: 0 0 calc(33.333% - 16px) !important;
-  min-width: 300px !important;
 }
 
 .services-page .provider-row::-webkit-scrollbar {

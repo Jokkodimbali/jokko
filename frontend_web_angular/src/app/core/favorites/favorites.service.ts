@@ -5,6 +5,11 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../http/api-response.models';
 import { unwrapApiResponse } from '../http/api-response.utils';
 
+export type FavoriteServiceTravelMode =
+  | 'PRESTATAIRE_SE_DEPLACE'
+  | 'CLIENT_SE_DEPLACE'
+  | 'TRANSPORT_COLIS';
+
 export interface FavoriteItem {
   id: string;
   professionalId: string;
@@ -30,8 +35,12 @@ export interface FavoriteItem {
     name: string;
     price: number;
     priceType: string;
+    travelMode?: FavoriteServiceTravelMode;
     categoryId: string;
     categoryName: string;
+    subCategoryId?: string | null;
+    subCategoryName?: string | null;
+    subCategoryNames?: string[];
   } | null;
 }
 

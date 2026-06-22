@@ -102,7 +102,7 @@ export class MedicineService {
       latitude: professional.latitude,
       longitude: professional.longitude,
       imageUrl: this.absoluteAssetUrl(professional.avatarUrl) || '',
-      isOnline: presence ? presence.isOnline : (professional as any).isOnline ?? false,
+      isOnline: presence ? presence.isOnline : professional.isOnline ?? false,
       modes: modes.length > 0 ? modes : [],
       nextAvailability,
       availability: [

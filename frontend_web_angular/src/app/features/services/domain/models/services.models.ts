@@ -27,6 +27,8 @@ export interface Professional {
   serviceTravelMode?: ServiceTravelMode;
   nom: string;
   categoryName: string;
+  subCategoryName?: string | null;
+  subCategoryNames?: string[];
   professionName: string;
   speciality: string;
   location: string;
@@ -88,6 +90,7 @@ export interface BackendProfessional {
   rating: number;
   totalReviews: number;
   distanceKm: number | null;
+  isOnline?: boolean;
   services: BackendProfessionalService[];
   specialties?: BackendProfessionalService[];
   portfolioImages?: BackendProfessionalPortfolioImage[];
@@ -101,6 +104,9 @@ export interface BackendProfessionalService {
   travelMode?: ServiceTravelMode;
   categoryId: string;
   categoryName: string;
+  subCategoryId?: string | null;
+  subCategoryName?: string | null;
+  subCategoryNames?: string[];
 }
 
 export interface BackendProfessionalPortfolioImage {

@@ -133,6 +133,14 @@
 .service-proposal__counter-refuse--modern{background:#fff;border:1px solid #fed7dd;border-radius:14px;color:#cf2646;font-size:12px;font-weight:950;min-height:46px;text-transform:uppercase;transition:background 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease}
 .service-proposal__counter-refuse--modern:not(:disabled):hover{background:#fff0f2;border-color:#ff9dab;box-shadow:0 10px 22px rgb(207 38 70/12%);transform:translateY(-2px) scale(1.01)}
 .service-proposal__counter-refuse--modern:not(:disabled):active{transform:scale(.98)}
+.service-proposal__closed{align-items:center;background:#fff;border:1px solid #f1d0d5;border-radius:18px;box-shadow:0 18px 44px rgb(137 38 52/8%);display:grid;gap:12px;justify-items:center;padding:34px 28px;text-align:center}
+.service-proposal__closed-icon{align-items:center;background:#fff1f3;border:1px solid #ffd5dc;border-radius:50%;color:#cf2646;display:inline-flex;height:58px;justify-content:center;width:58px}
+.service-proposal__closed small{color:#cf2646;font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}
+.service-proposal__closed h1{color:#111827;font-size:24px;font-weight:950;line-height:1.1;margin:0}
+.service-proposal__closed p{color:#667085;font-size:13px;line-height:1.45;margin:0;max-width:420px}
+.service-proposal__closed-action{background:#111827;border:0;border-radius:14px;color:#fff;cursor:pointer;font-size:12px;font-weight:950;min-height:44px;padding:0 20px;text-transform:uppercase;transition:background 160ms ease,transform 160ms ease}
+.service-proposal__closed-action:hover{background:#263241;transform:translateY(-1px)}
+.service-proposal__closed-action:active{transform:scale(.98)}
 @keyframes service-proposal-wait-spin{to{transform:rotate(360deg)}}
 @keyframes service-proposal-wait-pulse{0%{left:0;transform:scaleX(.7)}50%{left:calc(100% - 14px);transform:scaleX(1.15)}100%{left:0;transform:scaleX(.7)}}
 @media(min-width:901px){.service-proposal,.service-proposal__content{max-height:none;overflow:visible}}

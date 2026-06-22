@@ -292,7 +292,7 @@
 
       <footer class="messages-page__composer">
         <button
-          *ngIf="conversation.reservationId"
+          *ngIf="canShowNegotiationButton()"
           type="button"
           class="messages-page__amount"
           aria-label="Proposer un montant pour cette conversation"
@@ -526,7 +526,5 @@
       </ng-template>
     </ng-template>
   </section>
-
-  <app-footer />
 </main>
 

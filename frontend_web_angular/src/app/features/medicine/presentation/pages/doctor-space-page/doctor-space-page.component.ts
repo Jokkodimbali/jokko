@@ -7,6 +7,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import {
   BackendProfessionalAvailability,
   BackendProfessionalDetailService,
@@ -1020,9 +1021,12 @@ export class DoctorSpacePageComponent implements OnInit {
       .pipe(
         switchMap(({ front, back }) =>
           this.doctorSpaceService.submitMyKyc({
-            idCardUrl: front?.fileUrl ?? idCardUrl,
+            idCardUrl: publicAssetUrl(front?.fileUrl ?? idCardUrl) ?? front?.fileUrl ?? idCardUrl,
             ...((back?.fileUrl ?? idCardUrlVerso)
-              ? { idCardUrlVerso: back?.fileUrl ?? idCardUrlVerso }
+              ? {
+                  idCardUrlVerso:
+                    publicAssetUrl(back?.fileUrl ?? idCardUrlVerso) ?? back?.fileUrl ?? idCardUrlVerso,
+                }
               : {}),
           }),
         ),
@@ -1104,7 +1108,11 @@ export class DoctorSpacePageComponent implements OnInit {
         switchMap((uploaded) =>
           this.doctorSpaceService.createPortfolioItem({
             title,
-            imageUrl: uploaded?.imageUrl || uploaded?.fileUrl || imageUrl,
+            imageUrl:
+              publicAssetUrl(uploaded?.imageUrl || uploaded?.fileUrl || imageUrl) ??
+              uploaded?.imageUrl ??
+              uploaded?.fileUrl ??
+              imageUrl,
             description: description || null,
           }),
         ),
@@ -1115,7 +1123,10 @@ export class DoctorSpacePageComponent implements OnInit {
       )
       .subscribe({
         next: (item) => {
-          this.portfolioItems.update((items) => [item, ...items]);
+          this.portfolioItems.update((items) => [
+            { ...item, urlImage: publicAssetUrl(item.urlImage) ?? item.urlImage },
+            ...items,
+          ]);
           this.portfolioForm.title = '';
           this.portfolioForm.description = '';
           this.portfolioForm.imageUrl = '';
@@ -2069,7 +2080,7 @@ export class DoctorSpacePageComponent implements OnInit {
     originalFileName: string;
     mimeType: string;
   }): UploadPreview {
-    const previewUrl = uploaded.imageUrl || uploaded.fileUrl;
+    const previewUrl = publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ?? uploaded.imageUrl ?? uploaded.fileUrl;
     return {
       url: previewUrl,
       name: uploaded.originalFileName,

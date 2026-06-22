@@ -7,7 +7,6 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
-import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
@@ -46,7 +45,7 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppFooterComponent, AppNavbarComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent],
   templateUrl: './messages-page.component.html',
   styleUrl: './messages-page.component.scss',
 })
@@ -189,6 +188,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       this.isProfessionalRole() &&
       proposal?.status === 'EN_ATTENTE_PRESTATAIRE' &&
       Boolean(proposal.negotiationId)
+    );
+  });
+  protected readonly canShowNegotiationButton = computed(() => {
+    const proposal = this.visibleProposalStep();
+    return (
+      Boolean(proposal?.negotiationId) &&
+      (proposal?.status === 'EN_ATTENTE_CLIENT' ||
+        proposal?.status === 'EN_ATTENTE_PRESTATAIRE')
     );
   });
 
@@ -1535,8 +1542,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private isPaidConversationStatus(status: string | null | undefined): boolean {
     return (
       status === 'PAYEE_SEQUESTRE' ||
+      status === 'CONFIRMEE' ||
       status === 'EN_COURS' ||
       status === 'TERMINEE' ||
+      status === 'ANNULEE' ||
       status === 'LITIGE'
     );
   }

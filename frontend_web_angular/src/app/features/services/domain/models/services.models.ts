@@ -26,6 +26,8 @@ export interface Professional {
   servicePriceType?: string;
   serviceTravelMode?: ServiceTravelMode;
   nom: string;
+  categoryName: string;
+  professionName: string;
   speciality: string;
   location: string;
   status: string;

@@ -8,6 +8,7 @@ import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
+import { publicAssetUrl } from '../../../../shared/utils/public-asset-url';
 import {
   DoctorSpaceService,
   ProfessionalUploadView,
@@ -167,6 +168,7 @@ export class SettingsPageComponent implements OnInit {
     notes: '',
   };
   protected readonly displayName = computed(() => this.profile()?.nom || this.currentUser()?.name || 'Mon profil');
+  protected readonly profileAvatarUrl = computed(() => publicAssetUrl(this.profile()?.urlAvatar));
   protected readonly initials = computed(() =>
     this.displayName()
       .split(' ')
@@ -264,6 +266,10 @@ export class SettingsPageComponent implements OnInit {
     const role = this.profile()?.role || this.currentUser()?.role;
     return role === 'MEDECIN' || role === 'PRESTATAIRE';
   });
+  protected readonly isDoctorSettings = computed(() => {
+    const role = this.profile()?.role || this.currentUser()?.role;
+    return role === 'MEDECIN';
+  });
   protected readonly hasLocalPassword = computed(() => this.profile()?.hasPassword ?? true);
   protected readonly displayPhoneNumber = computed(() =>
     displaySenegalPhoneNumber(this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber),
@@ -313,7 +319,7 @@ export class SettingsPageComponent implements OnInit {
         label: diploma.titre,
         meta: diploma.etablissement || 'Document professionnel',
         status: diploma.statut,
-        url: diploma.urlDocument ?? null,
+        url: publicAssetUrl(diploma.urlDocument),
       }));
     }
 
@@ -567,6 +573,13 @@ export class SettingsPageComponent implements OnInit {
     input.value = '';
     if (!file) return;
 
+    if (!this.isDoctorSettings()) {
+      const message = 'Les justificatifs de verification sont reserves aux medecins.';
+      this.errorMessage.set(message);
+      this.feedback.info(message);
+      return;
+    }
+
     const allowedTypes = new Set([
       'application/pdf',
       'application/msword',
@@ -667,14 +680,17 @@ export class SettingsPageComponent implements OnInit {
           this.doctorSpaceService.createPortfolioItem({
             title,
             description: description || null,
-            imageUrl: uploaded.imageUrl || uploaded.fileUrl,
+            imageUrl: publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ?? uploaded.imageUrl ?? uploaded.fileUrl,
           }),
         ),
         finalize(() => this.isPortfolioSaving.set(false)),
       )
       .subscribe({
         next: (item) => {
-          this.portfolioItems.update((items) => [item, ...items]);
+          this.portfolioItems.update((items) => [
+            { ...item, urlImage: publicAssetUrl(item.urlImage) ?? item.urlImage },
+            ...items,
+          ]);
           this.resetPortfolioForm();
           this.feedback.success('Realisation ajoutee au portfolio.');
         },
@@ -742,6 +758,13 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected deleteProfessionalDocument(document: { id: string; label: string }): void {
+    if (!this.isDoctorSettings()) {
+      const message = 'Les justificatifs de verification sont reserves aux medecins.';
+      this.errorMessage.set(message);
+      this.feedback.info(message);
+      return;
+    }
+
     if (document.id.startsWith('bio-document-')) {
       this.feedback.error('Ce document declare ne peut pas etre supprime depuis cette action.');
       return;
@@ -1061,7 +1084,7 @@ export class SettingsPageComponent implements OnInit {
         finalize(() => {
           this.authSession.clear();
           this.feedback.success(AUTH_UI_MESSAGES.logoutSuccess);
-          this.router.navigate(['/services']);
+          this.router.navigate(['/auth/login']);
         }),
       )
       .subscribe();
@@ -1129,7 +1152,7 @@ export class SettingsPageComponent implements OnInit {
             next: () => {
               this.authSession.clear();
               this.feedback.success('Compte supprime avec succes.');
-              this.router.navigate(['/services']);
+              this.router.navigate(['/auth/login']);
             },
             error: (error) => {
               this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce compte.'));
@@ -1257,7 +1280,14 @@ export class SettingsPageComponent implements OnInit {
     this.doctorSpaceService
       .listPortfolio(profileId)
       .pipe(catchError(() => of([] as BackendProfessionalPortfolioItem[])))
-      .subscribe((items) => this.portfolioItems.set(items));
+      .subscribe((items) =>
+        this.portfolioItems.set(
+          items.map((item) => ({
+            ...item,
+            urlImage: publicAssetUrl(item.urlImage) ?? item.urlImage,
+          })),
+        ),
+      );
   }
 
   private applyUpdatedProfile(profile: UserProfileDto, message: string): void {

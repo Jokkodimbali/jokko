@@ -23,7 +23,12 @@ export function buildPublicUploadUrl(
   const host = forwardedHost || request.get('host') || 'localhost:3000';
   const hostname = host.split(':')[0] ?? host;
   const protocol = forwardedProto || request.protocol || 'http';
-  const safeProtocol = LOCAL_HOST_PATTERN.test(hostname) ? protocol : 'https';
+  const isHttpsRequest =
+    protocol === 'https' ||
+    request.secure ||
+    firstHeaderValue(request.headers['x-forwarded-ssl']) === 'on';
+  const safeProtocol =
+    isHttpsRequest || !LOCAL_HOST_PATTERN.test(hostname) ? 'https' : protocol;
 
   return `${safeProtocol}://${host}${cleanPath}`;
 }

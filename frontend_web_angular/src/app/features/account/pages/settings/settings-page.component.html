@@ -13,7 +13,7 @@
 
     <section class="settings-page__identity" *ngIf="profile() as profile">
       <label class="settings-page__avatar" aria-label="Uploader la photo de profil">
-        <img *ngIf="profile.urlAvatar; else initialsAvatar" [src]="profile.urlAvatar" [alt]="displayName()" />
+        <img *ngIf="profileAvatarUrl() as avatarUrl; else initialsAvatar" [src]="avatarUrl" [alt]="displayName()" />
         <ng-template #initialsAvatar>
           <span>{{ initials() }}</span>
         </ng-template>
@@ -126,7 +126,7 @@
           </ng-template>
         </section>
 
-        <section class="settings-page__documents">
+        <section *ngIf="isDoctorSettings()" class="settings-page__documents">
           <header>
             <h3>Documents et justificatifs</h3>
             <span>{{ validatedDocumentsCount() }} document(s)</span>

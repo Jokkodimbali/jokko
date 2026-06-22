@@ -55,16 +55,18 @@ import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-respo
 import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 
 type UploadedAvatarFile = {
-  filename: string;
+  buffer: Buffer;
   mimetype: string;
   size: number;
 };
 
-type UploadedProfessionalCredentialFile = UploadedAvatarFile & {
+type UploadedProfessionalCredentialFile = {
+  filename: string;
+  mimetype: string;
+  size: number;
   originalname: string;
 };
 
-const avatarUploadDirectory = join(process.cwd(), 'uploads', 'avatars');
 const professionalCredentialUploadDirectory = join(
   process.cwd(),
   'uploads',
@@ -85,20 +87,8 @@ const allowedProfessionalCredentialMimeTypes = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
-function ensureAvatarUploadDirectory(): void {
-  mkdirSync(avatarUploadDirectory, { recursive: true });
-}
-
 function ensureProfessionalCredentialUploadDirectory(): void {
   mkdirSync(professionalCredentialUploadDirectory, { recursive: true });
-}
-
-function buildAvatarFileName(userId: string, originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.jpg';
-  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp'].includes(extension)
-    ? extension
-    : '.jpg';
-  return `${userId}-${Date.now()}${safeExtension}`;
 }
 
 function buildProfessionalCredentialFileName(originalName: string): string {
@@ -351,27 +341,6 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureAvatarUploadDirectory();
-          callback(null, avatarUploadDirectory);
-        },
-        filename: (
-          request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          const authUser = (request as Request & { user?: AuthUser }).user;
-          callback(
-            null,
-            buildAvatarFileName(authUser?.sub ?? 'user', file.originalname),
-          );
-        },
-      }),
       limits: {
         fileSize: 2 * 1024 * 1024,
       },
@@ -389,16 +358,14 @@ export class UsersController {
   async uploadMyAvatar(
     @CurrentUser() user: AuthUser,
     @UploadedFile() file: UploadedAvatarFile | undefined,
-    @Req() request: Request,
   ) {
     if (!file) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const avatarUrl = buildPublicUploadUrl(
-      request,
-      `/uploads/avatars/${file.filename}`,
-    );
+    const avatarUrl = `data:${file.mimetype};base64,${file.buffer.toString(
+      'base64',
+    )}`;
     const result = await this.usersService.updateMyAvatar(user.sub, {
       avatarUrl,
     });

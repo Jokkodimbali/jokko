@@ -76,6 +76,8 @@ export class ServicesComponent implements OnInit, OnDestroy {
     this.favoritesService.favorites().map((favorite) => ({
       id: favorite.professionalId,
       nom: favorite.name,
+      categoryName: favorite.subtitle,
+      professionName: favorite.subtitle,
       speciality: favorite.subtitle,
       location: favorite.location,
       status: favorite.totalReviews > 0
@@ -432,6 +434,34 @@ export class ServicesComponent implements OnInit, OnDestroy {
       .slice(0, 6);
   }
 
+  providerCoverPhoto(provider: Professional): string {
+    return this.providerPhotos(provider)[0] || '/boabab.png';
+  }
+
+  providerSecondaryPhotos(provider: Professional): string[] {
+    return this.providerPhotos(provider).slice(0, 2);
+  }
+
+  providerCategoryLabel(provider: Professional): string {
+    return (provider.categoryName || provider.speciality || 'Service').toUpperCase();
+  }
+
+  providerProfessionLabel(provider: Professional): string {
+    return provider.professionName || provider.speciality || 'Profession non renseignee';
+  }
+
+  providerPortfolioLabel(provider: Professional, index: number): string {
+    if (index === 0) {
+      return this.providerProfessionLabel(provider);
+    }
+
+    return provider.serviceTravelMode === 'TRANSPORT_COLIS'
+      ? 'Livraison express'
+      : provider.profileType === 'MEDECIN'
+        ? 'Consultation'
+        : 'Intervention';
+  }
+
   providerRatingLabel(provider: { rating: number; totalReviews: number }): string {
     if (provider.totalReviews <= 0) {
       return 'Nouveau';
@@ -442,18 +472,22 @@ export class ServicesComponent implements OnInit, OnDestroy {
 
   providerMovementTitle(provider: Professional): string {
     if (provider.profileType === 'MEDECIN') {
-      return 'Le client se deplace';
+      return 'Vous vous deplacez chez lui';
     }
 
     switch (provider.serviceTravelMode) {
       case 'CLIENT_SE_DEPLACE':
-        return 'Le client se deplace';
+        return 'Vous vous deplacez chez lui';
       case 'TRANSPORT_COLIS':
-        return 'Transport de colis';
+        return 'Trajet personnalise';
       case 'PRESTATAIRE_SE_DEPLACE':
       default:
-        return 'Se deplace chez vous';
+        return 'Il se deplace chez vous';
     }
+  }
+
+  providerMovementAriaLabel(provider: Professional): string {
+    return `${this.providerMovementTitle(provider)} - ${this.providerMovementSubtitle(provider)}`;
   }
 
   providerMovementIcon(provider: Professional): string {

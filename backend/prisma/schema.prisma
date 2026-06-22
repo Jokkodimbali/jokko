@@ -198,7 +198,7 @@ model Utilisateur {
   fournisseurOauth  String?           @map("oauth_provider") @db.VarChar(50)
   identifiantOauth  String?           @map("oauth_id") @db.VarChar(200)
   role              RoleUtilisateur   @default(CLIENT)
-  urlAvatar         String?           @map("avatar_url") @db.VarChar(500)
+  urlAvatar         String?           @map("avatar_url") @db.Text
   jetonFcm          String?           @map("fcm_token") @db.VarChar(500)
   estActif          Boolean           @default(true) @map("is_active")
   creeLe            DateTime          @default(now()) @map("created_at")

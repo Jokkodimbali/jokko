@@ -1,12 +1,16 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, switchMap, throwError } from 'rxjs';
+import { BehaviorSubject, EMPTY, catchError, filter, finalize, switchMap, take, throwError } from 'rxjs';
 import { AppFeedbackService } from '../feedback/app-feedback.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { AuthService } from '../../features/auth/data-access/auth.service';
+import { getHttpErrorMessage } from '../http/api-response.utils';
 
 let refreshInProgress = false;
+const refreshTokenSignal = new BehaviorSubject<string | 'FAILED' | null>(null);
+const SESSION_EXPIRED_MESSAGE =
+  'Votre session a expire. Reconnectez-vous pour continuer.';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authSession = inject(AuthSessionService);
@@ -26,15 +30,35 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error) => {
       if (error?.status === 401 && shouldHandleUnauthorized(req.url, router.url)) {
         if (refreshInProgress) {
-          return throwError(() => error);
+          return refreshTokenSignal.pipe(
+            filter((refreshedToken): refreshedToken is string | 'FAILED' => refreshedToken !== null),
+            take(1),
+            switchMap((refreshedToken) => {
+              if (refreshedToken === 'FAILED') {
+                handleExpiredSession(authSession, feedback, router);
+                return EMPTY;
+              }
+
+              return next(req.clone({
+                headers: req.headers.set('Authorization', `Bearer ${refreshedToken}`),
+                withCredentials: true,
+              }));
+            }),
+            catchError(() => {
+              handleExpiredSession(authSession, feedback, router);
+              return EMPTY;
+            }),
+          );
         }
 
         refreshInProgress = true;
+        refreshTokenSignal.next(null);
 
         return authService.refresh().pipe(
           switchMap((response) => {
             authSession.saveAuthResponse(response, authSession.isRememberMeEnabled());
             const refreshedToken = authSession.getAccessToken();
+            refreshTokenSignal.next(refreshedToken);
             const retryHeaders = refreshedToken
               ? req.headers.set('Authorization', `Bearer ${refreshedToken}`)
               : req.headers.delete('Authorization');
@@ -45,14 +69,9 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
             }));
           }),
           catchError((refreshError) => {
-            authSession.clear();
-            feedback.info('Votre session a expire ou vous devez vous connecter pour continuer.');
-            if (isProtectedPage(router.url)) {
-              router.navigate(['/auth/login'], {
-                queryParams: { returnUrl: router.url === '/auth/login' ? '/services' : router.url },
-              });
-            }
-            return throwError(() => refreshError);
+            refreshTokenSignal.next('FAILED');
+            handleExpiredSession(authSession, feedback, router);
+            return EMPTY;
           }),
           finalize(() => {
             refreshInProgress = false;
@@ -60,10 +79,33 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      if (error?.status === 403) {
+        feedback.error(getHttpErrorMessage(error, 'Vous n avez pas les droits necessaires pour cette action.'));
+      } else if (error?.status === 0) {
+        feedback.error('Connexion au serveur impossible. Verifiez votre reseau puis reessayez.');
+      } else if (error?.status >= 500) {
+        feedback.error(getHttpErrorMessage(error, 'Le serveur est momentanement indisponible.'));
+      }
+
       return throwError(() => error);
     }),
   );
 };
+
+function handleExpiredSession(
+  authSession: AuthSessionService,
+  feedback: AppFeedbackService,
+  router: Router,
+): void {
+  authSession.clear();
+  feedback.info(SESSION_EXPIRED_MESSAGE);
+
+  if (!router.url.startsWith('/auth/login')) {
+    router.navigate(['/auth/login'], {
+      queryParams: { returnUrl: router.url === '/auth/login' ? '/services' : router.url },
+    });
+  }
+}
 
 function shouldHandleUnauthorized(requestUrl: string, currentUrl: string): boolean {
   if (currentUrl.startsWith('/auth/login')) {
@@ -78,21 +120,4 @@ function shouldHandleUnauthorized(requestUrl: string, currentUrl: string): boole
     '/auth/verify-otp',
     '/auth/refresh',
   ].some((path) => requestUrl.includes(path));
-}
-
-function isProtectedPage(currentUrl: string): boolean {
-  const path = currentUrl.split('?')[0] || '/';
-
-  if (path === '/medecine/espace' || path === '/prestataire/espace') {
-    return true;
-  }
-
-  return [
-    '/admin',
-    '/appointments',
-    '/favorites',
-    '/litiges',
-    '/messages',
-    '/settings',
-  ].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }

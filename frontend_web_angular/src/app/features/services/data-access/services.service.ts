@@ -317,6 +317,16 @@ export class ServicesService {
       servicePriceType: primaryService?.priceType,
       serviceTravelMode: profileType === 'MEDECIN' ? 'CLIENT_SE_DEPLACE' : primaryService?.travelMode,
       nom: data.companyName || data.name,
+      categoryName:
+        primaryService?.categoryName ||
+        primarySpecialty?.categoryName ||
+        (profileType === 'MEDECIN' ? 'MEDECINE' : 'SERVICE'),
+      professionName:
+        primaryService?.name ||
+        primarySpecialty?.name ||
+        primaryService?.categoryName ||
+        primarySpecialty?.categoryName ||
+        'Profession non renseignee',
       speciality:
         primaryService?.name ||
         primaryService?.categoryName ||

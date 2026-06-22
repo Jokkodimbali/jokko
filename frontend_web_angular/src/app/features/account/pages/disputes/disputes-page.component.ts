@@ -6,7 +6,6 @@ import { catchError, finalize, of } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../appointments/domain/appointments.models';
 
@@ -19,7 +18,6 @@ type DisputeFilter = 'all' | 'upcoming' | 'completed' | 'disputed';
     CommonModule,
     RouterLink,
     LucideAngularModule,
-    AppNavbarComponent,
     AppFooterComponent,
   ],
   templateUrl: './disputes-page.component.html',

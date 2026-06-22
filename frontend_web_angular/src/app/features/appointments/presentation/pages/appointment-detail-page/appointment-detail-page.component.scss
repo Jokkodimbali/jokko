@@ -8,17 +8,6 @@
   min-height: 100vh;
 }
 
-.appointment-detail__nav {
-  background: #955d24;
-  display: block;
-  min-height: 153px;
-}
-
-.appointment-detail__nav app-navbar {
-  --app-navbar-backdrop-height: 153px;
-  display: block;
-}
-
 .appointment-detail__topbar {
   align-items: center;
   background: #e4eff3;

@@ -161,9 +161,9 @@
             *ngFor="let provider of section.providers; let providerIndex = index"
             class="provider-card"
           >
-            <div class="provider-card__header">
+            <header class="provider-card__head">
               <a
-                class="provider-info"
+                class="provider-card__avatar"
                 [routerLink]="providerProfileCommands(provider)"
                 [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
                 [state]="{
@@ -171,38 +171,34 @@
                   avatar: resolveProviderAvatar(provider),
                   photos: providerPhotos(provider)
                 }"
+                [attr.aria-label]="'Voir le profil de ' + provider.nom"
               >
-                <div class="provider-avatar">
-                  <img
-                    *ngIf="resolveProviderAvatar(provider) as avatar; else providerInitialsTpl"
-                    [src]="avatar"
-                    [alt]="provider.nom"
-                    (error)="handleImageError(avatar)"
-                  />
-                  <ng-template #providerInitialsTpl>
-                    <span>{{ providerInitials(provider.nom) }}</span>
-                  </ng-template>
-                  <i [class.provider-avatar__dot--offline]="!provider.isOnline" aria-hidden="true"></i>
-                </div>
-                <div class="provider-copy">
-                  <h3>{{ provider.nom }}</h3>
-                  <p class="speciality">{{ provider.speciality }}</p>
-                  <div class="provider-meta">
-                    <span>
-                      <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
-                      {{ provider.location }}
-                    </span>
-                    <span [class.provider-meta__online]="provider.isOnline">
-                      <lucide-icon name="clock-3" size="12" [strokeWidth]="2"></lucide-icon>
-                      {{ provider.onlineLabel }}
-                    </span>
-                    <span class="provider-meta__rating">
-                      <lucide-icon name="star" size="12" [strokeWidth]="2"></lucide-icon>
-                      {{ providerRatingLabel(provider) }}
-                    </span>
-                  </div>
-                </div>
+                <img
+                  *ngIf="resolveProviderAvatar(provider) as avatar; else providerInitialsTpl"
+                  [src]="avatar"
+                  [alt]="provider.nom"
+                  (error)="handleImageError(avatar)"
+                />
+                <ng-template #providerInitialsTpl>
+                  <span>{{ providerInitials(provider.nom) }}</span>
+                </ng-template>
+                <i [class.provider-card__avatar-dot--online]="provider.isOnline" aria-hidden="true"></i>
               </a>
+
+              <div class="provider-card__identity">
+                <a
+                  [routerLink]="providerProfileCommands(provider)"
+                  [queryParams]="provider.serviceId ? { serviceId: provider.serviceId } : null"
+                  [state]="{
+                    provider: provider,
+                    avatar: resolveProviderAvatar(provider),
+                    photos: providerPhotos(provider)
+                  }"
+                >
+                  {{ provider.nom }}
+                </a>
+                <span>{{ providerProfessionLabel(provider) }}</span>
+              </div>
 
               <button
                 type="button"
@@ -213,51 +209,58 @@
               >
                 <lucide-icon
                   name="bookmark"
-                  size="19"
+                  size="21"
                   [strokeWidth]="2.4"
                   [attr.fill]="isProviderFavorite(provider.id) ? 'currentColor' : 'none'"
                 ></lucide-icon>
               </button>
+            </header>
+
+            <div class="provider-card__meta">
+              <span>
+                <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
+                {{ provider.location }}
+              </span>
+              <span [class.provider-card__meta-online]="provider.isOnline">
+                <lucide-icon name="clock-3" size="13" [strokeWidth]="2.1"></lucide-icon>
+                {{ provider.onlineLabel }}
+              </span>
+              <span>
+                <lucide-icon name="star" size="13" [strokeWidth]="2.1" fill="currentColor"></lucide-icon>
+                {{ providerRatingLabel(provider) }}
+              </span>
             </div>
 
-            <div class="provider-card__visit">
-              <span class="provider-card__visit-icon">
-                <lucide-icon *ngIf="providerMovementIcon(provider) === 'map-pin'" name="map-pin" size="16" [strokeWidth]="2.5"></lucide-icon>
-                <lucide-icon *ngIf="providerMovementIcon(provider) === 'clipboard'" name="clipboard" size="16" [strokeWidth]="2.5"></lucide-icon>
-                <lucide-icon *ngIf="providerMovementIcon(provider) === 'wrench'" name="wrench" size="16" [strokeWidth]="2.5"></lucide-icon>
-              </span>
-              <span class="provider-card__visit-copy">
-                <strong>{{ providerMovementTitle(provider) }}</strong>
-                <small>{{ providerMovementSubtitle(provider) }}</small>
-              </span>
-              <lucide-icon class="provider-card__visit-check" name="check" size="18" [strokeWidth]="2.6"></lucide-icon>
+            <div class="provider-card__movement" [attr.aria-label]="providerMovementAriaLabel(provider)">
+              <span>{{ providerMovementTitle(provider) }}</span>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'TRANSPORT_COLIS'" name="map-pin" size="14" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'TRANSPORT_COLIS'" name="truck" size="15" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'TRANSPORT_COLIS'" name="route" size="15" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'TRANSPORT_COLIS'" name="map-pin" size="14" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'CLIENT_SE_DEPLACE' || provider.profileType === 'MEDECIN'" name="footprints" size="15" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode === 'CLIENT_SE_DEPLACE' || provider.profileType === 'MEDECIN'" name="building-2" size="15" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode !== 'TRANSPORT_COLIS' && provider.serviceTravelMode !== 'CLIENT_SE_DEPLACE' && provider.profileType !== 'MEDECIN'" name="footprints" size="15" [strokeWidth]="2.5"></lucide-icon>
+              <lucide-icon *ngIf="provider.serviceTravelMode !== 'TRANSPORT_COLIS' && provider.serviceTravelMode !== 'CLIENT_SE_DEPLACE' && provider.profileType !== 'MEDECIN'" name="house" size="15" [strokeWidth]="2.5"></lucide-icon>
             </div>
 
-            <div
-              class="photo-strip"
-              [class.photo-strip--carousel]="providerPhotos(provider).length > 2"
-              *ngIf="providerPhotos(provider).length > 0; else emptyPortfolio"
-            >
-              <div class="photo-strip__track">
-                <ng-container *ngFor="let photo of providerPhotos(provider)">
-                  <img [src]="photo" [alt]="'Realisation - ' + provider.nom" (error)="handleImageError(photo)" />
-                </ng-container>
-                <ng-container *ngIf="providerPhotos(provider).length > 2">
-                  <img
-                    *ngFor="let photo of providerPhotos(provider)"
-                    [src]="photo"
-                    [alt]="'Realisation - ' + provider.nom"
-                    (error)="handleImageError(photo)"
-                  />
-                </ng-container>
-              </div>
+            <div class="photo-strip">
+              <ng-container *ngIf="providerSecondaryPhotos(provider).length > 0; else emptyPortfolio">
+                <img
+                  *ngFor="let photo of providerSecondaryPhotos(provider); let photoIndex = index"
+                  [src]="photo"
+                  [alt]="providerPortfolioLabel(provider, photoIndex)"
+                  (error)="handleImageError(photo)"
+                />
+              </ng-container>
+              <ng-template #emptyPortfolio>
+                <span class="photo-strip__empty-card">
+                  <lucide-icon name="image-plus" size="18" [strokeWidth]="2.2"></lucide-icon>
+                </span>
+                <span class="photo-strip__empty-card">
+                  <lucide-icon name="briefcase-business" size="18" [strokeWidth]="2.2"></lucide-icon>
+                </span>
+              </ng-template>
             </div>
-            <ng-template #emptyPortfolio>
-              <div class="photo-strip photo-strip--empty">
-                <span>Portfolio</span>
-                <span>{{ provider.speciality }}</span>
-              </div>
-            </ng-template>
 
             <div class="provider-card__actions">
               <button
@@ -266,9 +269,9 @@
                 [class.provider-card__action--appointment]="provider.profileType === 'MEDECIN'"
                 (click)="providerPrimaryAction(provider)"
               >
-                <lucide-icon *ngIf="provider.profileType === 'MEDECIN'; else negotiationIcon" name="calendar-check" size="15" [strokeWidth]="2.4"></lucide-icon>
+                <lucide-icon *ngIf="provider.profileType === 'MEDECIN'; else negotiationIcon" name="calendar-check" size="14" [strokeWidth]="2.4"></lucide-icon>
                 <ng-template #negotiationIcon>
-                  <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>
+                  <lucide-icon name="wallet-cards" size="14" [strokeWidth]="2.4"></lucide-icon>
                 </ng-template>
                 {{ providerActionLabel(provider) }}
               </button>
@@ -282,7 +285,7 @@
                   photos: providerPhotos(provider)
                 }"
               >
-                <lucide-icon name="info" size="15" [strokeWidth]="2.4"></lucide-icon>
+                <lucide-icon name="info" size="14" [strokeWidth]="2.4"></lucide-icon>
                 voir son compte
               </a>
             </div>

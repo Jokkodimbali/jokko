@@ -228,7 +228,7 @@ export class AppNavbarComponent implements OnInit {
           this.authSession.clear();
           this.isLoggingOut.set(false);
           this.feedback.success(AUTH_UI_MESSAGES.logoutSuccess);
-          this.router.navigate(['/services']);
+          this.router.navigate(['/auth/login']);
         }),
       )
       .subscribe();

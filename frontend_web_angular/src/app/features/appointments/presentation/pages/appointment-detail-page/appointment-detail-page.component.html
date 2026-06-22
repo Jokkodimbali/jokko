@@ -1,8 +1,4 @@
 ﻿<main class="appointment-detail">
-  <section *ngIf="!showImmersiveDetail()" class="appointment-detail__nav" aria-label="Navigation principale">
-    <app-navbar />
-  </section>
-
   <header *ngIf="!showImmersiveDetail()" class="appointment-detail__topbar">
     <button type="button" class="appointment-detail__back" aria-label="Retour" (click)="goBack()">
       <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
@@ -650,5 +646,4 @@
     </section>
   </ng-container>
 
-  <app-footer *ngIf="!showImmersiveDetail()" />
 </main>

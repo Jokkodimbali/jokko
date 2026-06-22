@@ -628,9 +628,9 @@
 }
 
 .messages-page__appointment-row {
-  align-self: flex-end;
+  align-self: center;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   width: min(100%, 390px);
 }
 
@@ -671,8 +671,10 @@
 }
 
 .messages-page__appointment-info {
+  align-self: center;
   display: grid;
   gap: 10px;
+  justify-items: start;
 }
 
 .messages-page__appointment-info p {

@@ -8,8 +8,9 @@ export function publicAssetUrl(url: string | null | undefined): string | null {
   if (value.startsWith('data:') || value.startsWith('blob:')) return value;
 
   const localMatch = value.match(LOCAL_HTTP_ASSET_PATTERN);
-  if (localMatch?.[4]?.startsWith('/uploads/')) {
-    return `${new URL(environment.apiUrl).origin}${localMatch[4]}`;
+  const localPath = localMatch?.[4];
+  if (localPath?.includes('/uploads/')) {
+    return `${new URL(environment.apiUrl).origin}${localPath.slice(localPath.indexOf('/uploads/'))}`;
   }
 
   if (/^https:\/\//i.test(value) || value.startsWith('//')) return value;

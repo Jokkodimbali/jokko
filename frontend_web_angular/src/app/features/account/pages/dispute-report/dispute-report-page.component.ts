@@ -7,7 +7,6 @@ import { catchError, finalize, of, switchMap } from 'rxjs';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../appointments/domain/appointments.models';
 
@@ -27,7 +26,6 @@ interface DisputeReasonOption {
     CommonModule,
     FormsModule,
     LucideAngularModule,
-    AppNavbarComponent,
     AppFooterComponent,
   ],
   templateUrl: './dispute-report-page.component.html',

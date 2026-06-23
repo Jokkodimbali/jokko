@@ -55,6 +55,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'medecine/reservations/:id/resume-paiement',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component').then(
+        (m) => m.AppointmentPaymentPageComponent,
+      ),
+  },
+  {
+    path: 'medecine/reservations/:id/paiement',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component').then(
+        (m) => m.AppointmentPaymentPageComponent,
+      ),
+  },
+  {
+    path: 'medecine/reservations/:id/confirmation',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/appointments/presentation/pages/appointment-payment-page/appointment-payment-page.component').then(
+        (m) => m.AppointmentPaymentPageComponent,
+      ),
+  },
+  {
     path: 'medecine/:id',
     loadComponent: () =>
       import('./features/medicine/presentation/pages/medicine-doctor-profile/medicine-doctor-profile.component').then(

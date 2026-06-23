@@ -311,31 +311,90 @@
 }
 
 .admin-validation-bio,
-.admin-validation-documents {
+.admin-validation-documents,
+.admin-validation-checklist {
   display: grid;
   gap: 12px;
   padding: 18px;
 }
 
 .admin-validation-bio h3,
-.admin-validation-documents h3 {
+.admin-validation-documents h3,
+.admin-validation-checklist h3 {
   color: #24170d;
   font-size: 16px;
   font-weight: 950;
 }
 
 .admin-validation-bio p,
-.admin-validation-documents p {
+.admin-validation-documents p,
+.admin-validation-checklist p {
   color: #806f63;
   font-size: 13px;
   font-weight: 750;
   line-height: 1.55;
 }
 
-.admin-validation-documents header {
+.admin-validation-documents header,
+.admin-validation-checklist header {
   align-items: center;
   display: flex;
   justify-content: space-between;
+}
+
+.admin-validation-checklist article {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #eadfd6;
+  border-radius: 10px;
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  min-height: 66px;
+  padding: 10px 12px;
+}
+
+.admin-validation-checklist article > lucide-icon {
+  align-items: center;
+  background: #f5eee8;
+  border-radius: 10px;
+  color: #925b24;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.admin-validation-checklist article span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-validation-checklist article strong {
+  color: #24170d;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.admin-validation-checklist article small {
+  color: #806f63;
+  font-size: 12px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-validation-checklist article b {
+  background: #dcf2e8;
+  border-radius: 999px;
+  color: #17613f;
+  font-size: 10px;
+  font-weight: 950;
+  padding: 6px 9px;
+  text-transform: uppercase;
 }
 
 .admin-validation-documents a {

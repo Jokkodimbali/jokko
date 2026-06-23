@@ -104,10 +104,15 @@
       </div>
 
       <section *ngFor="let section of sections()" class="service-section">
-        <div id="services-filters" class="service-filters" aria-label="Filtres des prestataires">
+        <div
+          #serviceFilters
+          id="services-filters"
+          class="service-filters"
+          aria-label="Filtres des prestataires"
+        >
           <button
             type="button"
-            class="service-filters__button"
+            class="service-filters__button service-filters__button--all"
             [class.service-filters__button--active]="activeFilter() === 'ALL' && activeCategoryId() === null"
             (click)="selectCategory(null)"
           >

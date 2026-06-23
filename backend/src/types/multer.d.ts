@@ -21,4 +21,6 @@ declare module 'multer' {
       callback: DiskStorageCallback,
     ) => void;
   }): unknown;
+
+  export function memoryStorage(): unknown;
 }

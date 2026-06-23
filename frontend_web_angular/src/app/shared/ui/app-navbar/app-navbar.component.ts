@@ -121,7 +121,7 @@ export class AppNavbarComponent implements OnInit {
       route: '/services',
     },
     {
-      label: 'Rendez vous',
+      label: 'RdV & Negociations',
       icon: 'calendar-days',
       route: '/appointments',
     },

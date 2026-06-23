@@ -307,10 +307,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaying.set(false);
     if (!this.shouldReturnToMessages()) {
       this.appointment.set(appointment);
-      this.router.navigate(['/appointments', appointment.id, 'payment'], {
-        queryParams: { confirmed: '1', returnUrl: this.safeReturnUrl() ?? '/appointments' },
-        replaceUrl: true,
-      });
+      this.router.navigateByUrl(this.withQueryParams(this.paymentConfirmationPath(appointment), {
+        confirmed: '1',
+        returnUrl: this.safeReturnUrl() ?? '/appointments',
+      }), { replaceUrl: true });
       return;
     }
 
@@ -355,13 +355,20 @@ export class AppointmentPaymentPageComponent implements OnInit {
     successPath?: string;
     cancelPath?: string;
   } | undefined {
-    if (!this.shouldReturnToMessages()) {
+    if (this.shouldReturnToMessages()) {
+      return {
+        successPath: this.buildMessagesPath(appointment, 'PAYEE_SEQUESTRE'),
+        cancelPath: this.router.url,
+      };
+    }
+
+    if (!this.isMedicineFlow()) {
       return undefined;
     }
 
     return {
-      successPath: this.buildMessagesPath(appointment, 'PAYEE_SEQUESTRE'),
-      cancelPath: this.router.url,
+      successPath: this.paymentConfirmationPath(appointment),
+      cancelPath: this.paymentPath(appointment),
     };
   }
 
@@ -371,7 +378,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
     conversationId?: string,
   ): void {
     if (!this.shouldReturnToMessages()) {
-      this.router.navigate(['/appointments', appointment.id]);
+      this.router.navigateByUrl(this.paymentConfirmationPath(appointment));
       return;
     }
 
@@ -414,6 +421,39 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   private shouldReturnToMessages(): boolean {
     return this.route.snapshot.queryParamMap.get('returnTo') === 'messages';
+  }
+
+  private isMedicineFlow(): boolean {
+    const source = this.route.snapshot.queryParamMap.get('source')?.toLowerCase();
+    return this.router.url.startsWith('/medecine/reservations/') || source === 'medecine' || source === 'medicine';
+  }
+
+  private paymentPath(appointment: AppointmentView): string {
+    if (this.isMedicineFlow()) {
+      return `/medecine/reservations/${appointment.id}/paiement?source=medecine`;
+    }
+
+    return `/appointments/${appointment.id}/payment`;
+  }
+
+  private paymentConfirmationPath(appointment: AppointmentView): string {
+    if (this.isMedicineFlow()) {
+      return `/medecine/reservations/${appointment.id}/confirmation?source=medecine`;
+    }
+
+    return `/appointments/${appointment.id}/payment`;
+  }
+
+  private withQueryParams(path: string, params: Record<string, string>): string {
+    const [pathname, existingQuery = ''] = path.split('?');
+    const searchParams = new URLSearchParams(existingQuery);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        searchParams.set(key, value);
+      }
+    });
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
   }
 
   private safeReturnUrl(): string | null {

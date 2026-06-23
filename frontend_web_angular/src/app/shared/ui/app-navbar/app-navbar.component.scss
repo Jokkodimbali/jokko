@@ -1,8 +1,9 @@
 :host {
   display: block;
-  min-height: var(--app-navbar-height, 153px);
-  --app-navbar-backdrop-height: 491px;
-  --app-navbar-height: 153px;
+  min-height: var(--app-navbar-height, 104px);
+  --app-navbar-backdrop-height: 360px;
+  --app-navbar-height: 104px;
+  --app-navbar-profile-radius: 29px;
 }
 
 .app-navbar {
@@ -10,12 +11,12 @@
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
   display: grid;
-  gap: 18px;
-  grid-template-columns: 220px minmax(0, 1fr) auto;
-  height: 153px;
+  gap: 14px;
+  grid-template-columns: 168px minmax(0, 1fr) auto;
+  height: var(--app-navbar-height);
   inset: 0 0 auto;
   max-width: none;
-  padding: 17px 92px 17px 18px;
+  padding: 12px 56px 12px 16px;
   position: fixed;
   z-index: 1000;
 }
@@ -24,25 +25,25 @@
   align-items: center;
   background: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 21px;
-  box-shadow: 0 16px 34px rgba(48, 28, 10, 0.24);
+  border-radius: 18px;
+  box-shadow: 0 12px 24px rgba(48, 28, 10, 0.2);
   color: var(--color-white, #fff);
   display: inline-flex;
-  height: 105px;
+  height: 74px;
   justify-content: center;
   max-width: 100%;
-  padding: 8px;
+  padding: 6px;
   text-decoration: none;
-  width: 145px;
-  margin-left: 42px;  
+  width: 112px;
+  margin-left: 24px;  
 }
 
 .app-navbar__brand img {
   display: block;
-  height: 178px;
+  height: 98px;
   object-fit: contain;
   object-position: center;
-  width: 128px;
+  width: 96px;
 }
 
 .app-navbar__nav {
@@ -63,11 +64,12 @@
   font-size: 13px;
   font-weight: 850;
   gap: 8px;
-  height: 50px;
+  height: 44px;
   justify-content: center;
   min-width: 0;
   padding: 0 12px;
   text-decoration: none;
+  white-space: nowrap;
   width: auto;
   transition:
     background 0.22s ease,
@@ -307,17 +309,17 @@
   border-radius: 10px;
   color: #000;
   display: inline-flex;
-  height: 51px;
+  height: 46px;
   justify-content: center;
 }
 
 .app-navbar__notification {
-  border-radius: 10px;
+  border-radius: var(--app-navbar-profile-radius);
   color: #865221;
   cursor: pointer;
   flex: 0 0 auto;
   position: relative;
-  width: 54px;
+  width: 50px;
 }
 
 .app-navbar__notification--mobile {
@@ -497,6 +499,7 @@
 }
 
 .app-navbar__profile {
+  border-radius: var(--app-navbar-profile-radius);
   cursor: pointer;
   gap: 10px;
   max-width: min(230px, calc(100vw - 118px));
@@ -545,7 +548,7 @@
 
 .app-navbar__dropdown {
   background: var(--color-white, #fff);
-  border-radius: 10px;
+  border-radius: var(--app-navbar-profile-radius);
   box-shadow: 0 13px 26px rgba(0, 0, 0, 0.22);
   color: var(--color-strong, #0d1117);
   display: grid;
@@ -1053,18 +1056,18 @@
 /* ─── Small Desktop (1024px–1199px) ───────────────────────────────── */
 @media (min-width: 1024px) and (max-width: 1199px) {
   :host {
-    --app-navbar-height: clamp(120px, 12vw, 153px);
+    --app-navbar-height: clamp(96px, 8vw, 104px);
   }
 
   .app-navbar {
-    grid-template-columns: clamp(170px, 16vw, 220px) minmax(0, 1fr) auto;
-    height: clamp(120px, 12vw, 153px);
-    padding: clamp(14px, 1.5vw, 17px) clamp(60px, 8vw, 92px) clamp(14px, 1.5vw, 17px) clamp(14px, 1.5vw, 18px);
+    grid-template-columns: clamp(150px, 14vw, 168px) minmax(0, 1fr) auto;
+    height: var(--app-navbar-height);
+    padding: clamp(10px, 1.2vw, 12px) clamp(44px, 5vw, 56px) clamp(10px, 1.2vw, 12px) clamp(14px, 1.5vw, 16px);
   }
 
   .app-navbar__brand img {
-    height: clamp(90px, 8vw, 118px);
-    width: clamp(90px, 8vw, 118px);
+    height: clamp(86px, 7vw, 98px);
+    width: clamp(84px, 7vw, 96px);
   }
 
   .app-navbar__nav {
@@ -1103,17 +1106,17 @@
   }
 
   .app-navbar__toast {
-    right: clamp(60px, 6vw, 92px);
-    top: clamp(90px, 9vw, 112px);
+    right: clamp(44px, 5vw, 56px);
+    top: clamp(76px, 7vw, 88px);
   }
 }
 
 /* ─── Large Desktop (≥1200px) ─────────────────────────────────── */
 @media (min-width: 1200px) {
   .app-navbar {
-    grid-template-columns: 220px minmax(0, 1fr) auto;
-    height: 153px;
-    padding: 17px 92px 17px 18px;
+    grid-template-columns: 168px minmax(0, 1fr) auto;
+    height: var(--app-navbar-height);
+    padding: 12px 56px 12px 16px;
   }
 
   .app-navbar__nav {
@@ -1121,7 +1124,7 @@
   }
 
   .app-navbar__toast {
-    right: 92px;
-    top: 112px;
+    right: 56px;
+    top: 88px;
   }
 }

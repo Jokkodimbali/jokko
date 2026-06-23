@@ -290,103 +290,26 @@
         </article>
       </div>
 
-      <footer class="messages-page__composer">
-        <button
-          *ngIf="canShowNegotiationButton()"
-          type="button"
-          class="messages-page__amount"
-          aria-label="Proposer un montant pour cette conversation"
-        >
-          <lucide-icon name="banknote" size="31" [strokeWidth]="2.4"></lucide-icon>
-          Negocier le prix
-        </button>
-        <label class="messages-page__composer-file" aria-label="Envoyer une image">
-          <lucide-icon name="camera" size="18" [strokeWidth]="2.4"></lucide-icon>
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" (change)="selectImage($event)" />
-        </label>
-        <label class="messages-page__composer-file" aria-label="Envoyer une piece jointe">
-          <lucide-icon name="paperclip" size="18" [strokeWidth]="2.4"></lucide-icon>
-          <input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" (change)="selectAttachment($event)" />
-        </label>
-        <div class="messages-page__voice-panel" *ngIf="isRecordingVoice(); else normalComposerField">
-          <button type="button" class="messages-page__voice-cancel" aria-label="Annuler le vocal" (click)="cancelVoiceRecording()">
-            <lucide-icon name="x" size="16" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-          <span class="messages-page__voice-timer">{{ formatDuration(voiceRecordingSeconds()) }}</span>
-          <span class="messages-page__voice-wave" aria-hidden="true">
-            <i
-              *ngFor="let index of [0,1,2,3,4,5,6,7,8,9,10,11]"
-              [style.transform]="'scaleY(' + voiceInsightLevel(index) + ')'"
-            ></i>
-          </span>
-          <span class="messages-page__voice-hint">Parlez maintenant</span>
-          <button type="button" class="messages-page__voice-finish" aria-label="Terminer le message vocal" (click)="stopVoiceRecording()">
-            <lucide-icon name="mic" size="23" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-        </div>
-        <ng-template #normalComposerField>
-        <div class="messages-page__composer-field">
-          <span *ngIf="pendingMediaUrl() || isRecordingVoice()" class="messages-page__pending-media">
-            <lucide-icon
-              [name]="isRecordingVoice() ? 'mic' : pendingMediaKind() === 'audio' ? 'mic' : pendingMediaKind() === 'image' ? 'camera' : 'paperclip'"
-              size="15"
-              [strokeWidth]="2.4"
-            ></lucide-icon>
-            {{ isRecordingVoice() ? 'Enregistrement vocal - ' + formatDuration(voiceRecordingSeconds()) : pendingMediaLabel() }}
-            <button
-              type="button"
-              [attr.aria-label]="isRecordingVoice() ? 'Annuler le vocal' : 'Retirer le media'"
-              (click)="isRecordingVoice() ? cancelVoiceRecording() : clearPendingMedia()"
-            >
-              <lucide-icon name="x" size="14" [strokeWidth]="2.5"></lucide-icon>
-            </button>
-          </span>
-          <span class="messages-page__composer-input">
-            <input
-              type="text"
-              [value]="draft()"
-              [disabled]="isRecordingVoice()"
-              [placeholder]="isRecordingVoice() ? 'Parlez maintenant...' : isUploadingMedia() ? 'Preparation du media...' : 'Tapez votre message...'"
-              (input)="updateDraftFromEvent($event)"
-              (keydown.enter)="sendMessage()"
-            />
-            <button
-              *ngIf="isRecordingVoice(); else sendOrVoiceButton"
-              type="button"
-              class="messages-page__voice"
-              [class.messages-page__voice--recording]="true"
-              aria-label="Terminer le message vocal"
-              [disabled]="isUploadingMedia() || isSending()"
-              (click)="stopVoiceRecording()"
-            >
-              <lucide-icon name="mic" size="20" [strokeWidth]="2.5"></lucide-icon>
-            </button>
-            <ng-template #sendOrVoiceButton>
-              <button
-                *ngIf="draft().trim() || pendingMediaUrl(); else voiceButton"
-                type="button"
-                aria-label="Envoyer le message"
-                [disabled]="isSending() || isUploadingMedia()"
-                (click)="sendMessage()"
-              >
-                <lucide-icon name="send" size="21" [strokeWidth]="2.5"></lucide-icon>
-              </button>
-              <ng-template #voiceButton>
-                <button
-                  type="button"
-                  class="messages-page__voice"
-                  aria-label="Enregistrer un message vocal"
-                  [disabled]="isUploadingMedia() || isSending()"
-                  (click)="startVoiceRecording()"
-                >
-                  <lucide-icon name="mic" size="20" [strokeWidth]="2.5"></lucide-icon>
-                </button>
-              </ng-template>
-            </ng-template>
-          </span>
-        </div>
-        </ng-template>
-      </footer>
+      <app-message-composer
+        [draft]="draft()"
+        [pendingMediaUrl]="pendingMediaUrl()"
+        [pendingMediaKind]="pendingMediaKind()"
+        [pendingMediaLabel]="pendingMediaLabel()"
+        [isRecordingVoice]="isRecordingVoice()"
+        [isUploadingMedia]="isUploadingMedia()"
+        [isSending]="isSending()"
+        [canShowNegotiationButton]="canShowNegotiationButton()"
+        [voiceRecordingSeconds]="voiceRecordingSeconds()"
+        [voiceLevel]="voiceLevel()"
+        (draftChange)="updateDraft($event)"
+        (send)="sendMessage()"
+        (imageSelected)="selectImage($event)"
+        (attachmentSelected)="selectAttachment($event)"
+        (clearMedia)="clearPendingMedia()"
+        (startVoice)="startVoiceRecording()"
+        (stopVoice)="stopVoiceRecording()"
+        (cancelVoice)="cancelVoiceRecording()"
+      />
     </section>
 
     <ng-template #emptyThread>
@@ -499,20 +422,7 @@
           </article>
         </div>
 
-        <footer class="messages-page__composer">
-          <button type="button" aria-label="Ajouter une photo" disabled>
-            <lucide-icon name="camera" size="18" [strokeWidth]="2.4"></lucide-icon>
-          </button>
-          <button type="button" aria-label="Ajouter une piece jointe" disabled>
-            <lucide-icon name="paperclip" size="18" [strokeWidth]="2.4"></lucide-icon>
-          </button>
-          <label>
-            <input type="text" placeholder="Tapez votre message..." disabled />
-            <button type="button" aria-label="Envoyer le message" disabled>
-              <lucide-icon name="send" size="22" [strokeWidth]="2.5"></lucide-icon>
-            </button>
-          </label>
-        </footer>
+        <app-message-composer [isDisabled]="true" />
       </section>
 
       <ng-template #noConversationSelected>

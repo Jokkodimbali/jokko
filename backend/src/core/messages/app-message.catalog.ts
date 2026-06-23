@@ -188,8 +188,12 @@ export const APP_MESSAGES_BY_MODULE = {
     USERS_PROFESSIONAL_PROFILE_REQUIRED: {
       code: 'USERS_PROFESSIONAL_PROFILE_REQUIRED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
-      message:
-        'Seuls les prestataires et medecins peuvent ajouter ce document.',
+      message: 'Seuls les prestataires et medecins peuvent gerer ce profil.',
+    },
+    USERS_MEDICAL_CREDENTIAL_REQUIRED: {
+      code: 'USERS_MEDICAL_CREDENTIAL_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
+      message: 'Seuls les medecins peuvent ajouter ce document.',
     },
     USERS_PROFESSIONAL_PROFILE_NOT_FOUND: {
       code: 'USERS_PROFESSIONAL_PROFILE_NOT_FOUND',

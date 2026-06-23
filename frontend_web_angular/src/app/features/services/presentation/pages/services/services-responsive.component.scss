@@ -1,3 +1,4 @@
+/* ─── Mobile (<768px) ───────────────────────────────────────────── */
 @media (max-width: 767px) {
   :host .content-shell {
     display: block !important;
@@ -5,6 +6,11 @@
 
   :host .search-zone h1 {
     font-size: clamp(24px, 7vw, 32px);
+  }
+
+  /* Hide favorites sidebar — show it only as collapsible or remove on mobile */
+  :host .content-shell {
+    display: block !important;
   }
 
   :host .favorites {
@@ -23,6 +29,10 @@
     overflow-y: auto;
   }
 
+  :host .favorite-row {
+    min-height: 64px !important;
+  }
+
   :host .service-section {
     min-height: auto !important;
     padding: 26px 14px 20px !important;
@@ -30,6 +40,15 @@
 
   :host .service-section:first-of-type {
     grid-column: 1 !important;
+  }
+
+  :host .section-title-group h2 {
+    font-size: clamp(22px, 6vw, 32px) !important;
+    line-height: 1.15 !important;
+  }
+
+  :host .section-title-group p {
+    font-size: clamp(14px, 4vw, 18px) !important;
   }
 
   :host .provider-row {
@@ -40,6 +59,50 @@
     padding: 0 !important;
   }
 
+  :host .provider-card {
+    box-sizing: border-box;
+    flex: none !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+    width: 100% !important;
+  }
+
+  :host .provider-info {
+    align-items: flex-start !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+    min-height: 0 !important;
+    padding-right: 42px;
+  }
+
+  :host .provider-info h3 {
+    font-size: 18px !important;
+    white-space: normal;
+  }
+
+  :host .provider-info .speciality,
+  :host .provider-meta span {
+    font-size: 12px !important;
+  }
+
+  :host .provider-meta {
+    flex-wrap: wrap;
+  }
+
+  :host .provider-info img,
+  :host .provider-avatar span {
+    height: 62px !important;
+    width: 62px !important;
+  }
+
+  :host .photo-strip {
+    gap: 10px !important;
+  }
+
+  :host .photo-strip--empty {
+    min-height: 84px !important;
+  }
+
   :host .see-all {
     font-size: 15px !important;
     min-height: 40px !important;
@@ -47,6 +110,7 @@
   }
 }
 
+/* ─── Tablet (768px – 1023px) ──────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1023px) {
   :host .content-shell {
     display: block !important;
@@ -81,15 +145,91 @@
     padding: 20px 16px 16px !important;
   }
 
+  :host .provider-card {
+    min-width: min(100%, 280px) !important;
+  }
+
   :host .provider-row {
     display: grid !important;
-    gap: 16px !important;
+    gap: 14px !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     overflow: visible !important;
   }
 
+  :host .provider-info {
+    gap: 14px !important;
+  }
+
+  :host .provider-info h3 {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 767px) {
   :host .provider-card {
     min-height: 0 !important;
+    padding: 14px !important;
+  }
+
+  :host .provider-info {
+    gap: 10px !important;
+    min-height: 58px !important;
+    padding-right: 0 !important;
+  }
+
+  :host .provider-info h3 {
+    font-size: 14px !important;
+    white-space: nowrap;
+  }
+
+  :host .provider-info .speciality,
+  :host .provider-meta span {
+    font-size: 10px !important;
+  }
+
+  :host .provider-info img,
+  :host .provider-avatar span {
+    height: 50px !important;
+    width: 50px !important;
+  }
+
+  :host .provider-card__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  :host .provider-card__action {
+    font-size: 11px;
+    min-height: 34px;
+  }
+}
+
+@media (max-width: 390px) {
+  :host .provider-card__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :host .provider-card {
     min-width: 0 !important;
+    padding: 14px 13px 13px !important;
+  }
+
+  :host .provider-info h3 {
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+}
+
+/* ─── Desktop (≥1024px) — no overrides needed ─────────────────── */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  :host .provider-card {
+    min-width: 0 !important;
+    padding: 14px 13px 13px !important;
+  }
+
+  :host .provider-info h3 {
+    font-size: 13px !important;
+    white-space: nowrap;
   }
 }

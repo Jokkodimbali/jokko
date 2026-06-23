@@ -1185,16 +1185,16 @@
 .settings-page__payment-cards {
   display: grid;
   gap: 22px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(340px, 1fr));
 }
 
 .settings-page__bank-card,
 .settings-page__wave-card {
   border-radius: 18px;
   box-shadow: 0 20px 38px rgba(0, 0, 0, 0.16);
-  min-height: 172px;
+  min-height: 210px;
   overflow: hidden;
-  padding: 22px;
+  padding: 26px 28px;
   position: relative;
 }
 
@@ -1234,12 +1234,11 @@
 
 .settings-page__reveal-card {
   border-radius: 50%;
-  bottom: 14px;
   height: 38px;
   left: 18px;
   min-height: 38px;
   padding: 0;
-  top: auto;
+  top: 14px;
   width: 38px;
 }
 
@@ -1249,11 +1248,15 @@
 }
 
 .settings-page__bank-card span {
-  bottom: 50px;
+  bottom: 68px;
   font-size: 26px;
   font-weight: 850;
-  left: 42px;
+  left: 28px;
   position: absolute;
+  right: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-page__bank-card img {
@@ -1266,25 +1269,32 @@
 }
 
 .settings-page__wave-card img {
+  bottom: 20px;
   height: 38px;
   object-fit: contain;
+  position: absolute;
+  right: 22px;
   width: 82px;
 }
 
 .settings-page__wave-card span,
 .settings-page__wave-card strong {
-  bottom: 68px;
+  bottom: 82px;
   display: block;
   font-size: 14px;
   font-weight: 850;
   left: 28px;
   position: absolute;
+  right: 28px;
 }
 
 .settings-page__wave-card strong {
-  bottom: 28px;
+  bottom: 42px;
   font-size: 24px;
   font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-page__payment-editor {

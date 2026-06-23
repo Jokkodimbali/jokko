@@ -1,0 +1,99 @@
+<footer class="message-composer" [class.message-composer--disabled]="isDisabled">
+  <button
+    *ngIf="canShowNegotiationButton"
+    type="button"
+    class="message-composer__amount"
+    aria-label="Proposer un montant pour cette conversation"
+    [disabled]="isDisabled"
+  >
+    <lucide-icon name="banknote" size="24" [strokeWidth]="2.4"></lucide-icon>
+    Negocier le prix
+  </button>
+
+  <div class="message-composer__voice-panel" *ngIf="isRecordingVoice; else normalComposerField">
+    <button type="button" class="message-composer__voice-cancel" aria-label="Annuler le vocal" (click)="cancelVoice.emit()">
+      <lucide-icon name="x" size="16" [strokeWidth]="2.6"></lucide-icon>
+    </button>
+    <span class="message-composer__voice-timer">{{ formatDuration(voiceRecordingSeconds) }}</span>
+    <span class="message-composer__voice-wave" aria-hidden="true">
+      <i
+        *ngFor="let index of voiceWaveIndexes"
+        [style.transform]="'scaleY(' + voiceInsightLevel(index) + ')'"
+      ></i>
+    </span>
+    <span class="message-composer__voice-hint">Parlez maintenant</span>
+    <button type="button" class="message-composer__voice-finish" aria-label="Terminer le message vocal" (click)="stopVoice.emit()">
+      <lucide-icon name="mic" size="22" [strokeWidth]="2.6"></lucide-icon>
+    </button>
+  </div>
+
+  <ng-template #normalComposerField>
+    <div class="message-composer__field">
+      <span *ngIf="pendingMediaUrl" class="message-composer__pending-media">
+        <lucide-icon
+          [name]="pendingMediaKind === 'audio' ? 'mic' : pendingMediaKind === 'image' ? 'camera' : 'paperclip'"
+          size="15"
+          [strokeWidth]="2.4"
+        ></lucide-icon>
+        {{ pendingMediaLabel }}
+        <button type="button" aria-label="Retirer le media" [disabled]="isDisabled" (click)="clearMedia.emit()">
+          <lucide-icon name="x" size="14" [strokeWidth]="2.5"></lucide-icon>
+        </button>
+      </span>
+
+      <span class="message-composer__input-row">
+        <label class="message-composer__tool" [class.message-composer__tool--disabled]="isDisabled" aria-label="Envoyer une image">
+          <lucide-icon name="camera" size="20" [strokeWidth]="2.35"></lucide-icon>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            [disabled]="isDisabled || isUploadingMedia || isSending"
+            (change)="imageSelected.emit($event)"
+          />
+        </label>
+
+        <label class="message-composer__tool" [class.message-composer__tool--disabled]="isDisabled" aria-label="Envoyer une piece jointe">
+          <lucide-icon name="paperclip" size="20" [strokeWidth]="2.35"></lucide-icon>
+          <input
+            type="file"
+            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+            [disabled]="isDisabled || isUploadingMedia || isSending"
+            (change)="attachmentSelected.emit($event)"
+          />
+        </label>
+
+        <input
+          type="text"
+          [value]="draft"
+          [disabled]="isDisabled || isUploadingMedia"
+          [placeholder]="placeholder"
+          (input)="updateDraftFromEvent($event)"
+          (keydown.enter)="send.emit()"
+        />
+
+        <button
+          *ngIf="hasMessageContent; else voiceButton"
+          type="button"
+          class="message-composer__send"
+          aria-label="Envoyer le message"
+          [disabled]="isDisabled || isSending || isUploadingMedia"
+          (click)="send.emit()"
+        >
+          <lucide-icon name="send" size="21" [strokeWidth]="2.5"></lucide-icon>
+        </button>
+
+        <ng-template #voiceButton>
+          <button
+            type="button"
+            class="message-composer__voice"
+            aria-label="Enregistrer un message vocal"
+            [disabled]="isDisabled || isUploadingMedia || isSending"
+            (click)="startVoice.emit()"
+          >
+            <lucide-icon name="mic" size="20" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </ng-template>
+      </span>
+    </div>
+  </ng-template>
+</footer>

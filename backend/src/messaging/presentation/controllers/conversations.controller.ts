@@ -7,7 +7,6 @@ import {
   Param,
   Post,
   Query,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -21,14 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  diskStorage,
-  type DiskStorageCallback,
-  type DiskStorageFile,
+  memoryStorage,
 } from 'multer';
-import type { Request } from 'express';
-import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import { extname, join } from 'node:path';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -43,7 +36,7 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
-import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
+import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 import { MessagingFacade } from '../../application/services/messaging-facade.service';
 import { MessagingGateway } from '../gateways/messaging.gateway';
 import { CreateConversationDto } from '../dto/create-conversation.dto';
@@ -51,17 +44,11 @@ import { CreateMessageDto } from '../dto/create-message.dto';
 import { ListConversationsQueryDto } from '../dto/list-conversations-query.dto';
 
 type UploadedConversationMediaFile = {
-  filename: string;
+  buffer: Buffer;
   originalname: string;
   mimetype: string;
   size: number;
 };
-
-const conversationMediaUploadDirectory = join(
-  process.cwd(),
-  'uploads',
-  'conversation-media',
-);
 
 const allowedConversationMediaMimeTypes = new Set([
   'image/jpeg',
@@ -81,35 +68,6 @@ const allowedConversationMediaMimeTypes = new Set([
   'audio/wav',
 ]);
 
-function ensureConversationMediaUploadDirectory(): void {
-  mkdirSync(conversationMediaUploadDirectory, { recursive: true });
-}
-
-function buildConversationMediaFileName(originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.bin';
-  const safeExtension = [
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.webp',
-    '.gif',
-    '.pdf',
-    '.doc',
-    '.docx',
-    '.xls',
-    '.xlsx',
-    '.txt',
-    '.webm',
-    '.mp3',
-    '.m4a',
-    '.ogg',
-    '.wav',
-  ].includes(extension)
-    ? extension
-    : '.bin';
-  return `conversation-media-${Date.now()}-${randomUUID()}${safeExtension}`;
-}
-
 @ApiTags(API_DOCS.messaging.tag)
 @ApiBearerAuth()
 @Controller('conversations')
@@ -118,6 +76,7 @@ export class ConversationsController {
   constructor(
     private readonly messagingFacade: MessagingFacade,
     private readonly messagingGateway: MessagingGateway,
+    private readonly cloudinaryMedia: CloudinaryMediaService,
   ) {}
 
   @Get()
@@ -167,23 +126,7 @@ export class ConversationsController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('media', {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureConversationMediaUploadDirectory();
-          callback(null, conversationMediaUploadDirectory);
-        },
-        filename: (
-          _request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          callback(null, buildConversationMediaFileName(file.originalname));
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 12 * 1024 * 1024 },
       fileFilter: (_request, file, callback) => {
         if (!allowedConversationMediaMimeTypes.has(file.mimetype)) {
@@ -196,22 +139,31 @@ export class ConversationsController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Uploader un media pour une conversation' })
-  uploadConversationMedia(
+  async uploadConversationMedia(
     @UploadedFile() file: UploadedConversationMediaFile | undefined,
-    @Req() request: Request,
   ) {
     if (!file) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
+    const uploaded = await this.cloudinaryMedia
+      .upload({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        folder: 'jokko/conversation-media',
+      })
+      .catch(() => {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      });
+
     return createApiResponse({
-      mediaUrl: buildPublicUploadUrl(
-        request,
-        `/uploads/conversation-media/${file.filename}`,
-      ),
+      mediaUrl: uploaded.secureUrl,
+      cloudinaryPublicId: uploaded.publicId,
+      cloudinaryResourceType: uploaded.resourceType,
       originalFileName: file.originalname,
       mimeType: file.mimetype,
-      sizeBytes: file.size,
+      sizeBytes: uploaded.bytes,
     });
   }
 

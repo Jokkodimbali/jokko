@@ -1,8 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  QueryList,
+  ViewChildren,
+  computed,
+  inject,
+  signal,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
@@ -51,7 +62,10 @@ type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
     './services-responsive.component.scss',
   ],
 })
-export class ServicesComponent implements OnInit, OnDestroy {
+export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChildren('serviceFilters')
+  private readonly serviceFilterRefs?: QueryList<ElementRef<HTMLElement>>;
+
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
@@ -150,6 +164,8 @@ export class ServicesComponent implements OnInit, OnDestroy {
   });
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
   private requestVersion = 0;
+  private serviceFilterWheelCleanups: Array<() => void> = [];
+  private serviceFilterRefsChangesSubscription?: Subscription;
 
   ngOnInit(): void {
     this.loadCategories();
@@ -159,6 +175,15 @@ export class ServicesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearSearchDebounce();
+    this.clearServiceFilterWheelListeners();
+    this.serviceFilterRefsChangesSubscription?.unsubscribe();
+  }
+
+  ngAfterViewInit(): void {
+    this.bindServiceFilterWheelListeners();
+    this.serviceFilterRefsChangesSubscription = this.serviceFilterRefs?.changes.subscribe(() => {
+      this.bindServiceFilterWheelListeners();
+    });
   }
 
   onSearchTermChange(value: string): void {
@@ -179,6 +204,55 @@ export class ServicesComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.clearSearchDebounce();
     this.loadProfessionals(1);
+  }
+
+  scrollFiltersWithWheel(event: WheelEvent, targetElement?: HTMLElement): void {
+    if (event.ctrlKey) {
+      return;
+    }
+
+    const container = targetElement ?? (event.currentTarget as HTMLElement | null);
+    if (!container) {
+      return;
+    }
+
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    const modeMultiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 18 : 1;
+    const rawDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    const delta = rawDelta * modeMultiplier;
+    if (delta === 0) {
+      return;
+    }
+
+    const nextScrollLeft = Math.max(0, Math.min(maxScrollLeft, container.scrollLeft + delta));
+    if (nextScrollLeft === container.scrollLeft) {
+      return;
+    }
+
+    event.preventDefault();
+    container.scrollLeft = nextScrollLeft;
+  }
+
+  private bindServiceFilterWheelListeners(): void {
+    this.clearServiceFilterWheelListeners();
+
+    this.serviceFilterRefs?.forEach((reference) => {
+      const element = reference.nativeElement;
+      const handleWheel = (event: WheelEvent) => this.scrollFiltersWithWheel(event, element);
+      element.addEventListener('wheel', handleWheel, { passive: false });
+      this.serviceFilterWheelCleanups.push(() => {
+        element.removeEventListener('wheel', handleWheel);
+      });
+    });
+  }
+
+  private clearServiceFilterWheelListeners(): void {
+    this.serviceFilterWheelCleanups.forEach((cleanup) => cleanup());
+    this.serviceFilterWheelCleanups = [];
   }
 
   selectFilter(filter: ProfessionalFilter): void {

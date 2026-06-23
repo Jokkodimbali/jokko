@@ -137,11 +137,8 @@ export class UsersService {
     requestUser: { sub: string; role: RoleUtilisateur },
     command: UploadMyProfessionalCredentialCommand,
   ) {
-    if (
-      requestUser.role !== RoleUtilisateur.PRESTATAIRE &&
-      requestUser.role !== RoleUtilisateur.MEDECIN
-    ) {
-      throw appHttpException('USERS_PROFESSIONAL_PROFILE_REQUIRED');
+    if (requestUser.role !== RoleUtilisateur.MEDECIN) {
+      throw appHttpException('USERS_MEDICAL_CREDENTIAL_REQUIRED');
     }
 
     const result =

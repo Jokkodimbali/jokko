@@ -1,5 +1,5 @@
 import { CommonModule, Location } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -19,13 +19,19 @@ import {
   ReservationAvailabilitySlotView,
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
+import {
+  ProposalDetailsModal,
+  ServiceProposalDetailsModalComponent,
+} from '../../../../services/presentation/components/service-proposal-details-modal/service-proposal-details-modal.component';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalDetailService,
   ProviderProfileDetail,
 } from '../../../../services/domain/models/services.models';
+import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
+type BookingStep = 'PERSONAL' | 'RESERVATION';
 type PatientFormField = 'fullName' | 'phoneNumber' | 'relationship' | 'address' | 'notes';
 
 interface RelativePatientForm {
@@ -54,27 +60,6 @@ type CalendarDay = {
   isPast: boolean;
 };
 
-type GooglePlacesAutocomplete = new (
-  input: HTMLInputElement,
-  options?: {
-    componentRestrictions?: { country: string };
-    fields?: string[];
-    types?: string[];
-  },
-) => {
-  addListener: (eventName: 'place_changed', callback: () => void) => void;
-  getPlace: () => {
-    formatted_address?: string;
-    name?: string;
-    geometry?: {
-      location?: {
-        lat: () => number;
-        lng: () => number;
-      };
-    };
-  };
-};
-
 type GoogleGeocoderResult = {
   formatted_address?: string;
 };
@@ -89,9 +74,6 @@ type GoogleGeocoderConstructor = new () => {
 type GoogleMapsNamespace = {
   maps?: {
     Geocoder?: GoogleGeocoderConstructor;
-    places?: {
-      Autocomplete?: GooglePlacesAutocomplete;
-    };
   };
 };
 
@@ -102,14 +84,11 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
 @Component({
   selector: 'app-medicine-appointment-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ServiceProposalDetailsModalComponent],
   templateUrl: './medicine-appointment-booking.component.html',
   styleUrl: './medicine-appointment-booking.component.scss',
 })
 export class MedicineAppointmentBookingComponent implements OnInit {
-  @ViewChild('relativeAddressInput')
-  private readonly relativeAddressInput?: ElementRef<HTMLInputElement>;
-
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -124,10 +103,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly user = signal<UserProfileDto | null>(null);
+  protected readonly activeStep = signal<BookingStep>('PERSONAL');
   protected readonly appointmentFor = signal<AppointmentFor>('ME');
   protected readonly selectedServiceId = signal<string>('');
   protected readonly selectedDateIso = signal<string>('');
   protected readonly selectedDateTime = signal<string | null>(null);
+  protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
   protected readonly calendarDays = signal<CalendarDay[]>([]);
   protected readonly selectedDateSlots = signal<ReservationAvailabilitySlotView[]>([]);
   protected readonly isLoadingSlots = signal(false);
@@ -143,14 +124,24 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly appointmentAddressOverride = signal('');
   protected readonly appointmentLocation = signal<AppointmentLocation | null>(null);
   protected readonly isLocatingAddress = signal(false);
-  protected readonly mapsSuggestionsReady = signal(false);
-  protected readonly mapsSuggestionsUnavailable = signal(false);
-  private googleAutocompleteAttached = false;
 
   protected readonly doctorName = computed(() => {
     const detail = this.detail();
     return detail?.profile.nomEntreprise || detail?.profile.utilisateur.nom || 'Medecin non renseigne';
   });
+  protected readonly doctorAvatarUrl = computed(() =>
+    publicAssetUrl(this.detail()?.profile.utilisateur.urlAvatar) || '',
+  );
+  protected readonly doctorInitials = computed(() => this.initials(this.doctorName()));
+  protected readonly doctorRatingLabel = computed(() =>
+    Number(this.detail()?.profile.noteGlobale ?? 0).toFixed(1),
+  );
+  protected readonly doctorReviewsLabel = computed(() =>
+    `${this.detail()?.profile.nombreAvis ?? 0} avis`,
+  );
+  protected readonly doctorStatusLabel = computed(() =>
+    this.detail()?.presence.isOnline ? 'Disponible' : 'Indisponible',
+  );
   protected readonly selectedService = computed(() =>
     this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
   );
@@ -179,10 +170,45 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
     return 'Creneau selectionne';
   });
+  protected readonly minAppointmentDay = computed(() => this.toIsoDate(new Date()));
+  protected readonly availabilityLabel = computed(() => {
+    if (this.isLoadingSlots()) {
+      return 'Chargement des heures du medecin...';
+    }
+
+    if (this.selectedDateSlots().length === 0) {
+      return 'Aucun creneau disponible pour cette date.';
+    }
+
+    if (!this.selectedDateTime()) {
+      return 'Selectionnez une heure disponible.';
+    }
+
+    return `Creneau choisi : ${this.selectedSlotLabel()}`;
+  });
   protected readonly selectedDateLabel = computed(() => {
     const selected = this.calendarDays().find((day) => day.isoDate === this.selectedDateIso());
     if (!selected) return 'Date a choisir';
     return this.formatFullDate(selected.date);
+  });
+  protected readonly selectedDateShortLabel = computed(() => {
+    const dateHeure = this.selectedDateTime();
+    if (!dateHeure) return 'Date';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(dateHeure)).toUpperCase();
+  });
+  protected readonly selectedTimeLabel = computed(() => {
+    const dateHeure = this.selectedDateTime();
+    if (!dateHeure) return 'Heure';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(dateHeure)).replace(':', 'h');
   });
   protected readonly availableSlotsCount = computed(
     () => this.selectedDateSlots().filter((slot) => slot.available).length,
@@ -194,8 +220,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     () => this.selectedDateSlots().filter((slot) => slot.status === 'UNAVAILABLE').length,
   );
   protected readonly priceLabel = computed(() => {
+    return `${this.selectedServicePrice().toLocaleString('fr-FR')} FCFA`;
+  });
+  protected readonly selectedServicePrice = computed(() => {
     const price = Number(this.selectedService()?.prix ?? 0);
-    return `${price.toLocaleString('fr-FR')} FCFA`;
+    return Number.isFinite(price) ? price : 0;
   });
   protected readonly canConfirm = computed(
     () =>
@@ -219,6 +248,27 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     this.appointmentAddressOverride.set('');
   }
 
+  protected goToPersonalStep(): void {
+    this.activeStep.set('PERSONAL');
+  }
+
+  protected goToReservationStep(): void {
+    if (!this.validatePersonalStep()) {
+      this.feedback.info('Completez les informations personnelles avant de continuer.');
+      return;
+    }
+
+    this.activeStep.set('RESERVATION');
+  }
+
+  protected openDetailsModal(modal: ProposalDetailsModal): void {
+    this.activeDetailsModal.set(modal);
+  }
+
+  protected closeDetailsModal(): void {
+    this.activeDetailsModal.set(null);
+  }
+
   protected selectService(serviceId: string): void {
     this.selectedServiceId.set(serviceId);
     this.selectedDateTime.set(null);
@@ -228,6 +278,13 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected selectCalendarDate(day: CalendarDay): void {
     if (this.selectedDateIso() === day.isoDate) return;
     this.selectedDateIso.set(day.isoDate);
+    this.selectedDateTime.set(null);
+    this.loadAvailabilityForSelectedDate();
+  }
+
+  protected updateAppointmentDay(value: string): void {
+    if (!value || this.selectedDateIso() === value) return;
+    this.selectedDateIso.set(value);
     this.selectedDateTime.set(null);
     this.loadAvailabilityForSelectedDate();
   }
@@ -248,6 +305,23 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     this.selectedDateTime.set(slotDateTime);
   }
 
+  protected updateAppointmentAddress(value: string): void {
+    const address = this.normalizeText(value);
+    this.appointmentLocation.set(null);
+
+    if (this.appointmentFor() === 'ME') {
+      this.appointmentAddressOverride.set(address);
+      this.fieldErrors.update((errors) => {
+        const next = { ...errors };
+        delete next.selfAddress;
+        return next;
+      });
+      return;
+    }
+
+    this.updateRelativePatient('address', address);
+  }
+
   protected slotStatusLabel(slot: ReservationAvailabilitySlotView): string {
     if (slot.available) return 'Disponible';
     if (slot.status === 'RESERVED') return 'Deja reserve';
@@ -265,53 +339,6 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       delete next[field];
       return next;
     });
-  }
-
-  protected initializeAddressSuggestions(): void {
-    if (this.googleAutocompleteAttached || this.mapsSuggestionsReady()) return;
-
-    if (!environment.googleMapsApiKey) {
-      this.mapsSuggestionsUnavailable.set(true);
-      return;
-    }
-
-    this.loadGoogleMapsPlacesScript()
-      .then(() => {
-        const input = this.relativeAddressInput?.nativeElement;
-        const autocompleteCtor = this.getGooglePlacesAutocomplete();
-        if (!input || !autocompleteCtor) {
-          this.mapsSuggestionsUnavailable.set(true);
-          return;
-        }
-
-        const autocomplete = new autocompleteCtor(input, {
-          componentRestrictions: { country: 'sn' },
-          fields: ['formatted_address', 'geometry', 'name'],
-          types: ['geocode', 'establishment'],
-        });
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          const label = place.formatted_address || place.name || input.value;
-          const latitude = place.geometry?.location?.lat();
-          const longitude = place.geometry?.location?.lng();
-
-          this.updateRelativePatient('address', label);
-          if (typeof latitude === 'number' && typeof longitude === 'number') {
-            this.appointmentLocation.set({
-              label,
-              latitude,
-              longitude,
-              accuracyMeters: null,
-              source: 'GOOGLE_PLACES',
-            });
-          }
-        });
-
-        this.googleAutocompleteAttached = true;
-        this.mapsSuggestionsReady.set(true);
-      })
-      .catch(() => this.mapsSuggestionsUnavailable.set(true));
   }
 
   protected useCurrentLocationForAppointment(): void {
@@ -422,7 +449,9 @@ export class MedicineAppointmentBookingComponent implements OnInit {
           const created = reservation as { id?: string };
           this.feedback.success('Rendez-vous cree avec succes.');
           if (created.id) {
-            this.router.navigate(['/appointments', created.id, 'payment']);
+            this.router.navigate(['/medecine', 'reservations', created.id, 'resume-paiement'], {
+              queryParams: { source: 'medecine' },
+            });
           } else {
             this.router.navigate(['/appointments']);
           }
@@ -446,6 +475,36 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       return this.appointmentAddressOverride() || this.userAddress() || 'Adresse a ajouter au profil';
     }
     return this.normalizeText(this.relativePatient().address) || 'Adresse du proche a renseigner';
+  }
+
+  protected selectedServiceSummary(): string {
+    const service = this.selectedService();
+    if (!service) return 'Selectionnez un motif de consultation...';
+    return `${service.nom} - ${service.dureeMinutes ?? 15} min`;
+  }
+
+  protected stepStatus(step: BookingStep): 'active' | 'done' | 'pending' {
+    if (this.activeStep() === step) return 'active';
+    if (step === 'PERSONAL' && this.activeStep() === 'RESERVATION') return 'done';
+    return 'pending';
+  }
+
+  private validatePersonalStep(): boolean {
+    if (this.appointmentFor() === 'ME') {
+      const address = this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
+      if (address.length < 5) {
+        this.fieldErrors.set({
+          selfAddress: 'Ajoutez une adresse complete avant de continuer.',
+        });
+        return false;
+      }
+
+      this.fieldErrors.set({});
+      return true;
+    }
+
+    const validation = this.validateRelativePatient();
+    return validation.valid;
   }
 
   private loadPage(): void {
@@ -638,6 +697,16 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     return value.trim().replace(/\s+/g, ' ');
   }
 
+  private initials(name: string): string {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+  }
+
   private limitNotes(value: string): string {
     return value.length <= 1000 ? value : value.slice(0, 997).trimEnd() + '...';
   }
@@ -728,12 +797,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   private loadGoogleMapsPlacesScript(): Promise<void> {
-    if (this.getGooglePlacesAutocomplete()) {
+    if (this.getGoogleGeocoder()) {
       return Promise.resolve();
     }
 
     const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-jokko-google-maps-places="true"]',
+      'script[data-jokko-google-maps="true"]',
     );
     if (existing) {
       return new Promise((resolve, reject) => {
@@ -744,18 +813,14 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}`;
       script.async = true;
       script.defer = true;
-      script.dataset['jokkoGoogleMapsPlaces'] = 'true';
+      script.dataset['jokkoGoogleMaps'] = 'true';
       script.onload = () => resolve();
       script.onerror = () => reject();
       document.head.appendChild(script);
     });
-  }
-
-  private getGooglePlacesAutocomplete(): GooglePlacesAutocomplete | undefined {
-    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places?.Autocomplete;
   }
 
   private getGoogleGeocoder(): GoogleGeocoderConstructor | undefined {

@@ -267,10 +267,13 @@
   justify-content: flex-start;
   margin: 0 auto 22px;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   padding: 2px 2px 6px;
   scrollbar-width: none;
+  touch-action: pan-x;
+  width: 100%;
   -ms-overflow-style: none;
 }
 
@@ -301,6 +304,13 @@
     transform 0.16s ease;
 }
 
+:host .service-filters__button--all {
+  box-shadow: 10px 0 18px rgb(255 255 255 / 86%);
+  left: 0;
+  position: sticky;
+  z-index: 5;
+}
+
 :host .service-filters__button:hover,
 :host .service-filters__button:focus-visible {
   border-color: #955d24;
@@ -311,6 +321,15 @@
   background: #955d24;
   border-color: #955d24;
   color: #fff;
+  box-shadow: 0 10px 22px rgb(149 93 36 / 18%);
+  position: sticky;
+  left: 160px;
+  z-index: 4;
+}
+
+:host .service-filters__button--all.service-filters__button--active {
+  left: 0;
+  z-index: 6;
 }
 
 :host .service-filters__button--parent {

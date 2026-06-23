@@ -87,17 +87,6 @@ export class AdminKycValidationPanelComponent implements OnChanges {
     }).format(new Date(profile.creeLe));
   }
 
-  protected documents(profile: AdminKycProfile): Array<{ label: string; url: string | null }> {
-    return [
-      { label: "Piece d'identite recto", url: profile.urlPieceIdentiteRecto },
-      { label: "Piece d'identite verso", url: profile.urlPieceIdentiteVerso },
-    ];
-  }
-
-  protected providedDocumentsCount(profile: AdminKycProfile): number {
-    return this.documents(profile).filter((document) => !!document.url).length;
-  }
-
   protected selectedProfileTitle(): string {
     const profile = this.selectedProfile();
     return profile ? this.title(profile) : 'ce dossier';

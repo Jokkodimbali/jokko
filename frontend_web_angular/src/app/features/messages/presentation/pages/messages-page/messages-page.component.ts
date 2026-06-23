@@ -14,6 +14,7 @@ import {
   NegotiationView,
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
+import { MessageComposerComponent } from '../../components/message-composer/message-composer.component';
 import { MessagesService } from '../../../data-access/messages.service';
 import { MessagesRealtimeService } from '../../../data-access/messages-realtime.service';
 import { Conversation, ConversationMessage } from '../../../domain/models/messages.models';
@@ -45,7 +46,7 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent, MessageComposerComponent],
   templateUrl: './messages-page.component.html',
   styleUrl: './messages-page.component.scss',
 })
@@ -288,10 +289,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.draft.set(value);
   }
 
-  protected updateDraftFromEvent(event: Event): void {
-    this.updateDraft((event.target as HTMLTextAreaElement | null)?.value ?? '');
-  }
-
   protected sendMessage(): void {
     this.sendMessageWithMedia(this.pendingMediaUrl() ?? undefined);
   }
@@ -415,14 +412,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-
-  protected voiceInsightLevel(index: number): number {
-    const level = this.voiceLevel();
-    const wave = Math.abs(Math.sin((this.voiceRecordingSeconds() + index) * 0.85));
-    const fallback = this.isRecordingVoice() ? 0.28 + wave * 0.52 : 0.2;
-    const liveLevel = Math.min(1, Math.max(0.12, level * (0.55 + index * 0.08)));
-    return this.isRecordingVoice() && level > 0.02 ? liveLevel : fallback;
   }
 
   protected clearPendingMedia(): void {

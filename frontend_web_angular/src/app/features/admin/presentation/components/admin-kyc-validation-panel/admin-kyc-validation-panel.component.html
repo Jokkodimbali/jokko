@@ -6,7 +6,7 @@
         Validation des prestataires
       </span>
       <h1>Dossiers professionnels a verifier</h1>
-      <p>Controlez l'identite, les informations et les documents avant d'ouvrir l'acces professionnel.</p>
+      <p>Controlez les informations professionnelles avant d'ouvrir l'acces prestataire.</p>
     </div>
 
     <div class="admin-validation-stats">
@@ -15,8 +15,8 @@
         <strong>{{ profiles.length }}</strong>
       </article>
       <article *ngIf="selectedProfile() as profile">
-        <small>Documents</small>
-        <strong>{{ providedDocumentsCount(profile) }}/{{ documents(profile).length }}</strong>
+        <small>Dossier</small>
+        <strong>{{ profile.ville ? 'Complet' : 'A verifier' }}</strong>
       </article>
     </div>
   </header>
@@ -91,29 +91,31 @@
         <p>{{ profile.biographie || 'Aucune biographie professionnelle renseignee pour ce dossier.' }}</p>
       </section>
 
-      <section class="admin-validation-documents">
+      <section class="admin-validation-checklist">
         <header>
           <div>
-            <h3>Documents fournis</h3>
-            <p>{{ providedDocumentsCount(profile) }} document(s) disponible(s) sur {{ documents(profile).length }}</p>
+            <h3>Verification prestataire</h3>
+            <p>Les prestataires ne fournissent plus de pieces justificatives. Verifiez uniquement les informations du compte.</p>
           </div>
         </header>
 
-        <a
-          *ngFor="let document of documents(profile)"
-          [href]="document.url || null"
-          [class.admin-document--missing]="!document.url"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <lucide-icon name="file-text" size="17" [strokeWidth]="2.3"></lucide-icon>
+        <article>
+          <lucide-icon name="user-check" size="17" [strokeWidth]="2.3"></lucide-icon>
           <span>
-            <strong>{{ document.label }}</strong>
-            <small>{{ document.url ? 'Cliquez pour ouvrir le document' : 'Document manquant' }}</small>
+            <strong>Identite du compte</strong>
+            <small>{{ profile.utilisateur.nom }} - {{ profile.utilisateur.numeroTelephone }}</small>
           </span>
-          <b>{{ document.url ? 'Fourni' : 'Manquant' }}</b>
-          <lucide-icon name="eye" size="15" [strokeWidth]="2.2"></lucide-icon>
-        </a>
+          <b>A verifier</b>
+        </article>
+
+        <article>
+          <lucide-icon name="briefcase-business" size="17" [strokeWidth]="2.3"></lucide-icon>
+          <span>
+            <strong>Profil professionnel</strong>
+            <small>{{ profile.nomEntreprise || profile.biographie || 'Informations professionnelles a confirmer' }}</small>
+          </span>
+          <b>{{ profile.nomEntreprise || profile.biographie ? 'Renseigne' : 'A completer' }}</b>
+        </article>
       </section>
 
       <footer>

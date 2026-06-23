@@ -1,0 +1,111 @@
+@media (min-width: 901px) {
+  .service-proposal {
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .service-proposal__content {
+    max-height: calc(100vh - 46px);
+    overflow: hidden;
+  }
+
+  .service-proposal__content--accepted {
+    max-height: calc(100vh - 112px);
+  }
+}
+
+.service-proposal__state {
+  align-items: center;
+  color: #33415b;
+  display: flex;
+  font-size: 18px;
+  font-weight: 850;
+  justify-content: center;
+  min-height: calc(100vh - 46px);
+}
+
+.service-proposal__state--error {
+  color: #a53a2b;
+}
+
+@media (max-width: 900px) {
+  .service-proposal__content {
+    grid-template-columns: minmax(0, 560px);
+  }
+
+  .service-proposal__summary {
+    order: -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .service-proposal__bar {
+    padding-inline: 12px;
+  }
+
+  .service-proposal__content {
+    padding: 18px 12px 32px;
+  }
+
+  .service-proposal__content--accepted {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+    padding-bottom: 130px;
+  }
+
+  .service-proposal__accepted-hero {
+    min-height: 174px;
+    padding-inline: 18px;
+  }
+
+  .service-proposal__accepted-body {
+    padding: 16px;
+  }
+
+  .service-proposal__accepted-price {
+    grid-template-columns: 1fr;
+  }
+
+  .service-proposal__accepted-price span:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .service-proposal__checkout-bar {
+    align-items: stretch;
+    display: grid;
+    gap: 10px;
+    min-height: 118px;
+    padding: 12px;
+  }
+
+  .service-proposal__checkout-bar button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .service-proposal__hero {
+    padding: 20px;
+  }
+
+  .service-proposal__panel-body {
+    padding: 14px;
+  }
+
+  .service-proposal__fields,
+  .service-proposal__amount-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .service-proposal__slot-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .service-proposal__offer-display input {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .service-proposal__steps-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

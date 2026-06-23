@@ -7,9 +7,10 @@ import { UsersService } from './application/services/users.service';
 import { UsersMedicalProfileService } from './application/services/users-medical-profile.service';
 import { UsersRepository } from './infrastructure/repositories/users.repository';
 import { USERS_REPOSITORY_PORT } from './application/ports/users-repository.port';
+import { MediaModule } from '../shared/media/media.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, MediaModule],
   controllers: [UsersController, AdminUsersController],
   providers: [
     UsersService,

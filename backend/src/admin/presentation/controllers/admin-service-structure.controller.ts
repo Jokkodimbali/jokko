@@ -8,7 +8,6 @@ import {
   Param,
   Patch,
   Post,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -21,15 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleUtilisateur } from '@prisma/client';
-import {
-  diskStorage,
-  type DiskStorageCallback,
-  type DiskStorageFile,
-} from 'multer';
-import type { Request } from 'express';
-import { extname, join } from 'node:path';
-import { mkdirSync } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -38,7 +29,7 @@ import {
   appMessage,
 } from '../../../core/http/app-http.exception';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
-import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
+import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { AdminServiceStructureService } from '../../application/services/admin-service-structure.service';
 import { AssignServiceSubCategoriesDto } from '../dto/assign-service-subcategories.dto';
@@ -47,36 +38,18 @@ import { BulkCreateServiceSubCategoriesDto } from '../dto/bulk-create-service-su
 import { CreateServiceSubCategoryDto } from '../dto/create-service-subcategory.dto';
 
 type UploadedServiceImageFile = {
-  filename: string;
+  buffer: Buffer;
+  originalname: string;
   mimetype: string;
   size: number;
 };
 
-const serviceImageUploadDirectory = join(
-  process.cwd(),
-  'uploads',
-  'service-categories',
-);
 const allowedServiceImageMimeTypes = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/svg+xml',
 ]);
-
-function ensureServiceImageUploadDirectory(): void {
-  mkdirSync(serviceImageUploadDirectory, { recursive: true });
-}
-
-function buildServiceImageFileName(originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.png';
-  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(
-    extension,
-  )
-    ? extension
-    : '.png';
-  return `service-category-${Date.now()}-${randomUUID()}${safeExtension}`;
-}
 
 @ApiTags('Admin - Structure des Services')
 @ApiBearerAuth()
@@ -85,6 +58,7 @@ function buildServiceImageFileName(originalName: string): string {
 export class AdminServiceStructureController {
   constructor(
     private readonly serviceStructure: AdminServiceStructureService,
+    private readonly cloudinaryMedia: CloudinaryMediaService,
   ) {}
 
   @Get()
@@ -214,23 +188,7 @@ export class AdminServiceStructureController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('image', {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureServiceImageUploadDirectory();
-          callback(null, serviceImageUploadDirectory);
-        },
-        filename: (
-          _request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          callback(null, buildServiceImageFileName(file.originalname));
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 2 * 1024 * 1024 },
       fileFilter: (_request, file, callback) => {
         if (!allowedServiceImageMimeTypes.has(file.mimetype)) {
@@ -243,20 +201,25 @@ export class AdminServiceStructureController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Uploader une image de categorie' })
-  uploadCategoryImage(
+  async uploadCategoryImage(
     @UploadedFile() file: UploadedServiceImageFile | undefined,
-    @Req() request: Request,
   ) {
     if (!file) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const imageUrl = buildPublicUploadUrl(
-      request,
-      `/uploads/service-categories/${file.filename}`,
-    );
+    const uploaded = await this.cloudinaryMedia
+      .upload({
+        buffer: file.buffer,
+        originalName: file.originalname || 'service-category',
+        mimeType: file.mimetype,
+        folder: 'jokko/service-categories',
+      })
+      .catch(() => {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      });
     return createApiResponse(
-      { imageUrl },
+      { imageUrl: uploaded.secureUrl },
       appMessage('ADMIN_SERVICE_IMAGE_UPLOADED').message,
     );
   }

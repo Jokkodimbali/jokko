@@ -91,6 +91,9 @@ type AppointmentDetailUiState =
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [
     './appointment-detail-page.component.scss',
+    './appointment-detail-upcoming.component.scss',
+    './appointment-detail-tracking.component.scss',
+    './appointment-detail-responsive.component.scss',
     './appointment-detail-map.component.scss',
   ],
 })

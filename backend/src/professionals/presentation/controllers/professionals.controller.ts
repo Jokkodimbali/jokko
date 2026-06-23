@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,15 +22,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  diskStorage,
-  type DiskStorageCallback,
-  type DiskStorageFile,
-} from 'multer';
-import type { Request } from 'express';
-import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { memoryStorage } from 'multer';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
 import { SearchQueryService } from '../../../search/application/services/search-query.service';
 import { SearchProfessionalsQueryDto } from '../../../search/presentation/dto/search-professionals-query.dto';
@@ -42,7 +33,7 @@ import {
   appHttpException,
   appMessage,
 } from '../../../core/http/app-http.exception';
-import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
+import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 import { CreateProfessionalProfileDto } from '../dto/create-professional-profile.dto';
 import { SubmitKycDto } from '../dto/submit-kyc.dto';
 import { UpdateProfessionalProfileDto } from '../dto/update-professional-profile.dto';
@@ -62,17 +53,11 @@ import {
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 
 type UploadedProfessionalAssetFile = {
-  filename: string;
+  buffer: Buffer;
   originalname: string;
   mimetype: string;
   size: number;
 };
-
-const professionalUploadDirectory = join(
-  process.cwd(),
-  'uploads',
-  'professionals',
-);
 
 const allowedProfessionalAssetMimeTypes = new Set([
   'image/jpeg',
@@ -81,26 +66,13 @@ const allowedProfessionalAssetMimeTypes = new Set([
   'application/pdf',
 ]);
 
-function ensureProfessionalUploadDirectory(): void {
-  mkdirSync(professionalUploadDirectory, { recursive: true });
-}
-
-function buildProfessionalAssetFileName(originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.bin';
-  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(
-    extension,
-  )
-    ? extension
-    : '.bin';
-  return `professional-${Date.now()}-${randomUUID()}${safeExtension}`;
-}
-
 @ApiTags(API_DOCS.professionals.tag)
 @Controller('professionals')
 export class ProfessionalsController {
   constructor(
     private readonly professionalsFacade: ProfessionalsFacade,
     private readonly searchQueryService: SearchQueryService,
+    private readonly cloudinaryMedia: CloudinaryMediaService,
   ) {}
 
   // ─── My Profile (Authenticated) ───────────────────────────────────────────
@@ -377,23 +349,7 @@ export class ProfessionalsController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureProfessionalUploadDirectory();
-          callback(null, professionalUploadDirectory);
-        },
-        filename: (
-          _request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          callback(null, buildProfessionalAssetFileName(file.originalname));
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 8 * 1024 * 1024 },
       fileFilter: (_request, file, callback) => {
         if (!allowedProfessionalAssetMimeTypes.has(file.mimetype)) {
@@ -408,18 +364,24 @@ export class ProfessionalsController {
   @ApiOperation({
     summary: 'Uploader un fichier professionnel pour KYC ou portfolio',
   })
-  uploadMyProfessionalAsset(
+  async uploadMyProfessionalAsset(
     @UploadedFile() file: UploadedProfessionalAssetFile | undefined,
-    @Req() request: Request,
   ) {
     if (!file) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const fileUrl = buildPublicUploadUrl(
-      request,
-      `/uploads/professionals/${file.filename}`,
-    );
+    const uploaded = await this.cloudinaryMedia
+      .upload({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        folder: 'jokko/professionals',
+      })
+      .catch(() => {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      });
+    const fileUrl = uploaded.secureUrl;
     return createApiResponse(
       {
         fileUrl,

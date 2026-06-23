@@ -5,7 +5,6 @@ import {
   HttpStatus,
   Param,
   Post,
-  Req,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -18,15 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import {
-  diskStorage,
-  type DiskStorageCallback,
-  type DiskStorageFile,
-} from 'multer';
-import type { Request } from 'express';
-import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -34,22 +25,16 @@ import {
   appHttpException,
   appMessage,
 } from '../../../core/http/app-http.exception';
-import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
+import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 import { DisputesFacade } from '../../application/services/disputes-facade.service';
 
 type UploadedDisputeEvidenceFile = {
-  filename: string;
+  buffer: Buffer;
   originalname: string;
   mimetype: string;
   size: number;
 };
-
-const disputeEvidenceUploadDirectory = join(
-  process.cwd(),
-  'uploads',
-  'dispute-evidence',
-);
 
 const allowedDisputeEvidenceMimeTypes = new Set([
   'image/jpeg',
@@ -58,26 +43,15 @@ const allowedDisputeEvidenceMimeTypes = new Set([
   'application/pdf',
 ]);
 
-function ensureDisputeEvidenceUploadDirectory(): void {
-  mkdirSync(disputeEvidenceUploadDirectory, { recursive: true });
-}
-
-function buildDisputeEvidenceFileName(originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.bin';
-  const safeExtension = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(
-    extension,
-  )
-    ? extension
-    : '.bin';
-  return `dispute-evidence-${Date.now()}-${randomUUID()}${safeExtension}`;
-}
-
 @ApiTags('Litiges')
 @ApiBearerAuth()
 @Controller('reservations/:reservationId/dispute')
 @UseGuards(JwtAuthGuard)
 export class UserDisputeEvidenceController {
-  constructor(private readonly disputesFacade: DisputesFacade) {}
+  constructor(
+    private readonly disputesFacade: DisputesFacade,
+    private readonly cloudinaryMedia: CloudinaryMediaService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Recuperer le suivi du litige d une reservation' })
@@ -100,23 +74,7 @@ export class UserDisputeEvidenceController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FilesInterceptor('evidence', 4, {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureDisputeEvidenceUploadDirectory();
-          callback(null, disputeEvidenceUploadDirectory);
-        },
-        filename: (
-          _request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          callback(null, buildDisputeEvidenceFileName(file.originalname));
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_request, file, callback) => {
         if (!allowedDisputeEvidenceMimeTypes.has(file.mimetype)) {
@@ -137,23 +95,34 @@ export class UserDisputeEvidenceController {
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
     @UploadedFiles() files: UploadedDisputeEvidenceFile[] | undefined,
-    @Req() request: Request,
   ) {
     if (!files || files.length === 0) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
+    const uploadedFiles = await Promise.all(
+      files.map((file) =>
+        this.cloudinaryMedia
+          .upload({
+            buffer: file.buffer,
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+            folder: 'jokko/dispute-evidence',
+          })
+          .catch(() => {
+            throw appHttpException('VALIDATION_REQUEST_INVALID');
+          }),
+      ),
+    );
+
     const result = await this.disputesFacade.addEvidenceForReservation(
       user,
       reservationId,
-      files.map((file) => ({
+      files.map((file, index) => ({
         originalFileName: file.originalname,
         mimeType: file.mimetype,
-        sizeBytes: file.size,
-        fileUrl: buildPublicUploadUrl(
-          request,
-          `/uploads/dispute-evidence/${file.filename}`,
-        ),
+        sizeBytes: uploadedFiles[index]?.bytes ?? file.size,
+        fileUrl: uploadedFiles[index]?.secureUrl ?? '',
       })),
     );
 

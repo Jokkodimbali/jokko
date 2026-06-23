@@ -101,6 +101,9 @@ type GoogleMapsNamespace = {
   templateUrl: './service-proposal.component.html',
   styleUrls: [
     './service-proposal.component.scss',
+    './service-proposal-provider-mode.component.scss',
+    './service-proposal-negotiation-state.component.scss',
+    './service-proposal-responsive.component.scss',
     './service-proposal-redesign.component.scss',
   ],
 })

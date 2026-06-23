@@ -10,12 +10,10 @@ import {
   Patch,
   Post,
   Put,
-  Req,
   Query,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -24,14 +22,7 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  diskStorage,
-  type DiskStorageCallback,
-  type DiskStorageFile,
-} from 'multer';
-import { randomUUID } from 'node:crypto';
-import { extname, join } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { memoryStorage } from 'multer';
 import {
   appHttpException,
   appMessage,
@@ -57,26 +48,22 @@ import {
   ApiStandardSuccessResponse,
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
-import { buildPublicUploadUrl } from '../../../shared/http/public-upload-url';
+import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 
 type UploadedAvatarFile = {
   buffer: Buffer;
+  originalname: string;
   mimetype: string;
   size: number;
 };
 
 type UploadedProfessionalCredentialFile = {
-  filename: string;
+  buffer: Buffer;
   mimetype: string;
   size: number;
   originalname: string;
 };
 
-const professionalCredentialUploadDirectory = join(
-  process.cwd(),
-  'uploads',
-  'medical-credentials',
-);
 const allowedAvatarMimeTypes = new Set([
   'image/jpeg',
   'image/png',
@@ -92,27 +79,6 @@ const allowedProfessionalCredentialMimeTypes = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
-function ensureProfessionalCredentialUploadDirectory(): void {
-  mkdirSync(professionalCredentialUploadDirectory, { recursive: true });
-}
-
-function buildProfessionalCredentialFileName(originalName: string): string {
-  const extension = extname(originalName).toLowerCase() || '.bin';
-  const safeExtension = [
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.webp',
-    '.gif',
-    '.pdf',
-    '.doc',
-    '.docx',
-  ].includes(extension)
-    ? extension
-    : '.bin';
-  return `medical-credential-${Date.now()}-${randomUUID()}${safeExtension}`;
-}
-
 @ApiTags(API_DOCS.users.tag)
 @ApiBearerAuth()
 @Controller('users')
@@ -120,6 +86,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMedicalProfileService: UsersMedicalProfileService,
+    private readonly cloudinaryMedia: CloudinaryMediaService,
   ) {}
 
   @Get('me')
@@ -368,11 +335,18 @@ export class UsersController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const avatarUrl = `data:${file.mimetype};base64,${file.buffer.toString(
-      'base64',
-    )}`;
+    const uploaded = await this.cloudinaryMedia
+      .upload({
+        buffer: file.buffer,
+        originalName: file.originalname || `avatar-${user.sub}`,
+        mimeType: file.mimetype,
+        folder: 'jokko/avatars',
+      })
+      .catch(() => {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      });
     const result = await this.usersService.updateMyAvatar(user.sub, {
-      avatarUrl,
+      avatarUrl: uploaded.secureUrl,
     });
     return createApiResponse(
       result,
@@ -385,26 +359,7 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('document', {
-      storage: diskStorage({
-        destination: (
-          _request: unknown,
-          _file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          ensureProfessionalCredentialUploadDirectory();
-          callback(null, professionalCredentialUploadDirectory);
-        },
-        filename: (
-          _request: unknown,
-          file: DiskStorageFile,
-          callback: DiskStorageCallback,
-        ) => {
-          callback(
-            null,
-            buildProfessionalCredentialFileName(file.originalname),
-          );
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: 10 * 1024 * 1024,
       },
@@ -423,16 +378,21 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
     @Body() dto: UploadMyProfessionalCredentialDto,
     @UploadedFile() file: UploadedProfessionalCredentialFile | undefined,
-    @Req() request: Request,
   ) {
     if (!file) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
-    const documentUrl = buildPublicUploadUrl(
-      request,
-      `/uploads/medical-credentials/${file.filename}`,
-    );
+    const uploaded = await this.cloudinaryMedia
+      .upload({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        folder: 'jokko/medical-credentials',
+      })
+      .catch(() => {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      });
     const result = await this.usersService.uploadMyProfessionalCredential(
       user,
       {
@@ -441,7 +401,7 @@ export class UsersController {
           dto.institution?.trim() || 'Document fourni par le professionnel',
         graduationYear: dto.graduationYear?.trim() || null,
         referenceNumber: dto.referenceNumber?.trim() || null,
-        documentUrl,
+        documentUrl: uploaded.secureUrl,
       },
     );
 

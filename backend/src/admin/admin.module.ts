@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { MediaModule } from '../shared/media/media.module';
 import { AdminDashboardService } from './application/services/admin-dashboard.service';
 import { AdminArchivesService } from './application/services/admin-archives.service';
 import { AdminMedicalCredentialsService } from './application/services/admin-medical-credentials.service';
@@ -18,7 +19,7 @@ import { AdminRevenueController } from './presentation/controllers/admin-revenue
 import { AdminServiceStructureController } from './presentation/controllers/admin-service-structure.controller';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, MediaModule],
   controllers: [
     AdminArchivesController,
     AdminDashboardController,

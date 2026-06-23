@@ -6,7 +6,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { ReservationsModule } from '../reservations/reservations.module';
-import { CloudinaryMediaService } from '../shared/media/cloudinary-media.service';
+import { MediaModule } from '../shared/media/media.module';
 import { UsersModule } from '../users/users.module';
 import { MESSAGING_REPOSITORY_PORT } from './application/ports/messaging-repository.port';
 import { MessagingCommandService } from './application/services/messaging-command.service';
@@ -26,6 +26,7 @@ import { MessagingGateway } from './presentation/gateways/messaging.gateway';
     ProfessionalsModule,
     ReservationsModule,
     NotificationsModule,
+    MediaModule,
   ],
   controllers: [ConversationsController],
   providers: [
@@ -38,7 +39,6 @@ import { MessagingGateway } from './presentation/gateways/messaging.gateway';
     MessagingQueryService,
     MessagingFacade,
     MessagingGateway,
-    CloudinaryMediaService,
   ],
   exports: [MessagingFacade],
 })

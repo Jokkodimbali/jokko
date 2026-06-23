@@ -1,0 +1,568 @@
+.appointment-detail__work-steps {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(60px, 130px) auto minmax(60px, 130px) auto;
+  margin-top: 28px;
+  max-width: 640px;
+}
+
+.appointment-detail__work-steps span {
+  align-items: center;
+  display: inline-flex;
+  font-size: 16px;
+  font-weight: 850;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+.appointment-detail__work-steps b {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 50%;
+  color: #435cef;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 950;
+  height: 29px;
+  justify-content: center;
+  width: 29px;
+}
+
+.appointment-detail__work-step--active b {
+  box-shadow: 0 0 0 9px rgba(255, 255, 255, 0.23);
+}
+
+.appointment-detail__work-steps i {
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  display: block;
+  height: 2px;
+}
+
+.appointment-detail__route-layout {
+  background: #eef1f3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 334px;
+  grid-template-rows: 54px minmax(0, 1fr);
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.appointment-detail__route-topbar .appointment-detail__upcoming-device {
+  display: none;
+}
+
+.appointment-detail__work-layout {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 9px 34px;
+}
+
+.appointment-detail__work-card {
+  background: #ffffff;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(31, 45, 61, 0.17);
+  max-width: 416px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.appointment-detail__work-map {
+  background: #dbe7ef;
+  height: 289px;
+  overflow: hidden;
+  position: relative;
+}
+
+.appointment-detail__arrived-badge {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 999px;
+  color: #11803c;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 11px;
+  position: absolute;
+  right: 10px;
+  top: 9px;
+  z-index: 3;
+}
+
+.appointment-detail__arrived-badge lucide-icon {
+  background: #e7f8ee;
+  border-radius: 50%;
+  color: #1aa355;
+}
+
+.appointment-detail__work-radius {
+  background: rgba(30, 185, 128, 0.24);
+  border: 1px solid rgba(30, 185, 128, 0.36);
+  border-radius: 50%;
+  bottom: 67px;
+  height: 132px;
+  left: 172px;
+  position: absolute;
+  width: 132px;
+  z-index: 2;
+}
+
+.appointment-detail__work-radius::before {
+  background: rgba(255, 221, 94, 0.23);
+  border-radius: 50%;
+  content: '';
+  height: 112px;
+  left: -38px;
+  position: absolute;
+  top: 30px;
+  width: 112px;
+}
+
+.appointment-detail__work-avatar {
+  border: 3px solid #24a86d;
+  border-radius: 50%;
+  bottom: 102px;
+  height: 38px;
+  left: 199px;
+  object-fit: cover;
+  position: absolute;
+  width: 38px;
+  z-index: 4;
+}
+
+.appointment-detail__work-info {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 58px 1fr;
+  padding: 15px 22px 10px;
+}
+
+.appointment-detail__work-icon {
+  align-items: center;
+  background: #eef0ff;
+  border-radius: 6px;
+  color: #435cef;
+  display: inline-flex;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.appointment-detail__work-info h2 {
+  font-size: 21px;
+  font-weight: 950;
+  margin: 0 0 2px;
+}
+
+.appointment-detail__work-info p {
+  color: #8b95a5;
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.appointment-detail__work-facts {
+  display: grid;
+  gap: 15px;
+  grid-template-columns: 1fr 1fr;
+  padding: 0 32px 17px;
+}
+
+.appointment-detail__work-facts strong {
+  border: 1px solid #e6ecf4;
+  border-radius: 7px;
+  color: #05070b;
+  display: grid;
+  font-size: 12px;
+  font-weight: 950;
+  gap: 10px;
+  min-height: 57px;
+  padding: 9px 17px;
+}
+
+.appointment-detail__work-facts small {
+  align-items: center;
+  color: #929daa;
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 900;
+  gap: 7px;
+}
+
+.appointment-detail__live-map {
+  background: #dbe7ef;
+  border-radius: 0;
+  box-shadow: none;
+  grid-column: 1;
+  grid-row: 2;
+  height: calc(100vh - 54px);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.appointment-detail__leaflet-map {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  z-index: 1;
+}
+
+.appointment-detail__work-map .appointment-detail__leaflet-map {
+  min-height: 289px;
+}
+
+.appointment-detail__map-empty {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(219, 231, 239, 0.92), rgba(242, 247, 249, 0.9));
+  color: #425466;
+  display: grid;
+  font-weight: 900;
+  gap: 12px;
+  height: 100%;
+  inset: 0;
+  justify-items: center;
+  position: absolute;
+  z-index: 2;
+}
+
+.appointment-detail__route-topbar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #d9dde1;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  grid-template-columns: 1fr auto 1fr;
+  min-height: 54px;
+  padding: 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+
+.appointment-detail__route-status {
+  align-items: center;
+  display: flex;
+  gap: 13px;
+  justify-content: flex-end;
+}
+
+.appointment-detail__route-status > span {
+  align-items: center;
+  background: #dbeaff;
+  border-radius: 999px;
+  color: #1f73ff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 14px;
+}
+
+.appointment-detail__route-status > span i {
+  background: #2f80ed;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.appointment-detail__route-status em {
+  color: #111827;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.appointment-detail__route-status > b {
+  background: #dedede;
+  border-radius: 999px;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  width: 98px;
+}
+
+.appointment-detail__route-status > b i {
+  background: #2f80ed;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.appointment-detail__route-status strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.appointment-detail__route-status button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dcdfe4;
+  border-radius: 999px;
+  color: #9a9fa8;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 14px;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.appointment-detail__route-status button:hover {
+  background: #fff7f7;
+  color: #dc3545;
+  transform: translateY(-1px) scale(1.02);
+}
+
+.appointment-detail__route-sidebar {
+  background: #ffffff;
+  border-left: 1px solid #dedede;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px 12px;
+  z-index: 10;
+}
+
+.appointment-detail__route-client-avatar {
+  align-items: center;
+  background: #e4f8ee;
+  border: 1px solid #9ee5c4;
+  border-radius: 50%;
+  color: #0aa768;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.appointment-detail__route-bottom {
+  align-items: center;
+  bottom: 14px;
+  display: flex;
+  gap: 10px;
+  left: 12px;
+  position: absolute;
+  z-index: 430;
+}
+
+.appointment-detail__route-bottom span,
+.appointment-detail__route-bottom strong,
+.appointment-detail__route-bottom em {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  color: #111827;
+  display: inline-flex;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 850;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.appointment-detail__route-bottom span {
+  justify-content: center;
+  padding: 0;
+  width: 42px;
+}
+
+.appointment-detail__route-bottom strong {
+  background: #2f80ed;
+  color: #ffffff;
+}
+
+.appointment-detail__route-bottom em i {
+  background: #1eb980;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(30, 185, 128, 0.16);
+  height: 8px;
+  width: 8px;
+}
+
+.appointment-detail__map-badge {
+  align-items: center;
+  background: rgba(7, 11, 18, 0.88);
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 950;
+  gap: 7px;
+  left: 8px;
+  min-height: 28px;
+  max-width: calc(100% - 22px);
+  padding: 0 11px;
+  position: absolute;
+  top: 7px;
+  z-index: 420;
+}
+
+.appointment-detail__map-badge span {
+  background: #1eb980;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(30, 185, 128, 0.2);
+  flex: 0 0 auto;
+  height: 8px;
+  width: 8px;
+}
+
+.appointment-detail__live-map a {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(30, 45, 62, 0.16);
+  color: #2f80ed;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 850;
+  gap: 7px;
+  padding: 8px 11px;
+  position: absolute;
+  right: 11px;
+  text-decoration: none;
+  top: 8px;
+  z-index: 420;
+}
+
+.appointment-detail__map-avatar {
+  border: 4px solid #21bd7a;
+  border-radius: 50%;
+  bottom: 6px;
+  height: 42px;
+  object-fit: cover;
+  position: absolute;
+  right: 42px;
+  width: 42px;
+  z-index: 3;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin,
+:host ::ng-deep .appointment-detail__leaflet-destination-pin {
+  background: transparent;
+  border: 0;
+}
+
+:host ::ng-deep .leaflet-marker-icon.appointment-detail__leaflet-provider-pin {
+  align-items: center;
+  display: grid;
+  justify-items: center;
+  transition: transform 0.75s linear;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin em {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.2);
+  color: #111827;
+  display: inline-flex;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  justify-content: center;
+  line-height: 1;
+  margin-bottom: 5px;
+  min-width: 54px;
+  padding: 7px 10px;
+  position: relative;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin em::after {
+  background: #ffffff;
+  bottom: -4px;
+  content: '';
+  height: 9px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%) rotate(45deg);
+  width: 9px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span {
+  align-items: center;
+  background: linear-gradient(135deg, #f28d28 0 35%, #1e9ac7 35% 100%);
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  border-radius: 7px 12px 8px 6px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.3), 0 0 0 10px rgba(30, 185, 128, 0.16);
+  display: block;
+  height: 25px;
+  position: relative;
+  transform: rotate(18deg);
+  width: 42px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::before,
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::after {
+  background: #111827;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  bottom: -8px;
+  content: '';
+  height: 10px;
+  position: absolute;
+  width: 10px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::before {
+  left: 5px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin span::after {
+  right: 5px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-provider-pin i {
+  background: linear-gradient(135deg, #e6f7ff, #8fd6ff);
+  border-radius: 3px;
+  display: block;
+  height: 11px;
+  left: 17px;
+  position: absolute;
+  top: 4px;
+  width: 16px;
+}
+
+:host ::ng-deep .appointment-detail__leaflet-destination-pin span {
+  background: #ffffff;
+  border: 7px solid #568d42;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+  display: block;
+  height: 30px;
+  transform: rotate(-45deg);
+  width: 30px;
+}
+
+:host ::ng-deep .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.15);
+}
+
+:host ::ng-deep .leaflet-control-zoom a {
+  color: #111827;
+  font-weight: 950;
+}

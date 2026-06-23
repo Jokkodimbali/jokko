@@ -1,0 +1,72 @@
+@media (max-width: 920px) {
+  .appointment-detail__topbar {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .appointment-detail__topbar app-navbar {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-top: 8px;
+  }
+
+  .appointment-detail__hero {
+    margin: 18px 16px 26px;
+    padding: 18px;
+  }
+
+  .appointment-detail__hero-icon {
+    display: none;
+  }
+
+  .appointment-detail__body {
+    grid-template-columns: 1fr;
+    padding: 0 16px 26px;
+  }
+
+  .appointment-detail__route-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  .appointment-detail__work-layout {
+    padding: 0 16px 26px;
+  }
+
+  .appointment-detail__work-card {
+    max-width: none;
+  }
+
+  .appointment-detail__route-service {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .appointment-detail__service,
+  .appointment-detail__provider,
+  .appointment-detail__contact,
+  .appointment-detail__alert {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__facts,
+  .appointment-detail__actions {
+    padding: 0;
+  }
+
+  .appointment-detail__facts strong,
+  .appointment-detail__actions button,
+  .appointment-detail__provider a {
+    width: 100%;
+  }
+
+  .appointment-detail__work-steps,
+  .appointment-detail__work-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__work-steps i {
+    display: none;
+  }
+}

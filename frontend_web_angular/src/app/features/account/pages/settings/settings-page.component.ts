@@ -7,6 +7,7 @@ import { catchError, finalize, of, switchMap } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { publicAssetUrl } from '../../../../shared/utils/public-asset-url';
 import {
@@ -66,6 +67,7 @@ export class SettingsPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly route = inject(ActivatedRoute);
   private readonly doctorSpaceService = inject(DoctorSpaceService);
 
@@ -360,7 +362,7 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.router.navigate(['/services']);
+    this.backNavigation.back(null, '/services');
   }
 
   protected selectAccountPayment(type: SavedPaymentMethodType): void {

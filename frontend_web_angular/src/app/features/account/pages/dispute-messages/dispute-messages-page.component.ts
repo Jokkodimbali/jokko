@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, finalize, of } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { ReservationDisputeView } from '../../../appointments/domain/appointments.models';
@@ -43,6 +44,7 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly backNavigation = inject(BackNavigationService);
 
   protected readonly dispute = signal<ReservationDisputeView | null>(null);
   protected readonly thread = signal<DisputeThreadItem[]>([]);
@@ -73,7 +75,10 @@ export class DisputeMessagesPageComponent implements OnInit, OnDestroy {
 
   protected goBack(): void {
     const reservationId = this.route.snapshot.paramMap.get('id');
-    this.router.navigate(reservationId ? ['/litiges', reservationId, 'suivi'] : ['/litiges']);
+    this.backNavigation.back(
+      null,
+      reservationId ? `/litiges/${reservationId}/suivi` : '/litiges',
+    );
   }
 
   protected openTracking(): void {

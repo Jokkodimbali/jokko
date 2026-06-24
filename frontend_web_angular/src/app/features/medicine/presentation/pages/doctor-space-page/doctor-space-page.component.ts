@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,6 +7,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import {
   BackendProfessionalAvailability,
@@ -278,7 +279,7 @@ export class DoctorSpacePageComponent implements OnInit {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly feedback = inject(AppFeedbackService);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -903,7 +904,10 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.location.back();
+    this.backNavigation.back(
+      this.route.snapshot.queryParamMap.get('returnUrl'),
+      '/services',
+    );
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {

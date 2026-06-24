@@ -1,8 +1,9 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import QRCode from 'qrcode';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView } from '../../../domain/appointments.models';
 
@@ -24,7 +25,7 @@ interface QrStep {
 export class AppointmentQrCodePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
 
   protected readonly appointment = signal<AppointmentView | null>(null);
@@ -147,11 +148,8 @@ export class AppointmentQrCodePageComponent implements OnInit {
 
   protected goBack(): void {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    if (returnUrl) {
-      this.router.navigateByUrl(returnUrl);
-      return;
-    }
-    this.location.back();
+    const reservationId = this.route.snapshot.paramMap.get('id');
+    this.backNavigation.back(returnUrl, reservationId ? `/appointments/${reservationId}` : '/appointments');
   }
 
   protected downloadQrPdf(): void {

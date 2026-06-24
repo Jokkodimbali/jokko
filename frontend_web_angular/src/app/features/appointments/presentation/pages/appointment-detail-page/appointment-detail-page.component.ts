@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
@@ -17,10 +17,12 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentTrackingView, AppointmentView } from '../../../domain/appointments.models';
+import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
 
 type LeafletLatLng = { lat: number; lng: number };
 type LeafletNamespace = NonNullable<Window['L']> & {
@@ -87,6 +89,7 @@ type AppointmentDetailUiState =
     CommonModule,
     FormsModule,
     LucideAngularModule,
+    AppointmentDetailLoadingComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [
@@ -122,10 +125,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly authSession = inject(AuthSessionService);
   private trackingSubscription?: Subscription;
   private leafletLoadPromise?: Promise<LeafletNamespace>;
@@ -558,13 +561,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected goBack(): void {
-    const returnUrl = this.safeReturnUrl();
-    if (returnUrl) {
-      this.router.navigateByUrl(returnUrl);
-      return;
-    }
-
-    this.location.back();
+    this.backNavigation.back(this.safeReturnUrl(), '/appointments');
   }
 
   protected durationLabel(appointment: AppointmentView): string {

@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, finalize, of, switchMap } from 'rxjs';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../appointments/domain/appointments.models';
@@ -34,6 +35,7 @@ interface DisputeReasonOption {
 export class DisputeReportPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly feedback = inject(AppFeedbackService);
 
@@ -97,7 +99,7 @@ export class DisputeReportPageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.router.navigate(['/litiges']);
+    this.backNavigation.back(null, '/litiges');
   }
 
   protected selectReason(reason: DisputeReasonKey): void {

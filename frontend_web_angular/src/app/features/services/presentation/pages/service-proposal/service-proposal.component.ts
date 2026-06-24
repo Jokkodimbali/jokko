@@ -18,6 +18,7 @@ import { environment } from '../../../../../../environments/environment';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
@@ -119,6 +120,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly backNavigation = inject(BackNavigationService);
 
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
@@ -590,18 +592,10 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   }
 
   protected goBack(): void {
-    const returnUrl = this.safeReturnUrl();
-    if (returnUrl) {
-      this.router.navigateByUrl(returnUrl);
-      return;
-    }
-
-    if (this.isProviderProposalMode) {
-      this.router.navigate(['/prestataire/espace']);
-      return;
-    }
-
-    this.router.navigate(['/services', this.profileId || this.detail()?.profile.id || '']);
+    const fallback = this.isProviderProposalMode
+      ? '/prestataire/espace'
+      : `/services/${this.profileId || this.detail()?.profile.id || ''}`;
+    this.backNavigation.back(this.safeReturnUrl(), fallback);
   }
 
   protected selectPayment(method: PaymentMethod): void {

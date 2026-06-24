@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { ServicesService } from '../../../../services/data-access/services.service';
@@ -38,7 +39,7 @@ interface DoctorScheduleRow {
 export class MedicineDoctorProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly feedback = inject(AppFeedbackService);
   private readonly favoritesService = inject(FavoritesService);
@@ -114,7 +115,10 @@ export class MedicineDoctorProfileComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.location.back();
+    this.backNavigation.back(
+      this.route.snapshot.queryParamMap.get('returnUrl'),
+      '/services',
+    );
   }
 
   protected doctorInitials(): string {

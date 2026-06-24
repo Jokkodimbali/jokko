@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, finalize, of } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../appointments/domain/appointments.models';
@@ -27,6 +28,7 @@ export class DisputesPageComponent implements OnInit {
   private readonly authSession = inject(AuthSessionService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly router = inject(Router);
+  private readonly backNavigation = inject(BackNavigationService);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointments = signal<AppointmentView[]>([]);
@@ -63,7 +65,7 @@ export class DisputesPageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.router.navigate(['/services']);
+    this.backNavigation.back(null, '/services');
   }
 
   protected selectFilter(filter: DisputeFilter): void {

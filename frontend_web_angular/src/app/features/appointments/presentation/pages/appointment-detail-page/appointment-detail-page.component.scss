@@ -8,40 +8,6 @@
   min-height: 100vh;
 }
 
-.appointment-detail__topbar {
-  align-items: center;
-  background: #e4eff3;
-  box-shadow: 0 9px 20px rgba(16, 28, 39, 0.14);
-  display: grid;
-  grid-template-columns: 58px 1fr 58px;
-  min-height: 91px;
-  padding: 0 30px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.appointment-detail__topbar h1 {
-  color: #4b5961;
-  font-size: clamp(26px, 3vw, 31px);
-  font-weight: 900;
-  letter-spacing: 0;
-  margin: 0;
-  text-align: center;
-}
-
-.appointment-detail__back {
-  align-items: center;
-  background: #43535d;
-  border: 0;
-  border-radius: 11px;
-  color: #fff;
-  display: inline-flex;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
-}
-
 .appointment-detail__state {
   font-size: 18px;
   font-weight: 900;

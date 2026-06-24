@@ -35,6 +35,7 @@ export type NegotiationView = Negotiation & {
     nomEntreprise: string | null;
     utilisateur: {
       nom: string;
+      urlAvatar: string | null;
     };
   };
 };

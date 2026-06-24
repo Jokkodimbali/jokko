@@ -7,6 +7,7 @@ import localeFr from '@angular/common/locales/fr';
 import { routes } from './app.routes';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import {
+  Activity,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   Archive,
   BadgeCheck,
   Banknote,
+  Ban,
   Bell,
   BellOff,
   Bookmark,
@@ -32,6 +34,7 @@ import {
   ChevronRight,
   Clock,
   Circle,
+  CircleCheck,
   CircleDollarSign,
   CircleHelp,
   CircleX,
@@ -106,6 +109,7 @@ import {
   UploadCloud,
   UserRound,
   UserRoundCog,
+  UserX,
   Users,
   Video,
   WalletCards,
@@ -126,6 +130,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([jwtInterceptor])),
     importProvidersFrom(
       LucideAngularModule.pick({
+        Activity,
         ArrowDown,
         ArrowLeft,
         ArrowRight,
@@ -134,6 +139,7 @@ export const appConfig: ApplicationConfig = {
         Archive,
         BadgeCheck,
         Banknote,
+        Ban,
         Bell,
         BellOff,
         Bookmark,
@@ -151,6 +157,7 @@ export const appConfig: ApplicationConfig = {
         ChevronRight,
         Clock,
         Circle,
+        CircleCheck,
         CircleDollarSign,
         CircleHelp,
         CircleX,
@@ -225,6 +232,7 @@ export const appConfig: ApplicationConfig = {
         UploadCloud,
         UserRound,
         UserRoundCog,
+        UserX,
         Users,
         Video,
         WalletCards,

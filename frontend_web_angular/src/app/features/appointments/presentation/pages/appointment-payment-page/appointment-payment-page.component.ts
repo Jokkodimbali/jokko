@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView, PaymentMethod } from '../../../domain/appointments.models';
@@ -26,7 +27,7 @@ interface PaymentOption {
 export class AppointmentPaymentPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
@@ -120,21 +121,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    const returnUrl = this.safeReturnUrl();
-    if (returnUrl) {
-      this.router.navigateByUrl(returnUrl);
-      return;
-    }
-
     const appointment = this.appointment();
-    if (appointment?.id) {
-      this.router.navigate(['/appointments', appointment.id], {
-        queryParams: { returnUrl: '/appointments' },
-      });
-      return;
-    }
-
-    this.location.back();
+    const fallback = appointment?.id ? `/appointments/${appointment.id}` : '/appointments';
+    this.backNavigation.back(this.safeReturnUrl(), fallback);
   }
 
   protected selectMethod(method: PaymentMethod): void {

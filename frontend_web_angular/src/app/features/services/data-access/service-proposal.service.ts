@@ -50,6 +50,15 @@ export interface NegotiationView {
     nom: string;
     prix: number;
   };
+  professionnel?: {
+    id: string;
+    utilisateurId: string;
+    nomEntreprise: string | null;
+    utilisateur: {
+      nom: string;
+      urlAvatar?: string | null;
+    };
+  };
 }
 
 export interface CreatePriceProposalPayload {
@@ -120,7 +129,14 @@ export class ServiceProposalService {
     'EN_ATTENTE_CLIENT',
   ]);
 
-  listMyPriceProposals(scope: NegotiationScope = 'CLIENT'): Observable<NegotiationView[]> {
+  listMyPriceProposals(
+    scope: NegotiationScope = 'CLIENT',
+    forceRefresh = false,
+  ): Observable<NegotiationView[]> {
+    if (forceRefresh) {
+      this.proposalsCache.delete(scope);
+    }
+
     const cached = this.proposalsCache.get(scope);
     if (cached && cached.expiresAt > Date.now()) {
       return of(cached.value);

@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, finalize, of } from 'rxjs';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
@@ -22,6 +23,7 @@ export class DisputeTrackingPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly backNavigation = inject(BackNavigationService);
 
   protected readonly dispute = signal<ReservationDisputeView | null>(null);
   protected readonly isLoading = signal(false);
@@ -41,7 +43,7 @@ export class DisputeTrackingPageComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.router.navigate(['/litiges']);
+    this.backNavigation.back(null, '/litiges');
   }
 
   protected messageMediator(): void {

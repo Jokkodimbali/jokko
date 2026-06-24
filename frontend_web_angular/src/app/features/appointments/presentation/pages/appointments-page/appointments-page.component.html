@@ -8,7 +8,7 @@
       <section class="mini-calendar">
         <div class="mini-calendar__head">
           <strong>{{ monthLabel() }}</strong>
-          <span>{{ appointments().length }} rdv</span>
+          <span>{{ activeTab() === 'appointments' ? appointments().length + ' rdv' : negotiations().length + ' negociations' }}</span>
         </div>
 
         <div class="mini-calendar__weekdays" aria-hidden="true">
@@ -68,9 +68,10 @@
 
       <section class="upcoming-dates">
         <h2>Prochaines dates</h2>
-        <p *ngIf="upcomingDates().length === 0">Aucune date planifiee.</p>
+        <p *ngIf="activeTab() === 'negotiations'">Les dates proposees sont visibles dans la liste.</p>
+        <p *ngIf="activeTab() === 'appointments' && upcomingDates().length === 0">Aucune date planifiee.</p>
         <button
-          *ngFor="let item of upcomingDates()"
+          *ngFor="let item of activeTab() === 'appointments' ? upcomingDates() : []"
           type="button"
           class="upcoming-dates__item"
           [class.upcoming-dates__item--active]="selectedCalendarDate() === item.key"
@@ -89,33 +90,33 @@
       <header class="appointments-hero">
         <div>
           <h1>Rendez-vous et negociation</h1>
-          <p>{{ appointments().length }} rendez-vous et negociations synchronises avec votre compte Jokko</p>
+          <p>{{ totalItems() }} rendez-vous et negociations synchronises avec votre compte Jokko</p>
         </div>
 
         <div class="appointments-hero__stats" aria-label="Synthese des rendez-vous">
           <span><strong>{{ stats().upcoming }}</strong> A venir</span>
           <span><strong>{{ stats().week }}</strong> Cette semaine</span>
-          <span><strong>{{ stats().cancelled }}</strong> Annules</span>
+          <span><strong>{{ stats().negotiating }}</strong> En negociation</span>
         </div>
       </header>
 
       <div class="appointments-toolbar">
-        <div class="appointments-tabs" role="tablist" aria-label="Type de rendez-vous">
+        <div class="appointments-tabs" role="tablist" aria-label="Rendez-vous et negociations">
           <button
             type="button"
-            [class.appointments-tabs__button--active]="activeTab() === 'future'"
+            [class.appointments-tabs__button--active]="activeTab() === 'appointments'"
             class="appointments-tabs__button"
-            (click)="setTab('future')"
+            (click)="setTab('appointments')"
           >
-            Futurs <span>{{ futureAppointments().length }}</span>
+            RDV <span>{{ appointments().length }}</span>
           </button>
           <button
             type="button"
-            [class.appointments-tabs__button--active]="activeTab() === 'done'"
+            [class.appointments-tabs__button--active]="activeTab() === 'negotiations'"
             class="appointments-tabs__button"
-            (click)="setTab('done')"
+            (click)="setTab('negotiations')"
           >
-            Termines <span>{{ doneAppointments().length }}</span>
+            Negociations <span>{{ negotiations().length }}</span>
           </button>
         </div>
 
@@ -149,8 +150,8 @@
         {{ cancellationMessage() }}
       </p>
 
-      <section class="appointments-list" aria-label="Liste des rendez-vous">
-        <p *ngIf="isLoading()" class="appointments-state">Chargement de vos rendez-vous...</p>
+      <section class="appointments-list" aria-label="Liste des rendez-vous et negociations">
+        <p *ngIf="isLoading()" class="appointments-state">Chargement de vos rendez-vous et negociations...</p>
         <p *ngIf="!isLoading() && !currentUser()" class="appointments-state">
           Connectez-vous pour retrouver vos rendez-vous.
         </p>
@@ -158,15 +159,23 @@
           {{ loadErrorMessage() }}
         </p>
         <p
-          *ngIf="!isLoading() && currentUser() && !loadErrorMessage() && groupedAppointments().length === 0"
+          *ngIf="
+            !isLoading() &&
+            currentUser() &&
+            !loadErrorMessage() &&
+            ((activeTab() === 'appointments' && groupedAppointments().length === 0) ||
+              (activeTab() === 'negotiations' && groupedNegotiations().length === 0))
+          "
           class="appointments-state"
         >
           {{ selectedCalendarDateLabel()
-            ? 'Aucun rendez-vous ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
-            : 'Aucun rendez-vous ne correspond a ces criteres.' }}
+            ? 'Aucun element ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
+            : activeTab() === 'appointments'
+              ? 'Aucun rendez-vous ne correspond a ces criteres.'
+              : 'Aucune negociation ne correspond a ces criteres.' }}
         </p>
 
-        <article *ngFor="let group of groupedAppointments()" class="appointment-group">
+        <article *ngFor="let group of activeTab() === 'appointments' ? groupedAppointments() : []" class="appointment-group">
           <div class="appointment-group__head">
             <span>{{ group.label }}</span>
             <em></em>
@@ -257,6 +266,93 @@
               >
                 {{ cancellingAppointmentId() === appointment.id ? 'Annulation...' : 'Annuler' }}
               </button>
+            </div>
+          </div>
+        </article>
+
+        <article *ngFor="let group of activeTab() === 'negotiations' ? groupedNegotiations() : []" class="appointment-group">
+          <div class="appointment-group__head">
+            <span>{{ group.label }}</span>
+            <em></em>
+            <strong>{{ group.count }} negociation{{ group.count > 1 ? 's' : '' }}</strong>
+          </div>
+
+          <div
+            class="appointments-negotiation-card"
+            *ngFor="let negotiation of group.items"
+            [attr.data-tone]="negotiationTone(negotiation)"
+          >
+            <header>
+              <strong>{{ negotiationBannerLabel(negotiation) }}</strong>
+              <span>
+                <lucide-icon name="banknote" size="14" [strokeWidth]="2.2"></lucide-icon>
+                Negociation prix
+              </span>
+            </header>
+
+            <div class="appointments-negotiation-card__body">
+              <div class="appointments-negotiation-card__date">
+                <span>{{ negotiationDate(negotiation) | date: 'EEE' | uppercase }}</span>
+                <strong>{{ negotiationDate(negotiation) | date: 'dd' }}</strong>
+                <small>{{ negotiationDate(negotiation) | date: 'MMM' | uppercase }}</small>
+                <em>
+                  <lucide-icon name="clock-3" size="13" [strokeWidth]="2"></lucide-icon>
+                  {{ negotiationDate(negotiation) | date: 'HH:mm' }}
+                </em>
+              </div>
+
+              <div class="appointments-negotiation-card__contact">
+                <span class="appointments-negotiation-card__avatar">
+                  <img
+                    *ngIf="negotiationAvatarUrl(negotiation); else negotiationCardInitials"
+                    [src]="negotiationAvatarUrl(negotiation)"
+                    [alt]="negotiationContactName(negotiation)"
+                  />
+                  <ng-template #negotiationCardInitials>{{ negotiationInitials(negotiation) || 'JK' }}</ng-template>
+                </span>
+                <div>
+                  <strong>{{ negotiationContactName(negotiation) }}</strong>
+                  <span>{{ negotiation.service?.nom || 'Service' }}</span>
+                  <small>
+                    <lucide-icon name="map-pin" size="13" [strokeWidth]="2"></lucide-icon>
+                    {{ negotiation.adresseClientProposee || 'Adresse a confirmer' }}
+                  </small>
+                  <small>
+                    <lucide-icon name="wrench" size="13" [strokeWidth]="2"></lucide-icon>
+                    {{ negotiation.service?.nom || 'Service' }}
+                  </small>
+                </div>
+              </div>
+
+              <div class="appointments-negotiation-card__offer">
+                <ng-container *ngIf="hasNegotiationPriceComparison(negotiation); else negotiationSinglePrice">
+                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--old">
+                    <small>{{ negotiationPreviousOfferLabel(negotiation) }}</small>
+                    <strong>{{ formatAmount(negotiationPreviousAmount(negotiation)) }} FCFA</strong>
+                  </span>
+                  <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.2"></lucide-icon>
+                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--new">
+                    <small>{{ negotiationCurrentOfferLabel(negotiation) }}</small>
+                    <strong>{{ formatAmount(negotiation.montantCourant) }} FCFA</strong>
+                  </span>
+                  <em>{{ negotiationDifferenceLabel(negotiation) }}</em>
+                </ng-container>
+                <ng-template #negotiationSinglePrice>
+                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--new">
+                    <small>{{ negotiationStatusLabel(negotiation) }}</small>
+                    <strong>{{ formatAmount(negotiation.montantAccepte || negotiation.montantCourant) }} FCFA</strong>
+                  </span>
+                </ng-template>
+              </div>
+
+              <a
+                [routerLink]="negotiationRoute(negotiation)"
+                [queryParams]="negotiationQueryParams(negotiation)"
+                class="appointments-negotiation-card__more"
+              >
+                En savoir plus
+                <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.2"></lucide-icon>
+              </a>
             </div>
           </div>
         </article>

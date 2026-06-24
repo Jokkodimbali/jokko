@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
   FavoriteItem,
   FavoriteStatus,
@@ -40,7 +41,7 @@ interface ScheduleRow {
 })
 export class ProviderProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly servicesService = inject(ServicesService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly favoritesService = inject(FavoritesService);
@@ -177,7 +178,10 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.location.back();
+    this.backNavigation.back(
+      this.route.snapshot.queryParamMap.get('returnUrl'),
+      '/services',
+    );
   }
 
   protected loadProviderDetail(): void {

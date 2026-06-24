@@ -1,11 +1,5 @@
 ﻿<main class="appointment-detail">
-  <header *ngIf="!showImmersiveDetail()" class="appointment-detail__topbar">
-    <button type="button" class="appointment-detail__back" aria-label="Retour" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
-    </button>
-    <h1>Informations sur le rendez vous</h1>
-    <span></span>
-  </header>
+  <app-appointment-detail-loading *ngIf="isLoading()" />
 
   <section
     class="appointment-detail__state appointment-detail__state--error"

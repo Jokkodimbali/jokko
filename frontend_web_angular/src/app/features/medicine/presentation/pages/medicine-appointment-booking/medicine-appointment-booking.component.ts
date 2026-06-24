@@ -1,4 +1,4 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { environment } from '../../../../../../environments/environment';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import {
   SENEGAL_PHONE_PATTERN,
@@ -91,7 +92,7 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
 export class MedicineAppointmentBookingComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly backNavigation = inject(BackNavigationService);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly authService = inject(AuthService);
@@ -238,7 +239,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.location.back();
+    const profileId = this.route.snapshot.paramMap.get('id');
+    this.backNavigation.back(
+      this.route.snapshot.queryParamMap.get('returnUrl'),
+      profileId ? `/medecine/${profileId}` : '/services',
+    );
   }
 
   protected selectAppointmentFor(value: AppointmentFor): void {

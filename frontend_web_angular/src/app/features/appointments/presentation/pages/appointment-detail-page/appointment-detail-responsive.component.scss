@@ -1,14 +1,4 @@
 @media (max-width: 920px) {
-  .appointment-detail__topbar {
-    grid-template-columns: 48px 1fr;
-  }
-
-  .appointment-detail__topbar app-navbar {
-    grid-column: 1 / -1;
-    justify-self: end;
-    margin-top: 8px;
-  }
-
   .appointment-detail__hero {
     margin: 18px 16px 26px;
     padding: 18px;

@@ -433,6 +433,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!this.hasTrackingCoordinates()) return 'Position GPS prestataire en attente';
     if (this.destinationStatus() === 'resolving') return "Localisation de l'adresse...";
     if (this.destinationStatus() === 'unavailable') return "Adresse introuvable sur la carte";
+    if (this.routeStatus() === 'unavailable') return 'Carte indisponible pour le moment';
     if (this.routeStatus() === 'calculating') return "Calcul de l'itineraire...";
     if (this.routeStatus() === 'ready') {
       const minutes = this.estimatedArrivalMinutes();
@@ -440,6 +441,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     return 'Carte en temps reel';
   });
+  protected readonly shouldShowMapEmptyState = computed(
+    () => !this.hasTrackingCoordinates() || this.routeStatus() === 'unavailable',
+  );
   protected readonly navigationInstruction = computed(() => {
     if (this.isProviderWorking()) {
       return {

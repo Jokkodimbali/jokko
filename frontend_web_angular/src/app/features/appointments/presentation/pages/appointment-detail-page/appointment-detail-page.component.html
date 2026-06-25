@@ -588,12 +588,20 @@
           class="appointment-detail__google-map"
           aria-label="Carte temps reel du trajet prestataire"
         ></div>
-        <div class="appointment-detail__map-empty" *ngIf="!hasTrackingCoordinates()">
+        <div class="appointment-detail__map-empty" *ngIf="shouldShowMapEmptyState()">
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-          <strong>Position GPS en attente</strong>
+          <strong>
+            {{
+              hasTrackingCoordinates()
+                ? 'Carte indisponible'
+                : 'Position GPS en attente'
+            }}
+          </strong>
           <small>
             {{
-              isProviderViewer()
+              hasTrackingCoordinates()
+                ? 'Google Maps attend une cle navigateur valide pour afficher le trajet.'
+                : isProviderViewer()
                 ? 'Partagez votre position exacte pour lancer le trajet.'
                 : 'Le prestataire doit partager sa position pour lancer l’itinéraire.'
             }}

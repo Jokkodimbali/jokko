@@ -186,7 +186,7 @@ export class GoogleMapsLoaderService {
       return googleMapsLoadPromise;
     }
 
-    googleMapsLoadPromise = new Promise((resolve, reject) => {
+    const loadPromise = new Promise<GoogleMapsRuntime>((resolve, reject) => {
       this.config$.subscribe({
         next: (config) => {
           const apiKey = config.browserApiKey || environment.googleMapsApiKey;
@@ -230,14 +230,25 @@ export class GoogleMapsLoaderService {
           script.async = true;
           script.defer = true;
           script.setAttribute('data-jokko-google-maps', 'true');
-          script.onerror = () => reject(new Error('Google Maps failed to load.'));
+          script.onerror = () => {
+            script.remove();
+            reject(new Error('Google Maps failed to load.'));
+          };
           document.head.appendChild(script);
         },
         error: () => reject(new Error('Google Maps config unavailable.')),
       });
     });
 
-    return googleMapsLoadPromise;
+    googleMapsLoadPromise = loadPromise;
+    loadPromise.catch(() => {
+      if (googleMapsLoadPromise === loadPromise) {
+        googleMapsLoadPromise = null;
+      }
+      delete window.__jokkoGoogleMapsLoaded;
+    });
+
+    return loadPromise;
   }
 
   geocodeAddress(address: string): Observable<GoogleMapsGeocodeResult | null> {

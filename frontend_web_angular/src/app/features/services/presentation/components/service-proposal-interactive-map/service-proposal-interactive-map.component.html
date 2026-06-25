@@ -83,7 +83,20 @@
       <span>Chargement de la carte...</span>
     </div>
 
-    <div #mapContainer class="interactive-map__canvas"></div>
+    <iframe
+      *ngIf="!loading && !hasGoogleMap"
+      class="interactive-map__fallback"
+      title="Carte de Dakar"
+      [src]="fallbackMapUrl"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+
+    <div
+      #mapContainer
+      class="interactive-map__canvas"
+      [class.interactive-map__canvas--hidden]="!hasGoogleMap"
+    ></div>
   </div>
 
   <p class="interactive-map__status" *ngIf="geocodingStatus">

@@ -219,6 +219,17 @@
   z-index: 1;
 }
 
+.interactive-map__canvas--hidden {
+  display: none;
+}
+
+.interactive-map__fallback {
+  border: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
 .interactive-map__expand {
   background: #fff;
   border: 1px solid rgba(229, 229, 229, 0.8);

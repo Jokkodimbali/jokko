@@ -14,6 +14,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import {
@@ -67,10 +68,16 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
 
   private readonly zone = inject(NgZone);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly fallbackMapUrl: SafeResourceUrl =
+    this.sanitizer.bypassSecurityTrustResourceUrl(
+      'https://www.openstreetmap.org/export/embed.html?bbox=-17.5677%2C14.6167%2C-17.3677%2C14.8167&layer=mapnik&marker=14.7167%2C-17.4677',
+    );
   private readonly dakarCoords: GoogleMapsCoordinate = {
     latitude: 14.7167,
     longitude: -17.4677,
   };
+  protected hasGoogleMap = true;
   private map: GoogleMapInstance | null = null;
   private marker: GoogleMapsAdvancedMarkerInstance | null = null;
   private autocompleteSessionToken: GoogleMapsAutocompleteSessionToken | null = null;
@@ -178,6 +185,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       .load()
       .then((google) => {
         this.google = google;
+        this.hasGoogleMap = true;
         this.zone.runOutsideAngular(() => {
           const container = this.mapContainer?.nativeElement;
           if (!container || this.map) return;
@@ -216,8 +224,9 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       .catch(() => {
         this.zone.run(() => {
           this.loading = false;
+          this.hasGoogleMap = false;
           this.geocodingStatus =
-            'Google Maps indisponible, verifiez la cle API et les restrictions de domaine.';
+            'Carte standard disponible, Google Maps attend une cle navigateur valide.';
         });
       });
   }

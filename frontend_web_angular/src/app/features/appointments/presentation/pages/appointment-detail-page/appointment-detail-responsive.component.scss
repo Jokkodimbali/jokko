@@ -1,4 +1,12 @@
 @media (max-width: 920px) {
+  .appointment-detail__closed-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__closed-summary {
+    min-height: 400px;
+  }
+
   .appointment-detail__hero {
     margin: 18px 16px 26px;
     padding: 18px;
@@ -14,9 +22,54 @@
   }
 
   .appointment-detail__route-layout {
+    grid-template-rows: auto minmax(560px, 72vh) auto;
     grid-template-columns: 1fr;
     gap: 0;
+    height: auto;
+    min-height: 100vh;
     padding: 0;
+  }
+
+  .appointment-detail__route-topbar {
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 12px;
+  }
+
+  .appointment-detail__upcoming-heading {
+    min-width: 0;
+  }
+
+  .appointment-detail__upcoming-heading > div {
+    min-width: 0;
+  }
+
+  .appointment-detail__upcoming-heading strong {
+    overflow-wrap: anywhere;
+  }
+
+  .appointment-detail__upcoming-device {
+    display: none;
+  }
+
+  .appointment-detail__route-status {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .appointment-detail__live-map {
+    grid-column: 1;
+    grid-row: 2;
+    height: auto;
+    min-height: 560px;
+  }
+
+  .appointment-detail__route-sidebar {
+    border-left: 0;
+    border-top: 1px solid #dedede;
+    grid-column: 1;
+    grid-row: 3;
+    overflow: visible;
   }
 
   .appointment-detail__work-layout {
@@ -33,6 +86,69 @@
 }
 
 @media (max-width: 620px) {
+  .appointment-detail__closed-topbar {
+    padding: 0 12px;
+  }
+
+  .appointment-detail__closed-layout {
+    padding: 16px 10px;
+  }
+
+  .appointment-detail__closed-summary {
+    min-height: 360px;
+    padding: 28px 18px;
+  }
+
+  .appointment-detail__closed-summary h1 {
+    font-size: 25px;
+  }
+
+  .appointment-detail__route-topbar {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 70px;
+  }
+
+  .appointment-detail__route-status {
+    justify-content: flex-end;
+  }
+
+  .appointment-detail__route-status > em,
+  .appointment-detail__route-status > b,
+  .appointment-detail__route-status > strong,
+  .appointment-detail__route-status > button {
+    display: none;
+  }
+
+  .appointment-detail__route-status > span {
+    max-width: 112px;
+    padding: 5px 10px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .appointment-detail__navigation-guidance {
+    left: 10px;
+    max-width: calc(100% - 20px);
+    right: 10px;
+    top: 62px;
+  }
+
+  .appointment-detail__map-layer-toggle {
+    top: 138px;
+  }
+
+  .appointment-detail__route-alternatives {
+    top: 184px;
+  }
+
+  .appointment-detail__route-bottom {
+    bottom: 10px;
+    flex-wrap: wrap;
+    left: 10px;
+    right: 10px;
+  }
+
   .appointment-detail__service,
   .appointment-detail__provider,
   .appointment-detail__contact,

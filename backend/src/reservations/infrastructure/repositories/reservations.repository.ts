@@ -56,6 +56,7 @@ const RESERVATION_DETAIL_SELECT = {
       description: true,
       prix: true,
       typePrix: true,
+      modeDeplacement: true,
       dureeMinutes: true,
       estObligatoire: true,
       estDisponible: true,
@@ -129,6 +130,7 @@ type ReservationDetailRecord = ReservationRecord & {
     description: string;
     prix: Prisma.Decimal;
     typePrix: $Enums.TypePrix;
+    modeDeplacement: $Enums.ModeDeplacementService;
     dureeMinutes: number;
     estObligatoire: boolean;
     estDisponible: boolean;

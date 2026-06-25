@@ -41,6 +41,36 @@ type ProfessionalService = {
 test.describe('Service proposal redesign', () => {
   test.describe.configure({ timeout: 90_000 });
 
+  test('shows Google address suggestions in a white application-owned panel', async ({
+    page,
+    request,
+  }) => {
+    const context = await loadNegotiableService(request);
+    await seedClientSession(page, request);
+    await mockProviderDetail(page, context);
+    await mockProposalReadState(page, context.profile.id);
+
+    await page.goto(`/services/${context.profile.id}/proposition?serviceId=${context.service.id}`);
+    await page.getByRole('button', { name: /Adresse d'intervention/i }).click();
+
+    const addressModal = page.getByRole('dialog', { name: 'address' });
+    const addressInput = addressModal.getByLabel(/Rechercher une adresse/i);
+    await addressInput.fill('Dakar Medina');
+
+    const suggestions = addressModal.locator('.interactive-map__suggestions');
+    await expect(suggestions).toBeVisible({ timeout: 20_000 });
+    await expect(suggestions.getByRole('option').first()).toBeVisible();
+    await expect(suggestions).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(suggestions.getByRole('option').first()).toHaveCSS(
+      'background-color',
+      'rgb(255, 255, 255)',
+    );
+
+    await suggestions.getByRole('option').first().click();
+    await expect(addressInput).not.toHaveValue('Dakar Medina');
+    await expect(suggestions).toBeHidden();
+  });
+
   test('uses dynamic data in the service, schedule and address modals and submits it', async ({
     page,
     request,
@@ -234,6 +264,54 @@ async function login(page: Page): Promise<void> {
   const response = await responsePromise;
   expect(response.ok(), await response.text()).toBe(true);
   await page.waitForURL('**/services');
+}
+
+async function seedClientSession(
+  page: Page,
+  request: APIRequestContext,
+): Promise<void> {
+  const loginResponse = await request.post(`${apiBaseURL}/auth/login`, {
+    data: { identifier: '+221772345678', password: 'client123' },
+  });
+  expect(loginResponse.ok(), await loginResponse.text()).toBe(true);
+  const login = (await loginResponse.json()) as ApiEnvelope<{
+    accessToken: string;
+    user: Record<string, unknown>;
+  }>;
+  const user = {
+    ...login.data.user,
+    id: 'e2e-client-user',
+    phoneNumber: '+221772345678',
+    name: 'Client Jokko',
+    role: 'CLIENT',
+    avatarUrl: null,
+    professionalProfile: null,
+  };
+  await page.addInitScript(
+    ({ accessToken, currentUser }) => {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('authStorageMode', 'local');
+    },
+    { accessToken: login.data.accessToken, currentUser: user },
+  );
+  await page.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          id: user.id,
+          numeroTelephone: user.phoneNumber,
+          nom: user.name,
+          role: user.role,
+          urlAvatar: null,
+          estActif: true,
+          profilProfessionnel: null,
+        },
+      }),
+    }),
+  );
 }
 
 function createFallbackNegotiableService(): {

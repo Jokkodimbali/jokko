@@ -7,6 +7,11 @@ import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { ServicesService } from '../../services/data-access/services.service';
 import {
+  GoogleMapsCoordinate,
+  GoogleMapsGeocodeResult,
+  GoogleMapsRouteResult,
+} from '../../../shared/maps/google-maps-loader.service';
+import {
   AppointmentView,
   AppointmentTrackingView,
   BackendReservation,
@@ -57,6 +62,7 @@ export class AppointmentsService {
                     serviceName: service?.nom || 'Service non renseigne',
                     serviceDescription: service?.description || null,
                     servicePrice: service?.prix ?? null,
+                    travelMode: service?.modeDeplacement ?? null,
                   });
                 }),
                 catchError(() => of(this.mapAppointment(reservation))),
@@ -96,6 +102,7 @@ export class AppointmentsService {
                 serviceName: service?.nom || 'Service non renseigne',
                 serviceDescription: service?.description || null,
                 servicePrice: service?.prix ?? null,
+                travelMode: service?.modeDeplacement ?? null,
               });
             }),
             catchError(() => of(this.mapAppointment(reservation))),
@@ -109,6 +116,23 @@ export class AppointmentsService {
       .get<ApiResponse<AppointmentTrackingView>>(
         `${this.apiUrl}/reservations/${reservationId}/live-tracking`,
       )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  geocodeAddress(address: string): Observable<GoogleMapsGeocodeResult | null> {
+    return this.http
+      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/geocode`, {
+        params: { address },
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  computeRoutes(input: {
+    origin: GoogleMapsCoordinate;
+    destination: GoogleMapsCoordinate;
+  }): Observable<GoogleMapsRouteResult[]> {
+    return this.http
+      .post<ApiResponse<GoogleMapsRouteResult[]>>(`${this.apiUrl}/maps/routes`, input)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -322,6 +346,7 @@ export class AppointmentsService {
       serviceName?: string;
       serviceDescription?: string | null;
       servicePrice?: number | null;
+      travelMode?: AppointmentView['travelMode'];
     } = {},
   ): AppointmentView {
     const date = new Date(reservation.dateHeure);
@@ -354,6 +379,7 @@ export class AppointmentsService {
       serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
       serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
+      travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       notes: reservation.notes,
       agreedPrice: reservation.prixConvenu,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
@@ -412,6 +438,7 @@ export class AppointmentsService {
       professionalReviews: reservation.professionnel.nombreAvis,
       serviceName: reservation.service.nom,
       serviceDescription: reservation.service.description,
+      travelMode: reservation.service.modeDeplacement,
     });
   }
 

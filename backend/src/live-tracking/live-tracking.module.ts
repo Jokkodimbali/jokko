@@ -3,12 +3,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
 import { CoreModule } from '../core/core.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MapsModule } from '../maps/maps.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { LIVE_TRACKING_REPOSITORY_PORT } from './application/ports/live-tracking-repository.port';
 import { LiveTrackingCommandService } from './application/services/live-tracking-command.service';
 import { LiveTrackingFacade } from './application/services/live-tracking-facade.service';
 import { LiveTrackingQueryService } from './application/services/live-tracking-query.service';
+import { TrackingRouteEstimatorService } from './application/services/tracking-route-estimator.service';
 import { LiveTrackingRepository } from './infrastructure/repositories/live-tracking.repository';
 import { LiveTrackingController } from './presentation/controllers/live-tracking.controller';
 import { LiveTrackingGateway } from './presentation/gateways/live-tracking.gateway';
@@ -21,6 +23,7 @@ import { LiveTrackingGateway } from './presentation/gateways/live-tracking.gatew
     CoreModule,
     ProfessionalsModule,
     NotificationsModule,
+    MapsModule,
   ],
   controllers: [LiveTrackingController],
   providers: [
@@ -31,6 +34,7 @@ import { LiveTrackingGateway } from './presentation/gateways/live-tracking.gatew
     },
     LiveTrackingCommandService,
     LiveTrackingQueryService,
+    TrackingRouteEstimatorService,
     LiveTrackingFacade,
     LiveTrackingGateway,
   ],

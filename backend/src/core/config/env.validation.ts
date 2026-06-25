@@ -11,6 +11,9 @@ type EnvValide = {
   JWT_ACCESS_TTL: string;
   JWT_REFRESH_TTL: string;
   GOOGLE_CLIENT_ID: string;
+  GOOGLE_MAPS_API_KEY?: string;
+  GOOGLE_MAPS_BROWSER_API_KEY?: string;
+  GOOGLE_MAPS_MAP_ID?: string;
   THROTTLE_SHORT_TTL: number;
   THROTTLE_SHORT_LIMIT: number;
   THROTTLE_MEDIUM_TTL: number;
@@ -167,6 +170,11 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     JWT_ACCESS_TTL: asString(env.JWT_ACCESS_TTL, '15m'),
     JWT_REFRESH_TTL: asString(env.JWT_REFRESH_TTL, '30d'),
     GOOGLE_CLIENT_ID: asString(env.GOOGLE_CLIENT_ID).trim(),
+    GOOGLE_MAPS_API_KEY: asString(env.GOOGLE_MAPS_API_KEY).trim(),
+    GOOGLE_MAPS_BROWSER_API_KEY: asString(
+      env.GOOGLE_MAPS_BROWSER_API_KEY,
+    ).trim(),
+    GOOGLE_MAPS_MAP_ID: asString(env.GOOGLE_MAPS_MAP_ID).trim(),
     THROTTLE_SHORT_TTL: asNombre(env.THROTTLE_SHORT_TTL, 1000),
     THROTTLE_SHORT_LIMIT: asNombre(env.THROTTLE_SHORT_LIMIT, 10),
     THROTTLE_MEDIUM_TTL: asNombre(env.THROTTLE_MEDIUM_TTL, 60000),

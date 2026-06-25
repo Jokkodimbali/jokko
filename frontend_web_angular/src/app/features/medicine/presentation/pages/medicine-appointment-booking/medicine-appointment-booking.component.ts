@@ -3,9 +3,8 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { forkJoin, of } from 'rxjs';
+import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
-import { environment } from '../../../../../../environments/environment';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -30,6 +29,7 @@ import {
   ProviderProfileDetail,
 } from '../../../../services/domain/models/services.models';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
+import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
 type BookingStep = 'PERSONAL' | 'RESERVATION';
@@ -61,23 +61,6 @@ type CalendarDay = {
   isPast: boolean;
 };
 
-type GoogleGeocoderResult = {
-  formatted_address?: string;
-};
-
-type GoogleGeocoderConstructor = new () => {
-  geocode: (
-    request: { location: { lat: number; lng: number } },
-    callback: (results: GoogleGeocoderResult[] | null, status: string) => void,
-  ) => void;
-};
-
-type GoogleMapsNamespace = {
-  maps?: {
-    Geocoder?: GoogleGeocoderConstructor;
-  };
-};
-
 const IDEAL_GPS_ACCURACY_METERS = 80;
 const MAX_ACCEPTED_GPS_ACCURACY_METERS = 150;
 const GPS_COLLECTION_TIMEOUT_MS = 12_000;
@@ -98,6 +81,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly googleMaps = inject(GoogleMapsLoaderService);
 
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
@@ -731,31 +715,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     longitude: number,
     fallbackLabel: string,
   ): Promise<string> {
-    if (!environment.googleMapsApiKey) {
-      return fallbackLabel;
-    }
-
     try {
-      await this.loadGoogleMapsPlacesScript();
-      const Geocoder = this.getGoogleGeocoder();
-      if (!Geocoder) return fallbackLabel;
-
-      return await new Promise<string>((resolve) => {
-        const geocoder = new Geocoder();
-        geocoder.geocode(
-          { location: { lat: latitude, lng: longitude } },
-          (results: GoogleGeocoderResult[] | null, status: string) => {
-            if (status === 'OK') {
-              const formattedAddress = results?.find((item: GoogleGeocoderResult) => item.formatted_address)
-                ?.formatted_address;
-              resolve(formattedAddress || fallbackLabel);
-              return;
-            }
-
-            resolve(fallbackLabel);
-          },
-        );
-      });
+      const result = await firstValueFrom(
+        this.googleMaps.reverseGeocode({ latitude, longitude }),
+      );
+      return result?.formattedAddress || fallbackLabel;
     } catch {
       return fallbackLabel;
     }
@@ -799,37 +763,6 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     return typeof value === 'number' && Number.isFinite(value)
       ? value
       : Number.POSITIVE_INFINITY;
-  }
-
-  private loadGoogleMapsPlacesScript(): Promise<void> {
-    if (this.getGoogleGeocoder()) {
-      return Promise.resolve();
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-jokko-google-maps="true"]',
-    );
-    if (existing) {
-      return new Promise((resolve, reject) => {
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(), { once: true });
-      });
-    }
-
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}`;
-      script.async = true;
-      script.defer = true;
-      script.dataset['jokkoGoogleMaps'] = 'true';
-      script.onload = () => resolve();
-      script.onerror = () => reject();
-      document.head.appendChild(script);
-    });
-  }
-
-  private getGoogleGeocoder(): GoogleGeocoderConstructor | undefined {
-    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.Geocoder;
   }
 
   private toIsoDate(date: Date): string {

@@ -178,14 +178,25 @@
   white-space: nowrap;
 }
 
-.appointments-negotiation-card__price--old {
+.appointments-negotiation-card__price i {
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  opacity: 0.78;
+}
+
+.appointments-negotiation-card__price--provider {
   background: #eee8df;
   color: #54504a;
 }
 
-.appointments-negotiation-card__price--new {
+.appointments-negotiation-card__price--client {
   background: #37bd73;
   color: #fff;
+}
+
+.appointments-negotiation-card__price--latest {
+  box-shadow: 0 0 0 2px #f0a43c;
 }
 
 .appointments-negotiation-card__offer > em {
@@ -195,6 +206,17 @@
   color: #e28b18;
   font-size: 11px;
   font-style: normal;
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 7px 13px;
+}
+
+.appointments-negotiation-card__offer > b {
+  background: #e6f7ed;
+  border: 1px solid #9ddbb7;
+  border-radius: 999px;
+  color: #17824b;
+  font-size: 11px;
   grid-column: 1 / -1;
   justify-self: start;
   padding: 7px 13px;

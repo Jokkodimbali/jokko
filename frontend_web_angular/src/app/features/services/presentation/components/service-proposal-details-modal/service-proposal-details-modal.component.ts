@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { ReservationAvailabilitySlotView } from '../../../data-access/service-proposal.service';
@@ -25,9 +25,6 @@ export interface ProposalAddressSuggestion {
   styleUrl: './service-proposal-details-modal.component.scss',
 })
 export class ServiceProposalDetailsModalComponent {
-  @ViewChild(ServiceProposalInteractiveMapComponent)
-  private readonly interactiveMap?: ServiceProposalInteractiveMapComponent;
-
   @Input({ required: true }) mode!: ProposalDetailsModal;
   @Input() services: BackendProfessionalDetailService[] = [];
   @Input() selectedServiceId = '';
@@ -82,10 +79,6 @@ export class ServiceProposalDetailsModalComponent {
     if (name.includes('chauff')) return 'flame';
     if (name.includes('peint')) return 'paintbrush';
     return 'briefcase-business';
-  }
-
-  getAddressInputElement(): HTMLInputElement | null {
-    return this.interactiveMap?.getSearchInputElement() ?? null;
   }
 
   protected selectService(serviceId: string): void {

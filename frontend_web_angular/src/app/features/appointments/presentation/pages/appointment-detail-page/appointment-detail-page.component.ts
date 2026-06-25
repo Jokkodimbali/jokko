@@ -14,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
+import { Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -23,37 +23,12 @@ import { MessagesService } from '../../../../messages/data-access/messages.servi
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentTrackingView, AppointmentView } from '../../../domain/appointments.models';
 import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
+import { ProviderLocationService } from '../../../../tracking/data-access/provider-location.service';
+import { TrackingRealtimeService } from '../../../../tracking/data-access/tracking-realtime.service';
+import { TrackingGoogleMapRendererService } from '../../../../tracking/presentation/tracking-google-map-renderer.service';
+import { TrackingStore } from '../../../../tracking/state/tracking.store';
 
-type LeafletLatLng = { lat: number; lng: number };
-type LeafletNamespace = NonNullable<Window['L']> & {
-  polyline?: (
-    latlngs: Array<[number, number]>,
-    options?: Record<string, unknown>,
-  ) => LeafletLayerInstance;
-};
-type LeafletMapInstance = ReturnType<NonNullable<Window['L']>['map']> & {
-  fitBounds?: (bounds: Array<[number, number]>, options?: Record<string, unknown>) => void;
-  on?: (eventName: string, handler: () => void) => void;
-  removeLayer?: (layer: LeafletLayerInstance) => void;
-};
-type LeafletLayerInstance = {
-  addTo(map: LeafletMapInstance): LeafletLayerInstance;
-  remove?: () => void;
-  addEventListener?: (eventName: string, handler: () => void) => void;
-  setIcon?: (icon: unknown) => void;
-  setLatLng?: (latlng: [number, number]) => void;
-  setLatLngs?: (latlngs: Array<[number, number]>) => void;
-};
-type LeafletTileLayerInstance = LeafletLayerInstance;
-type GeocodeCandidate = {
-  lat?: string;
-  lon?: string;
-  display_name?: string;
-  importance?: number;
-  address?: {
-    country_code?: string;
-  };
-};
+type MapCoordinate = { lat: number; lng: number };
 type RouteAlternativeView = {
   id: string;
   label: string;
@@ -66,6 +41,14 @@ type RouteOption = {
   coordinates: Array<[number, number]>;
   distanceKm: number | null;
   durationMinutes: number | null;
+  navigationSteps: RouteNavigationStep[];
+};
+type RouteNavigationStep = {
+  id: string;
+  instruction: string;
+  maneuver: string | null;
+  distanceMeters: number | null;
+  end: MapCoordinate | null;
 };
 const SENEGAL_GEO_BOUNDS = {
   minLat: 12,
@@ -78,6 +61,7 @@ type AppointmentDetailUiState =
   | 'loading'
   | 'error'
   | 'completed'
+  | 'closed'
   | 'working'
   | 'route'
   | 'upcoming';
@@ -96,9 +80,10 @@ type AppointmentDetailUiState =
     './appointment-detail-page.component.scss',
     './appointment-detail-upcoming.component.scss',
     './appointment-detail-tracking.component.scss',
-    './appointment-detail-responsive.component.scss',
     './appointment-detail-map.component.scss',
+    './appointment-detail-responsive.component.scss',
   ],
+  providers: [TrackingStore, TrackingGoogleMapRendererService],
 })
 export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('trackingMap')
@@ -109,18 +94,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.trackingMapElement = value?.nativeElement;
-    window.setTimeout(() => void this.initializeLeafletMaps(), 0);
-  }
-
-  @ViewChild('workTrackingMap')
-  set workTrackingMapRef(value: ElementRef<HTMLElement> | undefined) {
-    if (!value) {
-      this.destroyWorkMap();
-      return;
-    }
-
-    this.workTrackingMapElement = value?.nativeElement;
-    window.setTimeout(() => void this.initializeLeafletMaps(), 0);
+    window.setTimeout(() => void this.initializeGoogleMaps(), 0);
   }
 
   private readonly route = inject(ActivatedRoute);
@@ -130,30 +104,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly trackingRealtime = inject(TrackingRealtimeService);
+  private readonly providerLocation = inject(ProviderLocationService);
+  private readonly trackingStore = inject(TrackingStore);
+  private readonly mapRenderer = inject(TrackingGoogleMapRendererService);
   private trackingSubscription?: Subscription;
-  private leafletLoadPromise?: Promise<LeafletNamespace>;
-  private routeMap?: LeafletMapInstance;
-  private workMap?: LeafletMapInstance;
-  private routeStreetLayer?: LeafletTileLayerInstance;
-  private routeSatelliteLayer?: LeafletTileLayerInstance;
-  private routeProviderMarker?: LeafletLayerInstance;
-  private routeDestinationMarker?: LeafletLayerInstance;
-  private routePolyline?: LeafletLayerInstance;
-  private routeAlternativePolylines: LeafletLayerInstance[] = [];
-  private workProviderMarker?: LeafletLayerInstance;
-  private routeMapUserInteracted = false;
-  private routeAutoFitKey = '';
-  private providerLocationWatchId: number | null = null;
-  private lastProviderLocationPushAt = 0;
+  private missionSubscription?: Subscription;
+  private connectionSubscription?: Subscription;
+  private providerLocationSubscription?: Subscription;
   private routeCoordinates: Array<[number, number]> = [];
   private routeOptions: RouteOption[] = [];
   private routeCoordinatesKey = '';
   private trackingMapElement?: HTMLElement;
-  private workTrackingMapElement?: HTMLElement;
+  private lastSpokenNavigationKey = '';
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointment = signal<AppointmentView | null>(null);
-  protected readonly tracking = signal<AppointmentTrackingView | null>(null);
+  protected readonly tracking = this.trackingStore.tracking;
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
@@ -167,11 +134,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     reason: '',
   };
   protected readonly isSubmittingReview = signal(false);
-  protected readonly destinationCoordinates = signal<LeafletLatLng | null>(null);
+  protected readonly destinationCoordinates = signal<MapCoordinate | null>(null);
   protected readonly routeDistanceKm = signal<number | null>(null);
   protected readonly routeDurationMinutes = signal<number | null>(null);
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
   protected readonly isSatelliteMapEnabled = signal(false);
+  protected readonly isNavigationVoiceEnabled = signal(true);
   protected readonly selectedRouteId = signal('route-0');
   protected readonly routeAlternatives = signal<RouteAlternativeView[]>([]);
   protected readonly destinationStatus = signal<'idle' | 'resolving' | 'ready' | 'unavailable'>(
@@ -198,7 +166,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       !!appointment &&
       appointment.status !== 'TERMINEE' &&
       appointment.status !== 'ANNULEE' &&
-      appointment.status !== 'NO_SHOW'
+      appointment.status !== 'NO_SHOW' &&
+      appointment.status !== 'LITIGE'
     );
   });
   protected readonly canCancelAppointment = computed(() => {
@@ -217,6 +186,37 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isAppointmentCompleted = computed(
     () => this.appointment()?.status === 'TERMINEE',
   );
+  protected readonly isAppointmentClosed = computed(() => {
+    const status = this.appointment()?.status;
+    return (
+      status === 'ANNULEE' ||
+      status === 'NO_SHOW' ||
+      status === 'LITIGE'
+    );
+  });
+  protected readonly isDisputedAppointment = computed(
+    () => this.appointment()?.status === 'LITIGE',
+  );
+  protected readonly closedStatusLabel = computed(() => {
+    const status = this.appointment()?.status;
+    if (status === 'ANNULEE') return 'Rendez-vous annule';
+    if (status === 'NO_SHOW') return 'Client absent';
+    if (status === 'LITIGE') return 'Rendez-vous en litige';
+    return 'Rendez-vous cloture';
+  });
+  protected readonly closedStatusDescription = computed(() => {
+    const status = this.appointment()?.status;
+    if (status === 'ANNULEE') {
+      return 'Le suivi de localisation et les instructions de navigation sont arretes.';
+    }
+    if (status === 'NO_SHOW') {
+      return 'La mission est cloturee sans prestation. Aucun suivi GPS ne reste actif.';
+    }
+    if (status === 'LITIGE') {
+      return 'Le suivi est suspendu pendant le traitement du litige.';
+    }
+    return 'Le suivi temps reel est arrete.';
+  });
   protected readonly currentPriceLabel = computed(() =>
     this.formatCurrency(this.appointment()?.agreedPrice ?? 0),
   );
@@ -376,6 +376,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly remainingDistanceLabel = computed(() => {
     if (!this.isProviderOnTheWay()) return 'Suivi inactif';
+    const serverDistance = this.tracking()?.route?.distanceRemainingMeters;
+    if (typeof serverDistance === 'number' && serverDistance > 0) {
+      return `${this.formatDistance(serverDistance / 1000)} restants`;
+    }
     const routeDistance = this.routeDistanceKm();
     if (routeDistance !== null && routeDistance > 0) {
       return `${this.formatDistance(routeDistance)} restants`;
@@ -390,6 +394,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return 'Itineraire routier indisponible';
   });
   protected readonly estimatedArrivalMinutes = computed(() => {
+    const serverDuration = this.tracking()?.route?.durationRemainingSeconds;
+    if (typeof serverDuration === 'number' && serverDuration > 0) {
+      return Math.max(1, Math.round(serverDuration / 60));
+    }
     const minutes = this.routeDurationMinutes();
     return minutes !== null && minutes > 0 ? minutes : 0;
   });
@@ -431,6 +439,43 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return minutes > 0 ? `Itineraire reel - ${minutes} min` : 'Itineraire reel pret';
     }
     return 'Carte en temps reel';
+  });
+  protected readonly navigationInstruction = computed(() => {
+    if (this.isProviderWorking()) {
+      return {
+        instruction: `Vous etes arrive a destination de ${this.arrivalDestinationLabelFromCurrentAppointment()}.`,
+        maneuver: 'ARRIVE',
+        distanceMeters: 0,
+      };
+    }
+
+    const route = this.routeOptions.find(
+      (option) => option.id === this.selectedRouteId(),
+    );
+    const step = this.findUpcomingNavigationStep(route?.navigationSteps ?? []);
+    return step
+      ? {
+          instruction: this.normalizeNavigationInstruction(step),
+          maneuver: step.maneuver,
+          distanceMeters: step.end
+            ? this.distanceMetersBetweenCurrentPosition(step.end)
+            : step.distanceMeters,
+        }
+      : {
+          instruction:
+            this.routeStatus() === 'calculating'
+              ? "Calcul des indications de conduite..."
+              : "Continuez sur l'itineraire affiche.",
+          maneuver: null,
+          distanceMeters: null,
+        };
+  });
+  protected readonly navigationDistanceLabel = computed(() => {
+    const distance = this.navigationInstruction().distanceMeters;
+    if (typeof distance !== 'number' || distance <= 0) return '';
+    return distance < 1000
+      ? `${Math.max(10, Math.round(distance / 10) * 10)} m`
+      : this.formatDistance(distance / 1000);
   });
   protected readonly arrivedAtLabel = computed(() => {
     const tracking = this.tracking();
@@ -478,6 +523,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isLoading()) return 'loading';
     if (this.errorMessage()) return 'error';
     if (this.isAppointmentCompleted()) return 'completed';
+    if (this.isAppointmentClosed()) return 'closed';
     if (this.isProviderWorking()) return 'working';
     if (this.isProviderOnTheWay()) return 'route';
     if (this.showUpcomingDetail()) return 'upcoming';
@@ -550,14 +596,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   ngAfterViewInit(): void {
-    void this.initializeLeafletMaps();
+    void this.initializeGoogleMaps();
   }
 
   ngOnDestroy(): void {
-    this.trackingSubscription?.unsubscribe();
-    this.destroyRouteMap();
-    this.destroyWorkMap();
-    this.stopProviderLocationSharing();
+    this.stopLiveNavigation(this.appointment()?.id);
+    this.trackingStore.reset();
   }
 
   protected goBack(): void {
@@ -690,10 +734,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const destination = encodeURIComponent(appointment.addressLabel);
 
     if (this.hasTrackingCoordinates() && latitude !== null && longitude !== null) {
-      return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${latitude}%2C${longitude}%3B${destination}`;
+      return `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${destination}&travelmode=driving`;
     }
 
-    return `https://www.openstreetmap.org/search?query=${destination}`;
+    return `https://www.google.com/maps/search/?api=1&query=${destination}`;
   }
 
   protected messageProvider(appointment: AppointmentView): void {
@@ -767,6 +811,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
+        this.synchronizeLiveNavigation(updated);
         this.isUpdatingStatus.set(false);
         this.feedback.success('Signalement envoye. Le rendez-vous est passe en litige.');
       },
@@ -786,9 +831,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     appointment: AppointmentView,
     type: 'expediteur' | 'destinataire',
   ): void {
+    if (!this.isParcelTransportAppointment(appointment)) return;
+
     this.router.navigate(['/appointments', appointment.id, 'qr', type], {
       queryParams: { returnUrl: this.router.url },
     });
+  }
+
+  protected openDisputeTracking(appointment: AppointmentView): void {
+    this.router.navigate(['/litiges', appointment.id, 'suivi']);
+  }
+
+  protected isParcelTransportAppointment(appointment: AppointmentView): boolean {
+    return appointment.travelMode === 'TRANSPORT_COLIS';
   }
 
   protected arrivalDestinationLabel(appointment: AppointmentView): string {
@@ -869,6 +924,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.appointment.update((current) =>
             this.mergeAppointment(current ?? appointment, updated),
           );
+          this.synchronizeLiveNavigation(updated);
           this.isUpdatingStatus.set(false);
           this.isRescheduleModalOpen.set(false);
           this.feedback.success('Rendez-vous reprogramme.');
@@ -890,6 +946,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.appointment.update((current) =>
             this.mergeAppointment(current ?? appointment, updated),
           );
+          this.synchronizeLiveNavigation(updated);
           this.isUpdatingStatus.set(false);
           this.feedback.success('Rendez-vous annule.');
         },
@@ -958,6 +1015,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
+        this.synchronizeLiveNavigation(updated);
         this.isUpdatingStatus.set(false);
         this.feedback.success('Absence client signalee sur ce rendez-vous.');
       },
@@ -1007,7 +1065,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected toggleSatelliteMap(): void {
     this.isSatelliteMapEnabled.update((enabled) => !enabled);
-    this.updateRouteBaseLayer();
+    this.mapRenderer.setSatellite(this.isSatelliteMapEnabled());
+  }
+
+  protected toggleNavigationVoice(): void {
+    this.isNavigationVoiceEnabled.update((enabled) => !enabled);
+    if (this.isNavigationVoiceEnabled()) {
+      this.lastSpokenNavigationKey = '';
+      this.announceNavigationInstruction(true);
+    } else if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+    }
   }
 
   protected selectRouteAlternative(routeId: string): void {
@@ -1016,14 +1084,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.selectedRouteId.set(routeId);
     this.applySelectedRoute(route);
-    const leaflet = window.L as LeafletNamespace | undefined;
-    const destination = this.destinationCoordinates();
-    const latitude = this.trackingLatitude();
-    const longitude = this.trackingLongitude();
-    if (leaflet && destination && typeof latitude === 'number' && typeof longitude === 'number') {
-      this.renderRoutePolyline(leaflet);
-    }
     this.refreshRouteAlternatives();
+    this.updateGoogleMaps();
   }
 
   private async transitionOnTheWay(appointment: AppointmentView, silent: boolean): Promise<void> {
@@ -1089,7 +1151,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
-        this.refreshTracking(appointment.id);
+        this.synchronizeLiveNavigation(updated);
         this.stopProviderLocationSharing();
         this.isUpdatingStatus.set(false);
         if (!silent) {
@@ -1126,8 +1188,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
-        this.refreshTracking(appointment.id);
-        this.stopProviderLocationSharing();
+        this.synchronizeLiveNavigation(updated);
+        this.loadTerminalTrackingSnapshot(appointment.id);
         this.isUpdatingStatus.set(false);
         if (!silent) {
           this.feedback.success('Prestation terminee.');
@@ -1159,9 +1221,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.set(appointment);
         this.selectedRating.set(appointment.clientRating ?? 0);
         this.isLoading.set(false);
-        this.startTrackingPolling(appointment.id);
-        this.resolveDestinationCoordinates(appointment.addressLabel);
-        window.setTimeout(() => void this.initializeLeafletMaps(), 0);
+        this.synchronizeLiveNavigation(appointment);
+        if (appointment.status === 'TERMINEE') {
+          this.loadTerminalTrackingSnapshot(appointment.id);
+        } else if (!this.isTerminalStatus(appointment.status)) {
+          this.resolveDestinationCoordinates(appointment.addressLabel);
+          window.setTimeout(() => void this.initializeGoogleMaps(), 0);
+        }
       },
       error: (error) => {
         const notFoundOrForbidden =
@@ -1187,17 +1253,137 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private startTrackingPolling(appointmentId: string): void {
     this.trackingSubscription?.unsubscribe();
-    this.trackingSubscription = timer(0, 10000)
-      .pipe(
-        switchMap(() =>
-          this.appointmentsService
-            .getAppointmentTracking(appointmentId)
-            .pipe(catchError(() => of(null))),
-        ),
-      )
+    this.missionSubscription?.unsubscribe();
+    this.connectionSubscription?.unsubscribe();
+    const fallbackPolling$ = timer(0, 30000).pipe(
+      switchMap(() =>
+        this.appointmentsService
+          .getAppointmentTracking(appointmentId)
+          .pipe(catchError(() => of(null))),
+      ),
+    );
+    const realtime$ = this.trackingRealtime
+      .watchReservation(appointmentId)
+      .pipe(catchError(() => of(null)));
+
+    this.trackingSubscription = merge(fallbackPolling$, realtime$)
       .subscribe((tracking) => {
         if (tracking) {
           this.setTrackingSafely(tracking);
+        }
+      });
+    this.connectionSubscription = this.trackingRealtime.connectionState$.subscribe(
+      (state) => this.trackingStore.setConnectionState(state),
+    );
+    this.missionSubscription = this.trackingRealtime.missionUpdated$.subscribe(
+      (event) => {
+        if (event.reservationId !== appointmentId) return;
+        this.trackingStore.setMissionEvent(event);
+        this.refreshAppointmentState(appointmentId);
+        this.refreshTracking(appointmentId);
+      },
+    );
+  }
+
+  private synchronizeLiveNavigation(appointment: AppointmentView): void {
+    if (this.isTerminalStatus(appointment.status)) {
+      this.stopLiveNavigation(appointment.id, false);
+      return;
+    }
+
+    if (!this.shouldRunLiveNavigation(appointment)) {
+      this.stopLiveNavigation(appointment.id, false);
+      return;
+    }
+
+    if (!this.trackingSubscription) {
+      this.startTrackingPolling(appointment.id);
+    }
+  }
+
+  private stopLiveNavigation(
+    appointmentId?: string,
+    resetTracking = false,
+  ): void {
+    this.trackingSubscription?.unsubscribe();
+    this.missionSubscription?.unsubscribe();
+    this.connectionSubscription?.unsubscribe();
+    this.trackingSubscription = undefined;
+    this.missionSubscription = undefined;
+    this.connectionSubscription = undefined;
+    this.stopProviderLocationSharing();
+    if (appointmentId) {
+      this.trackingRealtime.stopWatching(appointmentId);
+    }
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+    }
+    this.lastSpokenNavigationKey = '';
+    this.mapRenderer.destroyRouteMap();
+    this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeAlternatives.set([]);
+    this.routeCoordinatesKey = '';
+    this.routeDistanceKm.set(null);
+    this.routeDurationMinutes.set(null);
+    this.routeStatus.set('idle');
+    if (resetTracking) {
+      this.trackingStore.reset();
+    }
+  }
+
+  private suspendNavigationPresentation(): void {
+    this.stopProviderLocationSharing();
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+    }
+    this.lastSpokenNavigationKey = '';
+    this.mapRenderer.destroyRouteMap();
+    this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeAlternatives.set([]);
+    this.routeCoordinatesKey = '';
+    this.routeDistanceKm.set(null);
+    this.routeDurationMinutes.set(null);
+    this.routeStatus.set('idle');
+  }
+
+  private loadTerminalTrackingSnapshot(appointmentId: string): void {
+    this.appointmentsService
+      .getAppointmentTracking(appointmentId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((tracking) => {
+        if (tracking) {
+          this.trackingStore.setTracking(tracking);
+        }
+      });
+  }
+
+  private isTerminalStatus(status: AppointmentView['status']): boolean {
+    return (
+      status === 'TERMINEE' ||
+      status === 'ANNULEE' ||
+      status === 'NO_SHOW' ||
+      status === 'LITIGE'
+    );
+  }
+
+  private shouldRunLiveNavigation(appointment: AppointmentView): boolean {
+    return (
+      (appointment.status === 'PAYEE_SEQUESTRE' ||
+        appointment.status === 'EN_COURS') &&
+      this.canShowLiveTracking(appointment)
+    );
+  }
+
+  private refreshAppointmentState(appointmentId: string): void {
+    this.appointmentsService
+      .getAppointmentById(appointmentId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((appointment) => {
+        if (appointment) {
+          this.appointment.set(appointment);
+          this.synchronizeLiveNavigation(appointment);
         }
       });
   }
@@ -1215,9 +1401,54 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
     window.setTimeout(() => {
-      this.tracking.set(tracking);
-      this.updateLeafletMaps();
+      this.trackingStore.setTracking(tracking);
       const appointment = this.appointment();
+      if (appointment && !this.shouldRunLiveNavigation(appointment)) {
+        this.stopLiveNavigation(appointment.id, false);
+        return;
+      }
+      if (!this.hasActiveNavigationState()) {
+        this.suspendNavigationPresentation();
+        return;
+      }
+      const serverRoute = tracking.route;
+      if (serverRoute) {
+        this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
+        this.routeDurationMinutes.set(
+          Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
+        );
+        this.routeCoordinates = serverRoute.coordinates.map(
+          (coordinate) =>
+            [coordinate.latitude, coordinate.longitude] as [number, number],
+        );
+        if (serverRoute.navigationSteps?.length) {
+          const currentRoute: RouteOption = {
+            id: 'route-0',
+            coordinates: this.routeCoordinates,
+            distanceKm: serverRoute.distanceRemainingMeters / 1000,
+            durationMinutes: Math.max(
+              1,
+              Math.round(serverRoute.durationRemainingSeconds / 60),
+            ),
+            navigationSteps: serverRoute.navigationSteps.map((step) => ({
+              id: step.id,
+              instruction: step.instruction,
+              maneuver: step.maneuver,
+              distanceMeters: step.distanceMeters,
+              end: step.end
+                ? { lat: step.end.latitude, lng: step.end.longitude }
+                : null,
+            })),
+          };
+          this.routeOptions = [currentRoute];
+          this.selectedRouteId.set(currentRoute.id);
+        }
+        this.routeStatus.set(
+          this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
+        );
+      }
+      this.updateGoogleMaps();
+      this.announceNavigationInstruction();
       if (appointment && this.isProviderViewer() && this.isProviderOnTheWay()) {
         this.startProviderLocationSharing(appointment.id);
       }
@@ -1226,38 +1457,32 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private startProviderLocationSharing(appointmentId: string): void {
     if (
-      this.providerLocationWatchId !== null ||
-      !this.isProviderViewer() ||
-      typeof navigator === 'undefined' ||
-      !navigator.geolocation
+      this.providerLocationSubscription ||
+      !this.isProviderViewer()
     ) {
       return;
     }
 
-    this.providerLocationWatchId = navigator.geolocation.watchPosition(
-      (position) => {
+    this.providerLocationSubscription = this.providerLocation
+      .watch(8000)
+      .subscribe({
+      next: (position) => {
         if (!this.isProviderOnTheWay()) {
           this.stopProviderLocationSharing();
           return;
         }
 
-        if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
+        if (!this.isCoordinateInSenegal(position.latitude, position.longitude)) {
           return;
         }
 
-        const now = Date.now();
-        if (now - this.lastProviderLocationPushAt < 8000) return;
-        this.lastProviderLocationPushAt = now;
-
         this.appointmentsService
           .updateProviderTrackingLocation(appointmentId, {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracyMeters: position.coords.accuracy,
-            headingDegrees:
-              typeof position.coords.heading === 'number' ? position.coords.heading : null,
-            speedKmh:
-              typeof position.coords.speed === 'number' ? position.coords.speed * 3.6 : null,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            accuracyMeters: position.accuracyMeters,
+            headingDegrees: position.headingDegrees,
+            speedKmh: position.speedKmh,
             locationLabel: 'Position GPS du prestataire',
           })
           .pipe(
@@ -1275,23 +1500,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             }
           });
       },
-      () => undefined,
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 7000 },
-    );
+      error: () => {
+        this.stopProviderLocationSharing();
+      },
+    });
   }
 
   private stopProviderLocationSharing(): void {
-    if (
-      this.providerLocationWatchId === null ||
-      typeof navigator === 'undefined' ||
-      !navigator.geolocation
-    ) {
-      this.providerLocationWatchId = null;
-      return;
-    }
-
-    navigator.geolocation.clearWatch(this.providerLocationWatchId);
-    this.providerLocationWatchId = null;
+    this.providerLocationSubscription?.unsubscribe();
+    this.providerLocationSubscription = undefined;
   }
 
   private isServiceDay(appointment: AppointmentView): boolean {
@@ -1317,68 +1534,27 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return !this.isAppointmentInFuture(appointment) || this.isServiceDay(appointment);
   }
 
-  private async initializeLeafletMaps(): Promise<void> {
+  private async initializeGoogleMaps(): Promise<void> {
     if (typeof window === 'undefined') return;
-    const leaflet = await this.loadLeaflet();
-    const defaultCenter: [number, number] = [14.7167, -17.4677];
 
-    if (this.trackingMapElement && !this.routeMap) {
-      const map = leaflet.map(this.trackingMapElement, {
-        attributionControl: false,
-        zoomControl: true,
-      });
-      this.routeMap = map;
-      this.routeStreetLayer = leaflet
-        .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap',
-        });
-      this.routeSatelliteLayer = leaflet.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; Esri',
-        },
-      );
-      this.updateRouteBaseLayer();
-      map.on?.('zoomstart', () => {
-        this.routeMapUserInteracted = true;
-      });
-      map.on?.('dragstart', () => {
-        this.routeMapUserInteracted = true;
-      });
-      this.safeSetView(map, defaultCenter, 13);
-      window.setTimeout(() => this.safeInvalidateSize(map), 80);
+    try {
+      if (this.trackingMapElement?.isConnected) {
+        await this.mapRenderer.initializeRouteMap(
+          this.trackingMapElement,
+          this.isSatelliteMapEnabled(),
+          (routeId) => this.selectRouteAlternative(routeId),
+        );
+      }
+      this.updateGoogleMaps();
+    } catch {
+      this.routeStatus.set('unavailable');
     }
-
-    if (this.workTrackingMapElement && !this.workMap) {
-      const map = leaflet.map(this.workTrackingMapElement, {
-        attributionControl: false,
-        zoomControl: true,
-      });
-      this.workMap = map;
-      leaflet
-        .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap',
-        })
-        .addTo(map);
-      this.safeSetView(map, defaultCenter, 15);
-      window.setTimeout(() => this.safeInvalidateSize(map), 80);
-    }
-
-    this.updateLeafletMaps();
   }
 
-  private updateLeafletMaps(): void {
-    if (!this.routeMap && !this.workMap) return;
-    if (this.routeMap && !this.isMapElementConnected(this.trackingMapElement)) {
-      this.destroyRouteMap();
+  private updateGoogleMaps(): void {
+    if (!this.hasActiveNavigationState()) {
+      return;
     }
-    if (this.workMap && !this.isMapElementConnected(this.workTrackingMapElement)) {
-      this.destroyWorkMap();
-    }
-    if (!this.routeMap && !this.workMap) return;
 
     const latitude = this.trackingLatitude();
     const longitude = this.trackingLongitude();
@@ -1386,172 +1562,158 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    const provider: [number, number] = [latitude, longitude];
     const destination = this.destinationCoordinates();
-    const leaflet = window.L as LeafletNamespace | undefined;
-    if (!leaflet) return;
-
-    if (this.routeMap) {
-      if (this.routeProviderMarker?.setLatLng) {
-        this.routeProviderMarker.setLatLng(provider);
-        this.routeProviderMarker.setIcon?.(this.leafletProviderIcon());
-      } else {
-        this.routeProviderMarker = leaflet
-          .marker(provider, { icon: this.leafletProviderIcon() })
-          .addTo(this.routeMap);
-      }
-
-      if (destination) {
-        const destinationPoint: [number, number] = [destination.lat, destination.lng];
-        if (this.routeDestinationMarker?.setLatLng) {
-          this.routeDestinationMarker.setLatLng(destinationPoint);
-        } else {
-          this.routeDestinationMarker = leaflet
-            .marker(destinationPoint, { icon: this.leafletDestinationIcon() })
-            .addTo(this.routeMap);
-        }
-
-        this.loadRouteCoordinates(provider, destinationPoint);
-        this.fitRouteOnce(provider, destinationPoint);
-      } else {
-        if (!this.routeMapUserInteracted) {
-          this.safeSetView(this.routeMap, provider, 15);
-        }
-      }
+    const trackedProvider: [number, number] = [latitude, longitude];
+    const displayedProvider: [number, number] =
+      this.isProviderWorking() && destination
+        ? [destination.lat, destination.lng]
+        : trackedProvider;
+    if (destination && !this.isProviderWorking()) {
+      this.loadRouteCoordinates(trackedProvider, [
+        destination.lat,
+        destination.lng,
+      ]);
     }
-
-    if (this.workMap) {
-      if (this.workProviderMarker?.setLatLng) {
-        this.workProviderMarker.setLatLng(provider);
-      } else {
-        this.workProviderMarker = leaflet
-          .marker(provider, { icon: this.leafletProviderIcon() })
-          .addTo(this.workMap);
-      }
-      this.safeSetView(this.workMap, provider, 16);
-      window.setTimeout(() => this.safeInvalidateSize(this.workMap), 80);
-    }
+    this.mapRenderer.render({
+      provider: {
+        lat: displayedProvider[0],
+        lng: displayedProvider[1],
+      },
+      destination,
+      remainingLabel: this.routeRemainingBadgeLabel(),
+      statusLabel: this.vehicleStatusLabel(),
+      headingDegrees: this.reliableTrackingHeading(),
+      routes: this.routeOptions
+        .filter((route) => route.coordinates.length > 1)
+        .map((route) => ({
+          id: route.id,
+          selected: route.id === this.selectedRouteId(),
+          coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
+        })),
+    });
   }
 
-  private isMapElementConnected(element: HTMLElement | undefined): boolean {
-    return !!element?.isConnected;
+  private vehicleStatusLabel(): string {
+    const appointment = this.appointment();
+    if (!appointment) return 'Prestataire en route';
+    return this.isProviderWorking()
+      ? `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`
+      : `En route vers ${this.arrivalDestinationLabel(appointment)} · ${this.routeEtaLabel()}`;
   }
 
-  private safeSetView(
-    map: LeafletMapInstance | undefined,
-    center: [number, number],
-    zoom: number,
-  ): void {
-    if (!map) return;
-
-    try {
-      map.setView(center, zoom);
-    } catch {
-      this.destroyDetachedMaps();
+  private reliableTrackingHeading(): number | null {
+    if (this.isProviderWorking()) {
+      return null;
     }
+
+    const tracking = this.tracking();
+    const speed =
+      tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null;
+    const heading =
+      tracking?.lastHeadingDegrees ??
+      tracking?.presence.lastHeadingDegrees ??
+      null;
+    return typeof speed === 'number' &&
+      speed >= 3 &&
+      typeof heading === 'number' &&
+      Number.isFinite(heading)
+      ? heading
+      : null;
   }
 
-  private safeFitBounds(
-    map: LeafletMapInstance | undefined,
-    bounds: Array<[number, number]>,
-    options?: Record<string, unknown>,
-  ): void {
-    if (!map?.fitBounds) return;
-
-    try {
-      map.fitBounds(bounds, options);
-    } catch {
-      this.destroyDetachedMaps();
-    }
+  private arrivalDestinationLabelFromCurrentAppointment(): string {
+    const appointment = this.appointment();
+    return appointment
+      ? this.arrivalDestinationLabel(appointment)
+      : 'la destination';
   }
 
-  private safeInvalidateSize(map: LeafletMapInstance | undefined): void {
-    if (!map) return;
-
-    try {
-      map.invalidateSize();
-    } catch {
-      this.destroyDetachedMaps();
-    }
+  private findUpcomingNavigationStep(
+    steps: RouteNavigationStep[],
+  ): RouteNavigationStep | null {
+    if (steps.length === 0) return null;
+    const withDistance = steps
+      .map((step) => ({
+        step,
+        distance: step.end
+          ? this.distanceMetersBetweenCurrentPosition(step.end)
+          : Number.POSITIVE_INFINITY,
+      }))
+      .filter(({ distance }) => Number.isFinite(distance) && distance > 12)
+      .sort((left, right) => left.distance - right.distance);
+    return withDistance[0]?.step ?? steps[0];
   }
 
-  private destroyDetachedMaps(): void {
-    if (!this.isMapElementConnected(this.trackingMapElement)) {
-      this.destroyRouteMap();
-    }
-    if (!this.isMapElementConnected(this.workTrackingMapElement)) {
-      this.destroyWorkMap();
-    }
+  private normalizeNavigationInstruction(step: RouteNavigationStep): string {
+    const instruction = step.instruction.replace(/<[^>]+>/g, '').trim();
+    if (instruction) return instruction;
+
+    const maneuver = step.maneuver?.toUpperCase() ?? '';
+    if (maneuver.includes('LEFT')) return 'Tournez a gauche.';
+    if (maneuver.includes('RIGHT')) return 'Tournez a droite.';
+    if (maneuver.includes('UTURN')) return 'Faites demi-tour.';
+    if (maneuver.includes('ROUNDABOUT')) return 'Entrez dans le rond-point.';
+    return 'Continuez tout droit.';
   }
 
-  private destroyRouteMap(): void {
-    try {
-      this.routeMap?.remove();
-    } catch {
-      // Leaflet can throw if Angular already detached the pane.
+  private distanceMetersBetweenCurrentPosition(
+    destination: MapCoordinate,
+  ): number {
+    const latitude = this.trackingLatitude();
+    const longitude = this.trackingLongitude();
+    if (latitude === null || longitude === null) {
+      return Number.POSITIVE_INFINITY;
     }
-    this.routeMap = undefined;
-    this.routeStreetLayer = undefined;
-    this.routeSatelliteLayer = undefined;
-    this.routeProviderMarker = undefined;
-    this.routeDestinationMarker = undefined;
-    this.routePolyline = undefined;
-    this.routeAlternativePolylines = [];
-    this.trackingMapElement = undefined;
-    this.routeMapUserInteracted = false;
-    this.routeAutoFitKey = '';
+
+    const earthRadius = 6_371_000;
+    const latitudeDelta = ((destination.lat - latitude) * Math.PI) / 180;
+    const longitudeDelta = ((destination.lng - longitude) * Math.PI) / 180;
+    const originLatitude = (latitude * Math.PI) / 180;
+    const destinationLatitude = (destination.lat * Math.PI) / 180;
+    const a =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(originLatitude) *
+        Math.cos(destinationLatitude) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  private destroyWorkMap(): void {
-    try {
-      this.workMap?.remove();
-    } catch {
-      // Leaflet can throw if Angular already detached the pane.
-    }
-    this.workMap = undefined;
-    this.workProviderMarker = undefined;
-    this.workTrackingMapElement = undefined;
-  }
-
-  private renderRoutePolyline(leaflet: LeafletNamespace): void {
-    if (!this.routeMap || !leaflet.polyline) return;
-    const createPolyline = leaflet.polyline;
-
-    const points = this.routeCoordinates;
-    if (points.length < 2) return;
-
-    this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
-    this.routeAlternativePolylines = [];
-
-    this.routeOptions
-      .filter((option) => option.id !== this.selectedRouteId() && option.coordinates.length > 1)
-      .forEach((option, index) => {
-        const alternative = createPolyline(option.coordinates, {
-            color: index === 0 ? '#f97316' : '#2f80ed',
-            dashArray: index === 0 ? '14 8' : '8 8',
-            lineCap: 'round',
-            lineJoin: 'round',
-            opacity: 0.86,
-            weight: 7,
-          })
-          .addTo(this.routeMap as LeafletMapInstance);
-        alternative.addEventListener?.('click', () => this.selectRouteAlternative(option.id));
-        this.routeAlternativePolylines.push(alternative);
-      });
-
-    if (this.routePolyline?.setLatLngs) {
-      this.routePolyline.setLatLngs(points);
+  private announceNavigationInstruction(force = false): void {
+    if (
+      !this.hasActiveNavigationState() ||
+      !this.isNavigationVoiceEnabled() ||
+      typeof window === 'undefined' ||
+      !('speechSynthesis' in window)
+    ) {
       return;
     }
 
-    this.routePolyline = createPolyline(points, {
-        color: '#1eb980',
-        lineCap: 'round',
-        lineJoin: 'round',
-        opacity: 0.95,
-        weight: 6,
-      })
-      .addTo(this.routeMap);
+    const navigation = this.navigationInstruction();
+    const key = `${navigation.maneuver ?? 'CONTINUE'}|${navigation.instruction}`;
+    if (!force && key === this.lastSpokenNavigationKey) return;
+
+    this.lastSpokenNavigationKey = key;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(
+      navigation.distanceMeters && navigation.distanceMeters > 30
+        ? `Dans ${this.navigationDistanceLabel()}, ${navigation.instruction}`
+        : navigation.instruction,
+    );
+    utterance.lang = 'fr-FR';
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  private hasActiveNavigationState(): boolean {
+    return (
+      this.appointment()?.status === 'EN_COURS' ||
+      this.tracking()?.trackingStatus === 'EN_ROUTE'
+    );
+  }
+
+  private destroyRouteMap(): void {
+    this.mapRenderer.destroyRouteMap();
+    this.trackingMapElement = undefined;
   }
 
   private loadRouteCoordinates(provider: [number, number], destinationPoint: [number, number]): void {
@@ -1565,37 +1727,46 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeDurationMinutes.set(null);
     this.routeStatus.set('calculating');
 
-    const url =
-      `https://router.project-osrm.org/route/v1/driving/` +
-      `${provider[1]},${provider[0]};${destinationPoint[1]},${destinationPoint[0]}` +
-      '?alternatives=3&continue_straight=false&steps=false&overview=full&geometries=geojson';
-
-    fetch(url, { headers: { Accept: 'application/json' } })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: {
-        routes?: Array<{
-          distance?: number;
-          duration?: number;
-          geometry?: { coordinates?: Array<[number, number]> };
-        }>;
-        waypoints?: Array<{ distance?: number }>;
-      } | null) => {
-        const routes = (payload?.routes ?? [])
+    this.appointmentsService
+      .computeRoutes({
+        origin: {
+          latitude: provider[0],
+          longitude: provider[1],
+        },
+        destination: {
+          latitude: destinationPoint[0],
+          longitude: destinationPoint[1],
+        },
+      })
+      .subscribe({
+        next: (googleRoutes) => {
+          const routes = googleRoutes
           .map((route, index): RouteOption | null => {
-            const coordinates = route.geometry?.coordinates
-              ?.map(([lng, lat]) => [lat, lng] as [number, number])
+            const coordinates = route.coordinates
+              .map((coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number])
               .filter(([lat, lng]) => this.isCoordinateInSenegal(lat, lng));
-            if (!coordinates || coordinates.length < 2) return null;
+            if (coordinates.length < 2) return null;
 
             return {
               id: `route-${index}`,
               coordinates,
               distanceKm:
-                typeof route.distance === 'number' ? Math.max(0.1, route.distance / 1000) : null,
-              durationMinutes:
-                typeof route.duration === 'number'
-                  ? Math.max(1, Math.round(route.duration / 60))
+                typeof route.distanceMeters === 'number'
+                  ? Math.max(0.1, route.distanceMeters / 1000)
                   : null,
+              durationMinutes:
+                typeof route.durationSeconds === 'number'
+                  ? Math.max(1, Math.round(route.durationSeconds / 60))
+                  : null,
+              navigationSteps: (route.navigationSteps ?? []).map((step) => ({
+                id: step.id,
+                instruction: step.instruction,
+                maneuver: step.maneuver,
+                distanceMeters: step.distanceMeters,
+                end: step.end
+                  ? { lat: step.end.latitude, lng: step.end.longitude }
+                  : null,
+              })),
             };
           })
           .filter((route): route is RouteOption => !!route)
@@ -1603,17 +1774,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         const route = routes[0];
         if (
           !route ||
-          !this.hasReliableRoadSnap(payload?.waypoints) ||
           !this.isCoordinateInSenegal(provider[0], provider[1]) ||
           !this.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
         ) {
           this.routeCoordinates = [];
           this.routeOptions = [];
           this.routeAlternatives.set([]);
-          this.routePolyline?.remove?.();
-          this.routePolyline = undefined;
-          this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
-          this.routeAlternativePolylines = [];
+          this.mapRenderer.resetRoute();
           this.routeStatus.set('unavailable');
           return;
         }
@@ -1625,31 +1792,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.selectedRouteId.set(this.routeOptions[0]?.id ?? 'route-0');
         this.applySelectedRoute(this.routeOptions[0]);
         if (this.routeCoordinates.length < 2) {
-          this.routePolyline?.remove?.();
-          this.routePolyline = undefined;
+          this.mapRenderer.resetRoute();
           this.routeStatus.set('unavailable');
           return;
         }
 
         this.refreshRouteAlternatives();
         this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
-        const leaflet = window.L as LeafletNamespace | undefined;
-        if (leaflet) {
-          this.renderRoutePolyline(leaflet);
-        }
-        this.updateLeafletMaps();
-      })
-      .catch(() => {
+        this.updateGoogleMaps();
+        this.announceNavigationInstruction();
+        },
+        error: () => {
         this.routeCoordinates = [];
         this.routeOptions = [];
         this.routeAlternatives.set([]);
-        this.routePolyline?.remove?.();
-        this.routePolyline = undefined;
-        this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
-        this.routeAlternativePolylines = [];
+        this.mapRenderer.resetRoute();
         this.routeDistanceKm.set(null);
         this.routeDurationMinutes.set(null);
         this.routeStatus.set('unavailable');
+        },
       });
   }
 
@@ -1673,94 +1834,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
-  private updateRouteBaseLayer(): void {
-    if (!this.routeMap) return;
-
-    const activeLayer = this.isSatelliteMapEnabled()
-      ? this.routeSatelliteLayer
-      : this.routeStreetLayer;
-    const inactiveLayer = this.isSatelliteMapEnabled()
-      ? this.routeStreetLayer
-      : this.routeSatelliteLayer;
-
-    if (inactiveLayer) {
-      try {
-        this.routeMap.removeLayer?.(inactiveLayer);
-      } catch {
-        // Leaflet ignores layers that are not currently attached.
-      }
-    }
-
-    activeLayer?.addTo(this.routeMap);
-  }
-
-  private hasReliableRoadSnap(waypoints: Array<{ distance?: number }> | undefined): boolean {
-    if (!waypoints || waypoints.length < 2) return true;
-
-    return waypoints.every((waypoint) => {
-      const distanceMeters = waypoint.distance;
-      return (
-        typeof distanceMeters === 'number' &&
-        Number.isFinite(distanceMeters) &&
-        distanceMeters <= 1500
-      );
-    });
-  }
-
-  private loadLeaflet(): Promise<LeafletNamespace> {
-    if (window.L) return Promise.resolve(window.L);
-    if (this.leafletLoadPromise) return this.leafletLoadPromise;
-
-    this.leafletLoadPromise = new Promise<LeafletNamespace>((resolve, reject) => {
-      const cssId = 'jokko-leaflet-css';
-      if (!document.getElementById(cssId)) {
-        const link = document.createElement('link');
-        link.id = cssId;
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.async = true;
-      script.onload = () => (window.L ? resolve(window.L) : reject(new Error('Leaflet absent')));
-      script.onerror = () => reject(new Error('Impossible de charger Leaflet'));
-      document.body.appendChild(script);
-    });
-
-    return this.leafletLoadPromise;
-  }
-
-  private fitRouteOnce(provider: [number, number], destinationPoint: [number, number]): void {
-    if (!this.routeMap || this.routeMapUserInteracted) return;
-
-    const key = `${this.routePointKey(provider)}|${this.routePointKey(destinationPoint)}`;
-    if (this.routeAutoFitKey === key) return;
-    this.routeAutoFitKey = key;
-    this.safeFitBounds(this.routeMap, [provider, destinationPoint], { padding: [84, 84] });
-  }
-
   private routePointKey(point: [number, number]): string {
     return point.map((value) => value.toFixed(5)).join(',');
-  }
-
-  private leafletProviderIcon(): unknown {
-    return window.L?.divIcon({
-      className: 'appointment-detail__leaflet-provider-pin',
-      html: `<em>${this.routeRemainingBadgeLabel()}</em><span><i></i></span>`,
-      iconAnchor: [21, 28],
-      iconSize: [80, 58],
-    });
-  }
-
-  private leafletDestinationIcon(): unknown {
-    return window.L?.divIcon({
-      className: 'appointment-detail__leaflet-destination-pin',
-      html: '<span></span>',
-      iconAnchor: [15, 30],
-      iconSize: [30, 30],
-    });
   }
 
   private resolveDestinationCoordinates(addressLabel: string): void {
@@ -1771,14 +1846,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeOptions = [];
     this.routeAlternatives.set([]);
     this.routeCoordinatesKey = '';
-    this.routeAutoFitKey = '';
-    this.routeMapUserInteracted = false;
-    this.routeDestinationMarker?.remove?.();
-    this.routePolyline?.remove?.();
-    this.routeAlternativePolylines.forEach((polyline) => polyline.remove?.());
-    this.routeDestinationMarker = undefined;
-    this.routePolyline = undefined;
-    this.routeAlternativePolylines = [];
+    this.mapRenderer.resetRoute();
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);
     const query = this.normalizeAddressQuery(addressLabel);
@@ -1792,40 +1860,29 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (explicitCoordinates) {
       this.destinationCoordinates.set(explicitCoordinates);
       this.destinationStatus.set('ready');
-      this.updateLeafletMaps();
+      this.updateGoogleMaps();
       return;
     }
 
     this.destinationStatus.set('resolving');
 
-    const params = new URLSearchParams({
-      format: 'json',
-      addressdetails: '1',
-      countrycodes: 'sn',
-      dedupe: '1',
-      limit: '8',
-      q: `${query}, Senegal`,
-    });
-
-    fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: { Accept: 'application/json' },
-    })
-      .then((response) => (response.ok ? response.json() : []))
-      .then((results: GeocodeCandidate[]) => {
-        const best = this.selectBestDestinationCandidate(query, results);
-        const lat = Number(best?.lat);
-        const lng = Number(best?.lon);
-        if (this.isCoordinateInSenegal(lat, lng)) {
-          this.destinationCoordinates.set({ lat, lng });
+    this.appointmentsService.geocodeAddress(query).subscribe({
+      next: (result) => {
+        if (result && this.isCoordinateInSenegal(result.latitude, result.longitude)) {
+          this.destinationCoordinates.set({
+            lat: result.latitude,
+            lng: result.longitude,
+          });
           this.destinationStatus.set('ready');
-          this.updateLeafletMaps();
+          this.updateGoogleMaps();
           return;
         }
         this.destinationStatus.set('unavailable');
-      })
-      .catch(() => {
+      },
+      error: () => {
         this.destinationStatus.set('unavailable');
-      });
+      },
+    });
   }
 
   private normalizeAddressQuery(value: string): string {
@@ -1835,7 +1892,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .trim();
   }
 
-  private extractCoordinatesFromAddress(value: string): LeafletLatLng | null {
+  private extractCoordinatesFromAddress(value: string): MapCoordinate | null {
     const match = value.match(/(-?\d{1,2}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
     if (!match) return null;
 
@@ -1848,69 +1905,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private hasCoordinateLikeAddress(value: string): boolean {
     return /-?\d{1,2}(?:[.,]\d+)?\s*[,;]\s*-?\d{1,3}(?:[.,]\d+)?/.test(value);
-  }
-
-  private selectBestDestinationCandidate(
-    query: string,
-    results: GeocodeCandidate[],
-  ): GeocodeCandidate | null {
-    const queryTokens = this.addressTokens(query);
-    const candidates = results
-      .filter((candidate) => {
-        const lat = Number(candidate.lat);
-        const lng = Number(candidate.lon);
-        return (
-          candidate.address?.country_code === 'sn' ||
-          this.isCoordinateInSenegal(lat, lng)
-        );
-      })
-      .map((candidate) => {
-        const displayName = candidate.display_name ?? '';
-        const displayTokens = this.addressTokens(displayName);
-        const matched = queryTokens.filter((token) => displayTokens.includes(token)).length;
-        const score =
-          queryTokens.length === 0
-            ? 0
-            : matched / queryTokens.length + (candidate.importance ?? 0) * 0.08;
-
-        return { candidate, score };
-      })
-      .sort((left, right) => right.score - left.score);
-
-    const best = candidates[0];
-    if (!best || best.score < 0.45) {
-      return null;
-    }
-
-    return best.candidate;
-  }
-
-  private addressTokens(value: string): string[] {
-    const stopWords = new Set([
-      'adresse',
-      'domicile',
-      'senegal',
-      'sn',
-      'rue',
-      'avenue',
-      'av',
-      'de',
-      'du',
-      'des',
-      'la',
-      'le',
-      'les',
-      'a',
-    ]);
-
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, ' ')
-      .split(/\s+/)
-      .map((token) => token.trim())
-      .filter((token) => token.length > 1 && !stopWords.has(token));
   }
 
   private isValidCoordinatePair(lat: number, lng: number): boolean {

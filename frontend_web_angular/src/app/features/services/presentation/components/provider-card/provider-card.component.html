@@ -9,12 +9,21 @@
 
     <div class="provider-card__movement" [attr.aria-label]="provider.movementTitle">
       <span>{{ provider.movementTitle }}</span>
+      <img
+        *ngIf="movementImageUrl as imageUrl; else movementIconList"
+        class="provider-card__movement-image"
+        [src]="imageUrl"
+        alt=""
+        aria-hidden="true"
+      />
+      <ng-template #movementIconList>
       <lucide-icon
         *ngFor="let icon of movementIcons"
         [name]="icon"
         size="15"
         [strokeWidth]="2.6"
       ></lucide-icon>
+      </ng-template>
     </div>
 
     <button

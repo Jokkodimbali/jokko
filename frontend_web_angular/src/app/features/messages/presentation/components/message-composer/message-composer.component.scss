@@ -118,6 +118,11 @@
   width: 38px;
 }
 
+.message-composer__send lucide-icon {
+  transform: translateX(1px) rotate(45deg);
+  transform-origin: center;
+}
+
 .message-composer__send:hover,
 .message-composer__send:focus-visible,
 .message-composer__voice:hover,

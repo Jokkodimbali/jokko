@@ -89,6 +89,10 @@ export type ReservationDetailedView = Reservation & {
     description: string;
     prix: number;
     typePrix: string;
+    modeDeplacement:
+      | 'PRESTATAIRE_SE_DEPLACE'
+      | 'CLIENT_SE_DEPLACE'
+      | 'TRANSPORT_COLIS';
     dureeMinutes: number;
     estObligatoire: boolean;
     estDisponible: boolean;

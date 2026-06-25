@@ -136,6 +136,14 @@ export class AppointmentQrCodePageComponent implements OnInit {
 
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
       next: (appointment) => {
+        if (appointment.travelMode !== 'TRANSPORT_COLIS') {
+          this.isLoading.set(false);
+          this.errorMessage.set(
+            'Les QR codes expediteur et destinataire sont reserves au transport de colis.',
+          );
+          return;
+        }
+
         this.appointment.set(appointment);
         void this.generateQrImage();
       },

@@ -46,10 +46,12 @@
   font-weight: 800;
   min-width: 0;
   outline: 0;
+  width: 100%;
 }
 
 .interactive-map__search input::placeholder {
-  color: #94a3b8;
+  color: #7c8798;
+  opacity: 1;
 }
 
 .interactive-map__search button,
@@ -108,6 +110,7 @@
 }
 
 .interactive-map__suggestions {
+  color-scheme: light;
   background: #fff;
   border: 1px solid #ececec;
   border-radius: 14px;
@@ -118,6 +121,21 @@
   position: absolute;
   right: 54px;
   top: calc(100% + 6px);
+  z-index: 50;
+}
+
+.interactive-map__suggestions p,
+.interactive-map__suggestions footer {
+  color: #667085;
+  font-size: 10px;
+  font-weight: 750;
+  margin: 0;
+  padding: 10px 14px;
+}
+
+.interactive-map__suggestions footer {
+  border-top: 1px solid #f1f1f1;
+  text-align: right;
 }
 
 .interactive-map__suggestions button {
@@ -134,7 +152,19 @@
 }
 
 .interactive-map__suggestions button:hover {
-  background: #fafafa;
+  background: #f2f6f4;
+}
+
+.interactive-map__suggestions button:focus-visible {
+  background: #f2f6f4;
+  outline: 2px solid #568d42;
+  outline-offset: -2px;
+}
+
+.interactive-map__suggestions lucide-icon {
+  color: #568d42;
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .interactive-map__suggestions span {

@@ -3,14 +3,15 @@
     <form class="interactive-map__search" (ngSubmit)="submitSearch()">
       <lucide-icon name="search" size="14" [strokeWidth]="2.4" />
       <input
-        #searchInput
-        type="text"
-        [ngModel]="searchQuery"
-        name="searchQuery"
-        (ngModelChange)="updateSearch($event)"
-        placeholder="Rechercher une avenue, quartier, lieu..."
-        aria-label="Rechercher une adresse"
+        type="search"
+        name="addressSearch"
         autocomplete="off"
+        aria-label="Rechercher une adresse"
+        placeholder="Rechercher une avenue, quartier, lieu..."
+        [ngModel]="searchQuery"
+        (ngModelChange)="updateSearch($event)"
+        (focus)="showAddressSuggestions()"
+        (blur)="hideAddressSuggestionsSoon()"
       />
       <button type="submit" [disabled]="isSearching" aria-label="Rechercher l'adresse">
         <lucide-icon
@@ -20,6 +21,31 @@
         />
       </button>
     </form>
+
+    <div
+      *ngIf="isLoadingSuggestions() || addressSuggestions().length > 0"
+      class="interactive-map__suggestions"
+      role="listbox"
+      aria-label="Suggestions d'adresse Google"
+    >
+      <p *ngIf="isLoadingSuggestions() && addressSuggestions().length === 0">
+        Recherche des adresses...
+      </p>
+      <button
+        *ngFor="let suggestion of addressSuggestions()"
+        type="button"
+        role="option"
+        (mousedown)="$event.preventDefault()"
+        (click)="selectAddressSuggestion(suggestion)"
+      >
+        <lucide-icon name="map-pin" size="15" [strokeWidth]="2.3" />
+        <span>
+          <strong>{{ suggestion.label.split(',')[0] }}</strong>
+          <small>{{ suggestion.label }}</small>
+        </span>
+      </button>
+      <footer>Suggestions fournies par Google</footer>
+    </div>
 
     <div class="interactive-map__styles" aria-label="Style de carte">
       <button

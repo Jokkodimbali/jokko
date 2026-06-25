@@ -22,6 +22,22 @@ export type ReservationTrackingContext = {
 
 export type ReservationTrackingView = ReservationTrackingSession & {
   presence: ProfessionalPresence;
+  route?: {
+    distanceRemainingMeters: number;
+    durationRemainingSeconds: number;
+    estimatedArrivalAt: string;
+    encodedPolyline: string;
+    coordinates: Array<{ latitude: number; longitude: number }>;
+    navigationSteps?: Array<{
+      id: string;
+      instruction: string;
+      maneuver: string | null;
+      distanceMeters: number | null;
+      durationSeconds: number | null;
+      start: { latitude: number; longitude: number } | null;
+      end: { latitude: number; longitude: number } | null;
+    }>;
+  } | null;
 };
 
 export interface LiveTrackingRepositoryPort {

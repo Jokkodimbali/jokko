@@ -296,7 +296,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected readonly upcomingDates = computed(() =>
     this.appointments()
       .filter((appointment) => this.isFutureAppointment(appointment))
-      .sort((left, right) => this.safeDate(left.scheduledAt).getTime() - this.safeDate(right.scheduledAt).getTime())
+      .sort((left, right) => this.safeDate(right.scheduledAt).getTime() - this.safeDate(left.scheduledAt).getTime())
       .reduce<{ key: string; label: string; count: number }[]>((dates, appointment) => {
         const date = this.safeDate(appointment.scheduledAt);
         if (Number.isNaN(date.getTime())) return dates;
@@ -588,41 +588,47 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return 'La negociation a ete annulee';
   }
 
-  protected negotiationPreviousAmount(negotiation: NegotiationView): number {
-    const offers = negotiation.propositions ?? [];
-    return offers.length > 1
-      ? Number(offers[offers.length - 2]?.montant || negotiation.montantInitial)
-      : Number(negotiation.montantInitial);
+  protected negotiationProviderOffer(negotiation: NegotiationView): number {
+    const providerOffer = this.latestNegotiationOffer(negotiation, 'PRESTATAIRE');
+    return providerOffer ?? Number(negotiation.service?.prix || negotiation.montantInitial);
   }
 
-  protected negotiationCurrentOfferLabel(negotiation: NegotiationView): string {
-    const contact = this.negotiationContactName(negotiation).split(' ')[0] || 'interlocuteur';
-    const currentActorIsUser = this.isCurrentNegotiationActor(negotiation.dernierProposePar);
-    return currentActorIsUser ? 'Votre offre' : `Offre ${contact}`;
-  }
-
-  protected negotiationPreviousOfferLabel(negotiation: NegotiationView): string {
-    const contact = this.negotiationContactName(negotiation).split(' ')[0] || 'interlocuteur';
-    const currentActorIsUser = this.isCurrentNegotiationActor(negotiation.dernierProposePar);
-    return currentActorIsUser ? `Offre ${contact}` : 'Votre offre';
+  protected negotiationClientOffer(negotiation: NegotiationView): number {
+    const clientOffer = this.latestNegotiationOffer(negotiation, 'CLIENT');
+    return clientOffer ?? Number(negotiation.montantInitial);
   }
 
   protected negotiationPriceDifference(negotiation: NegotiationView): number {
-    return Number(negotiation.montantCourant) - this.negotiationPreviousAmount(negotiation);
+    return this.negotiationClientOffer(negotiation) - this.negotiationProviderOffer(negotiation);
   }
 
   protected negotiationDifferenceLabel(negotiation: NegotiationView): string {
     const difference = this.negotiationPriceDifference(negotiation);
     const amount = this.formatAmount(Math.abs(difference));
-    if (difference === 0) return 'Le prix propose est identique a votre offre';
-    return `${difference > 0 ? '+' : '-'} ${amount} FCFA de ${difference > 0 ? 'plus' : 'moins'} que votre offre`;
+    if (difference === 0) return 'Les deux offres sont identiques';
+    return `L'offre client est de ${amount} FCFA ${difference > 0 ? 'au-dessus' : 'en dessous'} de l'offre prestataire`;
   }
 
-  protected hasNegotiationPriceComparison(negotiation: NegotiationView): boolean {
-    return (
-      (negotiation.propositions?.length ?? 0) > 1 &&
-      (negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'EN_ATTENTE_PRESTATAIRE')
-    );
+  protected negotiationFinalPrice(negotiation: NegotiationView): number | null {
+    if (
+      negotiation.statut !== 'ACCEPTEE' &&
+      negotiation.statut !== 'CONVERTIE_EN_RESERVATION'
+    ) {
+      return null;
+    }
+
+    return Number(negotiation.montantAccepte ?? negotiation.montantCourant);
+  }
+
+  protected negotiationOfferStateLabel(
+    negotiation: NegotiationView,
+    actor: 'CLIENT' | 'PRESTATAIRE',
+  ): string {
+    if (negotiation.dernierProposePar !== actor) return '';
+    if (negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') {
+      return 'Derniere offre';
+    }
+    return 'Derniere proposition';
   }
 
   protected negotiationStatusLabel(negotiation: NegotiationView): string {
@@ -726,8 +732,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private isCurrentNegotiationActor(actor: 'CLIENT' | 'PRESTATAIRE'): boolean {
-    return this.currentUser()?.role === 'CLIENT' ? actor === 'CLIENT' : actor === 'PRESTATAIRE';
+  private latestNegotiationOffer(
+    negotiation: NegotiationView,
+    actor: 'CLIENT' | 'PRESTATAIRE',
+  ): number | null {
+    const offer = [...(negotiation.propositions ?? [])]
+      .reverse()
+      .find((item) => item.proposePar === actor);
+    const amount = Number(offer?.montant);
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
   }
 
   private matchesDatePeriod(date: Date, filter: AppointmentPeriodFilter): boolean {
@@ -861,7 +874,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   private sortedAppointments(appointments: AppointmentView[]): AppointmentView[] {
     return [...appointments].sort(
-      (a, b) => this.safeDate(a.scheduledAt).getTime() - this.safeDate(b.scheduledAt).getTime(),
+      (a, b) => this.safeDate(b.scheduledAt).getTime() - this.safeDate(a.scheduledAt).getTime(),
     );
   }
 

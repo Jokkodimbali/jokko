@@ -12,85 +12,35 @@ import {
   SimpleChanges,
   ViewChild,
   inject,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import {
+  GoogleMapsAdvancedMarkerInstance,
+  GoogleMapsAutocompleteSessionToken,
+  GoogleMapsCoordinate,
+  GoogleMapsLoaderService,
+  GoogleMapsPlace,
+  GoogleMapsPlacePrediction,
+  GoogleMapsRuntime,
+} from '../../../../../shared/maps/google-maps-loader.service';
 
 type MapStyle = 'roadmap' | 'satellite';
-
-type LeafletRuntime = {
-  map: (element: HTMLElement, options: Record<string, unknown>) => LeafletMap;
-  tileLayer: (url: string, options?: Record<string, unknown>) => LeafletLayer;
-  marker: (coords: [number, number], options?: Record<string, unknown>) => LeafletMarker;
-  divIcon: (options: Record<string, unknown>) => unknown;
-  control: {
-    zoom: (options: Record<string, unknown>) => { addTo: (map: LeafletMap) => void };
-  };
+type GoogleMapInstance = {
+  setCenter: (coordinate: { lat: number; lng: number }) => void;
+  setZoom: (zoom: number) => void;
+  setMapTypeId: (type: MapStyle) => void;
+  addListener: (
+    eventName: string,
+    handler: (event: { latLng?: { lat: () => number; lng: () => number } }) => void,
+  ) => void;
 };
-
-type LeafletMap = {
-  setView: (coords: [number, number], zoom: number) => void;
-  on: (event: string, handler: (event: { latlng: { lat: number; lng: number } }) => void) => void;
-  remove: () => void;
-  removeLayer: (layer: LeafletLayer) => void;
-  invalidateSize: () => void;
+type AddressSuggestion = {
+  id: string;
+  label: string;
+  prediction: GoogleMapsPlacePrediction;
 };
-
-type LeafletLayer = {
-  addTo: (map: LeafletMap) => LeafletLayer;
-};
-
-type LeafletMarker = {
-  addTo: (map: LeafletMap) => LeafletMarker;
-  setLatLng: (coords: [number, number]) => void;
-};
-
-declare global {
-  interface Window {
-    L?: LeafletRuntime;
-  }
-}
-
-let leafletPromise: Promise<LeafletRuntime> | null = null;
-
-function loadLeaflet(): Promise<LeafletRuntime> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Leaflet requires a browser runtime.'));
-  }
-
-  if (window.L) {
-    return Promise.resolve(window.L);
-  }
-
-  leafletPromise ??= new Promise((resolve, reject) => {
-    const existingLink = document.querySelector('link[data-jokko-leaflet]');
-    if (!existingLink) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.crossOrigin = '';
-      link.setAttribute('data-jokko-leaflet', 'true');
-      document.head.appendChild(link);
-    }
-
-    const existingScript = document.querySelector('script[data-jokko-leaflet]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(window.L as LeafletRuntime));
-      existingScript.addEventListener('error', () => reject(new Error('Leaflet failed to load.')));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.crossOrigin = '';
-    script.setAttribute('data-jokko-leaflet', 'true');
-    script.onload = () => resolve(window.L as LeafletRuntime);
-    script.onerror = () => reject(new Error('Leaflet failed to load.'));
-    document.head.appendChild(script);
-  });
-
-  return leafletPromise;
-}
 
 @Component({
   selector: 'app-service-proposal-interactive-map',
@@ -101,7 +51,6 @@ function loadLeaflet(): Promise<LeafletRuntime> {
 })
 export class ServiceProposalInteractiveMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('mapContainer') private readonly mapContainer?: ElementRef<HTMLDivElement>;
-  @ViewChild('searchInput') private readonly searchInput?: ElementRef<HTMLInputElement>;
 
   @Input() address = '';
   @Input() expanded = false;
@@ -113,19 +62,22 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   protected isSearching = false;
   protected geocodingStatus = '';
   protected mapStyle: MapStyle = 'roadmap';
+  protected readonly addressSuggestions = signal<AddressSuggestion[]>([]);
+  protected readonly isLoadingSuggestions = signal(false);
 
   private readonly zone = inject(NgZone);
-  private readonly dakarCoords: [number, number] = [14.7167, -17.4677];
-  private readonly tileLayers: Record<MapStyle, string> = {
-    roadmap: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    satellite: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+  private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly dakarCoords: GoogleMapsCoordinate = {
+    latitude: 14.7167,
+    longitude: -17.4677,
   };
-  private leaflet: LeafletRuntime | null = null;
-  private map: LeafletMap | null = null;
-  private tileLayer: LeafletLayer | null = null;
-  private marker: LeafletMarker | null = null;
-  private searchTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private map: GoogleMapInstance | null = null;
+  private marker: GoogleMapsAdvancedMarkerInstance | null = null;
+  private autocompleteSessionToken: GoogleMapsAutocompleteSessionToken | null = null;
+  private google: GoogleMapsRuntime | null = null;
   private resizeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private autocompleteTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private autocompleteRequestId = 0;
 
   ngAfterViewInit(): void {
     this.searchQuery = this.address;
@@ -138,33 +90,75 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     }
 
     if (changes['expanded'] && this.map) {
-      this.resizeTimeoutId = setTimeout(() => this.map?.invalidateSize(), 310);
+      this.resizeTimeoutId = setTimeout(() => {
+        this.map?.setCenter(this.toGooglePoint(this.dakarCoords));
+      }, 310);
     }
   }
 
   ngOnDestroy(): void {
-    if (this.searchTimeoutId) {
-      clearTimeout(this.searchTimeoutId);
-    }
     if (this.resizeTimeoutId) {
       clearTimeout(this.resizeTimeoutId);
     }
-    this.map?.remove();
+    if (this.autocompleteTimeoutId) {
+      clearTimeout(this.autocompleteTimeoutId);
+    }
+    if (this.marker) {
+      this.marker.map = null;
+    }
+    this.marker = null;
     this.map = null;
-  }
-
-  getSearchInputElement(): HTMLInputElement | null {
-    return this.searchInput?.nativeElement ?? null;
+    this.autocompleteSessionToken = null;
   }
 
   protected updateSearch(value: string): void {
     this.searchQuery = value;
     this.addressSelected.emit(value);
     this.geocodingStatus = value.trim() ? this.statusLabel(value) : '';
+    this.scheduleAutocomplete(value);
+  }
+
+  protected showAddressSuggestions(): void {
+    if (this.searchQuery.trim().length >= 2) {
+      this.scheduleAutocomplete(this.searchQuery, 0);
+    }
+  }
+
+  protected hideAddressSuggestionsSoon(): void {
+    setTimeout(() => {
+      this.addressSuggestions.set([]);
+    }, 160);
+  }
+
+  protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
+    void this.selectAutocompletePlace(suggestion.prediction);
   }
 
   protected submitSearch(): void {
-    this.applyAddress(this.searchQuery.trim());
+    const query = this.searchQuery.trim();
+    if (!query) return;
+
+    this.isSearching = true;
+    this.googleMaps.geocodeAddress(query).subscribe({
+      next: (result) => {
+        this.isSearching = false;
+        if (!result) {
+          this.geocodingStatus = 'Adresse introuvable sur Google Maps';
+          this.applyAddress(query);
+          return;
+        }
+        this.placeMarker(result.latitude, result.longitude);
+        this.map?.setCenter(this.toGooglePoint(result));
+        this.map?.setZoom(16);
+        this.applyAddress(result.formattedAddress);
+        this.geocodingStatus = this.statusLabel(result.formattedAddress);
+      },
+      error: () => {
+        this.isSearching = false;
+        this.geocodingStatus = 'Recherche Google Maps indisponible';
+        this.applyAddress(query);
+      },
+    });
   }
 
   protected setMapStyle(style: MapStyle): void {
@@ -172,7 +166,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       return;
     }
     this.mapStyle = style;
-    this.refreshTileLayer();
+    this.map?.setMapTypeId(style);
   }
 
   protected toggleExpanded(): void {
@@ -180,84 +174,175 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   private loadMap(): void {
-    loadLeaflet()
-      .then((leaflet) => {
+    this.googleMaps
+      .load()
+      .then((google) => {
+        this.google = google;
         this.zone.runOutsideAngular(() => {
-          this.leaflet = leaflet;
-          this.initializeMap();
+          const container = this.mapContainer?.nativeElement;
+          if (!container || this.map) return;
+
+          const map = new google.maps.Map(container, {
+            center: this.toGooglePoint(this.dakarCoords),
+            zoom: 13,
+            mapTypeId: this.mapStyle,
+            disableDefaultUI: true,
+            zoomControl: true,
+            fullscreenControl: false,
+            streetViewControl: false,
+            mapTypeControl: false,
+            clickableIcons: false,
+            mapId: google.mapId,
+          }) as GoogleMapInstance;
+
+          this.map = map;
+          map.addListener('click', (event) => {
+            const lat = event.latLng?.lat();
+            const lng = event.latLng?.lng();
+            if (typeof lat === 'number' && typeof lng === 'number') {
+              this.zone.run(() => this.selectCoordinates(lat, lng));
+            }
+          });
+
+          this.zone.run(() => {
+            this.loading = false;
+            this.geocodingStatus = this.address ? this.statusLabel(this.address) : '';
+            if (this.searchQuery.trim().length >= 2) {
+              this.scheduleAutocomplete(this.searchQuery, 0);
+            }
+          });
         });
       })
       .catch(() => {
         this.zone.run(() => {
           this.loading = false;
-          this.geocodingStatus = 'Carte indisponible, saisissez votre adresse.';
+          this.geocodingStatus =
+            'Google Maps indisponible, verifiez la cle API et les restrictions de domaine.';
         });
       });
   }
 
-  private initializeMap(): void {
-    const container = this.mapContainer?.nativeElement;
-    if (!this.leaflet || !container || this.map) {
+  private placeMarker(lat: number, lng: number): void {
+    const AdvancedMarkerElement =
+      this.google?.maps.marker?.AdvancedMarkerElement;
+    if (!AdvancedMarkerElement || !this.map) return;
+    const position = { lat, lng };
+
+    if (this.marker) {
+      this.marker.position = position;
       return;
     }
 
-    const map = this.leaflet.map(container, {
-      center: this.dakarCoords,
-      zoom: 13,
-      zoomControl: false,
-      attributionControl: false,
+    const content = document.createElement('div');
+    content.className = 'jokko-map-marker';
+    content.innerHTML = '<span></span><i></i>';
+    this.marker = new AdvancedMarkerElement({
+      position,
+      map: this.map,
+      title: 'Adresse selectionnee',
+      content,
     });
-    this.leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
-    this.map = map;
-    this.refreshTileLayer();
-    map.on('click', (event) => {
-      this.selectCoordinates(event.latlng.lat, event.latlng.lng);
+  }
+
+  private scheduleAutocomplete(value: string, delay = 220): void {
+    if (this.autocompleteTimeoutId) {
+      clearTimeout(this.autocompleteTimeoutId);
+    }
+
+    const query = value.trim();
+    if (query.length < 2) {
+      this.addressSuggestions.set([]);
+      this.isLoadingSuggestions.set(false);
+      return;
+    }
+
+    this.autocompleteTimeoutId = setTimeout(() => {
+      void this.loadAddressSuggestions(query);
+    }, delay);
+  }
+
+  private async loadAddressSuggestions(query: string): Promise<void> {
+    const places = this.google?.maps.places;
+    if (!places?.AutocompleteSuggestion || !places.AutocompleteSessionToken) {
+      this.addressSuggestions.set([]);
+      return;
+    }
+
+    const requestId = ++this.autocompleteRequestId;
+    this.isLoadingSuggestions.set(true);
+    this.autocompleteSessionToken ??= new places.AutocompleteSessionToken();
+
+    try {
+      const { suggestions } =
+        await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: query,
+          includedRegionCodes: ['sn'],
+          language: 'fr',
+          region: 'sn',
+          sessionToken: this.autocompleteSessionToken,
+        });
+      if (requestId !== this.autocompleteRequestId) return;
+
+      this.zone.run(() => {
+        this.addressSuggestions.set(
+          suggestions
+            .map((suggestion, index) => {
+              const prediction = suggestion.placePrediction;
+              if (!prediction) return null;
+              return {
+                id: prediction.placeId || `${query}-${index}`,
+                label: prediction.text.toString(),
+                prediction,
+              };
+            })
+            .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
+            .slice(0, 6),
+        );
+      });
+    } catch {
+      if (requestId === this.autocompleteRequestId) {
+        this.zone.run(() => {
+          this.addressSuggestions.set([]);
+        });
+      }
+    } finally {
+      if (requestId === this.autocompleteRequestId) {
+        this.zone.run(() => {
+          this.isLoadingSuggestions.set(false);
+        });
+      }
+    }
+  }
+
+  private async selectAutocompletePlace(
+    prediction: GoogleMapsPlacePrediction,
+  ): Promise<void> {
+    const place = prediction.toPlace();
+
+    await place.fetchFields({
+      fields: ['displayName', 'formattedAddress', 'location'],
     });
+    const location = place.location;
+    if (!location) return;
 
     this.zone.run(() => {
-      this.loading = false;
-      this.geocodingStatus = this.address ? this.statusLabel(this.address) : '';
+      const address =
+        place.formattedAddress || place.displayName || this.searchQuery;
+      this.searchQuery = address;
+      this.addressSuggestions.set([]);
+      this.autocompleteSessionToken = null;
+      this.placeMarker(location.lat(), location.lng());
+      this.map?.setCenter({ lat: location.lat(), lng: location.lng() });
+      this.map?.setZoom(16);
+      this.applyAddress(address);
+      this.geocodingStatus = this.statusLabel(address);
     });
-
-    this.geocodingStatus = this.address ? this.statusLabel(this.address) : '';
-  }
-
-  private refreshTileLayer(): void {
-    if (!this.leaflet || !this.map) {
-      return;
-    }
-    if (this.tileLayer) {
-      this.map.removeLayer(this.tileLayer);
-    }
-    this.tileLayer = this.leaflet
-      .tileLayer(this.tileLayers[this.mapStyle], {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      })
-      .addTo(this.map);
-  }
-
-  private placeMarker(lat: number, lng: number): void {
-    if (!this.leaflet || !this.map) {
-      return;
-    }
-    if (this.marker) {
-      this.marker.setLatLng([lat, lng]);
-      return;
-    }
-
-    const icon = this.leaflet.divIcon({
-      html: '<div class="jokko-map-marker"><span></span><i></i></div>',
-      className: 'jokko-map-marker-shell',
-      iconSize: [40, 40],
-      iconAnchor: [20, 30],
-    });
-    this.marker = this.leaflet.marker([lat, lng], { icon }).addTo(this.map);
   }
 
   private selectCoordinates(lat: number, lng: number): void {
     this.placeMarker(lat, lng);
     const coordinates = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    this.searchQuery = coordinates;
     this.applyAddress(coordinates);
     this.geocodingStatus = 'Coordonnees GPS selectionnees';
   }
@@ -269,5 +354,12 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
 
   private statusLabel(value: string): string {
     return value ? `Adresse selectionnee: ${value.split(',')[0]}` : '';
+  }
+
+  private toGooglePoint(coordinate: GoogleMapsCoordinate): { lat: number; lng: number } {
+    return {
+      lat: coordinate.latitude,
+      lng: coordinate.longitude,
+    };
   }
 }

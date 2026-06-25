@@ -132,7 +132,7 @@
         </span>
       </header>
 
-      <div class="messages-page__thread">
+      <div class="messages-page__thread" #messageThread>
         <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
         <p *ngIf="isLoadingMessages()" class="messages-page__state">Chargement de la discussion...</p>
 

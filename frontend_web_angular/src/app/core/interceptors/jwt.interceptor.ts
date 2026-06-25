@@ -1,7 +1,22 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import {
+  HttpEvent,
+  HttpHandlerFn,
+  HttpInterceptorFn,
+  HttpRequest,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, EMPTY, catchError, filter, finalize, switchMap, take, throwError } from 'rxjs';
+import {
+  BehaviorSubject,
+  EMPTY,
+  Observable,
+  catchError,
+  filter,
+  finalize,
+  switchMap,
+  take,
+  throwError,
+} from 'rxjs';
 import { AppFeedbackService } from '../feedback/app-feedback.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { AuthService } from '../../features/auth/data-access/auth.service';
@@ -22,60 +37,36 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const headers = token
     ? req.headers.set('Authorization', `Bearer ${token}`)
     : req.headers;
-
-  return next(req.clone({
+  const authenticatedRequest = req.clone({
     headers,
-    withCredentials: true
-  })).pipe(
+    withCredentials: true,
+  });
+
+  if (
+    token &&
+    authSession.isAccessTokenExpiring() &&
+    shouldHandleUnauthorized(req.url, router.url)
+  ) {
+    return refreshAndRetry(
+      authenticatedRequest,
+      next,
+      authSession,
+      authService,
+      feedback,
+      router,
+    );
+  }
+
+  return next(authenticatedRequest).pipe(
     catchError((error) => {
       if (error?.status === 401 && shouldHandleUnauthorized(req.url, router.url)) {
-        if (refreshInProgress) {
-          return refreshTokenSignal.pipe(
-            filter((refreshedToken): refreshedToken is string | 'FAILED' => refreshedToken !== null),
-            take(1),
-            switchMap((refreshedToken) => {
-              if (refreshedToken === 'FAILED') {
-                handleExpiredSession(authSession, feedback, router);
-                return EMPTY;
-              }
-
-              return next(req.clone({
-                headers: req.headers.set('Authorization', `Bearer ${refreshedToken}`),
-                withCredentials: true,
-              }));
-            }),
-            catchError(() => {
-              handleExpiredSession(authSession, feedback, router);
-              return EMPTY;
-            }),
-          );
-        }
-
-        refreshInProgress = true;
-        refreshTokenSignal.next(null);
-
-        return authService.refresh().pipe(
-          switchMap((response) => {
-            authSession.saveAuthResponse(response, authSession.isRememberMeEnabled());
-            const refreshedToken = authSession.getAccessToken();
-            refreshTokenSignal.next(refreshedToken);
-            const retryHeaders = refreshedToken
-              ? req.headers.set('Authorization', `Bearer ${refreshedToken}`)
-              : req.headers.delete('Authorization');
-
-            return next(req.clone({
-              headers: retryHeaders,
-              withCredentials: true,
-            }));
-          }),
-          catchError(() => {
-            refreshTokenSignal.next('FAILED');
-            handleExpiredSession(authSession, feedback, router);
-            return EMPTY;
-          }),
-          finalize(() => {
-            refreshInProgress = false;
-          }),
+        return refreshAndRetry(
+          authenticatedRequest,
+          next,
+          authSession,
+          authService,
+          feedback,
+          router,
         );
       }
 
@@ -91,6 +82,76 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     }),
   );
 };
+
+function refreshAndRetry(
+  request: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  authSession: AuthSessionService,
+  authService: AuthService,
+  feedback: AppFeedbackService,
+  router: Router,
+): Observable<HttpEvent<unknown>> {
+  if (refreshInProgress) {
+    return refreshTokenSignal.pipe(
+      filter(
+        (refreshedToken): refreshedToken is string | 'FAILED' =>
+          refreshedToken !== null,
+      ),
+      take(1),
+      switchMap((refreshedToken) => {
+        if (refreshedToken === 'FAILED') {
+          handleExpiredSession(authSession, feedback, router);
+          return EMPTY;
+        }
+
+        return next(withAccessToken(request, refreshedToken));
+      }),
+      catchError(() => {
+        handleExpiredSession(authSession, feedback, router);
+        return EMPTY;
+      }),
+    );
+  }
+
+  refreshInProgress = true;
+  refreshTokenSignal.next(null);
+
+  return authService.refresh().pipe(
+    switchMap((response) => {
+      authSession.saveAuthResponse(
+        response,
+        authSession.isRememberMeEnabled(),
+      );
+      const refreshedToken = authSession.getAccessToken();
+      if (!refreshedToken) {
+        refreshTokenSignal.next('FAILED');
+        handleExpiredSession(authSession, feedback, router);
+        return EMPTY;
+      }
+
+      refreshTokenSignal.next(refreshedToken);
+      return next(withAccessToken(request, refreshedToken));
+    }),
+    catchError(() => {
+      refreshTokenSignal.next('FAILED');
+      handleExpiredSession(authSession, feedback, router);
+      return EMPTY;
+    }),
+    finalize(() => {
+      refreshInProgress = false;
+    }),
+  );
+}
+
+function withAccessToken(
+  request: HttpRequest<unknown>,
+  token: string,
+): HttpRequest<unknown> {
+  return request.clone({
+    headers: request.headers.set('Authorization', `Bearer ${token}`),
+    withCredentials: true,
+  });
+}
 
 function handleExpiredSession(
   authSession: AuthSessionService,

@@ -31,6 +31,12 @@ import { ReservationClientNotificationService } from '../../../notifications/app
 import { ReservationAppService } from './reservation-app-service.base';
 import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
 import { LiveTrackingFacade } from '../../../live-tracking/application/services/live-tracking-facade.service';
+import {
+  ProviderArrivedEvent,
+  ProviderAssignedEvent,
+  ServiceCompletedEvent,
+  ServiceStartedEvent,
+} from '../../domain/events/reservation-mission.events';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -101,6 +107,13 @@ export class ReservationCommandService extends ReservationAppService {
       const createdReservation = await this.reservationsRepository.save(
         reservation.toView(),
       );
+      await this.eventBus.publier(
+        new ProviderAssignedEvent({
+          reservationId: createdReservation.id,
+          clientUserId: createdReservation.clientId,
+          professionalId: createdReservation.professionnelId,
+        }),
+      );
       await this.reservationClientNotificationService.notifyReservationCreated({
         reservationId: createdReservation.id,
         clientId: createdReservation.clientId,
@@ -156,7 +169,6 @@ export class ReservationCommandService extends ReservationAppService {
         trackingStatus: 'ANNULEE',
         nextPresenceStatus: 'EN_LIGNE',
       });
-
       // Notify client
       const professional = await this.getVerifiedProfessionalOrThrow(
         reservation.professionnelId,
@@ -375,6 +387,13 @@ export class ReservationCommandService extends ReservationAppService {
         trackingStatus: 'TERMINEE',
         nextPresenceStatus: 'EN_LIGNE',
       });
+      await this.eventBus.publier(
+        new ServiceCompletedEvent({
+          reservationId: updated.id,
+          clientUserId: updated.clientId,
+          professionalId: updated.professionnelId,
+        }),
+      );
 
       return updated;
     } catch (error) {
@@ -476,6 +495,20 @@ export class ReservationCommandService extends ReservationAppService {
         trackingStatus: 'TERMINEE',
         nextPresenceStatus: 'EN_PRESTATION',
       });
+      await this.eventBus.publier(
+        new ProviderArrivedEvent({
+          reservationId: updated.id,
+          clientUserId: updated.clientId,
+          professionalId: updated.professionnelId,
+        }),
+      );
+      await this.eventBus.publier(
+        new ServiceStartedEvent({
+          reservationId: updated.id,
+          clientUserId: updated.clientId,
+          professionalId: updated.professionnelId,
+        }),
+      );
       return updated;
     } catch (error) {
       this.handleDomainError(error);
@@ -583,6 +616,14 @@ export class ReservationCommandService extends ReservationAppService {
       if (!createdReservation) {
         throw appHttpException('NEGOTIATIONS_ALREADY_CONVERTED');
       }
+
+      await this.eventBus.publier(
+        new ProviderAssignedEvent({
+          reservationId: createdReservation.id,
+          clientUserId: createdReservation.clientId,
+          professionalId: createdReservation.professionnelId,
+        }),
+      );
 
       await this.eventBus.publier({
         nom: 'negotiations.converted',

@@ -51,6 +51,20 @@ export class AuthSessionService {
     return this.readTokenRole() ?? this.currentUserSignal()?.role ?? null;
   }
 
+  isAccessTokenExpiring(leewaySeconds = 15): boolean {
+    const token = this.getAccessToken();
+    if (!token) {
+      return false;
+    }
+
+    const payload = this.decodeTokenPayload(token);
+    if (typeof payload?.exp !== 'number') {
+      return true;
+    }
+
+    return payload.exp * 1000 <= Date.now() + leewaySeconds * 1000;
+  }
+
   hasAuthenticatedSession(): boolean {
     return Boolean(this.currentUserSignal() && this.getAccessToken());
   }
@@ -151,6 +165,13 @@ export class AuthSessionService {
       return null;
     }
 
+    const payload = this.decodeTokenPayload(token);
+    return typeof payload?.role === 'string' ? payload.role : null;
+  }
+
+  private decodeTokenPayload(
+    token: string,
+  ): { exp?: unknown; role?: unknown } | null {
     const [, payload] = token.split('.');
     if (!payload) {
       return null;
@@ -162,8 +183,10 @@ export class AuthSessionService {
         normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
         '=',
       );
-      const decoded = JSON.parse(window.atob(paddedPayload)) as { role?: unknown };
-      return typeof decoded.role === 'string' ? decoded.role : null;
+      return JSON.parse(window.atob(paddedPayload)) as {
+        exp?: unknown;
+        role?: unknown;
+      };
     } catch {
       return null;
     }

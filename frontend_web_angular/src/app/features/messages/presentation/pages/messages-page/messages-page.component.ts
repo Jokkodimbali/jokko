@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription } from 'rxjs';
@@ -51,6 +51,8 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
   styleUrl: './messages-page.component.scss',
 })
 export class MessagesPageComponent implements OnInit, OnDestroy {
+  @ViewChild('messageThread') private messageThread?: ElementRef<HTMLElement>;
+
   private readonly messagesService = inject(MessagesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly appointmentsService = inject(AppointmentsService);
@@ -91,6 +93,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly appointmentPreview = signal<AppointmentView | null>(null);
   protected readonly failedAvatarUrls = signal<Set<string>>(new Set());
   private readonly requestedConversationId = signal<string | null>(null);
+  private readonly messagesPageSize = 100;
+  private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
+  private activeMessagesRequestId = 0;
+  private pendingThreadScrollId: ReturnType<typeof setTimeout> | null = null;
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
   private realtimeMessageSubscription: Subscription | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -238,6 +244,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
     this.clearVoiceRecordingTimer();
     this.stopVoiceLevelMeter();
+    if (this.pendingThreadScrollId) {
+      clearTimeout(this.pendingThreadScrollId);
+    }
     this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
     this.realtimeMessageSubscription?.unsubscribe();
     this.messagesRealtime.disconnect();
@@ -249,6 +258,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     this.selectedConversationId.set(conversationId);
+    this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
+    this.scrollThreadToBottom();
     this.markConversationAsReadLocally(conversationId);
     this.messagesRealtime.joinConversation(conversationId);
     this.appointmentPreview.set(null);
@@ -931,16 +942,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.messagesService.listConversations().subscribe({
       next: (conversations) => {
-        this.conversations.set(conversations);
+        const sortedConversations = this.sortConversations(conversations);
+        this.conversations.set(sortedConversations);
         const requestedConversationId = this.requestedConversationId();
         const selectedId =
-          conversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
-          this.findProposalConversation(conversations)?.id ?? conversations[0]?.id ?? null;
+          sortedConversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
+          this.findProposalConversation(sortedConversations)?.id ?? sortedConversations[0]?.id ?? null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
 
         if (selectedId) {
+          this.messages.set(this.messagesByConversation.get(selectedId) ?? []);
+          this.scrollThreadToBottom();
           this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
         }
@@ -955,16 +969,28 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private loadMessages(conversationId: string): void {
-    this.isLoadingMessages.set(true);
+    const requestId = ++this.activeMessagesRequestId;
+    const cachedMessages = this.messagesByConversation.get(conversationId);
+    this.isLoadingMessages.set(!cachedMessages);
 
-    this.messagesService.listMessages(conversationId).subscribe({
+    this.messagesService.listMessages(conversationId, this.messagesPageSize).subscribe({
       next: (messages) => {
-        this.messages.set(messages);
+        if (requestId !== this.activeMessagesRequestId || conversationId !== this.selectedConversationId()) {
+          return;
+        }
+
+        this.cacheConversationMessages(conversationId, messages);
+        this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
+        this.scrollThreadToBottom();
         this.markConversationAsReadLocally(conversationId);
         this.isLoadingMessages.set(false);
         this.refreshConversationsSilently();
       },
       error: () => {
+        if (requestId !== this.activeMessagesRequestId || conversationId !== this.selectedConversationId()) {
+          return;
+        }
+
         const message = 'Impossible de charger cette conversation.';
         this.errorMessage.set(message);
         this.feedback.error(message);
@@ -975,7 +1001,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private refreshConversationsSilently(): void {
     this.messagesService.listConversations().subscribe({
-      next: (conversations) => this.conversations.set(conversations),
+      next: (conversations) => this.conversations.set(this.sortConversations(conversations)),
     });
   }
 
@@ -1172,8 +1198,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private refreshMessagesSilently(conversationId: string): void {
-    this.messagesService.listMessages(conversationId).subscribe({
-      next: (messages) => this.messages.set(messages),
+    this.messagesService.listMessages(conversationId, this.messagesPageSize).subscribe({
+      next: (messages) => {
+        this.cacheConversationMessages(conversationId, messages);
+        if (conversationId === this.selectedConversationId()) {
+          this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
+          this.scrollThreadToBottom();
+        }
+      },
     });
   }
 
@@ -1199,13 +1231,24 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private upsertMessage(message: ConversationMessage): void {
+    const cachedMessages = this.mergeMessage(
+      this.messagesByConversation.get(message.conversationId) ?? [],
+      message,
+    );
+    this.messagesByConversation.set(message.conversationId, cachedMessages);
+
+    if (message.conversationId !== this.selectedConversationId()) {
+      return;
+    }
+
     this.messages.update((items) => {
       if (items.some((item) => item.id === message.id)) {
         return items;
       }
 
-      return [...items, message];
+      return this.sortMessages([...items, message]);
     });
+    this.scrollThreadToBottom();
   }
 
   private upsertConversationFromMessage(message: ConversationMessage, isOpen: boolean): void {
@@ -1231,12 +1274,52 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         };
       });
 
-      return nextItems.sort((first, second) => {
-        const firstDate = new Date(first.lastMessageAt || first.createdAt).getTime();
-        const secondDate = new Date(second.lastMessageAt || second.createdAt).getTime();
-        return secondDate - firstDate;
-      });
+      return this.sortConversations(nextItems);
     });
+  }
+
+  private cacheConversationMessages(
+    conversationId: string,
+    messages: ConversationMessage[],
+  ): void {
+    this.messagesByConversation.set(conversationId, this.sortMessages(messages));
+  }
+
+  private mergeMessage(
+    messages: ConversationMessage[],
+    message: ConversationMessage,
+  ): ConversationMessage[] {
+    const withoutDuplicate = messages.filter((item) => item.id !== message.id);
+    return this.sortMessages([...withoutDuplicate, message]);
+  }
+
+  private sortMessages(messages: ConversationMessage[]): ConversationMessage[] {
+    return [...messages].sort((first, second) => {
+      const firstTime = new Date(first.createdAt).getTime();
+      const secondTime = new Date(second.createdAt).getTime();
+      return firstTime - secondTime;
+    });
+  }
+
+  private sortConversations(conversations: Conversation[]): Conversation[] {
+    return [...conversations].sort((first, second) => {
+      const firstTime = new Date(first.lastMessageAt || first.createdAt).getTime();
+      const secondTime = new Date(second.lastMessageAt || second.createdAt).getTime();
+      return secondTime - firstTime;
+    });
+  }
+
+  private scrollThreadToBottom(): void {
+    if (this.pendingThreadScrollId) {
+      clearTimeout(this.pendingThreadScrollId);
+    }
+
+    this.pendingThreadScrollId = setTimeout(() => {
+      const thread = this.messageThread?.nativeElement;
+      if (!thread) return;
+      thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+      this.pendingThreadScrollId = null;
+    }, 0);
   }
 
   private markConversationAsReadLocally(conversationId: string): void {

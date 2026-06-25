@@ -66,16 +66,24 @@ export class ProviderCardComponent {
     return this.provider.totalReviews > 0 ? `(${this.provider.totalReviews})` : '';
   }
 
-  protected get movementIcons(): string[] {
-    switch (this.provider.travelMode) {
-      case 'TRANSPORT_COLIS':
-        return ['map-pin', 'truck', 'route', 'map-pin'];
-      case 'CLIENT_SE_DEPLACE':
-        return ['person-standing', 'move-right', 'building-2'];
-      case 'PRESTATAIRE_SE_DEPLACE':
-      default:
-        return ['person-standing', 'move-right', 'house'];
+  protected get movementImageUrl(): string | null {
+    if (this.provider.travelMode === 'TRANSPORT_COLIS') {
+      return '/parcel-transport-route.png';
     }
+
+    if (this.provider.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
+      return '/provider-travels-to-client.png';
+    }
+
+    if (this.provider.travelMode === 'CLIENT_SE_DEPLACE') {
+      return '/client-travels-to-provider.png';
+    }
+
+    return null;
+  }
+
+  protected get movementIcons(): string[] {
+    return [];
   }
 
   protected onFavoriteClick(event: Event): void {

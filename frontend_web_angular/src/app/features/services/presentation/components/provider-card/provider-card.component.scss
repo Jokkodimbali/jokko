@@ -71,6 +71,18 @@
   white-space: nowrap;
 }
 
+.provider-card__movement-image {
+  display: block;
+  flex: 0 0 auto;
+  height: 22px;
+  object-fit: contain;
+  width: 27px;
+}
+
+.provider-card__movement-image[src$="parcel-transport-route.png"] {
+  width: 39px;
+}
+
 .provider-card__favorite {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(154, 90, 32, 0.38);

@@ -8,6 +8,11 @@ export type AppointmentStatus =
   | 'NO_SHOW'
   | 'LITIGE';
 
+export type AppointmentTravelMode =
+  | 'PRESTATAIRE_SE_DEPLACE'
+  | 'CLIENT_SE_DEPLACE'
+  | 'TRANSPORT_COLIS';
+
 export interface BackendReservation {
   id: string;
   clientId: string;
@@ -45,6 +50,7 @@ export interface BackendReservation {
     description: string;
     prix: number;
     typePrix: string;
+    modeDeplacement: AppointmentTravelMode;
     dureeMinutes: number;
     estObligatoire: boolean;
     estDisponible: boolean;
@@ -96,6 +102,7 @@ export interface AppointmentView {
   serviceName: string;
   serviceDescription: string | null;
   servicePrice: number | null;
+  travelMode: AppointmentTravelMode | null;
   notes: string | null;
   agreedPrice: number | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
@@ -141,6 +148,22 @@ export interface AppointmentTrackingView {
   lastPositionAt: string | null;
   updatedAt: string | null;
   presence: AppointmentPresenceView;
+  route?: {
+    distanceRemainingMeters: number;
+    durationRemainingSeconds: number;
+    estimatedArrivalAt: string;
+    encodedPolyline: string;
+    coordinates: Array<{ latitude: number; longitude: number }>;
+    navigationSteps?: Array<{
+      id: string;
+      instruction: string;
+      maneuver: string | null;
+      distanceMeters: number | null;
+      durationSeconds: number | null;
+      start: { latitude: number; longitude: number } | null;
+      end: { latitude: number; longitude: number } | null;
+    }>;
+  } | null;
 }
 
 export type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'CARD';

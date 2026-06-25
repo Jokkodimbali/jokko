@@ -325,24 +325,31 @@
               </div>
 
               <div class="appointments-negotiation-card__offer">
-                <ng-container *ngIf="hasNegotiationPriceComparison(negotiation); else negotiationSinglePrice">
-                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--old">
-                    <small>{{ negotiationPreviousOfferLabel(negotiation) }}</small>
-                    <strong>{{ formatAmount(negotiationPreviousAmount(negotiation)) }} FCFA</strong>
-                  </span>
-                  <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.2"></lucide-icon>
-                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--new">
-                    <small>{{ negotiationCurrentOfferLabel(negotiation) }}</small>
-                    <strong>{{ formatAmount(negotiation.montantCourant) }} FCFA</strong>
-                  </span>
-                  <em>{{ negotiationDifferenceLabel(negotiation) }}</em>
-                </ng-container>
-                <ng-template #negotiationSinglePrice>
-                  <span class="appointments-negotiation-card__price appointments-negotiation-card__price--new">
-                    <small>{{ negotiationStatusLabel(negotiation) }}</small>
-                    <strong>{{ formatAmount(negotiation.montantAccepte || negotiation.montantCourant) }} FCFA</strong>
-                  </span>
-                </ng-template>
+                <span
+                  class="appointments-negotiation-card__price appointments-negotiation-card__price--provider"
+                  [class.appointments-negotiation-card__price--latest]="negotiation.dernierProposePar === 'PRESTATAIRE'"
+                >
+                  <small>Offre prestataire</small>
+                  <strong>{{ formatAmount(negotiationProviderOffer(negotiation)) }} FCFA</strong>
+                  <i *ngIf="negotiationOfferStateLabel(negotiation, 'PRESTATAIRE')">
+                    {{ negotiationOfferStateLabel(negotiation, 'PRESTATAIRE') }}
+                  </i>
+                </span>
+                <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.2"></lucide-icon>
+                <span
+                  class="appointments-negotiation-card__price appointments-negotiation-card__price--client"
+                  [class.appointments-negotiation-card__price--latest]="negotiation.dernierProposePar === 'CLIENT'"
+                >
+                  <small>Offre client</small>
+                  <strong>{{ formatAmount(negotiationClientOffer(negotiation)) }} FCFA</strong>
+                  <i *ngIf="negotiationOfferStateLabel(negotiation, 'CLIENT')">
+                    {{ negotiationOfferStateLabel(negotiation, 'CLIENT') }}
+                  </i>
+                </span>
+                <em>{{ negotiationDifferenceLabel(negotiation) }}</em>
+                <b *ngIf="negotiationFinalPrice(negotiation) as finalPrice">
+                  Prix final retenu : {{ formatAmount(finalPrice) }} FCFA
+                </b>
               </div>
 
               <a

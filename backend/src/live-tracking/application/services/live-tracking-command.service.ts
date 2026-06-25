@@ -15,10 +15,15 @@ import { ProfessionalPresenceEntity } from '../../domain/entities/professional-p
 import { ReservationTrackingSessionEntity } from '../../domain/entities/reservation-tracking-session.entity';
 import { LiveTrackingDomainError } from '../../domain/errors/live-tracking.domain-error';
 import {
+  ProviderLocationUpdatedEvent,
+  ProviderStartedTripEvent,
+} from '../../domain/events/tracking-domain.events';
+import {
   LIVE_TRACKING_REPOSITORY_PORT,
   type LiveTrackingRepositoryPort,
 } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
+import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
 
 const SENEGAL_GEO_BOUNDS = {
   minLat: 12,
@@ -38,6 +43,7 @@ export class LiveTrackingCommandService {
     private readonly eventBus: DomaineEventBusPort,
     private readonly realtimeEvents: EventEmitter2,
     private readonly reservationClientNotificationService: ReservationClientNotificationService,
+    private readonly routeEstimator: TrackingRouteEstimatorService,
   ) {}
 
   async markOnTheWay(
@@ -61,6 +67,7 @@ export class LiveTrackingCommandService {
     }
 
     this.assertLocationPair(dto);
+    this.assertTelemetry(dto);
 
     const presenceEntity = ProfessionalPresenceEntity.reconstitute(
       (await this.liveTrackingRepository.findProfessionalPresence(
@@ -97,18 +104,24 @@ export class LiveTrackingCommandService {
       presence: presenceEntity.toView(),
     });
 
-    await this.eventBus.publier({
-      nom: 'live-tracking.session.started',
-      dateOccurrence: new Date(),
-      payload: {
+    await this.eventBus.publier(
+      new ProviderStartedTripEvent({
         reservationId: tracking.reservationId,
         clientUserId: tracking.clientUserId,
         professionalId: tracking.professionalId,
-        professionalUserId: tracking.professionalUserId,
-        startedAt: tracking.startedAt?.toISOString() ?? null,
-      },
-    });
+        startedAt:
+          tracking.startedAt?.toISOString() ?? new Date().toISOString(),
+      }),
+    );
 
+    const enrichedTracking = await this.routeEstimator.enrich(
+      tracking,
+      context.adresseClient,
+    );
+    this.realtimeEvents.emit(
+      'live-tracking.location.updated',
+      enrichedTracking,
+    );
     this.realtimeEvents.emit(
       'live-tracking.presence.updated',
       tracking.presence,
@@ -123,7 +136,7 @@ export class LiveTrackingCommandService {
       adresseClient: context.adresseClient,
     });
 
-    return tracking;
+    return enrichedTracking;
   }
 
   async updateLocation(
@@ -142,6 +155,7 @@ export class LiveTrackingCommandService {
     }
 
     this.assertLocationPair(dto);
+    this.assertTelemetry(dto);
     if (dto.latitude === undefined || dto.longitude === undefined) {
       throw LiveTrackingDomainError.invalidLocation();
     }
@@ -161,13 +175,31 @@ export class LiveTrackingCommandService {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
 
-    this.realtimeEvents.emit('live-tracking.location.updated', tracking);
+    const enrichedTracking = await this.routeEstimator.enrich(
+      tracking,
+      context.adresseClient,
+    );
+    await this.eventBus.publier(
+      new ProviderLocationUpdatedEvent({
+        reservationId,
+        clientUserId: context.clientUserId,
+        professionalId: professional.id,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        recordedAt: new Date().toISOString(),
+      }),
+    );
+
+    this.realtimeEvents.emit(
+      'live-tracking.location.updated',
+      enrichedTracking,
+    );
     this.realtimeEvents.emit(
       'live-tracking.presence.updated',
       tracking.presence,
     );
 
-    return tracking;
+    return enrichedTracking;
   }
 
   async syncProfessionalConnection(user: AuthUser, isOnline: boolean) {
@@ -270,6 +302,31 @@ export class LiveTrackingCommandService {
       dto.latitude !== undefined &&
       dto.longitude !== undefined &&
       !this.isCoordinateInSenegal(dto.latitude, dto.longitude)
+    ) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+  }
+
+  private assertTelemetry(dto: TrackingLocationCommand): void {
+    if (
+      dto.accuracyMeters !== undefined &&
+      (!Number.isFinite(dto.accuracyMeters) ||
+        dto.accuracyMeters < 0 ||
+        dto.accuracyMeters > 10_000)
+    ) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+    if (
+      dto.headingDegrees !== undefined &&
+      (!Number.isFinite(dto.headingDegrees) ||
+        dto.headingDegrees < 0 ||
+        dto.headingDegrees > 360)
+    ) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+    if (
+      dto.speedKmh !== undefined &&
+      (!Number.isFinite(dto.speedKmh) || dto.speedKmh < 0 || dto.speedKmh > 300)
     ) {
       throw LiveTrackingDomainError.invalidLocation();
     }

@@ -10,6 +10,7 @@ import {
   type LiveTrackingRepositoryPort,
 } from '../ports/live-tracking-repository.port';
 import { ProfessionalPresenceEntity } from '../../domain/entities/professional-presence.entity';
+import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
 
 @Injectable()
 export class LiveTrackingQueryService {
@@ -18,6 +19,7 @@ export class LiveTrackingQueryService {
     private readonly liveTrackingRepository: LiveTrackingRepositoryPort,
     @Inject(PROFESSIONALS_REPOSITORY_PORT)
     private readonly professionalsRepository: ProfessionalsRepositoryPort,
+    private readonly routeEstimator: TrackingRouteEstimatorService,
   ) {}
 
   async getReservationTracking(user: AuthUser, reservationId: string) {
@@ -34,7 +36,7 @@ export class LiveTrackingQueryService {
         reservationId,
       );
     if (tracking) {
-      return tracking;
+      return this.routeEstimator.enrich(tracking, context.adresseClient);
     }
 
     const presence =
@@ -59,6 +61,7 @@ export class LiveTrackingQueryService {
       lastPositionAt: null,
       updatedAt: null,
       presence,
+      route: null,
     };
   }
 

@@ -1,11 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
-  AfterViewChecked,
   Component,
   OnDestroy,
   OnInit,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -14,7 +12,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
-import { environment } from '../../../../../../environments/environment';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -72,29 +69,6 @@ interface AddressSuggestion {
   source: 'GOOGLE_PLACES' | 'OPENSTREETMAP';
 }
 
-type GooglePlacesAutocomplete = new (
-  input: HTMLInputElement,
-  options?: {
-    componentRestrictions?: { country: string };
-    fields?: string[];
-    types?: string[];
-  },
-) => {
-  addListener: (eventName: 'place_changed', callback: () => void) => void;
-  getPlace: () => {
-    formatted_address?: string;
-    name?: string;
-  };
-};
-
-type GoogleMapsNamespace = {
-  maps?: {
-    places?: {
-      Autocomplete?: GooglePlacesAutocomplete;
-    };
-  };
-};
-
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
@@ -108,10 +82,7 @@ type GoogleMapsNamespace = {
     './service-proposal-redesign.component.scss',
   ],
 })
-export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, OnInit {
-  @ViewChild(ServiceProposalDetailsModalComponent)
-  private readonly detailsModal?: ServiceProposalDetailsModalComponent;
-
+export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly servicesService = inject(ServicesService);
@@ -136,14 +107,11 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
   protected readonly acceptedReservation = signal<AcceptedReservationSummary | null>(null);
   protected readonly isCancellingProposal = signal(false);
   protected readonly isRespondingToCounterOffer = signal(false);
-  protected readonly mapsSuggestionsReady = signal(false);
-  protected readonly mapsSuggestionsUnavailable = signal(false);
   protected readonly addressSuggestions = signal<AddressSuggestion[]>([]);
   protected readonly isLoadingAddressSuggestions = signal(false);
   protected readonly isAddressSuggestionsOpen = signal(false);
   protected readonly isLocatingAddress = signal(false);
   protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
-  private googleAutocompleteAttached = false;
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -573,16 +541,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     this.loadDetail();
   }
 
-  ngAfterViewChecked(): void {
-    if (
-      this.detailsModal?.getAddressInputElement() &&
-      environment.googleMapsApiKey &&
-      !this.googleAutocompleteAttached
-    ) {
-      this.initializeAddressSuggestions();
-    }
-  }
-
   ngOnDestroy(): void {
     if (this.availabilityCheckTimeoutId) {
       clearTimeout(this.availabilityCheckTimeoutId);
@@ -612,10 +570,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   protected openDetailsModal(modal: ProposalDetailsModal): void {
     this.activeDetailsModal.set(modal);
-    if (modal === 'address') {
-      this.initializeAddressSuggestions();
-      this.handleAddressFocus();
-    }
   }
 
   protected closeDetailsModal(): void {
@@ -898,49 +852,7 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
     this.scheduleAvailabilityCheck();
   }
 
-  protected initializeAddressSuggestions(): void {
-    if (!environment.googleMapsApiKey) {
-      this.mapsSuggestionsReady.set(true);
-      this.mapsSuggestionsUnavailable.set(false);
-      return;
-    }
-
-    if (this.googleAutocompleteAttached || this.mapsSuggestionsReady()) {
-      return;
-    }
-
-    this.loadGoogleMapsPlacesScript()
-      .then(() => {
-        const input = this.detailsModal?.getAddressInputElement();
-        const autocompleteCtor = this.getGooglePlacesAutocomplete();
-        if (!input || !autocompleteCtor) {
-          this.mapsSuggestionsUnavailable.set(true);
-          return;
-        }
-
-        const autocomplete = new autocompleteCtor(input, {
-          componentRestrictions: { country: 'sn' },
-          fields: ['formatted_address', 'name'],
-          types: ['geocode', 'establishment'],
-        });
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          const label = (place.formatted_address || place.name || input.value).trim();
-          if (label) {
-            this.address.set(label);
-          }
-        });
-
-        this.googleAutocompleteAttached = true;
-        this.mapsSuggestionsReady.set(true);
-        this.mapsSuggestionsUnavailable.set(false);
-      })
-      .catch(() => this.mapsSuggestionsUnavailable.set(true));
-  }
-
   protected handleAddressFocus(): void {
-    this.initializeAddressSuggestions();
     const query = this.address().trim();
     if (query.length >= 1 && this.addressSuggestions().length > 0) {
       this.isAddressSuggestionsOpen.set(true);
@@ -949,7 +861,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
 
   protected updateAddress(value: string): void {
     this.address.set(value);
-    this.initializeAddressSuggestions();
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
@@ -1739,38 +1650,6 @@ export class ServiceProposalComponent implements AfterViewChecked, OnDestroy, On
           this.isLoadingAvailabilitySlots.set(false);
         },
       });
-  }
-
-  private loadGoogleMapsPlacesScript(): Promise<void> {
-    if (this.getGooglePlacesAutocomplete()) {
-      return Promise.resolve();
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-jokko-google-maps-places="true"]',
-    );
-    if (existing) {
-      return new Promise((resolve, reject) => {
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(), { once: true });
-      });
-    }
-
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(environment.googleMapsApiKey)}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.dataset['jokkoGoogleMapsPlaces'] = 'true';
-      script.onload = () => resolve();
-      script.onerror = () => reject();
-      document.head.appendChild(script);
-    });
-  }
-
-  private getGooglePlacesAutocomplete(): GooglePlacesAutocomplete | undefined {
-    return (window.google as unknown as GoogleMapsNamespace | undefined)?.maps?.places
-      ?.Autocomplete;
   }
 
   private formatExactGpsLabel(

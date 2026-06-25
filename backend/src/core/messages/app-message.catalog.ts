@@ -747,6 +747,28 @@ export const APP_MESSAGES_BY_MODULE = {
       message: 'Profil professionnel introuvable pour le suivi temps reel.',
     },
   },
+  maps: {
+    MAPS_API_KEY_MISSING: {
+      code: 'MAPS_API_KEY_MISSING',
+      httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
+      message: "La cle Google Maps n'est pas configuree.",
+    },
+    MAPS_ADDRESS_INVALID: {
+      code: 'MAPS_ADDRESS_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: "L'adresse a localiser est invalide.",
+    },
+    MAPS_COORDINATES_INVALID: {
+      code: 'MAPS_COORDINATES_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,
+      message: 'Les coordonnees GPS sont invalides.',
+    },
+    MAPS_GOOGLE_UNAVAILABLE: {
+      code: 'MAPS_GOOGLE_UNAVAILABLE',
+      httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
+      message: 'Google Maps est momentanement indisponible.',
+    },
+  },
   reservations: {
     RESERVATIONS_FORBIDDEN_ROLE: {
       code: 'RESERVATIONS_FORBIDDEN_ROLE',
@@ -1045,6 +1067,7 @@ export const APP_MESSAGE_CATALOG = {
   ...APP_MESSAGES_BY_MODULE.messaging,
   ...APP_MESSAGES_BY_MODULE.disputes,
   ...APP_MESSAGES_BY_MODULE.liveTracking,
+  ...APP_MESSAGES_BY_MODULE.maps,
   ...APP_MESSAGES_BY_MODULE.reservations,
   ...APP_MESSAGES_BY_MODULE.payments,
   ...APP_MESSAGES_BY_MODULE.notifications,

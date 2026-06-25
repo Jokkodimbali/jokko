@@ -75,7 +75,7 @@ export class LiveTrackingGateway
     @MessageBody() payload: { reservationId: string },
   ) {
     const user = this.getSocketUser(client);
-    if (!user) {
+    if (!user || !this.isValidIdentifier(payload?.reservationId)) {
       client.disconnect();
       return;
     }
@@ -92,13 +92,31 @@ export class LiveTrackingGateway
     };
   }
 
+  @SubscribeMessage('tracking.unsubscribe')
+  async handleUnsubscribe(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { reservationId: string },
+  ) {
+    if (!this.isValidIdentifier(payload?.reservationId)) {
+      return {
+        event: 'tracking.error',
+        data: { code: 'TRACKING_RESERVATION_ID_INVALID' },
+      };
+    }
+    await client.leave(this.buildReservationRoom(payload.reservationId));
+    return {
+      event: 'tracking.unsubscribed',
+      data: { reservationId: payload.reservationId },
+    };
+  }
+
   @SubscribeMessage('professional.presence.subscribe')
   async handlePresenceSubscribe(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { professionalId: string },
   ) {
     const user = this.getSocketUser(client);
-    if (!user) {
+    if (!user || !this.isValidIdentifier(payload?.professionalId)) {
       client.disconnect();
       return;
     }
@@ -123,7 +141,7 @@ export class LiveTrackingGateway
     },
   ) {
     const user = this.getSocketUser(client);
-    if (!user) {
+    if (!user || !this.isValidIdentifier(payload?.reservationId)) {
       client.disconnect();
       return;
     }
@@ -134,10 +152,9 @@ export class LiveTrackingGateway
       payload,
     );
 
-    this.publishTrackingUpdate(tracking);
     return {
-      event: 'tracking.location.updated',
-      data: tracking,
+      reservationId: tracking.reservationId,
+      accepted: true,
     };
   }
 
@@ -165,20 +182,34 @@ export class LiveTrackingGateway
       .emit('professional.presence.updated', payload);
   }
 
-  private publishTrackingUpdate(payload: {
-    reservationId: string;
-    clientUserId: string;
-    presence: { professionalId: string };
+  @OnEvent('tracking.provider.assigned')
+  @OnEvent('tracking.provider.started-trip')
+  @OnEvent('tracking.provider.arrived')
+  @OnEvent('tracking.service.started')
+  @OnEvent('tracking.service.completed')
+  handleMissionStatusUpdated(event: {
+    nom: string;
+    payload: {
+      reservationId: string;
+      clientUserId: string;
+      professionalId: string;
+    };
+    dateOccurrence: Date;
   }): void {
+    const payload = {
+      type: event.nom,
+      occurredAt: event.dateOccurrence,
+      ...event.payload,
+    };
     this.server
-      .to(this.buildReservationRoom(payload.reservationId))
-      .emit('tracking.location.updated', payload);
+      .to(this.buildReservationRoom(event.payload.reservationId))
+      .emit('tracking.mission.updated', payload);
     this.server
-      .to(this.buildUserRoom(payload.clientUserId))
-      .emit('tracking.location.updated', payload);
+      .to(this.buildUserRoom(event.payload.clientUserId))
+      .emit('tracking.mission.updated', payload);
     this.server
-      .to(this.buildProfessionalRoom(payload.presence.professionalId))
-      .emit('professional.presence.updated', payload.presence);
+      .to(this.buildProfessionalRoom(event.payload.professionalId))
+      .emit('tracking.mission.updated', payload);
   }
 
   private extractToken(client: Socket): string | null {
@@ -219,5 +250,9 @@ export class LiveTrackingGateway
 
   private setSocketUser(client: AuthenticatedSocket, user: AuthUser): void {
     this.socketUsers.set(client.id, user);
+  }
+
+  private isValidIdentifier(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
   }
 }

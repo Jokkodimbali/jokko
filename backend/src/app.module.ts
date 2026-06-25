@@ -18,6 +18,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { LiveTrackingModule } from './live-tracking/live-tracking.module';
 import { AdminModule } from './admin/admin.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { MapsModule } from './maps/maps.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     LiveTrackingModule,
     AdminModule,
     FavoritesModule,
+    MapsModule,
     SearchModule,
     ReservationsModule,
     PaymentsModule,

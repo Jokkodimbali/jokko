@@ -223,13 +223,13 @@ export class MessagingRepository implements MessagingRepositoryPort {
   }): Promise<ConversationMessageView[]> {
     const messages = await this.prisma.message.findMany({
       where: { conversationId: params.conversationId },
-      orderBy: { creeLe: 'asc' },
+      orderBy: { creeLe: 'desc' },
       take: params.limit,
       skip: params.offset,
       select: this.buildMessageSelect(),
     });
 
-    return messages.map((message) => this.mapMessage(message));
+    return messages.reverse().map((message) => this.mapMessage(message));
   }
 
   async markMessagesAsRead(

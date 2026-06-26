@@ -39,7 +39,7 @@ if [ "${PRISMA_SKIP_MIGRATIONS:-false}" != "true" ]; then
       echo "Avertissement: DATABASE_URL semble pointer vers un pooler Neon. Extraction automatique de l'URL directe pour les migrations..." >&2
       PRISMA_MIGRATE_DATABASE_URL=$(printf '%s' "$DATABASE_URL" | sed 's/-pooler\\././')
       export PRISMA_MIGRATE_DATABASE_URL
-      echo "Prisma migrate utilisera ${PRISMA_MIGRATE_DATABASE_URL}." >&2
+      echo "Prisma migrate utilisera l'URL directe extraite de DATABASE_URL." >&2
     fi
   fi
 

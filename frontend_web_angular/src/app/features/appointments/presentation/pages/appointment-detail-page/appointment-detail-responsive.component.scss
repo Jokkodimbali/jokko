@@ -134,12 +134,33 @@
     top: 62px;
   }
 
-  .appointment-detail__map-layer-toggle {
+  .appointment-detail__map-top-actions {
+    left: 10px;
+    right: 10px;
     top: 138px;
   }
 
+  .appointment-detail__map-toolbar,
+  .appointment-detail__route-provider-actions {
+    flex-wrap: nowrap;
+  }
+
+  .appointment-detail__map-tool {
+    padding: 0 8px;
+  }
+
+  .appointment-detail__route-action {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .appointment-detail__map-direction-pad {
+    right: 10px;
+    top: 190px;
+  }
+
   .appointment-detail__route-alternatives {
-    top: 184px;
+    top: 300px;
   }
 
   .appointment-detail__route-bottom {

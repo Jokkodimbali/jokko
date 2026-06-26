@@ -400,8 +400,8 @@ export class AppointmentsService {
 
   private confirmationLabel(status: BackendReservation['statut']): string {
     const labels: Record<BackendReservation['statut'], string> = {
-      EN_ATTENTE: 'Votre demande de rendez-vous est en attente',
-      CONFIRMEE: 'Votre intervention est confirmee',
+      EN_ATTENTE: 'Paiement ou validation en attente',
+      CONFIRMEE: 'Votre intervention est confirmee, paiement a finaliser',
       PAYEE_SEQUESTRE: 'Votre intervention est confirmee',
       EN_COURS: 'Votre rendez-vous est en cours',
       TERMINEE: 'Votre rendez-vous est termine',

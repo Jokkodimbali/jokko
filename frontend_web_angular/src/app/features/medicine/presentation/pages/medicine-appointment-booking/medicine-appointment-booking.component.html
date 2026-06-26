@@ -73,15 +73,24 @@
                 </div>
               </div>
 
-              <div class="medicine-booking__field-card">
+              <label class="medicine-booking__field-card medicine-booking__field-card--editable">
                 <span class="medicine-booking__field-icon">
                   <lucide-icon name="phone" size="21" [strokeWidth]="2.3"></lucide-icon>
                 </span>
                 <div>
-                  <small>Telephone</small>
-                  <strong>{{ userPhone() }}</strong>
+                  <small>Telephone du rendez-vous</small>
+                  <input
+                    type="tel"
+                    [ngModel]="appointmentPhoneValue()"
+                    (ngModelChange)="updateAppointmentPhone($event)"
+                    inputmode="tel"
+                    placeholder="77 000 00 00"
+                  />
                 </div>
-              </div>
+              </label>
+              <p *ngIf="fieldErrors().selfPhone" class="medicine-booking__error-text">
+                {{ fieldErrors().selfPhone }}
+              </p>
 
               <div class="medicine-booking__field-card medicine-booking__field-card--full">
                 <span class="medicine-booking__field-icon">
@@ -274,6 +283,11 @@
 
             <dl class="medicine-booking__summary-list">
               <div>
+                <span><lucide-icon name="briefcase-medical" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <dt>Motif</dt>
+                <dd>{{ selectedServiceSummary() }}</dd>
+              </div>
+              <div>
                 <span><lucide-icon name="calendar-days" size="18" [strokeWidth]="2.3"></lucide-icon></span>
                 <dt>Date</dt>
                 <dd>{{ selectedDateTime() ? selectedDateShortLabel() : 'A choisir' }}</dd>
@@ -284,9 +298,15 @@
                 <dd>{{ selectedDateTime() ? selectedTimeLabel() : 'A choisir' }}</dd>
               </div>
               <div>
+                <span><lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <dt>Telephone</dt>
+                <dd>{{ patientSummaryPhone() }}</dd>
+              </div>
+              <div>
                 <span><lucide-icon name="map-pin" size="18" [strokeWidth]="2.3"></lucide-icon></span>
                 <dt>Adresse du rendez-vous</dt>
                 <dd>{{ patientSummaryAddress() }}</dd>
+                <em>Domicile</em>
               </div>
               <div>
                 <span><lucide-icon name="circle-dollar-sign" size="18" [strokeWidth]="2.3"></lucide-icon></span>
@@ -297,11 +317,17 @@
 
             <button
               type="button"
+              class="medicine-booking__confirm"
               [disabled]="activeStep() === 'RESERVATION' && !canConfirm()"
               (click)="activeStep() === 'PERSONAL' ? goToReservationStep() : confirmAppointment()"
             >
               <lucide-icon [name]="activeStep() === 'PERSONAL' ? 'arrow-right' : 'check'" size="20" [strokeWidth]="2.7"></lucide-icon>
               {{ activeStep() === 'PERSONAL' ? 'Continuer la reservation' : isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
+            </button>
+
+            <button type="button" class="medicine-booking__message" (click)="messageDoctor()">
+              <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+              Message au medecin
             </button>
           </article>
 

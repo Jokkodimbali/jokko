@@ -140,6 +140,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
   protected readonly isSatelliteMapEnabled = signal(false);
   protected readonly isNavigationVoiceEnabled = signal(true);
+  protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
   protected readonly routeAlternatives = signal<RouteAlternativeView[]>([]);
   protected readonly destinationStatus = signal<'idle' | 'resolving' | 'ready' | 'unavailable'>(
@@ -309,7 +310,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly statusLabel = computed(() => {
     if (this.isAppointmentCompleted()) return 'Prestation terminee';
-    if (this.isProviderWorking()) return 'Prestation en cour';
+    if (this.isProviderWorking()) return 'Prestation en cours';
     if (this.isProviderOnTheWay()) return 'Prestation en route';
     const status = this.appointment()?.status;
     return status === 'ANNULEE' ? 'Rendez-vous annule' : 'Prestation prevus';
@@ -373,6 +374,42 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       !this.isAppointmentInFuture(appointment) &&
       (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
     );
+  });
+  protected readonly isPaymentRequired = computed(() => {
+    const status = this.appointment()?.status;
+    return status === 'EN_ATTENTE' || status === 'CONFIRMEE';
+  });
+  protected readonly canClientPayAppointment = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.isPaymentRequired() &&
+      !this.isProviderViewer() &&
+      !this.isAppointmentClosed()
+    );
+  });
+  protected readonly operationalStatusTitle = computed(() => {
+    const status = this.appointment()?.status;
+    if (status === 'PAYEE_SEQUESTRE') return 'Pret a demarrer';
+    if (status === 'EN_COURS') return 'Prestation en cours';
+    if (status === 'EN_ATTENTE') return 'Paiement en attente';
+    if (status === 'CONFIRMEE') return 'Paiement a finaliser';
+    return 'Statut du rendez-vous';
+  });
+  protected readonly operationalStatusDescription = computed(() => {
+    const status = this.appointment()?.status;
+    if (status === 'PAYEE_SEQUESTRE') {
+      return 'Le paiement est sequestre. Le prestataire peut activer le trajet puis commencer la prestation le jour du rendez-vous.';
+    }
+    if (status === 'EN_COURS') {
+      return 'La prestation a demarre. Le prestataire peut la marquer comme terminee apres intervention.';
+    }
+    if (status === 'EN_ATTENTE' || status === 'CONFIRMEE') {
+      return this.isProviderViewer()
+        ? 'Les actions demarrer et terminer sont bloquees tant que le client na pas finalise le paiement.'
+        : 'Finalisez le paiement pour permettre au prestataire de demarrer puis terminer la prestation.';
+    }
+    return 'Consultez le statut avant de poursuivre les actions sur ce rendez-vous.';
   });
   protected readonly remainingDistanceLabel = computed(() => {
     if (!this.isProviderOnTheWay()) return 'Suivi inactif';
@@ -781,6 +818,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     });
   }
 
+  protected payAppointment(appointment: AppointmentView): void {
+    if (!this.canClientPayAppointment()) {
+      this.feedback.info('Le paiement nest pas disponible pour ce statut de rendez-vous.');
+      return;
+    }
+
+    const isMedicineAppointment = this.router.url.startsWith('/medecine/reservations/');
+    const commands = isMedicineAppointment
+      ? ['/medecine', 'reservations', appointment.id, 'paiement']
+      : ['/appointments', appointment.id, 'payment'];
+
+    this.router.navigate(commands, {
+      queryParams: {
+        returnUrl: this.router.url,
+        ...(isMedicineAppointment ? { source: 'medecine' } : {}),
+      },
+    });
+  }
+
   protected contactProviderByPhone(appointment: AppointmentView): void {
     this.callPhoneNumber(appointment.professionalPhone, 'Le numero du prestataire nest pas renseigne.');
   }
@@ -1038,6 +1094,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isUpdatingStatus() || !this.isProviderViewer()) return;
 
     this.isUpdatingStatus.set(true);
+    this.feedback.info(
+      "Autorisez la localisation du navigateur pour partager automatiquement votre position reelle.",
+    );
     this.resolveCurrentLocation('Position GPS du prestataire')
       .then((location) => {
         const handleSuccess = (tracking: AppointmentTrackingView): void => {
@@ -1052,24 +1111,39 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           error: () => {
             this.stopProviderLocationSharing();
             this.refreshTracking(appointment.id);
-          this.isUpdatingStatus.set(false);
-          this.feedback.error(
-            "Impossible de partager la position. Verifiez le GPS et l'etat de la reservation.",
-          );
+            this.isUpdatingStatus.set(false);
+            this.feedback.error(
+              "Impossible de partager la position. Verifiez le GPS et l'etat de la reservation.",
+            );
           },
         });
       })
-      .catch(() => {
+      .catch((error) => {
         this.isUpdatingStatus.set(false);
-        this.feedback.error(
-          "Impossible de recuperer votre position exacte. Autorisez la localisation GPS.",
-        );
+        this.feedback.error(this.providerLocationHelpMessage(error));
       });
   }
 
   protected toggleSatelliteMap(): void {
     this.isSatelliteMapEnabled.update((enabled) => !enabled);
     this.mapRenderer.setSatellite(this.isSatelliteMapEnabled());
+  }
+
+  protected rotateMap(): void {
+    const nextHeading = (this.mapHeadingDegrees() + 45) % 360;
+    this.mapHeadingDegrees.set(nextHeading);
+    this.mapRenderer.setHeading(nextHeading);
+  }
+
+  protected resetMapRotation(): void {
+    this.mapHeadingDegrees.set(0);
+    this.mapRenderer.setHeading(0);
+  }
+
+  protected setMapDirection(headingDegrees: number): void {
+    const normalizedHeading = ((headingDegrees % 360) + 360) % 360;
+    this.mapHeadingDegrees.set(normalizedHeading);
+    this.mapRenderer.setHeading(normalizedHeading);
   }
 
   protected toggleNavigationVoice(): void {
@@ -1104,14 +1178,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.isUpdatingStatus.set(true);
-    const location = await this.resolveCurrentLocation('Position GPS du prestataire').catch(() => null);
+    if (!silent) {
+      this.feedback.info(
+        "Partagez votre position GPS reelle pour activer le trajet automatiquement.",
+      );
+    }
+
+    const location = await this.resolveCurrentLocation('Position GPS du prestataire').catch(
+      (error) => {
+        if (!silent) {
+          this.feedback.error(this.providerLocationHelpMessage(error));
+        }
+        return null;
+      },
+    );
     if (!location) {
       this.isUpdatingStatus.set(false);
-      if (!silent) {
-        this.feedback.error(
-          "Impossible d'activer le trajet : autorisez la position GPS reelle du prestataire.",
-        );
-      }
       return;
     }
     this.appointmentsService.markProviderOnTheWay(appointment.id, location).subscribe({
@@ -1548,6 +1630,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.isSatelliteMapEnabled(),
           (routeId) => this.selectRouteAlternative(routeId),
         );
+        this.mapRenderer.setHeading(this.mapHeadingDegrees());
       }
       this.updateGoogleMaps();
     } catch {
@@ -2014,6 +2097,32 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .replace(/\n/g, '\\n');
   }
 
+  private providerLocationHelpMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : '';
+
+    if (message.includes('permission denied')) {
+      return "Autorisez la localisation pour partager automatiquement votre position. Cliquez sur le cadenas de la barre d'adresse, choisissez Localisation > Autoriser, puis reessayez.";
+    }
+
+    if (message.includes('timeout')) {
+      return "La position GPS prend trop de temps. Activez le GPS, rapprochez-vous d'une zone couverte, puis reessayez.";
+    }
+
+    if (message.includes('unavailable')) {
+      return "La geolocalisation n'est pas disponible sur cet appareil. Activez le GPS ou utilisez un navigateur compatible.";
+    }
+
+    if (message.includes('outside Senegal')) {
+      return 'La position detectee est hors du Senegal. Verifiez le GPS avant de demarrer le trajet.';
+    }
+
+    if (message.includes('Invalid geolocation coordinates')) {
+      return 'La position GPS recue est invalide. Activez la localisation precise puis reessayez.';
+    }
+
+    return "Impossible de recuperer votre position exacte. Autorisez la localisation GPS du navigateur et reessayez.";
+  }
+
   private resolveCurrentLocation(fallbackLabel: string): Promise<{
     latitude: number;
     longitude: number;
@@ -2053,8 +2162,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             locationLabel: fallbackLabel,
           });
         },
-        () => reject(new Error('Geolocation permission denied')),
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            reject(new Error('Geolocation permission denied'));
+            return;
+          }
+
+          if (error.code === error.POSITION_UNAVAILABLE) {
+            reject(new Error('Geolocation unavailable'));
+            return;
+          }
+
+          if (error.code === error.TIMEOUT) {
+            reject(new Error('Geolocation timeout'));
+            return;
+          }
+
+          reject(new Error('Geolocation unavailable'));
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
       );
     });
   }

@@ -162,6 +162,49 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async syncOverdueReservations(now: Date): Promise<number> {
+    const paidReservations = await this.prisma.paiement.findMany({
+      where: {
+        statut: $Enums.StatutPaiement.SUCCES,
+        escrowStatus: $Enums.EscrowStatus.LOCKED,
+        reservation: {
+          statut: {
+            in: [
+              $Enums.StatutReservation.EN_ATTENTE,
+              $Enums.StatutReservation.CONFIRMEE,
+            ],
+          },
+        },
+      },
+      select: {
+        reservationId: true,
+      },
+      take: 500,
+    });
+
+    const paidReservationIds = paidReservations.map(
+      (payment) => payment.reservationId,
+    );
+
+    let syncedPaidCount = 0;
+    if (paidReservationIds.length > 0) {
+      const paidResult = await this.prisma.reservation.updateMany({
+        where: {
+          id: { in: paidReservationIds },
+          statut: {
+            in: [
+              $Enums.StatutReservation.EN_ATTENTE,
+              $Enums.StatutReservation.CONFIRMEE,
+            ],
+          },
+        },
+        data: {
+          statut: $Enums.StatutReservation.PAYEE_SEQUESTRE,
+          misAJourLe: now,
+        },
+      });
+      syncedPaidCount = paidResult.count;
+    }
+
     const candidates = await this.prisma.reservation.findMany({
       where: {
         statut: {
@@ -189,7 +232,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       .map((reservation) => reservation.id);
 
     if (overdueIds.length === 0) {
-      return 0;
+      return syncedPaidCount;
     }
 
     const result = await this.prisma.reservation.updateMany({
@@ -205,7 +248,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       },
     });
 
-    return result.count;
+    return syncedPaidCount + result.count;
   }
 
   async findById(id: string): Promise<Reservation | null> {

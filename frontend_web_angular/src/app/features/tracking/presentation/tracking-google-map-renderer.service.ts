@@ -54,11 +54,16 @@ export class TrackingGoogleMapRendererService {
     this.routeMap = new this.google.maps.Map(element, {
       center: DAKAR_CENTER,
       zoom: 13,
+      heading: 0,
+      tilt: 0,
+      renderingType: 'VECTOR',
       mapTypeId: satellite ? 'satellite' : 'roadmap',
       disableDefaultUI: true,
       zoomControl: true,
       clickableIcons: false,
       gestureHandling: 'greedy',
+      headingInteractionEnabled: true,
+      tiltInteractionEnabled: true,
       mapId: this.google.mapId,
     });
     this.routeMap.addListener('dragstart', () => {
@@ -95,6 +100,33 @@ export class TrackingGoogleMapRendererService {
     this.routeMap?.setMapTypeId(enabled ? 'satellite' : 'roadmap');
   }
 
+  setHeading(headingDegrees: number): void {
+    this.routeMap?.setOptions?.({
+      headingInteractionEnabled: true,
+      tiltInteractionEnabled: true,
+    });
+    const supportsNativeRotation =
+      this.routeMap?.getRenderingType?.()?.toUpperCase() === 'VECTOR';
+    this.routeMap?.moveCamera?.({
+      heading: headingDegrees,
+      tilt: headingDegrees === 0 ? 0 : 45,
+    });
+    this.routeMap?.setHeading?.(headingDegrees);
+    this.routeMap?.setTilt?.(headingDegrees === 0 ? 0 : 45);
+    this.applyCssRotationFallback(supportsNativeRotation ? 0 : headingDegrees);
+  }
+
+  private applyCssRotationFallback(headingDegrees: number): void {
+    if (!this.routeMapElement) return;
+
+    const normalizedHeading = this.normalizeHeading(headingDegrees);
+    this.routeMapElement.style.transform = normalizedHeading
+      ? `rotate(${normalizedHeading}deg) scale(1.22)`
+      : '';
+    this.routeMapElement.style.transformOrigin = '50% 50%';
+    this.routeMapElement.style.transition = 'transform 260ms ease';
+  }
+
   resetRoute(): void {
     if (this.destinationMarker) {
       this.destinationMarker.map = null;
@@ -109,6 +141,7 @@ export class TrackingGoogleMapRendererService {
 
   destroyRouteMap(): void {
     this.cancelAnimation();
+    this.applyCssRotationFallback(0);
     if (this.providerMarker) {
       this.providerMarker.map = null;
     }

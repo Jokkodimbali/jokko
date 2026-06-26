@@ -45,6 +45,16 @@ export type GoogleMapsMapInstance = {
   setCenter: (coordinate: GoogleMapsPoint) => void;
   setZoom: (zoom: number) => void;
   setMapTypeId: (type: 'roadmap' | 'satellite') => void;
+  setHeading?: (heading: number) => void;
+  setTilt?: (tilt: number) => void;
+  moveCamera?: (cameraOptions: {
+    center?: GoogleMapsPoint;
+    zoom?: number;
+    heading?: number;
+    tilt?: number;
+  }) => void;
+  setOptions?: (options: Record<string, unknown>) => void;
+  getRenderingType?: () => 'VECTOR' | 'RASTER' | string;
   fitBounds: (
     bounds: GoogleMapsBoundsInstance,
     padding?: number | Record<string, number>,

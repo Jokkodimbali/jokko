@@ -425,6 +425,108 @@
   padding: 5px 7px;
 }
 
+.appointment-detail__operational-status {
+  align-items: start;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  margin-top: 12px;
+  padding: 13px;
+}
+
+.appointment-detail__operational-status > span {
+  align-items: center;
+  background: #dbeaff;
+  border-radius: 12px;
+  color: #2563eb;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.appointment-detail__operational-status small {
+  color: #94a3b8;
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+}
+
+.appointment-detail__operational-status strong {
+  color: #0f172a;
+  display: block;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.appointment-detail__operational-status p {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+
+.appointment-detail__operational-status button {
+  align-items: center;
+  background: #4f8d3a;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 7px;
+  grid-column: 1 / -1;
+  justify-content: center;
+  min-height: 40px;
+  text-transform: uppercase;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.appointment-detail__operational-status button:hover {
+  background: #477b34;
+  box-shadow: 0 12px 24px rgb(61 108 43 / 22%);
+  transform: translateY(-1px);
+}
+
+.appointment-detail__operational-status--blocked {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.appointment-detail__operational-status--blocked > span {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.appointment-detail__operational-status--ready {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.appointment-detail__operational-status--ready > span {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.appointment-detail__operational-status--active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.appointment-detail__operational-status--active > span {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .appointment-detail__upcoming-dategrid {
   display: grid;
   gap: 16px;

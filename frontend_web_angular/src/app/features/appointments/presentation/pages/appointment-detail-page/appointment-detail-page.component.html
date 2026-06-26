@@ -97,6 +97,40 @@
             <em>{{ appointment.confirmationLabel }}</em>
           </div>
 
+          <section
+            class="appointment-detail__operational-status"
+            [class.appointment-detail__operational-status--blocked]="isPaymentRequired()"
+            [class.appointment-detail__operational-status--ready]="appointment.status === 'PAYEE_SEQUESTRE'"
+            [class.appointment-detail__operational-status--active]="appointment.status === 'EN_COURS'"
+          >
+            <span>
+              <lucide-icon
+                [name]="
+                  isPaymentRequired()
+                    ? 'lock-keyhole'
+                    : appointment.status === 'EN_COURS'
+                    ? 'wrench'
+                    : 'circle-check'
+                "
+                size="18"
+                [strokeWidth]="2.4"
+              ></lucide-icon>
+            </span>
+            <div>
+              <small>STATUT OPERATIONNEL</small>
+              <strong>{{ operationalStatusTitle() }}</strong>
+              <p>{{ operationalStatusDescription() }}</p>
+            </div>
+            <button
+              *ngIf="canClientPayAppointment()"
+              type="button"
+              (click)="payAppointment(appointment)"
+            >
+              <lucide-icon name="wallet-cards" size="15" [strokeWidth]="2.4"></lucide-icon>
+              Payer
+            </button>
+          </section>
+
           <div class="appointment-detail__upcoming-dategrid">
             <strong>
               <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.4"></lucide-icon>
@@ -174,8 +208,8 @@
             <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
           </button>
           <div>
-            <span>Rendez-vous confirme</span>
-            <strong>Prestation a venir</strong>
+            <span>{{ appointment.confirmationLabel }}</span>
+            <strong>{{ operationalStatusTitle() }}</strong>
           </div>
         </div>
 
@@ -616,25 +650,118 @@
             Partager ma position
           </button>
         </div>
-        <a
-          class="appointment-detail__map-external"
-          [href]="mapDirectionsUrl(appointment)"
-          target="_blank"
-          rel="noopener"
-          title="Ouvrir l'itineraire dans Google Maps"
-        >
-          <lucide-icon name="map-pin" size="15" [strokeWidth]="2.3"></lucide-icon>
-          Google Maps
-        </a>
-        <button
-          type="button"
-          class="appointment-detail__map-layer-toggle"
-          (click)="toggleSatelliteMap()"
-          [attr.aria-pressed]="isSatelliteMapEnabled()"
-        >
-          <lucide-icon name="globe" size="14" [strokeWidth]="2.4"></lucide-icon>
-          {{ isSatelliteMapEnabled() ? 'Plan' : 'Satellite' }}
-        </button>
+        <div class="appointment-detail__map-top-actions" aria-label="Actions de la carte et de la mission">
+          <div class="appointment-detail__map-toolbar" aria-label="Actions de la carte">
+            <button
+              type="button"
+              class="appointment-detail__map-tool"
+              (click)="toggleSatelliteMap()"
+              [attr.aria-pressed]="isSatelliteMapEnabled()"
+            >
+              <lucide-icon name="globe" size="14" [strokeWidth]="2.4"></lucide-icon>
+              {{ isSatelliteMapEnabled() ? 'Plan' : 'Satellite' }}
+            </button>
+            <button
+              type="button"
+              class="appointment-detail__map-tool"
+              (click)="rotateMap()"
+              [attr.aria-label]="'Rotation carte a ' + ((mapHeadingDegrees() + 45) % 360) + ' degres'"
+            >
+              <lucide-icon name="rotate-ccw" size="14" [strokeWidth]="2.5"></lucide-icon>
+              Rotation
+              <span>{{ mapHeadingDegrees() }}°</span>
+            </button>
+            <button
+              type="button"
+              class="appointment-detail__map-tool appointment-detail__map-tool--compact"
+              (click)="resetMapRotation()"
+              [disabled]="mapHeadingDegrees() === 0"
+            >
+              Nord
+            </button>
+          </div>
+          <div *ngIf="isProviderViewer()" class="appointment-detail__route-provider-actions">
+            <button
+              *ngIf="!isProviderWorking()"
+              type="button"
+              class="appointment-detail__route-action appointment-detail__route-action--secondary"
+              (click)="shareProviderLocation(appointment)"
+              [disabled]="isUpdatingStatus()"
+            >
+              <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.7"></lucide-icon>
+              Position
+            </button>
+            <button
+              *ngIf="!isProviderWorking()"
+              type="button"
+              class="appointment-detail__route-action appointment-detail__route-action--primary"
+              (click)="startWork(appointment)"
+              [disabled]="isUpdatingStatus() || !canProviderStartWork()"
+            >
+              <lucide-icon name="wrench" size="15" [strokeWidth]="2.8"></lucide-icon>
+              Commencer
+            </button>
+            <button
+              *ngIf="isProviderWorking()"
+              type="button"
+              class="appointment-detail__route-action appointment-detail__route-action--success"
+              (click)="completeWork(appointment)"
+              [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
+            >
+              <lucide-icon name="check" size="15" [strokeWidth]="2.8"></lucide-icon>
+              Terminer
+            </button>
+          </div>
+          <a
+            class="appointment-detail__map-external"
+            [href]="mapDirectionsUrl(appointment)"
+            target="_blank"
+            rel="noopener"
+            title="Ouvrir l'itineraire dans Google Maps"
+          >
+            <lucide-icon name="map-pin" size="14" [strokeWidth]="2.3"></lucide-icon>
+            Google Maps
+          </a>
+        </div>
+        <div class="appointment-detail__map-direction-pad" aria-label="Orienter la carte">
+          <button
+            type="button"
+            class="appointment-detail__map-direction appointment-detail__map-direction--up"
+            (click)="setMapDirection(0)"
+            aria-label="Orienter la carte vers le nord"
+            [attr.aria-pressed]="mapHeadingDegrees() === 0"
+          >
+            <lucide-icon name="arrow-up" size="15" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+          <button
+            type="button"
+            class="appointment-detail__map-direction appointment-detail__map-direction--left"
+            (click)="setMapDirection(270)"
+            aria-label="Orienter la carte vers l'ouest"
+            [attr.aria-pressed]="mapHeadingDegrees() === 270"
+          >
+            <lucide-icon name="arrow-left" size="15" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+          <span>{{ mapHeadingDegrees() }}°</span>
+          <button
+            type="button"
+            class="appointment-detail__map-direction appointment-detail__map-direction--right"
+            (click)="setMapDirection(90)"
+            aria-label="Orienter la carte vers l'est"
+            [attr.aria-pressed]="mapHeadingDegrees() === 90"
+          >
+            <lucide-icon name="arrow-right" size="15" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+          <button
+            type="button"
+            class="appointment-detail__map-direction appointment-detail__map-direction--down"
+            (click)="setMapDirection(180)"
+            aria-label="Orienter la carte vers le sud"
+            [attr.aria-pressed]="mapHeadingDegrees() === 180"
+          >
+            <lucide-icon name="arrow-down" size="15" [strokeWidth]="2.6"></lucide-icon>
+          </button>
+        </div>
         <div
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
@@ -679,28 +806,6 @@
           <p *ngIf="routeAlternatives().length === 1">
             Aucune autre route fiable trouvee.
           </p>
-        </div>
-        <div *ngIf="isProviderViewer()" class="appointment-detail__route-provider-actions">
-          <button
-            *ngIf="!isProviderWorking()"
-            type="button"
-            class="appointment-detail__finish-work-button"
-            (click)="startWork(appointment)"
-            [disabled]="isUpdatingStatus() || !canProviderStartWork()"
-          >
-            <lucide-icon name="wrench" size="17" [strokeWidth]="2.8"></lucide-icon>
-            Commencer la prestation
-          </button>
-          <button
-            *ngIf="isProviderWorking()"
-            type="button"
-            class="appointment-detail__finish-work-button"
-            (click)="completeWork(appointment)"
-            [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
-          >
-            <lucide-icon name="check" size="17" [strokeWidth]="2.8"></lucide-icon>
-            Terminer la prestation
-          </button>
         </div>
         <div class="appointment-detail__route-bottom">
           <span>

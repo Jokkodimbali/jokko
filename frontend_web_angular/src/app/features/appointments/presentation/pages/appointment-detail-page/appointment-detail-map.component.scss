@@ -43,27 +43,178 @@
   opacity: 0.68;
 }
 
-.appointment-detail__map-layer-toggle {
+.appointment-detail__map-top-actions {
   align-items: center;
-  background: rgba(17, 24, 39, 0.9);
-  border: 0;
-  border-radius: 999px;
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+  left: 16px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  white-space: nowrap;
+  z-index: 450;
+}
+
+.appointment-detail__map-top-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.appointment-detail__map-toolbar,
+.appointment-detail__route-provider-actions {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 5px;
+}
+
+.appointment-detail__map-tool {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 5px;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 8px;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.appointment-detail__map-tool:hover:not(:disabled),
+.appointment-detail__map-tool[aria-pressed='true'] {
+  background: #568d42;
+  border-color: #568d42;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.appointment-detail__map-tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.appointment-detail__map-tool span {
+  color: #568d42;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.appointment-detail__map-tool:hover span {
+  color: #ffffff;
+}
+
+.appointment-detail__map-tool--compact {
+  min-width: 44px;
+}
+
+.appointment-detail__map-top-actions .appointment-detail__map-external {
+  align-items: center;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 11px;
+  position: static;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.appointment-detail__map-top-actions .appointment-detail__map-external:hover {
+  background: #273244;
+  transform: translateY(-1px);
+}
+
+.appointment-detail__map-direction-pad {
+  align-items: center;
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.22);
+  display: grid;
+  gap: 3px;
+  grid-template-columns: 30px 30px 30px;
+  grid-template-rows: 30px 30px 30px;
+  padding: 6px;
+  position: absolute;
+  right: 16px;
+  top: 62px;
+  z-index: 445;
+}
+
+.appointment-detail__map-direction-pad span {
+  align-items: center;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 950;
+  justify-content: center;
+}
+
+.appointment-detail__map-direction {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 950;
-  gap: 7px;
-  padding: 9px 13px;
-  position: absolute;
-  right: 16px;
-  text-transform: uppercase;
-  top: 50px;
-  z-index: 430;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  width: 30px;
 }
 
-.appointment-detail__map-layer-toggle:hover {
+.appointment-detail__map-direction:hover,
+.appointment-detail__map-direction[aria-pressed='true'] {
   background: #568d42;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.appointment-detail__map-direction--up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.appointment-detail__map-direction--left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.appointment-detail__map-direction--right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.appointment-detail__map-direction--down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.appointment-detail__navigation-guidance {
+  top: 76px;
 }
 
 .appointment-detail__route-alternatives {
@@ -71,7 +222,7 @@
   gap: 7px;
   position: absolute;
   right: 16px;
-  top: 110px;
+  top: 170px;
   width: min(220px, calc(100% - 32px));
   z-index: 430;
 }
@@ -144,47 +295,62 @@
 }
 
 .appointment-detail__route-provider-actions {
-  bottom: 68px;
-  display: flex;
-  gap: 10px;
   justify-content: center;
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-  width: min(520px, calc(100% - 32px));
-  z-index: 435;
 }
 
-.appointment-detail__finish-work-button {
+.appointment-detail__route-action {
   align-items: center;
-  background: #568d42;
   border: 0;
-  border-radius: 999px;
-  box-shadow: 0 18px 38px rgba(86, 141, 66, 0.3);
-  color: #ffffff;
+  border-radius: 12px;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
-  font-weight: 950;
-  gap: 8px;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 6px;
   justify-content: center;
-  min-height: 44px;
-  min-width: 230px;
-  padding: 0 22px;
-  text-transform: uppercase;
+  min-height: 30px;
+  min-width: 88px;
+  padding: 0 9px;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.appointment-detail__finish-work-button:hover:not(:disabled) {
-  background: #477938;
-  box-shadow: 0 22px 44px rgba(86, 141, 66, 0.34);
-  transform: translateY(-1px) scale(1.01);
+.appointment-detail__route-action--secondary {
+  background: #eef2ff;
+  color: #3146c9;
 }
 
-.appointment-detail__finish-work-button:disabled {
-  cursor: wait;
-  opacity: 0.68;
+.appointment-detail__route-action--primary {
+  background: #111827;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.26);
+  color: #ffffff;
+}
+
+.appointment-detail__route-action--success {
+  background: #568d42;
+  box-shadow: 0 16px 34px rgba(86, 141, 66, 0.3);
+  color: #ffffff;
+}
+
+.appointment-detail__route-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.appointment-detail__route-action--secondary:hover:not(:disabled) {
+  background: #dfe5ff;
+}
+
+.appointment-detail__route-action--primary:hover:not(:disabled) {
+  background: #273244;
+}
+
+.appointment-detail__route-action--success:hover:not(:disabled) {
+  background: #477938;
+}
+
+.appointment-detail__route-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
 }
 
 .appointment-detail__route-sidebar {

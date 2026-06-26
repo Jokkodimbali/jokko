@@ -1,13 +1,27 @@
 -- Payment ownership integrity and read indexes
-ALTER TABLE "payments"
-ADD CONSTRAINT "payments_client_id_fkey"
-FOREIGN KEY ("client_id") REFERENCES "users"("id")
-ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'payments_client_id_fkey'
+  ) THEN
+    ALTER TABLE "payments"
+    ADD CONSTRAINT "payments_client_id_fkey"
+    FOREIGN KEY ("client_id") REFERENCES "users"("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
-ALTER TABLE "payments"
-ADD CONSTRAINT "payments_professional_id_fkey"
-FOREIGN KEY ("professional_id") REFERENCES "professional_profiles"("id")
-ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'payments_professional_id_fkey'
+  ) THEN
+    ALTER TABLE "payments"
+    ADD CONSTRAINT "payments_professional_id_fkey"
+    FOREIGN KEY ("professional_id") REFERENCES "professional_profiles"("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS "payments_client_id_created_at_idx"
 ON "payments"("client_id", "created_at");

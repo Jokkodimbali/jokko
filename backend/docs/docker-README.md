@@ -144,7 +144,6 @@ Le fichier de reference est `backend/.env.example`.
 Variables critiques :
 
 - `DATABASE_URL`
-- `PRISMA_MIGRATE_DATABASE_URL` pour les migrations si `DATABASE_URL` pointe vers un pooler Neon
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
@@ -234,7 +233,8 @@ Le projet utilise Prisma 7 avec `prisma.config.ts`.
 
 Point important :
 
-- la datasource est configuree via `DATABASE_URL`, ou via `PRISMA_MIGRATE_DATABASE_URL` / `DIRECT_URL` pour `prisma migrate deploy`
+- la datasource est configuree via `DATABASE_URL`
+- si `DATABASE_URL` utilise le pooler Neon (contient `-pooler.`), l'entrypoint et `prisma.config.ts` derivent automatiquement l'URL directe pour les migrations
 - le schema est `prisma/schema.prisma`
 - les migrations sont dans `prisma/migrations`
 
@@ -250,17 +250,17 @@ Par defaut, l'entrypoint tente la migration 3 fois afin de ne pas depasser le
 timeout de detection de port d'un web service Render. Vous pouvez ajuster ce
 nombre avec `PRISMA_MIGRATE_MAX_ATTEMPTS`.
 
-En production Render + Neon, utilisez une URL directe non-pooler pour les
-migrations :
+En production Render + Neon, il suffit de definir `DATABASE_URL` avec l'URL du pooler.
+L'entrypoint et `prisma.config.ts` derivent automatiquement l'URL directe non-pooler
+pour `prisma migrate deploy` lorsqu'ils detectent `-pooler.` dans le host.
 
 ```text
 DATABASE_URL=postgresql://...@...-pooler.../neondb?sslmode=verify-full
-PRISMA_MIGRATE_DATABASE_URL=postgresql://...@.../neondb?sslmode=verify-full
 ```
 
-Le log attendu au demarrage est alors `Prisma migrate utilise PRISMA_MIGRATE_DATABASE_URL.`
+Le log attendu au demarrage indique alors l'URL derivee utilisee pour les migrations.
 Les URLs Neon sans mode SSL strict sont completees automatiquement avec
-`sslmode=verify-full`.
+`sslmode=verify-full` par la config Prisma et par le service NestJS.
 
 ## 8. Verification rapide de la stack
 

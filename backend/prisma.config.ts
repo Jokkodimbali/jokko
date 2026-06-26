@@ -41,10 +41,31 @@ function normalizeDatabaseUrl(
   return connectionString;
 }
 
-const migrationDatabaseUrl =
+function tryFixPoolerUrl(connectionString: string | undefined): string | undefined {
+  if (!connectionString) {
+    return undefined;
+  }
+  try {
+    const url = new URL(connectionString);
+    if (url.hostname.includes("-pooler.")) {
+      url.hostname = url.hostname.replace("-pooler.", ".");
+      const normalized = normalizeDatabaseUrl(url.toString());
+      if (normalized) {
+        return normalized;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return connectionString;
+}
+
+const rawMigrationUrl =
   normalizeDatabaseUrl(process.env["PRISMA_MIGRATE_DATABASE_URL"]) ||
   normalizeDatabaseUrl(process.env["DIRECT_URL"]) ||
   normalizeDatabaseUrl(process.env["DATABASE_URL"]);
+
+const migrationDatabaseUrl = tryFixPoolerUrl(rawMigrationUrl);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

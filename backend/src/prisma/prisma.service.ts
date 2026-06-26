@@ -7,10 +7,7 @@ import { appMessage } from '../core/http/app-http.exception';
 function normalizeDatabaseUrl(connectionString: string): string {
   try {
     const url = new URL(connectionString);
-    if (
-      url.protocol === 'postgresql:' &&
-      url.hostname.endsWith('.neon.tech')
-    ) {
+    if (url.protocol === 'postgresql:' && url.hostname.endsWith('.neon.tech')) {
       const sslMode = url.searchParams.get('sslmode');
       if (!sslMode || ['prefer', 'require', 'verify-ca'].includes(sslMode)) {
         url.searchParams.set('sslmode', 'verify-full');

@@ -35,12 +35,19 @@ if [ "${PRISMA_SKIP_MIGRATIONS:-false}" != "true" ]; then
     echo "Prisma migrate utilise DIRECT_URL."
   else
     echo "Prisma migrate utilise DATABASE_URL."
-    case "$DATABASE_URL" in
-      *-pooler.*)
-        echo "Avertissement: DATABASE_URL semble pointer vers un pooler Neon." >&2
-        echo "Pour Prisma migrate, configurez PRISMA_MIGRATE_DATABASE_URL avec l'URL directe Neon non-pooler." >&2
-        ;;
-    esac
+    if echo "$DATABASE_URL" | grep -q -- "-pooler\\."; then
+      echo "Avertissement: DATABASE_URL semble pointer vers un pooler Neon. Extraction automatique de l'URL directe pour les migrations..." >&2
+      PRISMA_MIGRATE_DATABASE_URL=$(printf '%s' "$DATABASE_URL" | sed 's/-pooler\\././')
+      export PRISMA_MIGRATE_DATABASE_URL
+      echo "Prisma migrate utilisera ${PRISMA_MIGRATE_DATABASE_URL}." >&2
+    fi
+  fi
+
+  echo "Verification et reparation automatique des migrations Prisma bloquees..."
+  if node scripts/fix-stuck-prisma-migration.mjs; then
+    echo "Reparation des migrations terminee."
+  else
+    echo "Avertissement: la reparation automatique a echoue. Les migrations peuvent ne pas s'appliquer." >&2
   fi
 
   # Increase connection and query timeout for Prisma migrations

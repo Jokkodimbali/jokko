@@ -702,7 +702,7 @@
               Commencer
             </button>
             <button
-              *ngIf="isProviderWorking()"
+              *ngIf="isProviderWorking() || canProviderCompleteWork()"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--success"
               (click)="completeWork(appointment)"

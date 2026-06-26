@@ -6,6 +6,19 @@ const STUCK_MIGRATIONS = [
   '20260427120000_add_negotiations_module',
   '20260427183000_harden_global_schema_integrity_and_indexes',
   '20260427210000_add_reservation_price_adjustments',
+  '20260428103000_add_client_reviews_to_bookings',
+  '20260429093000_add_disputes_module',
+  '20260429123000_add_live_tracking_presence',
+  '20260506120000_add_professional_favorites',
+  '20260519120000_add_negotiation_reservation_draft',
+  '20260520103000_add_medical_credentials',
+  '20260520104500_add_dispute_mediation_messages',
+  '20260521100500_add_auth_session_platform',
+  '20260522113000_add_service_subcategories',
+  '20260602094500_add_client_medical_profiles',
+  '20260602105500_add_dispute_evidence',
+  '20260609122000_add_professional_specialties',
+  '20260612095500_add_service_travel_mode',
 ];
 
 const STUCK_MIGRATION_CHECKS = {
@@ -26,12 +39,163 @@ const STUCK_MIGRATION_CHECKS = {
   },
   '20260427210000_add_reservation_price_adjustments': async (client) => {
     const details = await getReservationPriceAdjustmentDetails(client);
-    return { ready: reservationPriceAdjustmentIsReady(details), details };
+    return { ready: allReady(details), details };
   },
+  '20260428103000_add_client_reviews_to_bookings': async (client) => {
+    const details = await getClientReviewsDetails(client);
+    return { ready: allReady(details), details };
+  },
+  '20260429093000_add_disputes_module': async (client) => readyCheck(client, {
+    enums: ['StatutLitige', 'PrioriteLitige', 'DecisionResolutionLitige'],
+    enumValues: [['TypeNotification', 'LITIGE_OUVERT']],
+    tables: ['disputes'],
+    indexes: [
+      'disputes_status_priority_opened_at_idx',
+      'disputes_reporter_user_id_opened_at_idx',
+      'disputes_resolved_by_admin_user_id_resolved_at_idx',
+    ],
+    constraints: [
+      'disputes_pkey',
+      'disputes_booking_id_key',
+      'disputes_payment_id_key',
+      'disputes_booking_id_fkey',
+      'disputes_payment_id_fkey',
+      'disputes_reporter_user_id_fkey',
+      'disputes_resolved_by_admin_user_id_fkey',
+      'disputes_client_refund_percentage_range_chk',
+      'disputes_resolution_payload_chk',
+      'disputes_rejected_payload_chk',
+    ],
+  }),
+  '20260429123000_add_live_tracking_presence': async (client) => readyCheck(client, {
+    enums: ['StatutPresenceProfessionnel', 'StatutSessionTrackingReservation'],
+    tables: ['professional_presence', 'reservation_tracking_sessions', 'reservation_tracking_points'],
+    indexes: [
+      'professional_presence_status_updated_at_idx',
+      'professional_presence_is_online_updated_at_idx',
+      'reservation_tracking_sessions_professional_id_status_updated_at_idx',
+      'reservation_tracking_sessions_client_id_updated_at_idx',
+      'reservation_tracking_points_tracking_session_id_recorded_at_idx',
+    ],
+    constraints: [
+      'professional_presence_pkey',
+      'professional_presence_professional_id_key',
+      'reservation_tracking_sessions_pkey',
+      'reservation_tracking_sessions_booking_id_key',
+      'reservation_tracking_sessions_booking_client_professional_key',
+      'reservation_tracking_points_pkey',
+      'professional_presence_professional_id_fkey',
+      'reservation_tracking_sessions_booking_triplet_fkey',
+      'reservation_tracking_sessions_client_id_fkey',
+      'reservation_tracking_sessions_professional_id_fkey',
+      'reservation_tracking_points_tracking_session_id_fkey',
+      'professional_presence_coordinates_pair_chk',
+      'reservation_tracking_sessions_coordinates_pair_chk',
+      'reservation_tracking_points_latitude_range_chk',
+      'reservation_tracking_points_longitude_range_chk',
+      'professional_presence_accuracy_non_negative_chk',
+      'reservation_tracking_sessions_accuracy_non_negative_chk',
+      'reservation_tracking_points_accuracy_non_negative_chk',
+      'professional_presence_heading_range_chk',
+      'reservation_tracking_sessions_heading_range_chk',
+      'reservation_tracking_points_heading_range_chk',
+      'professional_presence_speed_non_negative_chk',
+      'reservation_tracking_sessions_speed_non_negative_chk',
+      'reservation_tracking_points_speed_non_negative_chk',
+    ],
+  }),
+  '20260506120000_add_professional_favorites': async (client) => readyCheck(client, {
+    tables: ['professional_favorites'],
+    indexes: [
+      'professional_favorites_user_id_professional_id_key',
+      'professional_favorites_user_id_created_at_idx',
+      'professional_favorites_professional_id_idx',
+    ],
+    constraints: [
+      'professional_favorites_pkey',
+      'professional_favorites_user_id_fkey',
+      'professional_favorites_professional_id_fkey',
+    ],
+  }),
+  '20260519120000_add_negotiation_reservation_draft': async (client) => readyCheck(client, {
+    columns: [
+      ['negotiations', 'proposed_datetime'],
+      ['negotiations', 'proposed_client_address'],
+      ['negotiations', 'proposed_duration_minutes'],
+    ],
+  }),
+  '20260520103000_add_medical_credentials': async (client) => readyCheck(client, {
+    enums: ['StatutDiplomeMedical'],
+    tables: ['medical_credentials'],
+    indexes: ['medical_credentials_professional_id_status_idx', 'medical_credentials_status_created_at_idx'],
+    constraints: ['medical_credentials_pkey', 'medical_credentials_professional_id_fkey'],
+  }),
+  '20260520104500_add_dispute_mediation_messages': async (client) => readyCheck(client, {
+    enums: ['DestinataireMessageLitige'],
+    tables: ['dispute_messages'],
+    indexes: ['dispute_messages_dispute_id_created_at_idx', 'dispute_messages_admin_sender_id_created_at_idx'],
+    constraints: ['dispute_messages_pkey', 'dispute_messages_dispute_id_fkey', 'dispute_messages_admin_sender_id_fkey'],
+  }),
+  '20260521100500_add_auth_session_platform': async (client) => readyCheck(client, {
+    columns: [['auth_sessions', 'platform'], ['auth_sessions', 'user_agent']],
+    indexes: ['auth_sessions_platform_created_at_idx'],
+  }),
+  '20260522113000_add_service_subcategories': async (client) => readyCheck(client, {
+    tables: ['service_subcategories', 'category_service_subcategories'],
+    indexes: [
+      'service_subcategories_name_key',
+      'category_service_subcategories_category_id_subcategory_id_key',
+      'category_service_subcategories_subcategory_id_idx',
+    ],
+    constraints: [
+      'service_subcategories_pkey',
+      'category_service_subcategories_pkey',
+      'category_service_subcategories_category_id_fkey',
+      'category_service_subcategories_subcategory_id_fkey',
+    ],
+  }),
+  '20260602094500_add_client_medical_profiles': async (client) => readyCheck(client, {
+    tables: ['client_medical_profiles', 'client_medical_treatments'],
+    indexes: ['client_medical_profiles_user_id_key', 'client_medical_treatments_medical_profile_id_created_at_idx'],
+    constraints: [
+      'client_medical_profiles_pkey',
+      'client_medical_treatments_pkey',
+      'client_medical_profiles_user_id_fkey',
+      'client_medical_treatments_medical_profile_id_fkey',
+    ],
+  }),
+  '20260602105500_add_dispute_evidence': async (client) => readyCheck(client, {
+    tables: ['dispute_evidence'],
+    indexes: ['dispute_evidence_dispute_id_created_at_idx', 'dispute_evidence_uploader_user_id_created_at_idx'],
+    constraints: ['dispute_evidence_pkey', 'dispute_evidence_dispute_id_fkey', 'dispute_evidence_uploader_user_id_fkey'],
+  }),
+  '20260609122000_add_professional_specialties': async (client) => readyCheck(client, {
+    tables: ['professional_specialties'],
+    indexes: [
+      'professional_specialties_professional_id_category_id_subcategory_id_key',
+      'professional_specialties_professional_id_idx',
+      'professional_specialties_category_id_idx',
+      'professional_specialties_subcategory_id_idx',
+    ],
+    constraints: [
+      'professional_specialties_pkey',
+      'professional_specialties_professional_id_fkey',
+      'professional_specialties_category_id_fkey',
+      'professional_specialties_subcategory_id_fkey',
+    ],
+  }),
+  '20260612095500_add_service_travel_mode': async (client) => readyCheck(client, {
+    enums: ['ModeDeplacementService'],
+    columns: [['services', 'travel_mode']],
+  }),
 };
 
 const STUCK_MIGRATION_REPAIRS = {
   '20260427210000_add_reservation_price_adjustments': repairReservationPriceAdjustments,
+  '20260428103000_add_client_reviews_to_bookings': repairClientReviews,
+  '20260519120000_add_negotiation_reservation_draft': repairNegotiationReservationDraft,
+  '20260521100500_add_auth_session_platform': repairAuthSessionPlatform,
+  '20260612095500_add_service_travel_mode': repairServiceTravelMode,
 };
 
 async function tableExists(client, table) {
@@ -90,6 +254,60 @@ async function constraintExists(client, constraintName) {
   return r.rows[0].exists;
 }
 
+async function indexExists(client, indexName) {
+  const r = await client.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM pg_indexes
+       WHERE schemaname = 'public'
+         AND indexname = $1
+     ) AS exists`,
+    [indexName],
+  );
+  return r.rows[0].exists;
+}
+
+function allReady(details) {
+  return Object.values(details).every(Boolean);
+}
+
+function unique(values) {
+  return [...new Set(values)];
+}
+
+async function readyCheck(client, spec) {
+  const checks = [];
+
+  for (const enumName of spec.enums ?? []) {
+    checks.push([enumName, enumExists(client, enumName)]);
+  }
+
+  for (const [enumName, enumValue] of spec.enumValues ?? []) {
+    checks.push([`${enumName}_${enumValue}`, enumValueExists(client, enumName, enumValue)]);
+  }
+
+  for (const table of spec.tables ?? []) {
+    checks.push([table, tableExists(client, table)]);
+  }
+
+  for (const [table, column] of spec.columns ?? []) {
+    checks.push([`${table}_${column}`, columnExists(client, table, column)]);
+  }
+
+  for (const indexName of spec.indexes ?? []) {
+    checks.push([indexName, indexExists(client, indexName)]);
+  }
+
+  for (const constraintName of spec.constraints ?? []) {
+    checks.push([constraintName, constraintExists(client, constraintName)]);
+  }
+
+  const results = await Promise.all(checks.map(async ([name, check]) => [name, await check]));
+  const details = Object.fromEntries(results);
+
+  return { ready: allReady(details), details };
+}
+
 async function getReservationPriceAdjustmentDetails(client) {
   const [
     statusType,
@@ -127,10 +345,6 @@ async function getReservationPriceAdjustmentDetails(client) {
     bookings_price_adjustment_amount_positive_check: amountConstraint,
     bookings_price_adjustment_pending_payload_check: payloadConstraint,
   };
-}
-
-function reservationPriceAdjustmentIsReady(details) {
-  return Object.values(details).every(Boolean);
 }
 
 async function repairReservationPriceAdjustments(client) {
@@ -201,6 +415,125 @@ async function repairReservationPriceAdjustments(client) {
         );
       END IF;
     END $$;
+  `);
+}
+
+async function getClientReviewsDetails(client) {
+  const [ratingColumn, reviewColumn, reviewedAtColumn, ratingConstraint, payloadConstraint, reviewedAtIndex] =
+    await Promise.all([
+      columnExists(client, 'bookings', 'client_rating'),
+      columnExists(client, 'bookings', 'client_review'),
+      columnExists(client, 'bookings', 'client_reviewed_at'),
+      constraintExists(client, 'bookings_client_rating_range_chk'),
+      constraintExists(client, 'bookings_client_review_payload_chk'),
+      indexExists(client, 'bookings_professional_reviewed_at_idx'),
+    ]);
+
+  return {
+    bookings_client_rating: ratingColumn,
+    bookings_client_review: reviewColumn,
+    bookings_client_reviewed_at: reviewedAtColumn,
+    bookings_client_rating_range_chk: ratingConstraint,
+    bookings_client_review_payload_chk: payloadConstraint,
+    bookings_professional_reviewed_at_idx: reviewedAtIndex,
+  };
+}
+
+async function repairClientReviews(client) {
+  await client.query(`
+    ALTER TABLE "bookings"
+    ADD COLUMN IF NOT EXISTS "client_rating" SMALLINT,
+    ADD COLUMN IF NOT EXISTS "client_review" TEXT,
+    ADD COLUMN IF NOT EXISTS "client_reviewed_at" TIMESTAMP(3)
+  `);
+
+  await client.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'bookings_client_rating_range_chk'
+      ) THEN
+        ALTER TABLE "bookings"
+        ADD CONSTRAINT "bookings_client_rating_range_chk"
+        CHECK (
+          "client_rating" IS NULL
+          OR "client_rating" BETWEEN 1 AND 5
+        );
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'bookings_client_review_payload_chk'
+      ) THEN
+        ALTER TABLE "bookings"
+        ADD CONSTRAINT "bookings_client_review_payload_chk"
+        CHECK (
+          (
+            "client_rating" IS NULL
+            AND "client_review" IS NULL
+            AND "client_reviewed_at" IS NULL
+          )
+          OR (
+            "client_rating" IS NOT NULL
+            AND "client_reviewed_at" IS NOT NULL
+          )
+        );
+      END IF;
+    END $$;
+  `);
+
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "bookings_professional_reviewed_at_idx"
+    ON "bookings"("professional_id", "client_reviewed_at")
+  `);
+}
+
+async function repairNegotiationReservationDraft(client) {
+  await client.query(`
+    ALTER TABLE "negotiations"
+    ADD COLUMN IF NOT EXISTS "proposed_datetime" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "proposed_client_address" VARCHAR(180),
+    ADD COLUMN IF NOT EXISTS "proposed_duration_minutes" INTEGER
+  `);
+}
+
+async function repairAuthSessionPlatform(client) {
+  await client.query(`
+    ALTER TABLE "auth_sessions"
+    ADD COLUMN IF NOT EXISTS "platform" VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS "user_agent" TEXT
+  `);
+
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "auth_sessions_platform_created_at_idx"
+    ON "auth_sessions"("platform", "created_at")
+  `);
+}
+
+async function repairServiceTravelMode(client) {
+  await client.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ModeDeplacementService'
+      ) THEN
+        CREATE TYPE "ModeDeplacementService" AS ENUM (
+          'PRESTATAIRE_SE_DEPLACE',
+          'CLIENT_SE_DEPLACE',
+          'TRANSPORT_COLIS'
+        );
+      END IF;
+    END $$;
+  `);
+
+  await client.query(`
+    ALTER TABLE "services"
+    ADD COLUMN IF NOT EXISTS "travel_mode" "ModeDeplacementService" NOT NULL DEFAULT 'PRESTATAIRE_SE_DEPLACE'
   `);
 }
 
@@ -285,7 +618,17 @@ async function main() {
       return;
     }
 
-    for (const migrationName of STUCK_MIGRATIONS) {
+    const failedRows = await client.query(
+      `SELECT migration_name
+       FROM "_prisma_migrations"
+       WHERE finished_at IS NULL
+         AND rolled_back_at IS NULL
+       ORDER BY started_at ASC`,
+    );
+    const failedMigrationNames = failedRows.rows.map((row) => row.migration_name);
+    const migrationsToRepair = unique([...STUCK_MIGRATIONS, ...failedMigrationNames]);
+
+    for (const migrationName of migrationsToRepair) {
       const row = await client.query(
         `SELECT id, finished_at, rolled_back_at, started_at, applied_steps_count
          FROM "_prisma_migrations"

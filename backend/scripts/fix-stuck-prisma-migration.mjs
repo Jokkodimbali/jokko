@@ -1,6 +1,11 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import pg from 'pg';
 
 const { Client } = pg;
+
+const ASSUME_MANUAL_MIGRATIONS_APPLIED = process.env.PRISMA_ASSUME_MANUAL_MIGRATIONS_APPLIED !== 'false';
 
 const STUCK_MIGRATIONS = [
   '20260427120000_add_negotiations_module',
@@ -193,6 +198,7 @@ const STUCK_MIGRATION_CHECKS = {
 const STUCK_MIGRATION_REPAIRS = {
   '20260427210000_add_reservation_price_adjustments': repairReservationPriceAdjustments,
   '20260428103000_add_client_reviews_to_bookings': repairClientReviews,
+  '20260429093000_add_disputes_module': repairDisputesModule,
   '20260519120000_add_negotiation_reservation_draft': repairNegotiationReservationDraft,
   '20260521100500_add_auth_session_platform': repairAuthSessionPlatform,
   '20260612095500_add_service_travel_mode': repairServiceTravelMode,
@@ -302,36 +308,26 @@ async function readyCheck(client, spec) {
     checks.push([constraintName, constraintExists(client, constraintName)]);
   }
 
-  const results = await Promise.all(checks.map(async ([name, check]) => [name, await check]));
+  const results = [];
+  for (const [name, check] of checks) {
+    results.push([name, await check]);
+  }
   const details = Object.fromEntries(results);
 
   return { ready: allReady(details), details };
 }
 
 async function getReservationPriceAdjustmentDetails(client) {
-  const [
-    statusType,
-    notificationProposed,
-    notificationAccepted,
-    notificationRefused,
-    statusColumn,
-    priceColumn,
-    reasonColumn,
-    requestedAtColumn,
-    amountConstraint,
-    payloadConstraint,
-  ] = await Promise.all([
-    enumExists(client, 'StatutAjustementPrixReservation'),
-    enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_PROPOSE'),
-    enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_ACCEPTE'),
-    enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_REFUSE'),
-    columnExists(client, 'bookings', 'price_adjustment_status'),
-    columnExists(client, 'bookings', 'proposed_adjusted_price'),
-    columnExists(client, 'bookings', 'price_adjustment_reason'),
-    columnExists(client, 'bookings', 'price_adjustment_requested_at'),
-    constraintExists(client, 'bookings_price_adjustment_amount_positive_check'),
-    constraintExists(client, 'bookings_price_adjustment_pending_payload_check'),
-  ]);
+  const statusType = await enumExists(client, 'StatutAjustementPrixReservation');
+  const notificationProposed = await enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_PROPOSE');
+  const notificationAccepted = await enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_ACCEPTE');
+  const notificationRefused = await enumValueExists(client, 'TypeNotification', 'AJUSTEMENT_PRIX_REFUSE');
+  const statusColumn = await columnExists(client, 'bookings', 'price_adjustment_status');
+  const priceColumn = await columnExists(client, 'bookings', 'proposed_adjusted_price');
+  const reasonColumn = await columnExists(client, 'bookings', 'price_adjustment_reason');
+  const requestedAtColumn = await columnExists(client, 'bookings', 'price_adjustment_requested_at');
+  const amountConstraint = await constraintExists(client, 'bookings_price_adjustment_amount_positive_check');
+  const payloadConstraint = await constraintExists(client, 'bookings_price_adjustment_pending_payload_check');
 
   return {
     StatutAjustementPrixReservation: statusType,
@@ -419,15 +415,12 @@ async function repairReservationPriceAdjustments(client) {
 }
 
 async function getClientReviewsDetails(client) {
-  const [ratingColumn, reviewColumn, reviewedAtColumn, ratingConstraint, payloadConstraint, reviewedAtIndex] =
-    await Promise.all([
-      columnExists(client, 'bookings', 'client_rating'),
-      columnExists(client, 'bookings', 'client_review'),
-      columnExists(client, 'bookings', 'client_reviewed_at'),
-      constraintExists(client, 'bookings_client_rating_range_chk'),
-      constraintExists(client, 'bookings_client_review_payload_chk'),
-      indexExists(client, 'bookings_professional_reviewed_at_idx'),
-    ]);
+  const ratingColumn = await columnExists(client, 'bookings', 'client_rating');
+  const reviewColumn = await columnExists(client, 'bookings', 'client_review');
+  const reviewedAtColumn = await columnExists(client, 'bookings', 'client_reviewed_at');
+  const ratingConstraint = await constraintExists(client, 'bookings_client_rating_range_chk');
+  const payloadConstraint = await constraintExists(client, 'bookings_client_review_payload_chk');
+  const reviewedAtIndex = await indexExists(client, 'bookings_professional_reviewed_at_idx');
 
   return {
     bookings_client_rating: ratingColumn,
@@ -488,6 +481,171 @@ async function repairClientReviews(client) {
   await client.query(`
     CREATE INDEX IF NOT EXISTS "bookings_professional_reviewed_at_idx"
     ON "bookings"("professional_id", "client_reviewed_at")
+  `);
+}
+
+async function repairDisputesModule(client) {
+  await client.query(`ALTER TYPE "TypeNotification" ADD VALUE IF NOT EXISTS 'LITIGE_OUVERT'`);
+
+  await client.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'StatutLitige') THEN
+        CREATE TYPE "StatutLitige" AS ENUM ('OUVERT', 'EN_REVUE', 'RESOLU', 'REJETE');
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PrioriteLitige') THEN
+        CREATE TYPE "PrioriteLitige" AS ENUM ('BASSE', 'MOYENNE', 'HAUTE');
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DecisionResolutionLitige') THEN
+        CREATE TYPE "DecisionResolutionLitige" AS ENUM ('REMBOURSER_CLIENT', 'CREDITER_PRESTATAIRE', 'PARTAGER');
+      END IF;
+    END $$;
+  `);
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS "disputes" (
+      "id" UUID NOT NULL,
+      "booking_id" UUID NOT NULL,
+      "payment_id" UUID,
+      "reporter_user_id" UUID NOT NULL,
+      "resolved_by_admin_user_id" UUID,
+      "status" "StatutLitige" NOT NULL DEFAULT 'OUVERT',
+      "priority" "PrioriteLitige" NOT NULL DEFAULT 'MOYENNE',
+      "raison" TEXT NOT NULL,
+      "internal_notes" TEXT,
+      "resolution_decision" "DecisionResolutionLitige",
+      "client_refund_percentage" INTEGER,
+      "client_refund_amount" DECIMAL(12,2),
+      "professional_payout_amount" DECIMAL(12,2),
+      "opened_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "review_started_at" TIMESTAMP(3),
+      "resolved_at" TIMESTAMP(3),
+      "rejected_at" TIMESTAMP(3),
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.query(`
+    ALTER TABLE "disputes"
+    ADD COLUMN IF NOT EXISTS "booking_id" UUID NOT NULL,
+    ADD COLUMN IF NOT EXISTS "payment_id" UUID,
+    ADD COLUMN IF NOT EXISTS "reporter_user_id" UUID NOT NULL,
+    ADD COLUMN IF NOT EXISTS "resolved_by_admin_user_id" UUID,
+    ADD COLUMN IF NOT EXISTS "status" "StatutLitige" NOT NULL DEFAULT 'OUVERT',
+    ADD COLUMN IF NOT EXISTS "priority" "PrioriteLitige" NOT NULL DEFAULT 'MOYENNE',
+    ADD COLUMN IF NOT EXISTS "raison" TEXT NOT NULL,
+    ADD COLUMN IF NOT EXISTS "internal_notes" TEXT,
+    ADD COLUMN IF NOT EXISTS "resolution_decision" "DecisionResolutionLitige",
+    ADD COLUMN IF NOT EXISTS "client_refund_percentage" INTEGER,
+    ADD COLUMN IF NOT EXISTS "client_refund_amount" DECIMAL(12,2),
+    ADD COLUMN IF NOT EXISTS "professional_payout_amount" DECIMAL(12,2),
+    ADD COLUMN IF NOT EXISTS "opened_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "review_started_at" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "resolved_at" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "rejected_at" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `);
+
+  await client.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_pkey') THEN
+        ALTER TABLE "disputes" ADD CONSTRAINT "disputes_pkey" PRIMARY KEY ("id");
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_booking_id_key') THEN
+        ALTER TABLE "disputes" ADD CONSTRAINT "disputes_booking_id_key" UNIQUE ("booking_id");
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_payment_id_key') THEN
+        ALTER TABLE "disputes" ADD CONSTRAINT "disputes_payment_id_key" UNIQUE ("payment_id");
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_booking_id_fkey') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_booking_id_fkey"
+          FOREIGN KEY ("booking_id") REFERENCES "bookings"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_payment_id_fkey') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_payment_id_fkey"
+          FOREIGN KEY ("payment_id") REFERENCES "payments"("id")
+          ON DELETE SET NULL ON UPDATE CASCADE;
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_reporter_user_id_fkey') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_reporter_user_id_fkey"
+          FOREIGN KEY ("reporter_user_id") REFERENCES "users"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_resolved_by_admin_user_id_fkey') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_resolved_by_admin_user_id_fkey"
+          FOREIGN KEY ("resolved_by_admin_user_id") REFERENCES "users"("id")
+          ON DELETE SET NULL ON UPDATE CASCADE;
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_client_refund_percentage_range_chk') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_client_refund_percentage_range_chk"
+          CHECK (
+            "client_refund_percentage" IS NULL
+            OR ("client_refund_percentage" >= 0 AND "client_refund_percentage" <= 100)
+          );
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_resolution_payload_chk') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_resolution_payload_chk"
+          CHECK (
+            (
+              "status" = 'RESOLU'
+              AND "resolved_at" IS NOT NULL
+              AND "resolution_decision" IS NOT NULL
+            )
+            OR (
+              "status" <> 'RESOLU'
+              AND "resolution_decision" IS NULL
+            )
+          );
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_rejected_payload_chk') THEN
+        ALTER TABLE "disputes"
+          ADD CONSTRAINT "disputes_rejected_payload_chk"
+          CHECK (
+            (
+              "status" = 'REJETE'
+              AND "rejected_at" IS NOT NULL
+            )
+            OR (
+              "status" <> 'REJETE'
+              AND "rejected_at" IS NULL
+            )
+          );
+      END IF;
+    END $$;
+  `);
+
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "disputes_status_priority_opened_at_idx"
+    ON "disputes"("status", "priority", "opened_at")
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "disputes_reporter_user_id_opened_at_idx"
+    ON "disputes"("reporter_user_id", "opened_at")
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "disputes_resolved_by_admin_user_id_resolved_at_idx"
+    ON "disputes"("resolved_by_admin_user_id", "resolved_at")
   `);
 }
 
@@ -589,6 +747,63 @@ function resolveMigrationDatabaseUrl() {
   return tryFixPoolerUrl(rawUrl);
 }
 
+function getMigrationChecksum(migrationName) {
+  const migrationSqlPath = join(process.cwd(), 'prisma', 'migrations', migrationName, 'migration.sql');
+  const migrationSql = readFileSync(migrationSqlPath);
+  return createHash('sha256').update(migrationSql).digest('hex');
+}
+
+function getLocalMigrationNames() {
+  const migrationsPath = join(process.cwd(), 'prisma', 'migrations');
+  return readdirSync(migrationsPath, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+async function insertAppliedMigration(client, migrationName) {
+  await client.query(
+    `INSERT INTO "_prisma_migrations" (
+       id,
+       checksum,
+       finished_at,
+       migration_name,
+       logs,
+       rolled_back_at,
+       started_at,
+       applied_steps_count
+     )
+     VALUES ($1, $2, NOW(), $3, NULL, NULL, NOW(), 1)`,
+    [randomUUID(), getMigrationChecksum(migrationName), migrationName],
+  );
+}
+
+async function updateAppliedMigration(client, migrationName, migrationId) {
+  await client.query(
+    `UPDATE "_prisma_migrations"
+     SET finished_at = NOW(),
+         rolled_back_at = NULL,
+         applied_steps_count = 1
+     WHERE migration_name = $1
+       AND id = $2`,
+    [migrationName, migrationId],
+  );
+}
+
+async function repairAndCheck(client, migrationName, checkFn) {
+  const repairFn = STUCK_MIGRATION_REPAIRS[migrationName];
+  if (!repairFn) {
+    return undefined;
+  }
+
+  console.log(`Objects incomplete. Repairing migration ${migrationName} idempotently...`);
+  await repairFn(client);
+  const afterRepair = await checkFn(client);
+  console.log(`Migration ${migrationName} details after repair:`, JSON.stringify(afterRepair.details));
+
+  return afterRepair;
+}
+
 async function main() {
   const url = resolveMigrationDatabaseUrl();
   if (!url) {
@@ -626,7 +841,8 @@ async function main() {
        ORDER BY started_at ASC`,
     );
     const failedMigrationNames = failedRows.rows.map((row) => row.migration_name);
-    const migrationsToRepair = unique([...STUCK_MIGRATIONS, ...failedMigrationNames]);
+    const localMigrationNames = getLocalMigrationNames();
+    const migrationsToRepair = unique([...localMigrationNames, ...STUCK_MIGRATIONS, ...failedMigrationNames]);
 
     for (const migrationName of migrationsToRepair) {
       const row = await client.query(
@@ -639,7 +855,42 @@ async function main() {
       );
 
       if (row.rows.length === 0) {
-        console.log(`Migration ${migrationName} not found, nothing to repair.`);
+        const checkFn = STUCK_MIGRATION_CHECKS[migrationName];
+        if (!checkFn) {
+          if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
+            console.log(`Migration ${migrationName} not found. Recording as applied because manual migration reconciliation is enabled...`);
+            await insertAppliedMigration(client, migrationName);
+            console.log(`Migration ${migrationName} recorded as applied.`);
+          } else {
+            console.log(`Migration ${migrationName} not found, nothing to repair.`);
+          }
+          continue;
+        }
+
+        const { ready, details } = await checkFn(client);
+        console.log(`Migration ${migrationName} details without history row:`, JSON.stringify(details));
+
+        if (ready) {
+          console.log(`Objects already exist. Recording migration ${migrationName} as applied...`);
+          await insertAppliedMigration(client, migrationName);
+          console.log(`Migration ${migrationName} recorded as applied.`);
+          continue;
+        }
+
+        const afterRepair = await repairAndCheck(client, migrationName, checkFn);
+        if (afterRepair?.ready) {
+          console.log(`Repair completed. Recording migration ${migrationName} as applied...`);
+          await insertAppliedMigration(client, migrationName);
+          console.log(`Migration ${migrationName} recorded as applied.`);
+          continue;
+        }
+
+        console.log(`Migration ${migrationName} not found and cannot be repaired safely before Prisma applies it.`);
+        if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
+          console.log(`Recording migration ${migrationName} as applied because manual migration reconciliation is enabled...`);
+          await insertAppliedMigration(client, migrationName);
+          console.log(`Migration ${migrationName} recorded as applied.`);
+        }
         continue;
       }
 
@@ -661,48 +912,31 @@ async function main() {
 
       if (ready) {
         console.log(`Objects already exist. Marking migration ${migrationName} as applied...`);
-        await client.query(
-          `UPDATE "_prisma_migrations"
-           SET finished_at = NOW(),
-               rolled_back_at = NULL,
-               applied_steps_count = 1
-           WHERE migration_name = $1
-             AND id = $2`,
-          [migrationName, m.id],
-        );
+        await updateAppliedMigration(client, migrationName, m.id);
         console.log(`Migration ${migrationName} marked as applied.`);
       } else {
-        const repairFn = STUCK_MIGRATION_REPAIRS[migrationName];
-        if (repairFn) {
-          console.log(`Objects incomplete. Repairing migration ${migrationName} idempotently...`);
-          await repairFn(client);
-          const afterRepair = await checkFn(client);
-          console.log(`Migration ${migrationName} details after repair:`, JSON.stringify(afterRepair.details));
-
-          if (afterRepair.ready) {
-            console.log(`Repair completed. Marking migration ${migrationName} as applied...`);
-            await client.query(
-              `UPDATE "_prisma_migrations"
-               SET finished_at = NOW(),
-                   rolled_back_at = NULL,
-                   applied_steps_count = 1
-               WHERE migration_name = $1
-                 AND id = $2`,
-              [migrationName, m.id],
-            );
-            console.log(`Migration ${migrationName} marked as applied.`);
-            continue;
-          }
+        const afterRepair = await repairAndCheck(client, migrationName, checkFn);
+        if (afterRepair?.ready) {
+          console.log(`Repair completed. Marking migration ${migrationName} as applied...`);
+          await updateAppliedMigration(client, migrationName, m.id);
+          console.log(`Migration ${migrationName} marked as applied.`);
+          continue;
         }
 
         console.log(`Objects missing or incomplete. Resetting migration ${migrationName} so it can be re-applied...`);
-        await client.query(
-          `DELETE FROM "_prisma_migrations"
-           WHERE migration_name = $1
-             AND id = $2`,
-          [migrationName, m.id],
-        );
-        console.log(`Migration ${migrationName} removed from _prisma_migrations. It will be re-applied on next deploy.`);
+        if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
+          console.log(`Marking migration ${migrationName} as applied because manual migration reconciliation is enabled...`);
+          await updateAppliedMigration(client, migrationName, m.id);
+          console.log(`Migration ${migrationName} marked as applied.`);
+        } else {
+          await client.query(
+            `DELETE FROM "_prisma_migrations"
+             WHERE migration_name = $1
+               AND id = $2`,
+            [migrationName, m.id],
+          );
+          console.log(`Migration ${migrationName} removed from _prisma_migrations. It will be re-applied on next deploy.`);
+        }
       }
     }
   } catch (err) {

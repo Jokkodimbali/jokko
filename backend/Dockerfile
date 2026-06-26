@@ -47,6 +47,7 @@ COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --chown=node:node package*.json ./
+COPY --chown=node:node scripts ./scripts
 COPY --chown=node:node scripts/docker/entrypoint.sh ./scripts/docker/entrypoint.sh
 
 RUN mkdir -p ./uploads/avatars \

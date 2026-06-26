@@ -4,15 +4,34 @@ import { PrismaClient } from '@prisma/client';
 import { Pool, type PoolConfig } from 'pg';
 import { appMessage } from '../core/http/app-http.exception';
 
+function normalizeDatabaseUrl(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    if (
+      url.protocol === 'postgresql:' &&
+      url.hostname.endsWith('.neon.tech') &&
+      !url.searchParams.has('sslmode')
+    ) {
+      url.searchParams.set('sslmode', 'require');
+      return url.toString();
+    }
+  } catch {
+    return connectionString;
+  }
+
+  return connectionString;
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   // Les modeles sont herites de PrismaClient.
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
+    const rawConnectionString = process.env.DATABASE_URL;
+    if (!rawConnectionString) {
       throw new Error(appMessage('SYSTEM_DATABASE_URL_MISSING').message);
     }
+    const connectionString = normalizeDatabaseUrl(rawConnectionString);
 
     const poolConfig: PoolConfig = {
       connectionString,

@@ -3,10 +3,32 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+function normalizeDatabaseUrl(connectionString: string | undefined): string | undefined {
+  if (!connectionString) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(connectionString);
+    if (
+      url.protocol === "postgresql:" &&
+      url.hostname.endsWith(".neon.tech") &&
+      !url.searchParams.has("sslmode")
+    ) {
+      url.searchParams.set("sslmode", "require");
+      return url.toString();
+    }
+  } catch {
+    return connectionString;
+  }
+
+  return connectionString;
+}
+
 const migrationDatabaseUrl =
-  process.env["PRISMA_MIGRATE_DATABASE_URL"] ||
-  process.env["DIRECT_URL"] ||
-  process.env["DATABASE_URL"];
+  normalizeDatabaseUrl(process.env["PRISMA_MIGRATE_DATABASE_URL"]) ||
+  normalizeDatabaseUrl(process.env["DIRECT_URL"]) ||
+  normalizeDatabaseUrl(process.env["DATABASE_URL"]);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

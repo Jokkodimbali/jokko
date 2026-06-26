@@ -246,6 +246,9 @@ npm run prisma:migrate:deploy
 ```
 
 Si vous lancez le backend en conteneur, l'entrypoint execute deja `prisma migrate deploy` sauf si `PRISMA_SKIP_MIGRATIONS=true`.
+Par defaut, l'entrypoint tente la migration 3 fois afin de ne pas depasser le
+timeout de detection de port d'un web service Render. Vous pouvez ajuster ce
+nombre avec `PRISMA_MIGRATE_MAX_ATTEMPTS`.
 
 En production Render + Neon, utilisez une URL directe non-pooler pour les
 migrations :
@@ -256,6 +259,8 @@ PRISMA_MIGRATE_DATABASE_URL=postgresql://...@.../neondb?sslmode=require
 ```
 
 Le log attendu au demarrage est alors `Prisma migrate utilise PRISMA_MIGRATE_DATABASE_URL.`
+Les URLs Neon sans `sslmode` sont completees automatiquement avec
+`sslmode=require`.
 
 ## 8. Verification rapide de la stack
 

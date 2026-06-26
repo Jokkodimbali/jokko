@@ -254,6 +254,10 @@ async function constraintExists(client, constraintName) {
        SELECT 1
        FROM pg_constraint
        WHERE conname = $1
+       UNION ALL
+       SELECT 1
+       FROM pg_class
+       WHERE relname = $1
      ) AS exists`,
     [constraintName],
   );
@@ -557,11 +561,13 @@ async function repairDisputesModule(client) {
         ALTER TABLE "disputes" ADD CONSTRAINT "disputes_pkey" PRIMARY KEY ("id");
       END IF;
 
-      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_booking_id_key') THEN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_booking_id_key')
+         AND NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'disputes_booking_id_key') THEN
         ALTER TABLE "disputes" ADD CONSTRAINT "disputes_booking_id_key" UNIQUE ("booking_id");
       END IF;
 
-      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_payment_id_key') THEN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'disputes_payment_id_key')
+         AND NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'disputes_payment_id_key') THEN
         ALTER TABLE "disputes" ADD CONSTRAINT "disputes_payment_id_key" UNIQUE ("payment_id");
       END IF;
 
@@ -855,15 +861,16 @@ async function main() {
       );
 
       if (row.rows.length === 0) {
+        if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
+          console.log(`Migration ${migrationName} not found. Recording as applied because manual migration reconciliation is enabled...`);
+          await insertAppliedMigration(client, migrationName);
+          console.log(`Migration ${migrationName} recorded as applied.`);
+          continue;
+        }
+
         const checkFn = STUCK_MIGRATION_CHECKS[migrationName];
         if (!checkFn) {
-          if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
-            console.log(`Migration ${migrationName} not found. Recording as applied because manual migration reconciliation is enabled...`);
-            await insertAppliedMigration(client, migrationName);
-            console.log(`Migration ${migrationName} recorded as applied.`);
-          } else {
-            console.log(`Migration ${migrationName} not found, nothing to repair.`);
-          }
+          console.log(`Migration ${migrationName} not found, nothing to repair.`);
           continue;
         }
 
@@ -898,6 +905,13 @@ async function main() {
 
       if (m.finished_at && !m.rolled_back_at) {
         console.log(`Migration ${migrationName} is already marked as applied.`);
+        continue;
+      }
+
+      if (ASSUME_MANUAL_MIGRATIONS_APPLIED) {
+        console.log(`Migration ${migrationName} is not marked as finished. Marking as applied because manual migration reconciliation is enabled...`);
+        await updateAppliedMigration(client, migrationName, m.id);
+        console.log(`Migration ${migrationName} marked as applied.`);
         continue;
       }
 

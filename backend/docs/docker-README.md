@@ -254,13 +254,13 @@ En production Render + Neon, utilisez une URL directe non-pooler pour les
 migrations :
 
 ```text
-DATABASE_URL=postgresql://...@...-pooler.../neondb?sslmode=require
-PRISMA_MIGRATE_DATABASE_URL=postgresql://...@.../neondb?sslmode=require
+DATABASE_URL=postgresql://...@...-pooler.../neondb?sslmode=verify-full
+PRISMA_MIGRATE_DATABASE_URL=postgresql://...@.../neondb?sslmode=verify-full
 ```
 
 Le log attendu au demarrage est alors `Prisma migrate utilise PRISMA_MIGRATE_DATABASE_URL.`
-Les URLs Neon sans `sslmode` sont completees automatiquement avec
-`sslmode=require`.
+Les URLs Neon sans mode SSL strict sont completees automatiquement avec
+`sslmode=verify-full`.
 
 ## 8. Verification rapide de la stack
 

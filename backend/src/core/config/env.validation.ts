@@ -105,8 +105,23 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+function isPlaceholderSecret(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.includes('tu m') ||
+    normalized.includes('option 2') ||
+    normalized.includes('renseigner sur render') ||
+    normalized.includes('generate-a-strong') ||
+    normalized.includes('change-me') ||
+    normalized.includes('replace-me')
+  );
+}
+
 function requiredSecret(name: string, value: unknown): string {
   const secret = asString(value).trim();
+  if (isPlaceholderSecret(secret)) {
+    throw new Error(ENV_MESSAGES.INVALID_SECRET_PLACEHOLDER(name));
+  }
   if (secret.length < 16 && name !== 'GOOGLE_CLIENT_ID') {
     throw new Error(ENV_MESSAGES.INVALID_SECRET_MIN_LENGTH(name));
   }

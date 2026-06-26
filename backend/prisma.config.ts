@@ -3,8 +3,22 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-function normalizeDatabaseUrl(connectionString: string | undefined): string | undefined {
+function isPlaceholderDatabaseUrl(connectionString: string): boolean {
+  return (
+    connectionString.includes("...") ||
+    connectionString.includes("ep-xxx") ||
+    connectionString.includes("@host:")
+  );
+}
+
+function normalizeDatabaseUrl(
+  connectionString: string | undefined,
+): string | undefined {
   if (!connectionString) {
+    return undefined;
+  }
+
+  if (isPlaceholderDatabaseUrl(connectionString)) {
     return undefined;
   }
 
@@ -12,10 +26,12 @@ function normalizeDatabaseUrl(connectionString: string | undefined): string | un
     const url = new URL(connectionString);
     if (
       url.protocol === "postgresql:" &&
-      url.hostname.endsWith(".neon.tech") &&
-      !url.searchParams.has("sslmode")
+      url.hostname.endsWith(".neon.tech")
     ) {
-      url.searchParams.set("sslmode", "require");
+      const sslMode = url.searchParams.get("sslmode");
+      if (!sslMode || ["prefer", "require", "verify-ca"].includes(sslMode)) {
+        url.searchParams.set("sslmode", "verify-full");
+      }
       return url.toString();
     }
   } catch {

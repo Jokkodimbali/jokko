@@ -9,10 +9,12 @@ function normalizeDatabaseUrl(connectionString: string): string {
     const url = new URL(connectionString);
     if (
       url.protocol === 'postgresql:' &&
-      url.hostname.endsWith('.neon.tech') &&
-      !url.searchParams.has('sslmode')
+      url.hostname.endsWith('.neon.tech')
     ) {
-      url.searchParams.set('sslmode', 'require');
+      const sslMode = url.searchParams.get('sslmode');
+      if (!sslMode || ['prefer', 'require', 'verify-ca'].includes(sslMode)) {
+        url.searchParams.set('sslmode', 'verify-full');
+      }
       return url.toString();
     }
   } catch {

@@ -5,6 +5,8 @@ export const ENV_MESSAGES = {
     `Variable d'environnement invalide: ${name} doit contenir au moins 16 caracteres.`,
   INVALID_PRODUCTION_SECRET_MIN_LENGTH: (name: string) =>
     `Variable d'environnement invalide: ${name} doit contenir au moins 32 caracteres en production.`,
+  INVALID_SECRET_PLACEHOLDER: (name: string) =>
+    `Variable d'environnement invalide: ${name} doit etre une vraie valeur secrete, pas un exemple ou du texte explicatif.`,
   INVALID_NODE_ENV: (value: string) =>
     `Variable d'environnement invalide: NODE_ENV=${value}.`,
   INVALID_DATABASE_URL:

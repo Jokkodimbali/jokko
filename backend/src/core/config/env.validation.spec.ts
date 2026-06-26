@@ -38,4 +38,14 @@ describe('validerEnv', () => {
       }),
     ).toThrow('PAYMENT_WEBHOOK_SECRET');
   });
+
+  it('rejects production placeholder secret text', () => {
+    expect(() =>
+      validerEnv({
+        ...baseEnv,
+        JWT_ACCESS_SECRET:
+          "Tu m'as demande de ne pas detailler la methode option 2",
+      }),
+    ).toThrow('JWT_ACCESS_SECRET');
+  });
 });

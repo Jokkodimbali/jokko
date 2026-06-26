@@ -1,11 +1,32 @@
 #!/bin/sh
 set -eu
 
+is_placeholder_database_url() {
+  case "${1:-}" in
+    *...*|*ep-xxx*|*@host:*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 if [ "${PRISMA_SKIP_MIGRATIONS:-false}" != "true" ]; then
   echo "Application des migrations Prisma..."
   if [ -z "${DATABASE_URL:-}" ]; then
     echo "Erreur: DATABASE_URL est absent. Impossible d'appliquer les migrations Prisma." >&2
     exit 1
+  fi
+
+  if is_placeholder_database_url "${PRISMA_MIGRATE_DATABASE_URL:-}"; then
+    echo "Avertissement: PRISMA_MIGRATE_DATABASE_URL contient une URL d'exemple; fallback vers DATABASE_URL." >&2
+    unset PRISMA_MIGRATE_DATABASE_URL
+  fi
+
+  if is_placeholder_database_url "${DIRECT_URL:-}"; then
+    echo "Avertissement: DIRECT_URL contient une URL d'exemple; fallback vers DATABASE_URL." >&2
+    unset DIRECT_URL
   fi
 
   if [ -n "${PRISMA_MIGRATE_DATABASE_URL:-}" ]; then

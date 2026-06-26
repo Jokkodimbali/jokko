@@ -14,6 +14,12 @@ if [ "${PRISMA_SKIP_MIGRATIONS:-false}" != "true" ]; then
     echo "Prisma migrate utilise DIRECT_URL."
   else
     echo "Prisma migrate utilise DATABASE_URL."
+    case "$DATABASE_URL" in
+      *-pooler.*)
+        echo "Avertissement: DATABASE_URL semble pointer vers un pooler Neon." >&2
+        echo "Pour Prisma migrate, configurez PRISMA_MIGRATE_DATABASE_URL avec l'URL directe Neon non-pooler." >&2
+        ;;
+    esac
   fi
 
   # Increase connection and query timeout for Prisma migrations

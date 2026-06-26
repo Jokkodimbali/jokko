@@ -124,6 +124,7 @@ Les fichiers de reference existants sont :
 Variables importantes :
 
 - `DATABASE_URL`
+- `PRISMA_MIGRATE_DATABASE_URL` si `DATABASE_URL` pointe vers un pooler Neon
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGINS`
@@ -240,6 +241,12 @@ prisma migrate deploy
 ```
 
 sauf si `PRISMA_SKIP_MIGRATIONS=true`.
+
+Sur Render avec Neon, gardez `DATABASE_URL` pour l'API, mais ajoutez aussi
+`PRISMA_MIGRATE_DATABASE_URL` avec l'URL directe Neon non-pooler. Si l'entrypoint
+affiche `Prisma migrate utilise DATABASE_URL` alors que le host contient
+`-pooler`, les migrations peuvent echouer au demarrage avant que NestJS ne lance
+l'API.
 
 ## Temps reel
 Deux modules temps reel existent deja :

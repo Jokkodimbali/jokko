@@ -9,3 +9,7 @@ services:
         value: production
       - key: PORT
         value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: PRISMA_MIGRATE_DATABASE_URL
+        sync: false

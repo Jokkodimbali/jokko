@@ -144,6 +144,7 @@ Le fichier de reference est `backend/.env.example`.
 Variables critiques :
 
 - `DATABASE_URL`
+- `PRISMA_MIGRATE_DATABASE_URL` pour les migrations si `DATABASE_URL` pointe vers un pooler Neon
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
@@ -233,7 +234,7 @@ Le projet utilise Prisma 7 avec `prisma.config.ts`.
 
 Point important :
 
-- la datasource est configuree via `DATABASE_URL`
+- la datasource est configuree via `DATABASE_URL`, ou via `PRISMA_MIGRATE_DATABASE_URL` / `DIRECT_URL` pour `prisma migrate deploy`
 - le schema est `prisma/schema.prisma`
 - les migrations sont dans `prisma/migrations`
 
@@ -245,6 +246,16 @@ npm run prisma:migrate:deploy
 ```
 
 Si vous lancez le backend en conteneur, l'entrypoint execute deja `prisma migrate deploy` sauf si `PRISMA_SKIP_MIGRATIONS=true`.
+
+En production Render + Neon, utilisez une URL directe non-pooler pour les
+migrations :
+
+```text
+DATABASE_URL=postgresql://...@...-pooler.../neondb?sslmode=require
+PRISMA_MIGRATE_DATABASE_URL=postgresql://...@.../neondb?sslmode=require
+```
+
+Le log attendu au demarrage est alors `Prisma migrate utilise PRISMA_MIGRATE_DATABASE_URL.`
 
 ## 8. Verification rapide de la stack
 

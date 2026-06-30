@@ -1770,3 +1770,24 @@ video {
   text-transform: uppercase;
   white-space: nowrap;
 }
+
+.doctor-space__motif-modal{align-items:center;display:grid;inset:0;justify-items:center;padding:18px;position:fixed;z-index:80}
+.doctor-space__motif-modal-backdrop{background:rgba(17,24,39,.42);inset:0;position:absolute}
+.doctor-space__motif-modal-panel{background:#fff;border:1px solid #ead7c4;border-radius:20px;box-shadow:0 28px 80px rgba(15,23,42,.24);display:grid;gap:18px;max-height:calc(100vh - 36px);overflow:auto;padding:24px;position:relative;width:min(680px,100%);z-index:1}
+.doctor-space__motif-modal-close{align-items:center;background:#fff7ed;border:1px solid #ead7c4;border-radius:50%;color:#7d4c22;cursor:pointer;display:inline-flex;height:38px;justify-content:center;position:absolute;right:18px;top:18px;width:38px}
+.doctor-space__motif-modal-panel header{display:grid;gap:6px;padding-right:48px}
+.doctor-space__motif-modal-panel header small{color:#915a22;font-size:11px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
+.doctor-space__motif-modal-panel header h2{color:#1f1f1f;font-size:24px;font-weight:950;line-height:1.1;margin:0}
+.doctor-space__motif-modal-panel header p{color:#70665c;font-size:13px;font-weight:700;line-height:1.45;margin:0}
+.doctor-space__motif-modal-fields,.doctor-space__motif-modal-travel>div,.doctor-space__motif-modal-actions{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.doctor-space__motif-modal-travel{display:grid;gap:10px;grid-column:1/-1}
+.doctor-space__motif-modal-travel>span{color:#2b2926;font-size:12px;font-weight:850}
+.doctor-space__motif-modal-travel>div{grid-template-columns:repeat(3,minmax(0,1fr))}
+.doctor-space__motif-modal-travel button{background:#fbfbfa;border:1px solid #ead7c4;border-radius:12px;color:#4d463f;cursor:pointer;display:grid;font:inherit;font-size:12px;font-weight:900;gap:7px;justify-items:center;min-height:78px;padding:10px;text-align:center}
+.doctor-space__motif-modal-travel-option--active{background:#1f1f1f!important;border-color:#1f1f1f!important;color:#fff!important}
+.doctor-space__motif-modal-actions{grid-template-columns:minmax(0,1fr) auto}
+.doctor-space__motif-modal-actions button{border-radius:12px;cursor:pointer;font:inherit;font-size:13px;font-weight:950;min-height:46px;padding:0 18px}
+.doctor-space__motif-modal-actions button[type='submit']{background:#915a22;border:1px solid #915a22;color:#fff}
+.doctor-space__motif-modal-actions button[type='button']{background:#fff;border:1px solid #ead7c4;color:#7d4c22}
+.doctor-space__motif-modal-actions button:disabled{cursor:not-allowed;opacity:.58}
+@media (max-width:860px){.doctor-space__motif-modal-fields,.doctor-space__motif-modal-travel>div,.doctor-space__motif-modal-actions{grid-template-columns:1fr}}

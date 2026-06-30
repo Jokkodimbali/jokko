@@ -299,6 +299,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly days = signal<DaySchedule[]>(this.buildEmptyWeek());
   protected readonly motifs = signal<ConsultationMotif[]>([]);
   protected readonly editingMotifId = signal<string | null>(null);
+  protected readonly editingMotif = signal<ConsultationMotif | null>(null);
   protected readonly categories = signal<CategoryStructure[]>([]);
   protected readonly reservations = signal<BackendReservation[]>([]);
   protected readonly negotiations = signal<NegotiationView[]>([]);
@@ -337,6 +338,14 @@ export class DoctorSpacePageComponent implements OnInit {
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
+  };
+  protected readonly motifEditForm = {
+    categoryId: '',
+    name: '',
+    durationMinutes: 15,
+    price: 10000,
+    isRequired: true,
+    travelMode: 'PRESTATAIRE_SE_DEPLACE' as ServiceTravelMode,
   };
   protected readonly travelModeOptions: TravelModeOption[] = [
     {
@@ -487,13 +496,12 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly defaultServicePriceType = computed<'FIXE' | 'NEGOCIABLE'>(() =>
     this.isProviderSpace() ? 'NEGOCIABLE' : 'FIXE',
   );
-  protected readonly serviceFormTitle = computed(() => {
-    if (this.editingMotifId()) {
-      return this.isProviderSpace() ? 'Modifier ce service' : 'Modifier ce motif';
-    }
-
-    return this.isProviderSpace() ? 'Nouveau service' : 'Nouveau motif';
-  });
+  protected readonly serviceFormTitle = computed(() =>
+    this.isProviderSpace() ? 'Nouveau service' : 'Nouveau motif',
+  );
+  protected readonly serviceEditModalTitle = computed(() =>
+    this.isProviderSpace() ? 'Modifier ce service' : 'Modifier ce motif',
+  );
   protected readonly serviceFormSubtitle = computed(() =>
     this.isProviderSpace()
       ? 'Nommez votre service et indiquez le prix de depart negociable.'
@@ -1873,7 +1881,6 @@ export class DoctorSpacePageComponent implements OnInit {
     const categoryId = this.motifForm.categoryId || this.resolveMotifCategoryId();
     const durationMinutes = Number(this.motifForm.durationMinutes);
     const price = Number(this.motifForm.price);
-    const editingMotifId = this.editingMotifId();
     const name = this.motifForm.name.trim();
 
     if (!categoryId) {
@@ -1889,32 +1896,22 @@ export class DoctorSpacePageComponent implements OnInit {
 
     this.isSaving.set(true);
 
-    const request$ = editingMotifId
-      ? this.doctorSpaceService.updateService(editingMotifId, {
-          name,
-          description: this.buildServiceDescription(name),
-          price,
-          priceType: this.defaultServicePriceType(),
-          travelMode: this.selectedTravelMode(),
-          durationMinutes,
-          isRequired: this.motifForm.isRequired,
-        })
-      : this.doctorSpaceService.createService({
-          categoryId,
-          name,
-          description: this.buildServiceDescription(name),
-          price,
-          priceType: this.defaultServicePriceType(),
-          travelMode: this.selectedTravelMode(),
-          durationMinutes,
-          isRequired: this.motifForm.isRequired,
-        });
+    const request$ = this.doctorSpaceService.createService({
+      categoryId,
+      name,
+      description: this.buildServiceDescription(name),
+      price,
+      priceType: this.defaultServicePriceType(),
+      travelMode: this.selectedTravelMode(),
+      durationMinutes,
+      isRequired: this.motifForm.isRequired,
+    });
 
     request$
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => {
-          this.feedback.success(editingMotifId ? 'Motif mis a jour.' : 'Motif ajoute.');
+          this.feedback.success('Motif ajoute.');
           this.resetMotifForm();
           this.refreshServices();
         },
@@ -1922,7 +1919,7 @@ export class DoctorSpacePageComponent implements OnInit {
           this.feedback.error(
             getHttpErrorMessage(
               error,
-              editingMotifId ? 'Mise a jour du motif impossible.' : 'Creation du motif impossible.',
+              'Creation du motif impossible.',
             ),
           ),
       });
@@ -1930,20 +1927,77 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected editMotif(motif: ConsultationMotif): void {
     this.editingMotifId.set(motif.id);
-    this.motifForm.categoryId = motif.categoryId;
-    this.motifForm.name = motif.name;
-    this.motifForm.durationMinutes = motif.durationMinutes;
-    this.motifForm.price = motif.price;
-    this.motifForm.isRequired = motif.isRequired;
+    this.editingMotif.set(motif);
+    this.motifEditForm.categoryId = motif.categoryId;
+    this.motifEditForm.name = motif.name;
+    this.motifEditForm.durationMinutes = motif.durationMinutes;
+    this.motifEditForm.price = motif.price;
+    this.motifEditForm.isRequired = motif.isRequired;
+    this.motifEditForm.travelMode = motif.travelMode;
+  }
+
+  protected closeMotifEditModal(): void {
+    this.editingMotifId.set(null);
+    this.editingMotif.set(null);
+    this.resetMotifEditForm();
+  }
+
+  protected saveEditedMotif(): void {
+    const editingMotifId = this.editingMotifId();
+    const categoryId = this.motifEditForm.categoryId || this.resolveMotifCategoryId();
+    const durationMinutes = Number(this.motifEditForm.durationMinutes);
+    const price = Number(this.motifEditForm.price);
+    const name = this.motifEditForm.name.trim();
+
+    if (!editingMotifId || !categoryId) {
+      this.feedback.info('Selectionnez un service valide avant de modifier.');
+      return;
+    }
+    if (!name || durationMinutes <= 0 || price <= 0) {
+      this.feedback.info('Renseignez un nom, une duree et un tarif valides.');
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.doctorSpaceService
+      .updateService(editingMotifId, {
+        name,
+        description: this.buildServiceDescription(name),
+        price,
+        priceType: this.defaultServicePriceType(),
+        travelMode: this.motifEditForm.travelMode,
+        durationMinutes,
+        isRequired: this.motifEditForm.isRequired,
+      })
+      .pipe(finalize(() => this.isSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.feedback.success('Motif mis a jour.');
+          this.closeMotifEditModal();
+          this.refreshServices();
+        },
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Mise a jour du motif impossible.')),
+      });
   }
 
   protected resetMotifForm(): void {
     this.editingMotifId.set(null);
+    this.editingMotif.set(null);
     this.motifForm.categoryId = '';
     this.motifForm.name = '';
     this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = 10000;
     this.motifForm.isRequired = true;
+  }
+
+  private resetMotifEditForm(): void {
+    this.motifEditForm.categoryId = '';
+    this.motifEditForm.name = '';
+    this.motifEditForm.durationMinutes = this.appointmentDuration();
+    this.motifEditForm.price = 10000;
+    this.motifEditForm.isRequired = true;
+    this.motifEditForm.travelMode = this.selectedTravelMode();
   }
 
   protected toggleMotifRequired(motif: ConsultationMotif): void {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AdminUserHistory, AdminUserProfile, AdminUserRow } from '../../../data-access/admin.models';
 import { AdminUsersService } from '../../../data-access/admin-users.service';
 
@@ -138,12 +139,7 @@ export class AdminUsersPanelComponent implements OnInit {
   }
 
   protected initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(name);
   }
 
   protected formatMoney(value: number): string {

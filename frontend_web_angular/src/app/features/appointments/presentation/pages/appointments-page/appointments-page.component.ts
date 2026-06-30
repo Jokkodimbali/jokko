@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { forkJoin } from 'rxjs';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -63,6 +64,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   private readonly serviceProposalService = inject(ServiceProposalService);
   private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointments = signal<AppointmentView[]>([]);
@@ -320,6 +322,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit(): void {
+    this.restoreTabFromUrl();
     this.loadAppointments();
   }
 
@@ -333,6 +336,12 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
     this.activeStatus.set('ALL');
     this.selectedCalendarDate.set(null);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: tab === 'negotiations' ? { tab } : { tab: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     if (tab === 'negotiations') {
       this.refreshNegotiations();
     }
@@ -473,7 +482,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected primaryActionQueryParams(): { returnUrl: string } {
-    return { returnUrl: this.router.url || '/appointments' };
+    return { returnUrl: this.currentAppointmentsReturnUrl() };
   }
 
   protected cancellationDisabledReason(appointment: AppointmentView): string {
@@ -545,12 +554,19 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected avatarInitials(appointment: AppointmentView): string {
-    return appointment.doctorName
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return this.initialsFromName(appointment.doctorName, 'JD');
+  }
+
+  protected negotiationActionLabel(negotiation: NegotiationView): string {
+    return this.isNegotiationAwaitingCurrentUser(negotiation) ? 'Negocier' : 'En savoir plus';
+  }
+
+  protected negotiationActionIcon(negotiation: NegotiationView): string {
+    return this.isNegotiationAwaitingCurrentUser(negotiation) ? 'send' : 'arrow-right';
+  }
+
+  private initialsFromName(name: string, fallback: string): string {
+    return userInitials(name, fallback);
   }
 
   protected negotiationContactName(negotiation: NegotiationView): string {
@@ -563,12 +579,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationInitials(negotiation: NegotiationView): string {
-    return this.negotiationContactName(negotiation)
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return this.initialsFromName(this.negotiationContactName(negotiation), 'CL');
   }
 
   protected negotiationAvatarUrl(negotiation: NegotiationView): string | null {
@@ -659,13 +670,33 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected negotiationQueryParams(negotiation: NegotiationView): Record<string, string> {
     if (negotiation.reservationId) {
-      return { returnUrl: this.router.url || '/appointments' };
+      return { returnUrl: this.currentAppointmentsReturnUrl() };
     }
     return {
       serviceId: negotiation.serviceId,
       negotiationId: negotiation.id,
-      returnUrl: this.router.url || '/appointments',
+      returnUrl: this.currentAppointmentsReturnUrl(),
     };
+  }
+
+  private restoreTabFromUrl(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'negotiations') {
+      this.activeTab.set('negotiations');
+    }
+  }
+
+  private currentAppointmentsReturnUrl(): string {
+    return this.activeTab() === 'negotiations' ? '/appointments?tab=negotiations' : '/appointments';
+  }
+
+  private isNegotiationAwaitingCurrentUser(negotiation: NegotiationView): boolean {
+    const role = this.currentUser()?.role;
+    if (role === 'CLIENT') return negotiation.statut === 'EN_ATTENTE_CLIENT';
+    if (role === 'PRESTATAIRE' || role === 'MEDECIN') {
+      return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE';
+    }
+    return false;
   }
 
   private loadAppointments(): void {

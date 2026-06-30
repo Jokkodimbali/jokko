@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Post,
   UploadedFiles,
@@ -48,6 +49,8 @@ const allowedDisputeEvidenceMimeTypes = new Set([
 @Controller('reservations/:reservationId/dispute')
 @UseGuards(JwtAuthGuard)
 export class UserDisputeEvidenceController {
+  private readonly logger = new Logger(UserDisputeEvidenceController.name);
+
   constructor(
     private readonly disputesFacade: DisputesFacade,
     private readonly cloudinaryMedia: CloudinaryMediaService,
@@ -100,6 +103,16 @@ export class UserDisputeEvidenceController {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
+    if (
+      files.some(
+        (file) =>
+          !allowedDisputeEvidenceMimeTypes.has(file.mimetype) ||
+          file.size > 10 * 1024 * 1024,
+      )
+    ) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
     const uploadedFiles = await Promise.all(
       files.map((file) =>
         this.cloudinaryMedia
@@ -109,8 +122,18 @@ export class UserDisputeEvidenceController {
             mimeType: file.mimetype,
             folder: 'jokko/dispute-evidence',
           })
-          .catch(() => {
-            throw appHttpException('VALIDATION_REQUEST_INVALID');
+          .catch((error: unknown) => {
+            const details =
+              error instanceof Error ? error.message : String(error);
+            this.logger.error(
+              `Dispute evidence Cloudinary upload failed for ${file.originalname} (${file.mimetype}, ${file.size} bytes): ${details}`,
+            );
+            throw appHttpException('DISPUTES_EVIDENCE_UPLOAD_FAILED', {
+              fileName: file.originalname,
+              mimeType: file.mimetype,
+              sizeBytes: file.size,
+              reason: details,
+            });
           }),
       ),
     );

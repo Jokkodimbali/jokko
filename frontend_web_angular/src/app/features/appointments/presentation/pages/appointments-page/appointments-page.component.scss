@@ -110,7 +110,10 @@
   font-weight: 950;
   height: 48px;
   justify-content: center;
+  line-height: 1;
   overflow: hidden;
+  text-align: center;
+  text-transform: uppercase;
   width: 48px;
 }
 
@@ -930,6 +933,12 @@
   font-size: 15px;
   font-weight: 950;
   justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  overflow: hidden;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .appointment-row__provider strong {

@@ -14,6 +14,7 @@ import {
 } from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -78,14 +79,7 @@ export class ProviderProfileComponent implements OnInit {
     };
   });
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
-  protected readonly initials = computed(() =>
-    this.displayName()
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join(''),
-  );
+  protected readonly initials = computed(() => userInitials(this.displayName()));
   protected readonly coverUrl = computed(() => this.defaultCoverUrl);
   protected readonly portfolioItems = computed(() =>
     (this.detail()?.portfolio ?? []).slice(0, 6),
@@ -93,6 +87,13 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly reviewItems = computed(() =>
     (this.detail()?.reviews ?? []).slice(0, 2),
   );
+  protected formatReviewInitials(name: string): string {
+    return userInitials(name);
+  }
+
+  protected portfolioInitials(title: string): string {
+    return userInitials(title);
+  }
   protected readonly ratingLabel = computed(() => {
     const rating = Number(this.detail()?.profile.noteGlobale ?? 0);
     return rating > 0 ? rating.toFixed(1).replace('.', ',') : 'Nouveau';

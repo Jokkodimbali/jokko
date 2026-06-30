@@ -16,6 +16,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
@@ -157,25 +158,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar || '');
 
-  protected readonly providerInitials = computed(
-    () =>
-      this.displayName()
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || 'JD',
-  );
+  protected readonly providerInitials = computed(() => userInitials(this.displayName(), 'JD'));
   protected readonly proposalClientName = computed(
     () => this.pendingProposal()?.client?.nom || 'Client',
   );
   protected readonly proposalClientInitials = computed(() =>
-    this.proposalClientName()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join(''),
+    userInitials(this.proposalClientName(), 'CL'),
   );
   protected readonly canProviderRespond = computed(
     () => this.pendingProposal()?.statut === 'EN_ATTENTE_PRESTATAIRE',

@@ -13,6 +13,15 @@ import { AppointmentView } from '../../../appointments/domain/appointments.model
 
 type DisputeReasonKey = 'bad_work' | 'provider_absent' | 'billing' | 'other';
 
+const DISPUTE_EVIDENCE_ACCEPTED_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+]);
+const DISPUTE_EVIDENCE_MAX_FILES = 4;
+const DISPUTE_EVIDENCE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
 interface DisputeReasonOption {
   key: DisputeReasonKey;
   icon: string;
@@ -109,11 +118,18 @@ export class DisputeReportPageComponent implements OnInit {
   protected onEvidenceSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
+    input.value = '';
     if (files.length === 0) return;
 
-    const supportedFiles = files.filter((file) => file.type.startsWith('image/') || file.type === 'application/pdf');
-    this.evidenceFiles.set([...this.evidenceFiles(), ...supportedFiles].slice(0, 4));
-    input.value = '';
+    const nextFiles = [...this.evidenceFiles(), ...files];
+    const validationMessage = this.validateEvidenceFiles(nextFiles);
+    if (validationMessage) {
+      this.errorMessage.set(validationMessage);
+      this.feedback.error(validationMessage);
+      return;
+    }
+
+    this.evidenceFiles.set(nextFiles);
   }
 
   protected removeEvidence(index: number): void {
@@ -155,7 +171,9 @@ export class DisputeReportPageComponent implements OnInit {
       .subscribe({
         next: () => {
           this.feedback.success('Litige soumis avec succes.');
-          this.router.navigate(['/litiges', appointment.id, 'suivi']);
+          this.router.navigate(['/litiges'], {
+            queryParams: { reservationId: appointment.id },
+          });
         },
         error: (error) => {
           const message = getHttpErrorMessage(error, 'Impossible de soumettre ce litige.');
@@ -185,5 +203,21 @@ export class DisputeReportPageComponent implements OnInit {
 
   private buildBackendReason(description: string): string {
     return `Motif: ${this.selectedReasonLabel()}\nDescription: ${description}`.slice(0, 1000);
+  }
+
+  private validateEvidenceFiles(files: File[]): string | null {
+    if (files.length > DISPUTE_EVIDENCE_MAX_FILES) {
+      return 'Ajoutez 4 pieces maximum a la fois.';
+    }
+
+    if (files.some((file) => !DISPUTE_EVIDENCE_ACCEPTED_TYPES.has(file.type))) {
+      return 'Formats acceptes : JPG, PNG, WEBP ou PDF.';
+    }
+
+    if (files.some((file) => file.size > DISPUTE_EVIDENCE_MAX_SIZE_BYTES)) {
+      return 'Chaque piece jointe doit faire 10 Mo maximum.';
+    }
+
+    return null;
   }
 }

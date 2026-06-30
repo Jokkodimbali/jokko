@@ -1247,7 +1247,7 @@
                   </button>
                   <span class="doctor-space__patient-avatar">
                     <img *ngIf="detail.avatarUrl; else patientInitials" [src]="detail.avatarUrl" [alt]="detail.patientName" />
-                    <ng-template #patientInitials>{{ detail.patientName.slice(0, 2).toUpperCase() }}</ng-template>
+                    <ng-template #patientInitials>{{ formatPatientInitials(detail.patientName) }}</ng-template>
                     <i></i>
                   </span>
                   <div class="doctor-space__patient-title">
@@ -1464,7 +1464,7 @@
                 <div class="doctor-space__medical-patient">
                   <span class="doctor-space__medical-avatar">
                     <img *ngIf="row.avatarUrl; else medicalInitials" [src]="row.avatarUrl" [alt]="row.patientName" />
-                    <ng-template #medicalInitials>{{ row.patientName.slice(0, 2).toUpperCase() }}</ng-template>
+                    <ng-template #medicalInitials>{{ formatPatientInitials(row.patientName) }}</ng-template>
                     <i></i>
                   </span>
                   <div>

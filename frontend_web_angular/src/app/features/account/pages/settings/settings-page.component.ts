@@ -10,6 +10,7 @@ import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { publicAssetUrl } from '../../../../shared/utils/public-asset-url';
+import { userInitials } from '../../../../shared/utils/user-initials';
 import {
   DoctorSpaceService,
   ProfessionalUploadView,
@@ -171,14 +172,7 @@ export class SettingsPageComponent implements OnInit {
   };
   protected readonly displayName = computed(() => this.profile()?.nom || this.currentUser()?.name || 'Mon profil');
   protected readonly profileAvatarUrl = computed(() => publicAssetUrl(this.profile()?.urlAvatar));
-  protected readonly initials = computed(() =>
-    this.displayName()
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || 'U',
-  );
+  protected readonly initials = computed(() => userInitials(this.displayName(), 'U'));
   protected readonly roleLabel = computed(() => {
     const role = this.profile()?.role || this.currentUser()?.role;
     if (role === 'PRESTATAIRE') return 'Prestataire';

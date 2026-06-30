@@ -1734,3 +1734,58 @@ video {
     text-align: left;
   }
 }
+
+:where(
+  .app-navbar__profile-avatar,
+  .app-navbar__dropdown-avatar,
+  .app-navbar__mobile-avatar,
+  .settings-page__avatar > span,
+  .messages-page__avatar i,
+  .messages-page__appointment-initials,
+  .appointment-row__avatar-initials,
+  .appointments-negotiation-card__avatar,
+  .appointment-detail__upcoming-avatar,
+  .appointment-detail__route-client-avatar,
+  .appointment-payment__receipt-avatar span,
+  .appointment-payment__accepted-avatar span,
+  .favorite-avatar__initials,
+  .provider-card__avatar span,
+  .provider-profile__avatar--initials,
+  .provider-profile__review-avatar,
+  .service-proposal__accepted-avatar span,
+  .service-proposal__accepted-avatar em,
+  .service-proposal__waiting-avatar em,
+  .service-proposal__avatar-wrap span,
+  .service-proposal__provider-initials,
+  .doctor-profile__avatar-initials,
+  .medicine-booking__avatar,
+  .doctor-space__negotiation-avatar,
+  .doctor-space__next-avatar,
+  .doctor-space__provider-history-avatar,
+  .doctor-space__patient-avatar,
+  .doctor-space__medical-avatar,
+  .avatar,
+  .admin-users__list button > i,
+  .admin-users__identity i,
+  .admin-users__detail-head i,
+  .admin-validation-card > span,
+  .admin-validation-profile > span,
+  .admin-medical-card > span,
+  .admin-medical-detail header > span,
+  .admin-provider-identity > span,
+  .admin-provider-detail header > span,
+  .admin-kyc__avatar span,
+  .admin-medical__avatar span,
+  .admin-providers__avatar span,
+  .admin-providers__detail-avatar span
+) {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  overflow: hidden;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

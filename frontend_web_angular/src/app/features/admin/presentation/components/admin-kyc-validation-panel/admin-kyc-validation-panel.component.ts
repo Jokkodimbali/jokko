@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AdminKycProfile } from '../../../data-access/admin.models';
 
 @Component({
@@ -71,12 +72,7 @@ export class AdminKycValidationPanelComponent implements OnChanges {
   }
 
   protected initials(profile: AdminKycProfile): string {
-    return this.title(profile)
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(this.title(profile));
   }
 
   protected formatDate(profile: AdminKycProfile): string {

@@ -41,6 +41,7 @@ import { AdminUsersPanelComponent } from '../../components/admin-users-panel/adm
 import { AdminReservationsPanelComponent } from '../../components/admin-reservations-panel/admin-reservations-panel.component';
 import { AdminPaymentsPanelComponent } from '../../components/admin-payments-panel/admin-payments-panel.component';
 import { AdminNotificationsPanelComponent } from '../../components/admin-notifications-panel/admin-notifications-panel.component';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 
 type AdminSection =
   | 'overview'
@@ -125,12 +126,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly user = this.authSession.currentUser;
   protected readonly userInitials = computed(() => {
     const name = this.user()?.name ?? 'MD';
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(name, 'MD');
   });
 
   protected readonly openDisputes = computed(() => {

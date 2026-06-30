@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import {
   AdminPaginatedResult,
   AdminProviderListQuery,
@@ -154,12 +155,7 @@ export class AdminProvidersPanelComponent implements OnChanges, OnDestroy {
   }
 
   protected initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(name);
   }
 
   protected displayName(provider: AdminProviderProfile): string {

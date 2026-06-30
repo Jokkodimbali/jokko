@@ -691,6 +691,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,
       message: 'Preuves du litige ajoutees avec succes.',
     },
+    DISPUTES_EVIDENCE_UPLOAD_FAILED: {
+      code: 'DISPUTES_EVIDENCE_UPLOAD_FAILED',
+      httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
+      message: 'Impossible d uploader cette piece pour le moment.',
+    },
     DISPUTES_NOT_FOUND: {
       code: 'DISPUTES_NOT_FOUND',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,

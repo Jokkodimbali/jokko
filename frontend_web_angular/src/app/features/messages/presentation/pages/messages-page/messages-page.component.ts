@@ -7,6 +7,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
@@ -93,6 +94,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly appointmentPreview = signal<AppointmentView | null>(null);
   protected readonly failedAvatarUrls = signal<Set<string>>(new Set());
   private readonly requestedConversationId = signal<string | null>(null);
+  private readonly requestedReservationId = signal<string | null>(null);
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
   private activeMessagesRequestId = 0;
@@ -343,13 +345,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+    return userInitials(name);
   }
 
   protected visibleAvatarUrl(url: string | null | undefined): string | null {
@@ -945,8 +941,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         const sortedConversations = this.sortConversations(conversations);
         this.conversations.set(sortedConversations);
         const requestedConversationId = this.requestedConversationId();
+        const requestedReservationId = this.requestedReservationId();
+        const requestedReservationConversation = sortedConversations.find(
+          (conversation) => conversation.reservationId === requestedReservationId,
+        );
+        if (requestedReservationId && !requestedReservationConversation && !requestedConversationId) {
+          this.openReservationConversation(requestedReservationId);
+          return;
+        }
         const selectedId =
           sortedConversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
+          requestedReservationConversation?.id ??
           this.findProposalConversation(sortedConversations)?.id ?? sortedConversations[0]?.id ?? null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
@@ -1002,6 +1007,28 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private refreshConversationsSilently(): void {
     this.messagesService.listConversations().subscribe({
       next: (conversations) => this.conversations.set(this.sortConversations(conversations)),
+    });
+  }
+
+  private openReservationConversation(reservationId: string): void {
+    this.messagesService.createConversation({ reservationId }).subscribe({
+      next: (conversation) => {
+        this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
+        this.selectedConversationId.set(conversation.id);
+        this.requestedConversationId.set(conversation.id);
+        this.loadPriceProposals();
+        this.isLoadingConversations.set(false);
+        this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
+        this.scrollThreadToBottom();
+        this.messagesRealtime.joinConversation(conversation.id);
+        this.loadMessages(conversation.id);
+      },
+      error: () => {
+        const message = "Impossible d'ouvrir la discussion liee a cette reservation.";
+        this.errorMessage.set(message);
+        this.feedback.error(message);
+        this.isLoadingConversations.set(false);
+      },
     });
   }
 
@@ -1081,6 +1108,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const conversationId = query.get('conversationId');
 
     this.requestedConversationId.set(conversationId);
+    this.requestedReservationId.set(query.get('reservationId'));
 
     if (!professionalId && !Number.isFinite(rawAmount)) {
       return;

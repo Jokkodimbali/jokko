@@ -109,7 +109,7 @@
                 />
                 <ng-template #portfolioImageFallback>
                   <span class="provider-profile__gallery-fallback">
-                    {{ item.titre.slice(0, 2).toUpperCase() }}
+                    {{ portfolioInitials(item.titre) }}
                   </span>
                 </ng-template>
                 <figcaption>{{ item.titre }}</figcaption>
@@ -139,7 +139,7 @@
                   (error)="handleImageError(reviewAvatar)"
                 />
                 <ng-template #reviewInitials>
-                  <span class="provider-profile__review-avatar">{{ review.client.nom.slice(0, 2).toUpperCase() }}</span>
+                  <span class="provider-profile__review-avatar">{{ formatReviewInitials(review.client.nom) }}</span>
                 </ng-template>
                 <div>
                   <strong>{{ review.client.nom }}</strong>

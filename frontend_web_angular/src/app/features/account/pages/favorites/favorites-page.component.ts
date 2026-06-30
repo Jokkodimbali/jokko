@@ -8,6 +8,7 @@ import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { FavoritesService } from '../../../../core/favorites/favorites.service';
 import { AccountShellComponent } from '../../../../shared/ui/account-shell/account-shell.component';
+import { userInitials } from '../../../../shared/utils/user-initials';
 import {
   ProviderCardComponent,
   ProviderCardView,
@@ -155,12 +156,7 @@ export class FavoritesPageComponent {
   }
 
   protected initials(name: string): string {
-    return name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(name);
   }
 
   protected favoriteCardView(favorite: FavoriteItem): ProviderCardView {

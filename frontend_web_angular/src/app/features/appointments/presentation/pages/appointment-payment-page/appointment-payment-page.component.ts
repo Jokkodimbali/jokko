@@ -7,6 +7,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView, PaymentMethod } from '../../../domain/appointments.models';
@@ -131,14 +132,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected avatarInitials(appointment: AppointmentView): string {
-    return (
-      appointment.doctorName
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || 'JD'
-    );
+    return userInitials(appointment.doctorName, 'JD');
   }
 
   protected pay(): void {

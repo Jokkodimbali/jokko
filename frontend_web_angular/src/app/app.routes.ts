@@ -110,22 +110,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'litiges/:id/suivi',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/account/pages/dispute-tracking/dispute-tracking-page.component').then(
-        (m) => m.DisputeTrackingPageComponent,
-      ),
-  },
-  {
-    path: 'litiges/:id/messages',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/account/pages/dispute-messages/dispute-messages-page.component').then(
-        (m) => m.DisputeMessagesPageComponent,
-      ),
-  },
-  {
     path: 'litiges/:id',
     canActivate: [authGuard],
     loadComponent: () =>

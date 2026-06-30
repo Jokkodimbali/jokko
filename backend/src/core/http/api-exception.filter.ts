@@ -31,6 +31,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
       const res = exception.getResponse() as Record<string, unknown>;
       errorCode = (res?.errorCode as string) ?? fallback.code;
       message = (res?.message as string | string[]) ?? exception.message;
+      if (process.env.NODE_ENV !== 'production' && res?.details !== undefined) {
+        response.locals = {
+          ...response.locals,
+          errorDetails: res.details,
+        };
+      }
     } else if (exception instanceof NotFoundError) {
       statusCode = HttpStatus.NOT_FOUND;
       errorCode = exception.code;
@@ -55,6 +61,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
       statusCode,
       errorCode,
       message: normalizedMessage,
+      ...(process.env.NODE_ENV !== 'production' && response.locals.errorDetails
+        ? { details: response.locals.errorDetails }
+        : {}),
       timestamp: new Date().toISOString(),
       path: request.url,
     });

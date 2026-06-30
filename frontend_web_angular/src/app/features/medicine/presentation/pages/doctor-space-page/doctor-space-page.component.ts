@@ -9,6 +9,7 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import {
   BackendProfessionalAvailability,
   BackendProfessionalDetailService,
@@ -1293,6 +1294,10 @@ export class DoctorSpacePageComponent implements OnInit {
     return this.initialsForName(this.negotiationReservationClientName(reservation));
   }
 
+  protected formatPatientInitials(name: string): string {
+    return this.initialsForName(name);
+  }
+
   protected negotiationReservationStatusLabel(status: AppointmentStatus): string {
     return this.agendaReservationStatusLabel(status);
   }
@@ -2570,7 +2575,7 @@ export class DoctorSpacePageComponent implements OnInit {
       reservation,
       patientName,
       avatarUrl: reservation.client?.urlAvatar ?? null,
-      initials: patientName.slice(0, 2).toUpperCase(),
+      initials: this.initialsForName(patientName),
       serviceName: reservation.service?.nom ?? 'Consultation',
       locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
       timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
@@ -2683,13 +2688,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   private initialsForName(name: string): string {
-    return name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+    return userInitials(name, 'CL');
   }
 
   private monthInputValue(date: Date): string {

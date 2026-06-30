@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AdminMedicalValidation } from '../../../data-access/admin.models';
 
 @Component({
@@ -46,12 +47,7 @@ export class AdminMedicalCredentialsPanelComponent implements OnChanges {
   }
 
   protected initials(profile: AdminMedicalValidation): string {
-    return profile.name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
+    return userInitials(profile.name);
   }
 
   protected formatDate(value: string | Date): string {

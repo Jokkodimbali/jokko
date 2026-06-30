@@ -32,43 +32,91 @@
       <p *ngIf="isLoading()" class="disputes-page__state">Chargement de vos reservations...</p>
       <p *ngIf="errorMessage()" class="disputes-page__state disputes-page__state--error">{{ errorMessage() }}</p>
 
-      <section *ngIf="!isLoading() && filteredAppointments().length > 0; else emptyList" class="disputes-page__list">
-        <article
-          *ngFor="let appointment of filteredAppointments(); trackBy: trackById"
-          class="disputes-page__card"
-          [class.disputes-page__card--dispute]="appointment.status === 'LITIGE'"
-          [class.disputes-page__card--actionable]="canOpenDispute(appointment)"
-        >
-          <span class="disputes-page__service-icon">
-            <lucide-icon [name]="appointment.status === 'LITIGE' ? 'scale' : 'wrench'" size="24" [strokeWidth]="2.3"></lucide-icon>
-          </span>
-
-          <div class="disputes-page__reservation">
-            <strong>{{ appointment.serviceName }}</strong>
-            <span [class]="'disputes-page__status disputes-page__status--' + statusTone(appointment)">
-              {{ statusLabel(appointment) }}
-            </span>
-            <span>Avec {{ appointment.doctorName }} - Le {{ appointment.scheduledAt | date:'d MMM y' }}</span>
-            <small>{{ amountLabel(appointment) }}</small>
-            <b>{{ formatMoney(appointment.agreedPrice) }} FCFA</b>
-          </div>
-
-          <button
-            *ngIf="!isUpcoming(appointment)"
-            type="button"
-            class="disputes-page__action"
-            [class.disputes-page__action--report]="canOpenDispute(appointment)"
-            [disabled]="!canOpenDispute(appointment) && appointment.status !== 'LITIGE'"
-            (click)="openDisputePage(appointment)"
-            [attr.aria-label]="actionLabel(appointment) + ' ' + appointment.serviceName"
+      <section *ngIf="!isLoading() && filteredAppointments().length > 0; else emptyList" class="disputes-page__workspace">
+        <section class="disputes-page__list">
+          <article
+            *ngFor="let appointment of filteredAppointments(); trackBy: trackById"
+            class="disputes-page__card"
+            [class.disputes-page__card--dispute]="appointment.status === 'LITIGE'"
+            [class.disputes-page__card--actionable]="canOpenDispute(appointment)"
+            [class.disputes-page__card--selected]="selectedReservationId() === appointment.id"
           >
-            <lucide-icon
-              [name]="appointment.status === 'LITIGE' || canOpenDispute(appointment) ? 'arrow-right' : 'check'"
-              size="24"
-              [strokeWidth]="2.5"
-            ></lucide-icon>
-          </button>
-        </article>
+            <span class="disputes-page__service-icon">
+              <lucide-icon [name]="appointment.status === 'LITIGE' ? 'scale' : 'wrench'" size="24" [strokeWidth]="2.3"></lucide-icon>
+            </span>
+
+            <div class="disputes-page__reservation">
+              <strong>{{ appointment.serviceName }}</strong>
+              <span [class]="'disputes-page__status disputes-page__status--' + statusTone(appointment)">
+                {{ statusLabel(appointment) }}
+              </span>
+              <span>Avec {{ appointment.doctorName }} - Le {{ appointment.scheduledAt | date:'d MMM y' }}</span>
+              <small>{{ amountLabel(appointment) }}</small>
+              <b>{{ formatMoney(appointment.agreedPrice) }} FCFA</b>
+            </div>
+
+            <button
+              *ngIf="!isUpcoming(appointment)"
+              type="button"
+              class="disputes-page__action"
+              [class.disputes-page__action--report]="canOpenDispute(appointment)"
+              [disabled]="!canOpenDispute(appointment) && appointment.status !== 'LITIGE'"
+              (click)="openDisputePage(appointment)"
+              [attr.aria-label]="actionLabel(appointment) + ' ' + appointment.serviceName"
+            >
+              <lucide-icon
+                [name]="appointment.status === 'LITIGE' || canOpenDispute(appointment) ? 'arrow-right' : 'check'"
+                size="24"
+                [strokeWidth]="2.5"
+              ></lucide-icon>
+            </button>
+          </article>
+        </section>
+
+        <aside class="disputes-page__summary-panel">
+          <ng-container *ngIf="selectedDispute() as dispute; else summaryState">
+            <header>
+              <span><i></i> Litige ouvert</span>
+              <strong>{{ shortRef(dispute) }}</strong>
+              <p>{{ disputeServiceName(dispute) }}</p>
+            </header>
+
+            <dl>
+              <div><dt>Statut</dt><dd>{{ disputeStatusLabel(dispute) }}</dd></div>
+              <div><dt>Ouvert le</dt><dd>{{ formatDate(dispute.ouvertLe) }}</dd></div>
+              <div><dt>Date prestation</dt><dd>{{ formatDate(dispute.reservation.dateHeure) }}</dd></div>
+              <div><dt>Statut paiement</dt><dd>{{ paymentLabel(dispute) }}</dd></div>
+              <div><dt>Montant</dt><dd class="red">{{ formatMoney(disputeAmount(dispute)) }} FCFA</dd></div>
+            </dl>
+
+            <p class="disputes-page__summary-reason">{{ dispute.raison }}</p>
+
+            <div class="disputes-page__summary-metrics">
+              <span><lucide-icon name="message-circle" size="16" [strokeWidth]="2"></lucide-icon>{{ conversationCount() }} messages</span>
+              <span><lucide-icon name="camera" size="16" [strokeWidth]="2"></lucide-icon>{{ photosCount() }} photos</span>
+              <span><lucide-icon name="file-text" size="16" [strokeWidth]="2"></lucide-icon>{{ invoicesCount() }} factures</span>
+            </div>
+
+            <div class="disputes-page__summary-actions">
+              <button type="button" (click)="openDisputeConversation()">
+                <lucide-icon name="message-circle" size="18" [strokeWidth]="2"></lucide-icon>
+                Ouvrir la discussion
+              </button>
+              <label>
+                <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" multiple (change)="onEvidenceSelected($event)" />
+                {{ isUploading() ? 'Ajout en cours...' : 'Ajouter une piece' }}
+              </label>
+            </div>
+          </ng-container>
+
+          <ng-template #summaryState>
+            <section class="disputes-page__summary-empty">
+              <lucide-icon [name]="isLoadingDispute() ? 'loader-circle' : 'scale'" size="28" [strokeWidth]="2"></lucide-icon>
+              <strong>{{ isLoadingDispute() ? 'Chargement du litige...' : 'Selectionnez un litige' }}</strong>
+              <p>{{ isLoadingDispute() ? 'Le resume du dossier arrive.' : 'Cliquez sur un dossier en litige pour afficher son resume et ses actions.' }}</p>
+            </section>
+          </ng-template>
+        </aside>
       </section>
 
       <ng-template #emptyList>

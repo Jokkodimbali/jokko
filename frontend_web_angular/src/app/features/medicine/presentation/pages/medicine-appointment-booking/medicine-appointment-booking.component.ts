@@ -30,6 +30,7 @@ import {
   ProviderProfileDetail,
 } from '../../../../services/domain/models/services.models';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
@@ -758,13 +759,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   private initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+    return userInitials(name, 'JD');
   }
 
   private limitNotes(value: string): string {

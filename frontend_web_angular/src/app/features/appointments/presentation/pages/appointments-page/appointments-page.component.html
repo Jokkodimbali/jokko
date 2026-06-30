@@ -357,8 +357,8 @@
                 [queryParams]="negotiationQueryParams(negotiation)"
                 class="appointments-negotiation-card__more"
               >
-                En savoir plus
-                <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.2"></lucide-icon>
+                {{ negotiationActionLabel(negotiation) }}
+                <lucide-icon [name]="negotiationActionIcon(negotiation)" size="13" [strokeWidth]="2.2"></lucide-icon>
               </a>
             </div>
           </div>

@@ -13,6 +13,7 @@ import {
 import { AuthService } from '../../../features/auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages';
 import { AppointmentsService } from '../../../features/appointments/data-access/appointments.service';
+import { userInitials } from '../../utils/user-initials';
 
 interface AppNavItem {
   label: string;
@@ -63,14 +64,7 @@ export class AppNavbarComponent implements OnInit {
     const user = this.currentUser();
     if (!user) return '';
 
-    return (
-      user.name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || 'U'
-    );
+    return userInitials(user.name, 'U');
   });
   protected readonly profileTitle = computed(() => {
     const user = this.currentUser();

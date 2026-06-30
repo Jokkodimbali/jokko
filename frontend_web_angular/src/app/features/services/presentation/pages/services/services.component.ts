@@ -34,6 +34,7 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import {
   ProviderCardComponent,
   ProviderCardView,
@@ -499,13 +500,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   providerInitials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+    return userInitials(name);
   }
 
   providerPhotos(provider: { photos: string[] }): string[] {

@@ -40,6 +40,10 @@ type EnvValide = {
   REDIS_PORT?: number;
   REDIS_PASSWORD?: string;
   REDIS_TLS?: boolean;
+  CLOUDINARY_URL?: string;
+  CLOUDINARY_CLOUD_NAME?: string;
+  CLOUDINARY_API_KEY?: string;
+  CLOUDINARY_API_SECRET?: string;
   FCM_PROJECT_ID?: string;
   FCM_PRIVATE_KEY?: string;
   FCM_CLIENT_EMAIL?: string;
@@ -216,6 +220,10 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     REDIS_PORT: asNombre(env.REDIS_PORT, 6379),
     REDIS_PASSWORD: asString(env.REDIS_PASSWORD),
     REDIS_TLS: asBoolean(env.REDIS_TLS, false),
+    CLOUDINARY_URL: asString(env.CLOUDINARY_URL),
+    CLOUDINARY_CLOUD_NAME: asString(env.CLOUDINARY_CLOUD_NAME),
+    CLOUDINARY_API_KEY: asString(env.CLOUDINARY_API_KEY),
+    CLOUDINARY_API_SECRET: asString(env.CLOUDINARY_API_SECRET),
     FCM_PROJECT_ID: asString(env.FCM_PROJECT_ID),
     FCM_PRIVATE_KEY: asString(env.FCM_PRIVATE_KEY),
     FCM_CLIENT_EMAIL: asString(env.FCM_CLIENT_EMAIL),

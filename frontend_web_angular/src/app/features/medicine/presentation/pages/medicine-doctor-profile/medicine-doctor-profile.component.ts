@@ -9,6 +9,7 @@ import { FavoritesService } from '../../../../../core/favorites/favorites.servic
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -122,14 +123,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   }
 
   protected doctorInitials(): string {
-    return (
-      this.doctor()
-        .name.split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || 'JD'
-    );
+    return userInitials(this.doctor().name, 'JD');
   }
 
   protected visibleImageUrl(url: string | null | undefined): string | null {

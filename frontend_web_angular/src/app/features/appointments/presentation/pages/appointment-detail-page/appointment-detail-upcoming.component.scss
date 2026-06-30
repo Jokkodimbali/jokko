@@ -344,6 +344,11 @@
   font-size: 13px;
   font-weight: 900;
   justify-content: center;
+  line-height: 1;
+  overflow: hidden;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .appointment-detail__upcoming-provider h2 {

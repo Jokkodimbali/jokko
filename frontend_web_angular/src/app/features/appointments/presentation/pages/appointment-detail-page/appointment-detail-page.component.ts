@@ -18,6 +18,7 @@ import { Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { userInitials } from '../../../../../shared/utils/user-initials';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -672,14 +673,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private initialsFromName(name: string, fallback: string): string {
-    return (
-      name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || fallback
-    );
+    return userInitials(name, fallback);
   }
 
   protected serviceDescriptionLabel(appointment: AppointmentView): string {
@@ -899,7 +893,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected openDisputeTracking(appointment: AppointmentView): void {
-    this.router.navigate(['/litiges', appointment.id, 'suivi']);
+    this.router.navigate(['/litiges'], {
+      queryParams: { reservationId: appointment.id },
+    });
   }
 
   protected isParcelTransportAppointment(appointment: AppointmentView): boolean {

@@ -16,7 +16,7 @@ import { AuditLoggerMiddleware } from './audit/audit-logger.middleware';
       isGlobal: true,
       cache: true,
       validate: validerEnv,
-      envFilePath: '.env',
+      envFilePath: ['.env', '.env.local', 'backend/.env', 'backend/.env.local'],
     }),
     EventEmitterModule.forRoot({
       wildcard: false,

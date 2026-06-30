@@ -9,7 +9,7 @@ import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
-import { AppointmentView, ReservationDisputeView } from '../../../appointments/domain/appointments.models';
+import { AppointmentView, ReservationDisputeView, DisputeEvidenceView } from '../../../appointments/domain/appointments.models';
 
 type DisputeFilter = 'all' | 'upcoming' | 'completed' | 'disputed';
 
@@ -48,6 +48,7 @@ export class DisputesPageComponent implements OnInit {
   protected readonly isLoading = signal(false);
   protected readonly isLoadingDispute = signal(false);
   protected readonly isUploading = signal(false);
+  protected readonly deletingEvidenceId = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly selectedReservationId = signal<string | null>(null);
   protected readonly selectedDispute = signal<ReservationDisputeView | null>(null);
@@ -160,6 +161,40 @@ export class DisputesPageComponent implements OnInit {
         },
         error: (error) => {
           const message = getHttpErrorMessage(error, 'Impossible d ajouter cette piece.');
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected isDeletingEvidence(evidenceId: string): boolean {
+    return this.deletingEvidenceId() === evidenceId;
+  }
+
+  protected canDeleteEvidence(file: DisputeEvidenceView): boolean {
+    return this.currentUser()?.id === file.uploaderUserId || this.currentUser()?.role === 'ADMIN';
+  }
+
+  protected isImageEvidence(file: DisputeEvidenceView): boolean {
+    return file.mimeType.startsWith('image/');
+  }
+
+  protected deleteEvidence(file: DisputeEvidenceView): void {
+    const reservationId = this.selectedDispute()?.reservationId ?? this.selectedReservationId();
+    if (!reservationId || this.deletingEvidenceId() !== null) return;
+
+    this.deletingEvidenceId.set(file.id);
+    this.errorMessage.set(null);
+    this.appointmentsService
+      .deleteDisputeEvidence(reservationId, file.id)
+      .pipe(finalize(() => this.deletingEvidenceId.set(null)))
+      .subscribe({
+        next: () => {
+          this.feedback.success('Preuve supprimee avec succes.');
+          this.loadDispute(reservationId, false);
+        },
+        error: (error) => {
+          const message = getHttpErrorMessage(error, 'Impossible de supprimer cette preuve.');
           this.errorMessage.set(message);
           this.feedback.error(message);
         },

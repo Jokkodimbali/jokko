@@ -46,9 +46,7 @@
   }
 
   :host .provider-row {
-    display: grid !important;
-    gap: 14px !important;
-    grid-template-columns: 1fr !important;
+    gap: 12px !important;
     overflow: visible !important;
     padding: 0 !important;
   }
@@ -56,9 +54,7 @@
   :host .provider-card {
     box-sizing: border-box;
     flex: none !important;
-    min-height: 0 !important;
     min-width: 0 !important;
-    padding: 14px !important;
     width: 100% !important;
   }
 
@@ -119,21 +115,17 @@
   }
 
   :host .provider-row {
-    display: grid !important;
     gap: 14px !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     overflow: visible !important;
   }
 
   :host .provider-card {
     min-width: 0 !important;
-    padding: 14px 13px 13px !important;
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {
   :host .provider-card {
     min-width: 0 !important;
-    padding: 14px 13px 13px !important;
   }
 }

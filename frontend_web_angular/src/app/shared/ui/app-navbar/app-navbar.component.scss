@@ -309,7 +309,7 @@
   border-radius: 10px;
   color: #000;
   display: inline-flex;
-  height: 46px;
+  height: 52px;
   justify-content: center;
 }
 
@@ -319,7 +319,7 @@
   cursor: pointer;
   flex: 0 0 auto;
   position: relative;
-  width: 50px;
+  width: 52px;
 }
 
 .app-navbar__notification--mobile {
@@ -499,42 +499,52 @@
 }
 
 .app-navbar__profile {
+  align-items: center;
   border-radius: var(--app-navbar-profile-radius);
   cursor: pointer;
-  gap: 10px;
-  max-width: min(230px, calc(100vw - 118px));
+  display: inline-flex;
+  gap: 8px;
+  max-width: min(270px, calc(100vw - 118px));
   min-width: 0;
-  padding: 0 12px;
+  padding: 5px 12px 5px 5px;
   width: auto;
 }
 
-.app-navbar__profile span {
+.app-navbar__profile-avatar {
   align-items: center;
+  background: #9a5c20;
+  border-radius: 50%;
+  color: #ffffff;
   display: inline-flex;
-  font-size: 16px;
+  flex: 0 0 42px;
+  font-size: 15px;
   font-weight: 800;
-  height: 44px;
+  height: 42px;
   justify-content: center;
-  width: 44px;
+  overflow: hidden;
+  width: 42px;
 }
 
 .app-navbar__profile strong {
+  color: #21150d;
   display: block;
-  font-size: 13px;
+  flex: 1 1 0;
+  font-size: 14px;
   font-weight: 900;
-  max-width: 112px;
+  line-height: 1.15;
+  min-width: 0;
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.app-navbar__profile-avatar {
-  background: #9a5c20;
-  border-radius: 50%;
-  color: #ffffff;
+.app-navbar__profile lucide-icon {
+  color: #865221;
+  display: inline-flex;
+  align-items: center;
   flex: 0 0 auto;
-  overflow: hidden;
+  opacity: 0.75;
 }
 
 .app-navbar__profile-avatar img,

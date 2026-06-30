@@ -133,6 +133,7 @@ export interface DisputesRepositoryPort {
       fileUrl: string;
     }>;
   }): Promise<DisputeAdminListItem>;
+  deleteEvidence(evidenceId: string): Promise<DisputeAdminListItem | null>;
   listAdminUserIds(): Promise<string[]>;
 }
 

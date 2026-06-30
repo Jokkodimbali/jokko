@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -152,6 +153,33 @@ export class UserDisputeEvidenceController {
     return createApiResponse(
       result.evidence,
       appMessage('DISPUTES_EVIDENCE_UPLOADED').message,
+    );
+  }
+
+  @Delete('evidence/:evidenceId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Supprimer une preuve d un litige' })
+  @ApiParam({
+    name: 'reservationId',
+    description: 'Identifiant de reservation',
+  })
+  @ApiParam({
+    name: 'evidenceId',
+    description: 'Identifiant de la preuve',
+  })
+  async deleteEvidence(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Param('evidenceId') evidenceId: string,
+  ) {
+    const updated = await this.disputesFacade.deleteEvidenceForReservation(
+      user,
+      reservationId,
+      evidenceId,
+    );
+    return createApiResponse(
+      updated.evidence,
+      appMessage('DISPUTES_EVIDENCE_DELETED').message,
     );
   }
 }

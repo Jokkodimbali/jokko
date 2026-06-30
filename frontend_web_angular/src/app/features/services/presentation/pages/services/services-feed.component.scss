@@ -400,8 +400,91 @@
   font-weight: 800 !important;
 }
 
-:host .provider-row {
-  gap: 20px !important;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+:host .service-filters__button--parent {
+  background: #fff;
+  border-color: #955d24;
+  color: #7f4b1d;
 }
 
+:host .service-filters__button--sub {
+  background: #fffaf5;
+  border-color: #d8b792;
+  color: #4e3827;
+  font-weight: 750;
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+:host .service-filters__button--sub::before {
+  background: #c99d77;
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  width: 6px;
+}
+
+:host .service-filters__button--sub.service-filters__button--active::before {
+  background: #fff;
+}
+
+/* ─── See all / Load more ───────────────────────────────────────── */
+:host .see-all {
+  align-items: center;
+  background: var(--color-white, #fff) !important;
+  border: 2px solid #000 !important;
+  border-radius: 999px !important;
+  color: #000 !important;
+  display: flex !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  justify-content: center;
+  line-height: 1;
+  margin: clamp(4px, 1.85vw, 32px) auto 0 !important;
+  min-height: 40px;
+  padding: 10px 24px !important;
+}
+
+:host .load-more-sections {
+  background: var(--color-white, #fff);
+  border-top: 1px solid var(--color-border, #ccd7e5);
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: center;
+  padding: 38px 0;
+}
+
+:host .loading-state,
+:host .error-state,
+:host .empty-state {
+  grid-column: 1 / -1;
+}
+
+:host .load-more-btn,
+:host .retry-button {
+  background: #000 !important;
+  border: 0 !important;
+  border-radius: 30px !important;
+  color: var(--color-white, #fff) !important;
+  font-weight: 800 !important;
+}
+
+:host .provider-row {
+  align-items: stretch !important;
+  display: grid !important;
+  gap: 20px !important;
+  grid-auto-rows: 1fr !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) !important;
+  overflow: visible !important;
+}
+
+:host .provider-row app-provider-card {
+  display: flex !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+:host .provider-row app-provider-card .provider-card {
+  height: 100% !important;
+  width: 100% !important;
+}

@@ -540,11 +540,23 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         : 'Intervention';
   }
 
-  providerMovementTitle(provider: Professional): string {
-    if (provider.profileType === 'MEDECIN') {
-      return 'Vous vous deplacez chez lui';
+  providerCardSubCategoryLabel(provider: Professional): string {
+    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+      .map((label) => label?.trim())
+      .filter((label): label is string => Boolean(label));
+
+    if (labels.length > 0) {
+      const visibleLabels = labels.slice(0, 3);
+      const remainingCount = labels.length - visibleLabels.length;
+      return remainingCount > 0
+        ? `${visibleLabels.join(' / ')} +${remainingCount}`
+        : visibleLabels.join(' / ');
     }
 
+    return provider.professionName || provider.speciality || 'Sous categorie non renseignee';
+  }
+
+  providerMovementTitle(provider: Professional): string {
     switch (provider.serviceTravelMode) {
       case 'CLIENT_SE_DEPLACE':
         return 'Vous vous deplacez chez lui';
@@ -572,7 +584,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     return {
       id: provider.id,
       name: provider.nom,
-      title: this.providerSubCategoryLabel(provider),
+      title: this.providerCardSubCategoryLabel(provider),
       category: this.providerCategoryLabel(provider),
       location: provider.location,
       rating: provider.rating,
@@ -582,7 +594,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       initials: this.providerInitials(provider.nom),
       coverUrl: '/boabab.png',
       movementTitle: this.providerMovementTitle(provider),
-      travelMode: provider.profileType === 'MEDECIN' ? 'CLIENT_SE_DEPLACE' : provider.serviceTravelMode,
+      travelMode: provider.serviceTravelMode,
       isMedical: provider.profileType === 'MEDECIN',
       images: photos.slice(0, 2).map((url, index) => ({
         url,

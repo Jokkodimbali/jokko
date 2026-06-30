@@ -107,6 +107,32 @@
                 {{ isUploading() ? 'Ajout en cours...' : 'Ajouter une piece' }}
               </label>
             </div>
+
+            <div *ngIf="dispute.evidence && dispute.evidence.length > 0" class="disputes-page__summary-evidence">
+              <h3>Pièces jointes</h3>
+              <div class="disputes-page__evidence-list">
+                <article *ngFor="let file of dispute.evidence" class="disputes-page__evidence-item">
+                  <div class="disputes-page__evidence-preview-container">
+                    <img *ngIf="isImageEvidence(file); else docIcon" [src]="file.fileUrl" alt="Preuve" class="disputes-page__evidence-img" />
+                    <ng-template #docIcon>
+                      <lucide-icon [name]="file.mimeType === 'application/pdf' ? 'file-text' : 'camera'" size="28" [strokeWidth]="2"></lucide-icon>
+                    </ng-template>
+                    
+                    <button
+                      *ngIf="canDeleteEvidence(file)"
+                      type="button"
+                      class="disputes-page__delete-evidence"
+                      (click)="deleteEvidence(file)"
+                      [disabled]="isDeletingEvidence(file.id)"
+                      aria-label="Supprimer la preuve"
+                    >
+                      <lucide-icon [name]="isDeletingEvidence(file.id) ? 'loader-circle' : 'trash-2'" size="14" [strokeWidth]="2.5"></lucide-icon>
+                    </button>
+                  </div>
+                  <span class="disputes-page__evidence-name" [title]="file.originalFileName">{{ file.originalFileName }}</span>
+                </article>
+              </div>
+            </div>
           </ng-container>
 
           <ng-template #summaryState>

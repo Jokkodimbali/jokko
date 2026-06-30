@@ -170,12 +170,7 @@ export class FavoritesPageComponent {
     return {
       id: favorite.professionalId,
       name: favorite.name,
-      title:
-        favorite.service?.subCategoryNames?.filter(Boolean).join(' • ') ||
-        favorite.service?.subCategoryName ||
-        favorite.subtitle ||
-        favorite.service?.name ||
-        'Sous categorie non renseignee',
+      title: this.favoriteCardTitle(favorite),
       category: (favorite.service?.categoryName || favorite.subtitle || 'Service').toUpperCase(),
       location: favorite.location,
       rating: favorite.rating,
@@ -256,16 +251,32 @@ export class FavoritesPageComponent {
     }
   }
 
+  private favoriteCardTitle(favorite: FavoriteItem): string {
+    const labels = (
+      favorite.service?.subCategoryNames?.length
+        ? favorite.service.subCategoryNames
+        : [favorite.service?.subCategoryName]
+    )
+      .map((label) => label?.trim())
+      .filter((label): label is string => Boolean(label));
+
+    if (labels.length > 0) {
+      const visibleLabels = labels.slice(0, 3);
+      const remainingCount = labels.length - visibleLabels.length;
+      return remainingCount > 0
+        ? `${visibleLabels.join(' / ')} +${remainingCount}`
+        : visibleLabels.join(' / ');
+    }
+
+    return favorite.subtitle || favorite.service?.name || 'Sous categorie non renseignee';
+  }
+
   private isMedicalFavorite(favorite: FavoriteItem): boolean {
     const category = this.favoriteSearchText(favorite);
     return category.includes('medecin') || category.includes('sante');
   }
 
   private favoriteTravelMode(favorite: FavoriteItem): NonNullable<ProviderCardView['travelMode']> {
-    if (this.isMedicalFavorite(favorite)) {
-      return 'CLIENT_SE_DEPLACE';
-    }
-
     return favorite.service?.travelMode ?? this.legacyFavoriteTravelMode(favorite);
   }
 

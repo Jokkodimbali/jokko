@@ -30,6 +30,7 @@ export type ProfessionalProfileView = {
     id: string;
     nom: string;
     numeroTelephone: string;
+    adresse: string | null;
     urlAvatar: string | null;
     estActif: boolean;
   };

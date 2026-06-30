@@ -321,7 +321,7 @@ export class ServicesService {
       profileType,
       serviceId: primaryService?.id,
       servicePriceType: primaryService?.priceType,
-      serviceTravelMode: profileType === 'MEDECIN' ? 'CLIENT_SE_DEPLACE' : primaryService?.travelMode,
+      serviceTravelMode: primaryService?.travelMode,
       nom: data.companyName || data.name,
       categoryName:
         primaryService?.categoryName ||

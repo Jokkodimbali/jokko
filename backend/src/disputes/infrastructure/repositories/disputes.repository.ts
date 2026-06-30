@@ -468,6 +468,22 @@ export class DisputesRepository implements DisputesRepositoryPort {
     return dispute;
   }
 
+  async deleteEvidence(
+    evidenceId: string,
+  ): Promise<DisputeAdminListItem | null> {
+    const evidence = await this.prisma.preuveLitige.findUnique({
+      where: { id: evidenceId },
+      select: { litigeId: true },
+    });
+    if (!evidence) return null;
+
+    await this.prisma.preuveLitige.delete({
+      where: { id: evidenceId },
+    });
+
+    return this.findById(evidence.litigeId);
+  }
+
   async listAdminUserIds(): Promise<string[]> {
     const admins = await this.prisma.utilisateur.findMany({
       where: {

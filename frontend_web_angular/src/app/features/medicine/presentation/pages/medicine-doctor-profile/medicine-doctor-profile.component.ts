@@ -189,6 +189,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
     const profile = detail.profile;
     const medicalSpecialty = this.extractMedicalSpecialty(profile.biographie);
     const nextAvailability = this.buildNextAvailabilityLabels(detail.availabilities);
+    const interventionAddress = profile.utilisateur.adresse || profile.ville || 'Localisation non renseignee';
     const modes = Array.from(new Set(
       detail.services
         .map(s => s.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)
@@ -201,7 +202,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       specialty: primaryService?.nom || medicalSpecialty || 'Médecin', // Use service name as priority
       rating: profile.noteGlobale || 0,
       reviewCount: profile.nombreAvis || 0,
-      location: (profile.ville || 'Localisation non renseignee').toUpperCase(),
+      location: interventionAddress.toUpperCase(),
       latitude: profile.latitude,
       longitude: profile.longitude,
       imageUrl: profile.utilisateur.urlAvatar || '',

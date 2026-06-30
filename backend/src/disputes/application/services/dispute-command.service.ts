@@ -278,6 +278,52 @@ export class DisputeCommandService {
     return updated;
   }
 
+  async deleteEvidenceForReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    evidenceId: string,
+  ) {
+    const current =
+      await this.disputesRepository.findByReservationId(reservationId);
+    if (!current) {
+      throw appHttpException('DISPUTES_NOT_FOUND');
+    }
+
+    const evidence = current.evidence.find((item) => item.id === evidenceId);
+    if (!evidence) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    if (
+      requestUser.sub !== evidence.uploaderUserId &&
+      requestUser.role !== 'ADMIN'
+    ) {
+      throw appHttpException('AUTH_TOKEN_INVALID');
+    }
+
+    if (!['OUVERT', 'EN_REVUE'].includes(current.statut)) {
+      throw appHttpException('DISPUTES_INVALID_STATUS');
+    }
+
+    const updated = await this.disputesRepository.deleteEvidence(evidenceId);
+    if (!updated) {
+      throw appHttpException('DISPUTES_NOT_FOUND');
+    }
+
+    await this.eventBus.publier({
+      nom: 'disputes.evidence-deleted',
+      dateOccurrence: new Date(),
+      payload: {
+        disputeId: updated.id,
+        reservationId: updated.reservationId,
+        uploaderUserId: requestUser.sub,
+        evidenceId,
+      },
+    });
+
+    return updated;
+  }
+
   private assertAdmin(user: AuthUser): void {
     if (user.role !== 'ADMIN') {
       throw appHttpException('AUTH_TOKEN_INVALID');

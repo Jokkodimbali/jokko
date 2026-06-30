@@ -36,6 +36,7 @@ import {
 } from '../../components/service-proposal-details-modal/service-proposal-details-modal.component';
 
 type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'VISA';
+type ClientBookingStep = 'DETAILS' | 'PRICE';
 
 interface PaymentOption {
   id: PaymentMethod;
@@ -113,6 +114,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isAddressSuggestionsOpen = signal(false);
   protected readonly isLocatingAddress = signal(false);
   protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
+  protected readonly clientBookingStep = signal<ClientBookingStep>('DETAILS');
+  protected readonly clientBookingDetailsExpanded = signal(false);
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -129,6 +132,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.toDateInputValue(this.getDefaultAppointmentDate()),
   );
   protected readonly address = signal('');
+  private readonly clientDefaultAddress = signal('');
   protected readonly offerAmount = signal(0);
   protected readonly durationMinutes = 60;
   protected readonly offerSteps = [100, 250, 500];
@@ -150,6 +154,19 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const selectedId = this.selectedServiceId();
     return services.find((service) => service.id === selectedId) ?? services[0] ?? null;
   });
+  protected readonly providerTravelsToClient = computed(
+    () => this.currentService()?.modeDeplacement !== 'CLIENT_SE_DEPLACE',
+  );
+  protected readonly clientTravelsToProvider = computed(() => !this.providerTravelsToClient());
+  protected readonly providerInterventionAddress = computed(() =>
+    this.resolveInitialAddress(this.detail()),
+  );
+  protected readonly providerInterventionAddressLabel = computed(
+    () => this.providerInterventionAddress() || 'Adresse du prestataire non renseignee',
+  );
+  protected readonly appointmentAddressLabel = computed(() =>
+    this.clientTravelsToProvider() ? 'Adresse du prestataire' : "Adresse d'intervention",
+  );
 
   protected readonly displayName = computed(() => {
     const profile = this.detail()?.profile;
@@ -401,7 +418,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       : 'Offre equitable pour le prestataire, pret a etre reserve.',
   );
 
-  protected readonly shortAddress = computed(() => this.truncate(this.address(), 28));
+  protected readonly shortAddress = computed(() =>
+    this.truncate(
+      this.clientTravelsToProvider()
+        ? this.providerInterventionAddressLabel()
+        : this.address(),
+      28,
+    ),
+  );
   protected readonly formattedOffer = computed(() => this.formatAmount(this.offerAmount()));
   protected readonly pendingOfferAmountLabel = computed(() => {
     const proposal = this.pendingProposal();
@@ -557,12 +581,30 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected openDetailsModal(modal: ProposalDetailsModal): void {
+    if (modal === 'address' && this.clientTravelsToProvider()) {
+      this.syncAddressForCurrentTravelMode();
+      this.feedback.info('Cette adresse est celle renseignee par le prestataire dans ses parametres.');
+      return;
+    }
+
     this.activeDetailsModal.set(modal);
   }
 
   protected closeDetailsModal(): void {
     this.activeDetailsModal.set(null);
     this.isAddressSuggestionsOpen.set(false);
+  }
+
+  protected goToClientDetailsStep(): void {
+    this.clientBookingStep.set('DETAILS');
+  }
+
+  protected goToClientPriceStep(): void {
+    this.clientBookingStep.set('PRICE');
+  }
+
+  protected toggleClientBookingDetails(): void {
+    this.clientBookingDetailsExpanded.update((expanded) => !expanded);
   }
 
   protected selectService(serviceId: string): void {
@@ -572,6 +614,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.customServiceName.set('');
     this.selectedServiceId.set(service.id);
     this.offerAmount.set(service.prix ?? 0);
+    this.syncAddressForCurrentTravelMode();
     this.availabilityStatus.set(null);
     this.availabilitySlots.set([]);
     this.scheduleAvailabilityCheck();
@@ -848,10 +891,21 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected updateAddress(value: string): void {
+    if (this.clientTravelsToProvider()) {
+      this.syncAddressForCurrentTravelMode();
+      this.feedback.info('Le lieu du rendez-vous est fixe par le prestataire.');
+      return;
+    }
+
     this.address.set(value);
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
+    if (this.clientTravelsToProvider()) {
+      this.syncAddressForCurrentTravelMode();
+      return;
+    }
+
     this.address.set(suggestion.label);
     this.addressSuggestions.set([]);
     this.isAddressSuggestionsOpen.set(false);
@@ -862,6 +916,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected useCurrentLocationForAddress(): void {
+    if (this.clientTravelsToProvider()) {
+      this.syncAddressForCurrentTravelMode();
+      this.feedback.info('La geolocalisation nest pas necessaire: le rendez-vous se fait chez le prestataire.');
+      return;
+    }
+
     if (!navigator.geolocation) {
       this.feedback.info('La geolocalisation nest pas disponible sur cet appareil.');
       return;
@@ -1116,6 +1176,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     service: BackendProfessionalDetailService,
     amount: number,
   ): void {
+    const adresseClient = this.resolveAppointmentAddress(proposal.adresseClientProposee || '');
+
     this.isRespondingToCounterOffer.set(true);
     this.proposalService
       .counterPriceProposal(proposal.id, {
@@ -1125,13 +1187,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           service,
           amount,
           dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? '',
-          adresseClient: this.address().trim() || proposal.adresseClientProposee || '',
+          adresseClient,
           dureeMinutes: this.durationMinutes,
           paymentMethod: this.selectedPayment(),
         }),
         dateHeure:
           this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? undefined,
-        adresseClient: this.address().trim() || proposal.adresseClientProposee || undefined,
+        adresseClient: adresseClient || undefined,
         dureeMinutes: this.durationMinutes,
       })
       .subscribe({
@@ -1151,7 +1213,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   private createReservationFromAcceptedNegotiation(proposal: NegotiationView): void {
     const dateHeure = proposal.dateHeureProposee || this.toIsoDateTime(this.appointmentDate());
-    const adresseClient = proposal.adresseClientProposee || this.address().trim();
+    const adresseClient = this.resolveAppointmentAddress(proposal.adresseClientProposee || '');
     const dureeMinutes = proposal.dureeMinutesProposee || this.durationMinutes;
 
     if (!dateHeure || !adresseClient) {
@@ -1389,7 +1451,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           const service = this.currentService();
           this.selectedServiceId.set(service?.id || '');
           this.offerAmount.set(service?.prix ?? 0);
-          this.address.set(user?.adresse?.trim() || this.resolveInitialAddress(detail));
+          const providerAddress = this.resolveInitialAddress(detail);
+          const clientAddress = user?.adresse?.trim() || '';
+          this.clientDefaultAddress.set(clientAddress);
+          this.address.set(
+            service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : clientAddress,
+          );
           if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
             this.resumeActiveClientProposal(service);
             return;
@@ -1482,9 +1549,34 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return returnUrl;
   }
 
-  private resolveInitialAddress(detail: ProviderProfileDetail): string {
-    void detail;
-    return '';
+  private syncAddressForCurrentTravelMode(): void {
+    if (this.clientTravelsToProvider()) {
+      const providerAddress = this.providerInterventionAddress();
+      if (providerAddress) {
+        this.address.set(providerAddress);
+      }
+      return;
+    }
+
+    const providerAddress = this.providerInterventionAddress();
+    const currentAddress = this.address().trim();
+    const clientAddress = this.clientDefaultAddress();
+    if (!currentAddress || currentAddress === providerAddress) {
+      this.address.set(clientAddress);
+    }
+  }
+
+  private resolveAppointmentAddress(fallbackAddress = ''): string {
+    if (this.clientTravelsToProvider()) {
+      return this.providerInterventionAddress().trim();
+    }
+
+    return this.address().trim() || fallbackAddress.trim();
+  }
+
+  private resolveInitialAddress(detail: ProviderProfileDetail | null): string {
+    const profile = detail?.profile;
+    return profile?.utilisateur.adresse?.trim() || profile?.ville?.trim() || '';
   }
 
   private buildProposalMessage(draft: ReservationDraft): string {
@@ -1555,9 +1647,17 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return null;
     }
 
-    const adresseClient = this.address().trim().replace(/\s+/g, ' ');
+    const adresseClient = (
+      this.clientTravelsToProvider() ? this.providerInterventionAddress() : this.address()
+    )
+      .trim()
+      .replace(/\s+/g, ' ');
     if (adresseClient.length < 5 || adresseClient.length > 180) {
-      this.feedback.info('Renseignez une adresse precise entre 5 et 180 caracteres.');
+      this.feedback.info(
+        this.clientTravelsToProvider()
+          ? 'Adresse du prestataire non renseignee pour ce service.'
+          : 'Renseignez une adresse precise entre 5 et 180 caracteres.',
+      );
       return null;
     }
 
@@ -1696,7 +1796,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       dateHeure:
         this.toIsoDateTime(this.appointmentDate()) ??
         this.getDefaultAppointmentDate().toISOString(),
-      adresseClient: this.address().trim() || (detail ? this.resolveInitialAddress(detail) : ''),
+      adresseClient: this.clientTravelsToProvider()
+        ? this.providerInterventionAddress()
+        : this.address().trim() || (detail ? this.resolveInitialAddress(detail) : ''),
       dureeMinutes: this.durationMinutes,
       paymentMethod: this.selectedPayment(),
     };

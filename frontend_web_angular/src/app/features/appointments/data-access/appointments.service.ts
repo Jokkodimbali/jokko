@@ -188,6 +188,14 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
+  deleteDisputeEvidence(reservationId: string, evidenceId: string): Observable<unknown[]> {
+    return this.http
+      .delete<ApiResponse<unknown[]>>(
+        `${this.apiUrl}/reservations/${reservationId}/dispute/evidence/${evidenceId}`
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   getReservationDispute(reservationId: string): Observable<ReservationDisputeView> {
     return this.http
       .get<ApiResponse<ReservationDisputeView>>(

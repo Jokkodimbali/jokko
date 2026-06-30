@@ -569,6 +569,13 @@
   font-size: 16px;
   font-weight: 950;
   justify-content: center;
+  line-height: 1;
+  max-width: 51px;
+  min-width: 51px;
+  overflow: hidden;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .service-proposal__avatar-wrap i {
@@ -592,7 +599,7 @@
   white-space: nowrap;
 }
 
-.service-proposal__provider span {
+.service-proposal__provider > div > span {
   color: #667085;
   display: block;
   font-size: 11px;

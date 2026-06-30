@@ -178,7 +178,7 @@
                     <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
                   </span>
                   <span class="service-proposal__field-copy">
-                    <small>Adresse d'intervention</small>
+                    <small>{{ appointmentAddressLabel() }}</small>
                     <strong>{{ shortAddress() }}</strong>
                   </span>
                   <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
@@ -349,7 +349,7 @@
                     <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
                   </span>
                   <span class="service-proposal__field-copy">
-                    <small>Adresse d'intervention</small>
+                    <small>{{ appointmentAddressLabel() }}</small>
                     <strong>{{ shortAddress() }}</strong>
                   </span>
                   <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
@@ -414,9 +414,9 @@
               <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
             </span>
             <p>
-              <small>Adresse d'intervention</small>
+              <small>{{ appointmentAddressLabel() }}</small>
               <strong>{{ shortAddress() }}</strong>
-              <em>Domicile</em>
+              <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
             </p>
           </div>
 
@@ -538,135 +538,208 @@
               <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2"></lucide-icon>
             </header>
 
-            <div class="service-proposal__panel-body">
-              <section class="service-proposal__price-card" aria-label="Prix propose">
-                <header>
-                  <h2>{{ priceSectionTitle() }}</h2>
-                </header>
-
-                <div class="service-proposal__offer-display">
-                  <small>{{ offerFieldLabel() }}</small>
-                  <label>
-                    <input
-                      type="text"
-                      inputmode="numeric"
-                      min="1"
-                      step="500"
-                      [readonly]="isFixedPriceService()"
-                      [ngModel]="formattedOffer()"
-                      (ngModelChange)="updateOfferAmount($event)"
-                      [attr.aria-label]="offerFieldLabel()"
-                    />
-                    <strong>FCFA</strong>
-                  </label>
-                  <span class="service-proposal__difference">
-                    <lucide-icon
-                      [name]="offerDifferenceIcon()"
-                      size="13"
-                      [strokeWidth]="2.6"
-                    ></lucide-icon>
-                    {{ isOfferAdjusted() ? offerDifferenceLabel() : offerEquityLabel() }}
-                  </span>
-                </div>
-
-                <div class="service-proposal__amount-actions">
-                  <button
-                    type="button"
-                    class="service-proposal__amount-action service-proposal__amount-action--down"
-                    [disabled]="isFixedPriceService()"
-                    (click)="decreaseOffer()"
-                  >
-                    <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
-                    Diminuer
-                  </button>
-                  <button
-                    type="button"
-                    class="service-proposal__amount-action service-proposal__amount-action--up"
-                    [disabled]="isFixedPriceService()"
-                    (click)="increaseOffer()"
-                  >
-                    <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
-                    Augmenter
-                  </button>
-                </div>
-
-                <div class="service-proposal__steps" aria-label="Paliers de modification">
-                  <span class="service-proposal__steps-title">Palier :</span>
-                  <input
-                    class="service-proposal__steps-range"
-                    type="range"
-                    min="100"
-                    max="1000"
-                    step="50"
-                    [ngModel]="selectedOfferStep()"
-                    (ngModelChange)="updateOfferStep($event)"
-                    aria-label="Palier de modification du prix"
-                  />
-                  <output>{{ selectedOfferStep() }} FCFA</output>
-                </div>
-              </section>
-
-              <button
-                type="button"
-                class="service-proposal__service-field"
-                (click)="openDetailsModal('service')"
-              >
-                <span class="service-proposal__field-icon">
-                  <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
-                </span>
-                <span>
-                  <small>Motif de presentation</small>
-                  <strong>{{ categoryLabel() }}</strong>
-                </span>
-                <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-              </button>
-
-              <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                <button
-                  type="button"
-                  class="service-proposal__field"
-                  (click)="openDetailsModal('schedule')"
-                >
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>Date &amp; heure d'intervention</small>
-                    <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </button>
-
-                <button
-                  type="button"
-                  class="service-proposal__field"
-                  (click)="openDetailsModal('address')"
-                >
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>Adresse d'intervention</small>
-                    <strong>{{ shortAddress() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </button>
+            <div class="service-proposal__panel-body service-proposal__panel-body--booking">
+              <div class="service-proposal__progress" aria-hidden="true">
+                <span class="service-proposal__progress-segment service-proposal__progress-segment--active"></span>
+                <span
+                  class="service-proposal__progress-segment"
+                  [class.service-proposal__progress-segment--active]="clientBookingStep() === 'PRICE'"
+                ></span>
               </div>
 
-              <button
-                type="button"
-                class="service-proposal__submit"
-                [class.service-proposal__submit--counter]="isOfferAdjusted()"
-                [attr.aria-label]="submitButtonLabel()"
-                (click)="submitProposal()"
-                [disabled]="
-                  isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()
-                "
-              >
-                <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>
-                {{ submitButtonVisualLabel() }}
-                <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
-              </button>
+              <ng-container *ngIf="clientBookingStep() === 'DETAILS'; else clientPriceStep">
+                <section class="service-proposal__booking-details" aria-label="Details du rendez-vous">
+                  <button
+                    type="button"
+                    class="service-proposal__service-field"
+                    (click)="openDetailsModal('service')"
+                  >
+                    <span class="service-proposal__field-icon">
+                      <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
+                    </span>
+                    <span>
+                      <small>Motif de prestation</small>
+                      <strong>{{ categoryLabel() }}</strong>
+                    </span>
+                    <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                  </button>
+
+                  <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
+                    <button
+                      type="button"
+                      class="service-proposal__field"
+                      (click)="openDetailsModal('schedule')"
+                    >
+                      <span class="service-proposal__field-icon">
+                        <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
+                      </span>
+                      <span class="service-proposal__field-copy">
+                        <small>Date &amp; heure d'intervention</small>
+                        <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
+                      </span>
+                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="service-proposal__field"
+                      [class.service-proposal__field--readonly]="clientTravelsToProvider()"
+                      (click)="openDetailsModal('address')"
+                    >
+                      <span class="service-proposal__field-icon">
+                        <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                      </span>
+                      <span class="service-proposal__field-copy">
+                        <small>{{ appointmentAddressLabel() }}</small>
+                        <strong>{{ shortAddress() }}</strong>
+                      </span>
+                      <lucide-icon
+                        *ngIf="providerTravelsToClient()"
+                        name="pencil"
+                        size="15"
+                        [strokeWidth]="2.2"
+                      ></lucide-icon>
+                    </button>
+                  </div>
+                </section>
+
+                <button
+                  type="button"
+                  class="service-proposal__submit service-proposal__submit--dark"
+                  (click)="goToClientPriceStep()"
+                >
+                  Continuer vers la finalisation
+                  <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
+                </button>
+              </ng-container>
+
+              <ng-template #clientPriceStep>
+                <section class="service-proposal__booking-accordion" aria-label="Details de la prestation">
+                  <button type="button" class="service-proposal__booking-accordion-head" (click)="toggleClientBookingDetails()">
+                    <span class="service-proposal__booking-accordion-icon">
+                      <lucide-icon name="briefcase-business" size="22" [strokeWidth]="2.4"></lucide-icon>
+                    </span>
+                    <span>
+                      <strong>Details de la prestation</strong>
+                      <small>{{ categoryLabel() }}</small>
+                    </span>
+                    <lucide-icon
+                      name="chevron-down"
+                      size="18"
+                      [strokeWidth]="2.6"
+                      [class.service-proposal__booking-chevron--open]="clientBookingDetailsExpanded()"
+                    ></lucide-icon>
+                  </button>
+
+                  <div *ngIf="clientBookingDetailsExpanded()" class="service-proposal__booking-accordion-content">
+                    <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('service')">
+                      <span>Motif</span>
+                      <strong>{{ categoryLabel() }}</strong>
+                    </button>
+                    <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('schedule')">
+                      <span>Date &amp; heure</span>
+                      <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
+                    </button>
+                    <button
+                      type="button"
+                      class="service-proposal__booking-detail-row"
+                      [class.service-proposal__booking-detail-row--readonly]="clientTravelsToProvider()"
+                      (click)="openDetailsModal('address')"
+                    >
+                      <span>{{ appointmentAddressLabel() }}</span>
+                      <strong>{{ shortAddress() }}</strong>
+                    </button>
+                  </div>
+                </section>
+
+                <section class="service-proposal__price-card" aria-label="Prix propose">
+                  <header>
+                    <h2>{{ priceSectionTitle() }}</h2>
+                  </header>
+
+                  <div class="service-proposal__offer-display">
+                    <small>{{ offerFieldLabel() }}</small>
+                    <label>
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        min="1"
+                        step="500"
+                        [readonly]="isFixedPriceService()"
+                        [ngModel]="formattedOffer()"
+                        (ngModelChange)="updateOfferAmount($event)"
+                        [attr.aria-label]="offerFieldLabel()"
+                      />
+                      <strong>FCFA</strong>
+                    </label>
+                    <span class="service-proposal__difference">
+                      <lucide-icon
+                        [name]="offerDifferenceIcon()"
+                        size="13"
+                        [strokeWidth]="2.6"
+                      ></lucide-icon>
+                      {{ isOfferAdjusted() ? offerDifferenceLabel() : offerEquityLabel() }}
+                    </span>
+                  </div>
+
+                  <div class="service-proposal__amount-actions">
+                    <button
+                      type="button"
+                      class="service-proposal__amount-action service-proposal__amount-action--down"
+                      [disabled]="isFixedPriceService()"
+                      (click)="decreaseOffer()"
+                    >
+                      <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
+                      Diminuer
+                    </button>
+                    <button
+                      type="button"
+                      class="service-proposal__amount-action service-proposal__amount-action--up"
+                      [disabled]="isFixedPriceService()"
+                      (click)="increaseOffer()"
+                    >
+                      <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+                      Augmenter
+                    </button>
+                  </div>
+
+                  <div class="service-proposal__steps" aria-label="Paliers de modification">
+                    <span class="service-proposal__steps-title">Palier :</span>
+                    <input
+                      class="service-proposal__steps-range"
+                      type="range"
+                      min="100"
+                      max="1000"
+                      step="50"
+                      [ngModel]="selectedOfferStep()"
+                      (ngModelChange)="updateOfferStep($event)"
+                      aria-label="Palier de modification du prix"
+                    />
+                    <output>{{ selectedOfferStep() }} FCFA</output>
+                  </div>
+                </section>
+
+                <div class="service-proposal__booking-actions">
+                  <button type="button" class="service-proposal__back-step" (click)="goToClientDetailsStep()">
+                    <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.4"></lucide-icon>
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    class="service-proposal__submit"
+                    [class.service-proposal__submit--counter]="isOfferAdjusted()"
+                    [attr.aria-label]="submitButtonLabel()"
+                    (click)="submitProposal()"
+                    [disabled]="
+                      isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()
+                    "
+                  >
+                    <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>
+                    {{ submitButtonVisualLabel() }}
+                    <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
+                  </button>
+                </div>
+              </ng-template>
             </div>
           </section>
 
@@ -789,7 +862,7 @@
                         <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
                       </span>
                       <span class="service-proposal__field-copy">
-                        <small>Adresse d'intervention</small>
+                        <small>{{ appointmentAddressLabel() }}</small>
                         <strong>{{ shortAddress() }}</strong>
                       </span>
                       <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
@@ -947,16 +1020,22 @@
                       <button
                         type="button"
                         class="service-proposal__field"
+                        [class.service-proposal__field--readonly]="clientTravelsToProvider()"
                         (click)="openDetailsModal('address')"
                       >
                         <span class="service-proposal__field-icon">
                           <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
                         </span>
                         <span class="service-proposal__field-copy">
-                          <small>Adresse d'intervention</small>
+                          <small>{{ appointmentAddressLabel() }}</small>
                           <strong>{{ shortAddress() }}</strong>
                         </span>
-                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                        <lucide-icon
+                          *ngIf="providerTravelsToClient()"
+                          name="pencil"
+                          size="15"
+                          [strokeWidth]="2.2"
+                        ></lucide-icon>
                       </button>
                     </div>
                   </div>
@@ -1019,9 +1098,9 @@
                   <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
                 </span>
                 <p>
-                  <small>Adresse d'intervention</small>
+                  <small>{{ appointmentAddressLabel() }}</small>
                   <strong>{{ shortAddress() }}</strong>
-                  <em>Domicile</em>
+                  <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
                 </p>
               </div>
 

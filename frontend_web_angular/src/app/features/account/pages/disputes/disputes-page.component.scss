@@ -418,6 +418,93 @@
   display: none;
 }
 
+.disputes-page__summary-evidence {
+  border-top: 1px solid #eadbcf;
+  margin-top: 14px;
+  padding-top: 16px;
+
+  h3 {
+    color: #8b776b;
+    font-size: 13px;
+    font-weight: 850;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+  }
+}
+
+.disputes-page__evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.disputes-page__evidence-item {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 72px;
+}
+
+.disputes-page__evidence-preview-container {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #eadbcf;
+  border-radius: 12px;
+  color: #8d5527;
+  display: flex;
+  height: 72px;
+  justify-content: center;
+  position: relative;
+  width: 72px;
+}
+
+.disputes-page__evidence-img {
+  border-radius: 11px;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.disputes-page__delete-evidence {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #eadbcf;
+  border-radius: 50%;
+  color: #b45246;
+  cursor: pointer;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 20px;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  padding: 0;
+
+  &:hover {
+    background: #fff5f5;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.disputes-page__evidence-name {
+  color: #73798a;
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .disputes-page__summary-empty {
   align-items: center;
   color: #8b776b;

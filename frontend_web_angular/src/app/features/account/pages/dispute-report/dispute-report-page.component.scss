@@ -305,6 +305,18 @@
   right: 7px;
   top: 7px;
   width: 24px;
+  z-index: 2;
+}
+
+.dispute-report__file-preview {
+  border-radius: 17px;
+  height: 100%;
+  left: 0;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 1;
 }
 
 .dispute-report__add-file {

@@ -89,4 +89,16 @@ export class DisputesFacade {
       files,
     );
   }
+
+  deleteEvidenceForReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    evidenceId: string,
+  ) {
+    return this.disputeCommandService.deleteEvidenceForReservation(
+      requestUser,
+      reservationId,
+      evidenceId,
+    );
+  }
 }

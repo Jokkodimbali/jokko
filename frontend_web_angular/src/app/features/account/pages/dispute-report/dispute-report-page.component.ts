@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -41,12 +42,13 @@ interface DisputeReasonOption {
   templateUrl: './dispute-report-page.component.html',
   styleUrl: './dispute-report-page.component.scss',
 })
-export class DisputeReportPageComponent implements OnInit {
+export class DisputeReportPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedReason = signal<DisputeReasonKey>('bad_work');
@@ -132,7 +134,33 @@ export class DisputeReportPageComponent implements OnInit {
     this.evidenceFiles.set(nextFiles);
   }
 
+  private readonly previewUrls = new Map<File, SafeUrl>();
+  private readonly objectUrls: string[] = [];
+
+  ngOnDestroy(): void {
+    this.objectUrls.forEach((url) => URL.revokeObjectURL(url));
+  }
+
+  protected isImageFile(file: File): boolean {
+    return file.type.startsWith('image/');
+  }
+
+  protected getFilePreviewUrl(file: File): SafeUrl {
+    if (this.previewUrls.has(file)) {
+      return this.previewUrls.get(file)!;
+    }
+    const url = URL.createObjectURL(file);
+    this.objectUrls.push(url);
+    const safeUrl = this.sanitizer.bypassSecurityTrustUrl(url);
+    this.previewUrls.set(file, safeUrl);
+    return safeUrl;
+  }
+
   protected removeEvidence(index: number): void {
+    const file = this.evidenceFiles()[index];
+    if (file) {
+      this.previewUrls.delete(file);
+    }
     this.evidenceFiles.set(this.evidenceFiles().filter((_file, currentIndex) => currentIndex !== index));
   }
 

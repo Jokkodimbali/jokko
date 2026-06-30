@@ -51,6 +51,7 @@ const PROFESSIONAL_SELECT = {
       id: true,
       nom: true,
       numeroTelephone: true,
+      adresse: true,
       urlAvatar: true,
       estActif: true,
     },
@@ -113,6 +114,7 @@ type RawProfessionalProfile = {
     id: string;
     nom: string;
     numeroTelephone: string;
+    adresse: string | null;
     urlAvatar: string | null;
     estActif: boolean;
   };
@@ -765,6 +767,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             id: profile.utilisateur.id,
             nom: profile.utilisateur.nom,
             numeroTelephone: profile.utilisateur.numeroTelephone,
+            adresse: profile.utilisateur.adresse,
             urlAvatar: profile.utilisateur.urlAvatar,
             estActif: profile.utilisateur.estActif,
           }
@@ -772,6 +775,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             id: '',
             nom: '',
             numeroTelephone: '',
+            adresse: null,
             urlAvatar: null,
             estActif: false,
           },

@@ -90,7 +90,10 @@
             <button type="button" aria-label="Retirer la preuve" (click)="removeEvidence(index)">
               <lucide-icon name="x" size="14" [strokeWidth]="2.6"></lucide-icon>
             </button>
-            <lucide-icon [name]="fileIcon(file)" size="32" [strokeWidth]="2.2"></lucide-icon>
+            <img *ngIf="isImageFile(file); else docIcon" [src]="getFilePreviewUrl(file)" alt="Aperçu" class="dispute-report__file-preview" />
+            <ng-template #docIcon>
+              <lucide-icon [name]="fileIcon(file)" size="32" [strokeWidth]="2.2"></lucide-icon>
+            </ng-template>
             <span>{{ file.name }}</span>
           </article>
 

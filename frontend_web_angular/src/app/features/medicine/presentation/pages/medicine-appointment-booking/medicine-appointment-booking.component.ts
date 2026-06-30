@@ -11,10 +11,7 @@ import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
-import {
-  SENEGAL_PHONE_PATTERN,
-  normalizeSenegalPhoneNumber,
-} from '../../../../auth/domain/auth.validators';
+import { normalizeSenegalPhoneNumber } from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
 import {
   ReservationAvailabilitySlotView,
@@ -97,6 +94,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly selectedDateIso = signal<string>('');
   protected readonly selectedDateTime = signal<string | null>(null);
   protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
+  protected readonly prestationDetailsExpanded = signal(false);
   protected readonly calendarDays = signal<CalendarDay[]>([]);
   protected readonly selectedDateSlots = signal<ReservationAvailabilitySlotView[]>([]);
   protected readonly isLoadingSlots = signal(false);
@@ -134,8 +132,29 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly selectedService = computed(() =>
     this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
   );
+  protected readonly doctorTravelsToPatient = computed(
+    () => this.selectedService()?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE',
+  );
+  protected readonly patientTravelsToDoctor = computed(() => !this.doctorTravelsToPatient());
   protected readonly services = computed(() =>
     (this.detail()?.services ?? []).filter((service) => service.estDisponible),
+  );
+  protected readonly doctorInterventionAddress = computed(() => {
+    const profile = this.detail()?.profile;
+    return (
+      profile?.utilisateur.adresse?.trim() ||
+      profile?.ville?.trim() ||
+      ''
+    );
+  });
+  protected readonly doctorInterventionAddressLabel = computed(
+    () => this.doctorInterventionAddress() || 'Adresse du cabinet non renseignee',
+  );
+  protected readonly appointmentAddressLabel = computed(() =>
+    this.patientTravelsToDoctor() ? 'Adresse du cabinet' : 'Adresse du rendez-vous',
+  );
+  protected readonly appointmentAddressBadge = computed(() =>
+    this.patientTravelsToDoctor() ? 'Cabinet' : 'Domicile',
   );
   protected readonly userName = computed(() => this.user()?.nom?.trim() || 'Nom non renseigne');
   protected readonly userPhoneNumber = computed(() => this.user()?.numeroTelephone?.trim() || '');
@@ -147,7 +166,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       return normalizeSenegalPhoneNumber(this.appointmentPhoneValue()) || 'Telephone a renseigner';
     }
 
-    return normalizeSenegalPhoneNumber(this.relativePatient().phoneNumber) || 'Telephone a renseigner';
+    return normalizeSenegalPhoneNumber(this.relativePatient().phoneNumber || this.userPhoneNumber()) || 'Telephone a renseigner';
   });
   protected readonly locationSummary = computed(() => {
     const location = this.appointmentLocation();
@@ -263,6 +282,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected openDetailsModal(modal: ProposalDetailsModal): void {
+    if (modal === 'address' && this.patientTravelsToDoctor()) {
+      this.feedback.info('Cette adresse est celle renseignee par le medecin dans ses parametres.');
+      return;
+    }
+
     this.activeDetailsModal.set(modal);
   }
 
@@ -270,9 +294,23 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     this.activeDetailsModal.set(null);
   }
 
+  protected togglePrestationDetails(): void {
+    this.prestationDetailsExpanded.update((expanded) => !expanded);
+  }
+
   protected selectService(serviceId: string): void {
     this.selectedServiceId.set(serviceId);
     this.selectedDateTime.set(null);
+    if (this.patientTravelsToDoctor()) {
+      this.appointmentAddressOverride.set('');
+      this.appointmentLocation.set(null);
+      this.fieldErrors.update((errors) => {
+        const next = { ...errors };
+        delete next.selfAddress;
+        delete next.address;
+        return next;
+      });
+    }
     this.loadAvailabilityForSelectedDate();
   }
 
@@ -307,6 +345,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected updateAppointmentAddress(value: string): void {
+    if (this.patientTravelsToDoctor()) {
+      this.feedback.info('Le lieu du rendez-vous est fixe par le cabinet du medecin.');
+      return;
+    }
+
     const address = this.normalizeText(value);
     this.appointmentLocation.set(null);
 
@@ -352,6 +395,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected useCurrentLocationForAppointment(): void {
+    if (this.patientTravelsToDoctor()) {
+      this.feedback.info('La geolocalisation nest pas necessaire: le rendez-vous se fait au cabinet du medecin.');
+      return;
+    }
+
     if (!navigator.geolocation) {
       this.feedback.info('La geolocalisation nest pas disponible sur cet appareil.');
       return;
@@ -514,6 +562,10 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected patientSummaryAddress(): string {
+    if (this.patientTravelsToDoctor()) {
+      return this.doctorInterventionAddressLabel();
+    }
+
     if (this.appointmentFor() === 'ME') {
       return this.appointmentAddressOverride() || this.userAddress() || 'Adresse a ajouter au profil';
     }
@@ -534,16 +586,17 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   private validatePersonalStep(): boolean {
     if (this.appointmentFor() === 'ME') {
-      const address = this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
-      const phoneNumber = normalizeSenegalPhoneNumber(this.appointmentPhoneValue());
+      const address = this.patientTravelsToDoctor()
+        ? this.normalizeText(this.doctorInterventionAddress())
+        : this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
       const errors: Partial<Record<PatientFormField | 'selfAddress' | 'selfPhone', string>> = {};
 
-      if (!new RegExp(SENEGAL_PHONE_PATTERN).test(phoneNumber)) {
-        errors.selfPhone = 'Renseignez un numero senegalais valide pour le rendez-vous.';
+      if (!this.patientTravelsToDoctor() && address.length < 5) {
+        errors.selfAddress = 'Ajoutez une adresse complete avant de continuer.';
       }
 
-      if (address.length < 5) {
-        errors.selfAddress = 'Ajoutez une adresse complete avant de continuer.';
+      if (this.patientTravelsToDoctor() && address.length < 5) {
+        errors.selfAddress = 'Adresse du cabinet non renseignee par ce medecin.';
       }
 
       if (Object.keys(errors).length > 0) {
@@ -652,13 +705,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   private buildPatientDraft(): { adresseClient: string; notes: string } | null {
     if (this.appointmentFor() === 'ME') {
-      const address = this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
-      const phoneNumber = normalizeSenegalPhoneNumber(this.appointmentPhoneValue());
+      const address = this.patientTravelsToDoctor()
+        ? this.normalizeText(this.doctorInterventionAddress())
+        : this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
       const errors: Partial<Record<PatientFormField | 'selfAddress' | 'selfPhone', string>> = {};
-
-      if (!new RegExp(SENEGAL_PHONE_PATTERN).test(phoneNumber)) {
-        errors.selfPhone = 'Renseignez un numero senegalais valide pour le rendez-vous.';
-      }
+      const phoneNumber = normalizeSenegalPhoneNumber(this.appointmentPhoneValue());
 
       if (address.length < 5) {
         errors.selfAddress = 'Ajoutez une adresse complete pour le rendez-vous.';
@@ -676,9 +727,9 @@ export class MedicineAppointmentBookingComponent implements OnInit {
           [
             'Rendez-vous medical pris depuis l espace medecine.',
             `Patient: ${this.userName()}.`,
-            `Telephone: ${phoneNumber}.`,
-            this.formatLocationNote(),
-          ].join(' '),
+            phoneNumber ? `Telephone: ${phoneNumber}.` : '',
+            this.patientTravelsToDoctor() ? 'Lieu: cabinet du medecin.' : this.formatLocationNote(),
+          ].filter(Boolean).join(' '),
         ),
       };
     }
@@ -691,15 +742,24 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
     this.fieldErrors.set({});
     const patient = validation.patient;
+    const address = this.patientTravelsToDoctor()
+      ? this.normalizeText(this.doctorInterventionAddress())
+      : patient.address;
+
+    if (address.length < 5) {
+      this.fieldErrors.set({ address: 'Adresse du cabinet non renseignee par ce medecin.' });
+      return null;
+    }
+
     return {
-      adresseClient: patient.address,
+      adresseClient: address,
       notes: this.limitNotes(
         [
           'Rendez-vous medical pris pour un proche depuis l espace medecine.',
           `Patient: ${patient.fullName}.`,
           `Lien: ${patient.relationship}.`,
-          `Telephone: ${patient.phoneNumber}.`,
-          this.formatLocationNote(),
+          patient.phoneNumber ? `Telephone: ${patient.phoneNumber}.` : '',
+          this.patientTravelsToDoctor() ? 'Lieu: cabinet du medecin.' : this.formatLocationNote(),
           patient.notes ? `Notes patient: ${patient.notes}.` : '',
         ]
           .filter(Boolean)
@@ -716,7 +776,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     const raw = this.relativePatient();
     const patient = {
       fullName: this.normalizeText(raw.fullName),
-      phoneNumber: normalizeSenegalPhoneNumber(raw.phoneNumber),
+      phoneNumber: normalizeSenegalPhoneNumber(raw.phoneNumber || this.userPhoneNumber()),
       relationship: this.normalizeText(raw.relationship),
       address: this.normalizeText(raw.address),
       notes: this.normalizeText(raw.notes),
@@ -727,15 +787,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       errors.fullName = 'Renseignez le nom complet du patient.';
     }
 
-    if (!new RegExp(SENEGAL_PHONE_PATTERN).test(patient.phoneNumber)) {
-      errors.phoneNumber = 'Renseignez un numero senegalais valide.';
-    }
-
     if (patient.relationship.length < 2) {
       errors.relationship = 'Precisez le lien avec le patient.';
     }
 
-    if (patient.address.length < 5) {
+    if (this.doctorTravelsToPatient() && patient.address.length < 5) {
       errors.address = 'Renseignez une adresse complete pour le rendez-vous.';
     }
 

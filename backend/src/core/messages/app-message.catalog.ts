@@ -696,6 +696,11 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
       message: 'Impossible d uploader cette piece pour le moment.',
     },
+    DISPUTES_EVIDENCE_DELETED: {
+      code: 'DISPUTES_EVIDENCE_DELETED',
+      httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,
+      message: 'Preuve supprimee avec succes.',
+    },
     DISPUTES_NOT_FOUND: {
       code: 'DISPUTES_NOT_FOUND',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,

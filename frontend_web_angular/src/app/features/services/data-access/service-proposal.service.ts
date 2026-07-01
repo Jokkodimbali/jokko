@@ -61,6 +61,26 @@ export interface NegotiationView {
   };
 }
 
+export type MaterialQuoteStatus = 'EN_ATTENTE' | 'VALIDE' | 'REFUSE';
+
+export interface MaterialQuoteView {
+  id: string;
+  negotiationId: string;
+  reservationId: string | null;
+  createdByUserId: string;
+  createdBy: 'CLIENT' | 'PRESTATAIRE';
+  designation: string;
+  unitPrice: number;
+  quantity: number;
+  status: MaterialQuoteStatus;
+  clientValidatedAt: string | null;
+  providerValidatedAt: string | null;
+  rejectedBy: 'CLIENT' | 'PRESTATAIRE' | null;
+  pdfUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreatePriceProposalPayload {
   serviceId: string;
   proposedAmount: number;
@@ -85,6 +105,12 @@ export interface CreateReservationFromNegotiationPayload {
   adresseClient: string;
   dureeMinutes: number;
   notes?: string;
+}
+
+export interface CreateMaterialQuotePayload {
+  designation: string;
+  unitPrice: number;
+  quantity: number;
 }
 
 export interface ReservationAvailabilityView {
@@ -248,6 +274,56 @@ export class ServiceProposalService {
         map((response) => unwrapApiResponse(response)),
         tap(() => this.clearProposalsCache()),
       );
+  }
+
+  listMaterialQuotes(negotiationId: string): Observable<MaterialQuoteView[]> {
+    return this.http
+      .get<ApiResponse<MaterialQuoteView[]>>(
+        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes`,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  createMaterialQuote(
+    negotiationId: string,
+    payload: CreateMaterialQuotePayload,
+  ): Observable<MaterialQuoteView> {
+    return this.http
+      .post<ApiResponse<MaterialQuoteView>>(
+        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes`,
+        payload,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  approveMaterialQuote(negotiationId: string, quoteId: string): Observable<MaterialQuoteView> {
+    return this.http
+      .patch<ApiResponse<MaterialQuoteView>>(
+        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/approve`,
+        {},
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  rejectMaterialQuote(negotiationId: string, quoteId: string): Observable<MaterialQuoteView> {
+    return this.http
+      .patch<ApiResponse<MaterialQuoteView>>(
+        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/reject`,
+        {},
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  finalizeMaterialQuotes(
+    negotiationId: string,
+    reservationId: string,
+  ): Observable<{ ready: boolean; quoteCount: number; pdfUrl: string | null }> {
+    return this.http
+      .post<ApiResponse<{ ready: boolean; quoteCount: number; pdfUrl: string | null }>>(
+        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/finalize`,
+        { reservationId },
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   createDirectReservation(payload: CreateDirectReservationPayload): Observable<{ id?: string }> {

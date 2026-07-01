@@ -205,6 +205,47 @@
   width: 48px;
 }
 
+.doctor-profile__movement-stat {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doctor-profile__stats .doctor-profile__movement-badge {
+  align-items: center;
+  background: #050505;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  flex: initial;
+  gap: 4px;
+  height: auto;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 34px;
+  overflow: hidden;
+  padding: 7px 12px;
+  width: auto;
+}
+
+.doctor-profile__stats .doctor-profile__movement-badge strong {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-profile__stats .doctor-profile__movement-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 24px;
+  object-fit: contain;
+  width: 30px;
+}
+
 .doctor-profile__stats p {
   display: grid;
   gap: 3px;
@@ -284,10 +325,11 @@
 }
 
 .doctor-profile__price p {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  color: #898989;
+  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.65;
   margin: 0 0 28px;
 }
 

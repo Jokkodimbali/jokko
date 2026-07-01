@@ -131,12 +131,12 @@ export class MessagingRepository implements MessagingRepositoryPort {
       where: {
         clientId: params.clientUserId,
         prestataireId: params.professionalUserId,
-        reservationId: null,
         OR: [
           { clientId: params.currentUserId },
           { prestataireId: params.currentUserId },
         ],
       },
+      orderBy: [{ dernierMessageLe: 'desc' }, { creeLe: 'desc' }],
       select: this.buildConversationSelect(params.currentUserId),
     });
 
@@ -189,16 +189,18 @@ export class MessagingRepository implements MessagingRepositoryPort {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const conflictConversation = input.reservationId
-          ? await this.findConversationByReservationId(
-              input.reservationId,
-              currentUserId,
-            )
-          : await this.findDirectConversationByParticipants({
-              clientUserId: input.clientUserId,
-              professionalUserId: input.professionalUserId,
-              currentUserId,
-            });
+        const conflictConversation =
+          (input.reservationId
+            ? await this.findConversationByReservationId(
+                input.reservationId,
+                currentUserId,
+              )
+            : null) ??
+          (await this.findDirectConversationByParticipants({
+            clientUserId: input.clientUserId,
+            professionalUserId: input.professionalUserId,
+            currentUserId,
+          }));
         if (conflictConversation) {
           return { conversation: conflictConversation, wasCreated: false };
         }

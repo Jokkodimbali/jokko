@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { StatutDevisMateriel } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../../../professionals/application/ports/professionals-repository.port';
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
 import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CancelNegotiationCommand,
   CounterNegotiationCommand,
@@ -42,6 +44,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     @Inject(DOMAINE_EVENT_BUS)
     private readonly eventBus: DomaineEventBusPort,
     private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {
     super(negotiationsRepository, professionalsRepository);
   }
@@ -151,6 +154,10 @@ export class NegotiationCommandService extends NegotiationAppService {
       negotiationId,
     );
 
+    if (actor === 'CLIENT') {
+      await this.assertNoPendingMaterialQuote(negotiationId);
+    }
+
     try {
       if (actor === 'PRESTATAIRE') {
         entity.acceptByProfessional();
@@ -169,6 +176,22 @@ export class NegotiationCommandService extends NegotiationAppService {
     await this.publishEvents(entity);
     await this.notifyNegotiationClosed(updated, 'ANNULEE');
     return updated;
+  }
+
+  private async assertNoPendingMaterialQuote(negotiationId: string): Promise<void> {
+    const pendingMaterialQuote = await this.prisma.devisMaterielNegotiation.findFirst({
+      where: {
+        negotiationId,
+        statut: StatutDevisMateriel.EN_ATTENTE,
+      },
+      select: { id: true },
+    });
+
+    if (pendingMaterialQuote) {
+      throw new BadRequestException(
+        'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',
+      );
+    }
   }
 
   private async notifyNegotiationClosed(
@@ -192,9 +215,7 @@ export class NegotiationCommandService extends NegotiationAppService {
           'Le prestataire';
     const serviceName = negotiation.service?.nom || 'la prestation';
     const title =
-      status === 'ANNULEE'
-        ? 'Negociation annulee'
-        : 'Negociation refusee';
+      status === 'ANNULEE' ? 'Negociation annulee' : 'Negociation refusee';
     const body =
       status === 'ANNULEE'
         ? `${actorName} a annule la negociation pour ${serviceName}.`

@@ -862,6 +862,12 @@ export const APP_MESSAGES_BY_MODULE = {
       message:
         'La reservation doit etre confirmee ou en cours pour cette action.',
     },
+    RESERVATIONS_ARRIVAL_REQUIRED: {
+      code: 'RESERVATIONS_ARRIVAL_REQUIRED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'La prestation peut commencer uniquement lorsque le participant qui se deplace est arrive a destination.',
+    },
     RESERVATIONS_ALREADY_CLOSED: {
       code: 'RESERVATIONS_ALREADY_CLOSED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,

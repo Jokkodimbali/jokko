@@ -69,16 +69,19 @@
 
         <div class="provider-profile__stats" aria-label="Statistiques du prestataire">
           <div>
-            <span><lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon></span>
-            <p><strong>{{ experienceLabel() }}</strong><small>Experience</small></p>
-          </div>
-          <div>
             <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
             <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
           </div>
           <div>
             <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
             <p><strong>{{ reviewsCountLabel() }}</strong><small>Avis</small></p>
+          </div>
+          <div class="provider-profile__movement-stat">
+            <span class="provider-profile__movement-badge" [attr.aria-label]="travelModeLabel()">
+              <strong>{{ travelModeLabel() }}</strong>
+              <img *ngIf="travelModeImageUrl() as imageUrl" [src]="imageUrl" alt="" aria-hidden="true" />
+            </span>
+            <p><small>Deplacement</small></p>
           </div>
         </div>
       </section>
@@ -119,47 +122,12 @@
               <p class="provider-profile__empty">Aucune realisation publiee pour le moment.</p>
             </ng-template>
           </article>
-
-          <article class="provider-profile__card provider-profile__reviews">
-            <header>
-              <h2>Avis clients</h2>
-              <div>
-                <strong>{{ ratingLabel() }}</strong>
-                <span>?????</span>
-                <small>{{ reviewTotalLabel() }}</small>
-              </div>
-            </header>
-
-            <div *ngIf="reviewItems().length > 0; else noReviews" class="provider-profile__review-list">
-              <article *ngFor="let review of reviewItems()" class="provider-profile__review">
-                <img
-                  *ngIf="visibleImageUrl(review.client.urlAvatar) as reviewAvatar; else reviewInitials"
-                  [src]="reviewAvatar"
-                  [alt]="review.client.nom"
-                  (error)="handleImageError(reviewAvatar)"
-                />
-                <ng-template #reviewInitials>
-                  <span class="provider-profile__review-avatar">{{ formatReviewInitials(review.client.nom) }}</span>
-                </ng-template>
-                <div>
-                  <strong>{{ review.client.nom }}</strong>
-                  <span>{{ starsFor(review.note) }}</span>
-                  <p>{{ review.commentaire || 'Avis sans commentaire.' }}</p>
-                </div>
-                <small>{{ formatReviewDate(review.reviewedAt || review.creeLe || review.dateHeure) }}</small>
-              </article>
-            </div>
-            <ng-template #noReviews>
-              <p class="provider-profile__empty">Aucun avis client pour le moment.</p>
-            </ng-template>
-          </article>
         </div>
 
         <aside class="provider-profile__side">
           <article class="provider-profile__card provider-profile__price">
-            <span>Tarif</span>
-            <p><strong>{{ priceLabel().replace(' FCFA', '') }}</strong> <em>FCFA {{ priceTypeLabel() }}</em></p>
-            <small class="provider-profile__price-helper">{{ priceHelper() }}</small>
+            <span>{{ pricingIntroLabel() }}</span>
+            <p>{{ serviceBookingText() }}</p>
             <button
               type="button"
               [routerLink]="['/services', profileId, 'proposition']"

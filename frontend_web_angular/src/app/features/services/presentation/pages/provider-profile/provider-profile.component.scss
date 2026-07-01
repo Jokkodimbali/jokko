@@ -232,6 +232,51 @@
   width: 48px;
 }
 
+.provider-profile__movement-stat {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.provider-profile__stats .provider-profile__movement-badge {
+  align-items: center;
+  background: #050505;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  flex: initial;
+  gap: 4px;
+  height: auto;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 34px;
+  overflow: hidden;
+  padding: 7px 12px;
+  width: auto;
+}
+
+.provider-profile__stats .provider-profile__movement-badge strong {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-profile__stats .provider-profile__movement-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 24px;
+  object-fit: contain;
+  width: 30px;
+}
+
+.provider-profile__stats .provider-profile__movement-badge img[src$="parcel-transport-route.png"] {
+  width: 42px;
+}
+
 .provider-profile__stats p {
   display: grid;
   gap: 3px;

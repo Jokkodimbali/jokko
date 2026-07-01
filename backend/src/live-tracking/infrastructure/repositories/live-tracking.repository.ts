@@ -45,10 +45,13 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         service: {
           select: {
             nom: true,
+            modeDeplacement: true,
           },
         },
         professionnel: {
           select: {
+            nomEntreprise: true,
+            ville: true,
             utilisateur: {
               select: {
                 id: true,
@@ -71,10 +74,28 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       professionalUserId: reservation.professionnel.utilisateur.id,
       professionalName: reservation.professionnel.utilisateur.nom,
       serviceName: reservation.service.nom,
+      travelMode: reservation.service.modeDeplacement,
       dateHeure: reservation.dateHeure,
       adresseClient: reservation.adresseClient,
+      adresseDestinationPrestataire: this.buildProfessionalDestinationAddress({
+        companyName: reservation.professionnel.nomEntreprise,
+        city: reservation.professionnel.ville,
+        professionalName: reservation.professionnel.utilisateur.nom,
+      }),
       reservationStatus: reservation.statut,
     };
+  }
+
+  private buildProfessionalDestinationAddress(input: {
+    companyName: string | null;
+    city: string | null;
+    professionalName: string;
+  }): string {
+    const city = input.city?.trim();
+    const companyName = input.companyName?.trim();
+    if (companyName && city) return `${companyName}, ${city}`;
+    if (city) return city;
+    return input.professionalName;
   }
 
   async findProfessionalPresence(
@@ -263,6 +284,73 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
     return this.mapTracking(saved);
   }
 
+  async startOrResumeTravelerTracking(input: {
+    session: ReservationTrackingSession;
+  }): Promise<ReservationTrackingView> {
+    const saved = await this.prisma.$transaction(async (tx) => {
+      const session = await tx.sessionTrackingReservation.upsert({
+        where: { reservationId: input.session.reservationId },
+        create: {
+          reservationId: input.session.reservationId,
+          clientId: input.session.clientUserId,
+          professionnelId: input.session.professionalId,
+          statut:
+            input.session.trackingStatus === 'INACTIF'
+              ? 'EN_ROUTE'
+              : input.session.trackingStatus,
+          derniereLatitude: this.toDecimal(input.session.lastLatitude),
+          derniereLongitude: this.toDecimal(input.session.lastLongitude),
+          dernierePrecisionMetres: this.toDecimal(
+            input.session.lastAccuracyMeters,
+          ),
+          derniereOrientationDegres: input.session.lastHeadingDegrees,
+          derniereVitesseKmh: this.toDecimal(input.session.lastSpeedKmh),
+          dernierLibelleLocalisation: input.session.lastLocationLabel,
+          dernierePositionLe: input.session.lastPositionAt,
+          demarreLe: input.session.startedAt ?? new Date(),
+          termineLe: null,
+        },
+        update: {
+          statut: 'EN_ROUTE',
+          termineLe: null,
+          derniereLatitude: this.toDecimal(input.session.lastLatitude),
+          derniereLongitude: this.toDecimal(input.session.lastLongitude),
+          dernierePrecisionMetres: this.toDecimal(
+            input.session.lastAccuracyMeters,
+          ),
+          derniereOrientationDegres: input.session.lastHeadingDegrees,
+          derniereVitesseKmh: this.toDecimal(input.session.lastSpeedKmh),
+          dernierLibelleLocalisation: input.session.lastLocationLabel,
+          dernierePositionLe: input.session.lastPositionAt,
+          demarreLe: input.session.startedAt ?? new Date(),
+        },
+        include: TRACKING_INCLUDE,
+      });
+
+      if (
+        input.session.lastLatitude !== null &&
+        input.session.lastLongitude !== null
+      ) {
+        await tx.pointTrackingReservation.create({
+          data: {
+            sessionTrackingId: session.id,
+            latitude: this.requiredDecimal(input.session.lastLatitude),
+            longitude: this.requiredDecimal(input.session.lastLongitude),
+            precisionMetres: this.toDecimal(input.session.lastAccuracyMeters),
+            orientationDegres: input.session.lastHeadingDegrees,
+            vitesseKmh: this.toDecimal(input.session.lastSpeedKmh),
+            libelleLocalisation: input.session.lastLocationLabel,
+            enregistreLe: input.session.lastPositionAt ?? new Date(),
+          },
+        });
+      }
+
+      return session;
+    });
+
+    return this.mapTracking(saved);
+  }
+
   async recordTrackingLocation(input: {
     reservationId: string;
     professionalId: string;
@@ -318,6 +406,62 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
       });
 
+      await tx.pointTrackingReservation.create({
+        data: {
+          sessionTrackingId: existing.id,
+          latitude: this.requiredDecimal(input.latitude),
+          longitude: this.requiredDecimal(input.longitude),
+          precisionMetres: this.toDecimal(input.accuracyMeters),
+          orientationDegres: input.headingDegrees ?? null,
+          vitesseKmh: this.toDecimal(input.speedKmh),
+          libelleLocalisation: input.locationLabel ?? null,
+          enregistreLe: now,
+        },
+      });
+
+      return tx.sessionTrackingReservation.update({
+        where: { id: existing.id },
+        data: {
+          derniereLatitude: this.requiredDecimal(input.latitude),
+          derniereLongitude: this.requiredDecimal(input.longitude),
+          dernierePrecisionMetres: this.toDecimal(input.accuracyMeters),
+          derniereOrientationDegres: input.headingDegrees ?? null,
+          derniereVitesseKmh: this.toDecimal(input.speedKmh),
+          dernierLibelleLocalisation: input.locationLabel ?? null,
+          dernierePositionLe: now,
+        },
+        include: TRACKING_INCLUDE,
+      });
+    });
+
+    return record ? this.mapTracking(record) : null;
+  }
+
+  async recordTravelerTrackingLocation(input: {
+    reservationId: string;
+    professionalId: string;
+    latitude: number;
+    longitude: number;
+    accuracyMeters?: number | null;
+    headingDegrees?: number | null;
+    speedKmh?: number | null;
+    locationLabel?: string | null;
+  }): Promise<ReservationTrackingView | null> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.sessionTrackingReservation.findUnique({
+        where: { reservationId: input.reservationId },
+        include: TRACKING_INCLUDE,
+      });
+
+      if (
+        !existing ||
+        existing.professionnelId !== input.professionalId ||
+        existing.statut !== 'EN_ROUTE'
+      ) {
+        return null;
+      }
+
+      const now = new Date();
       await tx.pointTrackingReservation.create({
         data: {
           sessionTrackingId: existing.id,

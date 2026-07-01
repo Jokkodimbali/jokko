@@ -48,10 +48,18 @@ export class ProfileService extends ProfessionalAppService {
 
     const result = await this.professionalsRepository.updateProfile({
       utilisateurId: requestUser.sub,
-      biographie: Bio.create(command.bio)?.getValue() ?? null,
+      biographie:
+        command.bio === undefined
+          ? undefined
+          : (Bio.create(command.bio)?.getValue() ?? null),
       nomEntreprise:
-        CompanyName.create(command.companyName)?.getValue() ?? null,
-      ville: City.create(command.city)?.getValue() ?? null,
+        command.companyName === undefined
+          ? undefined
+          : (CompanyName.create(command.companyName)?.getValue() ?? null),
+      ville:
+        command.city === undefined
+          ? undefined
+          : (City.create(command.city)?.getValue() ?? null),
     });
 
     if (result.status === 'profile_not_found') {

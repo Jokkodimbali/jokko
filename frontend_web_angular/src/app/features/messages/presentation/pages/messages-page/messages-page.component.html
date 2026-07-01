@@ -148,21 +148,21 @@
               <img
                 *ngIf="isImageMedia(mediaUrl); else nonImageMedia"
                 class="messages-page__media-image"
-                [src]="mediaUrl"
+                [src]="mediaDisplayUrl(mediaUrl)"
                 [alt]="message.content || 'Image envoyee'"
               />
               <ng-template #nonImageMedia>
                 <audio
                   *ngIf="isAudioMedia(mediaUrl); else attachmentMedia"
                   class="messages-page__media-audio"
-                  [src]="mediaUrl"
+                  [src]="mediaDisplayUrl(mediaUrl)"
                   controls
                 ></audio>
                 <ng-template #attachmentMedia>
-                  <a class="messages-page__media-file" [href]="mediaUrl" target="_blank" rel="noreferrer">
+                  <button type="button" class="messages-page__media-file" (click)="openMedia(mediaUrl)">
                     <lucide-icon name="paperclip" size="16" [strokeWidth]="2.3"></lucide-icon>
                     {{ mediaFileName(mediaUrl) }}
-                  </a>
+                  </button>
                 </ng-template>
               </ng-template>
             </ng-container>

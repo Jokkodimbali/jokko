@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -29,19 +30,28 @@ import {
 } from '../../../shared/swagger/api-response-swagger.dto';
 import { SWAGGER_RESPONSE_EXAMPLES } from '../../../shared/swagger/swagger-response.examples';
 import { NegotiationsFacade } from '../../application/services/negotiations-facade.service';
+import { MaterialQuoteService } from '../../application/services/material-quote.service';
 import { CreateNegotiationDto } from '../dto/create-negotiation.dto';
 import { ListNegotiationsQueryDto } from '../dto/list-negotiations-query.dto';
+import {
+  CreateMaterialQuoteDto,
+  FinalizeMaterialQuoteDto,
+} from '../dto/material-quote.dto';
 import {
   CloseNegotiationDto,
   CounterNegotiationDto,
 } from '../dto/update-negotiation.dto';
+import type { Response } from 'express';
 
 @ApiTags(API_DOCS.negotiations.tag)
 @ApiBearerAuth()
 @Controller('negotiations')
 @UseGuards(JwtAuthGuard)
 export class NegotiationsController {
-  constructor(private readonly negotiationsFacade: NegotiationsFacade) {}
+  constructor(
+    private readonly negotiationsFacade: NegotiationsFacade,
+    private readonly materialQuoteService: MaterialQuoteService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -138,6 +148,93 @@ export class NegotiationsController {
       negotiationId,
     );
     return createApiResponse(result);
+  }
+
+  @Get(':negotiationId/material-quotes')
+  async listMaterialQuotes(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+  ) {
+    const result = await this.materialQuoteService.listForNegotiation(
+      user,
+      negotiationId,
+    );
+    return createApiResponse(result);
+  }
+
+  @Post(':negotiationId/material-quotes')
+  @HttpCode(HttpStatus.CREATED)
+  async createMaterialQuote(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+    @Body() dto: CreateMaterialQuoteDto,
+  ) {
+    const result = await this.materialQuoteService.createForNegotiation(
+      user,
+      negotiationId,
+      dto,
+    );
+    return createApiResponse(result);
+  }
+
+  @Patch(':negotiationId/material-quotes/:quoteId/approve')
+  async approveMaterialQuote(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+    @Param('quoteId') quoteId: string,
+  ) {
+    const result = await this.materialQuoteService.approveQuote(
+      user,
+      negotiationId,
+      quoteId,
+    );
+    return createApiResponse(result);
+  }
+
+  @Patch(':negotiationId/material-quotes/:quoteId/reject')
+  async rejectMaterialQuote(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+    @Param('quoteId') quoteId: string,
+  ) {
+    const result = await this.materialQuoteService.rejectQuote(
+      user,
+      negotiationId,
+      quoteId,
+    );
+    return createApiResponse(result);
+  }
+
+  @Post(':negotiationId/material-quotes/finalize')
+  async finalizeMaterialQuotes(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+    @Body() dto: FinalizeMaterialQuoteDto,
+  ) {
+    const result = await this.materialQuoteService.finalizeForReservation(
+      user,
+      negotiationId,
+      dto.reservationId,
+    );
+    return createApiResponse(result);
+  }
+
+  @Get(':negotiationId/material-quotes.pdf')
+  async downloadMaterialQuotePdf(
+    @CurrentUser() user: AuthUser,
+    @Param('negotiationId') negotiationId: string,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.materialQuoteService.buildPdfBuffer(
+      user,
+      negotiationId,
+    );
+    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader(
+      'Content-Disposition',
+      'inline; filename="devis-materiel.pdf"',
+    );
+    response.send(pdf);
   }
 
   @Patch(':negotiationId/counter')

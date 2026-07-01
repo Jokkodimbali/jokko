@@ -82,16 +82,18 @@ export class MessagingCommandService extends MessagingAppService {
           command.professionalProfileId,
         );
 
-    const existing = participantContext.reservationId
-      ? await this.messagingRepository.findConversationByReservationId(
-          participantContext.reservationId,
-          requestUser.sub,
-        )
-      : await this.messagingRepository.findDirectConversationByParticipants({
-          clientUserId: participantContext.clientUserId,
-          professionalUserId: participantContext.professionalUserId,
-          currentUserId: requestUser.sub,
-        });
+    const existing =
+      (participantContext.reservationId
+        ? await this.messagingRepository.findConversationByReservationId(
+            participantContext.reservationId,
+            requestUser.sub,
+          )
+        : null) ??
+      (await this.messagingRepository.findDirectConversationByParticipants({
+        clientUserId: participantContext.clientUserId,
+        professionalUserId: participantContext.professionalUserId,
+        currentUserId: requestUser.sub,
+      }));
     if (existing) {
       return existing;
     }

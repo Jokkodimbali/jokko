@@ -68,6 +68,7 @@
   justify-content: center;
   min-width: 0;
   padding: 0 12px;
+  position: relative;
   text-decoration: none;
   white-space: nowrap;
   width: auto;
@@ -77,6 +78,24 @@
     box-shadow 0.22s ease,
     color 0.22s ease,
     transform 0.22s ease;
+}
+
+.app-navbar__nav-badge {
+  align-items: center;
+  background: #d9362e;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 950;
+  height: 20px;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 5px;
+  position: absolute;
+  right: -8px;
+  top: -8px;
 }
 
 .app-navbar__nav-item:hover,
@@ -805,6 +824,20 @@
   min-height: 54px;
   padding: 0 16px;
   text-decoration: none;
+}
+
+.app-navbar__mobile-nav-badge {
+  align-items: center;
+  background: #d9362e;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  justify-content: center;
+  margin-left: auto;
+  min-width: 24px;
+  padding: 4px 7px;
 }
 
 .app-navbar__mobile-nav-item:hover,

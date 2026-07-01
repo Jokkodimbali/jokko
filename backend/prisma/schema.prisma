@@ -188,6 +188,12 @@ enum RoleNegociateur {
   PRESTATAIRE
 }
 
+enum StatutDevisMateriel {
+  EN_ATTENTE
+  VALIDE
+  REFUSE
+}
+
 model Utilisateur {
   id                String            @id @default(uuid()) @db.Uuid
   numeroTelephone   String            @unique @map("phone_number") @db.VarChar(20)
@@ -210,6 +216,7 @@ model Utilisateur {
   conversationsPrestataire  Conversation[]         @relation("ConversationsPrestataire")
   messagesEnvoyes           Message[]              @relation("MessagesEnvoyes")
   notifications             Notification[]
+  devisMaterielCrees        DevisMaterielNegotiation[] @relation("MaterialQuoteCreator")
   communicationsReservation CommunicationReservation[]
   sessionsAuthentification  SessionAuthentification[]
   favorisProfessionnels     FavoriProfessionnel[]
@@ -514,6 +521,7 @@ model Reservation {
   negotiation       Negotiation?
   litige            Litige?
   trackingSession   SessionTrackingReservation?
+  devisMateriel     DevisMaterielNegotiation[]
 
   @@unique([id, clientId, professionnelId])
   @@index([clientId, dateHeure])
@@ -548,6 +556,7 @@ model Negotiation {
   service            Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   reservation        Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   propositions       PropositionNegotiation[]
+  devisMateriel      DevisMaterielNegotiation[]
 
   @@index([clientId, statut, creeLe])
   @@index([professionnelId, statut, creeLe])
@@ -567,6 +576,33 @@ model PropositionNegotiation {
 
   @@index([negotiationId, creeLe])
   @@map("negotiation_offers")
+}
+
+model DevisMaterielNegotiation {
+  id                  String             @id @default(uuid()) @db.Uuid
+  negotiationId       String             @map("negotiation_id") @db.Uuid
+  reservationId       String?            @map("booking_id") @db.Uuid
+  creeParId           String             @map("created_by_user_id") @db.Uuid
+  creePar             RoleNegociateur    @map("created_by")
+  designation         String             @db.VarChar(180)
+  prixUnitaire        Decimal            @map("unit_price") @db.Decimal(10, 2)
+  quantite            Int                @default(1)
+  statut              StatutDevisMateriel @default(EN_ATTENTE)
+  valideClientLe      DateTime?          @map("client_validated_at")
+  validePrestataireLe DateTime?          @map("professional_validated_at")
+  refusePar           RoleNegociateur?   @map("rejected_by")
+  pdfUrl              String?            @map("pdf_url") @db.VarChar(500)
+  creeLe              DateTime           @default(now()) @map("created_at")
+  misAJourLe          DateTime           @updatedAt @map("updated_at")
+
+  negotiation         Negotiation        @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  reservation         Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  createur            Utilisateur        @relation("MaterialQuoteCreator", fields: [creeParId], references: [id], onDelete: Cascade)
+
+  @@index([negotiationId, statut])
+  @@index([reservationId])
+  @@index([creeParId, creeLe])
+  @@map("negotiation_material_quotes")
 }
 
 model CommunicationReservation {
@@ -853,7 +889,7 @@ model Conversation {
   reservation       Reservation?   @relation(fields: [reservationId], references: [id])
   messages          Message[]
 
-  @@index([clientId, prestataireId])
+  @@unique([clientId, prestataireId], map: "conversations_client_professional_unique")
   @@index([dernierMessageLe])
   @@map("conversations")
 }

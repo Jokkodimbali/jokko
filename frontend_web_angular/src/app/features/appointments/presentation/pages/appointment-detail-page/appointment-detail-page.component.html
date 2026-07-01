@@ -583,10 +583,16 @@
     </section>
 
     <section
-      *ngIf="!isAppointmentCompleted() && (isProviderOnTheWay() || isProviderWorking())"
+      *ngIf="!isAppointmentCompleted() && shouldShowOperationalMap()"
       class="appointment-detail__route-layout"
       [class.appointment-detail__route-layout--arrived]="isProviderWorking()"
-      [attr.aria-label]="isProviderWorking() ? 'Prestataire arrive a destination' : 'Suivi du prestataire en route'"
+      [attr.aria-label]="
+        isProviderWorking()
+          ? 'Prestation en cours'
+          : isProviderOnTheWay()
+          ? 'Suivi du prestataire en route'
+          : 'Rendez-vous operationnel du jour'
+      "
     >
       <header class="appointment-detail__route-topbar">
         <div class="appointment-detail__upcoming-heading">
@@ -595,7 +601,15 @@
           </button>
           <div>
             <span>Rendez-vous confirme</span>
-            <strong>{{ isProviderWorking() ? 'Prestataire est arrive' : 'Prestataire en route' }}</strong>
+            <strong>
+              {{
+                isProviderWorking()
+                  ? 'Prestation en cours'
+                  : isProviderOnTheWay()
+                  ? trackedTravelerName() + ' en route'
+                  : "C'est le jour du rendez-vous"
+              }}
+            </strong>
           </div>
         </div>
 
@@ -604,7 +618,13 @@
         <div class="appointment-detail__route-status">
           <span>
             <i></i>
-            {{ isProviderWorking() ? 'Arrive sur place' : 'En route · ' + routeEtaLabel() }}
+            {{
+              isProviderWorking()
+                ? 'Prestation en cours'
+                : isProviderOnTheWay()
+                ? 'En route · ' + routeEtaLabel()
+                : 'Pret a demarrer'
+            }}
           </span>
           <em>Trajet</em>
           <b><i [style.width.%]="routeProgress()"></i></b>
@@ -626,22 +646,30 @@
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
           <strong>
             {{
-              hasTrackingCoordinates()
+              !hasActiveTrackingNavigation()
+                ? 'Pret a demarrer'
+                : hasTrackingCoordinates()
                 ? 'Carte indisponible'
                 : 'Position GPS en attente'
             }}
           </strong>
           <small>
             {{
-              hasTrackingCoordinates()
+              !hasActiveTrackingNavigation()
+                ? providerTravelsToClient()
+                  ? 'Le prestataire peut activer le trajet le jour du rendez-vous.'
+                  : 'Le client se deplace vers le prestataire. La prestation peut commencer a son arrivee.'
+                : hasTrackingCoordinates()
                 ? 'Google Maps attend une cle navigateur valide pour afficher le trajet.'
-                : isProviderViewer()
+                : isRouteActorViewer()
                 ? 'Partagez votre position exacte pour lancer le trajet.'
+                : clientTravelsToProvider()
+                ? 'Le client doit partager sa position pour lancer l’itinéraire.'
                 : 'Le prestataire doit partager sa position pour lancer l’itinéraire.'
             }}
           </small>
           <button
-            *ngIf="isProviderViewer()"
+            *ngIf="isRouteActorViewer()"
             type="button"
             (click)="shareProviderLocation(appointment)"
             [disabled]="isUpdatingStatus()"
@@ -680,9 +708,19 @@
               Nord
             </button>
           </div>
-          <div *ngIf="isProviderViewer()" class="appointment-detail__route-provider-actions">
+          <div *ngIf="isProviderViewer() || isRouteActorViewer()" class="appointment-detail__route-provider-actions">
             <button
-              *ngIf="!isProviderWorking()"
+              *ngIf="!isProviderWorking() && !isProviderOnTheWay() && canMarkTravelerOnTheWay()"
+              type="button"
+              class="appointment-detail__route-action appointment-detail__route-action--primary"
+              (click)="markOnTheWay(appointment)"
+              [disabled]="isUpdatingStatus() || !canMarkTravelerOnTheWay()"
+            >
+              <lucide-icon name="send" size="15" [strokeWidth]="2.7"></lucide-icon>
+              En route
+            </button>
+            <button
+              *ngIf="!isProviderWorking() && canShareTravelerLocation() && isProviderOnTheWay()"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--secondary"
               (click)="shareProviderLocation(appointment)"
@@ -692,7 +730,7 @@
               Position
             </button>
             <button
-              *ngIf="!isProviderWorking()"
+              *ngIf="isProviderViewer() && !isProviderWorking()"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--primary"
               (click)="startWork(appointment)"
@@ -702,7 +740,7 @@
               Commencer
             </button>
             <button
-              *ngIf="isProviderWorking() || canProviderCompleteWork()"
+              *ngIf="isProviderViewer() && (isProviderWorking() || canProviderCompleteWork())"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--success"
               (click)="completeWork(appointment)"
@@ -813,9 +851,9 @@
           </span>
           <strong>
             <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
-            {{ routeEtaLabel() }}
+            {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}
           </strong>
-          <em><i></i> GPS actif</em>
+          <em><i></i> {{ hasActiveTrackingNavigation() ? 'GPS actif' : 'GPS en attente' }}</em>
         </div>
       </article>
 

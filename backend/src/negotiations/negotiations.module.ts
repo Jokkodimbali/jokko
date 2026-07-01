@@ -8,11 +8,18 @@ import { NEGOTIATIONS_REPOSITORY_PORT } from './application/ports/negotiations-r
 import { NegotiationCommandService } from './application/services/negotiation-command.service';
 import { NegotiationQueryService } from './application/services/negotiation-query.service';
 import { NegotiationsFacade } from './application/services/negotiations-facade.service';
+import { MaterialQuoteService } from './application/services/material-quote.service';
 import { NegotiationsRepository } from './infrastructure/repositories/negotiations.repository';
 import { NegotiationsController } from './presentation/controllers/negotiations.controller';
 
 @Module({
-  imports: [PrismaModule, AuthModule, CoreModule, ProfessionalsModule, NotificationsModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    CoreModule,
+    ProfessionalsModule,
+    NotificationsModule,
+  ],
   controllers: [NegotiationsController],
   providers: [
     NegotiationsRepository,
@@ -23,6 +30,7 @@ import { NegotiationsController } from './presentation/controllers/negotiations.
     NegotiationCommandService,
     NegotiationQueryService,
     NegotiationsFacade,
+    MaterialQuoteService,
   ],
   exports: [NegotiationsFacade, NEGOTIATIONS_REPOSITORY_PORT],
 })

@@ -1,5 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { EscrowStatus, StatutPaiement } from '@prisma/client';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  EscrowStatus,
+  StatutDevisMateriel,
+  StatutPaiement,
+} from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -484,6 +488,7 @@ export class ReservationCommandService extends ReservationAppService {
       reservationId,
     );
     await this.assertProfessionalOwnsReservation(requestUser, reservation);
+    await this.assertTravelerArrivedBeforeStart(requestUser, reservationId);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -513,6 +518,27 @@ export class ReservationCommandService extends ReservationAppService {
     } catch (error) {
       this.handleDomainError(error);
       throw error;
+    }
+  }
+
+  private async assertTravelerArrivedBeforeStart(
+    requestUser: AuthUser,
+    reservationId: string,
+  ): Promise<void> {
+    const tracking = await this.liveTrackingFacade.getReservationTracking(
+      requestUser,
+      reservationId,
+    );
+    if (tracking.trackingStatus !== 'EN_ROUTE') {
+      throw appHttpException('RESERVATIONS_ARRIVAL_REQUIRED');
+    }
+
+    const distanceRemainingMeters = tracking.route?.distanceRemainingMeters;
+    if (
+      typeof distanceRemainingMeters !== 'number' ||
+      distanceRemainingMeters > 120
+    ) {
+      throw appHttpException('RESERVATIONS_ARRIVAL_REQUIRED');
     }
   }
 
@@ -594,6 +620,18 @@ export class ReservationCommandService extends ReservationAppService {
       command,
     );
     const scheduledAt = this.parseDateOrThrow(details.dateHeure);
+    const pendingMaterialQuote = await this.prisma.devisMaterielNegotiation.findFirst({
+      where: {
+        negotiationId: negotiation.id,
+        statut: StatutDevisMateriel.EN_ATTENTE,
+      },
+      select: { id: true },
+    });
+    if (pendingMaterialQuote) {
+      throw new BadRequestException(
+        'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',
+      );
+    }
 
     try {
       const reservation = ReservationEntity.create({

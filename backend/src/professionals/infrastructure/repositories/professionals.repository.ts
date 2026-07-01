@@ -227,9 +227,9 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       const profile = await this.prisma.profilProfessionnel.update({
         where: { utilisateurId: input.utilisateurId },
         data: {
-          biographie: input.biographie,
-          nomEntreprise: input.nomEntreprise,
-          ville: input.ville,
+          ...(input.biographie !== undefined ? { biographie: input.biographie } : {}),
+          ...(input.nomEntreprise !== undefined ? { nomEntreprise: input.nomEntreprise } : {}),
+          ...(input.ville !== undefined ? { ville: input.ville } : {}),
         },
         select: PROFESSIONAL_SELECT,
       });

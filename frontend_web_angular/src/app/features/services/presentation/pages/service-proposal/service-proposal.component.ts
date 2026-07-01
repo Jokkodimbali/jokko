@@ -21,6 +21,7 @@ import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   NegotiationView,
+  MaterialQuoteView,
   ReservationAvailabilitySlotView,
   ReservationAvailabilityView,
   ServiceProposalService,
@@ -71,6 +72,29 @@ interface AddressSuggestion {
   source: 'GOOGLE_PLACES' | 'OPENSTREETMAP';
 }
 
+type MaterialQuoteAuthor = 'CLIENT' | 'PRESTATAIRE';
+type MaterialQuoteStatus = 'EN_ATTENTE' | 'VALIDE' | 'REFUSE';
+
+interface MaterialQuoteDraft {
+  designation: string;
+  unitPrice: number | null;
+  quantity: number;
+  author: MaterialQuoteAuthor;
+}
+
+interface MaterialQuoteEntry extends MaterialQuoteDraft {
+  id: string;
+  negotiationId: string;
+  reservationId: string | null;
+  createdByUserId: string;
+  unitPrice: number;
+  status: MaterialQuoteStatus;
+  clientValidatedAt: string | null;
+  providerValidatedAt: string | null;
+  rejectedBy: MaterialQuoteAuthor | null;
+  pdfUrl: string | null;
+}
+
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
@@ -116,6 +140,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
   protected readonly clientBookingStep = signal<ClientBookingStep>('DETAILS');
   protected readonly clientBookingDetailsExpanded = signal(false);
+  protected readonly materialQuoteExpanded = signal(false);
+  protected readonly isMaterialQuoteFormOpen = signal(false);
+  protected readonly materialQuoteEntries = signal<MaterialQuoteEntry[]>([]);
+  protected readonly isMaterialQuotesLoading = signal(false);
+  private readonly materialQuotesLoadedFor = signal<string | null>(null);
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -137,6 +166,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly durationMinutes = 60;
   protected readonly offerSteps = [100, 250, 500];
   protected readonly selectedOfferStep = signal(250);
+  protected readonly materialQuoteDraft: MaterialQuoteDraft = {
+    designation: '',
+    unitPrice: null,
+    quantity: 1,
+    author: 'CLIENT',
+  };
 
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', mark: 'W', logoUrl: '/wave.png' },
@@ -248,6 +283,24 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly providerSummaryAmountLabel = computed(() =>
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
+  protected readonly materialQuoteTotalLabel = computed(() => {
+    const total = this.materialQuoteEntries().filter((item) => item.status !== 'REFUSE').reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
+    return `${this.formatAmount(total)} FCFA`;
+  });
+  protected readonly materialQuoteAuthorLabel = computed(() => `${this.displayName().toUpperCase()} PROPOSE :`);
+  protected readonly canCurrentUserCreateMaterialQuote = computed(() => this.isProviderProposalMode);
+  protected readonly hasBlockingMaterialQuote = computed(() => {
+    const entries = this.materialQuoteEntries();
+    return entries.some((entry) => entry.status === 'EN_ATTENTE');
+  });
+  protected readonly isMaterialQuoteStateReady = computed(() => {
+    const proposalId = this.pendingProposal()?.id;
+    return !proposalId || this.materialQuotesLoadedFor() === proposalId;
+  });
+  protected readonly canCurrentUserRespondToMaterialQuote = computed(() => !this.isProviderProposalMode);
   protected readonly providerProposalFinalized = computed(() => {
     const proposal = this.pendingProposal();
     if (!proposal) return null;
@@ -607,6 +660,261 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.clientBookingDetailsExpanded.update((expanded) => !expanded);
   }
 
+  protected toggleMaterialQuote(): void {
+    this.materialQuoteExpanded.update((expanded) => !expanded);
+  }
+
+  protected requestMaterialQuoteItem(): void {
+    if (!this.canCurrentUserCreateMaterialQuote()) {
+      this.feedback.info('Le devis materiel doit etre renseigne par le prestataire.');
+      return;
+    }
+    this.materialQuoteExpanded.set(true);
+    this.materialQuoteDraft.author = this.isProviderProposalMode ? 'PRESTATAIRE' : 'CLIENT';
+    this.isMaterialQuoteFormOpen.set(true);
+  }
+
+  protected closeMaterialQuoteForm(): void {
+    this.resetMaterialQuoteDraft();
+    this.isMaterialQuoteFormOpen.set(false);
+  }
+
+  protected selectMaterialQuoteAuthor(author: MaterialQuoteAuthor): void {
+    this.materialQuoteDraft.author = author;
+  }
+
+  protected decreaseMaterialQuoteQuantity(): void {
+    this.materialQuoteDraft.quantity = Math.max(1, this.materialQuoteDraft.quantity - 1);
+  }
+
+  protected increaseMaterialQuoteQuantity(): void {
+    this.materialQuoteDraft.quantity += 1;
+  }
+
+  protected validateMaterialQuoteDraft(): void {
+    if (!this.canCurrentUserCreateMaterialQuote()) {
+      this.feedback.info('Le devis materiel doit etre renseigne par le prestataire.');
+      return;
+    }
+    const designation = this.materialQuoteDraft.designation.trim();
+    const unitPrice = Math.trunc(Number(this.materialQuoteDraft.unitPrice ?? 0));
+    const quantity = Math.max(1, Math.trunc(Number(this.materialQuoteDraft.quantity)));
+
+    if (!designation) {
+      this.feedback.info('Renseignez le nom du materiel.');
+      return;
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      this.feedback.info('Renseignez le prix unitaire du materiel.');
+      return;
+    }
+
+    const proposal = this.pendingProposal();
+    if (!proposal?.id) {
+      this.materialQuoteEntries.update((items) => [
+        ...items,
+        this.toLocalMaterialQuoteEntry({ designation, unitPrice, quantity }),
+      ]);
+      this.resetMaterialQuoteDraft();
+      this.isMaterialQuoteFormOpen.set(false);
+      return;
+    }
+
+    this.proposalService
+      .createMaterialQuote(proposal.id, { designation, unitPrice, quantity })
+      .subscribe({
+        next: (quote) => {
+          this.materialQuoteEntries.update((items) => [...items, this.toMaterialQuoteEntry(quote)]);
+          this.resetMaterialQuoteDraft();
+          this.isMaterialQuoteFormOpen.set(false);
+          this.feedback.success('Materiel ajoute au devis.');
+        },
+        error: (error) => this.handleProposalError(error),
+      });
+  }
+
+  protected validateMaterialQuoteEntry(entryId: string): void {
+    const proposal = this.pendingProposal();
+    if (!proposal?.id || entryId.startsWith('local-')) {
+      this.materialQuoteEntries.update((items) =>
+        items.map((item) =>
+          item.id === entryId ? { ...item, status: 'VALIDE', clientValidatedAt: new Date().toISOString() } : item,
+        ),
+      );
+      return;
+    }
+
+    this.proposalService.approveMaterialQuote(proposal.id, entryId).subscribe({
+      next: (quote) => this.replaceMaterialQuoteEntry(quote),
+      error: (error) => this.handleProposalError(error),
+    });
+  }
+
+  protected removeMaterialQuoteEntry(entryId: string): void {
+    const proposal = this.pendingProposal();
+    if (!proposal?.id || entryId.startsWith('local-')) {
+      this.materialQuoteEntries.update((items) => items.filter((item) => item.id !== entryId));
+      return;
+    }
+
+    this.proposalService.rejectMaterialQuote(proposal.id, entryId).subscribe({
+      next: (quote) => this.replaceMaterialQuoteEntry(quote),
+      error: (error) => this.handleProposalError(error),
+    });
+  }
+
+  protected canShowMaterialQuoteDecision(entry: MaterialQuoteEntry): boolean {
+    return this.canCurrentUserRespondToMaterialQuote() && entry.status === 'EN_ATTENTE';
+  }
+
+  protected materialQuoteEntryAuthorLabel(entry: MaterialQuoteEntry): string {
+    return entry.author === 'PRESTATAIRE' ? 'PRESTATAIRE' : 'VOUS';
+  }
+
+  protected materialQuoteDraftAuthorLabel(): string {
+    return this.isProviderProposalMode ? 'PRESTATAIRE' : 'VOUS';
+  }
+
+  protected materialQuoteEntryTotalLabel(entry: MaterialQuoteEntry): string {
+    return `${this.formatAmount(entry.unitPrice * entry.quantity)} FCFA`;
+  }
+
+  protected materialQuoteEntryUnitLabel(entry: MaterialQuoteEntry): string {
+    return `${this.formatAmount(entry.unitPrice)} FCFA/u`;
+  }
+
+  protected materialQuoteEntryIsValidatedByCurrentUser(entry: MaterialQuoteEntry): boolean {
+    return this.isProviderProposalMode
+      ? Boolean(entry.providerValidatedAt) || entry.status === 'VALIDE'
+      : Boolean(entry.clientValidatedAt) || entry.status === 'VALIDE';
+  }
+
+  protected materialQuoteEntryStatusLabel(entry: MaterialQuoteEntry): string {
+    if (entry.status === 'EN_ATTENTE') {
+      return this.isProviderProposalMode ? 'EN ATTENTE CLIENT' : 'EN ATTENTE';
+    }
+    if (entry.status === 'REFUSE') {
+      return 'REFUSE';
+    }
+    return this.materialQuoteEntryIsValidatedByCurrentUser(entry) ? 'VALIDE PAR VOUS' : 'VALIDE';
+  }
+
+  private resetMaterialQuoteDraft(): void {
+    this.materialQuoteDraft.designation = '';
+    this.materialQuoteDraft.unitPrice = null;
+    this.materialQuoteDraft.quantity = 1;
+    this.materialQuoteDraft.author = this.isProviderProposalMode ? 'PRESTATAIRE' : 'CLIENT';
+  }
+
+  private toLocalMaterialQuoteEntry(params: {
+    designation: string;
+    unitPrice: number;
+    quantity: number;
+  }): MaterialQuoteEntry {
+    return {
+      id: `local-${Date.now()}`,
+      negotiationId: '',
+      reservationId: null,
+      createdByUserId: this.userId(),
+      designation: params.designation,
+      unitPrice: params.unitPrice,
+      quantity: params.quantity,
+      author: this.isProviderProposalMode ? 'PRESTATAIRE' : 'CLIENT',
+      status: 'EN_ATTENTE',
+      clientValidatedAt: null,
+      providerValidatedAt: null,
+      rejectedBy: null,
+      pdfUrl: null,
+    };
+  }
+
+  private toMaterialQuoteEntry(quote: MaterialQuoteView): MaterialQuoteEntry {
+    return {
+      id: quote.id,
+      negotiationId: quote.negotiationId,
+      reservationId: quote.reservationId,
+      createdByUserId: quote.createdByUserId,
+      designation: quote.designation,
+      unitPrice: quote.unitPrice,
+      quantity: quote.quantity,
+      author: quote.createdBy,
+      status: quote.status,
+      clientValidatedAt: quote.clientValidatedAt,
+      providerValidatedAt: quote.providerValidatedAt,
+      rejectedBy: quote.rejectedBy,
+      pdfUrl: quote.pdfUrl,
+    };
+  }
+
+  private replaceMaterialQuoteEntry(quote: MaterialQuoteView): void {
+    const entry = this.toMaterialQuoteEntry(quote);
+    this.materialQuoteEntries.update((items) =>
+      items.map((item) => (item.id === entry.id ? entry : item)),
+    );
+  }
+
+  private loadMaterialQuotes(negotiationId: string): void {
+    const isFirstLoadForNegotiation = this.materialQuotesLoadedFor() !== negotiationId;
+    if (isFirstLoadForNegotiation) {
+      this.isMaterialQuotesLoading.set(true);
+      this.materialQuoteEntries.set([]);
+    }
+
+    this.proposalService.listMaterialQuotes(negotiationId).subscribe({
+      next: (quotes) => {
+        this.materialQuoteEntries.set(quotes.map((quote) => this.toMaterialQuoteEntry(quote)));
+        this.materialQuotesLoadedFor.set(negotiationId);
+        this.isMaterialQuotesLoading.set(false);
+      },
+      error: () => {
+        this.isMaterialQuotesLoading.set(false);
+        this.materialQuotesLoadedFor.set(null);
+      },
+    });
+  }
+
+  private syncLocalMaterialQuotes(negotiationId: string, done: () => void): void {
+    const localQuotes = this.materialQuoteEntries().filter((item) => item.id.startsWith('local-'));
+    if (localQuotes.length === 0) {
+      done();
+      return;
+    }
+
+    forkJoin(
+      localQuotes.map((item) =>
+        this.proposalService.createMaterialQuote(negotiationId, {
+          designation: item.designation,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+        }),
+      ),
+    ).subscribe({
+      next: (quotes) => {
+        this.materialQuoteEntries.set(quotes.map((quote) => this.toMaterialQuoteEntry(quote)));
+        done();
+      },
+      error: (error) => {
+        this.handleProposalError(error);
+        done();
+      },
+    });
+  }
+
+  private finalizeMaterialQuotesForReservation(
+    proposal: NegotiationView,
+    reservationId: string,
+  ): void {
+    this.proposalService.finalizeMaterialQuotes(proposal.id, reservationId).subscribe({
+      next: () => undefined,
+      error: (error) => this.handleProposalError(error),
+    });
+  }
+
+  private userId(): string {
+    return this.authSession.currentUser()?.id ?? '';
+  }
+
   protected selectService(serviceId: string): void {
     const service = this.detail()?.services.find((item) => item.id === serviceId);
     if (!service) return;
@@ -840,6 +1148,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (amount !== proposal.montantCourant) {
       this.sendClientCounterOffer(proposal, service, amount);
+      return;
+    }
+
+    if (!this.isMaterialQuoteStateReady()) {
+      this.feedback.info('Synchronisation du devis materiel en cours. Reessayez dans un instant.');
+      return;
+    }
+
+    if (this.hasBlockingMaterialQuote()) {
+      this.feedback.info('Validez ou refusez le devis materiel avant de finaliser la reservation.');
       return;
     }
 
@@ -1078,7 +1396,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           } else {
             this.feedback.success('Votre proposition a ete envoyee au prestataire.');
           }
-          this.showPendingProposal(proposal, draft);
+          this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -1109,7 +1427,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (proposal) => {
           this.feedback.success('Votre nouvelle proposition a ete envoyee.');
-          this.showPendingProposal(proposal, draft);
+          this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -1137,7 +1455,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
           if (reservation.id) {
             this.router.navigate(['/appointments', reservation.id, 'payment'], {
-              queryParams: { returnUrl: this.router.url },
+              queryParams: { returnUrl: '/appointments' },
+              replaceUrl: true,
             });
             return;
           }
@@ -1248,6 +1567,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             adresseClient,
             dureeMinutes,
           });
+          this.finalizeMaterialQuotesForReservation(proposal, reservationId);
         },
         error: (error) => {
           this.isRespondingToCounterOffer.set(false);
@@ -1263,8 +1583,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
+    if (this.hasBlockingMaterialQuote()) {
+      this.feedback.info('Validez ou refusez le devis materiel avant de finaliser la reservation.');
+      return;
+    }
+
     this.router.navigate(['/appointments', accepted.reservationId, 'payment'], {
-      queryParams: { returnUrl: this.router.url },
+      queryParams: { returnUrl: '/appointments' },
+      replaceUrl: true,
     });
   }
 
@@ -1275,7 +1601,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.router.navigate(['/appointments', reservationId]);
+    this.router.navigate(['/appointments', reservationId], {
+      queryParams: { returnUrl: '/appointments' },
+      replaceUrl: true,
+    });
   }
 
   protected isNegotiationClosed(proposal: NegotiationView | null): boolean {
@@ -1332,6 +1661,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       next: (proposal) => {
         const previous = this.pendingProposal();
         this.pendingProposal.set(proposal);
+        this.loadMaterialQuotes(proposal.id);
         const shouldKeepProviderDraft =
           this.isProviderProposalMode &&
           this.isProviderOfferDirty() &&
@@ -1519,6 +1849,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     if (options.startRefresh !== false) {
       this.startProposalRefresh(proposal.id);
     }
+
+    this.loadMaterialQuotes(proposal.id);
   }
 
   private syncNegotiationUrl(proposal: NegotiationView): void {

@@ -121,8 +121,6 @@ export class SettingsPageComponent implements OnInit {
     phoneNumber: '',
   };
   protected readonly professionalAboutForm = {
-    companyName: '',
-    city: '',
     about: '',
   };
   protected readonly addressForm = {
@@ -417,8 +415,6 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected startProfessionalAboutEdit(): void {
-    this.professionalAboutForm.companyName = this.professionalCompanyName();
-    this.professionalAboutForm.city = this.professionalProfile()?.ville || '';
     this.professionalAboutForm.about = this.professionalAbout();
     this.isEditingProfessionalAbout.set(true);
   }
@@ -434,8 +430,6 @@ export class SettingsPageComponent implements OnInit {
   }
 
   protected cancelProfessionalAboutEdit(): void {
-    this.professionalAboutForm.companyName = this.professionalCompanyName();
-    this.professionalAboutForm.city = this.professionalProfile()?.ville || '';
     this.professionalAboutForm.about = this.professionalAbout();
     this.isEditingProfessionalAbout.set(false);
   }
@@ -491,19 +485,12 @@ export class SettingsPageComponent implements OnInit {
     this.isSavingProfessionalAbout.set(true);
     this.errorMessage.set(null);
     const request = this.professionalProfileId()
-      ? this.doctorSpaceService.updateMyProfessionalProfile({
-          bio: about,
-          companyName: this.professionalAboutForm.companyName.trim() || null,
-          city: this.professionalAboutForm.city.trim() || null,
-        })
+      ? this.authService.updateMyProfessionalAbout(about)
       : this.doctorSpaceService.createMyProfessionalProfile({
-          bio: about,
-          companyName: this.professionalAboutForm.companyName.trim() || null,
-          city: this.professionalAboutForm.city.trim() || null,
-        });
+        bio: about,
+      }).pipe(switchMap(() => this.authService.myUserProfile()));
 
     request
-      .pipe(switchMap(() => this.authService.myUserProfile()))
       .pipe(finalize(() => this.isSavingProfessionalAbout.set(false)))
       .subscribe({
         next: (profile) => {
@@ -807,6 +794,9 @@ export class SettingsPageComponent implements OnInit {
     if (this.isSavingPaymentMethod()) return;
     const type = this.selectedPaymentType();
     const editingId = this.editingPaymentMethodId();
+    if (type === 'CARD' && !this.validateCardForm()) {
+      return;
+    }
     const payload =
       type === 'CARD'
         ? {
@@ -855,6 +845,87 @@ export class SettingsPageComponent implements OnInit {
       return;
     }
     this.waveForm.phoneNumber = method.maskedValue;
+  }
+
+  protected formatCardNumberInput(value: string): void {
+    if (value.includes('*')) {
+      this.cardForm.cardNumber = value;
+      return;
+    }
+    const digits = value.replace(/\D/g, '').slice(0, 19);
+    this.cardForm.cardNumber = digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  private validateCardForm(): boolean {
+    const cardNumber = this.cardForm.cardNumber.trim();
+    const digits = cardNumber.replace(/\D/g, '');
+    const isMaskedExistingCard = cardNumber.includes('*') && digits.length >= 4;
+    const cardValidationError = isMaskedExistingCard ? null : this.getCardValidationError(digits);
+    if (cardValidationError) {
+      const message = cardValidationError;
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return false;
+    }
+
+    if (this.cardForm.holderName.trim().length < 2) {
+      const message = 'Renseignez le nom du titulaire de la carte.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return false;
+    }
+
+    const month = Number(this.cardForm.expiryMonth);
+    const year = Number(this.cardForm.expiryYear);
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < currentYear || year > 2100) {
+      const message = 'Renseignez une date d expiration valide.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return false;
+    }
+
+    if (year === currentYear && month < currentMonth) {
+      const message = 'La carte bancaire est expiree.';
+      this.errorMessage.set(message);
+      this.feedback.error(message);
+      return false;
+    }
+
+    return true;
+  }
+
+  private getCardValidationError(digits: string): string | null {
+    if (!digits) {
+      return 'Renseignez le numero de carte.';
+    }
+    if (digits.length < 13 || digits.length > 19) {
+      return 'Le numero de carte doit contenir entre 13 et 19 chiffres.';
+    }
+    if (digits.startsWith('4') && digits.length !== 13 && digits.length !== 16 && digits.length !== 19) {
+      return 'Une carte Visa contient generalement 16 chiffres, parfois 13 ou 19.';
+    }
+    if (!this.isValidCardNumber(digits)) {
+      return 'Numero de carte invalide. Pour tester une Visa, utilisez 4242 4242 4242 4242.';
+    }
+    return null;
+  }
+
+  private isValidCardNumber(digits: string): boolean {
+    let sum = 0;
+    let shouldDouble = false;
+    for (let index = digits.length - 1; index >= 0; index -= 1) {
+      let digit = Number(digits[index]);
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
   }
 
   protected clearPaymentEdit(): void {

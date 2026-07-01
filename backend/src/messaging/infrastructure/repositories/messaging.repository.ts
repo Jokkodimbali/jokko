@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, TypeNotification } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { NotificationView } from '../../../notifications/domain/entities/notification.entity';
@@ -64,6 +64,8 @@ type PrismaNotificationRecord = {
 
 @Injectable()
 export class MessagingRepository implements MessagingRepositoryPort {
+  private readonly logger = new Logger(MessagingRepository.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async listConversationsForUser(params: {
@@ -129,12 +131,12 @@ export class MessagingRepository implements MessagingRepositoryPort {
       where: {
         clientId: params.clientUserId,
         prestataireId: params.professionalUserId,
-        reservationId: null,
         OR: [
           { clientId: params.currentUserId },
           { prestataireId: params.currentUserId },
         ],
       },
+      orderBy: [{ dernierMessageLe: 'desc' }, { creeLe: 'desc' }],
       select: this.buildConversationSelect(params.currentUserId),
     });
 
@@ -162,30 +164,20 @@ export class MessagingRepository implements MessagingRepositoryPort {
     }
 
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        const conversation = await tx.conversation.create({
-          data: {
-            clientId: input.clientUserId,
-            prestataireId: input.professionalUserId,
-            reservationId: input.reservationId ?? null,
-          },
-          select: this.buildConversationSelect(currentUserId),
-        });
+      const created = await this.prisma.conversation.create({
+        data: {
+          clientId: input.clientUserId,
+          prestataireId: input.professionalUserId,
+          reservationId: input.reservationId ?? null,
+        },
+        select: this.buildConversationSelect(currentUserId),
+      });
 
-        await tx.evenementOutbox.create({
-          data: {
-            typeEvenement: 'messaging.conversation.created',
-            payload: {
-              conversationId: conversation.id,
-              clientUserId: input.clientUserId,
-              professionalUserId: input.professionalUserId,
-              reservationId: input.reservationId ?? null,
-            },
-            statut: 'EN_ATTENTE',
-          },
-        });
-
-        return conversation;
+      await this.persistOutboxEvent('messaging.conversation.created', {
+        conversationId: created.id,
+        clientUserId: input.clientUserId,
+        professionalUserId: input.professionalUserId,
+        reservationId: input.reservationId ?? null,
       });
 
       return {
@@ -197,16 +189,18 @@ export class MessagingRepository implements MessagingRepositoryPort {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const conflictConversation = input.reservationId
-          ? await this.findConversationByReservationId(
-              input.reservationId,
-              currentUserId,
-            )
-          : await this.findDirectConversationByParticipants({
-              clientUserId: input.clientUserId,
-              professionalUserId: input.professionalUserId,
-              currentUserId,
-            });
+        const conflictConversation =
+          (input.reservationId
+            ? await this.findConversationByReservationId(
+                input.reservationId,
+                currentUserId,
+              )
+            : null) ??
+          (await this.findDirectConversationByParticipants({
+            clientUserId: input.clientUserId,
+            professionalUserId: input.professionalUserId,
+            currentUserId,
+          }));
         if (conflictConversation) {
           return { conversation: conflictConversation, wasCreated: false };
         }
@@ -282,29 +276,44 @@ export class MessagingRepository implements MessagingRepositoryPort {
         },
       });
 
-      await tx.evenementOutbox.create({
-        data: {
-          typeEvenement: 'messaging.message.sent',
-          payload: {
-            conversationId: input.conversationId,
-            messageId: message.id,
-            senderId: input.senderId,
-            recipientUserId: input.recipientUserId,
-          },
-          statut: 'EN_ATTENTE',
-        },
-      });
-
       return {
         message,
         notification,
       };
     });
 
+    await this.persistOutboxEvent('messaging.message.sent', {
+      conversationId: input.conversationId,
+      messageId: result.message.id,
+      senderId: input.senderId,
+      recipientUserId: input.recipientUserId,
+    });
+
     return {
       message: this.mapMessage(result.message),
       notification: this.mapNotification(result.notification),
     };
+  }
+
+  private async persistOutboxEvent(
+    typeEvenement: string,
+    payload: Prisma.InputJsonObject,
+  ): Promise<void> {
+    try {
+      await this.prisma.evenementOutbox.create({
+        data: {
+          typeEvenement,
+          payload,
+          statut: 'EN_ATTENTE',
+        },
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(
+        `Failed to persist messaging outbox event ${typeEvenement}: ${errorMessage}`,
+      );
+    }
   }
 
   private buildConversationSelect(currentUserId: string) {

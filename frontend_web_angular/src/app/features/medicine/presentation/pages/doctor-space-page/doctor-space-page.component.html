@@ -317,12 +317,9 @@
                 </button>
               </div>
               <div class="doctor-space__motif-form-actions">
-                <button *ngIf="editingMotifId()" type="button" class="doctor-space__motif-cancel" [disabled]="isSaving()" (click)="resetMotifForm()">
-                  Annuler
-                </button>
                 <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
                   <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
-                  {{ editingMotifId() ? 'Enregistrer' : isProviderSpace() ? 'Ajouter ce service' : 'Ajouter ce motif' }}
+                  {{ isProviderSpace() ? 'Ajouter ce service' : 'Ajouter ce motif' }}
                 </button>
               </div>
             </div>
@@ -406,6 +403,119 @@
                 </strong>
               </footer>
             </div>
+          </section>
+
+          <section
+            *ngIf="editingMotif() as motif"
+            class="doctor-space__motif-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="motif-edit-title"
+          >
+            <div class="doctor-space__motif-modal-backdrop" (click)="closeMotifEditModal()"></div>
+            <form class="doctor-space__motif-modal-panel" (ngSubmit)="saveEditedMotif()">
+              <button
+                type="button"
+                class="doctor-space__motif-modal-close"
+                (click)="closeMotifEditModal()"
+                aria-label="Fermer la modification"
+              >
+                <lucide-icon name="x" size="24" [strokeWidth]="2.2"></lucide-icon>
+              </button>
+
+              <header>
+                <small>{{ motif.name }}</small>
+                <h2 id="motif-edit-title">{{ serviceEditModalTitle() }}</h2>
+                <p>
+                  Modifiez les informations dans ce formulaire sans remplir le formulaire
+                  d'ajout de la page.
+                </p>
+              </header>
+
+              <div class="doctor-space__motif-modal-fields">
+                <label class="doctor-space__motif-field doctor-space__motif-field--full">
+                  <span>{{ serviceNameLabel() }}</span>
+                  <input
+                    type="text"
+                    name="editMotifName"
+                    [placeholder]="serviceNamePlaceholder()"
+                    [(ngModel)]="motifEditForm.name"
+                    required
+                  />
+                </label>
+
+                <label class="doctor-space__motif-field">
+                  <span>Duree</span>
+                  <span class="doctor-space__motif-input-wrap">
+                    <input
+                      type="number"
+                      name="editMotifDuration"
+                      min="5"
+                      step="5"
+                      [(ngModel)]="motifEditForm.durationMinutes"
+                      required
+                    />
+                    <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
+                  </span>
+                </label>
+
+                <label class="doctor-space__motif-field">
+                  <span>Tarif (FCFA)</span>
+                  <span class="doctor-space__motif-input-wrap">
+                    <input
+                      type="number"
+                      name="editMotifPrice"
+                      min="1"
+                      step="500"
+                      [(ngModel)]="motifEditForm.price"
+                      required
+                    />
+                    <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
+                  </span>
+                  <small>{{ servicePriceHelp() }}</small>
+                </label>
+
+                <div class="doctor-space__motif-required-card">
+                  <div>
+                    <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
+                    <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="doctor-space__motif-switch"
+                    [class.doctor-space__motif-switch--active]="motifEditForm.isRequired"
+                    (click)="motifEditForm.isRequired = !motifEditForm.isRequired"
+                    aria-label="Changer le statut obligatoire"
+                  >
+                    <span></span>
+                  </button>
+                </div>
+
+                <div class="doctor-space__motif-modal-travel">
+                  <span>Mode de deplacement</span>
+                  <div>
+                    <button
+                      *ngFor="let option of travelModeOptions"
+                      type="button"
+                      [class.doctor-space__motif-modal-travel-option--active]="motifEditForm.travelMode === option.value"
+                      (click)="motifEditForm.travelMode = option.value"
+                    >
+                      <lucide-icon [name]="option.icon" size="16" [strokeWidth]="2.2"></lucide-icon>
+                      <strong>{{ option.title }}</strong>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <footer class="doctor-space__motif-modal-actions">
+                <button type="submit" [disabled]="isSaving()">
+                  {{ isSaving() ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+                </button>
+                <button type="button" (click)="closeMotifEditModal()" [disabled]="isSaving()">
+                  Annuler
+                </button>
+              </footer>
+            </form>
           </section>
         </section>
 

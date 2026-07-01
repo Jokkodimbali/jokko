@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { appHttpException } from '../../../core/http/app-http.exception';
 
@@ -23,16 +22,16 @@ const SAVED_PAYMENT_METHOD_TYPE = {
 
 type SavedPaymentMethodRow = {
   id: string;
-  user_id: string;
-  type: SavedPaymentMethodType;
-  label: string | null;
-  masked_value: string;
-  holder_name: string | null;
-  expiry_month: number | null;
-  expiry_year: number | null;
-  is_default: boolean;
-  created_at: Date;
-  updated_at: Date;
+  utilisateurId: string;
+  type: string;
+  libelle: string | null;
+  valeurMasquee: string;
+  titulaire: string | null;
+  moisExpiration: number | null;
+  anneeExpiration: number | null;
+  estDefaut: boolean;
+  creeLe: Date;
+  misAJourLe: Date;
 };
 
 export type SavedPaymentMethodView = {
@@ -53,12 +52,10 @@ export class SavedPaymentMethodsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(userId: string): Promise<SavedPaymentMethodView[]> {
-    const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
-      SELECT id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year, is_default, created_at, updated_at
-      FROM saved_payment_methods
-      WHERE user_id = ${userId}::uuid
-      ORDER BY created_at DESC
-    `;
+    const rows = await this.prisma.moyenPaiementEnregistre.findMany({
+      where: { utilisateurId: userId },
+      orderBy: { creeLe: 'desc' },
+    });
     return rows.map((row) => this.toView(row));
   }
 
@@ -67,24 +64,18 @@ export class SavedPaymentMethodsService {
     dto: SavePaymentMethodInput,
   ): Promise<SavedPaymentMethodView> {
     const normalized = this.normalizeCreate(dto);
-    const id = randomUUID();
-    const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
-      INSERT INTO saved_payment_methods (
-        id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year
-      )
-      VALUES (
-        ${id}::uuid,
-        ${userId}::uuid,
-        ${normalized.type},
-        ${normalized.label},
-        ${normalized.maskedValue},
-        ${normalized.holderName},
-        ${normalized.expiryMonth},
-        ${normalized.expiryYear}
-      )
-      RETURNING id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year, is_default, created_at, updated_at
-    `;
-    return this.toView(rows[0]);
+    const row = await this.prisma.moyenPaiementEnregistre.create({
+      data: {
+        utilisateurId: userId,
+        type: normalized.type,
+        libelle: normalized.label,
+        valeurMasquee: normalized.maskedValue,
+        titulaire: normalized.holderName,
+        moisExpiration: normalized.expiryMonth,
+        anneeExpiration: normalized.expiryYear,
+      },
+    });
+    return this.toView(row);
   }
 
   async update(
@@ -94,43 +85,37 @@ export class SavedPaymentMethodsService {
   ): Promise<SavedPaymentMethodView> {
     const existing = await this.findOwned(userId, methodId);
     const normalized = this.normalizeUpdate(existing, dto);
-    const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
-      UPDATE saved_payment_methods
-      SET
-        label = ${normalized.label},
-        masked_value = ${normalized.maskedValue},
-        holder_name = ${normalized.holderName},
-        expiry_month = ${normalized.expiryMonth},
-        expiry_year = ${normalized.expiryYear},
-        updated_at = now()
-      WHERE id = ${methodId}::uuid AND user_id = ${userId}::uuid
-      RETURNING id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year, is_default, created_at, updated_at
-    `;
-    return this.toView(rows[0]);
+    const row = await this.prisma.moyenPaiementEnregistre.update({
+      where: { id: methodId },
+      data: {
+        libelle: normalized.label,
+        valeurMasquee: normalized.maskedValue,
+        titulaire: normalized.holderName,
+        moisExpiration: normalized.expiryMonth,
+        anneeExpiration: normalized.expiryYear,
+      },
+    });
+    return this.toView(row);
   }
 
   async remove(userId: string, methodId: string): Promise<void> {
     await this.findOwned(userId, methodId);
-    await this.prisma.$executeRaw`
-      DELETE FROM saved_payment_methods
-      WHERE id = ${methodId}::uuid AND user_id = ${userId}::uuid
-    `;
+    await this.prisma.moyenPaiementEnregistre.delete({
+      where: { id: methodId },
+    });
   }
 
   private async findOwned(
     userId: string,
     methodId: string,
   ): Promise<SavedPaymentMethodRow> {
-    const rows = await this.prisma.$queryRaw<SavedPaymentMethodRow[]>`
-      SELECT id, user_id, type, label, masked_value, holder_name, expiry_month, expiry_year, is_default, created_at, updated_at
-      FROM saved_payment_methods
-      WHERE id = ${methodId}::uuid AND user_id = ${userId}::uuid
-      LIMIT 1
-    `;
-    if (!rows[0]) {
+    const row = await this.prisma.moyenPaiementEnregistre.findFirst({
+      where: { id: methodId, utilisateurId: userId },
+    });
+    if (!row) {
       throw appHttpException('PAYMENTS_NOT_FOUND');
     }
-    return rows[0];
+    return row;
   }
 
   private normalizeCreate(dto: SavePaymentMethodInput) {
@@ -170,33 +155,58 @@ export class SavedPaymentMethodsService {
     existing: SavedPaymentMethodRow,
     dto: UpdateSavedPaymentMethodInput,
   ) {
-    const label = dto.label?.trim() || existing.label;
+    const label = dto.label?.trim() || existing.libelle;
     const maskedValue =
       existing.type === SAVED_PAYMENT_METHOD_TYPE.CARD &&
       dto.cardNumber &&
       !dto.cardNumber.includes('*')
         ? this.maskCard(dto.cardNumber)
         : existing.type === SAVED_PAYMENT_METHOD_TYPE.WAVE &&
-            dto.phoneNumber &&
-            !dto.phoneNumber.includes('*')
+          dto.phoneNumber &&
+          !dto.phoneNumber.includes('*')
           ? this.maskPhone(dto.phoneNumber)
-          : existing.masked_value;
+          : existing.valeurMasquee;
 
     return {
       label,
       maskedValue,
-      holderName: dto.holderName?.trim() ?? existing.holder_name,
-      expiryMonth: dto.expiryMonth ?? existing.expiry_month,
-      expiryYear: dto.expiryYear ?? existing.expiry_year,
+      holderName: dto.holderName?.trim() ?? existing.titulaire,
+      expiryMonth: dto.expiryMonth ?? existing.moisExpiration,
+      expiryYear: dto.expiryYear ?? existing.anneeExpiration,
     };
   }
 
   private maskCard(value: string): string {
     const digits = value.replace(/\D/g, '');
-    if (digits.length < 8) {
+    if (!this.isValidSupportedCardNumber(digits)) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
     return `**** **** **** ${digits.slice(-4)}`;
+  }
+
+  private isValidSupportedCardNumber(digits: string): boolean {
+    if (digits.length < 13 || digits.length > 19 || !this.isValidCardNumber(digits)) {
+      return false;
+    }
+    if (digits.startsWith('4')) {
+      return digits.length === 13 || digits.length === 16 || digits.length === 19;
+    }
+    return true;
+  }
+
+  private isValidCardNumber(digits: string): boolean {
+    let sum = 0;
+    let shouldDouble = false;
+    for (let index = digits.length - 1; index >= 0; index -= 1) {
+      let digit = Number(digits[index]);
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
   }
 
   private maskPhone(value: string): string {
@@ -210,15 +220,21 @@ export class SavedPaymentMethodsService {
   private toView(row: SavedPaymentMethodRow): SavedPaymentMethodView {
     return {
       id: row.id,
-      type: row.type,
-      label: row.label,
-      maskedValue: row.masked_value,
-      holderName: row.holder_name,
-      expiryMonth: row.expiry_month,
-      expiryYear: row.expiry_year,
-      isDefault: row.is_default,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      type: this.toSavedPaymentMethodType(row.type),
+      label: row.libelle,
+      maskedValue: row.valeurMasquee,
+      holderName: row.titulaire,
+      expiryMonth: row.moisExpiration,
+      expiryYear: row.anneeExpiration,
+      isDefault: row.estDefaut,
+      createdAt: row.creeLe,
+      updatedAt: row.misAJourLe,
     };
+  }
+
+  private toSavedPaymentMethodType(value: string): SavedPaymentMethodType {
+    if (value === SAVED_PAYMENT_METHOD_TYPE.CARD) return SAVED_PAYMENT_METHOD_TYPE.CARD;
+    if (value === SAVED_PAYMENT_METHOD_TYPE.WAVE) return SAVED_PAYMENT_METHOD_TYPE.WAVE;
+    return SAVED_PAYMENT_METHOD_TYPE.OTHER;
   }
 }

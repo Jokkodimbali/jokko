@@ -68,9 +68,7 @@ export class ProviderProfileComponent implements OnInit {
     return services.find((service) => service.id === this.selectedServiceId) ?? services[0] ?? null;
   });
   protected readonly speciality = computed(() => this.primaryService()?.nom || 'Service');
-  protected readonly aboutTitle = computed(() =>
-    this.primaryService()?.description ? 'Presentation du service' : "L'artisan au service du geste juste.",
-  );
+  protected readonly aboutTitle = computed(() => 'À propos de moi');
   protected readonly serviceQueryParams = computed(() => {
     const serviceId = this.primaryService()?.id;
     return {
@@ -102,11 +100,37 @@ export class ProviderProfileComponent implements OnInit {
     const total = this.detail()?.profile.nombreAvis ?? 0;
     return `${this.formatNumber(total)} avis`;
   });
+  private readonly professionalBiography = computed(() => {
+    const biography = this.detail()?.profile.biographie ?? '';
+    const lines = biography
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const readLine = (label: string): string => {
+      const line = lines.find((item) => item.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+      return line?.split(':').slice(1).join(':').trim() || '';
+    };
+    const expertises = readLine('Expertises')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const labeledAbout =
+      readLine('Bio') ||
+      readLine('Description') ||
+      readLine('Presentation') ||
+      readLine('Présentation');
+    const about = (labeledAbout ? [labeledAbout] : lines)
+      .filter((line) => !/^(Specialite|Expertises|Documents):/i.test(line))
+      .join(' ')
+      .trim();
+
+    return {
+      about,
+      expertises: [...new Set(expertises)],
+    };
+  });
   protected readonly bio = computed(
-    () =>
-      this.detail()?.profile.biographie ||
-      this.primaryService()?.description ||
-      "Ce prestataire n'a pas encore renseigne sa biographie.",
+    () => this.professionalBiography().about || "Ce prestataire n'a pas encore renseigné sa présentation.",
   );
   protected readonly priceLabel = computed(() => {
     const price = this.primaryService()?.prix;
@@ -130,8 +154,16 @@ export class ProviderProfileComponent implements OnInit {
   );
   protected readonly priceHelper = computed(() =>
     this.isFixedPriceService()
-      ? 'Ce service est a tarif fixe. Choisissez une date et confirmez votre rendez-vous.'
+      ? 'Prenez rendez-vous avec ce prestataire en selectionnant la date, l heure et le motif de prestation qui vous conviennent.'
       : 'Ce service est negociable. Envoyez votre proposition au prestataire pour ouvrir la discussion.',
+  );
+  protected readonly pricingIntroLabel = computed(() =>
+    this.isFixedPriceService() ? 'Rendez-vous' : 'Tarif a confirmer',
+  );
+  protected readonly serviceBookingText = computed(() =>
+    this.isFixedPriceService()
+      ? 'Prenez rendez-vous avec ce prestataire en selectionnant la date, l heure et le motif de prestation qui vous conviennent.'
+      : 'Le montant final depend du motif choisi et des details de votre demande. Envoyez votre proposition au prestataire pour confirmer le prix.',
   );
   protected readonly experienceLabel = computed(() => {
     const createdAt = this.detail()?.profile.creeLe;
@@ -142,14 +174,46 @@ export class ProviderProfileComponent implements OnInit {
   });
   protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
   protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
+  protected readonly primaryTravelMode = computed(() => {
+    const modes = new Set(
+      (this.detail()?.services ?? [])
+        .filter((service) => service.estDisponible)
+        .map((service) => service.modeDeplacement)
+        .filter(Boolean),
+    );
+    if (modes.has('PRESTATAIRE_SE_DEPLACE') && modes.has('CLIENT_SE_DEPLACE')) return null;
+    if (modes.has('CLIENT_SE_DEPLACE')) return 'CLIENT_SE_DEPLACE';
+    if (modes.has('TRANSPORT_COLIS')) return 'TRANSPORT_COLIS';
+    if (modes.has('PRESTATAIRE_SE_DEPLACE')) return 'PRESTATAIRE_SE_DEPLACE';
+    return null;
+  });
+  protected readonly travelModeLabel = computed(() => {
+    const services = this.detail()?.services ?? [];
+    const modes = new Set(
+      services
+        .filter((service) => service.estDisponible)
+        .map((service) => service.modeDeplacement)
+        .filter(Boolean),
+    );
+    if (modes.has('PRESTATAIRE_SE_DEPLACE') && modes.has('CLIENT_SE_DEPLACE')) {
+      return 'Deplacement flexible';
+    }
+    if (modes.has('CLIENT_SE_DEPLACE')) return 'Le client se deplace';
+    if (modes.has('TRANSPORT_COLIS')) return 'Transport de colis';
+    return 'Le prestataire se deplace';
+  });
+  protected readonly travelModeImageUrl = computed(() => {
+    const mode = this.primaryTravelMode();
+    if (mode === 'TRANSPORT_COLIS') return '/parcel-transport-route.png';
+    if (mode === 'PRESTATAIRE_SE_DEPLACE') return '/provider-travels-to-client.png';
+    if (mode === 'CLIENT_SE_DEPLACE') return '/client-travels-to-provider.png';
+    return null;
+  });
   protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
   protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
   protected readonly isFavorite = signal(false);
   protected readonly currentUser = this.authSession.currentUser;
-  protected readonly expertiseTags = computed(() => {
-    const services = this.detail()?.services ?? [];
-    return [...new Set(services.map((service) => service.nom).filter(Boolean))];
-  });
+  protected readonly expertiseTags = computed(() => this.professionalBiography().expertises);
   protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
   protected readonly scheduleSlotsCount = computed(() =>
     this.schedule().reduce((total, row) => total + row.slots.length, 0),

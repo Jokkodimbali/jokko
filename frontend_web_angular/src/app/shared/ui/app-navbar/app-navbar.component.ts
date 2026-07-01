@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
@@ -13,6 +13,8 @@ import {
 import { AuthService } from '../../../features/auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages';
 import { AppointmentsService } from '../../../features/appointments/data-access/appointments.service';
+import { MessagesRealtimeService } from '../../../features/messages/data-access/messages-realtime.service';
+import { MessagesService } from '../../../features/messages/data-access/messages.service';
 import { userInitials } from '../../utils/user-initials';
 
 interface AppNavItem {
@@ -36,13 +38,17 @@ interface AppInfoNavItem {
   templateUrl: './app-navbar.component.html',
   styleUrl: './app-navbar.component.scss',
 })
-export class AppNavbarComponent implements OnInit {
+export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly authSession = inject(AuthSessionService);
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly notificationsService = inject(NotificationsService);
   private readonly appointmentsService = inject(AppointmentsService);
+  private readonly messagesService = inject(MessagesService);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
+  private readonly subscriptions = new Subscription();
 
   protected readonly logo = '/logojokko.png';
   protected readonly currentUser = this.authSession.currentUser;
@@ -53,6 +59,7 @@ export class AppNavbarComponent implements OnInit {
   protected readonly isNotificationsLoading = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly unreadNotificationsCount = signal(0);
+  protected readonly unreadMessagesCount = signal(0);
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
@@ -105,6 +112,10 @@ export class AppNavbarComponent implements OnInit {
   });
   protected readonly notificationBadgeLabel = computed(() => {
     const count = this.unreadNotificationsCount();
+    return count > 99 ? '99+' : String(count);
+  });
+  protected readonly messageBadgeLabel = computed(() => {
+    const count = this.unreadMessagesCount();
     return count > 99 ? '99+' : String(count);
   });
 
@@ -300,6 +311,16 @@ export class AppNavbarComponent implements OnInit {
 
     this.loadUnreadNotificationsCount();
     this.loadNotificationPreview();
+    this.loadUnreadMessagesCount();
+    this.startUnreadMessagesRefresh();
+    this.messagesRealtime.connect();
+    this.subscriptions.add(
+      this.messagesRealtime.messageCreated$.subscribe((message) => {
+        if (message.senderId !== this.currentUser()?.id) {
+          this.unreadMessagesCount.update((count) => count + 1);
+        }
+      }),
+    );
 
     this.authService
       .myUserProfile()
@@ -321,6 +342,22 @@ export class AppNavbarComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    if (this.unreadMessagesIntervalId) {
+      clearInterval(this.unreadMessagesIntervalId);
+      this.unreadMessagesIntervalId = null;
+    }
+    this.subscriptions.unsubscribe();
+  }
+
+  protected navItemBadgeLabel(item: AppNavItem): string | null {
+    if (item.route !== '/messages' || this.unreadMessagesCount() <= 0) {
+      return null;
+    }
+
+    return this.messageBadgeLabel();
+  }
+
   private loadUnreadNotificationsCount(): void {
     this.notificationsService
       .list({ read: false, limit: 100 })
@@ -339,6 +376,22 @@ export class AppNavbarComponent implements OnInit {
       .subscribe((notifications) => {
         this.notificationPreview.set(notifications);
         this.unreadNotificationsCount.set(notifications.filter((item) => !this.isRead(item)).length);
+      });
+  }
+
+  private startUnreadMessagesRefresh(): void {
+    this.unreadMessagesIntervalId = setInterval(() => {
+      this.loadUnreadMessagesCount();
+    }, 30000);
+  }
+
+  private loadUnreadMessagesCount(): void {
+    this.messagesService
+      .listConversations(100)
+      .pipe(catchError(() => of([])))
+      .subscribe((conversations) => {
+        const total = conversations.reduce((sum, conversation) => sum + (conversation.unreadCount || 0), 0);
+        this.unreadMessagesCount.set(total);
       });
   }
 

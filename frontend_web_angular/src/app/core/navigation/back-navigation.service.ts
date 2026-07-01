@@ -7,13 +7,22 @@ export class BackNavigationService {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
 
-  back(returnUrl: string | null | undefined, fallbackUrl: string): void {
+  back(
+    returnUrl: string | null | undefined,
+    fallbackUrl: string,
+    options: { preferReturnUrl?: boolean } = {},
+  ): void {
+    const target = this.safeInternalUrl(returnUrl) ?? fallbackUrl;
+    if (options.preferReturnUrl) {
+      void this.router.navigateByUrl(target, { replaceUrl: true });
+      return;
+    }
+
     if (this.hasApplicationHistory()) {
       this.location.back();
       return;
     }
 
-    const target = this.safeInternalUrl(returnUrl) ?? fallbackUrl;
     void this.router.navigateByUrl(target, { replaceUrl: true });
   }
 

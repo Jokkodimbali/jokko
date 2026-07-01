@@ -392,6 +392,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return /\.(webm|mp3|m4a|wav|ogg)(\?|#|$)/i.test(url ?? '');
   }
 
+  protected mediaDisplayUrl(url: string | null | undefined): string {
+    return publicAssetUrl(url) ?? url ?? '';
+  }
+
   protected mediaFileName(url: string | null | undefined): string {
     if (!url) {
       return 'Piece jointe';
@@ -412,6 +416,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     return this.selectedAttachmentName() || 'Piece jointe prete a envoyer';
+  }
+
+  protected openMedia(mediaUrl: string): void {
+    this.messagesService.downloadMedia(mediaUrl).subscribe({
+      next: (blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        window.open(objectUrl, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      },
+      error: () => {
+        this.feedback.error('Impossible de recuperer ce document pour le moment.');
+      },
+    });
   }
 
   protected formatDuration(totalSeconds: number): string {

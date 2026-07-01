@@ -8,6 +8,8 @@ import {
 import {
   LIVE_TRACKING_REPOSITORY_PORT,
   type LiveTrackingRepositoryPort,
+  type ReservationTrackingContext,
+  type ReservationTrackingView,
 } from '../ports/live-tracking-repository.port';
 import { ProfessionalPresenceEntity } from '../../domain/entities/professional-presence.entity';
 import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
@@ -34,9 +36,9 @@ export class LiveTrackingQueryService {
     const tracking =
       await this.liveTrackingRepository.findTrackingByReservationId(
         reservationId,
-      );
+    );
     if (tracking) {
-      return this.routeEstimator.enrich(tracking, context.adresseClient);
+      return this.enrichTrackingRoute(tracking, context);
     }
 
     const presence =
@@ -96,5 +98,17 @@ export class LiveTrackingQueryService {
     ) {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
+  }
+
+  private enrichTrackingRoute(
+    tracking: ReservationTrackingView,
+    context: ReservationTrackingContext,
+  ): Promise<ReservationTrackingView> {
+    const destinationAddress =
+      context.travelMode === 'CLIENT_SE_DEPLACE'
+        ? context.adresseDestinationPrestataire
+        : context.adresseClient;
+
+    return this.routeEstimator.enrich(tracking, destinationAddress);
   }
 }

@@ -30,14 +30,113 @@ test.describe('Appointment tracking lifecycle', () => {
     await expectNoSpeech(page);
   });
 
-  test('paid appointment waits silently until provider starts route', async ({
+  test('future paid appointment waits silently until service day', async ({
     page,
     request,
   }) => {
-    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF');
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
+      scheduled: 'future',
+    });
     await expect(page.locator('.jokko-tracking-taxi-marker')).toHaveCount(0);
     await expect(page.locator('.appointment-detail__navigation-guidance')).toHaveCount(0);
     await expectNoSpeech(page);
+  });
+
+  test('paid appointment on service day opens the operational map before route starts', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', 'PRESTATAIRE');
+    await expect(page.locator('.appointment-detail__upcoming')).toHaveCount(0);
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^En route$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
+  });
+
+  test('client-travels service day blocks provider start until client is on the way and arrived', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', 'PRESTATAIRE', {
+      travelMode: 'CLIENT_SE_DEPLACE',
+    });
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^En route$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
+  });
+
+  test('client-travels service day lets client share the route', async ({ page, request }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
+      travelMode: 'CLIENT_SE_DEPLACE',
+    });
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^En route$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
+  });
+
+  test('client-travels client can start route with a valid Dakar GPS position', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
+      travelMode: 'CLIENT_SE_DEPLACE',
+      browserGeolocation: { latitude: 14.7405004, longitude: -17.4749579 },
+    });
+
+    await page.getByRole('button', { name: /^En route$/i }).click();
+
+    await expect(page.getByText(/Client Tracking en route/i)).toBeVisible();
+    await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Position$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toHaveCount(0);
+  });
+
+  test('client-travels client can start route when browser GPS is outside Senegal by using departure address', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
+      travelMode: 'CLIENT_SE_DEPLACE',
+      browserGeolocation: { latitude: 48.8566, longitude: 2.3522 },
+    });
+
+    await page.getByRole('button', { name: /^En route$/i }).click();
+
+    await expect(page.getByText(/Client Tracking en route/i)).toBeVisible();
+    await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
+    await expect(
+      page.getByText(/position detectee est hors du Senegal/i),
+    ).toHaveCount(0);
+  });
+
+  test('client-travels route is visible to provider once client is on the way', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'EN_ROUTE', 'PRESTATAIRE', {
+      travelMode: 'CLIENT_SE_DEPLACE',
+    });
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
+    await expect(page.getByText(/Client Tracking en route/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^En route$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
+  });
+
+  test('provider can start only when the client-travels route has arrived', async ({
+    page,
+    request,
+  }) => {
+    await openState(page, request, 'PAYEE_SEQUESTRE', 'EN_ROUTE', 'PRESTATAIRE', {
+      travelMode: 'CLIENT_SE_DEPLACE',
+      routeDistanceMeters: 80,
+    });
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeEnabled();
   });
 
   test('provider on the way has route, taxi and navigation', async ({ page, request }) => {
@@ -47,7 +146,8 @@ test.describe('Appointment tracking lifecycle', () => {
     await expect(page.locator('.appointment-detail__map-top-actions')).toBeVisible();
     await expect(page.getByRole('button', { name: /Satellite/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Rotation/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Google Maps/i })).toBeVisible();
     await expect(page.locator('.appointment-detail__map-direction-pad')).toBeVisible();
 
@@ -76,7 +176,7 @@ test.describe('Appointment tracking lifecycle', () => {
 
   test('provider arrived can see the finish action', async ({ page, request }) => {
     await openState(page, request, 'EN_COURS', 'EN_PRESTATION', 'PRESTATAIRE');
-    await expect(page.getByText(/Prestataire est arrive/i)).toBeVisible();
+    await expect(page.getByText(/Prestation en cours/i).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeEnabled();
   });
@@ -123,6 +223,12 @@ async function openState(
   reservationState: ReservationState,
   trackingState: string,
   viewerRole?: 'PRESTATAIRE',
+  options: {
+    scheduled?: 'today' | 'future';
+    travelMode?: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE';
+    browserGeolocation?: { latitude: number; longitude: number };
+    routeDistanceMeters?: number;
+  } = {},
 ): Promise<void> {
   let login: { data: { accessToken: string; user: Record<string, unknown> } } = {
     data: {
@@ -178,17 +284,29 @@ async function openState(
   } catch {
     // Keep local fixtures when the backend is not reachable.
   }
+  const todayDate = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const appointmentData = {
     ...reservation.data,
     statut: reservationState,
-    dateHeure: reservationState === 'CONFIRMEE' ? futureDate : reservation.data['dateHeure'],
+    dateHeure:
+      reservationState === 'CONFIRMEE' || options.scheduled === 'future'
+        ? futureDate
+        : todayDate,
+    service: {
+      ...(reservation.data['service'] as Record<string, unknown> | undefined),
+      modeDeplacement:
+        options.travelMode ??
+        ((reservation.data['service'] as Record<string, unknown> | undefined)?.['modeDeplacement'] ??
+          'PRESTATAIRE_SE_DEPLACE'),
+    },
   };
-  const trackingData = {
+  let trackingData = {
     ...tracking.data,
     trackingStatus: trackingState,
     lastLatitude: 14.7405004,
     lastLongitude: -17.4749579,
+    route: trackingState === 'EN_ROUTE' ? fallbackRoute(options.routeDistanceMeters) : null,
     presence: {
       ...tracking.data.presence,
       status: trackingState,
@@ -201,7 +319,7 @@ async function openState(
     ? { ...login.data.user, role: viewerRole }
     : login.data.user;
   await page.addInitScript(
-    ({ accessToken, user }) => {
+    ({ accessToken, user, browserGeolocation }) => {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('currentUser', JSON.stringify(user));
       localStorage.setItem('authStorageMode', 'local');
@@ -213,8 +331,49 @@ async function openState(
       window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
         spoken.push(utterance.text);
       };
+      if (browserGeolocation) {
+        Object.defineProperty(navigator, 'geolocation', {
+          configurable: true,
+          value: {
+            getCurrentPosition(success: PositionCallback): void {
+              success({
+                coords: {
+                  latitude: browserGeolocation.latitude,
+                  longitude: browserGeolocation.longitude,
+                  accuracy: 12,
+                  altitude: null,
+                  altitudeAccuracy: null,
+                  heading: 90,
+                  speed: 5,
+                },
+                timestamp: Date.now(),
+              } as GeolocationPosition);
+            },
+            watchPosition(success: PositionCallback): number {
+              success({
+                coords: {
+                  latitude: browserGeolocation.latitude,
+                  longitude: browserGeolocation.longitude,
+                  accuracy: 12,
+                  altitude: null,
+                  altitudeAccuracy: null,
+                  heading: 90,
+                  speed: 5,
+                },
+                timestamp: Date.now(),
+              } as GeolocationPosition);
+              return 1;
+            },
+            clearWatch(): void {},
+          },
+        });
+      }
     },
-    { accessToken: login.data.accessToken, user: browserUser },
+    {
+      accessToken: login.data.accessToken,
+      user: browserUser,
+      browserGeolocation: options.browserGeolocation,
+    },
   );
   await page.routeWebSocket('**/socket.io/**', (webSocket) =>
     webSocket.close(),
@@ -235,6 +394,69 @@ async function openState(
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data: trackingData }),
       }),
+  );
+  await page.route(`**/api/v1/reservations/${reservationId}/on-the-way`, async (route) => {
+    const payload = route.request().postDataJSON() as {
+      latitude?: number;
+      longitude?: number;
+      accuracyMeters?: number | null;
+      headingDegrees?: number | null;
+      speedKmh?: number | null;
+      locationLabel?: string | null;
+    };
+    trackingData = {
+      ...trackingData,
+      trackingStatus: 'EN_ROUTE',
+      lastLatitude: payload.latitude ?? 14.7405004,
+      lastLongitude: payload.longitude ?? -17.4749579,
+      lastAccuracyMeters: payload.accuracyMeters ?? null,
+      lastHeadingDegrees: payload.headingDegrees ?? null,
+      lastSpeedKmh: payload.speedKmh ?? null,
+      lastLocationLabel: payload.locationLabel ?? 'Position GPS du client',
+      route: fallbackRoute(options.routeDistanceMeters),
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: trackingData }),
+    });
+  });
+  await page.route(
+    `**/api/v1/reservations/${reservationId}/live-tracking/location`,
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: trackingData }),
+      }),
+  );
+  await page.route('**/api/v1/maps/geocode**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { latitude: 14.7405004, longitude: -17.4749579 },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/maps/routes', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            distanceMeters: options.routeDistanceMeters ?? 7400,
+            durationSeconds: options.routeDistanceMeters && options.routeDistanceMeters <= 120 ? 20 : 900,
+            encodedPolyline: '',
+            coordinates: fallbackRoute(options.routeDistanceMeters).coordinates,
+            navigationSteps: fallbackRoute(options.routeDistanceMeters).navigationSteps,
+          },
+        ],
+      }),
+    }),
   );
 
   await page.goto(`/appointments/${reservationId}`);
@@ -323,6 +545,35 @@ function fallbackReservationData(): Record<string, unknown> {
   };
 }
 
+function fallbackRoute(distanceMeters = 7400): Record<string, unknown> {
+  const arrived = distanceMeters <= 120;
+  const durationSeconds = arrived ? 20 : 900;
+  const destination = arrived
+    ? { latitude: 14.74055, longitude: -17.47491 }
+    : { latitude: 14.74584, longitude: -17.40015 };
+  return {
+    distanceRemainingMeters: distanceMeters,
+    durationRemainingSeconds: durationSeconds,
+    estimatedArrivalAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    encodedPolyline: '',
+    coordinates: [
+      { latitude: 14.7405004, longitude: -17.4749579 },
+      destination,
+    ],
+    navigationSteps: [
+      {
+        id: 'step-1',
+        instruction: 'Continuez vers la destination',
+        maneuver: null,
+        distanceMeters,
+        durationSeconds,
+        start: { latitude: 14.7405004, longitude: -17.4749579 },
+        end: destination,
+      },
+    ],
+  };
+}
+
 function fallbackTrackingData(): Record<string, unknown> & {
   presence: Record<string, unknown>;
 } {
@@ -357,26 +608,6 @@ function fallbackTrackingData(): Record<string, unknown> & {
       lastSeenAt: now,
       updatedAt: now,
     },
-    route: {
-      distanceRemainingMeters: 7400,
-      durationRemainingSeconds: 900,
-      estimatedArrivalAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      encodedPolyline: '',
-      coordinates: [
-        { latitude: 14.7405004, longitude: -17.4749579 },
-        { latitude: 14.74584, longitude: -17.40015 },
-      ],
-      navigationSteps: [
-        {
-          id: 'step-1',
-          instruction: 'Continuez vers la destination',
-          maneuver: null,
-          distanceMeters: 7400,
-          durationSeconds: 900,
-          start: { latitude: 14.7405004, longitude: -17.4749579 },
-          end: { latitude: 14.74584, longitude: -17.40015 },
-        },
-      ],
-    },
+    route: fallbackRoute(),
   };
 }

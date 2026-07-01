@@ -1060,9 +1060,12 @@
 .settings-page__form,
 .settings-page__payment-form,
 .settings-page__password {
+  box-sizing: border-box;
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  width: 100%;
 }
 
 .settings-page__profile-form {
@@ -1102,8 +1105,10 @@
 
 .settings-page__form label,
 .settings-page__payment-form label {
+  box-sizing: border-box;
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .settings-page__phone-input {
@@ -1149,12 +1154,15 @@
   background: #f8fafc;
   border: 1px solid #dfe4ea;
   border-radius: 12px;
+  box-sizing: border-box;
   color: #111827;
   font-size: 16px;
   font-weight: 800;
   min-height: 54px;
+  min-width: 0;
   outline: 0;
   padding: 0 18px;
+  width: 100%;
 }
 
 .settings-page__form button,
@@ -1341,23 +1349,29 @@
 }
 
 .settings-page__payment-row {
+  box-sizing: border-box;
   display: grid;
   gap: 12px;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  width: 100%;
 }
 
 .settings-page__saved-methods {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .settings-page__saved-method {
   background: #f8fafc;
   border: 1px solid #e3e7ec;
   border-radius: 14px;
+  box-sizing: border-box;
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 12px;
 }
 
@@ -1369,6 +1383,7 @@
 
 .settings-page__saved-method span {
   color: #69707d;
+  overflow-wrap: anywhere;
 }
 
 .settings-page__saved-method button {
@@ -1397,10 +1412,13 @@
   background: #ffffff;
   border: 1px solid rgba(141, 85, 39, 0.12);
   border-radius: 18px;
+  box-sizing: border-box;
   box-shadow: 0 24px 58px rgba(0, 0, 0, 0.22);
   display: grid;
   gap: 16px;
   max-height: calc(100vh - 170px);
+  max-width: calc(100vw - 36px);
+  min-width: 0;
   overflow: auto;
   padding: 22px;
   width: min(100%, 520px);
@@ -1416,6 +1434,7 @@
   display: flex;
   gap: 16px;
   justify-content: space-between;
+  min-width: 0;
   padding-bottom: 16px;
 }
 
@@ -1423,6 +1442,8 @@
   font-size: 22px;
   font-weight: 950;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .settings-page__modal-card > header button {
@@ -1445,6 +1466,7 @@
 
 .settings-page__modal-card .settings-page__payment-form {
   gap: 14px;
+  grid-template-columns: 1fr;
 }
 
 .settings-page__modal-card .settings-page__payment-form input {

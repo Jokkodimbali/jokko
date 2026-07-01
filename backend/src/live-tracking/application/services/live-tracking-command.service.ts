@@ -20,6 +20,8 @@ import {
 } from '../../domain/events/tracking-domain.events';
 import {
   LIVE_TRACKING_REPOSITORY_PORT,
+  type ReservationTrackingContext,
+  type ReservationTrackingView,
   type LiveTrackingRepositoryPort,
 } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
@@ -51,13 +53,17 @@ export class LiveTrackingCommandService {
     reservationId: string,
     dto: TrackingLocationCommand,
   ) {
-    const professional = await this.requireProfessionalProfile(user);
     const context =
       await this.liveTrackingRepository.findReservationContext(reservationId);
     if (!context) {
       throw appHttpException('RESERVATIONS_NOT_FOUND');
     }
 
+    if (context.travelMode === 'CLIENT_SE_DEPLACE') {
+      return this.markClientOnTheWay(user, context, dto);
+    }
+
+    const professional = await this.requireProfessionalProfile(user);
     if (context.professionalId !== professional.id) {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
@@ -114,10 +120,7 @@ export class LiveTrackingCommandService {
       }),
     );
 
-    const enrichedTracking = await this.routeEstimator.enrich(
-      tracking,
-      context.adresseClient,
-    );
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
       enrichedTracking,
@@ -144,12 +147,17 @@ export class LiveTrackingCommandService {
     reservationId: string,
     dto: TrackingLocationCommand,
   ) {
-    const professional = await this.requireProfessionalProfile(user);
     const context =
       await this.liveTrackingRepository.findReservationContext(reservationId);
     if (!context) {
       throw appHttpException('RESERVATIONS_NOT_FOUND');
     }
+
+    if (context.travelMode === 'CLIENT_SE_DEPLACE') {
+      return this.updateClientLocation(user, context, dto);
+    }
+
+    const professional = await this.requireProfessionalProfile(user);
     if (context.professionalId !== professional.id) {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
@@ -175,10 +183,7 @@ export class LiveTrackingCommandService {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
 
-    const enrichedTracking = await this.routeEstimator.enrich(
-      tracking,
-      context.adresseClient,
-    );
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
     await this.eventBus.publier(
       new ProviderLocationUpdatedEvent({
         reservationId,
@@ -197,6 +202,89 @@ export class LiveTrackingCommandService {
     this.realtimeEvents.emit(
       'live-tracking.presence.updated',
       tracking.presence,
+    );
+
+    return enrichedTracking;
+  }
+
+  private async markClientOnTheWay(
+    user: AuthUser,
+    context: ReservationTrackingContext,
+    dto: TrackingLocationCommand,
+  ) {
+    if (user.sub !== context.clientUserId || user.role !== 'CLIENT') {
+      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    }
+
+    if (context.reservationStatus !== 'PAYEE_SEQUESTRE') {
+      throw appHttpException('LIVE_TRACKING_INVALID_RESERVATION_STATUS');
+    }
+
+    this.assertLocationPair(dto);
+    this.assertTelemetry(dto);
+
+    const session = ReservationTrackingSessionEntity.start({
+      reservationId: context.reservationId,
+      clientUserId: context.clientUserId,
+      professionalId: context.professionalId,
+      professionalUserId: context.professionalUserId,
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
+      accuracyMeters: dto.accuracyMeters ?? null,
+      headingDegrees: dto.headingDegrees ?? null,
+      speedKmh: dto.speedKmh ?? null,
+      locationLabel: dto.locationLabel?.trim() ?? 'Position GPS du client',
+    });
+
+    const tracking =
+      await this.liveTrackingRepository.startOrResumeTravelerTracking({
+        session: session.toView(),
+      });
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+
+    this.realtimeEvents.emit(
+      'live-tracking.location.updated',
+      enrichedTracking,
+    );
+
+    return enrichedTracking;
+  }
+
+  private async updateClientLocation(
+    user: AuthUser,
+    context: ReservationTrackingContext,
+    dto: TrackingLocationCommand,
+  ) {
+    if (user.sub !== context.clientUserId || user.role !== 'CLIENT') {
+      throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    }
+
+    this.assertLocationPair(dto);
+    this.assertTelemetry(dto);
+    if (dto.latitude === undefined || dto.longitude === undefined) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+
+    const tracking =
+      await this.liveTrackingRepository.recordTravelerTrackingLocation({
+        reservationId: context.reservationId,
+        professionalId: context.professionalId,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        accuracyMeters: dto.accuracyMeters ?? null,
+        headingDegrees: dto.headingDegrees ?? null,
+        speedKmh: dto.speedKmh ?? null,
+        locationLabel: dto.locationLabel?.trim() ?? 'Position GPS du client',
+      });
+
+    if (!tracking) {
+      throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
+    }
+
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    this.realtimeEvents.emit(
+      'live-tracking.location.updated',
+      enrichedTracking,
     );
 
     return enrichedTracking;
@@ -305,6 +393,18 @@ export class LiveTrackingCommandService {
     ) {
       throw LiveTrackingDomainError.invalidLocation();
     }
+  }
+
+  private enrichTrackingRoute(
+    tracking: ReservationTrackingView,
+    context: ReservationTrackingContext,
+  ): Promise<ReservationTrackingView> {
+    const destinationAddress =
+      context.travelMode === 'CLIENT_SE_DEPLACE'
+        ? context.adresseDestinationPrestataire
+        : context.adresseClient;
+
+    return this.routeEstimator.enrich(tracking, destinationAddress);
   }
 
   private assertTelemetry(dto: TrackingLocationCommand): void {

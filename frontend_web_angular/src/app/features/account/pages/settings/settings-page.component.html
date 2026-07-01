@@ -46,34 +46,16 @@
     <section *ngIf="activeSection() === 'health' && isProfessionalSettings() && profile() as profile" class="settings-page__panel settings-page__panel--professional">
       <article class="settings-page__card settings-page__about-card">
         <header>
-          <h2>Presentation professionnelle</h2>
+          <h2>À propos de moi</h2>
           <button *ngIf="!isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="startProfessionalAboutEdit()">Modifier</button>
           <button *ngIf="isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="cancelProfessionalAboutEdit()">Annuler</button>
         </header>
         <i></i>
         <ng-container *ngIf="!isEditingProfessionalAbout(); else editProfessionalAbout">
-          <section class="settings-page__summary-specialty">
-            <span>Specialite ou activite principale</span>
-            <strong>{{ professionalSpecialty() }}</strong>
-            <small>Information publique issue du profil professionnel, non modifiable ici.</small>
-          </section>
-          <h3>{{ professionalCompanyName() }}</h3>
-          <div class="settings-page__summary-meta">
-            <span>{{ professionalCity() }}</span>
-            <span>{{ professionalKycLabel() }}</span>
-          </div>
           <p>{{ professionalAbout() }}</p>
         </ng-container>
         <ng-template #editProfessionalAbout>
           <form class="settings-page__form" (ngSubmit)="saveProfessionalAbout()">
-            <label>
-              <span>Nom professionnel ou entreprise</span>
-              <input type="text" name="professionalCompanyName" [(ngModel)]="professionalAboutForm.companyName" placeholder="Ex : Cabinet Dia Sante" />
-            </label>
-            <label>
-              <span>Ville principale</span>
-              <input type="text" name="professionalCity" [(ngModel)]="professionalAboutForm.city" placeholder="Ex : Dakar" />
-            </label>
             <label class="settings-page__form-wide">
               <span>Bio publique</span>
               <textarea name="professionalAbout" [(ngModel)]="professionalAboutForm.about" rows="5" placeholder="Presentez votre parcours, vos services et votre maniere de travailler."></textarea>
@@ -428,13 +410,23 @@
 
         <form class="settings-page__payment-form" (ngSubmit)="saveSelectedPaymentMethod()">
           <ng-container *ngIf="selectedPaymentType() === 'CARD'; else waveFormTpl">
-            <label>
+            <label class="settings-page__form-wide">
               <span>Numero de carte</span>
-              <input type="text" name="cardNumber" [(ngModel)]="cardForm.cardNumber" placeholder="Numero de carte" required />
+              <input
+                type="text"
+                name="cardNumber"
+                [ngModel]="cardForm.cardNumber"
+                (ngModelChange)="formatCardNumberInput($event)"
+                placeholder="4242 4242 4242 4242"
+                inputmode="numeric"
+                autocomplete="cc-number"
+                maxlength="23"
+                required
+              />
             </label>
-            <label>
+            <label class="settings-page__form-wide">
               <span>Titulaire</span>
-              <input type="text" name="holderName" [(ngModel)]="cardForm.holderName" required />
+              <input type="text" name="holderName" [(ngModel)]="cardForm.holderName" autocomplete="cc-name" required />
             </label>
             <div class="settings-page__payment-row">
               <label>

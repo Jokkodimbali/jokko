@@ -17,7 +17,9 @@ export type ReservationTrackingContext = {
   serviceName: string;
   dateHeure: Date;
   adresseClient: string;
+  adresseDestinationPrestataire: string;
   reservationStatus: string;
+  travelMode: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
 };
 
 export type ReservationTrackingView = ReservationTrackingSession & {
@@ -65,7 +67,20 @@ export interface LiveTrackingRepositoryPort {
     session: ReservationTrackingSession;
     presence: ProfessionalPresence;
   }): Promise<ReservationTrackingView>;
+  startOrResumeTravelerTracking(input: {
+    session: ReservationTrackingSession;
+  }): Promise<ReservationTrackingView>;
   recordTrackingLocation(input: {
+    reservationId: string;
+    professionalId: string;
+    latitude: number;
+    longitude: number;
+    accuracyMeters?: number | null;
+    headingDegrees?: number | null;
+    speedKmh?: number | null;
+    locationLabel?: string | null;
+  }): Promise<ReservationTrackingView | null>;
+  recordTravelerTrackingLocation(input: {
     reservationId: string;
     professionalId: string;
     latitude: number;

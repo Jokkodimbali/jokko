@@ -65,4 +65,21 @@ export class MessagesService {
       .post<ApiResponse<{ mediaUrl: string }>>(`${this.apiUrl}/media`, formData)
       .pipe(map(unwrapApiResponse));
   }
+
+  downloadMedia(mediaUrl: string): Observable<Blob> {
+    return this.http.get(this.resolveMediaUrl(mediaUrl), {
+      responseType: 'blob',
+    });
+  }
+
+  private resolveMediaUrl(mediaUrl: string): string {
+    if (/^https?:\/\//i.test(mediaUrl)) {
+      return mediaUrl;
+    }
+
+    const apiOrigin = new URL(environment.apiUrl).origin;
+    return mediaUrl.startsWith('/')
+      ? `${apiOrigin}${mediaUrl}`
+      : `${apiOrigin}/${mediaUrl}`;
+  }
 }

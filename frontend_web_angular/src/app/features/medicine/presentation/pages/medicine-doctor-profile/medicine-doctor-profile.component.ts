@@ -88,6 +88,40 @@ export class MedicineDoctorProfileComponent implements OnInit {
     return `${daysCount} jour${daysCount > 1 ? 's' : ''} actif${daysCount > 1 ? 's' : ''} · ${slotsCount} plage${slotsCount > 1 ? 's' : ''}`;
   });
 
+  protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
+  protected readonly primaryTravelMode = computed(() => {
+    const modes = new Set(
+      (this.detail()?.services ?? [])
+        .filter((service) => service.estDisponible)
+        .map((service) => service.modeDeplacement)
+        .filter(Boolean),
+    );
+    if (modes.has('PRESTATAIRE_SE_DEPLACE') && modes.has('CLIENT_SE_DEPLACE')) return null;
+    if (modes.has('CLIENT_SE_DEPLACE')) return 'CLIENT_SE_DEPLACE';
+    if (modes.has('PRESTATAIRE_SE_DEPLACE')) return 'PRESTATAIRE_SE_DEPLACE';
+    return null;
+  });
+  protected readonly travelModeLabel = computed(() => {
+    const modes = new Set(
+      (this.detail()?.services ?? [])
+        .filter((service) => service.estDisponible)
+        .map((service) => service.modeDeplacement)
+        .filter(Boolean),
+    );
+    if (modes.has('PRESTATAIRE_SE_DEPLACE') && modes.has('CLIENT_SE_DEPLACE')) {
+      return 'Deplacement flexible';
+    }
+    if (modes.has('CLIENT_SE_DEPLACE')) return 'Le client se deplace';
+    if (modes.has('PRESTATAIRE_SE_DEPLACE')) return 'Le medecin se deplace';
+    return 'Mode a definir';
+  });
+  protected readonly travelModeImageUrl = computed(() => {
+    const mode = this.primaryTravelMode();
+    if (mode === 'PRESTATAIRE_SE_DEPLACE') return '/provider-travels-to-client.png';
+    if (mode === 'CLIENT_SE_DEPLACE') return '/client-travels-to-provider.png';
+    return null;
+  });
+
   ngOnInit(): void {
     const profileId = this.routeProfileId;
     if (!profileId) {

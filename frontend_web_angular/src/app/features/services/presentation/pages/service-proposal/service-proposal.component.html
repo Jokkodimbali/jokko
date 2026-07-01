@@ -185,6 +185,8 @@
                 </div>
               </div>
             </div>
+
+            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
           </section>
         </ng-container>
 
@@ -356,6 +358,8 @@
                 </div>
               </div>
             </div>
+
+            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
           </div>
           </div>
         </section>
@@ -719,6 +723,8 @@
                   </div>
                 </section>
 
+                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+
                 <div class="service-proposal__booking-actions">
                   <button type="button" class="service-proposal__back-step" (click)="goToClientDetailsStep()">
                     <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.4"></lucide-icon>
@@ -870,6 +876,8 @@
                   </div>
                 </div>
 
+                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+
                 <button
                   type="button"
                   class="service-proposal__cancel-offer"
@@ -960,11 +968,17 @@
                     <button
                       type="button"
                       class="service-proposal__submit"
-                      [disabled]="isRespondingToCounterOffer()"
+                      [disabled]="isRespondingToCounterOffer() || !isMaterialQuoteStateReady()"
                       (click)="respondToProviderCounterOffer()"
                     >
                       <lucide-icon name="check" size="17" [strokeWidth]="2.6"></lucide-icon>
-                      {{ isRespondingToCounterOffer() ? 'Traitement...' : counterActionLabel() }}
+                      {{
+                        isRespondingToCounterOffer()
+                          ? 'Traitement...'
+                          : !isMaterialQuoteStateReady()
+                            ? 'Verification du devis...'
+                            : counterActionLabel()
+                      }}
                     </button>
 
                     <button
@@ -1039,6 +1053,8 @@
                       </button>
                     </div>
                   </div>
+
+                  <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                 </div>
               </ng-template>
               </ng-template>
@@ -1143,6 +1159,170 @@
       </section>
     </ng-template>
   </ng-container>
+
+  <ng-template #materialQuotePanel>
+    <section class="service-proposal__materials-card" aria-label="Materiel que le prestataire doit acheter">
+      <header class="service-proposal__materials-head">
+        <span class="service-proposal__materials-icon">
+          <lucide-icon name="package" size="22" [strokeWidth]="2.4"></lucide-icon>
+        </span>
+        <div>
+          <h2>MATERIEL QUE LE PRESTATAIRE DOIT ACHETER</h2>
+          <strong>Total : {{ materialQuoteTotalLabel() }}</strong>
+        </div>
+        <button
+          *ngIf="canCurrentUserCreateMaterialQuote()"
+          type="button"
+          class="service-proposal__materials-add"
+          (click)="requestMaterialQuoteItem()"
+        >
+          <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+          Ajouter
+        </button>
+        <button
+          type="button"
+          class="service-proposal__materials-toggle"
+          [attr.aria-expanded]="materialQuoteExpanded()"
+          aria-label="Afficher ou masquer le devis materiel"
+          (click)="toggleMaterialQuote()"
+        >
+          <lucide-icon
+            name="chevron-down"
+            size="16"
+            [strokeWidth]="2.6"
+            [class.service-proposal__materials-chevron--open]="materialQuoteExpanded()"
+          ></lucide-icon>
+        </button>
+      </header>
+
+      <div *ngIf="materialQuoteExpanded()" class="service-proposal__materials-body">
+        <form
+          *ngIf="isMaterialQuoteFormOpen() && canCurrentUserCreateMaterialQuote()"
+          class="service-proposal__materials-form"
+          (ngSubmit)="validateMaterialQuoteDraft()"
+        >
+          <header>
+            <h3>NOUVEAU MATERIEL ( AJOUTE PAR VOUS )</h3>
+            <span class="service-proposal__materials-role">{{ materialQuoteDraftAuthorLabel() }}</span>
+          </header>
+
+          <label class="service-proposal__materials-designation">
+            <span>DESIGNATION</span>
+            <input
+              type="text"
+              name="materialDesignation"
+              [(ngModel)]="materialQuoteDraft.designation"
+              placeholder="Ex. : Inox flexible, mamelon, articulations..."
+            />
+          </label>
+
+          <div class="service-proposal__materials-form-grid">
+            <label>
+              <span>PRIX UNITAIRE (FCFA)</span>
+              <input
+                type="number"
+                name="materialUnitPrice"
+                min="0"
+                step="100"
+                [(ngModel)]="materialQuoteDraft.unitPrice"
+                placeholder="Ex : 1500"
+              />
+            </label>
+            <label>
+              <span>QUANTITE</span>
+              <div class="service-proposal__materials-quantity">
+                <button type="button" (click)="decreaseMaterialQuoteQuantity()">-</button>
+                <strong>{{ materialQuoteDraft.quantity }}</strong>
+                <button type="button" (click)="increaseMaterialQuoteQuantity()">+</button>
+              </div>
+            </label>
+          </div>
+
+          <footer>
+            <button type="button" class="service-proposal__materials-cancel" (click)="closeMaterialQuoteForm()">
+              Annuler
+            </button>
+            <button type="submit" class="service-proposal__materials-validate">
+              Valider
+            </button>
+          </footer>
+        </form>
+
+        <div *ngIf="isMaterialQuotesLoading()" class="service-proposal__materials-empty">
+          <strong>Verification du devis materiel...</strong>
+          <p>Nous synchronisons les articles ajoutes par le prestataire.</p>
+        </div>
+
+        <div *ngFor="let entry of materialQuoteEntries()" class="service-proposal__materials-entry">
+          <span class="service-proposal__materials-thumb">
+            <lucide-icon name="package" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </span>
+          <div class="service-proposal__materials-entry-copy">
+            <header>
+              <strong>{{ entry.designation }}</strong>
+              <small>x{{ entry.quantity }}</small>
+            </header>
+            <div class="service-proposal__materials-entry-badges">
+              <span class="service-proposal__materials-role">
+                {{ materialQuoteEntryAuthorLabel(entry) }}
+              </span>
+              <ng-container *ngIf="canShowMaterialQuoteDecision(entry); else materialValidatedBadge">
+                <span class="service-proposal__materials-approval">
+                  VOUS :
+                  <button
+                    type="button"
+                    class="service-proposal__materials-approve"
+                    aria-label="Valider ce materiel"
+                    (click)="validateMaterialQuoteEntry(entry.id)"
+                  >
+                    <lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="service-proposal__materials-reject"
+                    aria-label="Refuser ce materiel"
+                    (click)="removeMaterialQuoteEntry(entry.id)"
+                  >
+                    <lucide-icon name="x" size="12" [strokeWidth]="3"></lucide-icon>
+                  </button>
+                </span>
+              </ng-container>
+              <ng-template #materialValidatedBadge>
+                <span
+                  class="service-proposal__materials-approved-badge"
+                  [class.service-proposal__materials-approved-badge--pending]="entry.status === 'EN_ATTENTE'"
+                  [class.service-proposal__materials-approved-badge--rejected]="entry.status === 'REFUSE'"
+                >
+                  {{ materialQuoteEntryStatusLabel(entry) }}
+                </span>
+              </ng-template>
+            </div>
+            <p>
+              {{ materialQuoteEntryTotalLabel(entry) }}
+              ({{ materialQuoteEntryUnitLabel(entry) }})
+            </p>
+          </div>
+          <button
+            *ngIf="canShowMaterialQuoteDecision(entry)"
+            type="button"
+            class="service-proposal__materials-delete"
+            aria-label="Supprimer ce materiel"
+            (click)="removeMaterialQuoteEntry(entry.id)"
+          >
+            <lucide-icon name="trash-2" size="14" [strokeWidth]="2.3"></lucide-icon>
+          </button>
+        </div>
+
+        <div *ngIf="!isMaterialQuotesLoading() && materialQuoteEntries().length === 0" class="service-proposal__materials-empty">
+          <strong>Aucune fourniture supplementaire</strong>
+          <p>
+            Si des fournitures ou pieces sont requises, le prestataire peut les ajouter
+            ici avant validation du client.
+          </p>
+        </div>
+      </div>
+    </section>
+  </ng-template>
 
   <app-service-proposal-details-modal
     *ngIf="activeDetailsModal() as modal"

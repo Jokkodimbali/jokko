@@ -49,16 +49,19 @@
 
       <section class="doctor-profile__stats" aria-label="Statistiques du medecin">
         <div>
-          <span><lucide-icon name="clock-3" size="18" [strokeWidth]="2.4"></lucide-icon></span>
-          <p><strong>Disponible</strong><small>Planning</small></p>
-        </div>
-        <div>
           <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
-          <p><strong>Medecine</strong><small>Specialite</small></p>
+          <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
         </div>
         <div>
           <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
           <p><strong>{{ doctor().reviewCount }}</strong><small>Avis</small></p>
+        </div>
+        <div class="doctor-profile__movement-stat">
+          <span class="doctor-profile__movement-badge" [attr.aria-label]="travelModeLabel()">
+            <strong>{{ travelModeLabel() }}</strong>
+            <img *ngIf="travelModeImageUrl() as imageUrl" [src]="imageUrl" alt="" aria-hidden="true" />
+          </span>
+          <p><small>Deplacement</small></p>
         </div>
       </section>
     </section>
@@ -70,13 +73,13 @@
           {{ doctor().name }} vous accueille pour un accompagnement medical clair, attentif et
           organise. Les disponibilites et informations affichees sont synchronisees avec le profil
           professionnel.
-        </p>
+        </p>    
       </article>
 
       <aside class="doctor-profile__side">
         <article class="doctor-profile__card doctor-profile__price">
           <span>Consultation</span>
-          <p><strong>Sur rendez-vous</strong> <em>/consultation</em></p>
+          <p>Prenez rendez-vous avec ce médecin en sélectionnant la date, l’heure et le motif de prestation qui vous conviennent.</p>
           <button type="button" [routerLink]="['/medecine', doctor().id, 'rendez-vous']">
             <lucide-icon name="calendar-days" size="25" [strokeWidth]="2.4"></lucide-icon>
             Prendre Rendez-vous

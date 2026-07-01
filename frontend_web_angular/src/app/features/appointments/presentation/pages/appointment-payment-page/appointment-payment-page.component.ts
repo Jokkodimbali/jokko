@@ -124,7 +124,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected goBack(): void {
     const appointment = this.appointment();
     const fallback = appointment?.id ? `/appointments/${appointment.id}` : '/appointments';
-    this.backNavigation.back(this.safeReturnUrl(), fallback);
+    this.backNavigation.back(this.safeReturnUrl(), fallback, { preferReturnUrl: true });
   }
 
   protected selectMethod(method: PaymentMethod): void {
@@ -243,7 +243,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected goHome(): void {
-    this.router.navigate(['/']);
+    this.router.navigate(['/appointments']);
   }
 
   protected downloadReceipt(appointment: AppointmentView): void {

@@ -64,6 +64,12 @@
     min-height: 560px;
   }
 
+  .appointment-detail__route-layout--client .appointment-detail__live-map {
+    height: auto;
+    margin: 0;
+    min-height: 560px;
+  }
+
   .appointment-detail__route-sidebar,
   .appointment-detail__client-route-summary {
     border-left: 0;
@@ -74,6 +80,7 @@
   }
 
   .appointment-detail__client-route-summary {
+    margin: 0;
     padding: 16px;
   }
 
@@ -87,6 +94,19 @@
 
   .appointment-detail__route-service {
     margin-left: 0;
+  }
+}
+
+@media (min-width: 921px) and (max-width: 1280px) {
+  .appointment-detail__route-layout--client {
+    gap: 0 32px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .appointment-detail__client-route-provider strong {
+    font-size: 28px;
   }
 }
 
@@ -181,7 +201,8 @@
   }
 
   .appointment-detail__client-route-provider nav {
-    justify-self: start;
+    justify-self: stretch;
+    width: 100%;
   }
 
   .appointment-detail__service,

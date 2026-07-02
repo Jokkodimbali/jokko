@@ -258,7 +258,6 @@ export class DisputesPageComponent implements OnInit {
     if (this.canOpenDispute(appointment)) return 'Signalez le litige';
 
     const labels: Record<AppointmentView['status'], string> = {
-      EN_ATTENTE: 'A venir',
       CONFIRMEE: 'A venir',
       PAYEE_SEQUESTRE: 'Confirmee',
       EN_COURS: 'En cours',
@@ -334,7 +333,7 @@ export class DisputesPageComponent implements OnInit {
   }
 
   protected isUpcoming(appointment: AppointmentView): boolean {
-    return ['EN_ATTENTE', 'CONFIRMEE', 'PAYEE_SEQUESTRE', 'EN_COURS'].includes(appointment.status);
+    return ['CONFIRMEE', 'PAYEE_SEQUESTRE', 'EN_COURS'].includes(appointment.status);
   }
 
   private isCompleted(appointment: AppointmentView): boolean {

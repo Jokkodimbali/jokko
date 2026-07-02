@@ -216,9 +216,7 @@ export class AdminRegionsService {
         (reservation) => reservation.statut === 'TERMINEE',
       ).length;
       row.activeReservations += provider.reservations.filter((reservation) =>
-        ['EN_ATTENTE', 'CONFIRMEE', 'PAYEE_SEQUESTRE', 'EN_COURS'].includes(
-          reservation.statut,
-        ),
+        ['CONFIRMEE', 'PAYEE_SEQUESTRE', 'EN_COURS'].includes(reservation.statut),
       ).length;
       row.disputes += provider.reservations.filter(
         (reservation) => reservation.litige,

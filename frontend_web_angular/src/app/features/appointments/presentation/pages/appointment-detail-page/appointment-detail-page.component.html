@@ -775,9 +775,10 @@
     </section>
 
     <section
-      *ngIf="!isAppointmentCompleted() && shouldShowOperationalMap()"
+      *ngIf="detailUiState() === 'route'"
       class="appointment-detail__route-layout"
       [class.appointment-detail__route-layout--arrived]="isProviderWorking()"
+      [class.appointment-detail__route-layout--client]="!isProviderViewer()"
       [attr.aria-label]="
         isProviderWorking()
           ? 'Prestation en cours'
@@ -786,7 +787,7 @@
           : 'Rendez-vous operationnel du jour'
       "
     >
-      <header class="appointment-detail__route-topbar">
+      <header *ngIf="isProviderViewer()" class="appointment-detail__route-topbar">
         <div class="appointment-detail__upcoming-heading">
           <button type="button" aria-label="Retour" (click)="goBack()">
             <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
@@ -828,13 +829,81 @@
         </div>
       </header>
 
-      <article class="appointment-detail__live-map">
+      <section *ngIf="!isProviderViewer()" class="appointment-detail__tracking-steps" aria-label="Suivi de la reservation">
+        <button type="button" class="appointment-detail__tracking-back" (click)="goBack()">
+          <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
+          Retour
+        </button>
+        <div class="appointment-detail__tracking-stepper">
+          <i class="appointment-detail__tracking-line"></i>
+          <i class="appointment-detail__tracking-progress" [style.width.%]="trackingStepProgress()"></i>
+          <div
+            *ngFor="let step of trackingTimelineSteps(); let index = index"
+            class="appointment-detail__tracking-step"
+            [class.is-done]="step.state === 'done'"
+            [class.is-active]="step.state === 'active'"
+          >
+            <span>
+              <lucide-icon
+                [name]="step.state === 'done' ? 'check' : step.icon"
+                size="16"
+                [strokeWidth]="2.7"
+              ></lucide-icon>
+            </span>
+            <strong>{{ step.label }}</strong>
+            <small>{{ step.description }}</small>
+          </div>
+        </div>
+      </section>
+
+      <article
+        class="appointment-detail__live-map"
+        [class.appointment-detail__live-map--fullscreen]="isMapFullscreen()"
+      >
+        <div *ngIf="!isProviderViewer() && !isProviderOnTheWay()" class="appointment-detail__client-tracking-visual">
+          <ng-container *ngIf="isAppointmentCompleted(); else clientActiveTrackingVisual">
+            <div class="appointment-detail__client-tracking-complete">
+              <span>
+                <lucide-icon name="check" size="34" [strokeWidth]="3"></lucide-icon>
+              </span>
+              <h2>Mission accomplie</h2>
+              <p>L'intervention est terminee. Vous pouvez telecharger vos justificatifs ou contacter le prestataire.</p>
+              <button type="button" (click)="downloadInvoice(appointment)">
+                <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
+                Telecharger la facture PDF
+              </button>
+            </div>
+          </ng-container>
+          <ng-template #clientActiveTrackingVisual>
+            <ng-container *ngIf="isProviderWorking(); else clientConfirmedTrackingVisual">
+              <div class="appointment-detail__client-tracking-work">
+                <span></span>
+                <h2>Intervention active</h2>
+                <p>{{ appointment.serviceName }}</p>
+              </div>
+            </ng-container>
+          </ng-template>
+          <ng-template #clientConfirmedTrackingVisual>
+            <div class="appointment-detail__client-tracking-confirmed">
+              <p>Arrivee prevue</p>
+              <h2>{{ appointment.timeLabel }}</h2>
+              <strong>
+                <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
+                {{ appointment.addressLabel }}
+              </strong>
+            </div>
+          </ng-template>
+        </div>
         <div
+          *ngIf="isProviderViewer() || isProviderOnTheWay()"
           #trackingMap
           class="appointment-detail__google-map"
           aria-label="Carte temps reel du trajet prestataire"
         ></div>
-        <div class="appointment-detail__map-empty" *ngIf="shouldShowMapEmptyState()">
+        <div
+          class="appointment-detail__map-empty"
+          *ngIf="(isProviderViewer() || isProviderOnTheWay()) && shouldShowMapEmptyState()"
+        >
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
           <strong>
             {{
@@ -870,7 +939,11 @@
             Partager ma position
           </button>
         </div>
-        <div class="appointment-detail__map-top-actions" aria-label="Actions de la carte et de la mission">
+        <div
+          *ngIf="isProviderViewer() || isProviderOnTheWay()"
+          class="appointment-detail__map-top-actions"
+          aria-label="Actions de la carte et de la mission"
+        >
           <div class="appointment-detail__map-toolbar" aria-label="Actions de la carte">
             <button
               type="button"
@@ -898,6 +971,19 @@
               [disabled]="mapHeadingDegrees() === 0"
             >
               Nord
+            </button>
+            <button
+              type="button"
+              class="appointment-detail__map-tool appointment-detail__map-tool--compact"
+              (click)="toggleMapFullscreen()"
+              [attr.aria-pressed]="isMapFullscreen()"
+              [attr.aria-label]="isMapFullscreen() ? 'Quitter le plein ecran' : 'Afficher la carte en plein ecran'"
+            >
+              <lucide-icon
+                [name]="isMapFullscreen() ? 'minimize-2' : 'maximize-2'"
+                size="14"
+                [strokeWidth]="2.5"
+              ></lucide-icon>
             </button>
           </div>
           <div *ngIf="isProviderViewer() || isRouteActorViewer()" class="appointment-detail__route-provider-actions">
@@ -932,15 +1018,19 @@
               Commencer
             </button>
             <button
-              *ngIf="isProviderViewer() && (isProviderWorking() || canProviderCompleteWork())"
+              *ngIf="isProviderViewer()"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--success"
               (click)="completeWork(appointment)"
+              [attr.title]="providerCompletionDisabledReason()"
               [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
             >
               <lucide-icon name="check" size="15" [strokeWidth]="2.8"></lucide-icon>
               Terminer
             </button>
+            <small *ngIf="isProviderViewer() && providerCompletionDisabledReason()" class="appointment-detail__route-action-help">
+              {{ providerCompletionDisabledReason() }}
+            </small>
           </div>
           <a
             class="appointment-detail__map-external"
@@ -953,7 +1043,11 @@
             Google Maps
           </a>
         </div>
-        <div class="appointment-detail__map-direction-pad" aria-label="Orienter la carte">
+        <div
+          *ngIf="isProviderViewer() || isProviderOnTheWay()"
+          class="appointment-detail__map-direction-pad"
+          aria-label="Orienter la carte"
+        >
           <button
             type="button"
             class="appointment-detail__map-direction appointment-detail__map-direction--up"
@@ -993,6 +1087,7 @@
           </button>
         </div>
         <div
+          *ngIf="isProviderViewer() || isProviderOnTheWay()"
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >
@@ -1022,7 +1117,10 @@
             ></lucide-icon>
           </button>
         </div>
-        <div class="appointment-detail__route-alternatives" *ngIf="!isProviderWorking() && routeAlternatives().length > 0">
+        <div
+          class="appointment-detail__route-alternatives"
+          *ngIf="(isProviderViewer() || isProviderOnTheWay()) && !isProviderWorking() && routeAlternatives().length > 0"
+        >
           <button
             *ngFor="let route of routeAlternatives()"
             type="button"
@@ -1037,7 +1135,7 @@
             Aucune autre route fiable trouvee.
           </p>
         </div>
-        <div class="appointment-detail__route-bottom">
+        <div *ngIf="isProviderViewer() || isProviderOnTheWay()" class="appointment-detail__route-bottom">
           <span>
             <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>
           </span>
@@ -1050,8 +1148,13 @@
       </article>
 
       <aside *ngIf="!isProviderViewer(); else providerRoutePanel" class="appointment-detail__client-route-summary">
+        <section class="appointment-detail__client-route-status-card">
+          <small>ETAT DE LA MISSION</small>
+          <strong>{{ clientTrackingTitle() }}</strong>
+          <p>{{ clientTrackingDescription() }}</p>
+        </section>
         <section class="appointment-detail__client-route-provider">
-          <small>PRESTATAIRE DE SERVICE</small>
+          <small>VOTRE PROFESSIONNEL</small>
           <div>
             <img
               *ngIf="appointment.avatarUrl; else clientRouteProviderInitials"
@@ -1072,47 +1175,63 @@
           <nav aria-label="Contacter le prestataire">
             <button type="button" aria-label="Appeler le prestataire" (click)="contactProviderByPhone(appointment)">
               <lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon>
+              Appeler
             </button>
             <button type="button" aria-label="Envoyer un message" (click)="messageProvider(appointment)">
               <lucide-icon name="message-circle" size="18" [strokeWidth]="2.3"></lucide-icon>
+              Message
             </button>
           </nav>
         </section>
 
-        <section class="appointment-detail__client-route-mission">
-          <h3>DETAILS MISSION</h3>
-          <dl>
-            <div>
-              <dt><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.4"></lucide-icon> Date</dt>
-              <dd>{{ appointment.fullDateLabel }}</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="clock-3" size="17" [strokeWidth]="2.4"></lucide-icon> Heure</dt>
-              <dd>{{ appointment.timeLabel }}</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="receipt" size="17" [strokeWidth]="2.4"></lucide-icon> Motif</dt>
-              <dd>{{ appointment.serviceName }}</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="wallet-cards" size="17" [strokeWidth]="2.4"></lucide-icon> Tarif</dt>
-              <dd>{{ finalPriceLabel() }}</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="map-pin" size="17" [strokeWidth]="2.4"></lucide-icon> Adresse d'intervention</dt>
-              <dd>{{ appointment.addressLabel }}</dd>
-            </div>
-          </dl>
-
-          <button type="button" class="appointment-detail__client-route-primary" (click)="syncAppointmentToCalendar(appointment)">
+        <section class="appointment-detail__client-route-actions">
+          <button
+            *ngIf="canMarkTravelerOnTheWay()"
+            type="button"
+            class="appointment-detail__client-route-primary"
+            (click)="markOnTheWay(appointment)"
+            [disabled]="isUpdatingStatus()"
+          >
+            <lucide-icon name="send" size="16" [strokeWidth]="2.4"></lucide-icon>
+            En route
+          </button>
+          <button
+            *ngIf="!isAppointmentCompleted() && !canMarkTravelerOnTheWay()"
+            type="button"
+            class="appointment-detail__client-route-primary"
+            (click)="syncAppointmentToCalendar(appointment)"
+          >
             <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.4"></lucide-icon>
             Enregistrer dans le calendrier
           </button>
-          <button type="button" class="appointment-detail__client-route-secondary" (click)="downloadInvoice(appointment)">
+          <button
+            *ngIf="isAppointmentCompleted()"
+            type="button"
+            class="appointment-detail__client-route-primary"
+            (click)="downloadInvoice(appointment)"
+          >
+            <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Telecharger la facture PDF
+          </button>
+          <button
+            *ngIf="!isAppointmentCompleted()"
+            type="button"
+            class="appointment-detail__client-route-secondary"
+            (click)="downloadInvoice(appointment)"
+          >
             <lucide-icon name="receipt" size="16" [strokeWidth]="2.4"></lucide-icon>
             Telecharger le recu
           </button>
           <button
+            *ngIf="isAppointmentCompleted()"
+            type="button"
+            class="appointment-detail__client-route-dispute"
+            (click)="reportAppointment()"
+          >
+            Signaler litige
+          </button>
+          <button
+            *ngIf="!isAppointmentCompleted()"
             type="button"
             class="appointment-detail__client-route-secondary"
             [disabled]="isUpdatingStatus() || !canCancelAppointment()"

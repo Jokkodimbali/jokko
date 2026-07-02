@@ -51,6 +51,12 @@ type RouteNavigationStep = {
   distanceMeters: number | null;
   end: MapCoordinate | null;
 };
+type TrackingStepView = {
+  label: string;
+  description: string;
+  icon: string;
+  state: 'done' | 'active' | 'pending';
+};
 const SENEGAL_GEO_BOUNDS = {
   minLat: 12,
   maxLat: 17.2,
@@ -142,6 +148,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly routeDurationMinutes = signal<number | null>(null);
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
   protected readonly isSatelliteMapEnabled = signal(false);
+  protected readonly isMapFullscreen = signal(false);
   protected readonly isNavigationVoiceEnabled = signal(true);
   protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
@@ -446,7 +453,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       !!appointment &&
       this.canManageProviderStatus() &&
       !this.isAppointmentInFuture(appointment) &&
-      appointment.status === 'EN_COURS'
+      (appointment.status === 'EN_COURS' || this.isProviderWorking())
     );
   });
   protected readonly canProviderMarkClientAbsent = computed(() => {
@@ -460,7 +467,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly isPaymentRequired = computed(() => {
     const status = this.appointment()?.status;
-    return status === 'EN_ATTENTE' || status === 'CONFIRMEE';
+    return status === 'CONFIRMEE';
   });
   protected readonly canClientPayAppointment = computed(() => {
     const appointment = this.appointment();
@@ -475,7 +482,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const status = this.appointment()?.status;
     if (status === 'PAYEE_SEQUESTRE') return 'Pret a demarrer';
     if (status === 'EN_COURS') return 'Prestation en cours';
-    if (status === 'EN_ATTENTE') return 'Paiement en attente';
     if (status === 'CONFIRMEE') return 'Paiement a finaliser';
     return 'Statut du rendez-vous';
   });
@@ -487,7 +493,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (status === 'EN_COURS') {
       return 'La prestation a demarre. Le prestataire peut la marquer comme terminee apres intervention.';
     }
-    if (status === 'EN_ATTENTE' || status === 'CONFIRMEE') {
+    if (status === 'CONFIRMEE') {
       return this.isProviderViewer()
         ? 'Les actions demarrer et terminer sont bloquees tant que le client na pas finalise le paiement.'
         : 'Finalisez le paiement pour permettre au prestataire de demarrer puis terminer la prestation.';
@@ -528,6 +534,76 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return Math.max(18, Math.min(82, 100 - minutes * 4));
   });
   protected readonly routeProgressLabel = computed(() => `${this.routeProgress()}%`);
+  protected readonly trackingCurrentStepIndex = computed(() => {
+    if (this.isAppointmentCompleted()) return 3;
+    if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
+    if (this.isProviderOnTheWay() || this.tracking()?.trackingStatus === 'EN_ROUTE') return 1;
+    return 0;
+  });
+  protected readonly trackingStepProgress = computed(() =>
+    Math.round((this.trackingCurrentStepIndex() / 3) * 100),
+  );
+  protected readonly trackingTimelineSteps = computed<TrackingStepView[]>(() => {
+    const activeIndex = this.trackingCurrentStepIndex();
+    const steps = [
+      {
+        label: 'Confirme',
+        description: 'Reservation validee',
+        icon: 'calendar-days',
+      },
+      {
+        label: 'En route',
+        description: `${this.trackedTravelerName()} se deplace`,
+        icon: 'send',
+      },
+      {
+        label: 'Travaux',
+        description: 'Prestation en cours',
+        icon: 'wrench',
+      },
+      {
+        label: 'Termine',
+        description: 'Mission cloturee',
+        icon: 'check',
+      },
+    ];
+
+    return steps.map((step, index) => ({
+      ...step,
+      state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
+    }));
+  });
+  protected readonly clientTrackingTitle = computed(() => {
+    if (this.isAppointmentCompleted()) return 'Mission terminee';
+    if (this.isProviderWorking()) return 'Travaux en cours';
+    if (this.isProviderOnTheWay()) return `${this.trackedTravelerName()} est en route`;
+    return 'Intervention confirmee';
+  });
+  protected readonly clientTrackingDescription = computed(() => {
+    if (this.isAppointmentCompleted()) {
+      return 'La prestation est cloturee. Vous pouvez consulter le resume et telecharger vos justificatifs.';
+    }
+    if (this.isProviderWorking()) {
+      return 'La prestation a commence. Vous serez informe des prochaines actions en temps reel.';
+    }
+    if (this.isProviderOnTheWay()) {
+      return `Suivez l'itineraire de ${this.trackedTravelerName()} jusqu'a la destination.`;
+    }
+    return "Votre reservation est prete. Le suivi s'active automatiquement le jour du rendez-vous.";
+  });
+  protected readonly providerCompletionDisabledReason = computed(() => {
+    if (!this.isProviderViewer()) return '';
+    if (this.canProviderCompleteWork()) return '';
+    const appointment = this.appointment();
+    if (!appointment) return '';
+    if (appointment.status !== 'EN_COURS' && !this.isProviderWorking()) {
+      return "La prestation commencera automatiquement lorsque le participant sera arrive.";
+    }
+    if (this.isAppointmentInFuture(appointment)) {
+      return "La prestation ne peut pas etre terminee avant l'heure du rendez-vous.";
+    }
+    return 'La prestation doit etre en cours pour etre terminee.';
+  });
   protected readonly routeRemainingBadgeLabel = computed(() => {
     if (this.isProviderWorking()) return 'Arrive';
     const distance = this.routeDistanceKm();
@@ -648,13 +724,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
     if (this.isLoading()) return 'loading';
     if (this.errorMessage()) return 'error';
-    if (!this.isProviderViewer() && this.isAppointmentCompleted()) return 'client-summary';
+    if (!this.isProviderViewer() && !this.isAppointmentClosed()) return 'route';
     if (this.isAppointmentCompleted()) return 'completed';
     if (this.isAppointmentClosed()) return 'closed';
-    if (this.isProviderWorking()) return 'working';
+    if (this.isProviderWorking()) return 'route';
     if (this.isProviderOnTheWay()) return 'route';
     if (this.isOperationalServiceDay()) return 'route';
-    if (!this.isProviderViewer()) return 'client-summary';
     if (this.showUpcomingDetail()) return 'upcoming';
     return 'upcoming';
   });
@@ -730,6 +805,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   ngOnDestroy(): void {
     this.stopLiveNavigation(this.appointment()?.id);
+    this.exitMapFullscreen();
     this.trackingStore.reset();
   }
 
@@ -1210,6 +1286,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected toggleSatelliteMap(): void {
     this.isSatelliteMapEnabled.update((enabled) => !enabled);
     this.mapRenderer.setSatellite(this.isSatelliteMapEnabled());
+  }
+
+  protected toggleMapFullscreen(): void {
+    if (this.isMapFullscreen()) {
+      this.exitMapFullscreen();
+      return;
+    }
+
+    this.isMapFullscreen.set(true);
+    window.setTimeout(() => this.updateGoogleMaps(), 80);
+  }
+
+  protected exitMapFullscreen(): void {
+    if (!this.isMapFullscreen()) return;
+    this.isMapFullscreen.set(false);
+    window.setTimeout(() => this.updateGoogleMaps(), 80);
   }
 
   protected rotateMap(): void {
@@ -1763,6 +1855,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
         })),
     });
+    if (this.isProviderOnTheWay() && !this.isProviderWorking()) {
+      this.mapRenderer.focusNavigationView(
+        { lat: displayedProvider[0], lng: displayedProvider[1] },
+        this.reliableTrackingHeading(),
+      );
+    }
   }
 
   private vehicleStatusLabel(): string {

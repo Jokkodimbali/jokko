@@ -1,5 +1,4 @@
 export type AppointmentStatus =
-  | 'EN_ATTENTE'
   | 'CONFIRMEE'
   | 'PAYEE_SEQUESTRE'
   | 'EN_COURS'

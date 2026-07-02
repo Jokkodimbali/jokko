@@ -493,6 +493,77 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
     return record ? this.mapTracking(record) : null;
   }
 
+  async startReservationFromArrival(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: input.reservationId },
+        select: {
+          professionnelId: true,
+          statut: true,
+        },
+      });
+
+      if (
+        !reservation ||
+        reservation.professionnelId !== input.professionalId ||
+        reservation.statut !== 'PAYEE_SEQUESTRE'
+      ) {
+        return null;
+      }
+
+      const existing = await tx.sessionTrackingReservation.findUnique({
+        where: { reservationId: input.reservationId },
+        include: TRACKING_INCLUDE,
+      });
+
+      if (
+        !existing ||
+        existing.professionnelId !== input.professionalId ||
+        existing.statut !== 'EN_ROUTE'
+      ) {
+        return null;
+      }
+
+      const now = new Date();
+      await tx.reservation.update({
+        where: { id: input.reservationId },
+        data: {
+          statut: 'EN_COURS',
+          misAJourLe: now,
+        },
+      });
+
+      await tx.presenceProfessionnel.upsert({
+        where: { profilProfessionnelId: input.professionalId },
+        create: {
+          profilProfessionnelId: input.professionalId,
+          estEnLigne: true,
+          statut: 'EN_PRESTATION',
+          dernierVueLe: now,
+        },
+        update: {
+          estEnLigne: true,
+          statut: 'EN_PRESTATION',
+          dernierVueLe: now,
+        },
+      });
+
+      return tx.sessionTrackingReservation.update({
+        where: { id: existing.id },
+        data: {
+          statut: 'TERMINEE',
+          termineLe: now,
+        },
+        include: TRACKING_INCLUDE,
+      });
+    });
+
+    return record ? this.mapTracking(record) : null;
+  }
+
   async finalizeTrackingForReservation(input: {
     reservationId: string;
     professionalId: string;

@@ -55,7 +55,6 @@ export class ListReservationsQueryDto {
   @IsOptional()
   @IsIn(
     [
-      'EN_ATTENTE',
       'CONFIRMEE',
       'PAYEE_SEQUESTRE',
       'EN_COURS',

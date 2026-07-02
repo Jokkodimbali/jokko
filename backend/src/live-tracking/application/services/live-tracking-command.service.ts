@@ -19,6 +19,10 @@ import {
   ProviderStartedTripEvent,
 } from '../../domain/events/tracking-domain.events';
 import {
+  ProviderArrivedEvent,
+  ServiceStartedEvent,
+} from '../../../reservations/domain/events/reservation-mission.events';
+import {
   LIVE_TRACKING_REPOSITORY_PORT,
   type ReservationTrackingContext,
   type ReservationTrackingView,
@@ -33,6 +37,7 @@ const SENEGAL_GEO_BOUNDS = {
   minLng: -18.7,
   maxLng: -11,
 } as const;
+const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 
 @Injectable()
 export class LiveTrackingCommandService {
@@ -120,7 +125,12 @@ export class LiveTrackingCommandService {
       }),
     );
 
-    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    enrichedTracking =
+      (await this.startReservationAutomaticallyIfArrived(
+        context,
+        enrichedTracking,
+      )) ?? enrichedTracking;
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
       enrichedTracking,
@@ -183,7 +193,12 @@ export class LiveTrackingCommandService {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
 
-    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    enrichedTracking =
+      (await this.startReservationAutomaticallyIfArrived(
+        context,
+        enrichedTracking,
+      )) ?? enrichedTracking;
     await this.eventBus.publier(
       new ProviderLocationUpdatedEvent({
         reservationId,
@@ -240,7 +255,12 @@ export class LiveTrackingCommandService {
       await this.liveTrackingRepository.startOrResumeTravelerTracking({
         session: session.toView(),
       });
-    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    enrichedTracking =
+      (await this.startReservationAutomaticallyIfArrived(
+        context,
+        enrichedTracking,
+      )) ?? enrichedTracking;
 
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
@@ -281,7 +301,12 @@ export class LiveTrackingCommandService {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
 
-    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    enrichedTracking =
+      (await this.startReservationAutomaticallyIfArrived(
+        context,
+        enrichedTracking,
+      )) ?? enrichedTracking;
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
       enrichedTracking,
@@ -405,6 +430,48 @@ export class LiveTrackingCommandService {
         : context.adresseClient;
 
     return this.routeEstimator.enrich(tracking, destinationAddress);
+  }
+
+  private async startReservationAutomaticallyIfArrived(
+    context: ReservationTrackingContext,
+    tracking: ReservationTrackingView,
+  ): Promise<ReservationTrackingView | null> {
+    if (
+      context.reservationStatus !== 'PAYEE_SEQUESTRE' ||
+      tracking.trackingStatus !== 'EN_ROUTE' ||
+      !tracking.route ||
+      tracking.route.distanceRemainingMeters > ARRIVAL_DISTANCE_THRESHOLD_METERS
+    ) {
+      return null;
+    }
+
+    const started =
+      await this.liveTrackingRepository.startReservationFromArrival({
+        reservationId: context.reservationId,
+        professionalId: context.professionalId,
+      });
+
+    if (!started) {
+      return null;
+    }
+
+    await this.eventBus.publier(
+      new ProviderArrivedEvent({
+        reservationId: context.reservationId,
+        clientUserId: context.clientUserId,
+        professionalId: context.professionalId,
+      }),
+    );
+    await this.eventBus.publier(
+      new ServiceStartedEvent({
+        reservationId: context.reservationId,
+        clientUserId: context.clientUserId,
+        professionalId: context.professionalId,
+      }),
+    );
+
+    this.realtimeEvents.emit('live-tracking.presence.updated', started.presence);
+    return started;
   }
 
   private assertTelemetry(dto: TrackingLocationCommand): void {

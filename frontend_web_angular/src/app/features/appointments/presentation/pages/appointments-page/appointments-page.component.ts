@@ -108,7 +108,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected readonly statusOptions = computed(() => {
     const options = this.activeTab() === 'appointments'
       ? [
-          { key: 'EN_ATTENTE' as const, label: 'En attente', icon: 'clock-3', tone: 'blue' },
           { key: 'CONFIRMEE' as const, label: 'Confirmes', icon: 'check', tone: 'green' },
           { key: 'PAYEE_SEQUESTRE' as const, label: 'Payes', icon: 'shield-check', tone: 'green' },
           { key: 'EN_COURS' as const, label: 'En cours', icon: 'activity', tone: 'blue' },
@@ -386,7 +385,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.isOverdueAppointment(appointment)) return 'neutral';
     if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'red';
     if (appointment.status === 'TERMINEE' || appointment.status === 'CONFIRMEE') return 'green';
-    if (appointment.status === 'EN_ATTENTE' || appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW') {
+    if (appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW') {
       return 'neutral';
     }
     return 'blue';
@@ -397,7 +396,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
 
     const labels: Record<AppointmentStatus, string> = {
-      EN_ATTENTE: 'En attente',
       CONFIRMEE: 'Confirme',
       PAYEE_SEQUESTRE: 'En cours',
       EN_COURS: 'En cours',
@@ -452,7 +450,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (appointment.status === 'TERMINEE') return 100;
     if (appointment.status === 'EN_COURS') return 65;
     if (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'CONFIRMEE') return 43;
-    if (appointment.status === 'EN_ATTENTE') return 15;
     return 0;
   }
 
@@ -464,7 +461,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.canProviderCloseAppointment(appointment)) return 'Cloturer';
     if (this.shouldPayAppointment(appointment)) return 'Payer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
-    if (appointment.status === 'EN_ATTENTE') return 'Finaliser';
     if (this.currentUser()?.role === 'CLIENT') return 'Résumé';
     return 'Voir';
   }
@@ -858,7 +854,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   private hasCancellableStatus(status: AppointmentStatus): boolean {
     return (
-      status === 'EN_ATTENTE' ||
       status === 'CONFIRMEE' ||
       status === 'PAYEE_SEQUESTRE' ||
       status === 'EN_COURS'
@@ -869,7 +864,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return (
       !!appointment.agreedPrice &&
       appointment.agreedPrice > 0 &&
-      (appointment.status === 'EN_ATTENTE' || appointment.status === 'CONFIRMEE')
+      appointment.status === 'CONFIRMEE'
     );
   }
 

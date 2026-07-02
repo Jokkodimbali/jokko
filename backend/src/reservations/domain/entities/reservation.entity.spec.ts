@@ -97,7 +97,7 @@ describe('ReservationEntity', () => {
         dateHeure: new Date('invalid'),
         adresseClient: 'Dakar Plateau',
         dureeMinutes: 60,
-        statut: 'EN_ATTENTE',
+        statut: 'CONFIRMEE',
         notes: null,
         prixConvenu: 25000,
         raisonAnnulation: null,

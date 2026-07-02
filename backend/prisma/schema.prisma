@@ -39,7 +39,6 @@ enum ModeDeplacementService {
 }
 
 enum StatutReservation {
-  EN_ATTENTE
   CONFIRMEE
   PAYEE_SEQUESTRE
   EN_COURS
@@ -498,7 +497,7 @@ model Reservation {
   dateHeure         DateTime           @map("date_time")
   adresseClient     String             @map("client_address") @db.VarChar(255)
   dureeMinutes      Int                @map("duration_minutes") @default(60)
-  statut            StatutReservation  @default(EN_ATTENTE)
+  statut            StatutReservation  @default(CONFIRMEE)
   notes             String?            @map("notes") @db.Text
   prixConvenu       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
   statutAjustementPrix StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")

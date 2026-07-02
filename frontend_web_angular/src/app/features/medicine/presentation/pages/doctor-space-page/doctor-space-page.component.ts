@@ -1618,7 +1618,6 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected agendaReservationStatusLabel(status: AppointmentStatus): string {
     const labels: Record<AppointmentStatus, string> = {
-      EN_ATTENTE: 'En attente',
       CONFIRMEE: 'Confirmee',
       PAYEE_SEQUESTRE: 'Payee et confirmee',
       EN_COURS: 'En cours',
@@ -2727,7 +2726,6 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private agendaEventVariant(status: AppointmentStatus): AgendaEvent['variant'] {
     const variants: Record<AppointmentStatus, AgendaEvent['variant']> = {
-      EN_ATTENTE: 'pending',
       CONFIRMEE: 'confirmed',
       PAYEE_SEQUESTRE: 'paid',
       EN_COURS: 'active',

@@ -32,7 +32,6 @@ export class AdminDashboardService {
       totalUsers,
       pendingKyc,
       totalProfessionals,
-      pendingReservations,
       confirmedReservations,
       escrowReservations,
       inProgressReservations,
@@ -58,7 +57,6 @@ export class AdminDashboardService {
       this.prisma.profilProfessionnel.count({
         where: { statutKyc: 'VERIFIE' },
       }),
-      this.prisma.reservation.count({ where: { statut: 'EN_ATTENTE' } }),
       this.prisma.reservation.count({ where: { statut: 'CONFIRMEE' } }),
       this.prisma.reservation.count({ where: { statut: 'PAYEE_SEQUESTRE' } }),
       this.prisma.reservation.count({ where: { statut: 'EN_COURS' } }),
@@ -158,12 +156,11 @@ export class AdminDashboardService {
         pending: pendingKyc,
       },
       reservations: {
-        pending: pendingReservations,
+        pending: 0,
         confirmed: confirmedReservations,
         inEscrow: escrowReservations,
         inProgress: inProgressReservations,
         active:
-          pendingReservations +
           confirmedReservations +
           escrowReservations +
           inProgressReservations,

@@ -90,6 +90,10 @@ export interface LiveTrackingRepositoryPort {
     speedKmh?: number | null;
     locationLabel?: string | null;
   }): Promise<ReservationTrackingView | null>;
+  startReservationFromArrival(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null>;
   finalizeTrackingForReservation(input: {
     reservationId: string;
     professionalId: string;

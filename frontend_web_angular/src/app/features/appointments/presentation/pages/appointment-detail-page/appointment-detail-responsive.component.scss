@@ -64,12 +64,17 @@
     min-height: 560px;
   }
 
-  .appointment-detail__route-sidebar {
+  .appointment-detail__route-sidebar,
+  .appointment-detail__client-route-summary {
     border-left: 0;
     border-top: 1px solid #dedede;
     grid-column: 1;
     grid-row: 3;
     overflow: visible;
+  }
+
+  .appointment-detail__client-route-summary {
+    padding: 16px;
   }
 
   .appointment-detail__work-layout {
@@ -169,6 +174,14 @@
     flex-wrap: wrap;
     left: 10px;
     right: 10px;
+  }
+
+  .appointment-detail__client-route-provider {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__client-route-provider nav {
+    justify-self: start;
   }
 
   .appointment-detail__service,

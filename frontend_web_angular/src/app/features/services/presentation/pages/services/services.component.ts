@@ -33,7 +33,11 @@ import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
-import { AppSearchBarComponent } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
+import {
+  AppSearchBarComponent,
+  AppSearchCategorySuggestion,
+  AppSearchProviderSuggestion,
+} from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import {
   ProviderCardComponent,
@@ -85,7 +89,43 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   activeSubCategoryId = signal<string | null>(null);
   categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
-  readonly locationValue = 'Toute zone';
+  selectedCity = signal<string>('Dakar');
+  showSearchSuggestions = signal<boolean>(false);
+  showLocationMenu = signal<boolean>(false);
+  suggestionProviders = signal<Professional[]>([]);
+  readonly cityOptions = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack'];
+  protected readonly locationValue = computed(() => this.selectedCity());
+  protected readonly searchResultsNearLabel = computed(() => `Resultats pres de ${this.selectedCity()}`);
+  protected readonly searchCategorySuggestions = computed<AppSearchCategorySuggestion[]>(() => {
+    const providerCounts = new Map<string, number>();
+
+    for (const provider of this.suggestionProviders()) {
+      const key = this.normalizeLabel(provider.categoryName);
+      providerCounts.set(key, (providerCounts.get(key) ?? 0) + 1);
+    }
+
+    return this.categories()
+      .map((category) => ({
+        id: category.id,
+        name: category.nom,
+        count: providerCounts.get(this.normalizeLabel(category.nom)) ?? category.subCategories.length,
+        icon: this.categoryIcon(category.nom),
+      }));
+  });
+  protected readonly searchProviderSuggestions = computed<AppSearchProviderSuggestion[]>(() =>
+    this.suggestionProviders().slice(0, 3).map((provider) => ({
+      id: provider.id,
+      name: provider.nom,
+      category: provider.categoryName || 'Service',
+      profession: this.providerProfessionLabel(provider),
+      location: provider.location,
+      rating: provider.rating,
+      totalReviews: provider.totalReviews,
+      isOnline: provider.isOnline,
+      avatarUrl: this.resolveProviderAvatar(provider),
+      initials: this.providerInitials(provider.nom),
+    })),
+  );
   protected readonly filters: Array<{ value: ProfessionalFilter; label: string; countLabel: string }> = [
     { value: 'ALL', label: 'Tous', countLabel: 'profils disponibles' },
     { value: 'MEDECIN', label: 'Medecins', countLabel: 'medecins disponibles' },
@@ -164,6 +204,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     return null;
   });
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
+  private suggestionRequestVersion = 0;
   private requestVersion = 0;
   private serviceFilterWheelCleanups: Array<() => void> = [];
   private serviceFilterRefsChangesSubscription?: Subscription;
@@ -189,14 +230,19 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onSearchTermChange(value: string): void {
     this.searchTerm.set(value);
+    this.showSearchSuggestions.set(true);
+    this.showLocationMenu.set(false);
     this.clearSearchDebounce();
     this.searchDebounce = setTimeout(() => {
       this.loadProfessionals(1);
+      this.loadSearchSuggestions();
     }, 280);
   }
 
   submitSearch(value: string): void {
     this.searchTerm.set(value.trim());
+    this.showSearchSuggestions.set(false);
+    this.showLocationMenu.set(false);
     this.clearSearchDebounce();
     this.loadProfessionals(1);
   }
@@ -205,6 +251,68 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.searchTerm.set('');
     this.clearSearchDebounce();
     this.loadProfessionals(1);
+  }
+
+  openSearchSuggestions(): void {
+    this.showSearchSuggestions.set(true);
+    this.showLocationMenu.set(false);
+    if (this.suggestionProviders().length === 0) {
+      this.loadSearchSuggestions();
+    }
+  }
+
+  toggleLocationMenu(): void {
+    this.showLocationMenu.update((value) => !value);
+    this.showSearchSuggestions.set(false);
+  }
+
+  selectSearchCity(city: string): void {
+    this.selectedCity.set(city);
+    this.showLocationMenu.set(false);
+    this.loadProfessionals(1);
+    this.loadSearchSuggestions();
+  }
+
+  useCurrentLocation(): void {
+    this.selectSearchCity('Dakar');
+  }
+
+  closeSearchSuggestionsAndShowFilters(): void {
+    this.showSearchSuggestions.set(false);
+    this.showLocationMenu.set(false);
+    this.cycleFilter();
+  }
+
+  closeSearchPanels(): void {
+    this.showSearchSuggestions.set(false);
+    this.showLocationMenu.set(false);
+  }
+
+  selectSearchCategory(categoryId: string): void {
+    this.showSearchSuggestions.set(false);
+    this.selectCategory(categoryId);
+  }
+
+  selectSuggestedProvider(providerId: string): void {
+    const provider = this.suggestionProviders().find((current) => current.id === providerId)
+      ?? this.sections().flatMap((section) => section.providers).find((current) => current.id === providerId);
+
+    this.showSearchSuggestions.set(false);
+    this.showLocationMenu.set(false);
+
+    if (!provider) {
+      this.router.navigate(['/services', providerId]);
+      return;
+    }
+
+    this.router.navigate(this.providerProfileCommands(provider), {
+      queryParams: provider.serviceId ? { serviceId: provider.serviceId } : undefined,
+      state: {
+        provider,
+        avatar: this.resolveProviderAvatar(provider),
+        photos: this.providerPhotos(provider),
+      },
+    });
   }
 
   scrollFiltersWithWheel(event: WheelEvent, targetElement?: HTMLElement): void {
@@ -386,10 +494,40 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const subCategoryId = this.activeSubCategoryId() ?? undefined;
 
     if (filter === 'ALL') {
-      return this.servicesService.searchUnifiedProfessionals(query, page, 24, undefined, categoryId, subCategoryId);
+      return this.servicesService.searchUnifiedProfessionals(query, page, 24, this.selectedCity(), categoryId, subCategoryId);
     }
 
-    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, undefined, categoryId, subCategoryId);
+    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, this.selectedCity(), categoryId, subCategoryId);
+  }
+
+  private loadSearchSuggestions(): void {
+    const query = this.searchTerm().trim();
+    const requestId = ++this.suggestionRequestVersion;
+
+    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.selectedCity()).subscribe({
+      next: (result) => {
+        if (requestId !== this.suggestionRequestVersion) {
+          return;
+        }
+
+        setTimeout(() => {
+          if (requestId === this.suggestionRequestVersion) {
+            this.suggestionProviders.set(result.providers);
+          }
+        });
+      },
+      error: () => {
+        if (requestId !== this.suggestionRequestVersion) {
+          return;
+        }
+
+        setTimeout(() => {
+          if (requestId === this.suggestionRequestVersion) {
+            this.suggestionProviders.set([]);
+          }
+        });
+      },
+    });
   }
 
   private buildSection(
@@ -512,6 +650,32 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   providerCategoryLabel(provider: Professional): string {
     return (provider.categoryName || provider.speciality || 'Service').toUpperCase();
+  }
+
+  private normalizeLabel(value: string | null | undefined): string {
+    return (value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private categoryIcon(categoryName: string): string {
+    const normalized = this.normalizeLabel(categoryName);
+
+    if (normalized.includes('medec')) {
+      return 'stethoscope';
+    }
+
+    if (normalized.includes('voiture') || normalized.includes('auto')) {
+      return 'truck';
+    }
+
+    if (normalized.includes('cuisine') || normalized.includes('restauration')) {
+      return 'flame';
+    }
+
+    return 'wrench';
   }
 
   providerProfessionLabel(provider: Professional): string {

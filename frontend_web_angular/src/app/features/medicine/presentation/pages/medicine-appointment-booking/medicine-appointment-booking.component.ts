@@ -32,7 +32,16 @@ import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-
 
 type AppointmentFor = 'ME' | 'RELATIVE';
 type BookingStep = 'PERSONAL' | 'RESERVATION';
-type PatientFormField = 'fullName' | 'phoneNumber' | 'relationship' | 'address' | 'notes';
+type PatientFormField =
+  | 'fullName'
+  | 'phoneNumber'
+  | 'relationship'
+  | 'address'
+  | 'notes'
+  | 'service'
+  | 'schedule'
+  | 'selfAddress'
+  | 'selfPhone';
 
 interface RelativePatientForm {
   fullName: string;
@@ -106,7 +115,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     address: '',
     notes: '',
   });
-  protected readonly fieldErrors = signal<Partial<Record<PatientFormField | 'selfAddress' | 'selfPhone', string>>>({});
+  protected readonly fieldErrors = signal<Partial<Record<PatientFormField, string>>>({});
   protected readonly appointmentAddressOverride = signal('');
   protected readonly appointmentPhoneOverride = signal('');
   protected readonly appointmentLocation = signal<AppointmentLocation | null>(null);
@@ -274,7 +283,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   protected goToReservationStep(): void {
     if (!this.validatePersonalStep()) {
-      this.feedback.info('Completez les informations personnelles avant de continuer.');
+      this.feedback.info('Completez tous les champs de la partie 1 avant de continuer.');
       return;
     }
 
@@ -301,6 +310,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected selectService(serviceId: string): void {
     this.selectedServiceId.set(serviceId);
     this.selectedDateTime.set(null);
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next.service;
+      delete next.schedule;
+      return next;
+    });
     if (this.patientTravelsToDoctor()) {
       this.appointmentAddressOverride.set('');
       this.appointmentLocation.set(null);
@@ -318,6 +333,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     if (this.selectedDateIso() === day.isoDate) return;
     this.selectedDateIso.set(day.isoDate);
     this.selectedDateTime.set(null);
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next.schedule;
+      return next;
+    });
     this.loadAvailabilityForSelectedDate();
   }
 
@@ -325,6 +345,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     if (!value || this.selectedDateIso() === value) return;
     this.selectedDateIso.set(value);
     this.selectedDateTime.set(null);
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next.schedule;
+      return next;
+    });
     this.loadAvailabilityForSelectedDate();
   }
 
@@ -342,6 +367,11 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
     const slotDateTime = slot.dateHeure;
     this.selectedDateTime.set(slotDateTime);
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next.schedule;
+      return next;
+    });
   }
 
   protected updateAppointmentAddress(value: string): void {
@@ -585,11 +615,24 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   private validatePersonalStep(): boolean {
+    const errors: Partial<Record<PatientFormField, string>> = {};
+
+    if (!this.selectedService()) {
+      errors.service = 'Choisissez le motif de consultation avant de continuer.';
+    }
+
+    if (this.isLoadingSlots()) {
+      errors.schedule = 'Patientez pendant le chargement des heures disponibles.';
+    } else if (!this.selectedDateTime()) {
+      errors.schedule = 'Choisissez une date et une heure disponibles avant de continuer.';
+    } else if (new Date(this.selectedDateTime() || '').getTime() <= Date.now()) {
+      errors.schedule = 'Choisissez un creneau futur pour ce rendez-vous.';
+    }
+
     if (this.appointmentFor() === 'ME') {
       const address = this.patientTravelsToDoctor()
         ? this.normalizeText(this.doctorInterventionAddress())
         : this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
-      const errors: Partial<Record<PatientFormField | 'selfAddress' | 'selfPhone', string>> = {};
 
       if (!this.patientTravelsToDoctor() && address.length < 5) {
         errors.selfAddress = 'Ajoutez une adresse complete avant de continuer.';
@@ -599,17 +642,17 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         errors.selfAddress = 'Adresse du cabinet non renseignee par ce medecin.';
       }
 
-      if (Object.keys(errors).length > 0) {
-        this.fieldErrors.set(errors);
-        return false;
-      }
-
-      this.fieldErrors.set({});
-      return true;
+      this.fieldErrors.set(errors);
+      return Object.keys(errors).length === 0;
     }
 
-    const validation = this.validateRelativePatient();
-    return validation.valid;
+    const validation = this.validateRelativePatient(false);
+    if (!validation.valid) {
+      Object.assign(errors, validation.errors);
+    }
+
+    this.fieldErrors.set(errors);
+    return Object.keys(errors).length === 0;
   }
 
   private loadPage(): void {
@@ -637,10 +680,6 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         next: ({ detail, user }) => {
           this.detail.set(detail);
           this.user.set(user);
-          const firstService = this.services()[0];
-          if (firstService && !this.selectedServiceId()) {
-            this.selectedServiceId.set(firstService.id);
-          }
           const days = this.buildCalendarDays(21);
           this.calendarDays.set(days);
           const todayIso = this.toIsoDate(new Date());

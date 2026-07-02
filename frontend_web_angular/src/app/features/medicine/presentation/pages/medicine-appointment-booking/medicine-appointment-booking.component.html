@@ -117,6 +117,9 @@
                 </div>
                 <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
               </button>
+              <p *ngIf="fieldErrors().service" class="medicine-booking__error-text medicine-booking__error-text--full">
+                {{ fieldErrors().service }}
+              </p>
 
               <button type="button" class="medicine-booking__picker-card" (click)="openDetailsModal('schedule')">
                 <span class="medicine-booking__picker-icon">
@@ -127,6 +130,9 @@
                   <strong>{{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}</strong>
                 </div>
               </button>
+              <p *ngIf="fieldErrors().schedule" class="medicine-booking__error-text">
+                {{ fieldErrors().schedule }}
+              </p>
 
               <button
                 *ngIf="doctorTravelsToPatient(); else personalCabinetPicker"

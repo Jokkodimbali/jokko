@@ -2,8 +2,9 @@
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
   min-height: clamp(355px, 28vw, 440px);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
+  z-index: 30;
 }
 
 :host .hero app-navbar {
@@ -15,7 +16,7 @@
   height: clamp(355px, 28vw, 440px);
   max-width: 100%;
   min-height: 233px;
-  overflow: hidden;
+  overflow: visible;
   padding: 0  0 0 29px;
   position: relative;
   align-items: flex-start;
@@ -27,7 +28,7 @@
   justify-content: flex-end;
   padding-top: 76px;
   position: relative;
-  width: min(916px, 100%);
+  width: min(640px, 100%);
   z-index: 2;
 }
 
@@ -43,7 +44,7 @@
 :host .search-bar {
   display: block;
   margin: 0;
-  max-width: 916px;
+  max-width: 640px;
   width: 100%;
 }
 

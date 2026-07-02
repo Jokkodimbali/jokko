@@ -68,6 +68,12 @@ type AppointmentSlotPreview = {
   endTime: string;
 };
 
+type AvailabilityPreviewDay = {
+  key: string;
+  label: string;
+  previews: AppointmentSlotPreview[];
+};
+
 type DaySchedule = {
   dayOfWeek: number;
   label: string;
@@ -305,7 +311,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly negotiations = signal<NegotiationView[]>([]);
   protected readonly wallet = signal<DoctorWalletView | null>(null);
   protected readonly releasingEscrowId = signal<string | null>(null);
-  protected readonly appointmentDuration = signal(20);
+  protected readonly appointmentDuration = signal(0);
   protected readonly appointmentPause = signal(0);
   protected readonly selectedTravelMode = signal<ServiceTravelMode>('PRESTATAIRE_SE_DEPLACE');
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
@@ -323,6 +329,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly providerHistoryPageSize = signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
   protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
   protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
+  protected readonly selectedAvailabilityPreviewKey = signal<string | null>(null);
   protected readonly isAgendaReservationLoading = signal(false);
   protected readonly isAgendaReservationCancelling = signal(false);
   protected readonly agendaReservationError = signal<string | null>(null);
@@ -551,7 +558,7 @@ export class DoctorSpacePageComponent implements OnInit {
     }).format(this.calendarCursor()),
   );
   protected readonly durationProgress = computed(() =>
-    this.progressPercent(this.appointmentDuration(), 20, 90),
+    this.progressPercent(this.appointmentDuration(), 0, 90),
   );
   protected readonly pauseProgress = computed(() =>
     this.progressPercent(this.appointmentPause(), 0, 15),
@@ -562,6 +569,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly weeklyAppointmentCapacity = computed(() =>
     this.days().reduce((total, day) => total + this.dayAppointmentCapacity(day), 0),
   );
+  protected readonly availabilityPreviewDays = computed(() => this.buildAvailabilityPreviewDays());
   protected readonly agendaWeekDays = computed(() => this.buildAgendaWeekDays(this.agendaCursor()));
   protected readonly agendaDateLabel = computed(() =>
     new Intl.DateTimeFormat('fr-FR', {
@@ -1529,7 +1537,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected zoomAgendaOut(): void {
-    this.updateAppointmentDuration(Math.max(20, this.appointmentDuration() - 5));
+    this.updateAppointmentDuration(Math.max(0, this.appointmentDuration() - 5));
     this.persistAppointmentSettings();
   }
 
@@ -1786,7 +1794,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected updateAppointmentDuration(value: string | number): void {
-    const duration = this.normalizeMinutes(value, 20, 90);
+    const duration = this.normalizeMinutes(value, 0, 90);
     this.appointmentDuration.set(duration);
     this.motifForm.durationMinutes = duration;
   }
@@ -1844,8 +1852,35 @@ export class DoctorSpacePageComponent implements OnInit {
     return this.buildAppointmentSlotPreviews(slot).slice(0, 6);
   }
 
+  protected dayAppointmentPreviews(day: DaySchedule): AppointmentSlotPreview[] {
+    if (!day.enabled) return [];
+    return day.slots.flatMap((slot) => this.buildAppointmentSlotPreviews(slot));
+  }
+
   protected remainingAvailabilitySlotCount(slot: AvailabilitySlot): number {
     return Math.max(0, this.availabilitySlotCapacity(slot) - this.availabilitySlotPreviews(slot).length);
+  }
+
+  protected timeOptionsFor(...currentValues: string[]): string[] {
+    const step = Math.max(5, this.appointmentStepMinutes());
+    const options = new Set<string>();
+    for (let minutes = 0; minutes < 24 * 60; minutes += step) {
+      options.add(this.minutesToTime(minutes));
+    }
+
+    currentValues
+      .filter((value) => /^\d{2}:\d{2}$/.test(value))
+      .forEach((value) => options.add(value));
+
+    return Array.from(options).sort((left, right) => this.timeToMinutes(left) - this.timeToMinutes(right));
+  }
+
+  protected selectAvailablePreview(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): void {
+    this.selectedAvailabilityPreviewKey.set(this.availabilityPreviewKey(day, preview));
+  }
+
+  protected isAvailablePreviewSelected(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): boolean {
+    return this.selectedAvailabilityPreviewKey() === this.availabilityPreviewKey(day, preview);
   }
 
   protected previousYear(): void {
@@ -2819,6 +2854,12 @@ export class DoctorSpacePageComponent implements OnInit {
       this.selectedTravelMode.set(firstTravelMode);
     }
 
+    const firstDuration = activeServices.find((service) => Number(service.dureeMinutes) > 0)?.dureeMinutes;
+    if (firstDuration) {
+      this.appointmentDuration.set(this.normalizeMinutes(firstDuration, 0, 90));
+      this.motifForm.durationMinutes = this.appointmentDuration();
+    }
+
     this.motifs.set(
       activeServices.map((service) => ({
           id: service.id,
@@ -2948,14 +2989,10 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   private updateAppointmentSettings(days: DaySchedule[]): void {
-    const firstSlot = days.flatMap((day) => day.slots)[0];
-    if (!firstSlot) {
-      this.motifForm.durationMinutes = this.appointmentDuration();
-      return;
+    const firstServiceDuration = this.motifs().find((motif) => motif.durationMinutes > 0)?.durationMinutes;
+    if (firstServiceDuration) {
+      this.appointmentDuration.set(this.normalizeMinutes(firstServiceDuration, 0, 90));
     }
-
-    const duration = Math.max(20, Math.min(90, this.minutesBetween(firstSlot.startTime, firstSlot.endTime) / 6));
-    this.appointmentDuration.set(Math.round(duration / 5) * 5);
     this.appointmentPause.set(0);
     this.motifForm.durationMinutes = this.appointmentDuration();
   }
@@ -3111,6 +3148,8 @@ export class DoctorSpacePageComponent implements OnInit {
     const duration = this.appointmentDuration();
     const pause = this.appointmentPause();
     const step = duration + pause;
+    if (duration <= 0 || step <= 0) return [];
+
     const start = this.timeToMinutes(slot.startTime);
     const end = this.timeToMinutes(slot.endTime);
     const previews: AppointmentSlotPreview[] = [];
@@ -3123,6 +3162,37 @@ export class DoctorSpacePageComponent implements OnInit {
     }
 
     return previews;
+  }
+
+  private availabilityPreviewKey(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): string {
+    return `${day.key}-${preview.startTime}-${preview.endTime}`;
+  }
+
+  private buildAvailabilityPreviewDays(): AvailabilityPreviewDay[] {
+    const days = this.days();
+    const today = this.startOfDay(new Date());
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + index);
+      const schedule = days.find((day) => day.dayOfWeek === date.getDay());
+      return {
+        key: this.dateKey(date),
+        label: this.formatAvailabilityPreviewDate(date),
+        previews: schedule ? this.dayAppointmentPreviews(schedule) : [],
+      };
+    });
+  }
+
+  private formatAvailabilityPreviewDate(date: Date): string {
+    const value = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'short',
+    }).format(date);
+    return value
+      .replace('.', '')
+      .replace(/^\p{L}/u, (letter) => letter.toUpperCase());
   }
 
   private normalizeMinutes(value: string | number, min: number, max: number): number {

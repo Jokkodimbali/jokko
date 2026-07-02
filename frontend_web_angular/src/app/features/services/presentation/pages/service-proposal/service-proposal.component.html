@@ -567,6 +567,9 @@
                     </span>
                     <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
                   </button>
+                  <p *ngIf="clientDetailsErrors().service" class="service-proposal__field-error service-proposal__field-error--full">
+                    {{ clientDetailsErrors().service }}
+                  </p>
 
                   <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
                     <button
@@ -583,6 +586,9 @@
                       </span>
                       <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
                     </button>
+                    <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
+                      {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
+                    </p>
 
                     <button
                       type="button"
@@ -602,8 +608,11 @@
                         name="pencil"
                         size="15"
                         [strokeWidth]="2.2"
-                      ></lucide-icon>
+                        ></lucide-icon>
                     </button>
+                    <p *ngIf="clientDetailsErrors().address" class="service-proposal__field-error">
+                      {{ clientDetailsErrors().address }}
+                    </p>
                   </div>
                 </section>
 

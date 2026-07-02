@@ -195,6 +195,16 @@
   line-height: 1.2;
 }
 
+.service-proposal__field-error {
+  color: #d1435b;
+  font-size: 12px;
+  font-weight: 850;
+  grid-column: 1 / -1;
+  line-height: 1.35;
+  margin: -4px 0 2px;
+  padding: 0 4px;
+}
+
 .service-proposal__field > lucide-icon {
   color: #111827;
 }

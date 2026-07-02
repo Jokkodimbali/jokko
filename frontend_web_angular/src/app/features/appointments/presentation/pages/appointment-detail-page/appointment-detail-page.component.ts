@@ -62,6 +62,7 @@ const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 type AppointmentDetailUiState =
   | 'loading'
   | 'error'
+  | 'client-summary'
   | 'completed'
   | 'closed'
   | 'working'
@@ -647,11 +648,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
     if (this.isLoading()) return 'loading';
     if (this.errorMessage()) return 'error';
+    if (!this.isProviderViewer() && this.isAppointmentCompleted()) return 'client-summary';
     if (this.isAppointmentCompleted()) return 'completed';
     if (this.isAppointmentClosed()) return 'closed';
     if (this.isProviderWorking()) return 'working';
     if (this.isProviderOnTheWay()) return 'route';
     if (this.isOperationalServiceDay()) return 'route';
+    if (!this.isProviderViewer()) return 'client-summary';
     if (this.showUpcomingDetail()) return 'upcoming';
     return 'upcoming';
   });
@@ -2117,7 +2120,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }).format(value)} km`;
   }
 
-  private formatCurrency(value: number): string {
+  protected formatCurrency(value: number): string {
     return `${new Intl.NumberFormat('fr-FR', {
       maximumFractionDigits: 0,
     })

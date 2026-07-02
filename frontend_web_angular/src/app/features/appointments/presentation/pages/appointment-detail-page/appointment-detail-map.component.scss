@@ -477,6 +477,190 @@
   margin-top: 5px;
 }
 
+.appointment-detail__client-route-summary {
+  align-content: start;
+  background: #ffffff;
+  border-left: 1px solid #dedede;
+  display: grid;
+  gap: 12px;
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 18px 20px;
+  z-index: 10;
+}
+
+.appointment-detail__client-route-provider,
+.appointment-detail__client-route-mission {
+  background: #ffffff;
+  border: 1px solid #e7e7e7;
+  border-radius: 18px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.appointment-detail__client-route-provider {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 13px 14px;
+}
+
+.appointment-detail__client-route-provider small,
+.appointment-detail__client-route-mission h3 {
+  color: #9499a3;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.appointment-detail__client-route-provider small {
+  grid-column: 1 / -1;
+}
+
+.appointment-detail__client-route-provider > div {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.appointment-detail__client-route-provider img,
+.appointment-detail__client-route-provider > div > span {
+  align-items: center;
+  background: #eef2f7;
+  border-radius: 50%;
+  color: #111827;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  height: 42px;
+  justify-content: center;
+  object-fit: cover;
+  width: 42px;
+}
+
+.appointment-detail__client-route-provider strong {
+  color: #111827;
+  display: block;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-detail__client-route-provider p {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  margin: 4px 0 0;
+}
+
+.appointment-detail__client-route-provider p b {
+  color: #f5a400;
+}
+
+.appointment-detail__client-route-provider nav {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.appointment-detail__client-route-provider nav button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e4e7eb;
+  border-radius: 50%;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.appointment-detail__client-route-mission {
+  display: grid;
+  gap: 16px;
+  padding: 17px 14px 14px;
+}
+
+.appointment-detail__client-route-mission dl {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+}
+
+.appointment-detail__client-route-mission dl div {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.appointment-detail__client-route-mission dt {
+  align-items: center;
+  color: #7f8794;
+  display: grid;
+  font-size: 10px;
+  font-weight: 850;
+  gap: 7px;
+  grid-column: 1 / -1;
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.appointment-detail__client-route-mission dt lucide-icon {
+  color: #111827;
+  margin-top: 1px;
+}
+
+.appointment-detail__client-route-mission dd {
+  color: #111827;
+  font-size: 11px;
+  font-weight: 950;
+  grid-column: 2;
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.appointment-detail__client-route-primary,
+.appointment-detail__client-route-secondary {
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.appointment-detail__client-route-primary {
+  background: #2f7dff;
+  border: 0;
+  color: #ffffff;
+}
+
+.appointment-detail__client-route-secondary {
+  background: #ffffff;
+  border: 1px solid #e4e7eb;
+  color: #111827;
+}
+
+.appointment-detail__client-route-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 .appointment-detail__closed {
   background: #eef1f3;
   min-height: 100vh;

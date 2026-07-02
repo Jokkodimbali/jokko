@@ -38,6 +38,7 @@ import {
 
 type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'VISA';
 type ClientBookingStep = 'DETAILS' | 'PRICE';
+type ClientDetailsField = 'service' | 'schedule' | 'address' | 'availability';
 
 interface PaymentOption {
   id: PaymentMethod;
@@ -139,6 +140,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isLocatingAddress = signal(false);
   protected readonly activeDetailsModal = signal<ProposalDetailsModal | null>(null);
   protected readonly clientBookingStep = signal<ClientBookingStep>('DETAILS');
+  protected readonly clientDetailsErrors = signal<Partial<Record<ClientDetailsField, string>>>({});
   protected readonly clientBookingDetailsExpanded = signal(false);
   protected readonly materialQuoteExpanded = signal(false);
   protected readonly isMaterialQuoteFormOpen = signal(false);
@@ -157,9 +159,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly customServiceName = signal('');
   protected readonly selectedPayment = signal<PaymentMethod>('WAVE');
 
-  protected readonly appointmentDate = signal(
-    this.toDateInputValue(this.getDefaultAppointmentDate()),
-  );
+  protected readonly appointmentDate = signal('');
   protected readonly address = signal('');
   private readonly clientDefaultAddress = signal('');
   protected readonly offerAmount = signal(0);
@@ -187,7 +187,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly currentService = computed<BackendProfessionalDetailService | null>(() => {
     const services = this.detail()?.services ?? [];
     const selectedId = this.selectedServiceId();
-    return services.find((service) => service.id === selectedId) ?? services[0] ?? null;
+    return selectedId ? services.find((service) => service.id === selectedId) ?? null : null;
   });
   protected readonly providerTravelsToClient = computed(
     () => this.currentService()?.modeDeplacement !== 'CLIENT_SE_DEPLACE',
@@ -341,7 +341,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   });
 
   protected readonly categoryLabel = computed(
-    () => this.customServiceName() || this.currentService()?.nom || 'Service Jokko',
+    () => this.customServiceName() || this.currentService()?.nom || 'Selectionnez un motif...',
   );
   protected readonly isFixedPriceService = computed(
     () => !this.customServiceName() && this.currentService()?.typePrix === 'FIXE',
@@ -653,6 +653,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected goToClientPriceStep(): void {
+    if (!this.validateClientDetailsStep()) {
+      this.feedback.info('Completez tous les champs de la partie 1 avant de continuer.');
+      return;
+    }
+
     this.clientBookingStep.set('PRICE');
   }
 
@@ -925,6 +930,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.syncAddressForCurrentTravelMode();
     this.availabilityStatus.set(null);
     this.availabilitySlots.set([]);
+    this.clearClientDetailsErrors('service', 'schedule', 'availability');
     this.scheduleAvailabilityCheck();
   }
 
@@ -938,6 +944,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.customServiceName.set(normalizedName);
     this.availabilityStatus.set(null);
     this.availabilitySlots.set([]);
+    this.clearClientDetailsErrors('service', 'schedule', 'availability');
     this.scheduleAvailabilityCheck();
     this.feedback.success('Le nouveau motif a ete ajoute a votre proposition.');
   }
@@ -1189,6 +1196,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected updateAppointmentDate(value: string): void {
     this.appointmentDate.set(value);
+    this.clearClientDetailsErrors('schedule', 'availability');
     this.scheduleAvailabilityCheck();
   }
 
@@ -1197,7 +1205,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.appointmentDate.set(`${value}T10:00`);
+    this.appointmentDate.set(`${value}T`);
+    this.clearClientDetailsErrors('schedule', 'availability');
     this.scheduleAvailabilityCheck();
   }
 
@@ -1216,6 +1225,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.address.set(value);
+    this.clearClientDetailsErrors('address');
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
@@ -1225,6 +1235,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.address.set(suggestion.label);
+    this.clearClientDetailsErrors('address');
     this.addressSuggestions.set([]);
     this.isAddressSuggestionsOpen.set(false);
   }
@@ -1324,6 +1335,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.appointmentDate.set(this.toDateInputValue(new Date(slot.dateHeure)));
+    this.clearClientDetailsErrors('schedule', 'availability');
     const service = this.currentService();
     this.availabilityStatus.set({
       available: true,
@@ -1779,14 +1791,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           return;
         } else {
           const service = this.currentService();
-          this.selectedServiceId.set(service?.id || '');
-          this.offerAmount.set(service?.prix ?? 0);
           const providerAddress = this.resolveInitialAddress(detail);
-          const clientAddress = user?.adresse?.trim() || '';
-          this.clientDefaultAddress.set(clientAddress);
-          this.address.set(
-            service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : clientAddress,
-          );
+          this.clientDefaultAddress.set(user?.adresse?.trim() || '');
+          this.address.set(service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '');
           if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
             this.resumeActiveClientProposal(service);
             return;
@@ -1892,9 +1899,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     const providerAddress = this.providerInterventionAddress();
     const currentAddress = this.address().trim();
-    const clientAddress = this.clientDefaultAddress();
     if (!currentAddress || currentAddress === providerAddress) {
-      this.address.set(clientAddress);
+      this.address.set('');
     }
   }
 
@@ -1929,6 +1935,55 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     return selectedDate.getTime() > Date.now();
+  }
+
+  private clearClientDetailsErrors(...fields: ClientDetailsField[]): void {
+    if (fields.length === 0) {
+      this.clientDetailsErrors.set({});
+      return;
+    }
+
+    this.clientDetailsErrors.update((errors) => {
+      const next = { ...errors };
+      fields.forEach((field) => delete next[field]);
+      return next;
+    });
+  }
+
+  private validateClientDetailsStep(): boolean {
+    const errors: Partial<Record<ClientDetailsField, string>> = {};
+    const service = this.currentService();
+
+    if (!service) {
+      errors.service = 'Choisissez le motif de prestation avant de continuer.';
+    }
+
+    const dateHeure = this.toIsoDateTime(this.appointmentDate());
+    if (!dateHeure || !this.isValidAppointmentDate()) {
+      errors.schedule = 'Choisissez une date et une heure futures pour le rendez-vous.';
+    }
+
+    if (this.isCheckingAvailability() || this.isLoadingAvailabilitySlots()) {
+      errors.availability = 'Patientez pendant la verification de la disponibilite du creneau.';
+    } else if (service && dateHeure) {
+      const availabilityStatus = this.availabilityStatus();
+      if (!availabilityStatus || availabilityStatus.dateHeure !== dateHeure) {
+        errors.availability = 'Selectionnez un creneau disponible avant de continuer.';
+        this.checkAvailabilityNow(service, dateHeure);
+      } else if (!availabilityStatus.available) {
+        errors.availability = availabilityStatus.reason || 'Ce creneau nest pas disponible.';
+      }
+    }
+
+    const address = this.resolveAppointmentAddress().replace(/\s+/g, ' ');
+    if (address.length < 5 || address.length > 180) {
+      errors.address = this.clientTravelsToProvider()
+        ? 'Adresse du prestataire non renseignee pour ce service.'
+        : 'Renseignez une adresse precise entre 5 et 180 caracteres.';
+    }
+
+    this.clientDetailsErrors.set(errors);
+    return Object.keys(errors).length === 0;
   }
 
   private validateReservationDraft(

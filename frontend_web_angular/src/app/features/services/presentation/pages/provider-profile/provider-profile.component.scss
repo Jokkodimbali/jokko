@@ -198,7 +198,7 @@
   display: grid;
   gap: 0;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(3, minmax(0, 210px));
+  grid-template-columns: minmax(150px, 190px) minmax(130px, 170px) minmax(260px, max-content);
   margin-top: 4px;
   padding-top: 28px;
 }
@@ -249,20 +249,20 @@
   height: auto;
   justify-content: center;
   max-width: 100%;
-  min-height: 34px;
-  overflow: hidden;
-  padding: 7px 12px;
+  min-height: 40px;
+  overflow: visible;
+  padding: 8px 14px;
   width: auto;
 }
 
 .provider-profile__stats .provider-profile__movement-badge strong {
   color: #ffffff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
-  line-height: 1.1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.16;
+  overflow: visible;
+  text-align: center;
+  white-space: normal;
 }
 
 .provider-profile__stats .provider-profile__movement-badge img {

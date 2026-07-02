@@ -465,6 +465,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.shouldPayAppointment(appointment)) return 'Payer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
     if (appointment.status === 'EN_ATTENTE') return 'Finaliser';
+    if (this.currentUser()?.role === 'CLIENT') return 'Résumé';
     return 'Voir';
   }
 

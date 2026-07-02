@@ -92,7 +92,7 @@
               <output>{{ appointmentDuration() }} min</output>
               <input
                 type="range"
-                min="20"
+                min="0"
                 max="90"
                 step="5"
                 [ngModel]="appointmentDuration()"
@@ -187,60 +187,61 @@
             [class.doctor-space__day--disabled]="!day.enabled"
           >
             <div class="doctor-space__day-head">
-              <button
-                type="button"
-                class="doctor-space__switch"
-                [class.doctor-space__switch--active]="day.enabled"
-                [disabled]="isSaving()"
-                (click)="toggleDay(day)"
-                [attr.aria-label]="day.enabled ? 'Desactiver ' + day.label : 'Activer ' + day.label"
-              >
-                <span></span>
-              </button>
-              <div class="doctor-space__day-title">
-                <h3>{{ day.label }}</h3>
-                <span
-                  class="doctor-space__day-status"
-                  [class.doctor-space__day-status--active]="day.enabled"
+              <div class="doctor-space__day-main">
+                <button
+                  type="button"
+                  class="doctor-space__switch"
+                  [class.doctor-space__switch--active]="day.enabled"
+                  [disabled]="isSaving()"
+                  (click)="toggleDay(day)"
+                  [attr.aria-label]="day.enabled ? 'Desactiver ' + day.label : 'Activer ' + day.label"
                 >
-                  {{ day.enabled ? 'Disponible' : 'Indisponible' }}
-                </span>
+                  <span></span>
+                </button>
+                <h3>{{ day.label }}</h3>
               </div>
-              <span class="doctor-space__day-count">
-                {{ day.enabled ? dayAppointmentCapacity(day) + ' rdv possibles' : 'Repos' }}
-              </span>
-              <button type="button" class="doctor-space__add" [disabled]="isSaving()" (click)="addSlot(day)">
+
+              <button
+                *ngIf="day.enabled"
+                type="button"
+                class="doctor-space__add"
+                [disabled]="isSaving()"
+                (click)="addSlot(day)"
+              >
                 <lucide-icon name="plus" size="15" [strokeWidth]="2.7"></lucide-icon>
                 Ajouter
               </button>
             </div>
 
             <div class="doctor-space__slots" *ngIf="day.enabled">
-              <div *ngFor="let slot of day.slots; let slotIndex = index; trackBy: trackSlot" class="doctor-space__slot">
-                <span class="doctor-space__slot-index">{{ slotIndex + 1 }}</span>
+              <div *ngFor="let slot of day.slots; trackBy: trackSlot" class="doctor-space__slot">
                 <div class="doctor-space__slot-times">
                   <label>
-                    <small>D&eacute;but</small>
                     <span>
-                      <input
-                        type="time"
-                        [(ngModel)]="slot.startTime"
+                      <select
+                        [ngModel]="slot.startTime"
                         [disabled]="isSaving()"
-                        (change)="saveSlot(day, slot)"
-                      />
+                        (ngModelChange)="slot.startTime = $event; saveSlot(day, slot)"
+                      >
+                        <option *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)" [value]="option">
+                          {{ option }}
+                        </option>
+                      </select>
                       <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
                     </span>
                   </label>
                   <span class="doctor-space__arrow">&rarr;</span>
                   <label>
-                    <small>Fin</small>
                     <span>
-                      <input
-                        type="time"
-                        [(ngModel)]="slot.endTime"
+                      <select
+                        [ngModel]="slot.endTime"
                         [disabled]="isSaving()"
-                        (change)="saveSlot(day, slot)"
-                      />
+                        (ngModelChange)="slot.endTime = $event; saveSlot(day, slot)"
+                      >
+                        <option *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)" [value]="option">
+                          {{ option }}
+                        </option>
+                      </select>
                       <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
                     </span>
                   </label>
@@ -248,22 +249,41 @@
                 <button type="button" class="doctor-space__remove" [disabled]="isSaving()" (click)="removeSlot(day, slot)" aria-label="Supprimer ce cr&eacute;neau">
                   <lucide-icon name="x" size="16" [strokeWidth]="2.5"></lucide-icon>
                 </button>
-                <div class="doctor-space__slot-rule">
-                  <strong>{{ availabilitySlotCapacity(slot) }} creneau(x)</strong>
-                  <span>Pas: {{ appointmentDuration() }} min + {{ appointmentPause() }} min</span>
-                </div>
-                <div class="doctor-space__slot-preview" *ngIf="availabilitySlotPreviews(slot).length > 0; else noGeneratedSlots">
-                  <span *ngFor="let preview of availabilitySlotPreviews(slot)">
-                    {{ preview.startTime }}-{{ preview.endTime }}
-                  </span>
-                  <em *ngIf="remainingAvailabilitySlotCount(slot) > 0">
-                    +{{ remainingAvailabilitySlotCount(slot) }}
-                  </em>
-                </div>
-                <ng-template #noGeneratedSlots>
-                  <p class="doctor-space__slot-warning">Plage trop courte pour la duree choisie.</p>
-                </ng-template>
               </div>
+              <p class="doctor-space__empty-slot" *ngIf="day.slots.length === 0">
+                Aucune plage — cliquez sur "Ajouter"
+              </p>
+            </div>
+          </article>
+
+          <article class="doctor-space__available-slots">
+            <header>
+              <span class="doctor-space__available-icon">
+                <lucide-icon name="calendar-check" size="20" [strokeWidth]="2.4"></lucide-icon>
+              </span>
+              <div>
+                <h3>Creneaux disponibles</h3>
+                <p>{{ weeklyAppointmentCapacity() }} creneau(x) generes sur les 7 prochains jours</p>
+              </div>
+            </header>
+
+            <div class="doctor-space__available-grid">
+              <section *ngFor="let day of availabilityPreviewDays()" class="doctor-space__available-day">
+                <strong>{{ day.label }}</strong>
+                <div *ngIf="day.previews.length > 0; else unavailableDay" class="doctor-space__available-list">
+                  <button
+                    *ngFor="let preview of day.previews"
+                    type="button"
+                    [class.doctor-space__available-choice--selected]="isAvailablePreviewSelected(day, preview)"
+                    (click)="selectAvailablePreview(day, preview)"
+                  >
+                    {{ preview.startTime }}
+                  </button>
+                </div>
+                <ng-template #unavailableDay>
+                  <em>Indisponible</em>
+                </ng-template>
+              </section>
             </div>
           </article>
         </section>

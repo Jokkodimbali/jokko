@@ -1,29 +1,153 @@
 <form
   class="app-search-bar"
   [class.app-search-bar--compact]="variant === 'compact'"
+  [class.app-search-bar--service]="variant === 'service'"
+  [class.app-search-bar--panel-open]="isServiceVariant && (showSuggestions || showLocationMenu)"
   [attr.aria-label]="ariaLabel"
   (submit)="$event.preventDefault(); onSubmit()"
 >
-  <button type="button" class="app-search-bar__location">
-    <lucide-icon name="map-pin" size="22" [strokeWidth]="3"></lucide-icon>
+  <button
+    type="button"
+    class="app-search-bar__location"
+    [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
+    (click)="onLocationClick()"
+  >
+    <lucide-icon name="map-pin" [size]="isServiceVariant ? 17 : 22" [strokeWidth]="isServiceVariant ? 2.4 : 3"></lucide-icon>
     <span><strong>{{ locationTitle }}</strong>{{ locationValue }}</span>
+    <lucide-icon
+      *ngIf="isServiceVariant"
+      class="app-search-bar__chevron"
+      [class.app-search-bar__chevron--open]="showLocationMenu"
+      name="chevron-down"
+      size="14"
+      [strokeWidth]="2.3"
+    ></lucide-icon>
   </button>
 
   <label class="app-search-bar__field">
-    <lucide-icon name="search" size="35" [strokeWidth]="2.6"></lucide-icon>
+    <lucide-icon name="search" [size]="isServiceVariant ? 18 : 35" [strokeWidth]="isServiceVariant ? 2.2 : 2.6"></lucide-icon>
     <input
       type="search"
       [value]="value"
       [placeholder]="placeholder"
       (input)="onInputEvent($event)"
+      (focus)="onFocus()"
     />
   </label>
 
-  <button type="button" class="app-search-bar__filter" aria-label="Ouvrir les filtres" (click)="onFilterClick()">
+  <button
+    *ngIf="!isServiceVariant"
+    type="button"
+    class="app-search-bar__filter"
+    aria-label="Ouvrir les filtres"
+    (click)="onFilterClick()"
+  >
     <lucide-icon name="sliders-horizontal" size="30" [strokeWidth]="3"></lucide-icon>
     <span>
       <strong>{{ filterLabel }}</strong>
       <small *ngIf="filterValueLabel">{{ filterValueLabel }}</small>
     </span>
   </button>
+
+  <button *ngIf="isServiceVariant" type="submit" class="app-search-bar__submit">
+    Chercher
+  </button>
+
+  <div *ngIf="isServiceVariant && showLocationMenu" class="app-search-bar__location-menu">
+    <p>Choisir une ville</p>
+    <button type="button" class="app-search-bar__current-location" (click)="currentLocationSelect.emit()">
+      <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.3"></lucide-icon>
+      Ma position actuelle
+    </button>
+    <button
+      *ngFor="let option of locationOptions"
+      type="button"
+      class="app-search-bar__city"
+      [class.app-search-bar__city--active]="option === locationValue"
+      (click)="locationOptionSelect.emit(option)"
+    >
+      <span>
+        <lucide-icon name="map-pin" size="14" [strokeWidth]="2"></lucide-icon>
+        {{ option }}
+      </span>
+      <small>S&eacute;n&eacute;gal</small>
+    </button>
+  </div>
+
+  <div *ngIf="isServiceVariant && showSuggestions" class="app-search-bar__suggestions">
+    <section *ngIf="categorySuggestions.length > 0" class="app-search-bar__suggestion-section">
+      <div class="app-search-bar__suggestion-heading">
+        <span>
+          <lucide-icon name="bookmark" size="13" [strokeWidth]="2"></lucide-icon>
+          Cat&eacute;gories
+        </span>
+      </div>
+      <div
+        class="app-search-bar__category-list"
+        [class.app-search-bar__category-list--expanded]="showAllCategories"
+      >
+        <button
+          *ngFor="let category of visibleCategorySuggestions"
+          type="button"
+          class="app-search-bar__category-chip"
+          (click)="categorySelect.emit(category.id)"
+        >
+          <lucide-icon [name]="category.icon || 'wrench'" size="14" [strokeWidth]="2.1"></lucide-icon>
+          {{ category.name }}
+          <small>{{ category.count }}</small>
+        </button>
+        <button
+          *ngIf="hasHiddenCategories"
+          type="button"
+          class="app-search-bar__category-chip app-search-bar__category-chip--more"
+          (click)="toggleCategoryList()"
+        >
+          {{ showAllCategories ? 'Voir moins' : ('Voir plus +' + hiddenCategoryCount) }}
+        </button>
+      </div>
+    </section>
+
+    <section *ngIf="providerSuggestions.length > 0" class="app-search-bar__suggestion-section">
+      <div class="app-search-bar__suggestion-heading">
+        <span>
+          <i aria-hidden="true"></i>
+          Prestataires
+        </span>
+        <button type="button" (click)="suggestionsClose.emit()">Voir tout</button>
+      </div>
+      <button
+        *ngFor="let provider of providerSuggestions"
+        type="button"
+        class="app-search-bar__provider"
+        (click)="providerSelect.emit(provider.id)"
+      >
+        <span class="app-search-bar__avatar">
+          <img *ngIf="provider.avatarUrl; else providerInitials" [src]="provider.avatarUrl" [alt]="provider.name" />
+          <ng-template #providerInitials>{{ provider.initials }}</ng-template>
+          <i *ngIf="provider.isOnline" aria-hidden="true"></i>
+        </span>
+        <span class="app-search-bar__provider-info">
+          <strong>{{ provider.name }} <small>{{ provider.category }}</small></strong>
+          <span>
+            {{ provider.profession }}
+            <b> &starf; {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})</b>
+            <em>{{ provider.location }}</em>
+          </span>
+        </span>
+        <span class="app-search-bar__provider-action">
+          Voir
+          <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.4"></lucide-icon>
+        </span>
+      </button>
+    </section>
+
+    <p *ngIf="categorySuggestions.length === 0 && providerSuggestions.length === 0" class="app-search-bar__empty">
+      Tapez un service ou un nom de prestataire pour commencer.
+    </p>
+
+    <footer class="app-search-bar__suggestion-footer">
+      <span>{{ resultsNearLabel || ('Resultats pres de ' + locationValue) }}</span>
+      <strong>Jokko Dimbali</strong>
+    </footer>
+  </div>
 </form>

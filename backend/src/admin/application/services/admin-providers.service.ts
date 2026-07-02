@@ -278,7 +278,6 @@ export class AdminProvidersService {
           'TERMINEE',
         ]),
         activeReservationsCount: this.countReservations(reservations, [
-          'EN_ATTENTE',
           'CONFIRMEE',
           'PAYEE_SEQUESTRE',
           'EN_COURS',

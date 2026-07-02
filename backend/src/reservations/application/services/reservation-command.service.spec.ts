@@ -168,7 +168,7 @@ describe('ReservationCommandService', () => {
       reservation: buildReservation({
         clientId: 'professional-user-id',
         professionnelId: 'other-professional-id',
-        statut: 'EN_ATTENTE',
+        statut: 'CONFIRMEE',
       }),
       professionalId: 'professional-id',
     });

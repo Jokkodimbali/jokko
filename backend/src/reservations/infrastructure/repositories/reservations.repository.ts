@@ -169,7 +169,6 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         reservation: {
           statut: {
             in: [
-              $Enums.StatutReservation.EN_ATTENTE,
               $Enums.StatutReservation.CONFIRMEE,
             ],
           },
@@ -192,7 +191,6 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           id: { in: paidReservationIds },
           statut: {
             in: [
-              $Enums.StatutReservation.EN_ATTENTE,
               $Enums.StatutReservation.CONFIRMEE,
             ],
           },
@@ -205,50 +203,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       syncedPaidCount = paidResult.count;
     }
 
-    const candidates = await this.prisma.reservation.findMany({
-      where: {
-        statut: {
-          in: [$Enums.StatutReservation.EN_ATTENTE],
-        },
-        dateHeure: {
-          lt: now,
-        },
-      },
-      select: {
-        id: true,
-        dateHeure: true,
-        dureeMinutes: true,
-      },
-      take: 500,
-    });
-
-    const overdueIds = candidates
-      .filter((reservation) => {
-        const durationMinutes = Math.max(0, reservation.dureeMinutes || 0);
-        const endAt =
-          reservation.dateHeure.getTime() + durationMinutes * 60_000;
-        return endAt <= now.getTime();
-      })
-      .map((reservation) => reservation.id);
-
-    if (overdueIds.length === 0) {
-      return syncedPaidCount;
-    }
-
-    const result = await this.prisma.reservation.updateMany({
-      where: {
-        id: { in: overdueIds },
-        statut: {
-          in: [$Enums.StatutReservation.EN_ATTENTE],
-        },
-      },
-      data: {
-        statut: $Enums.StatutReservation.NO_SHOW,
-        misAJourLe: now,
-      },
-    });
-
-    return syncedPaidCount + result.count;
+    return syncedPaidCount;
   }
 
   async findById(id: string): Promise<Reservation | null> {
@@ -854,7 +809,6 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
 
   private requiresTimeSlot(status: ReservationStatus): boolean {
     return (
-      status === 'EN_ATTENTE' ||
       status === 'CONFIRMEE' ||
       status === 'PAYEE_SEQUESTRE' ||
       status === 'EN_COURS'

@@ -1,7 +1,6 @@
 import { ReservationDomainError } from '../index';
 
 export type ReservationStatus =
-  | 'EN_ATTENTE'
   | 'CONFIRMEE'
   | 'PAYEE_SEQUESTRE'
   | 'EN_COURS'
@@ -429,9 +428,7 @@ export class ReservationEntity {
   }
 
   private assertPending(): void {
-    if (this._statut !== 'EN_ATTENTE') {
-      throw ReservationDomainError.notPending();
-    }
+    throw ReservationDomainError.notPending();
   }
 
   private isFinalized(): boolean {
@@ -444,8 +441,7 @@ export class ReservationEntity {
 
   private canBeCancelled(): boolean {
     return (
-      (this._statut === 'EN_ATTENTE' ||
-        this._statut === 'CONFIRMEE' ||
+      (this._statut === 'CONFIRMEE' ||
         this._statut === 'PAYEE_SEQUESTRE' ||
         this._statut === 'EN_COURS') &&
       this.isMoreThanHoursBefore(24)
@@ -461,14 +457,13 @@ export class ReservationEntity {
       throw ReservationDomainError.rescheduleTooLate();
     }
     return (
-      this._statut === 'EN_ATTENTE' ||
       this._statut === 'CONFIRMEE' ||
       this._statut === 'PAYEE_SEQUESTRE'
     );
   }
 
   private canBePaid(): boolean {
-    return this._statut === 'EN_ATTENTE' || this._statut === 'CONFIRMEE';
+    return this._statut === 'CONFIRMEE';
   }
 
   private canBeStarted(): boolean {

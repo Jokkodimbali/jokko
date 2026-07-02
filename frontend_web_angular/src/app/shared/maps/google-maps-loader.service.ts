@@ -44,7 +44,7 @@ export type GoogleMapsPoint = { lat: number; lng: number };
 export type GoogleMapsMapInstance = {
   setCenter: (coordinate: GoogleMapsPoint) => void;
   setZoom: (zoom: number) => void;
-  setMapTypeId: (type: 'roadmap' | 'satellite') => void;
+  setMapTypeId: (type: 'roadmap' | 'satellite' | 'hybrid') => void;
   setHeading?: (heading: number) => void;
   setTilt?: (tilt: number) => void;
   moveCamera?: (cameraOptions: {

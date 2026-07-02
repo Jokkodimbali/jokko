@@ -358,15 +358,16 @@ export class AppointmentsService {
     } = {},
   ): AppointmentView {
     const date = new Date(reservation.dateHeure);
+    const status = this.normalizeReservationStatus(reservation.statut);
 
     return {
       id: reservation.id,
       professionalId: reservation.professionnelId,
       serviceId: reservation.serviceId,
-      status: reservation.statut,
+      status,
       scheduledAt: reservation.dateHeure,
       durationMinutes: reservation.dureeMinutes,
-      eyebrow: this.isDone(reservation.statut) ? 'RENDEZ-VOUS TERMINE' : 'PROCHAIN RENDEZ-VOUS',
+      eyebrow: this.isDone(status) ? 'RENDEZ-VOUS TERMINE' : 'PROCHAIN RENDEZ-VOUS',
       dateLabel: this.formatDate(date),
       shortDateLabel: this.formatShortDate(date),
       fullDateLabel: this.formatFullDate(date),
@@ -397,18 +398,21 @@ export class AppointmentsService {
       clientRating: reservation.clientRating,
       clientReview: reservation.clientReview,
       clientReviewedAt: reservation.clientReviewedAt,
-      confirmationLabel: this.confirmationLabel(reservation.statut),
+      confirmationLabel: this.confirmationLabel(status),
       addressLabel: reservation.adresseClient || 'Adresse non renseignee',
     };
   }
 
-  private isDone(status: BackendReservation['statut']): boolean {
+  private normalizeReservationStatus(status: BackendReservation['statut'] | 'EN_ATTENTE'): AppointmentView['status'] {
+    return status === 'EN_ATTENTE' ? 'CONFIRMEE' : status;
+  }
+
+  private isDone(status: AppointmentView['status']): boolean {
     return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW';
   }
 
-  private confirmationLabel(status: BackendReservation['statut']): string {
-    const labels: Record<BackendReservation['statut'], string> = {
-      EN_ATTENTE: 'Paiement ou validation en attente',
+  private confirmationLabel(status: AppointmentView['status']): string {
+    const labels: Record<AppointmentView['status'], string> = {
       CONFIRMEE: 'Votre intervention est confirmee, paiement a finaliser',
       PAYEE_SEQUESTRE: 'Votre intervention est confirmee',
       EN_COURS: 'Votre rendez-vous est en cours',

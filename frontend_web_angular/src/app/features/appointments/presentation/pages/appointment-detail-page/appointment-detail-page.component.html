@@ -789,57 +789,23 @@
           : 'Rendez-vous operationnel du jour'
       "
     >
-      <section *ngIf="isProviderViewer()" class="appointment-detail__tracking-steps appointment-detail__tracking-steps--provider" aria-label="Suivi prestataire">
-        <button type="button" class="appointment-detail__tracking-back" (click)="goBack()">
-          <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
-          Retour
-        </button>
-        <div class="appointment-detail__tracking-stepper">
-          <i class="appointment-detail__tracking-line"></i>
-          <i class="appointment-detail__tracking-progress" [style.width.%]="providerTrackingStepProgress()"></i>
-          <div
-            *ngFor="let step of providerTrackingTimelineSteps(); let index = index"
-            class="appointment-detail__tracking-step"
-            [class.is-done]="step.state === 'done'"
-            [class.is-active]="step.state === 'active'"
-          >
-            <span>
-              <lucide-icon
-                [name]="step.state === 'done' ? 'check' : step.icon"
-                size="16"
-                [strokeWidth]="2.7"
-              ></lucide-icon>
-            </span>
-            <strong>{{ step.label }}</strong>
-          </div>
-        </div>
-      </section>
+      <app-appointment-tracking-stepper
+        *ngIf="isProviderViewer(); else clientTrackingStepper"
+        [steps]="providerTrackingTimelineSteps()"
+        [progress]="providerTrackingStepProgress()"
+        ariaLabel="Suivi prestataire"
+        [providerMode]="true"
+        (back)="goBack()"
+      ></app-appointment-tracking-stepper>
 
-      <section *ngIf="!isProviderViewer()" class="appointment-detail__tracking-steps" aria-label="Suivi de la reservation">
-        <button type="button" class="appointment-detail__tracking-back" (click)="goBack()">
-          <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
-          Retour
-        </button>
-        <div class="appointment-detail__tracking-stepper">
-          <i class="appointment-detail__tracking-line"></i>
-          <i class="appointment-detail__tracking-progress" [style.width.%]="trackingStepProgress()"></i>
-          <div
-            *ngFor="let step of trackingTimelineSteps(); let index = index"
-            class="appointment-detail__tracking-step"
-            [class.is-done]="step.state === 'done'"
-            [class.is-active]="step.state === 'active'"
-          >
-            <span>
-              <lucide-icon
-                [name]="step.state === 'done' ? 'check' : step.icon"
-                size="16"
-                [strokeWidth]="2.7"
-              ></lucide-icon>
-            </span>
-            <strong>{{ step.label }}</strong>
-          </div>
-        </div>
-      </section>
+      <ng-template #clientTrackingStepper>
+        <app-appointment-tracking-stepper
+          [steps]="trackingTimelineSteps()"
+          [progress]="trackingStepProgress()"
+          ariaLabel="Suivi de la reservation"
+          (back)="goBack()"
+        ></app-appointment-tracking-stepper>
+      </ng-template>
 
       <article
         class="appointment-detail__live-map"
@@ -857,9 +823,172 @@
                 <lucide-icon name="receipt" size="17" [strokeWidth]="2.5"></lucide-icon>
                 Recapitulatif mission
               </button>
+              <button *ngIf="isDoctorViewer()" type="button" (click)="downloadMedicalPrescription(appointment)">
+                <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
+                Ordonnance medicale
+              </button>
             </div>
           </ng-container>
           <ng-template #providerActiveConsoleVisual>
+            <section
+              *ngIf="isDoctorViewer() && isProviderWorking(); else providerDefaultConsoleVisual"
+              class="appointment-detail__medical-workbench"
+            >
+              <header class="appointment-detail__medical-head">
+                <div>
+                  <span>
+                    <i></i>
+                    Consultation en cours
+                  </span>
+                  <h2>Dossier de soins</h2>
+                  <p>Renseignez les actes, vaccins et traitements au fil de la consultation.</p>
+                </div>
+                <strong>
+                  <lucide-icon name="clock" size="15" [strokeWidth]="2.6"></lucide-icon>
+                  {{ providerElapsedWorkLabel() }}
+                </strong>
+              </header>
+
+              <div class="appointment-detail__medical-grid">
+                <section class="appointment-detail__medical-card">
+                  <div class="appointment-detail__medical-card-head">
+                    <lucide-icon name="activity" size="18" [strokeWidth]="2.5"></lucide-icon>
+                    <div>
+                      <h3>Actes médicaux</h3>
+                      <small>Nomenclature réalisée pendant la consultation</small>
+                    </div>
+                  </div>
+                  <div class="appointment-detail__medical-input">
+                    <input
+                      type="text"
+                      [ngModel]="currentMedicalAct()"
+                      (ngModelChange)="updateMedicalDraft('act', $event)"
+                      placeholder="Ex. : Auscultation cardiopulmonaire"
+                    />
+                    <button type="button" (click)="addMedicalRecord('act')">
+                      <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
+                    </button>
+                  </div>
+                  <div class="appointment-detail__medical-suggestions">
+                    <button
+                      *ngFor="let act of commonMedicalActs"
+                      type="button"
+                      (click)="addMedicalRecord('act', act)"
+                    >
+                      {{ act }}
+                    </button>
+                  </div>
+                  <ul class="appointment-detail__medical-list">
+                    <li *ngFor="let act of medicalActs(); let index = index">
+                      <span>{{ act }}</span>
+                      <button type="button" (click)="removeMedicalRecord('act', index)">
+                        <lucide-icon name="trash-2" size="14" [strokeWidth]="2.4"></lucide-icon>
+                      </button>
+                    </li>
+                  </ul>
+                </section>
+
+                <section class="appointment-detail__medical-card">
+                  <div class="appointment-detail__medical-card-head">
+                    <lucide-icon name="stethoscope" size="18" [strokeWidth]="2.5"></lucide-icon>
+                    <div>
+                      <h3>Vaccins</h3>
+                      <small>Injections administrées en séance</small>
+                    </div>
+                  </div>
+                  <div class="appointment-detail__medical-input">
+                    <input
+                      type="text"
+                      [ngModel]="currentMedicalVaccine()"
+                      (ngModelChange)="updateMedicalDraft('vaccine', $event)"
+                      placeholder="Ex. : Vaxigrip Tetra"
+                    />
+                    <button type="button" (click)="addMedicalRecord('vaccine')">
+                      <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
+                    </button>
+                  </div>
+                  <div class="appointment-detail__medical-suggestions">
+                    <button
+                      *ngFor="let vaccine of commonVaccines"
+                      type="button"
+                      (click)="addMedicalRecord('vaccine', vaccine)"
+                    >
+                      {{ vaccine }}
+                    </button>
+                  </div>
+                  <ul class="appointment-detail__medical-list">
+                    <li *ngFor="let vaccine of medicalVaccines(); let index = index">
+                      <span>{{ vaccine }}</span>
+                      <button type="button" (click)="removeMedicalRecord('vaccine', index)">
+                        <lucide-icon name="trash-2" size="14" [strokeWidth]="2.4"></lucide-icon>
+                      </button>
+                    </li>
+                    <li *ngIf="medicalVaccines().length === 0" class="is-empty">
+                      Aucun vaccin ajouté.
+                    </li>
+                  </ul>
+                </section>
+
+                <section class="appointment-detail__medical-card appointment-detail__medical-card--wide">
+                  <div class="appointment-detail__medical-card-head">
+                    <lucide-icon name="clipboard" size="18" [strokeWidth]="2.5"></lucide-icon>
+                    <div>
+                      <h3>Traitements prescrits</h3>
+                      <small>Ordonnance et recommandations remises au patient</small>
+                    </div>
+                  </div>
+                  <div class="appointment-detail__medical-input">
+                    <input
+                      type="text"
+                      [ngModel]="currentMedicalTreatment()"
+                      (ngModelChange)="updateMedicalDraft('treatment', $event)"
+                      placeholder="Ex. : Paracetamol 1g toutes les 6 heures"
+                    />
+                    <button type="button" (click)="addMedicalRecord('treatment')">
+                      <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
+                    </button>
+                  </div>
+                  <div class="appointment-detail__medical-suggestions">
+                    <button
+                      *ngFor="let treatment of commonTreatments"
+                      type="button"
+                      (click)="addMedicalRecord('treatment', treatment)"
+                    >
+                      {{ treatment }}
+                    </button>
+                  </div>
+                  <ul class="appointment-detail__medical-list">
+                    <li *ngFor="let treatment of medicalTreatments(); let index = index">
+                      <span>{{ treatment }}</span>
+                      <button type="button" (click)="removeMedicalRecord('treatment', index)">
+                        <lucide-icon name="trash-2" size="14" [strokeWidth]="2.4"></lucide-icon>
+                      </button>
+                    </li>
+                    <li *ngIf="medicalTreatments().length === 0" class="is-empty">
+                      Aucun traitement prescrit pour le moment.
+                    </li>
+                  </ul>
+                </section>
+              </div>
+
+              <footer class="appointment-detail__medical-actions">
+                <button type="button" class="is-soft" (click)="openPrescriptionPreview()">
+                  <lucide-icon name="file-text" size="16" [strokeWidth]="2.5"></lucide-icon>
+                  Aperçu ordonnance
+                </button>
+                <button
+                  type="button"
+                  class="is-primary"
+                  (click)="completeWork(appointment)"
+                  [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
+                >
+                  <lucide-icon name="check" size="16" [strokeWidth]="2.8"></lucide-icon>
+                  Terminer
+                </button>
+              </footer>
+            </section>
+
+            <ng-template #providerDefaultConsoleVisual>
             <div class="appointment-detail__provider-console-ready">
               <p>{{ providerConsoleEyebrow() }}</p>
               <h2>{{ providerConsoleTitle() }}</h2>
@@ -882,6 +1011,7 @@
                 Ajouter un supplement
               </button>
             </div>
+            </ng-template>
           </ng-template>
         </div>
         <div *ngIf="!isProviderViewer() && !isProviderOnTheWay()" class="appointment-detail__client-tracking-visual">
@@ -922,13 +1052,13 @@
                 [disabled]="isUpdatingStatus()"
               >
                 <lucide-icon name="send" size="16" [strokeWidth]="2.4"></lucide-icon>
-                En route
+                {{ clientTravelsToProvider() ? 'Partager ma position' : 'En route' }}
               </button>
             </div>
           </ng-template>
         </div>
         <div
-          *ngIf="isProviderOnTheWay()"
+          *ngIf="!isProviderWorking() && (isProviderOnTheWay() || hasTravelerArrivalConfirmation())"
           #trackingMap
           class="appointment-detail__google-map"
           aria-label="Carte temps reel du trajet prestataire"
@@ -973,11 +1103,15 @@
           </button>
         </div>
         <div
-          *ngIf="isProviderOnTheWay()"
+          *ngIf="isProviderOnTheWay() || hasTravelerArrivalConfirmation()"
           class="appointment-detail__map-top-actions"
           aria-label="Actions de la carte et de la mission"
         >
-          <div class="appointment-detail__map-toolbar" aria-label="Actions de la carte">
+          <div
+            *ngIf="isProviderViewer() && !isDoctorViewer()"
+            class="appointment-detail__map-toolbar"
+            aria-label="Actions de la carte"
+          >
             <button
               type="button"
               class="appointment-detail__map-tool"
@@ -1010,7 +1144,7 @@
               [disabled]="isUpdatingStatus() || !canMarkTravelerOnTheWay()"
             >
               <lucide-icon name="send" size="15" [strokeWidth]="2.7"></lucide-icon>
-              En route
+              {{ clientTravelsToProvider() ? 'Partager ma position' : 'En route' }}
             </button>
             <button
               *ngIf="!isProviderWorking() && canShareTravelerLocation() && isProviderOnTheWay()"
@@ -1020,30 +1154,31 @@
               [disabled]="isUpdatingStatus()"
             >
               <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.7"></lucide-icon>
-              Position
+              Partager ma position
             </button>
             <button
-              *ngIf="isProviderViewer() && !isProviderWorking()"
+              *ngIf="!isProviderWorking() && isRouteActorViewer() && isProviderOnTheWay()"
+              type="button"
+              class="appointment-detail__route-action appointment-detail__route-action--primary"
+              (click)="markTravelerArrived(appointment)"
+              [disabled]="!canTravelerMarkArrived()"
+            >
+              <lucide-icon name="map-pin" size="15" [strokeWidth]="2.8"></lucide-icon>
+              {{ clientTravelsToProvider() ? 'Je suis arrivé' : 'Arrivé' }}
+            </button>
+            <button
+              *ngIf="canShowProviderStartAction()"
               type="button"
               class="appointment-detail__route-action appointment-detail__route-action--primary"
               (click)="startWork(appointment)"
               [disabled]="isUpdatingStatus() || !canProviderStartWork()"
             >
-              <lucide-icon name="map-pin" size="15" [strokeWidth]="2.8"></lucide-icon>
-              Arrivé
-            </button>
-            <button
-              *ngIf="isProviderViewer() && isProviderWorking()"
-              type="button"
-              class="appointment-detail__route-action appointment-detail__route-action--success"
-              (click)="completeWork(appointment)"
-              [disabled]="isUpdatingStatus() || !canProviderCompleteWork()"
-            >
-              <lucide-icon name="check" size="15" [strokeWidth]="2.8"></lucide-icon>
-              Terminer
+              <lucide-icon name="circle-check" size="15" [strokeWidth]="2.8"></lucide-icon>
+              Commencer
             </button>
           </div>
           <a
+            *ngIf="isProviderViewer() && !isDoctorViewer()"
             class="appointment-detail__map-external"
             [href]="mapDirectionsUrl(appointment)"
             target="_blank"
@@ -1329,6 +1464,87 @@
           <button type="submit" [disabled]="isHandlingPriceAdjustment()">Envoyer au client</button>
         </footer>
       </form>
+    </section>
+
+    <section
+      *ngIf="isPrescriptionPreviewOpen()"
+      class="appointment-detail__modal appointment-detail__medical-prescription-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Aperçu de l'ordonnance médicale"
+    >
+      <article class="appointment-detail__prescription-card">
+        <header>
+          <div>
+            <lucide-icon name="file-text" size="22" [strokeWidth]="2.5"></lucide-icon>
+            <h2>Aperçu de l'ordonnance médicale</h2>
+          </div>
+          <button type="button" aria-label="Fermer" (click)="closePrescriptionPreview()">
+            <lucide-icon name="x" size="20" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </header>
+
+        <div class="appointment-detail__prescription-sheet">
+          <section class="appointment-detail__prescription-top">
+            <div>
+              <h3>{{ appointment.doctorName }}</h3>
+              <p>{{ appointment.specialty || 'Médecin' }} · Jokko Dimbali</p>
+              <small>Référence rendez-vous : {{ appointment.id }}</small>
+            </div>
+            <div>
+              <strong>Date d'émission</strong>
+              <span>{{ completedPaymentLabel() }}</span>
+            </div>
+          </section>
+
+          <section class="appointment-detail__prescription-patient">
+            <small>Prescrit à l'ordre de</small>
+            <strong>{{ appointment.clientName }}</strong>
+            <span>{{ appointment.serviceName }}</span>
+            <em>{{ appointment.addressLabel }}</em>
+          </section>
+
+          <section class="appointment-detail__prescription-section">
+            <h4>Traitement médical prescrit</h4>
+            <ol *ngIf="medicalTreatments().length > 0; else noPrescriptionTreatment">
+              <li *ngFor="let treatment of medicalTreatments()">{{ treatment }}</li>
+            </ol>
+            <ng-template #noPrescriptionTreatment>
+              <p>Aucun traitement de fond prescrit sur cette ordonnance.</p>
+            </ng-template>
+          </section>
+
+          <section class="appointment-detail__prescription-section">
+            <h4>Vaccinations administrées</h4>
+            <ul *ngIf="medicalVaccines().length > 0; else noPrescriptionVaccine">
+              <li *ngFor="let vaccine of medicalVaccines()">{{ vaccine }}</li>
+            </ul>
+            <ng-template #noPrescriptionVaccine>
+              <p>Aucun vaccin administré pendant cette consultation.</p>
+            </ng-template>
+          </section>
+
+          <section class="appointment-detail__prescription-section">
+            <h4>Actes cliniques réalisés</h4>
+            <ul>
+              <li *ngFor="let act of medicalActs()">{{ act }}</li>
+            </ul>
+          </section>
+
+          <footer>
+            <p>Ordonnance électronique sécurisée<br />ID : ORD-{{ appointment.id.slice(0, 8).toUpperCase() }}</p>
+            <strong>Signature médecin<br /><span>{{ appointment.doctorName }}</span></strong>
+          </footer>
+        </div>
+
+        <div class="appointment-detail__prescription-actions">
+          <button type="button" (click)="downloadMedicalPrescription(appointment)">
+            <lucide-icon name="download" size="16" [strokeWidth]="2.5"></lucide-icon>
+            Télécharger l'ordonnance
+          </button>
+          <button type="button" (click)="closePrescriptionPreview()">Fermer</button>
+        </div>
+      </article>
     </section>
   </ng-container>
 

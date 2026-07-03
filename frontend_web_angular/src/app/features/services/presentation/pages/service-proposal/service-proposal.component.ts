@@ -106,7 +106,6 @@ interface MaterialQuoteEntry extends MaterialQuoteDraft {
     './service-proposal-provider-mode.component.scss',
     './service-proposal-negotiation-state.component.scss',
     './service-proposal-responsive.component.scss',
-    './service-proposal-redesign.component.scss',
   ],
 })
 export class ServiceProposalComponent implements OnDestroy, OnInit {

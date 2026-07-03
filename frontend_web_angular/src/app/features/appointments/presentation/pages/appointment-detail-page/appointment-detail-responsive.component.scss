@@ -117,9 +117,6 @@
     padding-right: 24px;
   }
 
-  .appointment-detail__client-route-provider strong {
-    font-size: 28px;
-  }
 }
 
 @media (max-width: 620px) {
@@ -206,15 +203,6 @@
     flex-wrap: wrap;
     left: 10px;
     right: 10px;
-  }
-
-  .appointment-detail__client-route-provider {
-    grid-template-columns: 1fr;
-  }
-
-  .appointment-detail__client-route-provider nav {
-    justify-self: stretch;
-    width: 100%;
   }
 
   .appointment-detail__provider-console-sidebar h2 {

@@ -205,12 +205,12 @@ describe('ReservationCommandService', () => {
     expect(reservationsRepository.update).not.toHaveBeenCalled();
   });
 
-  it('lets the owning professional complete a paid reservation', async () => {
+  it('lets the owning professional complete a started reservation', async () => {
     const { service, reservationsRepository } = buildService({
       reservation: buildReservation({
         clientId: 'client-id',
         professionnelId: 'professional-id',
-        statut: 'PAYEE_SEQUESTRE',
+        statut: 'EN_COURS',
       }),
       professionalId: 'professional-id',
     });

@@ -27,6 +27,7 @@ describe('ReservationQueryService', () => {
       syncOverdueReservations: jest.fn().mockResolvedValue(1),
       findDetailedByFilters: jest.fn().mockResolvedValue([]),
       findByFilters: jest.fn().mockResolvedValue([]),
+      hasTimeSlotConflict: jest.fn().mockResolvedValue(false),
     } as unknown as jest.Mocked<ReservationsRepositoryPort>;
 
     const professionalsRepository = {
@@ -34,6 +35,20 @@ describe('ReservationQueryService', () => {
         id: 'professional-id',
         userId: professionalUser.sub,
       }),
+      findVerifiedById: jest.fn().mockResolvedValue({
+        id: 'professional-id',
+        userId: professionalUser.sub,
+      }),
+      listAvailabilities: jest.fn().mockResolvedValue([
+        {
+          id: 'availability-id',
+          profilProfessionnelId: 'professional-id',
+          jourSemaine: 2,
+          heureDebut: new Date('1970-01-01T09:00:00.000Z'),
+          heureFin: new Date('1970-01-01T12:00:00.000Z'),
+          estActive: true,
+        },
+      ]),
     } as unknown as jest.Mocked<ProfessionalsRepositoryPort>;
 
     return {
@@ -107,5 +122,22 @@ describe('ReservationQueryService', () => {
       professionalId: undefined,
       search: undefined,
     });
+  });
+
+  it('generates availability slots using the requested appointment duration', async () => {
+    const { service, reservationsRepository } = buildService();
+
+    const result = await service.listAvailabilitySlots({
+      professionalId: 'professional-id',
+      date: '2030-01-01',
+      dureeMinutes: 60,
+    });
+
+    expect(result.slots.map((slot) => slot.label)).toEqual([
+      '09:00',
+      '10:00',
+      '11:00',
+    ]);
+    expect(reservationsRepository.hasTimeSlotConflict).toHaveBeenCalledTimes(3);
   });
 });

@@ -368,7 +368,7 @@ export class ReservationQueryService extends ReservationAppService {
       heureFin: Date;
     }>,
   ): Date[] {
-    const slotStepMinutes = 30;
+    const slotStepMinutes = durationMinutes;
     const starts: Date[] = [];
 
     for (const availability of availabilities) {

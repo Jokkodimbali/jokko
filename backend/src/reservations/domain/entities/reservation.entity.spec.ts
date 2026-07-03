@@ -49,6 +49,15 @@ describe('ReservationEntity', () => {
     expect(() => reservation.markAsCompleted()).toThrow(/doit etre payee/i);
   });
 
+  it('requires a started intervention before completion', () => {
+    const reservation = buildEntity();
+    reservation.markAsPaid();
+
+    expect(() => reservation.markAsCompleted()).toThrow(
+      /confirmee ou en cours/i,
+    );
+  });
+
   it('creates client reservations as confirmed without provider confirmation', () => {
     const reservation = buildEntity();
 

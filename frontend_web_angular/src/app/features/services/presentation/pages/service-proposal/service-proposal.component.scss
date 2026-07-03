@@ -78,29 +78,222 @@
 }
 
 .service-proposal__hero {
-  background: #18182b;
-  color: #ffffff;
-  padding: 18px 30px 17px;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #edf0f4;
+  color: #0b1020;
+  display: flex;
+  justify-content: space-between;
+  min-height: 118px;
+  padding: 28px 32px 24px;
 }
 
 .service-proposal__hero h1 {
-  font-size: clamp(25px, 2.7vw, 31px);
+  color: #0b1020;
+  font-size: 22px;
   font-weight: 950;
-  line-height: 1;
-  margin: 0 0 8px;
+  line-height: 1.1;
+  margin: 0 0 14px;
 }
 
 .service-proposal__hero p {
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 13px;
+  align-items: center;
+  color: #667085;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
   font-weight: 650;
+  gap: 8px;
   margin: 0;
+}
+
+.service-proposal__hero p strong {
+  color: #0b1020;
+  font-weight: 900;
+}
+
+.service-proposal__hero > lucide-icon {
+  color: #98a2b3;
+}
+
+.service-proposal__online-badge {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dde3eb;
+  border-radius: 999px;
+  color: #667085;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 7px;
+  min-height: 30px;
+  padding: 3px 10px 3px 4px;
+}
+
+.service-proposal__online-badge img,
+.service-proposal__online-badge em {
+  border-radius: 50%;
+  height: 22px;
+  width: 22px;
+}
+
+.service-proposal__online-badge img {
+  object-fit: cover;
+}
+
+.service-proposal__online-badge em {
+  align-items: center;
+  background: #955d24;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
+  justify-content: center;
+}
+
+.service-proposal__online-badge i {
+  background: #11b66f;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
 }
 
 .service-proposal__panel-body {
   display: grid;
   gap: 10px;
   padding: 12px 30px 18px;
+}
+
+.service-proposal__booking-details {
+  display: grid;
+  gap: 16px;
+}
+
+.service-proposal__booking-accordion {
+  background: #fbfbfa;
+  border: 1px solid #e7e8ea;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.service-proposal__booking-accordion-head {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #07111f;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 14px;
+  grid-template-columns: 48px minmax(0, 1fr) 36px;
+  min-height: 78px;
+  padding: 14px 18px;
+  text-align: left;
+  width: 100%;
+}
+
+.service-proposal__booking-accordion-icon {
+  align-items: center;
+  background: #050505;
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.service-proposal__booking-accordion-head strong {
+  color: #07111f;
+  display: block;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.service-proposal__booking-accordion-head small {
+  color: #1f2937;
+  display: block;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.2;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-proposal__booking-accordion-head > lucide-icon {
+  background: #ffffff;
+  border: 1px solid #e7e8ea;
+  border-radius: 14px;
+  color: #111827;
+  height: 36px;
+  padding: 8px;
+  transition: transform 160ms ease;
+  width: 36px;
+}
+
+.service-proposal__booking-chevron--open {
+  transform: rotate(180deg);
+}
+
+.service-proposal__booking-accordion-content {
+  border-top: 1px solid #e7e8ea;
+  display: grid;
+  gap: 8px;
+  padding: 12px 18px 18px;
+}
+
+.service-proposal__booking-detail-row {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #eceef2;
+  border-radius: 13px;
+  color: #07111f;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 8px;
+  grid-template-columns: 120px minmax(0, 1fr);
+  min-height: 48px;
+  padding: 10px 12px;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.service-proposal__booking-detail-row:hover,
+.service-proposal__booking-detail-row:focus-visible {
+  border-color: #d7dde6;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.service-proposal__booking-detail-row span {
+  color: #7b8490;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.service-proposal__booking-detail-row strong {
+  color: #07111f;
+  font-size: 13px;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-proposal__booking-detail-row--readonly {
+  cursor: default;
+}
+
+.service-proposal__booking-detail-row--readonly:hover,
+.service-proposal__booking-detail-row--readonly:focus-visible {
+  box-shadow: none;
+  transform: none;
 }
 
 .service-proposal__service-field,
@@ -114,16 +307,22 @@
 
 .service-proposal__service-field {
   align-items: center;
-  display: flex;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: 8px 15px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  min-height: 58px;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
 }
 
-.service-proposal__service-field span,
+.service-proposal__service-field > span:not(.service-proposal__field-icon),
 .service-proposal__field-copy {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -140,16 +339,20 @@
   text-transform: uppercase;
 }
 
-.service-proposal__service-field strong {
+.service-proposal__service-field strong,
+.service-proposal__field-copy strong {
   color: #111827;
+  display: block;
   font-size: 14px;
   font-weight: 900;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.service-proposal__service-field lucide-icon {
+.service-proposal__service-field > lucide-icon,
+.service-proposal__field > lucide-icon {
   color: #98a2b3;
 }
 
@@ -161,12 +364,21 @@
 
 .service-proposal__field {
   align-items: center;
+  color: inherit;
+  cursor: pointer;
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) 18px;
-  min-height: 52px;
-  padding: 8px 13px;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  min-height: 96px;
+  padding: 12px 14px;
   position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.service-proposal__field--readonly {
+  grid-template-columns: 38px minmax(0, 1fr);
 }
 
 .service-proposal__field input {
@@ -205,8 +417,16 @@
   padding: 0 4px;
 }
 
-.service-proposal__field > lucide-icon {
+.service-proposal__field-icon {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 12px;
   color: #111827;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
 }
 
 .service-proposal__locate-button {

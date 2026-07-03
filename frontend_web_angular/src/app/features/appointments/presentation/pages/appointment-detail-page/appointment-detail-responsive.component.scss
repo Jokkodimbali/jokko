@@ -64,14 +64,17 @@
     min-height: 560px;
   }
 
-  .appointment-detail__route-layout--client .appointment-detail__live-map {
+  .appointment-detail__route-layout--client .appointment-detail__live-map,
+  .appointment-detail__route-layout--provider .appointment-detail__live-map {
     height: auto;
     margin: 0;
     min-height: 560px;
   }
 
   .appointment-detail__route-sidebar,
-  .appointment-detail__client-route-summary {
+  .appointment-detail__client-route-summary,
+  .appointment-detail__client-summary-panel,
+  .appointment-detail__provider-console-sidebar {
     border-left: 0;
     border-top: 1px solid #dedede;
     grid-column: 1;
@@ -79,9 +82,17 @@
     overflow: visible;
   }
 
-  .appointment-detail__client-route-summary {
+  .appointment-detail__client-route-summary,
+  .appointment-detail__client-summary-panel,
+  .appointment-detail__provider-console-sidebar {
     margin: 0;
     padding: 16px;
+  }
+
+  .appointment-detail__provider-console-sidebar {
+    align-content: start;
+    gap: 18px;
+    min-height: 0;
   }
 
   .appointment-detail__work-layout {
@@ -98,7 +109,8 @@
 }
 
 @media (min-width: 921px) and (max-width: 1280px) {
-  .appointment-detail__route-layout--client {
+  .appointment-detail__route-layout--client,
+  .appointment-detail__route-layout--provider {
     gap: 0 32px;
     grid-template-columns: minmax(0, 1fr) 340px;
     padding-left: 24px;
@@ -203,6 +215,26 @@
   .appointment-detail__client-route-provider nav {
     justify-self: stretch;
     width: 100%;
+  }
+
+  .appointment-detail__provider-console-sidebar h2 {
+    font-size: 26px;
+  }
+
+  .appointment-detail__client-summary-status h2 {
+    font-size: 34px;
+  }
+
+  .appointment-detail__client-summary-contact {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__provider-console-sidebar p {
+    font-size: 15px;
+  }
+
+  .appointment-detail__provider-console-contact {
+    grid-template-columns: 1fr;
   }
 
   .appointment-detail__service,

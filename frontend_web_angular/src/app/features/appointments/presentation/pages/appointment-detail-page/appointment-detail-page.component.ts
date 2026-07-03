@@ -120,7 +120,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private trackingSubscription?: Subscription;
   private missionSubscription?: Subscription;
   private connectionSubscription?: Subscription;
+  private appointmentStatePollingSubscription?: Subscription;
   private providerLocationSubscription?: Subscription;
+  private elapsedClockInterval?: number;
   private routeCoordinates: Array<[number, number]> = [];
   private routeOptions: RouteOption[] = [];
   private routeCoordinatesKey = '';
@@ -134,6 +136,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
   protected readonly isUpdatingStatus = signal(false);
+  protected readonly nowMs = signal(Date.now());
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isRescheduleModalOpen = signal(false);
   protected readonly isPriceAdjustmentModalOpen = signal(false);
@@ -443,8 +446,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.canManageProviderStatus() &&
       this.canStartRouteToday() &&
       appointment.status === 'PAYEE_SEQUESTRE' &&
-      this.isProviderOnTheWay() &&
-      this.hasTravelerArrivedAtDestination()
+      this.isProviderOnTheWay()
     );
   });
   protected readonly canProviderCompleteWork = computed(() => {
@@ -573,36 +575,130 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
     }));
   });
-  protected readonly clientTrackingTitle = computed(() => {
+  protected readonly providerTrackingCurrentStepIndex = computed(() => {
+    if (this.isAppointmentCompleted()) return 3;
+    if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
+    if (this.isProviderOnTheWay() || this.tracking()?.trackingStatus === 'EN_ROUTE') return 1;
+    return 0;
+  });
+  protected readonly providerTrackingStepProgress = computed(() =>
+    Math.round((this.providerTrackingCurrentStepIndex() / 3) * 100),
+  );
+  protected readonly providerTrackingTimelineSteps = computed<TrackingStepView[]>(() => {
+    const activeIndex = this.providerTrackingCurrentStepIndex();
+    const steps = [
+      { label: 'A venir', description: 'Mission planifiee', icon: 'briefcase-business' },
+      { label: 'Trajet', description: 'Navigation active', icon: 'send' },
+      { label: 'Intervention', description: 'Travaux en cours', icon: 'clock-3' },
+      { label: 'Cloture', description: 'Mission terminee', icon: 'check' },
+    ];
+
+    return steps.map((step, index) => ({
+      ...step,
+      state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
+    }));
+  });
+  protected readonly providerConsoleEyebrow = computed(() => {
+    if (this.isAppointmentCompleted()) return 'Mission cloturee';
+    if (this.isProviderWorking()) return 'Temps de travail ecoule';
+    if (this.isProviderOnTheWay()) return `Navigation vers ${this.clientFirstNameLabel()}`;
+    return this.clientTravelsToProvider() ? 'Arrivee client attendue' : 'Arrivee client souhaitee';
+  });
+  protected readonly providerConsoleTitle = computed(() => {
+    const appointment = this.appointment();
     if (this.isAppointmentCompleted()) return 'Mission terminee';
+    if (this.isProviderWorking()) return this.providerElapsedWorkLabel();
+    if (this.isProviderOnTheWay()) return this.routeEtaLabel();
+    return appointment?.timeLabel ?? '--h--';
+  });
+  protected readonly providerConsoleDescription = computed(() => {
+    if (this.isAppointmentCompleted()) {
+      return `${this.finalPriceLabel()} a ete declenche. Le client recevra sa facture PDF immediatement.`;
+    }
+    if (this.isProviderWorking()) {
+      return this.appointment()?.serviceName ?? 'Intervention en cours';
+    }
+    if (this.isProviderOnTheWay()) {
+      return this.navigationInstruction().instruction;
+    }
+    if (this.clientTravelsToProvider()) {
+      return 'Le client doit partager sa position puis arriver a destination avant le demarrage.';
+    }
+    return 'Activez le trajet le jour du rendez-vous pour partager votre position au client.';
+  });
+  protected readonly providerElapsedWorkLabel = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return '00:00:00';
+    const tracking = this.tracking();
+    const startedAt =
+      tracking?.startedAt ||
+      tracking?.updatedAt ||
+      tracking?.lastPositionAt ||
+      appointment.scheduledAt;
+    const start = new Date(startedAt);
+    if (Number.isNaN(start.getTime())) return '00:00:00';
+    const elapsed = Math.max(0, this.nowMs() - start.getTime());
+    const hours = Math.floor(elapsed / 3_600_000);
+    const minutes = Math.floor((elapsed % 3_600_000) / 60_000);
+    const seconds = Math.floor((elapsed % 60_000) / 1000);
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  });
+  protected readonly providerPrimaryActionLabel = computed(() => {
+    if (this.isAppointmentCompleted()) return 'Voir le recapitulatif';
+    if (this.isProviderWorking()) return "Cloturer l'intervention";
+    if (this.isProviderOnTheWay()) return 'Je suis arrive sur place';
+    if (this.canMarkTravelerOnTheWay()) return 'Demarrer le trajet';
+    return this.clientTravelsToProvider() ? 'En attente du client' : 'Trajet indisponible';
+  });
+  protected readonly canUseProviderPrimaryAction = computed(() => {
+    if (this.isAppointmentCompleted()) return true;
+    if (this.isProviderWorking()) return this.canProviderCompleteWork();
+    if (this.isProviderOnTheWay()) return this.canProviderStartWork();
+    return this.canMarkTravelerOnTheWay();
+  });
+  protected readonly providerPrimaryActionIcon = computed(() => {
+    if (this.isAppointmentCompleted()) return 'receipt';
+    if (this.isProviderWorking()) return 'check';
+    if (this.isProviderOnTheWay()) return 'map-pin';
+    return 'send';
+  });
+  protected readonly clientFirstNameLabel = computed(() => {
+    const name = this.appointment()?.clientName?.trim();
+    if (!name) return 'le client';
+    return name.split(/\s+/)[0] || name;
+  });
+  protected readonly providerFirstNameLabel = computed(() => {
+    const name = this.appointment()?.doctorName?.trim();
+    if (!name) return 'Le professionnel';
+    return name.split(/\s+/)[0] || name;
+  });
+  protected readonly providerRoleLabel = computed(() => {
+    const appointment = this.appointment();
+    const role =
+      appointment?.specialty?.trim() ||
+      appointment?.serviceName?.trim() ||
+      'professionnel';
+    return role.toLocaleLowerCase('fr-FR');
+  });
+  protected readonly clientTrackingTitle = computed(() => {
+    if (this.isAppointmentCompleted()) return 'Termine';
     if (this.isProviderWorking()) return 'Travaux en cours';
-    if (this.isProviderOnTheWay()) return `${this.trackedTravelerName()} est en route`;
+    if (this.isProviderOnTheWay()) return 'En route vers vous';
     return 'Intervention confirmee';
   });
   protected readonly clientTrackingDescription = computed(() => {
     if (this.isAppointmentCompleted()) {
-      return 'La prestation est cloturee. Vous pouvez consulter le resume et telecharger vos justificatifs.';
+      return "L'intervention s'est deroulee avec succes. Tout est desormais parfaitement fonctionnel.";
     }
     if (this.isProviderWorking()) {
-      return 'La prestation a commence. Vous serez informe des prochaines actions en temps reel.';
+      return `L'intervention est en cours. Le ${this.providerRoleLabel()} repare actuellement votre installation.`;
     }
     if (this.isProviderOnTheWay()) {
-      return `Suivez l'itineraire de ${this.trackedTravelerName()} jusqu'a la destination.`;
+      return `${this.providerFirstNameLabel()} est en deplacement. Il utilise l'itineraire le plus rapide pour arriver a l'heure.`;
     }
-    return "Votre reservation est prete. Le suivi s'active automatiquement le jour du rendez-vous.";
-  });
-  protected readonly providerCompletionDisabledReason = computed(() => {
-    if (!this.isProviderViewer()) return '';
-    if (this.canProviderCompleteWork()) return '';
-    const appointment = this.appointment();
-    if (!appointment) return '';
-    if (appointment.status !== 'EN_COURS' && !this.isProviderWorking()) {
-      return "La prestation commencera automatiquement lorsque le participant sera arrive.";
-    }
-    if (this.isAppointmentInFuture(appointment)) {
-      return "La prestation ne peut pas etre terminee avant l'heure du rendez-vous.";
-    }
-    return 'La prestation doit etre en cours pour etre terminee.';
+    return "Votre professionnel se prepare. L'heure de rendez-vous a ete bloquee dans son agenda.";
   });
   protected readonly routeRemainingBadgeLabel = computed(() => {
     if (this.isProviderWorking()) return 'Arrive';
@@ -724,6 +820,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
     if (this.isLoading()) return 'loading';
     if (this.errorMessage()) return 'error';
+    if (this.isProviderViewer() && !this.isAppointmentClosed()) return 'route';
     if (!this.isProviderViewer() && !this.isAppointmentClosed()) return 'route';
     if (this.isAppointmentCompleted()) return 'completed';
     if (this.isAppointmentClosed()) return 'closed';
@@ -790,6 +887,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
 
   ngOnInit(): void {
+    this.elapsedClockInterval = window.setInterval(() => {
+      this.nowMs.set(Date.now());
+    }, 1000);
     const appointmentId = this.route.snapshot.paramMap.get('id');
     if (!appointmentId) {
       this.router.navigate(['/appointments']);
@@ -806,6 +906,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   ngOnDestroy(): void {
     this.stopLiveNavigation(this.appointment()?.id);
     this.exitMapFullscreen();
+    if (this.elapsedClockInterval) {
+      clearInterval(this.elapsedClockInterval);
+    }
     this.trackingStore.reset();
   }
 
@@ -1304,17 +1407,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     window.setTimeout(() => this.updateGoogleMaps(), 80);
   }
 
-  protected rotateMap(): void {
-    const nextHeading = (this.mapHeadingDegrees() + 45) % 360;
-    this.mapHeadingDegrees.set(nextHeading);
-    this.mapRenderer.setHeading(nextHeading);
-  }
-
-  protected resetMapRotation(): void {
-    this.mapHeadingDegrees.set(0);
-    this.mapRenderer.setHeading(0);
-  }
-
   protected setMapDirection(headingDegrees: number): void {
     const normalizedHeading = ((headingDegrees % 360) + 360) % 360;
     this.mapHeadingDegrees.set(normalizedHeading);
@@ -1518,6 +1610,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.trackingSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
+    this.appointmentStatePollingSubscription?.unsubscribe();
     const fallbackPolling$ = timer(0, 30000).pipe(
       switchMap(() =>
         this.appointmentsService
@@ -1538,6 +1631,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.connectionSubscription = this.trackingRealtime.connectionState$.subscribe(
       (state) => this.trackingStore.setConnectionState(state),
     );
+    this.appointmentStatePollingSubscription = timer(4000, 5000)
+      .pipe(
+        switchMap(() =>
+          this.appointmentsService
+            .getAppointmentById(appointmentId)
+            .pipe(catchError(() => of(null))),
+        ),
+      )
+      .subscribe((appointment) => {
+        if (appointment) {
+          this.applyRefreshedAppointment(appointment);
+        }
+      });
     this.missionSubscription = this.trackingRealtime.missionUpdated$.subscribe(
       (event) => {
         if (event.reservationId !== appointmentId) return;
@@ -1571,9 +1677,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.trackingSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
+    this.appointmentStatePollingSubscription?.unsubscribe();
     this.trackingSubscription = undefined;
     this.missionSubscription = undefined;
     this.connectionSubscription = undefined;
+    this.appointmentStatePollingSubscription = undefined;
     this.stopProviderLocationSharing();
     if (appointmentId) {
       this.trackingRealtime.stopWatching(appointmentId);
@@ -1645,10 +1753,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .pipe(catchError(() => of(null)))
       .subscribe((appointment) => {
         if (appointment) {
-          this.appointment.set(appointment);
-          this.synchronizeLiveNavigation(appointment);
+          this.applyRefreshedAppointment(appointment);
         }
       });
+  }
+
+  private applyRefreshedAppointment(appointment: AppointmentView): void {
+    const previousStatus = this.appointment()?.status;
+    this.appointment.set(appointment);
+    this.synchronizeLiveNavigation(appointment);
+    if (appointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
+      this.loadTerminalTrackingSnapshot(appointment.id);
+    }
   }
 
   private refreshTracking(appointmentId: string): void {
@@ -1855,12 +1971,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
         })),
     });
-    if (this.isProviderOnTheWay() && !this.isProviderWorking()) {
-      this.mapRenderer.focusNavigationView(
-        { lat: displayedProvider[0], lng: displayedProvider[1] },
-        this.reliableTrackingHeading(),
-      );
+  }
+
+  protected runProviderPrimaryAction(appointment: AppointmentView): void {
+    if (this.isAppointmentCompleted()) {
+      this.downloadInvoice(appointment);
+      return;
     }
+    if (this.isProviderWorking()) {
+      this.completeWork(appointment);
+      return;
+    }
+    if (this.isProviderOnTheWay()) {
+      this.startWork(appointment);
+      return;
+    }
+    void this.markOnTheWay(appointment);
   }
 
   private vehicleStatusLabel(): string {

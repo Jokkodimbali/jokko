@@ -532,14 +532,6 @@ export class ReservationCommandService extends ReservationAppService {
     if (tracking.trackingStatus !== 'EN_ROUTE') {
       throw appHttpException('RESERVATIONS_ARRIVAL_REQUIRED');
     }
-
-    const distanceRemainingMeters = tracking.route?.distanceRemainingMeters;
-    if (
-      typeof distanceRemainingMeters !== 'number' ||
-      distanceRemainingMeters > 120
-    ) {
-      throw appHttpException('RESERVATIONS_ARRIVAL_REQUIRED');
-    }
   }
 
   async openDispute(

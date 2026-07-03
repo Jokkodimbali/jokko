@@ -113,6 +113,8 @@
             class="service-proposal__panel service-proposal__pending service-proposal__pending--provider-wait"
             aria-label="Attente de reponse du client"
           >
+            <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
             <div class="service-proposal__waiting-copy">
               <h1>N&eacute;gociation en cours...</h1>
               <p>
@@ -149,43 +151,6 @@
               </span>
             </div>
 
-            <div class="service-proposal__waiting-details" aria-label="Details de la proposition">
-              <div class="service-proposal__service-field">
-                <span class="service-proposal__field-icon">
-                  <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
-                </span>
-                <span>
-                  <small>Motif de presentation</small>
-                  <strong>{{ proposal.service?.nom || categoryLabel() }}</strong>
-                </span>
-                <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-              </div>
-
-              <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                <div class="service-proposal__field">
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>Date &amp; heure d'intervention</small>
-                    <strong>{{ formattedDate() }} a {{ formattedTime() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </div>
-
-                <div class="service-proposal__field">
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>{{ appointmentAddressLabel() }}</small>
-                    <strong>{{ shortAddress() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </div>
-              </div>
-            </div>
-
             <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
           </section>
         </ng-container>
@@ -217,6 +182,8 @@
 
           <div class="service-proposal__panel-body">
             <div class="service-proposal__counter-modern">
+              <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
               <div class="service-proposal__counter-offer-card">
               <h2>{{ proposalClientName() }} vous a envoy&eacute; une nouvelle proposition de prix</h2>
               <div class="service-proposal__counter-offer-values">
@@ -320,43 +287,6 @@
             >
               Refuser la mission
             </button>
-            </div>
-
-            <div class="service-proposal__counter-details" aria-label="Details de la proposition">
-              <div class="service-proposal__service-field">
-                <span class="service-proposal__field-icon">
-                  <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
-                </span>
-                <span>
-                  <small>Motif de presentation</small>
-                  <strong>{{ proposal.service?.nom || categoryLabel() }}</strong>
-                </span>
-                <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-              </div>
-
-              <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                <div class="service-proposal__field">
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>Date &amp; heure d'intervention</small>
-                    <strong>{{ formattedDate() }} a {{ formattedTime() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </div>
-
-                <div class="service-proposal__field">
-                  <span class="service-proposal__field-icon">
-                    <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                  </span>
-                  <span class="service-proposal__field-copy">
-                    <small>{{ appointmentAddressLabel() }}</small>
-                    <strong>{{ shortAddress() }}</strong>
-                  </span>
-                  <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                </div>
-              </div>
             </div>
 
             <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
@@ -627,43 +557,7 @@
               </ng-container>
 
               <ng-template #clientPriceStep>
-                <section class="service-proposal__booking-accordion" aria-label="Details de la prestation">
-                  <button type="button" class="service-proposal__booking-accordion-head" (click)="toggleClientBookingDetails()">
-                    <span class="service-proposal__booking-accordion-icon">
-                      <lucide-icon name="briefcase-business" size="22" [strokeWidth]="2.4"></lucide-icon>
-                    </span>
-                    <span>
-                      <strong>Details de la prestation</strong>
-                      <small>{{ categoryLabel() }}</small>
-                    </span>
-                    <lucide-icon
-                      name="chevron-down"
-                      size="18"
-                      [strokeWidth]="2.6"
-                      [class.service-proposal__booking-chevron--open]="clientBookingDetailsExpanded()"
-                    ></lucide-icon>
-                  </button>
-
-                  <div *ngIf="clientBookingDetailsExpanded()" class="service-proposal__booking-accordion-content">
-                    <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('service')">
-                      <span>Motif</span>
-                      <strong>{{ categoryLabel() }}</strong>
-                    </button>
-                    <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('schedule')">
-                      <span>Date &amp; heure</span>
-                      <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
-                    </button>
-                    <button
-                      type="button"
-                      class="service-proposal__booking-detail-row"
-                      [class.service-proposal__booking-detail-row--readonly]="clientTravelsToProvider()"
-                      (click)="openDetailsModal('address')"
-                    >
-                      <span>{{ appointmentAddressLabel() }}</span>
-                      <strong>{{ shortAddress() }}</strong>
-                    </button>
-                  </div>
-                </section>
+                <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
                 <section class="service-proposal__price-card" aria-label="Prix propose">
                   <header>
@@ -804,6 +698,8 @@
                   class="service-proposal__pending service-proposal__pending--inside"
                   aria-label="Negociation en cours"
                 >
+                <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
                 <div class="service-proposal__waiting-copy">
                   <h1>N&eacute;gociation en cours...</h1>
                   <p>
@@ -840,51 +736,6 @@
                   </span>
                 </div>
 
-                <div class="service-proposal__waiting-details" aria-label="Details de la proposition">
-                  <div class="service-proposal__service-field">
-                    <span class="service-proposal__field-icon">
-                      <lucide-icon
-                        name="briefcase-business"
-                        size="16"
-                        [strokeWidth]="2.2"
-                      ></lucide-icon>
-                    </span>
-                    <span>
-                      <small>Motif de presentation</small>
-                      <strong>{{ categoryLabel() }}</strong>
-                    </span>
-                    <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                  </div>
-
-                  <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                    <div class="service-proposal__field">
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon
-                          name="calendar-days"
-                          size="16"
-                          [strokeWidth]="2.2"
-                        ></lucide-icon>
-                      </span>
-                      <span class="service-proposal__field-copy">
-                        <small>Date &amp; heure d'intervention</small>
-                        <strong>{{ formattedDate() }} a {{ formattedTime() }}</strong>
-                      </span>
-                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                    </div>
-
-                    <div class="service-proposal__field">
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                      </span>
-                      <span class="service-proposal__field-copy">
-                        <small>{{ appointmentAddressLabel() }}</small>
-                        <strong>{{ shortAddress() }}</strong>
-                      </span>
-                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                    </div>
-                  </div>
-                </div>
-
                 <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
 
                 <button
@@ -900,6 +751,8 @@
 
               <ng-template #providerCounterOfferPanel>
                 <div class="service-proposal__counter-modern">
+                  <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
                   <div class="service-proposal__counter-offer-card">
                     <h2>{{ displayName() }} vous a envoy&eacute; une nouvelle proposition de prix</h2>
                     <div class="service-proposal__counter-offer-values">
@@ -998,69 +851,6 @@
                     >
                       {{ isCancellingProposal() ? 'Refus en cours...' : 'Refuser la mission' }}
                     </button>
-                  </div>
-
-                  <div class="service-proposal__counter-details" aria-label="Details de la proposition">
-                    <button
-                      type="button"
-                      class="service-proposal__service-field"
-                      (click)="openDetailsModal('service')"
-                    >
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon
-                          name="briefcase-business"
-                          size="16"
-                          [strokeWidth]="2.2"
-                        ></lucide-icon>
-                      </span>
-                      <span>
-                        <small>Motif de presentation</small>
-                        <strong>{{ categoryLabel() }}</strong>
-                      </span>
-                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                    </button>
-
-                    <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                      <button
-                        type="button"
-                        class="service-proposal__field"
-                        (click)="openDetailsModal('schedule')"
-                      >
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon
-                            name="calendar-days"
-                            size="16"
-                            [strokeWidth]="2.2"
-                          ></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Date &amp; heure d'intervention</small>
-                          <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
-                        </span>
-                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                      </button>
-
-                      <button
-                        type="button"
-                        class="service-proposal__field"
-                        [class.service-proposal__field--readonly]="clientTravelsToProvider()"
-                        (click)="openDetailsModal('address')"
-                      >
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>{{ appointmentAddressLabel() }}</small>
-                          <strong>{{ shortAddress() }}</strong>
-                        </span>
-                        <lucide-icon
-                          *ngIf="providerTravelsToClient()"
-                          name="pencil"
-                          size="15"
-                          [strokeWidth]="2.2"
-                        ></lucide-icon>
-                      </button>
-                    </div>
                   </div>
 
                   <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
@@ -1168,6 +958,50 @@
       </section>
     </ng-template>
   </ng-container>
+
+  <ng-template #proposalDetailsAccordion>
+    <section class="service-proposal__booking-accordion" aria-label="Details de la prestation">
+      <button
+        type="button"
+        class="service-proposal__booking-accordion-head"
+        (click)="toggleClientBookingDetails()"
+      >
+        <span class="service-proposal__booking-accordion-icon">
+          <lucide-icon name="briefcase-business" size="22" [strokeWidth]="2.4"></lucide-icon>
+        </span>
+        <span>
+          <strong>Details de la prestation</strong>
+          <small>{{ categoryLabel() }}</small>
+        </span>
+        <lucide-icon
+          name="chevron-down"
+          size="18"
+          [strokeWidth]="2.6"
+          [class.service-proposal__booking-chevron--open]="clientBookingDetailsExpanded()"
+        ></lucide-icon>
+      </button>
+
+      <div *ngIf="clientBookingDetailsExpanded()" class="service-proposal__booking-accordion-content">
+        <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('service')">
+          <span>Motif</span>
+          <strong>{{ categoryLabel() }}</strong>
+        </button>
+        <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('schedule')">
+          <span>Date &amp; heure</span>
+          <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
+        </button>
+        <button
+          type="button"
+          class="service-proposal__booking-detail-row"
+          [class.service-proposal__booking-detail-row--readonly]="clientTravelsToProvider()"
+          (click)="openDetailsModal('address')"
+        >
+          <span>{{ appointmentAddressLabel() }}</span>
+          <strong>{{ shortAddress() }}</strong>
+        </button>
+      </div>
+    </section>
+  </ng-template>
 
   <ng-template #materialQuotePanel>
     <section class="service-proposal__materials-card" aria-label="Materiel que le prestataire doit acheter">

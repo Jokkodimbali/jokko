@@ -67,6 +67,21 @@
   width: 100%;
 }
 
+.appointment-detail__route-layout--provider {
+  background: #ffffff;
+  gap: 0 48px;
+  grid-template-columns: minmax(640px, 798px) 376px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: auto;
+  margin: 0 auto;
+  max-height: none;
+  max-width: 1300px;
+  min-height: 100vh;
+  overflow: visible;
+  padding: 24px clamp(18px, 3vw, 40px) 46px;
+  width: 100%;
+}
+
 .appointment-detail__route-topbar .appointment-detail__upcoming-device {
   display: none;
 }
@@ -235,6 +250,19 @@
   overflow: hidden;
 }
 
+.appointment-detail__route-layout--provider .appointment-detail__live-map {
+  background: #ffffff;
+  border: 1px solid #edf0f2;
+  border-radius: 32px;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.04);
+  grid-column: 1;
+  grid-row: 2;
+  height: min(660px, calc(100vh - 238px));
+  margin: 0;
+  min-height: 620px;
+  overflow: hidden;
+}
+
 .appointment-detail__live-map--fullscreen {
   border-radius: 0 !important;
   bottom: 0;
@@ -278,6 +306,121 @@
   position: absolute;
   text-align: center;
   z-index: 6;
+}
+
+.appointment-detail__provider-console-visual {
+  align-items: center;
+  background: #ffffff;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 44px;
+  position: absolute;
+  text-align: center;
+  z-index: 6;
+}
+
+.appointment-detail__provider-console-ready,
+.appointment-detail__provider-console-done {
+  align-items: center;
+  display: grid;
+  justify-items: center;
+  max-width: 560px;
+  width: 100%;
+}
+
+.appointment-detail__provider-console-ready p {
+  color: #9da4b3;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.32em;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+
+.appointment-detail__provider-console-ready h2 {
+  color: #955d24;
+  font-size: clamp(56px, 9vw, 120px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.92;
+  margin: 0;
+}
+
+.appointment-detail__provider-console-ready small,
+.appointment-detail__provider-console-done p {
+  color: #7f8793;
+  display: block;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.5;
+  margin-top: 20px;
+  max-width: 460px;
+}
+
+.appointment-detail__provider-console-ready button,
+.appointment-detail__provider-console-done button {
+  align-items: center;
+  background: #955d24;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 20px 42px rgba(149, 93, 36, 0.22);
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 10px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  margin-top: 34px;
+  min-height: 58px;
+  padding: 0 40px;
+  text-transform: uppercase;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.appointment-detail__provider-console-ready button:hover:not(:disabled),
+.appointment-detail__provider-console-done button:hover:not(:disabled) {
+  box-shadow: 0 24px 48px rgba(149, 93, 36, 0.28);
+  transform: translateY(-2px);
+}
+
+.appointment-detail__provider-console-ready button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.appointment-detail__provider-console-ready button.is-outline {
+  background: #ffffff;
+  border: 1px solid #eadccd;
+  box-shadow: none;
+  color: #955d24;
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 28px;
+}
+
+.appointment-detail__provider-console-done > span {
+  align-items: center;
+  background: #955d24;
+  border-radius: 50%;
+  box-shadow: 0 16px 34px rgba(149, 93, 36, 0.2);
+  color: #ffffff;
+  display: inline-flex;
+  height: 88px;
+  justify-content: center;
+  margin-bottom: 28px;
+  width: 88px;
+}
+
+.appointment-detail__provider-console-done h2 {
+  color: #111827;
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 950;
+  letter-spacing: 0;
+  margin: 0;
 }
 
 .appointment-detail__client-tracking-confirmed,
@@ -703,16 +846,6 @@
   left: 12px;
   position: absolute;
   z-index: 430;
-}
-
-.appointment-detail__route-action-help {
-  color: #8c96a3;
-  display: block;
-  font-size: 11px;
-  font-weight: 800;
-  grid-column: 1 / -1;
-  line-height: 1.25;
-  max-width: 260px;
 }
 
 .appointment-detail__route-bottom span,

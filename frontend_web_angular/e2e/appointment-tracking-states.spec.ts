@@ -42,17 +42,17 @@ test.describe('Appointment tracking lifecycle', () => {
     await expectNoSpeech(page);
   });
 
-  test('paid appointment on service day opens the operational map before route starts', async ({
+  test('paid appointment on service day opens the provider console before route starts', async ({
     page,
     request,
   }) => {
     await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', 'PRESTATAIRE');
     await expect(page.locator('.appointment-detail__upcoming')).toHaveCount(0);
-    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
-    await expect(page.getByRole('button', { name: /^En route$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeDisabled();
+    await expect(page.locator('.appointment-detail__provider-console-visual')).toBeVisible();
+    await expect(page.locator('.appointment-detail__google-map')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Demarrer le trajet/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
   });
 
   test('client-travels service day blocks provider start until client is on the way and arrived', async ({
@@ -62,11 +62,12 @@ test.describe('Appointment tracking lifecycle', () => {
     await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', 'PRESTATAIRE', {
       travelMode: 'CLIENT_SE_DEPLACE',
     });
-    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await expect(page.locator('.appointment-detail__provider-console-visual')).toBeVisible();
+    await expect(page.locator('.appointment-detail__google-map')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /^En route$/i })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /En attente du client/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Commencer$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
   });
 
   test('client-travels service day lets client share the route', async ({ page, request }) => {
@@ -124,14 +125,12 @@ test.describe('Appointment tracking lifecycle', () => {
     });
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
     await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
-    await expect(page.getByText(/Client Tracking en route/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /^En route$/i })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeDisabled();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Arrivé$/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
   });
 
-  test('provider can start only when the client-travels route has arrived', async ({
+  test('provider can mark arrival once the route has started', async ({
     page,
     request,
   }) => {
@@ -140,7 +139,7 @@ test.describe('Appointment tracking lifecycle', () => {
       routeDistanceMeters: 80,
     });
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /^Arrivé$/i })).toBeEnabled();
   });
 
   test('provider on the way has route, taxi and navigation', async ({ page, request }) => {
@@ -149,28 +148,18 @@ test.describe('Appointment tracking lifecycle', () => {
     await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
     await expect(page.locator('.appointment-detail__map-top-actions')).toBeVisible();
     await expect(page.getByRole('button', { name: /Satellite/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Rotation/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Commencer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Arrivé$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Google Maps/i })).toBeVisible();
     await expect(page.locator('.appointment-detail__map-direction-pad')).toBeVisible();
 
-    const topActions = page.locator('.appointment-detail__map-top-actions');
     const directionPad = page.locator('.appointment-detail__map-direction-pad');
     const satelliteBox = await page.getByRole('button', { name: /Satellite/i }).boundingBox();
-    const rotationBox = await page.getByRole('button', { name: /Rotation/i }).boundingBox();
     const googleMapsBox = await page.getByRole('link', { name: /Google Maps/i }).boundingBox();
     expect(satelliteBox).not.toBeNull();
-    expect(rotationBox).not.toBeNull();
     expect(googleMapsBox).not.toBeNull();
-    expect(Math.abs((satelliteBox?.y ?? 0) - (rotationBox?.y ?? 0))).toBeLessThan(6);
-    expect(Math.abs((rotationBox?.y ?? 0) - (googleMapsBox?.y ?? 0))).toBeLessThan(6);
+    expect(Math.abs((satelliteBox?.y ?? 0) - (googleMapsBox?.y ?? 0))).toBeLessThan(6);
 
-    await page.getByRole('button', { name: /Rotation/i }).click();
-    await expect(topActions).toContainText('45°');
-    await page.getByRole('button', { name: /^Nord$/i }).click();
-    await expect(topActions).toContainText('0°');
     await page.getByRole('button', { name: /vers l'est/i }).click();
     await expect(directionPad).toContainText('90°');
     await page.getByRole('button', { name: /sud/i }).click();
@@ -181,9 +170,10 @@ test.describe('Appointment tracking lifecycle', () => {
 
   test('provider arrived can see the finish action', async ({ page, request }) => {
     await openState(page, request, 'EN_COURS', 'EN_PRESTATION', 'PRESTATAIRE');
-    await expect(page.getByText(/Prestation en cours/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Terminer$/i })).toBeEnabled();
+    await expect(page.locator('.appointment-detail__provider-console-visual')).toBeVisible();
+    await expect(page.getByText(/Temps de travail ecoule/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cloturer l'intervention/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cloturer l'intervention/i })).toBeEnabled();
   });
 
   test('completed service stops map, taxi and speech', async ({ page, request }) => {

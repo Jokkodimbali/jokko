@@ -9,6 +9,29 @@ export type ReservationStatus =
   | 'NO_SHOW'
   | 'LITIGE';
 
+const FINALIZED_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  'TERMINEE',
+  'ANNULEE',
+  'NO_SHOW',
+]);
+const CANCELLABLE_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  'CONFIRMEE',
+  'PAYEE_SEQUESTRE',
+  'EN_COURS',
+]);
+const NO_SHOW_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  'PAYEE_SEQUESTRE',
+  'EN_COURS',
+]);
+const RESCHEDULABLE_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  'CONFIRMEE',
+  'PAYEE_SEQUESTRE',
+]);
+const DISPUTABLE_ACTIVE_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  'PAYEE_SEQUESTRE',
+  'EN_COURS',
+]);
+
 export type ReservationPriceAdjustmentStatus =
   | 'AUCUN'
   | 'EN_ATTENTE_CLIENT'
@@ -269,7 +292,7 @@ export class ReservationEntity {
       throw ReservationDomainError.paymentRequired();
     }
 
-    if (!this.canBeCompleted()) {
+    if (!this.canBeMarkedNoShow()) {
       throw ReservationDomainError.notActive();
     }
 
@@ -432,34 +455,29 @@ export class ReservationEntity {
   }
 
   private isFinalized(): boolean {
-    return (
-      this._statut === 'TERMINEE' ||
-      this._statut === 'ANNULEE' ||
-      this._statut === 'NO_SHOW'
-    );
+    return FINALIZED_RESERVATION_STATUSES.has(this._statut);
   }
 
   private canBeCancelled(): boolean {
     return (
-      (this._statut === 'CONFIRMEE' ||
-        this._statut === 'PAYEE_SEQUESTRE' ||
-        this._statut === 'EN_COURS') &&
+      CANCELLABLE_RESERVATION_STATUSES.has(this._statut) &&
       this.isMoreThanHoursBefore(24)
     );
   }
 
   private canBeCompleted(): boolean {
-    return this._statut === 'PAYEE_SEQUESTRE' || this._statut === 'EN_COURS';
+    return this._statut === 'EN_COURS';
+  }
+
+  private canBeMarkedNoShow(): boolean {
+    return NO_SHOW_RESERVATION_STATUSES.has(this._statut);
   }
 
   private canBeRescheduled(): boolean {
     if (!this.isMoreThanHoursBefore(24)) {
       throw ReservationDomainError.rescheduleTooLate();
     }
-    return (
-      this._statut === 'CONFIRMEE' ||
-      this._statut === 'PAYEE_SEQUESTRE'
-    );
+    return RESCHEDULABLE_RESERVATION_STATUSES.has(this._statut);
   }
 
   private canBePaid(): boolean {
@@ -474,7 +492,7 @@ export class ReservationEntity {
     return (
       this._statut === 'TERMINEE' ||
       this._statut === 'NO_SHOW' ||
-      ((this._statut === 'PAYEE_SEQUESTRE' || this._statut === 'EN_COURS') &&
+      (DISPUTABLE_ACTIVE_RESERVATION_STATUSES.has(this._statut) &&
         this.isPastScheduledEnd())
     );
   }

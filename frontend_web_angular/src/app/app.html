@@ -1,18 +1,16 @@
 <div
   *ngIf="feedbackMessage() as message"
   class="app-feedback"
+  [class.app-feedback--success]="message.type === 'success'"
   [class.app-feedback--error]="message.type === 'error'"
   [class.app-feedback--info]="message.type === 'info'"
   role="status"
   aria-live="polite"
 >
   <span class="app-feedback__icon" aria-hidden="true">
-    <lucide-icon [name]="feedbackIcon()" size="20" [strokeWidth]="2.5"></lucide-icon>
+    <lucide-icon name="bell" size="20" [strokeWidth]="2.5"></lucide-icon>
   </span>
-  <span class="app-feedback__copy">
-    <strong>{{ feedbackTitle() }}</strong>
-    <small>{{ message.text }}</small>
-  </span>
+  <strong class="app-feedback__copy">{{ message.text }}</strong>
 </div>
 
 <router-outlet></router-outlet>

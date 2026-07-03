@@ -196,6 +196,10 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   });
   protected readonly minAppointmentDay = computed(() => this.toIsoDate(new Date()));
   protected readonly availabilityLabel = computed(() => {
+    if (!this.selectedService()) {
+      return 'Choisissez d abord un motif pour afficher les heures disponibles.';
+    }
+
     if (this.isLoadingSlots()) {
       return 'Chargement des heures du medecin...';
     }
@@ -528,7 +532,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         serviceId: service.id,
         dateHeure,
         adresseClient: patientDraft.adresseClient,
-        dureeMinutes: service.dureeMinutes ?? 15,
+        dureeMinutes: this.serviceDurationMinutes(service),
         notes: patientDraft.notes,
       })
       .pipe(finalize(() => this.isSubmitting.set(false)))
@@ -583,7 +587,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   protected serviceLabel(service: BackendProfessionalDetailService): string {
-    return `${service.nom} - ${service.dureeMinutes ?? 15} min - ${Number(service.prix).toLocaleString('fr-FR')} FCFA`;
+    return `${service.nom} - ${this.serviceDurationMinutes(service)} min - ${Number(service.prix).toLocaleString('fr-FR')} FCFA`;
   }
 
   protected patientSummaryName(): string {
@@ -605,7 +609,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected selectedServiceSummary(): string {
     const service = this.selectedService();
     if (!service) return 'Selectionnez un motif de consultation...';
-    return `${service.nom} - ${service.dureeMinutes ?? 15} min`;
+    return `${service.nom} - ${this.serviceDurationMinutes(service)} min`;
   }
 
   protected stepStatus(step: BookingStep): 'active' | 'done' | 'pending' {
@@ -695,14 +699,23 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     const detail = this.detail();
     const service = this.selectedService();
     const selectedDate = this.selectedDateIso();
-    if (!detail || !service || !selectedDate) return;
+    if (!detail || !selectedDate) {
+      this.selectedDateSlots.set([]);
+      return;
+    }
+
+    if (!service) {
+      this.selectedDateSlots.set([]);
+      this.isLoadingSlots.set(false);
+      return;
+    }
 
     this.isLoadingSlots.set(true);
     this.proposalService
       .listReservationAvailabilitySlots({
         professionalId: detail.profile.id,
         date: selectedDate,
-        dureeMinutes: service.dureeMinutes ?? 15,
+        dureeMinutes: this.serviceDurationMinutes(service),
       })
       .pipe(finalize(() => this.isLoadingSlots.set(false)))
       .subscribe({
@@ -851,6 +864,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   private normalizeText(value: string): string {
     return value.trim().replace(/\s+/g, ' ');
+  }
+
+  private serviceDurationMinutes(service: BackendProfessionalDetailService): number {
+    const duration = Number(service.dureeMinutes);
+    if (!Number.isInteger(duration) || duration < 15) return 15;
+    return Math.min(duration, 1440);
   }
 
   private initials(name: string): string {

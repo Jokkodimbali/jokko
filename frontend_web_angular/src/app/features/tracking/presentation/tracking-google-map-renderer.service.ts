@@ -54,11 +54,11 @@ export class TrackingGoogleMapRendererService {
     this.routeSelected = onRouteSelected;
     this.routeMap = new this.google.maps.Map(element, {
       center: DAKAR_CENTER,
-      zoom: 17,
+      zoom: 13,
       heading: 0,
-      tilt: 45,
+      tilt: 0,
       renderingType: 'VECTOR',
-      mapTypeId: satellite ? 'satellite' : 'hybrid',
+      mapTypeId: satellite ? 'satellite' : 'roadmap',
       disableDefaultUI: true,
       zoomControl: true,
       clickableIcons: false,
@@ -99,26 +99,7 @@ export class TrackingGoogleMapRendererService {
   }
 
   setSatellite(enabled: boolean): void {
-    this.routeMap?.setMapTypeId(enabled ? 'satellite' : 'hybrid');
-  }
-
-  focusNavigationView(provider: GoogleMapsPoint, headingDegrees: number | null): void {
-    if (!this.routeMap || this.userInteracted) return;
-
-    const heading = typeof headingDegrees === 'number' ? headingDegrees : 0;
-    this.withCameraUpdate(() => {
-      this.routeMap?.setMapTypeId('hybrid');
-      this.routeMap?.moveCamera?.({
-        center: provider,
-        zoom: 18,
-        heading,
-        tilt: 45,
-      });
-      this.routeMap?.setCenter(provider);
-      this.routeMap?.setZoom(18);
-      this.routeMap?.setHeading?.(heading);
-      this.routeMap?.setTilt?.(45);
-    });
+    this.routeMap?.setMapTypeId(enabled ? 'satellite' : 'roadmap');
   }
 
   setHeading(headingDegrees: number): void {
@@ -323,53 +304,22 @@ export class TrackingGoogleMapRendererService {
   ): void {
     if (!this.google || !this.routeMap || this.userInteracted) return;
     if (!destination) {
-      this.focusNavigationView(provider, null);
+      this.withCameraUpdate(() => {
+        this.routeMap?.setCenter(provider);
+        this.routeMap?.setZoom(15);
+      });
       return;
     }
 
     const key = `${provider.lat.toFixed(5)},${provider.lng.toFixed(5)}|${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}`;
     if (key === this.lastBoundsKey) return;
     this.lastBoundsKey = key;
-    const distance = this.distanceMeters(provider, destination);
-    if (distance < 1400) {
-      this.focusNavigationView(provider, this.bearingDegrees(provider, destination));
-      return;
-    }
-
     const bounds = new this.google.maps.LatLngBounds();
     bounds.extend(provider);
     bounds.extend(destination);
     this.withCameraUpdate(() => {
       this.routeMap?.fitBounds(bounds, 84);
-      this.routeMap?.setTilt?.(45);
     });
-  }
-
-  private distanceMeters(origin: GoogleMapsPoint, destination: GoogleMapsPoint): number {
-    const earthRadius = 6_371_000;
-    const latitudeDelta = ((destination.lat - origin.lat) * Math.PI) / 180;
-    const longitudeDelta = ((destination.lng - origin.lng) * Math.PI) / 180;
-    const originLatitude = (origin.lat * Math.PI) / 180;
-    const destinationLatitude = (destination.lat * Math.PI) / 180;
-    const a =
-      Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(originLatitude) *
-        Math.cos(destinationLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
-    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  private bearingDegrees(origin: GoogleMapsPoint, destination: GoogleMapsPoint): number {
-    const originLatitude = (origin.lat * Math.PI) / 180;
-    const destinationLatitude = (destination.lat * Math.PI) / 180;
-    const longitudeDelta = ((destination.lng - origin.lng) * Math.PI) / 180;
-    const y = Math.sin(longitudeDelta) * Math.cos(destinationLatitude);
-    const x =
-      Math.cos(originLatitude) * Math.sin(destinationLatitude) -
-      Math.sin(originLatitude) *
-        Math.cos(destinationLatitude) *
-        Math.cos(longitudeDelta);
-    return (((Math.atan2(y, x) * 180) / Math.PI) + 360) % 360;
   }
 
   private providerMarkerContent(

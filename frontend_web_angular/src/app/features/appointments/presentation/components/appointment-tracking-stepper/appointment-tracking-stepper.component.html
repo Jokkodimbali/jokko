@@ -1,0 +1,29 @@
+<section
+  class="appointment-tracking-stepper"
+  [class.appointment-tracking-stepper--provider]="providerMode"
+  [attr.aria-label]="ariaLabel"
+>
+  <button type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
+    <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
+    Retour
+  </button>
+  <div class="appointment-tracking-stepper__rail">
+    <i class="appointment-tracking-stepper__line"></i>
+    <i class="appointment-tracking-stepper__progress" [style.width.%]="progress"></i>
+    <div
+      *ngFor="let step of steps"
+      class="appointment-tracking-stepper__step"
+      [class.is-done]="step.state === 'done'"
+      [class.is-active]="step.state === 'active'"
+    >
+      <span>
+        <lucide-icon
+          [name]="step.state === 'done' ? 'check' : step.icon"
+          size="16"
+          [strokeWidth]="2.7"
+        ></lucide-icon>
+      </span>
+      <strong>{{ step.label }}</strong>
+    </div>
+  </div>
+</section>

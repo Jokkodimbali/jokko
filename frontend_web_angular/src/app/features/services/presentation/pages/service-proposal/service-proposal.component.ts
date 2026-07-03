@@ -106,7 +106,6 @@ interface MaterialQuoteEntry extends MaterialQuoteDraft {
     './service-proposal-provider-mode.component.scss',
     './service-proposal-negotiation-state.component.scss',
     './service-proposal-responsive.component.scss',
-    './service-proposal-redesign.component.scss',
   ],
 })
 export class ServiceProposalComponent implements OnDestroy, OnInit {
@@ -1656,9 +1655,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   private startProposalRefresh(negotiationId: string): void {
     this.stopProposalRefresh();
+    this.refreshPendingProposal(negotiationId);
     this.proposalRefreshIntervalId = setInterval(() => {
       this.refreshPendingProposal(negotiationId);
-    }, 5000);
+    }, 2000);
   }
 
   private stopProposalRefresh(): void {
@@ -1706,12 +1706,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           return;
         }
 
-        if (
-          proposal.statut === 'ACCEPTEE' ||
-          proposal.statut === 'REFUSEE' ||
-          proposal.statut === 'ANNULEE' ||
-          proposal.statut === 'CONVERTIE_EN_RESERVATION'
-        ) {
+        if (this.shouldStopProposalRefresh(proposal)) {
           this.stopProposalRefresh();
         }
       },
@@ -1948,6 +1943,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       fields.forEach((field) => delete next[field]);
       return next;
     });
+  }
+
+  private shouldStopProposalRefresh(proposal: NegotiationView): boolean {
+    if (proposal.statut === 'REFUSEE' || proposal.statut === 'ANNULEE') {
+      return true;
+    }
+
+    return proposal.statut === 'CONVERTIE_EN_RESERVATION' || Boolean(proposal.reservationId);
   }
 
   private validateClientDetailsStep(): boolean {

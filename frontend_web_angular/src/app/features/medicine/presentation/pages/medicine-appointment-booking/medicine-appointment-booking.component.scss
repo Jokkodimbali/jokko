@@ -199,10 +199,10 @@
 }
 
 .medicine-booking__picker-card small {
-  color: #87909f;
+  color: #111827;
   display: block;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 850;
   letter-spacing: 0.04em;
   line-height: 1.15;
   text-transform: uppercase;
@@ -218,6 +218,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.medicine-booking__picker-card strong.medicine-booking__field-placeholder {
+  color: #98a2b3;
+  font-weight: 600;
 }
 
 .medicine-booking__fields-grid,

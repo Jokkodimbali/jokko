@@ -51,7 +51,7 @@
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(520px, 660px) minmax(250px, 278px);
+  grid-template-columns: minmax(560px, 720px) minmax(280px, 330px);
   justify-content: center;
   padding: 22px 18px 28px;
 }
@@ -346,7 +346,15 @@
 }
 
 .service-proposal__service-field small,
-.service-proposal__field small,
+.service-proposal__field small {
+  color: #111827;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .service-proposal__summary-row small,
 .service-proposal__offer-display small,
 .service-proposal__provider-offer small {
@@ -368,6 +376,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.service-proposal__service-field strong.service-proposal__field-placeholder,
+.service-proposal__field-copy strong.service-proposal__field-placeholder {
+  color: #98a2b3;
+  font-weight: 800;
 }
 
 .service-proposal__service-field > lucide-icon,
@@ -479,31 +493,6 @@
   min-height: 76px;
 }
 
-.service-proposal__parcel-type-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: -8px;
-}
-
-.service-proposal__parcel-type-options button {
-  background: #ffffff;
-  border: 1px solid #e4e8ef;
-  border-radius: 999px;
-  color: #6b7280;
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 850;
-  padding: 8px 12px;
-}
-
-.service-proposal__parcel-type-options .service-proposal__parcel-chip--active {
-  background: #eef8ea;
-  border-color: #9bc785;
-  color: #3f7f2f;
-}
-
 .service-proposal__parcel-card {
   background: #fbfcfe;
   border: 1px solid #e3e7ed;
@@ -513,11 +502,28 @@
   padding: 16px;
 }
 
-.service-proposal__parcel-card header {
+.service-proposal__parcel-card-header {
   align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   display: grid;
+  font: inherit;
   gap: 12px;
   grid-template-columns: 38px minmax(0, 1fr) 18px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.service-proposal__parcel-card-header > lucide-icon {
+  color: #98a2b3;
+  transition: transform 160ms ease;
+}
+
+.service-proposal__parcel-chevron--open {
+  transform: rotate(180deg);
 }
 
 .service-proposal__parcel-card h2 {
@@ -565,6 +571,17 @@
   letter-spacing: 0.08em;
   padding-top: 0;
   text-transform: uppercase;
+}
+
+.service-proposal__parcel-empty {
+  border: 1px dashed #dfe5ee;
+  border-radius: 12px;
+  color: #8b95a1;
+  font-size: 12px;
+  font-weight: 750;
+  margin: 10px 0 0;
+  padding: 16px;
+  text-align: center;
 }
 
 .service-proposal__parcel-row strong {
@@ -647,6 +664,14 @@
 
 .service-proposal__field--input {
   cursor: text;
+}
+
+.service-proposal__field--parcel-address {
+  cursor: pointer;
+}
+
+.service-proposal__field--parcel-address .service-proposal__field-copy strong {
+  white-space: normal;
 }
 
 .service-proposal__field--input .service-proposal__field-copy {

@@ -3,6 +3,22 @@
     <button type="button" aria-label="Retour" (click)="goBack()">
       <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
     </button>
+    <nav aria-label="Choisir le QR code colis">
+      <button
+        type="button"
+        [class.is-active]="mode() === 'expediteur'"
+        (click)="switchMode('expediteur')"
+      >
+        Retrait de Colis
+      </button>
+      <button
+        type="button"
+        [class.is-active]="mode() === 'destinataire'"
+        (click)="switchMode('destinataire')"
+      >
+        Depot de Colis
+      </button>
+    </nav>
     <h1>
       <lucide-icon name="archive" size="17" [strokeWidth]="2.5"></lucide-icon>
       {{ title() }}
@@ -40,20 +56,32 @@
           <dd>{{ parcelNumber() }}</dd>
         </div>
         <div>
-          <dt>{{ targetRoleLabel() }}</dt>
+          <dt>{{ targetRoleDisplay() }}</dt>
           <dd>{{ targetName() }}</dd>
+        </div>
+        <div>
+          <dt>Nombre de colis</dt>
+          <dd>{{ parcelCountLabel() }}</dd>
         </div>
       </dl>
 
       <div class="parcel-qr__status">
         <i></i>
-        {{ statusLabel() }}
+        {{ isCheckpointValidated() ? 'Validation effectuee' : statusLabel() }}
       </div>
 
       <button type="button" class="parcel-qr__download" (click)="downloadQrPdf()">
         <lucide-icon name="arrow-down" size="17" [strokeWidth]="2.5"></lucide-icon>
         Telecharger le QR code en PDF
       </button>
+
+      <section class="parcel-qr__manifest" *ngIf="manifest().parcels.length > 0">
+        <h2>Colis concernes</h2>
+        <p *ngFor="let parcel of manifest().parcels; trackBy: trackByIndex">
+          <strong>{{ parcel.number }}</strong>
+          <span>{{ parcel.description }}</span>
+        </p>
+      </section>
     </article>
 
     <aside class="parcel-qr__side">
@@ -77,6 +105,33 @@
       <p class="parcel-qr__warning">
         Ce QR code est valable uniquement pour ces colis. Ne le partagez pas avec des tiers.
       </p>
+
+      <section *ngIf="isDeliveryPersonView()" class="parcel-qr__scanner">
+        <h2>Validation livreur</h2>
+        <p>
+          Scannez le QR code presente par
+          {{ mode() === 'expediteur' ? "l'expediteur" : 'le destinataire' }},
+          puis validez uniquement si les colis correspondent.
+        </p>
+        <textarea
+          [value]="scannedPayload()"
+          (input)="updateScannedPayload($any($event.target).value)"
+          placeholder="Collez ici le contenu du QR code scanne..."
+        ></textarea>
+        <button type="button" class="parcel-qr__scan" (click)="validateScannedQr()">
+          <lucide-icon name="scan-line" size="17" [strokeWidth]="2.4"></lucide-icon>
+          Valider le {{ mode() === 'expediteur' ? 'retrait' : 'depot' }}
+        </button>
+        <button type="button" class="parcel-qr__scan parcel-qr__scan--ghost" (click)="useDisplayedQrForValidation()">
+          Tester avec ce QR code
+        </button>
+        <strong *ngIf="validationMessage()" class="parcel-qr__scanner-success">
+          {{ validationMessage() }}
+        </strong>
+        <strong *ngIf="validationError()" class="parcel-qr__scanner-error">
+          {{ validationError() }}
+        </strong>
+      </section>
     </aside>
   </section>
 </main>

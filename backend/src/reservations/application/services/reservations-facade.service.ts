@@ -57,6 +57,7 @@ export class ReservationsFacade {
     professionalId: string;
     dateHeure: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }) {
     return this.reservationQueryService.checkAvailability(query);
   }
@@ -65,6 +66,7 @@ export class ReservationsFacade {
     professionalId: string;
     date: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }) {
     return this.reservationQueryService.listAvailabilitySlots(query);
   }

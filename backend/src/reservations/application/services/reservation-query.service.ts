@@ -55,12 +55,14 @@ export class ReservationQueryService extends ReservationAppService {
     professionalId: string;
     dateHeure: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }) {
     const professional = await this.getVerifiedProfessionalOrThrow(
       query.professionalId,
     );
     const scheduledAt = this.parseDateOrThrow(query.dateHeure);
     const durationMinutes = Math.trunc(Number(query.dureeMinutes));
+    const pauseMinutes = this.normalizePauseMinutes(query.pauseMinutes);
 
     if (
       !Number.isInteger(durationMinutes) ||
@@ -102,7 +104,7 @@ export class ReservationQueryService extends ReservationAppService {
     const hasConflict = await this.reservationsRepository.hasTimeSlotConflict({
       professionalId: professional.id,
       dateHeure: scheduledAt,
-      dureeMinutes: durationMinutes,
+      dureeMinutes: durationMinutes + pauseMinutes,
     });
 
     return {
@@ -122,12 +124,14 @@ export class ReservationQueryService extends ReservationAppService {
     professionalId: string;
     date: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }) {
     const professional = await this.getVerifiedProfessionalOrThrow(
       query.professionalId,
     );
     const dayStart = this.parseAvailabilityDateOrThrow(query.date);
     const durationMinutes = Math.trunc(Number(query.dureeMinutes));
+    const pauseMinutes = this.normalizePauseMinutes(query.pauseMinutes);
 
     if (
       !Number.isInteger(durationMinutes) ||
@@ -152,6 +156,7 @@ export class ReservationQueryService extends ReservationAppService {
     const slotStarts = this.buildSlotStartsForDay(
       dayStart,
       durationMinutes,
+      pauseMinutes,
       dayAvailabilities,
     );
 
@@ -163,7 +168,7 @@ export class ReservationQueryService extends ReservationAppService {
           : await this.reservationsRepository.hasTimeSlotConflict({
               professionalId: professional.id,
               dateHeure: slotStart,
-              dureeMinutes: durationMinutes,
+              dureeMinutes: durationMinutes + pauseMinutes,
             });
         const available = !isPast && !hasConflict;
 
@@ -363,12 +368,13 @@ export class ReservationQueryService extends ReservationAppService {
   private buildSlotStartsForDay(
     dayStart: Date,
     durationMinutes: number,
+    pauseMinutes: number,
     availabilities: Array<{
       heureDebut: Date;
       heureFin: Date;
     }>,
   ): Date[] {
-    const slotStepMinutes = durationMinutes;
+    const slotStepMinutes = Math.max(5, durationMinutes + pauseMinutes);
     const starts: Date[] = [];
 
     for (const availability of availabilities) {
@@ -397,5 +403,14 @@ export class ReservationQueryService extends ReservationAppService {
     const hours = value.getUTCHours().toString().padStart(2, '0');
     const minutes = value.getUTCMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
+  }
+
+  private normalizePauseMinutes(value: number | undefined): number {
+    const pause = Math.trunc(Number(value ?? 0));
+    if (!Number.isInteger(pause) || pause < 0 || pause > 240) {
+      return 0;
+    }
+
+    return pause;
   }
 }

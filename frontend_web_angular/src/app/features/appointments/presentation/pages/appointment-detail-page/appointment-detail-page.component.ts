@@ -197,6 +197,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
   protected readonly routeAlternatives = signal<RouteAlternativeView[]>([]);
+  protected readonly routeActorArrivalConfirmed = signal(false);
   protected readonly medicalActs = signal<string[]>([COMMON_MEDICAL_ACTS[0]]);
   protected readonly medicalVaccines = signal<string[]>([]);
   protected readonly medicalTreatments = signal<string[]>([]);
@@ -371,9 +372,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly canShowProviderStartAction = computed(
     () =>
       this.isProviderViewer() &&
-      !this.isRouteActorViewer() &&
       !this.isProviderWorking() &&
-      (this.isProviderOnTheWay() || this.hasTravelerArrivalConfirmation()),
+      (this.clientTravelsToProvider()
+        ? this.hasTravelerArrivalConfirmation()
+        : this.isProviderOnTheWay() && this.hasTravelerArrivedAtDestination()),
   );
   protected readonly isOperationalServiceDay = computed(() => {
     const appointment = this.appointment();
@@ -475,6 +477,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly hasTravelerArrivedAtDestination = computed(() => {
     if (this.isProviderWorking()) return true;
+    if (this.routeActorArrivalConfirmed()) return true;
     if (this.hasTravelerArrivalConfirmation()) return true;
     if (!this.isProviderOnTheWay()) return false;
 
@@ -511,7 +514,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return this.hasTravelerArrivedAtDestination();
     }
 
-    return this.canStartRouteToday() && this.isProviderOnTheWay() && this.isRouteActorViewer();
+    return this.canStartRouteToday() && this.isProviderOnTheWay();
   });
   protected readonly canTravelerMarkArrived = computed(() => {
     const appointment = this.appointment();
@@ -1549,7 +1552,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     if (this.providerTravelsToClient()) {
-      this.transitionStartWork(appointment, false);
+      this.isUpdatingStatus.set(true);
+      void this.animateTrackedTravelerArrival(appointment).then(() => {
+        this.routeActorArrivalConfirmed.set(true);
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Arrivee confirmee. Vous pouvez commencer la prestation.');
+      });
       return;
     }
 

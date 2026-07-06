@@ -756,6 +756,28 @@
   width: 100%;
 }
 
+.appointment-detail__client-summary-download--qr {
+  background: #955d24;
+  border-color: #955d24;
+  color: #ffffff;
+  margin-top: 10px;
+}
+
+.appointment-detail__client-summary-download--qr:hover {
+  background: #7f4e1d;
+  border-color: #7f4e1d;
+}
+
+.appointment-detail__client-summary-qr-help {
+  color: #9aa0ad;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.55;
+  margin: 10px auto 0;
+  max-width: 250px;
+  text-align: center;
+}
+
 .appointment-detail__client-summary-invoice,
 .appointment-detail__client-summary-notes,
 .appointment-detail__client-summary-pricing,

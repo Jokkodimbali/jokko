@@ -103,63 +103,72 @@
             </section>
 
             <section class="medicine-booking__appointment-pickers">
-              <button
-                type="button"
-                class="medicine-booking__picker-card medicine-booking__picker-card--full"
-                (click)="openDetailsModal('service')"
-              >
-                <span class="medicine-booking__picker-icon">
-                  <lucide-icon name="briefcase-medical" size="21" [strokeWidth]="2.3"></lucide-icon>
-                </span>
-                <div>
-                  <small>Motif du RDV medical</small>
-                  <strong>{{ selectedService() ? selectedServiceSummary() : 'Selectionnez un motif de rdv...' }}</strong>
-                </div>
-                <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
-              </button>
-              <p *ngIf="fieldErrors().service" class="medicine-booking__error-text medicine-booking__error-text--full">
-                {{ fieldErrors().service }}
-              </p>
+              <div class="medicine-booking__picker-stack medicine-booking__picker-stack--full">
+                <button
+                  type="button"
+                  class="medicine-booking__picker-card"
+                  (click)="openDetailsModal('service')"
+                >
+                  <span class="medicine-booking__picker-icon">
+                    <lucide-icon name="briefcase-medical" size="21" [strokeWidth]="2.3"></lucide-icon>
+                  </span>
+                  <div>
+                    <small>Motif du RDV medical</small>
+                    <strong>{{ selectedService() ? selectedServiceSummary() : 'Selectionnez un motif de rdv...' }}</strong>
+                  </div>
+                  <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
+                </button>
+                <p *ngIf="fieldErrors().service" class="medicine-booking__error-text">
+                  {{ fieldErrors().service }}
+                </p>
+              </div>
 
-              <button type="button" class="medicine-booking__picker-card" (click)="openDetailsModal('schedule')">
-                <span class="medicine-booking__picker-icon">
-                  <lucide-icon name="calendar-days" size="21" [strokeWidth]="2.3"></lucide-icon>
-                </span>
-                <div>
-                  <small>Date & heure d'intervention</small>
-                  <strong>{{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}</strong>
-                </div>
-              </button>
-              <p *ngIf="fieldErrors().schedule" class="medicine-booking__error-text">
-                {{ fieldErrors().schedule }}
-              </p>
+              <div class="medicine-booking__picker-stack">
+                <button type="button" class="medicine-booking__picker-card" (click)="openDetailsModal('schedule')">
+                  <span class="medicine-booking__picker-icon">
+                    <lucide-icon name="calendar-days" size="21" [strokeWidth]="2.3"></lucide-icon>
+                  </span>
+                  <div>
+                    <small>Date & heure d'intervention</small>
+                    <strong>{{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}</strong>
+                  </div>
+                </button>
+                <p *ngIf="fieldErrors().schedule" class="medicine-booking__error-text">
+                  {{ fieldErrors().schedule }}
+                </p>
+              </div>
 
-              <button
-                *ngIf="doctorTravelsToPatient(); else personalCabinetPicker"
-                type="button"
-                class="medicine-booking__picker-card"
-                (click)="openDetailsModal('address')"
-              >
-                <span class="medicine-booking__picker-icon">
-                  <lucide-icon name="map-pin" size="21" [strokeWidth]="2.3"></lucide-icon>
-                </span>
-                <div>
-                  <small>Adresse d'intervention</small>
-                  <strong>{{ patientSummaryAddress() || 'Saisir une adresse...' }}</strong>
-                </div>
-                <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
-              </button>
-              <ng-template #personalCabinetPicker>
-                <div class="medicine-booking__picker-card">
+              <div class="medicine-booking__picker-stack">
+                <button
+                  *ngIf="doctorTravelsToPatient(); else personalCabinetPicker"
+                  type="button"
+                  class="medicine-booking__picker-card"
+                  (click)="openDetailsModal('address')"
+                >
                   <span class="medicine-booking__picker-icon">
                     <lucide-icon name="map-pin" size="21" [strokeWidth]="2.3"></lucide-icon>
                   </span>
                   <div>
                     <small>Adresse d'intervention</small>
-                    <strong>{{ doctorInterventionAddressLabel() }}</strong>
+                    <strong>{{ patientSummaryAddress() || 'Saisir une adresse...' }}</strong>
                   </div>
-                </div>
-              </ng-template>
+                  <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
+                </button>
+                <ng-template #personalCabinetPicker>
+                  <div class="medicine-booking__picker-card">
+                    <span class="medicine-booking__picker-icon">
+                      <lucide-icon name="map-pin" size="21" [strokeWidth]="2.3"></lucide-icon>
+                    </span>
+                    <div>
+                      <small>Adresse d'intervention</small>
+                      <strong>{{ doctorInterventionAddressLabel() }}</strong>
+                    </div>
+                  </div>
+                </ng-template>
+                <p *ngIf="fieldErrors().selfAddress || fieldErrors().address" class="medicine-booking__error-text">
+                  {{ fieldErrors().selfAddress || fieldErrors().address }}
+                </p>
+              </div>
             </section>
 
             <p *ngIf="appointmentLocation()" class="medicine-booking__hint">
@@ -167,9 +176,6 @@
             </p>
             <p *ngIf="patientTravelsToDoctor()" class="medicine-booking__hint">
               Cette adresse est celle renseignee par le medecin dans ses parametres.
-            </p>
-            <p *ngIf="fieldErrors().selfAddress || fieldErrors().address" class="medicine-booking__error-text">
-              {{ fieldErrors().selfAddress || fieldErrors().address }}
             </p>
 
             <footer class="medicine-booking__actions">

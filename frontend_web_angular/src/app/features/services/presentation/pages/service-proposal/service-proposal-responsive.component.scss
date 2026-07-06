@@ -1,16 +1,16 @@
 @media (min-width: 901px) {
   .service-proposal {
-    max-height: 100vh;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .service-proposal__content {
-    max-height: calc(100vh - 46px);
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .service-proposal__content--accepted {
-    max-height: calc(100vh - 112px);
+    max-height: none;
   }
 }
 

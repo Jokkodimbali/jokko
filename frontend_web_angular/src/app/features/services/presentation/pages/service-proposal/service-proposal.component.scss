@@ -51,7 +51,7 @@
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(520px, 660px) minmax(250px, 278px);
+  grid-template-columns: minmax(560px, 720px) minmax(280px, 330px);
   justify-content: center;
   padding: 22px 18px 28px;
 }
@@ -346,7 +346,15 @@
 }
 
 .service-proposal__service-field small,
-.service-proposal__field small,
+.service-proposal__field small {
+  color: #111827;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .service-proposal__summary-row small,
 .service-proposal__offer-display small,
 .service-proposal__provider-offer small {
@@ -368,6 +376,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.service-proposal__service-field strong.service-proposal__field-placeholder,
+.service-proposal__field-copy strong.service-proposal__field-placeholder {
+  color: #98a2b3;
+  font-weight: 800;
 }
 
 .service-proposal__service-field > lucide-icon,
@@ -456,6 +470,223 @@
   height: 38px;
   justify-content: center;
   width: 38px;
+}
+
+.service-proposal__field-icon--pickup {
+  background: #f0fff8;
+  border-color: #bdeed6;
+  color: #00a56a;
+}
+
+.service-proposal__field-icon--dropoff {
+  background: #fff5f7;
+  border-color: #ffd1dc;
+  color: #ff376d;
+}
+
+.service-proposal__parcel-booking {
+  gap: 14px;
+}
+
+.service-proposal__service-field--parcel {
+  border-style: dashed;
+  min-height: 76px;
+}
+
+.service-proposal__parcel-card {
+  background: #fbfcfe;
+  border: 1px solid #e3e7ed;
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.service-proposal__parcel-card-header {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.service-proposal__parcel-card-header > lucide-icon {
+  color: #98a2b3;
+  transition: transform 160ms ease;
+}
+
+.service-proposal__parcel-chevron--open {
+  transform: rotate(180deg);
+}
+
+.service-proposal__parcel-card h2 {
+  align-items: center;
+  color: #07111f;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 950;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.service-proposal__parcel-card h2 b {
+  background: #07111f;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.service-proposal__parcel-table {
+  display: grid;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.service-proposal__parcel-head,
+.service-proposal__parcel-row {
+  align-items: center;
+  border-bottom: 1px solid #edf0f4;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 120px 72px minmax(220px, 1fr) 42px;
+  min-width: 560px;
+  padding: 10px 0;
+}
+
+.service-proposal__parcel-head {
+  color: #9aa3af;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  padding-top: 0;
+  text-transform: uppercase;
+}
+
+.service-proposal__parcel-empty {
+  border: 1px dashed #dfe5ee;
+  border-radius: 12px;
+  color: #8b95a1;
+  font-size: 12px;
+  font-weight: 750;
+  margin: 10px 0 0;
+  padding: 16px;
+  text-align: center;
+}
+
+.service-proposal__parcel-row strong {
+  background: #f3f6fa;
+  border-radius: 8px;
+  color: #07111f;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 950;
+  justify-self: start;
+  padding: 5px 8px;
+}
+
+.service-proposal__parcel-preview {
+  align-items: center;
+  color: #07111f;
+  display: inline-grid;
+  font-size: 10px;
+  font-weight: 800;
+  justify-items: center;
+  line-height: 1;
+}
+
+.service-proposal__parcel-row input {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  color: #111827;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  min-height: 36px;
+  outline: 0;
+  padding: 0 13px;
+  width: 100%;
+}
+
+.service-proposal__parcel-row input:focus {
+  border-color: #9bc785;
+  box-shadow: 0 0 0 3px rgba(79, 136, 58, 0.12);
+}
+
+.service-proposal__parcel-row button,
+.service-proposal__parcel-add {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e0e5ec;
+  border-radius: 10px;
+  color: #8b95a1;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+}
+
+.service-proposal__parcel-row button {
+  height: 34px;
+  width: 34px;
+}
+
+.service-proposal__parcel-row button:hover {
+  border-color: #ffd1dc;
+  color: #d1435b;
+}
+
+.service-proposal__parcel-add {
+  color: #07111f;
+  font-size: 11px;
+  font-weight: 950;
+  gap: 7px;
+  justify-self: end;
+  min-height: 36px;
+  padding: 0 14px;
+  text-transform: uppercase;
+}
+
+.service-proposal__fields--parcel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-proposal__field--input {
+  cursor: text;
+}
+
+.service-proposal__field--parcel-address {
+  cursor: pointer;
+}
+
+.service-proposal__field--parcel-address .service-proposal__field-copy strong {
+  white-space: normal;
+}
+
+.service-proposal__field--input .service-proposal__field-copy {
+  gap: 8px;
+}
+
+.service-proposal__parcel-errors {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-proposal__summary-row--pickup > span {
+  background: #eafff6;
+  color: #00a56a;
 }
 
 .service-proposal__locate-button {

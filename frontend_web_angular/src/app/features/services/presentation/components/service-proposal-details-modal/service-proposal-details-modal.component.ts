@@ -6,7 +6,7 @@ import { ReservationAvailabilitySlotView } from '../../../data-access/service-pr
 import { BackendProfessionalDetailService } from '../../../domain/models/services.models';
 import { ServiceProposalInteractiveMapComponent } from '../service-proposal-interactive-map/service-proposal-interactive-map.component';
 
-export type ProposalDetailsModal = 'service' | 'schedule' | 'address';
+export type ProposalDetailsModal = 'service' | 'schedule' | 'address' | 'parcelPickup' | 'parcelDropoff';
 
 export interface ProposalAddressSuggestion {
   id: string;
@@ -37,6 +37,8 @@ export class ServiceProposalDetailsModalComponent {
   @Input() availabilityLabel = '';
   @Input() loadingSlots = false;
   @Input() address = '';
+  @Input() parcelContactName = '';
+  @Input() parcelContactPhone = '';
   @Input() suggestions: ProposalAddressSuggestion[] = [];
   @Input() loadingSuggestions = false;
   @Input() locatingAddress = false;
@@ -50,8 +52,44 @@ export class ServiceProposalDetailsModalComponent {
   @Output() readonly dayChanged = new EventEmitter<string>();
   @Output() readonly slotSelected = new EventEmitter<ReservationAvailabilitySlotView>();
   @Output() readonly addressChanged = new EventEmitter<string>();
+  @Output() readonly parcelContactNameChanged = new EventEmitter<string>();
+  @Output() readonly parcelContactPhoneChanged = new EventEmitter<string>();
   @Output() readonly suggestionSelected = new EventEmitter<ProposalAddressSuggestion>();
   @Output() readonly locate = new EventEmitter<void>();
+
+  protected get isAddressMode(): boolean {
+    return this.mode === 'address' || this.isParcelAddressMode;
+  }
+
+  protected get isParcelAddressMode(): boolean {
+    return this.mode === 'parcelPickup' || this.mode === 'parcelDropoff';
+  }
+
+  protected get addressHeaderTitle(): string {
+    if (this.mode === 'parcelPickup') return 'Point de depart & expediteur';
+    if (this.mode === 'parcelDropoff') return 'Point d arrivee & destinataire';
+    return "Adresse d'intervention";
+  }
+
+  protected get contactNameLabel(): string {
+    return this.mode === 'parcelPickup'
+      ? "Nom & prenom de l'expediteur"
+      : 'Nom & prenom du destinataire';
+  }
+
+  protected get contactPhoneLabel(): string {
+    return this.mode === 'parcelPickup'
+      ? "Telephone de l'expediteur"
+      : 'Telephone du destinataire';
+  }
+
+  protected get contactNamePlaceholder(): string {
+    return this.mode === 'parcelPickup' ? 'ex: Moustapha Sow' : 'ex: Awa Ndiaye';
+  }
+
+  protected get contactPhonePlaceholder(): string {
+    return 'ex: +221 77 123 45 67';
+  }
 
   protected isSelectedSlot(slot: ReservationAvailabilitySlotView): boolean {
     const slotTimestamp = new Date(slot.dateHeure).getTime();

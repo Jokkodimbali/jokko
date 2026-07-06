@@ -22,6 +22,7 @@ import { MessagesService } from '../../../../messages/data-access/messages.servi
 import {
   NegotiationView,
   MaterialQuoteView,
+  ProposalReservationStatus,
   ReservationAvailabilitySlotView,
   ReservationAvailabilityView,
   ServiceProposalService,
@@ -38,7 +39,16 @@ import {
 
 type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'VISA';
 type ClientBookingStep = 'DETAILS' | 'PRICE';
-type ClientDetailsField = 'service' | 'schedule' | 'address' | 'availability';
+type ClientDetailsField =
+  | 'service'
+  | 'schedule'
+  | 'address'
+  | 'availability'
+  | 'parcels'
+  | 'pickupAddress'
+  | 'pickupContact'
+  | 'dropoffAddress'
+  | 'dropoffContact';
 
 interface PaymentOption {
   id: PaymentMethod;
@@ -71,6 +81,17 @@ interface AddressSuggestion {
   latitude: number | null;
   longitude: number | null;
   source: 'GOOGLE_PLACES' | 'OPENSTREETMAP';
+}
+
+interface ParcelDraft {
+  id: string;
+  number: string;
+  description: string;
+}
+
+interface ParcelContactDraft {
+  name: string;
+  phone: string;
 }
 
 type MaterialQuoteAuthor = 'CLIENT' | 'PRESTATAIRE';
@@ -131,6 +152,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isProviderProposalSubmitting = signal(false);
   protected readonly isProviderOfferDirty = signal(false);
   protected readonly acceptedReservation = signal<AcceptedReservationSummary | null>(null);
+  protected readonly linkedReservationStatus = signal<ProposalReservationStatus | null>(null);
+  protected readonly linkedReservationCancellationReason = signal<string | null>(null);
   protected readonly isCancellingProposal = signal(false);
   protected readonly isRespondingToCounterOffer = signal(false);
   protected readonly addressSuggestions = signal<AddressSuggestion[]>([]);
@@ -146,6 +169,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly materialQuoteEntries = signal<MaterialQuoteEntry[]>([]);
   protected readonly isMaterialQuotesLoading = signal(false);
   private readonly materialQuotesLoadedFor = signal<string | null>(null);
+  private readonly usedParcelNumbers = new Set<string>();
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -160,9 +184,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected readonly appointmentDate = signal('');
   protected readonly address = signal('');
+  protected readonly parcelDeliveryType = signal('');
+  protected readonly parcelNote = signal('');
+  protected readonly parcelPickupAddress = signal('');
+  protected readonly parcelDropoffAddress = signal('');
+  protected readonly parcelPickupContact = signal<ParcelContactDraft>({ name: '', phone: '' });
+  protected readonly parcelDropoffContact = signal<ParcelContactDraft>({ name: '', phone: '' });
+  protected readonly parcelDescriptionExpanded = signal(true);
+  protected readonly parcels = signal<ParcelDraft[]>([]);
   private readonly clientDefaultAddress = signal('');
   protected readonly offerAmount = signal(0);
-  protected readonly durationMinutes = 60;
   protected readonly offerSteps = [100, 250, 500];
   protected readonly selectedOfferStep = signal(250);
   protected readonly materialQuoteDraft: MaterialQuoteDraft = {
@@ -191,6 +222,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly providerTravelsToClient = computed(
     () => this.currentService()?.modeDeplacement !== 'CLIENT_SE_DEPLACE',
   );
+  protected readonly isParcelDeliveryService = computed(
+    () => this.currentService()?.modeDeplacement === 'TRANSPORT_COLIS',
+  );
   protected readonly clientTravelsToProvider = computed(() => !this.providerTravelsToClient());
   protected readonly providerInterventionAddress = computed(() =>
     this.resolveInitialAddress(this.detail()),
@@ -199,7 +233,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     () => this.providerInterventionAddress() || 'Adresse du prestataire non renseignee',
   );
   protected readonly appointmentAddressLabel = computed(() =>
-    this.clientTravelsToProvider() ? 'Adresse du prestataire' : "Adresse d'intervention",
+    this.isParcelDeliveryService()
+      ? 'Arrivee destinataire'
+      : this.clientTravelsToProvider()
+        ? 'Adresse du prestataire'
+        : "Adresse d'intervention",
   );
 
   protected readonly displayName = computed(() => {
@@ -290,12 +328,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return `${this.formatAmount(total)} FCFA`;
   });
   protected readonly materialQuoteAuthorLabel = computed(() => `${this.displayName().toUpperCase()} PROPOSE :`);
-  protected readonly canCurrentUserCreateMaterialQuote = computed(() => this.isProviderProposalMode);
+  protected readonly canShowMaterialQuotePanel = computed(() => !this.isParcelDeliveryService());
+  protected readonly canCurrentUserCreateMaterialQuote = computed(
+    () => this.isProviderProposalMode && this.canShowMaterialQuotePanel(),
+  );
   protected readonly hasBlockingMaterialQuote = computed(() => {
+    if (!this.canShowMaterialQuotePanel()) return false;
     const entries = this.materialQuoteEntries();
     return entries.some((entry) => entry.status === 'EN_ATTENTE');
   });
+  protected readonly durationMinutes = computed(() => this.serviceDurationMinutes(this.currentService()));
   protected readonly isMaterialQuoteStateReady = computed(() => {
+    if (!this.canShowMaterialQuotePanel()) return true;
     const proposalId = this.pendingProposal()?.id;
     return !proposalId || this.materialQuotesLoadedFor() === proposalId;
   });
@@ -303,13 +347,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly providerProposalFinalized = computed(() => {
     const proposal = this.pendingProposal();
     if (!proposal) return null;
+    if (this.isLinkedReservationCancelled()) return null;
     return proposal.reservationId || proposal.statut === 'CONVERTIE_EN_RESERVATION'
       ? proposal
       : null;
   });
   protected readonly closedProposal = computed(() => {
     const proposal = this.pendingProposal();
-    return proposal && this.isNegotiationClosed(proposal) ? proposal : null;
+    return proposal && (this.isNegotiationClosed(proposal) || this.isLinkedReservationCancelled())
+      ? proposal
+      : null;
   });
   protected readonly providerFinalizedAmountLabel = computed(() =>
     this.formatAmount(
@@ -368,6 +415,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly checkoutTotalLabel = computed(() =>
     this.isFixedPriceService() ? 'TOTAL A PAYER' : 'TOTAL A AUTORISER',
+  );
+  protected readonly canGoToClientPriceStep = computed(
+    () => Object.keys(this.collectClientDetailsErrors(false)).length === 0,
   );
   protected readonly submitButtonLabel = computed(() => {
     if (this.isSubmitting()) {
@@ -472,7 +522,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected readonly shortAddress = computed(() =>
     this.truncate(
-      this.clientTravelsToProvider()
+      this.isParcelDeliveryService()
+        ? this.parcelDropoffAddress()
+        : this.clientTravelsToProvider()
         ? this.providerInterventionAddressLabel()
         : this.address(),
       28,
@@ -620,6 +672,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.backNavigation.back(this.safeReturnUrl(), fallback);
   }
 
+  protected trackByParcelId(_index: number, parcel: ParcelDraft): string {
+    return parcel.id;
+  }
+
   protected selectPayment(method: PaymentMethod): void {
     this.selectedPayment.set(method);
   }
@@ -642,6 +698,27 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.activeDetailsModal.set(modal);
   }
 
+  protected activeModalAddress(): string {
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') return this.parcelPickupAddress();
+    if (modal === 'parcelDropoff') return this.parcelDropoffAddress();
+    return this.address();
+  }
+
+  protected activeModalContactName(): string {
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') return this.parcelPickupContact().name;
+    if (modal === 'parcelDropoff') return this.parcelDropoffContact().name;
+    return '';
+  }
+
+  protected activeModalContactPhone(): string {
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') return this.parcelPickupContact().phone;
+    if (modal === 'parcelDropoff') return this.parcelDropoffContact().phone;
+    return '';
+  }
+
   protected closeDetailsModal(): void {
     this.activeDetailsModal.set(null);
     this.isAddressSuggestionsOpen.set(false);
@@ -662,6 +739,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected toggleClientBookingDetails(): void {
     this.clientBookingDetailsExpanded.update((expanded) => !expanded);
+  }
+
+  protected toggleParcelDescription(): void {
+    this.parcelDescriptionExpanded.update((expanded) => !expanded);
   }
 
   protected toggleMaterialQuote(): void {
@@ -1199,6 +1280,90 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.scheduleAvailabilityCheck();
   }
 
+  protected updateParcelDeliveryType(value: string): void {
+    this.parcelDeliveryType.set(value);
+  }
+
+  protected updateParcelDescription(parcelId: string, value: string): void {
+    this.parcels.update((parcels) =>
+      parcels.map((parcel) =>
+        parcel.id === parcelId ? { ...parcel, description: value } : parcel,
+      ),
+    );
+    this.clearClientDetailsErrors('parcels');
+  }
+
+  protected addParcel(): void {
+    const nextIndex = this.parcels().length + 1;
+    this.parcels.update((parcels) => [...parcels, this.createParcelDraft(nextIndex)]);
+    this.clearClientDetailsErrors('parcels');
+  }
+
+  protected removeParcel(parcelId: string): void {
+    this.parcels.update((parcels) => parcels.filter((parcel) => parcel.id !== parcelId));
+    this.clearClientDetailsErrors('parcels');
+  }
+
+  protected updateParcelNote(value: string): void {
+    this.parcelNote.set(value);
+  }
+
+  protected updateParcelPickupAddress(value: string): void {
+    this.parcelPickupAddress.set(value);
+    this.clearClientDetailsErrors('pickupAddress');
+  }
+
+  protected updateParcelDropoffAddress(value: string): void {
+    this.parcelDropoffAddress.set(value);
+    this.address.set(value);
+    this.clearClientDetailsErrors('dropoffAddress', 'address');
+  }
+
+  protected updateActiveParcelAddress(value: string): void {
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') {
+      this.updateParcelPickupAddress(value);
+      return;
+    }
+
+    if (modal === 'parcelDropoff') {
+      this.updateParcelDropoffAddress(value);
+      return;
+    }
+
+    this.updateAddress(value);
+  }
+
+  protected updateActiveParcelContactName(value: string): void {
+    const name = value.replace(/\s+/g, ' ');
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') {
+      this.parcelPickupContact.update((contact) => ({ ...contact, name }));
+      this.clearClientDetailsErrors('pickupContact');
+      return;
+    }
+
+    if (modal === 'parcelDropoff') {
+      this.parcelDropoffContact.update((contact) => ({ ...contact, name }));
+      this.clearClientDetailsErrors('dropoffContact');
+    }
+  }
+
+  protected updateActiveParcelContactPhone(value: string): void {
+    const phone = value.replace(/[^\d+ ]/g, '').replace(/\s+/g, ' ');
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') {
+      this.parcelPickupContact.update((contact) => ({ ...contact, phone }));
+      this.clearClientDetailsErrors('pickupContact');
+      return;
+    }
+
+    if (modal === 'parcelDropoff') {
+      this.parcelDropoffContact.update((contact) => ({ ...contact, phone }));
+      this.clearClientDetailsErrors('dropoffContact');
+    }
+  }
+
   protected updateAppointmentDay(value: string): void {
     if (!value) {
       return;
@@ -1228,6 +1393,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
+    if (this.activeDetailsModal() === 'parcelPickup' || this.activeDetailsModal() === 'parcelDropoff') {
+      this.updateActiveParcelAddress(suggestion.label);
+      this.addressSuggestions.set([]);
+      this.isAddressSuggestionsOpen.set(false);
+      return;
+    }
+
     if (this.clientTravelsToProvider()) {
       this.syncAddressForCurrentTravelMode();
       return;
@@ -1244,7 +1416,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected useCurrentLocationForAddress(): void {
-    if (this.clientTravelsToProvider()) {
+    const isParcelAddressModal =
+      this.activeDetailsModal() === 'parcelPickup' || this.activeDetailsModal() === 'parcelDropoff';
+    if (this.clientTravelsToProvider() && !isParcelAddressModal) {
       this.syncAddressForCurrentTravelMode();
       this.feedback.info('La geolocalisation nest pas necessaire: le rendez-vous se fait chez le prestataire.');
       return;
@@ -1289,7 +1463,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       const { latitude, longitude, accuracy } = bestPosition.coords;
       const gpsLabel = this.formatExactGpsLabel(latitude, longitude, accuracy);
 
-      this.address.set(gpsLabel);
+      this.updateActiveParcelAddress(gpsLabel);
       this.addressSuggestions.set([]);
       this.isAddressSuggestionsOpen.set(false);
       this.isLocatingAddress.set(false);
@@ -1341,7 +1515,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       reason: slot.reason || 'Disponible',
       professionalId: service?.profilProfessionnelId || '',
       dateHeure: slot.dateHeure,
-      dureeMinutes: this.durationMinutes,
+      dureeMinutes: this.durationMinutes(),
       withinAvailability: true,
       hasConflict: false,
     });
@@ -1456,10 +1630,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         dateHeure: draft.dateHeure,
         adresseClient: draft.adresseClient,
         dureeMinutes: draft.dureeMinutes,
-        notes: [
+        notes: this.joinLimitedNotes([
           `Montant affiche: ${this.formatAmount(draft.amount)} FCFA.`,
           `Paiement choisi: ${draft.paymentMethod}.`,
-        ].join(' '),
+          ...this.parcelReservationNotes(),
+        ]),
       })
       .subscribe({
         next: (reservation) => {
@@ -1518,13 +1693,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           amount,
           dateHeure: this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? '',
           adresseClient,
-          dureeMinutes: this.durationMinutes,
+          dureeMinutes: this.durationMinutes(),
           paymentMethod: this.selectedPayment(),
         }),
         dateHeure:
           this.toIsoDateTime(this.appointmentDate()) ?? proposal.dateHeureProposee ?? undefined,
         adresseClient: adresseClient || undefined,
-        dureeMinutes: this.durationMinutes,
+        dureeMinutes: this.durationMinutes(),
       })
       .subscribe({
         next: (updatedProposal) => {
@@ -1544,7 +1719,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private createReservationFromAcceptedNegotiation(proposal: NegotiationView): void {
     const dateHeure = proposal.dateHeureProposee || this.toIsoDateTime(this.appointmentDate());
     const adresseClient = this.resolveAppointmentAddress(proposal.adresseClientProposee || '');
-    const dureeMinutes = proposal.dureeMinutesProposee || this.durationMinutes;
+    const dureeMinutes = proposal.dureeMinutesProposee || this.durationMinutes();
 
     if (!dateHeure || !adresseClient) {
       this.isRespondingToCounterOffer.set(false);
@@ -1558,7 +1733,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         dateHeure,
         adresseClient,
         dureeMinutes,
-        notes: `Reservation creee apres acceptation du prix propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,
+        notes: this.buildAcceptedReservationNotes(proposal),
       })
       .subscribe({
         next: (reservation) => {
@@ -1578,6 +1753,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             adresseClient,
             dureeMinutes,
           });
+          this.linkedReservationStatus.set('CONFIRMEE');
+          this.linkedReservationCancellationReason.set(null);
           this.finalizeMaterialQuotesForReservation(proposal, reservationId);
         },
         error: (error) => {
@@ -1623,6 +1800,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected closedNegotiationTitle(proposal: NegotiationView): string {
+    if (this.isLinkedReservationCancelled()) {
+      return this.isProviderProposalMode
+        ? 'Le client a annule la reservation'
+        : 'Reservation annulee';
+    }
+
     if (proposal.statut === 'ANNULEE') {
       return this.isProviderProposalMode
         ? 'Le client a annule la negociation'
@@ -1636,6 +1819,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected closedNegotiationMessage(proposal: NegotiationView): string {
     const serviceName = proposal.service?.nom || this.categoryLabel();
+    if (this.isLinkedReservationCancelled()) {
+      const reason = this.linkedReservationCancellationReason();
+      return this.isProviderProposalMode
+        ? `${this.proposalClientName()} a annule la reservation pour ${serviceName} avant le paiement.${reason ? ` Motif : ${reason}` : ''}`
+        : `Cette reservation pour ${serviceName} a ete annulee avant paiement.${reason ? ` Motif : ${reason}` : ''}`;
+    }
+
     if (proposal.statut === 'ANNULEE') {
       return this.isProviderProposalMode
         ? `${this.proposalClientName()} a annule la negociation pour ${serviceName}. Vous pouvez quitter cet ecran.`
@@ -1673,6 +1863,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       next: (proposal) => {
         const previous = this.pendingProposal();
         this.pendingProposal.set(proposal);
+        this.refreshLinkedReservationStatus(proposal);
         this.loadMaterialQuotes(proposal.id);
         const shouldKeepProviderDraft =
           this.isProviderProposalMode &&
@@ -1827,6 +2018,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     options: { fallbackAmount?: number; syncUrl?: boolean; startRefresh?: boolean } = {},
   ): void {
     this.pendingProposal.set(proposal);
+    this.refreshLinkedReservationStatus(proposal);
     this.selectedServiceId.set(proposal.serviceId);
     this.offerAmount.set(proposal.montantCourant || options.fallbackAmount || 0);
     this.isProviderOfferDirty.set(false);
@@ -1912,15 +2104,107 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return profile?.utilisateur.adresse?.trim() || profile?.ville?.trim() || '';
   }
 
-  private buildProposalMessage(draft: ReservationDraft): string {
+  private createParcelDraft(index: number): ParcelDraft {
+    return {
+      id: `parcel-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${index}`}`,
+      number: this.generateParcelNumber(index),
+      description: '',
+    };
+  }
+
+  private generateParcelNumber(index: number): string {
+    let attempts = 0;
+    let number = '';
+
+    do {
+      const datePart = new Date()
+        .toISOString()
+        .slice(2, 10)
+        .replace(/-/g, '');
+      const randomPart = Math.floor(1000 + Math.random() * 9000);
+      number = `SN-${datePart}-${randomPart}-${String(index).padStart(2, '0')}`;
+      attempts += 1;
+    } while (this.usedParcelNumbers.has(number) && attempts < 12);
+
+    this.usedParcelNumbers.add(number);
+    return number;
+  }
+
+  private parcelReservationNotes(): string[] {
+    if (!this.isParcelDeliveryService()) {
+      return [];
+    }
+
+    const parcelLines = this.parcels()
+      .filter((parcel) => parcel.description.trim())
+      .map((parcel, index) => {
+        const description = parcel.description.trim().replace(/\s+/g, ' ');
+        return `Colis ${index + 1} (${parcel.number}): ${description}.`;
+      });
+    const note = this.parcelNote().trim().replace(/\s+/g, ' ');
+    const pickupContact = this.parcelPickupContact();
+    const dropoffContact = this.parcelDropoffContact();
+
     return [
+      `Type de livraison: ${this.parcelDeliveryType().trim() || this.categoryLabel()}.`,
+      `Expediteur: ${pickupContact.name.trim().replace(/\s+/g, ' ')} - ${pickupContact.phone.trim().replace(/\s+/g, ' ')}.`,
+      `Depart colis: ${this.parcelPickupAddress().trim().replace(/\s+/g, ' ')}.`,
+      `Destinataire: ${dropoffContact.name.trim().replace(/\s+/g, ' ')} - ${dropoffContact.phone.trim().replace(/\s+/g, ' ')}.`,
+      `Arrivee destinataire: ${this.parcelDropoffAddress().trim().replace(/\s+/g, ' ')}.`,
+      ...parcelLines,
+      note ? `Note livraison: ${note}.` : '',
+    ].filter(Boolean);
+  }
+
+  private buildProposalMessage(draft: ReservationDraft): string {
+    const lines = [
       `Service: ${this.customServiceName() || draft.service.nom || this.categoryLabel()}.`,
       `Proposition de prix: ${this.formatAmount(draft.amount)} FCFA.`,
       `Date souhaitee: ${this.formatProposalDate(draft.dateHeure)}.`,
       `Adresse: ${draft.adresseClient}.`,
       `Duree: ${draft.dureeMinutes} minutes.`,
       `Paiement choisi: ${draft.paymentMethod}.`,
-    ].join(' ');
+    ];
+
+    if (this.isParcelDeliveryService()) {
+      lines.push(...this.parcelReservationNotes());
+    }
+
+    return this.joinLimitedNotes(lines);
+  }
+
+  private buildAcceptedReservationNotes(proposal: NegotiationView): string {
+    const parcelNotes = this.parcelReservationNotes();
+    const lines = [
+      `Reservation creee apres acceptation du prix propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,
+      ...parcelNotes,
+    ];
+
+    if (parcelNotes.length === 0) {
+      const parcelMessage = this.extractParcelMessageFromProposal(proposal);
+      if (parcelMessage) {
+        lines.push(parcelMessage);
+      }
+    }
+
+    return this.joinLimitedNotes(lines);
+  }
+
+  private extractParcelMessageFromProposal(proposal: NegotiationView): string {
+    const offer = [...(proposal.propositions ?? [])]
+      .reverse()
+      .find((item) => item.message?.includes('Colis '));
+
+    return offer?.message?.trim().replace(/\s+/g, ' ') ?? '';
+  }
+
+  private joinLimitedNotes(lines: string[], maxLength = 950): string {
+    const text = lines.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    return `${text.slice(0, maxLength - 3).trim()}...`;
   }
 
   private isValidAppointmentDate(): boolean {
@@ -1950,10 +2234,42 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return true;
     }
 
-    return proposal.statut === 'CONVERTIE_EN_RESERVATION' || Boolean(proposal.reservationId);
+    return false;
+  }
+
+  private refreshLinkedReservationStatus(proposal: NegotiationView): void {
+    if (!proposal.reservationId) {
+      this.linkedReservationStatus.set(null);
+      this.linkedReservationCancellationReason.set(null);
+      return;
+    }
+
+    this.proposalService.getReservation(proposal.reservationId).subscribe({
+      next: (reservation) => {
+        this.linkedReservationStatus.set(reservation.statut);
+        this.linkedReservationCancellationReason.set(reservation.raisonAnnulation);
+      },
+      error: () => {
+        this.linkedReservationStatus.set(null);
+        this.linkedReservationCancellationReason.set(null);
+      },
+    });
+  }
+
+  private isLinkedReservationCancelled(): boolean {
+    return this.linkedReservationStatus() === 'ANNULEE';
   }
 
   private validateClientDetailsStep(): boolean {
+    const errors = this.collectClientDetailsErrors(true);
+
+    this.clientDetailsErrors.set(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  private collectClientDetailsErrors(
+    triggerAvailabilityCheck: boolean,
+  ): Partial<Record<ClientDetailsField, string>> {
     const errors: Partial<Record<ClientDetailsField, string>> = {};
     const service = this.currentService();
 
@@ -1972,10 +2288,42 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       const availabilityStatus = this.availabilityStatus();
       if (!availabilityStatus || availabilityStatus.dateHeure !== dateHeure) {
         errors.availability = 'Selectionnez un creneau disponible avant de continuer.';
-        this.checkAvailabilityNow(service, dateHeure);
+        if (triggerAvailabilityCheck) {
+          this.checkAvailabilityNow(service, dateHeure);
+        }
       } else if (!availabilityStatus.available) {
         errors.availability = availabilityStatus.reason || 'Ce creneau nest pas disponible.';
       }
+    }
+
+    if (this.isParcelDeliveryService()) {
+      const describedParcels = this.parcels().filter((parcel) => parcel.description.trim().length >= 3);
+      const pickupAddress = this.parcelPickupAddress().trim().replace(/\s+/g, ' ');
+      const dropoffAddress = this.parcelDropoffAddress().trim().replace(/\s+/g, ' ');
+      const pickupContact = this.parcelPickupContact();
+      const dropoffContact = this.parcelDropoffContact();
+
+      if (describedParcels.length === 0) {
+        errors.parcels = 'Ajoutez au moins un colis avec une description claire.';
+      }
+
+      if (!this.isValidParcelContact(pickupContact)) {
+        errors.pickupContact = "Renseignez le nom et le telephone de l'expediteur.";
+      }
+
+      if (pickupAddress.length < 5 || pickupAddress.length > 180) {
+        errors.pickupAddress = 'Renseignez une adresse de depart entre 5 et 180 caracteres.';
+      }
+
+      if (!this.isValidParcelContact(dropoffContact)) {
+        errors.dropoffContact = 'Renseignez le nom et le telephone du destinataire.';
+      }
+
+      if (dropoffAddress.length < 5 || dropoffAddress.length > 180) {
+        errors.dropoffAddress = "Renseignez une adresse d'arrivee entre 5 et 180 caracteres.";
+      }
+
+      return errors;
     }
 
     const address = this.resolveAppointmentAddress().replace(/\s+/g, ' ');
@@ -1985,8 +2333,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         : 'Renseignez une adresse precise entre 5 et 180 caracteres.';
     }
 
-    this.clientDetailsErrors.set(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
+  }
+
+  private isValidParcelContact(contact: ParcelContactDraft): boolean {
+    const name = contact.name.trim().replace(/\s+/g, ' ');
+    const phoneDigits = contact.phone.replace(/\D/g, '');
+    return name.length >= 2 && name.length <= 120 && phoneDigits.length >= 9 && phoneDigits.length <= 15;
   }
 
   private validateReservationDraft(
@@ -2038,23 +2391,27 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     const adresseClient = (
-      this.clientTravelsToProvider() ? this.providerInterventionAddress() : this.address()
-    )
-      .trim()
-      .replace(/\s+/g, ' ');
+      this.isParcelDeliveryService()
+        ? this.parcelDropoffAddress()
+        : this.clientTravelsToProvider()
+          ? this.providerInterventionAddress()
+          : this.address()
+    ).trim().replace(/\s+/g, ' ');
     if (adresseClient.length < 5 || adresseClient.length > 180) {
       this.feedback.info(
         this.clientTravelsToProvider()
           ? 'Adresse du prestataire non renseignee pour ce service.'
-          : 'Renseignez une adresse precise entre 5 et 180 caracteres.',
+          : this.isParcelDeliveryService()
+            ? "Renseignez une adresse d'arrivee precise entre 5 et 180 caracteres."
+            : 'Renseignez une adresse precise entre 5 et 180 caracteres.',
       );
       return null;
     }
 
     if (
-      !Number.isInteger(this.durationMinutes) ||
-      this.durationMinutes < 15 ||
-      this.durationMinutes > 1440
+      !Number.isInteger(this.durationMinutes()) ||
+      this.durationMinutes() < 15 ||
+      this.durationMinutes() > 1440
     ) {
       this.feedback.info('La duree du rendez-vous est invalide.');
       return null;
@@ -2071,7 +2428,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       amount,
       dateHeure,
       adresseClient,
-      dureeMinutes: this.durationMinutes,
+      dureeMinutes: this.durationMinutes(),
       paymentMethod,
     };
   }
@@ -2102,7 +2459,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .listReservationAvailabilitySlots({
         professionalId: service.profilProfessionnelId,
         date,
-        dureeMinutes: this.durationMinutes,
+        dureeMinutes: this.durationMinutes(),
       })
       .subscribe({
         next: (result) => {
@@ -2141,13 +2498,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
   }
 
+  private serviceDurationMinutes(service: BackendProfessionalDetailService | null): number {
+    const duration = Math.trunc(Number(service?.dureeMinutes));
+    return Number.isInteger(duration) && duration >= 15 && duration <= 1440 ? duration : 60;
+  }
+
   private checkAvailabilityNow(service: BackendProfessionalDetailService, dateHeure: string): void {
     this.isCheckingAvailability.set(true);
     this.proposalService
       .checkReservationAvailability({
         professionalId: service.profilProfessionnelId,
         dateHeure,
-        dureeMinutes: this.durationMinutes,
+        dureeMinutes: this.durationMinutes(),
       })
       .subscribe({
         next: (status) => {
@@ -2162,7 +2524,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             reason: 'Impossible de verifier ce creneau pour le moment.',
             professionalId: service.profilProfessionnelId,
             dateHeure,
-            dureeMinutes: this.durationMinutes,
+            dureeMinutes: this.durationMinutes(),
             withinAvailability: false,
             hasConflict: false,
           });
@@ -2189,7 +2551,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       adresseClient: this.clientTravelsToProvider()
         ? this.providerInterventionAddress()
         : this.address().trim() || (detail ? this.resolveInitialAddress(detail) : ''),
-      dureeMinutes: this.durationMinutes,
+      dureeMinutes: this.durationMinutes(),
       paymentMethod: this.selectedPayment(),
     };
   }

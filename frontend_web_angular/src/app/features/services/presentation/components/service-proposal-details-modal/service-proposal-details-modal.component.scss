@@ -169,6 +169,12 @@
 .details-modal__body--address { display: grid; gap: 16px; }
 .details-modal__address-copy { display: grid; gap: 10px; }
 .details-modal__address-copy p { color: #6d737b; font-size: 12px; line-height: 1.55; margin: 0; }
+.details-modal__parcel-contact { border-top: 1px solid #eceef0; display: grid; gap: 12px; padding-top: 2px; }
+.details-modal__parcel-contact label { display: grid; gap: 7px; }
+.details-modal__parcel-contact span { color: #a1a4a8; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.details-modal__parcel-contact input { background: #fff; border: 1px solid #dfe2e6; border-radius: 11px; color: #111827; font: inherit; font-size: 12px; font-weight: 750; min-height: 42px; outline: 0; padding: 0 12px; width: 100%; }
+.details-modal__parcel-contact input::placeholder { color: #a3a8b0; }
+.details-modal__parcel-contact input:focus { border-color: #5b913f; box-shadow: 0 0 0 3px rgb(91 145 63 / 12%); }
 .details-modal__gps, .details-modal__address-save { align-items: center; border: 0; border-radius: 10px; cursor: pointer; display: inline-flex; font: inherit; font-size: 11px; font-weight: 800; gap: 7px; justify-content: center; min-height: 40px; transition: transform 160ms ease, box-shadow 160ms ease; }
 .details-modal__gps { background: #eef4eb; color: #4e7f36; justify-self: start; padding: 0 14px; }
 .details-modal__gps:hover:not(:disabled) { transform: translateY(-1px); }

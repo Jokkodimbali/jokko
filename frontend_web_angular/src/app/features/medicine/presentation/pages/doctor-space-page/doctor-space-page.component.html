@@ -108,7 +108,7 @@
               <input
                 type="range"
                 min="0"
-                max="15"
+                max="60"
                 step="5"
                 [ngModel]="appointmentPause()"
                 (ngModelChange)="updateAppointmentPause($event)"
@@ -302,16 +302,9 @@
             </header>
 
             <div class="doctor-space__motif-fields">
-              <label class="doctor-space__motif-field doctor-space__motif-field--full">
+              <label class="doctor-space__motif-field">
                 <span>{{ serviceNameLabel() }}</span>
                 <input type="text" name="motifName" [placeholder]="serviceNamePlaceholder()" [(ngModel)]="motifForm.name" required />
-              </label>
-              <label class="doctor-space__motif-field">
-                <span>Dur&eacute;e</span>
-                <span class="doctor-space__motif-input-wrap">
-                  <input type="number" name="motifDuration" min="5" step="5" [(ngModel)]="motifForm.durationMinutes" required />
-                  <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
-                </span>
               </label>
               <label class="doctor-space__motif-field">
                 <span>Tarif (FCFA)</span>
@@ -365,7 +358,6 @@
             <div *ngIf="motifs().length > 0" class="doctor-space__motif-table" role="table" aria-label="Motifs de consultation">
               <div class="doctor-space__motif-table-head" role="row">
                 <span role="columnheader">Motif</span>
-                <span role="columnheader">Dur&eacute;e</span>
                 <span role="columnheader">Tarif</span>
                 <span role="columnheader">Obligatoire</span>
                 <span role="columnheader" aria-label="Actions"></span>
@@ -377,10 +369,6 @@
                     <lucide-icon name="clipboard" size="17" [strokeWidth]="2.1"></lucide-icon>
                   </span>
                   <strong>{{ motif.name }}</strong>
-                </div>
-                <div class="doctor-space__motif-duration" role="cell">
-                  <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
-                  <span>{{ motif.durationMinutes }} min</span>
                 </div>
                 <div class="doctor-space__motif-price" role="cell">
                   <strong>{{ motif.price | number: '1.0-0' }}</strong>
@@ -453,7 +441,7 @@
               </header>
 
               <div class="doctor-space__motif-modal-fields">
-                <label class="doctor-space__motif-field doctor-space__motif-field--full">
+                <label class="doctor-space__motif-field">
                   <span>{{ serviceNameLabel() }}</span>
                   <input
                     type="text"
@@ -462,21 +450,6 @@
                     [(ngModel)]="motifEditForm.name"
                     required
                   />
-                </label>
-
-                <label class="doctor-space__motif-field">
-                  <span>Duree</span>
-                  <span class="doctor-space__motif-input-wrap">
-                    <input
-                      type="number"
-                      name="editMotifDuration"
-                      min="5"
-                      step="5"
-                      [(ngModel)]="motifEditForm.durationMinutes"
-                      required
-                    />
-                    <lucide-icon name="clock-3" size="17" [strokeWidth]="2"></lucide-icon>
-                  </span>
                 </label>
 
                 <label class="doctor-space__motif-field">

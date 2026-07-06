@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsISO8601, IsUUID, Max, Min } from 'class-validator';
+import { IsInt, IsISO8601, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export class ListReservationAvailabilitySlotsQueryDto {
   @IsUUID()
@@ -13,4 +13,11 @@ export class ListReservationAvailabilitySlotsQueryDto {
   @Min(15)
   @Max(1440)
   dureeMinutes!: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(240)
+  pauseMinutes?: number;
 }

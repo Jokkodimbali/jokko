@@ -1,4 +1,4 @@
-<main class="appointment-payment">
+<main class="appointment-payment" [class.appointment-payment--medicine]="isMedicinePaymentFlow()">
   <section class="appointment-payment__topbar" aria-label="Navigation paiement">
     <button
       *ngIf="!isPaymentConfirmed(); else reservationFinalizedLabel"
@@ -53,7 +53,7 @@
             <i><lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon></i>
           </div>
           <div>
-            <small>Prestataire</small>
+            <small>{{ counterpartRoleLabel() }}</small>
             <h2>{{ appointment.doctorName }}</h2>
             <p>
               {{ appointment.specialty || appointment.serviceName }} certifie
@@ -106,7 +106,7 @@
 
       <button type="button" class="appointment-payment__message" (click)="messageProvider()">
         <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-        Message au prestataire
+        {{ messageActionLabel() }}
       </button>
 
       <div class="appointment-payment__confirmed-actions">
@@ -138,8 +138,8 @@
               <lucide-icon name="check" size="17" [strokeWidth]="3"></lucide-icon>
             </i>
           </div>
-          <small>Prestation acceptee</small>
-          <h1>Vous avez accepte l'offre de {{ appointment.doctorName }}</h1>
+          <small>{{ acceptedEyebrowLabel() }}</small>
+          <h1>{{ acceptedTitleLabel() }}</h1>
           <p>Rendez-vous le <strong>{{ acceptedDateTimeLabel() }}</strong></p>
         </header>
 
@@ -181,7 +181,7 @@
 
       <button type="button" class="appointment-payment__message" (click)="messageProvider()">
         <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-        Message au prestataire
+        {{ messageActionLabel() }}
       </button>
 
       <button

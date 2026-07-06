@@ -186,17 +186,8 @@
             class="appointment-detail__upcoming-qr"
             (click)="openQrCodePage(appointment, 'expediteur')"
           >
-            QR code Expediteur
-            <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
-          </button>
-          <button
-            *ngIf="isParcelTransportAppointment(appointment)"
-            type="button"
-            class="appointment-detail__upcoming-qr"
-            (click)="openQrCodePage(appointment, 'destinataire')"
-          >
-            QR code Destinataire
-            <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
+            <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Page de telechargement QR
           </button>
         </section>
       </aside>
@@ -473,6 +464,18 @@
             <lucide-icon name="receipt" size="16" [strokeWidth]="2.4"></lucide-icon>
             Telecharger le recu
           </button>
+          <button
+            *ngIf="isParcelTransportAppointment(appointment)"
+            type="button"
+            class="appointment-detail__client-summary-download appointment-detail__client-summary-download--qr"
+            (click)="openQrCodePage(appointment, 'expediteur')"
+          >
+            <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Page de telechargement QR
+          </button>
+          <p *ngIf="isParcelTransportAppointment(appointment)" class="appointment-detail__client-summary-qr-help">
+            Remettez le QR expediteur avant l'enlevement et le QR destinataire avant la livraison.
+          </p>
         </aside>
 
         <section class="appointment-detail__client-summary-main">
@@ -764,14 +767,6 @@
       >
         <lucide-icon name="clipboard" size="18" [strokeWidth]="2.5"></lucide-icon>
         Ajuster le prix
-      </button>
-      <button
-        type="button"
-        (click)="markNoShow(appointment)"
-        [disabled]="isUpdatingStatus() || !canProviderMarkClientAbsent()"
-      >
-        <lucide-icon name="circle-x" size="18" [strokeWidth]="2.5"></lucide-icon>
-        Absence client
       </button>
     </section>
 
@@ -1135,48 +1130,6 @@
               ></lucide-icon>
             </button>
           </div>
-          <div *ngIf="isProviderViewer() || isRouteActorViewer()" class="appointment-detail__route-provider-actions">
-            <button
-              *ngIf="!isProviderWorking() && !isProviderOnTheWay() && canMarkTravelerOnTheWay()"
-              type="button"
-              class="appointment-detail__route-action appointment-detail__route-action--primary"
-              (click)="markOnTheWay(appointment)"
-              [disabled]="isUpdatingStatus() || !canMarkTravelerOnTheWay()"
-            >
-              <lucide-icon name="send" size="15" [strokeWidth]="2.7"></lucide-icon>
-              {{ clientTravelsToProvider() ? 'Partager ma position' : 'En route' }}
-            </button>
-            <button
-              *ngIf="!isProviderWorking() && canShareTravelerLocation() && isProviderOnTheWay()"
-              type="button"
-              class="appointment-detail__route-action appointment-detail__route-action--secondary"
-              (click)="shareProviderLocation(appointment)"
-              [disabled]="isUpdatingStatus()"
-            >
-              <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.7"></lucide-icon>
-              Partager ma position
-            </button>
-            <button
-              *ngIf="!isProviderWorking() && isRouteActorViewer() && isProviderOnTheWay()"
-              type="button"
-              class="appointment-detail__route-action appointment-detail__route-action--primary"
-              (click)="markTravelerArrived(appointment)"
-              [disabled]="!canTravelerMarkArrived()"
-            >
-              <lucide-icon name="map-pin" size="15" [strokeWidth]="2.8"></lucide-icon>
-              {{ clientTravelsToProvider() ? 'Je suis arrivé' : 'Arrivé' }}
-            </button>
-            <button
-              *ngIf="canShowProviderStartAction()"
-              type="button"
-              class="appointment-detail__route-action appointment-detail__route-action--primary"
-              (click)="startWork(appointment)"
-              [disabled]="isUpdatingStatus() || !canProviderStartWork()"
-            >
-              <lucide-icon name="circle-check" size="15" [strokeWidth]="2.8"></lucide-icon>
-              Commencer
-            </button>
-          </div>
           <a
             *ngIf="isProviderViewer() && !isDoctorViewer()"
             class="appointment-detail__map-external"
@@ -1188,6 +1141,39 @@
             <lucide-icon name="map-pin" size="14" [strokeWidth]="2.3"></lucide-icon>
             Google Maps
           </a>
+        </div>
+        <div
+          *ngIf="!isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation())"
+          class="appointment-detail__map-primary-actions"
+          aria-label="Action principale de trajet"
+        >
+          <button
+            *ngIf="!isProviderOnTheWay() && canMarkTravelerOnTheWay()"
+            type="button"
+            (click)="markOnTheWay(appointment)"
+            [disabled]="isUpdatingStatus() || !canMarkTravelerOnTheWay()"
+          >
+            <lucide-icon name="send" size="16" [strokeWidth]="2.7"></lucide-icon>
+            {{ clientTravelsToProvider() ? 'Partager ma position' : 'Commencer le trajet' }}
+          </button>
+          <button
+            *ngIf="!isProviderWorking() && isRouteActorViewer() && isProviderOnTheWay() && !hasTravelerArrivedAtDestination()"
+            type="button"
+            (click)="markTravelerArrived(appointment)"
+            [disabled]="isUpdatingStatus() || !canTravelerMarkArrived()"
+          >
+            <lucide-icon name="map-pin" size="16" [strokeWidth]="2.8"></lucide-icon>
+            {{ clientTravelsToProvider() ? 'Je suis arrivé' : 'Sur place' }}
+          </button>
+          <button
+            *ngIf="canShowProviderStartAction()"
+            type="button"
+            (click)="startWork(appointment)"
+            [disabled]="isUpdatingStatus() || !canProviderStartWork()"
+          >
+            <lucide-icon name="circle-check" size="16" [strokeWidth]="2.8"></lucide-icon>
+            Commencer la prestation
+          </button>
         </div>
         <div
           *ngIf="isProviderOnTheWay()"
@@ -1378,16 +1364,6 @@
             {{ isAppointmentCompleted() ? 'Signaler litige' : 'Signaler un retard ou empechement' }}
           </button>
 
-          <button
-            *ngIf="isProviderOnTheWay() && !isAppointmentCompleted()"
-            type="button"
-            class="appointment-detail__provider-console-absence"
-            (click)="markNoShow(appointment)"
-            [disabled]="isUpdatingStatus() || !canProviderMarkClientAbsent()"
-          >
-            <lucide-icon name="circle-x" size="15" [strokeWidth]="2.5"></lucide-icon>
-            Absence client
-          </button>
         </aside>
       </ng-template>
     </section>

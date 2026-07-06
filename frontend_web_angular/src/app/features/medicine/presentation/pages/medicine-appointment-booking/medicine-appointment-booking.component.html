@@ -114,7 +114,9 @@
                   </span>
                   <div>
                     <small>Motif du RDV medical</small>
-                    <strong>{{ selectedService() ? selectedServiceSummary() : 'Selectionnez un motif de rdv...' }}</strong>
+                    <strong [class.medicine-booking__field-placeholder]="!selectedService()">
+                      {{ selectedService() ? selectedServiceSummary() : 'Selectionnez un motif de rdv...' }}
+                    </strong>
                   </div>
                   <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
                 </button>
@@ -130,7 +132,9 @@
                   </span>
                   <div>
                     <small>Date & heure d'intervention</small>
-                    <strong>{{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}</strong>
+                    <strong [class.medicine-booking__field-placeholder]="!selectedDateTime()">
+                      {{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}
+                    </strong>
                   </div>
                 </button>
                 <p *ngIf="fieldErrors().schedule" class="medicine-booking__error-text">
@@ -150,7 +154,9 @@
                   </span>
                   <div>
                     <small>Adresse d'intervention</small>
-                    <strong>{{ patientSummaryAddress() || 'Saisir une adresse...' }}</strong>
+                    <strong [class.medicine-booking__field-placeholder]="doctorTravelsToPatient() && !appointmentAddressOverride() && !userAddress()">
+                      {{ patientSummaryAddress() || 'Saisir une adresse...' }}
+                    </strong>
                   </div>
                   <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
                 </button>
@@ -161,7 +167,9 @@
                     </span>
                     <div>
                       <small>Adresse d'intervention</small>
-                      <strong>{{ doctorInterventionAddressLabel() }}</strong>
+                      <strong [class.medicine-booking__field-placeholder]="!doctorInterventionAddress()">
+                        {{ doctorInterventionAddressLabel() }}
+                      </strong>
                     </div>
                   </div>
                 </ng-template>
@@ -179,8 +187,13 @@
             </p>
 
             <footer class="medicine-booking__actions">
-              <button type="button" class="medicine-booking__primary medicine-booking__primary--dark" (click)="goToReservationStep()">
-                Continuer vers la finalisation du rendez-vous
+              <button
+                type="button"
+                class="medicine-booking__primary medicine-booking__primary--dark"
+                [disabled]="!canGoToReservationStep()"
+                (click)="goToReservationStep()"
+              >
+                Finaliser le rendez-vous
                 <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.8"></lucide-icon>
               </button>
             </footer>
@@ -296,16 +309,6 @@
                 <dd>{{ priceLabel() }}</dd>
               </div>
             </dl>
-
-            <button
-              type="button"
-              class="medicine-booking__confirm"
-              [disabled]="activeStep() === 'RESERVATION' && !canConfirm()"
-              (click)="activeStep() === 'PERSONAL' ? goToReservationStep() : confirmAppointment()"
-            >
-              <lucide-icon [name]="activeStep() === 'PERSONAL' ? 'arrow-right' : 'check'" size="20" [strokeWidth]="2.7"></lucide-icon>
-              {{ activeStep() === 'PERSONAL' ? 'Continuer la reservation' : isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
-            </button>
 
             <button type="button" class="medicine-booking__message" (click)="messageDoctor()">
               <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>

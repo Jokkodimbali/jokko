@@ -561,7 +561,7 @@ export class DoctorSpacePageComponent implements OnInit {
     this.progressPercent(this.appointmentDuration(), 0, 90),
   );
   protected readonly pauseProgress = computed(() =>
-    this.progressPercent(this.appointmentPause(), 0, 15),
+    this.progressPercent(this.appointmentPause(), 0, 60),
   );
   protected readonly appointmentStepMinutes = computed(() =>
     this.appointmentDuration() + this.appointmentPause(),
@@ -1799,7 +1799,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected updateAppointmentPause(value: string | number): void {
-    this.appointmentPause.set(this.normalizeMinutes(value, 0, 15));
+    this.appointmentPause.set(this.normalizeMinutes(value, 0, 60));
   }
 
   protected selectTravelMode(mode: ServiceTravelMode): void {
@@ -1913,7 +1913,7 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected addMotif(): void {
     const categoryId = this.motifForm.categoryId || this.resolveMotifCategoryId();
-    const durationMinutes = Number(this.motifForm.durationMinutes);
+    const durationMinutes = this.appointmentDuration();
     const price = Number(this.motifForm.price);
     const name = this.motifForm.name.trim();
 
@@ -1921,9 +1921,9 @@ export class DoctorSpacePageComponent implements OnInit {
       this.feedback.info('Selectionnez une categorie avant d enregistrer ce service.');
       return;
     }
-    if (!name || durationMinutes <= 0 || price <= 0) {
+    if (!name || price <= 0) {
       this.feedback.info(
-        'Renseignez un nom, une duree et un tarif valides.',
+        'Renseignez un nom et un tarif valides.',
       );
       return;
     }
@@ -1979,7 +1979,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected saveEditedMotif(): void {
     const editingMotifId = this.editingMotifId();
     const categoryId = this.motifEditForm.categoryId || this.resolveMotifCategoryId();
-    const durationMinutes = Number(this.motifEditForm.durationMinutes);
+    const durationMinutes = this.appointmentDuration();
     const price = Number(this.motifEditForm.price);
     const name = this.motifEditForm.name.trim();
 
@@ -1987,8 +1987,8 @@ export class DoctorSpacePageComponent implements OnInit {
       this.feedback.info('Selectionnez un service valide avant de modifier.');
       return;
     }
-    if (!name || durationMinutes <= 0 || price <= 0) {
-      this.feedback.info('Renseignez un nom, une duree et un tarif valides.');
+    if (!name || price <= 0) {
+      this.feedback.info('Renseignez un nom et un tarif valides.');
       return;
     }
 

@@ -89,13 +89,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   activeSubCategoryId = signal<string | null>(null);
   categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
-  selectedCity = signal<string>('Dakar');
+  selectedCity = signal<string>('Toutes villes');
   showSearchSuggestions = signal<boolean>(false);
   showLocationMenu = signal<boolean>(false);
   suggestionProviders = signal<Professional[]>([]);
   readonly cityOptions = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack'];
+  protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions]);
   protected readonly locationValue = computed(() => this.selectedCity());
-  protected readonly searchResultsNearLabel = computed(() => `Resultats pres de ${this.selectedCity()}`);
+  protected readonly searchResultsNearLabel = computed(() =>
+    this.effectiveCityFilter()
+      ? `Resultats pres de ${this.selectedCity()}`
+      : 'Resultats dans toutes les villes',
+  );
   protected readonly searchCategorySuggestions = computed<AppSearchCategorySuggestion[]>(() => {
     const providerCounts = new Map<string, number>();
 
@@ -438,6 +443,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.onViewAll(section);
   }
 
+  private effectiveCityFilter(): string | undefined {
+    const city = this.selectedCity().trim();
+    return city && city !== 'Toutes villes' ? city : undefined;
+  }
+
   private loadProfessionals(page: number = 1, appendToSection?: ServiceSection): void {
     const query = this.searchTerm().trim();
     const requestId = ++this.requestVersion;
@@ -492,19 +502,20 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const filter = this.activeFilter();
     const categoryId = this.activeCategoryId() ?? undefined;
     const subCategoryId = this.activeSubCategoryId() ?? undefined;
+    const city = this.effectiveCityFilter();
 
     if (filter === 'ALL') {
-      return this.servicesService.searchUnifiedProfessionals(query, page, 24, this.selectedCity(), categoryId, subCategoryId);
+      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId);
     }
 
-    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, this.selectedCity(), categoryId, subCategoryId);
+    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId);
   }
 
   private loadSearchSuggestions(): void {
     const query = this.searchTerm().trim();
     const requestId = ++this.suggestionRequestVersion;
 
-    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.selectedCity()).subscribe({
+    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter()).subscribe({
       next: (result) => {
         if (requestId !== this.suggestionRequestVersion) {
           return;

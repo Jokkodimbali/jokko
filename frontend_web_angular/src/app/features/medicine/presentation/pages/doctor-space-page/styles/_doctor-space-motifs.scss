@@ -309,7 +309,7 @@
 .doctor-space__motif-row {
   align-items: center;
   display: grid;
-  grid-template-columns: minmax(230px, 1.45fr) minmax(110px, 0.7fr) minmax(130px, 0.7fr) minmax(130px, 0.75fr) 86px;
+  grid-template-columns: minmax(260px, 1.6fr) minmax(140px, 0.8fr) minmax(130px, 0.75fr) 86px;
 }
 
 .doctor-space__motif-table-head {
@@ -335,7 +335,6 @@
 }
 
 .doctor-space__motif-name,
-.doctor-space__motif-duration,
 .doctor-space__motif-price,
 .doctor-space__motif-actions {
   align-items: center;
@@ -358,17 +357,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.doctor-space__motif-duration {
-  color: #111827;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.doctor-space__motif-duration lucide-icon {
-  color: #677386;
 }
 
 .doctor-space__motif-price {

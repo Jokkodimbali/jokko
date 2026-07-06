@@ -188,6 +188,20 @@ export class ReservationCommandService extends ReservationAppService {
           adresseClient: updated.adresseClient,
         },
       );
+      if (requestUser.sub === updated.clientId) {
+        const detailedReservation =
+          await this.reservationsRepository.findDetailedById(updated.id);
+        await this.reservationClientNotificationService.notifyReservationCancelledForProfessional(
+          {
+            reservationId: updated.id,
+            professionalUserId: professional.utilisateur.id,
+            clientName: detailedReservation?.client.nom ?? 'Le client',
+            serviceName: service.nom,
+            dateHeure: updated.dateHeure,
+            reason: updated.raisonAnnulation,
+          },
+        );
+      }
 
       return updated;
     } catch (error) {

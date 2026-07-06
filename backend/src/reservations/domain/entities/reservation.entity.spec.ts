@@ -43,6 +43,31 @@ describe('ReservationEntity', () => {
     );
   });
 
+  it('allows cancelling a confirmed reservation before payment even less than 24 hours before', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: buildFutureDate(2),
+      statut: 'CONFIRMEE',
+    });
+
+    reservation.cancel('Annulation depuis la page de paiement.');
+
+    expect(reservation.toView()).toMatchObject({
+      statut: 'ANNULEE',
+      raisonAnnulation: 'Annulation depuis la page de paiement.',
+    });
+  });
+
+  it('rejects cancelling a paid reservation less than 24 hours before', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: buildFutureDate(2),
+      statut: 'PAYEE_SEQUESTRE',
+    });
+
+    expect(() => reservation.cancel('Trop tard')).toThrow(/24h/i);
+  });
+
   it('requires payment before completing a confirmed reservation', () => {
     const reservation = buildEntity();
 

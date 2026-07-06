@@ -5,7 +5,7 @@
 .medicine-booking {
   background: #eef1f4;
   color: #07111f;
-  font-family: 'Inter', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-app);
   min-height: 100vh;
   padding-bottom: 64px;
 }
@@ -15,7 +15,7 @@
 .medicine-booking select,
 .medicine-booking textarea {
   font: inherit;
-  font-family: 'Inter', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-app);
 }
 
 .medicine-booking__topbar {
@@ -35,7 +35,7 @@
   color: #626b76;
   display: inline-flex;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 650;
   gap: 8px;
 }
 
@@ -86,7 +86,7 @@
   color: #080d16;
   display: inline-flex;
   font-size: 15px;
-  font-weight: 950;
+  font-weight: 700;
   gap: 7px;
   letter-spacing: 0;
 }
@@ -101,7 +101,7 @@
 .medicine-booking__card-head h1 {
   color: #07111f;
   font-size: clamp(25px, 2.1vw, 32px);
-  font-weight: 950;
+  font-weight: 780;
   letter-spacing: 0;
   line-height: 1.1;
   margin: 8px 0 0;
@@ -199,25 +199,30 @@
 }
 
 .medicine-booking__picker-card small {
-  color: #202532;
+  color: #111827;
   display: block;
   font-size: 11px;
-  font-weight: 950;
+  font-weight: 850;
   letter-spacing: 0.04em;
   line-height: 1.15;
   text-transform: uppercase;
 }
 
 .medicine-booking__picker-card strong {
-  color: #1f2937;
+  color: #111827;
   display: block;
   font-size: 16px;
-  font-weight: 750;
+  font-weight: 650;
   line-height: 1.2;
   margin-top: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.medicine-booking__picker-card strong.medicine-booking__field-placeholder {
+  color: #98a2b3;
+  font-weight: 600;
 }
 
 .medicine-booking__fields-grid,
@@ -291,7 +296,7 @@
 .medicine-booking__fixed-price small {
   color: #9aa0ad;
   font-size: 11px;
-  font-weight: 950;
+  font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -300,7 +305,7 @@
   color: #07111f;
   display: block;
   font-size: 15px;
-  font-weight: 950;
+  font-weight: 650;
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
@@ -311,7 +316,7 @@
   color: #07111f;
   display: block;
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 600;
   margin-top: 5px;
   min-height: 24px;
   outline: 0;
@@ -320,7 +325,7 @@
 
 .medicine-booking__field-card--editable input::placeholder {
   color: #a0a5ae;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .medicine-booking__field-feedback {
@@ -334,7 +339,7 @@
   color: #9aa0ad;
   font-size: 11px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 520;
 }
 
 .medicine-booking__field-feedback small {
@@ -357,7 +362,7 @@
   color: #7b8490;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 650;
   min-height: 32px;
   padding: 0 10px;
 }
@@ -412,14 +417,14 @@
 .medicine-booking__input-card input::placeholder,
 .medicine-booking__input-card textarea::placeholder {
   color: #a0a5ae;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .medicine-booking__input-card small,
 .medicine-booking__error-text {
   color: #d1435b;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 650;
   margin: 0;
 }
 
@@ -428,7 +433,7 @@
   color: #64748b;
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 520;
   margin: 0;
 }
 
@@ -442,8 +447,8 @@
   border-radius: 16px;
   cursor: pointer;
   display: inline-flex;
-  font-family: 'Inter', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 950;
+  font-family: var(--font-app);
+  font-weight: 760;
   gap: 10px;
   justify-content: center;
 }
@@ -507,7 +512,7 @@
 .medicine-booking__fixed-price h2 {
   color: #07111f;
   font-size: clamp(24px, 2vw, 32px);
-  font-weight: 950;
+  font-weight: 760;
   margin: 0;
 }
 
@@ -524,7 +529,7 @@
 .medicine-booking__fixed-price strong {
   color: #050505;
   font-size: clamp(48px, 6.6vw, 72px);
-  font-weight: 950;
+  font-weight: 800;
   letter-spacing: 0;
   line-height: 1;
 }
@@ -532,7 +537,7 @@
 .medicine-booking__fixed-price small {
   color: #24a953;
   font-size: 16px;
-  font-weight: 950;
+  font-weight: 650;
   letter-spacing: 0;
   line-height: 1.25;
   text-transform: none;
@@ -633,14 +638,14 @@
 .medicine-booking__detail-row span {
   color: #7b8490;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
 .medicine-booking__detail-row strong {
   color: #07111f;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 620;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -689,7 +694,7 @@
 .medicine-booking__calendar-panel h3,
 .medicine-booking__slot-panel h3 {
   font-size: 19px;
-  font-weight: 950;
+  font-weight: 720;
   margin: 0;
 }
 
@@ -697,7 +702,7 @@
 .medicine-booking__slot-panel p {
   color: #8f96a3;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 520;
   margin: 4px 0 0;
 }
 
@@ -710,7 +715,7 @@
 .medicine-booking__weekday {
   color: #9aa0ad;
   font-size: 10px;
-  font-weight: 950;
+  font-weight: 650;
   text-align: center;
   text-transform: uppercase;
 }
@@ -739,13 +744,13 @@
 
 .medicine-booking__calendar strong {
   font-size: 17px;
-  font-weight: 950;
+  font-weight: 680;
 }
 
 .medicine-booking__calendar span {
   color: #8f96a3;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 560;
   text-transform: uppercase;
 }
 
@@ -754,7 +759,7 @@
   border-radius: 999px;
   color: #008450;
   font-size: 8px;
-  font-weight: 950;
+  font-weight: 650;
   padding: 2px 4px;
   position: absolute;
   right: 3px;
@@ -937,9 +942,9 @@
 }
 
 .medicine-booking__summary-list dd {
-  color: #111827;
+  color: #344054;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 620;
   line-height: 1.25;
   margin: 0;
   overflow: hidden;
@@ -954,7 +959,7 @@
   display: inline-flex;
   font-size: 9px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 650;
   margin: 0;
   padding: 3px 8px;
   width: fit-content;
@@ -965,13 +970,14 @@
   background: #4f8d3a;
   color: #fff;
   min-height: 52px;
-  text-transform: uppercase;
+  font-weight: 760;
+  text-transform: none;
   transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
   width: 100%;
 }
 
 .medicine-booking__message {
-  background: #111827;
+  background: #4f8d3a;
   margin-top: 4px;
 }
 
@@ -983,8 +989,8 @@
 }
 
 .medicine-booking__message:not(:disabled):hover {
-  background: #0f172a;
-  box-shadow: 0 12px 24px rgb(15 23 42 / 20%);
+  background: #477b34;
+  box-shadow: 0 12px 24px rgb(61 108 43 / 25%);
 }
 
 .medicine-booking__help {

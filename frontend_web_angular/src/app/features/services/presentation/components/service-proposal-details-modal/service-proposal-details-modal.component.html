@@ -1,6 +1,6 @@
 <section
   class="details-modal"
-  [class.details-modal--address-expanded]="mode === 'address' && isAddressMapExpanded"
+  [class.details-modal--address-expanded]="isAddressMode && isAddressMapExpanded"
   role="dialog"
   aria-modal="true"
   [attr.aria-label]="mode"
@@ -11,15 +11,15 @@
     (click)="close.emit()"
     aria-label="Fermer"
   ></button>
-  <article class="details-modal__card" [class.details-modal__card--address]="mode === 'address'">
+  <article class="details-modal__card" [class.details-modal__card--address]="isAddressMode">
     <header *ngIf="!isCreatingCustomService">
       <div>
         <small *ngIf="mode === 'service'">Selection</small>
         <small *ngIf="mode === 'schedule'">Calendrier</small>
-        <small *ngIf="mode === 'address'">Localisation</small>
+        <small *ngIf="isAddressMode">Localisation</small>
         <h2 *ngIf="mode === 'service'">Motif de prestation</h2>
         <h2 *ngIf="mode === 'schedule'">Planifier le RDV</h2>
-        <h2 *ngIf="mode === 'address'">Adresse d'intervention</h2>
+        <h2 *ngIf="isAddressMode">{{ addressHeaderTitle }}</h2>
       </div>
       <button type="button" (click)="close.emit()" aria-label="Fermer la modale">
         <lucide-icon name="x" size="19" [strokeWidth]="2.5" />
@@ -139,7 +139,7 @@
     <div
       class="details-modal__body details-modal__body--address"
       [class.details-modal__body--address-expanded]="isAddressMapExpanded"
-      *ngIf="mode === 'address'"
+      *ngIf="isAddressMode"
     >
       <div class="details-modal__address-copy">
         <p>
@@ -159,6 +159,29 @@
           />
           {{ locatingAddress ? 'Localisation...' : 'Utiliser ma position actuelle' }}
         </button>
+      </div>
+
+      <div *ngIf="isParcelAddressMode" class="details-modal__parcel-contact">
+        <label>
+          <span>{{ contactNameLabel }}</span>
+          <input
+            type="text"
+            autocomplete="name"
+            [placeholder]="contactNamePlaceholder"
+            [ngModel]="parcelContactName"
+            (ngModelChange)="parcelContactNameChanged.emit($event)"
+          />
+        </label>
+        <label>
+          <span>{{ contactPhoneLabel }}</span>
+          <input
+            type="tel"
+            autocomplete="tel"
+            [placeholder]="contactPhonePlaceholder"
+            [ngModel]="parcelContactPhone"
+            (ngModelChange)="parcelContactPhoneChanged.emit($event)"
+          />
+        </label>
       </div>
 
       <section class="details-modal__map-panel" aria-label="Selectionner sur la carte">

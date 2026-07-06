@@ -138,6 +138,22 @@ export interface ReservationAvailabilitySlotsView {
   slots: ReservationAvailabilitySlotView[];
 }
 
+export type ProposalReservationStatus =
+  | 'CONFIRMEE'
+  | 'PAYEE_SEQUESTRE'
+  | 'EN_COURS'
+  | 'TERMINEE'
+  | 'ANNULEE'
+  | 'NO_SHOW'
+  | 'LITIGE';
+
+export interface ProposalReservationView {
+  id: string;
+  statut: ProposalReservationStatus;
+  raisonAnnulation: string | null;
+  misAJourLe: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -343,18 +359,30 @@ export class ServiceProposalService {
       );
   }
 
+  getReservation(reservationId: string): Observable<ProposalReservationView> {
+    return this.http
+      .get<ApiResponse<ProposalReservationView>>(`${this.apiUrl}/reservations/${reservationId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   checkReservationAvailability(input: {
     professionalId: string;
     dateHeure: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }): Observable<ReservationAvailabilityView> {
+    const params: Record<string, string> = {
+      professionalId: input.professionalId,
+      dateHeure: input.dateHeure,
+      dureeMinutes: input.dureeMinutes.toString(),
+    };
+    if (typeof input.pauseMinutes === 'number') {
+      params['pauseMinutes'] = input.pauseMinutes.toString();
+    }
+
     return this.http
       .get<ApiResponse<ReservationAvailabilityView>>(`${this.apiUrl}/reservations/availability`, {
-        params: {
-          professionalId: input.professionalId,
-          dateHeure: input.dateHeure,
-          dureeMinutes: input.dureeMinutes.toString(),
-        },
+        params,
       })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
@@ -363,17 +391,21 @@ export class ServiceProposalService {
     professionalId: string;
     date: string;
     dureeMinutes: number;
+    pauseMinutes?: number;
   }): Observable<ReservationAvailabilitySlotsView> {
+    const params: Record<string, string> = {
+      professionalId: input.professionalId,
+      date: input.date,
+      dureeMinutes: input.dureeMinutes.toString(),
+    };
+    if (typeof input.pauseMinutes === 'number') {
+      params['pauseMinutes'] = input.pauseMinutes.toString();
+    }
+
     return this.http
       .get<ApiResponse<ReservationAvailabilitySlotsView>>(
         `${this.apiUrl}/reservations/availability/slots`,
-        {
-          params: {
-            professionalId: input.professionalId,
-            date: input.date,
-            dureeMinutes: input.dureeMinutes.toString(),
-          },
-        },
+        { params },
       )
       .pipe(map((response) => unwrapApiResponse(response)));
   }

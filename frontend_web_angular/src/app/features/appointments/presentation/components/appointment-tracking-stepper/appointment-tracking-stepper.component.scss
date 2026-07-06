@@ -1,12 +1,19 @@
+:host {
+  display: block;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
+}
+
 .appointment-tracking-stepper {
   background: #ffffff;
   border-bottom: 0;
   display: grid;
   gap: 22px;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(760px, 1120px);
+  justify-content: center;
   padding: 0 0 50px;
+  width: 100%;
 }
 
 .appointment-tracking-stepper__back {
@@ -29,16 +36,18 @@
 .appointment-tracking-stepper__rail {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 1120px;
   position: relative;
+  width: 100%;
 }
 
 .appointment-tracking-stepper__line,
 .appointment-tracking-stepper__progress {
   border-radius: 999px;
   height: 2px;
-  left: 8%;
+  left: 4%;
   position: absolute;
-  right: 8%;
+  right: 4%;
   top: 22px;
 }
 
@@ -48,7 +57,7 @@
 
 .appointment-tracking-stepper__progress {
   background: #955d24;
-  max-width: 84%;
+  max-width: 92%;
   right: auto;
   transition: width 0.25s ease;
 }
@@ -101,4 +110,30 @@
 
 .appointment-tracking-stepper__step.is-active strong {
   color: #111827;
+}
+
+@media (max-width: 920px) {
+  .appointment-tracking-stepper {
+    gap: 16px;
+    grid-template-columns: 1fr;
+    padding: 12px 16px 34px;
+  }
+
+  .appointment-tracking-stepper__back {
+    justify-self: start;
+  }
+
+  .appointment-tracking-stepper__rail {
+    max-width: none;
+  }
+
+  .appointment-tracking-stepper__line,
+  .appointment-tracking-stepper__progress {
+    left: 8%;
+    right: 8%;
+  }
+
+  .appointment-tracking-stepper__progress {
+    max-width: 84%;
+  }
 }

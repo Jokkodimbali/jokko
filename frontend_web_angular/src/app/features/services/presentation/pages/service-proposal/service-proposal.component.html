@@ -502,47 +502,51 @@
                   </p>
 
                   <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                    <button
-                      type="button"
-                      class="service-proposal__field"
-                      (click)="openDetailsModal('schedule')"
-                    >
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                      </span>
-                      <span class="service-proposal__field-copy">
-                        <small>Date &amp; heure d'intervention</small>
-                        <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
-                      </span>
-                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                    </button>
-                    <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
-                      {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
-                    </p>
+                    <div class="service-proposal__field-stack">
+                      <button
+                        type="button"
+                        class="service-proposal__field"
+                        (click)="openDetailsModal('schedule')"
+                      >
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span class="service-proposal__field-copy">
+                          <small>Date &amp; heure d'intervention</small>
+                          <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
+                        </span>
+                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                      </button>
+                      <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
+                        {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
+                      </p>
+                    </div>
 
-                    <button
-                      type="button"
-                      class="service-proposal__field"
-                      [class.service-proposal__field--readonly]="clientTravelsToProvider()"
-                      (click)="openDetailsModal('address')"
-                    >
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                      </span>
-                      <span class="service-proposal__field-copy">
-                        <small>{{ appointmentAddressLabel() }}</small>
-                        <strong>{{ shortAddress() }}</strong>
-                      </span>
-                      <lucide-icon
-                        *ngIf="providerTravelsToClient()"
-                        name="pencil"
-                        size="15"
-                        [strokeWidth]="2.2"
-                        ></lucide-icon>
-                    </button>
-                    <p *ngIf="clientDetailsErrors().address" class="service-proposal__field-error">
-                      {{ clientDetailsErrors().address }}
-                    </p>
+                    <div class="service-proposal__field-stack">
+                      <button
+                        type="button"
+                        class="service-proposal__field"
+                        [class.service-proposal__field--readonly]="clientTravelsToProvider()"
+                        (click)="openDetailsModal('address')"
+                      >
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span class="service-proposal__field-copy">
+                          <small>{{ appointmentAddressLabel() }}</small>
+                          <strong>{{ shortAddress() }}</strong>
+                        </span>
+                        <lucide-icon
+                          *ngIf="providerTravelsToClient()"
+                          name="pencil"
+                          size="15"
+                          [strokeWidth]="2.2"
+                          ></lucide-icon>
+                      </button>
+                      <p *ngIf="clientDetailsErrors().address" class="service-proposal__field-error">
+                        {{ clientDetailsErrors().address }}
+                      </p>
+                    </div>
                   </div>
                 </section>
 

@@ -254,10 +254,12 @@ export class MedicineAppointmentBookingComponent implements OnInit {
     const price = Number(this.selectedService()?.prix ?? 0);
     return Number.isFinite(price) ? price : 0;
   });
+  protected readonly canGoToReservationStep = computed(
+    () => Object.keys(this.collectPersonalStepErrors()).length === 0,
+  );
   protected readonly canConfirm = computed(
     () =>
-      Boolean(this.selectedService()) &&
-      Boolean(this.selectedDateTime()) &&
+      this.canGoToReservationStep() &&
       !this.isSubmitting(),
   );
 
@@ -619,6 +621,13 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   }
 
   private validatePersonalStep(): boolean {
+    const errors = this.collectPersonalStepErrors();
+
+    this.fieldErrors.set(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  private collectPersonalStepErrors(): Partial<Record<PatientFormField, string>> {
     const errors: Partial<Record<PatientFormField, string>> = {};
 
     if (!this.selectedService()) {
@@ -646,8 +655,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
         errors.selfAddress = 'Adresse du cabinet non renseignee par ce medecin.';
       }
 
-      this.fieldErrors.set(errors);
-      return Object.keys(errors).length === 0;
+      return errors;
     }
 
     const validation = this.validateRelativePatient(false);
@@ -655,8 +663,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
       Object.assign(errors, validation.errors);
     }
 
-    this.fieldErrors.set(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }
 
   private loadPage(): void {

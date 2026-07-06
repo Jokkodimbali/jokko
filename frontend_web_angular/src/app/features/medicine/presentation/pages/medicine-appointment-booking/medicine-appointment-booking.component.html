@@ -179,8 +179,13 @@
             </p>
 
             <footer class="medicine-booking__actions">
-              <button type="button" class="medicine-booking__primary medicine-booking__primary--dark" (click)="goToReservationStep()">
-                Continuer vers la finalisation du rendez-vous
+              <button
+                type="button"
+                class="medicine-booking__primary medicine-booking__primary--dark"
+                [disabled]="!canGoToReservationStep()"
+                (click)="goToReservationStep()"
+              >
+                Finaliser le rendez-vous
                 <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.8"></lucide-icon>
               </button>
             </footer>
@@ -296,16 +301,6 @@
                 <dd>{{ priceLabel() }}</dd>
               </div>
             </dl>
-
-            <button
-              type="button"
-              class="medicine-booking__confirm"
-              [disabled]="activeStep() === 'RESERVATION' && !canConfirm()"
-              (click)="activeStep() === 'PERSONAL' ? goToReservationStep() : confirmAppointment()"
-            >
-              <lucide-icon [name]="activeStep() === 'PERSONAL' ? 'arrow-right' : 'check'" size="20" [strokeWidth]="2.7"></lucide-icon>
-              {{ activeStep() === 'PERSONAL' ? 'Continuer la reservation' : isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
-            </button>
 
             <button type="button" class="medicine-booking__message" (click)="messageDoctor()">
               <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>

@@ -138,6 +138,22 @@ export interface ReservationAvailabilitySlotsView {
   slots: ReservationAvailabilitySlotView[];
 }
 
+export type ProposalReservationStatus =
+  | 'CONFIRMEE'
+  | 'PAYEE_SEQUESTRE'
+  | 'EN_COURS'
+  | 'TERMINEE'
+  | 'ANNULEE'
+  | 'NO_SHOW'
+  | 'LITIGE';
+
+export interface ProposalReservationView {
+  id: string;
+  statut: ProposalReservationStatus;
+  raisonAnnulation: string | null;
+  misAJourLe: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -341,6 +357,12 @@ export class ServiceProposalService {
         map((response) => unwrapApiResponse(response)),
         tap(() => this.clearProposalsCache()),
       );
+  }
+
+  getReservation(reservationId: string): Observable<ProposalReservationView> {
+    return this.http
+      .get<ApiResponse<ProposalReservationView>>(`${this.apiUrl}/reservations/${reservationId}`)
+      .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   checkReservationAvailability(input: {

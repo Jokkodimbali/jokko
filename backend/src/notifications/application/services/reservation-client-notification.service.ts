@@ -45,6 +45,15 @@ type ReservationProfessionalPriceAdjustmentNotificationInput = {
   proposedPrice: number;
 };
 
+type ReservationProfessionalCancellationNotificationInput = {
+  reservationId: string;
+  professionalUserId: string;
+  clientName: string;
+  serviceName: string;
+  dateHeure: Date;
+  reason?: string | null;
+};
+
 type DispatchResult = {
   status: NotificationDispatchStatus;
   provider?: string;
@@ -178,6 +187,30 @@ export class ReservationClientNotificationService {
     input: ReservationCreatedNotificationInput,
   ): Promise<void> {
     await this.notifyGenericEvent(input, 'RESERVATION_ANNULEE', 'annulee');
+  }
+
+  async notifyReservationCancelledForProfessional(
+    input: ReservationProfessionalCancellationNotificationInput,
+  ): Promise<void> {
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const reason = input.reason?.trim();
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.professionalUserId,
+      type: NOTIFICATION_TYPES.RESERVATION_ANNULEE,
+      title: 'Reservation annulee',
+      body: `${input.clientName} a annule la reservation pour ${input.serviceName} prevue le ${formattedDate}.${reason ? ` Motif : ${reason}` : ''}`,
+      data: {
+        reservationId: input.reservationId,
+        serviceName: input.serviceName,
+        clientName: input.clientName,
+        dateHeure: input.dateHeure.toISOString(),
+        reason: reason ?? null,
+      },
+    });
   }
 
   async notifyReservationCompleted(

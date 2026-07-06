@@ -11,6 +11,10 @@
   padding-bottom: 86px;
 }
 
+.appointment-payment--medicine {
+  background: #f3f5f4;
+}
+
 .appointment-payment__topbar {
   align-items: center;
   background: #ffffff;
@@ -457,11 +461,39 @@
   margin: 8px 0 6px;
 }
 
+.appointment-payment--medicine .appointment-payment__accepted-hero h1 {
+  font-weight: 780;
+}
+
 .appointment-payment__accepted-hero p {
   color: rgba(255, 255, 255, 0.74);
   font-size: 14px;
   font-weight: 650;
   margin: 0;
+}
+
+.appointment-payment--medicine .appointment-payment__accepted-hero p {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 520;
+}
+
+.appointment-payment--medicine .appointment-payment__accepted-hero p strong,
+.appointment-payment--medicine .appointment-payment__receipt-provider h2,
+.appointment-payment--medicine .appointment-payment__receipt-details dd,
+.appointment-payment--medicine .appointment-payment__method strong {
+  font-weight: 680;
+}
+
+.appointment-payment--medicine .appointment-payment__receipt-provider p,
+.appointment-payment--medicine .appointment-payment__receipt-details dt,
+.appointment-payment--medicine .appointment-payment__sms span {
+  color: #667085;
+  font-weight: 500;
+}
+
+.appointment-payment--medicine .appointment-payment__method-card h2 {
+  color: #344054;
+  font-weight: 650;
 }
 
 .appointment-payment__accepted-hero p strong {
@@ -645,6 +677,12 @@
   box-shadow: 0 8px 15px rgba(61, 108, 43, 0.24);
   gap: 10px;
   margin-top: 2px;
+}
+
+.appointment-payment--medicine .appointment-payment__message {
+  background: #4f883a;
+  box-shadow: 0 8px 18px rgba(79, 136, 58, 0.22);
+  font-weight: 760;
 }
 
 .appointment-payment__cancel {

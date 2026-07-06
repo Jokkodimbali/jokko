@@ -61,6 +61,23 @@ export class AppointmentPaymentPageComponent implements OnInit {
     const status = this.appointment()?.status;
     return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS' || status === 'TERMINEE';
   });
+  protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
+  protected readonly counterpartRoleLabel = computed(() =>
+    this.isMedicinePaymentFlow() ? 'Medecin' : 'Prestataire',
+  );
+  protected readonly messageActionLabel = computed(() =>
+    this.isMedicinePaymentFlow() ? 'Message au medecin' : 'Message au prestataire',
+  );
+  protected readonly acceptedEyebrowLabel = computed(() =>
+    this.isMedicinePaymentFlow() ? 'Rendez-vous medical confirme' : 'Prestation acceptee',
+  );
+  protected readonly acceptedTitleLabel = computed(() => {
+    const appointment = this.appointment();
+    const name = appointment?.doctorName || this.counterpartRoleLabel().toLowerCase();
+    return this.isMedicinePaymentFlow()
+      ? `Rendez-vous avec ${name}`
+      : `Vous avez accepte l'offre de ${name}`;
+  });
   protected readonly selectedPaymentOption = computed(
     () =>
       this.paymentOptions.find((option) => option.id === this.selectedMethod()) ??
@@ -231,7 +248,14 @@ export class AppointmentPaymentPageComponent implements OnInit {
         });
       },
       error: (error) => {
-        this.feedback.error(getHttpErrorMessage(error, "Impossible d'ouvrir la discussion avec ce prestataire."));
+        this.feedback.error(
+          getHttpErrorMessage(
+            error,
+            this.isMedicinePaymentFlow()
+              ? "Impossible d'ouvrir la discussion avec ce medecin."
+              : "Impossible d'ouvrir la discussion avec ce prestataire.",
+          ),
+        );
       },
     });
   }

@@ -50,6 +50,17 @@ describe('ReservationCommandService', () => {
       findById: jest
         .fn()
         .mockResolvedValue(overrides?.reservation ?? buildReservation()),
+      findDetailedById: jest.fn().mockResolvedValue({
+        ...(overrides?.reservation ?? buildReservation()),
+        client: {
+          id: 'client-id',
+          nom: 'Client Jokko',
+          numeroTelephone: '+221772345678',
+          email: null,
+          adresse: 'Dakar Plateau',
+          urlAvatar: null,
+        },
+      }),
       update: jest.fn((reservation: Reservation) =>
         Promise.resolve(reservation),
       ),
@@ -97,6 +108,8 @@ describe('ReservationCommandService', () => {
     const reservationClientNotificationService = {
       notifyReservationCreated: jest.fn(),
       notifyReservationConfirmed: jest.fn(),
+      notifyReservationCancelled: jest.fn(),
+      notifyReservationCancelledForProfessional: jest.fn(),
       notifyPriceAdjustmentProposed: jest.fn(),
     };
     const disputesFacade = {};
@@ -183,6 +196,27 @@ describe('ReservationCommandService', () => {
       }),
     );
     expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('lets the client cancel an unpaid confirmed reservation from the payment page', async () => {
+    const { service, reservationsRepository } = buildService({
+      reservation: buildReservation({
+        statut: 'CONFIRMEE',
+        dateHeure: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      }),
+    });
+
+    const result = await service.cancelReservation(clientUser, 'reservation-id', {
+      reason: 'Annulation demandee depuis la page de paiement.',
+    });
+
+    expect(result.statut).toBe('ANNULEE');
+    expect(result.raisonAnnulation).toBe(
+      'Annulation demandee depuis la page de paiement.',
+    );
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'ANNULEE' }),
+    );
   });
 
   it('rejects no-show transition when the professional does not own the reservation', async () => {

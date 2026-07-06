@@ -482,6 +482,167 @@
               </div>
 
               <ng-container *ngIf="clientBookingStep() === 'DETAILS'; else clientPriceStep">
+                <ng-container *ngIf="isParcelDeliveryService(); else standardBookingDetails">
+                  <section class="service-proposal__booking-details service-proposal__parcel-booking" aria-label="Details de la livraison">
+                    <button
+                      type="button"
+                      class="service-proposal__service-field service-proposal__service-field--parcel"
+                      (click)="openDetailsModal('service')"
+                    >
+                      <span class="service-proposal__field-icon">
+                        <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
+                      </span>
+                      <span>
+                        <small>Type de livraison</small>
+                        <strong>{{ parcelDeliveryType() || 'Selectionnez le type de livraison ...' }}</strong>
+                      </span>
+                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                    </button>
+                    <div class="service-proposal__parcel-type-options" aria-label="Types de livraison">
+                      <button
+                        type="button"
+                        [class.service-proposal__parcel-chip--active]="parcelDeliveryType() === 'Livraison standard'"
+                        (click)="updateParcelDeliveryType('Livraison standard')"
+                      >
+                        Standard
+                      </button>
+                      <button
+                        type="button"
+                        [class.service-proposal__parcel-chip--active]="parcelDeliveryType() === 'Livraison express'"
+                        (click)="updateParcelDeliveryType('Livraison express')"
+                      >
+                        Express
+                      </button>
+                      <button
+                        type="button"
+                        [class.service-proposal__parcel-chip--active]="parcelDeliveryType() === 'Documents sensibles'"
+                        (click)="updateParcelDeliveryType('Documents sensibles')"
+                      >
+                        Documents
+                      </button>
+                    </div>
+                    <p *ngIf="clientDetailsErrors().parcelType" class="service-proposal__field-error service-proposal__field-error--full">
+                      {{ clientDetailsErrors().parcelType }}
+                    </p>
+
+                    <section class="service-proposal__parcel-card" aria-label="Description des colis">
+                      <header>
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <h2>Description des colis <b>{{ parcels().length }} colis</b></h2>
+                        <lucide-icon name="chevron-down" size="16" [strokeWidth]="2.5"></lucide-icon>
+                      </header>
+
+                      <div class="service-proposal__parcel-table" role="table" aria-label="Liste des colis">
+                        <div class="service-proposal__parcel-head" role="row">
+                          <span>N de colis</span>
+                          <span>Apercu</span>
+                          <span>Description & dimensions</span>
+                          <span>Action</span>
+                        </div>
+                        <div *ngFor="let parcel of parcels(); trackBy: trackByParcelId" class="service-proposal__parcel-row" role="row">
+                          <strong>{{ parcel.number }}</strong>
+                          <span class="service-proposal__parcel-preview">
+                            <lucide-icon name="package" size="18" [strokeWidth]="2.1"></lucide-icon>
+                            Colis
+                          </span>
+                          <input
+                            type="text"
+                            [ngModel]="parcel.description"
+                            (ngModelChange)="updateParcelDescription(parcel.id, $event)"
+                            placeholder="ex : Carton lourd d'imprimantes ..."
+                          />
+                          <button type="button" aria-label="Supprimer ce colis" (click)="removeParcel(parcel.id)">
+                            <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
+                          </button>
+                        </div>
+                      </div>
+
+                      <button type="button" class="service-proposal__parcel-add" (click)="addParcel()">
+                        <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+                        Ajouter un colis
+                      </button>
+                    </section>
+                    <p *ngIf="clientDetailsErrors().parcels" class="service-proposal__field-error service-proposal__field-error--full">
+                      {{ clientDetailsErrors().parcels }}
+                    </p>
+
+                    <div class="service-proposal__fields service-proposal__fields--parcel">
+                      <div class="service-proposal__field-stack">
+                        <button type="button" class="service-proposal__field" (click)="openDetailsModal('schedule')">
+                          <span class="service-proposal__field-icon">
+                            <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
+                          </span>
+                          <span class="service-proposal__field-copy">
+                            <small>Date & heure de retrait colis</small>
+                            <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
+                          </span>
+                          <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                        </button>
+                        <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
+                          {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
+                        </p>
+                      </div>
+
+                      <label class="service-proposal__field service-proposal__field--input">
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon name="file-text" size="16" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span class="service-proposal__field-copy">
+                          <small>Note utile pour la livraison</small>
+                          <input
+                            type="text"
+                            [ngModel]="parcelNote()"
+                            (ngModelChange)="updateParcelNote($event)"
+                            placeholder="Remplissez la note utile pour la livraison..."
+                          />
+                        </span>
+                      </label>
+
+                      <label class="service-proposal__field service-proposal__field--input">
+                        <span class="service-proposal__field-icon service-proposal__field-icon--pickup">
+                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span class="service-proposal__field-copy">
+                          <small>Depart</small>
+                          <input
+                            type="text"
+                            [ngModel]="parcelPickupAddress()"
+                            (ngModelChange)="updateParcelPickupAddress($event)"
+                            placeholder="Choisir l'adresse de depart et l'expediteur"
+                          />
+                        </span>
+                      </label>
+
+                      <label class="service-proposal__field service-proposal__field--input">
+                        <span class="service-proposal__field-icon service-proposal__field-icon--dropoff">
+                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span class="service-proposal__field-copy">
+                          <small>Arrivee</small>
+                          <input
+                            type="text"
+                            [ngModel]="parcelDropoffAddress()"
+                            (ngModelChange)="updateParcelDropoffAddress($event)"
+                            placeholder="Choisir l'adresse d'arrivee et le destinataire"
+                          />
+                        </span>
+                      </label>
+                    </div>
+
+                    <div class="service-proposal__parcel-errors">
+                      <p *ngIf="clientDetailsErrors().pickupAddress" class="service-proposal__field-error">
+                        {{ clientDetailsErrors().pickupAddress }}
+                      </p>
+                      <p *ngIf="clientDetailsErrors().dropoffAddress" class="service-proposal__field-error">
+                        {{ clientDetailsErrors().dropoffAddress }}
+                      </p>
+                    </div>
+                  </section>
+                </ng-container>
+
+                <ng-template #standardBookingDetails>
                 <section class="service-proposal__booking-details" aria-label="Details du rendez-vous">
                   <button
                     type="button"
@@ -549,13 +710,15 @@
                     </div>
                   </div>
                 </section>
+                </ng-template>
 
                 <button
                   type="button"
                   class="service-proposal__submit service-proposal__submit--dark"
+                  [disabled]="!canGoToClientPriceStep()"
                   (click)="goToClientPriceStep()"
                 >
-                  Continuer vers la finalisation
+                  {{ isParcelDeliveryService() ? 'Continuer vers la finalisation de la livraison' : 'Continuer vers la finalisation' }}
                   <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
                 </button>
               </ng-container>
@@ -908,7 +1071,17 @@
                   <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
                 </span>
                 <p>
-                  <small>Heure d'intervention</small><strong>{{ formattedTime() }}</strong>
+                  <small>{{ isParcelDeliveryService() ? 'Heure de retrait colis' : "Heure d'intervention" }}</small><strong>{{ formattedTime() }}</strong>
+                </p>
+              </div>
+
+              <div *ngIf="isParcelDeliveryService()" class="service-proposal__summary-row service-proposal__summary-row--pickup">
+                <span>
+                  <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
+                </span>
+                <p>
+                  <small>Depart colis</small>
+                  <strong>{{ parcelPickupAddress() || '(VIDE)' }}</strong>
                 </p>
               </div>
 
@@ -918,8 +1091,8 @@
                 </span>
                 <p>
                   <small>{{ appointmentAddressLabel() }}</small>
-                  <strong>{{ shortAddress() }}</strong>
-                  <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
+                  <strong>{{ isParcelDeliveryService() ? parcelDropoffAddress() || '(VIDE)' : shortAddress() }}</strong>
+                  <em *ngIf="!isParcelDeliveryService()">{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
                 </p>
               </div>
 

@@ -264,8 +264,12 @@ export class ReservationEntity {
       throw ReservationDomainError.alreadyClosed();
     }
 
-    if (!this.canBeCancelled()) {
+    if (!CANCELLABLE_RESERVATION_STATUSES.has(this._statut)) {
       throw ReservationDomainError.cannotCancel();
+    }
+
+    if (this.requiresCancellationNotice() && !this.isMoreThanHoursBefore(24)) {
+      throw ReservationDomainError.cancellationTooLate();
     }
 
     const normalizedReason = ReservationEntity.normalizeText(reason);
@@ -458,15 +462,12 @@ export class ReservationEntity {
     return FINALIZED_RESERVATION_STATUSES.has(this._statut);
   }
 
-  private canBeCancelled(): boolean {
-    return (
-      CANCELLABLE_RESERVATION_STATUSES.has(this._statut) &&
-      this.isMoreThanHoursBefore(24)
-    );
-  }
-
   private canBeCompleted(): boolean {
     return this._statut === 'EN_COURS';
+  }
+
+  private requiresCancellationNotice(): boolean {
+    return this._statut !== 'CONFIRMEE';
   }
 
   private canBeMarkedNoShow(): boolean {

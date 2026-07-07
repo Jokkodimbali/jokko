@@ -110,12 +110,15 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return this.categories()
-      .map((category) => ({
+      .map((category, index) => ({
         id: category.id,
         name: category.nom,
         count: providerCounts.get(this.normalizeLabel(category.nom)) ?? category.subCategories.length,
         icon: this.categoryIcon(category.nom),
-      }));
+        priority: this.categorySuggestionPriority(category.nom, index),
+      }))
+      .sort((current, next) => current.priority - next.priority)
+      .map(({ priority: _priority, ...category }) => category);
   });
   protected readonly searchProviderSuggestions = computed<AppSearchProviderSuggestion[]>(() =>
     this.suggestionProviders().slice(0, 3).map((provider) => ({
@@ -669,6 +672,19 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
+  }
+
+  private categorySuggestionPriority(categoryName: string, index: number): number {
+    const normalized = this.normalizeLabel(categoryName);
+    if (
+      normalized.includes('medec') ||
+      normalized.includes('sante') ||
+      normalized.includes('sant')
+    ) {
+      return -1000;
+    }
+
+    return index;
   }
 
   private categoryIcon(categoryName: string): string {

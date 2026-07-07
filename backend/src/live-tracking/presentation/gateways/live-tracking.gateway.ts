@@ -132,6 +132,44 @@ export class LiveTrackingGateway
     };
   }
 
+  @SubscribeMessage('professional.availability.subscribe')
+  async handleAvailabilitySubscribe(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { professionalId: string },
+  ) {
+    const user = this.getSocketUser(client);
+    if (!user || !this.isValidIdentifier(payload?.professionalId)) {
+      client.disconnect();
+      return;
+    }
+
+    await client.join(this.buildProfessionalRoom(payload.professionalId));
+
+    return {
+      event: 'professional.availability.subscribed',
+      data: { professionalId: payload.professionalId },
+    };
+  }
+
+  @SubscribeMessage('professional.availability.unsubscribe')
+  async handleAvailabilityUnsubscribe(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { professionalId: string },
+  ) {
+    if (!this.isValidIdentifier(payload?.professionalId)) {
+      return {
+        event: 'professional.availability.error',
+        data: { code: 'PROFESSIONAL_ID_INVALID' },
+      };
+    }
+
+    await client.leave(this.buildProfessionalRoom(payload.professionalId));
+    return {
+      event: 'professional.availability.unsubscribed',
+      data: { professionalId: payload.professionalId },
+    };
+  }
+
   @SubscribeMessage('tracking.location.update')
   async handleLocationUpdate(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -180,6 +218,17 @@ export class LiveTrackingGateway
     this.server
       .to(this.buildProfessionalRoom(payload.professionalId))
       .emit('professional.presence.updated', payload);
+  }
+
+  @OnEvent('professional.availability.changed')
+  handleProfessionalAvailabilityChanged(payload: {
+    professionalId: string;
+    changedAt: string;
+    reason: 'availability' | 'service';
+  }): void {
+    this.server
+      .to(this.buildProfessionalRoom(payload.professionalId))
+      .emit('professional.availability.changed', payload);
   }
 
   @OnEvent('tracking.provider.assigned')

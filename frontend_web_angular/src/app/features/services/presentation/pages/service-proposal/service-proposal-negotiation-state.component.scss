@@ -675,9 +675,10 @@
 
 .service-proposal__provider-offer {
   align-items: center;
-  background: #d7f7eb;
+  background: #ffffff;
+  border: 1px solid #e3e8ef;
   border-radius: 14px;
-  color: #0f8c60;
+  color: #111827;
   display: flex;
   justify-content: space-between;
   margin-top: 12px;
@@ -686,6 +687,7 @@
 }
 
 .service-proposal__provider-offer strong {
+  color: #111827;
   display: block;
   font-size: 19px;
   font-weight: 950;
@@ -697,9 +699,20 @@
   font-style: normal;
 }
 
+.service-proposal__provider-offer span > em {
+  color: #7b8492;
+  display: block;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
 .service-proposal__provider-offer lucide-icon {
-  background: rgba(15, 140, 96, 0.12);
+  background: #f3f6fa;
   border-radius: 50%;
+  color: #955d24;
   padding: 8px;
 }
 

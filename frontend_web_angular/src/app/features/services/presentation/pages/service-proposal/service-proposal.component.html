@@ -359,16 +359,9 @@
               <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
             </span>
             <p>
-              <small>Prix initial</small><strong>{{ providerBaseOfferLabel() }} FCFA</strong>
-            </p>
-          </div>
-
-          <div class="service-proposal__provider-offer">
-            <span>
               <small>{{ providerSummaryPriceLabel() }}</small>
-              <strong>{{ providerSummaryAmountLabel() }} <em>FCFA</em></strong>
-            </span>
-            <lucide-icon name="circle-dollar-sign" size="20" [strokeWidth]="2.3"></lucide-icon>
+              <strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
+            </p>
           </div>
         </aside>
         </ng-template>
@@ -1099,23 +1092,17 @@
                   <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
                 </span>
                 <p>
-                  <small>Prix negocie</small><strong>{{ formattedOffer() }} FCFA</strong>
+                  <small>Prix equitable du service</small><strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
+                  <em *ngIf="isParcelDeliveryService()">{{ parcelPriceBasisLabel() }}</em>
                 </p>
               </div>
 
-              <div class="service-proposal__provider-offer">
-                <span>
-                  <small>Offre du prestataire</small>
-                  <strong>{{ formattedOffer() }} <em>FCFA</em></strong>
-                </span>
-                <lucide-icon name="circle-dollar-sign" size="20" [strokeWidth]="2.3"></lucide-icon>
-              </div>
-
-              <button type="button" class="service-proposal__message" (click)="messageProvider()">
-                <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-                Message au prestataire
-              </button>
             </section>
+
+            <button type="button" class="service-proposal__message" (click)="messageProvider()">
+              <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+              Message au prestataire
+            </button>
 
             <section class="service-proposal__help-card" aria-label="Fonctionnement">
               <h2>
@@ -1371,6 +1358,7 @@
     (dayChanged)="updateAppointmentDay($event)"
     (slotSelected)="selectAvailabilitySlot($event)"
     (addressChanged)="updateActiveParcelAddress($event)"
+    (addressResolved)="updateActiveParcelAddressFromMap($event)"
     (parcelContactNameChanged)="updateActiveParcelContactName($event)"
     (parcelContactPhoneChanged)="updateActiveParcelContactPhone($event)"
     (suggestionSelected)="selectAddressSuggestion($event)"

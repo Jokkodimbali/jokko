@@ -71,6 +71,7 @@ describe('ReservationQueryService', () => {
     ).toHaveBeenCalledTimes(1);
     expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
       clientId: clientUser.sub,
+      excludeStatuses: ['CONFIRMEE'],
     });
     expect(
       reservationsRepository.syncOverdueReservations.mock
@@ -80,7 +81,7 @@ describe('ReservationQueryService', () => {
     );
   });
 
-  it('lists all provider reservations without applying a status filter by default', async () => {
+  it('lists provider reservations without unpaid reservations by default', async () => {
     const { service, reservationsRepository, professionalsRepository } =
       buildService();
 
@@ -91,6 +92,7 @@ describe('ReservationQueryService', () => {
     );
     expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
       professionalId: 'professional-id',
+      excludeStatuses: ['CONFIRMEE'],
     });
   });
 

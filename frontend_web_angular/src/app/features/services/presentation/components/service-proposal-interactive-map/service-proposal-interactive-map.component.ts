@@ -43,6 +43,11 @@ type AddressSuggestion = {
   prediction: GoogleMapsPlacePrediction;
 };
 
+export type ServiceProposalMapAddressSelection = {
+  address: string;
+  coordinate: GoogleMapsCoordinate;
+};
+
 @Component({
   selector: 'app-service-proposal-interactive-map',
   standalone: true,
@@ -56,6 +61,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   @Input() address = '';
   @Input() expanded = false;
   @Output() readonly addressSelected = new EventEmitter<string>();
+  @Output() readonly addressResolved = new EventEmitter<ServiceProposalMapAddressSelection>();
   @Output() readonly expandedChange = new EventEmitter<boolean>();
 
   protected searchQuery = '';
@@ -157,7 +163,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
         this.placeMarker(result.latitude, result.longitude);
         this.map?.setCenter(this.toGooglePoint(result));
         this.map?.setZoom(16);
-        this.applyAddress(result.formattedAddress);
+        this.applyAddress(result.formattedAddress, result);
         this.geocodingStatus = this.statusLabel(result.formattedAddress);
       },
       error: () => {
@@ -343,7 +349,10 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       this.placeMarker(location.lat(), location.lng());
       this.map?.setCenter({ lat: location.lat(), lng: location.lng() });
       this.map?.setZoom(16);
-      this.applyAddress(address);
+      this.applyAddress(address, {
+        latitude: location.lat(),
+        longitude: location.lng(),
+      });
       this.geocodingStatus = this.statusLabel(address);
     });
   }
@@ -352,13 +361,16 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     this.placeMarker(lat, lng);
     const coordinates = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     this.searchQuery = coordinates;
-    this.applyAddress(coordinates);
+    this.applyAddress(coordinates, { latitude: lat, longitude: lng });
     this.geocodingStatus = 'Coordonnees GPS selectionnees';
   }
 
-  private applyAddress(value: string): void {
+  private applyAddress(value: string, coordinate?: GoogleMapsCoordinate): void {
     this.searchQuery = value;
     this.addressSelected.emit(value);
+    if (coordinate) {
+      this.addressResolved.emit({ address: value, coordinate });
+    }
   }
 
   private statusLabel(value: string): string {

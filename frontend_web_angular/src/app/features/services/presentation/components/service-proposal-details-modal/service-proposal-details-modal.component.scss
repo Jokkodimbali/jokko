@@ -121,6 +121,8 @@
 .details-modal__custom-service div, .details-modal__service div { display: grid; gap: 5px; min-width: 0; }
 .details-modal__custom-service strong, .details-modal__service strong { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
 .details-modal__custom-service small { color: #9b9b9b; font-size: 9px; font-weight: 700; }
+.details-modal__service-price { color: #06955f; font-size: 10px; font-weight: 900; letter-spacing: 0; text-transform: none; }
+.details-modal__service.active .details-modal__service-price { color: #bff7da; }
 .details-modal__custom-service em { background: #e6fbf2; border-radius: 999px; color: #08a66c; font-size: 9px; font-style: normal; font-weight: 900; padding: 5px 10px; }
 .details-modal__service-separator { background: #111; height: 1px; margin: 4px 0; width: 100%; }
 

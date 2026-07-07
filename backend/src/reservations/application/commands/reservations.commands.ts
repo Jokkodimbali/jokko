@@ -51,6 +51,7 @@ export type ReservationFilters = {
   professionalId?: string;
   serviceId?: string;
   status?: string;
+  excludeStatuses?: string[];
   startDate?: Date;
   endDate?: Date;
   search?: string;

@@ -31,6 +31,7 @@ export interface ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -40,6 +41,7 @@ export interface ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -51,8 +53,10 @@ export interface ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
+    search?: string;
   }): Promise<number>;
   hasTimeSlotConflict(input: {
     professionalId: string;

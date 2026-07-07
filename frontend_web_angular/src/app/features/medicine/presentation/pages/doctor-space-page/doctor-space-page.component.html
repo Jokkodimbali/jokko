@@ -307,9 +307,9 @@
                 <input type="text" name="motifName" [placeholder]="serviceNamePlaceholder()" [(ngModel)]="motifForm.name" required />
               </label>
               <label class="doctor-space__motif-field">
-                <span>Tarif (FCFA)</span>
+                <span>{{ servicePriceFieldLabel() }}</span>
                 <span class="doctor-space__motif-input-wrap">
-                  <input type="number" name="motifPrice" min="1" step="500" [(ngModel)]="motifForm.price" required />
+                  <input type="number" name="motifPrice" min="1" [step]="servicePriceFieldStep()" [(ngModel)]="motifForm.price" required />
                   <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
                 </span>
                 <small>{{ servicePriceHelp() }}</small>
@@ -372,7 +372,7 @@
                 </div>
                 <div class="doctor-space__motif-price" role="cell">
                   <strong>{{ motif.price | number: '1.0-0' }}</strong>
-                  <span>FCFA</span>
+                  <span>{{ motifPriceUnitLabel(motif) }}</span>
                 </div>
                 <div class="doctor-space__motif-required-cell" role="cell">
                   <button
@@ -453,19 +453,19 @@
                 </label>
 
                 <label class="doctor-space__motif-field">
-                  <span>Tarif (FCFA)</span>
+                  <span>{{ editServicePriceFieldLabel() }}</span>
                   <span class="doctor-space__motif-input-wrap">
                     <input
                       type="number"
                       name="editMotifPrice"
                       min="1"
-                      step="500"
+                      [step]="editServicePriceFieldStep()"
                       [(ngModel)]="motifEditForm.price"
                       required
                     />
                     <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
                   </span>
-                  <small>{{ servicePriceHelp() }}</small>
+                  <small>{{ editServicePriceHelp() }}</small>
                 </label>
 
                 <div class="doctor-space__motif-required-card">

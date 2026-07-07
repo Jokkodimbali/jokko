@@ -627,6 +627,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -647,6 +648,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -673,6 +675,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -744,6 +747,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     professionalId?: string;
     serviceId?: string;
     status?: string;
+    excludeStatuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -764,6 +768,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
 
     if (filters.status) {
       where.statut = filters.status as $Enums.StatutReservation;
+    } else if (filters.excludeStatuses?.length) {
+      where.statut = {
+        notIn: filters.excludeStatuses as $Enums.StatutReservation[],
+      };
     }
 
     if (filters.startDate || filters.endDate) {
@@ -809,7 +817,6 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
 
   private requiresTimeSlot(status: ReservationStatus): boolean {
     return (
-      status === 'CONFIRMEE' ||
       status === 'PAYEE_SEQUESTRE' ||
       status === 'EN_COURS'
     );

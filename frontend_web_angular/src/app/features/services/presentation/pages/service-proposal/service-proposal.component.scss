@@ -1087,6 +1087,19 @@
   width: 100%;
 }
 
+.service-proposal__submit--counter {
+  background: #ffffff;
+  border: 2px solid #4f883a;
+  box-shadow: none;
+  color: #4f883a;
+}
+
+.service-proposal__submit--counter:not(:disabled):hover {
+  background: #eef8e9;
+  box-shadow: 0 10px 22px rgba(61, 108, 43, 0.14);
+  color: #3f742e;
+}
+
 .service-proposal__submit:disabled {
   cursor: wait;
   opacity: 0.72;

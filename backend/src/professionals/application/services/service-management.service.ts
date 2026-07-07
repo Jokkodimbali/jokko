@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TypePrix } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
+import {
+  PROFESSIONALS_REPOSITORY_PORT,
+  type ProfessionalsRepositoryPort,
+} from '../ports/professionals-repository.port';
 import type {
   CreateProfessionalServiceCommand,
   UpdateProfessionalServiceCommand,
@@ -10,6 +15,14 @@ import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
 export class ServiceManagementService extends ProfessionalAppService {
+  constructor(
+    @Inject(PROFESSIONALS_REPOSITORY_PORT)
+    professionalsRepository: ProfessionalsRepositoryPort,
+    private readonly realtimeEvents: EventEmitter2,
+  ) {
+    super(professionalsRepository);
+  }
+
   async createService(
     requestUser: AuthUser,
     command: CreateProfessionalServiceCommand,
@@ -36,6 +49,10 @@ export class ServiceManagementService extends ProfessionalAppService {
       throw appHttpException('PROFESSIONALS_CATEGORY_NOT_FOUND');
     }
 
+    this.emitAvailabilityChanged(
+      result.service.profilProfessionnelId,
+      'service',
+    );
     return result.service;
   }
 
@@ -67,6 +84,10 @@ export class ServiceManagementService extends ProfessionalAppService {
       throw appHttpException('PROFESSIONALS_SERVICE_NOT_FOUND');
     }
 
+    this.emitAvailabilityChanged(
+      result.service.profilProfessionnelId,
+      'service',
+    );
     return result.service;
   }
 
@@ -84,6 +105,10 @@ export class ServiceManagementService extends ProfessionalAppService {
     if (result.status === 'service_not_found') {
       throw appHttpException('PROFESSIONALS_SERVICE_NOT_FOUND');
     }
+    this.emitAvailabilityChanged(
+      result.service.profilProfessionnelId,
+      'service',
+    );
     return result.service;
   }
 
@@ -97,5 +122,16 @@ export class ServiceManagementService extends ProfessionalAppService {
     const profile = await this.ensureProfessionalProfile(requestUser.sub);
 
     return this.professionalsRepository.listServices(profile.id);
+  }
+
+  private emitAvailabilityChanged(
+    professionalId: string,
+    reason: 'availability' | 'service',
+  ): void {
+    this.realtimeEvents.emit('professional.availability.changed', {
+      professionalId,
+      changedAt: new Date().toISOString(),
+      reason,
+    });
   }
 }

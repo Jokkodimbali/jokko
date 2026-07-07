@@ -840,7 +840,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return this.navigationInstruction().instruction;
     }
     if (this.clientTravelsToProvider()) {
-      return 'Le client doit partager sa position puis arriver a destination avant le demarrage.';
+      return 'En attente du client. Il doit partager sa position pour que vous puissiez voir son deplacement sur la carte et commencer la prestation.';
     }
     return 'Activez le trajet le jour du rendez-vous pour partager votre position au client.';
   });
@@ -884,7 +884,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.clientTravelsToProvider()) {
         return this.hasTravelerArrivedAtDestination()
           ? 'Commencer la prestation'
-          : 'Client en route';
+          : 'Client en deplacement';
       }
       return 'Je suis arrive sur place';
     }
@@ -950,7 +950,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     if (this.isAppointmentCompleted()) return 'Termine';
     if (this.isProviderWorking()) return 'Travaux en cours';
-    if (this.isProviderOnTheWay()) return 'En route vers vous';
+    if (this.isProviderOnTheWay()) {
+      return this.clientTravelsToProvider() ? 'Vous êtes en déplacement' : 'En route vers vous';
+    }
+    if (this.clientTravelsToProvider()) {
+      return 'Partager votre position';
+    }
     return 'Intervention confirmee';
   });
   protected readonly clientTrackingDescription = computed(() => {
@@ -976,7 +981,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return `L'intervention est en cours. Le ${this.providerRoleLabel()} repare actuellement votre installation.`;
     }
     if (this.isProviderOnTheWay()) {
-      return `${this.providerFirstNameLabel()} est en deplacement. Il utilise l'itineraire le plus rapide pour arriver a l'heure.`;
+      return this.clientTravelsToProvider()
+        ? `Vous êtes en déplacement. ${this.providerFirstNameLabel()} attend votre arrivée à destination.`
+        : `${this.providerFirstNameLabel()} est en deplacement. Il utilise l'itineraire le plus rapide pour arriver a l'heure.`;
+    }
+    if (this.clientTravelsToProvider()) {
+      return "Vous devez partager votre position pour que le prestataire puisse voir votre deplacement et préparer l'intervention à votre arrivée.";
     }
     return "Votre professionnel se prepare. L'heure de rendez-vous a ete bloquee dans son agenda.";
   });

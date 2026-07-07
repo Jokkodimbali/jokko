@@ -1009,7 +1009,7 @@
             </ng-template>
           </ng-template>
         </div>
-        <div *ngIf="!isProviderViewer() && !isProviderOnTheWay()" class="appointment-detail__client-tracking-visual">
+        <div *ngIf="!isProviderViewer() && !shouldRenderTrackingMap()" class="appointment-detail__client-tracking-visual">
           <ng-container *ngIf="isAppointmentCompleted(); else clientActiveTrackingVisual">
             <div class="appointment-detail__client-tracking-complete">
               <span>
@@ -1034,22 +1034,15 @@
           </ng-template>
           <ng-template #clientConfirmedTrackingVisual>
               <div class="appointment-detail__client-tracking-confirmed">
-                <p>Arrivee prevue</p>
+                <p *ngIf="isProviderOnTheWay()">Prestataire en route</p>
+                <p *ngIf="!isProviderOnTheWay() && clientTravelsToProvider()">Vous devez partager votre position</p>
+                <p *ngIf="!isProviderOnTheWay() && !clientTravelsToProvider()">Arrivee prevue</p>
                 <h2>{{ appointment.timeLabel }}</h2>
                 <strong>
                   <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
                   {{ appointment.addressLabel }}
                 </strong>
-                <button
-                  *ngIf="canMarkTravelerOnTheWay()"
-                  type="button"
-                (click)="markOnTheWay(appointment)"
-                [disabled]="isUpdatingStatus()"
-              >
-                <lucide-icon name="send" size="16" [strokeWidth]="2.4"></lucide-icon>
-                {{ clientTravelsToProvider() ? 'Partager ma position' : 'En route' }}
-              </button>
-            </div>
+              </div>
           </ng-template>
         </div>
         <div
@@ -1143,7 +1136,7 @@
           </a>
         </div>
         <div
-          *ngIf="(isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation()))"
+          *ngIf="(isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation() || (canMarkTravelerOnTheWay() && !isProviderViewer())))"
           class="appointment-detail__map-primary-actions"
           aria-label="Action principale de trajet"
         >

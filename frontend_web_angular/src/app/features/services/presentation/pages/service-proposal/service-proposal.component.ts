@@ -11,14 +11,22 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { catchError, forkJoin, of } from 'rxjs';
+import { Subscription, catchError, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import {
+  GoogleMapsCoordinate,
+  GoogleMapsLoaderService,
+} from '../../../../../shared/maps/google-maps-loader.service';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import {
+  AvailabilityRealtimeService,
+  ProfessionalAvailabilityChangedEvent,
+} from '../../../data-access/availability-realtime.service';
 import {
   NegotiationView,
   MaterialQuoteView,
@@ -134,11 +142,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly router = inject(Router);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
+  private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly messagesService = inject(MessagesService);
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
   private readonly backNavigation = inject(BackNavigationService);
+  private readonly googleMaps = inject(GoogleMapsLoaderService);
 
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
@@ -171,6 +181,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly materialQuotesLoadedFor = signal<string | null>(null);
   private readonly usedParcelNumbers = new Set<string>();
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private parcelPriceRequestId = 0;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly negotiationId = this.route.snapshot.queryParamMap.get('negotiationId') || '';
@@ -192,6 +203,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly parcelDropoffContact = signal<ParcelContactDraft>({ name: '', phone: '' });
   protected readonly parcelDescriptionExpanded = signal(true);
   protected readonly parcels = signal<ParcelDraft[]>([]);
+  private readonly parcelPickupCoordinate = signal<GoogleMapsCoordinate | null>(null);
+  private readonly parcelDropoffCoordinate = signal<GoogleMapsCoordinate | null>(null);
+  protected readonly parcelDistanceMeters = signal<number | null>(null);
+  protected readonly isParcelPriceLoading = signal(false);
+  protected readonly parcelPriceError = signal<string | null>(null);
   private readonly clientDefaultAddress = signal('');
   protected readonly offerAmount = signal(0);
   protected readonly offerSteps = [100, 250, 500];
@@ -225,6 +241,25 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isParcelDeliveryService = computed(
     () => this.currentService()?.modeDeplacement === 'TRANSPORT_COLIS',
   );
+  protected readonly parcelPricePerKm = computed(() => {
+    if (!this.isParcelDeliveryService()) return 0;
+    const price = Math.trunc(Number(this.currentService()?.prix ?? 0));
+    return Number.isFinite(price) && price > 0 ? price : 0;
+  });
+  protected readonly parcelComputedPrice = computed(() => {
+    const distanceMeters = this.parcelDistanceMeters();
+    const pricePerKm = this.parcelPricePerKm();
+    if (!distanceMeters || distanceMeters <= 0 || pricePerKm <= 0) return 0;
+
+    return Math.max(500, Math.round((distanceMeters / 1000) * pricePerKm));
+  });
+  protected readonly fairServiceAmount = computed(() => {
+    if (this.isParcelDeliveryService()) {
+      return this.parcelComputedPrice();
+    }
+
+    return Math.trunc(Number(this.currentService()?.prix ?? 0));
+  });
   protected readonly clientTravelsToProvider = computed(() => !this.providerTravelsToClient());
   protected readonly providerInterventionAddress = computed(() =>
     this.resolveInitialAddress(this.detail()),
@@ -270,7 +305,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected readonly providerBaseOfferAmount = computed(() => {
     const proposal = this.pendingProposal();
-    if (!proposal) return this.currentService()?.prix ?? 0;
+    if (!proposal) return this.fairServiceAmount();
 
     const lastProviderProposal = [...(proposal.propositions ?? [])]
       .reverse()
@@ -313,13 +348,29 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   });
   protected readonly providerSummaryPriceLabel = computed(() => {
     const proposal = this.pendingProposal();
-    if (!proposal) return 'OFFRE DU CLIENT';
-    if (proposal.statut === 'EN_ATTENTE_CLIENT') return 'VOTRE CONTRE-OFFRE';
-    return 'OFFRE DU CLIENT';
+    if (proposal?.statut === 'EN_ATTENTE_CLIENT') return 'PRIX EQUITABLE MIS A JOUR';
+    return 'PRIX EQUITABLE DU SERVICE';
   });
   protected readonly providerSummaryAmountLabel = computed(() =>
-    this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
+    this.formatAmount(this.providerBaseOfferAmount()),
   );
+  protected readonly parcelDistanceLabel = computed(() => {
+    const meters = this.parcelDistanceMeters();
+    if (!meters || meters <= 0) return '';
+    return `${this.formatDecimal(meters / 1000, 1)} km`;
+  });
+  protected readonly parcelPricePerKmLabel = computed(() => {
+    const price = this.parcelPricePerKm();
+    return price > 0 ? `${this.formatAmount(price)} FCFA/km` : '';
+  });
+  protected readonly parcelPriceBasisLabel = computed(() => {
+    if (!this.isParcelDeliveryService()) return '';
+    if (this.isParcelPriceLoading()) return 'Calcul du prix selon la distance...';
+    if (this.parcelDistanceLabel() && this.parcelPricePerKmLabel()) {
+      return `${this.parcelDistanceLabel()} x ${this.parcelPricePerKmLabel()}`;
+    }
+    return this.parcelPriceError() || 'Renseignez depart et arrivee pour calculer le prix.';
+  });
   protected readonly materialQuoteTotalLabel = computed(() => {
     const total = this.materialQuoteEntries().filter((item) => item.status !== 'REFUSE').reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
@@ -421,16 +472,20 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly submitButtonLabel = computed(() => {
     if (this.isSubmitting()) {
-      return this.isFixedPriceService() ? 'Creation du rendez-vous...' : 'Envoi en cours...';
+      return this.isFixedPriceService() || !this.isOfferAdjusted()
+        ? 'Creation de la reservation...'
+        : 'Envoi de la contre-offre...';
     }
 
-    return this.isFixedPriceService() ? 'Confirmer le rendez-vous' : 'Envoyer la proposition';
+    return this.isFixedPriceService() || !this.isOfferAdjusted()
+      ? 'Finaliser la reservation'
+      : 'Contre-offre';
   });
   protected readonly submitButtonVisualLabel = computed(() =>
     this.isSubmitting()
       ? this.submitButtonLabel()
       : this.isOfferAdjusted()
-        ? 'Envoyer la contre-offre'
+        ? 'Contre-offre'
         : 'Finaliser la reservation',
   );
 
@@ -468,12 +523,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   });
 
   protected readonly initialPriceLabel = computed(() => {
-    const price = this.currentService()?.prix ?? 0;
+    const price = this.fairServiceAmount();
     return price > 0 ? `${this.formatAmount(price)} FCFA` : 'A definir';
   });
 
   protected readonly offerDifferenceLabel = computed(() => {
-    const servicePrice = Number(this.currentService()?.prix ?? 0);
+    const servicePrice = Number(this.fairServiceAmount());
     const offer = Number(this.offerAmount());
 
     if (
@@ -501,12 +556,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return false;
     }
 
-    const servicePrice = Math.trunc(Number(this.currentService()?.prix ?? 0));
+    const servicePrice = Math.trunc(Number(this.fairServiceAmount()));
     const offer = Math.trunc(Number(this.offerAmount()));
     return servicePrice > 0 && offer > 0 && servicePrice !== offer;
   });
   protected readonly offerDifferenceIcon = computed(() => {
-    const servicePrice = Number(this.currentService()?.prix ?? 0);
+    const servicePrice = Number(this.fairServiceAmount());
     const offer = Number(this.offerAmount());
     if (!servicePrice || !offer || servicePrice === offer) {
       return 'check';
@@ -586,7 +641,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.acceptedReservation()?.adresseClient || this.address().trim() || 'Adresse a confirmer',
   );
   protected readonly acceptedComparisonLabel = computed(() => {
-    const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
+    const servicePrice = this.toPositiveAmount(this.fairServiceAmount());
     const acceptedAmount = this.toPositiveAmount(
       this.acceptedReservation()?.proposal.montantCourant,
     );
@@ -602,7 +657,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return acceptedAmount < servicePrice ? 'Economie' : 'Ajustement';
   });
   protected readonly acceptedComparisonAmountLabel = computed(() => {
-    const servicePrice = this.toPositiveAmount(this.currentService()?.prix);
+    const servicePrice = this.toPositiveAmount(this.fairServiceAmount());
     const acceptedAmount = this.toPositiveAmount(
       this.acceptedReservation()?.proposal.montantCourant,
     );
@@ -652,6 +707,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     () => this.availabilityStatus()?.available === true && !this.isCheckingAvailability(),
   );
   private availabilityCheckTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private availabilityRealtimeSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     this.loadDetail();
@@ -662,6 +718,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       clearTimeout(this.availabilityCheckTimeoutId);
     }
 
+    this.stopAvailabilityRealtime();
     this.stopProposalRefresh();
   }
 
@@ -1006,7 +1063,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.customServiceName.set('');
     this.selectedServiceId.set(service.id);
-    this.offerAmount.set(service.prix ?? 0);
+    if (service.modeDeplacement === 'TRANSPORT_COLIS') {
+      this.offerAmount.set(this.parcelComputedPrice());
+      this.refreshParcelDeliveryPriceEstimate();
+    } else {
+      this.resetParcelDeliveryPricing();
+      this.offerAmount.set(service.prix ?? 0);
+    }
     this.syncAddressForCurrentTravelMode();
     this.availabilityStatus.set(null);
     this.availabilitySlots.set([]);
@@ -1308,14 +1371,24 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.parcelNote.set(value);
   }
 
-  protected updateParcelPickupAddress(value: string): void {
+  protected updateParcelPickupAddress(
+    value: string,
+    coordinate: GoogleMapsCoordinate | null = null,
+  ): void {
     this.parcelPickupAddress.set(value);
+    this.parcelPickupCoordinate.set(coordinate);
+    this.refreshParcelDeliveryPriceEstimate();
     this.clearClientDetailsErrors('pickupAddress');
   }
 
-  protected updateParcelDropoffAddress(value: string): void {
+  protected updateParcelDropoffAddress(
+    value: string,
+    coordinate: GoogleMapsCoordinate | null = null,
+  ): void {
     this.parcelDropoffAddress.set(value);
     this.address.set(value);
+    this.parcelDropoffCoordinate.set(coordinate);
+    this.refreshParcelDeliveryPriceEstimate();
     this.clearClientDetailsErrors('dropoffAddress', 'address');
   }
 
@@ -1328,6 +1401,32 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (modal === 'parcelDropoff') {
       this.updateParcelDropoffAddress(value);
+      return;
+    }
+
+    this.updateAddress(value);
+  }
+
+  protected updateActiveParcelAddressFromMap(selection: {
+    address: string;
+    coordinate: GoogleMapsCoordinate;
+  }): void {
+    this.updateActiveParcelAddressWithCoordinate(selection.address, selection.coordinate);
+  }
+
+  private updateActiveParcelAddressWithCoordinate(
+    value: string,
+    coordinate: GoogleMapsCoordinate,
+  ): void {
+    const validCoordinate = this.normalizeCoordinate(coordinate);
+    const modal = this.activeDetailsModal();
+    if (modal === 'parcelPickup') {
+      this.updateParcelPickupAddress(value, validCoordinate);
+      return;
+    }
+
+    if (modal === 'parcelDropoff') {
+      this.updateParcelDropoffAddress(value, validCoordinate);
       return;
     }
 
@@ -1394,7 +1493,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
     if (this.activeDetailsModal() === 'parcelPickup' || this.activeDetailsModal() === 'parcelDropoff') {
-      this.updateActiveParcelAddress(suggestion.label);
+      const coordinate =
+        suggestion.latitude === null || suggestion.longitude === null
+          ? null
+          : this.normalizeCoordinate({
+              latitude: Number(suggestion.latitude),
+              longitude: Number(suggestion.longitude),
+            });
+      if (coordinate) {
+        this.updateActiveParcelAddressWithCoordinate(suggestion.label, coordinate);
+      } else {
+        this.updateActiveParcelAddress(suggestion.label);
+      }
       this.addressSuggestions.set([]);
       this.isAddressSuggestionsOpen.set(false);
       return;
@@ -1463,7 +1573,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       const { latitude, longitude, accuracy } = bestPosition.coords;
       const gpsLabel = this.formatExactGpsLabel(latitude, longitude, accuracy);
 
-      this.updateActiveParcelAddress(gpsLabel);
+      this.updateActiveParcelAddressWithCoordinate(gpsLabel, { latitude, longitude });
       this.addressSuggestions.set([]);
       this.isAddressSuggestionsOpen.set(false);
       this.isLocatingAddress.set(false);
@@ -1541,7 +1651,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (draft.service.typePrix !== 'NEGOCIABLE') {
+    if (draft.service.typePrix !== 'NEGOCIABLE' || !this.isOfferAdjusted()) {
       this.createDirectReservation(draft);
       return;
     }
@@ -1639,6 +1749,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (reservation) => {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
+          this.cancelActiveProposalAfterDirectReservation(draft.service.id);
           if (reservation.id) {
             this.router.navigate(['/appointments', reservation.id, 'payment'], {
               queryParams: { returnUrl: '/appointments' },
@@ -1654,6 +1765,21 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.handleProposalError(error);
         },
       });
+  }
+
+  private cancelActiveProposalAfterDirectReservation(serviceId: string): void {
+    this.proposalService.findActiveProposalForService(serviceId).subscribe({
+      next: (proposal) => {
+        if (!proposal) return;
+        this.proposalService
+          .cancelPriceProposal(
+            proposal.id,
+            'Reservation directe finalisee au prix equitable.',
+          )
+          .subscribe({ error: () => undefined });
+      },
+      error: () => undefined,
+    });
   }
 
   private showPendingProposal(proposal: NegotiationView, draft: ReservationDraft): void {
@@ -1968,6 +2094,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }).subscribe({
       next: ({ detail, proposal, user }) => {
         this.detail.set(detail);
+        this.startAvailabilityRealtime(detail.profile.id);
         if (proposal) {
           this.applyPendingProposalState(proposal);
           this.isLoading.set(false);
@@ -1980,6 +2107,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           const providerAddress = this.resolveInitialAddress(detail);
           this.clientDefaultAddress.set(user?.adresse?.trim() || '');
           this.address.set(service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '');
+          if (service) {
+            if (service.modeDeplacement === 'TRANSPORT_COLIS') {
+              this.offerAmount.set(this.parcelComputedPrice());
+              this.refreshParcelDeliveryPriceEstimate();
+            } else {
+              this.offerAmount.set(service.prix ?? 0);
+            }
+          }
           if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
             this.resumeActiveClientProposal(service);
             return;
@@ -1994,6 +2129,49 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         this.errorMessage.set('Impossible de charger les informations du rendez-vous.');
         this.isLoading.set(false);
       },
+    });
+  }
+
+  private startAvailabilityRealtime(profileId: string): void {
+    this.stopAvailabilityRealtime();
+    this.availabilityRealtimeSubscription = this.availabilityRealtime
+      .watchProfessional(profileId)
+      .subscribe((event) => this.handleAvailabilityChanged(event));
+  }
+
+  private stopAvailabilityRealtime(): void {
+    const profileId = this.detail()?.profile.id || this.profileId;
+    if (profileId) {
+      this.availabilityRealtime.stopWatching(profileId);
+    }
+    this.availabilityRealtimeSubscription?.unsubscribe();
+    this.availabilityRealtimeSubscription = null;
+  }
+
+  private handleAvailabilityChanged(event: ProfessionalAvailabilityChangedEvent): void {
+    const profileId = this.detail()?.profile.id || this.profileId;
+    if (event.professionalId !== profileId || this.isProviderProposalMode) return;
+
+    if (event.reason === 'service') {
+      this.refreshProviderDetailAndAvailability(profileId);
+      return;
+    }
+
+    this.scheduleAvailabilityCheck();
+  }
+
+  private refreshProviderDetailAndAvailability(profileId: string): void {
+    this.servicesService.getProviderProfileDetail(profileId).subscribe({
+      next: (detail) => {
+        this.detail.set(detail);
+        if (!detail.services.some((service) => service.id === this.selectedServiceId())) {
+          this.selectedServiceId.set(detail.services.find((service) => service.estDisponible)?.id ?? '');
+          this.availabilityStatus.set(null);
+          this.availabilitySlots.set([]);
+        }
+        this.scheduleAvailabilityCheck();
+      },
+      error: () => this.scheduleAvailabilityCheck(),
     });
   }
 
@@ -2151,9 +2329,22 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       `Depart colis: ${this.parcelPickupAddress().trim().replace(/\s+/g, ' ')}.`,
       `Destinataire: ${dropoffContact.name.trim().replace(/\s+/g, ' ')} - ${dropoffContact.phone.trim().replace(/\s+/g, ' ')}.`,
       `Arrivee destinataire: ${this.parcelDropoffAddress().trim().replace(/\s+/g, ' ')}.`,
+      ...this.parcelPricingNotes(),
       ...parcelLines,
       note ? `Note livraison: ${note}.` : '',
     ].filter(Boolean);
+  }
+
+  private parcelPricingNotes(): string[] {
+    if (!this.isParcelDeliveryService() || !this.parcelDistanceMeters()) {
+      return [];
+    }
+
+    return [
+      `Distance estimee: ${this.parcelDistanceLabel()}.`,
+      `Tarif kilometrique: ${this.parcelPricePerKmLabel()}.`,
+      `Prix calcule: ${this.formatAmount(this.parcelComputedPrice())} FCFA.`,
+    ];
   }
 
   private buildProposalMessage(draft: ReservationDraft): string {
@@ -2354,6 +2545,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       service.typePrix === 'FIXE'
         ? Math.trunc(Number(service.prix))
         : Math.trunc(Number(this.offerAmount()));
+    if (
+      this.isParcelDeliveryService() &&
+      service.typePrix === 'NEGOCIABLE' &&
+      (!Number.isFinite(amount) || amount <= 0)
+    ) {
+      this.feedback.info(
+        "Choisissez l'adresse de retrait et l'adresse de depot sur la carte pour calculer le prix de livraison.",
+      );
+      return null;
+    }
     if (service.typePrix === 'FIXE' && (!Number.isFinite(amount) || amount <= 0)) {
       this.feedback.info('Ce service fixe doit avoir un tarif renseigne avant la reservation.');
       return null;
@@ -2498,6 +2699,102 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
   }
 
+  private refreshParcelDeliveryPriceEstimate(): void {
+    if (!this.isParcelDeliveryService()) {
+      this.resetParcelDeliveryPricing();
+      return;
+    }
+
+    const pickup = this.parcelPickupCoordinate();
+    const dropoff = this.parcelDropoffCoordinate();
+    const pricePerKm = this.parcelPricePerKm();
+    const requestId = ++this.parcelPriceRequestId;
+
+    if (!pickup || !dropoff || pricePerKm <= 0) {
+      this.parcelDistanceMeters.set(null);
+      this.isParcelPriceLoading.set(false);
+      this.parcelPriceError.set(
+        pricePerKm <= 0
+          ? 'Tarif kilometrique non renseigne.'
+          : 'Renseignez depart et arrivee pour calculer le prix.',
+      );
+      if (!this.isProviderProposalMode) {
+        this.offerAmount.set(0);
+      }
+      return;
+    }
+
+    this.isParcelPriceLoading.set(true);
+    this.parcelPriceError.set(null);
+    this.googleMaps
+      .computeRoutes({ origin: pickup, destination: dropoff })
+      .pipe(catchError(() => of([])))
+      .subscribe((routes) => {
+        if (requestId !== this.parcelPriceRequestId) {
+          return;
+        }
+
+        const routeDistance = routes.find((route) => Number(route.distanceMeters) > 0)
+          ?.distanceMeters;
+        const distanceMeters =
+          typeof routeDistance === 'number' && routeDistance > 0
+            ? routeDistance
+            : this.estimateRoadDistanceMeters(pickup, dropoff);
+
+        this.parcelDistanceMeters.set(distanceMeters);
+        this.isParcelPriceLoading.set(false);
+        this.parcelPriceError.set(null);
+        if (!this.isProviderProposalMode) {
+          this.offerAmount.set(this.parcelComputedPrice());
+        }
+      });
+  }
+
+  private resetParcelDeliveryPricing(): void {
+    this.parcelPriceRequestId += 1;
+    this.parcelDistanceMeters.set(null);
+    this.isParcelPriceLoading.set(false);
+    this.parcelPriceError.set(null);
+  }
+
+  private normalizeCoordinate(
+    coordinate: GoogleMapsCoordinate | null,
+  ): GoogleMapsCoordinate | null {
+    const latitude = Number(coordinate?.latitude);
+    const longitude = Number(coordinate?.longitude);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  }
+
+  private estimateRoadDistanceMeters(
+    origin: GoogleMapsCoordinate,
+    destination: GoogleMapsCoordinate,
+  ): number {
+    const earthRadiusMeters = 6_371_000;
+    const toRadians = (value: number) => (value * Math.PI) / 180;
+    const originLat = toRadians(origin.latitude);
+    const destinationLat = toRadians(destination.latitude);
+    const deltaLat = toRadians(destination.latitude - origin.latitude);
+    const deltaLng = toRadians(destination.longitude - origin.longitude);
+    const haversine =
+      Math.sin(deltaLat / 2) ** 2 +
+      Math.cos(originLat) * Math.cos(destinationLat) * Math.sin(deltaLng / 2) ** 2;
+    const straightDistance =
+      2 * earthRadiusMeters * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+
+    return Math.max(1, Math.round(straightDistance * 1.25));
+  }
+
   private serviceDurationMinutes(service: BackendProfessionalDetailService | null): number {
     const duration = Math.trunc(Number(service?.dureeMinutes));
     return Number.isInteger(duration) && duration >= 15 && duration <= 1440 ? duration : 60;
@@ -2593,6 +2890,15 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected formatAmount(value: number): string {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
+      .format(value || 0)
+      .replace(/\s/g, ' ');
+  }
+
+  private formatDecimal(value: number, digits = 1): string {
+    return new Intl.NumberFormat('fr-FR', {
+      maximumFractionDigits: digits,
+      minimumFractionDigits: 0,
+    })
       .format(value || 0)
       .replace(/\s/g, ' ');
   }

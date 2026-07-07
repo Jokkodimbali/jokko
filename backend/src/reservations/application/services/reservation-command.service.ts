@@ -37,7 +37,6 @@ import { DisputesFacade } from '../../../disputes/application/services/disputes-
 import { LiveTrackingFacade } from '../../../live-tracking/application/services/live-tracking-facade.service';
 import {
   ProviderArrivedEvent,
-  ProviderAssignedEvent,
   ServiceCompletedEvent,
   ServiceStartedEvent,
 } from '../../domain/events/reservation-mission.events';
@@ -76,9 +75,7 @@ export class ReservationCommandService extends ReservationAppService {
       }
     }
 
-    const professional = await this.getVerifiedProfessionalOrThrow(
-      command.professionnelId,
-    );
+    await this.getVerifiedProfessionalOrThrow(command.professionnelId);
     const service = await this.getServiceOrThrow(command.serviceId);
 
     if (!service.estDisponible) {
@@ -87,10 +84,6 @@ export class ReservationCommandService extends ReservationAppService {
 
     if (service.profilProfessionnelId !== command.professionnelId) {
       throw appHttpException('RESERVATIONS_SERVICE_PROFESSIONAL_MISMATCH');
-    }
-
-    if (service.typePrix === 'NEGOCIABLE') {
-      throw appHttpException('RESERVATIONS_NEGOTIATION_REQUIRED');
     }
 
     const scheduledAt = this.parseDateOrThrow(command.dateHeure);
@@ -111,21 +104,6 @@ export class ReservationCommandService extends ReservationAppService {
       const createdReservation = await this.reservationsRepository.save(
         reservation.toView(),
       );
-      await this.eventBus.publier(
-        new ProviderAssignedEvent({
-          reservationId: createdReservation.id,
-          clientUserId: createdReservation.clientId,
-          professionalId: createdReservation.professionnelId,
-        }),
-      );
-      await this.reservationClientNotificationService.notifyReservationCreated({
-        reservationId: createdReservation.id,
-        clientId: createdReservation.clientId,
-        serviceName: service.nom,
-        professionalName: professional.utilisateur.nom,
-        dateHeure: createdReservation.dateHeure,
-        adresseClient: createdReservation.adresseClient,
-      });
 
       return createdReservation;
     } catch (error) {
@@ -617,10 +595,8 @@ export class ReservationCommandService extends ReservationAppService {
         requestUser,
         command.negotiationId,
       );
-    const professional = await this.getVerifiedProfessionalOrThrow(
-      negotiation.professionnelId,
-    );
-    const service = await this.getServiceOrThrow(negotiation.serviceId);
+    await this.getVerifiedProfessionalOrThrow(negotiation.professionnelId);
+    await this.getServiceOrThrow(negotiation.serviceId);
     const details = this.resolveAcceptedNegotiationReservationDetails(
       negotiation,
       command,
@@ -661,14 +637,6 @@ export class ReservationCommandService extends ReservationAppService {
         throw appHttpException('NEGOTIATIONS_ALREADY_CONVERTED');
       }
 
-      await this.eventBus.publier(
-        new ProviderAssignedEvent({
-          reservationId: createdReservation.id,
-          clientUserId: createdReservation.clientId,
-          professionalId: createdReservation.professionnelId,
-        }),
-      );
-
       await this.eventBus.publier({
         nom: 'negotiations.converted',
         dateOccurrence: new Date(),
@@ -679,15 +647,6 @@ export class ReservationCommandService extends ReservationAppService {
           professionalId: createdReservation.professionnelId,
           amount: negotiation.montantAccepte ?? negotiation.montantCourant,
         },
-      });
-
-      await this.reservationClientNotificationService.notifyReservationCreated({
-        reservationId: createdReservation.id,
-        clientId: createdReservation.clientId,
-        serviceName: service.nom,
-        professionalName: professional.utilisateur.nom,
-        dateHeure: createdReservation.dateHeure,
-        adresseClient: createdReservation.adresseClient,
       });
 
       return createdReservation;

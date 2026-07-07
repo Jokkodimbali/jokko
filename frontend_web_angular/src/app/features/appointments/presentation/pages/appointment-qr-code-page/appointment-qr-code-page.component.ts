@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import QRCode from 'qrcode';
@@ -42,24 +52,46 @@ interface ParcelManifest {
   templateUrl: './appointment-qr-code-page.component.html',
   styleUrl: './appointment-qr-code-page.component.scss',
 })
-export class AppointmentQrCodePageComponent implements OnInit {
+export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy, OnInit {
+  @ViewChild('cameraPreview')
+  set cameraPreviewRef(value: ElementRef<HTMLVideoElement> | undefined) {
+    this.cameraVideo = value?.nativeElement;
+    if (this.cameraVideo && this.scanMode() && this.isDeliveryPersonView()) {
+      window.setTimeout(() => void this.startCamera(), 0);
+    }
+  }
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
+  private cameraVideo?: HTMLVideoElement;
+  private cameraStream?: MediaStream;
+  private cameraScanIntervalId?: number;
+  private barcodeDetector?: { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> };
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly mode = signal<QrMode>('expediteur');
+  protected readonly scanMode = signal(false);
   protected readonly qrImageUrl = signal<string | null>(null);
   protected readonly scannedPayload = signal('');
   protected readonly validationMessage = signal<string | null>(null);
   protected readonly validationError = signal<string | null>(null);
+  protected readonly isCameraActive = signal(false);
+  protected readonly isCameraStarting = signal(false);
+  protected readonly cameraError = signal<string | null>(null);
 
   protected readonly title = computed(() =>
-    this.mode() === 'expediteur' ? 'Retrait de Colis' : 'Depot de Colis',
+    this.scanMode()
+      ? this.mode() === 'expediteur'
+        ? 'Reception de Colis'
+        : 'Deposer le colis'
+      : this.mode() === 'expediteur'
+      ? 'Retrait de Colis'
+      : 'Depot de Colis',
   );
   protected readonly checkpoint = computed<ParcelCheckpoint>(() =>
     this.mode() === 'expediteur' ? 'RETRAIT' : 'DEPOT',
@@ -109,7 +141,11 @@ export class AppointmentQrCodePageComponent implements OnInit {
     return `QR code de ${name}. Vous devez ${action}`;
   });
   protected readonly sideNotice = computed(() =>
-    this.mode() === 'expediteur'
+    this.scanMode()
+      ? this.mode() === 'expediteur'
+        ? "Scannez le QR code presente par l'expediteur pour confirmer la prise en charge du colis."
+        : 'Scannez le QR code presente par le destinataire pour confirmer le depot du colis.'
+      : this.mode() === 'expediteur'
       ? "Veuillez presenter ce QR code a l'expediteur pour valider le retrait de votre colis."
       : 'Veuillez presenter ce QR code au destinataire pour valider le depot de votre colis.',
   );
@@ -187,6 +223,7 @@ export class AppointmentQrCodePageComponent implements OnInit {
   ngOnInit(): void {
     const type = this.route.snapshot.paramMap.get('type');
     this.mode.set(type === 'destinataire' ? 'destinataire' : 'expediteur');
+    this.scanMode.set(this.route.snapshot.queryParamMap.get('scan') === '1');
 
     const reservationId = this.route.snapshot.paramMap.get('id');
     if (!reservationId) {
@@ -208,12 +245,25 @@ export class AppointmentQrCodePageComponent implements OnInit {
         this.appointment.set(appointment);
         this.restoreValidationState();
         void this.generateQrImage();
+        if (this.scanMode() && this.isDeliveryPersonView()) {
+          window.setTimeout(() => void this.startCamera(), 120);
+        }
       },
       error: () => {
         this.isLoading.set(false);
         this.errorMessage.set('Impossible de charger le QR code de ce colis.');
       },
     });
+  }
+
+  ngAfterViewInit(): void {
+    if (this.scanMode() && this.isDeliveryPersonView()) {
+      window.setTimeout(() => void this.startCamera(), 0);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopCamera();
   }
 
   protected goBack(): void {
@@ -243,9 +293,53 @@ export class AppointmentQrCodePageComponent implements OnInit {
     this.validationMessage.set(null);
   }
 
-  protected useDisplayedQrForValidation(): void {
-    this.scannedPayload.set(this.qrPayload());
-    this.validateScannedQr();
+  protected async startCamera(): Promise<void> {
+    if (!this.scanMode() || !this.isDeliveryPersonView() || this.isCameraActive() || this.isCameraStarting()) {
+      return;
+    }
+    if (!this.cameraVideo) return;
+    if (!this.canUseCameraInCurrentContext()) {
+      this.cameraError.set(
+        "La camera est disponible uniquement en HTTPS ou sur localhost. Ouvrez l'application depuis localhost ou une URL securisee.",
+      );
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.cameraError.set(
+        "Ce navigateur ne permet pas d'activer la camera. Utilisez la saisie manuelle du QR code.",
+      );
+      return;
+    }
+
+    this.isCameraStarting.set(true);
+    this.cameraError.set(null);
+
+    try {
+      const stream = await this.openCameraStream();
+      this.cameraStream = stream;
+      this.cameraVideo.srcObject = stream;
+      await this.cameraVideo.play();
+      this.isCameraActive.set(true);
+      this.prepareBarcodeDetector();
+      this.startCameraLoop();
+    } catch (error) {
+      this.cameraError.set(this.cameraActivationErrorMessage(error));
+    } finally {
+      this.isCameraStarting.set(false);
+    }
+  }
+
+  protected stopCamera(): void {
+    if (this.cameraScanIntervalId) {
+      window.clearInterval(this.cameraScanIntervalId);
+      this.cameraScanIntervalId = undefined;
+    }
+    this.cameraStream?.getTracks().forEach((track) => track.stop());
+    this.cameraStream = undefined;
+    if (this.cameraVideo) {
+      this.cameraVideo.srcObject = null;
+    }
+    this.isCameraActive.set(false);
   }
 
   protected validateScannedQr(): void {
@@ -255,6 +349,11 @@ export class AppointmentQrCodePageComponent implements OnInit {
     const rawPayload = this.scannedPayload().trim();
     if (!rawPayload) {
       this.validationError.set('Scannez ou collez le contenu du QR code avant de valider.');
+      return;
+    }
+
+    if (!rawPayload.startsWith('{')) {
+      this.validateManualParcelReference(rawPayload);
       return;
     }
 
@@ -290,6 +389,7 @@ export class AppointmentQrCodePageComponent implements OnInit {
       if (key) {
         globalThis.localStorage?.setItem(key, 'validated');
       }
+      this.stopCamera();
       this.validationMessage.set(
         this.mode() === 'expediteur'
           ? 'Retrait confirme. Les informations colis correspondent a cette reservation.'
@@ -341,6 +441,137 @@ export class AppointmentQrCodePageComponent implements OnInit {
     }
   }
 
+  private prepareBarcodeDetector(): void {
+    const detectorConstructor = (
+      window as Window & {
+        BarcodeDetector?: new (options?: { formats?: string[] }) => {
+          detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>>;
+        };
+      }
+    ).BarcodeDetector;
+
+    if (!detectorConstructor) {
+      this.cameraError.set(
+        'Camera activee. Si le QR nest pas detecte automatiquement, saisissez le numero de colis affiche sous le QR code.',
+      );
+      return;
+    }
+
+    this.barcodeDetector = new detectorConstructor({ formats: ['qr_code'] });
+  }
+
+  private startCameraLoop(): void {
+    if (this.cameraScanIntervalId) {
+      window.clearInterval(this.cameraScanIntervalId);
+    }
+
+    this.cameraScanIntervalId = window.setInterval(() => {
+      void this.detectQrFromCamera();
+    }, 600);
+  }
+
+  private async detectQrFromCamera(): Promise<void> {
+    if (!this.barcodeDetector || !this.cameraVideo || this.cameraVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      return;
+    }
+
+    try {
+      const results = await this.barcodeDetector.detect(this.cameraVideo);
+      const rawValue = results.find((result) => !!result.rawValue)?.rawValue?.trim();
+      if (!rawValue || rawValue === this.scannedPayload().trim()) return;
+      this.scannedPayload.set(rawValue);
+      this.validateScannedQr();
+    } catch {
+      this.cameraError.set('Lecture du QR code impossible pour le moment. Rapprochez le code de la camera.');
+    }
+  }
+
+  private async openCameraStream(): Promise<MediaStream> {
+    const constraints: MediaStreamConstraints[] = [
+      {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      },
+      {
+        video: true,
+        audio: false,
+      },
+    ];
+
+    let lastError: unknown;
+    for (const constraint of constraints) {
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraint);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  private canUseCameraInCurrentContext(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (window.isSecureContext) return true;
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  }
+
+  private cameraActivationErrorMessage(error: unknown): string {
+    const name = error instanceof DOMException ? error.name : '';
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      return "Acces camera refuse. Autorisez la camera dans le navigateur puis reessayez.";
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return "Aucune camera n'a ete detectee sur cet appareil. Saisissez le numero de colis manuellement.";
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      return "La camera est deja utilisee par une autre application. Fermez-la puis reessayez.";
+    }
+    if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+      return "La camera disponible ne correspond pas aux reglages demandes. Reessayez ou saisissez le numero de colis.";
+    }
+    return "Impossible d'activer la camera. Autorisez l'acces camera ou saisissez le numero de colis manuellement.";
+  }
+
+  private validateManualParcelReference(rawReference: string): void {
+    const expectedReferences = [
+      this.parcelNumber(),
+      ...this.manifest().parcels.map((parcel) => parcel.number),
+    ]
+      .map((reference) => this.normalizeParcelReference(reference))
+      .filter(Boolean);
+    const submittedReference = this.normalizeParcelReference(rawReference);
+
+    if (
+      !submittedReference ||
+      !expectedReferences.some((reference) => reference === submittedReference)
+    ) {
+      this.validationError.set('Numero de colis invalide pour cette reservation.');
+      return;
+    }
+
+    const key = this.validationStorageKey();
+    if (key) {
+      globalThis.localStorage?.setItem(key, 'validated');
+    }
+    this.stopCamera();
+    this.validationMessage.set(
+      this.mode() === 'expediteur'
+        ? 'Retrait confirme. Le numero de colis correspond a cette reservation.'
+        : 'Depot confirme. Le numero de colis correspond a cette reservation.',
+    );
+    this.validationError.set(null);
+  }
+
+  private normalizeParcelReference(value: string): string {
+    return value.trim().replace(/\s+/g, '').toUpperCase();
+  }
+
   private parseParcelManifest(notes: string | null): ParcelManifest {
     const pickup = this.extractContact(notes, 'Expediteur');
     const dropoff = this.extractContact(notes, 'Destinataire');
@@ -368,9 +599,9 @@ export class AppointmentQrCodePageComponent implements OnInit {
 
   private extractNamedValue(notes: string | null, key: string): string | null {
     if (!notes) return null;
-    const pattern = new RegExp(`${key}\\s*[:=-]\\s*([^\\.\\n;]+)`, 'i');
+    const pattern = new RegExp(`${key}\\s*[:=-]\\s*([^\\n;]+)`, 'i');
     const match = notes.match(pattern);
-    return match?.[1]?.trim() || null;
+    return match?.[1]?.trim().replace(/\.$/, '').trim() || null;
   }
 
   private extractParcels(notes: string | null): ParcelLine[] {

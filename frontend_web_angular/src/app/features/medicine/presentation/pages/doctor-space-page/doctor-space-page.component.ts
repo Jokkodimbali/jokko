@@ -511,7 +511,9 @@ export class DoctorSpacePageComponent implements OnInit {
   );
   protected readonly serviceFormSubtitle = computed(() =>
     this.isProviderSpace()
-      ? 'Nommez votre service et indiquez le prix de depart negociable.'
+      ? this.isAddMotifParcelDelivery()
+        ? 'Nommez votre service et indiquez le prix par kilometre negociable.'
+        : 'Nommez votre service et indiquez le prix de depart negociable.'
       : 'Nommez le motif de consultation et indiquez le tarif fixe.',
   );
   protected readonly serviceNameLabel = computed(() =>
@@ -524,7 +526,9 @@ export class DoctorSpacePageComponent implements OnInit {
   );
   protected readonly servicePriceHelp = computed(() =>
     this.isProviderSpace()
-      ? 'Prix de depart affiche. Le client pourra negocier avec vous.'
+      ? this.isAddMotifParcelDelivery()
+        ? "Prix par kilometre utilise pour calculer automatiquement le prix selon l'adresse de retrait et de depot. Le client pourra negocier."
+        : 'Prix de depart affiche. Le client pourra negocier avec vous.'
       : 'Prix fixe affiche au client avant reservation.',
   );
   protected readonly serviceListTitle = computed(() =>
@@ -535,6 +539,34 @@ export class DoctorSpacePageComponent implements OnInit {
       ? 'Aucun service enregistre. Ajoutez au moins un service pour apparaitre clairement sur la page d accueil.'
       : 'Aucun motif de consultation enregistre.',
   );
+  protected readonly servicePriceFieldLabel = computed(() =>
+    this.isAddMotifParcelDelivery() ? 'Prix par kilometre (FCFA/km)' : 'Tarif (FCFA)',
+  );
+  protected readonly servicePriceFieldStep = computed(() =>
+    this.isAddMotifParcelDelivery() ? 100 : 500,
+  );
+
+  protected editServicePriceFieldLabel(): string {
+    return this.isEditMotifParcelDelivery() ? 'Prix par kilometre (FCFA/km)' : 'Tarif (FCFA)';
+  }
+
+  protected editServicePriceHelp(): string {
+    if (!this.isProviderSpace()) {
+      return 'Prix fixe affiche au client avant reservation.';
+    }
+
+    return this.isEditMotifParcelDelivery()
+      ? "Prix par kilometre utilise pour calculer automatiquement le prix selon l'adresse de retrait et de depot. Le client pourra negocier."
+      : 'Prix de depart affiche. Le client pourra negocier avec vous.';
+  }
+
+  protected editServicePriceFieldStep(): number {
+    return this.isEditMotifParcelDelivery() ? 100 : 500;
+  }
+
+  protected motifPriceUnitLabel(motif: ConsultationMotif): string {
+    return motif.travelMode === 'TRANSPORT_COLIS' ? 'FCFA/km' : 'FCFA';
+  }
 
   protected readonly calendarDays = computed(() =>
     this.buildCalendarDays(
@@ -1804,6 +1836,9 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected selectTravelMode(mode: ServiceTravelMode): void {
     this.selectedTravelMode.set(mode);
+    if (mode === 'TRANSPORT_COLIS' && this.motifForm.price === 10000) {
+      this.motifForm.price = 500;
+    }
   }
 
   protected saveTravelMode(): void {
@@ -1832,6 +1867,14 @@ export class DoctorSpacePageComponent implements OnInit {
             getHttpErrorMessage(error, 'Mise a jour du mode de deplacement impossible.'),
           ),
       });
+  }
+
+  private isAddMotifParcelDelivery(): boolean {
+    return this.isProviderSpace() && this.selectedTravelMode() === 'TRANSPORT_COLIS';
+  }
+
+  private isEditMotifParcelDelivery(): boolean {
+    return this.isProviderSpace() && this.motifEditForm.travelMode === 'TRANSPORT_COLIS';
   }
 
   protected persistAppointmentSettings(): void {
@@ -2021,7 +2064,7 @@ export class DoctorSpacePageComponent implements OnInit {
     this.motifForm.categoryId = '';
     this.motifForm.name = '';
     this.motifForm.durationMinutes = this.appointmentDuration();
-    this.motifForm.price = 10000;
+    this.motifForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifForm.isRequired = true;
   }
 
@@ -2029,7 +2072,7 @@ export class DoctorSpacePageComponent implements OnInit {
     this.motifEditForm.categoryId = '';
     this.motifEditForm.name = '';
     this.motifEditForm.durationMinutes = this.appointmentDuration();
-    this.motifEditForm.price = 10000;
+    this.motifEditForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifEditForm.isRequired = true;
     this.motifEditForm.travelMode = this.selectedTravelMode();
   }

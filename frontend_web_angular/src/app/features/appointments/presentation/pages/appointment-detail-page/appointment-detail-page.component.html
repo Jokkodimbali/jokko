@@ -187,7 +187,7 @@
             (click)="openQrCodePage(appointment, 'expediteur')"
           >
             <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
-            Page de telechargement QR
+            Page de téléchargement QR
           </button>
         </section>
       </aside>
@@ -471,10 +471,10 @@
             (click)="openQrCodePage(appointment, 'expediteur')"
           >
             <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
-            Page de telechargement QR
+            Page de téléchargement QR
           </button>
           <p *ngIf="isParcelTransportAppointment(appointment)" class="appointment-detail__client-summary-qr-help">
-            Remettez le QR expediteur avant l'enlevement et le QR destinataire avant la livraison.
+            Remettez le QR expéditeur avant l'enlèvement et le QR destinataire avant la livraison. Le livreur devra les scanner.
           </p>
         </aside>
 
@@ -806,7 +806,7 @@
         class="appointment-detail__live-map"
         [class.appointment-detail__live-map--fullscreen]="isMapFullscreen()"
       >
-        <div *ngIf="isProviderViewer() && (!isProviderOnTheWay() || isProviderWorking() || isAppointmentCompleted())" class="appointment-detail__provider-console-visual">
+        <div *ngIf="showProviderConsoleVisual()" class="appointment-detail__provider-console-visual">
           <ng-container *ngIf="isAppointmentCompleted(); else providerActiveConsoleVisual">
             <div class="appointment-detail__provider-console-done">
               <span>
@@ -1033,16 +1033,16 @@
             </ng-container>
           </ng-template>
           <ng-template #clientConfirmedTrackingVisual>
-            <div class="appointment-detail__client-tracking-confirmed">
-              <p>Arrivee prevue</p>
-              <h2>{{ appointment.timeLabel }}</h2>
-              <strong>
-                <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
-                {{ appointment.addressLabel }}
-              </strong>
-              <button
-                *ngIf="canMarkTravelerOnTheWay()"
-                type="button"
+              <div class="appointment-detail__client-tracking-confirmed">
+                <p>Arrivee prevue</p>
+                <h2>{{ appointment.timeLabel }}</h2>
+                <strong>
+                  <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
+                  {{ appointment.addressLabel }}
+                </strong>
+                <button
+                  *ngIf="canMarkTravelerOnTheWay()"
+                  type="button"
                 (click)="markOnTheWay(appointment)"
                 [disabled]="isUpdatingStatus()"
               >
@@ -1053,7 +1053,7 @@
           </ng-template>
         </div>
         <div
-          *ngIf="!isProviderWorking() && (isProviderOnTheWay() || hasTravelerArrivalConfirmation())"
+          *ngIf="shouldRenderTrackingMap()"
           #trackingMap
           class="appointment-detail__google-map"
           aria-label="Carte temps reel du trajet prestataire"
@@ -1098,7 +1098,7 @@
           </button>
         </div>
         <div
-          *ngIf="isProviderOnTheWay() || hasTravelerArrivalConfirmation()"
+          *ngIf="shouldRenderTrackingMap()"
           class="appointment-detail__map-top-actions"
           aria-label="Actions de la carte et de la mission"
         >
@@ -1143,10 +1143,20 @@
           </a>
         </div>
         <div
-          *ngIf="!isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation())"
+          *ngIf="(isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation()))"
           class="appointment-detail__map-primary-actions"
           aria-label="Action principale de trajet"
         >
+          <button
+            *ngIf="isParcelDeliveryFlow() && isProviderViewer()"
+            type="button"
+            (click)="runParcelPrimaryAction(appointment)"
+            [disabled]="isUpdatingStatus() || !canUseParcelActionButton()"
+          >
+            <lucide-icon [name]="providerPrimaryActionIcon()" size="16" [strokeWidth]="2.8"></lucide-icon>
+            {{ parcelActionButtonLabel() }}
+          </button>
+          <ng-container *ngIf="!isParcelDeliveryFlow()">
           <button
             *ngIf="!isProviderOnTheWay() && canMarkTravelerOnTheWay()"
             type="button"
@@ -1174,6 +1184,7 @@
             <lucide-icon name="circle-check" size="16" [strokeWidth]="2.8"></lucide-icon>
             Commencer la prestation
           </button>
+          </ng-container>
         </div>
         <div
           *ngIf="isProviderOnTheWay()"
@@ -1311,6 +1322,16 @@
             <lucide-icon name="message-circle" size="16" [strokeWidth]="2.5"></lucide-icon>
             Message
           </button>
+        </div>
+
+        <div *ngIf="isParcelTransportAppointment(appointment)" class="appointment-detail__client-summary-qr">
+          <button type="button" (click)="openQrCodePage(appointment, 'expediteur')">
+            <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Page de téléchargement QR
+          </button>
+          <p>
+            Remettez le QR expéditeur avant l'enlèvement et le QR destinataire avant la livraison. Le livreur devra les scanner.
+          </p>
         </div>
 
       </aside>

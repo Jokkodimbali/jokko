@@ -4,7 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { ReservationAvailabilitySlotView } from '../../../data-access/service-proposal.service';
 import { BackendProfessionalDetailService } from '../../../domain/models/services.models';
-import { ServiceProposalInteractiveMapComponent } from '../service-proposal-interactive-map/service-proposal-interactive-map.component';
+import {
+  ServiceProposalInteractiveMapComponent,
+  ServiceProposalMapAddressSelection,
+} from '../service-proposal-interactive-map/service-proposal-interactive-map.component';
 
 export type ProposalDetailsModal = 'service' | 'schedule' | 'address' | 'parcelPickup' | 'parcelDropoff';
 
@@ -52,6 +55,7 @@ export class ServiceProposalDetailsModalComponent {
   @Output() readonly dayChanged = new EventEmitter<string>();
   @Output() readonly slotSelected = new EventEmitter<ReservationAvailabilitySlotView>();
   @Output() readonly addressChanged = new EventEmitter<string>();
+  @Output() readonly addressResolved = new EventEmitter<ServiceProposalMapAddressSelection>();
   @Output() readonly parcelContactNameChanged = new EventEmitter<string>();
   @Output() readonly parcelContactPhoneChanged = new EventEmitter<string>();
   @Output() readonly suggestionSelected = new EventEmitter<ProposalAddressSuggestion>();
@@ -108,6 +112,10 @@ export class ServiceProposalDetailsModalComponent {
   protected servicePrice(service: BackendProfessionalDetailService): number {
     const price = Number(service.prix);
     return Number.isFinite(price) && price > 0 ? price : this.fallbackServicePrice;
+  }
+
+  protected servicePriceLabel(service: BackendProfessionalDetailService): string {
+    return this.servicePrice(service).toLocaleString('fr-FR');
   }
 
   protected serviceIcon(service: BackendProfessionalDetailService): string {

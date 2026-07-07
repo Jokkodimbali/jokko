@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { firstValueFrom, forkJoin, of } from 'rxjs';
+import { Subscription, firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
@@ -13,6 +13,10 @@ import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { normalizeSenegalPhoneNumber } from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
+import {
+  AvailabilityRealtimeService,
+  ProfessionalAvailabilityChangedEvent,
+} from '../../../../services/data-access/availability-realtime.service';
 import {
   ReservationAvailabilitySlotView,
   ServiceProposalService,
@@ -80,12 +84,13 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
   templateUrl: './medicine-appointment-booking.component.html',
   styleUrl: './medicine-appointment-booking.component.scss',
 })
-export class MedicineAppointmentBookingComponent implements OnInit {
+export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
+  private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly messagesService = inject(MessagesService);
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
@@ -120,6 +125,7 @@ export class MedicineAppointmentBookingComponent implements OnInit {
   protected readonly appointmentPhoneOverride = signal('');
   protected readonly appointmentLocation = signal<AppointmentLocation | null>(null);
   protected readonly isLocatingAddress = signal(false);
+  private availabilityRealtimeSubscription: Subscription | null = null;
 
   protected readonly doctorName = computed(() => {
     const detail = this.detail();
@@ -265,6 +271,14 @@ export class MedicineAppointmentBookingComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPage();
+  }
+
+  ngOnDestroy(): void {
+    const profileId = this.detail()?.profile.id;
+    if (profileId) {
+      this.availabilityRealtime.stopWatching(profileId);
+    }
+    this.availabilityRealtimeSubscription?.unsubscribe();
   }
 
   protected goBack(): void {
@@ -695,11 +709,46 @@ export class MedicineAppointmentBookingComponent implements OnInit {
           this.calendarDays.set(days);
           const todayIso = this.toIsoDate(new Date());
           this.selectedDateIso.set(days.find((day) => day.isoDate === todayIso)?.isoDate ?? days[0]?.isoDate ?? '');
+          this.startAvailabilityRealtime(detail.profile.id);
           this.loadAvailabilityForSelectedDate();
         },
         error: (error) =>
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger ce medecin.')),
       });
+  }
+
+  private startAvailabilityRealtime(profileId: string): void {
+    this.availabilityRealtimeSubscription?.unsubscribe();
+    this.availabilityRealtime.stopWatching(profileId);
+    this.availabilityRealtimeSubscription = this.availabilityRealtime
+      .watchProfessional(profileId)
+      .subscribe((event) => this.handleAvailabilityChanged(event));
+  }
+
+  private handleAvailabilityChanged(event: ProfessionalAvailabilityChangedEvent): void {
+    const profileId = this.detail()?.profile.id;
+    if (!profileId || event.professionalId !== profileId) return;
+
+    if (event.reason === 'service') {
+      this.refreshDoctorDetailAndSlots(profileId);
+      return;
+    }
+
+    this.loadAvailabilityForSelectedDate();
+  }
+
+  private refreshDoctorDetailAndSlots(profileId: string): void {
+    this.servicesService.getProviderProfileDetail(profileId).subscribe({
+      next: (detail) => {
+        this.detail.set(detail);
+        if (!detail.services.some((service) => service.id === this.selectedServiceId())) {
+          this.selectedServiceId.set('');
+          this.selectedDateTime.set(null);
+        }
+        this.loadAvailabilityForSelectedDate();
+      },
+      error: () => this.loadAvailabilityForSelectedDate(),
+    });
   }
 
   private loadAvailabilityForSelectedDate(): void {

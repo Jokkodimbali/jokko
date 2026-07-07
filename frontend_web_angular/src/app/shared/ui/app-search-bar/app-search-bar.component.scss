@@ -243,11 +243,10 @@
 }
 
 .app-search-bar__location-menu {
-  border-top: 0;
-  border-radius: 0 0 18px 18px;
-  left: -1px;
+  border-radius: 16px;
+  left: 0;
   padding: 14px 12px;
-  top: calc(100% - 3px);
+  top: calc(100% + 8px);
   width: 220px;
 }
 
@@ -363,7 +362,7 @@
 .app-search-bar__category-list {
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 10px;
   overflow: hidden;
   padding-bottom: 1px;
 }
@@ -381,26 +380,14 @@
   color: #9a5a21;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   gap: 6px;
-  max-width: 132px;
   min-height: 32px;
-  overflow: hidden;
-  padding: 0 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-search-bar__category-chip--more {
-  background: #9a5a21;
-  border-color: #9a5a21;
-  color: #fff;
   max-width: none;
-}
-
-.app-search-bar__category-list--expanded .app-search-bar__category-chip {
-  max-width: 190px;
+  overflow: visible;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .app-search-bar__category-chip small {

@@ -2,7 +2,7 @@
   class="app-search-bar"
   [class.app-search-bar--compact]="variant === 'compact'"
   [class.app-search-bar--service]="variant === 'service'"
-  [class.app-search-bar--panel-open]="isServiceVariant && (showSuggestions || showLocationMenu)"
+  [class.app-search-bar--panel-open]="isServiceVariant && showSuggestions"
   [attr.aria-label]="ariaLabel"
   (submit)="$event.preventDefault(); onSubmit()"
 >
@@ -81,6 +81,13 @@
           <lucide-icon name="bookmark" size="13" [strokeWidth]="2"></lucide-icon>
           Cat&eacute;gories
         </span>
+        <button
+          *ngIf="hasHiddenCategories"
+          type="button"
+          (click)="toggleCategoryList()"
+        >
+          {{ showAllCategories ? 'Voir moins' : 'Tout voir' }}
+        </button>
       </div>
       <div
         class="app-search-bar__category-list"
@@ -95,14 +102,6 @@
           <lucide-icon [name]="category.icon || 'wrench'" size="14" [strokeWidth]="2.1"></lucide-icon>
           {{ category.name }}
           <small>{{ category.count }}</small>
-        </button>
-        <button
-          *ngIf="hasHiddenCategories"
-          type="button"
-          class="app-search-bar__category-chip app-search-bar__category-chip--more"
-          (click)="toggleCategoryList()"
-        >
-          {{ showAllCategories ? 'Voir moins' : ('Voir plus +' + hiddenCategoryCount) }}
         </button>
       </div>
     </section>

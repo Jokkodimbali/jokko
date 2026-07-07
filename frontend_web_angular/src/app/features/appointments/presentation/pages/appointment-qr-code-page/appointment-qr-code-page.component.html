@@ -41,14 +41,68 @@
         <p>{{ infoText() }}</p>
       </div>
 
-      <div class="parcel-qr__code" aria-label="QR code de validation colis">
-        <img
-          *ngIf="qrImageUrl()"
-          class="parcel-qr__image"
-          [src]="qrImageUrl()"
-          alt="QR code de validation colis"
-        />
-      </div>
+      <ng-container *ngIf="scanMode(); else qrDownloadView">
+        <section class="parcel-qr__scan-panel">
+          <div class="parcel-qr__camera" aria-label="Zone de scan QR code">
+            <video
+              #cameraPreview
+              autoplay
+              muted
+              playsinline
+              [class.is-active]="isCameraActive()"
+            ></video>
+            <span class="parcel-qr__corner parcel-qr__corner--top-left"></span>
+            <span class="parcel-qr__corner parcel-qr__corner--top-right"></span>
+            <span class="parcel-qr__corner parcel-qr__corner--bottom-left"></span>
+            <span class="parcel-qr__corner parcel-qr__corner--bottom-right"></span>
+            <lucide-icon *ngIf="!isCameraActive()" name="maximize-2" size="30" [strokeWidth]="2.2"></lucide-icon>
+          </div>
+          <p>
+            Placez le QR code de
+            {{ mode() === 'expediteur' ? "l'expediteur" : 'destinataire' }}
+            dans le cadre pour valider
+            {{ mode() === 'expediteur' ? 'la reception' : 'le depot' }}.
+          </p>
+          <p *ngIf="cameraError()" class="parcel-qr__camera-error">{{ cameraError() }}</p>
+          <button
+            type="button"
+            class="parcel-qr__camera-toggle"
+            (click)="isCameraActive() ? stopCamera() : startCamera()"
+            [disabled]="isCameraStarting()"
+          >
+            <lucide-icon name="camera" size="17" [strokeWidth]="2.4"></lucide-icon>
+            {{ isCameraActive() ? 'Desactiver la camera' : isCameraStarting() ? 'Activation...' : 'Activer la camera' }}
+          </button>
+          <textarea
+            [value]="scannedPayload()"
+            (input)="updateScannedPayload($any($event.target).value)"
+            placeholder="Saisir le numero de colis ou coller le contenu du QR code"
+          ></textarea>
+          <div class="parcel-qr__scan-actions">
+            <button type="button" class="parcel-qr__scan" (click)="validateScannedQr()">
+              <lucide-icon name="maximize-2" size="17" [strokeWidth]="2.4"></lucide-icon>
+              Valider
+            </button>
+          </div>
+          <strong *ngIf="validationMessage()" class="parcel-qr__scanner-success">
+            {{ validationMessage() }}
+          </strong>
+          <strong *ngIf="validationError()" class="parcel-qr__scanner-error">
+            {{ validationError() }}
+          </strong>
+        </section>
+      </ng-container>
+
+      <ng-template #qrDownloadView>
+        <div class="parcel-qr__code" aria-label="QR code de validation colis">
+          <img
+            *ngIf="qrImageUrl()"
+            class="parcel-qr__image"
+            [src]="qrImageUrl()"
+            alt="QR code de validation colis"
+          />
+        </div>
+      </ng-template>
 
       <dl class="parcel-qr__details">
         <div>
@@ -70,7 +124,7 @@
         {{ isCheckpointValidated() ? 'Validation effectuee' : statusLabel() }}
       </div>
 
-      <button type="button" class="parcel-qr__download" (click)="downloadQrPdf()">
+      <button *ngIf="!scanMode()" type="button" class="parcel-qr__download" (click)="downloadQrPdf()">
         <lucide-icon name="arrow-down" size="17" [strokeWidth]="2.5"></lucide-icon>
         Telecharger le QR code en PDF
       </button>
@@ -106,7 +160,7 @@
         Ce QR code est valable uniquement pour ces colis. Ne le partagez pas avec des tiers.
       </p>
 
-      <section *ngIf="isDeliveryPersonView()" class="parcel-qr__scanner">
+      <section *ngIf="isDeliveryPersonView() && !scanMode()" class="parcel-qr__scanner">
         <h2>Validation livreur</h2>
         <p>
           Scannez le QR code presente par
@@ -116,14 +170,11 @@
         <textarea
           [value]="scannedPayload()"
           (input)="updateScannedPayload($any($event.target).value)"
-          placeholder="Collez ici le contenu du QR code scanne..."
+          placeholder="Saisissez le numero de colis ou collez ici le contenu du QR code scanne..."
         ></textarea>
         <button type="button" class="parcel-qr__scan" (click)="validateScannedQr()">
-          <lucide-icon name="scan-line" size="17" [strokeWidth]="2.4"></lucide-icon>
+          <lucide-icon name="maximize-2" size="17" [strokeWidth]="2.4"></lucide-icon>
           Valider le {{ mode() === 'expediteur' ? 'retrait' : 'depot' }}
-        </button>
-        <button type="button" class="parcel-qr__scan parcel-qr__scan--ghost" (click)="useDisplayedQrForValidation()">
-          Tester avec ce QR code
         </button>
         <strong *ngIf="validationMessage()" class="parcel-qr__scanner-success">
           {{ validationMessage() }}

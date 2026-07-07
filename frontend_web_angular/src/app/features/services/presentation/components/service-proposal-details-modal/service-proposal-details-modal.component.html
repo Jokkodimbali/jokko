@@ -55,6 +55,7 @@
         <span><lucide-icon [name]="serviceIcon(service)" size="19" [strokeWidth]="2.3" /></span>
         <div>
           <strong>{{ serviceName(service) }}</strong>
+          <small class="details-modal__service-price">Tarif : {{ servicePriceLabel(service) }} FCFA</small>
         </div>
         <lucide-icon
           *ngIf="service.id === selectedServiceId"
@@ -190,6 +191,7 @@
           [address]="address"
           [expanded]="isAddressMapExpanded"
           (addressSelected)="addressChanged.emit($event)"
+          (addressResolved)="addressResolved.emit($event)"
           (expandedChange)="isAddressMapExpanded = $event"
         />
       </section>

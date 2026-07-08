@@ -110,46 +110,51 @@
         <ng-template #providerOpenNegotiation>
         <ng-container *ngIf="!canProviderRespond(); else providerActionPanel">
           <section
-            class="service-proposal__panel service-proposal__pending service-proposal__pending--provider-wait"
+            class="service-proposal__panel service-proposal__provider-wait-shell"
             aria-label="Attente de reponse du client"
           >
             <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
-            <div class="service-proposal__waiting-copy">
-              <h1>N&eacute;gociation en cours...</h1>
-              <p>
-                Veuillez patienter pendant que {{ proposalClientName() }} examine votre
-                contre-offre sur son application client.
-              </p>
-            </div>
+            <section
+              class="service-proposal__pending service-proposal__pending--provider-wait"
+              aria-label="Negociation en cours"
+            >
+              <div class="service-proposal__waiting-copy">
+                <h1>N&eacute;gociation en cours...</h1>
+                <p>
+                  Veuillez patienter pendant que {{ proposalClientName() }} examine votre
+                  contre-offre sur son application client.
+                </p>
+              </div>
 
-            <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
+              <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
 
-            <div class="service-proposal__waiting-track" aria-label="Suivi de la negotiation">
-              <span class="service-proposal__waiting-party service-proposal__waiting-party--you">
-                <strong>VOUS</strong>
-                <small>{{ providerSummaryAmountLabel() }} FCFA</small>
-              </span>
-
-              <span class="service-proposal__waiting-line" aria-hidden="true">
-                <i></i>
-              </span>
-
-              <span class="service-proposal__waiting-party service-proposal__waiting-party--provider">
-                <span class="service-proposal__waiting-avatar">
-                  <img
-                    *ngIf="proposal.client?.urlAvatar; else providerWaitingClientInitials"
-                    [src]="proposal.client?.urlAvatar"
-                    [alt]="proposalClientName()"
-                  />
-                  <ng-template #providerWaitingClientInitials>
-                    <em>{{ proposalClientInitials() }}</em>
-                  </ng-template>
-                  <b aria-hidden="true"></b>
+              <div class="service-proposal__waiting-track" aria-label="Suivi de la negotiation">
+                <span class="service-proposal__waiting-party service-proposal__waiting-party--you">
+                  <strong>VOUS</strong>
+                  <small>{{ providerSummaryAmountLabel() }} FCFA</small>
                 </span>
-                <small>CLIENT</small>
-              </span>
-            </div>
+
+                <span class="service-proposal__waiting-line" aria-hidden="true">
+                  <i></i>
+                </span>
+
+                <span class="service-proposal__waiting-party service-proposal__waiting-party--provider">
+                  <span class="service-proposal__waiting-avatar">
+                    <img
+                      *ngIf="proposal.client?.urlAvatar; else providerWaitingClientInitials"
+                      [src]="proposal.client?.urlAvatar"
+                      [alt]="proposalClientName()"
+                    />
+                    <ng-template #providerWaitingClientInitials>
+                      <em>{{ proposalClientInitials() }}</em>
+                    </ng-template>
+                    <b aria-hidden="true"></b>
+                  </span>
+                  <small>CLIENT</small>
+                </span>
+              </div>
+            </section>
 
             <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
           </section>
@@ -295,74 +300,81 @@
         </section>
         </ng-template>
 
-        <aside class="service-proposal__summary" aria-label="Recapitulatif de la proposition">
-          <div class="service-proposal__provider">
-            <span class="service-proposal__avatar-wrap">
-              <img
-                *ngIf="proposal.client?.urlAvatar; else providerSummaryInitials"
-                [src]="proposal.client?.urlAvatar"
-                [alt]="proposalClientName()"
-              />
-              <ng-template #providerSummaryInitials>
-                <span class="service-proposal__provider-initials">{{
-                  proposalClientInitials()
-                }}</span>
-              </ng-template>
-              <i aria-hidden="true"></i>
-            </span>
-            <div>
-              <h2>{{ proposalClientName() }}</h2>
-              <span>Client</span>
+        <aside class="service-proposal__side-stack">
+          <section class="service-proposal__summary" aria-label="Recapitulatif de la proposition">
+            <div class="service-proposal__provider">
+              <span class="service-proposal__avatar-wrap">
+                <img
+                  *ngIf="proposal.client?.urlAvatar; else providerSummaryInitials"
+                  [src]="proposal.client?.urlAvatar"
+                  [alt]="proposalClientName()"
+                />
+                <ng-template #providerSummaryInitials>
+                  <span class="service-proposal__provider-initials">{{
+                    proposalClientInitials()
+                  }}</span>
+                </ng-template>
+                <i aria-hidden="true"></i>
+              </span>
+              <div>
+                <h2>{{ proposalClientName() }}</h2>
+                <span>Client</span>
+                <p>
+                  <lucide-icon
+                    name="star"
+                    size="14"
+                    [strokeWidth]="2.4"
+                    fill="currentColor"
+                  ></lucide-icon>
+                  {{ proposal.service?.nom || categoryLabel() }}
+                </p>
+              </div>
+            </div>
+
+            <div class="service-proposal__summary-row">
+              <span>
+                <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon>
+              </span>
               <p>
-                <lucide-icon
-                  name="star"
-                  size="14"
-                  [strokeWidth]="2.4"
-                  fill="currentColor"
-                ></lucide-icon>
-                {{ proposal.service?.nom || categoryLabel() }}
+                <small>Date</small><strong>{{ formattedDate() }}</strong>
               </p>
             </div>
-          </div>
 
-          <div class="service-proposal__summary-row">
-            <span>
-              <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon>
-            </span>
-            <p>
-              <small>Date</small><strong>{{ formattedDate() }}</strong>
-            </p>
-          </div>
+            <div class="service-proposal__summary-row">
+              <span>
+                <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
+              </span>
+              <p>
+                <small>Heure d'intervention</small><strong>{{ formattedTime() }}</strong>
+              </p>
+            </div>
 
-          <div class="service-proposal__summary-row">
-            <span>
-              <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
-            </span>
-            <p>
-              <small>Heure d'intervention</small><strong>{{ formattedTime() }}</strong>
-            </p>
-          </div>
+            <div class="service-proposal__summary-row">
+              <span>
+                <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
+              </span>
+              <p>
+                <small>{{ appointmentAddressLabel() }}</small>
+                <strong>{{ shortAddress() }}</strong>
+                <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
+              </p>
+            </div>
 
-          <div class="service-proposal__summary-row">
-            <span>
-              <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
-            </span>
-            <p>
-              <small>{{ appointmentAddressLabel() }}</small>
-              <strong>{{ shortAddress() }}</strong>
-              <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
-            </p>
-          </div>
+            <div class="service-proposal__summary-row">
+              <span>
+                <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
+              </span>
+              <p>
+                <small>{{ providerSummaryPriceLabel() }}</small>
+                <strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
+              </p>
+            </div>
+          </section>
 
-          <div class="service-proposal__summary-row">
-            <span>
-              <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
-            </span>
-            <p>
-              <small>{{ providerSummaryPriceLabel() }}</small>
-              <strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
-            </p>
-          </div>
+          <button type="button" class="service-proposal__message" (click)="messageClient()">
+            <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+            Message au client
+          </button>
         </aside>
         </ng-template>
       </section>
@@ -852,12 +864,12 @@
 
               <ng-template #clientOpenNegotiation>
               <ng-container *ngIf="!hasProviderCounterOffer(); else providerCounterOfferPanel">
+                <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
                 <section
                   class="service-proposal__pending service-proposal__pending--inside"
                   aria-label="Negociation en cours"
                 >
-                <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
-
                 <div class="service-proposal__waiting-copy">
                   <h1>N&eacute;gociation en cours...</h1>
                   <p>
@@ -894,8 +906,6 @@
                   </span>
                 </div>
 
-                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-
                 <button
                   type="button"
                   class="service-proposal__cancel-offer"
@@ -905,6 +915,8 @@
                   {{ isCancellingProposal() ? 'Annulation en cours...' : "Annuler l'offre" }}
                 </button>
                 </section>
+
+                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
               </ng-container>
 
               <ng-template #providerCounterOfferPanel>

@@ -924,7 +924,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
   private serviceDurationMinutes(service: BackendProfessionalDetailService): number {
     const duration = Number(service.dureeMinutes);
-    if (!Number.isInteger(duration) || duration < 15) return 15;
+    if (!Number.isInteger(duration) || duration < 5) return 5;
     return Math.min(duration, 1440);
   }
 

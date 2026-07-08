@@ -306,6 +306,7 @@ export class DoctorSpaceService {
     priceType: 'FIXE' | 'NEGOCIABLE';
     travelMode?: ServiceTravelMode;
     durationMinutes: number;
+    pauseMinutes?: number;
     isRequired: boolean;
   }): Observable<BackendProfessionalDetailService> {
     return this.http
@@ -325,6 +326,7 @@ export class DoctorSpaceService {
       priceType?: 'FIXE' | 'NEGOCIABLE';
       travelMode?: ServiceTravelMode;
       durationMinutes?: number;
+      pauseMinutes?: number;
       isRequired?: boolean;
     },
   ): Observable<BackendProfessionalDetailService> {

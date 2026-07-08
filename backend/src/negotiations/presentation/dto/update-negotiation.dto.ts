@@ -54,7 +54,7 @@ export class CounterNegotiationDto {
   })
   @IsOptional()
   @IsInt({ message: VALIDATION_MESSAGES.RESERVATION_DURATION_INTEGER })
-  @Min(15, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MIN })
+  @Min(5, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MIN })
   @Max(1440, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MAX })
   dureeMinutes?: number;
 }

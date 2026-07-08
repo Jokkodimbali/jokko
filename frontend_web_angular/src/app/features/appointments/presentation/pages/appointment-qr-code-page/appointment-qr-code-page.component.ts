@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import jsQR from 'jsqr';
 import { LucideAngularModule } from 'lucide-angular';
 import QRCode from 'qrcode';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -56,7 +57,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   @ViewChild('cameraPreview')
   set cameraPreviewRef(value: ElementRef<HTMLVideoElement> | undefined) {
     this.cameraVideo = value?.nativeElement;
-    if (this.cameraVideo && this.scanMode() && this.isDeliveryPersonView()) {
+    if (this.cameraVideo && this.scanMode()) {
       window.setTimeout(() => void this.startCamera(), 0);
     }
   }
@@ -70,6 +71,8 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private cameraStream?: MediaStream;
   private cameraScanIntervalId?: number;
   private barcodeDetector?: { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> };
+  private scanCanvas?: HTMLCanvasElement;
+  private scanCanvasContext?: CanvasRenderingContext2D | null;
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly isLoading = signal(true);
@@ -208,6 +211,18 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       checksum: this.payloadChecksum(payload),
     });
   });
+  protected readonly qrCodeValue = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment || typeof window === 'undefined') return this.qrPayload();
+
+    const url = new URL(`/appointments/${appointment.id}/qr/${this.mode()}`, window.location.origin);
+    const reference = this.parcelNumber();
+    url.searchParams.set('r', appointment.id);
+    url.searchParams.set('c', this.checkpoint());
+    url.searchParams.set('ref', reference);
+    url.searchParams.set('sig', this.parcelTokenSignature(appointment, this.checkpoint(), reference));
+    return url.toString();
+  });
   protected readonly isDeliveryPersonView = computed(() => {
     const role = this.authSession.currentUser()?.role;
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
@@ -244,8 +259,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
 
         this.appointment.set(appointment);
         this.restoreValidationState();
+        this.restoreScannedValueFromUrl();
         void this.generateQrImage();
-        if (this.scanMode() && this.isDeliveryPersonView()) {
+        if (this.scanMode()) {
           window.setTimeout(() => void this.startCamera(), 120);
         }
       },
@@ -257,7 +273,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   ngAfterViewInit(): void {
-    if (this.scanMode() && this.isDeliveryPersonView()) {
+    if (this.scanMode()) {
       window.setTimeout(() => void this.startCamera(), 0);
     }
   }
@@ -294,7 +310,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected async startCamera(): Promise<void> {
-    if (!this.scanMode() || !this.isDeliveryPersonView() || this.isCameraActive() || this.isCameraStarting()) {
+    if (!this.scanMode() || this.isCameraActive() || this.isCameraStarting()) {
       return;
     }
     if (!this.cameraVideo) return;
@@ -318,7 +334,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       const stream = await this.openCameraStream();
       this.cameraStream = stream;
       this.cameraVideo.srcObject = stream;
-      await this.cameraVideo.play();
+      await this.playCameraPreview();
       this.isCameraActive.set(true);
       this.prepareBarcodeDetector();
       this.startCameraLoop();
@@ -352,13 +368,28 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    if (!rawPayload.startsWith('{')) {
+    const tokenValidation = this.validateQrToken(rawPayload, appointment);
+    if (tokenValidation === 'valid') {
+      this.confirmCheckpointValidation(
+        this.mode() === 'expediteur'
+          ? 'Retrait confirme. Les informations colis correspondent a cette reservation.'
+          : 'Depot confirme. Les informations colis correspondent a cette reservation.',
+      );
+      return;
+    }
+    if (tokenValidation === 'invalid') {
+      this.validationError.set('QR code invalide ou non conforme a cette reservation.');
+      return;
+    }
+
+    const extractedPayload = this.extractLegacyPayloadFromScannedValue(rawPayload);
+    if (!extractedPayload) {
       this.validateManualParcelReference(rawPayload);
       return;
     }
 
     try {
-      const payload = JSON.parse(rawPayload) as Record<string, unknown>;
+      const payload = JSON.parse(extractedPayload) as Record<string, unknown>;
       const expectedChecksum = this.payloadChecksum({
         issuer: payload['issuer'],
         version: payload['version'],
@@ -385,17 +416,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         return;
       }
 
-      const key = this.validationStorageKey();
-      if (key) {
-        globalThis.localStorage?.setItem(key, 'validated');
-      }
-      this.stopCamera();
-      this.validationMessage.set(
+      this.confirmCheckpointValidation(
         this.mode() === 'expediteur'
           ? 'Retrait confirme. Les informations colis correspondent a cette reservation.'
           : 'Depot confirme. Les informations colis correspondent a cette reservation.',
       );
-      this.validationError.set(null);
     } catch {
       this.validationError.set('Le QR code scanne est illisible ou incomplet.');
     }
@@ -406,7 +431,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private async generateQrImage(): Promise<void> {
-    const payload = this.qrPayload();
+    const payload = this.qrCodeValue();
     if (!payload) {
       this.qrImageUrl.set(null);
       this.isLoading.set(false);
@@ -441,6 +466,21 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     }
   }
 
+  private restoreScannedValueFromUrl(): void {
+    const tokenValue = this.currentShortQrUrlFromRoute();
+    if (tokenValue) {
+      this.scannedPayload.set(tokenValue);
+      return;
+    }
+
+    const encodedPayload = this.route.snapshot.queryParamMap.get('payload');
+    if (!encodedPayload) return;
+    const payload = this.decodePayloadFromUrl(encodedPayload);
+    if (payload) {
+      this.scannedPayload.set(payload);
+    }
+  }
+
   private prepareBarcodeDetector(): void {
     const detectorConstructor = (
       window as Window & {
@@ -451,9 +491,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     ).BarcodeDetector;
 
     if (!detectorConstructor) {
-      this.cameraError.set(
-        'Camera activee. Si le QR nest pas detecte automatiquement, saisissez le numero de colis affiche sous le QR code.',
-      );
+      this.barcodeDetector = undefined;
       return;
     }
 
@@ -471,19 +509,59 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private async detectQrFromCamera(): Promise<void> {
-    if (!this.barcodeDetector || !this.cameraVideo || this.cameraVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+    if (!this.cameraVideo || this.cameraVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
       return;
     }
 
     try {
-      const results = await this.barcodeDetector.detect(this.cameraVideo);
-      const rawValue = results.find((result) => !!result.rawValue)?.rawValue?.trim();
+      const rawValue = await this.readQrFromCamera();
       if (!rawValue || rawValue === this.scannedPayload().trim()) return;
       this.scannedPayload.set(rawValue);
       this.validateScannedQr();
     } catch {
       this.cameraError.set('Lecture du QR code impossible pour le moment. Rapprochez le code de la camera.');
     }
+  }
+
+  private async readQrFromCamera(): Promise<string | null> {
+    if (!this.cameraVideo) return null;
+
+    if (this.barcodeDetector) {
+      try {
+        const results = await this.barcodeDetector.detect(this.cameraVideo);
+        const nativeValue = results.find((result) => !!result.rawValue)?.rawValue?.trim();
+        if (nativeValue) return nativeValue;
+      } catch {
+        this.barcodeDetector = undefined;
+      }
+    }
+
+    return this.readQrWithCanvas();
+  }
+
+  private readQrWithCanvas(): string | null {
+    if (!this.cameraVideo) return null;
+
+    const width = this.cameraVideo.videoWidth || this.cameraVideo.clientWidth;
+    const height = this.cameraVideo.videoHeight || this.cameraVideo.clientHeight;
+    if (!width || !height) return null;
+
+    if (!this.scanCanvas) {
+      this.scanCanvas = document.createElement('canvas');
+      this.scanCanvasContext = this.scanCanvas.getContext('2d', { willReadFrequently: true });
+    }
+
+    if (!this.scanCanvasContext) return null;
+
+    this.scanCanvas.width = width;
+    this.scanCanvas.height = height;
+    this.scanCanvasContext.drawImage(this.cameraVideo, 0, 0, width, height);
+    const imageData = this.scanCanvasContext.getImageData(0, 0, width, height);
+    const result = jsQR(imageData.data, width, height, {
+      inversionAttempts: 'attemptBoth',
+    });
+
+    return result?.data?.trim() || null;
   }
 
   private async openCameraStream(): Promise<MediaStream> {
@@ -512,6 +590,16 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     }
 
     throw lastError;
+  }
+
+  private async playCameraPreview(): Promise<void> {
+    if (!this.cameraVideo) return;
+
+    const playPromise = this.cameraVideo.play();
+    await Promise.race([
+      playPromise,
+      new Promise<void>((resolve) => window.setTimeout(resolve, 1200)),
+    ]);
   }
 
   private canUseCameraInCurrentContext(): boolean {
@@ -555,21 +643,145 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
+    this.confirmCheckpointValidation(
+      this.mode() === 'expediteur'
+        ? 'Retrait confirme. Le numero de colis correspond a cette reservation.'
+        : 'Depot confirme. Le numero de colis correspond a cette reservation.',
+    );
+  }
+
+  private normalizeParcelReference(value: string): string {
+    return value.trim().replace(/\s+/g, '').toUpperCase();
+  }
+
+  private validateQrToken(value: string, appointment: AppointmentView): 'valid' | 'invalid' | 'none' {
+    const token = this.extractQrTokenFromScannedValue(value);
+    if (!token) return 'none';
+
+    const reference = this.normalizeParcelReference(token.reference);
+    const expectedSignature = this.parcelTokenSignature(appointment, token.checkpoint, token.reference);
+    const referenceMatches = [
+      this.parcelNumber(),
+      ...this.manifest().parcels.map((parcel) => parcel.number),
+    ]
+      .map((item) => this.normalizeParcelReference(item))
+      .includes(reference);
+
+    return token.reservationId === appointment.id &&
+      token.checkpoint === this.checkpoint() &&
+      token.signature === expectedSignature &&
+      referenceMatches
+      ? 'valid'
+      : 'invalid';
+  }
+
+  private extractQrTokenFromScannedValue(value: string): {
+    reservationId: string;
+    checkpoint: ParcelCheckpoint;
+    reference: string;
+    signature: string;
+  } | null {
+    try {
+      const url = new URL(value.trim());
+      const reservationId = url.searchParams.get('r') ?? '';
+      const rawCheckpoint = url.searchParams.get('c') ?? '';
+      const reference = url.searchParams.get('ref') ?? '';
+      const signature = url.searchParams.get('sig') ?? '';
+      if (
+        !reservationId ||
+        !reference ||
+        !signature ||
+        (rawCheckpoint !== 'RETRAIT' && rawCheckpoint !== 'DEPOT')
+      ) {
+        return null;
+      }
+
+      return {
+        reservationId,
+        checkpoint: rawCheckpoint,
+        reference,
+        signature,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private extractLegacyPayloadFromScannedValue(value: string): string | null {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('{')) return trimmed;
+
+    try {
+      const url = new URL(trimmed);
+      const encodedPayload = url.searchParams.get('payload');
+      return encodedPayload ? this.decodePayloadFromUrl(encodedPayload) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private currentShortQrUrlFromRoute(): string | null {
+    if (typeof window === 'undefined') return null;
+    const reservationId = this.route.snapshot.queryParamMap.get('r');
+    const checkpoint = this.route.snapshot.queryParamMap.get('c');
+    const reference = this.route.snapshot.queryParamMap.get('ref');
+    const signature = this.route.snapshot.queryParamMap.get('sig');
+    if (!reservationId || !checkpoint || !reference || !signature) return null;
+
+    const url = new URL(`/appointments/${this.route.snapshot.paramMap.get('id')}/qr/${this.mode()}`, window.location.origin);
+    url.searchParams.set('r', reservationId);
+    url.searchParams.set('c', checkpoint);
+    url.searchParams.set('ref', reference);
+    url.searchParams.set('sig', signature);
+    return url.toString();
+  }
+
+  private confirmCheckpointValidation(message: string): void {
     const key = this.validationStorageKey();
     if (key) {
       globalThis.localStorage?.setItem(key, 'validated');
     }
     this.stopCamera();
-    this.validationMessage.set(
-      this.mode() === 'expediteur'
-        ? 'Retrait confirme. Le numero de colis correspond a cette reservation.'
-        : 'Depot confirme. Le numero de colis correspond a cette reservation.',
-    );
+    this.validationMessage.set(message);
     this.validationError.set(null);
   }
 
-  private normalizeParcelReference(value: string): string {
-    return value.trim().replace(/\s+/g, '').toUpperCase();
+  private parcelTokenSignature(
+    appointment: AppointmentView,
+    checkpoint: ParcelCheckpoint,
+    reference: string,
+  ): string {
+    return this.checksum(
+      [
+        'JOKKO_PARCEL_CHECKPOINT',
+        appointment.id,
+        appointment.serviceId,
+        checkpoint,
+        this.normalizeParcelReference(reference),
+      ].join('|'),
+    ).toString(36).toUpperCase();
+  }
+
+  private encodePayloadForUrl(value: string): string {
+    const bytes = new TextEncoder().encode(value);
+    const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+    return window
+      .btoa(binary)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+  }
+
+  private decodePayloadFromUrl(value: string): string | null {
+    try {
+      const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+      const binary = window.atob(padded);
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch {
+      return null;
+    }
   }
 
   private parseParcelManifest(notes: string | null): ParcelManifest {

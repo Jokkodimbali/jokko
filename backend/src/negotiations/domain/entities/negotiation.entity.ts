@@ -391,7 +391,7 @@ export class NegotiationEntity {
       return null;
     }
 
-    if (!Number.isInteger(value) || value < 15 || value > 1440) {
+    if (!Number.isInteger(value) || value < 5 || value > 1440) {
       return null;
     }
 

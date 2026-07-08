@@ -543,7 +543,7 @@ export class ReservationEntity {
   private static assertDuration(dureeMinutes: number): void {
     if (
       !Number.isInteger(dureeMinutes) ||
-      dureeMinutes < 15 ||
+      dureeMinutes < 5 ||
       dureeMinutes > 1440
     ) {
       throw ReservationDomainError.invalidDuration();

@@ -10,7 +10,9 @@ import {
   IsPositive,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
@@ -107,8 +109,25 @@ export class CreateProfessionalServiceDto {
   )
   @IsOptional()
   @IsInt()
-  @IsPositive()
+  @Min(5)
+  @Max(1440)
   durationMinutes?: number;
+
+  @ApiProperty({
+    description: 'Pause entre deux rendez-vous en minutes',
+    example: 5,
+    required: false,
+    minimum: 0,
+    maximum: 240,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? Number(value) : value,
+  )
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(240)
+  pauseMinutes?: number;
 
   @ApiProperty({
     description:

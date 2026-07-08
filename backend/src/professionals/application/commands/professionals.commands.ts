@@ -33,6 +33,7 @@ export type CreateProfessionalServiceCommand = {
     | 'CLIENT_SE_DEPLACE'
     | 'TRANSPORT_COLIS';
   durationMinutes?: number;
+  pauseMinutes?: number;
   isRequired?: boolean;
 };
 
@@ -46,6 +47,7 @@ export type UpdateProfessionalServiceCommand = {
     | 'CLIENT_SE_DEPLACE'
     | 'TRANSPORT_COLIS';
   durationMinutes?: number;
+  pauseMinutes?: number;
   isRequired?: boolean;
 };
 

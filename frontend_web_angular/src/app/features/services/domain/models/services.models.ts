@@ -126,6 +126,7 @@ export interface BackendProfessionalDetailService {
   typePrix: 'FIXE' | 'NEGOCIABLE';
   modeDeplacement?: ServiceTravelMode;
   dureeMinutes?: number;
+  pauseMinutes?: number;
   estObligatoire?: boolean;
   estDisponible: boolean;
   creeLe: string;

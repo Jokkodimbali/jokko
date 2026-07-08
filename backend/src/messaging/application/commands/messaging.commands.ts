@@ -1,5 +1,6 @@
 export type CreateConversationCommand = {
   reservationId?: string;
+  negotiationId?: string;
   professionalProfileId?: string;
 };
 

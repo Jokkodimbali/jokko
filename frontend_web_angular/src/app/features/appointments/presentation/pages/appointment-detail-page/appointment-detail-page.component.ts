@@ -394,7 +394,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       !this.isAppointmentCompleted() &&
       !this.isAppointmentClosed() &&
       this.canShowLiveTracking(appointment) &&
-      this.isServiceDay(appointment) &&
       (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
     );
   });
@@ -500,7 +499,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly canStartRouteToday = computed(() => {
     const appointment = this.appointment();
-    return !!appointment && this.isServiceDay(appointment);
+    return (
+      !!appointment &&
+      !this.isAppointmentCompleted() &&
+      !this.isAppointmentClosed() &&
+      appointment.status === 'PAYEE_SEQUESTRE'
+    );
   });
   protected readonly canProviderMarkOnTheWay = computed(() => {
     const appointment = this.appointment();
@@ -1931,7 +1935,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!this.canMarkTravelerOnTheWay()) {
       if (!silent) {
         this.feedback.info(
-          "Le suivi en route s'active uniquement le jour de la prestation, apres paiement.",
+          "Le suivi en route s'active apres confirmation et paiement de la reservation.",
         );
       }
       return;
@@ -2728,7 +2732,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private canShowLiveTracking(appointment: AppointmentView): boolean {
-    return !this.isAppointmentInFuture(appointment) || this.isServiceDay(appointment);
+    return (
+      !this.isTerminalAppointmentStatus(appointment.status) ||
+      LIVE_TRACKING_STATUSES.has(appointment.status)
+    );
   }
 
   private async initializeGoogleMaps(): Promise<void> {

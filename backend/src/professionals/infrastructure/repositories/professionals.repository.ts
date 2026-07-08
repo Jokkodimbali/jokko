@@ -74,6 +74,7 @@ const SERVICE_SELECT = {
   typePrix: true,
   modeDeplacement: true,
   dureeMinutes: true,
+  pauseMinutes: true,
   estObligatoire: true,
   estDisponible: true,
   creeLe: true,
@@ -159,6 +160,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     typePrix: string;
     modeDeplacement: string;
     dureeMinutes: number;
+    pauseMinutes: number;
     estObligatoire: boolean;
     estDisponible: boolean;
     creeLe: Date;
@@ -174,6 +176,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       modeDeplacement:
         service.modeDeplacement as ProfessionalServiceView['modeDeplacement'],
       dureeMinutes: service.dureeMinutes,
+      pauseMinutes: service.pauseMinutes,
       estObligatoire: service.estObligatoire,
       estDisponible: service.estDisponible,
       creeLe: service.creeLe,
@@ -227,8 +230,12 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       const profile = await this.prisma.profilProfessionnel.update({
         where: { utilisateurId: input.utilisateurId },
         data: {
-          ...(input.biographie !== undefined ? { biographie: input.biographie } : {}),
-          ...(input.nomEntreprise !== undefined ? { nomEntreprise: input.nomEntreprise } : {}),
+          ...(input.biographie !== undefined
+            ? { biographie: input.biographie }
+            : {}),
+          ...(input.nomEntreprise !== undefined
+            ? { nomEntreprise: input.nomEntreprise }
+            : {}),
           ...(input.ville !== undefined ? { ville: input.ville } : {}),
         },
         select: PROFESSIONAL_SELECT,
@@ -467,6 +474,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           typePrix: input.priceType,
           modeDeplacement: input.travelMode,
           dureeMinutes: input.durationMinutes,
+          pauseMinutes: input.pauseMinutes,
           estObligatoire: input.isRequired,
         },
         select: SERVICE_SELECT,
@@ -500,6 +508,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           typePrix: input.priceType,
           modeDeplacement: input.travelMode,
           dureeMinutes: input.durationMinutes,
+          pauseMinutes: input.pauseMinutes,
           estObligatoire: input.isRequired,
         },
         select: SERVICE_SELECT,

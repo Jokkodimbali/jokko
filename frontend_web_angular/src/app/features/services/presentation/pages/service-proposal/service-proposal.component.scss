@@ -1105,6 +1105,45 @@
   opacity: 0.72;
 }
 
+.service-proposal__content--provider .service-proposal__hero {
+  min-height: 88px;
+  padding: 20px 28px 18px;
+}
+
+.service-proposal__content--provider .service-proposal__hero h1 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.service-proposal__content--provider .service-proposal__price-card > header {
+  padding: 10px 16px;
+}
+
+.service-proposal__content--provider .service-proposal__price-card h2 {
+  font-size: 15px;
+}
+
+.service-proposal__content--provider .service-proposal__offer-display {
+  padding: 12px 16px 10px;
+}
+
+.service-proposal__content--provider .service-proposal__offer-display input {
+  font-size: clamp(34px, 4.6vw, 46px);
+}
+
+.service-proposal__content--provider .service-proposal__difference {
+  margin-top: 8px;
+  min-height: 26px;
+}
+
+.service-proposal__content--provider .service-proposal__amount-actions {
+  padding: 0 18px 8px;
+}
+
+.service-proposal__content--provider .service-proposal__steps {
+  padding: 0 18px 12px;
+}
+
 
 
 .service-proposal__offer-display{text-align:center}

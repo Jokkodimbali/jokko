@@ -33,6 +33,7 @@ const NEGOTIATION_INCLUDE = {
       nomEntreprise: true,
       utilisateur: {
         select: {
+          id: true,
           nom: true,
           urlAvatar: true,
         },

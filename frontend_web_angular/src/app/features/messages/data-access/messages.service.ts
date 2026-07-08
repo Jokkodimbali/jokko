@@ -26,6 +26,7 @@ export class MessagesService {
 
   createConversation(payload: {
     reservationId?: string;
+    negotiationId?: string;
     professionalProfileId?: string;
   }): Observable<Conversation> {
     return this.http

@@ -16,6 +16,17 @@ export class CreateConversationDto {
 
   @ApiProperty({
     description:
+      'Identifiant de la negociation pour ouvrir une discussion avant reservation.',
+    format: 'uuid',
+    example: '850e8400-e29b-41d4-a716-446655440111',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4', { message: VALIDATION_MESSAGES.MESSAGING_RESERVATION_ID_FORMAT })
+  negotiationId?: string;
+
+  @ApiProperty({
+    description:
       'Identifiant du profil prestataire pour ouvrir une discussion directe.',
     format: 'uuid',
     example: '750e8400-e29b-41d4-a716-446655440099',

@@ -2,11 +2,23 @@
   align-items: center;
   display: flex;
   flex-direction: column;
-  min-height: 420px;
+  min-height: 330px;
   overflow: visible;
-  padding: 44px 34px 38px;
+  padding: 30px 28px 28px;
   position: relative;
   text-align: center;
+}
+
+.service-proposal__provider-wait-shell {
+  display: grid;
+  gap: 18px;
+  overflow: visible;
+  padding: 24px;
+}
+
+.service-proposal__pending--inside,
+.service-proposal__pending--provider-wait {
+  min-height: 0;
 }
 
 .service-proposal__pending--counter {

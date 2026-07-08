@@ -4,6 +4,10 @@ import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { MESSAGING_NOTIFICATION_MESSAGES } from '../../../core/messages/messaging-notification.messages';
 import { NotificationDeliveryService } from '../../../notifications/application/services/notification-delivery.service';
+import {
+  NEGOTIATIONS_REPOSITORY_PORT,
+  type NegotiationsRepositoryPort,
+} from '../../../negotiations/application/ports/negotiations-repository.port';
 import { trimString } from '../../../shared/utils/string.utils';
 import {
   PROFESSIONALS_REPOSITORY_PORT,
@@ -58,6 +62,8 @@ export class MessagingCommandService extends MessagingAppService {
     professionalsRepository: ProfessionalsRepositoryPort,
     @Inject(RESERVATIONS_REPOSITORY_PORT)
     reservationsRepository: ReservationsRepositoryPort,
+    @Inject(NEGOTIATIONS_REPOSITORY_PORT)
+    private readonly negotiationsRepository: NegotiationsRepositoryPort,
     private readonly notificationDeliveryService: NotificationDeliveryService,
   ) {
     super(
@@ -77,10 +83,15 @@ export class MessagingCommandService extends MessagingAppService {
           requestUser,
           command.reservationId,
         )
-      : await this.resolveDirectConversationContext(
-          requestUser,
-          command.professionalProfileId,
-        );
+      : command.negotiationId
+        ? await this.resolveNegotiationConversationContext(
+            requestUser,
+            command.negotiationId,
+          )
+        : await this.resolveDirectConversationContext(
+            requestUser,
+            command.professionalProfileId,
+          );
 
     const existing =
       (participantContext.reservationId
@@ -145,6 +156,52 @@ export class MessagingCommandService extends MessagingAppService {
       clientUserId: requestUser.sub,
       professionalUserId: professional.utilisateur.id,
       reservationId: null,
+    };
+  }
+
+  private async resolveNegotiationConversationContext(
+    requestUser: AuthUser,
+    negotiationId: string,
+  ): Promise<{
+    clientUserId: string;
+    professionalUserId: string;
+    reservationId: string | null;
+  }> {
+    const negotiation =
+      await this.negotiationsRepository.findById(negotiationId);
+    if (!negotiation) {
+      throw appHttpException('NEGOTIATIONS_NOT_FOUND');
+    }
+
+    const professional = await this.getProfessionalProfileOrThrow(
+      negotiation.professionnelId,
+    );
+
+    if (professional.utilisateur.id === negotiation.clientId) {
+      throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
+    }
+
+    if (requestUser.role === 'CLIENT') {
+      if (negotiation.clientId !== requestUser.sub) {
+        throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+      }
+    } else if (
+      requestUser.role === 'PRESTATAIRE' ||
+      requestUser.role === 'MEDECIN'
+    ) {
+      const connectedProfessional =
+        await this.getProfessionalProfileByUserIdOrThrow(requestUser.sub);
+      if (connectedProfessional.id !== negotiation.professionnelId) {
+        throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+      }
+    } else {
+      throw appHttpException('MESSAGING_UNAUTHORIZED');
+    }
+
+    return {
+      clientUserId: negotiation.clientId,
+      professionalUserId: professional.utilisateur.id,
+      reservationId: negotiation.reservationId,
     };
   }
 

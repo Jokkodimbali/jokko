@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
 import { CoreModule } from '../core/core.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NegotiationsModule } from '../negotiations/negotiations.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProfessionalsModule } from '../professionals/professionals.module';
 import { ReservationsModule } from '../reservations/reservations.module';
@@ -25,6 +26,7 @@ import { MessagingGateway } from './presentation/gateways/messaging.gateway';
     UsersModule,
     ProfessionalsModule,
     ReservationsModule,
+    NegotiationsModule,
     NotificationsModule,
     MediaModule,
   ],

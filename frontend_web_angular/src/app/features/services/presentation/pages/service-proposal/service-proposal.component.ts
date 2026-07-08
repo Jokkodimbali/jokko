@@ -22,7 +22,6 @@ import {
 } from '../../../../../shared/maps/google-maps-loader.service';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthService } from '../../../../auth/data-access/auth.service';
-import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   AvailabilityRealtimeService,
   ProfessionalAvailabilityChangedEvent,
@@ -143,7 +142,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
-  private readonly messagesService = inject(MessagesService);
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
@@ -1239,26 +1237,87 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     const service = this.currentService();
-    if (!service?.profilProfessionnelId) {
+    const proposal = this.pendingProposal();
+    const professionalId = service?.profilProfessionnelId ?? proposal?.professionnelId;
+    if (!professionalId) {
       this.feedback.error('Impossible d ouvrir la discussion avec ce prestataire.');
       return;
     }
 
-    this.messagesService
-      .createConversation({ professionalProfileId: service.profilProfessionnelId })
-      .subscribe({
-        next: (conversation) => {
-          this.router.navigate(['/messages'], {
-            queryParams: {
-              conversationId: conversation.id,
-              professionalId: service.profilProfessionnelId,
-              providerName: this.displayName(),
-              serviceName: service.nom || this.categoryLabel(),
-            },
-          });
-        },
-        error: (error) => this.handleProposalError(error),
+    this.router.navigate(['/messages'], {
+      queryParams: this.buildMessageQuery({
+        professionalId,
+        providerName: this.displayName(),
+        serviceName: service?.nom || this.categoryLabel(),
+        proposal,
+      }),
+    });
+  }
+
+  protected messageClient(): void {
+    if (!this.authSession.getAccessToken()) {
+      this.feedback.info('Connectez-vous d abord pour ecrire au client.');
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
       });
+      return;
+    }
+
+    const proposal = this.pendingProposal();
+    if (!proposal) {
+      this.feedback.error('Impossible d ouvrir la discussion avec ce client.');
+      return;
+    }
+
+    this.router.navigate(['/messages'], {
+      queryParams: this.buildMessageQuery({
+        professionalId: proposal.professionnelId,
+        providerName: this.proposalClientName(),
+        serviceName: proposal.service?.nom || this.categoryLabel(),
+        proposal,
+      }),
+    });
+  }
+
+  private buildMessageQuery(input: {
+    professionalId: string;
+    providerName: string;
+    serviceName: string;
+    proposal: NegotiationView | null;
+  }): Record<string, string | number> {
+    const proposal = input.proposal;
+    const query: Record<string, string | number> = {
+      professionalId: input.professionalId,
+      providerName: input.providerName,
+      serviceName: input.serviceName,
+      amount: Math.trunc(Number(proposal?.montantCourant ?? this.offerAmount() ?? 0)),
+    };
+
+    if (proposal?.id) {
+      query['negotiationId'] = proposal.id;
+    }
+
+    if (proposal?.reservationId) {
+      query['reservationId'] = proposal.reservationId;
+    }
+
+    if (proposal?.statut) {
+      query['status'] = proposal.statut;
+    }
+
+    if (proposal?.dateHeureProposee) {
+      query['appointmentDate'] = proposal.dateHeureProposee;
+    }
+
+    if (proposal?.adresseClientProposee) {
+      query['address'] = proposal.adresseClientProposee;
+    }
+
+    if (proposal?.dureeMinutesProposee) {
+      query['durationMinutes'] = proposal.dureeMinutesProposee;
+    }
+
+    return query;
   }
 
   protected cancelPendingProposal(): void {

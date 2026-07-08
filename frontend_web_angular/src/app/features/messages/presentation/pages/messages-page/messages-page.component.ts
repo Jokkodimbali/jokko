@@ -95,6 +95,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly failedAvatarUrls = signal<Set<string>>(new Set());
   private readonly requestedConversationId = signal<string | null>(null);
   private readonly requestedReservationId = signal<string | null>(null);
+  private readonly requestedNegotiationId = signal<string | null>(null);
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
   private activeMessagesRequestId = 0;
@@ -959,17 +960,23 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.conversations.set(sortedConversations);
         const requestedConversationId = this.requestedConversationId();
         const requestedReservationId = this.requestedReservationId();
+        const requestedNegotiationId = this.requestedNegotiationId();
         const requestedReservationConversation = sortedConversations.find(
           (conversation) => conversation.reservationId === requestedReservationId,
         );
+        const requestedProposalConversation = this.findProposalConversation(sortedConversations);
         if (requestedReservationId && !requestedReservationConversation && !requestedConversationId) {
           this.openReservationConversation(requestedReservationId);
+          return;
+        }
+        if (requestedNegotiationId && !requestedProposalConversation && !requestedConversationId) {
+          this.openNegotiationConversation(requestedNegotiationId);
           return;
         }
         const selectedId =
           sortedConversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
           requestedReservationConversation?.id ??
-          this.findProposalConversation(sortedConversations)?.id ?? sortedConversations[0]?.id ?? null;
+          requestedProposalConversation?.id ?? sortedConversations[0]?.id ?? null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
@@ -1042,6 +1049,28 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         const message = "Impossible d'ouvrir la discussion liee a cette reservation.";
+        this.errorMessage.set(message);
+        this.feedback.error(message);
+        this.isLoadingConversations.set(false);
+      },
+    });
+  }
+
+  private openNegotiationConversation(negotiationId: string): void {
+    this.messagesService.createConversation({ negotiationId }).subscribe({
+      next: (conversation) => {
+        this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
+        this.selectedConversationId.set(conversation.id);
+        this.requestedConversationId.set(conversation.id);
+        this.loadPriceProposals();
+        this.isLoadingConversations.set(false);
+        this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
+        this.scrollThreadToBottom();
+        this.messagesRealtime.joinConversation(conversation.id);
+        this.loadMessages(conversation.id);
+      },
+      error: () => {
+        const message = "Impossible d'ouvrir la discussion liee a cette negociation.";
         this.errorMessage.set(message);
         this.feedback.error(message);
         this.isLoadingConversations.set(false);
@@ -1126,6 +1155,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.requestedConversationId.set(conversationId);
     this.requestedReservationId.set(query.get('reservationId'));
+    this.requestedNegotiationId.set(query.get('negotiationId'));
 
     if (!professionalId && !Number.isFinite(rawAmount)) {
       return;

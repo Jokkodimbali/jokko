@@ -91,6 +91,7 @@ export class MessagingCommandService extends MessagingAppService {
         : await this.resolveDirectConversationContext(
             requestUser,
             command.professionalProfileId,
+            command.professionalUserId,
           );
 
     const existing =
@@ -131,12 +132,13 @@ export class MessagingCommandService extends MessagingAppService {
   private async resolveDirectConversationContext(
     requestUser: AuthUser,
     professionalProfileId?: string,
+    professionalUserId?: string,
   ): Promise<{
     clientUserId: string;
     professionalUserId: string;
     reservationId: string | null;
   }> {
-    if (!professionalProfileId) {
+    if (!professionalProfileId && !professionalUserId) {
       throw appHttpException('MESSAGING_RESERVATION_REQUIRED');
     }
 
@@ -144,19 +146,46 @@ export class MessagingCommandService extends MessagingAppService {
       throw appHttpException('MESSAGING_UNAUTHORIZED');
     }
 
-    const professional = await this.getProfessionalProfileOrThrow(
-      professionalProfileId,
-    );
+    const normalizedProfileId = this.normalizeUuid(professionalProfileId);
+    const normalizedUserId = this.normalizeUuid(professionalUserId);
+    if (!normalizedProfileId && !normalizedUserId) {
+      throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
+    }
 
-    if (professional.utilisateur.id === requestUser.sub) {
+    const professional = normalizedProfileId
+      ? ((await this.professionalsRepository.findPublicById(
+          normalizedProfileId,
+        )) ??
+        (await this.professionalsRepository.findVerifiedById(normalizedProfileId))
+      : null;
+    const resolvedProfessional =
+      professional ??
+      (normalizedUserId
+        ? await this.getProfessionalProfileByUserIdOrThrow(normalizedUserId)
+        : null);
+    if (!resolvedProfessional || !resolvedProfessional.utilisateur.estActif) {
+      throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
+    }
+
+    if (resolvedProfessional.utilisateur.id === requestUser.sub) {
       throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
     }
 
     return {
       clientUserId: requestUser.sub,
-      professionalUserId: professional.utilisateur.id,
+      professionalUserId: resolvedProfessional.utilisateur.id,
       reservationId: null,
     };
+  }
+
+  private normalizeUuid(value?: string): string | null {
+    const candidate = value?.trim();
+    if (!candidate) return null;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      candidate,
+    )
+      ? candidate
+      : null;
   }
 
   private async resolveNegotiationConversationContext(

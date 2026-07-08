@@ -168,9 +168,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         escrowStatus: $Enums.EscrowStatus.LOCKED,
         reservation: {
           statut: {
-            in: [
-              $Enums.StatutReservation.CONFIRMEE,
-            ],
+            in: [$Enums.StatutReservation.CONFIRMEE],
           },
         },
       },
@@ -190,9 +188,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         where: {
           id: { in: paidReservationIds },
           statut: {
-            in: [
-              $Enums.StatutReservation.CONFIRMEE,
-            ],
+            in: [$Enums.StatutReservation.CONFIRMEE],
           },
         },
         data: {
@@ -816,9 +812,6 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
   }
 
   private requiresTimeSlot(status: ReservationStatus): boolean {
-    return (
-      status === 'PAYEE_SEQUESTRE' ||
-      status === 'EN_COURS'
-    );
+    return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
   }
 }

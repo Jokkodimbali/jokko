@@ -137,6 +137,13 @@ describe('ReservationEntity', () => {
         raisonAnnulation: null,
         creeLe: new Date(),
         misAJourLe: new Date(),
+        statutAjustementPrix: 'AUCUN',
+        prixAjustementPropose: null,
+        raisonAjustementPrix: null,
+        demandeAjustementPrixLe: null,
+        clientRating: null,
+        clientReview: null,
+        clientReviewedAt: null,
       }),
     ).toThrow(/invalides/i);
   });

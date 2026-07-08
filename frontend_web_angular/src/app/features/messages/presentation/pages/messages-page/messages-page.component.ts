@@ -96,6 +96,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly requestedConversationId = signal<string | null>(null);
   private readonly requestedReservationId = signal<string | null>(null);
   private readonly requestedNegotiationId = signal<string | null>(null);
+  private readonly requestedDirectProfessionalId = signal<string | null>(null);
+  private readonly requestedDirectProfessionalUserId = signal<string | null>(null);
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
   private activeMessagesRequestId = 0;
@@ -961,6 +963,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         const requestedConversationId = this.requestedConversationId();
         const requestedReservationId = this.requestedReservationId();
         const requestedNegotiationId = this.requestedNegotiationId();
+        const requestedDirectConversation = this.findDirectConversation(sortedConversations);
         const requestedReservationConversation = sortedConversations.find(
           (conversation) => conversation.reservationId === requestedReservationId,
         );
@@ -973,10 +976,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.openNegotiationConversation(requestedNegotiationId);
           return;
         }
+        if (this.hasRequestedDirectConversation() && !requestedDirectConversation && !requestedConversationId) {
+          this.openDirectConversation();
+          return;
+        }
         const selectedId =
           sortedConversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
           requestedReservationConversation?.id ??
-          requestedProposalConversation?.id ?? sortedConversations[0]?.id ?? null;
+          requestedProposalConversation?.id ??
+          requestedDirectConversation?.id ??
+          sortedConversations[0]?.id ??
+          null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
@@ -1078,6 +1088,41 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private openDirectConversation(): void {
+    const professionalProfileId = this.normalizeUuid(
+      this.requestedDirectProfessionalId(),
+    ) ?? undefined;
+    const professionalUserId = this.normalizeUuid(
+      this.requestedDirectProfessionalUserId(),
+    ) ?? undefined;
+    if (!professionalProfileId && !professionalUserId) {
+      this.isLoadingConversations.set(false);
+      return;
+    }
+
+    this.messagesService
+      .createConversation({ professionalProfileId, professionalUserId })
+      .subscribe({
+        next: (conversation) => {
+          this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
+          this.selectedConversationId.set(conversation.id);
+          this.requestedConversationId.set(conversation.id);
+          this.loadPriceProposals();
+          this.isLoadingConversations.set(false);
+          this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
+          this.scrollThreadToBottom();
+          this.messagesRealtime.joinConversation(conversation.id);
+          this.loadMessages(conversation.id);
+        },
+        error: () => {
+          const message = "Impossible d'ouvrir la discussion avec ce professionnel.";
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+          this.isLoadingConversations.set(false);
+        },
+      });
+  }
+
   private loadPriceProposals(): void {
     if (!this.authSession.hasAuthenticatedSession()) {
       return;
@@ -1151,30 +1196,72 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const query = this.route.snapshot.queryParamMap;
     const rawAmount = Number(query.get('amount'));
     const professionalId = query.get('professionalId');
+    const professionalUserId = query.get('professionalUserId');
     const conversationId = query.get('conversationId');
+    const negotiationId = query.get('negotiationId');
+    const reservationId = query.get('reservationId');
+    const status = query.get('status');
 
     this.requestedConversationId.set(conversationId);
-    this.requestedReservationId.set(query.get('reservationId'));
-    this.requestedNegotiationId.set(query.get('negotiationId'));
+    this.requestedReservationId.set(reservationId);
+    this.requestedNegotiationId.set(negotiationId);
+    this.requestedDirectProfessionalId.set(professionalId);
+    this.requestedDirectProfessionalUserId.set(professionalUserId);
+
+    if (!negotiationId && !reservationId && !status && (!Number.isFinite(rawAmount) || rawAmount <= 0)) {
+      return;
+    }
 
     if (!professionalId && !Number.isFinite(rawAmount)) {
       return;
     }
 
     this.pendingProposal.set({
-      negotiationId: query.get('negotiationId'),
+      negotiationId,
       conversationId,
       professionalId,
       providerName: query.get('providerName') || 'le prestataire',
       serviceName: query.get('serviceName') || 'service',
       amount: Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : 0,
-      status: query.get('status'),
-      reservationId: query.get('reservationId'),
+      status,
+      reservationId,
       appointmentDate: query.get('appointmentDate'),
       address: query.get('address'),
       durationMinutes: Number(query.get('durationMinutes')) || 60,
       proposalMessage: null,
     });
+  }
+
+  private hasRequestedDirectConversation(): boolean {
+    return Boolean(this.requestedDirectProfessionalId() || this.requestedDirectProfessionalUserId());
+  }
+
+  private normalizeUuid(value: string | null): string | null {
+    const candidate = value?.trim();
+    if (!candidate) return null;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      candidate,
+    )
+      ? candidate
+      : null;
+  }
+
+  private findDirectConversation(conversations: Conversation[]): Conversation | null {
+    const professionalProfileId = this.requestedDirectProfessionalId();
+    const professionalUserId = this.requestedDirectProfessionalUserId();
+    if (!professionalProfileId && !professionalUserId) return null;
+
+    return (
+      conversations.find(
+        (conversation) =>
+          (professionalProfileId &&
+            (conversation.professionalProfileId === professionalProfileId ||
+              conversation.counterpart.professionalProfileId === professionalProfileId)) ||
+          (professionalUserId &&
+            (conversation.professionalUserId === professionalUserId ||
+              conversation.counterpart.userId === professionalUserId)),
+      ) ?? null
+    );
   }
 
   private findProposalConversation(conversations: Conversation[]): Conversation | null {

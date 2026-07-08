@@ -28,6 +28,7 @@ export class MessagesService {
     reservationId?: string;
     negotiationId?: string;
     professionalProfileId?: string;
+    professionalUserId?: string;
   }): Observable<Conversation> {
     return this.http
       .post<ApiResponse<Conversation>>(this.apiUrl, payload)

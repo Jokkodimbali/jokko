@@ -132,7 +132,7 @@
       <section class="parcel-qr__manifest" *ngIf="manifest().parcels.length > 0">
         <h2>Colis concernes</h2>
         <p *ngFor="let parcel of manifest().parcels; trackBy: trackByIndex">
-          <strong>{{ parcel.number }}</strong>
+          <strong>{{ parcelDisplayNumber(parcel) }}</strong>
           <span>{{ parcel.description }}</span>
         </p>
       </section>

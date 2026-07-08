@@ -460,9 +460,13 @@
             </div>
           </dl>
 
-          <button type="button" class="appointment-detail__client-summary-download" (click)="downloadInvoice(appointment)">
+          <button
+            type="button"
+            class="appointment-detail__client-summary-download"
+            (click)="isAppointmentCompleted() && isMedicalAppointment() ? downloadMedicalPrescription(appointment) : downloadInvoice(appointment)"
+          >
             <lucide-icon name="receipt" size="16" [strokeWidth]="2.4"></lucide-icon>
-            Telecharger le recu
+            {{ isAppointmentCompleted() && isMedicalAppointment() ? "Telecharger l'ordonnance medicale" : 'Telecharger le recu' }}
           </button>
           <button
             *ngIf="isParcelTransportAppointment(appointment)"
@@ -572,10 +576,21 @@
 
           <section class="appointment-detail__client-summary-actions">
             <h3>ACTIONS</h3>
+            <button
+              *ngIf="isMedicalAppointment(); else clientSummaryInvoiceAction"
+              type="button"
+              class="is-primary"
+              (click)="downloadMedicalPrescription(appointment)"
+            >
+              <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
+              Telecharger l'ordonnance medicale
+            </button>
+            <ng-template #clientSummaryInvoiceAction>
             <button type="button" class="is-primary" (click)="downloadInvoice(appointment)">
               <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
               Telecharger la facture PDF
             </button>
+            </ng-template>
             <button type="button" (click)="messageProvider(appointment)">
               <lucide-icon name="message-circle" size="16" [strokeWidth]="2.4"></lucide-icon>
               Contacter le prestataire
@@ -671,10 +686,21 @@
 
           <section class="appointment-detail__completed-actions-card">
             <h3>ACTIONS</h3>
+            <button
+              *ngIf="isMedicalAppointment(); else completedInvoiceAction"
+              type="button"
+              class="is-primary"
+              (click)="downloadMedicalPrescription(appointment)"
+            >
+              <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
+              Telecharger l'ordonnance medicale
+            </button>
+            <ng-template #completedInvoiceAction>
             <button type="button" class="is-primary" (click)="downloadInvoice(appointment)">
               <lucide-icon name="file-text" size="16" [strokeWidth]="2.4"></lucide-icon>
               Telecharger la facture PDF
             </button>
+            </ng-template>
             <button type="button" (click)="messageProvider(appointment)">
               <lucide-icon name="message-circle" size="16" [strokeWidth]="2.4"></lucide-icon>
               Contacter le prestataire
@@ -773,11 +799,11 @@
     <section
       *ngIf="detailUiState() === 'route'"
       class="appointment-detail__route-layout"
-      [class.appointment-detail__route-layout--arrived]="isProviderWorking()"
+      [class.appointment-detail__route-layout--arrived]="isProviderWorking() && !isParcelDropoffNavigationActive()"
       [class.appointment-detail__route-layout--client]="!isProviderViewer()"
       [class.appointment-detail__route-layout--provider]="isProviderViewer()"
       [attr.aria-label]="
-        isProviderWorking()
+        isProviderWorking() && !isParcelDropoffNavigationActive()
           ? 'Prestation en cours'
           : isProviderOnTheWay()
           ? 'Suivi du prestataire en route'
@@ -814,11 +840,15 @@
               </span>
               <h2>Mission terminee</h2>
               <p>{{ providerConsoleDescription() }}</p>
-              <button type="button" (click)="downloadInvoice(appointment)">
+              <button
+                *ngIf="!isMedicalAppointment()"
+                type="button"
+                (click)="downloadInvoice(appointment)"
+              >
                 <lucide-icon name="receipt" size="17" [strokeWidth]="2.5"></lucide-icon>
                 Recapitulatif mission
               </button>
-              <button *ngIf="isDoctorViewer()" type="button" (click)="downloadMedicalPrescription(appointment)">
+              <button *ngIf="isMedicalAppointment()" type="button" (click)="downloadMedicalPrescription(appointment)">
                 <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
                 Ordonnance medicale
               </button>
@@ -996,15 +1026,6 @@
                 <lucide-icon [name]="providerPrimaryActionIcon()" size="17" [strokeWidth]="2.7"></lucide-icon>
                 {{ providerPrimaryActionLabel() }}
               </button>
-              <button
-                *ngIf="isProviderWorking()"
-                type="button"
-                class="is-outline"
-                (click)="openPriceAdjustmentModal(appointment)"
-                [disabled]="isUpdatingStatus() || appointment.status === 'TERMINEE'"
-              >
-                Ajouter un supplement
-              </button>
             </div>
             </ng-template>
           </ng-template>
@@ -1017,9 +1038,12 @@
               </span>
               <h2>Mission accomplie</h2>
               <p>L'intervention est terminee. Vous pouvez telecharger vos justificatifs ou contacter le prestataire.</p>
-              <button type="button" (click)="downloadInvoice(appointment)">
+              <button
+                type="button"
+                (click)="isMedicalAppointment() ? downloadMedicalPrescription(appointment) : downloadInvoice(appointment)"
+              >
                 <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
-                Telecharger la facture PDF
+                {{ isMedicalAppointment() ? "Telecharger l'ordonnance medicale" : 'Telecharger la facture PDF' }}
               </button>
             </div>
           </ng-container>
@@ -1081,7 +1105,7 @@
             }}
           </small>
           <button
-            *ngIf="isRouteActorViewer()"
+            *ngIf="isRouteActorViewer() && !hasActiveTrackingNavigation()"
             type="button"
             (click)="shareProviderLocation(appointment)"
             [disabled]="isUpdatingStatus()"
@@ -1091,12 +1115,12 @@
           </button>
         </div>
         <div
-          *ngIf="shouldRenderTrackingMap()"
+          *ngIf="shouldRenderTrackingMap() && !isAppointmentCompleted()"
           class="appointment-detail__map-top-actions"
           aria-label="Actions de la carte et de la mission"
         >
           <div
-            *ngIf="isProviderViewer() && !isDoctorViewer()"
+            *ngIf="isProviderViewer() && !isDoctorViewer() && !isAppointmentCompleted()"
             class="appointment-detail__map-toolbar"
             aria-label="Actions de la carte"
           >
@@ -1124,7 +1148,7 @@
             </button>
           </div>
           <a
-            *ngIf="isProviderViewer() && !isDoctorViewer()"
+            *ngIf="isProviderViewer() && !isDoctorViewer() && !isAppointmentCompleted()"
             class="appointment-detail__map-external"
             [href]="mapDirectionsUrl(appointment)"
             target="_blank"
@@ -1136,7 +1160,7 @@
           </a>
         </div>
         <div
-          *ngIf="(isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation() || (canMarkTravelerOnTheWay() && !isProviderViewer())))"
+          *ngIf="!isAppointmentCompleted() && ((isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation() || (canMarkTravelerOnTheWay() && !isProviderViewer()))))"
           class="appointment-detail__map-primary-actions"
           aria-label="Action principale de trajet"
         >
@@ -1180,7 +1204,7 @@
           </ng-container>
         </div>
         <div
-          *ngIf="isProviderOnTheWay()"
+          *ngIf="isProviderOnTheWay() && !isAppointmentCompleted()"
           class="appointment-detail__map-direction-pad"
           aria-label="Orienter la carte"
         >
@@ -1255,7 +1279,7 @@
         </div>
         <div
           class="appointment-detail__route-alternatives"
-          *ngIf="isProviderOnTheWay() && !isProviderWorking() && routeAlternatives().length > 0"
+          *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && routeAlternatives().length > 0"
         >
           <button
             *ngFor="let route of routeAlternatives()"

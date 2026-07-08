@@ -162,8 +162,8 @@ export class SavedPaymentMethodsService {
       !dto.cardNumber.includes('*')
         ? this.maskCard(dto.cardNumber)
         : existing.type === SAVED_PAYMENT_METHOD_TYPE.WAVE &&
-          dto.phoneNumber &&
-          !dto.phoneNumber.includes('*')
+            dto.phoneNumber &&
+            !dto.phoneNumber.includes('*')
           ? this.maskPhone(dto.phoneNumber)
           : existing.valeurMasquee;
 
@@ -185,11 +185,17 @@ export class SavedPaymentMethodsService {
   }
 
   private isValidSupportedCardNumber(digits: string): boolean {
-    if (digits.length < 13 || digits.length > 19 || !this.isValidCardNumber(digits)) {
+    if (
+      digits.length < 13 ||
+      digits.length > 19 ||
+      !this.isValidCardNumber(digits)
+    ) {
       return false;
     }
     if (digits.startsWith('4')) {
-      return digits.length === 13 || digits.length === 16 || digits.length === 19;
+      return (
+        digits.length === 13 || digits.length === 16 || digits.length === 19
+      );
     }
     return true;
   }
@@ -233,8 +239,10 @@ export class SavedPaymentMethodsService {
   }
 
   private toSavedPaymentMethodType(value: string): SavedPaymentMethodType {
-    if (value === SAVED_PAYMENT_METHOD_TYPE.CARD) return SAVED_PAYMENT_METHOD_TYPE.CARD;
-    if (value === SAVED_PAYMENT_METHOD_TYPE.WAVE) return SAVED_PAYMENT_METHOD_TYPE.WAVE;
+    if (value === SAVED_PAYMENT_METHOD_TYPE.CARD)
+      return SAVED_PAYMENT_METHOD_TYPE.CARD;
+    if (value === SAVED_PAYMENT_METHOD_TYPE.WAVE)
+      return SAVED_PAYMENT_METHOD_TYPE.WAVE;
     return SAVED_PAYMENT_METHOD_TYPE.OTHER;
   }
 }

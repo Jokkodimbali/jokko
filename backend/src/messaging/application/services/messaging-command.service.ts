@@ -156,7 +156,9 @@ export class MessagingCommandService extends MessagingAppService {
       ? ((await this.professionalsRepository.findPublicById(
           normalizedProfileId,
         )) ??
-        (await this.professionalsRepository.findVerifiedById(normalizedProfileId))
+        (await this.professionalsRepository.findVerifiedById(
+          normalizedProfileId,
+        )))
       : null;
     const resolvedProfessional =
       professional ??
@@ -166,7 +168,6 @@ export class MessagingCommandService extends MessagingAppService {
     if (!resolvedProfessional || !resolvedProfessional.utilisateur.estActif) {
       throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
     }
-
     if (resolvedProfessional.utilisateur.id === requestUser.sub) {
       throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
     }

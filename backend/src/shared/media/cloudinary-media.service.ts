@@ -55,7 +55,11 @@ export class CloudinaryMediaService {
     );
 
     const formData = new FormData();
-    formData.append('file', new Blob([new Uint8Array(input.buffer)], { type: input.mimeType }), input.originalName);
+    formData.append(
+      'file',
+      new Blob([new Uint8Array(input.buffer)], { type: input.mimeType }),
+      input.originalName,
+    );
     formData.append('api_key', config.apiKey);
     formData.append('timestamp', timestamp);
     formData.append('folder', folder);
@@ -69,7 +73,9 @@ export class CloudinaryMediaService {
         body: formData,
       },
     );
-    const payload = (await response.json().catch(() => null)) as CloudinaryUploadResponse | null;
+    const payload = (await response
+      .json()
+      .catch(() => null)) as CloudinaryUploadResponse | null;
 
     if (!response.ok || !payload?.secure_url || !payload.public_id) {
       const message = payload?.error?.message ?? response.statusText;

@@ -178,14 +178,17 @@ export class NegotiationCommandService extends NegotiationAppService {
     return updated;
   }
 
-  private async assertNoPendingMaterialQuote(negotiationId: string): Promise<void> {
-    const pendingMaterialQuote = await this.prisma.devisMaterielNegotiation.findFirst({
-      where: {
-        negotiationId,
-        statut: StatutDevisMateriel.EN_ATTENTE,
-      },
-      select: { id: true },
-    });
+  private async assertNoPendingMaterialQuote(
+    negotiationId: string,
+  ): Promise<void> {
+    const pendingMaterialQuote =
+      await this.prisma.devisMaterielNegotiation.findFirst({
+        where: {
+          negotiationId,
+          statut: StatutDevisMateriel.EN_ATTENTE,
+        },
+        select: { id: true },
+      });
 
     if (pendingMaterialQuote) {
       throw new BadRequestException(

@@ -206,9 +206,13 @@ describe('ReservationCommandService', () => {
       }),
     });
 
-    const result = await service.cancelReservation(clientUser, 'reservation-id', {
-      reason: 'Annulation demandee depuis la page de paiement.',
-    });
+    const result = await service.cancelReservation(
+      clientUser,
+      'reservation-id',
+      {
+        reason: 'Annulation demandee depuis la page de paiement.',
+      },
+    );
 
     expect(result.statut).toBe('ANNULEE');
     expect(result.raisonAnnulation).toBe(

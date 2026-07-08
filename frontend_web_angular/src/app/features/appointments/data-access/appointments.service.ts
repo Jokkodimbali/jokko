@@ -61,6 +61,7 @@ export class AppointmentsService {
                     professionalReviews: detail.profile.nombreAvis ?? 0,
                     serviceName: service?.nom || 'Service non renseigne',
                     serviceDescription: service?.description || null,
+                    serviceCategoryName: null,
                     servicePrice: service?.prix ?? null,
                     travelMode: service?.modeDeplacement ?? null,
                   });
@@ -101,6 +102,7 @@ export class AppointmentsService {
                 professionalReviews: detail.profile.nombreAvis ?? 0,
                 serviceName: service?.nom || 'Service non renseigne',
                 serviceDescription: service?.description || null,
+                serviceCategoryName: null,
                 servicePrice: service?.prix ?? null,
                 travelMode: service?.modeDeplacement ?? null,
               });
@@ -353,6 +355,7 @@ export class AppointmentsService {
       professionalReviews?: number;
       serviceName?: string;
       serviceDescription?: string | null;
+      serviceCategoryName?: string | null;
       servicePrice?: number | null;
       travelMode?: AppointmentView['travelMode'];
     } = {},
@@ -387,6 +390,7 @@ export class AppointmentsService {
       clientAvatarUrl: publicAssetUrl(reservation.client?.urlAvatar) || '',
       serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
       serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
+      serviceCategoryName: professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       notes: reservation.notes,
@@ -450,6 +454,7 @@ export class AppointmentsService {
       professionalReviews: reservation.professionnel.nombreAvis,
       serviceName: reservation.service.nom,
       serviceDescription: reservation.service.description,
+      serviceCategoryName: reservation.service.categorie?.nom ?? null,
       travelMode: reservation.service.modeDeplacement,
     });
   }

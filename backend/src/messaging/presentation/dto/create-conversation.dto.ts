@@ -35,4 +35,15 @@ export class CreateConversationDto {
   @IsOptional()
   @IsUUID('4', { message: VALIDATION_MESSAGES.MESSAGING_RESERVATION_ID_FORMAT })
   professionalProfileId?: string;
+
+  @ApiProperty({
+    description:
+      "Identifiant utilisateur du prestataire/medecin pour ouvrir une discussion directe lorsqu'il est deja connu cote client.",
+    format: 'uuid',
+    example: '950e8400-e29b-41d4-a716-446655440099',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4', { message: VALIDATION_MESSAGES.MESSAGING_RESERVATION_ID_FORMAT })
+  professionalUserId?: string;
 }

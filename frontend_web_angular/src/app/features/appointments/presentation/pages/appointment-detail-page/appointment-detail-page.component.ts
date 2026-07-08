@@ -87,9 +87,9 @@ const SENEGAL_GEO_BOUNDS = {
   maxLng: -11,
 } as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
-const TRACKING_FALLBACK_POLL_INTERVAL_MS = 30000;
-const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 15000;
-const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 30000;
+const TRACKING_FALLBACK_POLL_INTERVAL_MS = 5000;
+const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
+const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 5000;
 
 type AppointmentDetailUiState =
   | 'loading'
@@ -235,6 +235,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.isProfessionalRole(this.currentUser()?.role);
   });
   protected readonly isDoctorViewer = computed(() => this.currentUser()?.role === 'MEDECIN');
+  protected readonly isMedicalAppointment = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return false;
+    if (this.isDoctorViewer()) return true;
+
+    const searchable = [
+      appointment.serviceCategoryName,
+      appointment.specialty,
+      appointment.serviceName,
+      appointment.serviceDescription,
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .map((value) => this.normalizeTextForMatch(value))
+      .join(' ');
+
+    return /\b(sante|medical|medecin|consultation|clinique|soin|patient)\b/.test(searchable);
+  });
   protected readonly canManageProviderStatus = computed(() => {
     const appointment = this.appointment();
     return (
@@ -382,6 +399,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly canShowProviderStartAction = computed(
     () =>
       this.isProviderViewer() &&
+      !this.isAppointmentCompleted() &&
       !this.isProviderWorking() &&
       (this.clientTravelsToProvider()
         ? this.hasTravelerArrivalConfirmation()
@@ -405,8 +423,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly hasActiveTrackingNavigation = computed(
     () =>
-      this.appointment()?.status === 'EN_COURS' ||
-      this.tracking()?.trackingStatus === 'EN_ROUTE',
+      !this.isAppointmentCompleted() &&
+      (this.appointment()?.status === 'EN_COURS' ||
+        this.tracking()?.trackingStatus === 'EN_ROUTE'),
   );
   protected readonly providerTravelsToClient = computed(
     () => this.appointment()?.travelMode !== 'CLIENT_SE_DEPLACE',
@@ -687,45 +706,71 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return Math.max(18, Math.min(82, 100 - minutes * 4));
   });
   protected readonly routeProgressLabel = computed(() => `${this.routeProgress()}%`);
+  private parcelTrackingStepIndex(): number {
+    if (this.isAppointmentCompleted() || this.isParcelDropoffValidated()) return 4;
+    if (this.isParcelAwaitingDropoffScan()) return 4;
+    if (this.isParcelDropoffNavigationActive()) return 3;
+    if (this.isParcelAwaitingPickupScan() || this.isParcelPickupValidated()) return 2;
+    if (this.isProviderOnTheWay() || this.tracking()?.trackingStatus === 'EN_ROUTE') return 1;
+    return 0;
+  }
+
+  private parcelTrackingSteps(providerMode: boolean): Array<Omit<TrackingStepView, 'state'>> {
+    return [
+      {
+        label: 'Planifie',
+        description: providerMode
+          ? 'Livraison confirmee'
+          : 'Le transport du colis est programme',
+        icon: 'calendar-days',
+      },
+      {
+        label: 'Vers expediteur',
+        description: providerMode
+          ? "Rejoignez l'expediteur pour recuperer le colis"
+          : "Le livreur est en route vers l'expediteur",
+        icon: 'send',
+      },
+      {
+        label: 'QR retrait',
+        description: this.isParcelPickupValidated()
+          ? 'Retrait valide, colis pris en charge'
+          : "Scan chez l'expediteur attendu",
+        icon: 'maximize-2',
+      },
+      {
+        label: 'Vers destinataire',
+        description: providerMode
+          ? 'Livrez le colis au destinataire'
+          : 'Le livreur transporte le colis au destinataire',
+        icon: 'map-pin',
+      },
+      {
+        label: this.isAppointmentCompleted() ? 'Livre' : 'QR depot',
+        description: this.isParcelDropoffValidated() || this.isAppointmentCompleted()
+          ? 'Livraison validee chez le destinataire'
+          : 'Scan chez le destinataire attendu',
+        icon: 'check',
+      },
+    ];
+  }
+
   protected readonly trackingCurrentStepIndex = computed(() => {
     if (this.isAppointmentCompleted()) return 3;
     if (this.isParcelDeliveryFlow()) {
-      if (this.isParcelDropoffValidated()) return 2;
-      if (this.isProviderOnTheWay() || this.isProviderWorking()) return 1;
-      return 0;
+      return this.parcelTrackingStepIndex();
     }
     if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
     if (this.isProviderOnTheWay() || this.tracking()?.trackingStatus === 'EN_ROUTE') return 1;
     return 0;
   });
   protected readonly trackingStepProgress = computed(() =>
-    Math.round((this.trackingCurrentStepIndex() / 3) * 100),
+    Math.round((this.trackingCurrentStepIndex() / (this.isParcelDeliveryFlow() ? 4 : 3)) * 100),
   );
   protected readonly trackingTimelineSteps = computed<TrackingStepView[]>(() => {
     const activeIndex = this.trackingCurrentStepIndex();
     const steps = this.isParcelDeliveryFlow()
-      ? [
-          {
-            label: 'A venir',
-            description: 'Livraison planifiee',
-            icon: 'calendar-days',
-          },
-          {
-            label: 'En route',
-            description: 'Retrait ou depot en cours',
-            icon: 'send',
-          },
-          {
-            label: 'Verifie',
-            description: 'QR code valide',
-            icon: 'maximize-2',
-          },
-          {
-            label: 'Termine',
-            description: 'Colis livre',
-            icon: 'check',
-          },
-        ]
+      ? this.parcelTrackingSteps(false)
       : [
       {
         label: 'Confirme',
@@ -757,26 +802,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly providerTrackingCurrentStepIndex = computed(() => {
     if (this.isAppointmentCompleted()) return 3;
     if (this.isParcelDeliveryFlow()) {
-      if (this.isParcelDropoffValidated()) return 2;
-      if (this.isProviderOnTheWay() || this.isProviderWorking()) return 1;
-      return 0;
+      return this.parcelTrackingStepIndex();
     }
     if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
     if (this.isProviderOnTheWay() || this.tracking()?.trackingStatus === 'EN_ROUTE') return 1;
     return 0;
   });
   protected readonly providerTrackingStepProgress = computed(() =>
-    Math.round((this.providerTrackingCurrentStepIndex() / 3) * 100),
+    Math.round((this.providerTrackingCurrentStepIndex() / (this.isParcelDeliveryFlow() ? 4 : 3)) * 100),
   );
   protected readonly providerTrackingTimelineSteps = computed<TrackingStepView[]>(() => {
     const activeIndex = this.providerTrackingCurrentStepIndex();
     if (this.isParcelDeliveryFlow()) {
-      return [
-        { label: 'A venir', description: 'Livraison planifiee', icon: 'briefcase-business' },
-        { label: 'En route', description: 'Retrait ou depot', icon: 'send' },
-        { label: 'Verification', description: 'QR code valide', icon: 'maximize-2' },
-        { label: 'Termine', description: 'Colis livre', icon: 'check' },
-      ].map((step, index) => ({
+      return this.parcelTrackingSteps(true).map((step, index) => ({
         ...step,
         state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
       }));
@@ -801,8 +839,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly providerConsoleEyebrow = computed(() => {
     if (this.isAppointmentCompleted()) return 'Mission cloturee';
-    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan()) return 'Reception de colis';
-    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingDropoffScan()) return 'Depot de colis';
+    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan()) return "Arrive chez l'expediteur";
+    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingDropoffScan()) return 'Arrive chez le destinataire';
     if (this.isParcelDropoffNavigationActive()) return 'Navigation vers le destinataire';
     if (this.isProviderWorking()) return 'Temps de travail ecoule';
     if (this.isProviderOnTheWay()) return `Navigation vers ${this.clientFirstNameLabel()}`;
@@ -811,8 +849,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly providerConsoleTitle = computed(() => {
     const appointment = this.appointment();
     if (this.isAppointmentCompleted()) return 'Mission terminee';
-    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan()) return 'Scanner le QR retrait';
-    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingDropoffScan()) return 'Scanner le QR depot';
+    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan()) return "Sur place chez l'expediteur";
+    if (this.isParcelDeliveryFlow() && this.isParcelAwaitingDropoffScan()) return 'Sur place chez le destinataire';
     if (this.isParcelDropoffNavigationActive()) return this.routeEtaLabel();
     if (this.isProviderWorking()) return this.providerElapsedWorkLabel();
     if (this.isProviderOnTheWay()) return this.routeEtaLabel();
@@ -824,16 +862,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     if (this.isParcelDeliveryFlow()) {
       if (this.isParcelAwaitingPickupScan()) {
-        return "L'expediteur doit presenter son QR code pour confirmer la prise en charge.";
+        return "Vous etes chez l'expediteur. La camera va scanner le QR retrait pour confirmer la prise en charge.";
       }
       if (this.isParcelAwaitingDropoffScan()) {
-        return 'Le destinataire doit presenter son QR code pour confirmer la livraison.';
+        return 'Vous etes chez le destinataire. La camera va scanner le QR depot pour confirmer la livraison.';
       }
       if (this.isParcelDropoffNavigationActive()) {
-        return 'Conduisez le colis vers le destinataire puis confirmez votre arrivee.';
+        return 'Vous etes en route vers le destinataire. Confirmez votre arrivee une fois sur place.';
       }
       if (this.isProviderOnTheWay()) {
-        return "Rejoignez le point de retrait pour recuperer le colis aupres de l'expediteur.";
+        return "Vous etes en route vers l'expediteur pour recuperer le colis.";
       }
       return 'Demarrez la livraison pour partager votre position et rejoindre le point de retrait.';
     }
@@ -947,9 +985,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly clientTrackingTitle = computed(() => {
     if (this.isParcelDeliveryFlow()) {
       if (this.isAppointmentCompleted()) return 'Transport de colis termine';
-      if (this.isParcelDropoffNavigationActive()) return 'Colis en livraison';
+      if (this.isParcelAwaitingDropoffScan()) return 'Livreur arrive chez le destinataire';
+      if (this.isParcelDropoffNavigationActive()) return 'Livreur en route vers le destinataire';
       if (this.isParcelPickupValidated()) return 'Colis pris en charge';
-      if (this.isProviderOnTheWay()) return 'Livreur en route';
+      if (this.isParcelAwaitingPickupScan()) return "Livreur arrive chez l'expediteur";
+      if (this.isProviderOnTheWay()) return "Livreur en route vers l'expediteur";
       return 'Transport de colis';
     }
     if (this.isAppointmentCompleted()) return 'Termine';
@@ -967,14 +1007,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isAppointmentCompleted()) {
         return 'Votre colis a ete livre avec succes au destinataire.';
       }
+      if (this.isParcelAwaitingDropoffScan()) {
+        return 'Le livreur est sur place chez le destinataire. Le QR depot doit etre scanne pour valider la livraison.';
+      }
       if (this.isParcelDropoffNavigationActive()) {
-        return 'Le livreur transporte le colis vers le destinataire. Le QR depot sera demande a l arrivee.';
+        return 'Le livreur transporte le colis vers le destinataire. Le QR depot sera demande a son arrivee.';
       }
       if (this.isParcelPickupValidated()) {
         return 'Le retrait est confirme. Le livreur peut maintenant rejoindre le destinataire.';
       }
+      if (this.isParcelAwaitingPickupScan()) {
+        return "Le livreur est sur place chez l'expediteur. Le QR retrait doit etre scanne pour confirmer la prise en charge.";
+      }
       if (this.isProviderOnTheWay()) {
-        return "Le livreur rejoint le point de retrait. Preparez le QR code expediteur pour confirmer la prise en charge.";
+        return "Le livreur rejoint l'expediteur. Preparez le QR retrait pour confirmer la prise en charge.";
       }
       return "Votre colis est pris en charge. Telechargez les QR codes a remettre a l'expediteur et au destinataire.";
     }
@@ -1128,9 +1174,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly shouldRenderTrackingMap = computed(
     () =>
-      this.isProviderOnTheWay() ||
-      this.hasTravelerArrivalConfirmation() ||
-      this.isParcelDropoffNavigationActive(),
+      !this.isAppointmentCompleted() &&
+      (this.isParcelDeliveryFlow() || !this.isProviderWorking()) &&
+      (this.isProviderOnTheWay() ||
+        this.hasTravelerArrivalConfirmation() ||
+        this.isParcelDropoffNavigationActive()),
   );
   protected readonly showProviderConsoleVisual = computed(
     () =>
@@ -1371,26 +1419,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected downloadInvoice(appointment: AppointmentView): void {
-    const lines = [
-      'Jokko - Recu de prestation',
-      this.invoiceNumberLabel(),
-      `Reservation: ${appointment.id}`,
-      `Prestataire: ${appointment.doctorName}`,
-      `Service: ${appointment.serviceName}`,
-      `Adresse: ${appointment.addressLabel}`,
-      `Date: ${appointment.fullDateLabel} a ${appointment.timeLabel}`,
-      `Statut: ${appointment.status}`,
-      `Montant: ${this.finalPriceLabel()}`,
-      `Termine a: ${this.completedAtLabel()}`,
-      `Duree reelle: ${this.realDurationLabel()}`,
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${this.invoiceNumberLabel().replace(/\s+/g, '-').toLowerCase()}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+    this.downloadHtmlDocument(
+      `${this.invoiceNumberLabel().replace(/\s+/g, '-').toLowerCase()}.html`,
+      'Facture mission Jokko',
+      this.buildMissionInvoiceHtml(appointment),
+    );
+    this.feedback.success('Facture mission generee.');
   }
 
   protected syncAppointmentToCalendar(appointment: AppointmentView): void {
@@ -1579,11 +1613,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected parcelActionButtonLabel(): string {
-    if (this.isParcelAwaitingPickupScan()) return 'Scanner le QR retrait';
+    if (this.isParcelAwaitingPickupScan()) return "Scanner chez l'expediteur";
     if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
       return 'Partir livrer le colis';
     }
-    if (this.isParcelAwaitingDropoffScan()) return 'Scanner le QR depot';
+    if (this.isParcelAwaitingDropoffScan()) return 'Scanner chez le destinataire';
     if (this.isParcelDropoffValidated()) return 'Terminer la livraison';
     if (this.isParcelDropoffNavigationActive() || this.isProviderOnTheWay()) return 'Sur place';
     return 'Commencer la livraison';
@@ -1631,7 +1665,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private extractAppointmentNoteValue(notes: string | null, key: string): string | null {
     if (!notes) return null;
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`${escapedKey}\\s*[:=-]\\s*([^\\n;]+)`, 'i');
+    const pattern = new RegExp(
+      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire|Distance estimee|Tarif kilometrique|Prix calcule|Colis\\s+\\d+|Note livraison)\\s*[:(]|$)`,
+      'i',
+    );
     const match = notes.match(pattern);
     return match?.[1]?.trim().replace(/\.$/, '').trim() || null;
   }
@@ -1639,8 +1676,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected arrivalDestinationLabel(appointment: AppointmentView): string {
     if (this.isParcelTransportAppointment(appointment)) {
       return this.isParcelPickupValidated()
-        ? 'lieu de depot du colis'
-        : 'lieu de recuperation colis';
+        ? 'le destinataire'
+        : "l'expediteur";
     }
 
     const service = (appointment.serviceName || '').trim().toLowerCase();
@@ -2014,6 +2051,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(updated));
           this.stopProviderLocationSharing();
           this.startProviderLocationSharing(updated.id);
+          window.setTimeout(() => void this.initializeGoogleMaps(), 0);
         } else {
           this.stopProviderLocationSharing();
         }
@@ -2238,7 +2276,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .pipe(catchError(() => of(null)))
       .subscribe((tracking) => {
         if (tracking) {
-          this.trackingStore.setTracking(tracking);
+          const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
+          this.trackingStore.setTracking(normalizedTracking);
+          this.syncAppointmentStatusFromTracking(normalizedTracking);
         }
       });
   }
@@ -2436,6 +2476,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     window.setTimeout(() => {
       const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
       this.trackingStore.setTracking(normalizedTracking);
+      this.syncAppointmentStatusFromTracking(normalizedTracking);
       const appointment = this.appointment();
       if (appointment && !this.shouldRunLiveNavigation(appointment)) {
         this.stopLiveNavigation(appointment.id, false);
@@ -2499,6 +2540,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.startProviderLocationSharing(appointment.id);
       }
     }, 0);
+  }
+
+  private syncAppointmentStatusFromTracking(tracking: AppointmentTrackingView): void {
+    this.appointment.update((appointment) => {
+      if (!appointment) return appointment;
+
+      if (
+        tracking.presence.status === 'EN_PRESTATION' &&
+        appointment.status !== 'EN_COURS' &&
+        appointment.status !== 'TERMINEE'
+      ) {
+        return this.mergeAppointment(appointment, { ...appointment, status: 'EN_COURS' });
+      }
+
+      return appointment;
+    });
+
+    if (tracking.trackingStatus === 'TERMINEE') {
+      this.exitMapFullscreen();
+      this.stopProviderLocationSharing();
+      this.suspendNavigationPresentation();
+    }
   }
 
   private startProviderLocationSharing(appointmentId: string): void {
@@ -2573,6 +2636,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
   }
 
+  private normalizeTextForMatch(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr-FR');
+  }
+
   private isClosedAppointmentStatus(status: AppointmentStatus): boolean {
     return CLOSED_APPOINTMENT_STATUSES.has(status);
   }
@@ -2608,7 +2678,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#865221;border-bottom:1px solid #eadccd;padding-bottom:8px;margin:28px 0 14px}
     p{margin:4px 0;line-height:1.5}.muted{color:#667085}.box{background:#f9fafb;border:1px solid #eef0f3;border-radius:12px;padding:16px}
     table{border-collapse:collapse;width:100%;font-size:13px}th{text-align:left;color:#667085;border-bottom:1px solid #e5e7eb;padding:10px 8px}td{border-bottom:1px solid #f0f2f4;padding:10px 8px}.right{text-align:right}.total{font-size:18px;font-weight:800;color:#865221}
+    .brand{display:inline-flex;align-items:center;gap:10px;color:#865221;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.pill{display:inline-block;border-radius:999px;background:#ecfdf3;color:#067647;font-size:12px;font-weight:800;padding:6px 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.invoice-total{background:#111827;color:#fff;border-radius:14px;padding:18px 22px;text-align:right}.invoice-total .total{color:#fff;font-size:24px}.footer-note{border-top:1px solid #e5e7eb;margin-top:28px;padding-top:18px;font-size:12px;color:#667085}
     ol,ul{padding-left:22px}li{margin:8px 0;line-height:1.45}.signature{display:flex;justify-content:space-between;gap:24px;margin-top:54px}.stamp{border:1px solid #eadccd;border-radius:12px;background:#fff8f1;color:#865221;padding:18px 24px;text-align:center;font-weight:800}
+    @media(max-width:720px){.top,.grid,.signature{display:block}.right{text-align:left}.invoice-total{text-align:left}}
     @media print{body{background:#fff}.sheet{border:0;margin:0;max-width:none}}
   </style>
 </head>
@@ -2621,6 +2693,90 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  private buildMissionInvoiceHtml(appointment: AppointmentView): string {
+    const issuedAt = this.formatLongDateTime(new Date().toISOString());
+    const subtotal = this.finalPriceAmount();
+    const serviceLabel = this.isParcelTransportAppointment(appointment)
+      ? 'Transport de colis'
+      : appointment.serviceName;
+    const statusLabel = this.isAppointmentCompleted()
+      ? 'Mission terminee'
+      : this.isAppointmentClosed()
+      ? this.closedStatusLabel()
+      : 'Mission en cours';
+
+    return `
+      <div class="top">
+        <div>
+          <p class="brand">Jokko Dimbali</p>
+          <h1>Facture mission</h1>
+          <p class="muted">Reference ${this.escapeHtml(this.invoiceCodeLabel())}</p>
+          <p class="pill">${this.escapeHtml(statusLabel)}</p>
+        </div>
+        <div class="right">
+          <p><strong>${this.escapeHtml(this.invoiceNumberLabel())}</strong></p>
+          <p>Date d'emission: ${this.escapeHtml(issuedAt)}</p>
+          <p>Reservation: ${this.escapeHtml(appointment.id)}</p>
+        </div>
+      </div>
+
+      <section class="grid">
+        <div class="box">
+          <h2>Client</h2>
+          <p><strong>${this.escapeHtml(appointment.clientName)}</strong></p>
+          <p>${this.escapeHtml(appointment.clientPhone || 'Telephone non renseigne')}</p>
+          <p>${this.escapeHtml(appointment.addressLabel || 'Adresse non renseignee')}</p>
+        </div>
+        <div class="box">
+          <h2>Prestataire</h2>
+          <p><strong>${this.escapeHtml(appointment.doctorName)}</strong></p>
+          <p>${this.escapeHtml(appointment.professionalPhone || 'Telephone non renseigne')}</p>
+          <p>${this.escapeHtml(appointment.specialty || appointment.serviceCategoryName || 'Professionnel Jokko')}</p>
+        </div>
+      </section>
+
+      <h2>Details de la mission</h2>
+      <table>
+        <tbody>
+          <tr><td>Service</td><td class="right">${this.escapeHtml(serviceLabel)}</td></tr>
+          <tr><td>Date et heure</td><td class="right">${this.escapeHtml(`${appointment.fullDateLabel} a ${appointment.timeLabel}`)}</td></tr>
+          <tr><td>Adresse mission</td><td class="right">${this.escapeHtml(appointment.addressLabel)}</td></tr>
+          <tr><td>Mode de deplacement</td><td class="right">${this.escapeHtml(this.travelModeInvoiceLabel(appointment))}</td></tr>
+          <tr><td>Fin de mission</td><td class="right">${this.escapeHtml(this.completedAtLabel())}</td></tr>
+          <tr><td>Duree reelle</td><td class="right">${this.escapeHtml(this.realDurationLabel())}</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Facturation</h2>
+      <table>
+        <thead><tr><th>Libelle</th><th class="right">Qte</th><th class="right">Montant</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>${this.escapeHtml(serviceLabel)}</td>
+            <td class="right">1</td>
+            <td class="right">${this.escapeHtml(this.formatCurrency(subtotal))}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section class="invoice-total">
+        <p>Total paye</p>
+        <p class="total">${this.escapeHtml(this.finalPriceLabel())}</p>
+        <p>${this.escapeHtml(this.completedPaymentLabel())}</p>
+      </section>
+
+      <p class="footer-note">
+        Facture generee automatiquement par Jokko Dimbali. Elle reprend les informations de la reservation et du suivi mission en temps reel.
+      </p>
+    `;
+  }
+
+  private travelModeInvoiceLabel(appointment: AppointmentView): string {
+    if (appointment.travelMode === 'TRANSPORT_COLIS') return 'Transport de colis';
+    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') return 'Client se deplace';
+    return 'Prestataire se deplace';
   }
 
   private buildMedicalReceiptHtml(appointment: AppointmentView): string {
@@ -3216,6 +3372,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       clientAvatarUrl: current.clientAvatarUrl,
       serviceName: current.serviceName,
       serviceDescription: current.serviceDescription,
+      serviceCategoryName: current.serviceCategoryName,
     };
   }
 

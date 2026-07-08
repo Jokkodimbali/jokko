@@ -16,6 +16,7 @@ Backend NestJS du projet Jokko, une marketplace de services qui relie clients, p
 - gouvernance admin
 
 ## Vue d'ensemble
+
 Le backend est organise par modules metier et suit une separation claire entre :
 
 - `presentation`
@@ -116,6 +117,7 @@ npm.cmd install
 ```
 
 ## Variables d'environnement
+
 Les fichiers de reference existants sont :
 
 - `.env.example`
@@ -163,6 +165,7 @@ npm.cmd run start:prod
 ```
 
 ## Prisma
+
 Le projet utilise Prisma 7 avec `prisma.config.ts`.
 
 Commandes utiles :

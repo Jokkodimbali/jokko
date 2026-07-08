@@ -2355,12 +2355,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     let number = '';
 
     do {
-      const datePart = new Date()
-        .toISOString()
-        .slice(2, 10)
-        .replace(/-/g, '');
-      const randomPart = Math.floor(1000 + Math.random() * 9000);
-      number = `SN-${datePart}-${randomPart}-${String(index).padStart(2, '0')}`;
+      number = String(Math.floor(10000 + Math.random() * 90000));
       attempts += 1;
     } while (this.usedParcelNumbers.has(number) && attempts < 12);
 

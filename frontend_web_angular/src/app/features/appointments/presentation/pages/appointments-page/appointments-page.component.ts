@@ -59,7 +59,9 @@ interface CalendarDay {
 })
 export class AppointmentsPageComponent implements OnInit, OnDestroy {
   private readonly negotiationRefreshMs = 5000;
+  private readonly appointmentRefreshMs = 5000;
   private negotiationRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private appointmentRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly serviceProposalService = inject(ServiceProposalService);
   private readonly authSession = inject(AuthSessionService);
@@ -328,6 +330,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.negotiationRefreshIntervalId) {
       clearInterval(this.negotiationRefreshIntervalId);
+    }
+    if (this.appointmentRefreshIntervalId) {
+      clearInterval(this.appointmentRefreshIntervalId);
     }
   }
 
@@ -719,6 +724,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
         this.appointments.set(appointments);
         this.negotiations.set(negotiations);
         this.isLoading.set(false);
+        this.startAppointmentRefresh(scope);
         this.startNegotiationRefresh(scope);
       },
       error: () => {
@@ -751,6 +757,24 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
       if (this.activeTab() !== 'negotiations' || document.hidden) return;
       this.refreshNegotiations(scope);
     }, this.negotiationRefreshMs);
+  }
+
+  private startAppointmentRefresh(scope: 'CLIENT' | 'PRESTATAIRE'): void {
+    if (this.appointmentRefreshIntervalId) {
+      clearInterval(this.appointmentRefreshIntervalId);
+    }
+
+    this.appointmentRefreshIntervalId = setInterval(() => {
+      if (this.activeTab() !== 'appointments' || document.hidden) return;
+      this.refreshAppointments(scope);
+    }, this.appointmentRefreshMs);
+  }
+
+  private refreshAppointments(scope = this.resolveReservationScope()): void {
+    if (!scope) return;
+    this.appointmentsService.listMyAppointments(scope).subscribe({
+      next: (appointments) => this.appointments.set(appointments),
+    });
   }
 
   private refreshNegotiations(scope = this.resolveReservationScope()): void {

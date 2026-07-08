@@ -100,6 +100,7 @@ export interface AppointmentView {
   clientAvatarUrl: string;
   serviceName: string;
   serviceDescription: string | null;
+  serviceCategoryName: string | null;
   servicePrice: number | null;
   travelMode: AppointmentTravelMode | null;
   notes: string | null;

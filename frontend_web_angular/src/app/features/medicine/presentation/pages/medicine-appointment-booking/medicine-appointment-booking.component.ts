@@ -10,7 +10,6 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
-import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { normalizeSenegalPhoneNumber } from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
 import {
@@ -91,7 +90,6 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
-  private readonly messagesService = inject(MessagesService);
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
@@ -584,22 +582,14 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.messagesService
-      .createConversation({ professionalProfileId: detail.profile.id })
-      .subscribe({
-        next: (conversation) => {
-          this.router.navigate(['/messages'], {
-            queryParams: {
-              conversationId: conversation.id,
-              professionalId: detail.profile.id,
-              providerName: this.doctorName(),
-              serviceName: this.selectedService()?.nom || 'Consultation medicale',
-            },
-          });
-        },
-        error: (error) =>
-          this.feedback.error(getHttpErrorMessage(error, "Impossible d'ouvrir la discussion avec ce medecin.")),
-      });
+    this.router.navigate(['/messages'], {
+      queryParams: {
+        professionalId: detail.profile.id,
+        professionalUserId: detail.profile.utilisateur.id,
+        providerName: this.doctorName(),
+        serviceName: this.selectedService()?.nom || 'Consultation medicale',
+      },
+    });
   }
 
   protected serviceLabel(service: BackendProfessionalDetailService): string {

@@ -73,6 +73,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private barcodeDetector?: { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> };
   private scanCanvas?: HTMLCanvasElement;
   private scanCanvasContext?: CanvasRenderingContext2D | null;
+  private autoReturnScheduled = false;
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly isLoading = signal(true);
@@ -118,17 +119,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly parcelNumber = computed(() => {
     const appointment = this.appointment();
-    if (!appointment) return 'FR-----';
+    if (!appointment) return '-----';
 
-    const parcelNumbers = this.manifest().parcels.map((parcel) => parcel.number).filter(Boolean);
-    if (parcelNumbers.length === 1) return parcelNumbers[0];
-    if (parcelNumbers.length > 1) return `${parcelNumbers[0]} +${parcelNumbers.length - 1}`;
-
-    const compact = appointment.id.replace(/-/g, '').toUpperCase();
-    const first = compact.slice(0, 4) || '0000';
-    const last = compact.slice(-5) || '00000';
-    const year = new Date(appointment.scheduledAt).getFullYear() || new Date().getFullYear();
-    return `FR-${year}-${first}${last}-X`;
+    return this.currentParcelNumbers(appointment).join(', ');
   });
   protected readonly parcelCountLabel = computed(() => {
     const count = this.manifest().parcels.length;
@@ -181,47 +174,22 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   protected readonly qrPayload = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return '';
-    const manifest = this.manifest();
-    const payload = {
-      issuer: 'JOKKO',
-      version: 1,
-      type: 'JOKKO_PARCEL_CHECKPOINT',
-      checkpoint: this.checkpoint(),
-      reservationId: appointment.id,
-      serviceId: appointment.serviceId,
-      serviceName: appointment.serviceName,
-      scheduledAt: appointment.scheduledAt,
-      parcelReference: this.parcelNumber(),
-      parcels: manifest.parcels,
-      pickup: {
-        name: manifest.pickupName || appointment.clientName,
-        phone: manifest.pickupPhone || appointment.clientPhone,
-        address: manifest.pickupAddress,
-      },
-      dropoff: {
-        name: manifest.dropoffName || appointment.clientName,
-        phone: manifest.dropoffPhone || appointment.clientPhone,
-        address: manifest.dropoffAddress || appointment.addressLabel,
-      },
-      generatedAt: new Date().toISOString(),
-    };
 
-    return JSON.stringify({
-      ...payload,
-      checksum: this.payloadChecksum(payload),
-    });
+    const reference = this.parcelNumber();
+    return [
+      'JOKKO COLIS',
+      `Numero: ${reference}`,
+      `Nom: ${this.targetName() || appointment.clientName}`,
+      `Point: ${this.checkpoint()}`,
+      `Reservation: ${appointment.id}`,
+      `Signature: ${this.parcelTokenSignature(appointment, this.checkpoint(), reference)}`,
+    ].join('\n');
   });
   protected readonly qrCodeValue = computed(() => {
     const appointment = this.appointment();
-    if (!appointment || typeof window === 'undefined') return this.qrPayload();
+    if (!appointment) return this.qrPayload();
 
-    const url = new URL(`/appointments/${appointment.id}/qr/${this.mode()}`, window.location.origin);
-    const reference = this.parcelNumber();
-    url.searchParams.set('r', appointment.id);
-    url.searchParams.set('c', this.checkpoint());
-    url.searchParams.set('ref', reference);
-    url.searchParams.set('sig', this.parcelTokenSignature(appointment, this.checkpoint(), reference));
-    return url.toString();
+    return this.qrPayload();
   });
   protected readonly isDeliveryPersonView = computed(() => {
     const role = this.authSession.currentUser()?.role;
@@ -297,6 +265,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   protected switchMode(mode: QrMode): void {
     if (this.mode() === mode) return;
     this.mode.set(mode);
+    this.autoReturnScheduled = false;
     this.validationMessage.set(null);
     this.validationError.set(null);
     this.scannedPayload.set('');
@@ -428,6 +397,12 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
 
   protected trackByIndex(index: number): number {
     return index;
+  }
+
+  protected parcelDisplayNumber(parcel: ParcelLine): string {
+    const appointment = this.appointment();
+    if (!appointment) return parcel.number;
+    return this.toFiveDigitParcelNumber(parcel.number, appointment, parcel.index);
   }
 
   private async generateQrImage(): Promise<void> {
@@ -627,8 +602,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private validateManualParcelReference(rawReference: string): void {
+    const appointment = this.appointment();
+    if (!appointment) return;
     const expectedReferences = [
       this.parcelNumber(),
+      ...this.currentParcelNumbers(appointment),
       ...this.manifest().parcels.map((parcel) => parcel.number),
     ]
       .map((reference) => this.normalizeParcelReference(reference))
@@ -662,6 +640,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     const expectedSignature = this.parcelTokenSignature(appointment, token.checkpoint, token.reference);
     const referenceMatches = [
       this.parcelNumber(),
+      ...this.currentParcelNumbers(appointment),
       ...this.manifest().parcels.map((parcel) => parcel.number),
     ]
       .map((item) => this.normalizeParcelReference(item))
@@ -703,8 +682,33 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         signature,
       };
     } catch {
-      return null;
+      const trimmed = value.trim();
+      const reservationId = this.extractQrTextField(trimmed, 'Reservation');
+      const rawCheckpoint = this.extractQrTextField(trimmed, 'Point');
+      const reference = this.extractQrTextField(trimmed, 'Numero');
+      const signature = this.extractQrTextField(trimmed, 'Signature');
+      if (
+        !reservationId ||
+        !reference ||
+        !signature ||
+        (rawCheckpoint !== 'RETRAIT' && rawCheckpoint !== 'DEPOT')
+      ) {
+        return null;
+      }
+
+      return {
+        reservationId,
+        checkpoint: rawCheckpoint,
+        reference,
+        signature,
+      };
     }
+  }
+
+  private extractQrTextField(value: string, label: string): string {
+    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = value.match(new RegExp(`^${escapedLabel}\\s*:\\s*(.+)$`, 'im'));
+    return match?.[1]?.trim() ?? '';
   }
 
   private extractLegacyPayloadFromScannedValue(value: string): string | null {
@@ -744,6 +748,13 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     this.stopCamera();
     this.validationMessage.set(message);
     this.validationError.set(null);
+    this.scheduleAutoReturnAfterScan();
+  }
+
+  private scheduleAutoReturnAfterScan(): void {
+    if (!this.scanMode() || this.autoReturnScheduled) return;
+    this.autoReturnScheduled = true;
+    window.setTimeout(() => this.goBack(), 800);
   }
 
   private parcelTokenSignature(
@@ -811,7 +822,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
 
   private extractNamedValue(notes: string | null, key: string): string | null {
     if (!notes) return null;
-    const pattern = new RegExp(`${key}\\s*[:=-]\\s*([^\\n;]+)`, 'i');
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire|Distance estimee|Tarif kilometrique|Prix calcule|Colis\\s+\\d+|Note livraison)\\s*[:(]|$)`,
+      'i',
+    );
     const match = notes.match(pattern);
     return match?.[1]?.trim().replace(/\.$/, '').trim() || null;
   }
@@ -834,6 +849,26 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
 
   private payloadChecksum(value: unknown): number {
     return this.checksum(JSON.stringify(value));
+  }
+
+  private currentParcelNumbers(appointment: AppointmentView): string[] {
+    const manifestNumbers = this.manifest().parcels.map((parcel) =>
+      this.toFiveDigitParcelNumber(parcel.number, appointment, parcel.index),
+    );
+    const numbers =
+      manifestNumbers.length > 0
+        ? manifestNumbers
+        : [this.toFiveDigitParcelNumber(appointment.id, appointment, 1)];
+
+    return [...new Set(numbers)];
+  }
+
+  private toFiveDigitParcelNumber(value: string, appointment: AppointmentView, index: number): string {
+    const digits = value.replace(/\D/g, '');
+    if (/^\d{5}$/.test(digits)) return digits;
+
+    const hash = this.checksum(`${appointment.id}|${appointment.serviceId}|${index}|${value}`);
+    return String(10000 + (hash % 90000));
   }
 
   private checksum(value: string): number {

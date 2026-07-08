@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsISO8601, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class CheckReservationAvailabilityQueryDto {
   @IsUUID()

@@ -2,6 +2,7 @@ export type CreateConversationCommand = {
   reservationId?: string;
   negotiationId?: string;
   professionalProfileId?: string;
+  professionalUserId?: string;
 };
 
 export type SendConversationMessageCommand = {

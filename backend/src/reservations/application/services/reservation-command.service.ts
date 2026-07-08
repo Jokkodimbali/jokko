@@ -602,13 +602,14 @@ export class ReservationCommandService extends ReservationAppService {
       command,
     );
     const scheduledAt = this.parseDateOrThrow(details.dateHeure);
-    const pendingMaterialQuote = await this.prisma.devisMaterielNegotiation.findFirst({
-      where: {
-        negotiationId: negotiation.id,
-        statut: StatutDevisMateriel.EN_ATTENTE,
-      },
-      select: { id: true },
-    });
+    const pendingMaterialQuote =
+      await this.prisma.devisMaterielNegotiation.findFirst({
+        where: {
+          negotiationId: negotiation.id,
+          statut: StatutDevisMateriel.EN_ATTENTE,
+        },
+        select: { id: true },
+      });
     if (pendingMaterialQuote) {
       throw new BadRequestException(
         'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',

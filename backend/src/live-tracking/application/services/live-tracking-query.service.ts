@@ -36,7 +36,7 @@ export class LiveTrackingQueryService {
     const tracking =
       await this.liveTrackingRepository.findTrackingByReservationId(
         reservationId,
-    );
+      );
     if (tracking) {
       return this.enrichTrackingRoute(tracking, context);
     }

@@ -471,7 +471,10 @@ export class LiveTrackingCommandService {
       }),
     );
 
-    this.realtimeEvents.emit('live-tracking.presence.updated', started.presence);
+    this.realtimeEvents.emit(
+      'live-tracking.presence.updated',
+      started.presence,
+    );
     return started;
   }
 

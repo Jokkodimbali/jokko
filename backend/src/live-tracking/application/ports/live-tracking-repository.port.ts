@@ -19,7 +19,10 @@ export type ReservationTrackingContext = {
   adresseClient: string;
   adresseDestinationPrestataire: string;
   reservationStatus: string;
-  travelMode: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
+  travelMode:
+    | 'PRESTATAIRE_SE_DEPLACE'
+    | 'CLIENT_SE_DEPLACE'
+    | 'TRANSPORT_COLIS';
 };
 
 export type ReservationTrackingView = ReservationTrackingSession & {

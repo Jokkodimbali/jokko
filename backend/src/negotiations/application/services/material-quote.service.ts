@@ -1,5 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma, RoleNegociateur, StatutDevisMateriel, TypeNotification } from '@prisma/client';
+import {
+  Prisma,
+  RoleNegociateur,
+  StatutDevisMateriel,
+  TypeNotification,
+} from '@prisma/client';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
@@ -468,13 +473,7 @@ export class MaterialQuoteService {
         12,
         'F1',
       ),
-      this.pdfText(
-        this.truncatePdfText(reservationRef, 38),
-        315,
-        590,
-        9,
-        'F1',
-      ),
+      this.pdfText(this.truncatePdfText(reservationRef, 38), 315, 590, 9, 'F1'),
 
       '0.12 0.38 0.18 rg',
       this.pdfText('DETAIL DES ARTICLES VALIDES', margin, 526, 13, 'F2'),
@@ -555,15 +554,7 @@ export class MaterialQuoteService {
     );
     ops.push('0.96 0.97 0.96 rg 42 118 511 52 re f');
     ops.push('0.05 0.07 0.10 rg');
-    ops.push(
-      this.pdfText(
-        'Validation client',
-        58,
-        148,
-        10,
-        'F2',
-      ),
-    );
+    ops.push(this.pdfText('Validation client', 58, 148, 10, 'F2'));
     ops.push(
       this.pdfText(
         'Les articles ci-dessus ont ete valides avant la finalisation de la reservation.',
@@ -583,15 +574,7 @@ export class MaterialQuoteService {
         'F1',
       ),
     );
-    ops.push(
-      this.pdfTextRight(
-        invoiceRef,
-        553,
-        76,
-        9,
-        'F1',
-      ),
-    );
+    ops.push(this.pdfTextRight(invoiceRef, 553, 76, 9, 'F1'));
 
     const stream = ops.join('\n');
     const objects = [
@@ -636,7 +619,13 @@ export class MaterialQuoteService {
     font: 'F1' | 'F2',
   ): string {
     const estimatedWidth = this.estimatePdfTextWidth(text, size, font);
-    return this.pdfText(text, Math.max(42, rightX - estimatedWidth), y, size, font);
+    return this.pdfText(
+      text,
+      Math.max(42, rightX - estimatedWidth),
+      y,
+      size,
+      font,
+    );
   }
 
   private estimatePdfTextWidth(
@@ -663,7 +652,9 @@ export class MaterialQuoteService {
   }
 
   private formatAmount(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value || 0);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(
+      value || 0,
+    );
   }
 
   private formatPdfAmount(value: number): string {

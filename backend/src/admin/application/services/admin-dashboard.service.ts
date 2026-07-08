@@ -161,9 +161,7 @@ export class AdminDashboardService {
         inEscrow: escrowReservations,
         inProgress: inProgressReservations,
         active:
-          confirmedReservations +
-          escrowReservations +
-          inProgressReservations,
+          confirmedReservations + escrowReservations + inProgressReservations,
         completed: completedReservations,
       },
       disputes: {

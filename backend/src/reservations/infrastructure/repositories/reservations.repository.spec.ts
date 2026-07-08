@@ -55,7 +55,9 @@ describe('ReservationsRepository', () => {
     const now = new Date('2026-06-11T12:00:00.000Z');
     const prisma: ReservationPrismaMock = {
       paiement: {
-        findMany: jest.fn().mockResolvedValue([{ reservationId: 'paid-booking' }]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ reservationId: 'paid-booking' }]),
       },
       reservation: {
         findMany: jest.fn().mockResolvedValue([]),

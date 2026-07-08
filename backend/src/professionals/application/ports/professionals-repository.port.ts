@@ -51,6 +51,7 @@ export type ProfessionalServiceView = {
   typePrix: PriceType;
   modeDeplacement: ServiceTravelMode;
   dureeMinutes: number;
+  pauseMinutes: number;
   estObligatoire: boolean;
   estDisponible: boolean;
   creeLe: Date;
@@ -170,6 +171,7 @@ export type CreateServiceInput = {
   priceType: PriceType;
   travelMode?: ServiceTravelMode;
   durationMinutes?: number;
+  pauseMinutes?: number;
   isRequired?: boolean;
 };
 
@@ -182,6 +184,7 @@ export type UpdateServiceInput = {
   priceType?: PriceType;
   travelMode?: ServiceTravelMode;
   durationMinutes?: number;
+  pauseMinutes?: number;
   isRequired?: boolean;
 };
 

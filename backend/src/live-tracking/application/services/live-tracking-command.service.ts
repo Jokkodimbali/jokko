@@ -437,6 +437,7 @@ export class LiveTrackingCommandService {
     tracking: ReservationTrackingView,
   ): Promise<ReservationTrackingView | null> {
     if (
+      context.travelMode === 'CLIENT_SE_DEPLACE' ||
       context.reservationStatus !== 'PAYEE_SEQUESTRE' ||
       tracking.trackingStatus !== 'EN_ROUTE' ||
       !tracking.route ||

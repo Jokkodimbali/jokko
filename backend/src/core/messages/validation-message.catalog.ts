@@ -96,7 +96,7 @@ export const VALIDATION_MESSAGE_CATALOG = {
   RESERVATION_DURATION_INTEGER:
     'La duree de reservation doit etre un nombre entier.',
   RESERVATION_DURATION_MIN:
-    'La duree de reservation doit etre d au moins 15 minutes.',
+    'La duree de reservation doit etre d au moins 5 minutes.',
   RESERVATION_DURATION_MAX:
     'La duree de reservation ne doit pas depasser 1440 minutes.',
   RESERVATION_NOTES_MAX:

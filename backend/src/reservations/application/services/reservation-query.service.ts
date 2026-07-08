@@ -66,7 +66,7 @@ export class ReservationQueryService extends ReservationAppService {
 
     if (
       !Number.isInteger(durationMinutes) ||
-      durationMinutes < 15 ||
+      durationMinutes < 5 ||
       durationMinutes > 1440 ||
       scheduledAt.getTime() <= Date.now()
     ) {
@@ -135,7 +135,7 @@ export class ReservationQueryService extends ReservationAppService {
 
     if (
       !Number.isInteger(durationMinutes) ||
-      durationMinutes < 15 ||
+      durationMinutes < 5 ||
       durationMinutes > 1440
     ) {
       return {

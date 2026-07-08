@@ -1427,7 +1427,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const durationMinutes =
       typeof parsedDuration === 'number' &&
       Number.isInteger(parsedDuration) &&
-      parsedDuration >= 15 &&
+      parsedDuration >= 5 &&
       parsedDuration <= 1440
         ? parsedDuration
         : null;
@@ -1642,7 +1642,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     const durationMinutes = Math.trunc(Number(draft.durationMinutes));
-    if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 1440) {
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 1440) {
       this.errorMessage.set('Impossible de creer la reservation: duree du rendez-vous invalide.');
       return null;
     }

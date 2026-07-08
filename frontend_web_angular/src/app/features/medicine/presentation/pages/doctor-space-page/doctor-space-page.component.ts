@@ -97,6 +97,7 @@ type ConsultationMotif = {
   name: string;
   description: string;
   durationMinutes: number;
+  pauseMinutes: number;
   price: number;
   isRequired: boolean;
   travelMode: ServiceTravelMode;
@@ -1981,6 +1982,7 @@ export class DoctorSpacePageComponent implements OnInit {
       priceType: this.defaultServicePriceType(),
       travelMode: this.selectedTravelMode(),
       durationMinutes,
+      pauseMinutes: this.appointmentPause(),
       isRequired: this.motifForm.isRequired,
     });
 
@@ -2044,6 +2046,7 @@ export class DoctorSpacePageComponent implements OnInit {
         priceType: this.defaultServicePriceType(),
         travelMode: this.motifEditForm.travelMode,
         durationMinutes,
+        pauseMinutes: this.appointmentPause(),
         isRequired: this.motifEditForm.isRequired,
       })
       .pipe(finalize(() => this.isSaving.set(false)))
@@ -2279,22 +2282,27 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private syncMotifDurationsWithAppointmentDuration(): void {
     const durationMinutes = this.appointmentDuration();
-    const motifsToSync = this.motifs().filter((motif) => motif.durationMinutes !== durationMinutes);
+    const pauseMinutes = this.appointmentPause();
+    const motifsToSync = this.motifs().filter(
+      (motif) =>
+        motif.durationMinutes !== durationMinutes ||
+        motif.pauseMinutes !== pauseMinutes,
+    );
     if (motifsToSync.length === 0) return;
 
     this.isSaving.set(true);
     forkJoin(
       motifsToSync.map((motif) =>
-        this.doctorSpaceService.updateService(motif.id, { durationMinutes }),
+        this.doctorSpaceService.updateService(motif.id, { durationMinutes, pauseMinutes }),
       ),
     )
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => {
           this.motifs.update((motifs) =>
-            motifs.map((motif) => ({ ...motif, durationMinutes })),
+            motifs.map((motif) => ({ ...motif, durationMinutes, pauseMinutes })),
           );
-          this.feedback.success('Duree des rendez-vous synchronisee avec les motifs.');
+          this.feedback.success('Parametres des rendez-vous synchronises avec les motifs.');
         },
         error: (error) =>
           this.feedback.error(getHttpErrorMessage(error, 'Synchronisation de la duree impossible.')),
@@ -2900,6 +2908,10 @@ export class DoctorSpacePageComponent implements OnInit {
       this.appointmentDuration.set(this.normalizeMinutes(firstDuration, 0, 90));
       this.motifForm.durationMinutes = this.appointmentDuration();
     }
+    const firstPause = activeServices.find((service) => Number(service.pauseMinutes) >= 0)?.pauseMinutes;
+    if (typeof firstPause === 'number') {
+      this.appointmentPause.set(this.normalizeMinutes(firstPause, 0, 60));
+    }
 
     this.motifs.set(
       activeServices.map((service) => ({
@@ -2908,6 +2920,7 @@ export class DoctorSpacePageComponent implements OnInit {
           name: service.nom,
           description: service.description,
           durationMinutes: service.dureeMinutes ?? 15,
+          pauseMinutes: service.pauseMinutes ?? 0,
           price: Number(service.prix),
           isRequired: service.estObligatoire ?? false,
           travelMode: service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
@@ -3034,7 +3047,10 @@ export class DoctorSpacePageComponent implements OnInit {
     if (firstServiceDuration) {
       this.appointmentDuration.set(this.normalizeMinutes(firstServiceDuration, 0, 90));
     }
-    this.appointmentPause.set(0);
+    const firstServicePause = this.motifs().find((motif) => motif.pauseMinutes >= 0)?.pauseMinutes;
+    if (typeof firstServicePause === 'number') {
+      this.appointmentPause.set(this.normalizeMinutes(firstServicePause, 0, 60));
+    }
     this.motifForm.durationMinutes = this.appointmentDuration();
   }
 

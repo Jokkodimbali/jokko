@@ -389,6 +389,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return entries.some((entry) => entry.status === 'EN_ATTENTE');
   });
   protected readonly durationMinutes = computed(() => this.serviceDurationMinutes(this.currentService()));
+  protected readonly pauseMinutes = computed(() => this.servicePauseMinutes(this.currentService()));
   protected readonly isMaterialQuoteStateReady = computed(() => {
     if (!this.canShowMaterialQuotePanel()) return true;
     const proposalId = this.pendingProposal()?.id;
@@ -2611,7 +2612,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (
       !Number.isInteger(this.durationMinutes()) ||
-      this.durationMinutes() < 15 ||
+      this.durationMinutes() < 5 ||
       this.durationMinutes() > 1440
     ) {
       this.feedback.info('La duree du rendez-vous est invalide.');
@@ -2661,6 +2662,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         professionalId: service.profilProfessionnelId,
         date,
         dureeMinutes: this.durationMinutes(),
+        pauseMinutes: this.pauseMinutes(),
       })
       .subscribe({
         next: (result) => {
@@ -2797,7 +2799,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   private serviceDurationMinutes(service: BackendProfessionalDetailService | null): number {
     const duration = Math.trunc(Number(service?.dureeMinutes));
-    return Number.isInteger(duration) && duration >= 15 && duration <= 1440 ? duration : 60;
+    return Number.isInteger(duration) && duration >= 5 && duration <= 1440 ? duration : 60;
+  }
+
+  private servicePauseMinutes(service: BackendProfessionalDetailService | null): number {
+    const pause = Math.trunc(Number(service?.pauseMinutes ?? 0));
+    return Number.isInteger(pause) && pause >= 0 && pause <= 240 ? pause : 0;
   }
 
   private checkAvailabilityNow(service: BackendProfessionalDetailService, dateHeure: string): void {
@@ -2807,6 +2814,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         professionalId: service.profilProfessionnelId,
         dateHeure,
         dureeMinutes: this.durationMinutes(),
+        pauseMinutes: this.pauseMinutes(),
       })
       .subscribe({
         next: (status) => {

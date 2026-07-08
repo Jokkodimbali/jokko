@@ -53,11 +53,11 @@ export class CreateReservationDto {
   @ApiProperty({
     description: API_DOCS.reservations.durationField,
     example: 60,
-    minimum: 15,
+    minimum: 5,
     maximum: 1440,
   })
   @IsInt({ message: VALIDATION_MESSAGES.RESERVATION_DURATION_INTEGER })
-  @Min(15, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MIN })
+  @Min(5, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MIN })
   @Max(1440, { message: VALIDATION_MESSAGES.RESERVATION_DURATION_MAX })
   dureeMinutes!: number;
 

@@ -449,6 +449,7 @@ model Service {
   typePrix              TypePrix            @map("price_type")
   modeDeplacement       ModeDeplacementService @default(PRESTATAIRE_SE_DEPLACE) @map("travel_mode")
   dureeMinutes          Int                 @default(15) @map("duration_minutes")
+  pauseMinutes          Int                 @default(0) @map("pause_minutes")
   estObligatoire        Boolean             @default(false) @map("is_required")
   estDisponible         Boolean             @default(true) @map("is_available")
   creeLe                DateTime            @default(now()) @map("created_at")

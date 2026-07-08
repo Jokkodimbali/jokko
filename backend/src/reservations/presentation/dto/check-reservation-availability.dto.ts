@@ -10,7 +10,7 @@ export class CheckReservationAvailabilityQueryDto {
 
   @Type(() => Number)
   @IsInt()
-  @Min(15)
+  @Min(5)
   @Max(1440)
   dureeMinutes!: number;
 

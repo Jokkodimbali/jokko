@@ -39,6 +39,7 @@ export class ServiceManagementService extends ProfessionalAppService {
       priceType: command.priceType as TypePrix,
       travelMode: command.travelMode,
       durationMinutes: command.durationMinutes,
+      pauseMinutes: command.pauseMinutes,
       isRequired: command.isRequired,
     });
 
@@ -74,6 +75,7 @@ export class ServiceManagementService extends ProfessionalAppService {
       priceType: command.priceType as TypePrix | undefined,
       travelMode: command.travelMode,
       durationMinutes: command.durationMinutes,
+      pauseMinutes: command.pauseMinutes,
       isRequired: command.isRequired,
     });
 

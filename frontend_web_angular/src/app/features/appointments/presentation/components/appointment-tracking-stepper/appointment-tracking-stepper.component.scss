@@ -9,10 +9,10 @@
   background: #ffffff;
   border-bottom: 0;
   display: grid;
-  gap: 22px;
-  grid-template-columns: auto minmax(760px, 1120px);
+  gap: 16px;
+  grid-template-columns: auto minmax(0, 1120px);
   justify-content: center;
-  padding: 0 0 50px;
+  padding: 0 18px 36px;
   width: 100%;
 }
 
@@ -35,8 +35,9 @@
 
 .appointment-tracking-stepper__rail {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--step-count, 4), minmax(88px, 1fr));
   max-width: 1120px;
+  overflow-x: auto;
   position: relative;
   width: 100%;
 }
@@ -69,6 +70,7 @@
   gap: 7px;
   justify-items: center;
   min-width: 0;
+  padding-inline: 2px;
   position: relative;
   text-align: center;
   z-index: 1;
@@ -81,10 +83,10 @@
   border-radius: 50%;
   color: #b8906f;
   display: inline-flex;
-  height: 44px;
+  height: 40px;
   justify-content: center;
   transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
-  width: 44px;
+  width: 40px;
 }
 
 .appointment-tracking-stepper__step strong {
@@ -116,7 +118,7 @@
   .appointment-tracking-stepper {
     gap: 16px;
     grid-template-columns: 1fr;
-    padding: 12px 16px 34px;
+    padding: 12px 12px 28px;
   }
 
   .appointment-tracking-stepper__back {
@@ -125,6 +127,7 @@
 
   .appointment-tracking-stepper__rail {
     max-width: none;
+    min-width: calc(var(--step-count, 4) * 92px);
   }
 
   .appointment-tracking-stepper__line,

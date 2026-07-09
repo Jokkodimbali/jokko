@@ -18,6 +18,7 @@ export type ReservationTrackingContext = {
   dateHeure: Date;
   adresseClient: string;
   adresseDestinationPrestataire: string;
+  reservationNotes: string | null;
   reservationStatus: string;
   travelMode:
     | 'PRESTATAIRE_SE_DEPLACE'

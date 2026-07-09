@@ -87,9 +87,9 @@ const SENEGAL_GEO_BOUNDS = {
   maxLng: -11,
 } as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
-const TRACKING_FALLBACK_POLL_INTERVAL_MS = 5000;
-const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
-const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 5000;
+const TRACKING_FALLBACK_POLL_INTERVAL_MS = 15000;
+const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 3000;
+const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 15000;
 
 type AppointmentDetailUiState =
   | 'loading'
@@ -168,14 +168,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeCoordinates: Array<[number, number]> = [];
   private routeOptions: RouteOption[] = [];
   private routeCoordinatesKey = '';
+  private routeRequestBlockedUntilMs = 0;
   private trackingMapElement?: HTMLElement;
   private lastSpokenNavigationKey = '';
+  private lastResolvedDestinationAddress = '';
+  private isAnimatingRouteArrival = false;
+  private locationSharingBlockedUntilMs = 0;
   private readonly refreshParcelCheckpoints = (): void => {
     this.parcelCheckpointVersion.update((version) => version + 1);
     const appointment = this.appointment();
     if (appointment && this.isParcelTransportAppointment(appointment)) {
       this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
-      window.setTimeout(() => void this.initializeGoogleMaps(), 0);
     }
   };
 
@@ -440,12 +443,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isParcelPickupValidated = computed(() => {
     this.parcelCheckpointVersion();
     const appointment = this.appointment();
-    return !!appointment && this.isParcelCheckpointValidated(appointment, 'RETRAIT');
+    return (
+      !!appointment &&
+      (this.isParcelCheckpointValidated(appointment, 'RETRAIT') ||
+        appointment.status === 'EN_COURS' ||
+        appointment.status === 'TERMINEE')
+    );
   });
   protected readonly isParcelDropoffValidated = computed(() => {
     this.parcelCheckpointVersion();
     const appointment = this.appointment();
-    return !!appointment && this.isParcelCheckpointValidated(appointment, 'DEPOT');
+    return (
+      !!appointment &&
+      (this.isParcelCheckpointValidated(appointment, 'DEPOT') ||
+        appointment.status === 'TERMINEE')
+    );
   });
   protected readonly parcelPickupAddress = computed(() => {
     const appointment = this.appointment();
@@ -558,7 +570,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return true;
     if (this.routeActorArrivalConfirmed()) return true;
     if (this.hasTravelerArrivalConfirmation()) return true;
-    if (!this.isProviderOnTheWay()) return false;
+    if (!this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive()) return false;
 
     const serverDistance = this.tracking()?.route?.distanceRemainingMeters;
     if (typeof serverDistance === 'number') {
@@ -913,7 +925,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         return 'Partir livrer le colis';
       }
       if (this.isParcelAwaitingDropoffScan()) return 'Scanner le QR depot';
-      if (this.isParcelDropoffValidated()) return 'Terminer la livraison';
+      if (this.isParcelDropoffValidated()) return 'Livraison terminee';
       if (this.isParcelDropoffNavigationActive()) return 'Sur place';
       if (this.isProviderOnTheWay()) return 'Sur place';
       return 'Commencer la livraison';
@@ -1041,6 +1053,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return "Votre professionnel se prepare. L'heure de rendez-vous a ete bloquee dans son agenda.";
   });
   protected readonly routeRemainingBadgeLabel = computed(() => {
+    if (this.isParcelDeliveryFlow() && this.hasTravelerArrivedAtDestination()) return 'Sur place';
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
     const distance = this.routeDistanceKm();
     const minutes = this.routeDurationMinutes();
@@ -1049,6 +1062,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return 'GPS';
   });
   protected readonly routeEtaLabel = computed(() => {
+    if (this.isParcelDeliveryFlow() && this.hasTravelerArrivedAtDestination()) return 'Sur place';
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
     const minutes = this.estimatedArrivalMinutes();
     return minutes > 0 ? `${minutes} min` : '-- min';
@@ -1082,6 +1096,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.routeStatus() === 'unavailable'),
   );
   protected readonly navigationInstruction = computed(() => {
+    if (this.isParcelDeliveryFlow() && this.hasTravelerArrivedAtDestination()) {
+      return {
+        instruction: this.parcelArrivedVehicleStatusLabel(),
+        maneuver: 'ARRIVE',
+        distanceMeters: 0,
+      };
+    }
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) {
       return {
         instruction: `Vous etes arrive a destination de ${this.arrivalDestinationLabelFromCurrentAppointment()}.`,
@@ -1618,7 +1639,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return 'Partir livrer le colis';
     }
     if (this.isParcelAwaitingDropoffScan()) return 'Scanner chez le destinataire';
-    if (this.isParcelDropoffValidated()) return 'Terminer la livraison';
+    if (this.isParcelDropoffValidated()) return 'Livraison terminee';
     if (this.isParcelDropoffNavigationActive() || this.isProviderOnTheWay()) return 'Sur place';
     return 'Commencer la livraison';
   }
@@ -1876,9 +1897,45 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.providerTravelsToClient()) {
       this.isUpdatingStatus.set(true);
       void this.animateTrackedTravelerArrival(appointment).then(() => {
-        this.routeActorArrivalConfirmed.set(true);
-        this.isUpdatingStatus.set(false);
-        this.feedback.success('Arrivee confirmee. Vous pouvez commencer la prestation.');
+        const destination = this.destinationCoordinates();
+        if (!destination) {
+          this.routeActorArrivalConfirmed.set(true);
+          this.routeDistanceKm.set(0);
+          this.routeDurationMinutes.set(0);
+          this.updateGoogleMaps();
+          this.isUpdatingStatus.set(false);
+          this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+          return;
+        }
+
+        this.appointmentsService
+          .updateProviderTrackingLocation(appointment.id, {
+            latitude: destination.lat,
+            longitude: destination.lng,
+            accuracyMeters: 20,
+            headingDegrees: null,
+            speedKmh: 0,
+            locationLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
+          })
+          .subscribe({
+            next: (tracking) => {
+              this.setTrackingSafely(tracking);
+              this.routeActorArrivalConfirmed.set(true);
+              this.routeDistanceKm.set(0);
+              this.routeDurationMinutes.set(0);
+              this.updateGoogleMaps();
+              this.isUpdatingStatus.set(false);
+              this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+            },
+            error: (error) => {
+              if (error instanceof HttpErrorResponse && error.status === 409) {
+                this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
+                return;
+              }
+              this.isUpdatingStatus.set(false);
+              this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
+            },
+          });
       });
       return;
     }
@@ -2051,7 +2108,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(updated));
           this.stopProviderLocationSharing();
           this.startProviderLocationSharing(updated.id);
-          window.setTimeout(() => void this.initializeGoogleMaps(), 0);
         } else {
           this.stopProviderLocationSharing();
         }
@@ -2392,20 +2448,143 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return Promise.resolve();
     }
 
-    this.routeDistanceKm.set(0);
-    this.routeDurationMinutes.set(0);
-    this.mapRenderer.render({
-      provider: destination,
-      destination,
-      remainingLabel: 'Arrive',
-      statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
-      headingDegrees: this.reliableTrackingHeading(),
-      routes: this.serializedMapRoutes(),
-    });
+    const path = this.routeAnimationPath({ lat: latitude, lng: longitude }, destination);
+    if (path.length < 2) {
+      return Promise.resolve();
+    }
+
+    this.isAnimatingRouteArrival = true;
+    const startedAt = performance.now();
+    const durationMs = 1600;
+    const initialDistanceKm = this.routeDistanceKm();
+    const initialDurationMinutes = this.routeDurationMinutes();
 
     return new Promise((resolve) => {
-      window.setTimeout(resolve, 850);
+      const tick = (timestamp: number): void => {
+        const progress = Math.min(1, (timestamp - startedAt) / durationMs);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const point = this.interpolateRoutePoint(path, eased);
+        const remainingRatio = 1 - eased;
+
+        this.routeDistanceKm.set(
+          initialDistanceKm === null ? null : Math.max(0, initialDistanceKm * remainingRatio),
+        );
+        this.routeDurationMinutes.set(
+          initialDurationMinutes === null
+            ? null
+            : Math.max(0, Math.round(initialDurationMinutes * remainingRatio)),
+        );
+        this.mapRenderer.render({
+          provider: point,
+          destination,
+          remainingLabel: progress >= 1 ? 'Arrive' : this.routeRemainingBadgeLabel(),
+          statusLabel:
+            progress >= 1
+              ? `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`
+              : `En route vers ${this.arrivalDestinationLabel(appointment)}`,
+          headingDegrees: null,
+          routes: this.serializedMapRoutes(),
+        });
+
+        if (progress < 1) {
+          this.requestRouteAnimationFrame(tick);
+          return;
+        }
+
+        this.isAnimatingRouteArrival = false;
+        resolve();
+      };
+
+      this.requestRouteAnimationFrame(tick);
     });
+  }
+
+  private routeAnimationPath(
+    currentPosition: MapCoordinate,
+    destination: MapCoordinate,
+  ): MapCoordinate[] {
+    const selectedRoute =
+      this.routeOptions.find((route) => route.id === this.selectedRouteId()) ??
+      this.routeOptions[0];
+    const routeCoordinates = selectedRoute?.coordinates ?? this.routeCoordinates;
+    const points = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
+    if (points.length < 2) {
+      return [currentPosition, destination];
+    }
+
+    let nearestIndex = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    points.forEach((point, index) => {
+      const distance =
+        Math.pow(point.lat - currentPosition.lat, 2) +
+        Math.pow(point.lng - currentPosition.lng, 2);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    const remainingRoute = points.slice(Math.min(nearestIndex + 1, points.length - 1));
+    const lastPoint = remainingRoute[remainingRoute.length - 1];
+    if (
+      !lastPoint ||
+      Math.abs(lastPoint.lat - destination.lat) > 0.00001 ||
+      Math.abs(lastPoint.lng - destination.lng) > 0.00001
+    ) {
+      remainingRoute.push(destination);
+    }
+
+    return [currentPosition, ...remainingRoute];
+  }
+
+  private interpolateRoutePoint(path: MapCoordinate[], progress: number): MapCoordinate {
+    if (path.length < 2) return path[0] ?? { lat: 0, lng: 0 };
+
+    const segments = path.slice(1).map((point, index) => ({
+      from: path[index],
+      to: point,
+      distance: this.distanceMetersBetweenPoints(path[index], point),
+    }));
+    const totalDistance = segments.reduce((sum, segment) => sum + segment.distance, 0);
+    if (totalDistance <= 0) return path[path.length - 1];
+
+    let coveredDistance = Math.max(0, Math.min(1, progress)) * totalDistance;
+    for (const segment of segments) {
+      if (coveredDistance > segment.distance) {
+        coveredDistance -= segment.distance;
+        continue;
+      }
+
+      const ratio = segment.distance <= 0 ? 1 : coveredDistance / segment.distance;
+      return {
+        lat: segment.from.lat + (segment.to.lat - segment.from.lat) * ratio,
+        lng: segment.from.lng + (segment.to.lng - segment.from.lng) * ratio,
+      };
+    }
+
+    return path[path.length - 1];
+  }
+
+  private requestRouteAnimationFrame(callback: (timestamp: number) => void): void {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(callback);
+      return;
+    }
+
+    window.setTimeout(() => callback(performance.now()), 16);
+  }
+
+  private acceptLocalTravelerArrivalAfterTrackingConflict(appointment: AppointmentView): void {
+    this.locationSharingBlockedUntilMs = Date.now() + 30_000;
+    this.stopProviderLocationSharing();
+    this.routeActorArrivalConfirmed.set(true);
+    this.routeDistanceKm.set(0);
+    this.routeDurationMinutes.set(0);
+    this.updateGoogleMaps();
+    this.refreshTracking(appointment.id);
+    this.refreshAppointmentState(appointment.id);
+    this.isUpdatingStatus.set(false);
+    this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
   }
 
   private refreshTracking(appointmentId: string): void {
@@ -2472,6 +2651,27 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
+  private isTravelerCloseEnoughToDestination(): boolean {
+    const serverDistance = this.tracking()?.route?.distanceRemainingMeters;
+    if (typeof serverDistance === 'number') {
+      return serverDistance <= ARRIVAL_DISTANCE_THRESHOLD_METERS;
+    }
+
+    const destination = this.destinationCoordinates();
+    if (destination && this.hasTrackingCoordinates()) {
+      return (
+        this.distanceMetersBetweenCurrentPosition(destination) <=
+        ARRIVAL_DISTANCE_THRESHOLD_METERS
+      );
+    }
+
+    const routeDistance = this.routeDistanceKm();
+    return (
+      routeDistance !== null &&
+      routeDistance * 1000 <= ARRIVAL_DISTANCE_THRESHOLD_METERS
+    );
+  }
+
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
     window.setTimeout(() => {
       const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
@@ -2508,7 +2708,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           (coordinate) =>
             [coordinate.latitude, coordinate.longitude] as [number, number],
         );
-        if (serverRoute.navigationSteps?.length) {
+        if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
           const currentRoute: RouteOption = {
             id: 'route-0',
             coordinates: this.routeCoordinates,
@@ -2517,7 +2717,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               1,
               Math.round(serverRoute.durationRemainingSeconds / 60),
             ),
-            navigationSteps: serverRoute.navigationSteps.map((step) => ({
+            navigationSteps: (serverRoute.navigationSteps ?? []).map((step) => ({
               id: step.id,
               instruction: step.instruction,
               maneuver: step.maneuver,
@@ -2536,7 +2736,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
       this.updateGoogleMaps();
       this.announceNavigationInstruction();
-      if (appointment && this.isRouteActorViewer() && this.isProviderOnTheWay()) {
+      if (
+        appointment &&
+        this.isRouteActorViewer() &&
+        (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
+        Date.now() >= this.locationSharingBlockedUntilMs
+      ) {
         this.startProviderLocationSharing(appointment.id);
       }
     }, 0);
@@ -2567,7 +2772,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private startProviderLocationSharing(appointmentId: string): void {
     if (
       this.providerLocationSubscription ||
-      !this.isRouteActorViewer()
+      !this.isRouteActorViewer() ||
+      Date.now() < this.locationSharingBlockedUntilMs
     ) {
       return;
     }
@@ -2597,8 +2803,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           .pipe(
             catchError((error) => {
               if (error instanceof HttpErrorResponse && error.status === 409) {
+                this.locationSharingBlockedUntilMs = Date.now() + 30_000;
                 this.stopProviderLocationSharing();
-                this.refreshTracking(appointmentId);
+                window.setTimeout(() => this.refreshTracking(appointmentId), 1200);
               }
               return of(null);
             }),
@@ -2916,6 +3123,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!this.hasActiveNavigationState()) {
       return;
     }
+    if (this.isAnimatingRouteArrival) {
+      return;
+    }
 
     const latitude = this.trackingLatitude();
     const longitude = this.trackingLongitude();
@@ -2926,7 +3136,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const destination = this.destinationCoordinates();
     const trackedProvider: [number, number] = [latitude, longitude];
     const displayedProvider: [number, number] =
-      ((this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) ||
+      (this.isNonParcelWorkArrivedOnMap() ||
+        this.hasTravelerArrivedAtDestination() ||
         this.hasTravelerArrivalConfirmation()) &&
       destination
         ? [destination.lat, destination.lng]
@@ -2934,7 +3145,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (
       destination &&
       (!this.isProviderWorking() || this.isParcelDropoffNavigationActive()) &&
-      !this.hasTravelerArrivalConfirmation()
+      !this.hasTravelerArrivalConfirmation() &&
+      !this.hasTravelerArrivedAtDestination() &&
+      this.routeCoordinates.length < 2 &&
+      this.routeStatus() !== 'calculating' &&
+      Date.now() >= this.routeRequestBlockedUntilMs
     ) {
       this.loadRouteCoordinates(trackedProvider, [
         destination.lat,
@@ -2952,6 +3167,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       headingDegrees: this.reliableTrackingHeading(),
       routes: this.serializedMapRoutes(),
     });
+  }
+
+  private isNonParcelWorkArrivedOnMap(): boolean {
+    return (
+      this.isProviderWorking() &&
+      !this.isParcelDropoffNavigationActive() &&
+      !this.isParcelDeliveryFlow()
+    );
   }
 
   private serializedMapRoutes(): Array<{
@@ -3016,11 +3239,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    if (this.isParcelDropoffValidated()) {
-      this.completeWork(appointment);
-      return;
-    }
-
     if (this.isParcelDropoffNavigationActive() || this.isProviderOnTheWay()) {
       this.markTravelerArrived(appointment);
     }
@@ -3029,9 +3247,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private vehicleStatusLabel(): string {
     const appointment = this.appointment();
     if (!appointment) return 'Trajet en cours';
+    if (this.isParcelTransportAppointment(appointment)) {
+      if (this.hasTravelerArrivedAtDestination()) {
+        return this.parcelArrivedVehicleStatusLabel();
+      }
+      return this.isParcelPickupValidated()
+        ? `Le livreur est en route vers le destinataire · ${this.routeEtaLabel()}`
+        : `Le livreur est en route vers l'expediteur · ${this.routeEtaLabel()}`;
+    }
     return this.isProviderWorking() && !this.isParcelDropoffNavigationActive()
       ? `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`
       : `En route vers ${this.arrivalDestinationLabel(appointment)} · ${this.routeEtaLabel()}`;
+  }
+
+  private parcelArrivedVehicleStatusLabel(): string {
+    return this.isParcelPickupValidated()
+      ? 'Le livreur est arrive sur place chez le destinataire'
+      : "Le livreur est arrive sur place chez l'expediteur";
   }
 
   private trackedTravelerPositionLabel(): string {
@@ -3108,6 +3340,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const latitudeDelta = ((destination.lat - latitude) * Math.PI) / 180;
     const longitudeDelta = ((destination.lng - longitude) * Math.PI) / 180;
     const originLatitude = (latitude * Math.PI) / 180;
+    const destinationLatitude = (destination.lat * Math.PI) / 180;
+    const a =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(originLatitude) *
+        Math.cos(destinationLatitude) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  private distanceMetersBetweenPoints(origin: MapCoordinate, destination: MapCoordinate): number {
+    const earthRadius = 6_371_000;
+    const latitudeDelta = ((destination.lat - origin.lat) * Math.PI) / 180;
+    const longitudeDelta = ((destination.lng - origin.lng) * Math.PI) / 180;
+    const originLatitude = (origin.lat * Math.PI) / 180;
     const destinationLatitude = (destination.lat * Math.PI) / 180;
     const a =
       Math.sin(latitudeDelta / 2) ** 2 +
@@ -3245,6 +3491,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.mapRenderer.resetRoute();
         this.routeDistanceKm.set(null);
         this.routeDurationMinutes.set(null);
+        this.routeRequestBlockedUntilMs = Date.now() + 20_000;
         this.routeStatus.set('unavailable');
         },
       });
@@ -3275,18 +3522,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private resolveDestinationCoordinates(addressLabel: string): void {
-    this.destinationCoordinates.set(null);
-    this.destinationStatus.set('idle');
-    this.routeStatus.set('idle');
-    this.routeCoordinates = [];
-    this.routeOptions = [];
-    this.routeAlternatives.set([]);
-    this.routeCoordinatesKey = '';
-    this.mapRenderer.resetRoute();
-    this.routeDistanceKm.set(null);
-    this.routeDurationMinutes.set(null);
     const query = this.normalizeAddressQuery(addressLabel);
-    if (!query || typeof window === 'undefined') return;
+    if (!query || typeof window === 'undefined') {
+      if (!query && this.lastResolvedDestinationAddress) {
+        this.clearResolvedDestination();
+      }
+      return;
+    }
+    if (query === this.lastResolvedDestinationAddress && this.destinationCoordinates()) {
+      this.updateGoogleMaps();
+      return;
+    }
+
+    this.clearResolvedDestination();
+    this.lastResolvedDestinationAddress = query;
     const explicitCoordinates = this.extractCoordinatesFromAddress(query);
     if (!explicitCoordinates && this.hasCoordinateLikeAddress(query)) {
       this.destinationStatus.set('unavailable');
@@ -3319,6 +3568,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.destinationStatus.set('unavailable');
       },
     });
+  }
+
+  private clearResolvedDestination(): void {
+    this.destinationCoordinates.set(null);
+    this.destinationStatus.set('idle');
+    this.routeStatus.set('idle');
+    this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeAlternatives.set([]);
+    this.routeCoordinatesKey = '';
+    this.routeRequestBlockedUntilMs = 0;
+    this.mapRenderer.resetRoute();
+    this.routeDistanceKm.set(null);
+    this.routeDurationMinutes.set(null);
   }
 
   private normalizeAddressQuery(value: string): string {

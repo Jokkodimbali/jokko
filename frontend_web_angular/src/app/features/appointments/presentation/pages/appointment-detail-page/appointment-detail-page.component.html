@@ -1120,7 +1120,7 @@
           aria-label="Actions de la carte et de la mission"
         >
           <div
-            *ngIf="isProviderViewer() && !isDoctorViewer() && !isAppointmentCompleted()"
+            *ngIf="!isDoctorViewer() && !isAppointmentCompleted()"
             class="appointment-detail__map-toolbar"
             aria-label="Actions de la carte"
           >
@@ -1131,7 +1131,7 @@
               [attr.aria-pressed]="isSatelliteMapEnabled()"
             >
               <lucide-icon name="globe" size="14" [strokeWidth]="2.4"></lucide-icon>
-              {{ isSatelliteMapEnabled() ? 'Plan' : 'Satellite' }}
+              {{ isSatelliteMapEnabled() ? 'Plan' : 'Aerial View' }}
             </button>
             <button
               type="button"
@@ -1148,7 +1148,7 @@
             </button>
           </div>
           <a
-            *ngIf="isProviderViewer() && !isDoctorViewer() && !isAppointmentCompleted()"
+            *ngIf="!isDoctorViewer() && !isAppointmentCompleted()"
             class="appointment-detail__map-external"
             [href]="mapDirectionsUrl(appointment)"
             target="_blank"
@@ -1204,7 +1204,7 @@
           </ng-container>
         </div>
         <div
-          *ngIf="isProviderOnTheWay() && !isAppointmentCompleted()"
+          *ngIf="shouldRenderTrackingMap() && !isAppointmentCompleted()"
           class="appointment-detail__map-direction-pad"
           aria-label="Orienter la carte"
         >
@@ -1247,7 +1247,7 @@
           </button>
         </div>
         <div
-          *ngIf="isProviderOnTheWay()"
+          *ngIf="isProviderOnTheWay() || isParcelDropoffNavigationActive()"
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >

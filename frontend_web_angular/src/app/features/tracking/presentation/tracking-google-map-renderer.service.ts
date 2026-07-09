@@ -54,14 +54,14 @@ export class TrackingGoogleMapRendererService {
     this.routeSelected = onRouteSelected;
     this.routeMap = new this.google.maps.Map(element, {
       center: DAKAR_CENTER,
-      zoom: 13,
+      zoom: 17,
       heading: 0,
-      tilt: 0,
+      tilt: 67.5,
       renderingType: 'VECTOR',
-      mapTypeId: satellite ? 'satellite' : 'roadmap',
+      mapTypeId: satellite ? 'hybrid' : 'roadmap',
       disableDefaultUI: true,
       zoomControl: true,
-      clickableIcons: false,
+      clickableIcons: true,
       gestureHandling: 'greedy',
       headingInteractionEnabled: true,
       tiltInteractionEnabled: true,
@@ -94,12 +94,13 @@ export class TrackingGoogleMapRendererService {
         );
       }
       this.renderRoutes(state.routes);
-      this.fitRoute(state.provider, state.destination);
+      this.fitRoute(state.provider, state.destination, state.routes);
     }
   }
 
   setSatellite(enabled: boolean): void {
-    this.routeMap?.setMapTypeId(enabled ? 'satellite' : 'roadmap');
+    this.routeMap?.setMapTypeId(enabled ? 'hybrid' : 'roadmap');
+    this.applyImmersiveCamera();
   }
 
   setHeading(headingDegrees: number): void {
@@ -111,11 +112,22 @@ export class TrackingGoogleMapRendererService {
       this.routeMap?.getRenderingType?.()?.toUpperCase() === 'VECTOR';
     this.routeMap?.moveCamera?.({
       heading: headingDegrees,
-      tilt: headingDegrees === 0 ? 0 : 45,
+      tilt: 67.5,
     });
     this.routeMap?.setHeading?.(headingDegrees);
-    this.routeMap?.setTilt?.(headingDegrees === 0 ? 0 : 45);
+    this.routeMap?.setTilt?.(67.5);
     this.applyCssRotationFallback(supportsNativeRotation ? 0 : headingDegrees);
+  }
+
+  private applyImmersiveCamera(): void {
+    this.routeMap?.setOptions?.({
+      headingInteractionEnabled: true,
+      tiltInteractionEnabled: true,
+      gestureHandling: 'greedy',
+      clickableIcons: true,
+    });
+    this.routeMap?.setTilt?.(67.5);
+    this.routeMap?.moveCamera?.({ tilt: 67.5 });
   }
 
   private withCameraUpdate(update: () => void): void {
@@ -301,9 +313,12 @@ export class TrackingGoogleMapRendererService {
   private fitRoute(
     provider: GoogleMapsPoint,
     destination: GoogleMapsPoint | null,
+    routes: TrackingMapRoute[],
   ): void {
     if (!this.google || !this.routeMap || this.userInteracted) return;
     if (!destination) {
+      if (this.lastBoundsKey === 'provider-only') return;
+      this.lastBoundsKey = 'provider-only';
       this.withCameraUpdate(() => {
         this.routeMap?.setCenter(provider);
         this.routeMap?.setZoom(15);
@@ -311,14 +326,26 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
-    const key = `${provider.lat.toFixed(5)},${provider.lng.toFixed(5)}|${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}`;
+    const selectedRoute = this.routePolylines.length;
+    const key = `${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}|routes:${selectedRoute}`;
     if (key === this.lastBoundsKey) return;
     this.lastBoundsKey = key;
     const bounds = new this.google.maps.LatLngBounds();
     bounds.extend(provider);
     bounds.extend(destination);
+    const selectedRouteCoordinates =
+      routes.find((route) => route.selected)?.coordinates ??
+      routes[0]?.coordinates ??
+      [];
+    selectedRouteCoordinates.forEach((point) => bounds.extend(point));
     this.withCameraUpdate(() => {
-      this.routeMap?.fitBounds(bounds, 84);
+      this.routeMap?.fitBounds(bounds, {
+        top: 104,
+        right: 96,
+        bottom: 148,
+        left: 96,
+      });
+      window.setTimeout(() => this.applyImmersiveCamera(), 120);
     });
   }
 
@@ -338,7 +365,7 @@ export class TrackingGoogleMapRendererService {
     const bubble = document.createElement('div');
     bubble.textContent = statusLabel;
     bubble.style.cssText =
-      'max-width:240px;padding:7px 11px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:#fff;color:#111827;box-shadow:0 10px 24px rgba(15,23,42,.2);font:800 11px/1.25 Arial,sans-serif;text-align:center;white-space:normal;';
+      'max-width:280px;padding:8px 12px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:#fff;color:#111827;box-shadow:0 10px 24px rgba(15,23,42,.2);font:850 12px/1.28 Arial,sans-serif;text-align:center;white-space:normal;';
 
     const pointer = document.createElement('span');
     pointer.style.cssText =

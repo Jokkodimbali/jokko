@@ -486,12 +486,14 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.startReservation();
       const updated = await this.reservationsRepository.update(entity.toView());
-      await this.liveTrackingFacade.finalizeReservationTracking({
-        reservationId: updated.id,
-        professionalId: updated.professionnelId,
-        trackingStatus: 'TERMINEE',
-        nextPresenceStatus: 'EN_PRESTATION',
-      });
+      if (!this.isParcelTransportReservation(reservation.notes)) {
+        await this.liveTrackingFacade.finalizeReservationTracking({
+          reservationId: updated.id,
+          professionalId: updated.professionnelId,
+          trackingStatus: 'TERMINEE',
+          nextPresenceStatus: 'EN_PRESTATION',
+        });
+      }
       await this.eventBus.publier(
         new ProviderArrivedEvent({
           reservationId: updated.id,
@@ -511,6 +513,18 @@ export class ReservationCommandService extends ReservationAppService {
       this.handleDomainError(error);
       throw error;
     }
+  }
+
+  private isParcelTransportReservation(notes: string | null): boolean {
+    const normalized = notes
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr');
+
+    return Boolean(
+      normalized?.includes('depart colis') &&
+      normalized.includes('arrivee destinataire'),
+    );
   }
 
   private async assertTravelerArrivedBeforeStart(

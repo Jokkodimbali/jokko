@@ -3,7 +3,7 @@
     <button type="button" aria-label="Retour" (click)="goBack()">
       <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
     </button>
-    <nav aria-label="Choisir le QR code colis">
+    <nav *ngIf="scanMode(); else singleQrHeader" aria-label="Choisir le point de scan colis">
       <button
         type="button"
         [class.is-active]="mode() === 'expediteur'"
@@ -19,6 +19,13 @@
         Depot de Colis
       </button>
     </nav>
+    <ng-template #singleQrHeader>
+      <nav aria-label="QR code colis unique">
+        <button type="button" class="is-active">
+          QR colis unique
+        </button>
+      </nav>
+    </ng-template>
     <h1>
       <lucide-icon name="archive" size="17" [strokeWidth]="2.5"></lucide-icon>
       {{ title() }}

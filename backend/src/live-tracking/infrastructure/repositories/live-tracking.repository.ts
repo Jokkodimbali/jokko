@@ -42,6 +42,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         statut: true,
         dateHeure: true,
         adresseClient: true,
+        notes: true,
         service: {
           select: {
             nom: true,
@@ -77,6 +78,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       travelMode: reservation.service.modeDeplacement,
       dateHeure: reservation.dateHeure,
       adresseClient: reservation.adresseClient,
+      reservationNotes: reservation.notes,
       adresseDestinationPrestataire: this.buildProfessionalDestinationAddress({
         companyName: reservation.professionnel.nomEntreprise,
         city: reservation.professionnel.ville,

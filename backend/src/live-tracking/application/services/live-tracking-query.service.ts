@@ -13,6 +13,7 @@ import {
 } from '../ports/live-tracking-repository.port';
 import { ProfessionalPresenceEntity } from '../../domain/entities/professional-presence.entity';
 import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
+import { resolveTrackingDestinationAddress } from './tracking-parcel-destination.helper';
 
 @Injectable()
 export class LiveTrackingQueryService {
@@ -104,11 +105,9 @@ export class LiveTrackingQueryService {
     tracking: ReservationTrackingView,
     context: ReservationTrackingContext,
   ): Promise<ReservationTrackingView> {
-    const destinationAddress =
-      context.travelMode === 'CLIENT_SE_DEPLACE'
-        ? context.adresseDestinationPrestataire
-        : context.adresseClient;
-
-    return this.routeEstimator.enrich(tracking, destinationAddress);
+    return this.routeEstimator.enrich(
+      tracking,
+      resolveTrackingDestinationAddress(context),
+    );
   }
 }

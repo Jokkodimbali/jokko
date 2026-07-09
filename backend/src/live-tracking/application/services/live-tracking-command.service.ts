@@ -30,6 +30,7 @@ import {
 } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
 import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
+import { resolveTrackingDestinationAddress } from './tracking-parcel-destination.helper';
 
 const SENEGAL_GEO_BOUNDS = {
   minLat: 12,
@@ -178,7 +179,7 @@ export class LiveTrackingCommandService {
       throw LiveTrackingDomainError.invalidLocation();
     }
 
-    const tracking = await this.liveTrackingRepository.recordTrackingLocation({
+    let tracking = await this.liveTrackingRepository.recordTrackingLocation({
       reservationId,
       professionalId: professional.id,
       latitude: dto.latitude,
@@ -188,6 +189,14 @@ export class LiveTrackingCommandService {
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
     });
+
+    if (!tracking) {
+      tracking = await this.resumeParcelProviderTrackingFromLocation(
+        context,
+        professional.id,
+        dto,
+      );
+    }
 
     if (!tracking) {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
@@ -220,6 +229,55 @@ export class LiveTrackingCommandService {
     );
 
     return enrichedTracking;
+  }
+
+  private async resumeParcelProviderTrackingFromLocation(
+    context: ReservationTrackingContext,
+    professionalId: string,
+    dto: TrackingLocationCommand,
+  ) {
+    if (
+      context.travelMode !== 'TRANSPORT_COLIS' ||
+      (context.reservationStatus !== 'PAYEE_SEQUESTRE' &&
+        context.reservationStatus !== 'EN_COURS') ||
+      dto.latitude === undefined ||
+      dto.longitude === undefined
+    ) {
+      return null;
+    }
+
+    const presenceEntity = ProfessionalPresenceEntity.reconstitute(
+      (await this.liveTrackingRepository.findProfessionalPresence(
+        professionalId,
+      )) ?? ProfessionalPresenceEntity.create(professionalId).toView(),
+    );
+    presenceEntity.markOnTheWay();
+    presenceEntity.updateLocation({
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracyMeters: dto.accuracyMeters ?? null,
+      headingDegrees: dto.headingDegrees ?? null,
+      speedKmh: dto.speedKmh ?? null,
+      locationLabel: dto.locationLabel?.trim() ?? null,
+    });
+
+    const session = ReservationTrackingSessionEntity.start({
+      reservationId: context.reservationId,
+      clientUserId: context.clientUserId,
+      professionalId: context.professionalId,
+      professionalUserId: context.professionalUserId,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracyMeters: dto.accuracyMeters ?? null,
+      headingDegrees: dto.headingDegrees ?? null,
+      speedKmh: dto.speedKmh ?? null,
+      locationLabel: dto.locationLabel?.trim() ?? null,
+    });
+
+    return this.liveTrackingRepository.startOrResumeTracking({
+      session: session.toView(),
+      presence: presenceEntity.toView(),
+    });
   }
 
   private async markClientOnTheWay(
@@ -424,12 +482,10 @@ export class LiveTrackingCommandService {
     tracking: ReservationTrackingView,
     context: ReservationTrackingContext,
   ): Promise<ReservationTrackingView> {
-    const destinationAddress =
-      context.travelMode === 'CLIENT_SE_DEPLACE'
-        ? context.adresseDestinationPrestataire
-        : context.adresseClient;
-
-    return this.routeEstimator.enrich(tracking, destinationAddress);
+    return this.routeEstimator.enrich(
+      tracking,
+      resolveTrackingDestinationAddress(context),
+    );
   }
 
   private async startReservationAutomaticallyIfArrived(
@@ -438,6 +494,7 @@ export class LiveTrackingCommandService {
   ): Promise<ReservationTrackingView | null> {
     if (
       context.travelMode === 'CLIENT_SE_DEPLACE' ||
+      context.travelMode === 'TRANSPORT_COLIS' ||
       context.reservationStatus !== 'PAYEE_SEQUESTRE' ||
       tracking.trackingStatus !== 'EN_ROUTE' ||
       !tracking.route ||

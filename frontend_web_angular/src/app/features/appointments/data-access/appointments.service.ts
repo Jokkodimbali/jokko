@@ -15,6 +15,7 @@ import {
   AppointmentView,
   AppointmentTrackingView,
   BackendReservation,
+  MedicalPrescriptionPayload,
   PaymentInitiationView,
   PaymentMethod,
   ReservationDisputeView,
@@ -253,11 +254,26 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }
 
-  completeAppointment(reservationId: string): Observable<AppointmentView> {
+  completeAppointment(
+    reservationId: string,
+    prescription?: MedicalPrescriptionPayload,
+  ): Observable<AppointmentView> {
     return this.http
       .patch<ApiResponse<BackendReservation>>(
         `${this.apiUrl}/reservations/${reservationId}/complete`,
-        {},
+        prescription ? { prescription } : {},
+      )
+      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+  }
+
+  saveMedicalPrescription(
+    reservationId: string,
+    prescription: MedicalPrescriptionPayload,
+  ): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/medical-prescription`,
+        { prescription },
       )
       .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
   }

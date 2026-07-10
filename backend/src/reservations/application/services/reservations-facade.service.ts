@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import type {
   CancelReservationCommand,
+  CompleteReservationCommand,
   CreateReservationCommand,
   CreateReservationFromNegotiationCommand,
   ListReservationsQuery,
@@ -155,10 +156,27 @@ export class ReservationsFacade {
     );
   }
 
-  async completeReservation(requestUser: AuthUser, reservationId: string) {
+  async completeReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: CompleteReservationCommand = {},
+  ) {
     return this.reservationCommandService.completeReservation(
       requestUser,
       reservationId,
+      command,
+    );
+  }
+
+  async saveMedicalPrescription(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: CompleteReservationCommand = {},
+  ) {
+    return this.reservationCommandService.saveMedicalPrescription(
+      requestUser,
+      reservationId,
+      command,
     );
   }
 

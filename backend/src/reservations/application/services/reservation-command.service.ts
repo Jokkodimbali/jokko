@@ -20,6 +20,7 @@ import {
 import { NegotiationsFacade } from '../../../negotiations/application/services/negotiations-facade.service';
 import type {
   CancelReservationCommand,
+  CompleteReservationCommand,
   CreateReservationCommand,
   CreateReservationFromNegotiationCommand,
   ProposeReservationPriceAdjustmentCommand,
@@ -365,7 +366,11 @@ export class ReservationCommandService extends ReservationAppService {
     }
   }
 
-  async completeReservation(requestUser: AuthUser, reservationId: string) {
+  async completeReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: CompleteReservationCommand = {},
+  ) {
     this.assertProfessionalRole(requestUser.role);
     const reservation = await this.getAccessibleReservationOrThrow(
       requestUser,
@@ -376,7 +381,13 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.markAsCompleted();
-      const updated = await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update({
+        ...entity.toView(),
+        notes: this.mergeMedicalPrescriptionIntoNotes(
+          entity.notes,
+          command.prescription,
+        ),
+      });
       await this.liveTrackingFacade.finalizeReservationTracking({
         reservationId: updated.id,
         professionalId: updated.professionnelId,
@@ -396,6 +407,73 @@ export class ReservationCommandService extends ReservationAppService {
       this.handleDomainError(error);
       throw error;
     }
+  }
+
+  async saveMedicalPrescription(
+    requestUser: AuthUser,
+    reservationId: string,
+    command: CompleteReservationCommand = {},
+  ) {
+    this.assertProfessionalRole(requestUser.role);
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
+
+    const notes = this.mergeMedicalPrescriptionIntoNotes(
+      reservation.notes,
+      command.prescription,
+    );
+    return this.reservationsRepository.update({
+      ...reservation,
+      notes,
+    });
+  }
+
+  private mergeMedicalPrescriptionIntoNotes(
+    notes: string | null,
+    prescription: CompleteReservationCommand['prescription'],
+  ): string | null {
+    if (!prescription) return notes;
+
+    const payload = {
+      acts: this.cleanMedicalPrescriptionItems(prescription.acts),
+      vaccines: this.cleanMedicalPrescriptionItems(prescription.vaccines),
+      treatments: this.cleanMedicalPrescriptionItems(prescription.treatments),
+    };
+    const hasContent =
+      payload.acts.length > 0 ||
+      payload.vaccines.length > 0 ||
+      payload.treatments.length > 0;
+    if (!hasContent) return notes;
+
+    const baseNotes = (notes ?? '')
+      .replace(
+        /\n?---JOKKO_MEDICAL_PRESCRIPTION---[\s\S]*?---END_JOKKO_MEDICAL_PRESCRIPTION---/g,
+        '',
+      )
+      .trim();
+    const block = [
+      '---JOKKO_MEDICAL_PRESCRIPTION---',
+      JSON.stringify(payload),
+      '---END_JOKKO_MEDICAL_PRESCRIPTION---',
+    ].join('\n');
+
+    return baseNotes ? `${baseNotes}\n\n${block}` : block;
+  }
+
+  private cleanMedicalPrescriptionItems(items: unknown): string[] {
+    if (!Array.isArray(items)) return [];
+
+    return Array.from(
+      new Set(
+        items
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter((item) => item.length >= 2)
+          .map((item) => item.slice(0, 500)),
+      ),
+    ).slice(0, 50);
   }
 
   async submitReview(

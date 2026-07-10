@@ -116,6 +116,12 @@ export interface AppointmentView {
   addressLabel: string;
 }
 
+export interface MedicalPrescriptionPayload {
+  acts: string[];
+  vaccines: string[];
+  treatments: string[];
+}
+
 export interface AppointmentPresenceView {
   professionalId: string;
   isOnline: boolean;

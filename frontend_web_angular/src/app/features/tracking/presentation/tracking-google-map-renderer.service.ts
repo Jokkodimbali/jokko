@@ -21,6 +21,7 @@ export type TrackingMapRenderState = {
   remainingLabel: string;
   statusLabel: string;
   headingDegrees: number | null;
+  arrived: boolean;
 };
 
 const DAKAR_CENTER: GoogleMapsPoint = { lat: 14.7167, lng: -17.4677 };
@@ -56,15 +57,21 @@ export class TrackingGoogleMapRendererService {
       center: DAKAR_CENTER,
       zoom: 17,
       heading: 0,
-      tilt: 67.5,
+      tilt: 0,
       renderingType: 'VECTOR',
       mapTypeId: satellite ? 'hybrid' : 'roadmap',
       disableDefaultUI: true,
       zoomControl: true,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      rotateControl: false,
+      streetViewControl: false,
+      keyboardShortcuts: false,
+      cameraControl: false,
       clickableIcons: true,
       gestureHandling: 'greedy',
-      headingInteractionEnabled: true,
-      tiltInteractionEnabled: true,
+      headingInteractionEnabled: false,
+      tiltInteractionEnabled: false,
       mapId: this.google.mapId,
     });
     this.routeMap.addListener('dragstart', () => {
@@ -86,7 +93,10 @@ export class TrackingGoogleMapRendererService {
         state.provider,
         state,
       );
-      if (state.destination) {
+      if (state.arrived && this.destinationMarker) {
+        this.destinationMarker.map = null;
+        this.destinationMarker = undefined;
+      } else if (state.destination) {
         this.destinationMarker = this.upsertDestinationMarker(
           this.destinationMarker,
           this.routeMap,
@@ -104,30 +114,31 @@ export class TrackingGoogleMapRendererService {
   }
 
   setHeading(headingDegrees: number): void {
+    void headingDegrees;
     this.routeMap?.setOptions?.({
-      headingInteractionEnabled: true,
-      tiltInteractionEnabled: true,
+      headingInteractionEnabled: false,
+      tiltInteractionEnabled: false,
+      rotateControl: false,
+      cameraControl: false,
+      keyboardShortcuts: false,
     });
-    const supportsNativeRotation =
-      this.routeMap?.getRenderingType?.()?.toUpperCase() === 'VECTOR';
-    this.routeMap?.moveCamera?.({
-      heading: headingDegrees,
-      tilt: 67.5,
-    });
-    this.routeMap?.setHeading?.(headingDegrees);
-    this.routeMap?.setTilt?.(67.5);
-    this.applyCssRotationFallback(supportsNativeRotation ? 0 : headingDegrees);
+    this.routeMap?.moveCamera?.({ heading: 0, tilt: 0 });
+    this.routeMap?.setHeading?.(0);
+    this.routeMap?.setTilt?.(0);
+    this.applyCssRotationFallback(0);
   }
 
   private applyImmersiveCamera(): void {
     this.routeMap?.setOptions?.({
-      headingInteractionEnabled: true,
-      tiltInteractionEnabled: true,
+      headingInteractionEnabled: false,
+      tiltInteractionEnabled: false,
+      rotateControl: false,
       gestureHandling: 'greedy',
       clickableIcons: true,
     });
-    this.routeMap?.setTilt?.(67.5);
-    this.routeMap?.moveCamera?.({ tilt: 67.5 });
+    this.routeMap?.setHeading?.(0);
+    this.routeMap?.setTilt?.(0);
+    this.routeMap?.moveCamera?.({ heading: 0, tilt: 0 });
   }
 
   private withCameraUpdate(update: () => void): void {
@@ -187,30 +198,26 @@ export class TrackingGoogleMapRendererService {
 
   private renderRoutes(routes: TrackingMapRoute[]): void {
     if (!this.google || !this.routeMap) return;
+    const visibleRoutes = routes.filter((route) => route.selected).slice(0, 1);
 
-    while (this.routePolylines.length > routes.length) {
+    while (this.routePolylines.length > visibleRoutes.length) {
       this.routePolylines.pop()?.setMap(null);
     }
 
-    routes.forEach((route, index) => {
+    visibleRoutes.forEach((route) => {
       const options = {
         map: this.routeMap,
         path: route.coordinates,
-        strokeColor: route.selected
-          ? '#1eb980'
-          : index % 2 === 0
-            ? '#f97316'
-            : '#2f80ed',
-        strokeOpacity: route.selected ? 0.96 : 0.72,
-        strokeWeight: route.selected ? 7 : 5,
-        zIndex: route.selected ? 20 : 10,
-        clickable: !route.selected,
+        strokeColor: '#1eb980',
+        strokeOpacity: 0.96,
+        strokeWeight: 7,
+        zIndex: 20,
+        clickable: false,
       };
-      let polyline = this.routePolylines[index];
+      let polyline = this.routePolylines[0];
       if (!polyline) {
         polyline = new this.google!.maps.Polyline(options);
-        polyline.addListener('click', () => this.routeSelected?.(route.id));
-        this.routePolylines[index] = polyline;
+        this.routePolylines[0] = polyline;
       } else {
         polyline.setOptions(options);
         polyline.setPath(route.coordinates);

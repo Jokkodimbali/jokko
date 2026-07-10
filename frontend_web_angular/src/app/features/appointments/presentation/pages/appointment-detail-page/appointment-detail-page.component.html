@@ -518,7 +518,7 @@
 
           <article class="appointment-detail__client-summary-notes">
             <h3>NOTES D'INTERVENTION</h3>
-            <p>{{ appointment.notes || appointment.serviceDescription || 'Aucune note particuliere renseignee pour cette reservation.' }}</p>
+            <p>{{ displayableAppointmentNotes(appointment) || appointment.serviceDescription || 'Aucune note particuliere renseignee pour cette reservation.' }}</p>
             <div>
               <span>{{ appointment.serviceName }}</span>
               <span *ngIf="appointment.priceAdjustmentStatus === 'ACCEPTE'">Revision de prix acceptee</span>
@@ -753,6 +753,7 @@
       *ngIf="
         canManageProviderStatus() &&
         detailUiState() === 'upcoming' &&
+        !shouldShowOperationalMap() &&
         !showImmersiveDetail()
       "
       class="appointment-detail__provider-controls"
@@ -894,21 +895,15 @@
                       <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
                     </button>
                   </div>
-                  <div class="appointment-detail__medical-suggestions">
-                    <button
-                      *ngFor="let act of commonMedicalActs"
-                      type="button"
-                      (click)="addMedicalRecord('act', act)"
-                    >
-                      {{ act }}
-                    </button>
-                  </div>
                   <ul class="appointment-detail__medical-list">
                     <li *ngFor="let act of medicalActs(); let index = index">
                       <span>{{ act }}</span>
                       <button type="button" (click)="removeMedicalRecord('act', index)">
                         <lucide-icon name="trash-2" size="14" [strokeWidth]="2.4"></lucide-icon>
                       </button>
+                    </li>
+                    <li *ngIf="medicalActs().length === 0" class="is-empty">
+                      Aucun acte medical ajoute.
                     </li>
                   </ul>
                 </section>
@@ -930,15 +925,6 @@
                     />
                     <button type="button" (click)="addMedicalRecord('vaccine')">
                       <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
-                    </button>
-                  </div>
-                  <div class="appointment-detail__medical-suggestions">
-                    <button
-                      *ngFor="let vaccine of commonVaccines"
-                      type="button"
-                      (click)="addMedicalRecord('vaccine', vaccine)"
-                    >
-                      {{ vaccine }}
                     </button>
                   </div>
                   <ul class="appointment-detail__medical-list">
@@ -971,15 +957,6 @@
                     />
                     <button type="button" (click)="addMedicalRecord('treatment')">
                       <lucide-icon name="plus" size="15" [strokeWidth]="2.8"></lucide-icon>
-                    </button>
-                  </div>
-                  <div class="appointment-detail__medical-suggestions">
-                    <button
-                      *ngFor="let treatment of commonTreatments"
-                      type="button"
-                      (click)="addMedicalRecord('treatment', treatment)"
-                    >
-                      {{ treatment }}
                     </button>
                   </div>
                   <ul class="appointment-detail__medical-list">
@@ -1019,6 +996,7 @@
               <h2>{{ providerConsoleTitle() }}</h2>
               <small>{{ providerConsoleDescription() }}</small>
               <button
+                *ngIf="isProviderWorking() || isParcelTransportAppointment(appointment)"
                 type="button"
                 (click)="runProviderPrimaryAction(appointment)"
                 [disabled]="isUpdatingStatus() || !canUseProviderPrimaryAction()"
@@ -1120,7 +1098,7 @@
           aria-label="Actions de la carte et de la mission"
         >
           <div
-            *ngIf="!isDoctorViewer() && !isAppointmentCompleted()"
+            *ngIf="!isAppointmentCompleted()"
             class="appointment-detail__map-toolbar"
             aria-label="Actions de la carte"
           >
@@ -1147,17 +1125,6 @@
               ></lucide-icon>
             </button>
           </div>
-          <a
-            *ngIf="!isDoctorViewer() && !isAppointmentCompleted()"
-            class="appointment-detail__map-external"
-            [href]="mapDirectionsUrl(appointment)"
-            target="_blank"
-            rel="noopener"
-            title="Ouvrir l'itineraire dans Google Maps"
-          >
-            <lucide-icon name="map-pin" size="14" [strokeWidth]="2.3"></lucide-icon>
-            Google Maps
-          </a>
         </div>
         <div
           *ngIf="!isAppointmentCompleted() && ((isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) || (!isParcelDeliveryFlow() && !isProviderWorking() && (isOperationalServiceDay() || isProviderOnTheWay() || hasTravelerArrivalConfirmation() || (canMarkTravelerOnTheWay() && !isProviderViewer()))))"
@@ -1204,50 +1171,7 @@
           </ng-container>
         </div>
         <div
-          *ngIf="shouldRenderTrackingMap() && !isAppointmentCompleted()"
-          class="appointment-detail__map-direction-pad"
-          aria-label="Orienter la carte"
-        >
-          <button
-            type="button"
-            class="appointment-detail__map-direction appointment-detail__map-direction--up"
-            (click)="setMapDirection(0)"
-            aria-label="Orienter la carte vers le nord"
-            [attr.aria-pressed]="mapHeadingDegrees() === 0"
-          >
-            <lucide-icon name="arrow-up" size="15" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-          <button
-            type="button"
-            class="appointment-detail__map-direction appointment-detail__map-direction--left"
-            (click)="setMapDirection(270)"
-            aria-label="Orienter la carte vers l'ouest"
-            [attr.aria-pressed]="mapHeadingDegrees() === 270"
-          >
-            <lucide-icon name="arrow-left" size="15" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-          <span>{{ mapHeadingDegrees() }}°</span>
-          <button
-            type="button"
-            class="appointment-detail__map-direction appointment-detail__map-direction--right"
-            (click)="setMapDirection(90)"
-            aria-label="Orienter la carte vers l'est"
-            [attr.aria-pressed]="mapHeadingDegrees() === 90"
-          >
-            <lucide-icon name="arrow-right" size="15" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-          <button
-            type="button"
-            class="appointment-detail__map-direction appointment-detail__map-direction--down"
-            (click)="setMapDirection(180)"
-            aria-label="Orienter la carte vers le sud"
-            [attr.aria-pressed]="mapHeadingDegrees() === 180"
-          >
-            <lucide-icon name="arrow-down" size="15" [strokeWidth]="2.6"></lucide-icon>
-          </button>
-        </div>
-        <div
-          *ngIf="isProviderOnTheWay() || isParcelDropoffNavigationActive()"
+          *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >
@@ -1277,25 +1201,7 @@
             ></lucide-icon>
           </button>
         </div>
-        <div
-          class="appointment-detail__route-alternatives"
-          *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && routeAlternatives().length > 0"
-        >
-          <button
-            *ngFor="let route of routeAlternatives()"
-            type="button"
-            [class.is-active]="route.isSelected"
-            (click)="selectRouteAlternative(route.id)"
-          >
-            <span>{{ route.label }}</span>
-            <strong>{{ route.durationLabel }}</strong>
-            <em>{{ route.distanceLabel }}</em>
-          </button>
-          <p *ngIf="routeAlternatives().length === 1">
-            Aucune autre route fiable trouvee.
-          </p>
-        </div>
-        <div *ngIf="isProviderOnTheWay()" class="appointment-detail__route-bottom">
+        <div *ngIf="isProviderOnTheWay() && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
           <span>
             <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>
           </span>

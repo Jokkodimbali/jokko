@@ -27,7 +27,10 @@ import type {
   RescheduleReservationCommand,
   SubmitReservationReviewCommand,
 } from '../commands/reservations.commands';
-import { ReservationEntity } from '../../domain/entities/reservation.entity';
+import {
+  ReservationEntity,
+  type Reservation,
+} from '../../domain/entities/reservation.entity';
 import {
   RESERVATIONS_REPOSITORY_PORT,
   type ReservationsRepositoryPort,
@@ -387,6 +390,7 @@ export class ReservationCommandService extends ReservationAppService {
           entity.notes,
           command.prescription,
         ),
+        ...this.medicalPrescriptionColumns(command.prescription),
       });
       await this.liveTrackingFacade.finalizeReservationTracking({
         reservationId: updated.id,
@@ -428,7 +432,33 @@ export class ReservationCommandService extends ReservationAppService {
     return this.reservationsRepository.update({
       ...reservation,
       notes,
+      ...this.medicalPrescriptionColumns(command.prescription),
     });
+  }
+
+  private medicalPrescriptionColumns(
+    prescription: CompleteReservationCommand['prescription'],
+  ): Partial<
+    Pick<
+      Reservation,
+      | 'actesPrescriptionMedicale'
+      | 'vaccinsPrescriptionMedicale'
+      | 'traitementsPrescriptionMedicale'
+    >
+  > {
+    if (!prescription) return {};
+
+    return {
+      actesPrescriptionMedicale: this.cleanMedicalPrescriptionItems(
+        prescription.acts,
+      ),
+      vaccinsPrescriptionMedicale: this.cleanMedicalPrescriptionItems(
+        prescription.vaccines,
+      ),
+      traitementsPrescriptionMedicale: this.cleanMedicalPrescriptionItems(
+        prescription.treatments,
+      ),
+    };
   }
 
   private mergeMedicalPrescriptionIntoNotes(

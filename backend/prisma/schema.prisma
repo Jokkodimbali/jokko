@@ -500,6 +500,9 @@ model Reservation {
   dureeMinutes      Int                @map("duration_minutes") @default(60)
   statut            StatutReservation  @default(CONFIRMEE)
   notes             String?            @map("notes") @db.Text
+  actesPrescriptionMedicale String[]    @default([]) @map("medical_prescription_acts")
+  vaccinsPrescriptionMedicale String[]  @default([]) @map("medical_prescription_vaccines")
+  traitementsPrescriptionMedicale String[] @default([]) @map("medical_prescription_treatments")
   prixConvenu       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
   statutAjustementPrix StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")
   prixAjustementPropose Decimal?       @map("proposed_adjusted_price") @db.Decimal(10, 2)

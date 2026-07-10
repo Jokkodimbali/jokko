@@ -58,6 +58,7 @@ export class AppointmentsService {
                     specialty: service?.nom || 'Service non renseigne',
                     avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                     professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
+                    professionalAddressLabel: detail.profile.ville || null,
                     professionalRating: detail.profile.noteGlobale ?? null,
                     professionalReviews: detail.profile.nombreAvis ?? 0,
                     serviceName: service?.nom || 'Service non renseigne',
@@ -99,6 +100,7 @@ export class AppointmentsService {
                 specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
+                professionalAddressLabel: detail.profile.ville || null,
                 professionalRating: detail.profile.noteGlobale ?? null,
                 professionalReviews: detail.profile.nombreAvis ?? 0,
                 serviceName: service?.nom || 'Service non renseigne',
@@ -367,6 +369,7 @@ export class AppointmentsService {
       specialty?: string;
       avatarUrl?: string;
       professionalPhone?: string | null;
+      professionalAddressLabel?: string | null;
       professionalRating?: number | null;
       professionalReviews?: number;
       serviceName?: string;
@@ -397,6 +400,8 @@ export class AppointmentsService {
       avatarUrl: publicAssetUrl(professional.avatarUrl) || '',
       professionalPhone:
         professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
+      professionalAddressLabel:
+        professional.professionalAddressLabel ?? reservation.professionnel?.ville ?? null,
       professionalRating:
         professional.professionalRating ?? reservation.professionnel?.noteGlobale ?? null,
       professionalReviews:
@@ -410,6 +415,13 @@ export class AppointmentsService {
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       notes: reservation.notes,
+      medicalPrescription: {
+        acts: this.normalizePrescriptionItems(reservation.actesPrescriptionMedicale),
+        vaccines: this.normalizePrescriptionItems(reservation.vaccinsPrescriptionMedicale),
+        treatments: this.normalizePrescriptionItems(
+          reservation.traitementsPrescriptionMedicale,
+        ),
+      },
       agreedPrice: reservation.prixConvenu,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
       proposedAdjustedPrice: reservation.prixAjustementPropose,
@@ -466,6 +478,7 @@ export class AppointmentsService {
       specialty: reservation.service.nom,
       avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '',
       professionalPhone: reservation.professionnel.utilisateur.numeroTelephone || null,
+      professionalAddressLabel: reservation.professionnel.ville || null,
       professionalRating: reservation.professionnel.noteGlobale,
       professionalReviews: reservation.professionnel.nombreAvis,
       serviceName: reservation.service.nom,
@@ -473,6 +486,14 @@ export class AppointmentsService {
       serviceCategoryName: reservation.service.categorie?.nom ?? null,
       travelMode: reservation.service.modeDeplacement,
     });
+  }
+
+  private normalizePrescriptionItems(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((item, index, items) => item.length >= 2 && items.indexOf(item) === index);
   }
 
   private formatShortDate(date: Date): string {

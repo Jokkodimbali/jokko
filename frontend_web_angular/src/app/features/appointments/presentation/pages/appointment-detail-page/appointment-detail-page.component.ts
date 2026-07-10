@@ -37,6 +37,7 @@ import { TrackingRealtimeService } from '../../../../tracking/data-access/tracki
 import { TrackingGoogleMapRendererService } from '../../../../tracking/presentation/tracking-google-map-renderer.service';
 import { TrackingArrivalStateService } from '../../../../tracking/state/tracking-arrival-state.service';
 import { TrackingScenarioStateService } from '../../../../tracking/state/tracking-scenario-state.service';
+import { TrackingScenarioViewContext } from '../../../../tracking/state/scenarios/tracking-scenario.types';
 import { TrackingStore } from '../../../../tracking/state/tracking.store';
 
 type MapCoordinate = { lat: number; lng: number };
@@ -444,16 +445,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.trackingIndicatesArrival(this.tracking()) ||
         this.isArrivalPinned()),
   );
-  protected readonly providerTravelsToClient = computed(
-    () => this.trackingScenario.routeActorIsProvider(this.appointment()),
+  protected readonly activeTrackingScenario = computed(() =>
+    this.trackingScenario.scenarioFor(this.appointment(), this.isMedicalAppointment()),
   );
-  protected readonly clientTravelsToProvider = computed(
-    () => this.trackingScenario.routeActorIsClient(this.appointment()),
+  protected readonly providerTravelsToClient = computed(() =>
+    this.activeTrackingScenario().isProviderTraveler(),
   );
-  protected readonly isParcelDeliveryFlow = computed(() => {
-    const appointment = this.appointment();
-    return !!appointment && this.isParcelTransportAppointment(appointment);
-  });
+  protected readonly clientTravelsToProvider = computed(() =>
+    this.activeTrackingScenario().isClientTraveler(),
+  );
+  protected readonly isParcelDeliveryFlow = computed(() =>
+    this.activeTrackingScenario().isParcelDelivery(),
+  );
   protected readonly isParcelPickupValidated = computed(() => {
     this.parcelCheckpointVersion();
     const appointment = this.appointment();
@@ -509,14 +512,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.clientTravelsToProvider() ? !this.isProviderViewer() : this.isProviderViewer(),
   );
   protected readonly trackedTravelerName = computed(() => {
-    const appointment = this.appointment();
-    if (!appointment) return 'Le participant';
-    return this.clientTravelsToProvider()
-      ? appointment.clientName || 'Le client'
-      : appointment.doctorName || 'Le prestataire';
+    return this.activeTrackingScenario().trackedTravelerName(this.appointment());
   });
   protected readonly trackedTravelerRoleLabel = computed(() =>
-    this.clientTravelsToProvider() ? 'client' : 'prestataire',
+    this.activeTrackingScenario().trackedTravelerRoleLabel(),
   );
   protected readonly statusLabel = computed(() => {
     if (this.isAppointmentCompleted()) return 'Prestation terminee';
@@ -579,7 +578,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     () => this.isRouteActorViewer() && this.isProviderOnTheWay() && !this.isProviderWorking(),
   );
   protected readonly hasTravelerArrivalConfirmation = computed(
-    () => this.trackingIndicatesArrival(this.tracking()),
+    () =>
+      this.clientTravelsToProvider()
+        ? this.routeActorArrivalConfirmed() ||
+          this.isArrivalPinned() ||
+          (this.isProviderViewer() && this.trackingIndicatesArrival(this.tracking()))
+        : this.trackingIndicatesArrival(this.tracking()),
   );
   protected readonly hasTravelerArrivedAtDestination = computed(() => {
     this.arrivalState.version();
@@ -723,46 +727,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return 0;
   }
 
-  private parcelTrackingSteps(providerMode: boolean): Array<Omit<TrackingStepView, 'state'>> {
-    return [
-      {
-        label: 'Planifie',
-        description: providerMode
-          ? 'Livraison confirmee'
-          : 'Le transport du colis est programme',
-        icon: 'calendar-days',
-      },
-      {
-        label: 'Vers expediteur',
-        description: providerMode
-          ? "Rejoignez l'expediteur pour recuperer le colis"
-          : "Le livreur est en route vers l'expediteur",
-        icon: 'send',
-      },
-      {
-        label: 'QR retrait',
-        description: this.isParcelPickupValidated()
-          ? 'Retrait valide, colis pris en charge'
-          : "Scan chez l'expediteur attendu",
-        icon: 'maximize-2',
-      },
-      {
-        label: 'Vers destinataire',
-        description: providerMode
-          ? 'Livrez le colis au destinataire'
-          : 'Le livreur transporte le colis au destinataire',
-        icon: 'map-pin',
-      },
-      {
-        label: this.isAppointmentCompleted() ? 'Livre' : 'QR depot',
-        description: this.isParcelDropoffValidated() || this.isAppointmentCompleted()
-          ? 'Livraison validee chez le destinataire'
-          : 'Scan chez le destinataire attendu',
-        icon: 'check',
-      },
-    ];
-  }
-
   protected readonly trackingCurrentStepIndex = computed(() => {
     if (this.isAppointmentCompleted()) return 3;
     if (this.isParcelDeliveryFlow()) {
@@ -777,31 +741,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly trackingTimelineSteps = computed<TrackingStepView[]>(() => {
     const activeIndex = this.trackingCurrentStepIndex();
-    const steps = this.isParcelDeliveryFlow()
-      ? this.parcelTrackingSteps(false)
-      : [
-      {
-        label: 'Confirme',
-        description: 'Reservation validee',
-        icon: 'calendar-days',
-      },
-      {
-        label: 'En route',
-        description: `${this.trackedTravelerName()} se deplace`,
-        icon: 'send',
-      },
-      {
-        label: 'Travaux',
-        description: 'Prestation en cours',
-        icon: 'wrench',
-      },
-      {
-        label: 'Termine',
-        description: 'Mission cloturee',
-        icon: 'check',
-      },
-    ];
-
+    const steps = this.activeTrackingScenario().clientTimelineSteps(this.trackingScenarioContext());
     return steps.map((step, index) => ({
       ...step,
       state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
@@ -821,25 +761,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly providerTrackingTimelineSteps = computed<TrackingStepView[]>(() => {
     const activeIndex = this.providerTrackingCurrentStepIndex();
-    if (this.isParcelDeliveryFlow()) {
-      return this.parcelTrackingSteps(true).map((step, index) => ({
-        ...step,
-        state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
-      }));
-    }
-
-    const interventionLabel = this.isDoctorViewer() ? 'Consultation' : 'Intervention';
-    const interventionDescription = this.isDoctorViewer()
-      ? 'Soins en cours'
-      : 'Travaux en cours';
-    const interventionIcon = this.isDoctorViewer() ? 'stethoscope' : 'clock-3';
-    const steps = [
-      { label: 'A venir', description: 'Mission planifiee', icon: 'briefcase-business' },
-      { label: 'Trajet', description: 'Navigation active', icon: 'send' },
-      { label: interventionLabel, description: interventionDescription, icon: interventionIcon },
-      { label: 'Cloture', description: 'Mission terminee', icon: 'check' },
-    ];
-
+    const steps = this.activeTrackingScenario().providerTimelineSteps(this.trackingScenarioContext());
     return steps.map((step, index) => ({
       ...step,
       state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'pending',
@@ -852,7 +774,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isParcelDropoffNavigationActive()) return 'Navigation vers le destinataire';
     if (this.isProviderWorking()) return 'Temps de travail ecoule';
     if (this.isProviderOnTheWay()) return `Navigation vers ${this.clientFirstNameLabel()}`;
-    return this.clientTravelsToProvider() ? 'Arrivee client attendue' : 'Arrivee client souhaitee';
+    return this.activeTrackingScenario().providerIdleEyebrow();
   });
   protected readonly providerConsoleTitle = computed(() => {
     const appointment = this.appointment();
@@ -889,10 +811,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isProviderOnTheWay()) {
       return this.navigationInstruction().instruction;
     }
-    if (this.clientTravelsToProvider()) {
-      return 'En attente du client. Il doit partager sa position pour que vous puissiez voir son deplacement sur la carte et commencer la prestation.';
-    }
-    return 'Activez le trajet le jour du rendez-vous pour partager votre position au client.';
+    return this.activeTrackingScenario().providerIdleDescription();
   });
   protected readonly providerElapsedWorkLabel = computed(() => {
     const appointment = this.appointment();
@@ -931,15 +850,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return 'Commencer la prestation';
     }
     if (this.isProviderOnTheWay()) {
-      if (this.clientTravelsToProvider()) {
-        return this.hasTravelerArrivedAtDestination()
-          ? 'Commencer la prestation'
-          : 'Client en deplacement';
-      }
-      return 'Je suis arrive sur place';
+      return this.activeTrackingScenario().providerOnTheWayActionLabel(
+        this.trackingScenarioContext(),
+      );
     }
     if (this.canMarkTravelerOnTheWay()) return 'Demarrer le trajet';
-    return this.clientTravelsToProvider() ? 'En attente du client' : 'Trajet indisponible';
+    return this.activeTrackingScenario().providerWaitingActionLabel();
   });
   protected readonly canUseProviderPrimaryAction = computed(() => {
     if (this.isAppointmentCompleted()) return true;
@@ -990,76 +906,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       'professionnel';
     return role.toLocaleLowerCase('fr-FR');
   });
-  protected readonly clientTrackingTitle = computed(() => {
-    if (this.isParcelDeliveryFlow()) {
-      if (this.isAppointmentCompleted()) return 'Transport de colis termine';
-      if (this.isParcelAwaitingDropoffScan()) return 'Livreur arrive chez le destinataire';
-      if (this.hasTravelerArrivedAtDestination()) return 'Livreur sur place';
-      if (this.isParcelDropoffNavigationActive()) return 'Livreur en route vers le destinataire';
-      if (this.isParcelPickupValidated()) return 'Colis pris en charge';
-      if (this.isParcelAwaitingPickupScan()) return "Livreur arrive chez l'expediteur";
-      if (this.isProviderOnTheWay()) return "Livreur en route vers l'expediteur";
-      return 'Transport de colis';
-    }
-    if (this.isAppointmentCompleted()) return 'Termine';
-    if (this.hasTravelerArrivedAtDestination()) {
-      return this.clientTravelsToProvider() ? 'Vous etes sur place' : 'Prestataire sur place';
-    }
-    if (this.isProviderWorking()) return 'Travaux en cours';
-    if (this.isProviderOnTheWay()) {
-      return this.clientTravelsToProvider() ? 'Vous êtes en déplacement' : 'En route vers vous';
-    }
-    if (this.clientTravelsToProvider()) {
-      return 'Partager votre position';
-    }
-    return 'Intervention confirmee';
-  });
-  protected readonly clientTrackingDescription = computed(() => {
-    if (this.isParcelDeliveryFlow()) {
-      if (this.isAppointmentCompleted()) {
-        return 'Votre colis a ete livre avec succes au destinataire.';
-      }
-      if (this.isParcelAwaitingDropoffScan()) {
-        return 'Le livreur est sur place chez le destinataire. Le QR depot doit etre scanne pour valider la livraison.';
-      }
-      if (this.hasTravelerArrivedAtDestination()) {
-        return 'Le livreur est sur place. La prochaine validation peut etre effectuee.';
-      }
-      if (this.isParcelDropoffNavigationActive()) {
-        return 'Le livreur transporte le colis vers le destinataire. Le QR depot sera demande a son arrivee.';
-      }
-      if (this.isParcelPickupValidated()) {
-        return 'Le retrait est confirme. Le livreur peut maintenant rejoindre le destinataire.';
-      }
-      if (this.isParcelAwaitingPickupScan()) {
-        return "Le livreur est sur place chez l'expediteur. Le QR retrait doit etre scanne pour confirmer la prise en charge.";
-      }
-      if (this.isProviderOnTheWay()) {
-        return "Le livreur rejoint l'expediteur. Preparez le QR retrait pour confirmer la prise en charge.";
-      }
-      return "Votre colis est pris en charge. Telechargez les QR codes a remettre a l'expediteur et au destinataire.";
-    }
-    if (this.isAppointmentCompleted()) {
-      return "L'intervention s'est deroulee avec succes. Tout est desormais parfaitement fonctionnel.";
-    }
-    if (this.hasTravelerArrivedAtDestination()) {
-      return this.clientTravelsToProvider()
-        ? `Vous etes sur place. ${this.providerFirstNameLabel()} peut commencer la prestation.`
-        : `${this.providerFirstNameLabel()} est sur place. La prestation peut commencer.`;
-    }
-    if (this.isProviderWorking()) {
-      return `L'intervention est en cours. Le ${this.providerRoleLabel()} repare actuellement votre installation.`;
-    }
-    if (this.isProviderOnTheWay()) {
-      return this.clientTravelsToProvider()
-        ? `Vous êtes en déplacement. ${this.providerFirstNameLabel()} attend votre arrivée à destination.`
-        : `${this.providerFirstNameLabel()} est en deplacement. Il utilise l'itineraire le plus rapide pour arriver a l'heure.`;
-    }
-    if (this.clientTravelsToProvider()) {
-      return "Vous devez partager votre position pour que le prestataire puisse voir votre deplacement et préparer l'intervention à votre arrivée.";
-    }
-    return "Votre professionnel se prepare. L'heure de rendez-vous a ete bloquee dans son agenda.";
-  });
+  protected readonly trackingScenarioContext = computed<TrackingScenarioViewContext>(() => ({
+    appointmentCompleted: this.isAppointmentCompleted(),
+    providerWorking: this.isProviderWorking(),
+    providerOnTheWay: this.isProviderOnTheWay(),
+    travelerArrived: this.hasTravelerArrivedAtDestination(),
+    parcelPickupValidated: this.isParcelPickupValidated(),
+    parcelDropoffValidated: this.isParcelDropoffValidated(),
+    parcelDropoffNavigationActive: this.isParcelDropoffNavigationActive(),
+    parcelAwaitingPickupScan: this.isParcelAwaitingPickupScan(),
+    parcelAwaitingDropoffScan: this.isParcelAwaitingDropoffScan(),
+    routeEtaLabel: this.routeEtaLabel(),
+    clientFirstName: this.clientFirstNameLabel(),
+    providerFirstName: this.providerFirstNameLabel(),
+    providerRole: this.providerRoleLabel(),
+    travelerName: this.trackedTravelerName(),
+  }));
+  protected readonly clientTrackingTitle = computed(() =>
+    this.activeTrackingScenario().clientTrackingTitle(this.trackingScenarioContext()),
+  );
+  protected readonly clientTrackingDescription = computed(() =>
+    this.activeTrackingScenario().clientTrackingDescription(this.trackingScenarioContext()),
+  );
   protected readonly routeRemainingBadgeLabel = computed(() => {
     if (this.hasTravelerArrivedAtDestination()) return 'Sur place';
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
@@ -1411,6 +1279,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     target.update((items) => [...items, normalized]);
     this.clearMedicalDraft(kind);
+    this.persistMedicalPrescriptionDraft();
     this.feedback.success(
       kind === 'act'
         ? 'Acte medical ajoute.'
@@ -1428,6 +1297,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         ? this.medicalVaccines
         : this.medicalTreatments;
     target.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    this.persistMedicalPrescriptionDraft();
     this.feedback.info('Element retire du dossier medical.');
   }
 
@@ -1695,6 +1565,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected currentRouteDestinationAddress(appointment: AppointmentView): string {
     if (!this.isParcelTransportAppointment(appointment)) {
+      if (this.clientTravelsToProvider()) {
+        return appointment.professionalAddressLabel?.trim() || appointment.addressLabel;
+      }
       return appointment.addressLabel;
     }
 
@@ -1994,6 +1867,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               this.pinArrival(destination);
               this.clearNavigationRouteAfterArrival();
               this.updateGoogleMaps();
+              this.refreshAppointmentAfterArrival(appointment.id);
               this.isUpdatingStatus.set(false);
               this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
             },
@@ -2023,7 +1897,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.resolveCurrentLocation(this.trackedTravelerPositionLabel())
       .then((location) => {
         const handleSuccess = (tracking: AppointmentTrackingView): void => {
-          this.setTrackingSafely(tracking);
+          if (this.clientTravelsToProvider()) {
+            this.routeActorArrivalConfirmed.set(false);
+            this.arrivalState.clear(appointment.id);
+          }
+          this.setTrackingSafely(this.normalizeTrackingAfterTripStart(tracking));
           this.startProviderLocationSharing(appointment.id);
           this.isUpdatingStatus.set(false);
           this.feedback.success('Position partagee. Le trajet peut demarrer.');
@@ -2108,6 +1986,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.isUpdatingStatus.set(true);
     this.routeActorArrivalConfirmed.set(false);
     this.arrivalState.clear(appointment.id);
+    this.routeCoordinates = [];
+    this.routeOptions = [];
+    this.routeCoordinatesKey = '';
+    this.routeAlternatives.set([]);
+    this.routeDistanceKm.set(null);
+    this.routeDurationMinutes.set(null);
+    this.routeStatus.set('idle');
+    this.mapRenderer.resetRoute();
     if (!silent) {
       this.feedback.info(
         "Partagez votre position GPS reelle pour activer le trajet automatiquement.",
@@ -2128,7 +2014,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     this.appointmentsService.markProviderOnTheWay(appointment.id, location).subscribe({
       next: (tracking) => {
-        this.setTrackingSafely(tracking);
+        this.setTrackingSafely(this.normalizeTrackingAfterTripStart(tracking));
         this.refreshAppointmentState(appointment.id);
         this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
         this.startProviderLocationSharing(appointment.id);
@@ -2226,7 +2112,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const prescription = this.isMedicalAppointment()
       ? this.currentMedicalPrescriptionPayload()
       : undefined;
-    this.appointmentsService.completeAppointment(appointment.id, prescription).subscribe({
+    const hasPrescriptionToPersist =
+      prescription !== undefined && this.hasMedicalPrescriptionContent(prescription);
+    const completion$ =
+      this.isMedicalAppointment() && hasPrescriptionToPersist
+        ? this.appointmentsService
+            .saveMedicalPrescription(appointment.id, prescription)
+            .pipe(
+              catchError(() => of(null)),
+              switchMap(() => this.appointmentsService.completeAppointment(appointment.id, prescription)),
+            )
+        : this.appointmentsService.completeAppointment(appointment.id, prescription);
+
+    completion$.subscribe({
       next: (updated) => {
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
@@ -2465,7 +2363,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       remainingLabel: 'Arrive',
       statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
       headingDegrees: this.reliableTrackingHeading(),
-      routes: this.serializedMapRoutes(),
+      routes: [],
       arrived: true,
     });
 
@@ -2685,6 +2583,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private normalizeArrivedTravelerTracking(
     tracking: AppointmentTrackingView,
   ): AppointmentTrackingView {
+    if (!this.shouldAcceptTrackingArrivalFromServer() && !this.isArrivalPinned()) {
+      return tracking;
+    }
+
     if (!this.trackingIndicatesArrival(tracking) && !this.isArrivalPinned()) {
       return tracking;
     }
@@ -2715,6 +2617,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           ? [{ latitude: arrivedPoint.lat, longitude: arrivedPoint.lng }]
           : [],
         navigationSteps: [],
+      },
+    };
+  }
+
+  private normalizeTrackingAfterTripStart(
+    tracking: AppointmentTrackingView,
+  ): AppointmentTrackingView {
+    if (!this.clientTravelsToProvider()) return tracking;
+
+    const label = 'Position GPS du client';
+    return {
+      ...tracking,
+      lastLocationLabel: label,
+      presence: {
+        ...tracking.presence,
+        lastLocationLabel: label,
       },
     };
   }
@@ -2751,6 +2669,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private isArrivalPinned(): boolean {
     return this.arrivalState.isArrived(this.appointment()?.id);
+  }
+
+  private shouldAcceptTrackingArrivalFromServer(): boolean {
+    return !this.clientTravelsToProvider() || this.isProviderViewer();
   }
 
   private pinArrival(point: MapCoordinate | null): void {
@@ -2815,7 +2737,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.suspendNavigationPresentation();
         return;
       }
-      if (this.trackingIndicatesArrival(normalizedTracking)) {
+      if (
+        this.shouldAcceptTrackingArrivalFromServer() &&
+        this.trackingIndicatesArrival(normalizedTracking)
+      ) {
         this.pinArrival(this.resolveArrivalPoint(this.destinationCoordinates(), normalizedTracking));
         this.clearNavigationRouteAfterArrival();
         this.updateGoogleMaps();
@@ -3267,7 +3192,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const destination = this.destinationCoordinates();
-    const arrived = this.hasTravelerArrivedAtDestination() || this.hasTravelerArrivalConfirmation();
+    const arrived = this.hasTravelerArrivedAtDestination();
     const arrivalPoint = arrived
       ? this.resolveArrivalPoint(destination, this.tracking())
       : null;
@@ -3402,14 +3327,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!appointment) return 'Trajet en cours';
     if (this.isParcelTransportAppointment(appointment)) {
       if (this.hasTravelerArrivedAtDestination()) {
-        return this.parcelArrivedVehicleStatusLabel();
+        return this.activeTrackingScenario().vehicleArrivedLabel(this.trackingScenarioContext());
       }
       return this.isParcelPickupValidated()
         ? `Le livreur est en route vers le destinataire · ${this.routeEtaLabel()}`
         : `Le livreur est en route vers l'expediteur · ${this.routeEtaLabel()}`;
     }
     if (this.hasTravelerArrivedAtDestination()) {
-      return `${this.trackedTravelerName()} est sur place`;
+      return this.activeTrackingScenario().vehicleArrivedLabel(this.trackingScenarioContext());
     }
     return this.isProviderWorking() && !this.isParcelDropoffNavigationActive()
       ? `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`
@@ -3417,9 +3342,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private parcelArrivedVehicleStatusLabel(): string {
-    return this.isParcelPickupValidated()
-      ? 'Le livreur est arrive sur place chez le destinataire'
-      : "Le livreur est arrive sur place chez l'expediteur";
+    return this.activeTrackingScenario().vehicleArrivedLabel(this.trackingScenarioContext());
   }
 
   private trackedTravelerPositionLabel(): string {
@@ -3783,6 +3706,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       specialty: current.specialty,
       avatarUrl: current.avatarUrl,
       professionalPhone: current.professionalPhone,
+      professionalAddressLabel: current.professionalAddressLabel,
       professionalRating: current.professionalRating,
       professionalReviews: current.professionalReviews,
       clientName: current.clientName,
@@ -3816,7 +3740,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private medicalPrescriptionForDocument(
     appointment: AppointmentView,
   ): MedicalPrescriptionPayload {
-    const persisted = this.extractMedicalPrescription(appointment.notes);
+    const persisted = this.hasMedicalPrescriptionContent(appointment.medicalPrescription)
+      ? appointment.medicalPrescription
+      : this.extractMedicalPrescription(appointment.notes);
     if (persisted && this.hasMedicalPrescriptionContent(persisted)) {
       return persisted;
     }
@@ -3834,8 +3760,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
+  private persistMedicalPrescriptionDraft(): void {
+    const appointment = this.appointment();
+    if (!appointment || !this.isProviderViewer() || !this.isMedicalAppointment()) return;
+
+    const prescription = this.currentMedicalPrescriptionPayload();
+    if (!this.hasMedicalPrescriptionContent(prescription)) return;
+
+    this.appointmentsService
+      .saveMedicalPrescription(appointment.id, prescription)
+      .pipe(catchError(() => of(null)))
+      .subscribe((updated) => {
+        if (!updated) return;
+        this.appointment.update((current) =>
+          current ? this.mergeAppointment(current, updated) : updated,
+        );
+      });
+  }
+
   private hydrateMedicalPrescriptionFromAppointment(appointment: AppointmentView): void {
-    const prescription = this.extractMedicalPrescription(appointment.notes);
+    const prescription = this.hasMedicalPrescriptionContent(appointment.medicalPrescription)
+      ? appointment.medicalPrescription
+      : this.extractMedicalPrescription(appointment.notes);
     if (!prescription) return;
 
     this.medicalActs.set(prescription.acts);

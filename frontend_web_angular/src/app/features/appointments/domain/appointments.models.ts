@@ -22,6 +22,9 @@ export interface BackendReservation {
   dureeMinutes: number;
   statut: AppointmentStatus;
   notes: string | null;
+  actesPrescriptionMedicale?: string[] | null;
+  vaccinsPrescriptionMedicale?: string[] | null;
+  traitementsPrescriptionMedicale?: string[] | null;
   prixConvenu: number | null;
   statutAjustementPrix: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
   prixAjustementPropose: number | null;
@@ -93,6 +96,7 @@ export interface AppointmentView {
   specialty: string;
   avatarUrl: string;
   professionalPhone: string | null;
+  professionalAddressLabel: string | null;
   professionalRating: number | null;
   professionalReviews: number;
   clientName: string;
@@ -104,6 +108,7 @@ export interface AppointmentView {
   servicePrice: number | null;
   travelMode: AppointmentTravelMode | null;
   notes: string | null;
+  medicalPrescription: MedicalPrescriptionPayload | null;
   agreedPrice: number | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
   proposedAdjustedPrice: number | null;

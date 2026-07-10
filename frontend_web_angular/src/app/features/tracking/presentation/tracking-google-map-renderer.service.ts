@@ -41,6 +41,7 @@ export class TrackingGoogleMapRendererService {
   private routeSelected?: (routeId: string) => void;
   private lastProviderPosition: GoogleMapsPoint | null = null;
   private applyingCameraUpdate = false;
+  private controlsStyleElement?: HTMLStyleElement;
 
   async initializeRouteMap(
     element: HTMLElement,
@@ -61,11 +62,12 @@ export class TrackingGoogleMapRendererService {
       renderingType: 'VECTOR',
       mapTypeId: satellite ? 'hybrid' : 'roadmap',
       disableDefaultUI: true,
-      zoomControl: true,
+      zoomControl: false,
       fullscreenControl: false,
       mapTypeControl: false,
       rotateControl: false,
       streetViewControl: false,
+      scaleControl: false,
       keyboardShortcuts: false,
       cameraControl: false,
       clickableIcons: true,
@@ -74,6 +76,7 @@ export class TrackingGoogleMapRendererService {
       tiltInteractionEnabled: false,
       mapId: this.google.mapId,
     });
+    this.hideNativeGoogleMapControls(element);
     this.routeMap.addListener('dragstart', () => {
       this.userInteracted = true;
     });
@@ -87,24 +90,26 @@ export class TrackingGoogleMapRendererService {
     if (!this.google || !state.provider) return;
 
     if (this.routeMap) {
+      if (state.arrived) {
+        this.clearDestinationMarker();
+        this.clearRoutePolylines();
+      }
       this.providerMarker = this.upsertProviderMarker(
         this.providerMarker,
         this.routeMap,
         state.provider,
         state,
       );
-      if (state.arrived && this.destinationMarker) {
-        this.destinationMarker.map = null;
-        this.destinationMarker = undefined;
-      } else if (state.destination) {
+      if (!state.arrived && state.destination) {
         this.destinationMarker = this.upsertDestinationMarker(
           this.destinationMarker,
           this.routeMap,
           state.destination,
         );
       }
-      this.renderRoutes(state.routes);
-      this.fitRoute(state.provider, state.destination, state.routes);
+      const visibleRoutes = state.arrived ? [] : state.routes;
+      this.renderRoutes(visibleRoutes);
+      this.fitRoute(state.provider, state.arrived ? null : state.destination, visibleRoutes);
     }
   }
 
@@ -119,6 +124,11 @@ export class TrackingGoogleMapRendererService {
       headingInteractionEnabled: false,
       tiltInteractionEnabled: false,
       rotateControl: false,
+      scaleControl: false,
+      zoomControl: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      streetViewControl: false,
       cameraControl: false,
       keyboardShortcuts: false,
     });
@@ -133,6 +143,13 @@ export class TrackingGoogleMapRendererService {
       headingInteractionEnabled: false,
       tiltInteractionEnabled: false,
       rotateControl: false,
+      scaleControl: false,
+      zoomControl: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      streetViewControl: false,
+      cameraControl: false,
+      keyboardShortcuts: false,
       gestureHandling: 'greedy',
       clickableIcons: true,
     });
@@ -161,12 +178,8 @@ export class TrackingGoogleMapRendererService {
   }
 
   resetRoute(): void {
-    if (this.destinationMarker) {
-      this.destinationMarker.map = null;
-    }
-    this.destinationMarker = undefined;
-    this.routePolylines.forEach((polyline) => polyline.setMap(null));
-    this.routePolylines = [];
+    this.clearDestinationMarker();
+    this.clearRoutePolylines();
     this.lastBoundsKey = '';
     this.userInteracted = false;
     this.lastProviderPosition = null;
@@ -178,10 +191,10 @@ export class TrackingGoogleMapRendererService {
     if (this.providerMarker) {
       this.providerMarker.map = null;
     }
-    if (this.destinationMarker) {
-      this.destinationMarker.map = null;
-    }
-    this.routePolylines.forEach((polyline) => polyline.setMap(null));
+    this.clearDestinationMarker();
+    this.clearRoutePolylines();
+    this.controlsStyleElement?.remove();
+    this.controlsStyleElement = undefined;
     this.clearListeners(this.routeMap);
     this.providerMarker = undefined;
     this.destinationMarker = undefined;
@@ -354,6 +367,45 @@ export class TrackingGoogleMapRendererService {
       });
       window.setTimeout(() => this.applyImmersiveCamera(), 120);
     });
+  }
+
+  private clearDestinationMarker(): void {
+    if (this.destinationMarker) {
+      this.destinationMarker.map = null;
+    }
+    this.destinationMarker = undefined;
+  }
+
+  private clearRoutePolylines(): void {
+    this.routePolylines.forEach((polyline) => polyline.setMap(null));
+    this.routePolylines = [];
+  }
+
+  private hideNativeGoogleMapControls(element: HTMLElement): void {
+    this.controlsStyleElement?.remove();
+    const style = document.createElement('style');
+    style.textContent = `
+      .jokko-tracking-google-map .gm-control-active,
+      .jokko-tracking-google-map .gmnoprint,
+      .jokko-tracking-google-map .gm-fullscreen-control,
+      .jokko-tracking-google-map .gm-bundled-control,
+      .jokko-tracking-google-map .gm-bundled-control-on-bottom,
+      .jokko-tracking-google-map [aria-label*="Rotate"],
+      .jokko-tracking-google-map [aria-label*="Incliner"],
+      .jokko-tracking-google-map [aria-label*="Faire pivoter"],
+      .jokko-tracking-google-map [aria-label*="Tilt"],
+      .jokko-tracking-google-map [aria-label*="Camera"],
+      .jokko-tracking-google-map [aria-label*="Caméra"],
+      .jokko-tracking-google-map [aria-label*="Keyboard shortcuts"],
+      .jokko-tracking-google-map [aria-label*="Raccourcis clavier"] {
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    `;
+    element.classList.add('jokko-tracking-google-map');
+    element.appendChild(style);
+    this.controlsStyleElement = style;
   }
 
   private providerMarkerContent(

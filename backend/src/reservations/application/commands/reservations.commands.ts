@@ -33,6 +33,14 @@ export type SubmitReservationReviewCommand = {
   review?: string;
 };
 
+export type CompleteReservationCommand = {
+  prescription?: {
+    acts?: string[];
+    vaccines?: string[];
+    treatments?: string[];
+  };
+};
+
 export type ListReservationsQuery = {
   startDate?: string;
   endDate?: string;

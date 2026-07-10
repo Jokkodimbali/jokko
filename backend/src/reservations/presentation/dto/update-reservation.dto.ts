@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsDateString,
   IsNumber,
   IsOptional,
@@ -6,8 +7,10 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
@@ -62,6 +65,50 @@ export class ProposeReservationPriceAdjustmentDto {
     message: VALIDATION_MESSAGES.RESERVATION_PRICE_ADJUSTMENT_REASON_MAX,
   })
   reason?: string;
+}
+
+export class CompleteReservationPrescriptionDto {
+  @ApiPropertyOptional({
+    description:
+      'Actes medicaux saisis par le medecin pendant la consultation.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  acts?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Vaccins administres pendant la consultation.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  vaccines?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Traitements prescrits au client.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  treatments?: string[];
+}
+
+export class CompleteReservationDto {
+  @ApiPropertyOptional({
+    description: 'Ordonnance medicale a synchroniser avec le client.',
+    type: CompleteReservationPrescriptionDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CompleteReservationPrescriptionDto)
+  prescription?: CompleteReservationPrescriptionDto;
 }
 
 export class SubmitReservationReviewDto {

@@ -48,6 +48,9 @@ export type Reservation = {
   dureeMinutes: number;
   statut: ReservationStatus;
   notes: string | null;
+  actesPrescriptionMedicale: string[];
+  vaccinsPrescriptionMedicale: string[];
+  traitementsPrescriptionMedicale: string[];
   prixConvenu: number | null;
   statutAjustementPrix: ReservationPriceAdjustmentStatus;
   prixAjustementPropose: number | null;
@@ -72,6 +75,9 @@ export class ReservationEntity {
     private readonly _dureeMinutes: number,
     private _statut: ReservationStatus,
     private readonly _notes: string | null,
+    private _actesPrescriptionMedicale: string[],
+    private _vaccinsPrescriptionMedicale: string[],
+    private _traitementsPrescriptionMedicale: string[],
     private _prixConvenu: number | null,
     private _statutAjustementPrix: ReservationPriceAdjustmentStatus,
     private _prixAjustementPropose: number | null,
@@ -202,6 +208,9 @@ export class ReservationEntity {
       input.dureeMinutes,
       'CONFIRMEE',
       this.normalizeText(input.notes),
+      [],
+      [],
+      [],
       input.prixConvenu ?? null,
       'AUCUN',
       null,
@@ -237,6 +246,9 @@ export class ReservationEntity {
       data.dureeMinutes,
       data.statut,
       data.notes,
+      data.actesPrescriptionMedicale ?? [],
+      data.vaccinsPrescriptionMedicale ?? [],
+      data.traitementsPrescriptionMedicale ?? [],
       data.prixConvenu,
       data.statutAjustementPrix,
       data.prixAjustementPropose,
@@ -436,6 +448,9 @@ export class ReservationEntity {
       dureeMinutes: this._dureeMinutes,
       statut: this._statut,
       notes: this._notes,
+      actesPrescriptionMedicale: [...this._actesPrescriptionMedicale],
+      vaccinsPrescriptionMedicale: [...this._vaccinsPrescriptionMedicale],
+      traitementsPrescriptionMedicale: [...this._traitementsPrescriptionMedicale],
       prixConvenu: this._prixConvenu,
       statutAjustementPrix: this._statutAjustementPrix,
       prixAjustementPropose: this._prixAjustementPropose,

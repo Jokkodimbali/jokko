@@ -22,6 +22,9 @@ const RESERVATION_SELECT = {
   dureeMinutes: true,
   statut: true,
   notes: true,
+  actesPrescriptionMedicale: true,
+  vaccinsPrescriptionMedicale: true,
+  traitementsPrescriptionMedicale: true,
   prixConvenu: true,
   statutAjustementPrix: true,
   prixAjustementPropose: true,
@@ -100,6 +103,9 @@ type ReservationRecord = {
   dureeMinutes: number;
   statut: $Enums.StatutReservation;
   notes: string | null;
+  actesPrescriptionMedicale: string[];
+  vaccinsPrescriptionMedicale: string[];
+  traitementsPrescriptionMedicale: string[];
   prixConvenu: Prisma.Decimal | null;
   statutAjustementPrix: $Enums.StatutAjustementPrixReservation;
   prixAjustementPropose: Prisma.Decimal | null;
@@ -313,6 +319,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
+          vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
+          traitementsPrescriptionMedicale:
+            reservation.traitementsPrescriptionMedicale,
           prixConvenu: reservation.prixConvenu,
           statutAjustementPrix: reservation.statutAjustementPrix,
           prixAjustementPropose: reservation.prixAjustementPropose,
@@ -374,6 +384,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
+          vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
+          traitementsPrescriptionMedicale:
+            reservation.traitementsPrescriptionMedicale,
           prixConvenu: reservation.prixConvenu,
           statutAjustementPrix: reservation.statutAjustementPrix,
           prixAjustementPropose: reservation.prixAjustementPropose,
@@ -424,6 +438,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
+          vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
+          traitementsPrescriptionMedicale:
+            reservation.traitementsPrescriptionMedicale,
           prixConvenu: reservation.prixConvenu,
           statutAjustementPrix: reservation.statutAjustementPrix,
           prixAjustementPropose: reservation.prixAjustementPropose,
@@ -701,6 +719,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       dureeMinutes: record.dureeMinutes,
       statut: record.statut as ReservationStatus,
       notes: record.notes,
+      actesPrescriptionMedicale: record.actesPrescriptionMedicale,
+      vaccinsPrescriptionMedicale: record.vaccinsPrescriptionMedicale,
+      traitementsPrescriptionMedicale:
+        record.traitementsPrescriptionMedicale,
       prixConvenu: record.prixConvenu?.toNumber() ?? null,
       statutAjustementPrix:
         record.statutAjustementPrix as ReservationPriceAdjustmentStatus,

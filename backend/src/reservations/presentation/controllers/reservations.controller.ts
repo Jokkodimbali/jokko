@@ -39,6 +39,7 @@ import { ListReservationsQueryDto } from '../dto/list-reservations-query.dto';
 import { OpenDisputeDto } from '../dto/open-dispute.dto';
 import {
   CancelReservationDto,
+  CompleteReservationDto,
   ProposeReservationPriceAdjustmentDto,
   RescheduleReservationDto,
   SubmitReservationReviewDto,
@@ -544,15 +545,39 @@ export class ReservationsController {
   async completeReservation(
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
+    @Body() body: CompleteReservationDto,
   ) {
     const result = await this.reservationsFacade.completeReservation(
       user,
       reservationId,
+      body,
     );
     return createApiResponse(
       result,
       appMessage('RESERVATIONS_COMPLETED').message,
     );
+  }
+
+  @Patch(':reservationId/medical-prescription')
+  @ApiOperation({
+    summary: 'Synchroniser l ordonnance medicale de la reservation',
+  })
+  @ApiParam({
+    name: 'reservationId',
+    description: API_DOCS.reservations.reservationIdParam,
+  })
+  @ApiBody({ type: CompleteReservationDto })
+  async saveMedicalPrescription(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() body: CompleteReservationDto,
+  ) {
+    const result = await this.reservationsFacade.saveMedicalPrescription(
+      user,
+      reservationId,
+      body,
+    );
+    return createApiResponse(result, 'Ordonnance medicale synchronisee.');
   }
 
   @Patch(':reservationId/review')

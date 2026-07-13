@@ -81,9 +81,9 @@
             {{ isCameraActive() ? 'Desactiver la camera' : isCameraStarting() ? 'Activation...' : 'Activer la camera' }}
           </button>
           <textarea
-            [value]="scannedPayload()"
+            [value]="manualScanValue()"
             (input)="updateScannedPayload($any($event.target).value)"
-            placeholder="Saisir le numero de colis ou coller le contenu du QR code"
+            placeholder="Saisir manuellement la reference si la camera ne fonctionne pas"
           ></textarea>
           <div class="parcel-qr__scan-actions">
             <button type="button" class="parcel-qr__scan" (click)="validateScannedQr()">
@@ -111,10 +111,10 @@
         </div>
       </ng-template>
 
-      <dl class="parcel-qr__details">
+      <dl class="parcel-qr__details" *ngIf="canRevealParcelDetails()">
         <div>
           <dt>Numero de colis</dt>
-          <dd>{{ parcelNumber() }}</dd>
+          <dd>{{ canRevealParcelCodes() ? parcelNumber() : 'Masque' }}</dd>
         </div>
         <div>
           <dt>{{ targetRoleDisplay() }}</dt>
@@ -136,10 +136,10 @@
         Telecharger le QR code en PDF
       </button>
 
-      <section class="parcel-qr__manifest" *ngIf="manifest().parcels.length > 0">
+      <section class="parcel-qr__manifest" *ngIf="canRevealParcelDetails() && manifest().parcels.length > 0">
         <h2>Colis concernes</h2>
         <p *ngFor="let parcel of manifest().parcels; trackBy: trackByIndex">
-          <strong>{{ parcelDisplayNumber(parcel) }}</strong>
+          <strong *ngIf="canRevealParcelCodes()">{{ parcelDisplayNumber(parcel) }}</strong>
           <span>{{ parcel.description }}</span>
         </p>
       </section>
@@ -175,9 +175,9 @@
           puis validez uniquement si les colis correspondent.
         </p>
         <textarea
-          [value]="scannedPayload()"
+          [value]="manualScanValue()"
           (input)="updateScannedPayload($any($event.target).value)"
-          placeholder="Saisissez le numero de colis ou collez ici le contenu du QR code scanne..."
+          placeholder="Saisissez manuellement la reference si la camera ne fonctionne pas..."
         ></textarea>
         <button type="button" class="parcel-qr__scan" (click)="validateScannedQr()">
           <lucide-icon name="maximize-2" size="17" [strokeWidth]="2.4"></lucide-icon>

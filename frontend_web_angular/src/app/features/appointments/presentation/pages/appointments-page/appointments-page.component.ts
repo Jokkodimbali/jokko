@@ -16,23 +16,37 @@ import {
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
 
-type AppointmentTab = 'appointments' | 'negotiations';
-type AppointmentStatusFilter = 'ALL' | AppointmentStatus | NegotiationStatus;
+type AppointmentTab = 'active' | 'done';
 type AppointmentTone = 'blue' | 'green' | 'red' | 'neutral';
-type AppointmentPeriodFilter = 'ALL' | 'WEEK' | 'MONTH';
+type AppointmentPeriodFilter = 'ALL' | 'FUTURE' | 'PAST' | 'WEEK' | 'MONTH';
 
-interface AppointmentGroup {
+type ScheduleItem =
+  | {
+      id: string;
+      kind: 'appointment';
+      date: Date;
+      route: string[];
+      queryParams: Record<string, string>;
+      messageRoute: string[];
+      messageQueryParams: Record<string, string>;
+      appointment: AppointmentView;
+    }
+  | {
+      id: string;
+      kind: 'negotiation';
+      date: Date;
+      route: string[];
+      queryParams: Record<string, string>;
+      messageRoute: string[];
+      messageQueryParams: Record<string, string>;
+      negotiation: NegotiationView;
+    };
+
+interface ScheduleGroup {
   key: string;
   label: string;
   count: number;
-  items: AppointmentView[];
-}
-
-interface NegotiationGroup {
-  key: string;
-  label: string;
-  count: number;
-  items: NegotiationView[];
+  items: ScheduleItem[];
 }
 
 interface CalendarDay {
@@ -73,8 +87,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected readonly negotiations = signal<NegotiationView[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly loadErrorMessage = signal<string | null>(null);
-  protected readonly activeTab = signal<AppointmentTab>('appointments');
-  protected readonly activeStatus = signal<AppointmentStatusFilter>('ALL');
+  protected readonly activeTab = signal<AppointmentTab>('active');
   protected readonly activePeriod = signal<AppointmentPeriodFilter>('ALL');
   protected readonly search = signal('');
   protected readonly selectedCalendarDate = signal<string | null>(null);
@@ -92,9 +105,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     ),
   );
 
-  protected readonly totalItems = computed(
-    () => this.appointments().length + this.negotiations().length,
-  );
+  protected readonly totalItems = computed(() => this.scheduleItems().length);
 
   protected readonly monthLabel = computed(() => {
     const reference = this.referenceDate();
@@ -102,114 +113,85 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   });
 
   protected readonly stats = computed(() => ({
-    upcoming: this.appointments().filter((appointment) => this.isFutureAppointment(appointment)).length,
-    week: this.appointments().filter((appointment) => this.isThisWeek(appointment)).length,
-    negotiating: this.negotiations().filter((negotiation) => this.isActiveNegotiation(negotiation)).length,
+    upcoming: this.scheduleItems().filter((item) => this.isFutureDate(item.date) && !this.isFinishedItem(item)).length,
+    week: this.scheduleItems().filter((item) => this.isThisWeekDate(item.date) && !this.isFinishedItem(item)).length,
+    negotiating: this.scheduleItems().filter((item) => item.kind === 'negotiation' && !this.isFinishedItem(item)).length,
   }));
 
-  protected readonly statusOptions = computed(() => {
-    const options = this.activeTab() === 'appointments'
-      ? [
-          { key: 'CONFIRMEE' as const, label: 'Confirmes', icon: 'check', tone: 'green' },
-          { key: 'PAYEE_SEQUESTRE' as const, label: 'Payes', icon: 'shield-check', tone: 'green' },
-          { key: 'EN_COURS' as const, label: 'En cours', icon: 'activity', tone: 'blue' },
-          { key: 'TERMINEE' as const, label: 'Termines', icon: 'circle-check', tone: 'green' },
-          { key: 'ANNULEE' as const, label: 'Annules', icon: 'circle-x', tone: 'neutral' },
-          { key: 'NO_SHOW' as const, label: 'Absents', icon: 'user-x', tone: 'neutral' },
-          { key: 'LITIGE' as const, label: 'Litiges', icon: 'triangle-alert', tone: 'red' },
-        ]
-      : [
-          { key: 'EN_ATTENTE_PRESTATAIRE' as const, label: 'Attente prestataire', icon: 'clock-3', tone: 'blue' },
-          { key: 'EN_ATTENTE_CLIENT' as const, label: 'Attente client', icon: 'clock-3', tone: 'blue' },
-          { key: 'ACCEPTEE' as const, label: 'Acceptees', icon: 'check', tone: 'green' },
-          { key: 'CONVERTIE_EN_RESERVATION' as const, label: 'Converties', icon: 'calendar-check', tone: 'green' },
-          { key: 'REFUSEE' as const, label: 'Refusees', icon: 'circle-x', tone: 'red' },
-          { key: 'ANNULEE' as const, label: 'Annulees', icon: 'ban', tone: 'neutral' },
-        ];
+  protected readonly activeItemsCount = computed(() =>
+    this.scheduleItems().filter((item) => !this.isFinishedItem(item)).length,
+  );
 
-    return options.map((option) => ({
-      ...option,
-      count: this.statusCount(option.key),
+  protected readonly doneItemsCount = computed(() =>
+    this.scheduleItems().filter((item) => this.isFinishedItem(item)).length,
+  );
+
+  protected readonly scheduleItems = computed<ScheduleItem[]>(() => {
+    const items: ScheduleItem[] = this.sortedAppointmentList().map((appointment) => ({
+      id: `appointment-${appointment.id}`,
+      kind: 'appointment',
+      date: this.safeDate(appointment.scheduledAt),
+      route: this.primaryActionRoute(appointment),
+      queryParams: this.primaryActionQueryParams(),
+      messageRoute: ['/messages'],
+      messageQueryParams: this.appointmentMessageQueryParams(appointment),
+      appointment,
     }));
+    const reservationIds = new Set(this.appointments().map((appointment) => appointment.id));
+
+    for (const negotiation of this.sortedNegotiationList()) {
+      if (negotiation.reservationId && reservationIds.has(negotiation.reservationId)) continue;
+      items.push({
+        id: `negotiation-${negotiation.id}`,
+        kind: 'negotiation',
+        date: this.negotiationDate(negotiation),
+        route: this.negotiationRoute(negotiation),
+        queryParams: this.negotiationQueryParams(negotiation),
+        messageRoute: ['/messages'],
+        messageQueryParams: this.negotiationMessageQueryParams(negotiation),
+        negotiation,
+      });
+    }
+
+    return items.sort((left, right) => right.date.getTime() - left.date.getTime());
   });
 
-  protected readonly visibleAppointments = computed(() => {
-    const status = this.activeStatus();
+  protected readonly visibleScheduleItems = computed(() => {
     const period = this.activePeriod();
     const selectedDate = this.selectedCalendarDate();
     const term = this.search().trim().toLowerCase();
 
-    return this.sortedAppointmentList().filter((appointment) => {
-      const matchesStatus = status === 'ALL' || appointment.status === status;
-      const matchesPeriod = this.matchesPeriod(appointment, period);
-      const matchesCalendarDate = !selectedDate || this.appointmentDateKey(appointment) === selectedDate;
+    return this.scheduleItems().filter((item) => {
+      const matchesTab = this.activeTab() === 'done'
+        ? this.isFinishedItem(item)
+        : !this.isFinishedItem(item);
+      const matchesPeriod = this.matchesDatePeriod(item.date, period);
+      const matchesCalendarDate = !selectedDate || this.dateKey(item.date) === selectedDate;
       const matchesSearch =
         term.length === 0 ||
         [
-          appointment.doctorName,
-          appointment.specialty,
-          appointment.serviceName,
-          appointment.locationLabel,
-          appointment.confirmationLabel,
+          this.scheduleItemContactName(item),
+          this.scheduleItemCategory(item),
+          this.scheduleItemTitle(item),
+          this.scheduleItemAddress(item),
+          this.scheduleItemStatusLabel(item),
         ].some((value) => value.toLowerCase().includes(term));
 
-      return matchesStatus && matchesPeriod && matchesCalendarDate && matchesSearch;
+      return matchesTab && matchesPeriod && matchesCalendarDate && matchesSearch;
     });
   });
 
-  protected readonly visibleNegotiations = computed(() => {
-    const status = this.activeStatus();
-    const period = this.activePeriod();
-    const selectedDate = this.selectedCalendarDate();
-    const term = this.search().trim().toLowerCase();
+  protected readonly groupedScheduleItems = computed<ScheduleGroup[]>(() => {
+    const groups = new Map<string, ScheduleItem[]>();
 
-    return this.sortedNegotiationList().filter((negotiation) => {
-      const date = this.negotiationDate(negotiation);
-      const matchesStatus = status === 'ALL' || negotiation.statut === status;
-      const matchesPeriod = this.matchesDatePeriod(date, period);
-      const matchesCalendarDate = !selectedDate || this.dateKey(date) === selectedDate;
-      const matchesSearch =
-        term.length === 0 ||
-        [
-          this.negotiationContactName(negotiation),
-          negotiation.service?.nom ?? '',
-          negotiation.adresseClientProposee ?? '',
-          negotiation.messageCourant ?? '',
-        ].some((value) => value.toLowerCase().includes(term));
-
-      return matchesStatus && matchesPeriod && matchesCalendarDate && matchesSearch;
-    });
-  });
-
-  protected readonly groupedAppointments = computed<AppointmentGroup[]>(() => {
-    const groups = new Map<string, AppointmentView[]>();
-
-    for (const appointment of this.visibleAppointments()) {
-      const date = this.safeDate(appointment.scheduledAt);
-      const key = Number.isNaN(date.getTime()) ? 'unknown' : date.toISOString().slice(0, 10);
-      groups.set(key, [...(groups.get(key) ?? []), appointment]);
+    for (const item of this.visibleScheduleItems()) {
+      const key = Number.isNaN(item.date.getTime()) ? 'unknown' : this.dateKey(item.date);
+      groups.set(key, [...(groups.get(key) ?? []), item]);
     }
 
     return Array.from(groups.entries()).map(([key, items]) => ({
       key,
-      label: key === 'unknown' ? 'Date a confirmer' : this.groupLabel(items[0]),
-      count: items.length,
-      items,
-    }));
-  });
-
-  protected readonly groupedNegotiations = computed<NegotiationGroup[]>(() => {
-    const groups = new Map<string, NegotiationView[]>();
-
-    for (const negotiation of this.visibleNegotiations()) {
-      const date = this.negotiationDate(negotiation);
-      const key = this.dateKey(date);
-      groups.set(key, [...(groups.get(key) ?? []), negotiation]);
-    }
-
-    return Array.from(groups.entries()).map(([key, items]) => ({
-      key,
-      label: this.formatGroupDate(this.negotiationDate(items[0])),
+      label: key === 'unknown' ? 'Date a confirmer' : this.formatGroupDate(items[0].date),
       count: items.length,
       items,
     }));
@@ -223,9 +205,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const lastDay = new Date(year, month + 1, 0);
     const startOffset = (firstDay.getDay() + 6) % 7;
     const today = new Date();
-    const activeDates = this.activeTab() === 'appointments'
-      ? this.appointments().map((appointment) => this.safeDate(appointment.scheduledAt))
-      : this.negotiations().map((negotiation) => this.negotiationDate(negotiation));
+    const activeDates = this.scheduleItems()
+      .filter((item) => this.activeTab() === 'done' ? this.isFinishedItem(item) : !this.isFinishedItem(item))
+      .map((item) => item.date);
     const appointmentCounts = activeDates
       .filter((date) => !Number.isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month)
       .reduce((counts, date) => {
@@ -279,9 +261,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected readonly selectedCalendarAppointmentCount = computed(() => {
     const selectedDate = this.selectedCalendarDate();
     if (!selectedDate) return 0;
-    return this.activeTab() === 'appointments'
-      ? this.appointments().filter((appointment) => this.appointmentDateKey(appointment) === selectedDate).length
-      : this.negotiations().filter((negotiation) => this.dateKey(this.negotiationDate(negotiation)) === selectedDate).length;
+    return this.visibleScheduleItems().filter((item) => this.dateKey(item.date) === selectedDate).length;
   });
 
   protected readonly calendarFilterMessage = computed(() => {
@@ -297,11 +277,11 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   });
 
   protected readonly upcomingDates = computed(() =>
-    this.appointments()
-      .filter((appointment) => this.isFutureAppointment(appointment))
-      .sort((left, right) => this.safeDate(right.scheduledAt).getTime() - this.safeDate(left.scheduledAt).getTime())
-      .reduce<{ key: string; label: string; count: number }[]>((dates, appointment) => {
-        const date = this.safeDate(appointment.scheduledAt);
+    this.scheduleItems()
+      .filter((item) => this.isFutureDate(item.date) && !this.isFinishedItem(item))
+      .sort((left, right) => right.date.getTime() - left.date.getTime())
+      .reduce<{ key: string; label: string; count: number }[]>((dates, item) => {
+        const date = item.date;
         if (Number.isNaN(date.getTime())) return dates;
         const key = date.toISOString().slice(0, 10);
         const existing = dates.find((item) => item.key === key);
@@ -338,17 +318,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected setTab(tab: AppointmentTab): void {
     this.activeTab.set(tab);
-    this.activeStatus.set('ALL');
     this.selectedCalendarDate.set(null);
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: tab === 'negotiations' ? { tab } : { tab: null },
+      queryParams: tab === 'done' ? { tab } : { tab: null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
-    if (tab === 'negotiations') {
-      this.refreshNegotiations();
-    }
+    this.refreshAppointments();
+    this.refreshNegotiations();
   }
 
   protected setSearch(value: string): void {
@@ -359,12 +337,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     this.setSearch((event.target as HTMLInputElement | null)?.value ?? '');
   }
 
-  protected setStatusFilter(filter: AppointmentStatusFilter): void {
-    this.activeStatus.set(this.activeStatus() === filter ? 'ALL' : filter);
-  }
-
   protected setPeriodFilter(value: string): void {
-    if (value === 'ALL' || value === 'WEEK' || value === 'MONTH') {
+    if (value === 'ALL' || value === 'FUTURE' || value === 'PAST' || value === 'WEEK' || value === 'MONTH') {
       this.activePeriod.set(value);
     }
   }
@@ -390,7 +364,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.isOverdueAppointment(appointment)) return 'neutral';
     if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'red';
     if (appointment.status === 'TERMINEE' || appointment.status === 'CONFIRMEE') return 'green';
-    if (appointment.status === 'ANNULEE' || appointment.status === 'NO_SHOW') {
+    if (appointment.status === 'ANNULEE') return 'red';
+    if (appointment.status === 'NO_SHOW') {
       return 'neutral';
     }
     return 'blue';
@@ -398,14 +373,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected statusLabel(appointment: AppointmentView): string {
     if (this.isOverdueAppointment(appointment)) return 'A cloturer';
-    if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
+    if (appointment.status === 'LITIGE') return 'Litige';
+    if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
 
     const labels: Record<AppointmentStatus, string> = {
       CONFIRMEE: 'Confirme',
       PAYEE_SEQUESTRE: 'En cours',
       EN_COURS: 'En cours',
       TERMINEE: 'Terminee',
-      ANNULEE: 'Annule',
+      ANNULEE: 'Annulée',
       NO_SHOW: 'Absent',
       LITIGE: 'Urgent',
     };
@@ -559,6 +535,114 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return this.initialsFromName(appointment.doctorName, 'JD');
   }
 
+  protected scheduleItemContactName(item: ScheduleItem): string {
+    if (item.kind === 'negotiation') return this.negotiationContactName(item.negotiation);
+    return this.currentUser()?.role === 'CLIENT'
+      ? item.appointment.doctorName
+      : item.appointment.clientName;
+  }
+
+  protected scheduleItemCategory(item: ScheduleItem): string {
+    return item.kind === 'appointment'
+      ? item.appointment.specialty
+      : item.negotiation.service?.nom || 'Negociation du prix';
+  }
+
+  protected scheduleItemTitle(item: ScheduleItem): string {
+    if (item.kind === 'appointment') {
+      if (item.appointment.status === 'ANNULEE') {
+        return 'Prix proposé';
+      }
+      return item.appointment.serviceName;
+    }
+    if (item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE') {
+      return 'Prix proposé';
+    }
+    return item.negotiation.messageCourant || item.negotiation.service?.nom || 'Proposition de prix';
+  }
+
+  protected scheduleItemAddress(item: ScheduleItem): string {
+    return item.kind === 'appointment'
+      ? item.appointment.locationLabel
+      : item.negotiation.adresseClientProposee || 'Adresse a confirmer';
+  }
+
+  protected scheduleItemTimeLabel(item: ScheduleItem): string {
+    const start = item.date;
+    if (Number.isNaN(start.getTime())) return 'Horaire a confirmer';
+    return new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(start);
+  }
+
+  protected scheduleItemDateLabel(item: ScheduleItem): string {
+    if (Number.isNaN(item.date.getTime())) return 'Date a confirmer';
+    return new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(item.date);
+  }
+
+  protected scheduleItemAmountLabel(item: ScheduleItem): string {
+    const amount = item.kind === 'appointment'
+      ? item.appointment.agreedPrice ?? item.appointment.servicePrice
+      : this.negotiationFinalPrice(item.negotiation) ?? Number(item.negotiation.montantCourant || item.negotiation.montantInitial);
+    return amount ? `${this.formatAmount(amount)} FCFA` : 'Montant a confirmer';
+  }
+
+  protected scheduleItemAvatarUrl(item: ScheduleItem): string | null {
+    if (item.kind === 'negotiation') return this.negotiationAvatarUrl(item.negotiation);
+    return this.currentUser()?.role === 'CLIENT'
+      ? item.appointment.avatarUrl || null
+      : item.appointment.clientAvatarUrl || null;
+  }
+
+  protected scheduleItemPhoneHref(item: ScheduleItem): string | null {
+    const phone = item.kind === 'appointment'
+      ? this.currentUser()?.role === 'CLIENT'
+        ? item.appointment.professionalPhone
+        : item.appointment.clientPhone
+      : this.negotiationPhoneNumber(item.negotiation);
+    return phone ? `tel:${phone.replace(/\s/g, '')}` : null;
+  }
+
+  protected scheduleItemInitials(item: ScheduleItem): string {
+    return this.initialsFromName(this.scheduleItemContactName(item), item.kind === 'appointment' ? 'JD' : 'JK');
+  }
+
+  protected scheduleItemTone(item: ScheduleItem): AppointmentTone {
+    return item.kind === 'appointment' ? this.rowTone(item.appointment) : this.negotiationTone(item.negotiation);
+  }
+
+  protected scheduleItemStatusLabel(item: ScheduleItem): string {
+    return item.kind === 'appointment' ? this.statusLabel(item.appointment) : this.negotiationStatusLabel(item.negotiation);
+  }
+
+  protected scheduleItemRoute(item: ScheduleItem): string[] {
+    return item.kind === 'appointment' ? this.primaryActionRoute(item.appointment) : this.negotiationRoute(item.negotiation);
+  }
+
+  protected scheduleItemQueryParams(item: ScheduleItem): Record<string, string> {
+    return item.kind === 'appointment' ? this.primaryActionQueryParams() : this.negotiationQueryParams(item.negotiation);
+  }
+
+  protected scheduleItemCanCancel(item: ScheduleItem): boolean {
+    return item.kind === 'appointment' && this.canCancel(item.appointment);
+  }
+
+  protected scheduleItemCancelLabel(item: ScheduleItem): string {
+    return item.kind === 'appointment' && this.cancellingAppointmentId() === item.appointment.id ? 'Annulation...' : 'Annuler';
+  }
+
+  protected scheduleItemCancelTitle(item: ScheduleItem): string {
+    return item.kind === 'appointment' ? this.cancellationDisabledReason(item.appointment) : 'Annulation indisponible pour cette negociation.';
+  }
+
+  protected cancelScheduleItem(item: ScheduleItem, event: Event): void {
+    if (item.kind !== 'appointment') return;
+    this.cancelAppointment(item.appointment, event);
+  }
+
   protected negotiationActionLabel(negotiation: NegotiationView): string {
     return this.isNegotiationAwaitingCurrentUser(negotiation) ? 'Negocier' : 'En savoir plus';
   }
@@ -589,6 +673,11 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
       return negotiation.professionnel?.utilisateur.urlAvatar || null;
     }
     return negotiation.client?.urlAvatar || null;
+  }
+
+  protected negotiationPhoneNumber(negotiation: NegotiationView): string | null {
+    void negotiation;
+    return null;
   }
 
   protected negotiationBannerLabel(negotiation: NegotiationView): string {
@@ -649,8 +738,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
       EN_ATTENTE_PRESTATAIRE: 'Attente prestataire',
       EN_ATTENTE_CLIENT: 'Attente client',
       ACCEPTEE: 'Acceptee',
-      REFUSEE: 'Refusee',
-      ANNULEE: 'Annulee',
+      REFUSEE: 'Refusée',
+      ANNULEE: 'Annulée',
       CONVERTIE_EN_RESERVATION: 'Convertie en RDV',
     };
     return labels[negotiation.statut];
@@ -659,7 +748,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected negotiationTone(negotiation: NegotiationView): AppointmentTone {
     if (negotiation.statut === 'ACCEPTEE' || negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'green';
     if (negotiation.statut === 'REFUSEE') return 'red';
-    if (negotiation.statut === 'ANNULEE') return 'neutral';
+    if (negotiation.statut === 'ANNULEE') return 'red';
     return 'blue';
   }
 
@@ -683,13 +772,28 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   private restoreTabFromUrl(): void {
     const tab = this.route.snapshot.queryParamMap.get('tab');
-    if (tab === 'negotiations') {
-      this.activeTab.set('negotiations');
+    if (tab === 'done') {
+      this.activeTab.set('done');
     }
   }
 
+  private appointmentMessageQueryParams(appointment: AppointmentView): Record<string, string> {
+    return {
+      reservationId: appointment.id,
+      returnUrl: this.currentAppointmentsReturnUrl(),
+    };
+  }
+
+  private negotiationMessageQueryParams(negotiation: NegotiationView): Record<string, string> {
+    return {
+      negotiationId: negotiation.id,
+      ...(negotiation.reservationId ? { reservationId: negotiation.reservationId } : {}),
+      returnUrl: this.currentAppointmentsReturnUrl(),
+    };
+  }
+
   private currentAppointmentsReturnUrl(): string {
-    return this.activeTab() === 'negotiations' ? '/appointments?tab=negotiations' : '/appointments';
+    return this.activeTab() === 'done' ? '/appointments?tab=done' : '/appointments';
   }
 
   private isNegotiationAwaitingCurrentUser(negotiation: NegotiationView): boolean {
@@ -754,7 +858,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     }
 
     this.negotiationRefreshIntervalId = setInterval(() => {
-      if (this.activeTab() !== 'negotiations' || document.hidden) return;
+      if (document.hidden) return;
       this.refreshNegotiations(scope);
     }, this.negotiationRefreshMs);
   }
@@ -765,7 +869,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     }
 
     this.appointmentRefreshIntervalId = setInterval(() => {
-      if (this.activeTab() !== 'appointments' || document.hidden) return;
+      if (document.hidden) return;
       this.refreshAppointments(scope);
     }, this.appointmentRefreshMs);
   }
@@ -802,6 +906,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+    if (filter === 'FUTURE') return date >= start;
+    if (filter === 'PAST') return date < start;
+
     if (filter === 'WEEK') {
       const end = new Date(start);
       end.setDate(start.getDate() + 7);
@@ -811,55 +918,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
   }
 
-  private statusCount(filter: AppointmentStatusFilter): number {
-    const period = this.activePeriod();
-    const selectedDate = this.selectedCalendarDate();
-    const term = this.search().trim().toLowerCase();
-
-    if (this.activeTab() === 'negotiations') {
-      return this.negotiations().filter((negotiation) => {
-        const matchesCalendarDate =
-          !selectedDate || this.dateKey(this.negotiationDate(negotiation)) === selectedDate;
-        const matchesSearch =
-          term.length === 0 ||
-          [
-            this.negotiationContactName(negotiation),
-            negotiation.service?.nom ?? '',
-            negotiation.adresseClientProposee ?? '',
-          ].some((value) => value.toLowerCase().includes(term));
-
-        return (
-          negotiation.statut === filter &&
-          this.matchesDatePeriod(this.negotiationDate(negotiation), period) &&
-          matchesCalendarDate &&
-          matchesSearch
-        );
-      }).length;
-    }
-
-    return this.appointments().filter((appointment) => {
-      const matchesCalendarDate = !selectedDate || this.appointmentDateKey(appointment) === selectedDate;
-      const matchesSearch =
-        term.length === 0 ||
-        [
-          appointment.doctorName,
-          appointment.specialty,
-          appointment.serviceName,
-          appointment.locationLabel,
-          appointment.confirmationLabel,
-        ].some((value) => value.toLowerCase().includes(term));
-
-      return (
-        appointment.status === filter &&
-        this.matchesPeriod(appointment, period) &&
-        matchesCalendarDate &&
-        matchesSearch
-      );
-    }).length;
-  }
-
   private isDone(status: AppointmentStatus): boolean {
-    return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW';
+    return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW' || status === 'LITIGE';
   }
 
   private isFutureAppointment(appointment: AppointmentView): boolean {
@@ -923,6 +983,21 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return diffMs >= 0 && diffMs <= 7 * 24 * 60 * 60 * 1000;
   }
 
+  private isFutureDate(date: Date): boolean {
+    return !Number.isNaN(date.getTime()) && date.getTime() >= Date.now();
+  }
+
+  private isThisWeekDate(date: Date): boolean {
+    if (Number.isNaN(date.getTime())) return false;
+    const diffMs = date.getTime() - Date.now();
+    return diffMs >= 0 && diffMs <= 7 * 24 * 60 * 60 * 1000;
+  }
+
+  private isFinishedItem(item: ScheduleItem): boolean {
+    if (item.kind === 'appointment') return this.isDone(item.appointment.status);
+    return item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE';
+  }
+
   private sortedAppointments(appointments: AppointmentView[]): AppointmentView[] {
     return [...appointments].sort(
       (a, b) => this.safeDate(b.scheduledAt).getTime() - this.safeDate(a.scheduledAt).getTime(),
@@ -930,9 +1005,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   private referenceDate(): Date {
-    const date = this.activeTab() === 'appointments'
-      ? this.safeDate(this.appointments()[0]?.scheduledAt ?? '')
-      : this.negotiationDate(this.negotiations()[0]);
+    const date = this.scheduleItems()[0]?.date ?? new Date(Number.NaN);
     return Number.isNaN(date.getTime()) ? new Date() : date;
   }
 

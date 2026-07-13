@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
@@ -114,7 +114,7 @@ type AgendaFilter = 'ALL' | 'ACTIVE' | 'DONE' | 'CANCELLED' | 'DISPUTE';
 type AgendaViewMode = 'day' | 'week' | 'month';
 type MedicalHistoryTab = 'future' | 'past';
 type ProviderHistoryFilter = 'ALL' | 'TERMINEE' | 'ANNULEE' | 'NO_SHOW';
-type ProviderNegotiationFilter = 'ALL' | NegotiationStatus;
+type ProviderNegotiationFilter = 'ALL' | 'PENDING' | 'WAITING_CLIENT' | 'CONFIRMED' | 'CLOSED';
 
 type ProviderNegotiationGroup = {
   key: string;
@@ -132,6 +132,7 @@ type ProviderNegotiationCalendarDay = {
   key: string;
   day: number | null;
   count: number;
+  dateKey: string | null;
 };
 
 const PROVIDER_HISTORY_PAGE_SIZE_OPTIONS = [8, 12, 20] as const;
@@ -279,7 +280,7 @@ type UploadPreview = {
 @Component({
   selector: 'app-doctor-space-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, DoctorSpaceSidebarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, DoctorSpaceSidebarComponent],
   templateUrl: './doctor-space-page.component.html',
   styleUrl: './doctor-space-page.component.scss',
 })
@@ -324,8 +325,9 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly providerHistorySearch = signal('');
   protected readonly providerHistoryFilter = signal<ProviderHistoryFilter>('ALL');
   protected readonly providerHistoryMonth = signal(this.monthInputValue(new Date()));
-  protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
   protected readonly negotiationMonth = signal(this.monthInputValue(new Date()));
+  protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
+  protected readonly selectedNegotiationDate = signal<string | null>(null);
   protected readonly providerHistoryPage = signal(1);
   protected readonly providerHistoryPageSize = signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
   protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
@@ -798,13 +800,19 @@ export class DoctorSpacePageComponent implements OnInit {
       (negotiation) => this.monthInputValue(this.negotiationDate(negotiation)) === this.negotiationMonth(),
     ),
   );
-  protected readonly negotiationVisibleRows = computed(() => {
-    const filter = this.negotiationFilter();
-    return this.negotiationMonthRows().filter(
-      (negotiation) =>
-        !negotiation.reservationId && (filter === 'ALL' || negotiation.statut === filter),
-    );
-  });
+  protected readonly negotiationVisibleRows = computed(() =>
+    this.negotiationMonthRows().filter((negotiation) => {
+      if (negotiation.reservationId) return false;
+      const selectedDate = this.selectedNegotiationDate();
+      if (selectedDate && this.dateInputValue(this.negotiationDate(negotiation)) !== selectedDate) return false;
+      const filter = this.negotiationFilter();
+      if (filter === 'ALL') return true;
+      if (filter === 'PENDING') return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE';
+      if (filter === 'WAITING_CLIENT') return negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE';
+      if (filter === 'CLOSED') return negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE';
+      return false;
+    }),
+  );
   protected readonly negotiationGroups = computed<ProviderNegotiationGroup[]>(() => {
     const groups = new Map<string, NegotiationView[]>();
     for (const negotiation of this.negotiationVisibleRows()) {
@@ -826,25 +834,26 @@ export class DoctorSpacePageComponent implements OnInit {
       (reservation) => this.monthInputValue(new Date(reservation.dateHeure)) === this.negotiationMonth(),
     ),
   );
-  protected readonly negotiationReservationVisibleRows = computed(() => {
-    const filter = this.negotiationFilter();
-    if (filter === 'ALL') return this.negotiationReservationMonthRows();
-    if (filter === 'CONVERTIE_EN_RESERVATION') {
-      return this.negotiationReservationMonthRows().filter(
-        (reservation) =>
+  protected readonly negotiationReservationVisibleRows = computed(() =>
+    this.negotiationReservationMonthRows().filter((reservation) => {
+      const selectedDate = this.selectedNegotiationDate();
+      if (selectedDate && this.dateInputValue(new Date(reservation.dateHeure)) !== selectedDate) return false;
+      const filter = this.negotiationFilter();
+      if (filter === 'ALL') return true;
+      if (filter === 'CONFIRMED') {
+        return (
           reservation.statut === 'CONFIRMEE' ||
           reservation.statut === 'PAYEE_SEQUESTRE' ||
           reservation.statut === 'EN_COURS' ||
-          reservation.statut === 'TERMINEE',
-      );
-    }
-    if (filter === 'ANNULEE') {
-      return this.negotiationReservationMonthRows().filter(
-        (reservation) => reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW',
-      );
-    }
-    return [];
-  });
+          reservation.statut === 'TERMINEE'
+        );
+      }
+      if (filter === 'CLOSED') {
+        return reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW' || reservation.statut === 'LITIGE';
+      }
+      return false;
+    }),
+  );
   protected readonly negotiationReservationGroups = computed<ProviderReservationGroup[]>(() => {
     const groups = new Map<string, BackendReservation[]>();
     for (const reservation of this.negotiationReservationVisibleRows()) {
@@ -877,36 +886,49 @@ export class DoctorSpacePageComponent implements OnInit {
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return Array.from({ length: leading + daysInMonth }, (_, index) => {
-      if (index < leading) return { key: `blank-${index}`, day: null, count: 0 };
+      if (index < leading) return { key: `blank-${index}`, day: null, count: 0, dateKey: null };
       const day = index - leading + 1;
       const date = new Date(month.getFullYear(), month.getMonth(), day);
       const key = this.dateInputValue(date);
-      return { key, day, count: counts.get(key) ?? 0 };
+      return { key, day, count: counts.get(key) ?? 0, dateKey: key };
     });
   });
+  protected readonly negotiationAllCount = computed(() =>
+    this.negotiationMonthRows().filter((negotiation) => !negotiation.reservationId).length +
+    this.negotiationReservationMonthRows().length,
+  );
   protected readonly negotiationPendingCount = computed(() =>
     this.negotiationMonthRows().filter(
-      (item) => item.statut === 'EN_ATTENTE_PRESTATAIRE' || item.statut === 'EN_ATTENTE_CLIENT',
+      (negotiation) => !negotiation.reservationId && negotiation.statut === 'EN_ATTENTE_PRESTATAIRE',
     ).length,
   );
-  protected readonly negotiationAcceptedCount = computed(() =>
-    this.negotiationMonthRows().filter((item) => item.statut === 'ACCEPTEE').length,
+  protected readonly negotiationWaitingClientCount = computed(() =>
+    this.negotiationMonthRows().filter(
+      (negotiation) =>
+        !negotiation.reservationId &&
+        (negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE'),
+    ).length,
   );
   protected readonly negotiationConfirmedCount = computed(() =>
     this.negotiationReservationMonthRows().filter(
-      (item) =>
-        item.statut === 'CONFIRMEE' ||
-        item.statut === 'PAYEE_SEQUESTRE' ||
-        item.statut === 'EN_COURS' ||
-        item.statut === 'TERMINEE',
+      (reservation) =>
+        reservation.statut === 'CONFIRMEE' ||
+        reservation.statut === 'PAYEE_SEQUESTRE' ||
+        reservation.statut === 'EN_COURS' ||
+        reservation.statut === 'TERMINEE',
     ).length,
   );
   protected readonly negotiationClosedCount = computed(() =>
     this.negotiationMonthRows().filter(
-      (item) => item.statut === 'REFUSEE' || item.statut === 'ANNULEE',
+      (negotiation) =>
+        !negotiation.reservationId &&
+        (negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE'),
     ).length +
     this.negotiationReservationMonthRows().filter(
-      (item) => item.statut === 'ANNULEE' || item.statut === 'NO_SHOW',
+      (reservation) =>
+        reservation.statut === 'ANNULEE' ||
+        reservation.statut === 'NO_SHOW' ||
+        reservation.statut === 'LITIGE',
     ).length,
   );
   protected readonly pageTitle = computed(() => {
@@ -1232,14 +1254,21 @@ export class DoctorSpacePageComponent implements OnInit {
     this.negotiationFilter.set(filter);
   }
 
+  protected selectNegotiationCalendarDay(day: ProviderNegotiationCalendarDay): void {
+    if (!day.dateKey) return;
+    this.selectedNegotiationDate.update((selected) => selected === day.dateKey ? null : day.dateKey);
+  }
+
   protected updateNegotiationMonth(value: string): void {
     this.negotiationMonth.set(value);
+    this.selectedNegotiationDate.set(null);
   }
 
   protected shiftNegotiationMonth(direction: -1 | 1): void {
     const month = this.parseMonthValue(this.negotiationMonth()) ?? new Date();
     month.setMonth(month.getMonth() + direction);
     this.negotiationMonth.set(this.monthInputValue(month));
+    this.selectedNegotiationDate.set(null);
   }
 
   protected openNegotiation(negotiation: NegotiationView): void {
@@ -1270,17 +1299,6 @@ export class DoctorSpacePageComponent implements OnInit {
     return labels[status];
   }
 
-  protected negotiationBannerLabel(negotiation: NegotiationView): string {
-    const labels: Record<NegotiationStatus, string> = {
-      EN_ATTENTE_PRESTATAIRE: 'Le client a propose un nouveau prix',
-      EN_ATTENTE_CLIENT: 'Vous avez proposé un nouveau prix',
-      ACCEPTEE: 'Consensus sur le prix',
-      REFUSEE: 'Proposition refusée',
-      ANNULEE: 'Négociation annulée',
-      CONVERTIE_EN_RESERVATION: 'Le RDV est confirmé',
-    };
-    return labels[negotiation.statut];
-  }
 
   protected negotiationTone(negotiation: NegotiationView): string {
     if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'pending';
@@ -1307,29 +1325,36 @@ export class DoctorSpacePageComponent implements OnInit {
     return negotiation.adresseClientProposee || negotiation.client?.adresse || 'Lieu à confirmer';
   }
 
-  protected shouldShowNegotiationPriceComparison(negotiation: NegotiationView): boolean {
-    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' || negotiation.statut === 'EN_ATTENTE_CLIENT';
+  protected negotiationPhoneHref(negotiation: NegotiationView): string | null {
+    const phone = (negotiation.client as { numeroTelephone?: string } | undefined)?.numeroTelephone?.trim();
+    return phone ? `tel:${phone.replace(/\s+/g, '')}` : null;
   }
 
-  protected negotiationOldPriceLabel(negotiation: NegotiationView): string {
-    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' ? 'Votre offre' : 'Offre du client';
+  protected isClosedNegotiation(negotiation: NegotiationView): boolean {
+    return negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE';
   }
 
-  protected negotiationOldPriceAmount(negotiation: NegotiationView): number {
-    if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') {
-      return negotiation.service?.prix || negotiation.montantInitial || negotiation.montantCourant;
+  protected negotiationCardTitle(negotiation: NegotiationView): string {
+    if (this.isClosedNegotiation(negotiation)) {
+      return 'Prix propose';
     }
 
-    return negotiation.montantInitial || negotiation.montantCourant;
+    return negotiation.service?.nom || 'Service';
   }
 
-  protected negotiationNewPriceLabel(negotiation: NegotiationView): string {
-    return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' ? 'Offre du client' : 'Votre offre';
+
+  protected negotiationAmountValue(negotiation: NegotiationView): number {
+    return negotiation.montantAccepte || negotiation.montantCourant || negotiation.montantInitial || 0;
   }
 
-  protected negotiationActionLabel(negotiation: NegotiationView): string {
-    return this.shouldShowNegotiationPriceComparison(negotiation) ? 'Négocier' : 'En savoir plus';
+  protected negotiationMessageQueryParams(negotiation: NegotiationView): Record<string, string> {
+    return {
+      negotiationId: negotiation.id,
+      professionalId: negotiation.professionnelId,
+      returnUrl: this.router.url,
+    };
   }
+
 
   protected openNegotiationReservation(reservation: BackendReservation): void {
     this.router.navigate(['/appointments', reservation.id]);
@@ -1341,6 +1366,18 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected negotiationReservationInitials(reservation: BackendReservation): string {
     return this.initialsForName(this.negotiationReservationClientName(reservation));
+  }
+
+  protected negotiationReservationPhoneHref(reservation: BackendReservation): string | null {
+    const phone = reservation.client?.numeroTelephone?.trim();
+    return phone ? `tel:${phone.replace(/\s+/g, '')}` : null;
+  }
+
+  protected negotiationReservationMessageQueryParams(reservation: BackendReservation): Record<string, string> {
+    return {
+      reservationId: reservation.id,
+      returnUrl: this.router.url,
+    };
   }
 
   protected formatPatientInitials(name: string): string {
@@ -1655,7 +1692,7 @@ export class DoctorSpacePageComponent implements OnInit {
       PAYEE_SEQUESTRE: 'Payee et confirmee',
       EN_COURS: 'En cours',
       TERMINEE: 'Terminee',
-      ANNULEE: 'Annulee',
+      ANNULEE: 'Annulée',
       NO_SHOW: 'Absent',
       LITIGE: 'Litige',
     };

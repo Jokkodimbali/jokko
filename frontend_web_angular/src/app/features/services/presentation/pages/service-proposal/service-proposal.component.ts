@@ -27,6 +27,7 @@ import {
   ProfessionalAvailabilityChangedEvent,
 } from '../../../data-access/availability-realtime.service';
 import {
+  CreateReservationFromNegotiationPayload,
   NegotiationView,
   MaterialQuoteView,
   ProposalReservationStatus,
@@ -208,6 +209,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly parcelPriceError = signal<string | null>(null);
   private readonly clientDefaultAddress = signal('');
   protected readonly offerAmount = signal(0);
+  protected readonly customOfferTouched = signal(false);
   protected readonly offerSteps = [100, 250, 500];
   protected readonly selectedOfferStep = signal(250);
   protected readonly materialQuoteDraft: MaterialQuoteDraft = {
@@ -233,6 +235,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const selectedId = this.selectedServiceId();
     return selectedId ? services.find((service) => service.id === selectedId) ?? null : null;
   });
+  protected readonly customNegotiationService = computed<BackendProfessionalDetailService | null>(() =>
+    this.resolveCustomNegotiationService(this.currentService()),
+  );
   protected readonly providerTravelsToClient = computed(
     () => this.currentService()?.modeDeplacement !== 'CLIENT_SE_DEPLACE',
   );
@@ -252,6 +257,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return Math.max(500, Math.round((distanceMeters / 1000) * pricePerKm));
   });
   protected readonly fairServiceAmount = computed(() => {
+    if (this.customServiceName()) {
+      return 0;
+    }
+
     if (this.isParcelDeliveryService()) {
       return this.parcelComputedPrice();
     }
@@ -471,9 +480,17 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly submitButtonLabel = computed(() => {
     if (this.isSubmitting()) {
+      if (this.customServiceName()) {
+        return "Envoi de l'offre...";
+      }
+
       return this.isFixedPriceService() || !this.isOfferAdjusted()
         ? 'Creation de la reservation...'
         : 'Envoi de la contre-offre...';
+    }
+
+    if (this.customServiceName()) {
+      return "Envoyer l'offre";
     }
 
     return this.isFixedPriceService() || !this.isOfferAdjusted()
@@ -483,6 +500,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly submitButtonVisualLabel = computed(() =>
     this.isSubmitting()
       ? this.submitButtonLabel()
+      : this.customServiceName()
+        ? "Envoyer l'offre"
       : this.isOfferAdjusted()
         ? 'Contre-offre'
         : 'Finaliser la reservation',
@@ -555,6 +574,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return false;
     }
 
+    if (this.customServiceName()) {
+      return Math.trunc(Number(this.offerAmount())) > 0;
+    }
+
     const servicePrice = Math.trunc(Number(this.fairServiceAmount()));
     const offer = Math.trunc(Number(this.offerAmount()));
     return servicePrice > 0 && offer > 0 && servicePrice !== offer;
@@ -569,6 +592,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return offer < servicePrice ? 'arrow-down' : 'arrow-up-right';
   });
   protected readonly offerEquityLabel = computed(() =>
+    this.customServiceName()
+      ? 'Definissez le prix que vous souhaitez proposer au prestataire.'
+      :
     this.isFixedPriceService()
       ? 'Tarif du prestataire, pret a etre reserve.'
       : 'Offre equitable pour le prestataire, pret a etre reserve.',
@@ -584,7 +610,15 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       28,
     ),
   );
-  protected readonly formattedOffer = computed(() => this.formatAmount(this.offerAmount()));
+  protected readonly hasCustomOfferAmount = computed(() =>
+    !this.customServiceName() ||
+    (this.customOfferTouched() && Math.trunc(Number(this.offerAmount())) >= 500),
+  );
+  protected readonly formattedOffer = computed(() =>
+    this.customServiceName() && !this.customOfferTouched()
+      ? ''
+      : this.formatAmount(this.offerAmount()),
+  );
   protected readonly pendingOfferAmountLabel = computed(() => {
     const proposal = this.pendingProposal();
     return this.formatAmount(proposal?.montantCourant ?? this.offerAmount());
@@ -738,6 +772,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected updateOfferAmount(value: number | string): void {
     const amount = Number(String(value).replace(/[^\d]/g, ''));
+    if (this.customServiceName()) {
+      this.customOfferTouched.set(String(value).trim().length > 0);
+    }
     this.offerAmount.set(Number.isFinite(amount) ? amount : 0);
     if (this.isProviderProposalMode && this.canProviderRespond()) {
       this.isProviderOfferDirty.set(true);
@@ -1061,6 +1098,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     if (!service) return;
 
     this.customServiceName.set('');
+    this.customOfferTouched.set(false);
     this.selectedServiceId.set(service.id);
     if (service.modeDeplacement === 'TRANSPORT_COLIS') {
       this.offerAmount.set(this.parcelComputedPrice());
@@ -1084,6 +1122,19 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.customServiceName.set(normalizedName);
+    const supportService = this.resolveCustomNegotiationService(this.currentService());
+    if (!supportService) {
+      this.customServiceName.set('');
+      this.feedback.info(
+        'Ce prestataire doit avoir au moins un service negociable disponible pour recevoir une offre personnalisee.',
+      );
+      return;
+    }
+
+    this.selectedServiceId.set(supportService.id);
+    this.offerAmount.set(0);
+    this.customOfferTouched.set(false);
+    this.syncAddressForCurrentTravelMode();
     this.availabilityStatus.set(null);
     this.availabilitySlots.set([]);
     this.clearClientDetailsErrors('service', 'schedule', 'availability');
@@ -1207,6 +1258,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     const nextAmount = Math.max(500, Math.trunc(this.offerAmount() - this.selectedOfferStep()));
     this.offerAmount.set(nextAmount);
+    if (this.customServiceName()) {
+      this.customOfferTouched.set(true);
+    }
     if (this.isProviderProposalMode && this.canProviderRespond()) {
       this.isProviderOfferDirty.set(true);
     }
@@ -1219,9 +1273,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     const nextAmount = Math.min(
       10_000_000,
-      Math.trunc(this.offerAmount() + this.selectedOfferStep()),
+      this.customServiceName() && Math.trunc(this.offerAmount()) <= 0
+        ? 500
+        : Math.max(0, Math.trunc(this.offerAmount())) + this.selectedOfferStep(),
     );
     this.offerAmount.set(nextAmount);
+    if (this.customServiceName()) {
+      this.customOfferTouched.set(true);
+    }
     if (this.isProviderProposalMode && this.canProviderRespond()) {
       this.isProviderOfferDirty.set(true);
     }
@@ -1696,7 +1755,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected submitProposal(): void {
-    const service = this.currentService();
+    const service = this.customServiceName()
+      ? this.customNegotiationService()
+      : this.currentService();
 
     if (!this.authSession.getAccessToken()) {
       this.feedback.info('Connectez-vous d abord pour proposer un prix.');
@@ -1711,7 +1772,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (draft.service.typePrix !== 'NEGOCIABLE' || !this.isOfferAdjusted()) {
+    if (!this.customServiceName() && (draft.service.typePrix !== 'NEGOCIABLE' || !this.isOfferAdjusted())) {
       this.createDirectReservation(draft);
       return;
     }
@@ -1903,11 +1964,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private createReservationFromAcceptedNegotiation(proposal: NegotiationView): void {
-    const dateHeure = proposal.dateHeureProposee || this.toIsoDateTime(this.appointmentDate());
-    const adresseClient = this.resolveAppointmentAddress(proposal.adresseClientProposee || '');
-    const dureeMinutes = proposal.dureeMinutesProposee || this.durationMinutes();
+    const reservationPayload = this.buildAcceptedNegotiationReservationPayload(proposal);
 
-    if (!dateHeure || !adresseClient) {
+    if (!reservationPayload) {
       this.isRespondingToCounterOffer.set(false);
       this.feedback.error('Date ou adresse manquante pour creer la reservation.');
       return;
@@ -1915,10 +1974,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.proposalService
       .createReservationFromNegotiation({
-        negotiationId: proposal.id,
-        dateHeure,
-        adresseClient,
-        dureeMinutes,
+        ...reservationPayload,
         notes: this.buildAcceptedReservationNotes(proposal),
       })
       .subscribe({
@@ -1935,9 +1991,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.acceptedReservation.set({
             reservationId,
             proposal,
-            dateHeure,
-            adresseClient,
-            dureeMinutes,
+            dateHeure: reservationPayload.dateHeure,
+            adresseClient: reservationPayload.adresseClient,
+            dureeMinutes: reservationPayload.dureeMinutes,
           });
           this.linkedReservationStatus.set('CONFIRMEE');
           this.linkedReservationCancellationReason.set(null);
@@ -2596,8 +2652,15 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return null;
     }
 
+    if (this.customServiceName() && service.typePrix !== 'NEGOCIABLE') {
+      this.feedback.info(
+        'Ce prestataire doit avoir au moins un service negociable disponible pour recevoir une offre personnalisee.',
+      );
+      return null;
+    }
+
     const amount =
-      service.typePrix === 'FIXE'
+      !this.customServiceName() && service.typePrix === 'FIXE'
         ? Math.trunc(Number(service.prix))
         : Math.trunc(Number(this.offerAmount()));
     if (
@@ -2616,7 +2679,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     if (
-      service.typePrix === 'NEGOCIABLE' &&
+      (this.customServiceName() || service.typePrix === 'NEGOCIABLE') &&
       (!Number.isFinite(amount) || amount < 500 || amount > 10_000_000)
     ) {
       this.feedback.info('Renseignez un montant entre 500 et 10 000 000 FCFA.');
@@ -2755,6 +2818,24 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
   }
 
+  private resolveCustomNegotiationService(
+    current: BackendProfessionalDetailService | null,
+  ): BackendProfessionalDetailService | null {
+    if (!this.customServiceName()) {
+      return current;
+    }
+
+    if (current?.estDisponible && current.typePrix === 'NEGOCIABLE') {
+      return current;
+    }
+
+    return (
+      (this.detail()?.services ?? []).find(
+        (service) => service.estDisponible && service.typePrix === 'NEGOCIABLE',
+      ) ?? null
+    );
+  }
+
   private refreshParcelDeliveryPriceEstimate(): void {
     if (!this.isParcelDeliveryService()) {
       this.resetParcelDeliveryPricing();
@@ -2804,6 +2885,38 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.offerAmount.set(this.parcelComputedPrice());
         }
       });
+  }
+
+  private buildAcceptedNegotiationReservationPayload(
+    proposal: NegotiationView,
+  ): CreateReservationFromNegotiationPayload | null {
+    const dateHeure = proposal.dateHeureProposee
+      ? this.toIsoDateTime(proposal.dateHeureProposee)
+      : this.toIsoDateTime(this.appointmentDate());
+    const adresseClient =
+      proposal.adresseClientProposee?.trim() ||
+      this.resolveAppointmentAddress('').trim();
+    const dureeMinutes = Number(
+      proposal.dureeMinutesProposee ?? this.durationMinutes(),
+    );
+
+    if (
+      !proposal.id ||
+      !dateHeure ||
+      !adresseClient ||
+      !Number.isInteger(dureeMinutes) ||
+      dureeMinutes < 5 ||
+      dureeMinutes > 1440
+    ) {
+      return null;
+    }
+
+    return {
+      negotiationId: proposal.id,
+      dateHeure,
+      adresseClient,
+      dureeMinutes,
+    };
   }
 
   private resetParcelDeliveryPricing(): void {

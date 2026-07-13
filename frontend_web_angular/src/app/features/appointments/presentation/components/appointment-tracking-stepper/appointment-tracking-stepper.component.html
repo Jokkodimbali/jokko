@@ -11,17 +11,19 @@
     <i class="appointment-tracking-stepper__line"></i>
     <i class="appointment-tracking-stepper__progress" [style.width.%]="progress"></i>
     <div
-      *ngFor="let step of steps"
+      *ngFor="let step of steps; let index = index"
       class="appointment-tracking-stepper__step"
       [class.is-done]="step.state === 'done'"
       [class.is-active]="step.state === 'active'"
     >
       <span>
         <lucide-icon
+          *ngIf="step.state === 'done'; else stepNumber"
           [name]="step.state === 'done' ? 'check' : step.icon"
           size="16"
           [strokeWidth]="2.7"
         ></lucide-icon>
+        <ng-template #stepNumber>{{ index + 1 }}</ng-template>
       </span>
       <strong>{{ step.label }}</strong>
     </div>

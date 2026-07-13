@@ -1407,53 +1407,68 @@
         <div class="appointment-detail__prescription-sheet">
           <section class="appointment-detail__prescription-top">
             <div>
+              <small>{{ appointment.specialty || 'Médecin généraliste' }}</small>
               <h3>{{ appointment.doctorName }}</h3>
-              <p>{{ appointment.specialty || 'Médecin' }} · Jokko Dimbali</p>
-              <small>Référence rendez-vous : {{ appointment.id }}</small>
+              <p>{{ appointment.professionalAddressLabel || 'Cabinet médical Jokko Dimbali, Dakar' }}</p>
+              <p>{{ appointment.professionalPhone || 'Téléphone non renseigné' }}</p>
             </div>
             <div>
-              <strong>Date d'émission</strong>
+              <strong>Réf.</strong>
+              <small>ORD-{{ appointment.id.slice(0, 8).toUpperCase() }}</small>
               <span>{{ completedPaymentLabel() }}</span>
             </div>
           </section>
 
+          <section class="appointment-detail__prescription-title">
+            <span></span>
+            <h3>Ordonnance médicale</h3>
+            <span></span>
+          </section>
+
           <section class="appointment-detail__prescription-patient">
-            <small>Prescrit à l'ordre de</small>
-            <strong>{{ appointment.clientName }}</strong>
-            <span>{{ appointment.serviceName }}</span>
-            <em>{{ appointment.addressLabel }}</em>
+            <div>
+              <small>Patient</small>
+              <strong>{{ appointment.clientName }}</strong>
+              <span>Date de naissance non renseignée</span>
+            </div>
+            <div>
+              <em>{{ appointment.clientPhone || 'Téléphone non renseigné' }}</em>
+              <em>{{ appointment.addressLabel }}</em>
+            </div>
           </section>
 
           <section class="appointment-detail__prescription-section">
-            <h4>Traitement médical prescrit</h4>
+            <h4>Prescriptions</h4>
             <ol *ngIf="medicalTreatments().length > 0; else noPrescriptionTreatment">
               <li *ngFor="let treatment of medicalTreatments()">{{ treatment }}</li>
             </ol>
             <ng-template #noPrescriptionTreatment>
               <p>Aucun traitement de fond prescrit sur cette ordonnance.</p>
             </ng-template>
-          </section>
-
-          <section class="appointment-detail__prescription-section">
-            <h4>Vaccinations administrées</h4>
             <ul *ngIf="medicalVaccines().length > 0; else noPrescriptionVaccine">
               <li *ngFor="let vaccine of medicalVaccines()">{{ vaccine }}</li>
             </ul>
             <ng-template #noPrescriptionVaccine>
-              <p>Aucun vaccin administré pendant cette consultation.</p>
+              <span></span>
             </ng-template>
-          </section>
-
-          <section class="appointment-detail__prescription-section">
-            <h4>Actes cliniques réalisés</h4>
             <ul>
               <li *ngFor="let act of medicalActs()">{{ act }}</li>
             </ul>
           </section>
 
           <footer>
-            <p>Ordonnance électronique sécurisée<br />ID : ORD-{{ appointment.id.slice(0, 8).toUpperCase() }}</p>
-            <strong>Signature médecin<br /><span>{{ appointment.doctorName }}</span></strong>
+            <div>
+              <p>Cachet &amp; Signature du médecin</p>
+              <strong>Signature</strong>
+            </div>
+            <div>
+              <p>Document généré via</p>
+              <span>
+                <img src="/logojokko.png" alt="" />
+                <b>JOKKO DIMBALI</b>
+                <small>jokko-dimbali.sn</small>
+              </span>
+            </div>
           </footer>
         </div>
 

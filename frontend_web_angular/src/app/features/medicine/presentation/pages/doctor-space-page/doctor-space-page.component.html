@@ -541,52 +541,44 @@
                 <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
               </div>
               <div class="doctor-space__negotiation-days">
-                <span
+                <button
                   *ngFor="let day of negotiationCalendarDays()"
+                  type="button"
                   [class.doctor-space__negotiation-day--active]="day.count > 0"
                   [class.doctor-space__negotiation-day--multiple]="day.count > 1"
-                  [attr.title]="day.count ? day.count + ' négociation(s)' : null"
+                  [class.doctor-space__negotiation-day--selected]="selectedNegotiationDate() === day.dateKey"
+                  [disabled]="!day.dateKey"
+                  [attr.title]="day.count ? day.count + ' negotiation(s)' : null"
+                  (click)="selectNegotiationCalendarDay(day)"
                 >
                   {{ day.day || '' }}
-                </span>
+                </button>
               </div>
             </article>
 
-            <article class="doctor-space__negotiation-statuses">
-              <h2>Par statut</h2>
+            <nav class="doctor-space__negotiation-filters" aria-label="Filtres des negotiations clients">
               <button type="button" [class.is-active]="negotiationFilter() === 'ALL'" (click)="selectNegotiationFilter('ALL')">
-                <span><lucide-icon name="handshake" size="15"></lucide-icon>Toutes</span>
-                <strong>{{ negotiationMonthRows().length + negotiationReservationMonthRows().length }}</strong>
+                <span>Toutes</span>
+                <strong>{{ negotiationAllCount() }}</strong>
               </button>
-              <button type="button" [class.is-active]="negotiationFilter() === 'EN_ATTENTE_PRESTATAIRE'" (click)="selectNegotiationFilter('EN_ATTENTE_PRESTATAIRE')">
-                <span><lucide-icon name="clock-3" size="15"></lucide-icon>À valider</span>
+              <button type="button" [class.is-active]="negotiationFilter() === 'PENDING'" (click)="selectNegotiationFilter('PENDING')">
+                <span>A traiter</span>
                 <strong>{{ negotiationPendingCount() }}</strong>
               </button>
-              <button type="button" [class.is-active]="negotiationFilter() === 'ACCEPTEE'" (click)="selectNegotiationFilter('ACCEPTEE')">
-                <span><lucide-icon name="check" size="15"></lucide-icon>Prix accepté</span>
-                <strong>{{ negotiationAcceptedCount() }}</strong>
+              <button type="button" [class.is-active]="negotiationFilter() === 'WAITING_CLIENT'" (click)="selectNegotiationFilter('WAITING_CLIENT')">
+                <span>Attente client</span>
+                <strong>{{ negotiationWaitingClientCount() }}</strong>
               </button>
-              <button type="button" [class.is-active]="negotiationFilter() === 'CONVERTIE_EN_RESERVATION'" (click)="selectNegotiationFilter('CONVERTIE_EN_RESERVATION')">
-                <span><lucide-icon name="calendar-days" size="15"></lucide-icon>Confirmé</span>
+              <button type="button" [class.is-active]="negotiationFilter() === 'CONFIRMED'" (click)="selectNegotiationFilter('CONFIRMED')">
+                <span>Confirmees</span>
                 <strong>{{ negotiationConfirmedCount() }}</strong>
               </button>
-              <button type="button" [class.is-active]="negotiationFilter() === 'ANNULEE'" (click)="selectNegotiationFilter('ANNULEE')">
-                <span><lucide-icon name="circle-x" size="15"></lucide-icon>Clôturées</span>
+              <button type="button" [class.is-active]="negotiationFilter() === 'CLOSED'" (click)="selectNegotiationFilter('CLOSED')">
+                <span>Cloturees</span>
                 <strong>{{ negotiationClosedCount() }}</strong>
               </button>
-            </article>
+            </nav>
 
-            <article class="doctor-space__negotiation-upcoming">
-              <h2>Prochaines dates</h2>
-              <p *ngFor="let group of negotiationGroups().slice(0, 4)">
-                <lucide-icon name="calendar-days" size="14" [strokeWidth]="2"></lucide-icon>
-                <span>{{ negotiationDateValue(group.items[0]) | date: 'd MMMM' }}</span>
-                <strong>{{ group.items.length }} rdv</strong>
-              </p>
-              <p *ngIf="negotiationGroups().length === 0" class="doctor-space__negotiation-no-date">
-                Aucune date pour ce filtre
-              </p>
-            </article>
           </section>
 
           <section *ngFor="let group of negotiationGroups()" class="doctor-space__negotiation-group">
@@ -602,60 +594,60 @@
               [attr.data-tone]="negotiationTone(negotiation)"
             >
               <header>
-                <strong>{{ negotiationBannerLabel(negotiation) }}</strong>
                 <span><lucide-icon name="handshake" size="15"></lucide-icon>{{ negotiationStatusLabel(negotiation.statut) }}</span>
               </header>
 
               <div class="doctor-space__negotiation-card-body">
-                <div class="doctor-space__negotiation-date">
-                  <span>{{ negotiationDateValue(negotiation) | date: 'MMM' | uppercase }}</span>
-                  <strong>{{ negotiationDateValue(negotiation) | date: 'dd' }}</strong>
-                  <small>{{ negotiationDateValue(negotiation) | date: 'HH:mm' }}</small>
-                </div>
+                <span class="doctor-space__negotiation-avatar">
+                  <img *ngIf="negotiation.client?.urlAvatar; else negotiationAvatarInitials" [src]="negotiation.client?.urlAvatar" [alt]="negotiationClientName(negotiation)" />
+                  <ng-template #negotiationAvatarInitials>{{ negotiationInitials(negotiation) }}</ng-template>
+                </span>
 
                 <div class="doctor-space__negotiation-client">
-                  <span class="doctor-space__negotiation-avatar">
-                    <img *ngIf="negotiation.client?.urlAvatar; else negotiationAvatarInitials" [src]="negotiation.client?.urlAvatar" [alt]="negotiationClientName(negotiation)" />
-                    <ng-template #negotiationAvatarInitials>{{ negotiationInitials(negotiation) }}</ng-template>
-                  </span>
                   <div>
-                    <strong>{{ negotiationClientName(negotiation) }}</strong>
-                    <span>Client</span>
-                    <small><lucide-icon name="map-pin" size="13"></lucide-icon>{{ negotiationLocation(negotiation) }}</small>
-                    <small><lucide-icon name="wrench" size="13"></lucide-icon>{{ negotiation.service?.nom || 'Service' }}</small>
+                    <p class="doctor-space__negotiation-titleline">
+                      <strong>{{ negotiationClientName(negotiation) }}</strong>
+                      <span *ngIf="!isClosedNegotiation(negotiation)">· {{ negotiation.service?.nom || 'Service' }}</span>
+                    </p>
+                    <h3>{{ negotiationCardTitle(negotiation) }}</h3>
+                    <div *ngIf="!isClosedNegotiation(negotiation)" class="doctor-space__negotiation-meta">
+                      <span>
+                        <lucide-icon name="calendar-days" size="15" [strokeWidth]="2"></lucide-icon>
+                        {{ negotiationDateValue(negotiation) | date: 'EEEE d MMMM y' }}
+                      </span>
+                      <span>
+                        <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                        {{ negotiationDateValue(negotiation) | date: 'HH:mm' }}
+                      </span>
+                    </div>
+                    <strong class="doctor-space__negotiation-main-price">
+                      {{ negotiationAmountValue(negotiation) | number: '1.0-0' }} FCFA
+                    </strong>
                   </div>
                 </div>
 
-                <div class="doctor-space__negotiation-offer">
-                  <ng-container *ngIf="shouldShowNegotiationPriceComparison(negotiation); else singleNegotiationAmount">
-                    <span class="doctor-space__negotiation-old-price">
-                      <small>{{ negotiationOldPriceLabel(negotiation) }}</small>
-                      <strong>{{ negotiationOldPriceAmount(negotiation) | number: '1.0-0' }} FCFA</strong>
-                    </span>
-                    <lucide-icon name="arrow-right" size="16"></lucide-icon>
-                    <span class="doctor-space__negotiation-new-price">
-                      <small>{{ negotiationNewPriceLabel(negotiation) }}</small>
-                      <strong>{{ negotiation.montantCourant | number: '1.0-0' }} FCFA</strong>
-                    </span>
-                  </ng-container>
-                  <ng-template #singleNegotiationAmount>
-                    <small *ngIf="negotiation.statut === 'EN_ATTENTE_PRESTATAIRE'">Montant proposé par le client</small>
-                    <strong *ngIf="negotiation.statut !== 'ACCEPTEE' && negotiation.statut !== 'CONVERTIE_EN_RESERVATION'">
-                      {{ (negotiation.montantAccepte || negotiation.montantCourant) | number: '1.0-0' }} <span>FCFA</span>
-                    </strong>
-                    <div *ngIf="negotiation.statut === 'ACCEPTEE'" class="doctor-space__negotiation-consensus">
-                      Prix accepté <lucide-icon name="check" size="38" [strokeWidth]="3"></lucide-icon>
-                    </div>
-                    <div *ngIf="negotiation.statut === 'CONVERTIE_EN_RESERVATION'" class="doctor-space__negotiation-confirmed">
-                      Le RDV est confirmé <lucide-icon name="check" size="34" [strokeWidth]="3"></lucide-icon>
-                    </div>
-                  </ng-template>
-                </div>
 
-                <button type="button" class="doctor-space__negotiation-more" (click)="openNegotiation(negotiation)">
-                  {{ negotiationActionLabel(negotiation) }}
-                  <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.4"></lucide-icon>
-                </button>
+                <div class="doctor-space__negotiation-actions">
+                  <a
+                    class="doctor-space__negotiation-action"
+                    [class.doctor-space__negotiation-action--disabled]="!negotiationPhoneHref(negotiation)"
+                    [href]="negotiationPhoneHref(negotiation) || null"
+                  >
+                    <lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon>
+                    Appeler
+                  </a>
+                  <a
+                    class="doctor-space__negotiation-action"
+                    [routerLink]="['/messages']"
+                    [queryParams]="negotiationMessageQueryParams(negotiation)"
+                  >
+                    <lucide-icon name="message-circle" size="18" [strokeWidth]="2.3"></lucide-icon>
+                    Message
+                  </a>
+                  <button type="button" class="doctor-space__negotiation-more" (click)="openNegotiation(negotiation)">
+                    Voir le detail
+                  </button>
+                </div>
               </div>
             </article>
           </section>
@@ -673,9 +665,6 @@
               [attr.data-tone]="negotiationReservationTone(reservation.statut)"
             >
               <header>
-                <strong>
-                  {{ reservation.statut === 'CONFIRMEE' ? 'Le RDV est confirmé' : negotiationReservationStatusLabel(reservation.statut) }}
-                </strong>
                 <span>
                   <lucide-icon name="calendar-days" size="15"></lucide-icon>
                   {{ negotiationReservationStatusLabel(reservation.statut) }}
@@ -683,58 +672,66 @@
               </header>
 
               <div class="doctor-space__negotiation-card-body">
-                <div class="doctor-space__negotiation-date">
-                  <span>{{ reservation.dateHeure | date: 'MMM' | uppercase }}</span>
-                  <strong>{{ reservation.dateHeure | date: 'dd' }}</strong>
-                  <small>{{ reservation.dateHeure | date: 'HH:mm' }}</small>
-                </div>
+                <span class="doctor-space__negotiation-avatar">
+                  <img
+                    *ngIf="reservation.client?.urlAvatar; else reservationAvatarInitials"
+                    [src]="reservation.client?.urlAvatar"
+                    [alt]="negotiationReservationClientName(reservation)"
+                  />
+                  <ng-template #reservationAvatarInitials>
+                    {{ negotiationReservationInitials(reservation) }}
+                  </ng-template>
+                </span>
 
                 <div class="doctor-space__negotiation-client">
-                  <span class="doctor-space__negotiation-avatar">
-                    <img
-                      *ngIf="reservation.client?.urlAvatar; else reservationAvatarInitials"
-                      [src]="reservation.client?.urlAvatar"
-                      [alt]="negotiationReservationClientName(reservation)"
-                    />
-                    <ng-template #reservationAvatarInitials>
-                      {{ negotiationReservationInitials(reservation) }}
-                    </ng-template>
-                  </span>
                   <div>
-                    <strong>{{ negotiationReservationClientName(reservation) }}</strong>
-                    <span>Client</span>
-                    <small><lucide-icon name="map-pin" size="13"></lucide-icon>{{ reservation.adresseClient }}</small>
-                    <small><lucide-icon name="wrench" size="13"></lucide-icon>{{ reservation.service?.nom || 'Service' }}</small>
+                    <p class="doctor-space__negotiation-titleline">
+                      <strong>{{ negotiationReservationClientName(reservation) }}</strong>
+                      <span>· {{ reservation.service?.categorie?.nom || 'Service' }}</span>
+                    </p>
+                    <h3>{{ reservation.service?.nom || 'Service' }}</h3>
+                    <div class="doctor-space__negotiation-meta">
+                      <span>
+                        <lucide-icon name="calendar-days" size="15" [strokeWidth]="2"></lucide-icon>
+                        {{ reservation.dateHeure | date: 'EEEE d MMMM y' }}
+                      </span>
+                      <span>
+                        <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                        {{ reservation.dateHeure | date: 'HH:mm' }}
+                      </span>
+                    </div>
+                    <strong class="doctor-space__negotiation-main-price">
+                      {{ (reservation.prixConvenu || reservation.service?.prix || 0) | number: '1.0-0' }} FCFA
+                    </strong>
                   </div>
                 </div>
 
-                <div class="doctor-space__negotiation-offer">
-                  <div
-                    class="doctor-space__negotiation-confirmed"
-                    [class.doctor-space__negotiation-confirmed--closed]="reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW'"
-                    [class.doctor-space__negotiation-confirmed--dispute]="reservation.statut === 'LITIGE'"
+
+                <div class="doctor-space__negotiation-actions">
+                  <a
+                    class="doctor-space__negotiation-action"
+                    [class.doctor-space__negotiation-action--disabled]="!negotiationReservationPhoneHref(reservation)"
+                    [href]="negotiationReservationPhoneHref(reservation) || null"
                   >
-                    {{ negotiationReservationStatusLabel(reservation.statut) }}
-                    <lucide-icon
-                      [name]="reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW' ? 'circle-x' : reservation.statut === 'LITIGE' ? 'info' : 'check'"
-                      size="34"
-                      [strokeWidth]="3"
-                    ></lucide-icon>
-                  </div>
-                  <strong class="doctor-space__negotiation-reservation-price">
-                    {{ (reservation.prixConvenu || reservation.service?.prix || 0) | number: '1.0-0' }}
-                    <span>FCFA</span>
-                  </strong>
+                    <lucide-icon name="phone" size="18" [strokeWidth]="2.3"></lucide-icon>
+                    Appeler
+                  </a>
+                  <a
+                    class="doctor-space__negotiation-action"
+                    [routerLink]="['/messages']"
+                    [queryParams]="negotiationReservationMessageQueryParams(reservation)"
+                  >
+                    <lucide-icon name="message-circle" size="18" [strokeWidth]="2.3"></lucide-icon>
+                    Message
+                  </a>
+                  <button
+                    type="button"
+                    class="doctor-space__negotiation-more"
+                    (click)="openNegotiationReservation(reservation)"
+                  >
+                    Voir le detail
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  class="doctor-space__negotiation-more"
-                  (click)="openNegotiationReservation(reservation)"
-                >
-                  En savoir plus
-                  <lucide-icon name="arrow-right" size="13" [strokeWidth]="2.4"></lucide-icon>
-                </button>
               </div>
             </article>
           </section>

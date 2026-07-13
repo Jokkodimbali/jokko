@@ -4,11 +4,11 @@
   </div>
 
   <section class="appointments-page__shell">
-    <aside class="appointments-page__sidebar" aria-label="Filtres des rendez-vous">
+    <aside class="appointments-page__sidebar" aria-label="Calendrier des reservations">
       <section class="mini-calendar">
         <div class="mini-calendar__head">
           <strong>{{ monthLabel() }}</strong>
-          <span>{{ activeTab() === 'appointments' ? appointments().length + ' rdv' : negotiations().length + ' negociations' }}</span>
+          <span>{{ activeTab() === 'done' ? doneItemsCount() : activeItemsCount() }} elements</span>
         </div>
 
         <div class="mini-calendar__weekdays" aria-hidden="true">
@@ -32,7 +32,7 @@
             [class.mini-calendar__day--selected]="selectedCalendarDate() === day.dateKey"
             [disabled]="day.day === 0"
             [attr.aria-pressed]="selectedCalendarDate() === day.dateKey"
-            [attr.aria-label]="day.day === 0 ? null : 'Filtrer les rendez-vous du ' + day.day + ' ' + monthLabel()"
+            [attr.aria-label]="day.day === 0 ? null : 'Filtrer les reservations du ' + day.day + ' ' + monthLabel()"
             (click)="selectCalendarDay(day)"
           >
             {{ day.day || '' }}
@@ -48,80 +48,31 @@
         </div>
       </section>
 
-      <section class="appointments-filter">
-        <h2>Par statut</h2>
-        <button
-          *ngFor="let option of statusOptions()"
-          type="button"
-          class="appointments-filter__item"
-          [class]="'appointments-filter__item appointments-filter__item--' + option.tone"
-          [class.appointments-filter__item--active]="activeStatus() === option.key"
-          (click)="setStatusFilter(option.key)"
-        >
-          <span class="appointments-filter__icon">
-            <lucide-icon [name]="option.icon" size="16" [strokeWidth]="2.3"></lucide-icon>
-          </span>
-          <span>{{ option.label }}</span>
-          <strong>{{ option.count }}</strong>
-        </button>
-      </section>
-
-      <section class="upcoming-dates">
-        <h2>Prochaines dates</h2>
-        <p *ngIf="activeTab() === 'negotiations'">Les dates proposees sont visibles dans la liste.</p>
-        <p *ngIf="activeTab() === 'appointments' && upcomingDates().length === 0">Aucune date planifiee.</p>
-        <button
-          *ngFor="let item of activeTab() === 'appointments' ? upcomingDates() : []"
-          type="button"
-          class="upcoming-dates__item"
-          [class.upcoming-dates__item--active]="selectedCalendarDate() === item.key"
-          (click)="selectCalendarDateKey(item.key)"
-        >
-          <span>
-            <lucide-icon name="calendar-days" size="13" [strokeWidth]="2.1"></lucide-icon>
-            {{ item.label }}
-          </span>
-          <strong>{{ item.count }} rdv</strong>
-        </button>
-      </section>
     </aside>
 
     <section class="appointments-page__workspace">
-      <header class="appointments-hero">
-        <div>
-          <h1>Rendez-vous et negociation</h1>
-          <p>{{ totalItems() }} rendez-vous et negociations synchronises avec votre compte Jokko</p>
-        </div>
-
-        <div class="appointments-hero__stats" aria-label="Synthese des rendez-vous">
-          <span><strong>{{ stats().upcoming }}</strong> A venir</span>
-          <span><strong>{{ stats().week }}</strong> Cette semaine</span>
-          <span><strong>{{ stats().negotiating }}</strong> En negociation</span>
-        </div>
-      </header>
-
       <div class="appointments-toolbar">
-        <div class="appointments-tabs" role="tablist" aria-label="Rendez-vous et negociations">
+        <div class="appointments-tabs" role="tablist" aria-label="Reservations">
           <button
             type="button"
-            [class.appointments-tabs__button--active]="activeTab() === 'appointments'"
+            [class.appointments-tabs__button--active]="activeTab() === 'active'"
             class="appointments-tabs__button"
-            (click)="setTab('appointments')"
+            (click)="setTab('active')"
           >
-            RDV <span>{{ appointments().length }}</span>
+            RDV et negociation <span>{{ activeItemsCount() }}</span>
           </button>
           <button
             type="button"
-            [class.appointments-tabs__button--active]="activeTab() === 'negotiations'"
+            [class.appointments-tabs__button--active]="activeTab() === 'done'"
             class="appointments-tabs__button"
-            (click)="setTab('negotiations')"
+            (click)="setTab('done')"
           >
-            Negociations <span>{{ negotiations().length }}</span>
+            Termine <span>{{ doneItemsCount() }}</span>
           </button>
         </div>
 
         <label class="appointments-search">
-          <lucide-icon name="search" size="16" [strokeWidth]="2"></lucide-icon>
+          <lucide-icon name="search" size="17" [strokeWidth]="2"></lucide-icon>
           <input
             type="search"
             [value]="search()"
@@ -141,6 +92,12 @@
         </label>
       </div>
 
+      <div class="appointments-quick-filters" aria-label="Filtres rapides">
+        <button type="button" [class.is-active]="activePeriod() === 'ALL'" (click)="setPeriodFilter('ALL')">Tout</button>
+        <button type="button" [class.is-active]="activePeriod() === 'FUTURE'" (click)="setPeriodFilter('FUTURE')">Futur</button>
+        <button type="button" [class.is-active]="activePeriod() === 'PAST'" (click)="setPeriodFilter('PAST')">Passee</button>
+      </div>
+
       <p
         *ngIf="cancellationMessage()"
         class="appointments-feedback"
@@ -150,221 +107,108 @@
         {{ cancellationMessage() }}
       </p>
 
-      <section class="appointments-list" aria-label="Liste des rendez-vous et negociations">
-        <p *ngIf="isLoading()" class="appointments-state">Chargement de vos rendez-vous et negociations...</p>
+      <section class="appointments-list" aria-label="Liste des reservations">
+        <p *ngIf="isLoading()" class="appointments-state">Chargement de vos reservations...</p>
         <p *ngIf="!isLoading() && !currentUser()" class="appointments-state">
-          Connectez-vous pour retrouver vos rendez-vous.
+          Connectez-vous pour retrouver vos reservations.
         </p>
         <p *ngIf="!isLoading() && currentUser() && loadErrorMessage()" class="appointments-state appointments-state--error">
           {{ loadErrorMessage() }}
         </p>
         <p
-          *ngIf="
-            !isLoading() &&
-            currentUser() &&
-            !loadErrorMessage() &&
-            ((activeTab() === 'appointments' && groupedAppointments().length === 0) ||
-              (activeTab() === 'negotiations' && groupedNegotiations().length === 0))
-          "
+          *ngIf="!isLoading() && currentUser() && !loadErrorMessage() && groupedScheduleItems().length === 0"
           class="appointments-state"
         >
           {{ selectedCalendarDateLabel()
-            ? 'Aucun element ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
-            : activeTab() === 'appointments'
-              ? 'Aucun rendez-vous ne correspond a ces criteres.'
-              : 'Aucune negociation ne correspond a ces criteres.' }}
+            ? 'Aucune reservation ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
+            : activeTab() === 'done'
+              ? 'Aucune reservation terminee, annulee ou en litige.'
+              : 'Aucune reservation ou negociation ne correspond a ces criteres.' }}
         </p>
 
-        <article *ngFor="let group of activeTab() === 'appointments' ? groupedAppointments() : []" class="appointment-group">
+        <article *ngFor="let group of groupedScheduleItems()" class="appointment-group">
           <div class="appointment-group__head">
             <span>{{ group.label }}</span>
             <em></em>
             <strong>{{ group.count }} rendez-vous</strong>
           </div>
 
-          <div class="appointment-row" *ngFor="let appointment of group.items" [class]="'appointment-row appointment-row--' + rowTone(appointment)">
-            <div class="appointment-row__date">
-              <span>{{ dayName(appointment) }}</span>
-              <strong>{{ dayNumber(appointment) }}</strong>
-              <small>{{ monthShort(appointment) }}</small>
-              <em>
-                <lucide-icon name="clock-3" size="13" [strokeWidth]="2"></lucide-icon>
-                {{ appointment.timeLabel }}
-              </em>
-            </div>
-
-            <div class="appointment-row__provider">
-              <img *ngIf="appointment.avatarUrl; else appointmentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
-              <ng-template #appointmentProviderInitials>
-                <span class="appointment-row__avatar-initials">{{ avatarInitials(appointment) || 'JD' }}</span>
-              </ng-template>
-              <div>
-                <strong>{{ appointment.doctorName }}</strong>
-                <span>{{ appointment.specialty }}</span>
-                <small>
-                  <lucide-icon name="map-pin" size="12" [strokeWidth]="2"></lucide-icon>
-                  {{ appointment.locationLabel }}
-                </small>
-                <small>
-                  <lucide-icon name="heart" size="12" [strokeWidth]="2"></lucide-icon>
-                  {{ appointment.serviceName }}
-                </small>
-              </div>
-            </div>
-
-            <div class="appointment-row__status-card">
-              <div class="appointment-row__status-title">
-                <span></span>
-                <strong>{{ statusPanelTitle(appointment) }}</strong>
-                <lucide-icon
-                  [name]="rowTone(appointment) === 'red' ? 'info' : rowTone(appointment) === 'green' ? 'check' : 'send'"
-                  size="14"
-                  [strokeWidth]="2.2"
-                ></lucide-icon>
-              </div>
-              <p>{{ statusPanelMessage(appointment) }}</p>
-              <div class="appointment-row__meta">
-                <strong *ngIf="appointment.agreedPrice">{{ formatAmount(appointment.agreedPrice) }} FCFA</strong>
-                <span *ngIf="appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT'">
-                  Revision en attente
-                </span>
-                <span *ngIf="appointment.clientReview">{{ appointment.clientReview }}</span>
-              </div>
-              <div class="appointment-row__progress" *ngIf="progressValue(appointment) > 0">
-                <i [style.width.%]="progressValue(appointment)"></i>
-                <small>{{ progressValue(appointment) }}%</small>
-              </div>
-            </div>
-
-            <div class="appointment-row__actions">
-              <span class="appointment-row__badge">
-                <lucide-icon
-                  [name]="rowTone(appointment) === 'red' ? 'triangle-alert' : rowTone(appointment) === 'green' ? 'check' : 'clock-3'"
-                  size="13"
-                  [strokeWidth]="2"
-                ></lucide-icon>
-                {{ statusLabel(appointment) }}
-              </span>
-              <a
-                [routerLink]="primaryActionRoute(appointment)"
-                [queryParams]="primaryActionQueryParams()"
-                class="appointment-row__primary"
-              >
-                {{ primaryActionLabel(appointment) }}
-                <lucide-icon
-                  [name]="primaryActionIcon(appointment)"
-                  size="13"
-                  [strokeWidth]="2.2"
-                ></lucide-icon>
-              </a>
-              <button
-                type="button"
-                class="appointment-row__secondary"
-                [disabled]="!canCancel(appointment) || cancellingAppointmentId() === appointment.id"
-                [attr.title]="cancellationDisabledReason(appointment)"
-                (click)="cancelAppointment(appointment, $event)"
-              >
-                {{ cancellingAppointmentId() === appointment.id ? 'Annulation...' : 'Annuler' }}
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <article *ngFor="let group of activeTab() === 'negotiations' ? groupedNegotiations() : []" class="appointment-group">
-          <div class="appointment-group__head">
-            <span>{{ group.label }}</span>
-            <em></em>
-            <strong>{{ group.count }} negociation{{ group.count > 1 ? 's' : '' }}</strong>
-          </div>
-
           <div
-            class="appointments-negotiation-card"
-            *ngFor="let negotiation of group.items"
-            [attr.data-tone]="negotiationTone(negotiation)"
+            class="appointment-row"
+            *ngFor="let item of group.items"
+            [class]="'appointment-row appointment-row--' + scheduleItemTone(item)"
           >
-            <header>
-              <strong>{{ negotiationBannerLabel(negotiation) }}</strong>
-              <span>
-                <lucide-icon name="banknote" size="14" [strokeWidth]="2.2"></lucide-icon>
-                Negociation prix
+            <div class="appointment-row__avatar">
+              <img *ngIf="scheduleItemAvatarUrl(item); else appointmentProviderInitials" [src]="scheduleItemAvatarUrl(item) || ''" [alt]="scheduleItemContactName(item)" />
+              <ng-template #appointmentProviderInitials>
+                <span>{{ scheduleItemInitials(item) }}</span>
+              </ng-template>
+              <i>
+                <lucide-icon name="check" size="13" [strokeWidth]="3"></lucide-icon>
+              </i>
+            </div>
+
+            <div class="appointment-row__main">
+              <div class="appointment-row__titleline">
+                <strong>{{ scheduleItemContactName(item) }}</strong>
+                <span>· {{ scheduleItemCategory(item) }}</span>
+              </div>
+              <h3>{{ scheduleItemTitle(item) }}</h3>
+              <div class="appointment-row__meta">
+                <span>
+                  <lucide-icon name="calendar-days" size="15" [strokeWidth]="2"></lucide-icon>
+                  {{ scheduleItemDateLabel(item) }}
+                </span>
+                <span>
+                  <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                  {{ scheduleItemTimeLabel(item) }}
+                </span>
+              </div>
+              <strong class="appointment-row__price">{{ scheduleItemAmountLabel(item) }}</strong>
+            </div>
+
+            <div class="appointment-row__side">
+              <span class="appointment-row__badge">
+                <i></i>
+                {{ scheduleItemStatusLabel(item) }}
               </span>
-            </header>
-
-            <div class="appointments-negotiation-card__body">
-              <div class="appointments-negotiation-card__date">
-                <span>{{ negotiationDate(negotiation) | date: 'EEE' | uppercase }}</span>
-                <strong>{{ negotiationDate(negotiation) | date: 'dd' }}</strong>
-                <small>{{ negotiationDate(negotiation) | date: 'MMM' | uppercase }}</small>
-                <em>
-                  <lucide-icon name="clock-3" size="13" [strokeWidth]="2"></lucide-icon>
-                  {{ negotiationDate(negotiation) | date: 'HH:mm' }}
-                </em>
-              </div>
-
-              <div class="appointments-negotiation-card__contact">
-                <span class="appointments-negotiation-card__avatar">
-                  <img
-                    *ngIf="negotiationAvatarUrl(negotiation); else negotiationCardInitials"
-                    [src]="negotiationAvatarUrl(negotiation)"
-                    [alt]="negotiationContactName(negotiation)"
-                  />
-                  <ng-template #negotiationCardInitials>{{ negotiationInitials(negotiation) || 'JK' }}</ng-template>
-                </span>
-                <div>
-                  <strong>{{ negotiationContactName(negotiation) }}</strong>
-                  <span>{{ negotiation.service?.nom || 'Service' }}</span>
-                  <small>
-                    <lucide-icon name="map-pin" size="13" [strokeWidth]="2"></lucide-icon>
-                    {{ negotiation.adresseClientProposee || 'Adresse a confirmer' }}
-                  </small>
-                  <small>
-                    <lucide-icon name="wrench" size="13" [strokeWidth]="2"></lucide-icon>
-                    {{ negotiation.service?.nom || 'Service' }}
-                  </small>
-                </div>
-              </div>
-
-              <div class="appointments-negotiation-card__offer">
-                <span
-                  class="appointments-negotiation-card__price appointments-negotiation-card__price--provider"
-                  [class.appointments-negotiation-card__price--latest]="negotiation.dernierProposePar === 'PRESTATAIRE'"
+              <div class="appointment-row__actions">
+                <a class="appointment-row__ghost" [href]="scheduleItemPhoneHref(item)">
+                  <lucide-icon name="phone" size="19" [strokeWidth]="2.3"></lucide-icon>
+                  Appeler
+                </a>
+                <a
+                  class="appointment-row__ghost"
+                  [routerLink]="item.messageRoute"
+                  [queryParams]="item.messageQueryParams"
                 >
-                  <small>Offre prestataire</small>
-                  <strong>{{ formatAmount(negotiationProviderOffer(negotiation)) }} FCFA</strong>
-                  <i *ngIf="negotiationOfferStateLabel(negotiation, 'PRESTATAIRE')">
-                    {{ negotiationOfferStateLabel(negotiation, 'PRESTATAIRE') }}
-                  </i>
-                </span>
-                <lucide-icon name="arrow-right" size="18" [strokeWidth]="2.2"></lucide-icon>
-                <span
-                  class="appointments-negotiation-card__price appointments-negotiation-card__price--client"
-                  [class.appointments-negotiation-card__price--latest]="negotiation.dernierProposePar === 'CLIENT'"
+                  <lucide-icon name="message-circle" size="19" [strokeWidth]="2.3"></lucide-icon>
+                  Message
+                </a>
+                <a
+                  class="appointment-row__primary"
+                  [routerLink]="item.route"
+                  [queryParams]="item.queryParams"
                 >
-                  <small>Offre client</small>
-                  <strong>{{ formatAmount(negotiationClientOffer(negotiation)) }} FCFA</strong>
-                  <i *ngIf="negotiationOfferStateLabel(negotiation, 'CLIENT')">
-                    {{ negotiationOfferStateLabel(negotiation, 'CLIENT') }}
-                  </i>
-                </span>
-                <em>{{ negotiationDifferenceLabel(negotiation) }}</em>
-                <b *ngIf="negotiationFinalPrice(negotiation) as finalPrice">
-                  Prix final retenu : {{ formatAmount(finalPrice) }} FCFA
-                </b>
+                  Voir le detail
+                </a>
+                <button
+                  *ngIf="activeTab() !== 'done'"
+                  type="button"
+                  class="appointment-row__cancel"
+                  [disabled]="!scheduleItemCanCancel(item)"
+                  [attr.title]="scheduleItemCancelTitle(item)"
+                  (click)="cancelScheduleItem(item, $event)"
+                >
+                  {{ scheduleItemCancelLabel(item) }}
+                </button>
               </div>
-
-              <a
-                [routerLink]="negotiationRoute(negotiation)"
-                [queryParams]="negotiationQueryParams(negotiation)"
-                class="appointments-negotiation-card__more"
-              >
-                {{ negotiationActionLabel(negotiation) }}
-                <lucide-icon [name]="negotiationActionIcon(negotiation)" size="13" [strokeWidth]="2.2"></lucide-icon>
-              </a>
             </div>
           </div>
         </article>
       </section>
     </section>
   </section>
+
   <app-footer />
 </main>

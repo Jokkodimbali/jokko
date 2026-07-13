@@ -35,7 +35,14 @@
         />
       </div>
 
-      <img class="hero-visual" [src]="heroIllustration" alt="Prestataires Jokko Dimbali" />
+      <img
+        class="hero-visual"
+        [src]="heroIllustration"
+        alt="Prestataires Jokko Dimbali"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
 
       <app-scroll-hint />
     </div>

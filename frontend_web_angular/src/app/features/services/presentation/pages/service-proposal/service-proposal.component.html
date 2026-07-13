@@ -746,6 +746,7 @@
                         [ngModel]="formattedOffer()"
                         (ngModelChange)="updateOfferAmount($event)"
                         [attr.aria-label]="offerFieldLabel()"
+                        [attr.placeholder]="customServiceName() ? 'Prix propose' : null"
                       />
                       <strong>FCFA</strong>
                     </label>
@@ -810,7 +811,10 @@
                     [attr.aria-label]="submitButtonLabel()"
                     (click)="submitProposal()"
                     [disabled]="
-                      isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()
+                      isSubmitting() ||
+                      isCheckingAvailability() ||
+                      isLoadingAvailabilitySlots() ||
+                      !hasCustomOfferAmount()
                     "
                   >
                     <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>

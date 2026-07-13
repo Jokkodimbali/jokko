@@ -22,7 +22,7 @@
   }
 
   .appointment-detail__route-layout {
-    grid-template-rows: auto minmax(560px, 72vh) auto;
+    grid-template-rows: minmax(560px, 72vh) auto;
     grid-template-columns: 1fr;
     gap: 0;
     height: auto;
@@ -59,7 +59,7 @@
 
   .appointment-detail__live-map {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1;
     height: auto;
     min-height: 560px;
   }
@@ -67,7 +67,7 @@
   .appointment-detail__route-layout--client .appointment-detail__live-map,
   .appointment-detail__route-layout--provider .appointment-detail__live-map {
     height: auto;
-    margin: 0;
+    margin: 124px 0 0;
     min-height: 560px;
   }
 
@@ -78,7 +78,7 @@
     border-left: 0;
     border-top: 1px solid #dedede;
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 2;
     overflow: visible;
   }
 

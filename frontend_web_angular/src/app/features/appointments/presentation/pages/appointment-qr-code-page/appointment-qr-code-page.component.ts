@@ -192,6 +192,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     const role = this.authSession.currentUser()?.role;
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
   });
+  protected readonly canRevealParcelDetails = computed(
+    () => !this.isDeliveryPersonView() || this.isCheckpointValidated(),
+  );
+  protected readonly canRevealParcelCodes = computed(() => !this.isDeliveryPersonView());
+  protected readonly manualScanValue = signal('');
   protected readonly validationStorageKey = computed(() => {
     const appointment = this.appointment();
     return appointment ? `jokko:parcel:${appointment.id}:${this.checkpoint()}` : '';
@@ -270,6 +275,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected updateScannedPayload(value: string): void {
+    this.manualScanValue.set(value);
     this.scannedPayload.set(value);
     this.validationError.set(null);
     this.validationMessage.set(null);
@@ -489,6 +495,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       const rawValue = await this.readQrFromCamera();
       if (!rawValue || rawValue === this.scannedPayload().trim()) return;
       this.scannedPayload.set(rawValue);
+      this.manualScanValue.set('');
       this.validateScannedQr();
     } catch {
       this.cameraError.set('Lecture du QR code impossible pour le moment. Rapprochez le code de la camera.');
@@ -767,11 +774,12 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     request.subscribe({
       next: (updated) => {
         this.appointment.set(updated);
-        this.validationMessage.set(
-          this.checkpoint() === 'RETRAIT'
-            ? `${message} Trajet vers le destinataire active.`
-            : `${message} Livraison terminee, reservation cloturee.`,
-        );
+        if (this.checkpoint() === 'RETRAIT') {
+          this.activateDropoffTrackingAfterPickup(updated, message);
+          return;
+        }
+
+        this.validationMessage.set(`${message} Livraison terminee, reservation cloturee.`);
         this.scheduleAutoReturnAfterScan();
       },
       error: () => {
@@ -783,6 +791,88 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         );
       },
     });
+  }
+
+  private activateDropoffTrackingAfterPickup(appointment: AppointmentView, message: string): void {
+    this.resolveCurrentLocationForTracking()
+      .then((location) => {
+        this.appointmentsService
+          .updateProviderTrackingLocation(appointment.id, {
+            ...location,
+            locationLabel: 'Livreur en route vers le destinataire',
+          })
+          .subscribe({
+            next: () => {
+              this.validationMessage.set(`${message} Trajet vers le destinataire active.`);
+              this.scheduleAutoReturnAfterScan();
+            },
+            error: () => {
+              this.validationMessage.set(`${message} Retour au suivi de livraison.`);
+              this.validationError.set(null);
+              this.scheduleAutoReturnAfterScan();
+            },
+          });
+      })
+      .catch(() => {
+        this.validationMessage.set(`${message} Retour au suivi de livraison.`);
+        this.validationError.set(null);
+        this.scheduleAutoReturnAfterScan();
+      });
+  }
+
+  private resolveCurrentLocationForTracking(): Promise<{
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+    headingDegrees: number | null;
+    speedKmh: number | null;
+  }> {
+    if (!navigator.geolocation) {
+      return Promise.reject(new Error('Geolocation unavailable'));
+    }
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
+            reject(new Error('Location outside Senegal'));
+            return;
+          }
+
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyMeters: this.sanitizeOptionalNumber(position.coords.accuracy, 0, 10000),
+            headingDegrees: this.sanitizeOptionalNumber(position.coords.heading, 0, 360),
+            speedKmh:
+              typeof position.coords.speed === 'number'
+                ? this.sanitizeOptionalNumber(Math.round(position.coords.speed * 3.6), 0, 300)
+                : null,
+          });
+        },
+        reject,
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 12000 },
+      );
+    });
+  }
+
+  private sanitizeOptionalNumber(value: number | null | undefined, min: number, max: number): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+      return null;
+    }
+
+    return value;
+  }
+
+  private isCoordinateInSenegal(latitude: number, longitude: number): boolean {
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= 12.0 &&
+      latitude <= 16.9 &&
+      longitude >= -17.8 &&
+      longitude <= -11.0
+    );
   }
 
   private scheduleAutoReturnAfterScan(): void {

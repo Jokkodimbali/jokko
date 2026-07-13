@@ -2689,6 +2689,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           .toLocaleLowerCase('fr-FR'),
       );
 
+    if (this.isParcelDropoffNavigationActive()) {
+      return labels.some(
+        (label) =>
+          label.includes('arrive') &&
+          label.includes('destination') &&
+          label.includes('destinataire'),
+      );
+    }
+
     return labels.some(
       (label) => label.includes('arrive') && label.includes('destination'),
     );

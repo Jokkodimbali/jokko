@@ -91,6 +91,7 @@ export class LoginComponent {
 
   onSubmit(): void {
     this.normalizeIdentifierDisplayControl();
+    this.normalizePasswordControl();
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -238,6 +239,15 @@ export class LoginComponent {
       ? toSenegalLocalPhoneInput(control.value)
       : control.value.trim().toLowerCase();
     control.setValue(normalized, { emitEvent: false });
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private normalizePasswordControl(): void {
+    const control = this.loginForm.controls.password;
+    const normalized = control.value.trim();
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
     control.updateValueAndValidity({ emitEvent: false });
   }
 

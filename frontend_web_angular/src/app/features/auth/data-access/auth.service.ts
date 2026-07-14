@@ -15,6 +15,7 @@ import {
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
+import { normalizeLoginIdentifier, normalizeSenegalPhoneNumber } from '../domain/auth.validators';
 
 export type SavedPaymentMethodType = 'CARD' | 'WAVE' | 'OTHER';
 
@@ -117,14 +118,37 @@ export class AuthService {
   private readonly paymentsApiUrl = `${environment.apiUrl}/payments`;
 
   login(credentials: LoginRequestDto): Observable<AuthResponseDto> {
+    const payload: LoginRequestDto = {
+      identifier: normalizeLoginIdentifier(credentials.identifier),
+      password: credentials.password.trim(),
+    };
+
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/login`, credentials)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/login`, payload)
       .pipe(map(unwrapApiResponse));
   }
 
   register(data: RegisterRequestDto): Observable<AuthResponseDto> {
+    const payload: RegisterRequestDto = {
+      ...data,
+      phoneNumber: normalizeSenegalPhoneNumber(data.phoneNumber),
+      name: this.normalizeText(data.name),
+      email: data.email?.trim() ? data.email.trim().toLowerCase() : undefined,
+      password: data.password.trim(),
+      adresse: this.normalizeText(data.adresse),
+      medicalSpecialty: data.medicalSpecialty?.trim()
+        ? this.normalizeText(data.medicalSpecialty)
+        : undefined,
+      medicalExpertises: data.medicalExpertises
+        ?.map((item) => this.normalizeText(item))
+        .filter(Boolean),
+      medicalDocumentNames: data.medicalDocumentNames
+        ?.map((item) => item.trim())
+        .filter(Boolean),
+    };
+
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/register`, data)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/register`, payload)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -390,5 +414,9 @@ export class AuthService {
     return this.http
       .post<ApiResponse<null>>(`${this.apiUrl}/logout`, {})
       .pipe(map(() => undefined));
+  }
+
+  private normalizeText(value: string): string {
+    return value.trim().replace(/\s+/g, ' ');
   }
 }

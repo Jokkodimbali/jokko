@@ -14,6 +14,15 @@
       <span>RDV et N&eacute;gociation clients</span>
     </button>
     <button
+      *ngIf="showPatientAppointmentsSection"
+      type="button"
+      [class.doctor-space-sidebar__nav-item--active]="activeSection === 'patient-appointments'"
+      (click)="sectionSelected.emit('patient-appointments')"
+    >
+      <lucide-icon name="calendar-check" size="34" [strokeWidth]="2.1"></lucide-icon>
+      <span>RDV patients</span>
+    </button>
+    <button
       type="button"
       [class.doctor-space-sidebar__nav-item--active]="activeSection === 'availability'"
       (click)="sectionSelected.emit('availability')"
@@ -36,7 +45,7 @@
       (click)="sectionSelected.emit('agenda')"
     >
       <lucide-icon name="calendar-days" size="34" [strokeWidth]="2.1"></lucide-icon>
-      <span>Gestion RDV</span>
+      <span>{{ agendaSectionLabel }}</span>
     </button>
     <button
       type="button"

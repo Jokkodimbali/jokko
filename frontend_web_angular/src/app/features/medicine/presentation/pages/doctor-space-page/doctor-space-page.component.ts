@@ -42,6 +42,7 @@ type DoctorSpaceSection =
   | 'availability'
   | 'consultation'
   | 'negotiations'
+  | 'patient-appointments'
   | 'agenda'
   | 'medical-history'
   | 'wallet';
@@ -51,6 +52,7 @@ const DOCTOR_SPACE_SECTIONS: readonly DoctorSpaceSection[] = [
   'availability',
   'consultation',
   'negotiations',
+  'patient-appointments',
   'agenda',
   'medical-history',
   'wallet',
@@ -459,6 +461,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly appointmentHistorySectionLabel = computed(() =>
     this.isProviderSpace() ? 'Historique des RDV' : 'Historique médical',
   );
+  protected readonly agendaSectionLabel = computed(() => 'Gestion RDV');
   protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
   protected readonly kycStatusLabel = computed(() => {
     const status = this.professionalProfile()?.statutKyc;
@@ -946,8 +949,10 @@ export class DoctorSpacePageComponent implements OnInit {
         return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
       case 'negotiations':
         return 'RDV et Négociation clients';
+      case 'patient-appointments':
+        return 'RDV patients';
       case 'agenda':
-        return 'Gestion RDV';
+        return this.agendaSectionLabel();
       case 'medical-history':
         return this.isProviderSpace() ? 'Historique des rendez-vous' : 'Historique médical';
       case 'wallet':
@@ -963,6 +968,8 @@ export class DoctorSpacePageComponent implements OnInit {
       case 'consultation':
         return 'Définissez les motifs du patient. Les motifs obligatoires devront être cochés à la prise de rendez-vous';
       case 'negotiations':
+        return '';
+      case 'patient-appointments':
         return '';
       case 'agenda':
         return '';
@@ -988,8 +995,14 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {
+    if (this.router.url.startsWith('/medecine/espace/rdv-patients')) {
+      return 'patient-appointments';
+    }
+
     const section = this.route.snapshot.queryParamMap.get('section');
     if (section === 'profile') return 'availability';
+    if (section === 'patient-appointments' && this.isProviderSpace()) return 'availability';
+    if (section === 'negotiations' && !this.isProviderSpace()) return 'patient-appointments';
     return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
       ? (section as DoctorSpaceSection)
       : 'availability';
@@ -997,6 +1010,14 @@ export class DoctorSpacePageComponent implements OnInit {
 
   private setActiveSection(section: DoctorSpaceSection): void {
     this.activeSection.set(section);
+    if (!this.isProviderSpace() && section === 'patient-appointments') {
+      this.router.navigate(['/medecine/espace/rdv-patients'], {
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+      return;
+    }
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { section },
@@ -1278,7 +1299,7 @@ export class DoctorSpacePageComponent implements OnInit {
 
   protected openNegotiation(negotiation: NegotiationView): void {
     if (negotiation.reservationId) {
-      this.router.navigate(['/appointments', negotiation.reservationId]);
+      this.openReservationDetail(negotiation.reservationId);
       return;
     }
 
@@ -1362,7 +1383,7 @@ export class DoctorSpacePageComponent implements OnInit {
 
 
   protected openNegotiationReservation(reservation: BackendReservation): void {
-    this.router.navigate(['/appointments', reservation.id]);
+    this.openReservationDetail(reservation.id);
   }
 
   protected negotiationReservationClientName(reservation: BackendReservation): string {
@@ -1421,7 +1442,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected openProviderHistoryReservation(row: ProviderAppointmentHistoryRow): void {
-    this.router.navigate(['/appointments', row.id]);
+    this.openReservationDetail(row.id);
   }
 
   protected openPatientMedicalDetail(row: MedicalHistoryRow): void {
@@ -1625,7 +1646,13 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected openNextAgendaReservation(next: NextAgendaReservationView): void {
-    this.router.navigate(['/appointments', next.reservation.id]);
+    this.openReservationDetail(next.reservation.id);
+  }
+
+  private openReservationDetail(reservationId: string): void {
+    this.router.navigate(['/appointments', reservationId], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   private openAgendaReservationById(reservationId: string): void {
@@ -1894,7 +1921,11 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected saveTravelMode(): void {
-    const mode = this.isProviderSpace() ? this.selectedTravelMode() : 'PRESTATAIRE_SE_DEPLACE';
+    const selectedMode = this.selectedTravelMode();
+    const mode =
+      !this.isProviderSpace() && selectedMode === 'TRANSPORT_COLIS'
+        ? 'PRESTATAIRE_SE_DEPLACE'
+        : selectedMode;
     const motifs = this.motifs().filter((motif) => motif.travelMode !== mode);
 
     if (motifs.length === 0) {

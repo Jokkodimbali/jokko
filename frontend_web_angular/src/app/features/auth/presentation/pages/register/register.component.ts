@@ -63,7 +63,7 @@ export class RegisterComponent implements OnInit {
   }
 
   onSubmit(): void {
-    this.normalizePhoneControl();
+    this.normalizeRegisterFormControls();
 
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
@@ -99,8 +99,8 @@ export class RegisterComponent implements OnInit {
 
     if (formData.role === 'MEDECIN') {
       payload.medicalSpecialty = formData.medicalSpecialty || undefined;
-      payload.medicalExpertises = this.medicalExpertises();
-      payload.medicalDocumentNames = this.selectedMedicalDocuments();
+      payload.medicalExpertises = this.medicalExpertises().map((item) => this.normalizeTextValue(item));
+      payload.medicalDocumentNames = this.selectedMedicalDocuments().map((item) => item.trim()).filter(Boolean);
     }
 
     this.authService
@@ -296,6 +296,46 @@ export class RegisterComponent implements OnInit {
     const control = this.registerForm.controls.phoneNumber;
     const normalized = normalizeSenegalPhoneNumber(control.value);
     control.setValue(normalized, { emitEvent: false });
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private normalizeRegisterFormControls(): void {
+    this.normalizeTextControl('name');
+    this.normalizeTextControl('adresse');
+    this.normalizeTextControl('medicalSpecialty');
+    this.normalizeEmailControl();
+    this.normalizePasswordControl();
+    this.normalizePhoneControl();
+  }
+
+  private normalizeTextControl(field: 'name' | 'adresse' | 'medicalSpecialty'): void {
+    const control = this.registerForm.controls[field];
+    const normalized = this.normalizeTextValue(control.value);
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private normalizeTextValue(value: string): string {
+    return value.trim().replace(/\s+/g, ' ');
+  }
+
+  private normalizeEmailControl(): void {
+    const control = this.registerForm.controls.email;
+    const normalized = control.value.trim().toLowerCase();
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private normalizePasswordControl(): void {
+    const control = this.registerForm.controls.password;
+    const normalized = control.value.trim();
+    if (normalized !== control.value) {
+      control.setValue(normalized, { emitEvent: false });
+    }
     control.updateValueAndValidity({ emitEvent: false });
   }
 

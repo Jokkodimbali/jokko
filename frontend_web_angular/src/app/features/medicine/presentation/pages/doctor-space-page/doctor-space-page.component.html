@@ -4,8 +4,10 @@
     [ariaLabel]="spaceAriaLabel()"
     [showConsultationSection]="showConsultationSection()"
     [serviceSectionLabel]="serviceSectionLabel()"
+    [agendaSectionLabel]="agendaSectionLabel()"
     [appointmentHistorySectionLabel]="appointmentHistorySectionLabel()"
     [showNegotiationsSection]="isProviderSpace()"
+    [showPatientAppointmentsSection]="!isProviderSpace()"
     (backRequested)="goBack()"
     (sectionSelected)="selectSection($event)"
   ></app-doctor-space-sidebar>
@@ -513,7 +515,7 @@
         </section>
 
         <section
-          *ngIf="!isLoading() && !errorMessage() && activeSection() === 'negotiations'"
+          *ngIf="!isLoading() && !errorMessage() && (activeSection() === 'negotiations' || activeSection() === 'patient-appointments')"
           class="doctor-space__negotiations"
         >
           <section class="doctor-space__negotiation-overview">
@@ -556,7 +558,7 @@
               </div>
             </article>
 
-            <nav class="doctor-space__negotiation-filters" aria-label="Filtres des negotiations clients">
+            <nav class="doctor-space__negotiation-filters" [attr.aria-label]="activeSection() === 'patient-appointments' ? 'Filtres des rendez-vous patients' : 'Filtres des negotiations clients'">
               <button type="button" [class.is-active]="negotiationFilter() === 'ALL'" (click)="selectNegotiationFilter('ALL')">
                 <span>Toutes</span>
                 <strong>{{ negotiationAllCount() }}</strong>
@@ -581,7 +583,7 @@
 
           </section>
 
-          <section *ngFor="let group of negotiationGroups()" class="doctor-space__negotiation-group">
+          <section *ngFor="let group of negotiationGroups()" class="doctor-space__negotiation-group" [hidden]="activeSection() === 'patient-appointments'">
             <header>
               <strong>{{ group.label }}</strong>
               <span></span>
@@ -737,8 +739,9 @@
           </section>
 
           <p
-            *ngIf="negotiationGroups().length === 0 && negotiationReservationGroups().length === 0"
+            *ngIf="activeSection() === 'patient-appointments' ? negotiationReservationGroups().length === 0 : negotiationGroups().length === 0 && negotiationReservationGroups().length === 0"
             class="doctor-space__negotiation-empty"
+            [textContent]="activeSection() === 'patient-appointments' ? 'Aucun rendez-vous patient ne correspond a ce mois et a ce statut.' : 'Aucune negotiation ne correspond a ce mois et a ce statut.'"
           >
             Aucune négociation ne correspond à ce mois et à ce statut.
           </p>

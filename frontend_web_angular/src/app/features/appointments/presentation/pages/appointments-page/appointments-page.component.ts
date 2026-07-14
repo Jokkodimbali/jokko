@@ -442,8 +442,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.canProviderCloseAppointment(appointment)) return 'Cloturer';
     if (this.shouldPayAppointment(appointment)) return 'Payer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
-    if (this.currentUser()?.role === 'CLIENT') return 'Résumé';
-    return 'Voir';
+    return 'Résumé';
   }
 
   protected primaryActionIcon(appointment: AppointmentView): string {
@@ -537,9 +536,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected scheduleItemContactName(item: ScheduleItem): string {
     if (item.kind === 'negotiation') return this.negotiationContactName(item.negotiation);
-    return this.currentUser()?.role === 'CLIENT'
-      ? item.appointment.doctorName
-      : item.appointment.clientName;
+    return item.appointment.doctorName;
   }
 
   protected scheduleItemCategory(item: ScheduleItem): string {
@@ -592,16 +589,12 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected scheduleItemAvatarUrl(item: ScheduleItem): string | null {
     if (item.kind === 'negotiation') return this.negotiationAvatarUrl(item.negotiation);
-    return this.currentUser()?.role === 'CLIENT'
-      ? item.appointment.avatarUrl || null
-      : item.appointment.clientAvatarUrl || null;
+    return item.appointment.avatarUrl || null;
   }
 
   protected scheduleItemPhoneHref(item: ScheduleItem): string | null {
     const phone = item.kind === 'appointment'
-      ? this.currentUser()?.role === 'CLIENT'
-        ? item.appointment.professionalPhone
-        : item.appointment.clientPhone
+      ? item.appointment.professionalPhone
       : this.negotiationPhoneNumber(item.negotiation);
     return phone ? `tel:${phone.replace(/\s/g, '')}` : null;
   }
@@ -668,12 +661,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationContactName(negotiation: NegotiationView): string {
-    if (this.currentUser()?.role === 'CLIENT') {
-      return negotiation.professionnel?.nomEntreprise
-        || negotiation.professionnel?.utilisateur.nom
-        || 'Prestataire';
-    }
-    return negotiation.client?.nom || 'Client';
+    return negotiation.professionnel?.nomEntreprise
+      || negotiation.professionnel?.utilisateur.nom
+      || 'Prestataire';
   }
 
   protected negotiationInitials(negotiation: NegotiationView): string {
@@ -681,10 +671,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationAvatarUrl(negotiation: NegotiationView): string | null {
-    if (this.currentUser()?.role === 'CLIENT') {
-      return negotiation.professionnel?.utilisateur.urlAvatar || null;
-    }
-    return negotiation.client?.urlAvatar || null;
+    return negotiation.professionnel?.utilisateur.urlAvatar || null;
   }
 
   protected negotiationPhoneNumber(negotiation: NegotiationView): string | null {
@@ -778,9 +765,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return {
       serviceId: negotiation.serviceId,
       negotiationId: negotiation.id,
-      ...(this.currentUser()?.role === 'PRESTATAIRE' || this.currentUser()?.role === 'MEDECIN'
-        ? { mode: 'prestataire' }
-        : {}),
       returnUrl: this.currentAppointmentsReturnUrl(),
     };
   }
@@ -812,12 +796,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   private isNegotiationAwaitingCurrentUser(negotiation: NegotiationView): boolean {
-    const role = this.currentUser()?.role;
-    if (role === 'CLIENT') return negotiation.statut === 'EN_ATTENTE_CLIENT';
-    if (role === 'PRESTATAIRE' || role === 'MEDECIN') {
-      return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE';
-    }
-    return false;
+    return negotiation.statut === 'EN_ATTENTE_CLIENT';
   }
 
   private loadAppointments(): void {
@@ -857,8 +836,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   private resolveReservationScope(): 'CLIENT' | 'PRESTATAIRE' | null {
     const role = this.authSession.getAuthenticatedRole();
-    if (role === 'CLIENT') return 'CLIENT';
-    if (role === 'PRESTATAIRE' || role === 'MEDECIN') return 'PRESTATAIRE';
+    if (role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN') return 'CLIENT';
     return null;
   }
 
@@ -968,12 +946,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   private canProviderCloseAppointment(appointment: AppointmentView): boolean {
-    const role = this.currentUser()?.role;
-    return (
-      (role === 'PRESTATAIRE' || role === 'MEDECIN') &&
-      this.isOverdueAppointment(appointment) &&
-      (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS')
-    );
+    void appointment;
+    return false;
   }
 
   private isMoreThanHoursBefore(value: string, hours: number): boolean {

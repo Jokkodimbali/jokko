@@ -126,7 +126,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       route: '/services',
     },
     {
-      label: 'RDV et Négociation clients',
+      label: 'RDV et Négociation',
       icon: 'calendar-days',
       route: '/appointments',
     },

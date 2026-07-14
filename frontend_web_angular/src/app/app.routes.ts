@@ -30,6 +30,15 @@ export const routes: Routes = [
     redirectTo: 'services',
   },
   {
+    path: 'medecine/espace/rdv-patients',
+    canActivate: [roleGuard],
+    data: { roles: ['MEDECIN'] },
+    loadComponent: () =>
+      import('./features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component').then(
+        (m) => m.DoctorSpacePageComponent,
+      ),
+  },
+  {
     path: 'medecine/espace',
     canActivate: [roleGuard],
     data: { roles: ['MEDECIN', 'PRESTATAIRE'] },

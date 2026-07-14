@@ -377,6 +377,11 @@ export class DoctorSpacePageComponent implements OnInit {
       description: 'Vous transportez un colis du point A au point B choisis par le client.',
     },
   ];
+  protected readonly visibleTravelModeOptions = computed(() =>
+    this.isProviderSpace()
+      ? this.travelModeOptions
+      : this.travelModeOptions.filter((option) => option.value !== 'TRANSPORT_COLIS'),
+  );
   protected readonly withdrawalForm = {
     amount: 0,
     method: 'WAVE' as 'WAVE' | 'ORANGE_MONEY',
@@ -940,7 +945,7 @@ export class DoctorSpacePageComponent implements OnInit {
       case 'consultation':
         return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
       case 'negotiations':
-        return 'Liste des RDV NÉGOCIATION';
+        return 'RDV et Négociation clients';
       case 'agenda':
         return 'Gestion RDV';
       case 'medical-history':
@@ -1478,6 +1483,10 @@ export class DoctorSpacePageComponent implements OnInit {
     return this.wallet()?.availableBalance ?? 0;
   }
 
+  protected walletTotalBalance(): number {
+    return this.walletBalance() + this.walletPendingEscrowTotal();
+  }
+
   protected walletMonthlyRevenue(): number {
     return this.wallet()?.monthlyRevenue.amount ?? 0;
   }
@@ -1873,6 +1882,11 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected selectTravelMode(mode: ServiceTravelMode): void {
+    if (!this.isProviderSpace() && mode === 'TRANSPORT_COLIS') {
+      this.selectedTravelMode.set('PRESTATAIRE_SE_DEPLACE');
+      return;
+    }
+
     this.selectedTravelMode.set(mode);
     if (mode === 'TRANSPORT_COLIS' && this.motifForm.price === 10000) {
       this.motifForm.price = 500;
@@ -1880,7 +1894,7 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected saveTravelMode(): void {
-    const mode = this.selectedTravelMode();
+    const mode = this.isProviderSpace() ? this.selectedTravelMode() : 'PRESTATAIRE_SE_DEPLACE';
     const motifs = this.motifs().filter((motif) => motif.travelMode !== mode);
 
     if (motifs.length === 0) {
@@ -2183,7 +2197,11 @@ export class DoctorSpacePageComponent implements OnInit {
                   .listMyPriceProposals('PRESTATAIRE')
                   .pipe(catchError(() => of([] as NegotiationView[])))
               : of([] as NegotiationView[]),
-            wallet: of(null as DoctorWalletView | null),
+            wallet: profile
+              ? this.doctorSpaceService
+                  .getWallet()
+                  .pipe(catchError(() => of(null as DoctorWalletView | null)))
+              : of(null as DoctorWalletView | null),
             portfolio: profile?.statutKyc === 'VERIFIE'
               ? this.doctorSpaceService
                   .listPortfolio(profile.id)
@@ -2937,7 +2955,7 @@ export class DoctorSpacePageComponent implements OnInit {
     const activeServices = services.filter((service) => service.estDisponible);
     const firstTravelMode = activeServices.find((service) => service.modeDeplacement)?.modeDeplacement;
     if (firstTravelMode) {
-      this.selectedTravelMode.set(firstTravelMode);
+      this.selectedTravelMode.set(this.normalizeTravelModeForSpace(firstTravelMode));
     }
 
     const firstDuration = activeServices.find((service) => Number(service.dureeMinutes) > 0)?.dureeMinutes;
@@ -2960,9 +2978,17 @@ export class DoctorSpacePageComponent implements OnInit {
           pauseMinutes: service.pauseMinutes ?? 0,
           price: Number(service.prix),
           isRequired: service.estObligatoire ?? false,
-          travelMode: service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
+          travelMode: this.normalizeTravelModeForSpace(
+            service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
+          ),
         })),
     );
+  }
+
+  private normalizeTravelModeForSpace(mode: ServiceTravelMode): ServiceTravelMode {
+    return !this.isProviderSpace() && mode === 'TRANSPORT_COLIS'
+      ? 'PRESTATAIRE_SE_DEPLACE'
+      : mode;
   }
 
   private resolveMotifCategoryId(): string | null {

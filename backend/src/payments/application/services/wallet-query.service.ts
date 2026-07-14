@@ -86,8 +86,7 @@ export class WalletQueryService {
         where: {
           professionalId: profile.id,
           statut: StatutPaiement.SUCCES,
-          escrowStatus: EscrowStatus.RELEASED,
-          escrowReleasedAt: {
+          creeLe: {
             gte: currentMonthStart,
             lt: nextMonthStart,
           },
@@ -106,8 +105,7 @@ export class WalletQueryService {
         where: {
           professionalId: profile.id,
           statut: StatutPaiement.SUCCES,
-          escrowStatus: EscrowStatus.RELEASED,
-          escrowReleasedAt: {
+          creeLe: {
             gte: previousMonthStart,
             lt: currentMonthStart,
           },
@@ -157,7 +155,6 @@ export class WalletQueryService {
           escrowStatus: EscrowStatus.LOCKED,
         },
         orderBy: { creeLe: 'desc' },
-        take: 20,
         include: {
           reservation: {
             include: {

@@ -13,12 +13,18 @@
     inset 0 0 0 1px #e8d9cb,
     0 14px 34px rgba(37, 24, 14, 0.08);
   color: #22160e;
+  cursor: pointer;
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100%;
   min-height: 368px;
   overflow: hidden;
   width: 100%;
+}
+
+.provider-card:focus-visible {
+  outline: 3px solid rgba(149, 93, 36, 0.28);
+  outline-offset: 3px;
 }
 
 .provider-card__media {

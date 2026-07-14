@@ -558,7 +558,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE') {
       return 'Prix proposé';
     }
-    return item.negotiation.messageCourant || item.negotiation.service?.nom || 'Proposition de prix';
+    return item.negotiation.service?.nom || 'Proposition de prix';
   }
 
   protected scheduleItemAddress(item: ScheduleItem): string {
@@ -638,13 +638,25 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return item.kind === 'appointment' ? this.cancellationDisabledReason(item.appointment) : 'Annulation indisponible pour cette negociation.';
   }
 
+  protected scheduleItemActionLabel(item: ScheduleItem): string {
+    return item.kind === 'appointment'
+      ? this.primaryActionLabel(item.appointment)
+      : this.negotiationActionLabel(item.negotiation);
+  }
+
+  protected scheduleItemActionIcon(item: ScheduleItem): string {
+    return item.kind === 'appointment'
+      ? this.primaryActionIcon(item.appointment)
+      : this.negotiationActionIcon(item.negotiation);
+  }
+
   protected cancelScheduleItem(item: ScheduleItem, event: Event): void {
     if (item.kind !== 'appointment') return;
     this.cancelAppointment(item.appointment, event);
   }
 
   protected negotiationActionLabel(negotiation: NegotiationView): string {
-    return this.isNegotiationAwaitingCurrentUser(negotiation) ? 'Negocier' : 'En savoir plus';
+    return this.isNegotiationAwaitingCurrentUser(negotiation) ? 'Negocier' : 'Voir le detail';
   }
 
   protected negotiationActionIcon(negotiation: NegotiationView): string {
@@ -766,6 +778,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return {
       serviceId: negotiation.serviceId,
       negotiationId: negotiation.id,
+      ...(this.currentUser()?.role === 'PRESTATAIRE' || this.currentUser()?.role === 'MEDECIN'
+        ? { mode: 'prestataire' }
+        : {}),
       returnUrl: this.currentAppointmentsReturnUrl(),
     };
   }

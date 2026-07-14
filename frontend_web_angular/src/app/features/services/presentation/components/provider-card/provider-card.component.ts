@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
 export interface ProviderCardImage {
@@ -43,6 +43,8 @@ export interface ProviderCardView {
   styleUrl: './provider-card.component.scss',
 })
 export class ProviderCardComponent {
+  private readonly router = inject(Router);
+
   @Input({ required: true }) provider!: ProviderCardView;
   @Input() isFavorite = false;
   @Input() favoriteLabel = 'Ajouter aux favoris';
@@ -90,6 +92,32 @@ export class ProviderCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.favoriteToggle.emit();
+  }
+
+  protected onPrimaryActionClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.primaryAction.emit();
+  }
+
+  protected stopCardNavigation(event: Event): void {
+    event.stopPropagation();
+  }
+
+  protected openProfile(): void {
+    void this.router.navigate(this.provider.profileCommands as unknown[], {
+      queryParams: this.provider.queryParams ?? undefined,
+      state: this.provider.state,
+    });
+  }
+
+  protected openProfileFromKeyboard(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.openProfile();
   }
 
   protected onImageError(url: string): void {

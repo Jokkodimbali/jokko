@@ -267,7 +267,7 @@
 
 .interactive-map__loading span {
   color: #737373;
-  font-family: var(--font-mono);
+  font-family: var(--font-app, 'DM Sans', sans-serif);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.12em;

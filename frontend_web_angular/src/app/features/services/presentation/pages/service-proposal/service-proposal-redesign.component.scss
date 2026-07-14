@@ -1,9 +1,9 @@
 /* Screenshot-driven reservation proposal redesign. */
-.service-proposal{font-family:"Inter",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.service-proposal{font-family:var(--font-app,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
 .service-proposal button,
 .service-proposal input,
 .service-proposal select,
-.service-proposal textarea{font-family:"Inter",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.service-proposal textarea{font-family:var(--font-app,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
 .service-proposal__bar{background:transparent;border-bottom:0;margin:0 auto;max-width:1160px;min-height:46px;padding:0 6px}
 .service-proposal__content{gap:24px;grid-template-columns:minmax(620px,760px) minmax(300px,362px);padding:14px 18px 28px}
 .service-proposal__panel{border-color:#e1e5eb;border-radius:30px;box-shadow:0 2px 0 rgb(17 24 39/5%),0 22px 60px rgb(15 23 42/4%)}
@@ -144,24 +144,28 @@
 .service-proposal__message{border-radius:12px;margin-top:28px;min-height:50px;text-transform:uppercase;transition:background 160ms ease,box-shadow 160ms ease,transform 160ms ease}
 .service-proposal__help-card{background:#fff;border:1px solid #e2e6ed;border-radius:18px;color:#111827;padding:20px}
 .service-proposal__help-card h2{align-items:center;display:flex;font-size:12px;font-weight:950;gap:8px;margin:0 0 8px;text-transform:uppercase}
-.service-proposal__help-card p{color:#667085;font-family:var(--font-mono,"JetBrains Mono",monospace);font-size:11px;font-weight:600;line-height:1.55;margin:0}
+.service-proposal__help-card p{color:#667085;font-family:var(--font-app,system-ui,sans-serif);font-size:11px;font-weight:600;line-height:1.55;margin:0}
 .service-proposal__help-card strong{color:#0b1020;font-weight:900}
-.service-proposal__content--accepted{gap:14px;grid-template-columns:minmax(320px,412px);justify-content:center;padding:18px 16px 112px}
-.service-proposal__content--accepted .service-proposal__accepted{border-color:#dce1e8;border-radius:20px;box-shadow:0 2px 0 rgb(17 24 39/6%),0 18px 44px rgb(15 23 42/5%);overflow:hidden}
-.service-proposal__content--accepted .service-proposal__accepted-hero{background:#4f883a;min-height:186px;padding:24px 24px 28px}
-.service-proposal__content--accepted .service-proposal__accepted-avatar{border:3px solid rgb(255 255 255/26%);border-radius:50%;height:64px;margin-bottom:11px;width:64px}
+.service-proposal__content--accepted{gap:22px;grid-template-columns:minmax(420px,680px);justify-content:center;padding:34px 16px 124px}
+.service-proposal__content--accepted .service-proposal__accepted{border-color:#dce1e8;border-radius:28px;box-shadow:0 2px 0 rgb(17 24 39/6%),0 26px 64px rgb(15 23 42/8%);overflow:hidden}
+.service-proposal__content--accepted .service-proposal__accepted-hero{background:#4f883a;min-height:292px;padding:46px 58px 48px}
+.service-proposal__content--accepted .service-proposal__accepted-avatar{border:5px solid rgb(255 255 255/26%);border-radius:20px;height:104px;margin-bottom:22px;width:104px}
 .service-proposal__content--accepted .service-proposal__accepted-avatar img,.service-proposal__content--accepted .service-proposal__accepted-avatar span{border-radius:50%}
-.service-proposal__content--accepted .service-proposal__accepted-avatar i{border:2px solid #4f883a;bottom:-7px;height:24px;right:-7px;width:24px}
-.service-proposal__content--accepted .service-proposal__accepted-hero small{font-size:10px;letter-spacing:.13em}
-.service-proposal__content--accepted .service-proposal__accepted-hero h1{font-size:19px;line-height:1.15;margin:8px 0 8px}
-.service-proposal__content--accepted .service-proposal__accepted-hero p{font-size:12px}
-.service-proposal__content--accepted .service-proposal__accepted-body{gap:14px;padding:18px 24px 22px}
-.service-proposal__content--accepted .service-proposal__accepted-price{border-radius:13px;min-height:62px;padding:13px 16px}
-.service-proposal__content--accepted .service-proposal__accepted-price strong{font-size:22px}
-.service-proposal__content--accepted .service-proposal__accepted-row{gap:11px;grid-template-columns:28px minmax(0,1fr);min-height:34px}
-.service-proposal__content--accepted .service-proposal__accepted-row>span{height:28px;width:28px}
-.service-proposal__content--accepted .service-proposal__accepted-row strong{font-size:12px;margin-top:4px}
-.service-proposal__content--accepted .service-proposal__accepted-message{border-radius:12px;box-shadow:0 10px 18px rgb(61 108 43/24%);min-height:40px;transition:background 170ms ease,box-shadow 170ms ease,transform 170ms ease}
+.service-proposal__content--accepted .service-proposal__accepted-avatar i{border:4px solid #4f883a;bottom:-13px;height:38px;right:-13px;width:38px}
+.service-proposal__content--accepted .service-proposal__accepted-avatar span{font-size:28px}
+.service-proposal__content--accepted .service-proposal__accepted-hero small{font-size:12px;letter-spacing:.15em}
+.service-proposal__content--accepted .service-proposal__accepted-hero h1{font-size:34px;line-height:1.1;margin:14px 0 16px;max-width:540px}
+.service-proposal__content--accepted .service-proposal__accepted-hero p{font-size:16px}
+.service-proposal__content--accepted .service-proposal__accepted-body{gap:24px;padding:34px 44px 44px}
+.service-proposal__content--accepted .service-proposal__accepted-price{border-radius:20px;min-height:98px;padding:24px 28px}
+.service-proposal__content--accepted .service-proposal__accepted-price small{font-size:11px}
+.service-proposal__content--accepted .service-proposal__accepted-price strong{font-size:36px}
+.service-proposal__content--accepted .service-proposal__accepted-price strong em{font-size:15px}
+.service-proposal__content--accepted .service-proposal__accepted-row{gap:20px;grid-template-columns:44px minmax(0,1fr);min-height:68px}
+.service-proposal__content--accepted .service-proposal__accepted-row>span{height:44px;width:44px}
+.service-proposal__content--accepted .service-proposal__accepted-row small{font-size:11px}
+.service-proposal__content--accepted .service-proposal__accepted-row strong{font-size:18px;margin-top:8px}
+.service-proposal__content--accepted .service-proposal__accepted-message{border-radius:999px;box-shadow:0 16px 34px rgb(61 108 43/24%);font-size:16px;min-height:62px;transition:background 170ms ease,box-shadow 170ms ease,transform 170ms ease}
 .service-proposal__content--accepted .service-proposal__accepted-message:not(:disabled):hover{background:#477b34;box-shadow:0 14px 28px rgb(61 108 43/28%);transform:translateY(-2px) scale(1.01)}
 .service-proposal__content--accepted .service-proposal__accepted-message:not(:disabled):active{transform:scale(.98)}
 .service-proposal__checkout-bar{min-height:66px;padding:10px 44px 10px 40px}

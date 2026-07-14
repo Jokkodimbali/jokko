@@ -138,7 +138,7 @@
 
           <div class="doctor-space__travel-options" role="radiogroup" aria-label="Mode de deplacement">
             <button
-              *ngFor="let option of travelModeOptions"
+              *ngFor="let option of visibleTravelModeOptions()"
               type="button"
               class="doctor-space__travel-option"
               [class.doctor-space__travel-option--active]="selectedTravelMode() === option.value"
@@ -645,7 +645,7 @@
                     Message
                   </a>
                   <button type="button" class="doctor-space__negotiation-more" (click)="openNegotiation(negotiation)">
-                    Voir le detail
+                    {{ negotiation.statut === 'EN_ATTENTE_PRESTATAIRE' ? 'Negocier' : 'Voir le detail' }}
                   </button>
                 </div>
               </div>
@@ -1604,9 +1604,10 @@
               <article class="doctor-space__wallet-balance">
                 <div>
                   <lucide-icon name="wallet-cards" size="24" [strokeWidth]="2.2"></lucide-icon>
-                  <span>Solde disponible</span>
+                  <span>Total encaissé</span>
                 </div>
-                <strong>{{ walletBalance() | number: '1.0-0' }} FCFA</strong>
+                <strong>{{ walletTotalBalance() | number: '1.0-0' }} FCFA</strong>
+                <small>Disponible : {{ walletBalance() | number: '1.0-0' }} FCFA</small>
 
                 <button
                   type="button"
@@ -1622,7 +1623,7 @@
               <article class="doctor-space__wallet-revenue">
                 <header>
                   <lucide-icon name="arrow-up-right" size="26" [strokeWidth]="2"></lucide-icon>
-                  <span>Revenue du mois</span>
+                  <span>Revenu du mois</span>
                 </header>
                 <strong>{{ walletMonthlyRevenue() | number: '1.0-0' }} FCFA</strong>
                 <small [class.doctor-space__wallet-change--down]="walletMonthlyChangePercent() < 0">

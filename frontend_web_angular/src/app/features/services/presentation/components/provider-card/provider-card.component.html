@@ -1,4 +1,11 @@
-<article class="provider-card">
+<article
+  class="provider-card"
+  role="link"
+  tabindex="0"
+  [attr.aria-label]="'Voir le detail de ' + provider.name"
+  (click)="openProfile()"
+  (keydown)="openProfileFromKeyboard($event)"
+>
   <div class="provider-card__media">
     <img
       class="provider-card__cover"
@@ -47,6 +54,7 @@
       [queryParams]="provider.queryParams"
       [state]="provider.state"
       [attr.aria-label]="'Voir le profil de ' + provider.name"
+      (click)="stopCardNavigation($event)"
     >
       <img
         *ngIf="provider.avatarUrl; else avatarInitials"
@@ -73,6 +81,7 @@
         [routerLink]="provider.profileCommands"
         [queryParams]="provider.queryParams"
         [state]="provider.state"
+        (click)="stopCardNavigation($event)"
       >
         {{ provider.name }}
       </a>
@@ -104,7 +113,7 @@
         type="button"
         class="provider-card__action provider-card__action--primary"
         [class.provider-card__action--medical]="provider.isMedical"
-        (click)="primaryAction.emit()"
+        (click)="onPrimaryActionClick($event)"
       >
         <lucide-icon
           [name]="provider.isMedical ? 'calendar-check' : 'wallet-cards'"
@@ -118,6 +127,7 @@
         [routerLink]="provider.profileCommands"
         [queryParams]="provider.queryParams"
         [state]="provider.state"
+        (click)="stopCardNavigation($event)"
       >
         <lucide-icon name="info" size="14" [strokeWidth]="2.4"></lucide-icon>
         voir profil

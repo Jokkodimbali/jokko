@@ -834,6 +834,10 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
   }
 
   private requiresTimeSlot(status: ReservationStatus): boolean {
-    return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
+    return (
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS'
+    );
   }
 }

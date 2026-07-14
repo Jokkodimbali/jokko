@@ -5,7 +5,7 @@
 .messages-page {
   background: #f6f6f5;
   color: #141414;
-  font-family: 'Inter', var(--font-app, system-ui, sans-serif);
+  font-family: var(--font-app, system-ui, sans-serif);
   min-height: 100vh;
 }
 

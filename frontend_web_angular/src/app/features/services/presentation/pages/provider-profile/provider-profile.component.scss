@@ -5,7 +5,7 @@
 .provider-profile {
   background: #dfeaf0;
   color: #161616;
-  font-family: 'Inter', var(--font-app, system-ui, sans-serif);
+  font-family: var(--font-app, system-ui, sans-serif);
   min-height: 100vh;
 }
 

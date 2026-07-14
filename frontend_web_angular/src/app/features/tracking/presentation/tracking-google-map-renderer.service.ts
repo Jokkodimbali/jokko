@@ -424,7 +424,7 @@ export class TrackingGoogleMapRendererService {
     const bubble = document.createElement('div');
     bubble.textContent = statusLabel;
     bubble.style.cssText =
-      'max-width:280px;padding:8px 12px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:#fff;color:#111827;box-shadow:0 10px 24px rgba(15,23,42,.2);font:850 12px/1.28 Arial,sans-serif;text-align:center;white-space:normal;';
+      'max-width:280px;padding:8px 12px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:#fff;color:#111827;box-shadow:0 10px 24px rgba(15,23,42,.2);font:850 12px/1.28 "DM Sans",sans-serif;text-align:center;white-space:normal;';
 
     const pointer = document.createElement('span');
     pointer.style.cssText =
@@ -437,7 +437,7 @@ export class TrackingGoogleMapRendererService {
         <circle cx="38" cy="31" r="18" fill="#facc15" fill-opacity=".18"/>
         <g>
           <rect x="30" y="5" width="17" height="7" rx="2" fill="#111827"/>
-          <text x="38.5" y="10.5" fill="#fff" font-family="Arial,sans-serif" font-size="5" font-weight="700" text-anchor="middle">TAXI</text>
+          <text x="38.5" y="10.5" fill="#fff" font-family="DM Sans,sans-serif" font-size="5" font-weight="700" text-anchor="middle">TAXI</text>
           <path d="M12 26h5l7-12h25l11 12h4c4 0 7 3 7 7v5H6v-5c0-4 2-7 6-7z" fill="#facc15" stroke="#fff" stroke-width="2"/>
           <path d="M27 16h9v10H20zM39 16h9l9 10H39z" fill="#dbeafe" stroke="#111827" stroke-width="1.4"/>
           <path d="M8 30h62" stroke="#111827" stroke-width="3"/>
@@ -451,7 +451,7 @@ export class TrackingGoogleMapRendererService {
     const badge = document.createElement('span');
     badge.textContent = remainingLabel;
     badge.style.cssText =
-      'margin-top:-8px;padding:3px 7px;border-radius:999px;background:#111827;color:#fff;font:800 9px/1 Arial,sans-serif;box-shadow:0 4px 10px rgba(15,23,42,.25);';
+      'margin-top:-8px;padding:3px 7px;border-radius:999px;background:#111827;color:#fff;font:800 9px/1 "DM Sans",sans-serif;box-shadow:0 4px 10px rgba(15,23,42,.25);';
 
     content.append(bubble, pointer, taxi, badge);
     return content;

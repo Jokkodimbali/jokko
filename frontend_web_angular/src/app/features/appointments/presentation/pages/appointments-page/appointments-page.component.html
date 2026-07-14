@@ -59,7 +59,7 @@
             class="appointments-tabs__button"
             (click)="setTab('active')"
           >
-            RDV et negociation <span>{{ activeItemsCount() }}</span>
+            RDV et Négociation clients <span>{{ activeItemsCount() }}</span>
           </button>
           <button
             type="button"
@@ -190,7 +190,12 @@
                   [routerLink]="item.route"
                   [queryParams]="item.queryParams"
                 >
-                  Voir le detail
+                  <lucide-icon
+                    [name]="scheduleItemActionIcon(item)"
+                    size="17"
+                    [strokeWidth]="2.4"
+                  ></lucide-icon>
+                  {{ scheduleItemActionLabel(item) }}
                 </a>
                 <button
                   *ngIf="activeTab() !== 'done'"

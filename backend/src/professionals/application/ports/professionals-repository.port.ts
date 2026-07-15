@@ -98,6 +98,8 @@ export type CreateProfessionalProfileInput = {
   biographie?: string | null;
   nomEntreprise?: string | null;
   ville?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type CreateProfessionalProfileResult =
@@ -110,6 +112,8 @@ export type UpdateProfessionalProfileInput = {
   biographie?: string | null;
   nomEntreprise?: string | null;
   ville?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type UpdateProfessionalProfileResult =

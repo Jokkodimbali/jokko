@@ -111,6 +111,8 @@ export class DoctorSpaceService {
     bio?: string | null;
     companyName?: string | null;
     city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   }): Observable<BackendProfessionalProfile> {
     return this.http
       .post<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/profile`, data)
@@ -121,6 +123,8 @@ export class DoctorSpaceService {
     bio?: string | null;
     companyName?: string | null;
     city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   }): Observable<BackendProfessionalProfile> {
     return this.http
       .patch<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/me`, data)

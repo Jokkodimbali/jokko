@@ -198,7 +198,12 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
         },
         select: PROFESSIONAL_SELECT,
       });
-      return { status: 'created', profile: this.mapProfile(profile) };
+      await this.persistProfileLocation(profile.id, input);
+      const coordinates = await this.getProfileCoordinates(profile.id);
+      return {
+        status: 'created',
+        profile: this.mapProfile({ ...profile, ...coordinates }),
+      };
     } catch (error) {
       const handled = this.handlePrismaError<CreateProfessionalProfileResult>(
         error,
@@ -240,7 +245,12 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
         },
         select: PROFESSIONAL_SELECT,
       });
-      return { status: 'updated', profile: this.mapProfile(profile) };
+      await this.persistProfileLocation(profile.id, input);
+      const coordinates = await this.getProfileCoordinates(profile.id);
+      return {
+        status: 'updated',
+        profile: this.mapProfile({ ...profile, ...coordinates }),
+      };
     } catch (error) {
       const handled = this.handlePrismaError<UpdateProfessionalProfileResult>(
         error,
@@ -811,6 +821,33 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       latitude: first?.latitude == null ? null : Number(first.latitude),
       longitude: first?.longitude == null ? null : Number(first.longitude),
     };
+  }
+
+  private async persistProfileLocation(
+    profileId: string,
+    input: {
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+  ): Promise<void> {
+    if (input.latitude === undefined && input.longitude === undefined) return;
+
+    if (input.latitude === null || input.longitude === null) {
+      await this.prisma.$executeRaw`
+        UPDATE professional_profiles
+        SET localisation = NULL
+        WHERE id = ${profileId}::uuid
+      `;
+      return;
+    }
+
+    if (input.latitude === undefined || input.longitude === undefined) return;
+
+    await this.prisma.$executeRaw`
+      UPDATE professional_profiles
+      SET localisation = ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography
+      WHERE id = ${profileId}::uuid
+    `;
   }
 
   private mapAdminKycProfile(

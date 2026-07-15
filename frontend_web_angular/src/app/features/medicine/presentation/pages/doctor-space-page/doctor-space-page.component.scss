@@ -140,6 +140,22 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.doctor-space__travel-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.doctor-space__travel-layout--with-map {
+  align-items: stretch;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+}
+
+.doctor-space__travel-layout--with-map .doctor-space__travel-options {
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
 .doctor-space__travel-option {
   background: #f8f4ef;
   border: 1px solid #eadccd;
@@ -153,6 +169,12 @@
   position: relative;
   text-align: left;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.doctor-space__travel-layout--with-map .doctor-space__travel-option {
+  gap: 8px;
+  min-height: 92px;
+  padding: 14px 44px 13px 14px;
 }
 
 .doctor-space__travel-option:hover,
@@ -224,6 +246,88 @@
 .doctor-space__travel-save:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.doctor-space__intervention-map {
+  background: #fbf8f4;
+  border: 1px solid #eadccd;
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow: visible;
+  padding: 14px;
+}
+
+.doctor-space__intervention-map > header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.doctor-space__intervention-map > header span {
+  align-items: center;
+  background: #955d24;
+  border-radius: 8px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.doctor-space__intervention-map > header div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.doctor-space__intervention-map > header strong {
+  color: #171717;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.doctor-space__intervention-map > header small {
+  color: #6f655b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.doctor-space__intervention-map app-service-proposal-interactive-map {
+  min-width: 0;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map {
+  gap: 10px;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map__canvas-wrap {
+  border-radius: 14px;
+  height: 190px;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map--expanded .interactive-map__canvas-wrap {
+  min-height: 260px;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map__search {
+  border-radius: 10px;
+  min-height: 38px;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map__styles {
+  border-radius: 10px;
+}
+
+.doctor-space__intervention-map ::ng-deep .interactive-map__status {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .doctor-space__calendar {
@@ -1229,8 +1333,20 @@
     grid-template-columns: 1fr;
   }
 
+  .doctor-space__travel-layout--with-map {
+    grid-template-columns: 1fr;
+  }
+
   .doctor-space__travel-mode {
     padding: 18px;
+  }
+
+  .doctor-space__intervention-map {
+    padding: 12px;
+  }
+
+  .doctor-space__intervention-map ::ng-deep .interactive-map__toolbar {
+    align-items: stretch;
   }
 
   .doctor-space__profile-card--hero,

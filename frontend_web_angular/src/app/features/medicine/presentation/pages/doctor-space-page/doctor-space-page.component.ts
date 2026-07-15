@@ -3,7 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { forkJoin, of } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -23,6 +23,10 @@ import {
   NegotiationView,
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
+import {
+  ServiceProposalInteractiveMapComponent,
+  ServiceProposalMapAddressSelection,
+} from '../../../../services/presentation/components/service-proposal-interactive-map/service-proposal-interactive-map.component';
 import {
   AppointmentStatus,
   BackendReservation,
@@ -282,7 +286,14 @@ type UploadPreview = {
 @Component({
   selector: 'app-doctor-space-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule, DoctorSpaceSidebarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    LucideAngularModule,
+    DoctorSpaceSidebarComponent,
+    ServiceProposalInteractiveMapComponent,
+  ],
   templateUrl: './doctor-space-page.component.html',
   styleUrl: './doctor-space-page.component.scss',
 })
@@ -318,6 +329,9 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly appointmentDuration = signal(0);
   protected readonly appointmentPause = signal(0);
   protected readonly selectedTravelMode = signal<ServiceTravelMode>('PRESTATAIRE_SE_DEPLACE');
+  protected readonly interventionAddress = signal('');
+  protected readonly interventionCoordinate = signal<{ latitude: number; longitude: number } | null>(null);
+  protected readonly isInterventionMapExpanded = signal(false);
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
   protected readonly agendaViewMode = signal<AgendaViewMode>('day');
@@ -384,6 +398,14 @@ export class DoctorSpacePageComponent implements OnInit {
       ? this.travelModeOptions
       : this.travelModeOptions.filter((option) => option.value !== 'TRANSPORT_COLIS'),
   );
+  protected readonly shouldShowInterventionMap = computed(
+    () => this.selectedTravelMode() === 'CLIENT_SE_DEPLACE',
+  );
+  protected readonly interventionAddressHint = computed(() => {
+    const address = this.interventionAddress().trim();
+    if (address) return address;
+    return 'Selectionnez le point de rendez-vous sur la carte.';
+  });
   protected readonly withdrawalForm = {
     amount: 0,
     method: 'WAVE' as 'WAVE' | 'ORANGE_MONEY',
@@ -1920,6 +1942,19 @@ export class DoctorSpacePageComponent implements OnInit {
     }
   }
 
+  protected updateInterventionAddress(address: string): void {
+    this.interventionAddress.set(address);
+  }
+
+  protected resolveInterventionAddress(selection: ServiceProposalMapAddressSelection): void {
+    this.interventionAddress.set(selection.address);
+    this.interventionCoordinate.set(selection.coordinate);
+  }
+
+  protected setInterventionMapExpanded(expanded: boolean): void {
+    this.isInterventionMapExpanded.set(expanded);
+  }
+
   protected saveTravelMode(): void {
     const selectedMode = this.selectedTravelMode();
     const mode =
@@ -1927,27 +1962,68 @@ export class DoctorSpacePageComponent implements OnInit {
         ? 'PRESTATAIRE_SE_DEPLACE'
         : selectedMode;
     const motifs = this.motifs().filter((motif) => motif.travelMode !== mode);
+    const mustSaveInterventionLocation = mode === 'CLIENT_SE_DEPLACE';
+    const interventionAddress = this.interventionAddress().trim();
+    const interventionCoordinate = this.interventionCoordinate();
 
-    if (motifs.length === 0) {
+    if (mustSaveInterventionLocation && !this.professionalProfileId()) {
+      this.feedback.info('Creez votre profil professionnel avant de definir cette adresse.');
+      return;
+    }
+
+    if (mustSaveInterventionLocation && (!interventionAddress || !interventionCoordinate)) {
+      this.feedback.info("Selectionnez l'adresse d'intervention directement sur la carte.");
+      return;
+    }
+
+    if (motifs.length === 0 && !mustSaveInterventionLocation) {
       this.feedback.success('Mode de deplacement enregistre.');
       return;
     }
 
+    const profileUpdate$: Observable<BackendProfessionalProfile | null> = mustSaveInterventionLocation
+      ? this.doctorSpaceService.updateMyProfessionalProfile({
+          city: interventionAddress,
+          latitude: interventionCoordinate?.latitude ?? null,
+          longitude: interventionCoordinate?.longitude ?? null,
+        })
+      : of(null);
+
     this.isSaving.set(true);
-    forkJoin(
-      motifs.map((motif) =>
-        this.doctorSpaceService.updateService(motif.id, { travelMode: mode }),
-      ),
-    )
-      .pipe(finalize(() => this.isSaving.set(false)))
+    profileUpdate$
+      .pipe(
+        switchMap((profile: BackendProfessionalProfile | null) => {
+          if (profile) {
+            this.professionalProfile.set(profile);
+            this.professionalProfileId.set(profile.id);
+            this.professionalName.set(profile.utilisateur.nom);
+            this.patchProfileForm(profile);
+          }
+
+          return motifs.length > 0
+            ? forkJoin(
+                motifs.map((motif) =>
+                  this.doctorSpaceService.updateService(motif.id, { travelMode: mode }),
+                ),
+              )
+            : of([]);
+        }),
+        finalize(() => this.isSaving.set(false)),
+      )
       .subscribe({
         next: () => {
-          this.feedback.success('Mode de deplacement mis a jour.');
-          this.refreshServices();
+          this.feedback.success(
+            mustSaveInterventionLocation
+              ? "Mode et adresse d'intervention mis a jour."
+              : 'Mode de deplacement mis a jour.',
+          );
+          if (motifs.length > 0) {
+            this.refreshServices();
+          }
         },
-        error: (error) =>
+        error: (error: unknown) =>
           this.feedback.error(
-            getHttpErrorMessage(error, 'Mise a jour du mode de deplacement impossible.'),
+            getHttpErrorMessage(error, "Mise a jour du mode de deplacement impossible."),
           ),
       });
   }
@@ -2299,6 +2375,15 @@ export class DoctorSpacePageComponent implements OnInit {
     this.profileForm.companyName = profile?.nomEntreprise ?? '';
     this.profileForm.city = profile?.ville ?? '';
     this.profileForm.bio = profile?.biographie ?? '';
+    this.interventionAddress.set(profile?.ville ?? '');
+    this.interventionCoordinate.set(
+      typeof profile?.latitude === 'number' && typeof profile?.longitude === 'number'
+        ? {
+            latitude: profile.latitude,
+            longitude: profile.longitude,
+          }
+        : null,
+    );
   }
 
   private toLocalUploadPreview(file: File): UploadPreview {

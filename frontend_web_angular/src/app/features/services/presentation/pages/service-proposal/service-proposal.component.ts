@@ -23,6 +23,7 @@ import {
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthService } from '../../../../auth/data-access/auth.service';
+import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
   AvailabilityRealtimeService,
   ProfessionalAvailabilityChangedEvent,
@@ -115,6 +116,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly authService = inject(AuthService);
+  private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
   private readonly backNavigation = inject(BackNavigationService);
@@ -1614,6 +1616,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           } else {
             this.feedback.success('Votre proposition a ete envoyee au prestataire.');
           }
+          this.sendInitialNegotiationMessage(proposal);
           this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
         },
         error: (error) => {
@@ -1672,6 +1675,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (reservation) => {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
+          if (reservation.id) {
+            this.ensureReservationConversation(reservation.id);
+          }
           this.cancelActiveProposalAfterDirectReservation(draft.service.id);
           if (reservation.id) {
             this.router.navigate(['/appointments', reservation.id, 'payment'], {
@@ -1688,6 +1694,25 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.handleProposalError(error);
         },
       });
+  }
+
+  private sendInitialNegotiationMessage(proposal: NegotiationView): void {
+    this.messagesService.createConversation({ negotiationId: proposal.id }).subscribe({
+      next: (conversation) => {
+        const message = proposal.messageCourant || [
+          `Demande de negociation pour ${proposal.service?.nom || this.categoryLabel()}.`,
+          `Montant propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,
+        ].join(' ');
+        this.messagesService.sendMessage(conversation.id, message).subscribe({ error: () => undefined });
+      },
+      error: () => undefined,
+    });
+  }
+
+  private ensureReservationConversation(reservationId: string): void {
+    this.messagesService.createConversation({ reservationId }).subscribe({
+      error: () => undefined,
+    });
   }
 
   private cancelActiveProposalAfterDirectReservation(serviceId: string): void {

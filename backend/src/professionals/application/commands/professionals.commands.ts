@@ -7,6 +7,8 @@ export type CreateProfessionalProfileCommand = {
   bio?: string | null;
   companyName?: string | null;
   city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 // Update uses the same shape as Create; we alias for semantic clarity

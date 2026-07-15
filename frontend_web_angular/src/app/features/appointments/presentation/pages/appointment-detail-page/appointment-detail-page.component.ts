@@ -239,10 +239,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       Number.isFinite(appointment.proposedAdjustedPrice)
     );
   });
-  protected readonly isProviderViewer = computed(() => {
-    return this.isProfessionalRole(this.currentUser()?.role);
+  protected readonly isClientViewer = computed(() => {
+    const appointment = this.appointment();
+    const currentUserId = this.currentUser()?.id;
+    return !!appointment && !!currentUserId && appointment.clientId === currentUserId;
   });
-  protected readonly isDoctorViewer = computed(() => this.currentUser()?.role === 'MEDECIN');
+  protected readonly isProviderViewer = computed(() => {
+    const appointment = this.appointment();
+    const currentUserId = this.currentUser()?.id;
+    if (!appointment || !currentUserId || this.isClientViewer()) return false;
+
+    return appointment.professionalUserId === currentUserId;
+  });
+  protected readonly isDoctorViewer = computed(
+    () => this.isProviderViewer() && this.currentUser()?.role === 'MEDECIN',
+  );
   protected readonly isMedicalAppointment = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return false;
@@ -263,7 +274,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly canManageProviderStatus = computed(() => {
     const appointment = this.appointment();
     return (
-      this.isProfessionalRole(this.currentUser()?.role) &&
+      this.isProviderViewer() &&
       !!appointment &&
       !this.isTerminalAppointmentStatus(appointment.status)
     );
@@ -647,7 +658,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return (
       !!appointment &&
       this.isPaymentRequired() &&
-      !this.isProviderViewer() &&
+      this.isClientViewer() &&
       !this.isAppointmentClosed()
     );
   });

@@ -8,6 +8,13 @@ import type {
 } from '../commands/professionals.commands';
 import { ProfessionalAppService } from './professional-app-service.base';
 
+const SENEGAL_BOUNDS = {
+  minLatitude: 12.0,
+  maxLatitude: 17.0,
+  minLongitude: -18.0,
+  maxLongitude: -11.0,
+} as const;
+
 @Injectable()
 export class ProfileService extends ProfessionalAppService {
   async createProfile(
@@ -22,6 +29,7 @@ export class ProfileService extends ProfessionalAppService {
       nomEntreprise:
         CompanyName.create(command.companyName)?.getValue() ?? null,
       ville: City.create(command.city)?.getValue() ?? null,
+      ...this.normalizeLocation(command),
     });
 
     if (result.status === 'already_exists') {
@@ -60,6 +68,7 @@ export class ProfileService extends ProfessionalAppService {
         command.city === undefined
           ? undefined
           : (City.create(command.city)?.getValue() ?? null),
+      ...this.normalizeLocation(command),
     });
 
     if (result.status === 'profile_not_found') {
@@ -76,5 +85,46 @@ export class ProfileService extends ProfessionalAppService {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }
     return profile;
+  }
+
+  private normalizeLocation(command: {
+    latitude?: number | null;
+    longitude?: number | null;
+  }): { latitude?: number | null; longitude?: number | null } {
+    const hasLatitude = command.latitude !== undefined;
+    const hasLongitude = command.longitude !== undefined;
+    if (!hasLatitude && !hasLongitude) return {};
+    if (hasLatitude !== hasLongitude) {
+      throw appHttpException('SEARCH_COORDINATES_PAIR_REQUIRED');
+    }
+
+    if (
+      command.latitude === null ||
+      command.longitude === null ||
+      command.latitude === undefined ||
+      command.longitude === undefined
+    ) {
+      return { latitude: null, longitude: null };
+    }
+
+    if (!this.isCoordinateInSenegal(command.latitude, command.longitude)) {
+      throw appHttpException('MAPS_COORDINATES_INVALID');
+    }
+
+    return {
+      latitude: command.latitude,
+      longitude: command.longitude,
+    };
+  }
+
+  private isCoordinateInSenegal(latitude: number, longitude: number): boolean {
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= SENEGAL_BOUNDS.minLatitude &&
+      latitude <= SENEGAL_BOUNDS.maxLatitude &&
+      longitude >= SENEGAL_BOUNDS.minLongitude &&
+      longitude <= SENEGAL_BOUNDS.maxLongitude
+    );
   }
 }

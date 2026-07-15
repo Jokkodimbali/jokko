@@ -81,7 +81,9 @@ export interface BackendReservation {
 
 export interface AppointmentView {
   id: string;
+  clientId: string;
   professionalId: string;
+  professionalUserId: string | null;
   serviceId: string;
   status: AppointmentStatus;
   scheduledAt: string;

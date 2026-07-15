@@ -165,6 +165,27 @@ export class ConversationsController {
     });
   }
 
+  @Get('media/download-url')
+  @ApiOperation({ summary: 'Generer une URL de telechargement Cloudinary signee' })
+  async createMediaDownloadUrl(
+    @Query('mediaUrl') mediaUrl: string | undefined,
+    @Query('fileName') fileName?: string,
+  ) {
+    if (!mediaUrl) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const download = (() => {
+      try {
+        return this.cloudinaryMedia.createPrivateDownloadUrl(mediaUrl, fileName);
+      } catch {
+        throw appHttpException('VALIDATION_REQUEST_INVALID');
+      }
+    })();
+
+    return createApiResponse(download);
+  }
+
   @Get(':conversationId/messages')
   @ApiOperation({ summary: API_DOCS.messaging.listMessagesSummary })
   @ApiParam({

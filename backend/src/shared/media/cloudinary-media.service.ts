@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomUUID } from 'node:crypto';
 import { parse } from 'node:path';
+import { v2 as cloudinary } from 'cloudinary';
 
 export type CloudinaryUploadInput = {
   buffer: Buffer;
@@ -15,6 +16,11 @@ export type CloudinaryUploadResult = {
   publicId: string;
   resourceType: string;
   bytes: number;
+};
+
+export type CloudinaryDownloadUrl = {
+  url: string;
+  fileName: string;
 };
 
 type CloudinaryConfig = {
@@ -41,12 +47,14 @@ export class CloudinaryMediaService {
 
   async upload(input: CloudinaryUploadInput): Promise<CloudinaryUploadResult> {
     const config = this.readConfig();
+    this.configureSdk(config);
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const publicId = this.buildPublicId(input.originalName);
     const folder = this.normalizeFolder(input.folder);
     const resourceType = this.resourceTypeFor(input.mimeType);
     const signature = this.sign(
       {
+        access_mode: 'public',
         folder,
         public_id: publicId,
         timestamp,
@@ -62,6 +70,7 @@ export class CloudinaryMediaService {
     );
     formData.append('api_key', config.apiKey);
     formData.append('timestamp', timestamp);
+    formData.append('access_mode', 'public');
     formData.append('folder', folder);
     formData.append('public_id', publicId);
     formData.append('signature', signature);
@@ -91,6 +100,32 @@ export class CloudinaryMediaService {
     };
   }
 
+  createPrivateDownloadUrl(
+    secureUrl: string,
+    attachmentName?: string,
+  ): CloudinaryDownloadUrl {
+    const config = this.readConfig();
+    this.configureSdk(config);
+
+    const parsed = this.parseDeliveryUrl(secureUrl, config.cloudName);
+    const expiresAt = Math.floor(Date.now() / 1000) + 5 * 60;
+    const fileName = attachmentName?.trim() || parsed.fileName;
+
+    return {
+      url: cloudinary.utils.private_download_url(
+        parsed.publicId,
+        (parsed.resourceType === 'raw' ? undefined : parsed.format) as string,
+        {
+          resource_type: parsed.resourceType,
+          type: parsed.deliveryType,
+          attachment: true,
+          expires_at: expiresAt,
+        },
+      ),
+      fileName,
+    };
+  }
+
   private readConfig(): CloudinaryConfig {
     const cloudinaryUrl = this.readEnv('CLOUDINARY_URL');
     if (cloudinaryUrl) {
@@ -117,6 +152,59 @@ export class CloudinaryMediaService {
     }
 
     return { cloudName, apiKey, apiSecret };
+  }
+
+  private configureSdk(config: CloudinaryConfig): void {
+    cloudinary.config({
+      cloud_name: config.cloudName,
+      api_key: config.apiKey,
+      api_secret: config.apiSecret,
+      secure: true,
+    });
+  }
+
+  private parseDeliveryUrl(
+    secureUrl: string,
+    expectedCloudName: string,
+  ): {
+    resourceType: string;
+    deliveryType: string;
+    publicId: string;
+    format: string;
+    fileName: string;
+  } {
+    const url = new URL(secureUrl);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const cloudNameIndex = parts.indexOf(expectedCloudName);
+    const resourceType = parts[cloudNameIndex + 1];
+    const deliveryType = parts[cloudNameIndex + 2];
+    const uploadSegments = parts.slice(cloudNameIndex + 3);
+    const versionIndex = uploadSegments.findIndex((part) => /^v\d+$/.test(part));
+    const publicIdSegments =
+      versionIndex >= 0 ? uploadSegments.slice(versionIndex + 1) : uploadSegments;
+    const lastSegment = publicIdSegments.at(-1) ?? 'media';
+    const parsedName = parse(lastSegment);
+    const format = parsedName.ext.replace(/^\./, '');
+
+    if (!resourceType || !deliveryType || publicIdSegments.length === 0 || !format) {
+      throw new Error('CLOUDINARY_DELIVERY_URL_INVALID');
+    }
+
+    const isRawResource = resourceType === 'raw';
+    const publicId = isRawResource
+      ? publicIdSegments.join('/')
+      : [
+          ...publicIdSegments.slice(0, -1),
+          parsedName.name,
+        ].join('/');
+
+    return {
+      resourceType,
+      deliveryType,
+      publicId,
+      format,
+      fileName: decodeURIComponent(lastSegment),
+    };
   }
 
   private readEnv(key: string): string {

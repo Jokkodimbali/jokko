@@ -25,68 +25,25 @@
         class="service-proposal__content service-proposal__content--accepted"
         *ngIf="providerProposalFinalized() as proposal"
       >
-        <section class="service-proposal__accepted" aria-label="Reservation finalisee">
-          <header class="service-proposal__accepted-hero">
-            <div class="service-proposal__accepted-avatar">
-              <img
-                *ngIf="proposal.client?.urlAvatar; else providerAcceptedInitials"
-                [src]="proposal.client?.urlAvatar"
-                [alt]="proposalClientName()"
-              />
-              <ng-template #providerAcceptedInitials>
-                <span>{{ proposalClientInitials() }}</span>
-              </ng-template>
-              <i aria-hidden="true">
-                <lucide-icon name="check" size="17" [strokeWidth]="3"></lucide-icon>
-              </i>
-            </div>
-            <small>Reservation finalisee</small>
-            <h1>{{ proposalClientName() }} a accepte le prix</h1>
-            <p>
-              Le rendez-vous est confirme pour le
-              <strong>{{ formattedDate() }} a {{ formattedTime() }}</strong>
-            </p>
-          </header>
-
-          <div class="service-proposal__accepted-body">
-            <div class="service-proposal__accepted-price">
-              <span>
-                <small>Prix convenu</small>
-                <strong>{{ providerFinalizedAmountLabel() }} <em>FCFA</em></strong>
-              </span>
-              <span>
-                <small>{{ providerFinalizedComparisonLabel() }}</small>
-                <strong>{{ providerFinalizedComparisonAmountLabel() }}</strong>
-              </span>
-            </div>
-
-            <div class="service-proposal__accepted-row">
-              <span
-                ><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.3"></lucide-icon
-              ></span>
-              <p>
-                <small>Date &amp; heure</small
-                ><strong>{{ formattedDate() }} &middot; {{ formattedTime() }}</strong>
-              </p>
-            </div>
-
-            <div class="service-proposal__accepted-row">
-              <span><lucide-icon name="map-pin" size="17" [strokeWidth]="2.3"></lucide-icon></span>
-              <p>
-                <small>Adresse</small><strong>{{ shortAddress() }}</strong>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <button
-          type="button"
-          class="service-proposal__accepted-message"
-          (click)="openProviderFinalizedReservation()"
-        >
-          <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.4"></lucide-icon>
-          Voir la reservation
-        </button>
+        <app-service-proposal-accepted-summary
+          [avatarAlt]="proposalClientName()"
+          [avatarUrl]="proposal.client?.urlAvatar || ''"
+          [initials]="proposalClientInitials()"
+          eyebrow="Reservation finalisee"
+          [title]="proposalClientName() + ' a accepte le prix'"
+          descriptionPrefix="Le rendez-vous est confirme pour le"
+          [descriptionStrong]="formattedDate() + ' a ' + formattedTime()"
+          pricePrimaryLabel="Prix convenu"
+          [pricePrimaryValue]="providerFinalizedAmountLabel()"
+          pricePrimarySuffix="FCFA"
+          [priceSecondaryLabel]="providerFinalizedComparisonLabel()"
+          [priceSecondaryValue]="providerFinalizedComparisonAmountLabel()"
+          [dateValue]="formattedDate() + ' · ' + formattedTime()"
+          [addressValue]="shortAddress()"
+          actionIcon="calendar-days"
+          actionLabel="Voir la reservation"
+          (action)="openProviderFinalizedReservation()"
+        ></app-service-proposal-accepted-summary>
       </section>
 
       <section
@@ -386,69 +343,25 @@
         [class.service-proposal__content--accepted]="acceptedReservation()"
       >
         <ng-container *ngIf="acceptedReservation() as accepted; else bookingContent">
-          <section class="service-proposal__accepted" aria-label="Prestation acceptee">
-            <header class="service-proposal__accepted-hero">
-              <div class="service-proposal__accepted-avatar">
-                <img
-                  *ngIf="avatarUrl(); else acceptedInitials"
-                  [src]="avatarUrl()"
-                  [alt]="displayName()"
-                />
-                <ng-template #acceptedInitials>
-                  <span>{{ providerInitials() }}</span>
-                </ng-template>
-                <i aria-hidden="true">
-                  <lucide-icon name="check" size="17" [strokeWidth]="3"></lucide-icon>
-                </i>
-              </div>
-              <small>Prestation accept&eacute;e</small>
-              <h1>Vous avez accept&eacute; l'offre de {{ displayName() }}</h1>
-              <p>
-                Rendez-vous le <strong>{{ acceptedDateTimeLabel() }}</strong>
-              </p>
-            </header>
-
-            <div class="service-proposal__accepted-body">
-              <div class="service-proposal__accepted-price">
-                <span>
-                  <small>Prix convenu</small>
-                  <strong>{{ acceptedAmountLabel() }} <em>FCFA</em></strong>
-                </span>
-                <span>
-                  <small>{{ acceptedComparisonLabel() }}</small>
-                  <strong>{{ acceptedComparisonAmountLabel() }}</strong>
-                </span>
-              </div>
-
-              <div class="service-proposal__accepted-row">
-                <span
-                  ><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.3"></lucide-icon
-                ></span>
-                <p>
-                  <small>Date &amp; heure</small
-                  ><strong>{{ acceptedDateLabel() }} &middot; {{ acceptedTimeLabel() }}</strong>
-                </p>
-              </div>
-
-              <div class="service-proposal__accepted-row">
-                <span
-                  ><lucide-icon name="map-pin" size="17" [strokeWidth]="2.3"></lucide-icon
-                ></span>
-                <p>
-                  <small>Adresse</small><strong>{{ acceptedAddressLabel() }}</strong>
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <button
-            type="button"
-            class="service-proposal__accepted-message"
-            (click)="messageProvider()"
-          >
-            <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-            Message au prestataire
-          </button>
+          <app-service-proposal-accepted-summary
+            [avatarAlt]="displayName()"
+            [avatarUrl]="avatarUrl()"
+            [initials]="providerInitials()"
+            eyebrow="Prestation acceptée"
+            [title]="&quot;Vous avez accepté l'offre de &quot; + displayName()"
+            descriptionPrefix="Rendez-vous le"
+            [descriptionStrong]="acceptedDateTimeLabel()"
+            pricePrimaryLabel="Prix convenu"
+            [pricePrimaryValue]="acceptedAmountLabel()"
+            pricePrimarySuffix="FCFA"
+            [priceSecondaryLabel]="acceptedComparisonLabel()"
+            [priceSecondaryValue]="acceptedComparisonAmountLabel()"
+            [dateValue]="acceptedDateLabel() + ' · ' + acceptedTimeLabel()"
+            [addressValue]="acceptedAddressLabel()"
+            actionIcon="message-circle"
+            actionLabel="Message au prestataire"
+            (action)="messageProvider()"
+          ></app-service-proposal-accepted-summary>
         </ng-container>
 
         <ng-template #bookingContent>
@@ -459,7 +372,7 @@
           >
             <header class="service-proposal__hero">
               <div>
-                <h1>{{ finalReservationTitle() }}</h1>
+                <h1>Reservation finale</h1>
                 <p>
                   avec <strong>{{ displayName() }}</strong>
                   <span class="service-proposal__online-badge">
@@ -833,7 +746,7 @@
             >
               <header class="service-proposal__hero">
                 <div>
-                  <h1>{{ finalReservationTitle() }}</h1>
+                  <h1>Reservation finale</h1>
                   <p>
                     avec <strong>{{ displayName() }}</strong>
                     <span class="service-proposal__online-badge">

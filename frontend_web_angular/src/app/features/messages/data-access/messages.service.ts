@@ -1,10 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { Conversation, ConversationMessage } from '../domain/models/messages.models';
+
+export type MediaDownloadTarget = {
+  url: string;
+  fileName: string;
+  revokeAfterUse: boolean;
+};
 
 @Injectable({
   providedIn: 'root',
@@ -69,9 +75,56 @@ export class MessagesService {
   }
 
   downloadMedia(mediaUrl: string): Observable<Blob> {
-    return this.http.get(this.resolveMediaUrl(mediaUrl), {
+    const resolvedUrl = this.resolveMediaUrl(mediaUrl);
+
+    if (this.isCloudinaryUrl(resolvedUrl)) {
+      return this.getSignedCloudinaryDownloadUrl(mediaUrl).pipe(
+        map(({ url }) => url),
+        // The interceptor skips non-API URLs, so the signed Cloudinary request is sent without credentials.
+        switchMap((signedUrl) =>
+          this.http.get(signedUrl, {
+            responseType: 'blob',
+          }),
+        ),
+      );
+    }
+
+    return this.http.get(resolvedUrl, {
       responseType: 'blob',
     });
+  }
+
+  resolveMediaDownloadTarget(mediaUrl: string): Observable<MediaDownloadTarget> {
+    const resolvedUrl = this.resolveMediaUrl(mediaUrl);
+
+    if (this.isCloudinaryUrl(resolvedUrl)) {
+      return this.getSignedCloudinaryDownloadUrl(mediaUrl).pipe(
+        map(({ url, fileName }) => ({
+          url,
+          fileName,
+          revokeAfterUse: false,
+        })),
+      );
+    }
+
+    return this.http.get(resolvedUrl, { responseType: 'blob' }).pipe(
+      map((blob) => ({
+        url: URL.createObjectURL(blob),
+        fileName: this.mediaFileName(mediaUrl),
+        revokeAfterUse: true,
+      })),
+    );
+  }
+
+  private getSignedCloudinaryDownloadUrl(mediaUrl: string): Observable<{ url: string; fileName: string }> {
+    return this.http
+      .get<ApiResponse<{ url: string; fileName: string }>>(`${this.apiUrl}/media/download-url`, {
+        params: {
+          mediaUrl,
+          fileName: this.mediaFileName(mediaUrl),
+        },
+      })
+      .pipe(map(unwrapApiResponse));
   }
 
   private resolveMediaUrl(mediaUrl: string): string {
@@ -83,5 +136,18 @@ export class MessagesService {
     return mediaUrl.startsWith('/')
       ? `${apiOrigin}${mediaUrl}`
       : `${apiOrigin}/${mediaUrl}`;
+  }
+
+  private isCloudinaryUrl(mediaUrl: string): boolean {
+    try {
+      return new URL(mediaUrl).hostname.endsWith('cloudinary.com');
+    } catch {
+      return false;
+    }
+  }
+
+  private mediaFileName(url: string): string {
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    return decodeURIComponent(cleanUrl.split('/').pop() || 'piece-jointe');
   }
 }

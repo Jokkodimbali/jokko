@@ -145,12 +145,30 @@
             <time>{{ formatDate(message.createdAt) }}</time>
             <p class="messages-page__bubble" *ngIf="message.content">{{ message.content }}</p>
             <ng-container *ngIf="message.mediaUrl as mediaUrl">
-              <img
-                *ngIf="isImageMedia(mediaUrl); else nonImageMedia"
-                class="messages-page__media-image"
-                [src]="mediaDisplayUrl(mediaUrl)"
-                [alt]="message.content || 'Image envoyee'"
-              />
+              <span *ngIf="isImageMedia(mediaUrl); else nonImageMedia" class="messages-page__media-image-wrap">
+                <a
+                  class="messages-page__media-image-link"
+                  [href]="mediaDisplayUrl(mediaUrl)"
+                  [attr.download]="mediaFileName(mediaUrl)"
+                  target="_blank"
+                  rel="noopener"
+                  [attr.aria-label]="'Ouvrir ' + mediaFileName(mediaUrl)"
+                >
+                  <img
+                    class="messages-page__media-image"
+                    [src]="mediaDisplayUrl(mediaUrl)"
+                    [alt]="message.content || 'Image envoyee'"
+                  />
+                </a>
+                <button
+                  type="button"
+                  class="messages-page__media-download"
+                  [attr.aria-label]="'Telecharger ' + mediaFileName(mediaUrl)"
+                  (click)="downloadMedia(mediaUrl, $event)"
+                >
+                  <lucide-icon name="download" size="15" [strokeWidth]="2.5"></lucide-icon>
+                </button>
+              </span>
               <ng-template #nonImageMedia>
                 <audio
                   *ngIf="isAudioMedia(mediaUrl); else attachmentMedia"
@@ -159,10 +177,23 @@
                   controls
                 ></audio>
                 <ng-template #attachmentMedia>
-                  <button type="button" class="messages-page__media-file" (click)="openMedia(mediaUrl)">
-                    <lucide-icon name="paperclip" size="16" [strokeWidth]="2.3"></lucide-icon>
-                    {{ mediaFileName(mediaUrl) }}
-                  </button>
+                  <span class="messages-page__media-file">
+                    <span class="messages-page__media-file-icon">
+                      <lucide-icon name="file-text" size="18" [strokeWidth]="2.3"></lucide-icon>
+                    </span>
+                    <button type="button" class="messages-page__media-file-copy" (click)="openMedia(mediaUrl)">
+                      <strong>{{ mediaFileName(mediaUrl) }}</strong>
+                      <small>{{ mediaTypeLabelFromUrl(mediaUrl) }}</small>
+                    </button>
+                    <button
+                      type="button"
+                      class="messages-page__media-file-download"
+                      [attr.aria-label]="'Telecharger ' + mediaFileName(mediaUrl)"
+                      (click)="downloadMedia(mediaUrl, $event)"
+                    >
+                      <lucide-icon name="download" size="16" [strokeWidth]="2.5"></lucide-icon>
+                    </button>
+                  </span>
                 </ng-template>
               </ng-template>
             </ng-container>
@@ -170,6 +201,61 @@
           </span>
         </article>
 
+        <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row messages-page__reservation-row--thread">
+          <section class="messages-page__reservation-card" aria-label="Resume du rendez-vous">
+            <span class="messages-page__reservation-avatar">
+              <img
+                *ngIf="visibleAvatarUrl(card.avatarUrl) as avatarUrl; else reservationInitials"
+                [src]="avatarUrl"
+                [alt]="card.personName"
+                (error)="handleAvatarError(avatarUrl)"
+              />
+              <ng-template #reservationInitials>
+                <i>{{ card.initials }}</i>
+              </ng-template>
+              <b aria-hidden="true">
+                <lucide-icon name="check" size="12" [strokeWidth]="3"></lucide-icon>
+              </b>
+            </span>
+
+            <div class="messages-page__reservation-main">
+              <header>
+                <p>
+                  <strong>{{ card.personName }}</strong>
+                  <span>· {{ card.categoryLabel }}</span>
+                </p>
+                <em [attr.data-tone]="card.statusTone">
+                  <i></i>
+                  {{ card.statusLabel }}
+                </em>
+              </header>
+              <h3>{{ card.serviceName }}</h3>
+              <div class="messages-page__reservation-meta">
+                <span>
+                  <lucide-icon name="calendar-days" size="14" [strokeWidth]="2.1"></lucide-icon>
+                  {{ card.dateLabel }}
+                </span>
+                <span>
+                  <lucide-icon name="clock" size="14" [strokeWidth]="2.1"></lucide-icon>
+                  {{ card.timeLabel }}
+                </span>
+              </div>
+            </div>
+
+            <footer class="messages-page__reservation-footer">
+              <strong>{{ card.priceLabel }}</strong>
+              <a
+                *ngIf="card.detailLink"
+                [routerLink]="card.detailLink"
+                [queryParams]="card.detailQueryParams"
+              >
+                Voir le detail
+              </a>
+            </footer>
+          </section>
+        </article>
+
+        <ng-container *ngIf="false">
         <article
           *ngIf="visibleProposalStep() as proposal"
           class="messages-page__proposal-row"
@@ -288,7 +374,120 @@
             </a>
           </section>
         </article>
+        </ng-container>
       </div>
+
+      <section
+        *ngIf="pendingAttachmentPreview() as preview"
+        class="messages-page__preview"
+        aria-label="Apercu de la piece jointe"
+      >
+        <header class="messages-page__preview-head">
+          <button type="button" aria-label="Fermer l'apercu" (click)="clearPendingMedia()">
+            <lucide-icon name="x" size="22" [strokeWidth]="2.4"></lucide-icon>
+          </button>
+          <strong>{{ preview.name }}</strong>
+          <button type="button" [attr.aria-label]="'Telecharger ' + preview.name" (click)="downloadPendingAttachment()">
+            <lucide-icon name="download" size="21" [strokeWidth]="2.4"></lucide-icon>
+          </button>
+        </header>
+
+        <div class="messages-page__preview-stage">
+          <img
+            *ngIf="preview.isImage; else filePreview"
+            class="messages-page__preview-image"
+            [src]="preview.objectUrl"
+            [alt]="preview.name"
+          />
+          <ng-template #filePreview>
+            <div class="messages-page__preview-file">
+              <lucide-icon name="file-text" size="72" [strokeWidth]="1.8"></lucide-icon>
+              <strong>{{ preview.name }}</strong>
+              <span>{{ preview.sizeLabel }} - {{ preview.typeLabel }}</span>
+            </div>
+          </ng-template>
+        </div>
+
+        <footer class="messages-page__preview-compose">
+          <input
+            type="text"
+            [value]="draft()"
+            [disabled]="isUploadingMedia() || isSending()"
+            placeholder="Ajouter une legende..."
+            (input)="updateDraftFromEvent($event)"
+            (keydown.enter)="sendMessage()"
+          />
+          <span class="messages-page__preview-thumb" [class.messages-page__preview-thumb--file]="!preview.isImage">
+            <img *ngIf="preview.isImage; else previewFileThumb" [src]="preview.objectUrl" [alt]="preview.name" />
+            <ng-template #previewFileThumb>
+              <lucide-icon name="file-text" size="21" [strokeWidth]="2.2"></lucide-icon>
+            </ng-template>
+          </span>
+          <button
+            type="button"
+            class="messages-page__preview-send"
+            aria-label="Envoyer la piece jointe"
+            [disabled]="isUploadingMedia() || isSending()"
+            (click)="sendMessage()"
+          >
+            <lucide-icon name="send" size="22" [strokeWidth]="2.7"></lucide-icon>
+          </button>
+        </footer>
+      </section>
+
+      <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row">
+        <section class="messages-page__reservation-card" aria-label="Resume du rendez-vous">
+          <span class="messages-page__reservation-avatar">
+            <img
+              *ngIf="visibleAvatarUrl(card.avatarUrl) as avatarUrl; else reservationDockInitials"
+              [src]="avatarUrl"
+              [alt]="card.personName"
+              (error)="handleAvatarError(avatarUrl)"
+            />
+            <ng-template #reservationDockInitials>
+              <i>{{ card.initials }}</i>
+            </ng-template>
+            <b aria-hidden="true">
+              <lucide-icon name="check" size="12" [strokeWidth]="3"></lucide-icon>
+            </b>
+          </span>
+
+          <div class="messages-page__reservation-main">
+            <header>
+              <p>
+                <strong>{{ card.personName }}</strong>
+                <span>Â· {{ card.categoryLabel }}</span>
+              </p>
+              <em [attr.data-tone]="card.statusTone">
+                <i></i>
+                {{ card.statusLabel }}
+              </em>
+            </header>
+            <h3>{{ card.serviceName }}</h3>
+            <div class="messages-page__reservation-meta">
+              <span>
+                <lucide-icon name="calendar-days" size="14" [strokeWidth]="2.1"></lucide-icon>
+                {{ card.dateLabel }}
+              </span>
+              <span>
+                <lucide-icon name="clock" size="14" [strokeWidth]="2.1"></lucide-icon>
+                {{ card.timeLabel }}
+              </span>
+            </div>
+          </div>
+
+          <footer class="messages-page__reservation-footer">
+            <strong>{{ card.priceLabel }}</strong>
+            <a
+              *ngIf="card.detailLink"
+              [routerLink]="card.detailLink"
+              [queryParams]="card.detailQueryParams"
+            >
+              Voir le detail
+            </a>
+          </footer>
+        </section>
+      </article>
 
       <app-message-composer
         [draft]="draft()"

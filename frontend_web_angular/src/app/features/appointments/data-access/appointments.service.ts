@@ -384,7 +384,9 @@ export class AppointmentsService {
 
     return {
       id: reservation.id,
+      clientId: reservation.clientId,
       professionalId: reservation.professionnelId,
+      professionalUserId: reservation.professionnel?.utilisateur.id ?? null,
       serviceId: reservation.serviceId,
       status,
       scheduledAt: reservation.dateHeure,

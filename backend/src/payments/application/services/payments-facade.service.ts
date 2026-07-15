@@ -76,6 +76,10 @@ export class PaymentsFacade {
       requestUser,
       command.bookingId,
     );
+    if (reservation.clientId !== requestUser.sub) {
+      throw PaymentDomainError.unauthorizedAccess(requestUser.sub);
+    }
+
     const service = await this.professionalsRepository.getServiceById(
       reservation.serviceId,
     );

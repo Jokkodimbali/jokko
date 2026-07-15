@@ -13,13 +13,12 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
@@ -30,6 +29,17 @@ import {
   MedicalPrescriptionPayload,
 } from '../../../domain/appointments.models';
 import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
+import { AppointmentDetailFormatService } from './appointment-detail-format.service';
+import { AppointmentDocumentBuilderService } from './appointment-document-builder.service';
+import { AppointmentDocumentRendererService } from './appointment-document-renderer.service';
+import { AppointmentGeoService } from './appointment-geo.service';
+import { AppointmentMedicalPrescriptionService } from './appointment-medical-prescription.service';
+import { AppointmentNavigationService } from './appointment-navigation.service';
+import {
+  AppointmentRouteAlternativeView,
+  AppointmentRouteOption,
+  AppointmentRouteService,
+} from './appointment-route.service';
 import {
   AppointmentTrackingStep,
   AppointmentTrackingStepperComponent,
@@ -43,27 +53,6 @@ import { TrackingScenarioViewContext } from '../../../../tracking/state/scenario
 import { TrackingStore } from '../../../../tracking/state/tracking.store';
 
 type MapCoordinate = { lat: number; lng: number };
-type RouteAlternativeView = {
-  id: string;
-  label: string;
-  distanceLabel: string;
-  durationLabel: string;
-  isSelected: boolean;
-};
-type RouteOption = {
-  id: string;
-  coordinates: Array<[number, number]>;
-  distanceKm: number | null;
-  durationMinutes: number | null;
-  navigationSteps: RouteNavigationStep[];
-};
-type RouteNavigationStep = {
-  id: string;
-  instruction: string;
-  maneuver: string | null;
-  distanceMeters: number | null;
-  end: MapCoordinate | null;
-};
 type TrackingStepView = AppointmentTrackingStep;
 type MedicalRecordKind = 'act' | 'vaccine' | 'treatment';
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
@@ -89,12 +78,6 @@ const COMMON_TREATMENTS = [
   'Sirop antitussif - 1 cuillere a soupe 3 fois par jour',
   'Repos strict a domicile pendant 5 jours',
 ] as const;
-const SENEGAL_GEO_BOUNDS = {
-  minLat: 12,
-  maxLat: 17.2,
-  minLng: -18.7,
-  maxLng: -11,
-} as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 const TRACKING_FALLBACK_POLL_INTERVAL_MS = 5000;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
@@ -175,6 +158,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly arrivalState = inject(TrackingArrivalStateService);
   private readonly trackingScenario = inject(TrackingScenarioStateService);
   private readonly mapRenderer = inject(TrackingGoogleMapRendererService);
+  private readonly formatter = inject(AppointmentDetailFormatService);
+  private readonly geo = inject(AppointmentGeoService);
+  private readonly navigationService = inject(AppointmentNavigationService);
+  private readonly routeService = inject(AppointmentRouteService);
+  private readonly documentBuilder = inject(AppointmentDocumentBuilderService);
+  private readonly documentRenderer = inject(AppointmentDocumentRendererService);
+  private readonly medicalPrescriptionService = inject(AppointmentMedicalPrescriptionService);
   private trackingSubscription?: Subscription;
   private missionSubscription?: Subscription;
   private connectionSubscription?: Subscription;
@@ -182,11 +172,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private providerLocationSubscription?: Subscription;
   private elapsedClockInterval?: number;
   private routeCoordinates: Array<[number, number]> = [];
-  private routeOptions: RouteOption[] = [];
+  private routeOptions: AppointmentRouteOption[] = [];
   private routeCoordinatesKey = '';
   private routeRequestBlockedUntilMs = 0;
   private trackingMapElement?: HTMLElement;
-  private lastSpokenNavigationKey = '';
   private lastResolvedDestinationAddress = '';
   private isAnimatingRouteArrival = false;
   private locationSharingBlockedUntilMs = 0;
@@ -224,7 +213,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isNavigationVoiceEnabled = signal(true);
   protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
-  protected readonly routeAlternatives = signal<RouteAlternativeView[]>([]);
+  protected readonly routeAlternatives = signal<AppointmentRouteAlternativeView[]>([]);
   protected readonly routeActorArrivalConfirmed = signal(false);
   protected readonly parcelCheckpointVersion = signal(0);
   protected readonly medicalActs = signal<string[]>([]);
@@ -250,10 +239,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       Number.isFinite(appointment.proposedAdjustedPrice)
     );
   });
-  protected readonly isProviderViewer = computed(() => {
-    return this.isProfessionalRole(this.currentUser()?.role);
+  protected readonly isClientViewer = computed(() => {
+    const appointment = this.appointment();
+    const currentUserId = this.currentUser()?.id;
+    return !!appointment && !!currentUserId && appointment.clientId === currentUserId;
   });
-  protected readonly isDoctorViewer = computed(() => this.currentUser()?.role === 'MEDECIN');
+  protected readonly isProviderViewer = computed(() => {
+    const appointment = this.appointment();
+    const currentUserId = this.currentUser()?.id;
+    if (!appointment || !currentUserId || this.isClientViewer()) return false;
+
+    return appointment.professionalUserId === currentUserId;
+  });
+  protected readonly isDoctorViewer = computed(
+    () => this.isProviderViewer() && this.currentUser()?.role === 'MEDECIN',
+  );
   protected readonly isMedicalAppointment = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return false;
@@ -274,7 +274,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly canManageProviderStatus = computed(() => {
     const appointment = this.appointment();
     return (
-      this.isProfessionalRole(this.currentUser()?.role) &&
+      this.isProviderViewer() &&
       !!appointment &&
       !this.isTerminalAppointmentStatus(appointment.status)
     );
@@ -284,7 +284,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return !!status && !this.isTerminalAppointmentStatus(status);
   });
   protected readonly minRescheduleDateTime = computed(() =>
-    this.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)),
+    this.formatter.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)),
   );
   protected readonly isAppointmentCompleted = computed(
     () => this.appointment()?.status === 'TERMINEE',
@@ -317,11 +317,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return 'Le suivi temps reel est arrete.';
   });
   protected readonly currentPriceLabel = computed(() =>
-    this.formatCurrency(this.appointment()?.agreedPrice ?? 0),
+    this.formatter.formatCurrency(this.appointment()?.agreedPrice ?? 0),
   );
   protected readonly finalPriceLabel = computed(() => {
     const appointment = this.appointment();
-    return this.formatCurrency(appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0);
+    return this.formatter.formatCurrency(
+      appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0,
+    );
   });
   protected readonly finalPriceAmount = computed(() => {
     const appointment = this.appointment();
@@ -334,7 +336,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return base + extraActs + vaccines;
   });
   protected readonly medicalTotalLabel = computed(() =>
-    this.formatCurrency(this.medicalTotalAmount()),
+    this.formatter.formatCurrency(this.medicalTotalAmount()),
   );
   protected readonly invoiceNumberLabel = computed(() => {
     const appointmentId = this.appointment()?.id ?? '';
@@ -348,7 +350,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly completedAtLabel = computed(() => {
     const tracking = this.tracking();
     const appointment = this.appointment();
-    return this.formatTimeFromValue(
+    return this.formatter.formatTimeFromValue(
       tracking?.endedAt ||
         tracking?.updatedAt ||
         tracking?.lastPositionAt ||
@@ -358,7 +360,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly completedPaymentLabel = computed(() => {
     const tracking = this.tracking();
     const appointment = this.appointment();
-    return `Paiement confirme le ${this.formatLongDateTime(
+    return `Paiement confirme le ${this.formatter.formatLongDateTime(
       tracking?.endedAt ||
         tracking?.updatedAt ||
         tracking?.lastPositionAt ||
@@ -384,7 +386,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return `${appointment?.durationMinutes || 30} min.`;
   });
   protected readonly proposedAdjustedPriceLabel = computed(() =>
-    this.formatCurrency(this.appointment()?.proposedAdjustedPrice ?? 0),
+    this.formatter.formatCurrency(this.appointment()?.proposedAdjustedPrice ?? 0),
   );
   protected readonly priceAdjustmentDeltaLabel = computed(() => {
     const appointment = this.appointment();
@@ -392,7 +394,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const proposedPrice = appointment?.proposedAdjustedPrice ?? 0;
     const delta = proposedPrice - currentPrice;
     const sign = delta >= 0 ? '+' : '-';
-    return `${sign} ${this.formatCurrency(Math.abs(delta))}`;
+    return `${sign} ${this.formatter.formatCurrency(Math.abs(delta))}`;
   });
   protected readonly isProviderWorking = computed(() => {
     const appointment = this.appointment();
@@ -536,7 +538,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return (
         typeof latitude === 'number' &&
         typeof longitude === 'number' &&
-        this.isCoordinateInSenegal(latitude, longitude)
+        this.geo.isCoordinateInSenegal(latitude, longitude)
       );
     },
   );
@@ -656,7 +658,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return (
       !!appointment &&
       this.isPaymentRequired() &&
-      !this.isProviderViewer() &&
+      this.isClientViewer() &&
       !this.isAppointmentClosed()
     );
   });
@@ -686,11 +688,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!this.isProviderOnTheWay()) return 'Suivi inactif';
     const serverDistance = this.tracking()?.route?.distanceRemainingMeters;
     if (typeof serverDistance === 'number' && serverDistance > 0) {
-      return `${this.formatDistance(serverDistance / 1000)} restants`;
+      return `${this.formatter.formatDistance(serverDistance / 1000)} restants`;
     }
     const routeDistance = this.routeDistanceKm();
     if (routeDistance !== null && routeDistance > 0) {
-      return `${this.formatDistance(routeDistance)} restants`;
+      return `${this.formatter.formatDistance(routeDistance)} restants`;
     }
     if (!this.hasTrackingCoordinates()) {
       return 'Position reelle du prestataire en attente';
@@ -931,7 +933,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
     const distance = this.routeDistanceKm();
     const minutes = this.routeDurationMinutes();
-    if (distance !== null && distance > 0) return this.formatDistance(distance);
+    if (distance !== null && distance > 0) return this.formatter.formatDistance(distance);
     if (minutes !== null && minutes > 0) return `${minutes} min`;
     return 'GPS';
   });
@@ -988,10 +990,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const route = this.routeOptions.find(
       (option) => option.id === this.selectedRouteId(),
     );
-    const step = this.findUpcomingNavigationStep(route?.navigationSteps ?? []);
+    const step = this.navigationService.findUpcomingStep(
+      route?.navigationSteps ?? [],
+      (destination) => this.distanceMetersBetweenCurrentPosition(destination),
+    );
     return step
       ? {
-          instruction: this.normalizeNavigationInstruction(step),
+          instruction: this.navigationService.normalizeInstruction(step),
           maneuver: step.maneuver,
           distanceMeters: step.end
             ? this.distanceMetersBetweenCurrentPosition(step.end)
@@ -1011,11 +1016,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (typeof distance !== 'number' || distance <= 0) return '';
     return distance < 1000
       ? `${Math.max(10, Math.round(distance / 10) * 10)} m`
-      : this.formatDistance(distance / 1000);
+      : this.formatter.formatDistance(distance / 1000);
   });
   protected readonly arrivedAtLabel = computed(() => {
     const tracking = this.tracking();
-    return this.formatTimeFromValue(
+    return this.formatter.formatTimeFromValue(
       tracking?.lastPositionAt ||
         tracking?.presence.lastPositionAt ||
         tracking?.updatedAt ||
@@ -1036,7 +1041,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (Number.isNaN(startDate.getTime())) return '--h--';
 
     startDate.setMinutes(startDate.getMinutes() + (appointment.durationMinutes || 30));
-    return this.formatTimeFromDate(startDate);
+    return this.formatter.formatTimeFromDate(startDate);
   });
   protected readonly showUpcomingDetail = computed(() => {
     const appointment = this.appointment();
@@ -1212,7 +1217,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected displayableAppointmentNotes(appointment: AppointmentView): string {
-    return this.stripMedicalPrescriptionBlock(appointment.notes).trim();
+    return this.medicalPrescriptionService.stripFromNotes(appointment.notes).trim();
   }
 
   protected setRating(rating: number): void {
@@ -1321,7 +1326,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (
       this.isProviderViewer() &&
       this.isMedicalAppointment() &&
-      this.hasMedicalPrescriptionContent(draftPrescription)
+      this.medicalPrescriptionService.hasContent(draftPrescription)
     ) {
       this.appointmentsService
         .saveMedicalPrescription(appointment.id, draftPrescription)
@@ -1339,8 +1344,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    const persisted = this.extractMedicalPrescription(appointment.notes);
-    if (this.isAppointmentCompleted() && !this.hasMedicalPrescriptionContent(persisted)) {
+    const persisted = this.medicalPrescriptionService.extractFromNotes(appointment.notes);
+    if (this.isAppointmentCompleted() && !this.medicalPrescriptionService.hasContent(persisted)) {
       this.appointmentsService
         .getAppointmentById(appointment.id)
         .pipe(catchError(() => of(null)))
@@ -1395,7 +1400,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const end = new Date(start.getTime() + Math.max(15, appointment.durationMinutes || 30) * 60000);
-    const stamp = this.toCalendarDate(new Date());
+    const stamp = this.formatter.toCalendarDate(new Date());
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -1403,11 +1408,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       'BEGIN:VEVENT',
       `UID:${appointment.id}@jokko`,
       `DTSTAMP:${stamp}`,
-      `DTSTART:${this.toCalendarDate(start)}`,
-      `DTEND:${this.toCalendarDate(end)}`,
-      `SUMMARY:${this.escapeCalendarText(appointment.serviceName)} avec ${this.escapeCalendarText(appointment.doctorName)}`,
-      `LOCATION:${this.escapeCalendarText(appointment.addressLabel)}`,
-      `DESCRIPTION:${this.escapeCalendarText(this.displayableAppointmentNotes(appointment) || 'Rendez-vous reserve sur Jokko Dimbali.')}`,
+      `DTSTART:${this.formatter.toCalendarDate(start)}`,
+      `DTEND:${this.formatter.toCalendarDate(end)}`,
+      `SUMMARY:${this.formatter.escapeCalendarText(appointment.serviceName)} avec ${this.formatter.escapeCalendarText(appointment.doctorName)}`,
+      `LOCATION:${this.formatter.escapeCalendarText(appointment.addressLabel)}`,
+      `DESCRIPTION:${this.formatter.escapeCalendarText(this.displayableAppointmentNotes(appointment) || 'Rendez-vous reserve sur Jokko Dimbali.')}`,
       'END:VEVENT',
       'END:VCALENDAR',
     ];
@@ -1715,7 +1720,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected openRescheduleModal(appointment: AppointmentView): void {
-    this.rescheduleDateTime.set(this.toDateTimeLocalValue(new Date(appointment.scheduledAt)));
+    this.rescheduleDateTime.set(this.formatter.toDateTimeLocalValue(new Date(appointment.scheduledAt)));
     this.isRescheduleModalOpen.set(true);
   }
 
@@ -1939,7 +1944,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       })
       .catch((error) => {
         this.isUpdatingStatus.set(false);
-        this.feedback.error(this.providerLocationHelpMessage(error));
+        this.feedback.error(this.formatter.providerLocationHelpMessage(error));
       });
   }
 
@@ -1973,10 +1978,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected toggleNavigationVoice(): void {
     this.isNavigationVoiceEnabled.update((enabled) => !enabled);
     if (this.isNavigationVoiceEnabled()) {
-      this.lastSpokenNavigationKey = '';
+      this.navigationService.resetVoice();
       this.announceNavigationInstruction(true);
-    } else if (typeof window !== 'undefined') {
-      window.speechSynthesis?.cancel();
+    } else {
+      this.navigationService.cancelVoice();
     }
   }
 
@@ -2021,7 +2026,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const location = await this.resolveCurrentLocation(this.trackedTravelerPositionLabel()).catch(
       (error) => {
         if (!silent) {
-          this.feedback.error(this.providerLocationHelpMessage(error));
+          this.feedback.error(this.formatter.providerLocationHelpMessage(error));
         }
         return null;
       },
@@ -2131,7 +2136,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       ? this.currentMedicalPrescriptionPayload()
       : undefined;
     const hasPrescriptionToPersist =
-      prescription !== undefined && this.hasMedicalPrescriptionContent(prescription);
+      prescription !== undefined && this.medicalPrescriptionService.hasContent(prescription);
     const completion$ =
       this.isMedicalAppointment() && hasPrescriptionToPersist
         ? this.appointmentsService
@@ -2205,12 +2210,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private safeReturnUrl(): string | null {
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim();
-    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
-      return null;
-    }
-
-    return returnUrl;
+    return safeInternalUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
   }
 
   private startTrackingPolling(appointmentId: string): void {
@@ -2310,10 +2310,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private resetNavigationPresentation(): void {
-    if (typeof window !== 'undefined') {
-      window.speechSynthesis?.cancel();
-    }
-    this.lastSpokenNavigationKey = '';
+    this.navigationService.cancelVoice();
     this.mapRenderer.destroyRouteMap();
     this.routeCoordinates = [];
     this.routeOptions = [];
@@ -2551,7 +2548,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const segments = path.slice(1).map((point, index) => ({
       from: path[index],
       to: point,
-      distance: this.distanceMetersBetweenPoints(path[index], point),
+      distance: this.geo.distanceMetersBetweenPoints(path[index], point),
     }));
     const totalDistance = segments.reduce((sum, segment) => sum + segment.distance, 0);
     if (totalDistance <= 0) return path[path.length - 1];
@@ -2841,24 +2838,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             [coordinate.latitude, coordinate.longitude] as [number, number],
         );
         if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
-          const currentRoute: RouteOption = {
-            id: 'route-0',
-            coordinates: this.routeCoordinates,
-            distanceKm: serverRoute.distanceRemainingMeters / 1000,
-            durationMinutes: Math.max(
-              1,
-              Math.round(serverRoute.durationRemainingSeconds / 60),
-            ),
-            navigationSteps: (serverRoute.navigationSteps ?? []).map((step) => ({
-              id: step.id,
-              instruction: step.instruction,
-              maneuver: step.maneuver,
-              distanceMeters: step.distanceMeters,
-              end: step.end
-                ? { lat: step.end.latitude, lng: step.end.longitude }
-                : null,
-            })),
-          };
+          const currentRoute = this.routeService.mapTrackingRoute(
+            serverRoute,
+            this.routeCoordinates,
+          );
           this.routeOptions = [currentRoute];
           this.selectedRouteId.set(currentRoute.id);
         }
@@ -2930,7 +2913,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           return;
         }
 
-        if (!this.isCoordinateInSenegal(position.latitude, position.longitude)) {
+        if (!this.geo.isCoordinateInSenegal(position.latitude, position.longitude)) {
           return;
         }
 
@@ -3014,267 +2997,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private downloadHtmlDocument(fileName: string, title: string, body: string): void {
-    const html = `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${this.escapeHtml(title)}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-    body{font-family:'DM Sans',Arial,Helvetica,sans-serif;color:#111827;margin:0;background:#f8fafc}
-    .sheet{background:#fff;margin:24px auto;max-width:820px;padding:42px;border:1px solid #e5e7eb}
-    .top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #111827;padding-bottom:22px;margin-bottom:28px}
-    h1{font-size:24px;margin:0 0 8px;text-transform:uppercase}
-    h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#865221;border-bottom:1px solid #eadccd;padding-bottom:8px;margin:28px 0 14px}
-    p{margin:4px 0;line-height:1.5}.muted{color:#667085}.box{background:#f9fafb;border:1px solid #eef0f3;border-radius:12px;padding:16px}
-    table{border-collapse:collapse;width:100%;font-size:13px}th{text-align:left;color:#667085;border-bottom:1px solid #e5e7eb;padding:10px 8px}td{border-bottom:1px solid #f0f2f4;padding:10px 8px}.right{text-align:right}.total{font-size:18px;font-weight:800;color:#865221}
-    .brand{display:inline-flex;align-items:center;gap:10px;color:#865221;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.pill{display:inline-block;border-radius:999px;background:#ecfdf3;color:#067647;font-size:12px;font-weight:800;padding:6px 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.invoice-total{background:#111827;color:#fff;border-radius:14px;padding:18px 22px;text-align:right}.invoice-total .total{color:#fff;font-size:24px}.footer-note{border-top:1px solid #e5e7eb;margin-top:28px;padding-top:18px;font-size:12px;color:#667085}
-    ol,ul{padding-left:22px}li{margin:8px 0;line-height:1.45}.signature{display:flex;justify-content:space-between;gap:24px;margin-top:54px}.stamp{border:1px solid #eadccd;border-radius:12px;background:#fff8f1;color:#865221;padding:18px 24px;text-align:center;font-weight:800}
-    @media(max-width:720px){.top,.grid,.signature{display:block}.right{text-align:left}.invoice-total{text-align:left}}
-    @media print{body{background:#fff}.sheet{border:0;margin:0;max-width:none}}
-    body.invoice-document{background:#fff}.sheet.invoice-sheet{border:0;border-radius:0;box-shadow:none;margin:0;max-width:none;min-height:1123px;overflow:hidden;padding:0;width:794px}
-    .sheet.prescription-sheet{border-radius:0;box-shadow:none;max-width:none;width:794px}
-    .mission-invoice{background:#fff;color:#151b29;display:flex;flex-direction:column;min-height:1123px}.mission-invoice__header{align-items:center;background:#9b6429;color:#fff;display:grid;grid-template-columns:1fr auto;gap:24px;padding:30px 38px}
-    .mission-invoice__brand{align-items:center;display:flex;gap:16px}.mission-invoice__brand img{background:#fff;border-radius:12px;box-shadow:0 0 0 4px rgba(255,255,255,.18);height:52px;object-fit:contain;padding:6px;width:52px}.mission-invoice__brand h1{color:#fff;font-size:23px;letter-spacing:.02em;margin:0;text-transform:uppercase}
-    .mission-invoice__meta{text-align:right}.mission-invoice__meta span{color:#ead9c6;display:block;font-size:13px;letter-spacing:.16em;margin-bottom:6px;text-transform:uppercase}.mission-invoice__meta strong{display:block;font-size:17px;margin-bottom:4px}.mission-invoice__meta small{color:#ead9c6;font-size:14px}
-    .mission-invoice__parties{border-bottom:1px solid #eadccd;display:grid;grid-template-columns:1fr 1fr}.mission-invoice__party{padding:28px 36px}.mission-invoice__party + .mission-invoice__party{border-left:1px solid #eadccd}.mission-invoice__party small,.mission-invoice__table-head span{color:#9b6429;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.mission-invoice__party strong{display:block;font-size:19px;margin:16px 0 8px}.mission-invoice__party p{color:#6b7280;font-size:16px;margin:4px 0}
-    .mission-invoice__body{flex:1;padding:22px 38px 0}.mission-invoice__notice{align-items:start;background:#f6ecdd;border:1px solid #dbb98f;border-radius:14px;color:#43515d;display:grid;gap:14px;grid-template-columns:30px 1fr;line-height:1.45;margin-bottom:20px;padding:18px 22px}.mission-invoice__notice b{color:#8a5522;display:block;font-size:16px;margin-bottom:4px}.mission-invoice__pin{align-items:center;color:#9b6429;display:inline-flex;height:26px;justify-content:center;width:26px}.mission-invoice__pin svg{display:block;height:25px;stroke:currentColor;width:25px}
-    .mission-invoice__table-head{background:#f3eadc;border-radius:12px;display:grid;grid-template-columns:1fr 130px 150px;margin-bottom:8px;padding:11px 18px}.mission-invoice__row{border-bottom:1px solid #eadccd;display:grid;grid-template-columns:1fr 130px 150px;padding:18px}.mission-invoice__row strong{font-size:16px}.mission-invoice__row span,.mission-invoice__summary span{color:#5f6b7a}.mission-invoice__row .right,.mission-invoice__table-head .right{text-align:right}
-    .mission-invoice__summary{display:grid;gap:10px;justify-content:end;margin:24px 0 34px}.mission-invoice__summary-line{display:grid;gap:18px;grid-template-columns:150px 130px;text-align:right}.mission-invoice__commission{color:#8a5522}.mission-invoice__total{align-items:center;background:#9b6429;border-radius:13px;color:#fff;display:grid;font-size:18px;font-weight:900;gap:18px;grid-template-columns:1fr auto;min-width:290px;padding:16px 18px}.mission-invoice__total span,.mission-invoice__total strong{color:#fff}.mission-invoice__total strong{font-size:20px}
-    .mission-invoice__footer{align-items:center;background:#f7efe4;border-top:1px solid #dbb98f;color:#8b95a5;display:flex;font-size:14px;justify-content:space-between;padding:22px 36px}.mission-invoice__footer b{color:#9b6429}
-    .medical-prescription{background:#fff;border-top:5px solid #9b6429;color:#151b29;min-height:1123px;position:relative}.medical-prescription__header{align-items:start;display:grid;grid-template-columns:1fr auto;gap:32px;padding:34px 44px 24px}.medical-prescription__doctor small,.medical-prescription__patient small,.medical-prescription__section-title{color:#9b6429;display:block;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.medical-prescription__doctor h1{color:#111827;font-size:23px;line-height:1.1;margin:10px 0 8px;text-transform:none}.medical-prescription__doctor p,.medical-prescription__meta small,.medical-prescription__patient span,.medical-prescription__patient em{color:#728096;font-size:14px;line-height:1.35;margin:3px 0}.medical-prescription__meta{text-align:right}.medical-prescription__meta span{color:#9aa5b5;display:block;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.medical-prescription__meta strong{color:#445066;display:block;font-size:12px;margin:6px 0}.medical-prescription__banner{align-items:center;background:#edf5fc;display:grid;gap:14px;grid-template-columns:1fr auto 1fr;padding:22px 44px}.medical-prescription__banner:before,.medical-prescription__banner:after{background:#c8dced;content:"";height:1px}.medical-prescription__banner h2{border:0;color:#9b6429;font-size:18px;font-weight:900;letter-spacing:.28em;margin:0;padding:0;text-align:center;text-transform:uppercase}.medical-prescription__body{padding:20px 44px 170px}.medical-prescription__patient{background:#f8fbff;border:1px solid #d7e8f8;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:24px;margin-bottom:20px;padding:16px 20px}.medical-prescription__patient strong{color:#111827;display:block;font-size:15px;margin:8px 0 3px}.medical-prescription__patient em{display:block;font-style:normal;text-align:right}.medical-prescription__section-title{margin:0 0 14px}.medical-prescription__list{counter-reset:prescription;display:grid;gap:10px;margin:0;padding:0}.medical-prescription__item{align-items:center;background:#fbfdff;border:1px solid #e3edf6;border-radius:13px;counter-increment:prescription;display:grid;gap:16px;grid-template-columns:28px 1fr;line-height:1.45;list-style:none;min-height:54px;padding:13px 18px}.medical-prescription__item:before{align-items:center;align-self:center;background:#9b6429;border-radius:50%;color:#fff;content:counter(prescription);display:flex;font-size:12px;font-weight:900;height:24px;justify-content:center;line-height:24px;width:24px}.medical-prescription__item span{color:#445066;font-size:13px}.medical-prescription__item b{color:#344054}.medical-prescription__empty{background:#fbfdff;border:1px solid #e3edf6;border-radius:13px;color:#8b95a5;font-size:13px;margin:0;padding:14px 18px}.medical-prescription__footer{align-items:end;background:#f4f9fd;border-top:1px solid #e3edf6;bottom:0;display:grid;grid-template-columns:1fr auto;left:0;padding:36px 44px 20px;position:absolute;right:0}.medical-prescription__signature span,.medical-prescription__generated span{color:#9aa5b5;display:block;font-size:12px;margin-bottom:8px}.medical-prescription__signature strong{align-items:center;border:1px dashed #b7d7f3;border-radius:8px;color:#c7cfd9;display:flex;font-size:12px;font-weight:800;height:52px;justify-content:center;width:136px}.medical-prescription__generated{text-align:right}.medical-prescription__brand{align-items:center;background:#fff;border-radius:12px;display:inline-grid;gap:8px;grid-template-columns:26px auto;padding:7px 9px;text-align:left}.medical-prescription__brand img{height:24px;object-fit:contain;width:24px}.medical-prescription__brand b{color:#9b6429;display:block;font-size:11px;text-transform:uppercase}.medical-prescription__brand small{color:#9aa5b5;display:block;font-size:10px}
-    @media(max-width:720px){.sheet.invoice-sheet{border-radius:0;margin:0}.mission-invoice__header,.mission-invoice__parties,.mission-invoice__table-head,.mission-invoice__row{grid-template-columns:1fr}.mission-invoice__meta{text-align:left}.mission-invoice__party + .mission-invoice__party{border-left:0;border-top:1px solid #eadccd}.mission-invoice__table-head .right,.mission-invoice__row .right{text-align:left}.mission-invoice__footer{align-items:flex-start;display:grid;gap:8px}}
-  </style>
-</head>
-<body class="${body.includes('mission-invoice') || body.includes('medical-prescription') ? 'invoice-document' : ''}"><main class="sheet${body.includes('mission-invoice') || body.includes('medical-prescription') ? ' invoice-sheet' : ''}${body.includes('medical-prescription') ? ' prescription-sheet' : ''}">${body}</main></body>
-</html>`;
-    const pdfFileName = fileName.replace(/\.html?$/i, '.pdf');
-    void this.renderDesignedDocumentAsPdf(html, pdfFileName);
-  }
-
-  private async renderDesignedDocumentAsPdf(html: string, fileName: string): Promise<void> {
-    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/i);
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    const host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.left = '-10000px';
-    host.style.top = '0';
-    host.style.width = '794px';
-    host.style.height = '1123px';
-    host.style.overflow = 'hidden';
-    host.style.background = '#ffffff';
-    host.style.zIndex = '-1';
-    host.innerHTML = `<style>${styleMatch?.[1] ?? ''}</style>${bodyMatch?.[1] ?? html}`;
-    document.body.appendChild(host);
-
-    try {
-      await document.fonts?.ready;
-      const target = host;
-      const captureScale = Math.max(3, Math.min(4, (window.devicePixelRatio || 1) * 2));
-      const captureHeight = 1123;
-      const canvas = await html2canvas(target, {
-        backgroundColor: '#ffffff',
-        scale: captureScale,
-        useCORS: true,
-        width: 794,
-        height: captureHeight,
-        windowWidth: 794,
-        windowHeight: captureHeight,
-      });
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt',
-        format: 'a4',
-        compress: true,
-      });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const pageSliceHeight = Math.floor((canvas.width * pageHeight) / pageWidth);
-      let sourceY = 0;
-      let pageIndex = 0;
-
-      while (sourceY < canvas.height) {
-        const sliceHeight = Math.min(pageSliceHeight, canvas.height - sourceY);
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeight;
-        const context = pageCanvas.getContext('2d');
-        if (!context) {
-          throw new Error('PDF canvas context unavailable');
-        }
-
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        context.drawImage(
-          canvas,
-          0,
-          sourceY,
-          canvas.width,
-          sliceHeight,
-          0,
-          0,
-          canvas.width,
-          sliceHeight,
-        );
-
-        if (pageIndex > 0) {
-          pdf.addPage('a4', 'portrait');
-        }
-
-        const pageImage = pageCanvas.toDataURL('image/png', 1);
-        const renderedHeight = (sliceHeight * pageWidth) / canvas.width;
-        pdf.addImage(pageImage, 'PNG', 0, 0, pageWidth, renderedHeight, undefined, 'FAST');
-        sourceY += sliceHeight;
-        pageIndex += 1;
-      }
-
-      pdf.save(fileName);
-    } catch {
-      this.feedback.error("Impossible de generer le PDF pour le moment.");
-    } finally {
-      document.body.removeChild(host);
-    }
+    this.documentRenderer.downloadHtmlDocument(fileName, title, body);
   }
 
   private buildMissionInvoiceHtml(appointment: AppointmentView): string {
-    const issuedAt = new Date();
-    const subtotal = this.finalPriceAmount();
-    const commissionRate = 5;
-    const commissionAmount = Math.round(subtotal * commissionRate) / 100;
-    const totalAmount = subtotal + commissionAmount;
-    const serviceLabel = this.isParcelTransportAppointment(appointment)
-      ? 'Transport de colis'
-      : appointment.serviceName;
-
-    return `
-      <article class="mission-invoice">
-        <header class="mission-invoice__header">
-          <div class="mission-invoice__brand">
-            <img src="${this.escapeHtml(this.invoiceLogoUrl())}" alt="Jokko Dimbali">
-            <h1>Jokko Dimbali</h1>
-          </div>
-          <div class="mission-invoice__meta">
-            <span>Facture</span>
-            <strong>${this.escapeHtml(this.missionInvoiceReference(appointment))}</strong>
-            <small>${this.escapeHtml(this.formatInvoiceIssueDate(issuedAt))}</small>
-          </div>
-        </header>
-
-        <section class="mission-invoice__parties">
-          <div class="mission-invoice__party">
-            <small>Client</small>
-            <strong>${this.escapeHtml(appointment.clientName)}</strong>
-            <p>${this.escapeHtml(appointment.addressLabel || 'Adresse non renseignee')}</p>
-            <p>${this.escapeHtml(appointment.clientPhone || 'Telephone non renseigne')}</p>
-          </div>
-          <div class="mission-invoice__party">
-            <small>Prestataire</small>
-            <strong>${this.escapeHtml(appointment.doctorName)}</strong>
-            <p>${this.escapeHtml(appointment.specialty || appointment.serviceCategoryName || 'Professionnel Jokko')}</p>
-            <p>${this.escapeHtml(appointment.professionalPhone || 'Telephone non renseigne')}</p>
-          </div>
-        </section>
-
-        <section class="mission-invoice__body">
-          <div class="mission-invoice__notice">
-            <span class="mission-invoice__pin" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 21s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="9" r="2.4" stroke-width="2"/>
-              </svg>
-            </span>
-            <p>
-              <b>${this.escapeHtml(this.travelModeInvoiceTitle(appointment))}</b>
-              ${this.escapeHtml(this.travelModeInvoiceDescription(appointment))}
-            </p>
-          </div>
-
-          <div class="mission-invoice__table-head">
-            <span>Designation</span>
-            <span class="right">Qte / Duree</span>
-            <span class="right">Montant</span>
-          </div>
-          <div class="mission-invoice__row">
-            <strong>${this.escapeHtml(serviceLabel)}</strong>
-            <span class="right">Forfait</span>
-            <strong class="right">${this.escapeHtml(this.formatCurrency(subtotal))}</strong>
-          </div>
-          <div class="mission-invoice__row">
-            <strong>Duree de la prestation</strong>
-            <span class="right"></span>
-            <span class="right">${this.escapeHtml(this.invoiceDurationLabel(appointment))}</span>
-          </div>
-
-          <section class="mission-invoice__summary">
-            <div class="mission-invoice__summary-line">
-              <span>Sous-total</span>
-              <strong>${this.escapeHtml(this.formatCurrency(subtotal))}</strong>
-            </div>
-            <div class="mission-invoice__summary-line mission-invoice__commission">
-              <span>Commission Jokko Dimbali (${commissionRate}%)</span>
-              <strong>${this.escapeHtml(this.formatCurrency(commissionAmount))}</strong>
-            </div>
-            <div class="mission-invoice__total">
-              <span>Total a payer</span>
-              <strong>${this.escapeHtml(this.formatCurrency(totalAmount))}</strong>
-            </div>
-          </section>
-        </section>
-
-        <footer class="mission-invoice__footer">
-          <span>Merci de faire confiance a <b>Jokko Dimbali</b></span>
-          <span>jokko-dimbali.sn &middot; Dakar, Senegal</span>
-        </footer>
-      </article>
-    `;
-  }
-
-  private missionInvoiceReference(appointment: AppointmentView): string {
-    const compact = appointment.id.replace(/-/g, '').toUpperCase();
-    return `JD-${new Date().getFullYear()}-${compact.slice(-5) || '00000'}`;
-  }
-
-  private invoiceLogoUrl(): string {
-    return `${globalThis.location?.origin || ''}/logojokko.png`;
-  }
-
-  private formatInvoiceIssueDate(date: Date): string {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    })
-      .format(date)
-      .replace(/^\w/, (first) => first.toUpperCase());
-  }
-
-  private invoiceDurationLabel(appointment: AppointmentView): string {
-    const minutes = appointment.durationMinutes || 30;
-    if (minutes >= 60 && minutes % 60 === 0) {
-      return `${minutes / 60} heure${minutes >= 120 ? 's' : ''}`;
-    }
-    return `${minutes} minutes`;
-  }
-
-  private travelModeInvoiceTitle(appointment: AppointmentView): string {
-    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {
-      return 'Deplacement - client chez le prestataire';
-    }
-    if (appointment.travelMode === 'TRANSPORT_COLIS') {
-      return 'Deplacement - transport de colis';
-    }
-    return 'Deplacement - prestataire chez le client';
-  }
-
-  private travelModeInvoiceDescription(appointment: AppointmentView): string {
-    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {
-      return `Le client ${appointment.clientName} s'est deplace chez le prestataire ${appointment.doctorName} a l'adresse : ${appointment.addressLabel}.`;
-    }
-    if (appointment.travelMode === 'TRANSPORT_COLIS') {
-      return `La mission de transport a ete realisee par ${appointment.doctorName} pour le client ${appointment.clientName}. Adresse reference : ${appointment.addressLabel}.`;
-    }
-    return `Le prestataire ${appointment.doctorName} s'est deplace chez le client ${appointment.clientName} a l'adresse : ${appointment.addressLabel}.`;
+    return this.documentBuilder.buildMissionInvoiceHtml({
+      appointment,
+      subtotal: this.finalPriceAmount(),
+      isParcelTransport: this.isParcelTransportAppointment(appointment),
+    });
   }
 
   private travelModeInvoiceLabel(appointment: AppointmentView): string {
@@ -3284,139 +3015,26 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private buildMedicalReceiptHtml(appointment: AppointmentView): string {
-    const actsRows = this.medicalActs()
-      .map(
-        (act, index) => `<tr><td>${this.escapeHtml(act)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
-          this.formatCurrency(index === 0 ? this.finalPriceAmount() : 5000),
-        )}</td></tr>`,
-      )
-      .join('');
-    const vaccinesRows = this.medicalVaccines()
-      .map(
-        (vaccine) => `<tr><td>${this.escapeHtml(vaccine)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
-          this.formatCurrency(3000),
-        )}</td></tr>`,
-      )
-      .join('');
-
-    return `
-      <div class="top">
-        <div>
-          <h1>Recu medical</h1>
-          <p class="muted">Reference ${this.escapeHtml(this.invoiceCodeLabel())}</p>
-          <p>Jokko Dimbali</p>
-        </div>
-        <div class="right">
-          <p><strong>Date</strong></p>
-          <p>${this.escapeHtml(this.formatLongDateTime(new Date().toISOString()))}</p>
-        </div>
-      </div>
-      <section class="box">
-        <p><strong>Patient:</strong> ${this.escapeHtml(appointment.clientName)}</p>
-        <p><strong>Medecin:</strong> ${this.escapeHtml(appointment.doctorName)}</p>
-        <p><strong>Motif:</strong> ${this.escapeHtml(appointment.serviceName)}</p>
-        <p><strong>Adresse:</strong> ${this.escapeHtml(appointment.addressLabel)}</p>
-      </section>
-      <h2>Detail des honoraires</h2>
-      <table>
-        <thead><tr><th>Libelle</th><th class="right">Qte</th><th class="right">Montant</th></tr></thead>
-        <tbody>${actsRows}${vaccinesRows}</tbody>
-      </table>
-      <p class="right total">Total paye: ${this.escapeHtml(this.medicalTotalLabel())}</p>
-      <p class="muted">Document genere automatiquement depuis le dossier de consultation Jokko.</p>
-    `;
+    return this.documentBuilder.buildMedicalReceiptHtml({
+      appointment,
+      acts: this.medicalActs(),
+      vaccines: this.medicalVaccines(),
+      invoiceCodeLabel: this.invoiceCodeLabel(),
+      finalPriceAmount: this.finalPriceAmount(),
+      medicalTotalLabel: this.medicalTotalLabel(),
+      generatedAtIso: new Date().toISOString(),
+    });
   }
 
   private buildMedicalPrescriptionHtml(
     appointment: AppointmentView,
     prescription: MedicalPrescriptionPayload,
   ): string {
-    const issuedAt = new Date();
-    const prescriptionItems = this.medicalPrescriptionItems(prescription);
-
-    return `
-      <article class="medical-prescription">
-        <header class="medical-prescription__header">
-          <div class="medical-prescription__doctor">
-            <small>${this.escapeHtml(appointment.specialty || 'Medecin generaliste')}</small>
-            <h1>${this.escapeHtml(appointment.doctorName)}</h1>
-            <p>${this.escapeHtml(appointment.professionalAddressLabel || 'Cabinet medical Jokko Dimbali, Dakar')}</p>
-            <p>${this.escapeHtml(appointment.professionalPhone || 'Telephone non renseigne')}</p>
-          </div>
-          <div class="medical-prescription__meta">
-            <span>Ref.</span>
-            <strong>${this.escapeHtml(this.medicalPrescriptionReference(appointment))}</strong>
-            <small>${this.escapeHtml(this.formatInvoiceIssueDate(issuedAt))}</small>
-          </div>
-        </header>
-
-        <section class="medical-prescription__banner">
-          <h2>Ordonnance medicale</h2>
-        </section>
-
-        <section class="medical-prescription__body">
-          <section class="medical-prescription__patient">
-            <div>
-              <small>Patient</small>
-              <strong>${this.escapeHtml(appointment.clientName)}</strong>
-              <span>Date de naissance non renseignee</span>
-            </div>
-            <div>
-              <em>${this.escapeHtml(appointment.clientPhone || 'Telephone non renseigne')}</em>
-              <em>${this.escapeHtml(appointment.addressLabel || 'Adresse non renseignee')}</em>
-            </div>
-          </section>
-
-          <h3 class="medical-prescription__section-title">Prescriptions</h3>
-          ${
-            prescriptionItems.length
-              ? `<ol class="medical-prescription__list">${prescriptionItems
-                  .map((item) => `<li class="medical-prescription__item"><span>${item}</span></li>`)
-                  .join('')}</ol>`
-              : '<p class="medical-prescription__empty">Aucune prescription renseignee sur cette ordonnance.</p>'
-          }
-        </section>
-
-        <footer class="medical-prescription__footer">
-          <div class="medical-prescription__signature">
-            <span>Cachet &amp; Signature du medecin</span>
-            <strong>Signature</strong>
-          </div>
-          <div class="medical-prescription__generated">
-            <span>Document genere via</span>
-            <div class="medical-prescription__brand">
-              <img src="${this.escapeHtml(this.invoiceLogoUrl())}" alt="Jokko Dimbali">
-              <div>
-                <b>Jokko Dimbali</b>
-                <small>jokko-dimbali.sn</small>
-              </div>
-            </div>
-          </div>
-        </footer>
-      </article>
-    `;
+    return this.documentBuilder.buildMedicalPrescriptionHtml(appointment, prescription);
   }
 
-  private medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): string[] {
-    return [
-      ...prescription.treatments.map((treatment) => `<b>${this.escapeHtml(treatment)}</b>`),
-      ...prescription.vaccines.map((vaccine) => `<b>${this.escapeHtml(vaccine)}</b> Vaccin administre`),
-      ...prescription.acts.map((act) => `<b>${this.escapeHtml(act)}</b> Acte clinique realise`),
-    ];
-  }
-
-  private medicalPrescriptionReference(appointment: AppointmentView): string {
-    const compact = appointment.id.replace(/-/g, '').toUpperCase();
-    return `ORD-${new Date().getFullYear()}-${compact.slice(-5) || '00000'}`;
-  }
-
-  private escapeHtml(value: string | number | null | undefined): string {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  protected formatCurrency(value: number): string {
+    return this.formatter.formatCurrency(value);
   }
 
   private isAppointmentInFuture(appointment: AppointmentView): boolean {
@@ -3527,13 +3145,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     selected: boolean;
     coordinates: MapCoordinate[];
   }> {
-    return this.routeOptions
-      .filter((route) => route.coordinates.length > 1)
-      .map((route) => ({
-        id: route.id,
-        selected: route.id === this.selectedRouteId(),
-        coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
-      }));
+    return this.routeService.serializeMapRoutes(this.routeOptions, this.selectedRouteId());
   }
 
   protected runProviderPrimaryAction(appointment: AppointmentView): void {
@@ -3660,34 +3272,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       : 'la destination';
   }
 
-  private findUpcomingNavigationStep(
-    steps: RouteNavigationStep[],
-  ): RouteNavigationStep | null {
-    if (steps.length === 0) return null;
-    const withDistance = steps
-      .map((step) => ({
-        step,
-        distance: step.end
-          ? this.distanceMetersBetweenCurrentPosition(step.end)
-          : Number.POSITIVE_INFINITY,
-      }))
-      .filter(({ distance }) => Number.isFinite(distance) && distance > 12)
-      .sort((left, right) => left.distance - right.distance);
-    return withDistance[0]?.step ?? steps[0];
-  }
-
-  private normalizeNavigationInstruction(step: RouteNavigationStep): string {
-    const instruction = step.instruction.replace(/<[^>]+>/g, '').trim();
-    if (instruction) return instruction;
-
-    const maneuver = step.maneuver?.toUpperCase() ?? '';
-    if (maneuver.includes('LEFT')) return 'Tournez a gauche.';
-    if (maneuver.includes('RIGHT')) return 'Tournez a droite.';
-    if (maneuver.includes('UTURN')) return 'Faites demi-tour.';
-    if (maneuver.includes('ROUNDABOUT')) return 'Entrez dans le rond-point.';
-    return 'Continuez tout droit.';
-  }
-
   private distanceMetersBetweenCurrentPosition(
     destination: MapCoordinate,
   ): number {
@@ -3697,57 +3281,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return Number.POSITIVE_INFINITY;
     }
 
-    const earthRadius = 6_371_000;
-    const latitudeDelta = ((destination.lat - latitude) * Math.PI) / 180;
-    const longitudeDelta = ((destination.lng - longitude) * Math.PI) / 180;
-    const originLatitude = (latitude * Math.PI) / 180;
-    const destinationLatitude = (destination.lat * Math.PI) / 180;
-    const a =
-      Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(originLatitude) *
-        Math.cos(destinationLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
-    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  private distanceMetersBetweenPoints(origin: MapCoordinate, destination: MapCoordinate): number {
-    const earthRadius = 6_371_000;
-    const latitudeDelta = ((destination.lat - origin.lat) * Math.PI) / 180;
-    const longitudeDelta = ((destination.lng - origin.lng) * Math.PI) / 180;
-    const originLatitude = (origin.lat * Math.PI) / 180;
-    const destinationLatitude = (destination.lat * Math.PI) / 180;
-    const a =
-      Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(originLatitude) *
-        Math.cos(destinationLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
-    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return this.geo.distanceMetersBetweenPoints({ lat: latitude, lng: longitude }, destination);
   }
 
   private announceNavigationInstruction(force = false): void {
     if (
       !this.hasActiveNavigationState() ||
       !this.isNavigationVoiceEnabled() ||
-      typeof window === 'undefined' ||
-      !('speechSynthesis' in window)
+      typeof window === 'undefined'
     ) {
       return;
     }
 
-    const navigation = this.navigationInstruction();
-    const key = `${navigation.maneuver ?? 'CONTINUE'}|${navigation.instruction}`;
-    if (!force && key === this.lastSpokenNavigationKey) return;
-
-    this.lastSpokenNavigationKey = key;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(
-      navigation.distanceMeters && navigation.distanceMeters > 30
-        ? `Dans ${this.navigationDistanceLabel()}, ${navigation.instruction}`
-        : navigation.instruction,
+    this.navigationService.speakInstruction(
+      this.navigationInstruction(),
+      this.navigationDistanceLabel(),
+      force,
     );
-    utterance.lang = 'fr-FR';
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
   }
 
   private hasActiveNavigationState(): boolean {
@@ -3760,7 +3310,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private loadRouteCoordinates(provider: [number, number], destinationPoint: [number, number]): void {
-    const key = `${this.routePointKey(provider)}|${this.routePointKey(destinationPoint)}`;
+    const key = `${this.geo.routePointKey(provider)}|${this.geo.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
     this.routeCoordinatesKey = key;
     this.routeCoordinates = [];
@@ -3783,42 +3333,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       })
       .subscribe({
         next: (googleRoutes) => {
-          const routes = googleRoutes
-          .map((route, index): RouteOption | null => {
-            const coordinates = route.coordinates
-              .map((coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number])
-              .filter(([lat, lng]) => this.isCoordinateInSenegal(lat, lng));
-            if (coordinates.length < 2) return null;
-
-            return {
-              id: `route-${index}`,
-              coordinates,
-              distanceKm:
-                typeof route.distanceMeters === 'number'
-                  ? Math.max(0.1, route.distanceMeters / 1000)
-                  : null,
-              durationMinutes:
-                typeof route.durationSeconds === 'number'
-                  ? Math.max(1, Math.round(route.durationSeconds / 60))
-                  : null,
-              navigationSteps: (route.navigationSteps ?? []).map((step) => ({
-                id: step.id,
-                instruction: step.instruction,
-                maneuver: step.maneuver,
-                distanceMeters: step.distanceMeters,
-                end: step.end
-                  ? { lat: step.end.latitude, lng: step.end.longitude }
-                  : null,
-              })),
-            };
-          })
-          .filter((route): route is RouteOption => !!route)
-          .sort((left, right) => (left.durationMinutes ?? 99999) - (right.durationMinutes ?? 99999));
+          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
         const route = routes[0];
         if (
           !route ||
-          !this.isCoordinateInSenegal(provider[0], provider[1]) ||
-          !this.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
+          !this.geo.isCoordinateInSenegal(provider[0], provider[1]) ||
+          !this.geo.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
         ) {
           this.routeCoordinates = [];
           this.routeOptions = [];
@@ -3855,7 +3375,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       });
   }
 
-  private applySelectedRoute(route: RouteOption | undefined): void {
+  private applySelectedRoute(route: AppointmentRouteOption | undefined): void {
     if (!route) return;
 
     this.routeCoordinates = route.coordinates;
@@ -3877,12 +3397,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeStatus.set('ready');
   }
 
-  private routePointKey(point: [number, number]): string {
-    return point.map((value) => value.toFixed(5)).join(',');
-  }
-
   private resolveDestinationCoordinates(addressLabel: string): void {
-    const query = this.normalizeAddressQuery(addressLabel);
+    const query = this.geo.normalizeAddressQuery(addressLabel);
     if (!query || typeof window === 'undefined') {
       if (!query && this.lastResolvedDestinationAddress) {
         this.clearResolvedDestination();
@@ -3896,8 +3412,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.clearResolvedDestination();
     this.lastResolvedDestinationAddress = query;
-    const explicitCoordinates = this.extractCoordinatesFromAddress(query);
-    if (!explicitCoordinates && this.hasCoordinateLikeAddress(query)) {
+    const explicitCoordinates = this.geo.extractCoordinatesFromAddress(query);
+    if (!explicitCoordinates && this.geo.hasCoordinateLikeAddress(query)) {
       this.destinationStatus.set('unavailable');
       return;
     }
@@ -3913,7 +3429,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.appointmentsService.geocodeAddress(query).subscribe({
       next: (result) => {
-        if (result && this.isCoordinateInSenegal(result.latitude, result.longitude)) {
+        if (result && this.geo.isCoordinateInSenegal(result.latitude, result.longitude)) {
           this.destinationCoordinates.set({
             lat: result.latitude,
             lng: result.longitude,
@@ -3944,42 +3460,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeDurationMinutes.set(null);
   }
 
-  private normalizeAddressQuery(value: string): string {
-    return value
-      .replace(/\([^)]*\)/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  private extractCoordinatesFromAddress(value: string): MapCoordinate | null {
-    const match = value.match(/(-?\d{1,2}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
-    if (!match) return null;
-
-    const lat = Number(match[1].replace(',', '.'));
-    const lng = Number(match[2].replace(',', '.'));
-    if (!this.isCoordinateInSenegal(lat, lng)) return null;
-
-    return { lat, lng };
-  }
-
-  private hasCoordinateLikeAddress(value: string): boolean {
-    return /-?\d{1,2}(?:[.,]\d+)?\s*[,;]\s*-?\d{1,3}(?:[.,]\d+)?/.test(value);
-  }
-
-  private isValidCoordinatePair(lat: number, lng: number): boolean {
-    return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
-  }
-
-  private isCoordinateInSenegal(lat: number, lng: number): boolean {
-    return (
-      this.isValidCoordinatePair(lat, lng) &&
-      lat >= SENEGAL_GEO_BOUNDS.minLat &&
-      lat <= SENEGAL_GEO_BOUNDS.maxLat &&
-      lng >= SENEGAL_GEO_BOUNDS.minLng &&
-      lng <= SENEGAL_GEO_BOUNDS.maxLng
-    );
-  }
-
   private mergeAppointment(current: AppointmentView, updated: AppointmentView): AppointmentView {
     const merged = {
       ...current,
@@ -4004,15 +3484,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private currentMedicalPrescriptionPayload(): MedicalPrescriptionPayload {
     return {
-      acts: this.normalizeMedicalPrescriptionItems([
+      acts: this.medicalPrescriptionService.normalizeItems([
         ...this.medicalActs(),
         this.currentMedicalAct(),
       ]),
-      vaccines: this.normalizeMedicalPrescriptionItems([
+      vaccines: this.medicalPrescriptionService.normalizeItems([
         ...this.medicalVaccines(),
         this.currentMedicalVaccine(),
       ]),
-      treatments: this.normalizeMedicalPrescriptionItems([
+      treatments: this.medicalPrescriptionService.normalizeItems([
         ...this.medicalTreatments(),
         this.currentMedicalTreatment(),
       ]),
@@ -4022,24 +3502,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private medicalPrescriptionForDocument(
     appointment: AppointmentView,
   ): MedicalPrescriptionPayload {
-    const persisted = this.hasMedicalPrescriptionContent(appointment.medicalPrescription)
+    const persisted = this.medicalPrescriptionService.hasContent(appointment.medicalPrescription)
       ? appointment.medicalPrescription
-      : this.extractMedicalPrescription(appointment.notes);
-    if (persisted && this.hasMedicalPrescriptionContent(persisted)) {
+      : this.medicalPrescriptionService.extractFromNotes(appointment.notes);
+    if (persisted && this.medicalPrescriptionService.hasContent(persisted)) {
       return persisted;
     }
 
     return this.currentMedicalPrescriptionPayload();
-  }
-
-  private hasMedicalPrescriptionContent(
-    prescription: MedicalPrescriptionPayload | null | undefined,
-  ): boolean {
-    return !!prescription && (
-      prescription.acts.length > 0 ||
-      prescription.vaccines.length > 0 ||
-      prescription.treatments.length > 0
-    );
   }
 
   private persistMedicalPrescriptionDraft(): void {
@@ -4047,7 +3517,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!appointment || !this.isProviderViewer() || !this.isMedicalAppointment()) return;
 
     const prescription = this.currentMedicalPrescriptionPayload();
-    if (!this.hasMedicalPrescriptionContent(prescription)) return;
+    if (!this.medicalPrescriptionService.hasContent(prescription)) return;
 
     this.appointmentsService
       .saveMedicalPrescription(appointment.id, prescription)
@@ -4061,146 +3531,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private hydrateMedicalPrescriptionFromAppointment(appointment: AppointmentView): void {
-    const prescription = this.hasMedicalPrescriptionContent(appointment.medicalPrescription)
+    const prescription = this.medicalPrescriptionService.hasContent(appointment.medicalPrescription)
       ? appointment.medicalPrescription
-      : this.extractMedicalPrescription(appointment.notes);
+      : this.medicalPrescriptionService.extractFromNotes(appointment.notes);
     if (!prescription) return;
 
     this.medicalActs.set(prescription.acts);
     this.medicalVaccines.set(prescription.vaccines);
     this.medicalTreatments.set(prescription.treatments);
-  }
-
-  private extractMedicalPrescription(notes: string | null | undefined): MedicalPrescriptionPayload | null {
-    if (!notes) return null;
-
-    const match = notes.match(
-      /---JOKKO_MEDICAL_PRESCRIPTION---\s*([\s\S]*?)\s*---END_JOKKO_MEDICAL_PRESCRIPTION---/,
-    );
-    if (!match) return null;
-
-    try {
-      const parsed = JSON.parse(match[1]) as Partial<MedicalPrescriptionPayload>;
-      return {
-        acts: this.normalizeMedicalPrescriptionItems(parsed.acts),
-        vaccines: this.normalizeMedicalPrescriptionItems(parsed.vaccines),
-        treatments: this.normalizeMedicalPrescriptionItems(parsed.treatments),
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  private stripMedicalPrescriptionBlock(notes: string | null | undefined): string {
-    return (notes ?? '').replace(
-      /\n?---JOKKO_MEDICAL_PRESCRIPTION---[\s\S]*?---END_JOKKO_MEDICAL_PRESCRIPTION---/g,
-      '',
-    );
-  }
-
-  private normalizeMedicalPrescriptionItems(value: unknown): string[] {
-    if (!Array.isArray(value)) return [];
-
-    return value
-      .map((item) => (typeof item === 'string' ? item.trim() : ''))
-      .filter((item, index, items) => item.length >= 2 && items.indexOf(item) === index);
-  }
-
-  private formatDistance(value: number): string {
-    return `${new Intl.NumberFormat('fr-FR', {
-      maximumFractionDigits: 1,
-    }).format(value)} km`;
-  }
-
-  protected formatCurrency(value: number): string {
-    return `${new Intl.NumberFormat('fr-FR', {
-      maximumFractionDigits: 0,
-    })
-      .format(value || 0)
-      .replace(/\s/g, ' ')} FCFA`;
-  }
-
-  private formatTimeFromValue(value: string | null | undefined): string {
-    if (!value) return '--h--';
-    return this.formatTimeFromDate(new Date(value));
-  }
-
-  private formatTimeFromDate(value: Date): string {
-    if (Number.isNaN(value.getTime())) return '--h--';
-
-    return new Intl.DateTimeFormat('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-      .format(value)
-      .replace(':', 'h');
-  }
-
-  private formatLongDateTime(value: string | null | undefined): string {
-    if (!value) return 'date non renseignee';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'date non renseignee';
-
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-      .format(date)
-      .replace(',', ' a')
-      .replace(':', 'h');
-  }
-
-  private toDateTimeLocalValue(value: Date): string {
-    if (Number.isNaN(value.getTime())) {
-      return this.toDateTimeLocalValue(new Date(Date.now() + 60 * 60 * 1000));
-    }
-
-    const localDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(0, 16);
-  }
-
-  private toCalendarDate(value: Date): string {
-    return value
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d{3}Z$/, 'Z');
-  }
-
-  private escapeCalendarText(value: string): string {
-    return value
-      .replace(/\\/g, '\\\\')
-      .replace(/;/g, '\\;')
-      .replace(/,/g, '\\,')
-      .replace(/\n/g, '\\n');
-  }
-
-  private providerLocationHelpMessage(error: unknown): string {
-    const message = error instanceof Error ? error.message : '';
-
-    if (message.includes('permission denied')) {
-      return "Autorisez la localisation pour partager automatiquement votre position. Cliquez sur le cadenas de la barre d'adresse, choisissez Localisation > Autoriser, puis reessayez.";
-    }
-
-    if (message.includes('timeout')) {
-      return "La position GPS prend trop de temps. Activez le GPS, rapprochez-vous d'une zone couverte, puis reessayez.";
-    }
-
-    if (message.includes('unavailable')) {
-      return "La geolocalisation n'est pas disponible sur cet appareil. Activez le GPS ou utilisez un navigateur compatible.";
-    }
-
-    if (message.includes('outside Senegal')) {
-      return 'La position detectee est hors du Senegal. Verifiez le GPS avant de demarrer le trajet.';
-    }
-
-    if (message.includes('Invalid geolocation coordinates')) {
-      return 'La position GPS recue est invalide. Activez la localisation precise puis reessayez.';
-    }
-
-    return "Impossible de recuperer votre position exacte. Autorisez la localisation GPS du navigateur et reessayez.";
   }
 
   private resolveCurrentLocation(fallbackLabel: string): Promise<{
@@ -4226,7 +3564,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             return;
           }
 
-          if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
+          if (!this.geo.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
             reject(new Error('Geolocation outside Senegal'));
             return;
           }

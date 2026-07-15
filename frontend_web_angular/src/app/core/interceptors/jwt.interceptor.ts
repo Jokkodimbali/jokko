@@ -21,6 +21,7 @@ import { AppFeedbackService } from '../feedback/app-feedback.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { AuthService } from '../../features/auth/data-access/auth.service';
 import { getHttpErrorMessage } from '../http/api-response.utils';
+import { environment } from '../../../environments/environment';
 
 let refreshInProgress = false;
 const refreshTokenSignal = new BehaviorSubject<string | 'FAILED' | null>(null);
@@ -33,6 +34,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const authService = inject(AuthService);
   const token = authSession.getAccessToken();
+  const isApiRequest = isApplicationApiRequest(req.url);
+
+  if (!isApiRequest) {
+    return next(req);
+  }
 
   const headers = token
     ? req.headers.set('Authorization', `Bearer ${token}`)
@@ -173,6 +179,10 @@ function shouldHandleUnauthorized(requestUrl: string, currentUrl: string): boole
     return false;
   }
 
+  if (!isApplicationApiRequest(requestUrl)) {
+    return false;
+  }
+
   return ![
     '/auth/login',
     '/auth/google/login',
@@ -181,4 +191,20 @@ function shouldHandleUnauthorized(requestUrl: string, currentUrl: string): boole
     '/auth/verify-otp',
     '/auth/refresh',
   ].some((path) => requestUrl.includes(path));
+}
+
+function isApplicationApiRequest(requestUrl: string): boolean {
+  const apiUrl = environment.apiUrl;
+
+  if (!/^https?:\/\//i.test(requestUrl)) {
+    return requestUrl.startsWith('/api/');
+  }
+
+  try {
+    const request = new URL(requestUrl);
+    const api = new URL(apiUrl);
+    return request.origin === api.origin && request.pathname.startsWith(api.pathname);
+  } catch {
+    return false;
+  }
 }

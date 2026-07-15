@@ -142,7 +142,11 @@ export class MessagingCommandService extends MessagingAppService {
       throw appHttpException('MESSAGING_RESERVATION_REQUIRED');
     }
 
-    if (requestUser.role !== 'CLIENT') {
+    if (
+      requestUser.role !== 'CLIENT' &&
+      requestUser.role !== 'PRESTATAIRE' &&
+      requestUser.role !== 'MEDECIN'
+    ) {
       throw appHttpException('MESSAGING_UNAUTHORIZED');
     }
 
@@ -211,10 +215,9 @@ export class MessagingCommandService extends MessagingAppService {
       throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
     }
 
-    if (requestUser.role === 'CLIENT') {
-      if (negotiation.clientId !== requestUser.sub) {
-        throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
-      }
+    if (negotiation.clientId === requestUser.sub) {
+      // The connected user is acting as the client for this negotiation,
+      // even if their account also has a professional role.
     } else if (
       requestUser.role === 'PRESTATAIRE' ||
       requestUser.role === 'MEDECIN'
@@ -317,10 +320,9 @@ export class MessagingCommandService extends MessagingAppService {
       throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
     }
 
-    if (requestUser.role === 'CLIENT') {
-      if (reservation.clientId !== requestUser.sub) {
-        throw appHttpException('MESSAGING_RESERVATION_PARTICIPANTS_MISMATCH');
-      }
+    if (reservation.clientId === requestUser.sub) {
+      // The connected user is acting as the client for this reservation,
+      // even if their account also has a professional role.
     } else if (
       requestUser.role === 'PRESTATAIRE' ||
       requestUser.role === 'MEDECIN'

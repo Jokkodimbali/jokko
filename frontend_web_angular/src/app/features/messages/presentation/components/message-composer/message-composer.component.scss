@@ -11,7 +11,7 @@
   gap: 8px;
   grid-template-columns: minmax(0, 1fr);
   min-height: 66px;
-  padding: 9px 14px 10px;
+  padding: 0 14px 10px;
   width: 100%;
 }
 
@@ -272,7 +272,7 @@
 
 @media (max-width: 767px) {
   .message-composer {
-    padding: 8px 10px 9px;
+    padding: 0 10px 9px;
   }
 }
 

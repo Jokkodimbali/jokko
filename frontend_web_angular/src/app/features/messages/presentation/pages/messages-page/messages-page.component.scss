@@ -297,6 +297,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .messages-page__chat-head {
@@ -370,7 +371,8 @@
   gap: 20px;
   min-height: 0;
   overflow-y: auto;
-  padding: 18px 21px 12px;
+  padding: 18px 21px 10px;
+  scroll-padding-bottom: 10px;
 }
 
 .messages-page__bubble-row {
@@ -429,12 +431,48 @@
   line-height: 1;
 }
 
+.messages-page__media-image-wrap {
+  display: inline-flex;
+  max-width: min(310px, 100%);
+  position: relative;
+}
+
+.messages-page__media-image-link {
+  display: block;
+  max-width: 100%;
+}
+
 .messages-page__media-image {
   border-radius: 15px;
   display: block;
   max-height: 230px;
-  max-width: min(310px, 100%);
+  max-width: 100%;
   object-fit: cover;
+}
+
+.messages-page__media-download {
+  align-items: center;
+  background: rgba(20, 20, 20, 0.68);
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+  width: 30px;
+}
+
+.messages-page__media-download:hover,
+.messages-page__media-download:focus-visible {
+  background: rgba(20, 20, 20, 0.82);
+  transform: translateY(-1px);
 }
 
 .messages-page__media-audio {
@@ -447,16 +485,470 @@
   border: 1px solid #e4dfda;
   border-radius: 13px;
   color: #1d1d1d;
-  cursor: pointer;
   display: inline-flex;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  gap: 8px;
+  gap: 10px;
   max-width: min(330px, 100%);
-  min-height: 43px;
-  padding: 0 13px;
+  min-height: 55px;
+  padding: 8px 10px;
   text-decoration: none;
+}
+
+.messages-page__media-file-icon {
+  align-items: center;
+  background: #f44f66;
+  border-radius: 9px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.messages-page__media-file-copy {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 auto;
+  font-family: inherit;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.messages-page__media-file-copy strong {
+  color: #1c1c1c;
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messages-page__media-file-copy small {
+  color: #777;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.messages-page__media-file-download {
+  align-items: center;
+  background: #f0ede9;
+  border: 0;
+  border-radius: 999px;
+  color: #505050;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.messages-page__media-file-download:hover,
+.messages-page__media-file-download:focus-visible {
+  background: #e3ddd7;
+}
+
+.messages-page__preview {
+  background: #fff;
+  color: #151515;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr) auto;
+  inset: 93px 0 0;
+  min-height: 0;
+  position: absolute;
+  z-index: 8;
+}
+
+.messages-page__preview-head {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e3e1de;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  padding: 0 22px;
+}
+
+.messages-page__preview-head button,
+.messages-page__preview-send {
+  align-items: center;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.messages-page__preview-head button {
+  background: transparent;
+  border-radius: 999px;
+  color: #656565;
+  height: 40px;
+  width: 40px;
+}
+
+.messages-page__preview-head button:hover,
+.messages-page__preview-head button:focus-visible {
+  background: #efeeec;
+  color: #151515;
+}
+
+.messages-page__preview-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messages-page__preview-stage {
+  align-items: center;
+  background: #f7f7f6;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.messages-page__preview-image {
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  display: block;
+  max-height: 100%;
+  max-width: min(100%, 720px);
+  object-fit: contain;
+}
+
+.messages-page__preview-file {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e4dfda;
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+  color: #9a501e;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  max-width: min(90%, 390px);
+  min-height: 210px;
+  padding: 28px;
+  text-align: center;
+}
+
+.messages-page__preview-file strong {
+  color: #151515;
+  font-size: 15px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messages-page__preview-file span {
+  color: #777;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.messages-page__preview-compose {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #e3e1de;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 54px 56px;
+  padding: 16px 24px;
+}
+
+.messages-page__preview-compose input {
+  background: #efeeec;
+  border: 0;
+  border-radius: 10px;
+  color: #151515;
+  font: inherit;
+  font-size: 14px;
+  height: 46px;
+  min-width: 0;
+  outline: 0;
+  padding: 0 16px;
+}
+
+.messages-page__preview-compose input::placeholder {
+  color: #777;
+}
+
+.messages-page__preview-thumb {
+  align-items: center;
+  background: #fff;
+  border: 2px solid #19c765;
+  border-radius: 6px;
+  display: inline-flex;
+  height: 50px;
+  justify-content: center;
+  overflow: hidden;
+  width: 50px;
+}
+
+.messages-page__preview-thumb img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.messages-page__preview-thumb--file {
+  background: #f7f7f6;
+  color: #f44f66;
+}
+
+.messages-page__preview-send {
+  background: #19c765;
+  border-radius: 999px;
+  color: #06140c;
+  height: 56px;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+  width: 56px;
+}
+
+.messages-page__preview-send:disabled {
+  cursor: progress;
+  opacity: 0.58;
+}
+
+.messages-page__preview-send:not(:disabled):hover,
+.messages-page__preview-send:not(:disabled):focus-visible {
+  transform: translateY(-1px);
+}
+
+.messages-page__reservation-row {
+  align-self: center;
+  background: transparent;
+  border-top: 0;
+  display: flex;
+  justify-content: center;
+  margin-top: 0;
+  padding: 8px 8px 0;
+  position: static;
+  width: 100%;
+  z-index: 1;
+}
+
+.messages-page__reservation-row--thread {
+  display: none;
+}
+
+.messages-page__reservation-card {
+  background: #fff;
+  border: 1px solid #e2dfdc;
+  border-radius: 18px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  color: #222;
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  padding: 14px 18px 12px;
+  width: min(100%, 560px);
+}
+
+.messages-page__reservation-avatar {
+  align-self: start;
+  display: inline-flex;
+  height: 56px;
+  position: relative;
+  width: 56px;
+}
+
+.messages-page__reservation-avatar img,
+.messages-page__reservation-avatar i {
+  border-radius: 50%;
+  height: 56px;
+  width: 56px;
+}
+
+.messages-page__reservation-avatar img {
+  display: block;
+  object-fit: cover;
+}
+
+.messages-page__reservation-avatar i {
+  align-items: center;
+  background: #f2dfcc;
+  color: #955d24;
+  display: inline-flex;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.messages-page__reservation-avatar b {
+  align-items: center;
+  background: #955d24;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  bottom: -2px;
+  color: #fff;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  position: absolute;
+  right: -2px;
+  width: 22px;
+}
+
+.messages-page__reservation-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.messages-page__reservation-main header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.messages-page__reservation-main p {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+
+.messages-page__reservation-main p strong {
+  color: #222;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.messages-page__reservation-main p span {
+  color: #777;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.messages-page__reservation-main em {
+  align-items: center;
+  background: #ecfdf3;
+  border: 1px solid #a8efc5;
+  border-radius: 999px;
+  color: #078149;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 13px;
+}
+
+.messages-page__reservation-main em i {
+  background: currentColor;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.messages-page__reservation-main em[data-tone='pending'] {
+  background: #ecfdf3;
+  border-color: #a8efc5;
+  color: #078149;
+}
+
+.messages-page__reservation-main em[data-tone='active'] {
+  background: #eef6ff;
+  border-color: #bfdbfe;
+  color: #1d63b8;
+}
+
+.messages-page__reservation-main em[data-tone='success'] {
+  background: #eff8ec;
+  border-color: #b9e0ad;
+  color: #4f7f2f;
+}
+
+.messages-page__reservation-main em[data-tone='danger'] {
+  background: #fff1f1;
+  border-color: #ffc9c9;
+  color: #b42318;
+}
+
+.messages-page__reservation-main em[data-tone='neutral'] {
+  background: #f2f1ef;
+  border-color: #dfddd9;
+  color: #68645f;
+}
+
+.messages-page__reservation-main h3 {
+  color: #202020;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.messages-page__reservation-meta {
+  align-items: center;
+  color: #7a7068;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  min-width: 0;
+}
+
+.messages-page__reservation-meta span {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 5px;
+  min-width: 0;
+}
+
+.messages-page__reservation-footer {
+  align-items: end;
+  display: flex;
+  gap: 18px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.messages-page__reservation-footer strong {
+  color: #222;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.messages-page__reservation-footer a {
+  align-items: center;
+  background: #955d24;
+  border-radius: 11px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 850;
+  min-height: 38px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.messages-page__reservation-card .messages-page__proposal-actions,
+.messages-page__reservation-card .messages-page__counter-offer {
+  grid-column: 1 / -1;
 }
 
 .messages-page__proposal-row {
@@ -833,11 +1325,74 @@
   }
 
   .messages-page__thread {
-    padding: 16px 14px 12px;
+    padding: 16px 14px 10px;
+    scroll-padding-bottom: 10px;
   }
 
   .messages-page__bubble-row {
     max-width: 86%;
+  }
+
+  .messages-page__reservation-row {
+    padding: 8px 0 0;
+    width: 100%;
+  }
+
+  .messages-page__reservation-card {
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding: 12px;
+    width: min(100%, 520px);
+  }
+
+  .messages-page__reservation-avatar,
+  .messages-page__reservation-avatar img,
+  .messages-page__reservation-avatar i {
+    height: 48px;
+    width: 48px;
+  }
+
+  .messages-page__reservation-main header,
+  .messages-page__reservation-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .messages-page__reservation-footer {
+    gap: 12px;
+  }
+
+  .messages-page__reservation-footer a {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .messages-page__preview {
+    grid-template-rows: 56px minmax(0, 1fr) auto;
+    inset: 76px 0 0;
+  }
+
+  .messages-page__preview-head {
+    padding: 0 12px;
+  }
+
+  .messages-page__preview-stage {
+    padding: 14px;
+  }
+
+  .messages-page__preview-compose {
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 46px 50px;
+    padding: 12px;
+  }
+
+  .messages-page__preview-thumb {
+    height: 44px;
+    width: 44px;
+  }
+
+  .messages-page__preview-send {
+    height: 50px;
+    width: 50px;
   }
 
 }

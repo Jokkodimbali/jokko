@@ -138,29 +138,54 @@
             </div>
           </header>
 
-          <div class="doctor-space__travel-options" role="radiogroup" aria-label="Mode de deplacement">
-            <button
-              *ngFor="let option of visibleTravelModeOptions()"
-              type="button"
-              class="doctor-space__travel-option"
-              [class.doctor-space__travel-option--active]="selectedTravelMode() === option.value"
-              [attr.aria-checked]="selectedTravelMode() === option.value"
-              role="radio"
-              (click)="selectTravelMode(option.value)"
-            >
-              <span class="doctor-space__travel-option-icon">
-                <lucide-icon [name]="option.icon" size="17" [strokeWidth]="2.2"></lucide-icon>
-              </span>
-              <strong>{{ option.title }}</strong>
-              <small>{{ option.description }}</small>
-              <lucide-icon
-                *ngIf="selectedTravelMode() === option.value"
-                class="doctor-space__travel-option-check"
-                name="check"
-                size="14"
-                [strokeWidth]="2.8"
-              ></lucide-icon>
-            </button>
+          <div
+            class="doctor-space__travel-layout"
+            [class.doctor-space__travel-layout--with-map]="shouldShowInterventionMap()"
+          >
+            <div class="doctor-space__travel-options" role="radiogroup" aria-label="Mode de deplacement">
+              <button
+                *ngFor="let option of visibleTravelModeOptions()"
+                type="button"
+                class="doctor-space__travel-option"
+                [class.doctor-space__travel-option--active]="selectedTravelMode() === option.value"
+                [attr.aria-checked]="selectedTravelMode() === option.value"
+                role="radio"
+                (click)="selectTravelMode(option.value)"
+              >
+                <span class="doctor-space__travel-option-icon">
+                  <lucide-icon [name]="option.icon" size="17" [strokeWidth]="2.2"></lucide-icon>
+                </span>
+                <strong>{{ option.title }}</strong>
+                <small>{{ option.description }}</small>
+                <lucide-icon
+                  *ngIf="selectedTravelMode() === option.value"
+                  class="doctor-space__travel-option-check"
+                  name="check"
+                  size="14"
+                  [strokeWidth]="2.8"
+                ></lucide-icon>
+              </button>
+            </div>
+
+            <aside *ngIf="shouldShowInterventionMap()" class="doctor-space__intervention-map">
+              <header>
+                <span>
+                  <lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon>
+                </span>
+                <div>
+                  <strong>Adresse d'intervention</strong>
+                  <small>{{ interventionAddressHint() }}</small>
+                </div>
+              </header>
+
+              <app-service-proposal-interactive-map
+                [address]="interventionAddress()"
+                [expanded]="isInterventionMapExpanded()"
+                (addressSelected)="updateInterventionAddress($event)"
+                (addressResolved)="resolveInterventionAddress($event)"
+                (expandedChange)="setInterventionMapExpanded($event)"
+              ></app-service-proposal-interactive-map>
+            </aside>
           </div>
 
           <footer>

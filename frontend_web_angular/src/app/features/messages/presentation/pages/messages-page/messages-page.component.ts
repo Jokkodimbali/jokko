@@ -42,6 +42,36 @@ interface ReservationPaymentDraft {
   durationMinutes: number;
 }
 
+interface PendingAttachmentPreview {
+  file: File;
+  kind: 'image' | 'file';
+  objectUrl: string;
+  name: string;
+  sizeLabel: string;
+  typeLabel: string;
+  isImage: boolean;
+}
+
+interface ConversationReservationCard {
+  source: 'appointment' | 'proposal';
+  id: string | null;
+  status: string | null;
+  statusLabel: string;
+  statusTone: 'pending' | 'active' | 'success' | 'danger' | 'neutral';
+  personName: string;
+  categoryLabel: string;
+  serviceName: string;
+  dateLabel: string;
+  timeLabel: string;
+  priceLabel: string;
+  avatarUrl: string | null;
+  initials: string;
+  detailLink: string[] | null;
+  detailQueryParams: Record<string, string | number> | null;
+  proposal: PendingProposal | null;
+  appointment: AppointmentView | null;
+}
+
 type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
 
 @Component({
@@ -79,6 +109,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly selectedAttachmentName = signal<string | null>(null);
   protected readonly pendingMediaUrl = signal<string | null>(null);
   protected readonly pendingMediaKind = signal<'image' | 'file' | 'audio' | null>(null);
+  protected readonly pendingAttachmentPreview = signal<PendingAttachmentPreview | null>(null);
   protected readonly pendingVoiceDurationSeconds = signal(0);
   protected readonly voiceRecordingSeconds = signal(0);
   protected readonly voiceLevel = signal(0);
@@ -115,9 +146,76 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
   );
 
-  protected readonly paidAppointmentPreview = computed(() => {
+  protected readonly visibleAppointmentPreview = computed(() => {
     const appointment = this.appointmentPreview();
-    return appointment && this.isPaidAppointmentStatus(appointment.status) ? appointment : null;
+    const reservationId =
+      this.selectedConversation()?.reservationId ??
+      this.visibleProposal()?.reservationId ??
+      this.requestedReservationId();
+
+    return appointment && reservationId && appointment.id === reservationId ? appointment : null;
+  });
+
+  protected readonly paidAppointmentPreview = computed(() => this.visibleAppointmentPreview());
+
+  protected readonly conversationReservationCard = computed<ConversationReservationCard | null>(() => {
+    const appointment = this.visibleAppointmentPreview();
+    if (appointment) {
+      return {
+        source: 'appointment',
+        id: appointment.id,
+        status: appointment.status,
+        statusLabel: this.appointmentStatusLabel(appointment.status),
+        statusTone: this.appointmentStatusTone(appointment.status),
+        personName: this.isClientViewerForAppointment(appointment)
+          ? appointment.doctorName
+          : appointment.clientName,
+        categoryLabel: appointment.serviceCategoryName || appointment.specialty || 'Service',
+        serviceName: appointment.serviceName,
+        dateLabel: appointment.fullDateLabel,
+        timeLabel: appointment.timeLabel,
+        priceLabel: this.formatAmount(appointment.agreedPrice ?? appointment.servicePrice ?? 0) + ' FCFA',
+        avatarUrl: this.isClientViewerForAppointment(appointment)
+          ? appointment.avatarUrl
+          : appointment.clientAvatarUrl,
+        initials: this.initials(
+          this.isClientViewerForAppointment(appointment) ? appointment.doctorName : appointment.clientName,
+        ),
+        detailLink: this.appointmentDetailLink(appointment),
+        detailQueryParams: this.appointmentDetailQueryParams(),
+        proposal: this.visibleProposal(),
+        appointment,
+      };
+    }
+
+    const proposal = this.visibleProposalStep();
+    if (!proposal) {
+      return null;
+    }
+
+    return {
+      source: 'proposal',
+      id: proposal.reservationId,
+      status: proposal.status,
+      statusLabel: this.proposalStatusLabel(proposal.status),
+      statusTone: this.proposalStatusTone(proposal.status),
+      personName: proposal.providerName,
+      categoryLabel: 'Negociation',
+      serviceName: proposal.serviceName,
+      dateLabel: proposal.appointmentDate ? this.formatFullDateTimePart(proposal.appointmentDate, 'date') : 'Date a confirmer',
+      timeLabel: proposal.appointmentDate ? this.formatFullDateTimePart(proposal.appointmentDate, 'time') : 'Heure a confirmer',
+      priceLabel: this.formatAmount(proposal.amount) + ' FCFA',
+      avatarUrl: this.selectedConversation()?.counterpart.avatarUrl ?? null,
+      initials: this.initials(proposal.providerName),
+      detailLink: proposal.reservationId
+        ? this.reservationDetailLink(proposal.reservationId, proposal.status)
+        : this.negotiationDetailLink(proposal),
+      detailQueryParams: proposal.reservationId
+        ? this.appointmentDetailQueryParams()
+        : this.negotiationDetailQueryParams(proposal),
+      proposal,
+      appointment: null,
+    };
   });
 
   protected readonly filteredConversations = computed(() => {
@@ -179,7 +277,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly visibleProposalStep = computed<PendingProposal | null>(() => {
     const proposal = this.visibleProposal();
     if (
-      this.paidAppointmentPreview() ||
+      this.visibleAppointmentPreview() ||
       this.isPaidConversationStatus(proposal?.status) ||
       (Boolean(proposal?.reservationId) && this.isLoadingAppointmentPreview())
     ) {
@@ -255,6 +353,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
     this.realtimeMessageSubscription?.unsubscribe();
     this.messagesRealtime.disconnect();
+    this.revokePendingAttachmentPreview();
   }
 
   protected selectConversation(conversationId: string): void {
@@ -262,6 +361,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.clearPendingMedia();
     this.selectedConversationId.set(conversationId);
     this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
     this.scrollThreadToBottom();
@@ -269,6 +369,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.messagesRealtime.joinConversation(conversationId);
     this.appointmentPreview.set(null);
     this.loadMessages(conversationId);
+    this.loadAppointmentPreviewForSelectedConversation();
     setTimeout(() => this.loadAppointmentPreviewForVisibleProposal(), 0);
   }
 
@@ -305,7 +406,16 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.draft.set(value);
   }
 
+  protected updateDraftFromEvent(event: Event): void {
+    this.updateDraft((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
   protected sendMessage(): void {
+    if (this.pendingAttachmentPreview()) {
+      this.uploadPendingAttachmentAndSend();
+      return;
+    }
+
     this.sendMessageWithMedia(this.pendingMediaUrl() ?? undefined);
   }
 
@@ -408,7 +518,23 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return decodeURIComponent(cleanUrl.split('/').pop() || 'Piece jointe');
   }
 
+  protected mediaTypeLabelFromUrl(url: string | null | undefined): string {
+    const fileName = this.mediaFileName(url).toLowerCase();
+    const extension = fileName.includes('.') ? fileName.split('.').pop() : '';
+
+    if (!extension) {
+      return 'Document';
+    }
+
+    return extension.toUpperCase();
+  }
+
   protected pendingMediaLabel(): string {
+    const preview = this.pendingAttachmentPreview();
+    if (preview) {
+      return preview.name;
+    }
+
     const kind = this.pendingMediaKind();
     if (kind === 'audio') {
       return `Message vocal - ${this.formatDuration(this.pendingVoiceDurationSeconds())}`;
@@ -434,6 +560,31 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected downloadMedia(mediaUrl: string, event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    this.messagesService.downloadMedia(mediaUrl).subscribe({
+      next: (blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        this.triggerDownload(objectUrl, this.mediaFileName(mediaUrl));
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      },
+      error: () => {
+        this.feedback.error('Impossible de telecharger cette piece jointe pour le moment.');
+      },
+    });
+  }
+
+  protected downloadPendingAttachment(): void {
+    const preview = this.pendingAttachmentPreview();
+    if (!preview) {
+      return;
+    }
+
+    this.triggerDownload(preview.objectUrl, preview.name);
+  }
+
   protected formatDuration(totalSeconds: number): string {
     const seconds = Math.max(0, Math.floor(totalSeconds));
     const minutes = Math.floor(seconds / 60);
@@ -442,6 +593,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   protected clearPendingMedia(): void {
+    this.revokePendingAttachmentPreview();
     this.pendingMediaUrl.set(null);
     this.pendingMediaKind.set(null);
     this.selectedAttachmentName.set(null);
@@ -494,7 +646,96 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.uploadMediaForComposer(file, kind);
+    this.prepareAttachmentPreview(file, kind);
+  }
+
+  private prepareAttachmentPreview(file: File, kind: 'image' | 'file'): void {
+    this.revokePendingAttachmentPreview();
+    this.pendingMediaUrl.set(null);
+    this.pendingMediaKind.set(null);
+    this.pendingVoiceDurationSeconds.set(0);
+    this.selectedAttachmentName.set(file.name);
+
+    const isImage = kind === 'image' || file.type.startsWith('image/');
+    this.pendingAttachmentPreview.set({
+      file,
+      kind,
+      objectUrl: URL.createObjectURL(file),
+      name: file.name,
+      sizeLabel: this.formatFileSize(file.size),
+      typeLabel: this.mediaTypeLabel(file),
+      isImage,
+    });
+  }
+
+  private uploadPendingAttachmentAndSend(): void {
+    const preview = this.pendingAttachmentPreview();
+    const conversation = this.selectedConversation();
+
+    if (!preview || !conversation || this.isUploadingMedia() || this.isSending()) {
+      return;
+    }
+
+    this.isUploadingMedia.set(true);
+    this.messagesService.uploadMedia(preview.file).subscribe({
+      next: ({ mediaUrl }) => {
+        this.isUploadingMedia.set(false);
+        this.sendMessageWithMedia(mediaUrl);
+      },
+      error: () => {
+        this.isUploadingMedia.set(false);
+        this.feedback.error("Impossible d'envoyer ce media pour le moment.");
+      },
+    });
+  }
+
+  private revokePendingAttachmentPreview(): void {
+    const preview = this.pendingAttachmentPreview();
+    if (preview) {
+      URL.revokeObjectURL(preview.objectUrl);
+    }
+
+    this.pendingAttachmentPreview.set(null);
+  }
+
+  private triggerDownload(url: string, fileName: string): void {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName || 'piece-jointe';
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  private formatFileSize(size: number): string {
+    if (size < 1024) {
+      return `${size} o`;
+    }
+
+    const units = ['Ko', 'Mo', 'Go'];
+    let value = size / 1024;
+    let unitIndex = 0;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  private mediaTypeLabel(file: File): string {
+    if (file.type === 'application/pdf') {
+      return 'PDF';
+    }
+
+    if (file.type.startsWith('image/')) {
+      return file.type.replace('image/', '').toUpperCase();
+    }
+
+    const extension = file.name.includes('.') ? file.name.split('.').pop() : '';
+    return extension ? extension.toUpperCase() : 'Document';
   }
 
   private uploadMediaForComposer(file: File, kind: 'image' | 'file' | 'audio', durationSeconds = 0): void {
@@ -996,6 +1237,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.scrollThreadToBottom();
           this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
+          this.loadAppointmentPreviewForSelectedConversation();
         }
       },
       error: () => {
@@ -1507,6 +1749,21 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.loadAppointmentPreview(proposal.reservationId);
   }
 
+  private loadAppointmentPreviewForSelectedConversation(): void {
+    const reservationId =
+      this.selectedConversation()?.reservationId ??
+      this.requestedReservationId();
+    if (!reservationId) {
+      return;
+    }
+
+    if (this.appointmentPreview()?.id === reservationId) {
+      return;
+    }
+
+    this.loadAppointmentPreview(reservationId);
+  }
+
   private loadAppointmentPreview(reservationId: string): void {
     this.isLoadingAppointmentPreview.set(true);
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
@@ -1782,8 +2039,151 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return Boolean(userId && currentUserId && userId.trim() === currentUserId.trim());
   }
 
-  private isPaidAppointmentStatus(status: AppointmentView['status']): boolean {
-    return this.isPaidConversationStatus(status);
+  private isClientViewerForAppointment(appointment: AppointmentView): boolean {
+    return this.isCurrentUserId(appointment.clientId);
+  }
+
+  private appointmentStatusLabel(status: AppointmentView['status']): string {
+    switch (status) {
+      case 'CONFIRMEE':
+        return 'Confirmee';
+      case 'PAYEE_SEQUESTRE':
+        return 'Payee';
+      case 'EN_COURS':
+        return 'En cours';
+      case 'TERMINEE':
+        return 'Terminee';
+      case 'ANNULEE':
+        return 'Annulee';
+      case 'NO_SHOW':
+        return 'Absence';
+      case 'LITIGE':
+        return 'Litige';
+      default:
+        return 'Reservation';
+    }
+  }
+
+  private appointmentStatusTone(
+    status: AppointmentView['status'],
+  ): ConversationReservationCard['statusTone'] {
+    switch (status) {
+      case 'CONFIRMEE':
+      case 'PAYEE_SEQUESTRE':
+        return 'active';
+      case 'EN_COURS':
+        return 'pending';
+      case 'TERMINEE':
+        return 'success';
+      case 'ANNULEE':
+      case 'NO_SHOW':
+      case 'LITIGE':
+        return 'danger';
+      default:
+        return 'neutral';
+    }
+  }
+
+  private proposalStatusLabel(status: string | null): string {
+    switch (status) {
+      case 'EN_ATTENTE_PRESTATAIRE':
+        return 'En negociation';
+      case 'EN_ATTENTE_CLIENT':
+        return 'Contre-offre';
+      case 'ACCEPTEE':
+        return 'Acceptee';
+      case 'CONVERTIE_EN_RESERVATION':
+        return 'Reservation creee';
+      case 'REFUSEE':
+        return 'Refusee';
+      case 'ANNULEE':
+        return 'Annulee';
+      default:
+        return 'En negociation';
+    }
+  }
+
+  private proposalStatusTone(status: string | null): ConversationReservationCard['statusTone'] {
+    switch (status) {
+      case 'ACCEPTEE':
+      case 'CONVERTIE_EN_RESERVATION':
+        return 'success';
+      case 'REFUSEE':
+      case 'ANNULEE':
+        return 'danger';
+      case 'EN_ATTENTE_CLIENT':
+      case 'EN_ATTENTE_PRESTATAIRE':
+        return 'pending';
+      default:
+        return 'neutral';
+    }
+  }
+
+  private formatFullDateTimePart(value: string, part: 'date' | 'time'): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return part === 'date' ? 'Date a confirmer' : 'Heure a confirmer';
+    }
+
+    if (part === 'date') {
+      return new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }).format(date);
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  private appointmentDetailLink(appointment: AppointmentView): string[] {
+    return this.reservationDetailLink(appointment.id, appointment.status);
+  }
+
+  private reservationDetailLink(reservationId: string, status: string | null): string[] {
+    if (status === 'CONFIRMEE') {
+      return ['/appointments', reservationId, 'payment'];
+    }
+
+    return ['/appointments', reservationId];
+  }
+
+  private appointmentDetailQueryParams(): Record<string, string | number> {
+    return {
+      returnUrl: '/messages',
+    };
+  }
+
+  private negotiationDetailLink(proposal: PendingProposal): string[] | null {
+    if (!proposal.professionalId) {
+      return null;
+    }
+
+    return ['/services', proposal.professionalId, 'proposition'];
+  }
+
+  private negotiationDetailQueryParams(proposal: PendingProposal): Record<string, string | number> {
+    const query: Record<string, string | number> = {
+      returnTo: 'messages',
+    };
+
+    if (proposal.negotiationId) {
+      query['negotiationId'] = proposal.negotiationId;
+    }
+
+    if (proposal.conversationId || this.selectedConversationId()) {
+      query['conversationId'] = proposal.conversationId || this.selectedConversationId() || '';
+    }
+
+    if (this.isProfessionalRole()) {
+      query['mode'] = 'prestataire';
+    }
+
+    return query;
   }
 
   private isPaidConversationStatus(status: string | null | undefined): boolean {

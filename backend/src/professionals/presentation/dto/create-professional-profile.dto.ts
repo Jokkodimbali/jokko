@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
@@ -46,4 +53,26 @@ export class CreateProfessionalProfileDto {
   @IsString()
   @MaxLength(100, { message: VALIDATION_MESSAGES.CITY_MAX })
   city?: string | null;
+
+  @ApiProperty({
+    description: API_DOCS.search.latitudeField,
+    example: 14.7167,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90, { message: VALIDATION_MESSAGES.SEARCH_LATITUDE_INVALID })
+  @Max(90, { message: VALIDATION_MESSAGES.SEARCH_LATITUDE_INVALID })
+  latitude?: number | null;
+
+  @ApiProperty({
+    description: API_DOCS.search.longitudeField,
+    example: -17.4677,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
+  @Max(180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
+  longitude?: number | null;
 }

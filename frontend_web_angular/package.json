@@ -4,12 +4,14 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "quality": "node scripts/check-frontend-quality.mjs",
+    "lint": "npm run quality",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "verify": "npm run build && npm test -- --watch=false && npm run e2e"
+    "verify": "npm run quality && npm run build && npm test -- --watch=false && npm run e2e"
   },
   "private": true,
   "engines": {

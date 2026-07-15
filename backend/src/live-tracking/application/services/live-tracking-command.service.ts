@@ -285,7 +285,7 @@ export class LiveTrackingCommandService {
     context: ReservationTrackingContext,
     dto: TrackingLocationCommand,
   ) {
-    if (user.sub !== context.clientUserId || user.role !== 'CLIENT') {
+    if (user.sub !== context.clientUserId) {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
 
@@ -333,7 +333,7 @@ export class LiveTrackingCommandService {
     context: ReservationTrackingContext,
     dto: TrackingLocationCommand,
   ) {
-    if (user.sub !== context.clientUserId || user.role !== 'CLIENT') {
+    if (user.sub !== context.clientUserId) {
       throw appHttpException('RESERVATIONS_UNAUTHORIZED');
     }
 

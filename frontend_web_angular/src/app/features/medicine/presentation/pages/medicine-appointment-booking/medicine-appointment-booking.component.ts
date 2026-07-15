@@ -10,6 +10,7 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
+import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { normalizeSenegalPhoneNumber } from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
 import {
@@ -91,6 +92,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly authService = inject(AuthService);
+  private readonly messagesService = inject(MessagesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
@@ -155,8 +157,8 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly doctorInterventionAddress = computed(() => {
     const profile = this.detail()?.profile;
     return (
-      profile?.utilisateur.adresse?.trim() ||
       profile?.ville?.trim() ||
+      profile?.utilisateur.adresse?.trim() ||
       ''
     );
   });
@@ -555,6 +557,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
           const created = reservation as { id?: string };
           this.feedback.success('Rendez-vous cree avec succes.');
           if (created.id) {
+            this.ensureReservationConversation(created.id);
             this.router.navigate(['/medecine', 'reservations', created.id, 'resume-paiement'], {
               queryParams: { source: 'medecine' },
             });
@@ -589,6 +592,12 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
         providerName: this.doctorName(),
         serviceName: this.selectedService()?.nom || 'Consultation medicale',
       },
+    });
+  }
+
+  private ensureReservationConversation(reservationId: string): void {
+    this.messagesService.createConversation({ reservationId }).subscribe({
+      error: () => undefined,
     });
   }
 

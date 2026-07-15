@@ -7,6 +7,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -464,12 +465,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   private safeReturnUrl(): string | null {
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim();
-    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
-      return null;
-    }
-
-    return returnUrl;
+    return safeInternalUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
   }
 
   protected formatPaymentDate(appointment: AppointmentView): string {

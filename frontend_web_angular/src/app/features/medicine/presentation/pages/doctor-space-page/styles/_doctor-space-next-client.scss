@@ -1,0 +1,418 @@
+.doctor-space__next-client,
+.doctor-space__agenda-section-heading {
+  display: grid;
+  gap: 14px;
+}
+
+.doctor-space__next-client h2,
+.doctor-space__agenda-section-heading h2 {
+  align-items: center;
+  color: #111827;
+  display: flex;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 900;
+  gap: 12px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.doctor-space__next-client h2::before,
+.doctor-space__agenda-section-heading h2::before {
+  background: #1d7ae8;
+  border-radius: 999px;
+  content: '';
+  display: inline-block;
+  height: 40px;
+  width: 6px;
+}
+
+.doctor-space__agenda-section-heading p {
+  color: #7e93b2;
+  font-size: 18px;
+  margin: -5px 0 0 18px;
+}
+
+.doctor-space__next-card {
+  background: #1ca466;
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(13, 117, 74, 0.18);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  min-height: 204px;
+  overflow: hidden;
+  padding: 22px 26px 18px;
+}
+
+.doctor-space__next-card header,
+.doctor-space__next-card footer,
+.doctor-space__next-main {
+  align-items: center;
+  display: flex;
+}
+
+.doctor-space__next-card header {
+  justify-content: space-between;
+}
+
+.doctor-space__next-card header span,
+.doctor-space__next-card header strong {
+  align-items: center;
+  display: inline-flex;
+}
+
+.doctor-space__next-card header span {
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.doctor-space__next-card header strong {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  padding: 7px 12px;
+}
+
+.doctor-space__next-card header strong::before {
+  background: #fff;
+  border-radius: 999px;
+  content: '';
+  height: 6px;
+  width: 6px;
+}
+
+.doctor-space__next-main {
+  gap: 28px;
+  justify-content: space-between;
+}
+
+.doctor-space__next-delay {
+  border-right: 1px solid rgba(255, 255, 255, 0.28);
+  flex: 0 0 130px;
+  padding-right: 26px;
+}
+
+.doctor-space__next-delay strong {
+  display: inline-block;
+  font-size: clamp(48px, 7vw, 64px);
+  font-weight: 900;
+  line-height: 0.86;
+}
+
+.doctor-space__next-delay span {
+  font-size: 18px;
+  font-weight: 900;
+  margin-left: 5px;
+}
+
+.doctor-space__next-delay small {
+  display: block;
+  font-size: 13px;
+  font-weight: 850;
+  margin-top: 7px;
+}
+
+.doctor-space__next-patient {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 15px;
+  min-width: 0;
+}
+
+.doctor-space__next-avatar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.25);
+  border: 4px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 16px;
+  font-weight: 950;
+  height: 54px;
+  justify-content: center;
+  overflow: hidden;
+  width: 54px;
+}
+
+.doctor-space__next-avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.doctor-space__next-patient div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.doctor-space__next-patient strong {
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.doctor-space__next-patient span {
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__next-main time {
+  flex: 0 0 auto;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 950;
+}
+
+.doctor-space__next-progress {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  height: 7px;
+  overflow: hidden;
+}
+
+.doctor-space__next-progress span {
+  background: #fff;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.doctor-space__next-card footer {
+  gap: 22px;
+  justify-content: space-between;
+}
+
+.doctor-space__next-card footer span {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 7px;
+  min-width: 0;
+}
+
+.doctor-space__next-card footer button {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 999px;
+  color: #158a58;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 6px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) {
+  border-radius: 16px;
+  gap: 0;
+  min-height: 126px;
+  padding: 0;
+  position: relative;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) header {
+  justify-content: flex-end;
+  padding: 12px 18px 0;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) header strong {
+  background: #06110b;
+  color: #fff;
+  font-size: 12px;
+  padding: 7px 13px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-main {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 92px minmax(240px, 1fr) minmax(220px, 1.1fr);
+  padding: 0 22px 0 26px;
+}
+
+.doctor-space__next-date {
+  align-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.42);
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-height: 74px;
+  padding-right: 22px;
+  text-align: center;
+}
+
+.doctor-space__next-date span {
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.doctor-space__next-date strong {
+  font-size: 38px;
+  font-weight: 950;
+  line-height: 0.92;
+}
+
+.doctor-space__next-date small,
+.doctor-space__next-patient small,
+.doctor-space__next-time {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.doctor-space__next-date small {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-patient {
+  border-right: 1px solid rgba(255, 255, 255, 0.42);
+  gap: 13px;
+  padding-right: 24px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-avatar {
+  height: 48px;
+  width: 48px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-patient div {
+  gap: 5px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-patient strong {
+  font-size: 17px;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-patient span {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.doctor-space__next-patient small {
+  font-size: 12px;
+  font-weight: 750;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-space__next-confirmation {
+  align-self: center;
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 950;
+  justify-self: center;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) footer {
+  justify-content: space-between;
+  padding: 8px 20px 12px 34px;
+}
+
+.doctor-space__next-time {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.doctor-space__next-card:not(.doctor-space__next-card--empty) footer button {
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.doctor-space__next-card--empty {
+  background: #fff;
+  border: 1px dashed #b9c6d8;
+  box-shadow: none;
+  color: #132341;
+  min-height: 120px;
+}
+
+.doctor-space__next-card--empty strong {
+  font-size: 20px;
+}
+
+.doctor-space__next-card--empty span {
+  color: #7488a8;
+}
+
+
+@media (max-width: 860px) {
+  .doctor-space__next-main,
+  .doctor-space__next-card footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .doctor-space__next-delay {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+    flex: none;
+    padding: 0 0 16px;
+    width: 100%;
+  }
+
+  .doctor-space__next-card footer button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 860px) {
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) header {
+    padding: 0;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-main {
+    align-items: stretch;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+    padding: 0;
+    width: 100%;
+  }
+
+  .doctor-space__next-date,
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) .doctor-space__next-patient {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 0 0 14px;
+  }
+
+  .doctor-space__next-date {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .doctor-space__next-confirmation {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) footer {
+    align-items: stretch;
+    gap: 12px;
+    padding: 0;
+  }
+}

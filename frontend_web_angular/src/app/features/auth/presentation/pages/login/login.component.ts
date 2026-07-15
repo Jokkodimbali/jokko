@@ -16,6 +16,7 @@ import { LoginRequestDto } from '../../../domain/models/auth.models';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { AUTH_UI_MESSAGES } from '../../../domain/auth-ui.messages';
 import {
   AUTH_VALIDATORS,
@@ -258,11 +259,7 @@ export class LoginComponent {
 
   private navigateAfterLogin(): void {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    this.router.navigateByUrl(this.isSafeReturnUrl(returnUrl) ? returnUrl! : '/services');
-  }
-
-  private isSafeReturnUrl(returnUrl: string | null): boolean {
-    return !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//');
+    this.router.navigateByUrl(safeInternalUrl(returnUrl) ?? '/services');
   }
 
   private isLocalhostGoogleOrigin(): boolean {

@@ -38,6 +38,7 @@
               "src/styles.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-schedule.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-agenda.scss",
+              "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-next-client.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-motifs.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-wallet.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-patient-detail.scss",

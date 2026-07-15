@@ -1,6 +1,7 @@
 import { Location } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { safeInternalUrl } from '../../shared/utils/safe-internal-url';
 
 @Injectable({ providedIn: 'root' })
 export class BackNavigationService {
@@ -12,7 +13,7 @@ export class BackNavigationService {
     fallbackUrl: string,
     options: { preferReturnUrl?: boolean } = {},
   ): void {
-    const target = this.safeInternalUrl(returnUrl) ?? fallbackUrl;
+    const target = safeInternalUrl(returnUrl) ?? fallbackUrl;
     if (options.preferReturnUrl) {
       void this.router.navigateByUrl(target, { replaceUrl: true });
       return;
@@ -30,10 +31,5 @@ export class BackNavigationService {
     if (typeof window === 'undefined') return false;
     const navigationId = Number(window.history.state?.navigationId ?? 0);
     return navigationId > 1;
-  }
-
-  private safeInternalUrl(value: string | null | undefined): string | null {
-    const url = value?.trim();
-    return url && url.startsWith('/') && !url.startsWith('//') ? url : null;
   }
 }

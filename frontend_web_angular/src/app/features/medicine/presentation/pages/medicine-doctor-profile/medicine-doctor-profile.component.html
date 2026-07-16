@@ -56,12 +56,6 @@
           <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
           <p><strong>{{ doctor().reviewCount }}</strong><small>Avis</small></p>
         </div>
-        <div *ngIf="vehicleBadge() as vehicle" class="doctor-profile__vehicle-stat">
-          <span class="doctor-profile__vehicle-badge" [attr.aria-label]="vehicle.label">
-            <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
-            <strong>{{ vehicle.label }}</strong>
-          </span>
-        </div>
         <div class="doctor-profile__movement-stat">
           <span class="doctor-profile__movement-badge" [attr.aria-label]="travelModeLabel()">
             <strong>{{ travelModeLabel() }}</strong>

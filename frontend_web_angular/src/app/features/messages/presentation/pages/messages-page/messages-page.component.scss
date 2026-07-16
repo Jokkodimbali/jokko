@@ -558,8 +558,8 @@
   background: #fff;
   color: #151515;
   display: grid;
-  grid-template-rows: 64px minmax(0, 1fr) auto;
-  inset: 93px 0 0;
+  grid-template-rows: 64px minmax(0, 1fr);
+  inset: 93px 0 76px;
   min-height: 0;
   position: absolute;
   z-index: 8;
@@ -1367,8 +1367,8 @@
   }
 
   .messages-page__preview {
-    grid-template-rows: 56px minmax(0, 1fr) auto;
-    inset: 76px 0 0;
+    grid-template-rows: 56px minmax(0, 1fr);
+    inset: 76px 0 70px;
   }
 
   .messages-page__preview-head {
@@ -1377,22 +1377,6 @@
 
   .messages-page__preview-stage {
     padding: 14px;
-  }
-
-  .messages-page__preview-compose {
-    gap: 10px;
-    grid-template-columns: minmax(0, 1fr) 46px 50px;
-    padding: 12px;
-  }
-
-  .messages-page__preview-thumb {
-    height: 44px;
-    width: 44px;
-  }
-
-  .messages-page__preview-send {
-    height: 50px;
-    width: 50px;
   }
 
 }

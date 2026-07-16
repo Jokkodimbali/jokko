@@ -189,7 +189,7 @@
           </div>
 
           <section class="doctor-space__vehicle-choice" aria-labelledby="vehicle-choice-title">
-            <div class="doctor-space__vehicle-main">
+            <div *ngIf="shouldShowVehicleChoice()" class="doctor-space__vehicle-main">
               <header>
                 <h3 id="vehicle-choice-title">Quel v&eacute;hicule poss&eacute;dez-vous ?</h3>
                 <p>S&eacute;lectionnez le type de v&eacute;hicule que vous utilisez pour le transport.</p>

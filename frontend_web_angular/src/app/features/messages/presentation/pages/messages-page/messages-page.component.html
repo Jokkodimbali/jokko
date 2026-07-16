@@ -408,31 +408,6 @@
           </ng-template>
         </div>
 
-        <footer class="messages-page__preview-compose">
-          <input
-            type="text"
-            [value]="draft()"
-            [disabled]="isUploadingMedia() || isSending()"
-            placeholder="Ajouter une legende..."
-            (input)="updateDraftFromEvent($event)"
-            (keydown.enter)="sendMessage()"
-          />
-          <span class="messages-page__preview-thumb" [class.messages-page__preview-thumb--file]="!preview.isImage">
-            <img *ngIf="preview.isImage; else previewFileThumb" [src]="preview.objectUrl" [alt]="preview.name" />
-            <ng-template #previewFileThumb>
-              <lucide-icon name="file-text" size="21" [strokeWidth]="2.2"></lucide-icon>
-            </ng-template>
-          </span>
-          <button
-            type="button"
-            class="messages-page__preview-send"
-            aria-label="Envoyer la piece jointe"
-            [disabled]="isUploadingMedia() || isSending()"
-            (click)="sendMessage()"
-          >
-            <lucide-icon name="send" size="22" [strokeWidth]="2.7"></lucide-icon>
-          </button>
-        </footer>
       </section>
 
       <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row">
@@ -497,6 +472,7 @@
         [isRecordingVoice]="isRecordingVoice()"
         [isUploadingMedia]="isUploadingMedia()"
         [isSending]="isSending()"
+        [hasPendingAttachment]="!!pendingAttachmentPreview()"
         [canShowNegotiationButton]="canShowNegotiationButton()"
         [voiceRecordingSeconds]="voiceRecordingSeconds()"
         [voiceLevel]="voiceLevel()"

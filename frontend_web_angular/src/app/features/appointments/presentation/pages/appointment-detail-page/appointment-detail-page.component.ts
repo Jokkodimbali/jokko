@@ -3229,9 +3229,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!appointment) return 'Trajet en cours';
 
     let label: string;
-    if (!this.isProviderViewer() && appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
+    if (appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
       label = `En route vers ${this.clientRouteName(appointment)}`;
-    } else if (!this.isProviderViewer() && appointment.travelMode === 'CLIENT_SE_DEPLACE') {
+    } else if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {
       label = `${this.clientRouteName(appointment)} en route vers le lieu du RDV`;
     } else {
       label = `En route vers ${this.routeVehiclePersonLabel()}`;

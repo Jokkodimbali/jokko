@@ -39,12 +39,15 @@ import {
   AppSearchProviderSuggestion,
 } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
 import {
   ProviderCardComponent,
   ProviderCardView,
 } from '../../components/provider-card/provider-card.component';
 
 type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
+const SERVICE_CARD_COVER_URL =
+  'https://res.cloudinary.com/dobuolool/image/upload/v1784219907/jokko/app-assets/service-card-cover.png';
 
 @Component({
   selector: 'app-services',
@@ -76,6 +79,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly googleMaps = inject(GoogleMapsLoaderService);
 
   protected readonly heroIllustration = '/image%20haut.png';
 
@@ -150,13 +154,13 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       subCategoryNames: favorite.service?.subCategoryNames || [favorite.service?.subCategoryName || favorite.subtitle].filter(Boolean),
       professionName: favorite.subtitle,
       speciality: favorite.subtitle,
-      location: favorite.location,
+      location: this.humanLocationLabel(favorite.location),
       status: favorite.totalReviews > 0
         ? `${favorite.rating}/5 (${favorite.totalReviews} avis)`
         : 'Favori',
       rating: favorite.rating,
       totalReviews: favorite.totalReviews,
-      vehicleType: favorite.vehicleType,
+      vehicleType: favorite.service?.travelMode === 'TRANSPORT_COLIS' ? favorite.vehicleType : undefined,
       isOnline: favorite.isOnline,
       onlineLabel: favorite.isOnline ? 'En ligne' : 'Favori',
       avatar: favorite.avatarUrl || undefined,
@@ -216,6 +220,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
   private suggestionRequestVersion = 0;
   private requestVersion = 0;
+  private readonly locationLabelCache = new Map<string, string>();
   private serviceFilterWheelCleanups: Array<() => void> = [];
   private serviceFilterRefsChangesSubscription?: Subscription;
 
@@ -479,8 +484,10 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
                 : current,
             ),
           );
+          this.resolveProviderLocationLabels(section.providers);
         } else {
           this.sections.set([section]);
+          this.resolveProviderLocationLabels(section.providers);
         }
         this.categoryPagination.set(result.meta);
         this.isLoading.set(false);
@@ -529,6 +536,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => {
           if (requestId === this.suggestionRequestVersion) {
             this.suggestionProviders.set(result.providers);
+            this.resolveProviderLocationLabels(result.providers);
           }
         });
       },
@@ -779,14 +787,14 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       name: provider.nom,
       title: this.providerCardSubCategoryLabel(provider),
       category: this.providerCategoryLabel(provider),
-      location: provider.location,
+      location: this.humanLocationLabel(provider.location),
       rating: provider.rating,
       totalReviews: provider.totalReviews,
-      vehicleType: provider.vehicleType,
+      vehicleType: provider.serviceTravelMode === 'TRANSPORT_COLIS' ? provider.vehicleType : undefined,
       isOnline: provider.isOnline,
       avatarUrl: this.resolveProviderAvatar(provider),
       initials: this.providerInitials(provider.nom),
-      coverUrl: '/boabab.png',
+      coverUrl: SERVICE_CARD_COVER_URL,
       movementTitle: this.providerMovementTitle(provider),
       travelMode: provider.serviceTravelMode,
       isMedical: provider.profileType === 'MEDECIN',
@@ -814,6 +822,116 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.openNegotiation(provider);
+  }
+
+  private humanLocationLabel(value: string | null | undefined): string {
+    const label = value?.trim();
+    if (!label) {
+      return 'Localisation non renseignee';
+    }
+
+    const [mainLocation, ...details] = label.split(' - ');
+    const readableLocation = this.looksLikeCoordinates(mainLocation)
+      ? 'Dakar, Senegal'
+      : mainLocation;
+
+    return [readableLocation, ...details].join(' - ');
+  }
+
+  private resolveProviderLocationLabels(providers: Professional[]): void {
+    for (const provider of providers) {
+      if (!this.hasUsableCoordinate(provider)) {
+        continue;
+      }
+
+      const cacheKey = this.providerCoordinateKey(provider);
+      if (!cacheKey) {
+        continue;
+      }
+
+      const cachedLabel = this.locationLabelCache.get(cacheKey);
+      if (cachedLabel) {
+        this.applyResolvedProviderLocation(provider.id, cachedLabel);
+        continue;
+      }
+
+      this.googleMaps
+        .reverseGeocode({
+          latitude: provider.latitude as number,
+          longitude: provider.longitude as number,
+        })
+        .subscribe({
+          next: (result) => {
+            const label = this.humanMapAddressLabel(result?.formattedAddress || provider.location);
+            if (!label || this.looksLikeCoordinates(label)) {
+              return;
+            }
+
+            this.locationLabelCache.set(cacheKey, label);
+            this.applyResolvedProviderLocation(provider.id, label);
+          },
+          error: () => undefined,
+        });
+    }
+  }
+
+  private applyResolvedProviderLocation(providerId: string, addressLabel: string): void {
+    this.sections.update((sections) =>
+      sections.map((section) => ({
+        ...section,
+        providers: section.providers.map((provider) =>
+          provider.id === providerId
+            ? { ...provider, location: this.mergeLocationDistance(provider.location, addressLabel) }
+            : provider,
+        ),
+      })),
+    );
+
+    this.suggestionProviders.update((providers) =>
+      providers.map((provider) =>
+        provider.id === providerId
+          ? { ...provider, location: this.mergeLocationDistance(provider.location, addressLabel) }
+          : provider,
+      ),
+    );
+  }
+
+  private mergeLocationDistance(currentLocation: string, addressLabel: string): string {
+    const details = currentLocation
+      .split(' - ')
+      .slice(1)
+      .filter((part) => part.trim().length > 0);
+    return [addressLabel, ...details].join(' - ');
+  }
+
+  private humanMapAddressLabel(value: string): string {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(', ');
+  }
+
+  private hasUsableCoordinate(provider: Professional): boolean {
+    return (
+      typeof provider.latitude === 'number' &&
+      Number.isFinite(provider.latitude) &&
+      typeof provider.longitude === 'number' &&
+      Number.isFinite(provider.longitude)
+    );
+  }
+
+  private providerCoordinateKey(provider: Professional): string | null {
+    if (!this.hasUsableCoordinate(provider)) {
+      return null;
+    }
+
+    return `${(provider.latitude as number).toFixed(6)},${(provider.longitude as number).toFixed(6)}`;
+  }
+
+  private looksLikeCoordinates(value: string): boolean {
+    return /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(value.trim());
   }
 
   isProviderFavorite(providerId: string): boolean {

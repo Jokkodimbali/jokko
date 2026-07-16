@@ -20,6 +20,7 @@ export class MessageComposerComponent {
   @Input() isUploadingMedia = false;
   @Input() isSending = false;
   @Input() isDisabled = false;
+  @Input() hasPendingAttachment = false;
   @Input() canShowNegotiationButton = false;
   @Input() voiceRecordingSeconds = 0;
   @Input() voiceLevel = 0;
@@ -36,7 +37,7 @@ export class MessageComposerComponent {
   protected readonly voiceWaveIndexes = Array.from({ length: 12 }, (_, index) => index);
 
   protected get hasMessageContent(): boolean {
-    return Boolean(this.draft.trim() || this.pendingMediaUrl);
+    return Boolean(this.draft.trim() || this.pendingMediaUrl || this.hasPendingAttachment);
   }
 
   protected get placeholder(): string {

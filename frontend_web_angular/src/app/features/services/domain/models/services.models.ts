@@ -32,6 +32,8 @@ export interface Professional {
   professionName: string;
   speciality: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   status: string;
   rating: number;
   totalReviews: number;

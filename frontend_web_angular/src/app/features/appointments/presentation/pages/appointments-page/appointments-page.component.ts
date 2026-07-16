@@ -153,7 +153,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
       });
     }
 
-    return items.sort((left, right) => right.date.getTime() - left.date.getTime());
+    return items.sort((left, right) => this.compareScheduleDates(left.date, right.date));
   });
 
   protected readonly visibleScheduleItems = computed(() => {
@@ -162,7 +162,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const term = this.search().trim().toLowerCase();
 
     return this.scheduleItems().filter((item) => {
-      const matchesTab = this.activeTab() === 'done'
+      const matchesTab = period === 'ALL'
+        ? true
+        : this.activeTab() === 'done'
         ? this.isFinishedItem(item)
         : !this.isFinishedItem(item);
       const matchesPeriod = this.matchesDatePeriod(item.date, period);
@@ -206,7 +208,13 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const startOffset = (firstDay.getDay() + 6) % 7;
     const today = new Date();
     const activeDates = this.scheduleItems()
-      .filter((item) => this.activeTab() === 'done' ? this.isFinishedItem(item) : !this.isFinishedItem(item))
+      .filter((item) =>
+        this.activePeriod() === 'ALL'
+          ? true
+          : this.activeTab() === 'done'
+            ? this.isFinishedItem(item)
+            : !this.isFinishedItem(item),
+      )
       .map((item) => item.date);
     const appointmentCounts = activeDates
       .filter((date) => !Number.isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month)
@@ -982,15 +990,28 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return diffMs >= 0 && diffMs <= 7 * 24 * 60 * 60 * 1000;
   }
 
-  private isFinishedItem(item: ScheduleItem): boolean {
+  protected isFinishedItem(item: ScheduleItem): boolean {
     if (item.kind === 'appointment') return this.isDone(item.appointment.status);
     return item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE';
   }
 
   private sortedAppointments(appointments: AppointmentView[]): AppointmentView[] {
     return [...appointments].sort(
-      (a, b) => this.safeDate(b.scheduledAt).getTime() - this.safeDate(a.scheduledAt).getTime(),
+      (a, b) => this.compareScheduleDates(this.safeDate(a.scheduledAt), this.safeDate(b.scheduledAt)),
     );
+  }
+
+  private compareScheduleDates(left: Date, right: Date): number {
+    const leftTime = left.getTime();
+    const rightTime = right.getTime();
+    const leftInvalid = Number.isNaN(leftTime);
+    const rightInvalid = Number.isNaN(rightTime);
+
+    if (leftInvalid && rightInvalid) return 0;
+    if (leftInvalid) return 1;
+    if (rightInvalid) return -1;
+
+    return leftTime - rightTime;
   }
 
   private referenceDate(): Date {

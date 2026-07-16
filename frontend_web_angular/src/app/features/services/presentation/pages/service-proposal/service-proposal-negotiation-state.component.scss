@@ -556,6 +556,12 @@
   margin-bottom: 12px;
 }
 
+.service-proposal__provider--booking-summary {
+  border-bottom: 0;
+  margin-bottom: 12px;
+  padding-bottom: 0;
+}
+
 .service-proposal__avatar-wrap {
   display: block;
   position: relative;
@@ -633,6 +639,56 @@
 
 .service-proposal__provider p lucide-icon {
   color: #f4a91d;
+}
+
+.professional-vehicle-badge {
+  align-items: center;
+  background: #f1e8dc;
+  border: 1px solid #ded0bd;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgb(95 66 31 / 8%), inset 0 1px 0 rgb(255 255 255 / 65%);
+  color: #5f421f;
+  display: inline-flex;
+  gap: 9px;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 0;
+  max-width: fit-content;
+  min-height: 38px;
+  padding: 7px 17px 7px 14px;
+}
+
+.professional-vehicle-badge__icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.professional-vehicle-badge img {
+  display: block;
+  height: 20px;
+  object-fit: contain;
+  width: 20px;
+}
+
+.professional-vehicle-badge strong {
+  align-items: center;
+  color: #5f421f;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.service-proposal__provider--booking-summary > .professional-vehicle-badge {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .service-proposal__summary-row {

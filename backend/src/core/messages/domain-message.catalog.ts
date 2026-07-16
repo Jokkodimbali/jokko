@@ -59,7 +59,8 @@ export const DOMAIN_MESSAGE_CATALOG = {
   RESERVATION_NOT_FOUND: 'Reservation introuvable.',
   RESERVATION_UNAUTHORIZED:
     "Vous n'etes pas autorise a modifier cette reservation.",
-  RESERVATION_TIME_SLOT_UNAVAILABLE: 'Ce creneau horaire n est pas disponible.',
+  RESERVATION_TIME_SLOT_UNAVAILABLE:
+    'Ce creneau vient detre reserve par un autre client. Choisissez un autre horaire.',
   RESERVATION_CANNOT_MARK_AS_PAID:
     'Impossible de marquer cette reservation comme payee.',
   RESERVATION_CANNOT_START: 'Impossible de demarrer cette reservation.',

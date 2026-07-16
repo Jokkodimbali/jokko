@@ -97,4 +97,51 @@ describe('ReservationsRepository', () => {
       }),
     );
   });
+
+  it('detects overlapping active reservations for the same professional', async () => {
+    const existingReservationStart = new Date('2030-01-01T10:30:00.000Z');
+    const prisma: ReservationPrismaMock = {
+      paiement: {
+        findMany: jest.fn(),
+      },
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'existing-reservation',
+            dateHeure: existingReservationStart,
+            dureeMinutes: 60,
+          },
+        ]),
+        updateMany: jest.fn(),
+      },
+    };
+    const repository = new ReservationsRepository(prisma as never);
+
+    const hasConflict = await repository.hasTimeSlotConflict({
+      professionalId: 'professional-id',
+      dateHeure: new Date('2030-01-01T10:00:00.000Z'),
+      dureeMinutes: 60,
+    });
+
+    expect(hasConflict).toBe(true);
+    expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          professionnelId: 'professional-id',
+          statut: {
+            notIn: [
+              $Enums.StatutReservation.ANNULEE,
+              $Enums.StatutReservation.TERMINEE,
+              $Enums.StatutReservation.NO_SHOW,
+            ],
+          },
+        }),
+        select: {
+          id: true,
+          dateHeure: true,
+          dureeMinutes: true,
+        },
+      }),
+    );
+  });
 });

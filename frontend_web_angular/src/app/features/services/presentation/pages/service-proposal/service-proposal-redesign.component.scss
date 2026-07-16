@@ -38,9 +38,9 @@
 .service-proposal__booking-detail-row strong{color:#07111f;font-size:13px;font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .service-proposal__booking-detail-row--readonly{cursor:default}
 .service-proposal__booking-detail-row--readonly:hover{box-shadow:none;transform:none}
-.service-proposal__booking-actions{display:grid;gap:12px;grid-template-columns:minmax(120px,.35fr) minmax(0,1fr)}
+.service-proposal__booking-actions{display:grid;gap:12px;grid-template-columns:1fr}
 .service-proposal__back-step{align-items:center;background:#fff;border:1px solid #dfe3ea;border-radius:14px;color:#687385;cursor:pointer;display:inline-flex;font-size:12px;font-weight:950;gap:8px;justify-content:center;min-height:50px;padding:0 18px;text-transform:uppercase}
-.service-proposal__booking-actions .service-proposal__submit{margin-top:0}
+.service-proposal__booking-actions .service-proposal__submit{margin-top:0;width:100%}
 .service-proposal__price-card{background:#fff;border-color:#eef1f5;border-radius:22px;display:grid;gap:24px;overflow:hidden;padding:30px 26px 42px}
 .service-proposal__price-card>header{border-bottom:0;padding:0;text-align:center}
 .service-proposal__price-card h2{font-size:21px}

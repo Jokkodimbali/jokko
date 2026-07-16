@@ -71,7 +71,6 @@ describe('ReservationQueryService', () => {
     ).toHaveBeenCalledTimes(1);
     expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
       clientId: clientUser.sub,
-      excludeStatuses: ['CONFIRMEE'],
     });
     expect(
       reservationsRepository.syncOverdueReservations.mock
@@ -92,7 +91,6 @@ describe('ReservationQueryService', () => {
     );
     expect(reservationsRepository.findDetailedByFilters).toHaveBeenCalledWith({
       professionalId: 'professional-id',
-      excludeStatuses: ['CONFIRMEE'],
     });
   });
 
@@ -141,5 +139,39 @@ describe('ReservationQueryService', () => {
       '11:00',
     ]);
     expect(reservationsRepository.hasTimeSlotConflict).toHaveBeenCalledTimes(3);
+  });
+
+  it('marks already booked slots as reserved and unavailable', async () => {
+    const { service, reservationsRepository } = buildService();
+    reservationsRepository.hasTimeSlotConflict.mockImplementation((input) =>
+      Promise.resolve(
+        input.dateHeure.toISOString().startsWith('2030-01-01T10:00'),
+      ),
+    );
+
+    const result = await service.listAvailabilitySlots({
+      professionalId: 'professional-id',
+      date: '2030-01-01',
+      dureeMinutes: 60,
+    });
+
+    expect(result.slots).toEqual([
+      expect.objectContaining({
+        label: '09:00',
+        available: true,
+        status: 'AVAILABLE',
+      }),
+      expect.objectContaining({
+        label: '10:00',
+        available: false,
+        status: 'RESERVED',
+        reason: 'Deja reserve',
+      }),
+      expect.objectContaining({
+        label: '11:00',
+        available: true,
+        status: 'AVAILABLE',
+      }),
+    ]);
   });
 });

@@ -43,6 +43,7 @@ const PROFESSIONAL_SELECT = {
   statutKyc: true,
   raisonRejetKyc: true,
   ville: true,
+  typeVehicule: true,
   noteGlobale: true,
   nombreAvis: true,
   creeLe: true,
@@ -106,6 +107,7 @@ type RawProfessionalProfile = {
   statutKyc: StatutKyc;
   raisonRejetKyc: string | null;
   ville: string | null;
+  typeVehicule: ProfessionalProfileView['typeVehicule'];
   latitude?: number | null;
   longitude?: number | null;
   noteGlobale: Prisma.Decimal;
@@ -195,6 +197,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           biographie: input.biographie,
           nomEntreprise: input.nomEntreprise,
           ville: input.ville,
+          typeVehicule: input.typeVehicule,
         },
         select: PROFESSIONAL_SELECT,
       });
@@ -242,6 +245,9 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
             ? { nomEntreprise: input.nomEntreprise }
             : {}),
           ...(input.ville !== undefined ? { ville: input.ville } : {}),
+          ...(input.typeVehicule !== undefined
+            ? { typeVehicule: input.typeVehicule }
+            : {}),
         },
         select: PROFESSIONAL_SELECT,
       });
@@ -776,6 +782,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       statutKyc: profile.statutKyc,
       raisonRejetKyc: profile.raisonRejetKyc,
       ville: profile.ville,
+      typeVehicule: profile.typeVehicule,
       latitude: profile.latitude ?? null,
       longitude: profile.longitude ?? null,
       noteGlobale: profile.noteGlobale.toNumber(),

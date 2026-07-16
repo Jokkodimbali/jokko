@@ -166,7 +166,9 @@ export class AuthService {
 
   refresh(data: RefreshTokenRequestDto = {}): Observable<AuthResponseDto> {
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/refresh`, data)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/refresh`, data, {
+        withCredentials: true,
+      })
       .pipe(map(unwrapApiResponse));
   }
 

@@ -90,8 +90,18 @@
     <p>{{ provider.title }}</p>
 
     <div class="provider-card__location">
-      <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
-      <span>{{ provider.location }}</span>
+      <span class="provider-card__location-main">
+        <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
+        <span>{{ provider.location }}</span>
+      </span>
+      <span
+        *ngIf="vehicleBadge as vehicle"
+        class="provider-card__vehicle-badge"
+        [attr.aria-label]="vehicle.label"
+      >
+        <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
+        <strong>{{ vehicle.label }}</strong>
+      </span>
     </div>
 
     <div class="provider-card__gallery">

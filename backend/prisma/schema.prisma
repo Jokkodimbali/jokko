@@ -38,6 +38,12 @@ enum ModeDeplacementService {
   TRANSPORT_COLIS
 }
 
+enum TypeVehiculeProfessionnel {
+  MOTO_SCOOTER
+  VOITURE
+  CAMIONNETTE
+}
+
 enum StatutReservation {
   CONFIRMEE
   PAYEE_SEQUESTRE
@@ -316,6 +322,7 @@ model ProfilProfessionnel {
   raisonRejetKyc     String?      @map("kyc_reject_reason") @db.Text
   localisation       Unsupported("geography(Point, 4326)")?
   ville              String?      @map("city") @db.VarChar(100)
+  typeVehicule       TypeVehiculeProfessionnel @default(VOITURE) @map("vehicle_type")
   noteGlobale        Decimal      @default(0.0) @map("global_rating") @db.Decimal(2, 1)
   nombreAvis         Int          @default(0) @map("total_reviews")
   soldePortefeuille  Decimal      @default(0.00) @map("wallet_balance") @db.Decimal(12, 2)

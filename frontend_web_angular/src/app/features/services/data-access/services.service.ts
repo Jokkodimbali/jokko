@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map, switchMap, of, catchError } from 'rxjs';
+import { Observable, forkJoin, map, switchMap, of, catchError, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import {
@@ -27,27 +27,33 @@ import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 export class ServicesService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+  private readonly cacheTtlMs = 45_000;
+  private readonly cache = new Map<string, { expiresAt: number; value$: Observable<unknown> }>();
 
   getCategories(
     page: number = 1,
     limit: number = 10,
   ): Observable<{ items: Category[]; meta?: PaginationMeta }> {
-    return this.http
-      .get<ApiResponse<Category[]>>(`${this.apiUrl}/categories`, {
-        params: { page: page.toString(), limit: limit.toString() },
-      })
-      .pipe(
-        map((response) => ({
-          items: unwrapApiResponse(response),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
-      );
+    return this.cacheFor(`categories:${page}:${limit}`, () =>
+      this.http
+        .get<ApiResponse<Category[]>>(`${this.apiUrl}/categories`, {
+          params: { page: page.toString(), limit: limit.toString() },
+        })
+        .pipe(
+          map((response) => ({
+            items: unwrapApiResponse(response),
+            meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+          })),
+        ),
+    );
   }
 
   getCategoryStructure(): Observable<CategoryStructure[]> {
-    return this.http
-      .get<ApiResponse<CategoryStructure[]>>(`${this.apiUrl}/categories/structure`)
-      .pipe(map((response) => unwrapApiResponse(response)));
+    return this.cacheFor('categories:structure', () =>
+      this.http
+        .get<ApiResponse<CategoryStructure[]>>(`${this.apiUrl}/categories/structure`)
+        .pipe(map((response) => unwrapApiResponse(response))),
+    );
   }
 
   getProfessionalsByCategory(
@@ -55,18 +61,20 @@ export class ServicesService {
     page: number = 1,
     limit: number = 3,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
-    return this.http
-      .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/professionals`, {
-        params: { categoryId, page: page.toString(), limit: limit.toString() },
-      })
-      .pipe(
-        map((response) => ({
-          providers: unwrapApiResponse(response).map((professional) =>
-            this.mapProfessional(professional),
-          ),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
-      );
+    return this.cacheFor(`professionals:category:${categoryId}:${page}:${limit}`, () =>
+      this.http
+        .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/professionals`, {
+          params: { categoryId, page: page.toString(), limit: limit.toString() },
+        })
+        .pipe(
+          map((response) => ({
+            providers: unwrapApiResponse(response).map((professional) =>
+              this.mapProfessional(professional),
+            ),
+            meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+          })),
+        ),
+    );
   }
 
   searchProfessionals(
@@ -176,18 +184,21 @@ export class ServicesService {
       params['role'] = role;
     }
 
-    return this.http
-      .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
-        params,
-      })
-      .pipe(
-        map((response) => ({
-          providers: unwrapApiResponse(response).map((professional) =>
-            this.mapProfessional(professional, undefined, null, role),
-          ),
-          meta: response.meta?.['pagination'] as PaginationMeta | undefined,
-        })),
-      );
+    const cacheKey = `professionals:search:${JSON.stringify(params)}`;
+    return this.cacheFor(cacheKey, () =>
+      this.http
+        .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
+          params,
+        })
+        .pipe(
+          map((response) => ({
+            providers: unwrapApiResponse(response).map((professional) =>
+              this.mapProfessional(professional, undefined, null, role),
+            ),
+            meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+          })),
+        ),
+    );
   }
 
   getServiceHomeData(
@@ -226,14 +237,21 @@ export class ServicesService {
   }
 
   getProviderProfileDetail(profileId: string): Observable<ProviderProfileDetail> {
-    return forkJoin({
-      profile: this.getProfessionalProfile(profileId),
-      services: this.getProfessionalServices(profileId),
-      portfolio: this.getProfessionalPortfolio(profileId),
-      availabilities: this.getProfessionalAvailabilities(profileId),
-      reviews: this.getProfessionalReviews(profileId),
-      presence: this.getProfessionalPresence(profileId),
-    });
+    return this.cacheFor(`provider-profile-detail:${profileId}`, () =>
+      forkJoin({
+        profile: this.getProfessionalProfile(profileId),
+        services: this.getProfessionalServices(profileId),
+        portfolio: this.getProfessionalPortfolio(profileId),
+        availabilities: this.getProfessionalAvailabilities(profileId),
+        reviews: this.getProfessionalReviews(profileId),
+        presence: this.getProfessionalPresence(profileId),
+      }),
+      20_000,
+    );
+  }
+
+  clearCache(): void {
+    this.cache.clear();
   }
 
   private getProfessionalProfile(profileId: string): Observable<BackendProfessionalProfile> {
@@ -349,6 +367,7 @@ export class ServicesService {
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       rating: data.rating,
       totalReviews: data.totalReviews,
+      vehicleType: data.typeVehicule,
       isOnline,
       onlineLabel: this.formatPresenceLabel(presence),
       avatar: this.absoluteAssetUrl(data.avatarUrl) || undefined,
@@ -409,6 +428,25 @@ export class ServicesService {
     }
 
     return publicAssetUrl(value);
+  }
+
+  private cacheFor<T>(
+    key: string,
+    factory: () => Observable<T>,
+    ttlMs = this.cacheTtlMs,
+  ): Observable<T> {
+    const now = Date.now();
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > now) {
+      return cached.value$ as Observable<T>;
+    }
+
+    const value$ = factory().pipe(
+      tap({ error: () => this.cache.delete(key) }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.cache.set(key, { expiresAt: now + ttlMs, value$ });
+    return value$;
   }
 
   private formatPresenceLabel(presence: BackendProfessionalPresence | null): string {

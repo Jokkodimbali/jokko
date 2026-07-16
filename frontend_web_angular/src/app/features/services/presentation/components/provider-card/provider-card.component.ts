@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { ProfessionalVehicleType } from '../../../domain/models/services.models';
 
 export interface ProviderCardImage {
   url: string;
@@ -21,6 +22,7 @@ export interface ProviderCardView {
   location: string;
   rating: number;
   totalReviews: number;
+  vehicleType?: ProfessionalVehicleType;
   isOnline: boolean;
   avatarUrl: string | null;
   initials: string;
@@ -34,6 +36,24 @@ export interface ProviderCardView {
   queryParams?: Record<string, string> | null;
   state?: Record<string, unknown>;
 }
+
+const PROFESSIONAL_VEHICLE_BADGES: Record<
+  ProfessionalVehicleType,
+  { label: string; imageUrl: string }
+> = {
+  MOTO_SCOOTER: {
+    label: 'Moto / Scooter',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+  },
+  VOITURE: {
+    label: 'Voiture',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+  },
+  CAMIONNETTE: {
+    label: 'Camionnette',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+  },
+};
 
 @Component({
   selector: 'app-provider-card',
@@ -86,6 +106,10 @@ export class ProviderCardComponent {
 
   protected get movementIcons(): string[] {
     return [];
+  }
+
+  protected get vehicleBadge(): { label: string; imageUrl: string } | null {
+    return this.provider.vehicleType ? PROFESSIONAL_VEHICLE_BADGES[this.provider.vehicleType] : null;
   }
 
   protected onFavoriteClick(event: Event): void {

@@ -16,6 +16,7 @@ type WithdrawalMethodRow = { id: string; methode: MethodePaiement };
 export type ProfessionalWalletView = {
   professionalId: string;
   availableBalance: number;
+  totalCollected: number;
   monthlyRevenue: {
     amount: number;
     changePercent: number;
@@ -78,6 +79,7 @@ export class WalletQueryService {
       currentMonthPayments,
       previousMonthPayments,
       refundedPayments,
+      totalCollectedAggregate,
       ledgerTransactions,
       pendingWithdrawals,
       lockedEscrowPayments,
@@ -86,6 +88,9 @@ export class WalletQueryService {
         where: {
           professionalId: profile.id,
           statut: StatutPaiement.SUCCES,
+          escrowStatus: {
+            in: [EscrowStatus.LOCKED, EscrowStatus.RELEASED],
+          },
           creeLe: {
             gte: currentMonthStart,
             lt: nextMonthStart,
@@ -105,6 +110,9 @@ export class WalletQueryService {
         where: {
           professionalId: profile.id,
           statut: StatutPaiement.SUCCES,
+          escrowStatus: {
+            in: [EscrowStatus.LOCKED, EscrowStatus.RELEASED],
+          },
           creeLe: {
             gte: previousMonthStart,
             lt: currentMonthStart,
@@ -122,6 +130,16 @@ export class WalletQueryService {
           },
         },
         select: { id: true },
+      }),
+      this.prisma.paiement.aggregate({
+        where: {
+          professionalId: profile.id,
+          statut: StatutPaiement.SUCCES,
+          escrowStatus: {
+            in: [EscrowStatus.LOCKED, EscrowStatus.RELEASED],
+          },
+        },
+        _sum: { montantNet: true },
       }),
       this.prisma.transactionPortefeuille.findMany({
         where: { profilProfessionnelId: profile.id },
@@ -262,6 +280,7 @@ export class WalletQueryService {
     return {
       professionalId: profile.id,
       availableBalance: Number(profile.soldePortefeuille),
+      totalCollected: Number(totalCollectedAggregate._sum.montantNet ?? 0),
       monthlyRevenue: {
         amount: currentRevenue,
         changePercent: this.calculateChangePercent(

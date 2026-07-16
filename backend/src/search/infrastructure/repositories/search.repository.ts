@@ -18,6 +18,7 @@ type SearchProfessionalRow = {
   companyName: string | null;
   bio: string | null;
   city: string | null;
+  typeVehicule: 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
   latitude: number | null;
   longitude: number | null;
   rating: Prisma.Decimal | number | string;
@@ -207,6 +208,7 @@ export class SearchRepository implements SearchRepositoryPort {
         pp.company_name AS "companyName",
         pp.bio AS bio,
         pp.city AS city,
+        pp.vehicle_type AS "typeVehicule",
         CASE
           WHEN pp.localisation IS NULL THEN NULL
           ELSE ST_Y(pp.localisation::geometry)
@@ -387,6 +389,7 @@ export class SearchRepository implements SearchRepositoryPort {
         companyName: row.companyName,
         bio: row.bio,
         city: row.city,
+        typeVehicule: row.typeVehicule,
         latitude: row.latitude === null ? null : Number(row.latitude),
         longitude: row.longitude === null ? null : Number(row.longitude),
         rating: Number(row.rating),

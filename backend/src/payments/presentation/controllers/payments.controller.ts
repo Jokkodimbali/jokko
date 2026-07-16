@@ -216,6 +216,7 @@ export class PaymentsController {
       example: {
         professionalId: '33333333-3333-4333-8333-333333333333',
         availableBalance: 92000,
+        totalCollected: 154000,
         monthlyRevenue: {
           amount: 62000,
           changePercent: 12,

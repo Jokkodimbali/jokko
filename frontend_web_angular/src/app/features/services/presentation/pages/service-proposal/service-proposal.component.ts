@@ -5,6 +5,7 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -40,6 +41,7 @@ import {
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalDetailService,
+  ProfessionalVehicleType,
   ProviderProfileDetail,
 } from '../../../domain/models/services.models';
 import {
@@ -69,6 +71,24 @@ import {
 import { ServiceProposalStateService } from './service-proposal-state.service';
 import { ServiceProposalUiService } from './service-proposal-ui.service';
 
+const PROFESSIONAL_VEHICLE_BADGES: Record<
+  ProfessionalVehicleType,
+  { label: string; imageUrl: string }
+> = {
+  MOTO_SCOOTER: {
+    label: 'Moto / Scooter',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+  },
+  VOITURE: {
+    label: 'Voiture',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+  },
+  CAMIONNETTE: {
+    label: 'Camionnette',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+  },
+};
+
 type ClientBookingStep = 'DETAILS' | 'PRICE';
 type ClientDetailsField =
   | 'service'
@@ -88,6 +108,25 @@ interface AddressSuggestion {
   latitude: number | null;
   longitude: number | null;
   source: 'GOOGLE_PLACES' | 'OPENSTREETMAP';
+}
+
+interface ServiceProposalClientDraft {
+  selectedServiceId: string;
+  customServiceName: string;
+  selectedPayment: PaymentMethod;
+  appointmentDate: string;
+  address: string;
+  clientBookingStep: ClientBookingStep;
+  parcelDeliveryType: string;
+  parcelNote: string;
+  parcelPickupAddress: string;
+  parcelDropoffAddress: string;
+  parcelPickupContact: ParcelContactDraft;
+  parcelDropoffContact: ParcelContactDraft;
+  parcels: ParcelDraft[];
+  offerAmount: number;
+  customOfferTouched: boolean;
+  selectedOfferStep: number;
 }
 
 @Component({
@@ -192,6 +231,31 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly customOfferTouched = signal(false);
   protected readonly offerSteps = [100, 250, 500];
   protected readonly selectedOfferStep = signal(250);
+  private readonly draftPersistenceReady = signal(false);
+  private readonly clientDraftAutosave = effect(() => {
+    if (!this.draftPersistenceReady()) {
+      return;
+    }
+
+    this.persistClientReservationDraft({
+      selectedServiceId: this.selectedServiceId(),
+      customServiceName: this.customServiceName(),
+      selectedPayment: this.selectedPayment(),
+      appointmentDate: this.appointmentDate(),
+      address: this.address(),
+      clientBookingStep: this.clientBookingStep(),
+      parcelDeliveryType: this.parcelDeliveryType(),
+      parcelNote: this.parcelNote(),
+      parcelPickupAddress: this.parcelPickupAddress(),
+      parcelDropoffAddress: this.parcelDropoffAddress(),
+      parcelPickupContact: this.parcelPickupContact(),
+      parcelDropoffContact: this.parcelDropoffContact(),
+      parcels: this.parcels(),
+      offerAmount: this.offerAmount(),
+      customOfferTouched: this.customOfferTouched(),
+      selectedOfferStep: this.selectedOfferStep(),
+    });
+  });
   protected readonly materialQuoteDraft: MaterialQuoteDraft = {
     designation: '',
     unitPrice: null,
@@ -261,6 +325,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar || '');
 
   protected readonly providerInitials = computed(() => userInitials(this.displayName(), 'JD'));
+  protected readonly providerVehicleBadge = computed(() => {
+    const vehicleType = this.detail()?.profile.typeVehicule;
+    return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
+  });
   protected readonly proposalClientName = computed(
     () => this.pendingProposal()?.client?.nom || 'Client',
   );
@@ -592,6 +660,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected goBack(): void {
+    if (!this.isProviderProposalMode && this.clientBookingStep() === 'PRICE') {
+      this.goToClientDetailsStep();
+      return;
+    }
+
     const fallback = this.isProviderProposalMode
       ? '/prestataire/espace'
       : `/services/${this.profileId || this.detail()?.profile.id || ''}`;
@@ -1611,6 +1684,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (proposal) => {
           const hasExistingHistory = (proposal.propositions?.length ?? 0) > 1;
+          this.clearClientReservationDraft();
           if (hasExistingHistory) {
             this.feedback.info('Une discussion est deja ouverte pour ce service.');
           } else {
@@ -1647,6 +1721,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       })
       .subscribe({
         next: (proposal) => {
+          this.clearClientReservationDraft();
           this.feedback.success('Votre nouvelle proposition a ete envoyee.');
           this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
         },
@@ -1675,6 +1750,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (reservation) => {
           this.feedback.success('Votre rendez-vous a ete cree avec succes.');
+          this.clearClientReservationDraft();
           if (reservation.id) {
             this.ensureReservationConversation(reservation.id);
           }
@@ -1997,11 +2073,57 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         this.isSubmitting.set(false);
         return;
       }
+
+      if (this.isTimeSlotUnavailableError(errorCode)) {
+        this.handleTimeSlotUnavailable(error);
+        return;
+      }
     }
 
     this.feedback.error(
       getHttpErrorMessage(error, "Impossible d'envoyer cette proposition pour le moment."),
     );
+  }
+
+  private isTimeSlotUnavailableError(errorCode: string | undefined): boolean {
+    return (
+      errorCode === 'RESERVATION_TIME_SLOT_UNAVAILABLE' ||
+      errorCode === 'RESERVATIONS_TIME_SLOT_UNAVAILABLE'
+    );
+  }
+
+  private handleTimeSlotUnavailable(error: HttpErrorResponse): void {
+    const service = this.currentService();
+    const dateHeure = this.toIsoDateTime(this.appointmentDate());
+    const message = getHttpErrorMessage(
+      error,
+      'Ce creneau vient detre reserve par un autre client. Choisissez un autre horaire.',
+    );
+
+    this.isSubmitting.set(false);
+    this.isRespondingToCounterOffer.set(false);
+    this.feedback.info(message);
+
+    if (service && dateHeure) {
+      this.availabilityStatus.set({
+        available: false,
+        reason: message,
+        professionalId: service.profilProfessionnelId,
+        dateHeure,
+        dureeMinutes: this.durationMinutes(),
+        withinAvailability: true,
+        hasConflict: true,
+      });
+      this.clientDetailsErrors.update((errors) => ({
+        ...errors,
+        availability: message,
+      }));
+
+      const selectedDate = this.appointmentDay();
+      if (selectedDate) {
+        this.loadAvailabilitySlots(service, selectedDate);
+      }
+    }
   }
 
   private loadDetail(): void {
@@ -2021,6 +2143,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         this.detail.set(detail);
         this.startAvailabilityRealtime(detail.profile.id);
         if (proposal) {
+          this.draftPersistenceReady.set(false);
           this.applyPendingProposalState(proposal);
           this.isLoading.set(false);
           if (!this.isProviderProposalMode) {
@@ -2028,18 +2151,24 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           }
           return;
         } else {
-          const service = this.currentService();
-          const providerAddress = this.resolveInitialAddress(detail);
           this.clientDefaultAddress.set(user?.adresse?.trim() || '');
-          this.address.set(service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '');
-          if (service) {
+          const restoredDraft = this.restoreClientReservationDraft();
+          const service = this.currentService();
+          if (!restoredDraft) {
+            const providerAddress = this.resolveInitialAddress(detail);
+            this.address.set(service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '');
+          }
+          if (service && !restoredDraft) {
             if (service.modeDeplacement === 'TRANSPORT_COLIS') {
               this.offerAmount.set(this.parcelComputedPrice());
               this.refreshParcelDeliveryPriceEstimate();
             } else {
               this.offerAmount.set(service.prix ?? 0);
             }
+          } else if (service?.modeDeplacement === 'TRANSPORT_COLIS') {
+            this.refreshParcelDeliveryPriceEstimate();
           }
+          this.draftPersistenceReady.set(!this.isProviderProposalMode);
           if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
             this.resumeActiveClientProposal(service);
             return;
@@ -2055,6 +2184,130 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private clientReservationDraftKey(): string {
+    return [
+      'jokko',
+      'service-proposal-draft',
+      this.profileId || 'provider',
+      this.negotiationId || 'direct',
+    ].join(':');
+  }
+
+  private persistClientReservationDraft(draft: ServiceProposalClientDraft): void {
+    if (this.isProviderProposalMode || this.pendingProposal()) {
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(this.clientReservationDraftKey(), JSON.stringify(draft));
+    } catch {
+      // Le brouillon est un confort UI: l'envoi de reservation ne doit jamais dependre du stockage navigateur.
+    }
+  }
+
+  private restoreClientReservationDraft(): boolean {
+    if (this.isProviderProposalMode) {
+      return false;
+    }
+
+    const raw = this.readClientReservationDraft();
+    if (!raw) {
+      return false;
+    }
+
+    const availableServices = this.detail()?.services ?? [];
+    const serviceExists = raw.selectedServiceId
+      ? availableServices.some((service) => service.id === raw.selectedServiceId)
+      : true;
+
+    if (!serviceExists) {
+      this.clearClientReservationDraft();
+      return false;
+    }
+
+    this.selectedServiceId.set(raw.selectedServiceId || this.selectedServiceId());
+    this.customServiceName.set(raw.customServiceName);
+    this.selectedPayment.set(raw.selectedPayment);
+    this.appointmentDate.set(raw.appointmentDate);
+    this.address.set(raw.address);
+    this.clientBookingStep.set(raw.clientBookingStep);
+    this.parcelDeliveryType.set(raw.parcelDeliveryType);
+    this.parcelNote.set(raw.parcelNote);
+    this.parcelPickupAddress.set(raw.parcelPickupAddress);
+    this.parcelDropoffAddress.set(raw.parcelDropoffAddress);
+    this.parcelPickupContact.set(raw.parcelPickupContact);
+    this.parcelDropoffContact.set(raw.parcelDropoffContact);
+    this.parcels.set(raw.parcels);
+    this.offerAmount.set(raw.offerAmount);
+    this.customOfferTouched.set(raw.customOfferTouched);
+    this.selectedOfferStep.set(raw.selectedOfferStep);
+    this.scheduleAvailabilityCheck();
+    return true;
+  }
+
+  private readClientReservationDraft(): ServiceProposalClientDraft | null {
+    try {
+      const raw = sessionStorage.getItem(this.clientReservationDraftKey());
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw) as Partial<ServiceProposalClientDraft>;
+      const selectedPayment = this.normalizeDraftPayment(parsed.selectedPayment);
+      const clientBookingStep = parsed.clientBookingStep === 'PRICE' ? 'PRICE' : 'DETAILS';
+
+      return {
+        selectedServiceId: typeof parsed.selectedServiceId === 'string' ? parsed.selectedServiceId : '',
+        customServiceName: typeof parsed.customServiceName === 'string' ? parsed.customServiceName : '',
+        selectedPayment,
+        appointmentDate: typeof parsed.appointmentDate === 'string' ? parsed.appointmentDate : '',
+        address: typeof parsed.address === 'string' ? parsed.address : '',
+        clientBookingStep,
+        parcelDeliveryType: typeof parsed.parcelDeliveryType === 'string' ? parsed.parcelDeliveryType : '',
+        parcelNote: typeof parsed.parcelNote === 'string' ? parsed.parcelNote : '',
+        parcelPickupAddress: typeof parsed.parcelPickupAddress === 'string' ? parsed.parcelPickupAddress : '',
+        parcelDropoffAddress: typeof parsed.parcelDropoffAddress === 'string' ? parsed.parcelDropoffAddress : '',
+        parcelPickupContact: this.normalizeDraftContact(parsed.parcelPickupContact),
+        parcelDropoffContact: this.normalizeDraftContact(parsed.parcelDropoffContact),
+        parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
+        offerAmount: Number.isFinite(Number(parsed.offerAmount)) ? Number(parsed.offerAmount) : 0,
+        customOfferTouched: parsed.customOfferTouched === true,
+        selectedOfferStep: this.offerSteps.includes(Number(parsed.selectedOfferStep))
+          ? Number(parsed.selectedOfferStep)
+          : 250,
+      };
+    } catch {
+      this.clearClientReservationDraft();
+      return null;
+    }
+  }
+
+  private normalizeDraftPayment(value: unknown): PaymentMethod {
+    return value === 'ORANGE_MONEY' || value === 'VISA' || value === 'WAVE'
+      ? value
+      : 'WAVE';
+  }
+
+  private normalizeDraftContact(value: unknown): ParcelContactDraft {
+    if (!value || typeof value !== 'object') {
+      return { name: '', phone: '' };
+    }
+
+    const contact = value as Partial<ParcelContactDraft>;
+    return {
+      name: typeof contact.name === 'string' ? contact.name : '',
+      phone: typeof contact.phone === 'string' ? contact.phone : '',
+    };
+  }
+
+  private clearClientReservationDraft(): void {
+    try {
+      sessionStorage.removeItem(this.clientReservationDraftKey());
+    } catch {
+      // Rien a faire si le navigateur bloque le stockage.
+    }
   }
 
   private startAvailabilityRealtime(profileId: string): void {
@@ -2517,6 +2770,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
           if (selectedSlot?.available) {
             this.selectAvailabilitySlot(selectedSlot);
+          } else if (selectedSlot) {
+            this.availabilityStatus.set({
+              available: false,
+              reason: selectedSlot.reason || 'Ce creneau nest pas disponible.',
+              professionalId: service.profilProfessionnelId,
+              dateHeure: selectedSlot.dateHeure,
+              dureeMinutes: this.durationMinutes(),
+              withinAvailability: true,
+              hasConflict: selectedSlot.status === 'RESERVED',
+            });
           } else {
             this.availabilityStatus.set(null);
           }

@@ -9,6 +9,7 @@ export type CreateProfessionalProfileCommand = {
   city?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  vehicleType?: 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
 };
 
 // Update uses the same shape as Create; we alias for semantic clarity

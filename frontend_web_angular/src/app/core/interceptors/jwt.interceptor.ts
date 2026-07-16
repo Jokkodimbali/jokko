@@ -24,7 +24,9 @@ import { getHttpErrorMessage } from '../http/api-response.utils';
 import { environment } from '../../../environments/environment';
 
 let refreshInProgress = false;
-const refreshTokenSignal = new BehaviorSubject<string | 'FAILED' | null>(null);
+type RefreshTokenSignalValue = string | 'EXPIRED' | 'RETRYABLE_FAILED';
+const refreshTokenSignal = new BehaviorSubject<RefreshTokenSignalValue | null>(null);
+let lastRefreshFailure: unknown = null;
 const SESSION_EXPIRED_MESSAGE =
   'Votre session a expire. Reconnectez-vous pour continuer.';
 
@@ -100,21 +102,21 @@ function refreshAndRetry(
   if (refreshInProgress) {
     return refreshTokenSignal.pipe(
       filter(
-        (refreshedToken): refreshedToken is string | 'FAILED' =>
+        (refreshedToken): refreshedToken is RefreshTokenSignalValue =>
           refreshedToken !== null,
       ),
       take(1),
       switchMap((refreshedToken) => {
-        if (refreshedToken === 'FAILED') {
+        if (refreshedToken === 'EXPIRED') {
           handleExpiredSession(authSession, feedback, router);
           return EMPTY;
         }
 
+        if (refreshedToken === 'RETRYABLE_FAILED') {
+          return throwError(() => lastRefreshFailure ?? new Error('Refresh temporairement indisponible.'));
+        }
+
         return next(withAccessToken(request, refreshedToken));
-      }),
-      catchError(() => {
-        handleExpiredSession(authSession, feedback, router);
-        return EMPTY;
       }),
     );
   }
@@ -130,18 +132,32 @@ function refreshAndRetry(
       );
       const refreshedToken = authSession.getAccessToken();
       if (!refreshedToken) {
-        refreshTokenSignal.next('FAILED');
+        refreshTokenSignal.next('EXPIRED');
         handleExpiredSession(authSession, feedback, router);
         return EMPTY;
       }
 
+      lastRefreshFailure = null;
       refreshTokenSignal.next(refreshedToken);
       return next(withAccessToken(request, refreshedToken));
     }),
-    catchError(() => {
-      refreshTokenSignal.next('FAILED');
-      handleExpiredSession(authSession, feedback, router);
-      return EMPTY;
+    catchError((error) => {
+      lastRefreshFailure = error;
+      if (isRefreshTokenInvalidError(error)) {
+        const latestToken = authSession.getAccessToken();
+        if (latestToken && latestToken !== readBearerToken(request)) {
+          lastRefreshFailure = null;
+          refreshTokenSignal.next(latestToken);
+          return next(withAccessToken(request, latestToken));
+        }
+
+        refreshTokenSignal.next('EXPIRED');
+        handleExpiredSession(authSession, feedback, router);
+        return EMPTY;
+      }
+
+      refreshTokenSignal.next('RETRYABLE_FAILED');
+      return throwError(() => error);
     }),
     finalize(() => {
       refreshInProgress = false;
@@ -157,6 +173,27 @@ function withAccessToken(
     headers: request.headers.set('Authorization', `Bearer ${token}`),
     withCredentials: true,
   });
+}
+
+function readBearerToken(request: HttpRequest<unknown>): string | null {
+  const authorization = request.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return authorization.slice('Bearer '.length).trim() || null;
+}
+
+function isRefreshTokenInvalidError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const status = (error as { status?: unknown }).status;
+  const body = (error as { error?: { errorCode?: unknown } }).error;
+  const errorCode = typeof body?.errorCode === 'string' ? body.errorCode : '';
+
+  return status === 401 && errorCode === 'AUTH_REFRESH_TOKEN_INVALID';
 }
 
 function handleExpiredSession(

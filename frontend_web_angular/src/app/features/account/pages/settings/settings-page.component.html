@@ -316,8 +316,26 @@
             </label>
             <label>
               <span>Adresse personnelle</span>
-              <input type="text" name="address" [(ngModel)]="addressForm.address" placeholder="Dakar, Plateau" />
+              <input
+                type="text"
+                name="address"
+                [(ngModel)]="addressForm.address"
+                placeholder="Dakar, Plateau"
+                (focus)="showAddressMap()"
+                (click)="showAddressMap()"
+              />
             </label>
+            <div *ngIf="isAddressMapVisible()" class="settings-page__address-map">
+              <button type="button" class="settings-page__address-map-close" (click)="hideAddressMap()">
+                Masquer la carte
+              </button>
+              <app-service-proposal-interactive-map
+                [address]="addressForm.address"
+                [expanded]="false"
+                (addressSelected)="updateAddressFromMap($event)"
+                (addressResolved)="resolveAddressFromMap($event)"
+              ></app-service-proposal-interactive-map>
+            </div>
             <button type="submit" [disabled]="isSavingProfile()">Enregistrer</button>
           </form>
         </ng-template>

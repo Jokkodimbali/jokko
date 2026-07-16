@@ -248,6 +248,110 @@
   opacity: 0.65;
 }
 
+.doctor-space__vehicle-choice {
+  align-items: center;
+  border-top: 1px solid #f0e2d4;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 22px;
+  padding-top: 22px;
+}
+
+.doctor-space__vehicle-choice header {
+  border-left: 4px solid #c47d38;
+  display: block;
+  margin: 0 0 18px;
+  padding-left: 10px;
+}
+
+.doctor-space__vehicle-choice h3 {
+  color: #2b2119;
+  font-size: 18px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.doctor-space__vehicle-choice p {
+  color: #9a765a;
+  font-size: 15px;
+  margin: 24px 0 0 -10px;
+}
+
+.doctor-space__vehicle-options {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(140px, 188px));
+}
+
+.doctor-space__vehicle-option {
+  align-content: center;
+  background: #fff;
+  border: 2px solid #eadccd;
+  border-radius: 24px;
+  color: #2d241d;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-height: 174px;
+  padding: 36px 14px 18px;
+  position: relative;
+  text-align: center;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.doctor-space__vehicle-option--active {
+  background: #f5ecdf;
+  border-color: #9a5f27;
+}
+
+.doctor-space__vehicle-option--active strong {
+  color: #9a5f27;
+}
+
+.doctor-space__vehicle-image {
+  background: #efe2cf;
+  border-radius: 24px;
+  display: flex;
+  height: 78px;
+  justify-content: center;
+  overflow: hidden;
+  width: 78px;
+}
+
+.doctor-space__vehicle-image img {
+  display: block;
+  height: 66px;
+  object-fit: contain;
+  width: auto;
+}
+
+.doctor-space__vehicle-option strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.doctor-space__vehicle-check {
+  align-items: center;
+  background: #9a5f27;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  top: 10px;
+  transform: translateX(-50%);
+  width: 24px;
+}
+
+.doctor-space__vehicle-choice > .doctor-space__travel-save {
+  align-self: center;
+  margin-top: 74px;
+}
+
 .doctor-space__intervention-map {
   background: #fbf8f4;
   border: 1px solid #eadccd;
@@ -1339,6 +1443,25 @@
 
   .doctor-space__travel-mode {
     padding: 18px;
+  }
+
+  .doctor-space__vehicle-choice {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__vehicle-options {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__vehicle-option {
+    min-height: 142px;
+  }
+
+  .doctor-space__vehicle-choice > .doctor-space__travel-save {
+    justify-content: center;
+    margin-top: 0;
+    width: 100%;
   }
 
   .doctor-space__intervention-map {

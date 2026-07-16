@@ -713,10 +713,6 @@
                 <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
 
                 <div class="service-proposal__booking-actions">
-                  <button type="button" class="service-proposal__back-step" (click)="goToClientDetailsStep()">
-                    <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.4"></lucide-icon>
-                    Retour
-                  </button>
                   <button
                     type="button"
                     class="service-proposal__submit"
@@ -950,7 +946,7 @@
 
           <aside class="service-proposal__side-stack">
             <section class="service-proposal__summary" aria-label="Recapitulatif du rendez-vous">
-              <div class="service-proposal__provider">
+              <div class="service-proposal__provider service-proposal__provider--booking-summary">
                 <span class="service-proposal__avatar-wrap">
                   <img
                     *ngIf="avatarUrl(); else serviceProposalInitials"
@@ -975,6 +971,12 @@
                     {{ ratingLabel() }}
                   </p>
                 </div>
+                <span *ngIf="providerVehicleBadge() as vehicleBadge" class="professional-vehicle-badge">
+                  <span class="professional-vehicle-badge__icon">
+                    <img [src]="vehicleBadge.imageUrl" [alt]="vehicleBadge.label" />
+                  </span>
+                  <strong>{{ vehicleBadge.label }}</strong>
+                </span>
               </div>
 
               <div class="service-proposal__summary-row">

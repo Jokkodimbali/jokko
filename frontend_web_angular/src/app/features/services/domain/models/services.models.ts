@@ -35,6 +35,7 @@ export interface Professional {
   status: string;
   rating: number;
   totalReviews: number;
+  vehicleType?: ProfessionalVehicleType;
   isOnline: boolean;
   onlineLabel: string;
   avatar?: string;
@@ -45,6 +46,10 @@ export type ServiceTravelMode =
   | 'PRESTATAIRE_SE_DEPLACE'
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
+export type ProfessionalVehicleType =
+  | 'MOTO_SCOOTER'
+  | 'VOITURE'
+  | 'CAMIONNETTE';
 
 export interface ProviderProfileDetail {
   profile: BackendProfessionalProfile;
@@ -63,6 +68,7 @@ export interface BackendProfessionalProfile {
   statutKyc: 'EN_ATTENTE' | 'VERIFIE' | 'REJETE' | 'NON_SOUMIS';
   raisonRejetKyc: string | null;
   ville: string | null;
+  typeVehicule?: ProfessionalVehicleType;
   latitude: number | null;
   longitude: number | null;
   noteGlobale: number;
@@ -91,6 +97,7 @@ export interface BackendProfessional {
   rating: number;
   totalReviews: number;
   distanceKm: number | null;
+  typeVehicule?: ProfessionalVehicleType;
   isOnline?: boolean;
   services: BackendProfessionalService[];
   specialties?: BackendProfessionalService[];

@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   IsNumber,
   IsOptional,
+  IsIn,
   IsString,
   Max,
   MaxLength,
@@ -75,4 +76,14 @@ export class CreateProfessionalProfileDto {
   @Min(-180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
   @Max(180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
   longitude?: number | null;
+
+  @ApiProperty({
+    description: 'Type de vehicule utilise pour les deplacements.',
+    example: 'VOITURE',
+    required: false,
+    enum: ['MOTO_SCOOTER', 'VOITURE', 'CAMIONNETTE'],
+  })
+  @IsOptional()
+  @IsIn(['MOTO_SCOOTER', 'VOITURE', 'CAMIONNETTE'])
+  vehicleType?: 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
 }

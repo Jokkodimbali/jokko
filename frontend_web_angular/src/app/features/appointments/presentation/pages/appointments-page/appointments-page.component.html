@@ -198,7 +198,7 @@
                   {{ scheduleItemActionLabel(item) }}
                 </a>
                 <button
-                  *ngIf="activeTab() !== 'done'"
+                  *ngIf="!isFinishedItem(item)"
                   type="button"
                   class="appointment-row__cancel"
                   [disabled]="!scheduleItemCanCancel(item)"

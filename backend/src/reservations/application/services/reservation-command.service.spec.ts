@@ -135,6 +135,7 @@ describe('ReservationCommandService', () => {
       ),
       reservationsRepository,
       professionalsRepository,
+      prisma,
     };
   };
 
@@ -174,6 +175,33 @@ describe('ReservationCommandService', () => {
       }),
     });
     expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('marks the pending payment as successful when the client confirms the simulated payment', async () => {
+    const { service, reservationsRepository, prisma } = buildService({
+      reservation: buildReservation({
+        clientId: 'client-id',
+        professionnelId: 'professional-id',
+        statut: 'CONFIRMEE',
+      }),
+    });
+
+    const result = await service.markAsPaid(clientUser, 'reservation-id');
+
+    expect(result.statut).toBe('PAYEE_SEQUESTRE');
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'PAYEE_SEQUESTRE' }),
+    );
+    expect(prisma.paiement.updateMany).toHaveBeenCalledWith({
+      where: {
+        reservationId: 'reservation-id',
+        statut: 'EN_ATTENTE',
+        escrowStatus: 'LOCKED',
+      },
+      data: expect.objectContaining({
+        statut: 'SUCCES',
+      }),
+    });
   });
 
   it('rejects provider reservation confirmation because client booking is already confirmed', async () => {

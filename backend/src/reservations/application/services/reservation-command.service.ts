@@ -574,7 +574,20 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.markAsPaid();
-      return await this.reservationsRepository.update(entity.toView());
+      const updated = await this.reservationsRepository.update(entity.toView());
+      await this.prisma.paiement.updateMany({
+        where: {
+          reservationId,
+          statut: StatutPaiement.EN_ATTENTE,
+          escrowStatus: EscrowStatus.LOCKED,
+        },
+        data: {
+          statut: StatutPaiement.SUCCES,
+          processedAt: new Date(),
+          misAJourLe: new Date(),
+        },
+      });
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;

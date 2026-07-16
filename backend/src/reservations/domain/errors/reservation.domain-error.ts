@@ -1,5 +1,8 @@
 import { domainMessage } from '../../../core/messages/domain-message.catalog';
-import { ValidationError } from '../../../shared/domain/errors/domain-error';
+import {
+  ConflictError,
+  ValidationError,
+} from '../../../shared/domain/errors/domain-error';
 
 export class ReservationDomainError extends ValidationError {
   constructor(code: string, message: string) {
@@ -111,8 +114,8 @@ export class ReservationDomainError extends ValidationError {
     );
   }
 
-  static timeSlotUnavailable(): ReservationDomainError {
-    return new ReservationDomainError(
+  static timeSlotUnavailable(): ConflictError {
+    return new ConflictError(
       'RESERVATION_TIME_SLOT_UNAVAILABLE',
       domainMessage('RESERVATION_TIME_SLOT_UNAVAILABLE'),
     );

@@ -843,7 +843,8 @@ export const APP_MESSAGES_BY_MODULE = {
     RESERVATIONS_TIME_SLOT_UNAVAILABLE: {
       code: 'RESERVATIONS_TIME_SLOT_UNAVAILABLE',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
-      message: 'Ce creneau horaire nest pas disponible.',
+      message:
+        'Ce creneau vient detre reserve par un autre client. Choisissez un autre horaire.',
     },
     RESERVATIONS_STATUS_PENDING_REQUIRED: {
       code: 'RESERVATIONS_STATUS_PENDING_REQUIRED',

@@ -14,6 +14,8 @@
 }
 
 html {
+  max-width: 100%;
+  overflow-x: clip;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
@@ -21,6 +23,8 @@ html {
 body {
   font-family: var(--font-app);
   margin: 0;
+  max-width: 100%;
+  overflow-x: clip;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -38,6 +42,53 @@ img,
 video {
   max-width: 100%;
   height: auto;
+}
+
+/* Global overflow guard for user-generated and API-provided text. */
+:where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  strong,
+  small,
+  em,
+  b,
+  a,
+  li,
+  dd,
+  dt,
+  label,
+  figcaption,
+  td,
+  th,
+  button
+) {
+  overflow-wrap: anywhere;
+}
+
+:where(pre, code, kbd, samp, pre *, code *, kbd *, samp *) {
+  overflow-wrap: normal;
+}
+
+:where(
+  main,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  nav,
+  form,
+  label,
+  div,
+  li
+) {
+  min-width: 0;
 }
 
 /* ─── Design Tokens ──────────────────────────────────────────────── */

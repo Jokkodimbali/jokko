@@ -16,6 +16,7 @@ import {
   BackendProfessionalPortfolioItem,
   BackendProfessionalProfile,
   CategoryStructure,
+  ProfessionalVehicleType,
   ServiceTravelMode,
 } from '../../../../services/domain/models/services.models';
 import {
@@ -116,6 +117,12 @@ type TravelModeOption = {
   description: string;
 };
 
+type VehicleOption = {
+  value: ProfessionalVehicleType;
+  title: string;
+  imageUrl: string;
+};
+
 type AgendaFilter = 'ALL' | 'ACTIVE' | 'DONE' | 'CANCELLED' | 'DISPUTE';
 type AgendaViewMode = 'day' | 'week' | 'month';
 type MedicalHistoryTab = 'future' | 'past';
@@ -132,6 +139,18 @@ type ProviderReservationGroup = {
   key: string;
   label: string;
   items: BackendReservation[];
+};
+
+type ProviderNegotiationTimelineItem = NegotiationView & {
+  timelineDate: Date;
+  timelineKind: 'negotiation' | 'reservation';
+  timelineReservation?: BackendReservation;
+};
+
+type ProviderNegotiationTimelineGroup = {
+  key: string;
+  label: string;
+  items: ProviderNegotiationTimelineItem[];
 };
 
 type ProviderNegotiationCalendarDay = {
@@ -329,6 +348,7 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly appointmentDuration = signal(0);
   protected readonly appointmentPause = signal(0);
   protected readonly selectedTravelMode = signal<ServiceTravelMode>('PRESTATAIRE_SE_DEPLACE');
+  protected readonly selectedVehicleType = signal<ProfessionalVehicleType>('VOITURE');
   protected readonly interventionAddress = signal('');
   protected readonly interventionCoordinate = signal<{ latitude: number; longitude: number } | null>(null);
   protected readonly isInterventionMapExpanded = signal(false);
@@ -398,6 +418,23 @@ export class DoctorSpacePageComponent implements OnInit {
       ? this.travelModeOptions
       : this.travelModeOptions.filter((option) => option.value !== 'TRANSPORT_COLIS'),
   );
+  protected readonly vehicleOptions: VehicleOption[] = [
+    {
+      value: 'MOTO_SCOOTER',
+      title: 'Moto / Scooter',
+      imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+    },
+    {
+      value: 'VOITURE',
+      title: 'Voiture',
+      imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+    },
+    {
+      value: 'CAMIONNETTE',
+      title: 'Camionnette',
+      imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    },
+  ];
   protected readonly shouldShowInterventionMap = computed(
     () => this.selectedTravelMode() === 'CLIENT_SE_DEPLACE',
   );
@@ -856,7 +893,36 @@ export class DoctorSpacePageComponent implements OnInit {
         day: 'numeric',
         month: 'long',
       }).format(this.negotiationDate(items[0])).toUpperCase(),
-      items,
+      items: this.sortNegotiationsByDate(items),
+    })).sort((left, right) => right.key.localeCompare(left.key));
+  });
+  protected readonly negotiationTimelineGroups = computed<ProviderNegotiationTimelineGroup[]>(() => {
+    const groups = new Map<string, ProviderNegotiationTimelineItem[]>();
+    const addItem = (item: ProviderNegotiationTimelineItem) => {
+      const key = this.dateInputValue(item.timelineDate);
+      groups.set(key, [...(groups.get(key) ?? []), item]);
+    };
+
+    for (const negotiation of this.negotiationVisibleRows()) {
+      addItem({
+        ...negotiation,
+        timelineDate: this.negotiationDate(negotiation),
+        timelineKind: 'negotiation',
+      });
+    }
+
+    for (const reservation of this.negotiationReservationVisibleRows()) {
+      addItem(this.reservationToNegotiationTimelineItem(reservation));
+    }
+
+    return Array.from(groups, ([key, items]) => ({
+      key,
+      label: new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(items[0].timelineDate).toUpperCase(),
+      items: this.sortTimelineByDate(items),
     })).sort((left, right) => right.key.localeCompare(left.key));
   });
   protected readonly negotiationReservationMonthRows = computed(() =>
@@ -898,9 +964,81 @@ export class DoctorSpacePageComponent implements OnInit {
         day: 'numeric',
         month: 'long',
       }).format(new Date(items[0].dateHeure)).toUpperCase(),
-      items,
+      items: this.sortReservationsByDate(items),
     })).sort((left, right) => right.key.localeCompare(left.key));
   });
+
+  private sortNegotiationsByDate(negotiations: NegotiationView[]): NegotiationView[] {
+    return [...negotiations].sort((left, right) =>
+      this.compareDatesDescending(this.negotiationDate(left), this.negotiationDate(right)),
+    );
+  }
+
+  private sortReservationsByDate(reservations: BackendReservation[]): BackendReservation[] {
+    return [...reservations].sort((left, right) =>
+      this.compareDatesDescending(new Date(left.dateHeure), new Date(right.dateHeure)),
+    );
+  }
+
+  private sortTimelineByDate(items: ProviderNegotiationTimelineItem[]): ProviderNegotiationTimelineItem[] {
+    return [...items].sort((left, right) => this.compareDatesDescending(left.timelineDate, right.timelineDate));
+  }
+
+  private reservationToNegotiationTimelineItem(reservation: BackendReservation): ProviderNegotiationTimelineItem {
+    const servicePrice = reservation.prixConvenu ?? reservation.service?.prix ?? 0;
+    const reservationDate = new Date(reservation.dateHeure);
+
+    return {
+      id: reservation.id,
+      clientId: reservation.clientId,
+      professionnelId: reservation.professionnelId,
+      serviceId: reservation.serviceId,
+      statut: reservation.statut as unknown as NegotiationStatus,
+      montantInitial: servicePrice,
+      montantCourant: servicePrice,
+      montantAccepte: servicePrice,
+      dernierProposePar: 'CLIENT',
+      messageCourant: reservation.notes,
+      dateHeureProposee: reservation.dateHeure,
+      adresseClientProposee: reservation.adresseClient,
+      dureeMinutesProposee: reservation.dureeMinutes,
+      reservationId: reservation.id,
+      creeLe: reservation.creeLe,
+      misAJourLe: reservation.misAJourLe,
+      client: reservation.client
+        ? {
+            id: reservation.client.id,
+            nom: reservation.client.nom,
+            adresse: reservation.adresseClient,
+            urlAvatar: reservation.client.urlAvatar,
+          }
+        : undefined,
+      service: reservation.service
+        ? {
+            id: reservation.service.id,
+            nom: reservation.service.nom,
+            prix: servicePrice,
+          }
+        : undefined,
+      timelineDate: reservationDate,
+      timelineKind: 'reservation',
+      timelineReservation: reservation,
+    };
+  }
+
+  private compareDatesDescending(left: Date, right: Date): number {
+    const leftTime = left.getTime();
+    const rightTime = right.getTime();
+    const leftInvalid = Number.isNaN(leftTime);
+    const rightInvalid = Number.isNaN(rightTime);
+
+    if (leftInvalid && rightInvalid) return 0;
+    if (leftInvalid) return 1;
+    if (rightInvalid) return -1;
+
+    return rightTime - leftTime;
+  }
+
   protected readonly negotiationCalendarDays = computed<ProviderNegotiationCalendarDay[]>(() => {
     const month = this.parseMonthValue(this.negotiationMonth()) ?? new Date();
     const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -1335,8 +1473,8 @@ export class DoctorSpacePageComponent implements OnInit {
     });
   }
 
-  protected negotiationStatusLabel(status: NegotiationStatus): string {
-    const labels: Record<NegotiationStatus, string> = {
+  protected negotiationStatusLabel(status: NegotiationStatus | AppointmentStatus): string {
+    const labels: Partial<Record<NegotiationStatus | AppointmentStatus, string>> = {
       EN_ATTENTE_PRESTATAIRE: 'À valider',
       EN_ATTENTE_CLIENT: 'Attente client',
       ACCEPTEE: 'Prix accepté',
@@ -1344,11 +1482,12 @@ export class DoctorSpacePageComponent implements OnInit {
       ANNULEE: 'Annulée',
       CONVERTIE_EN_RESERVATION: 'Confirmé',
     };
-    return labels[status];
+    return labels[status] ?? this.negotiationReservationStatusLabel(status as AppointmentStatus);
   }
 
 
   protected negotiationTone(negotiation: NegotiationView): string {
+    if (this.isTimelineReservation(negotiation)) return this.negotiationReservationTone(negotiation.statut as AppointmentStatus);
     if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'pending';
     if (negotiation.statut === 'EN_ATTENTE_CLIENT') return 'counter';
     if (negotiation.statut === 'ACCEPTEE') return 'accepted';
@@ -1374,11 +1513,15 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected negotiationPhoneHref(negotiation: NegotiationView): string | null {
+    const reservation = this.timelineReservationFor(negotiation);
+    if (reservation) return this.negotiationReservationPhoneHref(reservation);
+
     const phone = (negotiation.client as { numeroTelephone?: string } | undefined)?.numeroTelephone?.trim();
     return phone ? `tel:${phone.replace(/\s+/g, '')}` : null;
   }
 
   protected isClosedNegotiation(negotiation: NegotiationView): boolean {
+    if (this.isTimelineReservation(negotiation)) return false;
     return negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE';
   }
 
@@ -1396,11 +1539,22 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected negotiationMessageQueryParams(negotiation: NegotiationView): Record<string, string> {
+    const reservation = this.timelineReservationFor(negotiation);
+    if (reservation) return this.negotiationReservationMessageQueryParams(reservation);
+
     return {
       negotiationId: negotiation.id,
       professionalId: negotiation.professionnelId,
       returnUrl: this.router.url,
     };
+  }
+
+  private isTimelineReservation(negotiation: NegotiationView): boolean {
+    return (negotiation as Partial<ProviderNegotiationTimelineItem>).timelineKind === 'reservation';
+  }
+
+  private timelineReservationFor(negotiation: NegotiationView): BackendReservation | null {
+    return (negotiation as Partial<ProviderNegotiationTimelineItem>).timelineReservation ?? null;
   }
 
 
@@ -1527,7 +1681,10 @@ export class DoctorSpacePageComponent implements OnInit {
   }
 
   protected walletTotalBalance(): number {
-    return this.walletBalance() + this.walletPendingEscrowTotal();
+    return (
+      this.wallet()?.totalCollected ??
+      this.walletBalance() + this.walletPendingEscrowTotal()
+    );
   }
 
   protected walletMonthlyRevenue(): number {
@@ -1955,6 +2112,10 @@ export class DoctorSpacePageComponent implements OnInit {
     this.isInterventionMapExpanded.set(expanded);
   }
 
+  protected selectVehicleType(vehicleType: ProfessionalVehicleType): void {
+    this.selectedVehicleType.set(vehicleType);
+  }
+
   protected saveTravelMode(): void {
     const selectedMode = this.selectedTravelMode();
     const mode =
@@ -1976,16 +2137,21 @@ export class DoctorSpacePageComponent implements OnInit {
       return;
     }
 
-    if (motifs.length === 0 && !mustSaveInterventionLocation) {
+    if (motifs.length === 0 && !mustSaveInterventionLocation && !this.professionalProfileId()) {
       this.feedback.success('Mode de deplacement enregistre.');
       return;
     }
 
-    const profileUpdate$: Observable<BackendProfessionalProfile | null> = mustSaveInterventionLocation
+    const profileUpdate$: Observable<BackendProfessionalProfile | null> = this.professionalProfileId()
       ? this.doctorSpaceService.updateMyProfessionalProfile({
-          city: interventionAddress,
-          latitude: interventionCoordinate?.latitude ?? null,
-          longitude: interventionCoordinate?.longitude ?? null,
+          vehicleType: this.selectedVehicleType(),
+          ...(mustSaveInterventionLocation
+            ? {
+                city: interventionAddress,
+                latitude: interventionCoordinate?.latitude ?? null,
+                longitude: interventionCoordinate?.longitude ?? null,
+              }
+            : {}),
         })
       : of(null);
 
@@ -2014,8 +2180,8 @@ export class DoctorSpacePageComponent implements OnInit {
         next: () => {
           this.feedback.success(
             mustSaveInterventionLocation
-              ? "Mode et adresse d'intervention mis a jour."
-              : 'Mode de deplacement mis a jour.',
+              ? "Mode, vehicule et adresse d'intervention mis a jour."
+              : 'Mode de deplacement et vehicule mis a jour.',
           );
           if (motifs.length > 0) {
             this.refreshServices();
@@ -2375,6 +2541,7 @@ export class DoctorSpacePageComponent implements OnInit {
     this.profileForm.companyName = profile?.nomEntreprise ?? '';
     this.profileForm.city = profile?.ville ?? '';
     this.profileForm.bio = profile?.biographie ?? '';
+    this.selectedVehicleType.set(profile?.typeVehicule ?? 'VOITURE');
     this.interventionAddress.set(profile?.ville ?? '');
     this.interventionCoordinate.set(
       typeof profile?.latitude === 'number' && typeof profile?.longitude === 'number'

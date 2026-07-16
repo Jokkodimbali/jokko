@@ -33,17 +33,17 @@ import { AuditLoggerMiddleware } from './audit/audit-logger.middleware';
         {
           name: 'short',
           ttl: configService.get<number>('THROTTLE_SHORT_TTL', 1000),
-          limit: configService.get<number>('THROTTLE_SHORT_LIMIT', 10),
+          limit: configService.get<number>('THROTTLE_SHORT_LIMIT', 100),
         },
         {
           name: 'medium',
           ttl: configService.get<number>('THROTTLE_MEDIUM_TTL', 60_000),
-          limit: configService.get<number>('THROTTLE_MEDIUM_LIMIT', 60),
+          limit: configService.get<number>('THROTTLE_MEDIUM_LIMIT', 1200),
         },
         {
           name: 'long',
           ttl: configService.get<number>('THROTTLE_LONG_TTL', 600_000),
-          limit: configService.get<number>('THROTTLE_LONG_LIMIT', 200),
+          limit: configService.get<number>('THROTTLE_LONG_LIMIT', 10000),
         },
       ],
     }),

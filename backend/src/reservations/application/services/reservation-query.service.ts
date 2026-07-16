@@ -270,8 +270,6 @@ export class ReservationQueryService extends ReservationAppService {
 
     if (query.status) {
       filters.status = query.status;
-    } else {
-      filters.excludeStatuses = ['CONFIRMEE'];
     }
 
     if (query.serviceId) {

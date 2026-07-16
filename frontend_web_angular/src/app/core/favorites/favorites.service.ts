@@ -10,6 +10,11 @@ export type FavoriteServiceTravelMode =
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
 
+export type FavoriteProfessionalVehicleType =
+  | 'MOTO_SCOOTER'
+  | 'VOITURE'
+  | 'CAMIONNETTE';
+
 export interface FavoriteItem {
   id: string;
   professionalId: string;
@@ -17,6 +22,7 @@ export interface FavoriteItem {
   name: string;
   subtitle: string;
   location: string;
+  vehicleType?: FavoriteProfessionalVehicleType;
   avatarUrl: string | null;
   rating: number;
   totalReviews: number;

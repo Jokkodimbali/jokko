@@ -12,6 +12,7 @@ const FAVORITE_SELECT = {
       nomEntreprise: true,
       biographie: true,
       ville: true,
+      typeVehicule: true,
       noteGlobale: true,
       nombreAvis: true,
       creeLe: true,
@@ -201,6 +202,7 @@ export class FavoritesService {
         primaryService?.nom ||
         'Prestataire',
       location: professional.ville || 'Senegal',
+      vehicleType: professional.typeVehicule,
       avatarUrl: professional.utilisateur.urlAvatar,
       rating: professional.noteGlobale.toNumber(),
       totalReviews: professional.nombreAvis,

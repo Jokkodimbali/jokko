@@ -19,6 +19,7 @@ import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
   BackendProfessionalPresence,
+  ProfessionalVehicleType,
   ProviderProfileDetail,
 } from '../../../domain/models/services.models';
 
@@ -26,6 +27,24 @@ interface ScheduleRow {
   day: string;
   slots: string[];
 }
+
+const PROFESSIONAL_VEHICLE_BADGES: Record<
+  ProfessionalVehicleType,
+  { label: string; imageUrl: string }
+> = {
+  MOTO_SCOOTER: {
+    label: 'Moto / Scooter',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+  },
+  VOITURE: {
+    label: 'Voiture',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+  },
+  CAMIONNETTE: {
+    label: 'Camionnette',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+  },
+};
 
 @Component({
   selector: 'app-provider-profile',
@@ -174,6 +193,10 @@ export class ProviderProfileComponent implements OnInit {
   });
   protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
   protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
+  protected readonly vehicleBadge = computed(() => {
+    const vehicleType = this.detail()?.profile.typeVehicule;
+    return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
+  });
   protected readonly primaryTravelMode = computed(() => {
     const modes = new Set(
       (this.detail()?.services ?? [])

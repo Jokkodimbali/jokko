@@ -29,6 +29,7 @@ export class ProfileService extends ProfessionalAppService {
       nomEntreprise:
         CompanyName.create(command.companyName)?.getValue() ?? null,
       ville: City.create(command.city)?.getValue() ?? null,
+      typeVehicule: command.vehicleType,
       ...this.normalizeLocation(command),
     });
 
@@ -68,6 +69,7 @@ export class ProfileService extends ProfessionalAppService {
         command.city === undefined
           ? undefined
           : (City.create(command.city)?.getValue() ?? null),
+      typeVehicule: command.vehicleType,
       ...this.normalizeLocation(command),
     });
 

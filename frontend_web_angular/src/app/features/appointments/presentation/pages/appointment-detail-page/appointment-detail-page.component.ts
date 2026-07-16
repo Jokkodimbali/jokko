@@ -2485,7 +2485,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           statusLabel:
             progress >= 1
               ? `Arrive a destination de ${this.routeVehiclePersonLabel()}`
-              : `En route vers ${this.routeVehiclePersonLabel()}`,
+              : this.activeVehicleRouteLabel(false),
           headingDegrees: null,
           routes: this.serializedMapRoutes(),
           arrived: progress >= 1,
@@ -3216,9 +3216,32 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.hasTravelerArrivedAtDestination()) {
       return this.activeTrackingScenario().vehicleArrivedLabel(this.trackingScenarioContext());
     }
+    if (!this.isProviderWorking() || this.isParcelDropoffNavigationActive()) {
+      return this.activeVehicleRouteLabel(true);
+    }
     return this.isProviderWorking() && !this.isParcelDropoffNavigationActive()
       ? `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`
       : `En route vers ${this.routeVehiclePersonLabel()} · ${this.routeEtaLabel()}`;
+  }
+
+  private activeVehicleRouteLabel(withEta: boolean): string {
+    const appointment = this.appointment();
+    if (!appointment) return 'Trajet en cours';
+
+    let label: string;
+    if (!this.isProviderViewer() && appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
+      label = `En route vers ${this.clientRouteName(appointment)}`;
+    } else if (!this.isProviderViewer() && appointment.travelMode === 'CLIENT_SE_DEPLACE') {
+      label = `${this.clientRouteName(appointment)} en route vers le lieu du RDV`;
+    } else {
+      label = `En route vers ${this.routeVehiclePersonLabel()}`;
+    }
+
+    return withEta ? `${label} - ${this.routeEtaLabel()}` : label;
+  }
+
+  private clientRouteName(appointment: AppointmentView): string {
+    return appointment.clientName?.trim() || 'Le client';
   }
 
   private routeVehiclePersonLabel(): string {

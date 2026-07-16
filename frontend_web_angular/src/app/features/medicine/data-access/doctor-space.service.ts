@@ -12,6 +12,7 @@ import {
   Category,
   CategoryStructure,
   ServiceTravelMode,
+  ProfessionalVehicleType,
   ServiceSubCategory,
 } from '../../services/domain/models/services.models';
 import { BackendReservation } from '../../appointments/domain/appointments.models';
@@ -42,6 +43,7 @@ export type DoctorWalletPendingEscrow = {
 export type DoctorWalletView = {
   professionalId: string;
   availableBalance: number;
+  totalCollected: number;
   monthlyRevenue: {
     amount: number;
     changePercent: number;
@@ -113,6 +115,7 @@ export class DoctorSpaceService {
     city?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    vehicleType?: ProfessionalVehicleType;
   }): Observable<BackendProfessionalProfile> {
     return this.http
       .post<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/profile`, data)
@@ -125,6 +128,7 @@ export class DoctorSpaceService {
     city?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    vehicleType?: ProfessionalVehicleType;
   }): Observable<BackendProfessionalProfile> {
     return this.http
       .patch<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/me`, data)

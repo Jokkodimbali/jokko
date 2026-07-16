@@ -171,7 +171,7 @@
   display: grid;
   gap: 0;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(3, minmax(0, 210px));
+  grid-template-columns: minmax(140px, 170px) minmax(140px, 170px) minmax(210px, max-content) minmax(230px, max-content);
   margin-top: 4px;
   padding-top: 28px;
 }
@@ -209,6 +209,44 @@
   align-items: flex-start;
   flex-direction: column;
   gap: 8px;
+}
+
+.doctor-profile__vehicle-stat {
+  align-items: center;
+  justify-content: center;
+}
+
+.doctor-profile__stats .doctor-profile__vehicle-badge {
+  align-items: center;
+  background: #f1e8dc;
+  border: 1px solid #ded0bd;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgb(95 66 31 / 8%), inset 0 1px 0 rgb(255 255 255 / 65%);
+  color: #5f421f;
+  display: inline-flex;
+  flex: initial;
+  gap: 9px;
+  height: auto;
+  justify-content: center;
+  min-height: 38px;
+  padding: 7px 17px 7px 14px;
+  width: auto;
+}
+
+.doctor-profile__stats .doctor-profile__vehicle-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 20px;
+  object-fit: contain;
+  width: 20px;
+}
+
+.doctor-profile__stats .doctor-profile__vehicle-badge strong {
+  color: #5f421f;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .doctor-profile__stats .doctor-profile__movement-badge {
@@ -263,6 +301,8 @@
   color: #8c8c8c;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .doctor-profile__grid {

@@ -4,6 +4,10 @@ export type ServiceTravelMode =
   | 'PRESTATAIRE_SE_DEPLACE'
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
+export type ProfessionalVehicleType =
+  | 'MOTO_SCOOTER'
+  | 'VOITURE'
+  | 'CAMIONNETTE';
 
 export const PROFESSIONALS_REPOSITORY_PORT = Symbol(
   'PROFESSIONALS_REPOSITORY_PORT',
@@ -21,6 +25,7 @@ export type ProfessionalProfileView = {
   statutKyc: KycStatus;
   raisonRejetKyc: string | null;
   ville: string | null;
+  typeVehicule: ProfessionalVehicleType;
   latitude: number | null;
   longitude: number | null;
   noteGlobale: number;
@@ -100,6 +105,7 @@ export type CreateProfessionalProfileInput = {
   ville?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  typeVehicule?: ProfessionalVehicleType;
 };
 
 export type CreateProfessionalProfileResult =
@@ -114,6 +120,7 @@ export type UpdateProfessionalProfileInput = {
   ville?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  typeVehicule?: ProfessionalVehicleType;
 };
 
 export type UpdateProfessionalProfileResult =

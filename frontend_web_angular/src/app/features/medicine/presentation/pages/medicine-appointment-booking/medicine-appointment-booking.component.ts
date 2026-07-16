@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -28,6 +29,7 @@ import {
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalDetailService,
+  ProfessionalVehicleType,
   ProviderProfileDetail,
 } from '../../../../services/domain/models/services.models';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
@@ -35,6 +37,24 @@ import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
+const PROFESSIONAL_VEHICLE_BADGES: Record<
+  ProfessionalVehicleType,
+  { label: string; imageUrl: string }
+> = {
+  MOTO_SCOOTER: {
+    label: 'Moto / Scooter',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+  },
+  VOITURE: {
+    label: 'Voiture',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+  },
+  CAMIONNETTE: {
+    label: 'Camionnette',
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+  },
+};
+
 type BookingStep = 'PERSONAL' | 'RESERVATION';
 type PatientFormField =
   | 'fullName'
@@ -135,6 +155,10 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     publicAssetUrl(this.detail()?.profile.utilisateur.urlAvatar) || '',
   );
   protected readonly doctorInitials = computed(() => this.initials(this.doctorName()));
+  protected readonly doctorVehicleBadge = computed(() => {
+    const vehicleType = this.detail()?.profile.typeVehicule;
+    return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
+  });
   protected readonly doctorRatingLabel = computed(() =>
     Number(this.detail()?.profile.noteGlobale ?? 0).toFixed(1),
   );
@@ -565,9 +589,30 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
             this.router.navigate(['/appointments']);
           }
         },
-        error: (error) =>
-          this.feedback.error(getHttpErrorMessage(error, 'Creation du rendez-vous impossible.')),
+        error: (error) => this.handleAppointmentCreationError(error),
       });
+  }
+
+  private handleAppointmentCreationError(error: unknown): void {
+    if (error instanceof HttpErrorResponse) {
+      const errorCode = (error.error as { errorCode?: string } | undefined)?.errorCode;
+      if (
+        errorCode === 'RESERVATION_TIME_SLOT_UNAVAILABLE' ||
+        errorCode === 'RESERVATIONS_TIME_SLOT_UNAVAILABLE'
+      ) {
+        const message = getHttpErrorMessage(
+          error,
+          'Ce creneau vient detre reserve par un autre client. Choisissez un autre horaire.',
+        );
+        this.feedback.info(message);
+        this.fieldErrors.update((errors) => ({ ...errors, schedule: message }));
+        this.selectedDateTime.set(null);
+        this.loadAvailabilityForSelectedDate();
+        return;
+      }
+    }
+
+    this.feedback.error(getHttpErrorMessage(error, 'Creation du rendez-vous impossible.'));
   }
 
   protected messageDoctor(): void {

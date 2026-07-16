@@ -1,10 +1,11 @@
 import { ApplicationConfig, LOCALE_ID, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { IMAGE_CONFIG, registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 
 import { routes } from './app.routes';
+import { httpCacheInterceptor } from './core/http/http-cache.interceptor';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import {
   Activity,
@@ -95,6 +96,7 @@ import {
   RotateCcw,
   Route,
   Scale,
+  Save,
   Search,
   SearchCheck,
   Send,
@@ -133,8 +135,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(), 
     { provide: LOCALE_ID, useValue: 'fr-FR' },
-    provideRouter(routes),
-    provideHttpClient(withInterceptors([jwtInterceptor])),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideHttpClient(withInterceptors([jwtInterceptor, httpCacheInterceptor])),
     importProvidersFrom(
       LucideAngularModule.pick({
         Activity,
@@ -225,6 +227,7 @@ export const appConfig: ApplicationConfig = {
         RotateCcw,
         Route,
         Scale,
+        Save,
         Search,
         SearchCheck,
         Send,

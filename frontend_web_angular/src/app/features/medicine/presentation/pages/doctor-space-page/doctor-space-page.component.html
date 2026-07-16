@@ -188,12 +188,43 @@
             </aside>
           </div>
 
-          <footer>
+          <section class="doctor-space__vehicle-choice" aria-labelledby="vehicle-choice-title">
+            <div class="doctor-space__vehicle-main">
+              <header>
+                <h3 id="vehicle-choice-title">Quel v&eacute;hicule poss&eacute;dez-vous ?</h3>
+                <p>S&eacute;lectionnez le type de v&eacute;hicule que vous utilisez pour le transport.</p>
+              </header>
+
+              <div class="doctor-space__vehicle-options" role="radiogroup" aria-label="Type de vehicule">
+                <button
+                  *ngFor="let vehicle of vehicleOptions"
+                  type="button"
+                  class="doctor-space__vehicle-option"
+                  [class.doctor-space__vehicle-option--active]="selectedVehicleType() === vehicle.value"
+                  [attr.aria-checked]="selectedVehicleType() === vehicle.value"
+                  role="radio"
+                  (click)="selectVehicleType(vehicle.value)"
+                >
+                  <span class="doctor-space__vehicle-image">
+                    <img [src]="vehicle.imageUrl" [alt]="vehicle.title" loading="lazy" />
+                  </span>
+                  <strong>{{ vehicle.title }}</strong>
+                  <lucide-icon
+                    *ngIf="selectedVehicleType() === vehicle.value"
+                    class="doctor-space__vehicle-check"
+                    name="check"
+                    size="14"
+                    [strokeWidth]="2.8"
+                  ></lucide-icon>
+                </button>
+              </div>
+            </div>
+
             <button type="button" class="doctor-space__travel-save" [disabled]="isSaving()" (click)="saveTravelMode()">
-              <lucide-icon name="check" size="16" [strokeWidth]="2.4"></lucide-icon>
+              <lucide-icon name="save" size="18" [strokeWidth]="2.2"></lucide-icon>
               Enregistrer
             </button>
-          </footer>
+          </section>
         </section>
 
         <section class="doctor-space__schedule">
@@ -608,7 +639,7 @@
 
           </section>
 
-          <section *ngFor="let group of negotiationGroups()" class="doctor-space__negotiation-group" [hidden]="activeSection() === 'patient-appointments'">
+          <section *ngFor="let group of negotiationTimelineGroups()" class="doctor-space__negotiation-group" [hidden]="activeSection() === 'patient-appointments'">
             <header>
               <strong>{{ group.label }}</strong>
               <span></span>
@@ -679,7 +710,7 @@
             </article>
           </section>
 
-          <section *ngFor="let group of negotiationReservationGroups()" class="doctor-space__negotiation-group">
+          <section *ngFor="let group of negotiationReservationGroups()" class="doctor-space__negotiation-group" [hidden]="activeSection() !== 'patient-appointments'">
             <header>
               <strong>{{ group.label }}</strong>
               <span></span>

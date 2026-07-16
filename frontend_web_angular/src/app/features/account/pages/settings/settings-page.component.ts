@@ -17,6 +17,10 @@ import {
 } from '../../../medicine/data-access/doctor-space.service';
 import { BackendProfessionalPortfolioItem } from '../../../services/domain/models/services.models';
 import {
+  ServiceProposalInteractiveMapComponent,
+  ServiceProposalMapAddressSelection,
+} from '../../../services/presentation/components/service-proposal-interactive-map/service-proposal-interactive-map.component';
+import {
   AuthService,
   MedicalProfileView,
   MedicalTreatmentView,
@@ -59,6 +63,7 @@ type ConfirmationDialogState = {
     RouterLink,
     LucideAngularModule,
     AppFooterComponent,
+    ServiceProposalInteractiveMapComponent,
   ],
   templateUrl: './settings-page.component.html',
   styleUrl: './settings-page.component.scss',
@@ -100,6 +105,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isEditingProfile = signal(false);
   protected readonly isEditingProfessionalAbout = signal(false);
   protected readonly isEditingAddress = signal(false);
+  protected readonly isAddressMapVisible = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
   protected readonly paymentHistory = signal<PaymentHistoryView[]>([]);
@@ -412,6 +418,7 @@ export class SettingsPageComponent implements OnInit {
   protected startProfileEdit(): void {
     this.syncForms(this.profile());
     this.isEditingProfile.set(true);
+    this.isAddressMapVisible.set(false);
   }
 
   protected startProfessionalAboutEdit(): void {
@@ -427,6 +434,7 @@ export class SettingsPageComponent implements OnInit {
   protected cancelProfileEdit(): void {
     this.syncForms(this.profile());
     this.isEditingProfile.set(false);
+    this.isAddressMapVisible.set(false);
   }
 
   protected cancelProfessionalAboutEdit(): void {
@@ -470,6 +478,14 @@ export class SettingsPageComponent implements OnInit {
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier le profil.'));
         },
       });
+  }
+
+  protected showAddressMap(): void {
+    this.isAddressMapVisible.set(true);
+  }
+
+  protected hideAddressMap(): void {
+    this.isAddressMapVisible.set(false);
   }
 
   protected saveProfessionalAbout(): void {
@@ -520,6 +536,14 @@ export class SettingsPageComponent implements OnInit {
           this.errorMessage.set(getHttpErrorMessage(error, "Impossible de modifier l'adresse."));
         },
       });
+  }
+
+  protected updateAddressFromMap(address: string): void {
+    this.addressForm.address = address;
+  }
+
+  protected resolveAddressFromMap(selection: ServiceProposalMapAddressSelection): void {
+    this.addressForm.address = selection.address;
   }
 
   protected uploadAvatar(event: Event): void {

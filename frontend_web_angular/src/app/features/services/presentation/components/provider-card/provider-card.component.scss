@@ -205,12 +205,11 @@
 }
 
 .provider-card__body {
-  align-content: start;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 7px;
-  grid-template-rows: auto auto auto auto auto;
   min-height: 0;
-  padding: 14px 14px 8px;
+  padding: 14px 14px 12px;
 }
 
 .provider-card__identity {
@@ -262,20 +261,62 @@
 .provider-card__location {
   align-items: center;
   color: #8b827a;
-  display: inline-flex;
+  display: grid;
   font-size: 12px;
   font-weight: 650;
-  gap: 4px;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 18px;
   min-width: 0;
 }
 
-.provider-card__location lucide-icon {
+.provider-card__location-main {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.provider-card__location-main lucide-icon {
   color: #51463f;
   flex: 0 0 auto;
 }
 
-.provider-card__location span {
+.provider-card__location-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-card__vehicle-badge {
+  align-items: center;
+  background: #f6efe6;
+  border: 1px solid #e7d6c5;
+  border-radius: 999px;
+  box-shadow: 0 2px 7px rgba(79, 55, 34, 0.08);
+  color: #735232;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  line-height: 1;
+  max-width: 138px;
+  min-height: 29px;
+  min-width: 0;
+  padding: 5px 10px 5px 7px;
+}
+
+.provider-card__vehicle-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
+.provider-card__vehicle-badge strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -346,7 +387,8 @@
   display: grid;
   gap: 7px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  margin-top: 0;
+  margin-top: auto;
+  padding-top: 7px;
 }
 
 .provider-card__action {

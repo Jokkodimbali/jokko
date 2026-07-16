@@ -364,6 +364,8 @@ export class ServicesService {
         primarySpecialty?.categoryName ||
         'Service',
       location: this.formatLocation(data.city, data.distanceKm),
+      latitude: data.latitude,
+      longitude: data.longitude,
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       rating: data.rating,
       totalReviews: data.totalReviews,
@@ -474,12 +476,29 @@ export class ServicesService {
   }
 
   private formatLocation(city: string | null, distanceKm: number | null): string {
-    const cityLabel = city || 'Localisation non renseignee';
+    const cityLabel = this.humanLocationLabel(city);
 
     if (distanceKm === null) {
       return cityLabel;
     }
 
     return `${cityLabel} - ${distanceKm.toFixed(1)} KM`;
+  }
+
+  private humanLocationLabel(value: string | null): string {
+    const label = value?.trim();
+    if (!label) {
+      return 'Localisation non renseignee';
+    }
+
+    if (this.looksLikeCoordinates(label)) {
+      return 'Dakar, Senegal';
+    }
+
+    return label;
+  }
+
+  private looksLikeCoordinates(value: string): boolean {
+    return /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(value.trim());
   }
 }

@@ -438,6 +438,9 @@ export class DoctorSpacePageComponent implements OnInit {
   protected readonly shouldShowInterventionMap = computed(
     () => this.selectedTravelMode() === 'CLIENT_SE_DEPLACE',
   );
+  protected readonly shouldShowVehicleChoice = computed(
+    () => this.isProviderSpace() && this.selectedTravelMode() === 'TRANSPORT_COLIS',
+  );
   protected readonly interventionAddressHint = computed(() => {
     const address = this.interventionAddress().trim();
     if (address) return address;
@@ -2142,9 +2145,10 @@ export class DoctorSpacePageComponent implements OnInit {
       return;
     }
 
+    const shouldSaveVehicleType = mode === 'TRANSPORT_COLIS';
     const profileUpdate$: Observable<BackendProfessionalProfile | null> = this.professionalProfileId()
       ? this.doctorSpaceService.updateMyProfessionalProfile({
-          vehicleType: this.selectedVehicleType(),
+          ...(shouldSaveVehicleType ? { vehicleType: this.selectedVehicleType() } : {}),
           ...(mustSaveInterventionLocation
             ? {
                 city: interventionAddress,
@@ -2180,8 +2184,10 @@ export class DoctorSpacePageComponent implements OnInit {
         next: () => {
           this.feedback.success(
             mustSaveInterventionLocation
-              ? "Mode, vehicule et adresse d'intervention mis a jour."
-              : 'Mode de deplacement et vehicule mis a jour.',
+              ? "Mode et adresse d'intervention mis a jour."
+              : shouldSaveVehicleType
+                ? 'Mode de deplacement et vehicule mis a jour.'
+                : 'Mode de deplacement mis a jour.',
           );
           if (motifs.length > 0) {
             this.refreshServices();

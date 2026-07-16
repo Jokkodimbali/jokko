@@ -26,6 +26,7 @@ import {
   ProposalDetailsModal,
   ServiceProposalDetailsModalComponent,
 } from '../../../../services/presentation/components/service-proposal-details-modal/service-proposal-details-modal.component';
+import { ServiceProposalMapAddressSelection } from '../../../../services/presentation/components/service-proposal-interactive-map/service-proposal-interactive-map.component';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalDetailService,
@@ -156,8 +157,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   );
   protected readonly doctorInitials = computed(() => this.initials(this.doctorName()));
   protected readonly doctorVehicleBadge = computed(() => {
-    const vehicleType = this.detail()?.profile.typeVehicule;
-    return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
+    return null;
   });
   protected readonly doctorRatingLabel = computed(() =>
     Number(this.detail()?.profile.noteGlobale ?? 0).toFixed(1),
@@ -213,7 +213,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     const accuracy = location.accuracyMeters === null
       ? 'precision Google Maps'
       : `precision ${Math.round(location.accuracyMeters)} m`;
-    return `${location.label} - ${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)} (${accuracy})`;
+    return `${location.label} (${accuracy})`;
   });
   protected readonly selectedSlotLabel = computed(() => {
     const dateHeure = this.selectedDateTime();
@@ -438,6 +438,35 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
 
     this.updateRelativePatient('address', address);
+  }
+
+  protected resolveAppointmentAddressFromMap(
+    selection: ServiceProposalMapAddressSelection,
+  ): void {
+    if (this.patientTravelsToDoctor()) {
+      this.feedback.info('Le lieu du rendez-vous est fixe par le cabinet du medecin.');
+      return;
+    }
+
+    const address = this.normalizeText(selection.address);
+    if (this.appointmentFor() === 'ME') {
+      this.appointmentAddressOverride.set(address);
+      this.fieldErrors.update((errors) => {
+        const next = { ...errors };
+        delete next.selfAddress;
+        return next;
+      });
+    } else {
+      this.updateRelativePatient('address', address);
+    }
+
+    this.appointmentLocation.set({
+      label: address,
+      latitude: selection.coordinate.latitude,
+      longitude: selection.coordinate.longitude,
+      accuracyMeters: null,
+      source: 'GOOGLE_PLACES',
+    });
   }
 
   protected updateAppointmentPhone(value: string): void {
@@ -987,7 +1016,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     const accuracy = location.accuracyMeters === null
       ? ''
       : ` Precision GPS: ${Math.round(location.accuracyMeters)} metres.`;
-    return `Localisation exacte (${location.source}): ${location.latitude}, ${location.longitude}.${accuracy} Adresse selectionnee: ${location.label}.`;
+    return `Adresse selectionnee (${location.source}): ${location.label}.${accuracy} Coordonnees exactes conservees pour le trajet.`;
   }
 
   private async resolveAddressLabelFromCoordinates(
@@ -1018,8 +1047,10 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const fallbackLabel = `Position GPS precise: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-    const label = await this.resolveAddressLabelFromCoordinates(latitude, longitude, fallbackLabel);
+    const fallbackLabel = 'Position precise selectionnee, Dakar, Senegal';
+    const label = this.humanMapAddressLabel(
+      await this.resolveAddressLabelFromCoordinates(latitude, longitude, fallbackLabel),
+    );
     this.isLocatingAddress.set(false);
 
     if (this.appointmentFor() === 'ME') {
@@ -1043,6 +1074,15 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     return typeof value === 'number' && Number.isFinite(value)
       ? value
       : Number.POSITIVE_INFINITY;
+  }
+
+  private humanMapAddressLabel(value: string): string {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(', ');
   }
 
   private toIsoDate(date: Date): string {

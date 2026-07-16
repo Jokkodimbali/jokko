@@ -114,12 +114,16 @@
 .message-composer__voice {
   background: #128c7e;
   color: #ffffff;
+  display: grid;
   height: 38px;
+  padding: 0;
+  place-items: center;
   width: 38px;
 }
 
 .message-composer__send lucide-icon {
-  transform: translateX(1px) rotate(45deg);
+  display: block;
+  transform: translate(1px, -1px) rotate(45deg);
   transform-origin: center;
 }
 

@@ -305,6 +305,38 @@
   width: 32px;
 }
 
+:host ::ng-deep .jokko-map-marker b {
+  background: #1f0044;
+  border-radius: 999px;
+  bottom: calc(100% + 12px);
+  box-shadow: 0 14px 32px rgba(31, 0, 68, 0.25);
+  color: #fff;
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  left: 50%;
+  line-height: 1.25;
+  max-width: min(280px, 72vw);
+  min-width: 190px;
+  padding: 9px 14px;
+  position: absolute;
+  text-align: center;
+  transform: translateX(-50%);
+  white-space: normal;
+  z-index: 2;
+}
+
+:host ::ng-deep .jokko-map-marker b::after {
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #1f0044;
+  content: '';
+  left: 50%;
+  position: absolute;
+  top: calc(100% - 1px);
+  transform: translateX(-50%);
+}
+
 :host ::ng-deep .jokko-map-marker::before {
   animation: map-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
   background: rgba(0, 0, 0, 0.16);

@@ -62,7 +62,8 @@ export class GoogleMapsApiClient {
   ): Promise<GeocodedAddress | null> {
     return this.requestGeocode({
       latlng: `${coordinate.latitude},${coordinate.longitude}`,
-      result_type: 'street_address|route|premise|establishment',
+      result_type:
+        'street_address|route|premise|establishment|neighborhood|sublocality|locality|administrative_area_level_2',
     });
   }
 

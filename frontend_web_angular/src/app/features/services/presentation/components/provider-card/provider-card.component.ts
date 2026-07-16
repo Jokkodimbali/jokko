@@ -109,7 +109,9 @@ export class ProviderCardComponent {
   }
 
   protected get vehicleBadge(): { label: string; imageUrl: string } | null {
-    return this.provider.vehicleType ? PROFESSIONAL_VEHICLE_BADGES[this.provider.vehicleType] : null;
+    return this.provider.travelMode === 'TRANSPORT_COLIS' && this.provider.vehicleType
+      ? PROFESSIONAL_VEHICLE_BADGES[this.provider.vehicleType]
+      : null;
   }
 
   protected onFavoriteClick(event: Event): void {

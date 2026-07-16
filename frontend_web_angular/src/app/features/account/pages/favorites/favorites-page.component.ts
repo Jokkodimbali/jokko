@@ -14,6 +14,9 @@ import {
   ProviderCardView,
 } from '../../../services/presentation/components/provider-card/provider-card.component';
 
+const SERVICE_CARD_COVER_URL =
+  'https://res.cloudinary.com/dobuolool/image/upload/v1784219907/jokko/app-assets/service-card-cover.png';
+
 @Component({
   selector: 'app-favorites-page',
   standalone: true,
@@ -178,7 +181,7 @@ export class FavoritesPageComponent {
       isOnline: favorite.isOnline,
       avatarUrl: this.visibleImageUrl(favorite.avatarUrl),
       initials: this.initials(favorite.name),
-      coverUrl: '/boabab.png',
+      coverUrl: SERVICE_CARD_COVER_URL,
       movementTitle: this.favoriteMovementTitle(travelMode),
       travelMode,
       isMedical,

@@ -109,8 +109,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
 
   protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
   protected readonly vehicleBadge = computed(() => {
-    const vehicleType = this.detail()?.profile.typeVehicule;
-    return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
+    return null;
   });
   protected readonly primaryTravelMode = computed(() => {
     const modes = new Set(

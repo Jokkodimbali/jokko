@@ -274,12 +274,6 @@
                   {{ doctorRatingLabel() }} · {{ doctorReviewsLabel() }}
                 </p>
               </div>
-              <span *ngIf="doctorVehicleBadge() as vehicleBadge" class="professional-vehicle-badge">
-                <span class="professional-vehicle-badge__icon">
-                  <img [src]="vehicleBadge.imageUrl" [alt]="vehicleBadge.label" />
-                </span>
-                <strong>{{ vehicleBadge.label }}</strong>
-              </span>
             </header>
 
             <dl class="medicine-booking__summary-list">
@@ -357,6 +351,7 @@
         (dayChanged)="updateAppointmentDay($event)"
         (slotSelected)="selectSlot($event)"
         (addressChanged)="updateAppointmentAddress($event)"
+        (addressResolved)="resolveAppointmentAddressFromMap($event)"
         (locate)="useCurrentLocationForAppointment()"
       />
     </ng-container>

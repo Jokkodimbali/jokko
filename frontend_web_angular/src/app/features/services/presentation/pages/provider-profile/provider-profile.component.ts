@@ -194,6 +194,10 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
   protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
   protected readonly vehicleBadge = computed(() => {
+    const hasParcelDelivery = (this.detail()?.services ?? []).some(
+      (service) => service.estDisponible && service.modeDeplacement === 'TRANSPORT_COLIS',
+    );
+    if (!hasParcelDelivery) return null;
     const vehicleType = this.detail()?.profile.typeVehicule;
     return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
   });

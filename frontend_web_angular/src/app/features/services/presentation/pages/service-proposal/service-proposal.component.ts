@@ -221,6 +221,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly parcelDropoffContact = signal<ParcelContactDraft>({ name: '', phone: '' });
   protected readonly parcelDescriptionExpanded = signal(true);
   protected readonly parcels = signal<ParcelDraft[]>([]);
+  private readonly appointmentAddressCoordinate = signal<GoogleMapsCoordinate | null>(null);
   private readonly parcelPickupCoordinate = signal<GoogleMapsCoordinate | null>(null);
   private readonly parcelDropoffCoordinate = signal<GoogleMapsCoordinate | null>(null);
   protected readonly parcelDistanceMeters = signal<number | null>(null);
@@ -326,6 +327,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected readonly providerInitials = computed(() => userInitials(this.displayName(), 'JD'));
   protected readonly providerVehicleBadge = computed(() => {
+    if (this.currentService()?.modeDeplacement !== 'TRANSPORT_COLIS') return null;
     const vehicleType = this.detail()?.profile.typeVehicule;
     return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
   });
@@ -1426,7 +1428,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.updateAddress(value);
+    this.address.set(value);
+    this.appointmentAddressCoordinate.set(validCoordinate);
+    this.clearClientDetailsErrors('address');
   }
 
   protected updateActiveParcelContactName(value: string): void {
@@ -1484,6 +1488,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.address.set(value);
+    this.appointmentAddressCoordinate.set(null);
     this.clearClientDetailsErrors('address');
   }
 
@@ -1512,6 +1517,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.address.set(suggestion.label);
+    this.appointmentAddressCoordinate.set(null);
     this.clearClientDetailsErrors('address');
     this.addressSuggestions.set([]);
     this.isAddressSuggestionsOpen.set(false);
@@ -1567,9 +1573,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       }
 
       const { latitude, longitude, accuracy } = bestPosition.coords;
-      const gpsLabel = this.formatExactGpsLabel(latitude, longitude, accuracy);
+      const coordinate = { latitude, longitude };
+      const fallbackLabel = 'Position precise selectionnee, Dakar, Senegal';
 
-      this.updateActiveParcelAddressWithCoordinate(gpsLabel, { latitude, longitude });
+      this.updateActiveParcelAddressWithCoordinate(fallbackLabel, coordinate);
       this.addressSuggestions.set([]);
       this.isAddressSuggestionsOpen.set(false);
       this.isLocatingAddress.set(false);
@@ -1578,6 +1585,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           ? `Position exacte recuperee avec une precision d'environ ${Math.round(accuracy)} m.`
           : 'Position exacte recuperee.',
       );
+
+      this.googleMaps.reverseGeocode(coordinate).subscribe({
+        next: (result) => {
+          const label = result?.formattedAddress?.trim() || fallbackLabel;
+          this.updateActiveParcelAddressWithCoordinate(this.humanMapAddressLabel(label), coordinate);
+        },
+        error: () => undefined,
+      });
     };
 
     watchId = navigator.geolocation.watchPosition(
@@ -1744,7 +1759,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         notes: this.reservationBuilder.joinLimitedNotes([
           `Montant affiche: ${this.formatAmount(draft.amount)} FCFA.`,
           `Paiement choisi: ${draft.paymentMethod}.`,
-          ...this.parcelReservationNotes(),
+          ...this.reservationLocationNotes(),
         ]),
       })
       .subscribe({
@@ -2432,6 +2447,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       if (providerAddress) {
         this.address.set(providerAddress);
       }
+      this.appointmentAddressCoordinate.set(null);
       return;
     }
 
@@ -2439,6 +2455,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const currentAddress = this.address().trim();
     if (!currentAddress || currentAddress === providerAddress) {
       this.address.set('');
+      this.appointmentAddressCoordinate.set(null);
     }
   }
 
@@ -2470,6 +2487,26 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     });
   }
 
+  private appointmentLocationNotes(): string[] {
+    if (this.isParcelDeliveryService() || this.clientTravelsToProvider()) {
+      return [];
+    }
+
+    const coordinate = this.appointmentAddressCoordinate();
+    if (!coordinate) {
+      return [];
+    }
+
+    return [
+      `Adresse pointee sur carte: ${this.resolveAppointmentAddress()}.`,
+      'Position exacte conservee pour le trajet.',
+    ];
+  }
+
+  private reservationLocationNotes(): string[] {
+    return [...this.parcelReservationNotes(), ...this.appointmentLocationNotes()];
+  }
+
   private parcelPricingNotes(): string[] {
     if (!this.isParcelDeliveryService() || !this.parcelDistanceMeters()) {
       return [];
@@ -2489,7 +2526,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       amountLabel: this.formatAmount(draft.amount),
       proposalDateLabel: this.formatProposalDate(draft.dateHeure),
       isParcelDeliveryService: this.isParcelDeliveryService(),
-      parcelNotes: this.parcelReservationNotes(),
+      parcelNotes: this.reservationLocationNotes(),
     });
   }
 
@@ -2497,7 +2534,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return this.reservationBuilder.buildAcceptedReservationNotes({
       proposal,
       acceptedAmountLabel: this.formatAmount(proposal.montantCourant),
-      parcelNotes: this.parcelReservationNotes(),
+      parcelNotes: this.reservationLocationNotes(),
     });
   }
 
@@ -2794,15 +2831,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       });
   }
 
-  private formatExactGpsLabel(
-    latitude: number,
-    longitude: number,
-    accuracy: number | null,
-  ): string {
-    const precision = Number.isFinite(Number(accuracy))
-      ? `, precision ${Math.round(Number(accuracy))} m`
-      : '';
-    return `Position GPS exacte: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${precision}`;
+  private humanMapAddressLabel(value: string): string {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(', ');
   }
 
   private resolveCustomNegotiationService(

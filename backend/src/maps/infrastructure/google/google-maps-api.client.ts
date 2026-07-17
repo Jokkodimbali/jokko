@@ -15,6 +15,7 @@ type GoogleGeocodeResponse = {
   results?: Array<{
     formatted_address?: string;
     place_id?: string;
+    address_components?: GoogleAddressComponent[];
     geometry?: {
       location?: {
         lat?: number;
@@ -22,6 +23,12 @@ type GoogleGeocodeResponse = {
       };
     };
   }>;
+};
+
+type GoogleAddressComponent = {
+  long_name?: string;
+  short_name?: string;
+  types?: string[];
 };
 
 type GoogleRoutesResponse = {
@@ -178,9 +185,67 @@ export class GoogleMapsApiClient {
     return {
       latitude: location.lat,
       longitude: location.lng,
-      formattedAddress: result?.formatted_address ?? '',
+      formattedAddress: this.formatReadableAddress(result),
       placeId: result?.place_id ?? null,
     };
+  }
+
+  private formatReadableAddress(
+    result: NonNullable<GoogleGeocodeResponse['results']>[number] | undefined,
+  ): string {
+    const components = result?.address_components ?? [];
+    const exactStreet = this.joinUnique([
+      this.component(components, 'street_number'),
+      this.component(components, 'route'),
+    ]);
+    const neighborhood =
+      this.component(components, 'neighborhood') ||
+      this.component(components, 'sublocality_level_1') ||
+      this.component(components, 'sublocality') ||
+      this.component(components, 'political');
+    const commune =
+      this.component(components, 'administrative_area_level_3') ||
+      this.component(components, 'administrative_area_level_2');
+    const city =
+      this.component(components, 'locality') ||
+      this.component(components, 'administrative_area_level_2');
+    const country = this.component(components, 'country');
+    const readable = this.joinUnique([
+      exactStreet,
+      neighborhood,
+      commune,
+      city,
+      country,
+    ]);
+
+    return readable || result?.formatted_address || '';
+  }
+
+  private component(
+    components: GoogleAddressComponent[],
+    type: string,
+  ): string {
+    return (
+      components
+        .find((component) => component.types?.includes(type))
+        ?.long_name?.trim() ?? ''
+    );
+  }
+
+  private joinUnique(parts: Array<string | null | undefined>): string {
+    const seen = new Set<string>();
+    return parts
+      .map((part) => part?.trim())
+      .filter((part): part is string => Boolean(part))
+      .filter((part) => {
+        const key = part.toLocaleLowerCase('fr');
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      })
+      .join(', ');
   }
 
   private requireApiKey(): string {

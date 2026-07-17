@@ -29,7 +29,8 @@
 
 .provider-card__media {
   background: #ead0ad;
-  height: 124px;
+  aspect-ratio: 1718 / 608;
+  height: auto;
   position: relative;
   width: 100%;
 }
@@ -37,7 +38,7 @@
 .provider-card__cover {
   display: block;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center center;
   width: 100%;
 }

@@ -1011,7 +1011,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (leftInvalid) return 1;
     if (rightInvalid) return -1;
 
-    return leftTime - rightTime;
+    return rightTime - leftTime;
   }
 
   private referenceDate(): Date {

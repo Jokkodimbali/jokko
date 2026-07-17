@@ -523,7 +523,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   private statusLabel(value: string): string {
-    return value ? `Adresse selectionnee: ${value.split(',')[0]}` : '';
+    return value ? `Adresse selectionnee: ${this.humanAddressLabel(value)}` : '';
   }
 
   private humanAddressLabel(value: string): string {
@@ -531,7 +531,6 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean)
-      .slice(0, 4)
       .join(', ');
   }
 
@@ -544,7 +543,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
-    return parts.slice(0, 3).join(', ') || 'Adresse selectionnee';
+    return parts.join(', ') || 'Adresse selectionnee';
   }
 
   private escapeHtml(value: string): string {

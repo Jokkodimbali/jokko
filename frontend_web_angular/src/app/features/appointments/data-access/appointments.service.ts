@@ -66,6 +66,7 @@ export class AppointmentsService {
                     serviceCategoryName: null,
                     servicePrice: service?.prix ?? null,
                     travelMode: service?.modeDeplacement ?? null,
+                    vehicleType: detail.profile.typeVehicule ?? null,
                   });
                 }),
                 catchError(() => of(this.mapAppointment(reservation))),
@@ -108,6 +109,7 @@ export class AppointmentsService {
                 serviceCategoryName: null,
                 servicePrice: service?.prix ?? null,
                 travelMode: service?.modeDeplacement ?? null,
+                vehicleType: detail.profile.typeVehicule ?? null,
               });
             }),
             catchError(() => of(this.mapAppointment(reservation))),
@@ -377,6 +379,7 @@ export class AppointmentsService {
       serviceCategoryName?: string | null;
       servicePrice?: number | null;
       travelMode?: AppointmentView['travelMode'];
+      vehicleType?: AppointmentView['vehicleType'];
     } = {},
   ): AppointmentView {
     const date = new Date(reservation.dateHeure);
@@ -416,6 +419,8 @@ export class AppointmentsService {
       serviceCategoryName: professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
+      vehicleType:
+        professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
       notes: reservation.notes,
       medicalPrescription: {
         acts: this.normalizePrescriptionItems(reservation.actesPrescriptionMedicale),
@@ -487,6 +492,7 @@ export class AppointmentsService {
       serviceDescription: reservation.service.description,
       serviceCategoryName: reservation.service.categorie?.nom ?? null,
       travelMode: reservation.service.modeDeplacement,
+      vehicleType: reservation.professionnel.typeVehicule ?? null,
     });
   }
 

@@ -1114,6 +1114,15 @@
             <button
               type="button"
               class="appointment-detail__map-tool appointment-detail__map-tool--compact"
+              (click)="toggleMapPerspective()"
+              [attr.aria-pressed]="!isMapTopView()"
+              [attr.aria-label]="isMapTopView() ? 'Revenir a la vue navigation 3D' : 'Afficher la vue de haut'"
+            >
+              {{ isMapTopView() ? '3D' : 'Haut' }}
+            </button>
+            <button
+              type="button"
+              class="appointment-detail__map-tool appointment-detail__map-tool--compact"
               (click)="toggleMapFullscreen()"
               [attr.aria-pressed]="isMapFullscreen()"
               [attr.aria-label]="isMapFullscreen() ? 'Quitter le plein ecran' : 'Afficher la carte en plein ecran'"
@@ -1176,13 +1185,13 @@
           aria-live="polite"
         >
           <span>
-            <lucide-icon name="navigation" size="22" [strokeWidth]="2.5"></lucide-icon>
+            <lucide-icon [name]="navigationManeuverIcon()" size="30" [strokeWidth]="2.8"></lucide-icon>
           </span>
           <div>
+            <strong>{{ navigationInstruction().instruction }}</strong>
             <small *ngIf="navigationDistanceLabel()">
               Dans {{ navigationDistanceLabel() }}
             </small>
-            <strong>{{ navigationInstruction().instruction }}</strong>
           </div>
           <button
             type="button"

@@ -114,6 +114,7 @@ export type ReservationDetailedView = Reservation & {
     ville: string | null;
     noteGlobale: number;
     nombreAvis: number;
+    typeVehicule: 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE' | null;
     utilisateur: {
       id: string;
       nom: string;

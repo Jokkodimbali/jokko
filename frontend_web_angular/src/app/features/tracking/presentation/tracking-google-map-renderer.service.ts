@@ -14,6 +14,14 @@ export type TrackingMapRoute = {
   selected: boolean;
 };
 
+export type TrackingTravelerMarker = {
+  kind: 'avatar' | 'vehicle';
+  imageUrl: string | null;
+  initials: string;
+  name: string;
+  roleLabel: string;
+};
+
 export type TrackingMapRenderState = {
   provider: GoogleMapsPoint | null;
   destination: GoogleMapsPoint | null;
@@ -22,9 +30,20 @@ export type TrackingMapRenderState = {
   statusLabel: string;
   headingDegrees: number | null;
   arrived: boolean;
+  travelerMarker: TrackingTravelerMarker;
 };
 
 const DAKAR_CENTER: GoogleMapsPoint = { lat: 14.7167, lng: -17.4677 };
+const NAVIGATION_CAMERA_TILT = 67.5;
+const NAVIGATION_CAMERA_ZOOM = 18.6;
+const TOP_VIEW_CAMERA_TILT = 0;
+const TOP_VIEW_CAMERA_ZOOM = 17.4;
+const ROUTE_TURN_ARROW_MIN_ANGLE_DEGREES = 28;
+const ROUTE_TURN_ARROW_MIN_SPACING_METERS = 45;
+
+type RouteTurnMarker = {
+  offsetPercent: number;
+};
 
 @Injectable()
 export class TrackingGoogleMapRendererService {
@@ -35,13 +54,14 @@ export class TrackingGoogleMapRendererService {
   private providerMarker?: GoogleMapsAdvancedMarkerInstance;
   private destinationMarker?: GoogleMapsAdvancedMarkerInstance;
   private routePolylines: GoogleMapsPolylineInstance[] = [];
-  private userInteracted = false;
   private lastBoundsKey = '';
   private animationFrameId: number | null = null;
   private routeSelected?: (routeId: string) => void;
   private lastProviderPosition: GoogleMapsPoint | null = null;
   private applyingCameraUpdate = false;
   private controlsStyleElement?: HTMLStyleElement;
+  private currentCameraHeading = 0;
+  private topViewEnabled = false;
 
   async initializeRouteMap(
     element: HTMLElement,
@@ -56,9 +76,9 @@ export class TrackingGoogleMapRendererService {
     this.routeSelected = onRouteSelected;
     this.routeMap = new this.google.maps.Map(element, {
       center: DAKAR_CENTER,
-      zoom: 17,
+      zoom: this.cameraZoom(),
       heading: 0,
-      tilt: 0,
+      tilt: this.cameraTilt(),
       renderingType: 'VECTOR',
       mapTypeId: satellite ? 'hybrid' : 'roadmap',
       disableDefaultUI: true,
@@ -77,13 +97,6 @@ export class TrackingGoogleMapRendererService {
       mapId: this.google.mapId,
     });
     this.hideNativeGoogleMapControls(element);
-    this.routeMap.addListener('dragstart', () => {
-      this.userInteracted = true;
-    });
-    this.routeMap.addListener('zoom_changed', () => {
-      if (this.applyingCameraUpdate) return;
-      this.userInteracted = true;
-    });
   }
 
   render(state: TrackingMapRenderState): void {
@@ -118,8 +131,14 @@ export class TrackingGoogleMapRendererService {
     this.applyImmersiveCamera();
   }
 
+  setTopView(enabled: boolean): void {
+    this.topViewEnabled = enabled;
+    this.applyImmersiveCamera();
+  }
+
   setHeading(headingDegrees: number): void {
-    void headingDegrees;
+    const heading = this.normalizeHeading(headingDegrees);
+    this.currentCameraHeading = heading;
     this.routeMap?.setOptions?.({
       headingInteractionEnabled: false,
       tiltInteractionEnabled: false,
@@ -132,9 +151,13 @@ export class TrackingGoogleMapRendererService {
       cameraControl: false,
       keyboardShortcuts: false,
     });
-    this.routeMap?.moveCamera?.({ heading: 0, tilt: 0 });
-    this.routeMap?.setHeading?.(0);
-    this.routeMap?.setTilt?.(0);
+    this.routeMap?.moveCamera?.({
+      heading,
+      tilt: this.cameraTilt(),
+      zoom: this.cameraZoom(),
+    });
+    this.routeMap?.setHeading?.(heading);
+    this.routeMap?.setTilt?.(this.cameraTilt());
     this.applyCssRotationFallback(0);
   }
 
@@ -153,9 +176,21 @@ export class TrackingGoogleMapRendererService {
       gestureHandling: 'greedy',
       clickableIcons: true,
     });
-    this.routeMap?.setHeading?.(0);
-    this.routeMap?.setTilt?.(0);
-    this.routeMap?.moveCamera?.({ heading: 0, tilt: 0 });
+    this.routeMap?.setHeading?.(this.currentCameraHeading);
+    this.routeMap?.setTilt?.(this.cameraTilt());
+    this.routeMap?.moveCamera?.({
+      heading: this.currentCameraHeading,
+      tilt: this.cameraTilt(),
+      zoom: this.cameraZoom(),
+    });
+  }
+
+  private cameraTilt(): number {
+    return this.topViewEnabled ? TOP_VIEW_CAMERA_TILT : NAVIGATION_CAMERA_TILT;
+  }
+
+  private cameraZoom(): number {
+    return this.topViewEnabled ? TOP_VIEW_CAMERA_ZOOM : NAVIGATION_CAMERA_ZOOM;
   }
 
   private withCameraUpdate(update: () => void): void {
@@ -181,7 +216,6 @@ export class TrackingGoogleMapRendererService {
     this.clearDestinationMarker();
     this.clearRoutePolylines();
     this.lastBoundsKey = '';
-    this.userInteracted = false;
     this.lastProviderPosition = null;
   }
 
@@ -202,7 +236,6 @@ export class TrackingGoogleMapRendererService {
     this.routeMap = undefined;
     this.routeMapElement = undefined;
     this.lastBoundsKey = '';
-    this.userInteracted = false;
   }
 
   destroy(): void {
@@ -221,6 +254,7 @@ export class TrackingGoogleMapRendererService {
       const options = {
         map: this.routeMap,
         path: route.coordinates,
+        icons: this.routeDirectionIcons(route.coordinates),
         strokeColor: '#1eb980',
         strokeOpacity: 0.96,
         strokeWeight: 7,
@@ -239,6 +273,75 @@ export class TrackingGoogleMapRendererService {
     });
   }
 
+  private routeDirectionIcons(
+    coordinates: GoogleMapsPoint[],
+  ): Array<Record<string, unknown>> {
+    const symbolPath = (this.google?.maps as unknown as {
+      SymbolPath?: { FORWARD_CLOSED_ARROW?: unknown };
+    })?.SymbolPath?.FORWARD_CLOSED_ARROW;
+    if (!symbolPath) return [];
+
+    return this.routeTurnMarkersData(coordinates).map((turn) => ({
+      icon: {
+        path: symbolPath,
+        scale: 2.6,
+        strokeColor: '#ffffff',
+        strokeOpacity: 0.95,
+        strokeWeight: 1.1,
+        fillColor: '#1f2937',
+        fillOpacity: 0.92,
+      },
+      offset: `${turn.offsetPercent.toFixed(1)}%`,
+    }));
+  }
+
+  private routeTurnMarkersData(coordinates: GoogleMapsPoint[]): RouteTurnMarker[] {
+    if (coordinates.length < 3) return [];
+
+    const segmentLengths = coordinates.slice(1).map((point, index) =>
+      this.distanceMeters(coordinates[index], point),
+    );
+    const totalDistanceMeters = segmentLengths.reduce(
+      (total, length) => total + length,
+      0,
+    );
+    if (totalDistanceMeters <= 0) return [];
+
+    const turns: RouteTurnMarker[] = [];
+    let distanceAlongRoute = 0;
+    let lastArrowDistance = Number.NEGATIVE_INFINITY;
+
+    for (let index = 1; index < coordinates.length - 1; index += 1) {
+      distanceAlongRoute += segmentLengths[index - 1] ?? 0;
+      const previousSegmentLength = segmentLengths[index - 1] ?? 0;
+      const nextSegmentLength = segmentLengths[index] ?? 0;
+      if (
+        previousSegmentLength < 8 ||
+        nextSegmentLength < 8 ||
+        distanceAlongRoute - lastArrowDistance < ROUTE_TURN_ARROW_MIN_SPACING_METERS
+      ) {
+        continue;
+      }
+
+      const previousBearing = this.bearing(coordinates[index - 1], coordinates[index]);
+      const nextBearing = this.bearing(coordinates[index], coordinates[index + 1]);
+      const turnDegrees = this.signedHeadingDifference(previousBearing, nextBearing);
+      if (Math.abs(turnDegrees) < ROUTE_TURN_ARROW_MIN_ANGLE_DEGREES) {
+        continue;
+      }
+
+      turns.push({
+        offsetPercent: Math.min(
+          98,
+          Math.max(2, (distanceAlongRoute / totalDistanceMeters) * 100),
+        ),
+      });
+      lastArrowDistance = distanceAlongRoute;
+    }
+
+    return turns;
+  }
+
   private upsertProviderMarker(
     marker: GoogleMapsAdvancedMarkerInstance | undefined,
     map: GoogleMapsMapInstance,
@@ -251,6 +354,7 @@ export class TrackingGoogleMapRendererService {
       throw new Error('GOOGLE_MAPS_NOT_INITIALIZED');
     }
     const heading = this.resolveHeading(position, state);
+    this.currentCameraHeading = heading;
     if (!marker) {
       this.lastProviderPosition = position;
       return new AdvancedMarkerElement({
@@ -262,6 +366,7 @@ export class TrackingGoogleMapRendererService {
           state.remainingLabel,
           heading,
           position,
+          state.travelerMarker,
         ),
         zIndex: 30,
       });
@@ -272,6 +377,7 @@ export class TrackingGoogleMapRendererService {
       state.remainingLabel,
       heading,
       position,
+      state.travelerMarker,
     );
     this.animateMarker(marker, position);
     this.lastProviderPosition = position;
@@ -335,38 +441,111 @@ export class TrackingGoogleMapRendererService {
     destination: GoogleMapsPoint | null,
     routes: TrackingMapRoute[],
   ): void {
-    if (!this.google || !this.routeMap || this.userInteracted) return;
+    if (!this.google || !this.routeMap) return;
     if (!destination) {
-      if (this.lastBoundsKey === 'provider-only') return;
-      this.lastBoundsKey = 'provider-only';
+      const key = [
+        'provider-only',
+        provider.lat.toFixed(6),
+        provider.lng.toFixed(6),
+        Math.round(this.currentCameraHeading / 4) * 4,
+        this.topViewEnabled ? 'top' : 'nav',
+      ].join('|');
+      if (key === this.lastBoundsKey) return;
+      this.lastBoundsKey = key;
       this.withCameraUpdate(() => {
         this.routeMap?.setCenter(provider);
-        this.routeMap?.setZoom(15);
+        this.routeMap?.moveCamera?.({
+          center: provider,
+          zoom: this.cameraZoom(),
+          tilt: this.cameraTilt(),
+          heading: this.currentCameraHeading,
+        });
+        this.routeMap?.setZoom(this.cameraZoom());
       });
       return;
     }
 
-    const selectedRoute = this.routePolylines.length;
-    const key = `${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}|routes:${selectedRoute}`;
-    if (key === this.lastBoundsKey) return;
-    this.lastBoundsKey = key;
-    const bounds = new this.google.maps.LatLngBounds();
-    bounds.extend(provider);
-    bounds.extend(destination);
     const selectedRouteCoordinates =
       routes.find((route) => route.selected)?.coordinates ??
       routes[0]?.coordinates ??
       [];
-    selectedRouteCoordinates.forEach((point) => bounds.extend(point));
+    const focus = this.navigationFocusPoint(provider, selectedRouteCoordinates);
+    const key = [
+      focus.lat.toFixed(6),
+      focus.lng.toFixed(6),
+      Math.round(this.currentCameraHeading / 4) * 4,
+      selectedRouteCoordinates.length,
+      this.topViewEnabled ? 'top' : 'nav',
+    ].join('|');
+    if (key === this.lastBoundsKey) return;
+    this.lastBoundsKey = key;
     this.withCameraUpdate(() => {
-      this.routeMap?.fitBounds(bounds, {
-        top: 104,
-        right: 96,
-        bottom: 148,
-        left: 96,
+      this.routeMap?.moveCamera?.({
+        center: focus,
+        zoom: this.cameraZoom(),
+        tilt: this.cameraTilt(),
+        heading: this.currentCameraHeading,
       });
-      window.setTimeout(() => this.applyImmersiveCamera(), 120);
+      this.routeMap?.setCenter(focus);
+      this.routeMap?.setZoom(this.cameraZoom());
+      this.routeMap?.setHeading?.(this.currentCameraHeading);
+      this.routeMap?.setTilt?.(this.cameraTilt());
     });
+  }
+
+  private navigationFocusPoint(
+    provider: GoogleMapsPoint,
+    routeCoordinates: GoogleMapsPoint[],
+  ): GoogleMapsPoint {
+    const lookAhead = this.routePointAhead(provider, routeCoordinates, 110);
+    if (!lookAhead) {
+      return provider;
+    }
+
+    return {
+      lat: provider.lat * 0.62 + lookAhead.lat * 0.38,
+      lng: provider.lng * 0.62 + lookAhead.lng * 0.38,
+    };
+  }
+
+  private routePointAhead(
+    provider: GoogleMapsPoint,
+    routeCoordinates: GoogleMapsPoint[],
+    lookAheadMeters: number,
+  ): GoogleMapsPoint | null {
+    if (routeCoordinates.length < 2) {
+      return null;
+    }
+
+    let nearestIndex = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    routeCoordinates.forEach((coordinate, index) => {
+      const distance =
+        Math.pow(coordinate.lat - provider.lat, 2) +
+        Math.pow(coordinate.lng - provider.lng, 2);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    let coveredMeters = 0;
+    for (let index = nearestIndex + 1; index < routeCoordinates.length; index += 1) {
+      const start = routeCoordinates[index - 1];
+      const end = routeCoordinates[index];
+      const segmentMeters = this.distanceMeters(start, end);
+      if (coveredMeters + segmentMeters >= lookAheadMeters) {
+        const ratio =
+          segmentMeters <= 0 ? 1 : (lookAheadMeters - coveredMeters) / segmentMeters;
+        return {
+          lat: start.lat + (end.lat - start.lat) * ratio,
+          lng: start.lng + (end.lng - start.lng) * ratio,
+        };
+      }
+      coveredMeters += segmentMeters;
+    }
+
+    return routeCoordinates[routeCoordinates.length - 1];
   }
 
   private clearDestinationMarker(): void {
@@ -413,6 +592,7 @@ export class TrackingGoogleMapRendererService {
     remainingLabel: string,
     headingDegrees: number,
     position: GoogleMapsPoint,
+    travelerMarker: TrackingTravelerMarker,
   ): HTMLElement {
     const content = document.createElement('div');
     content.className = 'jokko-tracking-taxi-marker';
@@ -430,31 +610,53 @@ export class TrackingGoogleMapRendererService {
     pointer.style.cssText =
       'width:8px;height:8px;margin-top:-7px;background:#fff;border-right:1px solid rgba(15,23,42,.12);border-bottom:1px solid rgba(15,23,42,.12);transform:rotate(45deg);';
 
-    const taxi = document.createElement('div');
-    taxi.style.cssText = `width:76px;height:49px;transform:rotate(${headingDegrees - 90}deg);transform-origin:50% 72%;transition:transform 500ms ease;filter:drop-shadow(0 8px 8px rgba(15,23,42,.28));`;
-    taxi.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="76" height="49" viewBox="0 0 76 49" aria-hidden="true">
-        <circle cx="38" cy="31" r="18" fill="#facc15" fill-opacity=".18"/>
-        <g>
-          <rect x="30" y="5" width="17" height="7" rx="2" fill="#111827"/>
-          <text x="38.5" y="10.5" fill="#fff" font-family="DM Sans,sans-serif" font-size="5" font-weight="700" text-anchor="middle">TAXI</text>
-          <path d="M12 26h5l7-12h25l11 12h4c4 0 7 3 7 7v5H6v-5c0-4 2-7 6-7z" fill="#facc15" stroke="#fff" stroke-width="2"/>
-          <path d="M27 16h9v10H20zM39 16h9l9 10H39z" fill="#dbeafe" stroke="#111827" stroke-width="1.4"/>
-          <path d="M8 30h62" stroke="#111827" stroke-width="3"/>
-          <path d="M30 27h4v4h-4zM34 31h4v4h-4zM38 27h4v4h-4zM42 31h4v4h-4z" fill="#111827"/>
-          <circle cx="19" cy="38" r="6" fill="#111827" stroke="#fff" stroke-width="2"/>
-          <circle cx="58" cy="38" r="6" fill="#111827" stroke="#fff" stroke-width="2"/>
-          <circle cx="19" cy="38" r="2" fill="#94a3b8"/><circle cx="58" cy="38" r="2" fill="#94a3b8"/>
-        </g>
-      </svg>`;
+    const traveler = document.createElement('div');
+    const markerHeading = this.normalizeHeading(
+      headingDegrees - this.currentCameraHeading,
+    );
+    traveler.style.cssText =
+      travelerMarker.kind === 'vehicle'
+        ? `align-items:center;background:transparent;border:0;display:flex;height:104px;justify-content:center;overflow:visible;transform:rotate(${markerHeading}deg);transform-origin:50% 55%;transition:transform 500ms ease;width:124px;`
+        : 'align-items:center;background:#eff6ff;border:3px solid #2f80ff;border-radius:999px;box-shadow:0 10px 20px rgba(15,23,42,.28);display:flex;height:52px;justify-content:center;overflow:hidden;transform-origin:50% 50%;transition:transform 500ms ease;width:52px;';
+    traveler.appendChild(this.travelerMarkerVisual(travelerMarker));
 
     const badge = document.createElement('span');
-    badge.textContent = remainingLabel;
+    badge.textContent =
+      travelerMarker.kind === 'vehicle'
+        ? remainingLabel || travelerMarker.roleLabel
+        : travelerMarker.roleLabel || remainingLabel;
     badge.style.cssText =
-      'margin-top:-8px;padding:3px 7px;border-radius:999px;background:#111827;color:#fff;font:800 9px/1 "DM Sans",sans-serif;box-shadow:0 4px 10px rgba(15,23,42,.25);';
+      `margin-top:${travelerMarker.kind === 'vehicle' ? '-20px' : '-8px'};max-width:140px;overflow:hidden;padding:5px 10px;border-radius:999px;background:${travelerMarker.kind === 'vehicle' ? '#111827' : '#2f80ff'};color:#fff;font:900 12px/1 "DM Sans",sans-serif;box-shadow:0 4px 10px rgba(15,23,42,.25);text-overflow:ellipsis;white-space:nowrap;`;
 
-    content.append(bubble, pointer, taxi, badge);
+    content.append(bubble, pointer, traveler, badge);
     return content;
+  }
+
+  private travelerMarkerVisual(marker: TrackingTravelerMarker): HTMLElement {
+    if (marker.imageUrl) {
+      const image = document.createElement('img');
+      image.src = marker.imageUrl;
+      image.alt = marker.name;
+      image.referrerPolicy = 'no-referrer';
+      image.style.cssText =
+        marker.kind === 'vehicle'
+          ? 'display:block;filter:drop-shadow(0 16px 14px rgba(15,23,42,.38));height:96px;object-fit:contain;width:116px;'
+          : 'display:block;height:100%;object-fit:cover;width:100%;';
+      image.onerror = () => {
+        image.replaceWith(this.initialsMarker(marker.initials));
+      };
+      return image;
+    }
+
+    return this.initialsMarker(marker.initials);
+  }
+
+  private initialsMarker(initials: string): HTMLElement {
+    const fallback = document.createElement('span');
+    fallback.textContent = initials || 'JK';
+    fallback.style.cssText =
+      'align-items:center;color:#0f172a;display:flex;font:900 14px/1 "DM Sans",sans-serif;height:100%;justify-content:center;width:100%;';
+    return fallback;
   }
 
   private destinationMarkerContent(): HTMLElement {
@@ -549,8 +751,32 @@ export class TrackingGoogleMapRendererService {
     return this.normalizeHeading((Math.atan2(y, x) * 180) / Math.PI);
   }
 
+  private distanceMeters(from: GoogleMapsPoint, to: GoogleMapsPoint): number {
+    const earthRadius = 6_371_000;
+    const latitudeDelta = ((to.lat - from.lat) * Math.PI) / 180;
+    const longitudeDelta = ((to.lng - from.lng) * Math.PI) / 180;
+    const fromLatitude = (from.lat * Math.PI) / 180;
+    const toLatitude = (to.lat * Math.PI) / 180;
+    const haversine =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(fromLatitude) *
+        Math.cos(toLatitude) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  }
+
   private normalizeHeading(value: number): number {
     return ((value % 360) + 360) % 360;
+  }
+
+  private headingDifference(from: number, to: number): number {
+    const difference = Math.abs(this.normalizeHeading(to) - this.normalizeHeading(from));
+    return Math.min(difference, 360 - difference);
+  }
+
+  private signedHeadingDifference(from: number, to: number): number {
+    const difference = this.normalizeHeading(to) - this.normalizeHeading(from);
+    return ((difference + 540) % 360) - 180;
   }
 
   private cancelAnimation(): void {

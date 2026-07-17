@@ -162,11 +162,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const term = this.search().trim().toLowerCase();
 
     return this.scheduleItems().filter((item) => {
-      const matchesTab = period === 'ALL'
-        ? true
-        : this.activeTab() === 'done'
-        ? this.isFinishedItem(item)
-        : !this.isFinishedItem(item);
+      const matchesTab = this.matchesActiveTab(item);
       const matchesPeriod = this.matchesDatePeriod(item.date, period);
       const matchesCalendarDate = !selectedDate || this.dateKey(item.date) === selectedDate;
       const matchesSearch =
@@ -208,13 +204,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     const startOffset = (firstDay.getDay() + 6) % 7;
     const today = new Date();
     const activeDates = this.scheduleItems()
-      .filter((item) =>
-        this.activePeriod() === 'ALL'
-          ? true
-          : this.activeTab() === 'done'
-            ? this.isFinishedItem(item)
-            : !this.isFinishedItem(item),
-      )
+      .filter((item) => this.matchesActiveTab(item))
       .map((item) => item.date);
     const appointmentCounts = activeDates
       .filter((date) => !Number.isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month)
@@ -993,6 +983,12 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected isFinishedItem(item: ScheduleItem): boolean {
     if (item.kind === 'appointment') return this.isDone(item.appointment.status);
     return item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE';
+  }
+
+  private matchesActiveTab(item: ScheduleItem): boolean {
+    return this.activeTab() === 'done'
+      ? this.isFinishedItem(item)
+      : !this.isFinishedItem(item);
   }
 
   private sortedAppointments(appointments: AppointmentView[]): AppointmentView[] {

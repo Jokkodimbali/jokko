@@ -81,6 +81,7 @@ const RESERVATION_DETAIL_SELECT = {
       ville: true,
       noteGlobale: true,
       nombreAvis: true,
+      typeVehicule: true,
       utilisateur: {
         select: {
           id: true,
@@ -154,6 +155,7 @@ type ReservationDetailRecord = ReservationRecord & {
     ville: string | null;
     noteGlobale: Prisma.Decimal;
     nombreAvis: number;
+    typeVehicule: $Enums.TypeVehiculeProfessionnel | null;
     utilisateur: {
       id: string;
       nom: string;

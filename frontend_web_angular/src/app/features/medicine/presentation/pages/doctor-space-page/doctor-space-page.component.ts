@@ -2146,18 +2146,27 @@ export class DoctorSpacePageComponent implements OnInit {
     }
 
     const shouldSaveVehicleType = mode === 'TRANSPORT_COLIS';
-    const profileUpdate$: Observable<BackendProfessionalProfile | null> = this.professionalProfileId()
-      ? this.doctorSpaceService.updateMyProfessionalProfile({
-          ...(shouldSaveVehicleType ? { vehicleType: this.selectedVehicleType() } : {}),
-          ...(mustSaveInterventionLocation
-            ? {
-                city: interventionAddress,
-                latitude: interventionCoordinate?.latitude ?? null,
-                longitude: interventionCoordinate?.longitude ?? null,
-              }
-            : {}),
-        })
-      : of(null);
+    const profileUpdatePayload: {
+      city?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      vehicleType?: ProfessionalVehicleType;
+    } = {};
+
+    if (shouldSaveVehicleType) {
+      profileUpdatePayload.vehicleType = this.selectedVehicleType();
+    }
+
+    if (mustSaveInterventionLocation) {
+      profileUpdatePayload.city = interventionAddress;
+      profileUpdatePayload.latitude = interventionCoordinate?.latitude ?? null;
+      profileUpdatePayload.longitude = interventionCoordinate?.longitude ?? null;
+    }
+
+    const profileUpdate$: Observable<BackendProfessionalProfile | null> =
+      this.professionalProfileId() && Object.keys(profileUpdatePayload).length > 0
+        ? this.doctorSpaceService.updateMyProfessionalProfile(profileUpdatePayload)
+        : of(null);
 
     this.isSaving.set(true);
     profileUpdate$

@@ -484,10 +484,6 @@ export class SettingsPageComponent implements OnInit {
     this.isAddressMapVisible.set(true);
   }
 
-  protected hideAddressMap(): void {
-    this.isAddressMapVisible.set(false);
-  }
-
   protected saveProfessionalAbout(): void {
     if (this.isSavingProfessionalAbout()) return;
     const about = this.professionalAboutForm.about.trim();

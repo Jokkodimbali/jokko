@@ -2836,7 +2836,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean)
-      .slice(0, 4)
       .join(', ');
   }
 

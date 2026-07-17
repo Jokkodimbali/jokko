@@ -326,9 +326,6 @@
               />
             </label>
             <div *ngIf="isAddressMapVisible()" class="settings-page__address-map">
-              <button type="button" class="settings-page__address-map-close" (click)="hideAddressMap()">
-                Masquer la carte
-              </button>
               <app-service-proposal-interactive-map
                 [address]="addressForm.address"
                 [expanded]="false"

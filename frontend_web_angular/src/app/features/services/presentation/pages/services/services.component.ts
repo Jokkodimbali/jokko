@@ -909,7 +909,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean)
-      .slice(0, 4)
       .join(', ');
   }
 

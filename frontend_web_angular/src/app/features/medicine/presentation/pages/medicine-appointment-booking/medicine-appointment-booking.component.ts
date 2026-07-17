@@ -1081,7 +1081,6 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean)
-      .slice(0, 4)
       .join(', ');
   }
 

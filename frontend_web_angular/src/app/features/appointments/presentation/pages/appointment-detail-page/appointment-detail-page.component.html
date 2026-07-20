@@ -1114,15 +1114,6 @@
             <button
               type="button"
               class="appointment-detail__map-tool appointment-detail__map-tool--compact"
-              (click)="toggleMapPerspective()"
-              [attr.aria-pressed]="!isMapTopView()"
-              [attr.aria-label]="isMapTopView() ? 'Revenir a la vue navigation 3D' : 'Afficher la vue de haut'"
-            >
-              {{ isMapTopView() ? '3D' : 'Haut' }}
-            </button>
-            <button
-              type="button"
-              class="appointment-detail__map-tool appointment-detail__map-tool--compact"
               (click)="toggleMapFullscreen()"
               [attr.aria-pressed]="isMapFullscreen()"
               [attr.aria-label]="isMapFullscreen() ? 'Quitter le plein ecran' : 'Afficher la carte en plein ecran'"
@@ -1209,11 +1200,29 @@
               [strokeWidth]="2.5"
             ></lucide-icon>
           </button>
+          <div
+            *ngIf="upcomingNavigationManeuvers().length > 1"
+            class="appointment-detail__navigation-next"
+            aria-label="Prochaines manoeuvres"
+          >
+            <span
+              *ngFor="let maneuver of upcomingNavigationManeuvers().slice(1); trackBy: trackByNavigationManeuver"
+            >
+              <lucide-icon [name]="maneuver.icon" size="15" [strokeWidth]="2.8"></lucide-icon>
+              <b>{{ maneuver.distanceLabel }}</b>
+            </span>
+          </div>
         </div>
-        <div *ngIf="isProviderOnTheWay() && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
-          <span>
-            <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>
-          </span>
+        <div *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
+          <button
+            type="button"
+            class="appointment-detail__route-view-toggle"
+            (click)="toggleMapPerspective()"
+            [attr.aria-pressed]="isMapTopView()"
+            [attr.aria-label]="isMapTopView() ? 'Revenir a la vue chauffeur' : 'Afficher la vue globale de l itineraire'"
+          >
+            <lucide-icon [name]="isMapTopView() ? 'navigation' : 'map'" size="16" [strokeWidth]="2.6"></lucide-icon>
+          </button>
           <strong>
             <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
             {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}

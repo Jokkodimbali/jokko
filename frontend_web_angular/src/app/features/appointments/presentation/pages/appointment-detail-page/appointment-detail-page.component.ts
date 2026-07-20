@@ -85,6 +85,7 @@ const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 5000;
 const ROUTE_DEVIATION_THRESHOLD_METERS = 95;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 14_000;
+const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<
   AppointmentVehicleType,
   { imageUrl: string; label: string }
@@ -1036,12 +1037,41 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly navigationDistanceLabel = computed(() => {
     const distance = this.navigationInstruction().distanceMeters;
     if (typeof distance !== 'number' || distance <= 0) return '';
-    return distance < 1000
-      ? `${Math.max(10, Math.round(distance / 10) * 10)} m`
-      : this.formatter.formatDistance(distance / 1000);
+    return this.navigationDistanceText(distance);
   });
   protected readonly navigationManeuverIcon = computed(() => {
-    const maneuver = this.navigationInstruction().maneuver?.toUpperCase() ?? '';
+    return this.navigationManeuverIconFor(this.navigationInstruction().maneuver);
+  });
+  protected readonly upcomingNavigationManeuvers = computed(() => {
+    const route = this.routeOptions.find(
+      (option) => option.id === this.selectedRouteId(),
+    );
+    if (!route) return [];
+
+    return route.navigationSteps
+      .map((step) => {
+        const distance =
+          step.end ? this.distanceMetersBetweenCurrentPosition(step.end) : step.distanceMeters;
+        return { step, distance };
+      })
+      .filter(
+        (item): item is { step: (typeof route.navigationSteps)[number]; distance: number } =>
+          typeof item.distance === 'number' &&
+          Number.isFinite(item.distance) &&
+          item.distance > 25,
+      )
+      .sort((left, right) => left.distance - right.distance)
+      .slice(0, 3)
+      .map(({ step, distance }) => ({
+        id: step.id,
+        icon: this.navigationManeuverIconFor(step.maneuver),
+        label: this.navigationService.normalizeInstruction(step),
+        distanceLabel: this.navigationDistanceText(distance),
+      }));
+  });
+
+  protected navigationManeuverIconFor(maneuverValue: string | null | undefined): string {
+    const maneuver = maneuverValue?.toUpperCase() ?? '';
     if (maneuver.includes('LEFT')) return 'corner-up-left';
     if (maneuver.includes('RIGHT')) return 'corner-up-right';
     if (maneuver.includes('UTURN')) return 'rotate-ccw';
@@ -1049,7 +1079,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (maneuver.includes('MERGE')) return 'git-merge';
     if (maneuver.includes('FORK')) return 'split';
     return 'move-up';
-  });
+  }
+
+  private navigationDistanceText(distance: number): string {
+    return distance < 1000
+      ? `${Math.max(10, Math.round(distance / 10) * 10)} m`
+      : this.formatter.formatDistance(distance / 1000);
+  }
+
+  protected trackByNavigationManeuver(
+    _index: number,
+    maneuver: { id: string },
+  ): string {
+    return maneuver.id;
+  }
   protected readonly arrivedAtLabel = computed(() => {
     const tracking = this.tracking();
     return this.formatter.formatTimeFromValue(
@@ -1181,6 +1224,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
 
   ngOnInit(): void {
+    this.restoreMapPerspective();
     this.elapsedClockInterval = window.setInterval(() => {
       this.nowMs.set(Date.now());
     }, 1000);
@@ -1987,7 +2031,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected toggleMapPerspective(): void {
     this.isMapTopView.update((enabled) => !enabled);
+    this.persistMapPerspective();
     this.mapRenderer.setTopView(this.isMapTopView());
+    window.setTimeout(() => this.updateGoogleMaps(), 60);
+  }
+
+  private restoreMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    this.isMapTopView.set(
+      window.localStorage.getItem(MAP_PERSPECTIVE_STORAGE_KEY) === 'top',
+    );
+  }
+
+  private persistMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      MAP_PERSPECTIVE_STORAGE_KEY,
+      this.isMapTopView() ? 'top' : 'driver',
+    );
   }
 
   protected toggleMapFullscreen(): void {
@@ -3100,6 +3161,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.isSatelliteMapEnabled(),
           (routeId) => this.selectRouteAlternative(routeId),
         );
+        this.mapRenderer.setTopView(this.isMapTopView());
         this.mapRenderer.setHeading(this.mapHeadingDegrees());
       }
       this.updateGoogleMaps();
@@ -3239,6 +3301,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     id: string;
     selected: boolean;
     coordinates: MapCoordinate[];
+    navigationSteps: Array<{
+      id: string;
+      instruction: string;
+      maneuver: string | null;
+      distanceMeters: number | null;
+      start: MapCoordinate | null;
+      end: MapCoordinate | null;
+    }>;
   }> {
     return this.routeService.serializeMapRoutes(this.routeOptions, this.selectedRouteId());
   }

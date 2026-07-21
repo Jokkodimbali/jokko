@@ -81,12 +81,31 @@ const RESERVATION_DETAIL_SELECT = {
       ville: true,
       noteGlobale: true,
       nombreAvis: true,
+      typeVehicule: true,
       utilisateur: {
         select: {
           id: true,
           nom: true,
           numeroTelephone: true,
           urlAvatar: true,
+        },
+      },
+      specialites: {
+        orderBy: { creeLe: 'desc' },
+        select: {
+          id: true,
+          categorieId: true,
+          sousCategorieId: true,
+          categorie: {
+            select: {
+              nom: true,
+            },
+          },
+          sousCategorie: {
+            select: {
+              nom: true,
+            },
+          },
         },
       },
     },
@@ -154,12 +173,24 @@ type ReservationDetailRecord = ReservationRecord & {
     ville: string | null;
     noteGlobale: Prisma.Decimal;
     nombreAvis: number;
+    typeVehicule: $Enums.TypeVehiculeProfessionnel | null;
     utilisateur: {
       id: string;
       nom: string;
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 };
 

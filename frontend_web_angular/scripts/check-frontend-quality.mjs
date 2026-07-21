@@ -63,6 +63,9 @@ const allowedSensitivePatterns = new Map(
     'src/app/features/services/presentation/pages/provider-profile/provider-profile.component.ts': [
       'bypassSecurityTrust',
     ],
+    'src/app/features/services/presentation/pages/service-proposal/service-proposal.component.ts': [
+      'sessionStorage',
+    ],
     'src/app/features/medicine/presentation/pages/medicine-doctor-profile/medicine-doctor-profile.component.ts': [
       'bypassSecurityTrust',
     ],

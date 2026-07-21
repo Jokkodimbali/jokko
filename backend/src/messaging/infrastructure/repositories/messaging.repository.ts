@@ -149,18 +149,37 @@ export class MessagingRepository implements MessagingRepositoryPort {
     input: CreateConversationInput,
     currentUserId: string,
   ): Promise<CreateConversationResult> {
-    const existing = input.reservationId
+    const existingByReservation = input.reservationId
       ? await this.findConversationByReservationId(
           input.reservationId,
           currentUserId,
         )
-      : await this.findDirectConversationByParticipants({
-          clientUserId: input.clientUserId,
-          professionalUserId: input.professionalUserId,
-          currentUserId,
+      : null;
+    if (existingByReservation) {
+      return { conversation: existingByReservation, wasCreated: false };
+    }
+
+    const existingByParticipants =
+      await this.findDirectConversationByParticipants({
+        clientUserId: input.clientUserId,
+        professionalUserId: input.professionalUserId,
+        currentUserId,
+      });
+    if (existingByParticipants) {
+      if (input.reservationId && !existingByParticipants.reservationId) {
+        const updated = await this.prisma.conversation.update({
+          where: { id: existingByParticipants.id },
+          data: { reservationId: input.reservationId },
+          select: this.buildConversationSelect(currentUserId),
         });
-    if (existing) {
-      return { conversation: existing, wasCreated: false };
+
+        return {
+          conversation: this.mapConversation(updated, currentUserId),
+          wasCreated: false,
+        };
+      }
+
+      return { conversation: existingByParticipants, wasCreated: false };
     }
 
     try {
@@ -189,20 +208,28 @@ export class MessagingRepository implements MessagingRepositoryPort {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const conflictConversation =
-          (input.reservationId
-            ? await this.findConversationByReservationId(
-                input.reservationId,
-                currentUserId,
-              )
-            : null) ??
-          (await this.findDirectConversationByParticipants({
+        const conflictConversation = input.reservationId
+          ? await this.findConversationByReservationId(
+              input.reservationId,
+              currentUserId,
+            )
+          : await this.findDirectConversationByParticipants({
+              clientUserId: input.clientUserId,
+              professionalUserId: input.professionalUserId,
+              currentUserId,
+            });
+        if (conflictConversation) {
+          return { conversation: conflictConversation, wasCreated: false };
+        }
+
+        const participantConflict =
+          await this.findDirectConversationByParticipants({
             clientUserId: input.clientUserId,
             professionalUserId: input.professionalUserId,
             currentUserId,
-          }));
-        if (conflictConversation) {
-          return { conversation: conflictConversation, wasCreated: false };
+          });
+        if (participantConflict) {
+          return { conversation: participantConflict, wasCreated: false };
         }
       }
 

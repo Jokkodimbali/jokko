@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -24,6 +24,7 @@ import {
   NegotiationView,
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
+import { NegotiationsRealtimeService } from '../../../../services/data-access/negotiations-realtime.service';
 import {
   ServiceProposalInteractiveMapComponent,
   ServiceProposalMapAddressSelection,
@@ -316,13 +317,15 @@ type UploadPreview = {
   templateUrl: './doctor-space-page.component.html',
   styleUrl: './doctor-space-page.component.scss',
 })
-export class DoctorSpacePageComponent implements OnInit {
+export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
   private readonly proposalService = inject(ServiceProposalService);
+  private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private negotiationsRealtimeSubscription?: Subscription;
 
   protected readonly activeSection = signal<DoctorSpaceSection>('availability');
   protected readonly isLoading = signal(false);
@@ -1148,6 +1151,11 @@ export class DoctorSpacePageComponent implements OnInit {
   ngOnInit(): void {
     this.activeSection.set(this.resolveSectionFromRoute());
     this.loadSchedule();
+  }
+
+  ngOnDestroy(): void {
+    this.negotiationsRealtimeSubscription?.unsubscribe();
+    this.negotiationsRealtime.stopWatching('PRESTATAIRE');
   }
 
   protected goBack(): void {
@@ -2521,6 +2529,7 @@ export class DoctorSpacePageComponent implements OnInit {
         this.wallet.set(wallet);
         this.portfolioItems.set(portfolio);
         this.ensureActiveSectionIsAvailable();
+        this.startNegotiationRealtime();
         if (this.activeSection() === 'wallet') {
           this.refreshWallet();
         }
@@ -2612,15 +2621,39 @@ export class DoctorSpacePageComponent implements OnInit {
     });
   }
 
-  private refreshNegotiations(): void {
+  private refreshNegotiations(forceRefresh = false): void {
     if (!this.professionalProfileId() || !this.isProviderSpace()) return;
 
-    this.proposalService.listMyPriceProposals('PRESTATAIRE').subscribe({
+    this.proposalService.listMyPriceProposals('PRESTATAIRE', forceRefresh).subscribe({
       next: (negotiations) => this.negotiations.set(negotiations),
       error: (error) =>
         this.feedback.error(
           getHttpErrorMessage(error, 'Impossible de charger les négociations clients.'),
         ),
+    });
+  }
+
+  private startNegotiationRealtime(): void {
+    if (!this.professionalProfileId() || !this.isProviderSpace() || this.negotiationsRealtimeSubscription) {
+      return;
+    }
+
+    this.negotiationsRealtimeSubscription = this.negotiationsRealtime
+      .watchMyNegotiations('PRESTATAIRE')
+      .subscribe((event) => {
+        if (event.negotiation) {
+          this.upsertNegotiation(event.negotiation);
+        }
+        this.refreshNegotiations(true);
+      });
+  }
+
+  private upsertNegotiation(negotiation: NegotiationView): void {
+    this.negotiations.update((negotiations) => {
+      const exists = negotiations.some((item) => item.id === negotiation.id);
+      return exists
+        ? negotiations.map((item) => (item.id === negotiation.id ? negotiation : item))
+        : [negotiation, ...negotiations];
     });
   }
 

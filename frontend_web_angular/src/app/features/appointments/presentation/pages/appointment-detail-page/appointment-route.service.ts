@@ -8,6 +8,7 @@ export type AppointmentRouteStep = {
   instruction: string;
   maneuver: string | null;
   distanceMeters: number | null;
+  start: AppointmentMapCoordinate | null;
   end: AppointmentMapCoordinate | null;
 };
 
@@ -31,6 +32,7 @@ export type SerializedAppointmentMapRoute = {
   id: string;
   selected: boolean;
   coordinates: AppointmentMapCoordinate[];
+  navigationSteps: AppointmentRouteStep[];
 };
 
 @Injectable({ providedIn: 'root' })
@@ -61,6 +63,7 @@ export class AppointmentRouteService {
             instruction: step.instruction,
             maneuver: step.maneuver,
             distanceMeters: step.distanceMeters,
+            start: step.start ? { lat: step.start.latitude, lng: step.start.longitude } : null,
             end: step.end ? { lat: step.end.latitude, lng: step.end.longitude } : null,
           })),
         };
@@ -83,6 +86,7 @@ export class AppointmentRouteService {
         instruction: step.instruction,
         maneuver: step.maneuver,
         distanceMeters: step.distanceMeters,
+        start: step.start ? { lat: step.start.latitude, lng: step.start.longitude } : null,
         end: step.end ? { lat: step.end.latitude, lng: step.end.longitude } : null,
       })),
     };
@@ -98,6 +102,7 @@ export class AppointmentRouteService {
         id: route.id,
         selected: route.id === selectedRouteId,
         coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
+        navigationSteps: route.navigationSteps,
       }));
   }
 }

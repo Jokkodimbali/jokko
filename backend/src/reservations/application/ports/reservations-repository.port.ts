@@ -114,11 +114,23 @@ export type ReservationDetailedView = Reservation & {
     ville: string | null;
     noteGlobale: number;
     nombreAvis: number;
+    typeVehicule: 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE' | null;
     utilisateur: {
       id: string;
       nom: string;
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 };

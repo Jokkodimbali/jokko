@@ -1788,8 +1788,29 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private sendInitialNegotiationMessage(proposal: NegotiationView): void {
-    this.messagesService.createConversation({ negotiationId: proposal.id }).subscribe({
+    this.messagesService
+      .createConversation(
+        proposal.professionnelId
+          ? { professionalProfileId: proposal.professionnelId }
+          : { negotiationId: proposal.id },
+      )
+      .pipe(
+        catchError(() => {
+          if (!proposal.id || !proposal.professionnelId) {
+            return of(null);
+          }
+
+          return this.messagesService.createConversation({
+            negotiationId: proposal.id,
+          });
+        }),
+      )
+      .subscribe({
       next: (conversation) => {
+        if (!conversation) {
+          return;
+        }
+
         const message = proposal.messageCourant || [
           `Demande de negociation pour ${proposal.service?.nom || this.categoryLabel()}.`,
           `Montant propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,

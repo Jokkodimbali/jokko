@@ -25,6 +25,7 @@ import { MessagesService } from '../../../../messages/data-access/messages.servi
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import {
   AppointmentTrackingView,
+  AppointmentVehicleType,
   AppointmentView,
   MedicalPrescriptionPayload,
 } from '../../../domain/appointments.models';
@@ -79,9 +80,30 @@ const COMMON_TREATMENTS = [
   'Repos strict a domicile pendant 5 jours',
 ] as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
-const TRACKING_FALLBACK_POLL_INTERVAL_MS = 5000;
-const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
-const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 5000;
+const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
+const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
+const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
+const LIVE_LOCATION_UPDATE_INTERVAL_MS = 2000;
+const ROUTE_DEVIATION_THRESHOLD_METERS = 95;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 14_000;
+const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
+const PARCEL_VEHICLE_MARKERS: Record<
+  AppointmentVehicleType,
+  { imageUrl: string; label: string }
+> = {
+  MOTO_SCOOTER: {
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/moto.png',
+    label: 'Moto / Scooter',
+  },
+  VOITURE: {
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+    label: 'Voiture',
+  },
+  CAMIONNETTE: {
+    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    label: 'Camionnette',
+  },
+};
 
 type AppointmentDetailUiState =
   | 'loading'
@@ -175,6 +197,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeOptions: AppointmentRouteOption[] = [];
   private routeCoordinatesKey = '';
   private routeRequestBlockedUntilMs = 0;
+  private routeDeviationRecalculationBlockedUntilMs = 0;
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
   private isAnimatingRouteArrival = false;
@@ -210,6 +233,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
   protected readonly isSatelliteMapEnabled = signal(false);
   protected readonly isMapFullscreen = signal(false);
+  protected readonly isMapTopView = signal(false);
   protected readonly isNavigationVoiceEnabled = signal(true);
   protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
@@ -900,11 +924,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly providerRoleLabel = computed(() => {
     const appointment = this.appointment();
-    const role =
-      appointment?.specialty?.trim() ||
-      appointment?.serviceName?.trim() ||
-      'professionnel';
-    return role.toLocaleLowerCase('fr-FR');
+    return this.providerExpertiseLabel(appointment).toLocaleLowerCase('fr-FR');
   });
   protected readonly trackingScenarioContext = computed<TrackingScenarioViewContext>(() => ({
     appointmentCompleted: this.isAppointmentCompleted(),
@@ -1014,10 +1034,62 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly navigationDistanceLabel = computed(() => {
     const distance = this.navigationInstruction().distanceMeters;
     if (typeof distance !== 'number' || distance <= 0) return '';
+    return this.navigationDistanceText(distance);
+  });
+  protected readonly navigationManeuverIcon = computed(() => {
+    return this.navigationManeuverIconFor(this.navigationInstruction().maneuver);
+  });
+  protected readonly upcomingNavigationManeuvers = computed(() => {
+    const route = this.routeOptions.find(
+      (option) => option.id === this.selectedRouteId(),
+    );
+    if (!route) return [];
+
+    return route.navigationSteps
+      .map((step) => {
+        const distance =
+          step.end ? this.distanceMetersBetweenCurrentPosition(step.end) : step.distanceMeters;
+        return { step, distance };
+      })
+      .filter(
+        (item): item is { step: (typeof route.navigationSteps)[number]; distance: number } =>
+          typeof item.distance === 'number' &&
+          Number.isFinite(item.distance) &&
+          item.distance > 25,
+      )
+      .sort((left, right) => left.distance - right.distance)
+      .slice(0, 3)
+      .map(({ step, distance }) => ({
+        id: step.id,
+        icon: this.navigationManeuverIconFor(step.maneuver),
+        label: this.navigationService.normalizeInstruction(step),
+        distanceLabel: this.navigationDistanceText(distance),
+      }));
+  });
+
+  protected navigationManeuverIconFor(maneuverValue: string | null | undefined): string {
+    const maneuver = maneuverValue?.toUpperCase() ?? '';
+    if (maneuver.includes('LEFT')) return 'corner-up-left';
+    if (maneuver.includes('RIGHT')) return 'corner-up-right';
+    if (maneuver.includes('UTURN')) return 'rotate-ccw';
+    if (maneuver.includes('ROUNDABOUT')) return 'refresh-cw';
+    if (maneuver.includes('MERGE')) return 'git-merge';
+    if (maneuver.includes('FORK')) return 'split';
+    return 'move-up';
+  }
+
+  private navigationDistanceText(distance: number): string {
     return distance < 1000
       ? `${Math.max(10, Math.round(distance / 10) * 10)} m`
       : this.formatter.formatDistance(distance / 1000);
-  });
+  }
+
+  protected trackByNavigationManeuver(
+    _index: number,
+    maneuver: { id: string },
+  ): string {
+    return maneuver.id;
+  }
   protected readonly arrivedAtLabel = computed(() => {
     const tracking = this.tracking();
     return this.formatter.formatTimeFromValue(
@@ -1149,6 +1221,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
 
   ngOnInit(): void {
+    this.restoreMapPerspective();
     this.elapsedClockInterval = window.setInterval(() => {
       this.nowMs.set(Date.now());
     }, 1000);
@@ -1335,7 +1408,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           const source = updated ?? appointment;
           if (updated) {
             this.appointment.update((current) =>
-              current ? this.mergeAppointment(current, updated) : updated,
+              current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
             );
             this.hydrateMedicalPrescriptionFromAppointment(updated);
           }
@@ -1953,6 +2026,34 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.mapRenderer.setSatellite(this.isSatelliteMapEnabled());
   }
 
+  protected toggleMapPerspective(): void {
+    if (!this.isRouteActorViewer()) return;
+
+    this.isMapTopView.update((enabled) => !enabled);
+    this.persistMapPerspective();
+    this.mapRenderer.setTopView(this.isMapTopView());
+    window.setTimeout(() => this.updateGoogleMaps(), 60);
+  }
+
+  private restoreMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    this.isMapTopView.set(
+      window.localStorage.getItem(MAP_PERSPECTIVE_STORAGE_KEY) === 'top',
+    );
+  }
+
+  private persistMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      MAP_PERSPECTIVE_STORAGE_KEY,
+      this.isMapTopView() ? 'top' : 'driver',
+    );
+  }
+
+  private effectiveMapTopView(): boolean {
+    return !this.isRouteActorViewer() || this.isMapTopView();
+  }
+
   protected toggleMapFullscreen(): void {
     if (this.isMapFullscreen()) {
       this.exitMapFullscreen();
@@ -2260,8 +2361,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       (event) => {
         if (event.reservationId !== appointmentId) return;
         this.trackingStore.setMissionEvent(event);
+        if (event.tracking) {
+          this.setTrackingSafely(event.tracking);
+        } else {
+          this.refreshTracking(appointmentId);
+        }
         this.refreshAppointmentState(appointmentId);
-        this.refreshTracking(appointmentId);
       },
     );
   }
@@ -2375,11 +2480,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.mapRenderer.render({
       provider: destination,
       destination,
+      destinationMarker: this.destinationMapMarker(),
       remainingLabel: 'Arrive',
       statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
       headingDegrees: this.reliableTrackingHeading(),
       routes: [],
+      showManeuverMarkers: this.isRouteActorViewer(),
       arrived: true,
+      travelerMarker: this.travelerMapMarker(),
     });
 
     this.appointmentsService
@@ -2422,18 +2530,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private applyRefreshedAppointment(appointment: AppointmentView): void {
-    const previousStatus = this.appointment()?.status;
-    this.appointment.set(appointment);
+    const current = this.appointment();
+    const previousStatus = current?.status;
+    const nextAppointment = current ? this.mergeAppointment(current, appointment) : appointment;
+    this.appointment.set(nextAppointment);
     if (
-      this.isParcelTransportAppointment(appointment) &&
-      appointment.status === 'EN_COURS' &&
+      this.isParcelTransportAppointment(nextAppointment) &&
+      nextAppointment.status === 'EN_COURS' &&
       previousStatus !== 'EN_COURS'
     ) {
-      this.prepareParcelDropoffNavigationAfterPickup(appointment);
+      this.prepareParcelDropoffNavigationAfterPickup(nextAppointment);
     }
-    this.synchronizeLiveNavigation(appointment);
-    if (appointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
-      this.loadTerminalTrackingSnapshot(appointment.id);
+    this.synchronizeLiveNavigation(nextAppointment);
+    if (nextAppointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
+      this.loadTerminalTrackingSnapshot(nextAppointment.id);
     }
   }
 
@@ -2481,6 +2591,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.mapRenderer.render({
           provider: point,
           destination,
+          destinationMarker: this.destinationMapMarker(),
           remainingLabel: progress >= 1 ? 'Arrive' : this.routeRemainingBadgeLabel(),
           statusLabel:
             progress >= 1
@@ -2488,7 +2599,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               : this.activeVehicleRouteLabel(false),
           headingDegrees: null,
           routes: this.serializedMapRoutes(),
+          showManeuverMarkers: this.isRouteActorViewer(),
           arrived: progress >= 1,
+          travelerMarker: this.travelerMapMarker(),
         });
 
         if (progress < 1) {
@@ -2804,62 +2917,60 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
-    window.setTimeout(() => {
-      const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
-      this.trackingStore.setTracking(normalizedTracking);
-      this.syncAppointmentStatusFromTracking(normalizedTracking);
-      const appointment = this.appointment();
-      if (appointment && !this.shouldRunLiveNavigation(appointment)) {
-        this.stopLiveNavigation(appointment.id, false);
-        return;
-      }
-      if (!this.hasActiveNavigationState()) {
-        this.suspendNavigationPresentation();
-        return;
-      }
-      if (
-        this.shouldAcceptTrackingArrivalFromServer(normalizedTracking) &&
-        this.trackingIndicatesArrival(normalizedTracking)
-      ) {
-        this.pinArrival(this.resolveArrivalPoint(this.destinationCoordinates(), normalizedTracking));
-        this.clearNavigationRouteAfterArrival();
-        this.updateGoogleMaps();
-        return;
-      }
-
-      const serverRoute = normalizedTracking.route;
-      if (serverRoute) {
-        this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
-        this.routeDurationMinutes.set(
-          Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
-        );
-        this.routeCoordinates = serverRoute.coordinates.map(
-          (coordinate) =>
-            [coordinate.latitude, coordinate.longitude] as [number, number],
-        );
-        if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
-          const currentRoute = this.routeService.mapTrackingRoute(
-            serverRoute,
-            this.routeCoordinates,
-          );
-          this.routeOptions = [currentRoute];
-          this.selectedRouteId.set(currentRoute.id);
-        }
-        this.routeStatus.set(
-          this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-        );
-      }
+    const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
+    this.trackingStore.setTracking(normalizedTracking);
+    this.syncAppointmentStatusFromTracking(normalizedTracking);
+    const appointment = this.appointment();
+    if (appointment && !this.shouldRunLiveNavigation(appointment)) {
+      this.stopLiveNavigation(appointment.id, false);
+      return;
+    }
+    if (!this.hasActiveNavigationState()) {
+      this.suspendNavigationPresentation();
+      return;
+    }
+    if (
+      this.shouldAcceptTrackingArrivalFromServer(normalizedTracking) &&
+      this.trackingIndicatesArrival(normalizedTracking)
+    ) {
+      this.pinArrival(this.resolveArrivalPoint(this.destinationCoordinates(), normalizedTracking));
+      this.clearNavigationRouteAfterArrival();
       this.updateGoogleMaps();
-      this.announceNavigationInstruction();
-      if (
-        appointment &&
-        this.isRouteActorViewer() &&
-        (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
-        Date.now() >= this.locationSharingBlockedUntilMs
-      ) {
-        this.startProviderLocationSharing(appointment.id);
+      return;
+    }
+
+    const serverRoute = normalizedTracking.route;
+    if (serverRoute) {
+      this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
+      this.routeDurationMinutes.set(
+        Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
+      );
+      this.routeCoordinates = serverRoute.coordinates.map(
+        (coordinate) =>
+          [coordinate.latitude, coordinate.longitude] as [number, number],
+      );
+      if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
+        const currentRoute = this.routeService.mapTrackingRoute(
+          serverRoute,
+          this.routeCoordinates,
+        );
+        this.routeOptions = [currentRoute];
+        this.selectedRouteId.set(currentRoute.id);
       }
-    }, 0);
+      this.routeStatus.set(
+        this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
+      );
+    }
+    this.updateGoogleMaps();
+    this.announceNavigationInstruction();
+    if (
+      appointment &&
+      this.isRouteActorViewer() &&
+      (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
+      Date.now() >= this.locationSharingBlockedUntilMs
+    ) {
+      this.startProviderLocationSharing(appointment.id);
+    }
   }
 
   private syncAppointmentStatusFromTracking(tracking: AppointmentTrackingView): void {
@@ -2897,7 +3008,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.providerLocationSubscription = this.providerLocation
-      .watch(8000)
+      .watch(LIVE_LOCATION_UPDATE_INTERVAL_MS)
       .subscribe({
       next: (position) => {
         if (!this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive()) {
@@ -3061,6 +3172,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.isSatelliteMapEnabled(),
           (routeId) => this.selectRouteAlternative(routeId),
         );
+        this.mapRenderer.setTopView(this.effectiveMapTopView());
         this.mapRenderer.setHeading(this.mapHeadingDegrees());
       }
       this.updateGoogleMaps();
@@ -3098,11 +3210,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       (this.isNonParcelWorkArrivedOnMap() || arrived) && arrivalPoint
         ? [arrivalPoint.lat, arrivalPoint.lng]
         : trackedProvider;
+    this.mapRenderer.setTopView(this.effectiveMapTopView());
     if (
       destination &&
       arrived
     ) {
       this.clearNavigationRouteAfterArrival();
+    }
+    if (
+      destination &&
+      !arrived &&
+      this.recalculateRouteIfOffCourse(trackedProvider, destination)
+    ) {
+      return;
     }
     if (
       destination &&
@@ -3124,12 +3244,191 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         lng: displayedProvider[1],
       },
       destination,
+      destinationMarker: this.destinationMapMarker(),
       remainingLabel: this.routeRemainingBadgeLabel(),
       statusLabel: this.vehicleStatusLabel(),
       headingDegrees: this.reliableTrackingHeading(),
       routes: this.serializedMapRoutes(),
+      showManeuverMarkers: this.isRouteActorViewer(),
       arrived: this.hasTravelerArrivedAtDestination(),
+      travelerMarker: this.travelerMapMarker(),
     });
+  }
+
+  private travelerMapMarker(): {
+    kind: 'avatar' | 'vehicle' | 'navigation';
+    imageUrl: string | null;
+    initials: string;
+    name: string;
+    roleLabel: string;
+    badgeAccent?: 'blue' | 'red';
+  } {
+    const appointment = this.appointment();
+    if (!appointment) {
+      return {
+        kind: 'avatar',
+        imageUrl: null,
+        initials: 'JK',
+        name: 'Jokko',
+        roleLabel: 'En route',
+      };
+    }
+
+    if (this.isRouteActorViewer()) {
+      return {
+        kind: 'navigation',
+        imageUrl: null,
+        initials: 'NAV',
+        name: 'Navigation',
+        roleLabel: this.routeRemainingBadgeLabel(),
+      };
+    }
+
+    if (appointment.travelMode === 'TRANSPORT_COLIS' && appointment.vehicleType) {
+      const vehicle = PARCEL_VEHICLE_MARKERS[appointment.vehicleType];
+      return {
+        kind: 'vehicle',
+        imageUrl: vehicle.imageUrl,
+        initials: vehicle.label.slice(0, 2).toUpperCase(),
+        name: vehicle.label,
+        roleLabel: vehicle.label,
+      };
+    }
+
+    if (this.clientTravelsToProvider()) {
+      return {
+        kind: 'avatar',
+        imageUrl: appointment.clientAvatarUrl || null,
+        initials: userInitials(appointment.clientName),
+        name: appointment.clientName,
+        roleLabel: this.clientFirstNameLabel(),
+        badgeAccent: 'blue',
+      };
+    }
+
+    return {
+      kind: 'avatar',
+      imageUrl: appointment.avatarUrl || null,
+      initials: userInitials(appointment.doctorName),
+      name: appointment.doctorName,
+      roleLabel: this.providerRoleLabel(),
+      badgeAccent: 'red',
+    };
+  }
+
+  private singleSpecialtyLabel(label: string): string {
+    return label
+      .split(/(?:\s+-\s+)|[,;\n|/]+/)
+      .map((item) => item.trim())
+      .find(Boolean) || label.trim();
+  }
+
+  private providerExpertiseLabel(appointment: AppointmentView | null): string {
+    if (!appointment) return 'professionnel';
+
+    const candidates = [
+      appointment.professionalSubCategoryName?.trim(),
+      this.isServiceNameLabel(appointment.specialty, appointment) ? null : appointment.specialty?.trim(),
+    ].filter((value): value is string => Boolean(value));
+
+    const expertise = candidates.find((value) => {
+      const normalized = value.toLocaleLowerCase('fr-FR');
+      return normalized !== 'service non renseigne';
+    });
+
+    return this.singleSpecialtyLabel(expertise || 'professionnel');
+  }
+
+  private isServiceNameLabel(value: string | null | undefined, appointment: AppointmentView): boolean {
+    const normalized = value?.trim().toLocaleLowerCase('fr-FR');
+    if (!normalized) return false;
+
+    return [appointment.serviceName, appointment.serviceCategoryName]
+      .map((candidate) => candidate?.trim().toLocaleLowerCase('fr-FR'))
+      .includes(normalized);
+  }
+
+  private destinationMapMarker(): {
+    title: string;
+    subtitle: string;
+    etaLabel: string;
+    accent: 'blue' | 'red';
+    person?: {
+      imageUrl: string | null;
+      initials: string;
+      name: string;
+      label: string;
+      badgeAccent: 'blue' | 'red';
+    } | null;
+  } {
+    const appointment = this.appointment();
+    return {
+      title: appointment ? this.destinationMapMarkerTitle(appointment) : "Lieu d'arrivee",
+      subtitle: this.destinationMapMarkerSubtitle(),
+      etaLabel: this.destinationMapMarkerEtaLabel(),
+      accent: appointment ? this.destinationMapMarkerAccent(appointment) : 'blue',
+      person: appointment ? this.destinationMapMarkerPerson(appointment) : null,
+    };
+  }
+
+  private destinationMapMarkerPerson(appointment: AppointmentView): {
+    imageUrl: string | null;
+    initials: string;
+    name: string;
+    label: string;
+    badgeAccent: 'blue' | 'red';
+  } | null {
+    if (this.isParcelTransportAppointment(appointment)) {
+      return null;
+    }
+
+    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {
+      return {
+        imageUrl: appointment.avatarUrl || null,
+        initials: userInitials(appointment.doctorName),
+        name: appointment.doctorName,
+        label: this.providerRoleLabel(),
+        badgeAccent: 'red',
+      };
+    }
+
+    if (appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
+      return {
+        imageUrl: appointment.clientAvatarUrl || null,
+        initials: userInitials(appointment.clientName),
+        name: appointment.clientName,
+        label: this.isClientViewer() ? 'Moi' : this.clientFirstNameLabel(),
+        badgeAccent: 'blue',
+      };
+    }
+
+    return null;
+  }
+
+  private destinationMapMarkerTitle(appointment: AppointmentView): string {
+    if (this.isParcelTransportAppointment(appointment)) {
+      return this.isParcelPickupValidated() || this.isParcelDropoffNavigationActive()
+        ? 'Destination de depot de colis'
+        : 'Destination de retrait de colis';
+    }
+
+    return appointment.travelMode === 'CLIENT_SE_DEPLACE'
+      ? "Adresse d'intervention"
+      : "Lieu d'intervention";
+  }
+
+  private destinationMapMarkerSubtitle(): string {
+    const distance = this.routeDistanceKm();
+    return distance !== null && distance > 0 ? this.formatter.formatDistance(distance) : '';
+  }
+
+  private destinationMapMarkerEtaLabel(): string {
+    return this.hasTravelerArrivedAtDestination() ? '0 min' : this.routeEtaLabel();
+  }
+
+  private destinationMapMarkerAccent(appointment: AppointmentView): 'blue' | 'red' {
+    if (this.isParcelTransportAppointment(appointment)) return 'blue';
+    return appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE' ? 'red' : 'blue';
   }
 
   private isNonParcelWorkArrivedOnMap(): boolean {
@@ -3144,8 +3443,102 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     id: string;
     selected: boolean;
     coordinates: MapCoordinate[];
+    navigationSteps: Array<{
+      id: string;
+      instruction: string;
+      maneuver: string | null;
+      distanceMeters: number | null;
+      start: MapCoordinate | null;
+      end: MapCoordinate | null;
+    }>;
   }> {
     return this.routeService.serializeMapRoutes(this.routeOptions, this.selectedRouteId());
+  }
+
+  private recalculateRouteIfOffCourse(
+    trackedProvider: [number, number],
+    destination: MapCoordinate,
+  ): boolean {
+    if (
+      this.routeCoordinates.length < 2 ||
+      this.routeStatus() === 'calculating' ||
+      Date.now() < this.routeRequestBlockedUntilMs ||
+      Date.now() < this.routeDeviationRecalculationBlockedUntilMs
+    ) {
+      return false;
+    }
+
+    const currentPosition = { lat: trackedProvider[0], lng: trackedProvider[1] };
+    if (
+      this.geo.distanceMetersBetweenPoints(currentPosition, destination) <=
+      ARRIVAL_DISTANCE_THRESHOLD_METERS
+    ) {
+      return false;
+    }
+
+    const deviationMeters = this.distanceFromCurrentRouteMeters(currentPosition);
+    if (deviationMeters <= ROUTE_DEVIATION_THRESHOLD_METERS) {
+      return false;
+    }
+
+    this.routeDeviationRecalculationBlockedUntilMs =
+      Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
+    this.routeCoordinatesKey = '';
+    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng]);
+    return true;
+  }
+
+  private distanceFromCurrentRouteMeters(position: MapCoordinate): number {
+    if (this.routeCoordinates.length < 2) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (let index = 1; index < this.routeCoordinates.length; index += 1) {
+      const previous = this.routeCoordinates[index - 1];
+      const current = this.routeCoordinates[index];
+      const distance = this.distanceToRouteSegmentMeters(position, {
+        lat: previous[0],
+        lng: previous[1],
+      }, {
+        lat: current[0],
+        lng: current[1],
+      });
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+      }
+    }
+
+    return nearestDistance;
+  }
+
+  private distanceToRouteSegmentMeters(
+    point: MapCoordinate,
+    start: MapCoordinate,
+    end: MapCoordinate,
+  ): number {
+    const metersPerLatitudeDegree = 110_540;
+    const metersPerLongitudeDegree =
+      111_320 * Math.cos((point.lat * Math.PI) / 180);
+    const startX = (start.lng - point.lng) * metersPerLongitudeDegree;
+    const startY = (start.lat - point.lat) * metersPerLatitudeDegree;
+    const endX = (end.lng - point.lng) * metersPerLongitudeDegree;
+    const endY = (end.lat - point.lat) * metersPerLatitudeDegree;
+    const segmentX = endX - startX;
+    const segmentY = endY - startY;
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+    if (segmentLengthSquared <= 0) {
+      return this.geo.distanceMetersBetweenPoints(point, start);
+    }
+
+    const projection = Math.max(
+      0,
+      Math.min(1, -(startX * segmentX + startY * segmentY) / segmentLengthSquared),
+    );
+    const closestX = startX + projection * segmentX;
+    const closestY = startY + projection * segmentY;
+    return Math.sqrt(closestX * closestX + closestY * closestY);
   }
 
   protected runProviderPrimaryAction(appointment: AppointmentView): void {
@@ -3487,6 +3880,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const merged = {
       ...current,
       ...updated,
+      status: this.mergeAppointmentStatus(current.status, updated.status),
       doctorName: current.doctorName,
       specialty: current.specialty,
       avatarUrl: current.avatarUrl,
@@ -3500,9 +3894,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       serviceName: current.serviceName,
       serviceDescription: current.serviceDescription,
       serviceCategoryName: current.serviceCategoryName,
+      professionalSubCategoryName: current.professionalSubCategoryName,
     };
     this.hydrateMedicalPrescriptionFromAppointment(merged);
     return merged;
+  }
+
+  private mergeAppointmentStatus(
+    current: AppointmentView['status'],
+    updated: AppointmentView['status'],
+  ): AppointmentView['status'] {
+    if (
+      current === 'EN_COURS' &&
+      (updated === 'PAYEE_SEQUESTRE' || updated === 'CONFIRMEE')
+    ) {
+      return current;
+    }
+
+    if (current === 'TERMINEE' && updated !== 'TERMINEE') {
+      return current;
+    }
+
+    return updated;
   }
 
   private currentMedicalPrescriptionPayload(): MedicalPrescriptionPayload {
@@ -3548,9 +3961,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .subscribe((updated) => {
         if (!updated) return;
         this.appointment.update((current) =>
-          current ? this.mergeAppointment(current, updated) : updated,
+          current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
         );
       });
+  }
+
+  private mergeMedicalPrescriptionUpdate(
+    current: AppointmentView,
+    updated: AppointmentView,
+  ): AppointmentView {
+    const merged = {
+      ...current,
+      notes: updated.notes,
+      medicalPrescription: updated.medicalPrescription,
+    };
+    this.hydrateMedicalPrescriptionFromAppointment(merged);
+    return merged;
   }
 
   private hydrateMedicalPrescriptionFromAppointment(appointment: AppointmentView): void {

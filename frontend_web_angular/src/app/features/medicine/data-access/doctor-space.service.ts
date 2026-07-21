@@ -238,7 +238,9 @@ export class DoctorSpaceService {
 
   listMyReservations(): Observable<BackendReservation[]> {
     return this.http
-      .get<ApiResponse<BackendReservation[]>>(`${this.apiUrl}/reservations/my`)
+      .get<ApiResponse<BackendReservation[]>>(`${this.apiUrl}/reservations/my`, {
+        params: { scope: 'PRESTATAIRE' },
+      })
       .pipe(map(unwrapApiResponse));
   }
 

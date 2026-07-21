@@ -1171,40 +1171,39 @@
           </ng-container>
         </div>
         <div
-          *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
+          *ngIf="isRouteActorViewer() && (isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >
           <span>
-            <lucide-icon name="navigation" size="22" [strokeWidth]="2.5"></lucide-icon>
+            <lucide-icon [name]="navigationManeuverIcon()" size="30" [strokeWidth]="2.8"></lucide-icon>
           </span>
           <div>
+            <strong>{{ navigationInstruction().instruction }}</strong>
             <small *ngIf="navigationDistanceLabel()">
               Dans {{ navigationDistanceLabel() }}
             </small>
-            <strong>{{ navigationInstruction().instruction }}</strong>
+            <em
+              *ngIf="upcomingNavigationManeuvers()[1] as nextManeuver"
+              class="appointment-detail__navigation-up-next"
+            >
+              <lucide-icon [name]="nextManeuver.icon" size="14" [strokeWidth]="2.8"></lucide-icon>
+              <span>Ensuite</span>
+              <b>{{ nextManeuver.distanceLabel }}</b>
+            </em>
           </div>
-          <button
-            type="button"
-            (click)="toggleNavigationVoice()"
-            [attr.aria-label]="
-              isNavigationVoiceEnabled()
-                ? 'Desactiver les instructions vocales'
-                : 'Activer les instructions vocales'
-            "
-            [attr.aria-pressed]="isNavigationVoiceEnabled()"
-          >
-            <lucide-icon
-              [name]="isNavigationVoiceEnabled() ? 'volume-2' : 'volume-x'"
-              size="18"
-              [strokeWidth]="2.5"
-            ></lucide-icon>
-          </button>
         </div>
-        <div *ngIf="isProviderOnTheWay() && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
-          <span>
-            <lucide-icon name="sliders-horizontal" size="16" [strokeWidth]="2.4"></lucide-icon>
-          </span>
+        <div *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
+          <button
+            *ngIf="isRouteActorViewer()"
+            type="button"
+            class="appointment-detail__route-view-toggle"
+            (click)="toggleMapPerspective()"
+            [attr.aria-pressed]="isMapTopView()"
+            [attr.aria-label]="isMapTopView() ? 'Revenir a la vue chauffeur' : 'Afficher la vue globale de l itineraire'"
+          >
+            <lucide-icon [name]="isMapTopView() ? 'navigation' : 'map'" size="16" [strokeWidth]="2.6"></lucide-icon>
+          </button>
           <strong>
             <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
             {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}

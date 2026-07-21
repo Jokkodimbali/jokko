@@ -162,17 +162,19 @@
   }
 
   .appointment-detail__navigation-guidance {
-    left: 10px;
+    grid-template-columns: 42px minmax(0, 1fr);
     max-width: calc(100% - 20px);
-    right: 10px;
-    top: 62px;
+    min-height: 64px;
+    top: 10px;
+    width: calc(100% - 20px);
   }
 
   .appointment-detail__map-top-actions {
+    bottom: 10px;
     justify-content: flex-start;
     left: 10px;
     right: 10px;
-    top: 138px;
+    top: auto;
   }
 
   .appointment-detail__map-toolbar,

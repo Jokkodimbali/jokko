@@ -12,6 +12,11 @@ export type AppointmentTravelMode =
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
 
+export type AppointmentVehicleType =
+  | 'MOTO_SCOOTER'
+  | 'VOITURE'
+  | 'CAMIONNETTE';
+
 export interface BackendReservation {
   id: string;
   clientId: string;
@@ -70,12 +75,24 @@ export interface BackendReservation {
     ville: string | null;
     noteGlobale: number;
     nombreAvis: number;
+    typeVehicule?: AppointmentVehicleType | null;
     utilisateur: {
       id: string;
       nom: string;
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites?: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 }
 
@@ -107,8 +124,10 @@ export interface AppointmentView {
   serviceName: string;
   serviceDescription: string | null;
   serviceCategoryName: string | null;
+  professionalSubCategoryName: string | null;
   servicePrice: number | null;
   travelMode: AppointmentTravelMode | null;
+  vehicleType: AppointmentVehicleType | null;
   notes: string | null;
   medicalPrescription: MedicalPrescriptionPayload | null;
   agreedPrice: number | null;

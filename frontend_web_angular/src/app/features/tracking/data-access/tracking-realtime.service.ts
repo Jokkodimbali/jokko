@@ -18,6 +18,7 @@ export type TrackingMissionEvent = {
   clientUserId: string;
   professionalId: string;
   occurredAt: string;
+  tracking?: AppointmentTrackingView;
 };
 
 @Injectable({ providedIn: 'root' })

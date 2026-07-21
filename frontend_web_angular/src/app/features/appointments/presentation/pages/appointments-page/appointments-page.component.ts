@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
@@ -12,9 +12,11 @@ import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentStatus, AppointmentView } from '../../../domain/appointments.models';
 import {
   NegotiationStatus,
+  NegotiationScope,
   NegotiationView,
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
+import { NegotiationsRealtimeService } from '../../../../services/data-access/negotiations-realtime.service';
 
 type AppointmentTab = 'active' | 'done';
 type AppointmentTone = 'blue' | 'green' | 'red' | 'neutral';
@@ -76,8 +78,10 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   private readonly appointmentRefreshMs = 5000;
   private negotiationRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private appointmentRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private negotiationRealtimeSubscription?: Subscription;
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly serviceProposalService = inject(ServiceProposalService);
+  private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -312,6 +316,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.appointmentRefreshIntervalId) {
       clearInterval(this.appointmentRefreshIntervalId);
     }
+    this.negotiationRealtimeSubscription?.unsubscribe();
   }
 
   protected setTab(tab: AppointmentTab): void {
@@ -847,11 +852,24 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.negotiationRefreshIntervalId) {
       clearInterval(this.negotiationRefreshIntervalId);
     }
+    this.startNegotiationRealtime(scope);
 
     this.negotiationRefreshIntervalId = setInterval(() => {
       if (document.hidden) return;
       this.refreshNegotiations(scope);
     }, this.negotiationRefreshMs);
+  }
+
+  private startNegotiationRealtime(scope: NegotiationScope): void {
+    this.negotiationRealtimeSubscription?.unsubscribe();
+    this.negotiationRealtimeSubscription = this.negotiationsRealtime
+      .watchMyNegotiations(scope)
+      .subscribe((event) => {
+        if (event.negotiation) {
+          this.upsertNegotiation(event.negotiation);
+        }
+        this.refreshNegotiations(scope);
+      });
   }
 
   private startAppointmentRefresh(scope: 'CLIENT' | 'PRESTATAIRE'): void {
@@ -876,6 +894,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (!scope) return;
     this.serviceProposalService.listMyPriceProposals(scope, true).subscribe({
       next: (negotiations) => this.negotiations.set(negotiations),
+    });
+  }
+
+  private upsertNegotiation(negotiation: NegotiationView): void {
+    this.negotiations.update((items) => {
+      const exists = items.some((item) => item.id === negotiation.id);
+      return exists
+        ? items.map((item) => (item.id === negotiation.id ? negotiation : item))
+        : [negotiation, ...items];
     });
   }
 

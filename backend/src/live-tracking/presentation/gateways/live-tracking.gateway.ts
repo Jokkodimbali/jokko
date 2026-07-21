@@ -236,7 +236,7 @@ export class LiveTrackingGateway
   @OnEvent('tracking.provider.arrived')
   @OnEvent('tracking.service.started')
   @OnEvent('tracking.service.completed')
-  handleMissionStatusUpdated(event: {
+  async handleMissionStatusUpdated(event: {
     nom: string;
     payload: {
       reservationId: string;
@@ -244,10 +244,12 @@ export class LiveTrackingGateway
       professionalId: string;
     };
     dateOccurrence: Date;
-  }): void {
+  }): Promise<void> {
+    const tracking = await this.safeGetReservationTrackingSnapshot(event);
     const payload = {
       type: event.nom,
       occurredAt: event.dateOccurrence,
+      ...(tracking ? { tracking } : {}),
       ...event.payload,
     };
     this.server
@@ -259,6 +261,26 @@ export class LiveTrackingGateway
     this.server
       .to(this.buildProfessionalRoom(event.payload.professionalId))
       .emit('tracking.mission.updated', payload);
+  }
+
+  private async safeGetReservationTrackingSnapshot(event: {
+    payload: {
+      reservationId: string;
+      clientUserId: string;
+    };
+  }) {
+    try {
+      return await this.liveTrackingFacade.getReservationTracking(
+        {
+          sub: event.payload.clientUserId,
+          role: 'CLIENT',
+          phoneNumber: '',
+        },
+        event.payload.reservationId,
+      );
+    } catch {
+      return null;
+    }
   }
 
   private extractToken(client: Socket): string | null {

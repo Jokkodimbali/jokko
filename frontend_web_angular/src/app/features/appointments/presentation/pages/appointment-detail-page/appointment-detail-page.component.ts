@@ -80,9 +80,10 @@ const COMMON_TREATMENTS = [
   'Repos strict a domicile pendant 5 jours',
 ] as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
-const TRACKING_FALLBACK_POLL_INTERVAL_MS = 5000;
-const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 1000;
-const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 5000;
+const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
+const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
+const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
+const LIVE_LOCATION_UPDATE_INTERVAL_MS = 2000;
 const ROUTE_DEVIATION_THRESHOLD_METERS = 95;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 14_000;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
@@ -1407,7 +1408,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           const source = updated ?? appointment;
           if (updated) {
             this.appointment.update((current) =>
-              current ? this.mergeAppointment(current, updated) : updated,
+              current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
             );
             this.hydrateMedicalPrescriptionFromAppointment(updated);
           }
@@ -2360,8 +2361,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       (event) => {
         if (event.reservationId !== appointmentId) return;
         this.trackingStore.setMissionEvent(event);
+        if (event.tracking) {
+          this.setTrackingSafely(event.tracking);
+        } else {
+          this.refreshTracking(appointmentId);
+        }
         this.refreshAppointmentState(appointmentId);
-        this.refreshTracking(appointmentId);
       },
     );
   }
@@ -2525,18 +2530,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private applyRefreshedAppointment(appointment: AppointmentView): void {
-    const previousStatus = this.appointment()?.status;
-    this.appointment.set(appointment);
+    const current = this.appointment();
+    const previousStatus = current?.status;
+    const nextAppointment = current ? this.mergeAppointment(current, appointment) : appointment;
+    this.appointment.set(nextAppointment);
     if (
-      this.isParcelTransportAppointment(appointment) &&
-      appointment.status === 'EN_COURS' &&
+      this.isParcelTransportAppointment(nextAppointment) &&
+      nextAppointment.status === 'EN_COURS' &&
       previousStatus !== 'EN_COURS'
     ) {
-      this.prepareParcelDropoffNavigationAfterPickup(appointment);
+      this.prepareParcelDropoffNavigationAfterPickup(nextAppointment);
     }
-    this.synchronizeLiveNavigation(appointment);
-    if (appointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
-      this.loadTerminalTrackingSnapshot(appointment.id);
+    this.synchronizeLiveNavigation(nextAppointment);
+    if (nextAppointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
+      this.loadTerminalTrackingSnapshot(nextAppointment.id);
     }
   }
 
@@ -2910,62 +2917,60 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
-    window.setTimeout(() => {
-      const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
-      this.trackingStore.setTracking(normalizedTracking);
-      this.syncAppointmentStatusFromTracking(normalizedTracking);
-      const appointment = this.appointment();
-      if (appointment && !this.shouldRunLiveNavigation(appointment)) {
-        this.stopLiveNavigation(appointment.id, false);
-        return;
-      }
-      if (!this.hasActiveNavigationState()) {
-        this.suspendNavigationPresentation();
-        return;
-      }
-      if (
-        this.shouldAcceptTrackingArrivalFromServer(normalizedTracking) &&
-        this.trackingIndicatesArrival(normalizedTracking)
-      ) {
-        this.pinArrival(this.resolveArrivalPoint(this.destinationCoordinates(), normalizedTracking));
-        this.clearNavigationRouteAfterArrival();
-        this.updateGoogleMaps();
-        return;
-      }
-
-      const serverRoute = normalizedTracking.route;
-      if (serverRoute) {
-        this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
-        this.routeDurationMinutes.set(
-          Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
-        );
-        this.routeCoordinates = serverRoute.coordinates.map(
-          (coordinate) =>
-            [coordinate.latitude, coordinate.longitude] as [number, number],
-        );
-        if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
-          const currentRoute = this.routeService.mapTrackingRoute(
-            serverRoute,
-            this.routeCoordinates,
-          );
-          this.routeOptions = [currentRoute];
-          this.selectedRouteId.set(currentRoute.id);
-        }
-        this.routeStatus.set(
-          this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-        );
-      }
+    const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
+    this.trackingStore.setTracking(normalizedTracking);
+    this.syncAppointmentStatusFromTracking(normalizedTracking);
+    const appointment = this.appointment();
+    if (appointment && !this.shouldRunLiveNavigation(appointment)) {
+      this.stopLiveNavigation(appointment.id, false);
+      return;
+    }
+    if (!this.hasActiveNavigationState()) {
+      this.suspendNavigationPresentation();
+      return;
+    }
+    if (
+      this.shouldAcceptTrackingArrivalFromServer(normalizedTracking) &&
+      this.trackingIndicatesArrival(normalizedTracking)
+    ) {
+      this.pinArrival(this.resolveArrivalPoint(this.destinationCoordinates(), normalizedTracking));
+      this.clearNavigationRouteAfterArrival();
       this.updateGoogleMaps();
-      this.announceNavigationInstruction();
-      if (
-        appointment &&
-        this.isRouteActorViewer() &&
-        (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
-        Date.now() >= this.locationSharingBlockedUntilMs
-      ) {
-        this.startProviderLocationSharing(appointment.id);
+      return;
+    }
+
+    const serverRoute = normalizedTracking.route;
+    if (serverRoute) {
+      this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
+      this.routeDurationMinutes.set(
+        Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
+      );
+      this.routeCoordinates = serverRoute.coordinates.map(
+        (coordinate) =>
+          [coordinate.latitude, coordinate.longitude] as [number, number],
+      );
+      if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
+        const currentRoute = this.routeService.mapTrackingRoute(
+          serverRoute,
+          this.routeCoordinates,
+        );
+        this.routeOptions = [currentRoute];
+        this.selectedRouteId.set(currentRoute.id);
       }
-    }, 0);
+      this.routeStatus.set(
+        this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
+      );
+    }
+    this.updateGoogleMaps();
+    this.announceNavigationInstruction();
+    if (
+      appointment &&
+      this.isRouteActorViewer() &&
+      (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
+      Date.now() >= this.locationSharingBlockedUntilMs
+    ) {
+      this.startProviderLocationSharing(appointment.id);
+    }
   }
 
   private syncAppointmentStatusFromTracking(tracking: AppointmentTrackingView): void {
@@ -3003,7 +3008,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.providerLocationSubscription = this.providerLocation
-      .watch(8000)
+      .watch(LIVE_LOCATION_UPDATE_INTERVAL_MS)
       .subscribe({
       next: (position) => {
         if (!this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive()) {
@@ -3875,6 +3880,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const merged = {
       ...current,
       ...updated,
+      status: this.mergeAppointmentStatus(current.status, updated.status),
       doctorName: current.doctorName,
       specialty: current.specialty,
       avatarUrl: current.avatarUrl,
@@ -3892,6 +3898,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     };
     this.hydrateMedicalPrescriptionFromAppointment(merged);
     return merged;
+  }
+
+  private mergeAppointmentStatus(
+    current: AppointmentView['status'],
+    updated: AppointmentView['status'],
+  ): AppointmentView['status'] {
+    if (
+      current === 'EN_COURS' &&
+      (updated === 'PAYEE_SEQUESTRE' || updated === 'CONFIRMEE')
+    ) {
+      return current;
+    }
+
+    if (current === 'TERMINEE' && updated !== 'TERMINEE') {
+      return current;
+    }
+
+    return updated;
   }
 
   private currentMedicalPrescriptionPayload(): MedicalPrescriptionPayload {
@@ -3937,9 +3961,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .subscribe((updated) => {
         if (!updated) return;
         this.appointment.update((current) =>
-          current ? this.mergeAppointment(current, updated) : updated,
+          current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
         );
       });
+  }
+
+  private mergeMedicalPrescriptionUpdate(
+    current: AppointmentView,
+    updated: AppointmentView,
+  ): AppointmentView {
+    const merged = {
+      ...current,
+      notes: updated.notes,
+      medicalPrescription: updated.medicalPrescription,
+    };
+    this.hydrateMedicalPrescriptionFromAppointment(merged);
+    return merged;
   }
 
   private hydrateMedicalPrescriptionFromAppointment(appointment: AppointmentView): void {

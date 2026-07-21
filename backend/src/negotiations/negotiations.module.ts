@@ -11,6 +11,7 @@ import { NegotiationsFacade } from './application/services/negotiations-facade.s
 import { MaterialQuoteService } from './application/services/material-quote.service';
 import { NegotiationsRepository } from './infrastructure/repositories/negotiations.repository';
 import { NegotiationsController } from './presentation/controllers/negotiations.controller';
+import { NegotiationsGateway } from './presentation/gateways/negotiations.gateway';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { NegotiationsController } from './presentation/controllers/negotiations.
     NegotiationQueryService,
     NegotiationsFacade,
     MaterialQuoteService,
+    NegotiationsGateway,
   ],
   exports: [NegotiationsFacade, NEGOTIATIONS_REPOSITORY_PORT],
 })

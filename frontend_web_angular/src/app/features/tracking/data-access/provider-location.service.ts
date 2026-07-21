@@ -12,7 +12,7 @@ export type ProviderGpsPosition = {
 
 @Injectable({ providedIn: 'root' })
 export class ProviderLocationService {
-  watch(intervalMilliseconds = 8000): Observable<ProviderGpsPosition> {
+  watch(intervalMilliseconds = 2000): Observable<ProviderGpsPosition> {
     return new Observable((subscriber) => {
       if (typeof navigator === 'undefined' || !navigator.geolocation) {
         subscriber.error(new Error('GEOLOCATION_UNAVAILABLE'));
@@ -41,7 +41,7 @@ export class ProviderLocationService {
           });
         },
         (error) => subscriber.error(error),
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 7000 },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
       );
 
       return () => navigator.geolocation.clearWatch(watchId);

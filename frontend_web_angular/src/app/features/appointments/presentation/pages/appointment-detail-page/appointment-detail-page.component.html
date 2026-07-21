@@ -1171,7 +1171,7 @@
           </ng-container>
         </div>
         <div
-          *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
+          *ngIf="isRouteActorViewer() && (isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >
@@ -1183,38 +1183,19 @@
             <small *ngIf="navigationDistanceLabel()">
               Dans {{ navigationDistanceLabel() }}
             </small>
-          </div>
-          <button
-            type="button"
-            (click)="toggleNavigationVoice()"
-            [attr.aria-label]="
-              isNavigationVoiceEnabled()
-                ? 'Desactiver les instructions vocales'
-                : 'Activer les instructions vocales'
-            "
-            [attr.aria-pressed]="isNavigationVoiceEnabled()"
-          >
-            <lucide-icon
-              [name]="isNavigationVoiceEnabled() ? 'volume-2' : 'volume-x'"
-              size="18"
-              [strokeWidth]="2.5"
-            ></lucide-icon>
-          </button>
-          <div
-            *ngIf="upcomingNavigationManeuvers().length > 1"
-            class="appointment-detail__navigation-next"
-            aria-label="Prochaines manoeuvres"
-          >
-            <span
-              *ngFor="let maneuver of upcomingNavigationManeuvers().slice(1); trackBy: trackByNavigationManeuver"
+            <em
+              *ngIf="upcomingNavigationManeuvers()[1] as nextManeuver"
+              class="appointment-detail__navigation-up-next"
             >
-              <lucide-icon [name]="maneuver.icon" size="15" [strokeWidth]="2.8"></lucide-icon>
-              <b>{{ maneuver.distanceLabel }}</b>
-            </span>
+              <lucide-icon [name]="nextManeuver.icon" size="14" [strokeWidth]="2.8"></lucide-icon>
+              <span>Ensuite</span>
+              <b>{{ nextManeuver.distanceLabel }}</b>
+            </em>
           </div>
         </div>
         <div *ngIf="(isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()" class="appointment-detail__route-bottom">
           <button
+            *ngIf="isRouteActorViewer()"
             type="button"
             class="appointment-detail__route-view-toggle"
             (click)="toggleMapPerspective()"

@@ -923,11 +923,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly providerRoleLabel = computed(() => {
     const appointment = this.appointment();
-    const role =
-      appointment?.specialty?.trim() ||
-      appointment?.serviceName?.trim() ||
-      'professionnel';
-    return role.toLocaleLowerCase('fr-FR');
+    return this.providerExpertiseLabel(appointment).toLocaleLowerCase('fr-FR');
   });
   protected readonly trackingScenarioContext = computed<TrackingScenarioViewContext>(() => ({
     appointmentCompleted: this.isAppointmentCompleted(),
@@ -2030,6 +2026,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected toggleMapPerspective(): void {
+    if (!this.isRouteActorViewer()) return;
+
     this.isMapTopView.update((enabled) => !enabled);
     this.persistMapPerspective();
     this.mapRenderer.setTopView(this.isMapTopView());
@@ -2049,6 +2047,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       MAP_PERSPECTIVE_STORAGE_KEY,
       this.isMapTopView() ? 'top' : 'driver',
     );
+  }
+
+  private effectiveMapTopView(): boolean {
+    return !this.isRouteActorViewer() || this.isMapTopView();
   }
 
   protected toggleMapFullscreen(): void {
@@ -2473,10 +2475,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.mapRenderer.render({
       provider: destination,
       destination,
+      destinationMarker: this.destinationMapMarker(),
       remainingLabel: 'Arrive',
       statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
       headingDegrees: this.reliableTrackingHeading(),
       routes: [],
+      showManeuverMarkers: this.isRouteActorViewer(),
       arrived: true,
       travelerMarker: this.travelerMapMarker(),
     });
@@ -2580,6 +2584,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.mapRenderer.render({
           provider: point,
           destination,
+          destinationMarker: this.destinationMapMarker(),
           remainingLabel: progress >= 1 ? 'Arrive' : this.routeRemainingBadgeLabel(),
           statusLabel:
             progress >= 1
@@ -2587,6 +2592,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               : this.activeVehicleRouteLabel(false),
           headingDegrees: null,
           routes: this.serializedMapRoutes(),
+          showManeuverMarkers: this.isRouteActorViewer(),
           arrived: progress >= 1,
           travelerMarker: this.travelerMapMarker(),
         });
@@ -3161,7 +3167,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.isSatelliteMapEnabled(),
           (routeId) => this.selectRouteAlternative(routeId),
         );
-        this.mapRenderer.setTopView(this.isMapTopView());
+        this.mapRenderer.setTopView(this.effectiveMapTopView());
         this.mapRenderer.setHeading(this.mapHeadingDegrees());
       }
       this.updateGoogleMaps();
@@ -3199,6 +3205,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       (this.isNonParcelWorkArrivedOnMap() || arrived) && arrivalPoint
         ? [arrivalPoint.lat, arrivalPoint.lng]
         : trackedProvider;
+    this.mapRenderer.setTopView(this.effectiveMapTopView());
     if (
       destination &&
       arrived
@@ -3232,21 +3239,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         lng: displayedProvider[1],
       },
       destination,
+      destinationMarker: this.destinationMapMarker(),
       remainingLabel: this.routeRemainingBadgeLabel(),
       statusLabel: this.vehicleStatusLabel(),
       headingDegrees: this.reliableTrackingHeading(),
       routes: this.serializedMapRoutes(),
+      showManeuverMarkers: this.isRouteActorViewer(),
       arrived: this.hasTravelerArrivedAtDestination(),
       travelerMarker: this.travelerMapMarker(),
     });
   }
 
   private travelerMapMarker(): {
-    kind: 'avatar' | 'vehicle';
+    kind: 'avatar' | 'vehicle' | 'navigation';
     imageUrl: string | null;
     initials: string;
     name: string;
     roleLabel: string;
+    badgeAccent?: 'blue' | 'red';
   } {
     const appointment = this.appointment();
     if (!appointment) {
@@ -3256,6 +3266,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         initials: 'JK',
         name: 'Jokko',
         roleLabel: 'En route',
+      };
+    }
+
+    if (this.isRouteActorViewer()) {
+      return {
+        kind: 'navigation',
+        imageUrl: null,
+        initials: 'NAV',
+        name: 'Navigation',
+        roleLabel: this.routeRemainingBadgeLabel(),
       };
     }
 
@@ -3277,6 +3297,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         initials: userInitials(appointment.clientName),
         name: appointment.clientName,
         roleLabel: this.clientFirstNameLabel(),
+        badgeAccent: 'blue',
       };
     }
 
@@ -3286,7 +3307,123 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       initials: userInitials(appointment.doctorName),
       name: appointment.doctorName,
       roleLabel: this.providerRoleLabel(),
+      badgeAccent: 'red',
     };
+  }
+
+  private singleSpecialtyLabel(label: string): string {
+    return label
+      .split(/(?:\s+-\s+)|[,;\n|/]+/)
+      .map((item) => item.trim())
+      .find(Boolean) || label.trim();
+  }
+
+  private providerExpertiseLabel(appointment: AppointmentView | null): string {
+    if (!appointment) return 'professionnel';
+
+    const candidates = [
+      appointment.professionalSubCategoryName?.trim(),
+      this.isServiceNameLabel(appointment.specialty, appointment) ? null : appointment.specialty?.trim(),
+    ].filter((value): value is string => Boolean(value));
+
+    const expertise = candidates.find((value) => {
+      const normalized = value.toLocaleLowerCase('fr-FR');
+      return normalized !== 'service non renseigne';
+    });
+
+    return this.singleSpecialtyLabel(expertise || 'professionnel');
+  }
+
+  private isServiceNameLabel(value: string | null | undefined, appointment: AppointmentView): boolean {
+    const normalized = value?.trim().toLocaleLowerCase('fr-FR');
+    if (!normalized) return false;
+
+    return [appointment.serviceName, appointment.serviceCategoryName]
+      .map((candidate) => candidate?.trim().toLocaleLowerCase('fr-FR'))
+      .includes(normalized);
+  }
+
+  private destinationMapMarker(): {
+    title: string;
+    subtitle: string;
+    etaLabel: string;
+    accent: 'blue' | 'red';
+    person?: {
+      imageUrl: string | null;
+      initials: string;
+      name: string;
+      label: string;
+      badgeAccent: 'blue' | 'red';
+    } | null;
+  } {
+    const appointment = this.appointment();
+    return {
+      title: appointment ? this.destinationMapMarkerTitle(appointment) : "Lieu d'arrivee",
+      subtitle: this.destinationMapMarkerSubtitle(),
+      etaLabel: this.destinationMapMarkerEtaLabel(),
+      accent: appointment ? this.destinationMapMarkerAccent(appointment) : 'blue',
+      person: appointment ? this.destinationMapMarkerPerson(appointment) : null,
+    };
+  }
+
+  private destinationMapMarkerPerson(appointment: AppointmentView): {
+    imageUrl: string | null;
+    initials: string;
+    name: string;
+    label: string;
+    badgeAccent: 'blue' | 'red';
+  } | null {
+    if (this.isParcelTransportAppointment(appointment)) {
+      return null;
+    }
+
+    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {
+      return {
+        imageUrl: appointment.avatarUrl || null,
+        initials: userInitials(appointment.doctorName),
+        name: appointment.doctorName,
+        label: this.providerRoleLabel(),
+        badgeAccent: 'red',
+      };
+    }
+
+    if (appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
+      return {
+        imageUrl: appointment.clientAvatarUrl || null,
+        initials: userInitials(appointment.clientName),
+        name: appointment.clientName,
+        label: this.isClientViewer() ? 'Moi' : this.clientFirstNameLabel(),
+        badgeAccent: 'blue',
+      };
+    }
+
+    return null;
+  }
+
+  private destinationMapMarkerTitle(appointment: AppointmentView): string {
+    if (this.isParcelTransportAppointment(appointment)) {
+      return this.isParcelPickupValidated() || this.isParcelDropoffNavigationActive()
+        ? 'Destination de depot de colis'
+        : 'Destination de retrait de colis';
+    }
+
+    return appointment.travelMode === 'CLIENT_SE_DEPLACE'
+      ? "Adresse d'intervention"
+      : "Lieu d'intervention";
+  }
+
+  private destinationMapMarkerSubtitle(): string {
+    const distance = this.routeDistanceKm();
+    return distance !== null && distance > 0 ? this.formatter.formatDistance(distance) : '';
+  }
+
+  private destinationMapMarkerEtaLabel(): string {
+    return this.hasTravelerArrivedAtDestination() ? '0 min' : this.routeEtaLabel();
+  }
+
+  private destinationMapMarkerAccent(appointment: AppointmentView): 'blue' | 'red' {
+    if (this.isParcelTransportAppointment(appointment)) return 'blue';
+    return appointment.travelMode === 'PRESTATAIRE_SE_DEPLACE' ? 'red' : 'blue';
   }
 
   private isNonParcelWorkArrivedOnMap(): boolean {
@@ -3751,6 +3888,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       serviceName: current.serviceName,
       serviceDescription: current.serviceDescription,
       serviceCategoryName: current.serviceCategoryName,
+      professionalSubCategoryName: current.professionalSubCategoryName,
     };
     this.hydrateMedicalPrescriptionFromAppointment(merged);
     return merged;

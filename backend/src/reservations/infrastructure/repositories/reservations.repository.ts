@@ -90,6 +90,24 @@ const RESERVATION_DETAIL_SELECT = {
           urlAvatar: true,
         },
       },
+      specialites: {
+        orderBy: { creeLe: 'desc' },
+        select: {
+          id: true,
+          categorieId: true,
+          sousCategorieId: true,
+          categorie: {
+            select: {
+              nom: true,
+            },
+          },
+          sousCategorie: {
+            select: {
+              nom: true,
+            },
+          },
+        },
+      },
     },
   },
 } as const;
@@ -162,6 +180,17 @@ type ReservationDetailRecord = ReservationRecord & {
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 };
 

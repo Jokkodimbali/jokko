@@ -162,7 +162,7 @@
   }
 
   .appointment-detail__navigation-guidance {
-    grid-template-columns: 42px minmax(0, 1fr) 40px;
+    grid-template-columns: 42px minmax(0, 1fr);
     max-width: calc(100% - 20px);
     min-height: 64px;
     top: 10px;

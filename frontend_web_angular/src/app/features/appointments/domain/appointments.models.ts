@@ -82,6 +82,17 @@ export interface BackendReservation {
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites?: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 }
 
@@ -113,6 +124,7 @@ export interface AppointmentView {
   serviceName: string;
   serviceDescription: string | null;
   serviceCategoryName: string | null;
+  professionalSubCategoryName: string | null;
   servicePrice: number | null;
   travelMode: AppointmentTravelMode | null;
   vehicleType: AppointmentVehicleType | null;

@@ -121,5 +121,16 @@ export type ReservationDetailedView = Reservation & {
       numeroTelephone: string;
       urlAvatar: string | null;
     };
+    specialites: Array<{
+      id: string;
+      categorieId: string;
+      sousCategorieId: string | null;
+      categorie: {
+        nom: string;
+      };
+      sousCategorie: {
+        nom: string;
+      } | null;
+    }>;
   };
 };

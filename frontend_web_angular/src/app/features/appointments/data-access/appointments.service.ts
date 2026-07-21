@@ -64,6 +64,9 @@ export class AppointmentsService {
                     serviceName: service?.nom || 'Service non renseigne',
                     serviceDescription: service?.description || null,
                     serviceCategoryName: null,
+                    professionalSubCategoryName: this.firstNonEmpty(
+                      (service as { subCategoryName?: string | null } | undefined)?.subCategoryName,
+                    ),
                     servicePrice: service?.prix ?? null,
                     travelMode: service?.modeDeplacement ?? null,
                     vehicleType: detail.profile.typeVehicule ?? null,
@@ -107,6 +110,9 @@ export class AppointmentsService {
                 serviceName: service?.nom || 'Service non renseigne',
                 serviceDescription: service?.description || null,
                 serviceCategoryName: null,
+                professionalSubCategoryName: this.firstNonEmpty(
+                  (service as { subCategoryName?: string | null } | undefined)?.subCategoryName,
+                ),
                 servicePrice: service?.prix ?? null,
                 travelMode: service?.modeDeplacement ?? null,
                 vehicleType: detail.profile.typeVehicule ?? null,
@@ -377,6 +383,7 @@ export class AppointmentsService {
       serviceName?: string;
       serviceDescription?: string | null;
       serviceCategoryName?: string | null;
+      professionalSubCategoryName?: string | null;
       servicePrice?: number | null;
       travelMode?: AppointmentView['travelMode'];
       vehicleType?: AppointmentView['vehicleType'];
@@ -417,6 +424,12 @@ export class AppointmentsService {
       serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
       serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
       serviceCategoryName: professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
+      professionalSubCategoryName:
+        this.validProfessionalSubCategoryName(
+          professional.professionalSubCategoryName ??
+            this.professionalSubCategoryName(reservation),
+          reservation,
+        ) ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       vehicleType:
@@ -491,9 +504,41 @@ export class AppointmentsService {
       serviceName: reservation.service.nom,
       serviceDescription: reservation.service.description,
       serviceCategoryName: reservation.service.categorie?.nom ?? null,
+      professionalSubCategoryName: this.professionalSubCategoryName(reservation),
       travelMode: reservation.service.modeDeplacement,
       vehicleType: reservation.professionnel.typeVehicule ?? null,
     });
+  }
+
+  private professionalSubCategoryName(reservation: BackendReservation): string | null {
+    const specialties = reservation.professionnel?.specialites ?? [];
+    const candidates = specialties.map((specialty) => specialty.sousCategorie?.nom ?? null);
+
+    return (
+      candidates
+        .map((value) => this.validProfessionalSubCategoryName(value, reservation))
+        .find((value): value is string => Boolean(value)) ?? null
+    );
+  }
+
+  private validProfessionalSubCategoryName(
+    value: string | null | undefined,
+    reservation: BackendReservation,
+  ): string | null {
+    const normalized = value?.trim();
+    if (!normalized) return null;
+
+    const forbidden = [
+      reservation.service?.nom,
+      reservation.service?.categorie?.nom,
+      'Service non renseigne',
+    ].map((item) => item?.trim().toLocaleLowerCase('fr-FR'));
+
+    return forbidden.includes(normalized.toLocaleLowerCase('fr-FR')) ? null : normalized;
+  }
+
+  private firstNonEmpty(...values: Array<string | null | undefined>): string | null {
+    return values.map((value) => value?.trim()).find((value): value is string => Boolean(value)) ?? null;
   }
 
   private normalizePrescriptionItems(value: unknown): string[] {

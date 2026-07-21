@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { Observable, Subscription, forkJoin, of, timer } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -33,6 +33,7 @@ import {
   AppointmentStatus,
   BackendReservation,
 } from '../../../../appointments/domain/appointments.models';
+import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import {
   DoctorSpaceService,
   PatientMedicalProfile,
@@ -321,13 +322,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
+  private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private negotiationsRealtimeSubscription?: Subscription;
+  private reservationsRealtimeSubscription?: Subscription;
+  private professionalRealtimeFallbackSubscription?: Subscription;
+  private isReservationsRefreshInProgress = false;
 
-  protected readonly activeSection = signal<DoctorSpaceSection>('availability');
+  protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -1155,7 +1160,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.negotiationsRealtimeSubscription?.unsubscribe();
+    this.reservationsRealtimeSubscription?.unsubscribe();
+    this.professionalRealtimeFallbackSubscription?.unsubscribe();
     this.negotiationsRealtime.stopWatching('PRESTATAIRE');
+    this.reservationsRealtime.stopWatching('PRESTATAIRE');
   }
 
   protected goBack(): void {
@@ -1171,12 +1179,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     const section = this.route.snapshot.queryParamMap.get('section');
-    if (section === 'profile') return 'availability';
-    if (section === 'patient-appointments' && this.isProviderSpace()) return 'availability';
+    if (section === 'profile') return this.defaultSectionForSpace();
+    if (section === 'patient-appointments' && this.isProviderSpace()) return 'negotiations';
     if (section === 'negotiations' && !this.isProviderSpace()) return 'patient-appointments';
     return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
       ? (section as DoctorSpaceSection)
-      : 'availability';
+      : this.defaultSectionForSpace();
+  }
+
+  private defaultSectionForSpace(): DoctorSpaceSection {
+    return this.isProviderSpace() ? 'negotiations' : 'patient-appointments';
   }
 
   private setActiveSection(section: DoctorSpaceSection): void {
@@ -1210,7 +1222,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     this.setActiveSection(section);
+    if (section === 'patient-appointments') {
+      this.refreshReservations();
+    }
     if (section === 'negotiations') {
+      this.refreshReservations();
       this.refreshNegotiations();
     }
     if (section === 'wallet') {
@@ -2530,6 +2546,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         this.portfolioItems.set(portfolio);
         this.ensureActiveSectionIsAvailable();
         this.startNegotiationRealtime();
+        this.startReservationRealtime();
+        this.startProfessionalRealtimeFallback();
         if (this.activeSection() === 'wallet') {
           this.refreshWallet();
         }
@@ -2544,7 +2562,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     if (section === 'consultation' && !this.showConsultationSection()) {
-      this.setActiveSection('availability');
+      this.setActiveSection(this.defaultSectionForSpace());
     }
   }
 
@@ -2633,6 +2651,61 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private refreshReservations(showErrors = true): void {
+    if (!this.professionalProfileId()) return;
+    if (this.isReservationsRefreshInProgress) return;
+
+    this.isReservationsRefreshInProgress = true;
+    this.doctorSpaceService
+      .listMyReservations()
+      .pipe(
+        finalize(() => {
+          this.isReservationsRefreshInProgress = false;
+        }),
+      )
+      .subscribe({
+      next: (reservations) => {
+        this.reservations.set(reservations);
+        this.syncAgendaCursorWithReservations(reservations);
+      },
+      error: (error) => {
+        if (showErrors) {
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Impossible de charger les rendez-vous.'),
+          );
+        }
+      },
+    });
+  }
+
+  private startReservationRealtime(): void {
+    if (!this.professionalProfileId() || this.reservationsRealtimeSubscription) {
+      return;
+    }
+
+    this.reservationsRealtimeSubscription = this.reservationsRealtime
+      .watchMyReservations('PRESTATAIRE')
+      .subscribe((event) => {
+        if (event.reservation) {
+          this.upsertReservation(event.reservation);
+        }
+        this.refreshReservations();
+      });
+  }
+
+  private startProfessionalRealtimeFallback(): void {
+    if (!this.professionalProfileId() || this.professionalRealtimeFallbackSubscription) {
+      return;
+    }
+
+    this.professionalRealtimeFallbackSubscription = timer(2500, 2500).subscribe(() => {
+      const section = this.activeSection();
+      if (section === 'patient-appointments' || section === 'negotiations' || section === 'agenda') {
+        this.refreshReservations(false);
+      }
+    });
+  }
+
   private startNegotiationRealtime(): void {
     if (!this.professionalProfileId() || !this.isProviderSpace() || this.negotiationsRealtimeSubscription) {
       return;
@@ -2654,6 +2727,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return exists
         ? negotiations.map((item) => (item.id === negotiation.id ? negotiation : item))
         : [negotiation, ...negotiations];
+    });
+  }
+
+  private upsertReservation(reservation: BackendReservation): void {
+    this.reservations.update((reservations) => {
+      const exists = reservations.some((item) => item.id === reservation.id);
+      const next = exists
+        ? reservations.map((item) => (item.id === reservation.id ? reservation : item))
+        : [reservation, ...reservations];
+      this.syncAgendaCursorWithReservations(next);
+      return next;
     });
   }
 

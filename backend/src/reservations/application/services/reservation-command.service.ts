@@ -108,6 +108,10 @@ export class ReservationCommandService extends ReservationAppService {
       const createdReservation = await this.reservationsRepository.save(
         reservation.toView(),
       );
+      await this.publishReservationChanged(
+        createdReservation,
+        'reservations.created',
+      );
 
       return createdReservation;
     } catch (error) {
@@ -587,6 +591,7 @@ export class ReservationCommandService extends ReservationAppService {
           misAJourLe: new Date(),
         },
       });
+      await this.publishReservationChanged(updated, 'reservations.updated');
       return updated;
     } catch (error) {
       this.handleDomainError(error);
@@ -784,6 +789,10 @@ export class ReservationCommandService extends ReservationAppService {
           amount: negotiation.montantAccepte ?? negotiation.montantCourant,
         },
       });
+      await this.publishReservationChanged(
+        createdReservation,
+        'reservations.created',
+      );
 
       return createdReservation;
     } catch (error) {
@@ -843,5 +852,20 @@ export class ReservationCommandService extends ReservationAppService {
         negotiatedAddress ?? requestedAddress ?? command.adresseClient,
       dureeMinutes: negotiation.dureeMinutesProposee ?? command.dureeMinutes,
     };
+  }
+
+  private async publishReservationChanged(
+    reservation: Reservation,
+    eventName: 'reservations.created' | 'reservations.updated',
+  ): Promise<void> {
+    await this.eventBus.publier({
+      nom: eventName,
+      dateOccurrence: new Date(),
+      payload: {
+        reservationId: reservation.id,
+        clientId: reservation.clientId,
+        professionalId: reservation.professionnelId,
+      },
+    });
   }
 }

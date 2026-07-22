@@ -600,6 +600,32 @@
               Reserver a nouveau
             </button>
           </section>
+
+          <button
+            *ngIf="canReviewAppointment(appointment)"
+            type="button"
+            class="appointment-detail__review-cta"
+            (click)="openReviewModal(appointment)"
+          >
+            <span>
+              <strong>Laisser un avis</strong>
+              <small>Evaluez votre experience</small>
+            </span>
+            <i>
+              <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.6"></lucide-icon>
+            </i>
+          </button>
+
+          <button
+            *ngIf="isAppointmentCompleted() && !isProviderViewer()"
+            type="button"
+            class="appointment-detail__dispute-cta"
+            (click)="reportAppointment()"
+            [disabled]="isUpdatingStatus()"
+          >
+            Signaler litige
+          </button>
+
         </aside>
       </div>
     </section>
@@ -710,6 +736,32 @@
               Reserver a nouveau
             </button>
           </section>
+
+          <button
+            *ngIf="canReviewAppointment(appointment)"
+            type="button"
+            class="appointment-detail__review-cta"
+            (click)="openReviewModal(appointment)"
+          >
+            <span>
+              <strong>Laisser un avis</strong>
+              <small>Evaluez votre experience</small>
+            </span>
+            <i>
+              <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.6"></lucide-icon>
+            </i>
+          </button>
+
+          <button
+            *ngIf="isAppointmentCompleted() && !isProviderViewer()"
+            type="button"
+            class="appointment-detail__dispute-cta"
+            (click)="reportAppointment()"
+            [disabled]="isUpdatingStatus()"
+          >
+            Signaler litige
+          </button>
+
         </aside>
       </div>
     </section>
@@ -1246,6 +1298,31 @@
           </button>
         </div>
 
+        <button
+          *ngIf="canReviewAppointment(appointment)"
+          type="button"
+          class="appointment-detail__review-cta"
+          (click)="openReviewModal(appointment)"
+        >
+          <span>
+            <strong>Laisser un avis</strong>
+            <small>Evaluez votre experience</small>
+          </span>
+          <i>
+            <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.6"></lucide-icon>
+          </i>
+        </button>
+
+        <button
+          *ngIf="isAppointmentCompleted()"
+          type="button"
+          class="appointment-detail__dispute-cta"
+          (click)="reportAppointment()"
+          [disabled]="isUpdatingStatus()"
+        >
+          Signaler litige
+        </button>
+
         <div *ngIf="isParcelTransportAppointment(appointment)" class="appointment-detail__client-summary-qr">
           <button type="button" (click)="openQrCodePage(appointment, 'expediteur')">
             <lucide-icon name="download" size="16" [strokeWidth]="2.4"></lucide-icon>
@@ -1386,6 +1463,81 @@
     </section>
 
     <section
+      *ngIf="isReviewModalOpen()"
+      class="appointment-detail__modal appointment-detail__review-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Evaluer ce prestataire"
+    >
+      <form class="appointment-detail__review-card" (ngSubmit)="submitReview(appointment)">
+        <header>
+          <div>
+            <h2>Evaluer ce prestataire</h2>
+            <p>{{ appointment.doctorName }} · {{ appointment.specialty || appointment.serviceName }}</p>
+          </div>
+          <button type="button" aria-label="Fermer" (click)="closeReviewModal()">
+            <lucide-icon name="x" size="22" [strokeWidth]="2.3"></lucide-icon>
+          </button>
+        </header>
+
+        <div class="appointment-detail__review-fields">
+          <fieldset>
+            <legend>Note globale <span>*</span></legend>
+            <div class="appointment-detail__review-stars" aria-label="Note globale">
+              <button
+                *ngFor="let star of reviewStars"
+                type="button"
+                [class.appointment-detail__review-star--active]="star <= selectedRating()"
+                [attr.aria-label]="'Donner ' + star + ' etoile' + (star > 1 ? 's' : '')"
+                (click)="setRating(star)"
+              >
+                <lucide-icon name="star" size="28" [strokeWidth]="2.1"></lucide-icon>
+              </button>
+            </div>
+          </fieldset>
+
+          <label>
+            <span>Votre commentaire <b>*</b></span>
+            <textarea
+              name="reviewComment"
+              rows="5"
+              maxlength="500"
+              [ngModel]="reviewComment()"
+              (ngModelChange)="updateReviewComment($event)"
+              placeholder="Decrivez votre experience..."
+              required
+            ></textarea>
+            <small>{{ reviewCommentLength() }}/500</small>
+          </label>
+        </div>
+
+        <footer>
+          <button type="button" (click)="closeReviewModal()" [disabled]="isSubmittingReview()">Annuler</button>
+          <button type="submit" [disabled]="!canSubmitReview()">
+            {{ isSubmittingReview() ? 'Publication...' : 'Publier mon avis' }}
+          </button>
+        </footer>
+      </form>
+    </section>
+
+    <section
+      *ngIf="isReviewSuccessModalOpen()"
+      class="appointment-detail__modal appointment-detail__review-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Avis publie"
+    >
+      <article class="appointment-detail__review-thanks">
+        <span>
+          <lucide-icon name="star" size="30" [strokeWidth]="2.4"></lucide-icon>
+        </span>
+        <h2>Merci pour votre avis !</h2>
+        <p>Votre retour aide d'autres clients a choisir en confiance.</p>
+        <button type="button" (click)="closeReviewSuccessModal()">Fermer</button>
+      </article>
+    </section>
+
+    <section
       *ngIf="isPrescriptionPreviewOpen()"
       class="appointment-detail__modal appointment-detail__medical-prescription-modal"
       role="dialog"
@@ -1427,32 +1579,42 @@
           <section class="appointment-detail__prescription-patient">
             <div>
               <small>Patient</small>
-              <strong>{{ appointment.clientName }}</strong>
+              <strong>{{ medicalPrescriptionPatientName(appointment) }}</strong>
               <span>Date de naissance non renseignée</span>
             </div>
             <div>
-              <em>{{ appointment.clientPhone || 'Téléphone non renseigné' }}</em>
+              <em>{{ medicalPrescriptionPatientPhone(appointment) || 'Téléphone non renseigné' }}</em>
               <em>{{ appointment.addressLabel }}</em>
             </div>
           </section>
 
           <section class="appointment-detail__prescription-section">
             <h4>Prescriptions</h4>
-            <ol *ngIf="medicalTreatments().length > 0; else noPrescriptionTreatment">
-              <li *ngFor="let treatment of medicalTreatments()">{{ treatment }}</li>
+            <ol *ngIf="medicalPrescriptionPreviewItems().length > 0; else noPrescriptionTreatment">
+              <li *ngFor="let item of medicalPrescriptionPreviewItems(); let index = index">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="12" cy="12" r="12"></circle>
+                    <text
+                      x="12"
+                      y="12"
+                      text-anchor="middle"
+                      dominant-baseline="central"
+                      [attr.font-size]="index + 1 >= 10 ? 10 : 12"
+                    >
+                      {{ index + 1 }}
+                    </text>
+                  </svg>
+                </span>
+                <div>
+                  <strong>{{ item.text }}</strong>
+                  <em>{{ item.label }}</em>
+                </div>
+              </li>
             </ol>
             <ng-template #noPrescriptionTreatment>
               <p>Aucun traitement de fond prescrit sur cette ordonnance.</p>
             </ng-template>
-            <ul *ngIf="medicalVaccines().length > 0; else noPrescriptionVaccine">
-              <li *ngFor="let vaccine of medicalVaccines()">{{ vaccine }}</li>
-            </ul>
-            <ng-template #noPrescriptionVaccine>
-              <span></span>
-            </ng-template>
-            <ul>
-              <li *ngFor="let act of medicalActs()">{{ act }}</li>
-            </ul>
           </section>
 
           <footer>

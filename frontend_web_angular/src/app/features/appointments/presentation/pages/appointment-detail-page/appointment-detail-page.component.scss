@@ -769,6 +769,89 @@
   border-color: #7f4e1d;
 }
 
+.appointment-detail__review-cta {
+  align-items: center;
+  background: #fbf7f2;
+  border: 1px solid #e5d5c4;
+  border-radius: 12px;
+  box-sizing: border-box;
+  color: #8d5527;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  justify-content: space-between;
+  line-height: 1.2;
+  min-height: 64px;
+  padding: 12px 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.appointment-detail__review-cta span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.appointment-detail__review-cta strong {
+  color: #8d5527;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.appointment-detail__review-cta small {
+  color: #9a7a61;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.appointment-detail__review-cta i {
+  align-items: center;
+  background: #955d24;
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.appointment-detail__review-cta:hover {
+  background: #f7efe7;
+  border-color: #d8bea5;
+}
+
+.appointment-detail__dispute-cta {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-sizing: border-box;
+  color: #9aa1ad;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  justify-content: center;
+  letter-spacing: 0.28em;
+  min-height: 36px;
+  padding: 10px 8px 0;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.appointment-detail__dispute-cta:hover,
+.appointment-detail__dispute-cta:focus-visible {
+  color: #dc2626;
+  outline: 0;
+}
+
+.appointment-detail__dispute-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .appointment-detail__client-summary-qr-help {
   color: #9aa0ad;
   font-size: 10px;
@@ -1210,5 +1293,300 @@
 .appointment-detail__modal-card footer button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.appointment-detail__review-modal {
+  backdrop-filter: blur(5px);
+}
+
+.appointment-detail__review-card,
+.appointment-detail__review-thanks {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.24);
+  color: #101114;
+  width: min(100%, 448px);
+}
+
+.appointment-detail__review-card {
+  display: grid;
+  overflow: hidden;
+}
+
+.appointment-detail__review-card header {
+  align-items: start;
+  border-bottom: 1px solid #edf0f3;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 26px 24px 18px;
+}
+
+.appointment-detail__review-card h2,
+.appointment-detail__review-thanks h2 {
+  color: #101114;
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.appointment-detail__review-card header p {
+  color: #98a1b2;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 8px 0 0;
+}
+
+.appointment-detail__review-card header button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #9aa2b1;
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.appointment-detail__review-fields {
+  display: grid;
+  gap: 22px;
+  padding: 26px 24px 18px;
+}
+
+.appointment-detail__review-fields fieldset,
+.appointment-detail__review-fields label {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.appointment-detail__review-fields legend,
+.appointment-detail__review-fields label span {
+  color: #17181c;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.appointment-detail__review-fields legend span,
+.appointment-detail__review-fields label b {
+  color: #955d24;
+}
+
+.appointment-detail__review-stars {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.appointment-detail__review-stars button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #e1e4ea;
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.appointment-detail__review-star--active {
+  color: #955d24 !important;
+}
+
+.appointment-detail__review-star--active lucide-icon {
+  fill: currentColor;
+}
+
+.appointment-detail__review-fields textarea {
+  background: #ffffff;
+  border: 1px solid #dfe3ea;
+  border-radius: 14px;
+  color: #111827;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  min-height: 102px;
+  outline: 0;
+  padding: 14px 16px;
+  resize: none;
+  width: 100%;
+}
+
+.appointment-detail__review-fields textarea::placeholder {
+  color: #c8ced8;
+}
+
+.appointment-detail__review-fields textarea:focus {
+  border-color: #955d24;
+  box-shadow: 0 0 0 3px rgba(149, 93, 36, 0.12);
+}
+
+.appointment-detail__review-fields label small {
+  color: #c5cad5;
+  font-size: 14px;
+  font-weight: 800;
+  justify-self: end;
+}
+
+.appointment-detail__review-card footer {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  padding: 12px 24px 24px;
+}
+
+.appointment-detail__review-card footer button,
+.appointment-detail__review-thanks button {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 950;
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+.appointment-detail__review-card footer button:first-child {
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  color: #6b7280;
+}
+
+.appointment-detail__review-card footer button:last-child,
+.appointment-detail__review-thanks button {
+  background: #955d24;
+  color: #ffffff;
+}
+
+.appointment-detail__review-card footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.appointment-detail__review-thanks {
+  display: grid;
+  justify-items: center;
+  padding: 40px 40px 38px;
+  text-align: center;
+}
+
+.appointment-detail__review-thanks span {
+  align-items: center;
+  background: #955d24;
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  height: 64px;
+  justify-content: center;
+  margin-bottom: 20px;
+  width: 64px;
+}
+
+.appointment-detail__review-thanks span lucide-icon {
+  fill: currentColor;
+}
+
+.appointment-detail__review-thanks p {
+  color: #6f7787;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 18px 0 24px;
+}
+
+.appointment-detail__review-thanks button {
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .appointment-detail__review-card footer {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-detail__review-card header,
+  .appointment-detail__review-fields,
+  .appointment-detail__review-card footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+.appointment-detail__prescription-section ol {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.appointment-detail__prescription-section li {
+  align-items: start;
+  background: #fbfdff;
+  border: 1px solid #e3edf6;
+  border-radius: 13px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  line-height: 1.5;
+  min-height: 54px;
+  padding: 13px 18px;
+}
+
+.appointment-detail__prescription-section li > span {
+  display: block;
+  height: 24px;
+  margin-top: 2px;
+  width: 24px;
+}
+
+.appointment-detail__prescription-section li > span svg {
+  display: block;
+  height: 24px;
+  overflow: visible;
+  width: 24px;
+}
+
+.appointment-detail__prescription-section li > span circle {
+  fill: #9b6429;
+}
+
+.appointment-detail__prescription-section li > span text {
+  fill: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+}
+
+.appointment-detail__prescription-section li > div {
+  color: #445066;
+  display: grid;
+  font-size: 13px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.appointment-detail__prescription-section li strong {
+  color: #344054;
+  display: block;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.appointment-detail__prescription-section li em {
+  color: #7d8796;
+  display: block;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
 }
 

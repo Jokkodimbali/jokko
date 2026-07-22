@@ -20,6 +20,11 @@ export interface MedicalReceiptDocumentData {
   generatedAtIso: string;
 }
 
+type MedicalPrescriptionItem = {
+  label: string;
+  text: string;
+};
+
 @Injectable({ providedIn: 'root' })
 export class AppointmentDocumentBuilderService {
   buildMissionInvoiceHtml(data: MissionInvoiceDocumentData): string {
@@ -116,14 +121,14 @@ export class AppointmentDocumentBuilderService {
   buildMedicalReceiptHtml(data: MedicalReceiptDocumentData): string {
     const actsRows = data.acts
       .map(
-        (act, index) => `<tr><td>${this.escapeHtml(act)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
+        (act, index) => `<tr><td class="document-text">${this.formatDocumentText(act)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
           this.formatCurrency(index === 0 ? data.finalPriceAmount : 5000),
         )}</td></tr>`,
       )
       .join('');
     const vaccinesRows = data.vaccines
       .map(
-        (vaccine) => `<tr><td>${this.escapeHtml(vaccine)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
+        (vaccine) => `<tr><td class="document-text">${this.formatDocumentText(vaccine)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
           this.formatCurrency(3000),
         )}</td></tr>`,
       )
@@ -163,6 +168,8 @@ export class AppointmentDocumentBuilderService {
   ): string {
     const issuedAt = new Date();
     const prescriptionItems = this.medicalPrescriptionItems(prescription);
+    const patientName = this.medicalPatientName(appointment);
+    const patientPhone = this.medicalPatientPhone(appointment);
 
     return `
       <article class="medical-prescription">
@@ -188,11 +195,11 @@ export class AppointmentDocumentBuilderService {
           <section class="medical-prescription__patient">
             <div>
               <small>Patient</small>
-              <strong>${this.escapeHtml(appointment.clientName)}</strong>
+              <strong>${this.escapeHtml(patientName)}</strong>
               <span>Date de naissance non renseignee</span>
             </div>
             <div>
-              <em>${this.escapeHtml(appointment.clientPhone || 'Telephone non renseigne')}</em>
+              <em>${this.escapeHtml(patientPhone || 'Telephone non renseigne')}</em>
               <em>${this.escapeHtml(appointment.addressLabel || 'Adresse non renseignee')}</em>
             </div>
           </section>
@@ -201,7 +208,19 @@ export class AppointmentDocumentBuilderService {
           ${
             prescriptionItems.length
               ? `<ol class="medical-prescription__list">${prescriptionItems
-                  .map((item) => `<li class="medical-prescription__item"><span>${item}</span></li>`)
+                  .map(
+                    (item, index) => `
+                      <li class="medical-prescription__item">
+                        <span class="medical-prescription__index" aria-hidden="true">
+                          ${this.medicalPrescriptionIndexSvg(index + 1)}
+                        </span>
+                        <span>
+                          <b>${this.formatDocumentText(item.text)}</b>
+                          <em>${this.escapeHtml(item.label)}</em>
+                        </span>
+                      </li>
+                    `,
+                  )
                   .join('')}</ol>`
               : '<p class="medical-prescription__empty">Aucune prescription renseignee sur cette ordonnance.</p>'
           }
@@ -274,17 +293,60 @@ export class AppointmentDocumentBuilderService {
     return `Le prestataire ${appointment.doctorName} s'est deplace chez le client ${appointment.clientName} a l'adresse : ${appointment.addressLabel}.`;
   }
 
-  private medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): string[] {
+  private medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): MedicalPrescriptionItem[] {
     return [
-      ...prescription.treatments.map((treatment) => `<b>${this.escapeHtml(treatment)}</b>`),
-      ...prescription.vaccines.map((vaccine) => `<b>${this.escapeHtml(vaccine)}</b> Vaccin administre`),
-      ...prescription.acts.map((act) => `<b>${this.escapeHtml(act)}</b> Acte clinique realise`),
+      ...prescription.treatments.map((treatment) => ({
+        label: 'Traitement',
+        text: treatment,
+      })),
+      ...prescription.vaccines.map((vaccine) => ({
+        label: 'Vaccin administre',
+        text: vaccine,
+      })),
+      ...prescription.acts.map((act) => ({
+        label: 'Acte medical',
+        text: act,
+      })),
     ];
+  }
+
+  private medicalPatientName(appointment: AppointmentView): string {
+    return (
+      this.extractAppointmentNoteValue(appointment.notes, 'Patient') ||
+      appointment.clientName ||
+      'Client non renseigne'
+    );
+  }
+
+  private medicalPatientPhone(appointment: AppointmentView): string | null {
+    return this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone;
+  }
+
+  private extractAppointmentNoteValue(notes: string | null, key: string): string | null {
+    if (!notes) return null;
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Patient|Lien|Telephone|Lieu|Adresse selectionnee|Notes patient|Motif|Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire)\\s*[:(]|$)`,
+      'i',
+    );
+    return notes.match(pattern)?.[1]?.trim().replace(/\.$/, '').trim() || null;
   }
 
   private medicalPrescriptionReference(appointment: AppointmentView): string {
     const compact = appointment.id.replace(/-/g, '').toUpperCase();
     return `ORD-${new Date().getFullYear()}-${compact.slice(-5) || '00000'}`;
+  }
+
+  private medicalPrescriptionIndexSvg(index: number): string {
+    const fontSize = index >= 10 ? 10 : 12;
+    return `
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="12" cy="12" r="12"></circle>
+        <text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-size="${fontSize}">
+          ${this.escapeHtml(index)}
+        </text>
+      </svg>
+    `;
   }
 
   private formatCurrency(value: number): string {
@@ -316,5 +378,9 @@ export class AppointmentDocumentBuilderService {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  private formatDocumentText(value: string | number | null | undefined): string {
+    return this.escapeHtml(value).replace(/\r\n|\r|\n/g, '<br>');
   }
 }

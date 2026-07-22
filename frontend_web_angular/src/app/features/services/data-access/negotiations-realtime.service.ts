@@ -51,8 +51,10 @@ export class NegotiationsRealtimeService {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
+      reconnectionAttempts: 5,
       reconnectionDelay: 700,
       reconnectionDelayMax: 3000,
+      timeout: 5000,
     });
 
     this.socket.on('connect', () => {

@@ -29,7 +29,7 @@
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) 38px;
 }
 
 .provider-card__movement,
@@ -48,32 +48,38 @@
   color: #d7141f;
   display: flex;
   gap: 6px;
-  justify-content: space-between;
-  min-height: 58px;
+  justify-content: center;
+  min-height: 40px;
   min-width: 0;
   overflow: hidden;
-  padding: 0 3px 0 14px;
+  padding: 0 3px 0 12px;
+  position: relative;
 }
 
 .provider-card__movement span {
-  flex: 0 0 auto;
-  font-size: clamp(13px, 3.6vw, 15px);
+  flex: 1 1 auto;
+  font-size: 13px;
   font-weight: 850;
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
+  padding-right: 74px;
+  text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .provider-card__movement-image {
   display: block;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   height: 100%;
-  max-height: 58px;
-  min-height: 58px;
-  min-width: 78px;
+  max-height: 40px;
+  min-height: 40px;
+  min-width: 70px;
   object-fit: contain;
   object-position: center;
-  transform: scale(1.35);
+  position: absolute;
+  right: 3px;
+  transform: scale(1.12);
   transform-origin: center;
   width: auto;
 }
@@ -94,9 +100,9 @@
   border-radius: 12px;
   color: #9a5a20;
   cursor: pointer;
-  height: 48px;
+  height: 40px;
   padding: 0;
-  width: 42px;
+  width: 38px;
 }
 
 .provider-card__favorite lucide-icon {
@@ -188,11 +194,11 @@
   color: #21150d;
   font-size: 19px;
   font-weight: 950;
-  line-height: 1.05;
-  overflow: hidden;
+  line-height: 1.12;
+  overflow: visible;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: normal;
 }
 
 .provider-card__location-main {
@@ -266,16 +272,18 @@
 }
 
 .provider-card__service-main {
-  aspect-ratio: 2.18 / 1;
+  aspect-ratio: 2.35 / 1;
   background: #f2ede8;
+  border: 1px solid #e4d5c7;
   border-radius: 14px;
+  box-sizing: border-box;
   margin: 0;
   overflow: hidden;
   position: relative;
 }
 
 .provider-card__service-main img,
-.provider-card__service-main > span {
+.provider-card__service-main > span:not(.provider-card__vehicle-badge) {
   display: block;
   height: 100%;
   width: 100%;
@@ -286,15 +294,53 @@
   object-position: center;
 }
 
-.provider-card__service-main > span,
+.provider-card__service-main > span:not(.provider-card__vehicle-badge),
 .provider-card__empty-service {
   align-items: center;
-  background: #9a5f28;
-  color: #fff;
+  background: #fffdfb;
+  color: #9a5a20;
   display: flex;
   font-size: 24px;
   font-weight: 950;
   justify-content: center;
+}
+
+.provider-card__vehicle-badge {
+  align-items: center;
+  background: rgba(255, 248, 241, 0.94);
+  border: 1px solid #e2c5aa;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(31, 23, 15, 0.12);
+  color: #7a4318;
+  display: inline-flex;
+  gap: 6px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  min-height: 32px;
+  padding: 5px 12px 5px 8px;
+  position: absolute;
+  top: 12px;
+  z-index: 3;
+}
+
+.provider-card__vehicle-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 20px;
+  object-fit: contain;
+  width: 20px;
+}
+
+.provider-card__vehicle-badge strong {
+  background: transparent;
+  color: inherit;
+  display: block;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .provider-card__service-thumbs {
@@ -327,8 +373,8 @@
 }
 
 .provider-card__service-thumbs span {
-  background: rgba(255, 255, 255, 0.42);
-  border: 2px solid rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.56);
+  border: 2px solid #e4d5c7;
   border-radius: 12px;
   display: block;
   height: 54px;
@@ -345,7 +391,7 @@
 }
 
 .provider-card__service-thumbs img {
-  filter: blur(0.35px) saturate(0.95);
+  filter: blur(1.2px) saturate(0.88) opacity(0.82);
   image-rendering: auto;
   object-fit: cover;
   object-position: center;
@@ -354,27 +400,36 @@
 
 .provider-card__service-thumbs strong {
   align-items: center;
-  background: #9a5f28;
-  color: #fff;
+  background: #fffdfb;
+  color: #9a5a20;
   display: flex;
   font-size: 13px;
   justify-content: center;
 }
 
 .provider-card__service-thumb--active span {
-  border-color: #fff;
+  border-color: #9a5a20;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+}
+
+.provider-card__service-thumb--active img {
+  filter: blur(0.7px) saturate(0.95) opacity(0.9);
 }
 
 .provider-card__service-labels {
   display: flex;
   gap: 7px;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-inline: contain;
-  padding-bottom: 2px;
+  padding: 1px 1px 3px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
   -ms-overflow-style: none;
   touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 
 .provider-card__service-labels::-webkit-scrollbar {
@@ -382,29 +437,33 @@
 }
 
 .provider-card__service-labels button {
-  background: #111;
-  border: 2px solid transparent;
+  background: #fff8f1;
+  border: 1px solid #e2c5aa;
   border-radius: 999px;
-  color: #fff;
+  color: #8a4f1d;
   cursor: pointer;
   flex: 0 0 auto;
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
   max-width: 210px;
-  min-height: 31px;
+  min-height: 36px;
   overflow: hidden;
-  padding: 6px 12px;
+  padding: 7px 15px;
+  scroll-snap-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .provider-card__service-label--active {
-  border-color: #9a5a20 !important;
-  box-shadow: inset 0 0 0 1px rgba(154, 90, 32, 0.7);
+  background: #fff3e7 !important;
+  border-color: #b9793d !important;
+  box-shadow: inset 0 0 0 1px rgba(185, 121, 61, 0.18);
+  color: #7a4318 !important;
 }
 
 .provider-card__empty-service {
+  border: 1px solid #e4d5c7;
   border-radius: 14px;
   min-height: 170px;
 }

@@ -1397,11 +1397,16 @@
 }
 
 .appointment-detail__review-star--active {
-  color: #955d24 !important;
+  color: #f5a623 !important;
 }
 
 .appointment-detail__review-star--active lucide-icon {
   fill: currentColor;
+}
+
+.appointment-detail__review-stars button:hover,
+.appointment-detail__review-stars button:focus-visible {
+  color: #f5a623;
 }
 
 .appointment-detail__review-fields textarea {

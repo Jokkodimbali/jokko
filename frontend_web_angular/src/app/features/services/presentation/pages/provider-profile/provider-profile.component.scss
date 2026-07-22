@@ -690,64 +690,40 @@
 }
 
 .provider-profile__price {
-  padding: 36px;
+  display: grid;
+  gap: 18px;
+  padding: 48px 56px;
 }
 
-.provider-profile__price > span {
-  color: #8b8b8b;
-  display: block;
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-}
-
-.provider-profile__price p {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 0 0 14px;
-}
-
-.provider-profile__price strong {
-  color: #151515;
-  font-size: clamp(38px, 3vw, 52px);
-  font-weight: 900;
-  line-height: 1;
-}
-
-.provider-profile__price em {
-  color: #8e8e8e;
-  font-size: 20px;
-  font-style: normal;
-  font-weight: 750;
-}
-
-.provider-profile__price-helper {
-  color: #6f7a82;
-  display: block;
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 1.45;
-  margin: 0 0 24px;
-}
-
-.provider-profile__price button {
+.provider-profile__price-action {
   align-items: center;
-  background: #b7f8ec;
-  border: 0;
-  border-radius: 24px;
-  color: #064a40;
+  border-radius: 22px;
   cursor: pointer;
   display: flex;
   font-size: 17px;
   font-weight: 900;
   gap: 14px;
   justify-content: center;
-  min-height: 66px;
+  min-height: 58px;
+  padding: 0 24px;
+  text-decoration: none;
   width: 100%;
+}
+
+.provider-profile__price-action--primary {
+  background: #4f8b3d;
+  border: 1px solid #4f8b3d;
+  color: #fff;
+}
+
+.provider-profile__price-action--message {
+  background: #fff;
+  border: 1px solid #e4d5c7;
+  color: #111;
+}
+
+.provider-profile__price-action:not(:disabled):hover {
+  transform: translateY(-1px);
 }
 
 .provider-profile__contact,

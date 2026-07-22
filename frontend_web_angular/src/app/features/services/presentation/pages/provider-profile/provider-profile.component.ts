@@ -102,6 +102,17 @@ export class ProviderProfileComponent implements OnInit {
       returnUrl: `/services/${this.profileId}`,
     };
   });
+  protected readonly messageQueryParams = computed(() => {
+    const profile = this.detail()?.profile;
+    const serviceId = this.primaryService()?.id;
+
+    return {
+      professionalId: this.profileId,
+      ...(profile?.utilisateurId ? { professionalUserId: profile.utilisateurId } : {}),
+      providerName: this.displayName(),
+      ...(serviceId ? { serviceId } : {}),
+    };
+  });
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
   protected readonly initials = computed(() => userInitials(this.displayName()));
   protected readonly coverUrl = computed(() => this.defaultCoverUrl);
@@ -191,10 +202,10 @@ export class ProviderProfileComponent implements OnInit {
     this.isFixedPriceService() ? '/prix fixe' : '/negociable',
   );
   protected readonly priceActionLabel = computed(() =>
-    this.isFixedPriceService() ? 'Prendre rendez-vous' : 'Proposer un prix',
+    this.isFixedPriceService() ? 'Prendre rendez-vous' : 'Negociez le prix',
   );
   protected readonly priceActionIcon = computed(() =>
-    this.isFixedPriceService() ? 'calendar-check' : 'banknote',
+    this.isFixedPriceService() ? 'calendar-check' : 'banknote-arrow-down',
   );
   protected readonly priceHelper = computed(() =>
     this.isFixedPriceService()

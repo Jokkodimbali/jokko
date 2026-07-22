@@ -730,6 +730,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       : provider.professionName || provider.speciality || 'Sous categorie non renseignee';
   }
 
+  providerCardCategoryLabel(provider: Professional): string {
+    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+      .map((label) => label?.trim())
+      .filter((label): label is string => Boolean(label));
+
+    if (labels.length === 0) {
+      return (provider.professionName || provider.speciality || 'Sous categorie non renseignee').toUpperCase();
+    }
+
+    return labels.length > 1 ? `${labels[0].toUpperCase()} +${labels.length - 1}` : labels[0].toUpperCase();
+  }
+
   providerPortfolioLabel(provider: Professional, index: number): string {
     if (index === 0) {
       return this.providerProfessionLabel(provider);
@@ -793,7 +805,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       id: provider.id,
       name: provider.nom,
       title: this.providerCardSubCategoryLabel(provider),
-      category: this.providerCategoryLabel(provider),
+      category: this.providerCardCategoryLabel(provider),
       location: this.humanLocationLabel(provider.location),
       rating: provider.rating,
       totalReviews: provider.totalReviews,

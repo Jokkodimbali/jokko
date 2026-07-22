@@ -181,16 +181,23 @@
 
         <aside class="provider-profile__side">
           <article class="provider-profile__card provider-profile__price">
-            <span>{{ pricingIntroLabel() }}</span>
-            <p>{{ serviceBookingText() }}</p>
-            <button
+            <a
+              class="provider-profile__price-action provider-profile__price-action--primary"
               type="button"
               [routerLink]="['/services', profileId, 'proposition']"
               [queryParams]="serviceQueryParams()"
             >
               <lucide-icon [name]="priceActionIcon()" size="25" [strokeWidth]="2.4"></lucide-icon>
               {{ priceActionLabel() }}
-            </button>
+            </a>
+            <a
+              class="provider-profile__price-action provider-profile__price-action--message"
+              [routerLink]="['/messages']"
+              [queryParams]="messageQueryParams()"
+            >
+              <lucide-icon name="message-circle" size="25" [strokeWidth]="2.4"></lucide-icon>
+              Envoyer un message
+            </a>
           </article>
 
           <article class="provider-profile__card provider-profile__contact">

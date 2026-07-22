@@ -98,6 +98,11 @@
           <span>{{ serviceInitials(selected.name) }}</span>
         </ng-template>
 
+        <span *ngIf="vehicleBadge as vehicle" class="provider-card__vehicle-badge" [attr.aria-label]="vehicle.label">
+          <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
+          <strong>{{ vehicle.label }}</strong>
+        </span>
+
         <div class="provider-card__service-thumbs" aria-label="Services proposes">
           <button
             *ngFor="let service of serviceVisuals"
@@ -147,7 +152,7 @@
         (click)="onPrimaryActionClick($event)"
       >
         <lucide-icon
-          [name]="provider.isMedical ? 'calendar-check' : 'wallet-cards'"
+          [name]="provider.isMedical ? 'calendar-check' : 'banknote-arrow-down'"
           size="14"
           [strokeWidth]="2.4"
         ></lucide-icon>

@@ -473,8 +473,14 @@
   display: grid !important;
   gap: 20px !important;
   grid-auto-rows: 1fr !important;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 342px), 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)) !important;
   overflow: visible !important;
+}
+
+@media (min-width: 1180px) {
+  :host .provider-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
 }
 
 :host .provider-row app-provider-card {

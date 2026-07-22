@@ -79,7 +79,7 @@
           [disabled]="isDisabled || isSending || isUploadingMedia"
           (click)="send.emit()"
         >
-          <lucide-icon name="send" size="21" [strokeWidth]="2.5"></lucide-icon>
+          <span class="message-composer__send-icon" aria-hidden="true"></span>
         </button>
 
         <ng-template #voiceButton>

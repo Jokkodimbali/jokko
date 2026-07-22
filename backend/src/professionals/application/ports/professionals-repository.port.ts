@@ -52,6 +52,7 @@ export type ProfessionalServiceView = {
   categorieId: string;
   nom: string;
   description: string;
+  urlImage: string | null;
   prix: number;
   typePrix: PriceType;
   modeDeplacement: ServiceTravelMode;
@@ -178,6 +179,7 @@ export type CreateServiceInput = {
   categoryId: string;
   name: string;
   description: string;
+  imageUrl?: string | null;
   price: number;
   priceType: PriceType;
   travelMode?: ServiceTravelMode;
@@ -191,6 +193,7 @@ export type UpdateServiceInput = {
   serviceId: string;
   name?: string;
   description?: string;
+  imageUrl?: string | null;
   price?: number;
   priceType?: PriceType;
   travelMode?: ServiceTravelMode;

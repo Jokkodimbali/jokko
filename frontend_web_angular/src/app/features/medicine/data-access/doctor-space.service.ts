@@ -312,6 +312,7 @@ export class DoctorSpaceService {
     categoryId: string;
     name: string;
     description: string;
+    imageUrl?: string | null;
     price: number;
     priceType: 'FIXE' | 'NEGOCIABLE';
     travelMode?: ServiceTravelMode;
@@ -332,6 +333,7 @@ export class DoctorSpaceService {
     data: {
       name?: string;
       description?: string;
+      imageUrl?: string | null;
       price?: number;
       priceType?: 'FIXE' | 'NEGOCIABLE';
       travelMode?: ServiceTravelMode;

@@ -1295,8 +1295,8 @@
 .doctor-space__motif-fields {
   display: grid;
   align-items: start;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  grid-template-columns: minmax(190px, 1fr) minmax(140px, 0.58fr);
 }
 
 .doctor-space__motif-field,

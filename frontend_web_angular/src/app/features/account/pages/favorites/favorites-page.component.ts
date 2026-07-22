@@ -169,6 +169,11 @@ export class FavoritesPageComponent {
     const queryParams = serviceId ? { serviceId } : null;
     const isMedical = this.isMedicalFavorite(favorite);
     const travelMode = this.favoriteTravelMode(favorite);
+    const messageQueryParams = {
+      professionalId: favorite.professionalId,
+      providerName: favorite.name,
+      ...(serviceId ? { serviceId } : {}),
+    };
 
     return {
       id: favorite.professionalId,
@@ -184,13 +189,33 @@ export class FavoritesPageComponent {
       coverUrl: SERVICE_CARD_COVER_URL,
       movementTitle: this.favoriteMovementTitle(travelMode),
       travelMode,
+      priceRangeLabel: this.favoritePriceRangeLabel(favorite),
       isMedical,
       images,
-      primaryActionLabel: isMedical ? 'Prendre rendez-vous' : 'Negocier le prix',
+      services: favorite.service
+        ? [{
+            id: favorite.service.id,
+            name: favorite.service.name,
+            imageUrl: images[0]?.url ?? null,
+          }]
+        : [],
+      primaryActionLabel: isMedical ? 'Prendre rendez-vous' : 'Negocier',
       profileCommands: route,
+      messageCommands: ['/messages'],
       queryParams,
+      messageQueryParams,
       state: { favorite },
     };
+  }
+
+  private favoritePriceRangeLabel(favorite: FavoriteItem): string {
+    const price = Number(favorite.service?.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      return favorite.service?.priceType === 'NEGOCIABLE' ? 'Prix negociable' : 'Tarif a confirmer';
+    }
+
+    const suffix = favorite.service?.travelMode === 'TRANSPORT_COLIS' ? ' FCFA/KM' : ' FCFA';
+    return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.trunc(price))}${suffix}`;
   }
 
   protected handleImageError(url: string | null | undefined): void {

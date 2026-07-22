@@ -49,6 +49,7 @@ export type ConversationMessageView = {
 };
 
 export type CreateConversationInput = {
+  id: string;
   clientUserId: string;
   professionalUserId: string;
   reservationId?: string | null;

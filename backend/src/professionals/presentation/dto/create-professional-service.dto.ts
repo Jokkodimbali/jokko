@@ -63,6 +63,20 @@ export class CreateProfessionalServiceDto {
   description!: string;
 
   @ApiProperty({
+    description: "URL de l'image du service ou motif",
+    example: 'https://cdn.jokko.sn/services/salle-de-bain.jpg',
+    required: false,
+    maxLength: 500,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string | null;
+
+  @ApiProperty({
     description: API_DOCS.professionals.servicePriceField,
     example: 50000,
     minimum: 0,

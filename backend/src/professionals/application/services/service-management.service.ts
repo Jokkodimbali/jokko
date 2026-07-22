@@ -35,6 +35,7 @@ export class ServiceManagementService extends ProfessionalAppService {
       categoryId: command.categoryId,
       name: command.name.trim(),
       description: command.description.trim(),
+      imageUrl: command.imageUrl?.trim() || null,
       price: command.price,
       priceType: command.priceType as TypePrix,
       travelMode: command.travelMode,
@@ -71,6 +72,10 @@ export class ServiceManagementService extends ProfessionalAppService {
       serviceId,
       name: command.name?.trim(),
       description: command.description?.trim(),
+      imageUrl:
+        command.imageUrl === undefined
+          ? undefined
+          : command.imageUrl?.trim() || null,
       price: command.price,
       priceType: command.priceType as TypePrix | undefined,
       travelMode: command.travelMode,

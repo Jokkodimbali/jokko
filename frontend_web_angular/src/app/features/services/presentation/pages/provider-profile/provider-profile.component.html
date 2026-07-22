@@ -106,25 +106,75 @@
           </article>
 
           <article class="provider-profile__card provider-profile__gallery">
-            <h2>Galerie des realisations</h2>
-            <div *ngIf="portfolioItems().length > 0; else noPortfolio" class="provider-profile__gallery-grid">
-              <figure *ngFor="let item of portfolioItems()">
+            <h2>Les services proposes</h2>
+            <div *ngIf="selectedVisualService() as selectedService; else noServicesVisual" class="provider-profile__service-visual">
+              <figure class="provider-profile__service-visual-main">
                 <img
-                  *ngIf="visibleImageUrl(item.urlImage) as imageUrl; else portfolioImageFallback"
+                  *ngIf="selectedService.imageUrl as imageUrl; else serviceVisualFallback"
                   [src]="imageUrl"
-                  [alt]="item.titre"
+                  [alt]="selectedService.name"
                   (error)="handleImageError(imageUrl)"
                 />
-                <ng-template #portfolioImageFallback>
+                <ng-template #serviceVisualFallback>
                   <span class="provider-profile__gallery-fallback">
-                    {{ portfolioInitials(item.titre) }}
+                    {{ serviceVisualInitials(selectedService.name) }}
                   </span>
                 </ng-template>
-                <figcaption>{{ item.titre }}</figcaption>
               </figure>
+
+              <div class="provider-profile__service-thumbnails" aria-label="Services proposes">
+                <button
+                  *ngFor="let service of offeredServices()"
+                  type="button"
+                  [class.provider-profile__service-thumb--active]="selectedService.id === service.id"
+                  (click)="selectVisualService(service)"
+                >
+                  <span class="provider-profile__service-thumb-image">
+                    <img *ngIf="service.imageUrl; else serviceThumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="handleImageError(service.imageUrl)" />
+                    <ng-template #serviceThumbFallback>
+                      <strong>{{ serviceVisualInitials(service.name) }}</strong>
+                    </ng-template>
+                  </span>
+                  <span class="provider-profile__service-thumb-label">{{ service.name }}</span>
+                </button>
+              </div>
             </div>
-            <ng-template #noPortfolio>
-              <p class="provider-profile__empty">Aucune realisation publiee pour le moment.</p>
+            <ng-template #noServicesVisual>
+              <p class="provider-profile__empty">Aucun service publie pour le moment.</p>
+            </ng-template>
+          </article>
+
+          <article class="provider-profile__card provider-profile__reviews">
+            <header>
+              <h2>Avis clients</h2>
+              <div>
+                <strong>{{ ratingLabel() }}</strong>
+                <span>{{ ratingStars() }}</span>
+                <small>{{ reviewTotalLabel() }}</small>
+              </div>
+            </header>
+
+            <div *ngIf="reviewItems().length > 0; else noReviews" class="provider-profile__review-list">
+              <article *ngFor="let review of reviewItems()" class="provider-profile__review">
+                <img
+                  *ngIf="visibleImageUrl(review.client.urlAvatar) as reviewAvatar; else reviewInitials"
+                  [src]="reviewAvatar"
+                  [alt]="review.client.nom"
+                  (error)="handleImageError(reviewAvatar)"
+                />
+                <ng-template #reviewInitials>
+                  <span class="provider-profile__review-avatar">{{ formatReviewInitials(review.client.nom) }}</span>
+                </ng-template>
+                <div>
+                  <strong>{{ review.client.nom }}</strong>
+                  <span>{{ starsFor(review.note) }}</span>
+                  <p>{{ review.commentaire || 'Avis sans commentaire.' }}</p>
+                </div>
+                <small>{{ formatReviewDate(review.reviewedAt || review.creeLe) }}</small>
+              </article>
+            </div>
+            <ng-template #noReviews>
+              <p class="provider-profile__empty">Aucun avis publie pour le moment.</p>
             </ng-template>
           </article>
         </div>

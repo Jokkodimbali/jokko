@@ -372,20 +372,35 @@
                 </span>
                 <small>{{ servicePriceHelp() }}</small>
               </label>
-              <div class="doctor-space__motif-required-card">
-                <div>
-                  <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
-                  <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
+              <label class="doctor-space__motif-field doctor-space__motif-image-field doctor-space__motif-image-field--dropzone">
+                <span>Image du service</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp" (change)="selectProfessionalAsset($event, 'service-image')" />
+                <div class="doctor-space__motif-image-preview">
+                  <img *ngIf="serviceImagePreview()?.url as imageUrl; else serviceImagePlaceholder" [src]="imageUrl" alt="" />
+                  <ng-template #serviceImagePlaceholder>
+                    <lucide-icon name="image-plus" size="20" [strokeWidth]="2.2"></lucide-icon>
+                  </ng-template>
+                  <strong>{{ serviceImageFileName() || 'Ajouter une image' }}</strong>
                 </div>
-                <button
-                  type="button"
-                  class="doctor-space__motif-switch"
-                  [class.doctor-space__motif-switch--active]="motifForm.isRequired"
-                  (click)="motifForm.isRequired = !motifForm.isRequired"
-                  aria-label="Changer le statut obligatoire"
-                >
-                  <span></span>
-                </button>
+                <small>{{ uploadingProfessionalAsset() === 'service-image' ? 'Upload en cours...' : 'Cette image sera affichee sur la fiche publique.' }}</small>
+              </label>
+              <div class="doctor-space__motif-field doctor-space__motif-field--toggle">
+                <span>Statut</span>
+                <div class="doctor-space__motif-required-card">
+                  <div>
+                    <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
+                    <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="doctor-space__motif-switch"
+                    [class.doctor-space__motif-switch--active]="motifForm.isRequired"
+                    (click)="motifForm.isRequired = !motifForm.isRequired"
+                    aria-label="Changer le statut obligatoire"
+                  >
+                    <span></span>
+                  </button>
+                </div>
               </div>
               <div class="doctor-space__motif-form-actions">
                 <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
@@ -416,6 +431,7 @@
             <div *ngIf="motifs().length > 0" class="doctor-space__motif-table" role="table" aria-label="Motifs de consultation">
               <div class="doctor-space__motif-table-head" role="row">
                 <span role="columnheader">Motif</span>
+                <span role="columnheader">Image</span>
                 <span role="columnheader">Tarif</span>
                 <span role="columnheader">Obligatoire</span>
                 <span role="columnheader" aria-label="Actions"></span>
@@ -427,6 +443,12 @@
                     <lucide-icon name="clipboard" size="17" [strokeWidth]="2.1"></lucide-icon>
                   </span>
                   <strong>{{ motif.name }}</strong>
+                </div>
+                <div class="doctor-space__motif-image-cell" role="cell">
+                  <img *ngIf="motif.imageUrl; else motifNoImage" [src]="motif.imageUrl" [alt]="motif.name" />
+                  <ng-template #motifNoImage>
+                    <span><lucide-icon name="image-plus" size="15" [strokeWidth]="2"></lucide-icon></span>
+                  </ng-template>
                 </div>
                 <div class="doctor-space__motif-price" role="cell">
                   <strong>{{ motif.price | number: '1.0-0' }}</strong>
@@ -526,33 +548,34 @@
                   <small>{{ editServicePriceHelp() }}</small>
                 </label>
 
-                <div class="doctor-space__motif-required-card">
-                  <div>
-                    <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
-                    <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
+                <label class="doctor-space__motif-field doctor-space__motif-image-field doctor-space__motif-image-field--dropzone">
+                  <span>Image du service</span>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" (change)="selectProfessionalAsset($event, 'service-edit-image')" />
+                  <div class="doctor-space__motif-image-preview">
+                    <img *ngIf="serviceEditImagePreview()?.url as imageUrl; else serviceEditImagePlaceholder" [src]="imageUrl" alt="" />
+                    <ng-template #serviceEditImagePlaceholder>
+                      <lucide-icon name="image-plus" size="20" [strokeWidth]="2.2"></lucide-icon>
+                    </ng-template>
+                    <strong>{{ serviceEditImageFileName() || 'Ajouter une image' }}</strong>
                   </div>
-                  <button
-                    type="button"
-                    class="doctor-space__motif-switch"
-                    [class.doctor-space__motif-switch--active]="motifEditForm.isRequired"
-                    (click)="motifEditForm.isRequired = !motifEditForm.isRequired"
-                    aria-label="Changer le statut obligatoire"
-                  >
-                    <span></span>
-                  </button>
-                </div>
+                  <small>{{ uploadingProfessionalAsset() === 'service-edit-image' ? 'Upload en cours...' : 'Remplace le visuel public de ce service.' }}</small>
+                </label>
 
-                <div class="doctor-space__motif-modal-travel">
-                  <span>Mode de deplacement</span>
-                  <div>
+                <div class="doctor-space__motif-field doctor-space__motif-field--toggle">
+                  <span>Statut</span>
+                  <div class="doctor-space__motif-required-card">
+                    <div>
+                      <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
+                      <span>{{ isProviderSpace() ? 'Mis en avant sur votre fiche' : 'Coche automatiquement lors du RDV' }}</span>
+                    </div>
                     <button
-                      *ngFor="let option of travelModeOptions"
                       type="button"
-                      [class.doctor-space__motif-modal-travel-option--active]="motifEditForm.travelMode === option.value"
-                      (click)="motifEditForm.travelMode = option.value"
+                      class="doctor-space__motif-switch"
+                      [class.doctor-space__motif-switch--active]="motifEditForm.isRequired"
+                      (click)="motifEditForm.isRequired = !motifEditForm.isRequired"
+                      aria-label="Changer le statut obligatoire"
                     >
-                      <lucide-icon [name]="option.icon" size="16" [strokeWidth]="2.2"></lucide-icon>
-                      <strong>{{ option.title }}</strong>
+                      <span></span>
                     </button>
                   </div>
                 </div>

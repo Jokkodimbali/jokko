@@ -276,7 +276,14 @@ export class ServicesService {
       .get<ApiResponse<BackendProfessionalDetailService[]>>(
         `${this.apiUrl}/professionals/${profileId}/services`,
       )
-      .pipe(map((response) => unwrapApiResponse(response)));
+      .pipe(
+        map((response) =>
+          unwrapApiResponse(response).map((service) => ({
+            ...service,
+            urlImage: this.absoluteAssetUrl(service.urlImage) ?? service.urlImage,
+          })),
+        ),
+      );
   }
 
   private getProfessionalPortfolio(profileId: string): Observable<BackendProfessionalPortfolioItem[]> {
@@ -333,13 +340,19 @@ export class ServicesService {
       ],
     );
     const isOnline = Boolean(presence?.isOnline);
+    const servicePrices = data.services
+      .map((service) => Number(service.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
 
     return {
       id: data.id,
+      userId: data.userId,
       profileType,
       serviceId: primaryService?.id,
       servicePriceType: primaryService?.priceType,
       serviceTravelMode: primaryService?.travelMode,
+      servicePriceMin: servicePrices.length ? Math.min(...servicePrices) : undefined,
+      servicePriceMax: servicePrices.length ? Math.max(...servicePrices) : undefined,
       nom: data.companyName || data.name,
       categoryName:
         primaryService?.categoryName ||
@@ -373,6 +386,10 @@ export class ServicesService {
       isOnline,
       onlineLabel: this.formatPresenceLabel(presence),
       avatar: this.absoluteAssetUrl(data.avatarUrl) || undefined,
+      services: data.services.map((service) => ({
+        ...service,
+        urlImage: this.absoluteAssetUrl(service.urlImage) ?? service.urlImage ?? null,
+      })),
       photos,
     };
   }

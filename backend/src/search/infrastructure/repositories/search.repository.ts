@@ -261,6 +261,7 @@ export class SearchRepository implements SearchRepositoryPort {
             prix: true,
             typePrix: true,
             modeDeplacement: true,
+            urlImage: true,
             profilProfessionnelId: true,
             categorieId: true,
             categorie: {
@@ -283,6 +284,7 @@ export class SearchRepository implements SearchRepositoryPort {
         price: Number(service.prix),
         priceType: service.typePrix,
         travelMode: service.modeDeplacement,
+        urlImage: service.urlImage,
         categoryId: service.categorieId,
         categoryName: service.categorie.nom,
       };

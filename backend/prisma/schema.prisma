@@ -452,6 +452,7 @@ model Service {
   categorieId           String              @map("category_id") @db.Uuid
   nom                   String              @map("name") @db.VarChar(200)
   description           String              @db.Text
+  urlImage              String?             @map("image_url") @db.VarChar(500)
   prix                  Decimal             @map("price") @db.Decimal(10, 2)
   typePrix              TypePrix            @map("price_type")
   modeDeplacement       ModeDeplacementService @default(PRESTATAIRE_SE_DEPLACE) @map("travel_mode")

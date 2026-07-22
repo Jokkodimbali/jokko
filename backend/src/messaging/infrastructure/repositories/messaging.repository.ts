@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, TypeNotification } from '@prisma/client';
+import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { NotificationView } from '../../../notifications/domain/entities/notification.entity';
 import type {
@@ -185,6 +186,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
     try {
       const created = await this.prisma.conversation.create({
         data: {
+          id: input.id,
           clientId: input.clientUserId,
           prestataireId: input.professionalUserId,
           reservationId: input.reservationId ?? null,
@@ -232,6 +234,32 @@ export class MessagingRepository implements MessagingRepositoryPort {
           return { conversation: participantConflict, wasCreated: false };
         }
       }
+
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        this.logger.warn(
+          `Conversation participant foreign key rejected for client=${input.clientUserId} professional=${input.professionalUserId}`,
+        );
+        const participantConflict =
+          await this.findDirectConversationByParticipants({
+            clientUserId: input.clientUserId,
+            professionalUserId: input.professionalUserId,
+            currentUserId,
+          });
+        if (participantConflict) {
+          return { conversation: participantConflict, wasCreated: false };
+        }
+
+        throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(
+        `Failed to create conversation client=${input.clientUserId} professional=${input.professionalUserId}: ${errorMessage}`,
+      );
 
       throw error;
     }

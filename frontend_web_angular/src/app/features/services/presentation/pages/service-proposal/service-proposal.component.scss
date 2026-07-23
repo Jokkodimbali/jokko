@@ -58,9 +58,9 @@
 
 .service-proposal__content--accepted {
   align-content: start;
-  grid-template-columns: minmax(320px, 412px);
+  grid-template-columns: minmax(420px, 580px);
   min-height: calc(100vh - 132px);
-  padding-top: 28px;
+  padding-top: 34px;
 }
 
 
@@ -583,34 +583,63 @@
   border: 1px solid #e4e8ee;
   border-radius: 22px;
   box-shadow: none;
+  display: block;
+  gap: 0;
   overflow: hidden;
+  padding: 0;
 }
 
 .service-proposal__price-card > header {
+  align-items: center;
   background: #e4f7eb;
   border-bottom: 0;
-  display: grid;
-  gap: 3px;
-  justify-items: center;
-  padding: 17px 20px 18px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  margin: 0;
+  padding: 13px 16px 14px;
   text-align: center;
+  width: 100%;
 }
 
-.service-proposal__price-card > header span,
-.service-proposal__price-card > header strong {
+.service-proposal__price-card-title,
+.service-proposal__price-card-title strong,
+.service-proposal__price-card-title lucide-icon {
   color: #008c4d;
-  line-height: 1.15;
+  line-height: 1.2;
+  max-width: 100%;
 }
 
-.service-proposal__price-card > header span {
-  font-size: 13px;
+.service-proposal__price-card-title {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  font-size: 12px;
   font-weight: 950;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.service-proposal__price-card > header strong {
-  font-size: 14px;
+.service-proposal__price-card-title lucide-icon {
+  flex: 0 0 auto;
+  height: 14px;
+  width: 14px;
+}
+
+.service-proposal__price-card-title strong {
+  display: inline;
+  flex: 0 1 auto;
+  font-size: 12px;
   font-weight: 950;
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-transform: uppercase;
 }
 
@@ -619,8 +648,8 @@
   background: transparent;
   display: grid;
   justify-items: center;
-  min-height: 140px;
-  padding: 34px 24px 22px;
+  min-height: 116px;
+  padding: 30px 24px 18px;
   position: relative;
   text-align: center;
 }
@@ -634,7 +663,8 @@
   display: inline-flex;
   gap: 8px;
   justify-content: center;
-  max-width: 100%;
+  max-width: min(100%, 640px);
+  min-width: 0;
   width: auto;
 }
 
@@ -648,12 +678,12 @@
   font-weight: 950;
   letter-spacing: 0;
   line-height: 0.95;
-  max-width: 7ch;
+  max-width: 13ch;
   min-width: 4ch;
   outline: 0;
   padding: 0;
-  text-align: right;
-  width: 6ch;
+  text-align: center;
+  width: min(13ch, 100%);
 }
 
 .service-proposal__offer-display input::-webkit-outer-spin-button,
@@ -671,38 +701,12 @@
   padding-bottom: 2px;
 }
 
-.service-proposal__difference {
-  align-items: center;
-  background: transparent;
-  border-radius: 0;
-  color: #00a85d;
-  display: inline-flex;
-  font-size: 0;
-  font-weight: 950;
-  gap: 7px;
-  justify-content: center;
-  left: calc(50% + 92px);
-  margin-top: 0;
-  max-width: 100%;
-  min-height: 0;
-  padding: 0;
-  position: absolute;
-  text-align: center;
-  top: 24px;
-  transform: translateX(-50%);
-}
-
-.service-proposal__difference lucide-icon {
-  color: #27d989;
-  display: inline-block;
-}
-
 .service-proposal__amount-actions {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(150px, 184px));
   justify-content: center;
-  padding: 0 24px 23px;
+  padding: 0 24px 20px;
 }
 
 .service-proposal__amount-action {
@@ -751,10 +755,12 @@
 .service-proposal__steps {
   border-top: 1px solid #eef1f5;
   display: grid;
-  gap: 12px 16px;
-  grid-template-columns: minmax(0, 1fr) 100px;
-  margin: 0 28px;
-  padding: 19px 0 26px;
+  gap: 7px 14px;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  margin: 0 auto;
+  max-width: calc(100% - 56px);
+  padding: 12px 0 10px;
+  width: 100%;
 }
 
 .service-proposal__steps-title {
@@ -772,8 +778,9 @@
   appearance: none;
   background: transparent;
   cursor: pointer;
-  height: 24px;
+  height: 20px;
   margin: 0;
+  max-width: 100%;
   min-width: 0;
   width: 100%;
 }
@@ -818,7 +825,8 @@
   font-size: 13px;
   font-weight: 950;
   justify-content: center;
-  min-height: 34px;
+  min-height: 30px;
+  min-width: 0;
   padding: 0 16px;
   white-space: nowrap;
 }
@@ -866,28 +874,23 @@
 }
 
 .service-proposal__content--provider .service-proposal__price-card > header {
-  padding: 16px 20px 18px;
+  padding: 13px 16px;
 }
 
 .service-proposal__content--provider .service-proposal__offer-display {
-  padding: 34px 24px 22px;
+  padding: 30px 24px 18px;
 }
 
 .service-proposal__content--provider .service-proposal__offer-display input {
   font-size: 58px;
 }
 
-.service-proposal__content--provider .service-proposal__difference {
-  margin-top: 0;
-  min-height: 26px;
-}
-
 .service-proposal__content--provider .service-proposal__amount-actions {
-  padding: 0 24px 24px;
+  padding: 0 24px 20px;
 }
 
 .service-proposal__content--provider .service-proposal__steps {
-  padding: 19px 0 26px;
+  padding: 12px 0 10px;
 }
 
 .service-proposal__counter-modern {
@@ -901,17 +904,17 @@
 }
 
 .service-proposal__counter-offer-card {
-  background: #fbfcfe;
-  border: 1px solid #e4e8ee;
-  border-radius: 18px;
+  background: #ffffff;
+  border: 1.5px solid #050505;
+  border-radius: 20px;
   display: grid;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 14px;
+  padding: 19px 28px 18px;
   text-align: center;
 }
 
 .service-proposal__counter-offer-card h2 {
-  color: #06101f;
+  color: #020712;
   font-size: 12px;
   font-weight: 950;
   letter-spacing: 0.04em;
@@ -921,36 +924,61 @@
 }
 
 .service-proposal__counter-offer-values {
-  display: grid;
-  gap: 16px;
   align-items: center;
+  display: grid;
+  gap: 18px;
   justify-content: center;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 }
 
 .service-proposal__counter-offer-values span {
   display: grid;
-  gap: 3px;
+  gap: 6px;
+  justify-items: center;
+  min-width: 0;
 }
 
 .service-proposal__counter-offer-values small {
-  color: #98a2b3;
-  font-size: 9px;
-  font-weight: 900;
+  color: #a7afbb;
+  font-size: 10px;
+  font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .service-proposal__counter-offer-values strong {
-  color: #06101f;
+  align-items: baseline;
+  color: #111827;
+  display: inline-flex;
   font-size: 16px;
+  gap: 4px;
   font-weight: 950;
+  white-space: nowrap;
 }
 
 .service-proposal__counter-offer-values em {
-  color: #667085;
-  font-size: 11px;
+  color: inherit;
+  font-size: 12px;
   font-style: normal;
+  font-weight: 950;
+}
+
+.service-proposal__counter-offer-values > lucide-icon {
+  color: #c4cbd5;
+}
+
+.service-proposal__counter-offer-values span:first-child strong {
+  color: #9aa3ad;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.service-proposal__counter-offer-values span:last-child small {
+  color: #00a85d;
+}
+
+.service-proposal__counter-offer-values span:last-child strong {
+  color: #06101f;
 }
 
 .service-proposal__counter-modern-actions {
@@ -1042,6 +1070,8 @@
   .service-proposal__offer-display input,
   .service-proposal__content--provider .service-proposal__offer-display input {
     font-size: 44px;
+    max-width: 13ch;
+    width: min(13ch, 100%);
   }
 
   .service-proposal__offer-display strong {
@@ -1050,10 +1080,7 @@
 
   .service-proposal__steps {
     grid-template-columns: minmax(0, 1fr) 86px;
-    margin: 0 18px;
+    max-width: calc(100% - 36px);
   }
 
-  .service-proposal__difference {
-    left: calc(50% + 72px);
-  }
 }

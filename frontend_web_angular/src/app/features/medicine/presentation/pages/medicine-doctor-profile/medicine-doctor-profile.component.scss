@@ -251,9 +251,9 @@
 
 .doctor-profile__stats .doctor-profile__movement-badge {
   align-items: center;
-  background: #050505;
+  background: #f5c0bd;
   border-radius: 999px;
-  color: #ffffff;
+  color: #d7141f;
   display: inline-flex;
   flex: initial;
   gap: 4px;
@@ -266,8 +266,23 @@
   width: auto;
 }
 
+.doctor-profile__stats .doctor-profile__movement-badge--parcel {
+  background: #efe2d1;
+  color: #94612d;
+}
+
+.doctor-profile__stats .doctor-profile__movement-badge--provider {
+  background: #bfe0b3;
+  color: #436b45;
+}
+
+.doctor-profile__stats .doctor-profile__movement-badge--flexible {
+  background: #efe2d1;
+  color: #7a4318;
+}
+
 .doctor-profile__stats .doctor-profile__movement-badge strong {
-  color: #ffffff;
+  color: inherit;
   font-size: 12px;
   font-weight: 900;
   line-height: 1.1;

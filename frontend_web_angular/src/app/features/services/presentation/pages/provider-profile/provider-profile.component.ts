@@ -21,6 +21,7 @@ import {
   BackendProfessionalPresence,
   ProfessionalVehicleType,
   ProviderProfileDetail,
+  ServiceTravelMode,
 } from '../../../domain/models/services.models';
 
 interface ScheduleRow {
@@ -50,6 +51,12 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
     label: 'Camionnette',
     imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
+};
+
+const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
+  CLIENT_SE_DEPLACE: '/mode travel/le_client_se_deplace-removebg-preview.png',
+  PRESTATAIRE_SE_DEPLACE: '/mode travel/le_prestataire_se_deplace-removebg-preview.png',
+  TRANSPORT_COLIS: '/mode travel/livraisonde_colis-removebg-preview.png',
 };
 
 @Component({
@@ -267,10 +274,14 @@ export class ProviderProfileComponent implements OnInit {
   });
   protected readonly travelModeImageUrl = computed(() => {
     const mode = this.primaryTravelMode();
-    if (mode === 'TRANSPORT_COLIS') return '/parcel-transport-route.png';
-    if (mode === 'PRESTATAIRE_SE_DEPLACE') return '/provider-travels-to-client.png';
-    if (mode === 'CLIENT_SE_DEPLACE') return '/client-travels-to-provider.png';
-    return null;
+    return mode ? TRAVEL_MODE_IMAGES[mode] : null;
+  });
+  protected readonly travelModeBadgeClass = computed(() => {
+    const mode = this.primaryTravelMode();
+    if (mode === 'PRESTATAIRE_SE_DEPLACE') return 'provider-profile__movement-badge--provider';
+    if (mode === 'TRANSPORT_COLIS') return 'provider-profile__movement-badge--parcel';
+    if (mode === 'CLIENT_SE_DEPLACE') return 'provider-profile__movement-badge--client';
+    return 'provider-profile__movement-badge--flexible';
   });
   protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
   protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);

@@ -73,7 +73,7 @@
             <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
           </div>
           <div>
-            <span><lucide-icon name="star" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+            <span><lucide-icon name="star" size="18" [strokeWidth]="2.4" fill="currentColor"></lucide-icon></span>
             <p><strong>{{ reviewsCountLabel() }}</strong><small>Avis</small></p>
           </div>
           <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__vehicle-stat">
@@ -83,7 +83,11 @@
             </span>
           </div>
           <div class="provider-profile__movement-stat">
-            <span class="provider-profile__movement-badge" [attr.aria-label]="travelModeLabel()">
+            <span
+              class="provider-profile__movement-badge"
+              [ngClass]="travelModeBadgeClass()"
+              [attr.aria-label]="travelModeLabel()"
+            >
               <strong>{{ travelModeLabel() }}</strong>
               <img *ngIf="travelModeImageUrl() as imageUrl" [src]="imageUrl" alt="" aria-hidden="true" />
             </span>

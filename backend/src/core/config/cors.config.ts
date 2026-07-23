@@ -6,6 +6,11 @@ export type CorsRuntimeConfig = {
   corsOrigins: string;
 };
 
+const DEVELOPMENT_CORS_ORIGINS = [
+  'http://localhost:4200',
+  'http://127.0.0.1:4200',
+];
+
 export function parseCorsOrigins(value: string): string[] {
   return value
     .split(',')
@@ -26,8 +31,15 @@ export function buildCorsOptionsFromValues(
   }
 
   if (configuredOrigins.length > 0) {
+    const allowedOrigins =
+      config.nodeEnv === 'production'
+        ? configuredOrigins
+        : Array.from(
+            new Set([...configuredOrigins, ...DEVELOPMENT_CORS_ORIGINS]),
+          );
+
     return {
-      origin: configuredOrigins,
+      origin: allowedOrigins,
       credentials: true,
     };
   }

@@ -207,19 +207,23 @@ export class TrackingGoogleMapRendererService {
     if (this.routeMap) {
       this.showManeuverMarkers = state.showManeuverMarkers === true;
       const selectedRoute = state.routes.find((route) => route.selected);
-      const displayedProvider =
-        !state.arrived && selectedRoute
-          ? this.snapPointToRoute(state.provider, selectedRoute.coordinates) ??
-            state.provider
-          : state.provider;
-      const routeHeading =
-        !this.topViewEnabled &&
-        state.travelerMarker.kind === 'navigation' &&
-        selectedRoute
-          ? this.headingAlongRoute(displayedProvider, selectedRoute.coordinates)
+      const displayedProvider = state.provider;
+      const trackingHeading =
+        typeof state.headingDegrees === 'number' && Number.isFinite(state.headingDegrees)
+          ? this.normalizeHeading(state.headingDegrees)
           : null;
-      if (routeHeading !== null) {
-        this.currentCameraHeading = routeHeading;
+      if (!this.topViewEnabled && trackingHeading !== null) {
+        this.currentCameraHeading = trackingHeading;
+      } else {
+        const routeHeading =
+          !this.topViewEnabled &&
+          state.travelerMarker.kind === 'navigation' &&
+          selectedRoute
+            ? this.headingAlongRoute(displayedProvider, selectedRoute.coordinates)
+            : null;
+        if (routeHeading !== null) {
+          this.currentCameraHeading = routeHeading;
+        }
       }
       this.lastRenderedState = state;
       this.lastRenderedProviderPosition = displayedProvider;
@@ -845,7 +849,11 @@ export class TrackingGoogleMapRendererService {
       position,
       state.travelerMarker,
     );
-    this.animateMarker(marker, position);
+    if (state.arrived) {
+      marker.position = position;
+    } else {
+      this.animateMarker(marker, position);
+    }
     this.lastProviderPosition = position;
     return marker;
   }
@@ -1043,6 +1051,9 @@ export class TrackingGoogleMapRendererService {
     }
 
     const projection = this.projectPointToRoute(provider, routeCoordinates);
+    if (!projection || projection.distanceFromRouteMeters > ROUTE_SNAP_MAX_DISTANCE_METERS) {
+      return null;
+    }
     const startSegmentIndex = projection?.segmentIndex ?? 0;
     const startPoint = projection?.point ?? routeCoordinates[0];
     let coveredMeters = 0;
@@ -1472,19 +1483,19 @@ export class TrackingGoogleMapRendererService {
     position: GoogleMapsPoint,
     state: TrackingMapRenderState,
   ): number {
+    if (
+      typeof state.headingDegrees === 'number' &&
+      Number.isFinite(state.headingDegrees)
+    ) {
+      return this.normalizeHeading(state.headingDegrees);
+    }
+
     const selectedRoute = state.routes.find((route) => route.selected);
     const routeHeading = selectedRoute
       ? this.headingAlongRoute(position, selectedRoute.coordinates)
       : null;
     if (routeHeading !== null) {
       return routeHeading;
-    }
-
-    if (
-      typeof state.headingDegrees === 'number' &&
-      Number.isFinite(state.headingDegrees)
-    ) {
-      return this.normalizeHeading(state.headingDegrees);
     }
 
     return this.lastProviderPosition
@@ -1500,6 +1511,7 @@ export class TrackingGoogleMapRendererService {
 
     const projection = this.projectPointToRoute(position, coordinates);
     if (!projection) return null;
+    if (projection.distanceFromRouteMeters > ROUTE_SNAP_MAX_DISTANCE_METERS) return null;
 
     const lookAhead =
       this.routePointAhead(projection.point, coordinates, Math.max(12, NAVIGATION_LOOK_AHEAD_METERS * 0.55)) ??

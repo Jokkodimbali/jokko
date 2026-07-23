@@ -237,9 +237,16 @@
 }
 
 .provider-card__meta span {
-  color: #f59e0b;
   display: inline-flex;
   gap: 2px;
+}
+
+.provider-card__meta lucide-icon {
+  color: #d7dce4;
+}
+
+.provider-card__meta .provider-card__star--filled {
+  color: #f59e0b;
 }
 
 .provider-card__meta small {
@@ -373,13 +380,13 @@
 }
 
 .provider-card__service-thumbs span {
-  background: rgba(255, 255, 255, 0.56);
+  background: transparent;
   border: 2px solid #e4d5c7;
   border-radius: 12px;
   display: block;
   height: 54px;
   overflow: hidden;
-  box-shadow: 0 10px 22px rgba(29, 20, 13, 0.2);
+  box-shadow: none;
   width: 54px;
 }
 
@@ -391,10 +398,11 @@
 }
 
 .provider-card__service-thumbs img {
-  filter: blur(1.2px) saturate(0.88) opacity(0.82);
+  filter: none;
   image-rendering: auto;
   object-fit: cover;
   object-position: center;
+  opacity: 0.72;
   transform: translateZ(0);
 }
 
@@ -409,11 +417,12 @@
 
 .provider-card__service-thumb--active span {
   border-color: #9a5a20;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .provider-card__service-thumb--active img {
-  filter: blur(0.7px) saturate(0.95) opacity(0.9);
+  filter: none;
+  opacity: 0.82;
 }
 
 .provider-card__service-labels {

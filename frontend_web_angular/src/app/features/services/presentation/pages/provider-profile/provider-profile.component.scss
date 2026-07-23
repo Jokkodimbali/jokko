@@ -277,9 +277,9 @@
 
 .provider-profile__stats .provider-profile__movement-badge {
   align-items: center;
-  background: #050505;
+  background: #f5c0bd;
   border-radius: 999px;
-  color: #ffffff;
+  color: #d7141f;
   display: inline-flex;
   flex: initial;
   gap: 4px;
@@ -292,8 +292,23 @@
   width: auto;
 }
 
+.provider-profile__stats .provider-profile__movement-badge--parcel {
+  background: #efe2d1;
+  color: #94612d;
+}
+
+.provider-profile__stats .provider-profile__movement-badge--provider {
+  background: #bfe0b3;
+  color: #436b45;
+}
+
+.provider-profile__stats .provider-profile__movement-badge--flexible {
+  background: #efe2d1;
+  color: #7a4318;
+}
+
 .provider-profile__stats .provider-profile__movement-badge strong {
-  color: #ffffff;
+  color: inherit;
   font-size: 14px;
   font-weight: 900;
   line-height: 1.15;
@@ -310,7 +325,7 @@
   width: 30px;
 }
 
-.provider-profile__stats .provider-profile__movement-badge img[src$="parcel-transport-route.png"] {
+.provider-profile__stats .provider-profile__movement-badge img[src*="livraisonde_colis"] {
   width: 42px;
 }
 

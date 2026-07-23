@@ -691,6 +691,52 @@
   justify-self: start;
 }
 
+.service-proposal__movement-badge {
+  align-items: center;
+  background: #f5c0bd;
+  border-radius: 999px;
+  color: #d7141f;
+  display: inline-flex;
+  gap: 6px;
+  grid-column: 1 / -1;
+  justify-self: start;
+  line-height: 1;
+  max-width: 100%;
+  min-height: 36px;
+  overflow: hidden;
+  padding: 5px 8px 5px 14px;
+}
+
+.service-proposal__movement-badge--parcel {
+  background: #efe2d1;
+  color: #94612d;
+}
+
+.service-proposal__movement-badge--provider {
+  background: #bfe0b3;
+  color: #436b45;
+}
+
+.service-proposal__movement-badge strong {
+  color: inherit;
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-proposal__movement-badge img {
+  display: block;
+  flex: 0 0 auto;
+  height: 26px;
+  object-fit: contain;
+  width: 42px;
+}
+
 .service-proposal__summary-row {
   align-items: center;
   border-bottom: 1px solid #edf0f4;

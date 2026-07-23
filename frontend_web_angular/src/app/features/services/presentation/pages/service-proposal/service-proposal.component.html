@@ -1,8 +1,17 @@
 <main class="service-proposal">
-  <ng-template #priceCardHeader>
+  <ng-template #priceCardHeader let-equityLabel="equityLabel">
     <header>
-      <span>Prix &eacute;quitable du service</span>
-      <strong>{{ categoryLabel() }}</strong>
+      <span class="service-proposal__price-card-title">
+        <lucide-icon
+          *ngIf="equityDirectionIcon(equityLabel) as directionIcon"
+          [name]="directionIcon"
+          size="13"
+          [strokeWidth]="3"
+          aria-hidden="true"
+        ></lucide-icon>
+        {{ equityTextWithoutDirection(equityLabel) }}
+        <strong>{{ categoryLabel() }}</strong>
+      </span>
     </header>
   </ng-template>
 
@@ -72,7 +81,7 @@
         </ng-container>
 
         <ng-template #providerOpenNegotiation>
-        <ng-container *ngIf="!canProviderRespond(); else providerActionPanel">
+        <ng-container *ngIf="isProviderWaitingForClient(); else providerNotWaitingForClient">
           <section
             class="service-proposal__panel service-proposal__provider-wait-shell"
             aria-label="Attente de reponse du client"
@@ -124,6 +133,27 @@
           </section>
         </ng-container>
 
+        <ng-template #providerNotWaitingForClient>
+        <ng-container *ngIf="isProviderWaitingForReservation(); else providerActionPanel">
+          <section class="service-proposal__panel service-proposal__provider-wait-shell" aria-label="Reservation en finalisation">
+            <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
+            <section class="service-proposal__pending service-proposal__pending--provider-wait" aria-label="Reservation en finalisation">
+              <div class="service-proposal__waiting-copy">
+                <h1>Prix accept&eacute;</h1>
+                <p>
+                  La r&eacute;servation est en cours de finalisation sur l'application client.
+                </p>
+              </div>
+
+              <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
+            </section>
+
+            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+          </section>
+        </ng-container>
+        </ng-template>
+
         <ng-template #providerActionPanel>
         <section
           class="service-proposal__panel service-proposal__counter-shell"
@@ -154,7 +184,7 @@
               <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
               <div class="service-proposal__counter-offer-card">
-              <h2>{{ proposalClientName() }} vous a envoy&eacute; une nouvelle proposition de prix</h2>
+              <h2>Nouvelle offre de {{ proposalClientName() }}</h2>
               <div class="service-proposal__counter-offer-values">
                 <span>
                   <small>Votre offre</small>
@@ -162,14 +192,19 @@
                 </span>
                 <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.2"></lucide-icon>
                 <span>
-                  <small>Offre {{ proposalClientName() }}</small>
+                  <small>Offre {{ shortOfferName(proposalClientName()) }}</small>
                   <strong>{{ providerCurrentClientOfferLabel() }} <em>FCFA</em></strong>
                 </span>
               </div>
             </div>
 
             <section class="service-proposal__price-card service-proposal__price-card--counter">
-            <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="
+                priceCardHeader;
+                context: { equityLabel: providerCounterDifferenceLabel() }
+              "
+            ></ng-container>
 
             <div class="service-proposal__offer-display">
               <small>Votre contre-offre</small>
@@ -184,10 +219,6 @@
                 />
                 <strong>FCFA</strong>
               </label>
-              <span class="service-proposal__difference">
-                <lucide-icon name="check" size="13" [strokeWidth]="2.6"></lucide-icon>
-                {{ providerCounterDifferenceLabel() }}
-              </span>
             </div>
 
             <div class="service-proposal__amount-actions">
@@ -648,7 +679,12 @@
                 <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
                 <section class="service-proposal__price-card" aria-label="Prix propose">
-                  <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      priceCardHeader;
+                      context: { equityLabel: isOfferAdjusted() ? offerDifferenceLabel() : offerEquityLabel() }
+                    "
+                  ></ng-container>
 
                   <div class="service-proposal__offer-display">
                     <small>{{ offerFieldLabel() }}</small>
@@ -666,14 +702,6 @@
                       />
                       <strong>FCFA</strong>
                     </label>
-                    <span class="service-proposal__difference">
-                      <lucide-icon
-                        [name]="offerDifferenceIcon()"
-                        size="13"
-                        [strokeWidth]="2.6"
-                      ></lucide-icon>
-                      {{ isOfferAdjusted() ? offerDifferenceLabel() : offerEquityLabel() }}
-                    </span>
                   </div>
 
                   <div class="service-proposal__amount-actions">
@@ -840,7 +868,7 @@
                   <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
                   <div class="service-proposal__counter-offer-card">
-                    <h2>{{ displayName() }} vous a envoy&eacute; une nouvelle proposition de prix</h2>
+                    <h2>Nouvelle offre de {{ displayName() }}</h2>
                     <div class="service-proposal__counter-offer-values">
                       <span>
                         <small>Votre offre</small>
@@ -848,14 +876,19 @@
                       </span>
                       <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.2"></lucide-icon>
                       <span>
-                        <small>Offre {{ displayName() }}</small>
+                        <small>Offre {{ shortOfferName(displayName()) }}</small>
                         <strong>{{ providerCounterAmountLabel() }} <em>FCFA</em></strong>
                       </span>
                     </div>
                   </div>
 
                   <section class="service-proposal__price-card service-proposal__price-card--counter">
-                    <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        priceCardHeader;
+                        context: { equityLabel: counterDifferenceLabel() }
+                      "
+                    ></ng-container>
 
                     <div class="service-proposal__offer-display">
                       <small>Votre contre-offre</small>
@@ -869,10 +902,6 @@
                         />
                         <strong>FCFA</strong>
                       </label>
-                      <span class="service-proposal__difference">
-                        <lucide-icon name="check" size="13" [strokeWidth]="2.6"></lucide-icon>
-                        {{ counterDifferenceLabel() }}
-                      </span>
                     </div>
 
                     <div class="service-proposal__amount-actions">
@@ -972,6 +1001,19 @@
                     {{ ratingLabel() }}
                   </p>
                 </div>
+                <span
+                  class="service-proposal__movement-badge"
+                  [ngClass]="reservationTravelModeBadgeClass()"
+                  [attr.aria-label]="reservationTravelModeLabel()"
+                >
+                  <strong>{{ reservationTravelModeLabel() }}</strong>
+                  <img
+                    *ngIf="reservationTravelModeImageUrl() as travelModeImage"
+                    [src]="travelModeImage"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                </span>
                 <span *ngIf="providerVehicleBadge() as vehicleBadge" class="professional-vehicle-badge">
                   <span class="professional-vehicle-badge__icon">
                     <img [src]="vehicleBadge.imageUrl" [alt]="vehicleBadge.label" />

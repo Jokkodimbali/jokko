@@ -208,7 +208,7 @@
 }
 
 .appointment-payment__receipt-provider p {
-  color: rgba(255, 255, 255, 0.74);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.25;
@@ -466,14 +466,14 @@
 }
 
 .appointment-payment__accepted-hero p {
-  color: rgba(255, 255, 255, 0.74);
+  color: #ffffff;
   font-size: 14px;
   font-weight: 650;
   margin: 0;
 }
 
 .appointment-payment--medicine .appointment-payment__accepted-hero p {
-  color: rgba(255, 255, 255, 0.82);
+  color: #ffffff;
   font-weight: 520;
 }
 
@@ -484,10 +484,14 @@
   font-weight: 680;
 }
 
-.appointment-payment--medicine .appointment-payment__receipt-provider p,
 .appointment-payment--medicine .appointment-payment__receipt-details dt,
 .appointment-payment--medicine .appointment-payment__sms span {
   color: #667085;
+  font-weight: 500;
+}
+
+.appointment-payment--medicine .appointment-payment__receipt-provider p {
+  color: #ffffff;
   font-weight: 500;
 }
 

@@ -30,6 +30,10 @@ import {
   ProfessionalAvailabilityChangedEvent,
 } from '../../../data-access/availability-realtime.service';
 import {
+  NegotiationRealtimeEvent,
+  NegotiationsRealtimeService,
+} from '../../../data-access/negotiations-realtime.service';
+import {
   CreateReservationFromNegotiationPayload,
   NegotiationView,
   MaterialQuoteView,
@@ -43,6 +47,7 @@ import {
   BackendProfessionalDetailService,
   ProfessionalVehicleType,
   ProviderProfileDetail,
+  ServiceTravelMode,
 } from '../../../domain/models/services.models';
 import {
   ProposalDetailsModal,
@@ -87,6 +92,12 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
     label: 'Camionnette',
     imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
+};
+
+const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
+  CLIENT_SE_DEPLACE: '/mode travel/le_client_se_deplace-removebg-preview.png',
+  PRESTATAIRE_SE_DEPLACE: '/mode travel/le_prestataire_se_deplace-removebg-preview.png',
+  TRANSPORT_COLIS: '/mode travel/livraisonde_colis-removebg-preview.png',
 };
 
 type ClientBookingStep = 'DETAILS' | 'PRICE';
@@ -154,6 +165,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
+  private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly authService = inject(AuthService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
@@ -199,6 +211,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly materialQuotesLoadedFor = signal<string | null>(null);
   private readonly usedParcelNumbers = new Set<string>();
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private proposalRealtimeSubscription: Subscription | null = null;
   private parcelPriceRequestId = 0;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -331,6 +344,23 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const vehicleType = this.detail()?.profile.typeVehicule;
     return vehicleType ? PROFESSIONAL_VEHICLE_BADGES[vehicleType] : null;
   });
+  protected readonly reservationTravelModeLabel = computed(() => {
+    const mode = this.currentService()?.modeDeplacement;
+    if (mode === 'CLIENT_SE_DEPLACE') return 'Le client se deplace';
+    if (mode === 'TRANSPORT_COLIS') return 'Transport de colis';
+    return 'Le prestataire se deplace';
+  });
+  protected readonly reservationTravelModeImageUrl = computed(() => {
+    const mode = this.currentService()?.modeDeplacement;
+    return mode ? TRAVEL_MODE_IMAGES[mode] : null;
+  });
+  protected readonly reservationTravelModeBadgeClass = computed(() => {
+    const mode = this.currentService()?.modeDeplacement;
+    if (mode === 'PRESTATAIRE_SE_DEPLACE') return 'service-proposal__movement-badge--provider';
+    if (mode === 'TRANSPORT_COLIS') return 'service-proposal__movement-badge--parcel';
+    if (mode === 'CLIENT_SE_DEPLACE') return 'service-proposal__movement-badge--client';
+    return 'service-proposal__movement-badge--provider';
+  });
   protected readonly proposalClientName = computed(
     () => this.pendingProposal()?.client?.nom || 'Client',
   );
@@ -339,6 +369,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly canProviderRespond = computed(
     () => this.pendingProposal()?.statut === 'EN_ATTENTE_PRESTATAIRE',
+  );
+  protected readonly isProviderWaitingForClient = computed(
+    () => this.pendingProposal()?.statut === 'EN_ATTENTE_CLIENT',
+  );
+  protected readonly isProviderWaitingForReservation = computed(
+    () => this.pendingProposal()?.statut === 'ACCEPTEE' && !this.pendingProposal()?.reservationId,
   );
   protected readonly providerProposalStatusLabel = computed(() =>
     this.pricingView.providerProposalStatusLabel(this.pendingProposal()?.statut),
@@ -536,6 +572,50 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       isFixedPriceService: this.isFixedPriceService(),
     }),
   );
+
+  protected equityDirectionLabel(label: string | null | undefined): '+' | '-' | '' {
+    const value = (label || '').trim().toLowerCase();
+
+    if (value.startsWith('-')) {
+      return '-';
+    }
+
+    if (value.startsWith('+')) {
+      return '+';
+    }
+
+    if (value.includes('moins') || value.includes('moins cher')) {
+      return '-';
+    }
+
+    if (value.includes('plus')) {
+      return '+';
+    }
+
+    return '';
+  }
+
+  protected equityDirectionIcon(label: string | null | undefined): 'arrow-up' | 'arrow-down' | '' {
+    const direction = this.equityDirectionLabel(label);
+
+    if (direction === '+') {
+      return 'arrow-up';
+    }
+
+    if (direction === '-') {
+      return 'arrow-down';
+    }
+
+    return '';
+  }
+
+  protected equityTextWithoutDirection(label: string | null | undefined): string {
+    return (label || 'Prix equitable du service').trim().replace(/^[+-]\s*/, '');
+  }
+
+  protected shortOfferName(name: string | null | undefined): string {
+    return (name || '').trim().split(/\s+/)[0] || 'prestataire';
+  }
 
   protected readonly shortAddress = computed(() =>
     this.truncate(
@@ -1058,8 +1138,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       })
       .subscribe({
         next: (updated) => {
-          this.pendingProposal.set(updated);
-          this.offerAmount.set(updated.montantCourant);
+          this.applyIncomingProposal(updated, { force: true });
           this.isProviderOfferDirty.set(false);
           this.isProviderProposalSubmitting.set(false);
           this.feedback.success('Votre contre-proposition a été envoyée au client.');
@@ -1079,8 +1158,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.isProviderProposalSubmitting.set(true);
     this.proposalService.acceptPriceProposal(proposal.id).subscribe({
       next: (updated) => {
-        this.pendingProposal.set(updated);
-        this.offerAmount.set(updated.montantCourant);
+        this.applyIncomingProposal(updated, { force: true });
         this.isProviderOfferDirty.set(false);
         this.isProviderProposalSubmitting.set(false);
         this.feedback.success('Le prix proposé par le client a été accepté.');
@@ -1102,7 +1180,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       .rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.')
       .subscribe({
         next: (updated) => {
-          this.pendingProposal.set(updated);
+          this.applyIncomingProposal(updated, { force: true });
           this.isProviderOfferDirty.set(false);
           this.isProviderProposalSubmitting.set(false);
           this.feedback.success('La proposition a été refusée.');
@@ -1889,8 +1967,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       })
       .subscribe({
         next: (updatedProposal) => {
-          this.pendingProposal.set(updatedProposal);
-          this.offerAmount.set(updatedProposal.montantCourant);
+          this.applyIncomingProposal(updatedProposal, { force: true });
           this.feedback.success('Votre contre-offre a ete envoyee au prestataire.');
           this.isRespondingToCounterOffer.set(false);
           this.startProposalRefresh(updatedProposal.id);
@@ -2008,10 +2085,17 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   private startProposalRefresh(negotiationId: string): void {
     this.stopProposalRefresh();
+    this.startProposalRealtime(negotiationId);
     this.refreshPendingProposal(negotiationId);
     this.proposalRefreshIntervalId = setInterval(() => {
       this.refreshPendingProposal(negotiationId);
     }, 2000);
+  }
+
+  private startProposalRealtime(negotiationId: string): void {
+    this.proposalRealtimeSubscription = this.negotiationsRealtime
+      .watchMyNegotiations(this.isProviderProposalMode ? 'PRESTATAIRE' : 'CLIENT')
+      .subscribe((event) => this.handleProposalRealtimeEvent(negotiationId, event));
   }
 
   private stopProposalRefresh(): void {
@@ -2019,55 +2103,147 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       clearInterval(this.proposalRefreshIntervalId);
       this.proposalRefreshIntervalId = null;
     }
+    this.proposalRealtimeSubscription?.unsubscribe();
+    this.proposalRealtimeSubscription = null;
   }
 
   private refreshPendingProposal(negotiationId: string): void {
     this.proposalService.getPriceProposal(negotiationId).subscribe({
       next: (proposal) => {
-        const previous = this.pendingProposal();
-        this.pendingProposal.set(proposal);
-        this.refreshLinkedReservationStatus(proposal);
-        this.loadMaterialQuotes(proposal.id);
-        const shouldKeepProviderDraft =
-          this.isProviderProposalMode &&
-          this.isProviderOfferDirty() &&
-          proposal.statut === 'EN_ATTENTE_PRESTATAIRE';
-        if (
-          !shouldKeepProviderDraft &&
-          !(proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut === 'EN_ATTENTE_CLIENT')
-        ) {
-          this.offerAmount.set(proposal.montantCourant);
-        }
-        if (proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut !== 'EN_ATTENTE_CLIENT') {
-          this.selectedOfferStep.set(1000);
-        }
-        if (proposal.dateHeureProposee) {
-          this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
-        }
-        if (proposal.adresseClientProposee?.trim()) {
-          this.address.set(proposal.adresseClientProposee.trim());
-        }
-
-        if (
-          !this.isProviderProposalMode &&
-          proposal.statut === 'ACCEPTEE' &&
-          previous?.statut !== 'ACCEPTEE' &&
-          !proposal.reservationId &&
-          !this.isRespondingToCounterOffer()
-        ) {
-          this.isRespondingToCounterOffer.set(true);
-          this.createReservationFromAcceptedNegotiation(proposal);
-          return;
-        }
-
-        if (this.shouldStopProposalRefresh(proposal)) {
-          this.stopProposalRefresh();
-        }
+        this.applyIncomingProposal(proposal);
       },
       error: () => {
         this.stopProposalRefresh();
       },
     });
+  }
+
+  private handleProposalRealtimeEvent(
+    negotiationId: string,
+    event: NegotiationRealtimeEvent,
+  ): void {
+    if (event.negotiationId !== negotiationId) {
+      return;
+    }
+
+    if (event.negotiation) {
+      this.applyIncomingProposal(event.negotiation);
+      return;
+    }
+
+    this.refreshPendingProposal(negotiationId);
+  }
+
+  private applyIncomingProposal(
+    proposal: NegotiationView,
+    options: { force?: boolean } = {},
+  ): void {
+    const previous = this.pendingProposal();
+    if (!options.force && previous && !this.isIncomingProposalFresh(previous, proposal)) {
+      return;
+    }
+
+    this.pendingProposal.set(proposal);
+    this.refreshLinkedReservationStatus(proposal);
+    this.loadMaterialQuotes(proposal.id);
+
+    const shouldKeepProviderDraft =
+      this.isProviderProposalMode &&
+      this.isProviderOfferDirty() &&
+      proposal.statut === 'EN_ATTENTE_PRESTATAIRE';
+    if (
+      !shouldKeepProviderDraft &&
+      !(proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut === 'EN_ATTENTE_CLIENT')
+    ) {
+      this.offerAmount.set(proposal.montantCourant);
+    }
+
+    if (proposal.statut === 'EN_ATTENTE_CLIENT' && previous?.statut !== 'EN_ATTENTE_CLIENT') {
+      this.selectedOfferStep.set(1000);
+    }
+
+    if (proposal.dateHeureProposee) {
+      this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
+    }
+
+    if (proposal.adresseClientProposee?.trim()) {
+      this.address.set(proposal.adresseClientProposee.trim());
+    }
+
+    if (this.restoreAcceptedReservationFromProposal(proposal)) {
+      this.stopProposalRefresh();
+      return;
+    }
+
+    if (
+      !this.isProviderProposalMode &&
+      proposal.statut === 'ACCEPTEE' &&
+      previous?.statut !== 'ACCEPTEE' &&
+      !proposal.reservationId &&
+      !this.isRespondingToCounterOffer()
+    ) {
+      this.isRespondingToCounterOffer.set(true);
+      this.createReservationFromAcceptedNegotiation(proposal);
+      return;
+    }
+
+    if (this.shouldStopProposalRefresh(proposal)) {
+      this.stopProposalRefresh();
+    }
+  }
+
+  private isIncomingProposalFresh(
+    current: NegotiationView,
+    incoming: NegotiationView,
+  ): boolean {
+    if (current.id !== incoming.id) {
+      return true;
+    }
+
+    const currentUpdatedAt = new Date(current.misAJourLe).getTime();
+    const incomingUpdatedAt = new Date(incoming.misAJourLe).getTime();
+    if (
+      Number.isFinite(currentUpdatedAt) &&
+      Number.isFinite(incomingUpdatedAt) &&
+      incomingUpdatedAt < currentUpdatedAt
+    ) {
+      return false;
+    }
+
+    const currentOffersCount = current.propositions?.length ?? 0;
+    const incomingOffersCount = incoming.propositions?.length ?? 0;
+    if (incomingUpdatedAt === currentUpdatedAt && incomingOffersCount < currentOffersCount) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private restoreAcceptedReservationFromProposal(proposal: NegotiationView): boolean {
+    if (this.isProviderProposalMode || !proposal.reservationId) {
+      return false;
+    }
+
+    if (proposal.statut !== 'ACCEPTEE' && proposal.statut !== 'CONVERTIE_EN_RESERVATION') {
+      return false;
+    }
+
+    const reservationPayload = this.buildAcceptedNegotiationReservationPayload(proposal);
+    if (!reservationPayload) {
+      return false;
+    }
+
+    this.acceptedReservation.set({
+      reservationId: proposal.reservationId,
+      proposal,
+      dateHeure: reservationPayload.dateHeure,
+      adresseClient: reservationPayload.adresseClient,
+      dureeMinutes: reservationPayload.dureeMinutes,
+    });
+    this.linkedReservationStatus.set('CONFIRMEE');
+    this.linkedReservationCancellationReason.set(null);
+    this.isRespondingToCounterOffer.set(false);
+    return true;
   }
 
   private handleProposalError(error: unknown): void {

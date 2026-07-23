@@ -2,6 +2,11 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 const apiUrl = process.env['E2E_API_URL'] ?? 'http://localhost:3000/api/v1';
 const reservationId = 'dd69229c-cb80-4000-93fd-3efe304b42e1';
+const clientFixtureId = '00000000-0000-4000-8000-000000000101';
+const professionalFixtureId = '00000000-0000-4000-8000-000000000202';
+const professionalUserFixtureId = '00000000-0000-4000-8000-000000000203';
+const serviceFixtureId = '00000000-0000-4000-8000-000000000303';
+const categoryFixtureId = '00000000-0000-4000-8000-000000000404';
 
 type ReservationState =
   | 'EN_ATTENTE'
@@ -12,6 +17,34 @@ type ReservationState =
   | 'ANNULEE'
   | 'NO_SHOW'
   | 'LITIGE';
+
+type RouteRequestRecord = {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+};
+
+type TrackingTestHarness = {
+  routeRequests: RouteRequestRecord[];
+  locationUpdates: Array<{
+    latitude?: number;
+    longitude?: number;
+    headingDegrees?: number | null;
+  }>;
+  markTravelerArrivedOnServer: () => void;
+};
+
+type MapDebugState = {
+  centers: Array<{ lat: number; lng: number }>;
+  cameras: Array<{
+    center?: { lat: number; lng: number };
+    zoom?: number;
+    heading?: number;
+    tilt?: number;
+  }>;
+  headings: number[];
+  markerPositions: Array<{ lat: number; lng: number }>;
+  providerMarkerPositions: Array<{ lat: number; lng: number }>;
+};
 
 test.describe('Appointment tracking lifecycle', () => {
   test.describe.configure({ timeout: 60_000 });
@@ -199,6 +232,120 @@ test.describe('Appointment tracking lifecycle', () => {
     await expect(directionPad).toContainText('0°');
   });
 
+  test('provider route follows real off-course GPS position and recenters the camera', async ({
+    page,
+    request,
+  }) => {
+    const initialPosition = { latitude: 14.7405004, longitude: -17.4749579 };
+    const offCoursePosition = { latitude: 14.74235, longitude: -17.4708 };
+    const { routeRequests, locationUpdates } = await openState(
+      page,
+      request,
+      'PAYEE_SEQUESTRE',
+      'EN_ROUTE',
+      'PRESTATAIRE',
+      {
+        browserGeolocation: initialPosition,
+        useFixtureViewerIdentity: true,
+      },
+    );
+
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    await page.waitForFunction(
+      () =>
+        ((window as typeof window & { __jokkoGeoWatcherCount?: number })
+          .__jokkoGeoWatcherCount ?? 0) > 0,
+    );
+    await page.waitForFunction(() => {
+      const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
+      return Boolean(debug?.cameras.length || debug?.centers.length);
+    });
+    await page.waitForTimeout(2_100);
+
+    await page.evaluate((position) => {
+      const emit = (window as typeof window & {
+        __jokkoEmitGeolocation?: (position: GeolocationPosition) => void;
+      }).__jokkoEmitGeolocation;
+      emit?.({
+        coords: {
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accuracy: 9,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: 42,
+          speed: 6,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition);
+    }, offCoursePosition);
+
+    await expect.poll(() => locationUpdates.length).toBeGreaterThan(0);
+    expect(locationUpdates.at(-1)).toMatchObject({
+      latitude: offCoursePosition.latitude,
+      longitude: offCoursePosition.longitude,
+      headingDegrees: 42,
+    });
+    await expect.poll(() => routeRequests.length).toBeGreaterThan(0);
+    expect(routeRequests.at(-1)?.origin).toMatchObject(offCoursePosition);
+
+    await page.waitForFunction((position) => {
+      const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
+      const lastCamera = debug?.cameras.at(-1);
+      const lastCenter = lastCamera?.center ?? debug?.centers.at(-1);
+      if (!lastCenter) return false;
+      return (
+        Math.abs(lastCenter.lat - position.latitude) < 0.0004 &&
+        Math.abs(lastCenter.lng - position.longitude) < 0.0004
+      );
+    }, offCoursePosition);
+
+    await page.waitForFunction((position) => {
+      const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
+      const providerPosition = debug?.providerMarkerPositions.at(-1);
+      if (!providerPosition) return false;
+      return (
+        Math.abs(providerPosition.lat - position.latitude) < 0.00001 &&
+        Math.abs(providerPosition.lng - position.longitude) < 0.00001
+      );
+    }, offCoursePosition);
+    const debug = await page.evaluate(
+      () => (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug,
+    );
+    expect(debug?.headings.some((heading) => Math.abs(heading - 42) < 2)).toBeTruthy();
+  });
+
+  test('client follower sees provider arrival jump directly to the destination', async ({
+    page,
+    request,
+  }) => {
+    const destination = { latitude: 14.74584, longitude: -17.40015 };
+    const { markTravelerArrivedOnServer } = await openState(
+      page,
+      request,
+      'PAYEE_SEQUESTRE',
+      'EN_ROUTE',
+      undefined,
+      {
+        useFixtureViewerIdentity: true,
+      },
+    );
+
+    await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
+    markTravelerArrivedOnServer();
+
+    await page.waitForFunction((position) => {
+      const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
+      const providerPosition = debug?.providerMarkerPositions.at(-1);
+      if (!providerPosition) return false;
+      return (
+        Math.abs(providerPosition.lat - position.latitude) < 0.00001 &&
+        Math.abs(providerPosition.lng - position.longitude) < 0.00001
+      );
+    }, destination);
+    await expect(page.getByText(/Sur place/i).first()).toBeVisible();
+  });
+
   test('provider arrived can see the finish action', async ({ page, request }) => {
     await openState(page, request, 'EN_COURS', 'EN_PRESTATION', 'PRESTATAIRE');
     await expect(page.locator('.appointment-detail__provider-console-visual')).toBeVisible();
@@ -272,13 +419,20 @@ async function openState(
     browserGeolocation?: { latitude: number; longitude: number };
     routeDistanceMeters?: number;
     arrivedLocationWithoutRoute?: boolean;
+    useFixtureViewerIdentity?: boolean;
   } = {},
-): Promise<void> {
+): Promise<TrackingTestHarness> {
+  const routeRequests: RouteRequestRecord[] = [];
+  const locationUpdates: Array<{
+    latitude?: number;
+    longitude?: number;
+    headingDegrees?: number | null;
+  }> = [];
   let login: { data: { accessToken: string; user: Record<string, unknown> } } = {
     data: {
       accessToken: 'e2e-token',
       user: {
-        id: 'client-fixture',
+        id: clientFixtureId,
         role: 'CLIENT',
         nom: 'Client Tracking',
         numeroTelephone: '+221770000000',
@@ -365,9 +519,23 @@ async function openState(
     },
   };
 
-  const browserUser = viewerRole
-    ? { ...login.data.user, role: viewerRole }
-    : login.data.user;
+  const browserUser = options.useFixtureViewerIdentity
+    ? viewerRole
+      ? {
+          ...login.data.user,
+          id: professionalUserFixtureId,
+          role: viewerRole,
+          nom: 'Dr Tracking',
+        }
+      : {
+          ...login.data.user,
+          id: clientFixtureId,
+          role: 'CLIENT',
+          nom: 'Client Tracking',
+        }
+    : viewerRole
+      ? { ...login.data.user, role: viewerRole }
+      : login.data.user;
   await page.addInitScript(
     ({ accessToken, user, browserGeolocation }) => {
       localStorage.setItem('accessToken', accessToken);
@@ -381,40 +549,172 @@ async function openState(
       window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
         spoken.push(utterance.text);
       };
+      function installGoogleMapsMock(): void {
+        const debug: MapDebugState = {
+          centers: [],
+          cameras: [],
+          headings: [],
+          markerPositions: [],
+          providerMarkerPositions: [],
+        };
+        Object.defineProperty(window, '__jokkoMapDebug', {
+          configurable: true,
+          value: debug,
+        });
+
+        class MockBounds {
+          readonly points: Array<{ lat: number; lng: number }> = [];
+          extend(point: { lat: number; lng: number }): void {
+            this.points.push(point);
+          }
+        }
+
+        class MockMap {
+          private zoom = 17;
+          constructor(_element: HTMLElement, options: Record<string, unknown>) {
+            const center = options['center'] as { lat: number; lng: number } | undefined;
+            if (center) {
+              debug.centers.push(center);
+            }
+          }
+          setCenter(center: { lat: number; lng: number }): void {
+            debug.centers.push(center);
+          }
+          setZoom(zoom: number): void {
+            this.zoom = zoom;
+          }
+          setMapTypeId(): void {}
+          setHeading(heading: number): void {
+            debug.headings.push(heading);
+          }
+          setTilt(): void {}
+          setOptions(): void {}
+          getRenderingType(): string {
+            return 'VECTOR';
+          }
+          fitBounds(bounds: MockBounds): void {
+            const lastPoint = bounds.points.at(-1);
+            if (lastPoint) {
+              debug.centers.push(lastPoint);
+            }
+          }
+          addListener(): unknown {
+            return {};
+          }
+          moveCamera(cameraOptions: {
+            center?: { lat: number; lng: number };
+            zoom?: number;
+            heading?: number;
+            tilt?: number;
+          }): void {
+            debug.cameras.push(cameraOptions);
+            if (cameraOptions.center) {
+              debug.centers.push(cameraOptions.center);
+            }
+            if (typeof cameraOptions.heading === 'number') {
+              debug.headings.push(cameraOptions.heading);
+            }
+            if (typeof cameraOptions.zoom === 'number') {
+              this.zoom = cameraOptions.zoom;
+            }
+          }
+          getZoom(): number {
+            return this.zoom;
+          }
+        }
+
+        class MockPolyline {
+          constructor(_options: Record<string, unknown>) {}
+          setMap(): void {}
+          setOptions(): void {}
+          setPath(): void {}
+          addListener(): unknown {
+            return {};
+          }
+        }
+
+        class MockAdvancedMarkerElement {
+          private markerPosition: { lat: number; lng: number } | null = null;
+          content?: Node | null;
+          map: unknown;
+          title?: string;
+          constructor(options: Record<string, unknown>) {
+            this.content = options['content'] as Node | null;
+            this.map = options['map'];
+            this.title = options['title'] as string | undefined;
+            this.position = options['position'] as { lat: number; lng: number } | null;
+          }
+          get position(): { lat: number; lng: number } | null {
+            return this.markerPosition;
+          }
+          set position(value: { lat: number; lng: number } | null) {
+            this.markerPosition = value;
+            if (value) {
+              debug.markerPositions.push(value);
+              if (this.title === 'Prestataire en route') {
+                debug.providerMarkerPositions.push(value);
+              }
+            }
+          }
+        }
+
+        Object.defineProperty(window, 'google', {
+          configurable: true,
+          value: {
+            maps: {
+              Map: MockMap,
+              Polyline: MockPolyline,
+              LatLngBounds: MockBounds,
+              SymbolPath: { FORWARD_CLOSED_ARROW: 1, CIRCLE: 0 },
+              marker: { AdvancedMarkerElement: MockAdvancedMarkerElement },
+              event: { clearInstanceListeners(): void {} },
+            },
+          },
+        });
+      }
+      installGoogleMapsMock();
       if (browserGeolocation) {
+        const geolocationWatchers = new Map<number, PositionCallback>();
+        let nextWatchId = 1;
+        const initialPosition = {
+          coords: {
+            latitude: browserGeolocation.latitude,
+            longitude: browserGeolocation.longitude,
+            accuracy: 12,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: 90,
+            speed: 5,
+          },
+          timestamp: Date.now(),
+        } as GeolocationPosition;
+        Object.defineProperty(window, '__jokkoEmitGeolocation', {
+          configurable: true,
+          value(position: GeolocationPosition): void {
+            geolocationWatchers.forEach((success) => success(position));
+          },
+        });
+        Object.defineProperty(window, '__jokkoGeoWatcherCount', {
+          configurable: true,
+          get(): number {
+            return geolocationWatchers.size;
+          },
+        });
         Object.defineProperty(navigator, 'geolocation', {
           configurable: true,
           value: {
             getCurrentPosition(success: PositionCallback): void {
-              success({
-                coords: {
-                  latitude: browserGeolocation.latitude,
-                  longitude: browserGeolocation.longitude,
-                  accuracy: 12,
-                  altitude: null,
-                  altitudeAccuracy: null,
-                  heading: 90,
-                  speed: 5,
-                },
-                timestamp: Date.now(),
-              } as GeolocationPosition);
+              success(initialPosition);
             },
             watchPosition(success: PositionCallback): number {
-              success({
-                coords: {
-                  latitude: browserGeolocation.latitude,
-                  longitude: browserGeolocation.longitude,
-                  accuracy: 12,
-                  altitude: null,
-                  altitudeAccuracy: null,
-                  heading: 90,
-                  speed: 5,
-                },
-                timestamp: Date.now(),
-              } as GeolocationPosition);
-              return 1;
+              const watchId = nextWatchId++;
+              geolocationWatchers.set(watchId, success);
+              success(initialPosition);
+              return watchId;
             },
-            clearWatch(): void {},
+            clearWatch(watchId: number): void {
+              geolocationWatchers.delete(watchId);
+            },
           },
         });
       }
@@ -482,6 +782,11 @@ async function openState(
         speedKmh?: number | null;
         locationLabel?: string | null;
       };
+      locationUpdates.push({
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        headingDegrees: payload.headingDegrees,
+      });
       const arrived = payload.locationLabel?.toLowerCase().includes('arrive');
       trackingData = {
         ...trackingData,
@@ -517,12 +822,14 @@ async function openState(
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        data: { latitude: 14.7405004, longitude: -17.4749579 },
+        data: { latitude: 14.74584, longitude: -17.40015 },
       }),
     }),
   );
-  await page.route('**/api/v1/maps/routes', (route) =>
-    route.fulfill({
+  await page.route('**/api/v1/maps/routes', async (route) => {
+    const payload = route.request().postDataJSON() as RouteRequestRecord;
+    routeRequests.push(payload);
+    await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -532,18 +839,47 @@ async function openState(
             distanceMeters: options.routeDistanceMeters ?? 7400,
             durationSeconds: options.routeDistanceMeters && options.routeDistanceMeters <= 120 ? 20 : 900,
             encodedPolyline: '',
-            coordinates: fallbackRoute(options.routeDistanceMeters).coordinates,
-            navigationSteps: fallbackRoute(options.routeDistanceMeters).navigationSteps,
+            coordinates: fallbackRoute(options.routeDistanceMeters, payload.origin).coordinates,
+            navigationSteps: fallbackRoute(options.routeDistanceMeters, payload.origin).navigationSteps,
           },
         ],
       }),
-    }),
-  );
+    });
+  });
 
   await page.goto(`/appointments/${reservationId}`);
   await expect(page.locator('app-appointment-detail-loading')).toBeHidden({
     timeout: 15_000,
   });
+
+  return {
+    routeRequests,
+    locationUpdates,
+    markTravelerArrivedOnServer: () => {
+      const destination = { latitude: 14.74584, longitude: -17.40015 };
+      trackingData = {
+        ...trackingData,
+        trackingStatus: 'TERMINEE',
+        lastLatitude: destination.latitude,
+        lastLongitude: destination.longitude,
+        lastAccuracyMeters: 10,
+        lastHeadingDegrees: null,
+        lastSpeedKmh: 0,
+        lastLocationLabel: 'Arrive a destination de Client Tracking',
+        route: fallbackRoute(0, destination),
+        presence: {
+          ...trackingData.presence,
+          status: 'EN_PRESTATION',
+          lastLatitude: destination.latitude,
+          lastLongitude: destination.longitude,
+          lastAccuracyMeters: 10,
+          lastHeadingDegrees: null,
+          lastSpeedKmh: 0,
+          lastLocationLabel: 'Arrive a destination de Client Tracking',
+        },
+      };
+    },
+  };
 }
 
 async function expectNoSpeech(page: Page): Promise<void> {
@@ -563,9 +899,9 @@ function fallbackReservationData(): Record<string, unknown> {
   const now = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   return {
     id: reservationId,
-    clientId: 'client-fixture',
-    professionnelId: 'professional-fixture',
-    serviceId: 'service-fixture',
+    clientId: clientFixtureId,
+    professionnelId: professionalFixtureId,
+    serviceId: serviceFixtureId,
     dateHeure: now,
     adresseClient: 'Plateau, Dakar',
     dureeMinutes: 45,
@@ -583,7 +919,7 @@ function fallbackReservationData(): Record<string, unknown> {
     creeLe: now,
     misAJourLe: now,
     client: {
-      id: 'client-fixture',
+      id: clientFixtureId,
       nom: 'Client Tracking',
       numeroTelephone: '+221770000000',
       email: 'client@example.com',
@@ -591,9 +927,9 @@ function fallbackReservationData(): Record<string, unknown> {
       urlAvatar: null,
     },
     service: {
-      id: 'service-fixture',
-      profilProfessionnelId: 'professional-fixture',
-      categorieId: 'category-fixture',
+      id: serviceFixtureId,
+      profilProfessionnelId: professionalFixtureId,
+      categorieId: categoryFixtureId,
       nom: 'Consultation a domicile',
       description: 'Service fixture pour verifier la carte.',
       prix: 15000,
@@ -603,21 +939,21 @@ function fallbackReservationData(): Record<string, unknown> {
       estObligatoire: true,
       estDisponible: true,
       categorie: {
-        id: 'category-fixture',
+        id: categoryFixtureId,
         nom: 'Sante',
         urlIcone: null,
         tauxCommission: 10,
       },
     },
     professionnel: {
-      id: 'professional-fixture',
-      utilisateurId: 'professional-user-fixture',
+      id: professionalFixtureId,
+      utilisateurId: professionalUserFixtureId,
       nomEntreprise: 'Dr Tracking',
       ville: 'Dakar',
       noteGlobale: 4.8,
       nombreAvis: 24,
       utilisateur: {
-        id: 'professional-user-fixture',
+        id: professionalUserFixtureId,
         nom: 'Dr Tracking',
         numeroTelephone: '+221771111111',
         urlAvatar: null,
@@ -626,7 +962,10 @@ function fallbackReservationData(): Record<string, unknown> {
   };
 }
 
-function fallbackRoute(distanceMeters = 7400): Record<string, unknown> {
+function fallbackRoute(
+  distanceMeters = 7400,
+  origin = { latitude: 14.7405004, longitude: -17.4749579 },
+): Record<string, unknown> {
   const arrived = distanceMeters <= 120;
   const durationSeconds = arrived ? 20 : 900;
   const destination = arrived
@@ -638,7 +977,7 @@ function fallbackRoute(distanceMeters = 7400): Record<string, unknown> {
     estimatedArrivalAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     encodedPolyline: '',
     coordinates: [
-      { latitude: 14.7405004, longitude: -17.4749579 },
+      origin,
       destination,
     ],
     navigationSteps: [
@@ -648,7 +987,7 @@ function fallbackRoute(distanceMeters = 7400): Record<string, unknown> {
         maneuver: null,
         distanceMeters,
         durationSeconds,
-        start: { latitude: 14.7405004, longitude: -17.4749579 },
+        start: origin,
         end: destination,
       },
     ],
@@ -661,9 +1000,9 @@ function fallbackTrackingData(): Record<string, unknown> & {
   const now = new Date().toISOString();
   return {
     reservationId,
-    clientUserId: 'client-fixture',
-    professionalId: 'professional-fixture',
-    professionalUserId: 'professional-user-fixture',
+    clientUserId: clientFixtureId,
+    professionalId: professionalFixtureId,
+    professionalUserId: professionalUserFixtureId,
     trackingStatus: 'EN_ROUTE',
     startedAt: now,
     endedAt: null,
@@ -676,7 +1015,7 @@ function fallbackTrackingData(): Record<string, unknown> & {
     lastPositionAt: now,
     updatedAt: now,
     presence: {
-      professionalId: 'professional-fixture',
+      professionalId: professionalFixtureId,
       isOnline: true,
       status: 'EN_ROUTE',
       lastLatitude: 14.7405004,

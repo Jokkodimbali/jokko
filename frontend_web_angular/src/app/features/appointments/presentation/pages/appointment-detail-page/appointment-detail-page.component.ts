@@ -88,8 +88,8 @@ const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 2000;
-const ROUTE_DEVIATION_THRESHOLD_METERS = 95;
-const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 14_000;
+const ROUTE_DEVIATION_THRESHOLD_METERS = 45;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 5_000;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<
   AppointmentVehicleType,
@@ -2036,47 +2036,45 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     if (this.providerTravelsToClient()) {
       this.isUpdatingStatus.set(true);
-      void this.animateTrackedTravelerArrival(appointment).then(() => {
-        this.stopProviderLocationSharing();
-        const destination = this.destinationCoordinates();
-        if (!destination) {
-          this.pinArrival(null);
-          this.clearNavigationRouteAfterArrival();
-          this.updateGoogleMaps();
-          this.isUpdatingStatus.set(false);
-          this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
-          return;
-        }
+      this.stopProviderLocationSharing();
+      const destination = this.destinationCoordinates();
+      this.pinArrival(destination);
+      this.clearNavigationRouteAfterArrival();
+      this.updateGoogleMaps();
+      if (!destination) {
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+        return;
+      }
 
-        this.appointmentsService
-          .updateProviderTrackingLocation(appointment.id, {
-            latitude: destination.lat,
-            longitude: destination.lng,
-            accuracyMeters: 20,
-            headingDegrees: null,
-            speedKmh: 0,
-            locationLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
-          })
-          .subscribe({
-            next: (tracking) => {
-              this.setTrackingSafely(tracking);
-              this.pinArrival(destination);
-              this.clearNavigationRouteAfterArrival();
-              this.updateGoogleMaps();
-              this.refreshAppointmentAfterArrival(appointment.id);
-              this.isUpdatingStatus.set(false);
-              this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
-            },
-            error: (error) => {
-              if (error instanceof HttpErrorResponse && error.status === 409) {
-                this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
-                return;
-              }
-              this.isUpdatingStatus.set(false);
-              this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
-            },
-          });
-      });
+      this.appointmentsService
+        .updateProviderTrackingLocation(appointment.id, {
+          latitude: destination.lat,
+          longitude: destination.lng,
+          accuracyMeters: 20,
+          headingDegrees: null,
+          speedKmh: 0,
+          locationLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
+        })
+        .subscribe({
+          next: (tracking) => {
+            this.setTrackingSafely(tracking);
+            this.pinArrival(destination);
+            this.clearNavigationRouteAfterArrival();
+            this.updateGoogleMaps();
+            this.refreshAppointmentAfterArrival(appointment.id);
+            this.isUpdatingStatus.set(false);
+            this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+          },
+          error: (error) => {
+            if (error instanceof HttpErrorResponse && error.status === 409) {
+              this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
+              return;
+            }
+            this.isUpdatingStatus.set(false);
+            this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
+          },
+        });
       return;
     }
 
@@ -2901,13 +2899,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!tracking) {
       return false;
     }
-    if (!this.isConfirmedRouteTracking(tracking)) {
-      return false;
-    }
-
-    if (this.clientTravelsToProvider()) {
-      return this.trackingHasExplicitClientArrival(tracking);
-    }
 
     const labels = [
       tracking.lastLocationLabel,
@@ -2921,18 +2912,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           .toLocaleLowerCase('fr-FR'),
       );
 
+    if (this.clientTravelsToProvider()) {
+      return this.trackingHasExplicitClientArrival(tracking);
+    }
+
     if (this.isParcelDropoffNavigationActive()) {
-      return labels.some(
+      const hasParcelDropoffArrival = labels.some(
         (label) =>
           label.includes('arrive') &&
           label.includes('destination') &&
           label.includes('destinataire'),
       );
+      return hasParcelDropoffArrival || false;
     }
 
-    return labels.some(
+    const hasDestinationArrival = labels.some(
       (label) => label.includes('arrive') && label.includes('destination'),
     );
+    return hasDestinationArrival;
   }
 
   private trackingHasExplicitClientArrival(

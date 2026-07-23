@@ -144,7 +144,6 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
-    await this.notifyNegotiationClosed(updated, 'REFUSEE');
     return updated;
   }
 
@@ -174,7 +173,6 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
-    await this.notifyNegotiationClosed(updated, 'ANNULEE');
     return updated;
   }
 
@@ -262,6 +260,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationClosed(updated, 'REFUSEE');
     return updated;
   }
 
@@ -290,6 +289,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationClosed(updated, 'ANNULEE');
     return updated;
   }
 

@@ -1752,6 +1752,40 @@
   }
 }
 
+@media (max-width: 720px) {
+  .settings-page__identity,
+  .settings-page__switcher,
+  .settings-page__panel,
+  .settings-page__state,
+  .settings-page__login {
+    width: min(calc(100% - 24px), 720px);
+  }
+
+  .settings-page__payment-row,
+  .settings-page__expertise-form,
+  .settings-page__documents article,
+  .settings-page__specialty > div {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-page__documents article nav,
+  .settings-page__specialty span {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .settings-page__confirm-card footer,
+  .settings-page__payment-form nav {
+    flex-direction: column;
+  }
+
+  .settings-page__confirm-card footer button,
+  .settings-page__payment-form nav button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .settings-page__about-card header {
     grid-template-columns: 1fr;
@@ -1786,6 +1820,7 @@
 
   .settings-page__identity {
     grid-template-columns: 1fr;
+    justify-items: start;
   }
 
   .settings-page__card {
@@ -1796,6 +1831,28 @@
   .settings-page__card header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .settings-page__switcher {
+    border-radius: 18px;
+    grid-template-columns: 1fr;
+  }
+
+  .settings-page__chip,
+  .settings-page__security header span {
+    font-size: 14px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .settings-page__modal {
+    inset: 72px 0 0;
+    padding: 14px 10px;
+  }
+
+  .settings-page__modal-card {
+    max-height: calc(100dvh - 104px);
+    padding: 18px;
   }
 }
 

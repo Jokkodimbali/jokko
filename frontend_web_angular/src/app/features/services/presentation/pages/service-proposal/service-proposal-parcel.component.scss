@@ -311,3 +311,66 @@
 .service-proposal__address-loading {
   padding: 9px 10px;
 }
+
+@media (max-width: 620px) {
+  .service-proposal__parcel-card {
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .service-proposal__parcel-table {
+    gap: 10px;
+    overflow-x: visible;
+  }
+
+  .service-proposal__parcel-head {
+    display: none;
+  }
+
+  .service-proposal__parcel-row {
+    align-items: stretch;
+    border: 1px solid #edf0f4;
+    border-radius: 12px;
+    gap: 10px;
+    grid-template-columns: 1fr auto;
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .service-proposal__parcel-row strong,
+  .service-proposal__parcel-preview,
+  .service-proposal__parcel-row input {
+    grid-column: 1 / -1;
+  }
+
+  .service-proposal__parcel-row button {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .service-proposal__parcel-add {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .service-proposal__fields--parcel,
+  .service-proposal__parcel-errors {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .service-proposal__parcel-card-header {
+    grid-template-columns: 34px minmax(0, 1fr) 18px;
+  }
+
+  .service-proposal__address-suggestions {
+    max-height: min(240px, 42dvh);
+  }
+
+  .service-proposal__address-suggestions button {
+    grid-template-columns: 28px minmax(0, 1fr);
+    padding-inline: 8px;
+  }
+}

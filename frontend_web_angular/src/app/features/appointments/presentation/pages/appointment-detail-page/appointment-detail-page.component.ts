@@ -112,8 +112,6 @@ const PARCEL_VEHICLE_MARKERS: Record<
 type AppointmentDetailUiState =
   | 'loading'
   | 'error'
-  | 'client-summary'
-  | 'completed'
   | 'closed'
   | 'working'
   | 'route'
@@ -204,7 +202,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeDeviationRecalculationBlockedUntilMs = 0;
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
-  private isAnimatingRouteArrival = false;
   private locationSharingBlockedUntilMs = 0;
   private readonly refreshParcelCheckpoints = (): void => {
     this.parcelCheckpointVersion.update((version) => version + 1);
@@ -288,14 +285,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isClientViewer = computed(() => {
     const appointment = this.appointment();
     const currentUserId = this.currentUser()?.id;
-    return !!appointment && !!currentUserId && appointment.clientId === currentUserId;
+    return (
+      !!appointment &&
+      !!currentUserId &&
+      appointment.clientId === currentUserId &&
+      !this.prefersProviderViewer(appointment, currentUserId)
+    );
   });
   protected readonly isProviderViewer = computed(() => {
     const appointment = this.appointment();
     const currentUserId = this.currentUser()?.id;
-    if (!appointment || !currentUserId || this.isClientViewer()) return false;
+    if (!appointment || !currentUserId) return false;
 
-    return appointment.professionalUserId === currentUserId;
+    return (
+      appointment.professionalUserId === currentUserId &&
+      (appointment.clientId !== currentUserId || this.prefersProviderViewer(appointment, currentUserId))
+    );
   });
   protected readonly isDoctorViewer = computed(
     () => this.isProviderViewer() && this.currentUser()?.role === 'MEDECIN',
@@ -629,10 +634,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         ? this.routeActorArrivalConfirmed() ||
           this.isArrivalPinned() ||
           this.trackingHasExplicitClientArrival(this.tracking())
-        : this.trackingIndicatesArrival(this.tracking()),
+        : this.hasConfirmedRouteStart() && this.trackingIndicatesArrival(this.tracking()),
   );
   protected readonly hasTravelerArrivedAtDestination = computed(() => {
     this.arrivalState.version();
+    if (!this.hasConfirmedRouteStart() && !this.isProviderWorking()) return false;
     if (this.isArrivalPinned()) return true;
     if (this.hasTravelerArrivalConfirmation()) return true;
     return false;
@@ -774,7 +780,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected readonly trackingCurrentStepIndex = computed(() => {
-    if (this.isAppointmentCompleted()) return 3;
+    if (this.isAppointmentCompleted()) return this.isParcelDeliveryFlow() ? 4 : 3;
     if (this.isParcelDeliveryFlow()) {
       return this.parcelTrackingStepIndex();
     }
@@ -794,7 +800,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }));
   });
   protected readonly providerTrackingCurrentStepIndex = computed(() => {
-    if (this.isAppointmentCompleted()) return 3;
+    if (this.isAppointmentCompleted()) return this.isParcelDeliveryFlow() ? 4 : 3;
     if (this.isParcelDeliveryFlow()) {
       return this.parcelTrackingStepIndex();
     }
@@ -1156,10 +1162,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly detailUiState = computed<AppointmentDetailUiState>(() => {
     if (this.isLoading()) return 'loading';
     if (this.errorMessage()) return 'error';
+    if (this.isAppointmentCompleted()) return 'route';
+    if (this.isAppointmentClosed()) return 'closed';
     if (this.isProviderViewer() && !this.isAppointmentClosed()) return 'route';
     if (!this.isProviderViewer() && !this.isAppointmentClosed()) return 'route';
-    if (this.isAppointmentCompleted()) return 'completed';
-    if (this.isAppointmentClosed()) return 'closed';
     if (this.isProviderWorking()) return 'route';
     if (this.isProviderOnTheWay()) return 'route';
     if (this.isOperationalServiceDay()) return 'route';
@@ -1185,6 +1191,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.isProviderViewer() &&
       !this.isProviderOnTheWay() &&
       !this.isParcelDropoffNavigationActive(),
+  );
+  protected readonly showClientRoutePanel = computed(
+    () => this.isClientViewer() && !this.isProviderViewer(),
+  );
+  protected readonly showClientTrackingVisual = computed(
+    () =>
+      this.showClientRoutePanel() &&
+      !this.shouldRenderTrackingMap(),
   );
   protected readonly upcomingCountdownLabel = computed(() => {
     const appointment = this.appointment();
@@ -2037,44 +2051,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.providerTravelsToClient()) {
       this.isUpdatingStatus.set(true);
       this.stopProviderLocationSharing();
-      const destination = this.destinationCoordinates();
+      const destination = this.providerArrivalDestination(appointment);
       this.pinArrival(destination);
       this.clearNavigationRouteAfterArrival();
-      this.updateGoogleMaps();
+      this.renderArrivalOnMap(appointment, destination, null);
       if (!destination) {
-        this.isUpdatingStatus.set(false);
-        this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+        this.resolveProviderArrivalDestinationAndConfirm(appointment);
         return;
       }
 
-      this.appointmentsService
-        .updateProviderTrackingLocation(appointment.id, {
-          latitude: destination.lat,
-          longitude: destination.lng,
-          accuracyMeters: 20,
-          headingDegrees: null,
-          speedKmh: 0,
-          locationLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
-        })
-        .subscribe({
-          next: (tracking) => {
-            this.setTrackingSafely(tracking);
-            this.pinArrival(destination);
-            this.clearNavigationRouteAfterArrival();
-            this.updateGoogleMaps();
-            this.refreshAppointmentAfterArrival(appointment.id);
-            this.isUpdatingStatus.set(false);
-            this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
-          },
-          error: (error) => {
-            if (error instanceof HttpErrorResponse && error.status === 409) {
-              this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
-              return;
-            }
-            this.isUpdatingStatus.set(false);
-            this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
-          },
-        });
+      this.submitProviderArrivalAtDestination(appointment, destination);
       return;
     }
 
@@ -2272,9 +2258,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.isUpdatingStatus.set(true);
-    void this.animateTrackedTravelerArrival(appointment).then(() => {
-      this.submitStartWork(appointment, silent);
-    });
+    this.submitStartWork(appointment, silent);
   }
 
   private submitStartWork(appointment: AppointmentView, silent: boolean): void {
@@ -2561,14 +2545,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private confirmClientArrival(appointment: AppointmentView): void {
-    const destination =
-      this.destinationCoordinates() ??
-      (this.trackingLatitude() !== null && this.trackingLongitude() !== null
-        ? { lat: this.trackingLatitude() as number, lng: this.trackingLongitude() as number }
-        : null);
+    const destination = this.currentReservationTrackingPoint();
     if (!destination) {
-      this.feedback.info("Position d'arrivee en cours de localisation. Reessayez dans un instant.");
-      this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
+      this.routeActorArrivalConfirmed.set(false);
+      this.arrivalState.clear(appointment.id);
+      this.feedback.info("Partagez d'abord votre position GPS reelle avant de confirmer l'arrivee.");
       return;
     }
 
@@ -2576,18 +2557,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.stopProviderLocationSharing();
     this.pinArrival(destination);
     this.clearNavigationRouteAfterArrival();
-    this.mapRenderer.render({
-      provider: destination,
-      destination,
-      destinationMarker: this.destinationMapMarker(),
-      remainingLabel: 'Arrive',
-      statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
-      headingDegrees: this.reliableTrackingHeading(),
-      routes: [],
-      showManeuverMarkers: this.isRouteActorViewer(),
-      arrived: true,
-      travelerMarker: this.travelerMapMarker(),
-    });
+    this.renderArrivalOnMap(appointment, destination, this.reliableTrackingHeading());
 
     this.appointmentsService
       .updateProviderTrackingLocation(appointment.id, {
@@ -2610,6 +2580,115 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
         },
       });
+  }
+
+  private providerArrivalDestination(appointment: AppointmentView): MapCoordinate | null {
+    const destination =
+      this.destinationCoordinates() ||
+      this.currentRouteDestinationCoordinates() ||
+      this.geo.extractCoordinatesFromAddress(
+        this.geo.normalizeAddressQuery(this.currentRouteDestinationAddress(appointment)),
+      );
+
+    if (destination && this.geo.isCoordinateInSenegal(destination.lat, destination.lng)) {
+      this.destinationCoordinates.set(destination);
+      this.destinationStatus.set('ready');
+      return destination;
+    }
+
+    return null;
+  }
+
+  private resolveProviderArrivalDestinationAndConfirm(appointment: AppointmentView): void {
+    const query = this.geo.normalizeAddressQuery(this.currentRouteDestinationAddress(appointment));
+    if (!query) {
+      this.isUpdatingStatus.set(false);
+      this.feedback.error("Adresse d'intervention introuvable sur la carte.");
+      return;
+    }
+
+    this.destinationStatus.set('resolving');
+    this.appointmentsService.geocodeAddress(query).subscribe({
+      next: (result) => {
+        if (!result || !this.geo.isCoordinateInSenegal(result.latitude, result.longitude)) {
+          this.destinationStatus.set('unavailable');
+          this.isUpdatingStatus.set(false);
+          this.feedback.error("Adresse d'intervention introuvable sur la carte.");
+          return;
+        }
+
+        const destination = { lat: result.latitude, lng: result.longitude };
+        this.destinationCoordinates.set(destination);
+        this.destinationStatus.set('ready');
+        this.pinArrival(destination);
+        this.clearNavigationRouteAfterArrival();
+        this.renderArrivalOnMap(appointment, destination, null);
+        this.submitProviderArrivalAtDestination(appointment, destination);
+      },
+      error: () => {
+        this.destinationStatus.set('unavailable');
+        this.isUpdatingStatus.set(false);
+        this.feedback.error("Impossible de localiser l'adresse d'intervention pour le moment.");
+      },
+    });
+  }
+
+  private submitProviderArrivalAtDestination(
+    appointment: AppointmentView,
+    destination: MapCoordinate,
+  ): void {
+    this.appointmentsService
+      .updateProviderTrackingLocation(appointment.id, {
+        latitude: destination.lat,
+        longitude: destination.lng,
+        accuracyMeters: 20,
+        headingDegrees: null,
+        speedKmh: 0,
+        locationLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
+      })
+      .subscribe({
+        next: (tracking) => {
+          this.setTrackingSafely(tracking);
+          this.pinArrival(destination);
+          this.clearNavigationRouteAfterArrival();
+          this.renderArrivalOnMap(appointment, destination, null);
+          this.refreshAppointmentAfterArrival(appointment.id);
+          this.isUpdatingStatus.set(false);
+          this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+        },
+        error: (error) => {
+          if (error instanceof HttpErrorResponse && error.status === 409) {
+            this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
+            return;
+          }
+          this.isUpdatingStatus.set(false);
+          this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
+        },
+      });
+  }
+
+  private renderArrivalOnMap(
+    appointment: AppointmentView,
+    destination: MapCoordinate | null,
+    headingDegrees: number | null,
+  ): void {
+    if (!destination) {
+      this.updateGoogleMaps();
+      return;
+    }
+
+    this.mapRenderer.render({
+      provider: destination,
+      destination,
+      destinationMarker: this.destinationMapMarker(),
+      remainingLabel: 'Arrive',
+      statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
+      headingDegrees,
+      routes: [],
+      showManeuverMarkers: this.isRouteActorViewer(),
+      arrived: true,
+      travelerMarker: this.travelerMapMarker(),
+    });
   }
 
   private refreshAppointmentAfterArrival(appointmentId: string): void {
@@ -2646,157 +2725,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
   }
 
-  private animateTrackedTravelerArrival(appointment: AppointmentView): Promise<void> {
-    const destination = this.destinationCoordinates();
-    const latitude = this.trackingLatitude();
-    const longitude = this.trackingLongitude();
-
-    if (
-      !destination ||
-      latitude === null ||
-      longitude === null ||
-      !this.hasTrackingCoordinates() ||
-      !this.hasActiveNavigationState()
-    ) {
-      return Promise.resolve();
-    }
-
-    const path = this.routeAnimationPath({ lat: latitude, lng: longitude }, destination);
-    if (path.length < 2) {
-      return Promise.resolve();
-    }
-
-    this.isAnimatingRouteArrival = true;
-    const startedAt = performance.now();
-    const durationMs = 1600;
-    const initialDistanceKm = this.routeDistanceKm();
-    const initialDurationMinutes = this.routeDurationMinutes();
-
-    return new Promise((resolve) => {
-      const tick = (timestamp: number): void => {
-        const progress = Math.min(1, (timestamp - startedAt) / durationMs);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const point = this.interpolateRoutePoint(path, eased);
-        const remainingRatio = 1 - eased;
-
-        this.routeDistanceKm.set(
-          initialDistanceKm === null ? null : Math.max(0, initialDistanceKm * remainingRatio),
-        );
-        this.routeDurationMinutes.set(
-          initialDurationMinutes === null
-            ? null
-            : Math.max(0, Math.round(initialDurationMinutes * remainingRatio)),
-        );
-        this.mapRenderer.render({
-          provider: point,
-          destination,
-          destinationMarker: this.destinationMapMarker(),
-          remainingLabel: progress >= 1 ? 'Arrive' : this.routeRemainingBadgeLabel(),
-          statusLabel:
-            progress >= 1
-              ? `Arrive a destination de ${this.routeVehiclePersonLabel()}`
-              : this.activeVehicleRouteLabel(false),
-          headingDegrees: null,
-          routes: this.serializedMapRoutes(),
-          showManeuverMarkers: this.isRouteActorViewer(),
-          arrived: progress >= 1,
-          travelerMarker: this.travelerMapMarker(),
-        });
-
-        if (progress < 1) {
-          this.requestRouteAnimationFrame(tick);
-          return;
-        }
-
-        this.isAnimatingRouteArrival = false;
-        resolve();
-      };
-
-      this.requestRouteAnimationFrame(tick);
-    });
-  }
-
-  private routeAnimationPath(
-    currentPosition: MapCoordinate,
-    destination: MapCoordinate,
-  ): MapCoordinate[] {
-    const selectedRoute =
-      this.routeOptions.find((route) => route.id === this.selectedRouteId()) ??
-      this.routeOptions[0];
-    const routeCoordinates = selectedRoute?.coordinates ?? this.routeCoordinates;
-    const points = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
-    if (points.length < 2) {
-      return [currentPosition, destination];
-    }
-
-    let nearestIndex = 0;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    points.forEach((point, index) => {
-      const distance =
-        Math.pow(point.lat - currentPosition.lat, 2) +
-        Math.pow(point.lng - currentPosition.lng, 2);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-    });
-
-    const remainingRoute = points.slice(Math.min(nearestIndex + 1, points.length - 1));
-    const lastPoint = remainingRoute[remainingRoute.length - 1];
-    if (
-      !lastPoint ||
-      Math.abs(lastPoint.lat - destination.lat) > 0.00001 ||
-      Math.abs(lastPoint.lng - destination.lng) > 0.00001
-    ) {
-      remainingRoute.push(destination);
-    }
-
-    return [currentPosition, ...remainingRoute];
-  }
-
-  private interpolateRoutePoint(path: MapCoordinate[], progress: number): MapCoordinate {
-    if (path.length < 2) return path[0] ?? { lat: 0, lng: 0 };
-
-    const segments = path.slice(1).map((point, index) => ({
-      from: path[index],
-      to: point,
-      distance: this.geo.distanceMetersBetweenPoints(path[index], point),
-    }));
-    const totalDistance = segments.reduce((sum, segment) => sum + segment.distance, 0);
-    if (totalDistance <= 0) return path[path.length - 1];
-
-    let coveredDistance = Math.max(0, Math.min(1, progress)) * totalDistance;
-    for (const segment of segments) {
-      if (coveredDistance > segment.distance) {
-        coveredDistance -= segment.distance;
-        continue;
-      }
-
-      const ratio = segment.distance <= 0 ? 1 : coveredDistance / segment.distance;
-      return {
-        lat: segment.from.lat + (segment.to.lat - segment.from.lat) * ratio,
-        lng: segment.from.lng + (segment.to.lng - segment.from.lng) * ratio,
-      };
-    }
-
-    return path[path.length - 1];
-  }
-
-  private requestRouteAnimationFrame(callback: (timestamp: number) => void): void {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(callback);
-      return;
-    }
-
-    window.setTimeout(() => callback(performance.now()), 16);
-  }
-
   private acceptLocalTravelerArrivalAfterTrackingConflict(appointment: AppointmentView): void {
     this.locationSharingBlockedUntilMs = Date.now() + 30_000;
     this.stopProviderLocationSharing();
-    this.pinArrival(this.destinationCoordinates());
+    const destination = this.destinationCoordinates();
+    this.pinArrival(destination);
     this.clearNavigationRouteAfterArrival();
-    this.updateGoogleMaps();
+    this.renderArrivalOnMap(appointment, destination, this.reliableTrackingHeading());
     this.refreshTracking(appointment.id);
     this.refreshAppointmentState(appointment.id);
     this.isUpdatingStatus.set(false);
@@ -2900,10 +2835,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return false;
     }
 
-    const labels = [
-      tracking.lastLocationLabel,
-      tracking.presence.lastLocationLabel,
-    ]
+    if (!this.hasReservationTrackingPoint(tracking)) {
+      return false;
+    }
+
+    const labels = [tracking.lastLocationLabel]
       .filter((value): value is string => Boolean(value?.trim()))
       .map((value) =>
         value
@@ -2936,8 +2872,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     tracking: AppointmentTrackingView | null | undefined,
   ): boolean {
     if (!tracking) return false;
+    if (!this.hasReservationTrackingPoint(tracking)) return false;
 
-    return [tracking.lastLocationLabel, tracking.presence.lastLocationLabel]
+    return [tracking.lastLocationLabel]
       .filter((value): value is string => Boolean(value?.trim()))
       .map((value) =>
         value
@@ -2951,6 +2888,30 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           label.includes('arrive') &&
           label.includes('destination'),
       );
+  }
+
+  private currentReservationTrackingPoint(): MapCoordinate | null {
+    const tracking = this.tracking();
+    if (!this.hasReservationTrackingPoint(tracking)) return null;
+    return {
+      lat: tracking.lastLatitude as number,
+      lng: tracking.lastLongitude as number,
+    };
+  }
+
+  private hasReservationTrackingPoint(
+    tracking: AppointmentTrackingView | null | undefined,
+  ): tracking is AppointmentTrackingView & {
+    lastLatitude: number;
+    lastLongitude: number;
+  } {
+    return (
+      !!tracking &&
+      tracking.trackingStatus === 'EN_ROUTE' &&
+      typeof tracking.lastLatitude === 'number' &&
+      typeof tracking.lastLongitude === 'number' &&
+      Boolean(tracking.startedAt || tracking.lastPositionAt || tracking.updatedAt)
+    );
   }
 
   private isArrivalPinned(): boolean {
@@ -3178,6 +3139,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
   }
 
+  private prefersProviderViewer(appointment: AppointmentView, currentUserId: string): boolean {
+    if (appointment.professionalUserId !== currentUserId) return false;
+
+    const query = this.route.snapshot.queryParamMap;
+    const mode = query.get('mode') || query.get('scope') || query.get('viewer');
+    if (mode === 'prestataire' || mode === 'provider' || mode === 'PRESTATAIRE') return true;
+
+    const returnUrl = query.get('returnUrl') ?? '';
+    return (
+      returnUrl.startsWith('/medecine/espace') ||
+      returnUrl.startsWith('/prestataire/espace')
+    );
+  }
+
   private normalizeTextForMatch(value: string): string {
     return value
       .normalize('NFD')
@@ -3281,9 +3256,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private updateGoogleMaps(): void {
     if (!this.hasActiveNavigationState()) {
-      return;
-    }
-    if (this.isAnimatingRouteArrival) {
       return;
     }
 

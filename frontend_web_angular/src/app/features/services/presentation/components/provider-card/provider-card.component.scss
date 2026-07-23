@@ -241,12 +241,17 @@
   gap: 2px;
 }
 
-.provider-card__meta lucide-icon {
-  color: #d7dce4;
+.provider-card__rating-star {
+  color: #f59e0b;
+  font-size: 14px;
+  font-style: normal;
+  line-height: 1;
+  opacity: 0.34;
 }
 
 .provider-card__meta .provider-card__star--filled {
   color: #f59e0b;
+  opacity: 1;
 }
 
 .provider-card__meta small {

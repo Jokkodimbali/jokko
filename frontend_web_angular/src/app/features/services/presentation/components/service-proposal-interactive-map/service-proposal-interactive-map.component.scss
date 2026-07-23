@@ -383,13 +383,64 @@
 @media (max-width: 600px) {
   .interactive-map__toolbar {
     align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .interactive-map__search {
+    min-height: 46px;
+  }
+
+  .interactive-map__styles {
+    justify-self: start;
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   .interactive-map__canvas-wrap {
-    height: 250px;
+    border-radius: 16px;
+    height: clamp(280px, 48dvh, 390px);
+    min-height: 280px;
+  }
+
+  .interactive-map--expanded .interactive-map__canvas-wrap {
+    min-height: clamp(360px, 58dvh, 520px);
   }
 
   .interactive-map__suggestions {
+    max-height: min(260px, 42dvh);
     right: 0;
+  }
+
+  .interactive-map__expand {
+    right: 10px;
+    top: 10px;
+  }
+
+  .interactive-map__status {
+    align-items: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .interactive-map {
+    gap: 10px;
+  }
+
+  .interactive-map__search {
+    grid-template-columns: 16px minmax(0, 1fr) 30px;
+    padding-inline: 10px 8px;
+  }
+
+  .interactive-map__canvas-wrap {
+    height: clamp(260px, 46dvh, 360px);
+    min-height: 260px;
+  }
+
+  :host ::ng-deep .jokko-map-marker b {
+    max-width: min(290px, 82vw);
+    min-width: min(220px, 74vw);
+    padding: 9px 12px;
   }
 }

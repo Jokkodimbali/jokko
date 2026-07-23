@@ -99,7 +99,7 @@ export class ProviderCardComponent {
       return 'Nouveau';
     }
 
-    return this.provider.rating.toFixed(2);
+    return this.normalizedRating().toFixed(2);
   }
 
   protected get reviewsText(): string {
@@ -108,11 +108,16 @@ export class ProviderCardComponent {
 
   protected isRatingStarFilled(star: number): boolean {
     if (this.provider.totalReviews <= 0) {
-      return true;
+      return false;
     }
 
-    const rating = Math.max(0, Math.min(5, Number(this.provider.rating) || 0));
+    const rating = this.normalizedRating();
     return star <= Math.round(rating);
+  }
+
+  private normalizedRating(): number {
+    const rating = Math.max(0, Math.min(5, Number(this.provider.rating) || 0));
+    return this.provider.totalReviews > 0 && rating <= 0 ? 5 : rating;
   }
 
   protected get movementImageUrl(): string | null {

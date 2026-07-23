@@ -1290,14 +1290,15 @@
   .messages-page__workspace {
     display: flex;
     flex-direction: column;
-    height: auto;
+    height: calc(100dvh - var(--app-navbar-height, 72px));
     min-height: calc(100vh - var(--app-navbar-height, 72px));
-    overflow: visible;
+    overflow: hidden;
   }
 
   .messages-page__sidebar {
     border-right: 0;
-    max-height: 45vh;
+    flex: 0 0 auto;
+    max-height: min(42dvh, 360px);
   }
 
   .messages-page__conversation-list {
@@ -1306,8 +1307,9 @@
 
   .messages-page__chat {
     border-top: 1px solid #e3e1de;
-    grid-template-rows: 76px minmax(360px, 55vh) auto;
-    min-height: 560px;
+    flex: 1 1 auto;
+    grid-template-rows: 70px minmax(0, 1fr) auto;
+    min-height: 0;
   }
 
   .messages-page__chat-head {
@@ -1325,12 +1327,12 @@
   }
 
   .messages-page__thread {
-    padding: 16px 14px 10px;
+    padding: 14px 12px 10px;
     scroll-padding-bottom: 10px;
   }
 
   .messages-page__bubble-row {
-    max-width: 86%;
+    max-width: 92%;
   }
 
   .messages-page__reservation-row {
@@ -1382,6 +1384,19 @@
 }
 
 @media (max-width: 420px) {
+  .messages-page__sidebar {
+    max-height: min(40dvh, 310px);
+  }
+
+  .messages-page__tabs {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .messages-page__tab {
+    font-size: 9px;
+  }
+
   .messages-page__conversation {
     grid-template-columns: 46px minmax(0, 1fr) 38px;
     padding-left: 10px;
@@ -1396,4 +1411,18 @@
     width: 40px;
   }
 
+  .messages-page__reservation-card,
+  .messages-page__appointment-card {
+    border-radius: 14px;
+  }
+
+  .messages-page__proposal-card {
+    min-width: 0;
+    padding: 20px 16px 18px;
+    width: 100%;
+  }
+
+  .messages-page__proposal-card strong {
+    font-size: 30px;
+  }
 }

@@ -1027,9 +1027,10 @@
   .app-navbar__notifications {
     max-height: min(520px, calc(100vh - 88px));
     position: fixed;
+    left: 12px;
     right: 12px;
     top: 78px;
-    width: min(420px, calc(100vw - 24px));
+    width: auto;
     z-index: 230;
   }
 
@@ -1086,13 +1087,48 @@
     width: 56px;
   }
 
+  .app-navbar__notification--mobile {
+    height: 42px;
+    margin-right: 8px;
+    width: 42px;
+  }
+
   .app-navbar__hamburger {
     height: 42px;
     width: 42px;
   }
 
   .app-navbar__mobile-drawer {
-    width: min(320px, 86vw);
+    width: min(336px, 92vw);
+  }
+
+  .app-navbar__mobile-drawer-header {
+    padding: 16px 14px 12px;
+  }
+
+  .app-navbar__mobile-nav,
+  .app-navbar__mobile-actions {
+    padding-inline: 10px;
+  }
+
+  .app-navbar__toast {
+    left: 10px;
+    right: 10px;
+    top: 72px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-navbar {
+    padding-inline: 10px;
+  }
+
+  .app-navbar__brand {
+    width: 66px;
+  }
+
+  .app-navbar__mobile-drawer {
+    width: 94vw;
   }
 }
 

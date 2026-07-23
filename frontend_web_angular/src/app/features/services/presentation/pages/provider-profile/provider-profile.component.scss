@@ -625,7 +625,26 @@
 
 .provider-profile__reviews header span {
   font-size: 14px;
-  letter-spacing: 0.18em;
+}
+
+.provider-profile__stars {
+  align-items: center;
+  color: #f59e0b;
+  display: inline-flex;
+  gap: 2px;
+  letter-spacing: 0;
+}
+
+.provider-profile__stars i {
+  color: #f59e0b;
+  font-style: normal;
+  line-height: 1;
+  opacity: 0.32;
+}
+
+.provider-profile__stars .provider-profile__star--filled {
+  color: #f59e0b;
+  opacity: 1;
 }
 
 .provider-profile__reviews header small {
@@ -686,7 +705,6 @@
 .provider-profile__review div span {
   color: #f59e0b;
   font-size: 13px;
-  letter-spacing: 0.08em;
 }
 
 .provider-profile__review p {
@@ -846,6 +864,21 @@
   }
 }
 
+@media (max-width: 900px) {
+  .provider-profile__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .provider-profile__stats div {
+    border-top: 1px solid #edf0f2;
+    padding: 16px 18px;
+  }
+
+  .provider-profile__stats div:nth-child(odd) {
+    padding-left: 0;
+  }
+}
+
 @media (max-width: 760px) {
   .provider-profile__shell {
     width: min(calc(100% - 14px), 640px);
@@ -873,7 +906,8 @@
 
   .provider-profile__identity-card {
     border-radius: 0 0 24px 24px;
-    grid-template-columns: 1fr auto;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
     padding: 0 22px 26px;
   }
 
@@ -948,5 +982,59 @@
 
   .provider-profile__review > small {
     white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .provider-profile__shell {
+    margin-bottom: 42px;
+    width: calc(100% - 10px);
+  }
+
+  .provider-profile__hero-card,
+  .provider-profile__identity-card,
+  .provider-profile__card {
+    border-radius: 18px;
+  }
+
+  .provider-profile__hero-card {
+    height: 205px;
+  }
+
+  .provider-profile__online {
+    left: 14px;
+    right: auto;
+    top: 64px;
+  }
+
+  .provider-profile__identity-card {
+    grid-template-columns: 1fr;
+    padding: 0 16px 20px;
+  }
+
+  .provider-profile__actions {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .provider-profile__actions button {
+    flex: 1;
+    border-radius: 16px;
+    width: auto;
+  }
+
+  .provider-profile__price,
+  .provider-profile__contact,
+  .provider-profile__hours {
+    padding: 22px;
+  }
+
+  .provider-profile__schedule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .provider-profile__schedule-row > div {
+    justify-content: flex-start;
   }
 }

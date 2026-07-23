@@ -8,28 +8,116 @@
   }
 
   :host .favorites {
-    border-radius: 16px !important;
+    border-radius: 18px !important;
     height: auto !important;
-    margin: 16px 12px !important;
-    padding: 18px 14px !important;
-    width: calc(100% - 24px) !important;
+    margin: 14px 10px 10px !important;
+    overflow: hidden;
+    padding: 14px !important;
+    width: calc(100% - 20px) !important;
+  }
+
+  :host .favorites-header {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  :host .favorites-header__icon {
+    height: 40px;
+    width: 40px;
+  }
+
+  :host .favorites-header__text h2 {
+    font-size: 18px !important;
+    margin-top: 0 !important;
+  }
+
+  :host .favorites-header__text span {
+    font-size: 12px;
   }
 
   :host .favorite-list {
-    display: grid;
+    display: flex;
     gap: 10px;
-    grid-template-columns: 1fr;
-    max-height: 280px;
-    overflow-y: auto;
+    margin-inline: -2px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    padding: 2px 2px 8px;
+    scroll-padding-inline: 2px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+
+  :host .favorite-list::-webkit-scrollbar {
+    display: none;
   }
 
   :host .favorite-row {
-    min-height: 64px !important;
+    align-items: center !important;
+    border-radius: 14px !important;
+    flex: 0 0 min(78vw, 270px);
+    gap: 10px !important;
+    min-height: 78px !important;
+    padding: 10px !important;
+    scroll-snap-align: start;
+  }
+
+  :host .favorite-row img,
+  :host .favorite-avatar__initials {
+    height: 50px !important;
+    width: 50px !important;
+  }
+
+  :host .favorite-row strong {
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  :host .favorite-row small {
+    display: -webkit-box;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  :host .favorites-manage {
+    border-radius: 14px;
+    margin-top: 8px;
+    min-height: 42px;
+  }
+
+  :host .empty-favorites {
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 14px;
+    color: #fff;
+    min-height: 96px;
+    padding: 14px;
+    text-align: left;
+  }
+
+  :host .empty-favorites p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+  }
+
+  :host .empty-favorites .auth-link {
+    background: #fff;
+    color: #8f4721;
+    font-weight: 900;
   }
 
   :host .service-section {
     min-height: auto !important;
-    padding: 26px 14px 20px !important;
+    padding: 24px 12px 20px !important;
   }
 
   :host .service-section:first-of-type {
@@ -60,6 +148,7 @@
 
   :host .provider-card__actions {
     grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   :host .provider-card__action {
@@ -75,6 +164,31 @@
 }
 
 @media (max-width: 390px) {
+  :host .favorites {
+    margin-inline: 8px !important;
+    padding: 12px !important;
+    width: calc(100% - 16px) !important;
+  }
+
+  :host .favorite-row {
+    flex-basis: min(84vw, 252px);
+  }
+
+  :host .favorite-row img,
+  :host .favorite-avatar__initials {
+    height: 44px !important;
+    width: 44px !important;
+  }
+
+  :host .favorite-avatar__dot {
+    height: 11px;
+    width: 11px;
+  }
+
+  :host .service-section {
+    padding-inline: 8px !important;
+  }
+
   :host .provider-card__actions {
     grid-template-columns: 1fr;
   }
@@ -101,12 +215,28 @@
     border-radius: 20px !important;
     height: auto !important;
     margin: 20px 0 12px 16px !important;
+    overflow: hidden;
+    padding: 18px !important;
     width: calc(100% - 16px) !important;
   }
 
   :host .favorite-list {
-    max-height: 420px;
-    overflow-y: auto;
+    display: flex;
+    gap: 12px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+
+  :host .favorite-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  :host .favorite-row {
+    flex: 0 0 260px;
+    min-height: 76px !important;
   }
 
   :host .service-section {

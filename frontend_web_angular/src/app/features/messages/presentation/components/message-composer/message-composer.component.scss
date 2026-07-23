@@ -309,7 +309,14 @@
 
 @media (max-width: 767px) {
   .message-composer {
-    padding: 0 10px 9px;
+    padding: 0 10px max(9px, env(safe-area-inset-bottom));
+  }
+
+  .message-composer__amount {
+    justify-content: center;
+    max-width: 100%;
+    padding-inline: 18px;
+    width: fit-content;
   }
 }
 
@@ -319,7 +326,11 @@
   }
 
   .message-composer__input-row {
-    grid-template-columns: 32px 32px minmax(0, 1fr) 36px;
+    grid-template-columns: 32px minmax(0, 1fr) 38px;
+  }
+
+  .message-composer__input-row .message-composer__tool:nth-child(2) {
+    display: none;
   }
 
   .message-composer__tool {

@@ -153,7 +153,13 @@
               <h2>Avis clients</h2>
               <div>
                 <strong>{{ ratingLabel() }}</strong>
-                <span>{{ ratingStars() }}</span>
+                <span class="provider-profile__stars" aria-label="Note globale">
+                  <i
+                    *ngFor="let star of ratingStars()"
+                    [class.provider-profile__star--filled]="star.filled"
+                    aria-hidden="true"
+                  >★</i>
+                </span>
                 <small>{{ reviewTotalLabel() }}</small>
               </div>
             </header>
@@ -171,7 +177,13 @@
                 </ng-template>
                 <div>
                   <strong>{{ review.client.nom }}</strong>
-                  <span>{{ starsFor(review.note) }}</span>
+                  <span class="provider-profile__stars" aria-label="Note de l'avis">
+                    <i
+                      *ngFor="let star of ratingStarViews(review.note)"
+                      [class.provider-profile__star--filled]="star.filled"
+                      aria-hidden="true"
+                    >★</i>
+                  </span>
                   <p>{{ review.commentaire || 'Avis sans commentaire.' }}</p>
                 </div>
                 <small>{{ formatReviewDate(review.reviewedAt || review.creeLe) }}</small>

@@ -35,6 +35,11 @@ interface OfferedServiceVisual {
   imageUrl: string | null;
 }
 
+interface RatingStarView {
+  index: number;
+  filled: boolean;
+}
+
 const PROFESSIONAL_VEHICLE_BADGES: Record<
   ProfessionalVehicleType,
   { label: string; imageUrl: string }
@@ -160,7 +165,7 @@ export class ProviderProfileComponent implements OnInit {
     return `${this.formatNumber(total)} avis`;
   });
   protected readonly ratingStars = computed(() =>
-    this.starsFor(this.detail()?.profile.noteGlobale ?? 0),
+    this.ratingStarViews(this.detail()?.profile.noteGlobale ?? 0, this.detail()?.profile.nombreAvis ?? 0),
   );
   private readonly professionalBiography = computed(() => {
     const biography = this.detail()?.profile.biographie ?? '';
@@ -359,9 +364,13 @@ export class ProviderProfileComponent implements OnInit {
     }).format(date);
   }
 
-  protected starsFor(value: number): string {
+  protected ratingStarViews(value: number, reviews = 1): RatingStarView[] {
     const rounded = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
-    return '★'.repeat(rounded).padEnd(5, '☆');
+    const filledCount = reviews > 0 && rounded <= 0 ? 5 : rounded;
+    return [1, 2, 3, 4, 5].map((index) => ({
+      index,
+      filled: index <= filledCount,
+    }));
   }
 
   protected visibleImageUrl(url: string | null | undefined): string | null {

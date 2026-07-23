@@ -22,11 +22,11 @@
   }
 
   .appointment-detail__route-layout {
-    grid-template-rows: minmax(560px, 72vh) auto;
+    grid-template-rows: auto auto;
     grid-template-columns: 1fr;
     gap: 0;
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     padding: 0;
   }
 
@@ -61,14 +61,14 @@
     grid-column: 1;
     grid-row: 1;
     height: auto;
-    min-height: 560px;
+    min-height: clamp(500px, 68dvh, 620px);
   }
 
   .appointment-detail__route-layout--client .appointment-detail__live-map,
   .appointment-detail__route-layout--provider .appointment-detail__live-map {
     height: auto;
-    margin: 124px 0 0;
-    min-height: 560px;
+    margin: 104px 0 0;
+    min-height: clamp(500px, 68dvh, 620px);
   }
 
   .appointment-detail__route-sidebar,
@@ -141,6 +141,8 @@
     align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
     min-height: 70px;
+    position: sticky;
+    top: 0;
   }
 
   .appointment-detail__route-status {
@@ -170,7 +172,7 @@
   }
 
   .appointment-detail__map-top-actions {
-    bottom: 10px;
+    bottom: 12px;
     justify-content: flex-start;
     left: 10px;
     right: 10px;
@@ -180,10 +182,34 @@
   .appointment-detail__map-toolbar,
   .appointment-detail__route-provider-actions {
     flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .appointment-detail__map-toolbar::-webkit-scrollbar,
+  .appointment-detail__route-provider-actions::-webkit-scrollbar {
+    display: none;
   }
 
   .appointment-detail__map-tool {
     padding: 0 8px;
+  }
+
+  .appointment-detail__map-primary-actions {
+    bottom: 66px;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr;
+    left: 10px;
+    max-width: none;
+    right: 10px;
+    transform: none;
+  }
+
+  .appointment-detail__map-primary-actions button {
+    min-width: 0;
+    width: 100%;
   }
 
   .appointment-detail__route-action {
@@ -193,18 +219,28 @@
 
   .appointment-detail__map-direction-pad {
     right: 10px;
-    top: 190px;
+    top: 160px;
   }
 
   .appointment-detail__route-alternatives {
-    top: 300px;
+    right: 10px;
+    top: 272px;
+    width: min(210px, calc(100% - 20px));
   }
 
   .appointment-detail__route-bottom {
-    bottom: 10px;
+    bottom: auto;
     flex-wrap: wrap;
     left: 10px;
-    right: 10px;
+    max-width: calc(100% - 124px);
+    right: auto;
+    top: 84px;
+  }
+
+  .appointment-detail__route-bottom strong,
+  .appointment-detail__route-bottom em {
+    min-height: 31px;
+    padding: 0 10px;
   }
 
   .appointment-detail__provider-console-sidebar h2 {
@@ -212,7 +248,17 @@
   }
 
   .appointment-detail__client-summary-status h2 {
-    font-size: 34px;
+    font-size: 32px;
+    line-height: 1.16;
+    overflow-wrap: anywhere;
+  }
+
+  .appointment-detail__route-layout--completed .appointment-detail__client-summary-panel {
+    padding-top: 18px;
+  }
+
+  .appointment-detail__route-layout--completed .appointment-detail__client-summary-status h2 {
+    font-size: 30px;
   }
 
   .appointment-detail__client-summary-contact {
@@ -252,5 +298,42 @@
 
   .appointment-detail__work-steps i {
     display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .appointment-detail__route-layout--client .appointment-detail__live-map,
+  .appointment-detail__route-layout--provider .appointment-detail__live-map,
+  .appointment-detail__live-map {
+    min-height: clamp(460px, 64dvh, 560px);
+  }
+
+  .appointment-detail__navigation-guidance {
+    gap: 9px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    padding: 9px 10px;
+  }
+
+  .appointment-detail__map-direction-pad {
+    grid-template-columns: 28px 28px 28px;
+    grid-template-rows: 28px 28px 28px;
+    top: 150px;
+  }
+
+  .appointment-detail__map-direction {
+    height: 28px;
+    width: 28px;
+  }
+
+  .appointment-detail__route-alternatives {
+    top: 252px;
+  }
+
+  .appointment-detail__route-bottom {
+    max-width: calc(100% - 110px);
+  }
+
+  .appointment-detail__route-layout--completed .appointment-detail__client-summary-status h2 {
+    font-size: 27px;
   }
 }

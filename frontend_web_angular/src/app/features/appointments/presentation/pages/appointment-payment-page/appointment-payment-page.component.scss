@@ -857,12 +857,21 @@
 
   .appointment-payment__content {
     grid-template-columns: minmax(0, 1fr);
-    padding-inline: 12px;
+    padding: 18px 10px 20px;
+  }
+
+  .appointment-payment__accepted-hero,
+  .appointment-payment__receipt-provider {
+    padding-inline: 18px;
   }
 
   .appointment-payment__accepted-price,
   .appointment-payment__methods {
     grid-template-columns: 1fr;
+  }
+
+  .appointment-payment__accepted-price {
+    margin-inline: 18px;
   }
 
   .appointment-payment__accepted-price span:last-child {
@@ -875,7 +884,7 @@
     display: grid;
     gap: 10px;
     min-height: 116px;
-    padding: 12px;
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
   }
 
   .appointment-payment__checkout-bar button {
@@ -912,5 +921,40 @@
 
   .appointment-payment__confirmed-bar button {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .appointment-payment__topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    padding-block: 10px;
+  }
+
+  .appointment-payment__accepted-hero h1,
+  .appointment-payment__receipt-provider h2 {
+    font-size: 22px;
+  }
+
+  .appointment-payment__receipt-provider {
+    gap: 12px;
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .appointment-payment__receipt-avatar {
+    height: 56px;
+    width: 56px;
+  }
+
+  .appointment-payment__receipt footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 18px;
+  }
+
+  .appointment-payment__receipt footer strong {
+    font-size: 28px;
   }
 }

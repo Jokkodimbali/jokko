@@ -1876,7 +1876,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   private openReservationDetail(reservationId: string): void {
     this.router.navigate(['/appointments', reservationId], {
-      queryParams: { returnUrl: this.router.url },
+      queryParams: { mode: 'prestataire', returnUrl: this.router.url },
     });
   }
 

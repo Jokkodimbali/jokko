@@ -40,11 +40,17 @@
 
 @media (max-width: 620px) {
   .service-proposal__bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    padding-block: 12px;
     padding-inline: 12px;
   }
 
   .service-proposal__content {
-    padding: 18px 12px 32px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px 10px 32px;
   }
 
   .service-proposal__content--accepted {
@@ -85,6 +91,9 @@
   }
 
   .service-proposal__hero {
+    align-items: flex-start;
+    display: grid;
+    gap: 12px;
     padding: 20px;
   }
 
@@ -103,7 +112,8 @@
   }
 
   .service-proposal__slot-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 156px;
   }
 
   .service-proposal__offer-display input {
@@ -112,5 +122,72 @@
 
   .service-proposal__steps-controls {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .service-proposal__steps {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .service-proposal__steps-title,
+  .service-proposal__steps output {
+    justify-self: start;
+  }
+
+  .service-proposal__checkout-bar {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 430px) {
+  .service-proposal__content {
+    padding-inline: 8px;
+  }
+
+  .service-proposal__panel,
+  .service-proposal__summary,
+  .service-proposal__price-card,
+  .service-proposal__materials-card,
+  .service-proposal__booking-accordion {
+    border-radius: 16px;
+  }
+
+  .service-proposal__panel-body {
+    padding: 14px;
+  }
+
+  .service-proposal__booking-accordion-head,
+  .service-proposal__service-field,
+  .service-proposal__field,
+  .service-proposal__materials-head {
+    gap: 10px;
+    grid-template-columns: 34px minmax(0, 1fr) 18px;
+    padding-inline: 12px;
+  }
+
+  .service-proposal__booking-accordion-icon,
+  .service-proposal__field-icon,
+  .service-proposal__materials-icon {
+    height: 34px;
+    width: 34px;
+  }
+
+  .service-proposal__amount-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .service-proposal__offer-display {
+    min-height: 132px;
+    padding-inline: 12px;
+  }
+
+  .service-proposal__offer-display label {
+    width: 100%;
+  }
+
+  .service-proposal__submit,
+  .service-proposal__message,
+  .service-proposal__counter-refuse--modern {
+    width: 100%;
   }
 }

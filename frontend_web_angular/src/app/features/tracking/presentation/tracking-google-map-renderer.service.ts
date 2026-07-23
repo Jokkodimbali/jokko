@@ -228,7 +228,6 @@ export class TrackingGoogleMapRendererService {
       this.lastRenderedState = state;
       this.lastRenderedProviderPosition = displayedProvider;
       if (state.arrived) {
-        this.clearDestinationMarker();
         this.clearRoutePolylines();
       }
       this.providerMarker = this.upsertProviderMarker(
@@ -237,7 +236,7 @@ export class TrackingGoogleMapRendererService {
         displayedProvider,
         state,
       );
-      if (!state.arrived && state.destination) {
+      if (state.destination) {
         this.destinationMarker = this.upsertDestinationMarker(
           this.destinationMarker,
           this.routeMap,
@@ -253,7 +252,7 @@ export class TrackingGoogleMapRendererService {
             state.travelerMarker,
           );
       this.renderRoutes(visibleRoutes);
-      this.fitRoute(displayedProvider, state.arrived ? null : state.destination, visibleRoutes);
+      this.fitRoute(displayedProvider, state.destination, visibleRoutes);
     }
   }
 

@@ -4,26 +4,26 @@ import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../../environments/environment';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
-import { NegotiationScope, NegotiationView } from './service-proposal.service';
+import { BackendReservation } from '../domain/appointments.models';
 
-export interface NegotiationRealtimeEvent {
+export interface ReservationRealtimeEvent {
   type: string;
-  negotiationId: string;
+  reservationId: string;
   clientId: string;
   professionalId: string;
   occurredAt: string;
-  negotiation?: NegotiationView;
+  reservation?: BackendReservation;
 }
 
 @Injectable({ providedIn: 'root' })
-export class NegotiationsRealtimeService {
+export class ReservationsRealtimeService {
   private readonly authSession = inject(AuthSessionService);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly updates = new Subject<NegotiationRealtimeEvent>();
-  private readonly scopes = new Set<NegotiationScope>();
+  private readonly updates = new Subject<ReservationRealtimeEvent>();
+  private readonly scopes = new Set<'CLIENT' | 'PRESTATAIRE'>();
   private socket: Socket | null = null;
 
-  watchMyNegotiations(scope: NegotiationScope): Observable<NegotiationRealtimeEvent> {
+  watchMyReservations(scope: 'CLIENT' | 'PRESTATAIRE'): Observable<ReservationRealtimeEvent> {
     this.scopes.add(scope);
     this.connect();
     this.subscribeToScope(scope);
@@ -31,7 +31,7 @@ export class NegotiationsRealtimeService {
     return this.updates.asObservable();
   }
 
-  stopWatching(scope: NegotiationScope): void {
+  stopWatching(scope: 'CLIENT' | 'PRESTATAIRE'): void {
     this.scopes.delete(scope);
   }
 
@@ -60,14 +60,14 @@ export class NegotiationsRealtimeService {
     this.socket.on('connect', () => {
       this.scopes.forEach((scope) => this.subscribeToScope(scope));
     });
-    this.socket.on('negotiation.updated', (event: NegotiationRealtimeEvent) => {
+    this.socket.on('reservation.updated', (event: ReservationRealtimeEvent) => {
       this.updates.next(event);
     });
   }
 
-  private subscribeToScope(scope: NegotiationScope): void {
+  private subscribeToScope(scope: 'CLIENT' | 'PRESTATAIRE'): void {
     if (this.socket?.connected) {
-      this.socket.emit('negotiations.subscribe', { scope });
+      this.socket.emit('reservations.subscribe', { scope });
     }
   }
 

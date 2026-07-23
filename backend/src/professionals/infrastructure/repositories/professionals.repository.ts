@@ -71,6 +71,7 @@ const SERVICE_SELECT = {
   categorieId: true,
   nom: true,
   description: true,
+  urlImage: true,
   prix: true,
   typePrix: true,
   modeDeplacement: true,
@@ -158,6 +159,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     categorieId: string;
     nom: string;
     description: string;
+    urlImage: string | null;
     prix: Prisma.Decimal;
     typePrix: string;
     modeDeplacement: string;
@@ -173,6 +175,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       categorieId: service.categorieId,
       nom: service.nom,
       description: service.description,
+      urlImage: service.urlImage,
       prix: service.prix.toNumber(),
       typePrix: service.typePrix as ProfessionalServiceView['typePrix'],
       modeDeplacement:
@@ -486,6 +489,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           categorieId: input.categoryId,
           nom: input.name,
           description: input.description,
+          urlImage: input.imageUrl ?? null,
           prix: input.price,
           typePrix: input.priceType,
           modeDeplacement: input.travelMode,
@@ -520,6 +524,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
         data: {
           nom: input.name,
           description: input.description,
+          urlImage: input.imageUrl,
           prix: input.price,
           typePrix: input.priceType,
           modeDeplacement: input.travelMode,

@@ -9,6 +9,12 @@ export interface ProviderCardImage {
   label: string;
 }
 
+export interface ProviderCardServiceVisual {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
 export type ProviderCardTravelMode =
   | 'PRESTATAIRE_SE_DEPLACE'
   | 'CLIENT_SE_DEPLACE'
@@ -29,11 +35,15 @@ export interface ProviderCardView {
   coverUrl: string;
   movementTitle: string;
   travelMode?: ProviderCardTravelMode;
+  priceRangeLabel: string;
   isMedical?: boolean;
   images: ProviderCardImage[];
+  services: ProviderCardServiceVisual[];
   primaryActionLabel: string;
   profileCommands: readonly unknown[];
+  messageCommands?: readonly unknown[];
   queryParams?: Record<string, string> | null;
+  messageQueryParams?: Record<string, string> | null;
   state?: Record<string, unknown>;
 }
 
@@ -53,6 +63,12 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
     label: 'Camionnette',
     imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
+};
+
+const TRAVEL_MODE_IMAGES: Record<ProviderCardTravelMode, string> = {
+  CLIENT_SE_DEPLACE: '/mode travel/le_client_se_deplace-removebg-preview.png',
+  PRESTATAIRE_SE_DEPLACE: '/mode travel/le_prestataire_se_deplace-removebg-preview.png',
+  TRANSPORT_COLIS: '/mode travel/livraisonde_colis-removebg-preview.png',
 };
 
 @Component({
@@ -75,6 +91,7 @@ export class ProviderCardComponent {
   @Output() imageError = new EventEmitter<string>();
 
   protected readonly emptySlots = [0, 1];
+  protected selectedServiceId: string | null = null;
 
   protected get ratingText(): string {
     if (this.provider.totalReviews <= 0) {
@@ -89,19 +106,7 @@ export class ProviderCardComponent {
   }
 
   protected get movementImageUrl(): string | null {
-    if (this.provider.travelMode === 'TRANSPORT_COLIS') {
-      return '/parcel-transport-route.png';
-    }
-
-    if (this.provider.travelMode === 'PRESTATAIRE_SE_DEPLACE') {
-      return '/provider-travels-to-client.png';
-    }
-
-    if (this.provider.travelMode === 'CLIENT_SE_DEPLACE') {
-      return '/client-travels-to-provider.png';
-    }
-
-    return null;
+    return this.provider.travelMode ? TRAVEL_MODE_IMAGES[this.provider.travelMode] : null;
   }
 
   protected get movementIcons(): string[] {
@@ -112,6 +117,41 @@ export class ProviderCardComponent {
     return this.provider.travelMode === 'TRANSPORT_COLIS' && this.provider.vehicleType
       ? PROFESSIONAL_VEHICLE_BADGES[this.provider.vehicleType]
       : null;
+  }
+
+  protected get serviceVisuals(): ProviderCardServiceVisual[] {
+    return this.provider.services.length > 0
+      ? this.provider.services
+      : this.provider.images.map((image, index) => ({
+          id: `${index}`,
+          name: image.label,
+          imageUrl: image.url,
+        }));
+  }
+
+  protected get selectedService(): ProviderCardServiceVisual | null {
+    const services = this.serviceVisuals;
+    if (services.length === 0) {
+      return null;
+    }
+
+    const selectedId = this.selectedServiceId ?? services[0].id;
+    return services.find((service) => service.id === selectedId) ?? services[0];
+  }
+
+  protected selectService(event: Event, service: ProviderCardServiceVisual): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedServiceId = service.id;
+  }
+
+  protected serviceInitials(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || 'SV';
   }
 
   protected onFavoriteClick(event: Event): void {

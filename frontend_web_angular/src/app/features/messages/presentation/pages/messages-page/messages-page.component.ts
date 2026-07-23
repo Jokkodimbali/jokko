@@ -132,6 +132,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
   private activeMessagesRequestId = 0;
+  private isOpeningDirectConversation = false;
   private pendingThreadScrollId: ReturnType<typeof setTimeout> | null = null;
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
   private realtimeMessageSubscription: Subscription | null = null;
@@ -1331,6 +1332,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private openDirectConversation(): void {
+    if (this.isOpeningDirectConversation) {
+      return;
+    }
+
     const professionalProfileId = this.normalizeUuid(
       this.requestedDirectProfessionalId(),
     ) ?? undefined;
@@ -1342,10 +1347,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.isOpeningDirectConversation = true;
     this.messagesService
       .createConversation({ professionalProfileId, professionalUserId })
       .subscribe({
         next: (conversation) => {
+          this.isOpeningDirectConversation = false;
           this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
           this.selectedConversationId.set(conversation.id);
           this.requestedConversationId.set(conversation.id);
@@ -1357,6 +1364,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.loadMessages(conversation.id);
         },
         error: () => {
+          this.isOpeningDirectConversation = false;
           const message = "Impossible d'ouvrir la discussion avec ce professionnel.";
           this.errorMessage.set(message);
           this.feedback.error(message);

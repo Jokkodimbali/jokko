@@ -59,6 +59,8 @@ export class AppointmentsService {
                     avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                     professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
                     professionalAddressLabel: detail.profile.ville || null,
+                    professionalLatitude: detail.profile.latitude ?? null,
+                    professionalLongitude: detail.profile.longitude ?? null,
                     professionalRating: detail.profile.noteGlobale ?? null,
                     professionalReviews: detail.profile.nombreAvis ?? 0,
                     serviceName: service?.nom || 'Service non renseigne',
@@ -87,9 +89,6 @@ export class AppointmentsService {
       .pipe(
         map(unwrapApiResponse),
         switchMap((reservation) => {
-          const enriched = this.mapFromEnrichedReservation(reservation);
-          if (enriched) return of(enriched);
-
           return this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
             map((detail) => {
               const service =
@@ -104,7 +103,12 @@ export class AppointmentsService {
                 specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
-                professionalAddressLabel: detail.profile.ville || null,
+                professionalAddressLabel: this.firstNonEmpty(
+                  detail.profile.ville,
+                  detail.profile.utilisateur.adresse,
+                ),
+                professionalLatitude: detail.profile.latitude ?? null,
+                professionalLongitude: detail.profile.longitude ?? null,
                 professionalRating: detail.profile.noteGlobale ?? null,
                 professionalReviews: detail.profile.nombreAvis ?? 0,
                 serviceName: service?.nom || 'Service non renseigne',
@@ -118,7 +122,9 @@ export class AppointmentsService {
                 vehicleType: detail.profile.typeVehicule ?? null,
               });
             }),
-            catchError(() => of(this.mapAppointment(reservation))),
+            catchError(() =>
+              of(this.mapFromEnrichedReservation(reservation) ?? this.mapAppointment(reservation)),
+            ),
           );
         }),
       );
@@ -378,6 +384,8 @@ export class AppointmentsService {
       avatarUrl?: string;
       professionalPhone?: string | null;
       professionalAddressLabel?: string | null;
+      professionalLatitude?: number | null;
+      professionalLongitude?: number | null;
       professionalRating?: number | null;
       professionalReviews?: number;
       serviceName?: string;
@@ -414,6 +422,10 @@ export class AppointmentsService {
         professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
       professionalAddressLabel:
         professional.professionalAddressLabel ?? reservation.professionnel?.ville ?? null,
+      professionalLatitude:
+        professional.professionalLatitude ?? reservation.professionnel?.latitude ?? null,
+      professionalLongitude:
+        professional.professionalLongitude ?? reservation.professionnel?.longitude ?? null,
       professionalRating:
         professional.professionalRating ?? reservation.professionnel?.noteGlobale ?? null,
       professionalReviews:
@@ -499,6 +511,8 @@ export class AppointmentsService {
       avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '',
       professionalPhone: reservation.professionnel.utilisateur.numeroTelephone || null,
       professionalAddressLabel: reservation.professionnel.ville || null,
+      professionalLatitude: reservation.professionnel.latitude ?? null,
+      professionalLongitude: reservation.professionnel.longitude ?? null,
       professionalRating: reservation.professionnel.noteGlobale,
       professionalReviews: reservation.professionnel.nombreAvis,
       serviceName: reservation.service.nom,

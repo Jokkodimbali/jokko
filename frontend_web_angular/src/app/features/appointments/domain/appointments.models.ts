@@ -73,6 +73,8 @@ export interface BackendReservation {
     utilisateurId: string;
     nomEntreprise: string | null;
     ville: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     noteGlobale: number;
     nombreAvis: number;
     typeVehicule?: AppointmentVehicleType | null;
@@ -116,6 +118,8 @@ export interface AppointmentView {
   avatarUrl: string;
   professionalPhone: string | null;
   professionalAddressLabel: string | null;
+  professionalLatitude: number | null;
+  professionalLongitude: number | null;
   professionalRating: number | null;
   professionalReviews: number;
   clientName: string;

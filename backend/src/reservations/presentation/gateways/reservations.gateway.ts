@@ -14,13 +14,13 @@ import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 import {
-  NEGOTIATIONS_REPOSITORY_PORT,
-  type NegotiationsRepositoryPort,
-} from '../../application/ports/negotiations-repository.port';
-import {
   PROFESSIONALS_REPOSITORY_PORT,
   type ProfessionalsRepositoryPort,
 } from '../../../professionals/application/ports/professionals-repository.port';
+import {
+  RESERVATIONS_REPOSITORY_PORT,
+  type ReservationsRepositoryPort,
+} from '../../application/ports/reservations-repository.port';
 
 type AuthenticatedSocket = Socket & {
   data: {
@@ -28,10 +28,10 @@ type AuthenticatedSocket = Socket & {
   };
 };
 
-type NegotiationDomainEventEnvelope = {
+type ReservationDomainEventEnvelope = {
   nom: string;
   payload: {
-    negotiationId: string;
+    reservationId: string;
     clientId: string;
     professionalId: string;
   };
@@ -42,15 +42,15 @@ type NegotiationDomainEventEnvelope = {
   namespace: '/socket',
   cors: buildSocketCorsOptionsFromProcessEnv(),
 })
-export class NegotiationsGateway implements OnGatewayConnection {
+export class ReservationsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(NEGOTIATIONS_REPOSITORY_PORT)
-    private readonly negotiationsRepository: NegotiationsRepositoryPort,
+    @Inject(RESERVATIONS_REPOSITORY_PORT)
+    private readonly reservationsRepository: ReservationsRepositoryPort,
     @Inject(PROFESSIONALS_REPOSITORY_PORT)
     private readonly professionalsRepository: ProfessionalsRepositoryPort,
   ) {}
@@ -73,7 +73,7 @@ export class NegotiationsGateway implements OnGatewayConnection {
     }
   }
 
-  @SubscribeMessage('negotiations.subscribe')
+  @SubscribeMessage('reservations.subscribe')
   async handleSubscribe(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { scope?: 'CLIENT' | 'PRESTATAIRE' },
@@ -97,44 +97,40 @@ export class NegotiationsGateway implements OnGatewayConnection {
     }
 
     return {
-      event: 'negotiations.subscribed',
+      event: 'reservations.subscribed',
       data: { scope: payload?.scope ?? 'CLIENT' },
     };
   }
 
-  @OnEvent('negotiations.created')
-  @OnEvent('negotiations.countered')
-  @OnEvent('negotiations.accepted')
-  @OnEvent('negotiations.rejected')
-  @OnEvent('negotiations.cancelled')
-  @OnEvent('negotiations.converted')
-  async handleNegotiationChanged(
-    event: NegotiationDomainEventEnvelope,
+  @OnEvent('reservations.created')
+  @OnEvent('reservations.updated')
+  async handleReservationChanged(
+    event: ReservationDomainEventEnvelope,
   ): Promise<void> {
-    const negotiation = await this.negotiationsRepository.findById(
-      event.payload.negotiationId,
+    const reservation = await this.reservationsRepository.findDetailedById(
+      event.payload.reservationId,
     );
     const payload = {
       type: event.nom,
-      negotiationId: event.payload.negotiationId,
+      reservationId: event.payload.reservationId,
       clientId: event.payload.clientId,
       professionalId: event.payload.professionalId,
       occurredAt: event.dateOccurrence,
-      ...(negotiation ? { negotiation } : {}),
+      ...(reservation ? { reservation } : {}),
     };
 
     this.server
       .to(this.buildUserRoom(event.payload.clientId))
-      .emit('negotiation.updated', payload);
+      .emit('reservation.updated', payload);
     this.server
       .to(this.buildProfessionalRoom(event.payload.professionalId))
-      .emit('negotiation.updated', payload);
+      .emit('reservation.updated', payload);
 
-    const professionalUserId = negotiation?.professionnel?.utilisateurId;
+    const professionalUserId = reservation?.professionnel.utilisateurId;
     if (professionalUserId) {
       this.server
         .to(this.buildUserRoom(professionalUserId))
-        .emit('negotiation.updated', payload);
+        .emit('reservation.updated', payload);
     }
   }
 
@@ -161,7 +157,7 @@ export class NegotiationsGateway implements OnGatewayConnection {
   }
 
   private buildProfessionalRoom(professionalId: string): string {
-    return `negotiations:professional:${professionalId}`;
+    return `reservations:professional:${professionalId}`;
   }
 
   private getSocketUser(client: AuthenticatedSocket): AuthUser | null {

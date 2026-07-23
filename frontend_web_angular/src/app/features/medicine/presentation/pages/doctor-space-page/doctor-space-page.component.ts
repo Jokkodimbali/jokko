@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { Observable, Subscription, forkJoin, of, timer } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
@@ -33,6 +33,7 @@ import {
   AppointmentStatus,
   BackendReservation,
 } from '../../../../appointments/domain/appointments.models';
+import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import {
   DoctorSpaceService,
   PatientMedicalProfile,
@@ -104,6 +105,7 @@ type ConsultationMotif = {
   categoryId: string;
   name: string;
   description: string;
+  imageUrl: string | null;
   durationMinutes: number;
   pauseMinutes: number;
   price: number;
@@ -293,7 +295,7 @@ type ProfessionalPortfolioForm = {
   imageUrl: string;
 };
 
-type ProfessionalUploadTarget = 'kyc-front' | 'kyc-back' | 'portfolio';
+type ProfessionalUploadTarget = 'kyc-front' | 'kyc-back' | 'portfolio' | 'service-image' | 'service-edit-image';
 
 type UploadPreview = {
   url: string;
@@ -321,13 +323,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
+  private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private negotiationsRealtimeSubscription?: Subscription;
+  private reservationsRealtimeSubscription?: Subscription;
+  private professionalRealtimeFallbackSubscription?: Subscription;
+  private isReservationsRefreshInProgress = false;
 
-  protected readonly activeSection = signal<DoctorSpaceSection>('availability');
+  protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -384,6 +390,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly motifForm = {
     categoryId: '',
     name: '',
+    imageUrl: '',
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
@@ -391,6 +398,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly motifEditForm = {
     categoryId: '',
     name: '',
+    imageUrl: '',
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
@@ -489,6 +497,12 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly portfolioFileName = signal('');
   protected readonly portfolioPreview = signal<UploadPreview | null>(null);
   protected readonly portfolioFile = signal<File | null>(null);
+  protected readonly serviceImageFileName = signal('');
+  protected readonly serviceImagePreview = signal<UploadPreview | null>(null);
+  protected readonly serviceImageFile = signal<File | null>(null);
+  protected readonly serviceEditImageFileName = signal('');
+  protected readonly serviceEditImagePreview = signal<UploadPreview | null>(null);
+  protected readonly serviceEditImageFile = signal<File | null>(null);
   protected readonly withdrawalMethods: WithdrawalMethodOption[] = [
     {
       id: 'WAVE',
@@ -1155,7 +1169,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.negotiationsRealtimeSubscription?.unsubscribe();
+    this.reservationsRealtimeSubscription?.unsubscribe();
+    this.professionalRealtimeFallbackSubscription?.unsubscribe();
     this.negotiationsRealtime.stopWatching('PRESTATAIRE');
+    this.reservationsRealtime.stopWatching('PRESTATAIRE');
   }
 
   protected goBack(): void {
@@ -1171,12 +1188,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     const section = this.route.snapshot.queryParamMap.get('section');
-    if (section === 'profile') return 'availability';
-    if (section === 'patient-appointments' && this.isProviderSpace()) return 'availability';
+    if (section === 'profile') return this.defaultSectionForSpace();
+    if (section === 'patient-appointments' && this.isProviderSpace()) return 'negotiations';
     if (section === 'negotiations' && !this.isProviderSpace()) return 'patient-appointments';
     return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
       ? (section as DoctorSpaceSection)
-      : 'availability';
+      : this.defaultSectionForSpace();
+  }
+
+  private defaultSectionForSpace(): DoctorSpaceSection {
+    return this.isProviderSpace() ? 'negotiations' : 'patient-appointments';
   }
 
   private setActiveSection(section: DoctorSpaceSection): void {
@@ -1210,7 +1231,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     this.setActiveSection(section);
+    if (section === 'patient-appointments') {
+      this.refreshReservations();
+    }
     if (section === 'negotiations') {
+      this.refreshReservations();
       this.refreshNegotiations();
     }
     if (section === 'wallet') {
@@ -1345,11 +1370,21 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       this.kycFileNames.idCardUrlVerso = file.name;
       this.kycBackPreview.set(preview);
       this.kycForm.idCardUrlVerso = '';
-    } else {
+    } else if (target === 'portfolio') {
       this.portfolioFile.set(file);
       this.portfolioFileName.set(file.name);
       this.portfolioPreview.set(preview);
       this.portfolioForm.imageUrl = '';
+    } else if (target === 'service-image') {
+      this.serviceImageFile.set(file);
+      this.serviceImageFileName.set(file.name);
+      this.serviceImagePreview.set(preview);
+      this.motifForm.imageUrl = '';
+    } else {
+      this.serviceEditImageFile.set(file);
+      this.serviceEditImageFileName.set(file.name);
+      this.serviceEditImagePreview.set(preview);
+      this.motifEditForm.imageUrl = '';
     }
   }
 
@@ -2307,6 +2342,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     const durationMinutes = this.appointmentDuration();
     const price = Number(this.motifForm.price);
     const name = this.motifForm.name.trim();
+    const imageUrl = this.motifForm.imageUrl.trim();
+    const imageFile = this.serviceImageFile();
 
     if (!categoryId) {
       this.feedback.info('Selectionnez une categorie avant d enregistrer ce service.');
@@ -2320,21 +2357,33 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving.set(true);
+    this.uploadingProfessionalAsset.set(imageFile ? 'service-image' : null);
 
-    const request$ = this.doctorSpaceService.createService({
-      categoryId,
-      name,
-      description: this.buildServiceDescription(name),
-      price,
-      priceType: this.defaultServicePriceType(),
-      travelMode: this.selectedTravelMode(),
-      durationMinutes,
-      pauseMinutes: this.appointmentPause(),
-      isRequired: this.motifForm.isRequired,
-    });
+    const upload$ = imageFile
+      ? this.doctorSpaceService.uploadProfessionalAsset(imageFile)
+      : of(null as ProfessionalUploadView | null);
 
-    request$
-      .pipe(finalize(() => this.isSaving.set(false)))
+    upload$
+      .pipe(
+        switchMap((uploaded) =>
+          this.doctorSpaceService.createService({
+            categoryId,
+            name,
+            description: this.buildServiceDescription(name),
+            imageUrl: this.resolveUploadedServiceImageUrl(uploaded, imageUrl),
+            price,
+            priceType: this.defaultServicePriceType(),
+            travelMode: this.selectedTravelMode(),
+            durationMinutes,
+            pauseMinutes: this.appointmentPause(),
+            isRequired: this.motifForm.isRequired,
+          }),
+        ),
+        finalize(() => {
+          this.isSaving.set(false);
+          this.uploadingProfessionalAsset.set(null);
+        }),
+      )
       .subscribe({
         next: () => {
           this.feedback.success('Motif ajoute.');
@@ -2356,6 +2405,20 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.editingMotif.set(motif);
     this.motifEditForm.categoryId = motif.categoryId;
     this.motifEditForm.name = motif.name;
+    this.motifEditForm.imageUrl = motif.imageUrl ?? '';
+    this.serviceEditImagePreview.set(
+      motif.imageUrl
+        ? {
+            url: motif.imageUrl,
+            name: motif.name,
+            mimeType: 'image/*',
+            isImage: true,
+            isLocal: false,
+          }
+        : null,
+    );
+    this.serviceEditImageFileName.set(motif.imageUrl ? 'Image actuelle' : '');
+    this.serviceEditImageFile.set(null);
     this.motifEditForm.durationMinutes = motif.durationMinutes;
     this.motifEditForm.price = motif.price;
     this.motifEditForm.isRequired = motif.isRequired;
@@ -2374,6 +2437,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     const durationMinutes = this.appointmentDuration();
     const price = Number(this.motifEditForm.price);
     const name = this.motifEditForm.name.trim();
+    const imageUrl = this.motifEditForm.imageUrl.trim();
+    const imageFile = this.serviceEditImageFile();
 
     if (!editingMotifId || !categoryId) {
       this.feedback.info('Selectionnez un service valide avant de modifier.');
@@ -2385,18 +2450,31 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving.set(true);
-    this.doctorSpaceService
-      .updateService(editingMotifId, {
-        name,
-        description: this.buildServiceDescription(name),
-        price,
-        priceType: this.defaultServicePriceType(),
-        travelMode: this.motifEditForm.travelMode,
-        durationMinutes,
-        pauseMinutes: this.appointmentPause(),
-        isRequired: this.motifEditForm.isRequired,
-      })
-      .pipe(finalize(() => this.isSaving.set(false)))
+    this.uploadingProfessionalAsset.set(imageFile ? 'service-edit-image' : null);
+    const upload$ = imageFile
+      ? this.doctorSpaceService.uploadProfessionalAsset(imageFile)
+      : of(null as ProfessionalUploadView | null);
+
+    upload$
+      .pipe(
+        switchMap((uploaded) =>
+          this.doctorSpaceService.updateService(editingMotifId, {
+            name,
+            description: this.buildServiceDescription(name),
+            imageUrl: this.resolveUploadedServiceImageUrl(uploaded, imageUrl),
+            price,
+            priceType: this.defaultServicePriceType(),
+            travelMode: this.motifEditForm.travelMode,
+            durationMinutes,
+            pauseMinutes: this.appointmentPause(),
+            isRequired: this.motifEditForm.isRequired,
+          }),
+        ),
+        finalize(() => {
+          this.isSaving.set(false);
+          this.uploadingProfessionalAsset.set(null);
+        }),
+      )
       .subscribe({
         next: () => {
           this.feedback.success('Motif mis a jour.');
@@ -2413,18 +2491,26 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.editingMotif.set(null);
     this.motifForm.categoryId = '';
     this.motifForm.name = '';
+    this.motifForm.imageUrl = '';
     this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifForm.isRequired = true;
+    this.serviceImageFileName.set('');
+    this.serviceImagePreview.set(null);
+    this.serviceImageFile.set(null);
   }
 
   private resetMotifEditForm(): void {
     this.motifEditForm.categoryId = '';
     this.motifEditForm.name = '';
+    this.motifEditForm.imageUrl = '';
     this.motifEditForm.durationMinutes = this.appointmentDuration();
     this.motifEditForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifEditForm.isRequired = true;
     this.motifEditForm.travelMode = this.selectedTravelMode();
+    this.serviceEditImageFileName.set('');
+    this.serviceEditImagePreview.set(null);
+    this.serviceEditImageFile.set(null);
   }
 
   protected toggleMotifRequired(motif: ConsultationMotif): void {
@@ -2530,6 +2616,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         this.portfolioItems.set(portfolio);
         this.ensureActiveSectionIsAvailable();
         this.startNegotiationRealtime();
+        this.startReservationRealtime();
+        this.startProfessionalRealtimeFallback();
         if (this.activeSection() === 'wallet') {
           this.refreshWallet();
         }
@@ -2544,7 +2632,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     if (section === 'consultation' && !this.showConsultationSection()) {
-      this.setActiveSection('availability');
+      this.setActiveSection(this.defaultSectionForSpace());
     }
   }
 
@@ -2589,15 +2677,18 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   private isValidProfessionalAsset(file: File, target: ProfessionalUploadTarget): boolean {
     const allowedTypes =
-      target === 'portfolio'
+      target === 'portfolio' || target === 'service-image' || target === 'service-edit-image'
         ? ['image/png', 'image/jpeg', 'image/webp']
         : ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
-    const maxSizeMb = target === 'portfolio' ? 5 : 8;
+    const maxSizeMb =
+      target === 'portfolio' || target === 'service-image' || target === 'service-edit-image'
+        ? 5
+        : 8;
 
     if (!allowedTypes.includes(file.type)) {
       this.feedback.info(
-        target === 'portfolio'
-          ? 'Choisissez une image PNG, JPG ou WEBP pour le portfolio.'
+        target === 'portfolio' || target === 'service-image' || target === 'service-edit-image'
+          ? 'Choisissez une image PNG, JPG ou WEBP.'
           : 'Choisissez une image PNG, JPG, WEBP ou un PDF pour le KYC.',
       );
       return false;
@@ -2609,6 +2700,14 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     return true;
+  }
+
+  private resolveUploadedServiceImageUrl(
+    uploaded: ProfessionalUploadView | null,
+    fallbackUrl: string,
+  ): string | null {
+    const rawUrl = uploaded?.imageUrl || uploaded?.fileUrl || fallbackUrl;
+    return (publicAssetUrl(rawUrl) ?? rawUrl) || null;
   }
 
   private refreshServices(): void {
@@ -2633,6 +2732,61 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private refreshReservations(showErrors = true): void {
+    if (!this.professionalProfileId()) return;
+    if (this.isReservationsRefreshInProgress) return;
+
+    this.isReservationsRefreshInProgress = true;
+    this.doctorSpaceService
+      .listMyReservations()
+      .pipe(
+        finalize(() => {
+          this.isReservationsRefreshInProgress = false;
+        }),
+      )
+      .subscribe({
+      next: (reservations) => {
+        this.reservations.set(reservations);
+        this.syncAgendaCursorWithReservations(reservations);
+      },
+      error: (error) => {
+        if (showErrors) {
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Impossible de charger les rendez-vous.'),
+          );
+        }
+      },
+    });
+  }
+
+  private startReservationRealtime(): void {
+    if (!this.professionalProfileId() || this.reservationsRealtimeSubscription) {
+      return;
+    }
+
+    this.reservationsRealtimeSubscription = this.reservationsRealtime
+      .watchMyReservations('PRESTATAIRE')
+      .subscribe((event) => {
+        if (event.reservation) {
+          this.upsertReservation(event.reservation);
+        }
+        this.refreshReservations();
+      });
+  }
+
+  private startProfessionalRealtimeFallback(): void {
+    if (!this.professionalProfileId() || this.professionalRealtimeFallbackSubscription) {
+      return;
+    }
+
+    this.professionalRealtimeFallbackSubscription = timer(2500, 2500).subscribe(() => {
+      const section = this.activeSection();
+      if (section === 'patient-appointments' || section === 'negotiations' || section === 'agenda') {
+        this.refreshReservations(false);
+      }
+    });
+  }
+
   private startNegotiationRealtime(): void {
     if (!this.professionalProfileId() || !this.isProviderSpace() || this.negotiationsRealtimeSubscription) {
       return;
@@ -2654,6 +2808,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return exists
         ? negotiations.map((item) => (item.id === negotiation.id ? negotiation : item))
         : [negotiation, ...negotiations];
+    });
+  }
+
+  private upsertReservation(reservation: BackendReservation): void {
+    this.reservations.update((reservations) => {
+      const exists = reservations.some((item) => item.id === reservation.id);
+      const next = exists
+        ? reservations.map((item) => (item.id === reservation.id ? reservation : item))
+        : [reservation, ...reservations];
+      this.syncAgendaCursorWithReservations(next);
+      return next;
     });
   }
 
@@ -3305,6 +3470,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           categoryId: service.categorieId,
           name: service.nom,
           description: service.description,
+          imageUrl: publicAssetUrl(service.urlImage) ?? service.urlImage ?? null,
           durationMinutes: service.dureeMinutes ?? 15,
           pauseMinutes: service.pauseMinutes ?? 0,
           price: Number(service.prix),

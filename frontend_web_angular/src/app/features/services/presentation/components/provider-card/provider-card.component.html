@@ -6,14 +6,7 @@
   (click)="openProfile()"
   (keydown)="openProfileFromKeyboard($event)"
 >
-  <div class="provider-card__media">
-    <img
-      class="provider-card__cover"
-      [src]="provider.coverUrl"
-      [alt]="provider.title"
-      (error)="onImageError(provider.coverUrl)"
-    />
-
+  <div class="provider-card__top">
     <div class="provider-card__movement" [attr.aria-label]="provider.movementTitle">
       <span>{{ provider.movementTitle }}</span>
       <img
@@ -47,7 +40,9 @@
         [attr.fill]="isFavorite ? 'currentColor' : 'none'"
       ></lucide-icon>
     </button>
+  </div>
 
+  <div class="provider-card__head">
     <a
       class="provider-card__avatar"
       [routerLink]="provider.profileCommands"
@@ -68,15 +63,8 @@
       <i [class.provider-card__avatar-dot--online]="provider.isOnline" aria-hidden="true"></i>
     </a>
 
-    <div class="provider-card__rating" aria-label="Note">
-      <lucide-icon name="star" size="12" [strokeWidth]="2.3" fill="currentColor"></lucide-icon>
-      <strong>{{ ratingText }}</strong>
-      <span *ngIf="reviewsText">{{ reviewsText }}</span>
-    </div>
-  </div>
-
-  <div class="provider-card__body">
     <div class="provider-card__identity">
+      <span>{{ provider.category }}</span>
       <a
         [routerLink]="provider.profileCommands"
         [queryParams]="provider.queryParams"
@@ -85,40 +73,78 @@
       >
         {{ provider.name }}
       </a>
-      <span>{{ provider.category }}</span>
-    </div>
-    <p>{{ provider.title }}</p>
-
-    <div class="provider-card__location">
-      <span class="provider-card__location-main">
-        <lucide-icon name="map-pin" size="13" [strokeWidth]="2.1"></lucide-icon>
+      <small class="provider-card__location-main">
+        <lucide-icon name="map-pin" size="12" [strokeWidth]="2.1"></lucide-icon>
         <span>{{ provider.location }}</span>
-      </span>
-      <span
-        *ngIf="vehicleBadge as vehicle"
-        class="provider-card__vehicle-badge"
-        [attr.aria-label]="vehicle.label"
-      >
-        <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
-        <strong>{{ vehicle.label }}</strong>
-      </span>
+      </small>
     </div>
 
-    <div class="provider-card__gallery">
-      <ng-container *ngIf="provider.images.length > 0; else emptyGallery">
-        <figure *ngFor="let image of provider.images">
-          <img [src]="image.url" [alt]="image.label" (error)="onImageError(image.url)" />
-          <figcaption>{{ image.label }}</figcaption>
-        </figure>
-      </ng-container>
-      <ng-template #emptyGallery>
-        <span *ngFor="let slot of emptySlots" class="provider-card__empty-photo">
-          <lucide-icon [name]="slot === 0 ? 'image-plus' : 'briefcase-business'" size="18" [strokeWidth]="2.2"></lucide-icon>
-        </span>
-      </ng-template>
+    <div class="provider-card__meta">
+      <strong>{{ provider.priceRangeLabel }}</strong>
+      <span aria-label="Note">
+        <lucide-icon *ngFor="let star of [1, 2, 3, 4, 5]" name="star" size="14" [strokeWidth]="2.2" fill="currentColor"></lucide-icon>
+      </span>
+      <small>{{ provider.totalReviews }} avis</small>
     </div>
+  </div>
+
+  <div class="provider-card__body">
+    <h3>Les services propose</h3>
+
+    <section class="provider-card__services" *ngIf="selectedService as selected; else emptyGallery">
+      <figure class="provider-card__service-main">
+        <img *ngIf="selected.imageUrl; else serviceFallback" [src]="selected.imageUrl" [alt]="selected.name" (error)="onImageError(selected.imageUrl)" />
+        <ng-template #serviceFallback>
+          <span>{{ serviceInitials(selected.name) }}</span>
+        </ng-template>
+
+        <span *ngIf="vehicleBadge as vehicle" class="provider-card__vehicle-badge" [attr.aria-label]="vehicle.label">
+          <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
+          <strong>{{ vehicle.label }}</strong>
+        </span>
+
+        <div class="provider-card__service-thumbs" aria-label="Services proposes">
+          <button
+            *ngFor="let service of serviceVisuals"
+            type="button"
+            [class.provider-card__service-thumb--active]="selected.id === service.id"
+            (click)="selectService($event, service)"
+          >
+            <span>
+              <img *ngIf="service.imageUrl; else thumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="onImageError(service.imageUrl)" />
+              <ng-template #thumbFallback><strong>{{ serviceInitials(service.name) }}</strong></ng-template>
+            </span>
+          </button>
+        </div>
+      </figure>
+
+      <div class="provider-card__service-labels">
+        <button
+          *ngFor="let service of serviceVisuals"
+          type="button"
+          [class.provider-card__service-label--active]="selected.id === service.id"
+          (click)="selectService($event, service)"
+        >
+          {{ service.name }}
+        </button>
+      </div>
+    </section>
+    <ng-template #emptyGallery>
+      <div class="provider-card__empty-service">
+        <lucide-icon name="image-plus" size="18" [strokeWidth]="2.2"></lucide-icon>
+      </div>
+    </ng-template>
 
     <div class="provider-card__actions">
+      <a
+        class="provider-card__action provider-card__action--message"
+        [routerLink]="provider.messageCommands || ['/messages']"
+        [queryParams]="provider.messageQueryParams"
+        (click)="stopCardNavigation($event)"
+      >
+        <lucide-icon name="message-circle" size="14" [strokeWidth]="2.4"></lucide-icon>
+        <span>Message</span>
+      </a>
       <button
         type="button"
         class="provider-card__action provider-card__action--primary"
@@ -126,22 +152,12 @@
         (click)="onPrimaryActionClick($event)"
       >
         <lucide-icon
-          [name]="provider.isMedical ? 'calendar-check' : 'wallet-cards'"
+          [name]="provider.isMedical ? 'calendar-check' : 'banknote-arrow-down'"
           size="14"
           [strokeWidth]="2.4"
         ></lucide-icon>
-        {{ provider.primaryActionLabel }}
+        <span>{{ provider.primaryActionLabel }}</span>
       </button>
-      <a
-        class="provider-card__action provider-card__action--profile"
-        [routerLink]="provider.profileCommands"
-        [queryParams]="provider.queryParams"
-        [state]="provider.state"
-        (click)="stopCardNavigation($event)"
-      >
-        <lucide-icon name="info" size="14" [strokeWidth]="2.4"></lucide-icon>
-        voir profil
-      </a>
     </div>
   </div>
 </article>

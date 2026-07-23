@@ -14,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
+import { Observable, Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -56,6 +56,10 @@ import { TrackingStore } from '../../../../tracking/state/tracking.store';
 type MapCoordinate = { lat: number; lng: number };
 type TrackingStepView = AppointmentTrackingStep;
 type MedicalRecordKind = 'act' | 'vaccine' | 'treatment';
+type MedicalPrescriptionPreviewItem = {
+  label: string;
+  text: string;
+};
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
 
 const COMMON_MEDICAL_ACTS = [
@@ -221,12 +225,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isRescheduleModalOpen = signal(false);
   protected readonly isPriceAdjustmentModalOpen = signal(false);
+  protected readonly isReviewModalOpen = signal(false);
+  protected readonly isReviewSuccessModalOpen = signal(false);
   protected readonly rescheduleDateTime = signal('');
   protected readonly priceAdjustmentForm = {
     proposedPrice: 0,
     reason: '',
   };
   protected readonly isSubmittingReview = signal(false);
+  protected readonly reviewComment = signal('');
   protected readonly destinationCoordinates = signal<MapCoordinate | null>(null);
   protected readonly routeDistanceKm = signal<number | null>(null);
   protected readonly routeDurationMinutes = signal<number | null>(null);
@@ -247,6 +254,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly currentMedicalVaccine = signal('');
   protected readonly currentMedicalTreatment = signal('');
   protected readonly isPrescriptionPreviewOpen = signal(false);
+  protected readonly medicalPrescriptionPreviewItems = computed<MedicalPrescriptionPreviewItem[]>(() => [
+    ...this.medicalTreatments().map((text) => ({ label: 'Traitement', text })),
+    ...this.medicalVaccines().map((text) => ({ label: 'Vaccin administre', text })),
+    ...this.medicalActs().map((text) => ({ label: 'Acte medical', text })),
+  ]);
   protected readonly commonMedicalActs = COMMON_MEDICAL_ACTS;
   protected readonly commonVaccines = COMMON_VACCINES;
   protected readonly commonTreatments = COMMON_TREATMENTS;
@@ -255,6 +267,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly selectedRating = signal(0);
   protected readonly reviewStars = [1, 2, 3, 4, 5];
+  protected readonly reviewCommentLength = computed(() => this.reviewComment().length);
+  protected readonly canSubmitReview = computed(() => {
+    const comment = this.reviewComment().trim();
+    return (
+      this.selectedRating() > 0 &&
+      comment.length > 0 &&
+      comment.length <= 500 &&
+      !this.isSubmittingReview()
+    );
+  });
   protected readonly hasPendingPriceAdjustment = computed(() => {
     const appointment = this.appointment();
     return (
@@ -1293,22 +1315,67 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.medicalPrescriptionService.stripFromNotes(appointment.notes).trim();
   }
 
+  protected canReviewAppointment(appointment: AppointmentView): boolean {
+    return (
+      this.isClientViewer() &&
+      appointment.status === 'TERMINEE' &&
+      !appointment.clientReviewedAt
+    );
+  }
+
+  protected openReviewModal(appointment: AppointmentView): void {
+    if (!this.canReviewAppointment(appointment)) return;
+
+    this.selectedRating.set(appointment.clientRating ?? 0);
+    this.reviewComment.set(appointment.clientReview ?? '');
+    this.isReviewSuccessModalOpen.set(false);
+    this.isReviewModalOpen.set(true);
+  }
+
+  protected closeReviewModal(): void {
+    if (this.isSubmittingReview()) return;
+    this.isReviewModalOpen.set(false);
+  }
+
+  protected closeReviewSuccessModal(): void {
+    this.isReviewSuccessModalOpen.set(false);
+  }
+
   protected setRating(rating: number): void {
     this.selectedRating.set(rating);
-    const appointment = this.appointment();
-    if (!appointment || this.isSubmittingReview() || appointment.clientReviewedAt) return;
+  }
+
+  protected updateReviewComment(value: string): void {
+    this.reviewComment.set(value.slice(0, 500));
+  }
+
+  protected submitReview(appointment: AppointmentView): void {
+    const currentAppointment = this.appointment() ?? appointment;
+    const rating = this.selectedRating();
+    const review = this.reviewComment().trim();
+    if (
+      !currentAppointment ||
+      !this.canReviewAppointment(currentAppointment) ||
+      !this.canSubmitReview() ||
+      rating <= 0 ||
+      review.length === 0
+    ) {
+      return;
+    }
 
     this.isSubmittingReview.set(true);
-    this.appointmentsService.submitReview(appointment.id, rating).subscribe({
+    this.appointmentsService.submitReview(currentAppointment.id, rating, review).subscribe({
       next: (updated) => {
         this.appointment.update((current) =>
-          this.mergeAppointment(current ?? appointment, updated),
+          this.mergeAppointment(current ?? currentAppointment, updated),
         );
         this.isSubmittingReview.set(false);
-        this.feedback.success('Merci, votre avis a ete enregistre.');
+        this.isReviewModalOpen.set(false);
+        this.isReviewSuccessModalOpen.set(true);
       },
       error: () => {
-        this.selectedRating.set(appointment.clientRating ?? 0);
+        this.selectedRating.set(currentAppointment.clientRating ?? 0);
+        this.reviewComment.set(currentAppointment.clientReview ?? '');
         this.isSubmittingReview.set(false);
         this.feedback.error("Impossible d'enregistrer votre avis pour le moment.");
       },
@@ -1377,6 +1444,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.feedback.info('Element retire du dossier medical.');
   }
 
+  protected medicalPrescriptionPatientName(appointment: AppointmentView): string {
+    return (
+      this.extractAppointmentNoteValue(appointment.notes, 'Patient') ||
+      appointment.clientName ||
+      'Client non renseigne'
+    );
+  }
+
+  protected medicalPrescriptionPatientPhone(appointment: AppointmentView): string | null {
+    return this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone;
+  }
+
   protected openPrescriptionPreview(): void {
     this.isPrescriptionPreviewOpen.set(true);
   }
@@ -1403,44 +1482,42 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     ) {
       this.appointmentsService
         .saveMedicalPrescription(appointment.id, draftPrescription)
-        .pipe(catchError(() => of(null)))
-        .subscribe((updated) => {
-          const source = updated ?? appointment;
-          if (updated) {
+        .pipe(
+          catchError(() => of(null)),
+          switchMap((updated) => {
+            if (!updated) return this.loadAppointmentForDocument(appointment);
             this.appointment.update((current) =>
               current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
             );
-            this.hydrateMedicalPrescriptionFromAppointment(updated);
-          }
+            return this.loadAppointmentForDocument(
+              this.mergeMedicalPrescriptionUpdate(this.appointment() ?? appointment, updated),
+            );
+          }),
+        )
+        .subscribe((source) => {
           this.downloadMedicalPrescriptionDocument(source, draftPrescription);
         });
       return;
     }
 
-    const persisted = this.medicalPrescriptionService.extractFromNotes(appointment.notes);
-    if (this.isAppointmentCompleted() && !this.medicalPrescriptionService.hasContent(persisted)) {
-      this.appointmentsService
-        .getAppointmentById(appointment.id)
-        .pipe(catchError(() => of(null)))
-        .subscribe((updated) => {
-          const source = updated ?? appointment;
-          if (updated) {
-            this.appointment.update((current) =>
-              current ? this.mergeAppointment(current, updated) : updated,
-            );
-            this.hydrateMedicalPrescriptionFromAppointment(updated);
-          }
-          this.downloadMedicalPrescriptionDocument(
-            source,
-            this.medicalPrescriptionForDocument(source),
-          );
-        });
-      return;
-    }
+    this.loadAppointmentForDocument(appointment).subscribe((source) => {
+      this.downloadMedicalPrescriptionDocument(
+        source,
+        this.medicalPrescriptionForDocument(source),
+      );
+    });
+  }
 
-    this.downloadMedicalPrescriptionDocument(
-      appointment,
-      this.medicalPrescriptionForDocument(appointment),
+  private loadAppointmentForDocument(fallback: AppointmentView): Observable<AppointmentView> {
+    return this.appointmentsService.getAppointmentById(fallback.id).pipe(
+      catchError(() => of(fallback)),
+      switchMap((updated) => {
+        this.appointment.update((current) =>
+          current ? this.mergeAppointment(current, updated) : updated,
+        );
+        this.hydrateMedicalPrescriptionFromAppointment(updated);
+        return of(updated);
+      }),
     );
   }
 
@@ -1653,6 +1730,29 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return destination?.trim() || appointment.addressLabel;
   }
 
+  private currentRouteDestinationCoordinates(): MapCoordinate | null {
+    const appointment = this.appointment();
+    if (
+      !appointment ||
+      this.isParcelTransportAppointment(appointment) ||
+      !this.clientTravelsToProvider()
+    ) {
+      return null;
+    }
+
+    const latitude = appointment.professionalLatitude;
+    const longitude = appointment.professionalLongitude;
+    if (
+      typeof latitude !== 'number' ||
+      typeof longitude !== 'number' ||
+      !this.geo.isCoordinateInSenegal(latitude, longitude)
+    ) {
+      return null;
+    }
+
+    return { lat: latitude, lng: longitude };
+  }
+
   protected parcelActionButtonLabel(): string {
     if (this.isParcelAwaitingPickupScan()) return "Scanner chez l'expediteur";
     if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
@@ -1727,7 +1827,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!notes) return null;
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(
-      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire|Distance estimee|Tarif kilometrique|Prix calcule|Colis\\s+\\d+|Note livraison)\\s*[:(]|$)`,
+      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Patient|Lien|Telephone|Lieu|Adresse selectionnee|Notes patient|Motif|Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire|Distance estimee|Tarif kilometrique|Prix calcule|Colis\\s+\\d+|Note livraison)\\s*[:(]|$)`,
       'i',
     );
     const match = notes.match(pattern);
@@ -2288,6 +2388,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.set(appointment);
         this.hydrateMedicalPrescriptionFromAppointment(appointment);
         this.selectedRating.set(appointment.clientRating ?? 0);
+        this.reviewComment.set(appointment.clientReview ?? '');
         this.isLoading.set(false);
         this.synchronizeLiveNavigation(appointment);
         if (appointment.status === 'TERMINEE') {
@@ -3814,6 +3915,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private resolveDestinationCoordinates(addressLabel: string): void {
+    const preferredCoordinates = this.currentRouteDestinationCoordinates();
+    if (preferredCoordinates && typeof window !== 'undefined') {
+      const coordinateKey = `coords:${preferredCoordinates.lat.toFixed(7)},${preferredCoordinates.lng.toFixed(7)}`;
+      if (coordinateKey === this.lastResolvedDestinationAddress && this.destinationCoordinates()) {
+        this.updateGoogleMaps();
+        return;
+      }
+
+      this.clearResolvedDestination();
+      this.lastResolvedDestinationAddress = coordinateKey;
+      this.destinationCoordinates.set(preferredCoordinates);
+      this.destinationStatus.set('ready');
+      this.updateGoogleMaps();
+      return;
+    }
+
     const query = this.geo.normalizeAddressQuery(addressLabel);
     if (!query || typeof window === 'undefined') {
       if (!query && this.lastResolvedDestinationAddress) {

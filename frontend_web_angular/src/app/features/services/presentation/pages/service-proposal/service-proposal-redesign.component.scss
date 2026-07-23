@@ -44,7 +44,7 @@
 .service-proposal__price-card{background:#fff;border-color:#eef1f5;border-radius:22px;display:grid;gap:24px;overflow:hidden;padding:30px 26px 42px}
 .service-proposal__price-card>header{border-bottom:0;padding:0;text-align:center}
 .service-proposal__price-card h2{font-size:21px}
-.service-proposal__offer-display{background:#fbfcff;border:1px solid #dfe5ee;border-radius:22px;box-shadow:0 2px 0 rgb(17 24 39/4%);min-height:190px;padding:24px 24px 16px;text-align:center}
+.service-proposal__offer-display{background:transparent;border:0;border-radius:0;box-shadow:none;min-height:190px;padding:24px 24px 16px;text-align:center}
 .service-proposal__offer-display label{align-items:baseline;display:inline-flex;justify-content:center;margin-inline:auto;width:auto}
 .service-proposal__offer-display input{flex:0 1 auto;font-size:clamp(48px,6vw,62px);max-width:10ch;min-width:4ch;text-align:center;width:7ch}
 .service-proposal__offer-display strong{color:#8b97a4;flex:0 0 auto;font-size:18px;padding-bottom:0}

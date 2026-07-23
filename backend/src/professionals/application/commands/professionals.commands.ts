@@ -29,6 +29,7 @@ export type CreateProfessionalServiceCommand = {
   categoryId: string;
   name: string;
   description: string;
+  imageUrl?: string | null;
   price: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
   travelMode?:
@@ -43,6 +44,7 @@ export type CreateProfessionalServiceCommand = {
 export type UpdateProfessionalServiceCommand = {
   name?: string;
   description?: string;
+  imageUrl?: string | null;
   price?: number;
   priceType?: 'FIXE' | 'NEGOCIABLE';
   travelMode?:

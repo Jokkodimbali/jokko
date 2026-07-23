@@ -112,27 +112,60 @@
 
 .message-composer__send,
 .message-composer__voice {
-  background: #128c7e;
+  background: #278a24;
   color: #ffffff;
   display: grid;
-  height: 38px;
+  height: 40px;
   padding: 0;
   place-items: center;
-  width: 38px;
+  width: 40px;
 }
 
-.message-composer__send lucide-icon {
+.message-composer__send {
+  box-shadow: 0 7px 16px rgba(39, 138, 36, 0.24);
+  overflow: hidden;
+  position: relative;
+}
+
+.message-composer__send-icon {
   display: block;
-  transform: translate(1px, -1px) rotate(45deg);
-  transform-origin: center;
+  height: 22px;
+  position: relative;
+  width: 23px;
+}
+
+.message-composer__send-icon::before {
+  border-bottom: 8px solid transparent;
+  border-left: 20px solid #fff;
+  border-top: 8px solid transparent;
+  content: '';
+  left: 2px;
+  position: absolute;
+  top: 3px;
+}
+
+.message-composer__send-icon::after {
+  background: #278a24;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  content: '';
+  height: 8px;
+  left: 0;
+  position: absolute;
+  top: 7px;
+  width: 13px;
 }
 
 .message-composer__send:hover,
 .message-composer__send:focus-visible,
 .message-composer__voice:hover,
 .message-composer__voice:focus-visible {
-  background: #0d7b70;
+  background: #237f20;
   transform: scale(1.05);
+}
+
+.message-composer__send:hover .message-composer__send-icon::after,
+.message-composer__send:focus-visible .message-composer__send-icon::after {
+  background: #237f20;
 }
 
 .message-composer__pending-media {
@@ -296,8 +329,8 @@
 
   .message-composer__send,
   .message-composer__voice {
-    height: 36px;
-    width: 36px;
+    height: 38px;
+    width: 38px;
   }
 
   .message-composer__voice-panel {

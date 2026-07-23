@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { StatutReservation } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  DOMAINE_EVENT_BUS,
+  type DomaineEventBusPort,
+} from '../../../core/events/domaine-event-bus.port';
 import {
   type PaymentReservationPaidWorkflowResult,
   type PaymentWorkflowPort,
@@ -9,7 +13,11 @@ import { type Payment } from '../../domain/entities/payment.entity';
 
 @Injectable()
 export class PaymentWorkflowRepository implements PaymentWorkflowPort {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(DOMAINE_EVENT_BUS)
+    private readonly eventBus: DomaineEventBusPort,
+  ) {}
 
   async markReservationAsPaid(
     payment: Payment,
@@ -32,6 +40,16 @@ export class PaymentWorkflowRepository implements PaymentWorkflowPort {
         where: { id: payment.bookingId },
         data: { statut: StatutReservation.PAYEE_SEQUESTRE },
       });
+    });
+
+    await this.eventBus.publier({
+      nom: 'reservations.updated',
+      dateOccurrence: new Date(),
+      payload: {
+        reservationId: reservation.id,
+        clientId: reservation.clientId,
+        professionalId: reservation.professionnelId,
+      },
     });
 
     return {

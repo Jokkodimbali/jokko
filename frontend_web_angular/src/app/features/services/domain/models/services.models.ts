@@ -21,10 +21,13 @@ export interface CategoryStructure extends Category {
 
 export interface Professional {
   id: string;
+  userId?: string;
   profileType?: 'PRESTATAIRE' | 'MEDECIN';
   serviceId?: string;
   servicePriceType?: string;
   serviceTravelMode?: ServiceTravelMode;
+  servicePriceMin?: number;
+  servicePriceMax?: number;
   nom: string;
   categoryName: string;
   subCategoryName?: string | null;
@@ -42,6 +45,7 @@ export interface Professional {
   onlineLabel: string;
   avatar?: string;
   photos: string[];
+  services: BackendProfessionalService[];
 }
 
 export type ServiceTravelMode =
@@ -112,6 +116,7 @@ export interface BackendProfessionalService {
   price: number;
   priceType: string;
   travelMode?: ServiceTravelMode;
+  urlImage?: string | null;
   categoryId: string;
   categoryName: string;
   subCategoryId?: string | null;
@@ -131,6 +136,7 @@ export interface BackendProfessionalDetailService {
   categorieId: string;
   nom: string;
   description: string;
+  urlImage?: string | null;
   prix: number;
   typePrix: 'FIXE' | 'NEGOCIABLE';
   modeDeplacement?: ServiceTravelMode;

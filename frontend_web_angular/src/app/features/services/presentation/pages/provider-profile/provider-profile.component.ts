@@ -28,6 +28,12 @@ interface ScheduleRow {
   slots: string[];
 }
 
+interface OfferedServiceVisual {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
 const PROFESSIONAL_VEHICLE_BADGES: Record<
   ProfessionalVehicleType,
   { label: string; imageUrl: string }
@@ -72,6 +78,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
+  protected readonly selectedVisualServiceId = signal<string | null>(null);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
   protected readonly selectedServiceId = this.route.snapshot.queryParamMap.get('serviceId') || '';
@@ -95,12 +102,34 @@ export class ProviderProfileComponent implements OnInit {
       returnUrl: `/services/${this.profileId}`,
     };
   });
+  protected readonly messageQueryParams = computed(() => {
+    const profile = this.detail()?.profile;
+    const serviceId = this.primaryService()?.id;
+
+    return {
+      professionalId: this.profileId,
+      ...(profile?.utilisateurId ? { professionalUserId: profile.utilisateurId } : {}),
+      providerName: this.displayName(),
+      ...(serviceId ? { serviceId } : {}),
+    };
+  });
   protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
   protected readonly initials = computed(() => userInitials(this.displayName()));
   protected readonly coverUrl = computed(() => this.defaultCoverUrl);
-  protected readonly portfolioItems = computed(() =>
-    (this.detail()?.portfolio ?? []).slice(0, 6),
+  protected readonly offeredServices = computed<OfferedServiceVisual[]>(() =>
+    (this.detail()?.services ?? [])
+      .filter((service) => service.estDisponible)
+      .map((service) => ({
+        id: service.id,
+        name: service.nom,
+        imageUrl: this.visibleImageUrl(service.urlImage) || null,
+      })),
   );
+  protected readonly selectedVisualService = computed(() => {
+    const services = this.offeredServices();
+    const selectedId = this.selectedVisualServiceId() || this.primaryService()?.id;
+    return services.find((service) => service.id === selectedId) ?? services[0] ?? null;
+  });
   protected readonly reviewItems = computed(() =>
     (this.detail()?.reviews ?? []).slice(0, 2),
   );
@@ -108,8 +137,12 @@ export class ProviderProfileComponent implements OnInit {
     return userInitials(name);
   }
 
-  protected portfolioInitials(title: string): string {
+  protected serviceVisualInitials(title: string): string {
     return userInitials(title);
+  }
+
+  protected selectVisualService(service: OfferedServiceVisual): void {
+    this.selectedVisualServiceId.set(service.id);
   }
   protected readonly ratingLabel = computed(() => {
     const rating = Number(this.detail()?.profile.noteGlobale ?? 0);
@@ -119,6 +152,9 @@ export class ProviderProfileComponent implements OnInit {
     const total = this.detail()?.profile.nombreAvis ?? 0;
     return `${this.formatNumber(total)} avis`;
   });
+  protected readonly ratingStars = computed(() =>
+    this.starsFor(this.detail()?.profile.noteGlobale ?? 0),
+  );
   private readonly professionalBiography = computed(() => {
     const biography = this.detail()?.profile.biographie ?? '';
     const lines = biography
@@ -166,10 +202,10 @@ export class ProviderProfileComponent implements OnInit {
     this.isFixedPriceService() ? '/prix fixe' : '/negociable',
   );
   protected readonly priceActionLabel = computed(() =>
-    this.isFixedPriceService() ? 'Prendre rendez-vous' : 'Proposer un prix',
+    this.isFixedPriceService() ? 'Prendre rendez-vous' : 'Negociez le prix',
   );
   protected readonly priceActionIcon = computed(() =>
-    this.isFixedPriceService() ? 'calendar-check' : 'banknote',
+    this.isFixedPriceService() ? 'calendar-check' : 'banknote-arrow-down',
   );
   protected readonly priceHelper = computed(() =>
     this.isFixedPriceService()
@@ -281,9 +317,10 @@ export class ProviderProfileComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.servicesService.getProviderProfileDetail(this.profileId).subscribe({
-      next: (detail) => {
-        this.detail.set(detail);
-        this.isLoading.set(false);
+        next: (detail) => {
+          this.detail.set(detail);
+          this.selectedVisualServiceId.set(this.primaryService()?.id ?? detail.services[0]?.id ?? null);
+          this.isLoading.set(false);
         this.loadFavoriteStatus();
       },
       error: () => {

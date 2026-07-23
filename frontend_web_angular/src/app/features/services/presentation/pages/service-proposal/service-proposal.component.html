@@ -1,4 +1,11 @@
 <main class="service-proposal">
+  <ng-template #priceCardHeader>
+    <header>
+      <span>Prix &eacute;quitable du service</span>
+      <strong>{{ categoryLabel() }}</strong>
+    </header>
+  </ng-template>
+
   <section class="service-proposal__bar">
     <button type="button" class="service-proposal__back" (click)="goBack()">
       <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.4"></lucide-icon>
@@ -162,9 +169,7 @@
             </div>
 
             <section class="service-proposal__price-card service-proposal__price-card--counter">
-            <header>
-              <h2>Proposer un prix au client</h2>
-            </header>
+            <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
 
             <div class="service-proposal__offer-display">
               <small>Votre contre-offre</small>
@@ -643,9 +648,7 @@
                 <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
                 <section class="service-proposal__price-card" aria-label="Prix propose">
-                  <header>
-                    <h2>{{ priceSectionTitle() }}</h2>
-                  </header>
+                  <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
 
                   <div class="service-proposal__offer-display">
                     <small>{{ offerFieldLabel() }}</small>
@@ -852,9 +855,7 @@
                   </div>
 
                   <section class="service-proposal__price-card service-proposal__price-card--counter">
-                    <header>
-                      <h2>Proposer un prix au prestataire</h2>
-                    </header>
+                    <ng-container *ngTemplateOutlet="priceCardHeader"></ng-container>
 
                     <div class="service-proposal__offer-display">
                       <small>Votre contre-offre</small>

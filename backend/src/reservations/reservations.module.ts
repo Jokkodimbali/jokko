@@ -15,6 +15,7 @@ import { ReservationsRepository } from './infrastructure/repositories/reservatio
 import { AdminReservationsController } from './presentation/controllers/admin-reservations.controller';
 import { ReservationAvailabilityController } from './presentation/controllers/reservation-availability.controller';
 import { ReservationsController } from './presentation/controllers/reservations.controller';
+import { ReservationsGateway } from './presentation/gateways/reservations.gateway';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ReservationsController } from './presentation/controllers/reservations.
     ReservationCommandService,
     ReservationQueryService,
     ReservationsFacade,
+    ReservationsGateway,
   ],
   exports: [ReservationsFacade, RESERVATIONS_REPOSITORY_PORT],
 })

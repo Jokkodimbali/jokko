@@ -71,43 +71,6 @@
           <span class="settings-page__professional-badge">Modifiable</span>
         </header>
 
-        <section class="settings-page__portfolio">
-          <header>
-            <h3>Portfolio / Realisations</h3>
-            <span>{{ portfolioItems().length }} element(s)</span>
-          </header>
-          <form class="settings-page__portfolio-form" (ngSubmit)="addPortfolioItem()">
-            <label class="settings-page__portfolio-upload">
-              <ng-container *ngIf="portfolioPreview() as preview; else portfolioUploadPlaceholder">
-                <img [src]="preview.url" [alt]="preview.name" />
-              </ng-container>
-              <ng-template #portfolioUploadPlaceholder>
-                <lucide-icon name="image-plus" size="25" [strokeWidth]="2.5"></lucide-icon>
-                <span>{{ portfolioFileName() || 'Choisir une image' }}</span>
-              </ng-template>
-              <input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="isPortfolioSaving()" (change)="selectPortfolioImage($event)" />
-            </label>
-            <input type="text" name="portfolioTitle" placeholder="Titre de la realisation" [(ngModel)]="portfolioForm.title" />
-            <input type="text" name="portfolioDescription" placeholder="Description courte" [(ngModel)]="portfolioForm.description" />
-            <button type="submit" [disabled]="isPortfolioSaving()">Ajouter au portfolio</button>
-          </form>
-          <div *ngIf="portfolioItems().length > 0; else noPortfolio" class="settings-page__portfolio-grid">
-            <article *ngFor="let item of portfolioItems()">
-              <img [src]="item.urlImage" [alt]="item.titre" />
-              <div>
-                <strong>{{ item.titre }}</strong>
-                <p>{{ item.description || 'Realisation professionnelle' }}</p>
-              </div>
-              <button type="button" (click)="deletePortfolioItem(item)" [disabled]="isPortfolioSaving()" aria-label="Supprimer cette realisation">
-                <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
-              </button>
-            </article>
-          </div>
-          <ng-template #noPortfolio>
-            <p class="settings-page__empty-line">Aucune realisation publiee. Ajoutez vos photos directement ici.</p>
-          </ng-template>
-        </section>
-
         <section *ngIf="isDoctorSettings()" class="settings-page__documents">
           <header>
             <h3>Documents et justificatifs</h3>

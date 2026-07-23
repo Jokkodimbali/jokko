@@ -117,6 +117,7 @@ export class MessagingCommandService extends MessagingAppService {
 
     const result = await this.messagingRepository.createConversation(
       {
+        id: conversation.id,
         clientUserId: conversation.clientUserId,
         professionalUserId: conversation.professionalUserId,
         reservationId: participantContext.reservationId,

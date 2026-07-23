@@ -165,6 +165,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       onlineLabel: favorite.isOnline ? 'En ligne' : 'Favori',
       avatar: favorite.avatarUrl || undefined,
       photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
+      services: [],
       route: `/services/${favorite.professionalId}`,
     })),
   );
@@ -729,6 +730,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       : provider.professionName || provider.speciality || 'Sous categorie non renseignee';
   }
 
+  providerCardCategoryLabel(provider: Professional): string {
+    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+      .map((label) => label?.trim())
+      .filter((label): label is string => Boolean(label));
+
+    if (labels.length === 0) {
+      return (provider.professionName || provider.speciality || 'Sous categorie non renseignee').toUpperCase();
+    }
+
+    return labels.length > 1 ? `${labels[0].toUpperCase()} +${labels.length - 1}` : labels[0].toUpperCase();
+  }
+
   providerPortfolioLabel(provider: Professional, index: number): string {
     if (index === 0) {
       return this.providerProfessionLabel(provider);
@@ -774,19 +787,25 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   providerActionLabel(provider: Professional): string {
-    return provider.profileType === 'MEDECIN' ? 'Prendre rendez-vous' : 'Negocier le prix';
+    return provider.profileType === 'MEDECIN' ? 'Prendre rendez-vous' : 'Negocier';
   }
 
   providerCardView(provider: Professional): ProviderCardView {
     const photos = this.providerPhotos(provider);
     const queryParams = provider.serviceId ? { serviceId: provider.serviceId } : null;
     const profileCommands = this.providerProfileCommands(provider);
+    const messageQueryParams = {
+      professionalId: provider.id,
+      ...(provider.userId ? { professionalUserId: provider.userId } : {}),
+      providerName: provider.nom,
+      ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
+    };
 
     return {
       id: provider.id,
       name: provider.nom,
       title: this.providerCardSubCategoryLabel(provider),
-      category: this.providerCategoryLabel(provider),
+      category: this.providerCardCategoryLabel(provider),
       location: this.humanLocationLabel(provider.location),
       rating: provider.rating,
       totalReviews: provider.totalReviews,
@@ -797,14 +816,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       coverUrl: SERVICE_CARD_COVER_URL,
       movementTitle: this.providerMovementTitle(provider),
       travelMode: provider.serviceTravelMode,
+      priceRangeLabel: this.providerPriceRangeLabel(provider),
       isMedical: provider.profileType === 'MEDECIN',
       images: photos.slice(0, 2).map((url, index) => ({
         url,
         label: this.providerPortfolioLabel(provider, index),
       })),
+      services: this.providerServiceVisuals(provider),
       primaryActionLabel: this.providerActionLabel(provider),
       profileCommands,
+      messageCommands: ['/messages'],
       queryParams,
+      messageQueryParams,
       state: {
         provider,
         avatar: this.resolveProviderAvatar(provider),
@@ -822,6 +845,40 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.openNegotiation(provider);
+  }
+
+  providerPriceRangeLabel(provider: Professional): string {
+    const prices = provider.services
+      .map((service) => Number(service.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+    const min = prices.length ? Math.min(...prices) : provider.servicePriceMin;
+    const max = prices.length ? Math.max(...prices) : provider.servicePriceMax;
+    const suffix = provider.serviceTravelMode === 'TRANSPORT_COLIS' ? ' FCFA/KM' : ' FCFA';
+
+    if (!min && !max) {
+      return provider.servicePriceType === 'NEGOCIABLE' ? 'Prix negociable' : 'Tarif a confirmer';
+    }
+
+    if (!max || min === max) {
+      return `${this.formatCompactAmount(min ?? max ?? 0)}${suffix}`;
+    }
+
+    return `${this.formatCompactAmount(min ?? 0)}-${this.formatCompactAmount(max)}${suffix}`;
+  }
+
+  providerServiceVisuals(provider: Professional): ProviderCardView['services'] {
+    return provider.services
+      .filter((service) => service.name.trim())
+      .slice(0, 10)
+      .map((service) => ({
+        id: service.id,
+        name: service.name,
+        imageUrl: service.urlImage?.trim() || null,
+      }));
+  }
+
+  private formatCompactAmount(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.trunc(value));
   }
 
   private humanLocationLabel(value: string | null | undefined): string {

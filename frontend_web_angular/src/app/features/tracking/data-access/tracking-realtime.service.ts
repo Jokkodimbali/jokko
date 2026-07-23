@@ -74,8 +74,10 @@ export class TrackingRealtimeService {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      timeout: 5000,
     });
     this.socket.on('connect', () => {
       this.connectionState.next('connected');

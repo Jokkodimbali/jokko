@@ -82,7 +82,14 @@
     <div class="provider-card__meta">
       <strong>{{ provider.priceRangeLabel }}</strong>
       <span aria-label="Note">
-        <lucide-icon *ngFor="let star of [1, 2, 3, 4, 5]" name="star" size="14" [strokeWidth]="2.2" fill="currentColor"></lucide-icon>
+        <lucide-icon
+          *ngFor="let star of ratingStarValues"
+          name="star"
+          size="14"
+          [strokeWidth]="2.2"
+          [class.provider-card__star--filled]="isRatingStarFilled(star)"
+          [attr.fill]="isRatingStarFilled(star) ? 'currentColor' : 'none'"
+        ></lucide-icon>
       </span>
       <small>{{ provider.totalReviews }} avis</small>
     </div>

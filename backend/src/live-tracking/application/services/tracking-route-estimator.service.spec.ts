@@ -85,7 +85,7 @@ describe('TrackingRouteEstimatorService', () => {
 
     await service.enrich(tracking, 'Dakar Plateau');
     await service.enrich(
-      { ...tracking, lastLatitude: 14.71671 },
+      { ...tracking, lastLatitude: 14.716704 },
       'Dakar Plateau',
     );
 

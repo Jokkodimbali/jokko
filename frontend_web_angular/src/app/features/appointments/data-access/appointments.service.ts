@@ -399,6 +399,16 @@ export class AppointmentsService {
   ): AppointmentView {
     const date = new Date(reservation.dateHeure);
     const status = this.normalizeReservationStatus(reservation.statut);
+    const professionalName = this.firstNonEmpty(
+      professional.doctorName,
+      reservation.professionnel?.nomEntreprise,
+      reservation.professionnel?.utilisateur.nom,
+    );
+    const serviceName = this.firstNonEmpty(professional.serviceName, reservation.service?.nom);
+    const avatarUrl = this.firstNonEmpty(
+      professional.avatarUrl,
+      reservation.professionnel?.utilisateur.urlAvatar,
+    );
 
     return {
       id: reservation.id,
@@ -415,9 +425,9 @@ export class AppointmentsService {
       fullDateLabel: this.formatFullDate(date),
       timeLabel: this.formatTime(date),
       locationLabel: reservation.adresseClient || 'Adresse non renseignee',
-      doctorName: professional.doctorName || 'Prestataire non renseigne',
-      specialty: professional.specialty || reservation.service?.nom || 'Service non renseigne',
-      avatarUrl: publicAssetUrl(professional.avatarUrl) || '',
+      doctorName: professionalName || 'Prestataire non renseigne',
+      specialty: professional.specialty || serviceName || 'Service non renseigne',
+      avatarUrl: publicAssetUrl(avatarUrl) || '',
       professionalPhone:
         professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
       professionalAddressLabel:
@@ -433,7 +443,7 @@ export class AppointmentsService {
       clientName: reservation.client?.nom || 'Client non renseigne',
       clientPhone: reservation.client?.numeroTelephone || null,
       clientAvatarUrl: publicAssetUrl(reservation.client?.urlAvatar) || '',
-      serviceName: professional.serviceName || reservation.service?.nom || 'Service non renseigne',
+      serviceName: serviceName || 'Service non renseigne',
       serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
       serviceCategoryName: professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
       professionalSubCategoryName:

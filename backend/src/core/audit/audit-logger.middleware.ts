@@ -39,6 +39,9 @@ const ENTITY_PATTERNS: Record<string, string> = {
   '/notifications': 'NOTIFICATION',
 };
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class AuditLoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger(AuditLoggerMiddleware.name);
@@ -120,10 +123,18 @@ export class AuditLoggerMiddleware implements NestMiddleware {
       if (path.includes(pattern)) {
         const entityId =
           params.id && !params.id.startsWith(':') ? params.id : undefined;
-        return { entityType, entityId };
+        return {
+          entityType,
+          entityId: this.normalizeUuid(entityId),
+        };
       }
     }
     return {};
+  }
+
+  private normalizeUuid(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    return UUID_PATTERN.test(value) ? value : undefined;
   }
 
   private async resolveUserContext(

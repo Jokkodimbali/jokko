@@ -96,6 +96,26 @@ export class AppointmentPaymentPageComponent implements OnInit {
     const appointment = this.appointment();
     return appointment ? `${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}` : 'Date a confirmer';
   });
+  protected readonly providerReviewLabel = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) {
+      return 'Avis non renseigne';
+    }
+
+    const rating = this.toPositiveAmount(appointment.professionalRating);
+    const reviews = Math.trunc(Number(appointment.professionalReviews ?? 0));
+    if (!rating || reviews <= 0) {
+      return 'Avis non renseigne';
+    }
+
+    const ratingLabel = new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })
+      .format(rating)
+      .replace(/\s/g, ' ');
+    return `${ratingLabel} (${reviews} avis)`;
+  });
   protected readonly comparisonLabel = computed(() => {
     const appointment = this.appointment();
     const servicePrice = this.toPositiveAmount(appointment?.servicePrice);

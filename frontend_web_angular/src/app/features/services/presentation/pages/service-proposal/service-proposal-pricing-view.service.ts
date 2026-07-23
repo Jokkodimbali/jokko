@@ -114,8 +114,8 @@ export class ServiceProposalPricingViewService {
     }
 
     return input.isFixedPriceService
-      ? 'Tarif du prestataire, pret a etre reserve.'
-      : 'Offre equitable pour le prestataire, pret a etre reserve.';
+      ? 'Tarif du prestataire.'
+      : 'Offre equitable pour le prestataire.';
   }
 
   counterDifferenceLabel(proposal: NegotiationView | null): string {

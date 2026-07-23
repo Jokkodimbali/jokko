@@ -91,6 +91,7 @@ export class ProviderCardComponent {
   @Output() imageError = new EventEmitter<string>();
 
   protected readonly emptySlots = [0, 1];
+  protected readonly ratingStarValues = [1, 2, 3, 4, 5];
   protected selectedServiceId: string | null = null;
 
   protected get ratingText(): string {
@@ -103,6 +104,15 @@ export class ProviderCardComponent {
 
   protected get reviewsText(): string {
     return this.provider.totalReviews > 0 ? `(${this.provider.totalReviews})` : '';
+  }
+
+  protected isRatingStarFilled(star: number): boolean {
+    if (this.provider.totalReviews <= 0) {
+      return true;
+    }
+
+    const rating = Math.max(0, Math.min(5, Number(this.provider.rating) || 0));
+    return star <= Math.round(rating);
   }
 
   protected get movementImageUrl(): string | null {

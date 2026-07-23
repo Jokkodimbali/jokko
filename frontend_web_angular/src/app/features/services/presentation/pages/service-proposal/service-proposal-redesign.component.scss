@@ -41,15 +41,13 @@
 .service-proposal__booking-actions{display:grid;gap:12px;grid-template-columns:1fr}
 .service-proposal__back-step{align-items:center;background:#fff;border:1px solid #dfe3ea;border-radius:14px;color:#687385;cursor:pointer;display:inline-flex;font-size:12px;font-weight:950;gap:8px;justify-content:center;min-height:50px;padding:0 18px;text-transform:uppercase}
 .service-proposal__booking-actions .service-proposal__submit{margin-top:0;width:100%}
-.service-proposal__price-card{background:#fff;border-color:#eef1f5;border-radius:22px;display:grid;gap:24px;overflow:hidden;padding:30px 26px 42px}
-.service-proposal__price-card>header{border-bottom:0;padding:0;text-align:center}
+.service-proposal__price-card{background:#fff;border-color:#eef1f5;border-radius:22px;display:block;gap:0;overflow:hidden;padding:0}
+.service-proposal__price-card>header{border-bottom:0;margin:0;padding:13px 16px 14px;text-align:center;width:100%}
 .service-proposal__price-card h2{font-size:21px}
 .service-proposal__offer-display{background:transparent;border:0;border-radius:0;box-shadow:none;min-height:190px;padding:24px 24px 16px;text-align:center}
 .service-proposal__offer-display label{align-items:baseline;display:inline-flex;justify-content:center;margin-inline:auto;width:auto}
 .service-proposal__offer-display input{flex:0 1 auto;font-size:clamp(48px,6vw,62px);max-width:10ch;min-width:4ch;text-align:center;width:7ch}
 .service-proposal__offer-display strong{color:#8b97a4;flex:0 0 auto;font-size:18px;padding-bottom:0}
-.service-proposal__difference{margin-top:14px;transition:transform 180ms ease,box-shadow 180ms ease}
-.service-proposal__difference:hover{box-shadow:0 8px 18px rgb(8 117 69/12%);transform:scale(1.015)}
 .service-proposal__amount-actions{gap:16px;padding:0 40px}
 .service-proposal__amount-action{border-radius:16px;min-height:48px;transition:background 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease}
 .service-proposal__amount-action:not(:disabled):hover{box-shadow:0 10px 22px rgb(15 23 42/10%);transform:translateY(-2px) scale(1.015)}
@@ -200,7 +198,7 @@
 .service-proposal__pending--inside{background:#fbfcff;border:1px solid #dfe5ee;border-radius:22px;margin:0;padding:28px 44px 24px}
 .service-proposal__counter-modern{background:#fff;border:1px solid #eef1f5;border-radius:22px;display:grid;gap:16px;padding:18px}
 .service-proposal__panel.service-proposal__counter-modern{border-radius:0;border-width:0;box-shadow:none;margin:0;padding:32px}
-.service-proposal__counter-offer-card{background:#fbfcff;border-radius:18px;display:grid;gap:12px;padding:16px 24px;text-align:center}
+.service-proposal__counter-offer-card{background:#fff;border:1.5px solid #050505;border-radius:20px;display:grid;gap:14px;padding:19px 28px 18px;text-align:center}
 .service-proposal__counter-offer-card h2{color:#0b1020;font-size:12px;font-weight:950;letter-spacing:.04em;line-height:1.3;margin:0;text-transform:uppercase}
 .service-proposal__counter-offer-values{align-items:center;display:grid;gap:22px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
 .service-proposal__counter-offer-values>lucide-icon{color:#b5bdc8}
@@ -233,7 +231,7 @@
 @media(max-width:620px){
   .service-proposal__hero{align-items:flex-start;gap:12px;min-height:0;padding:22px}
   .service-proposal__panel-body{padding:18px}
-  .service-proposal__price-card{padding:22px 14px 26px}
+  .service-proposal__price-card{padding:0}
   .service-proposal__offer-display input{font-size:clamp(36px,13vw,48px);max-width:9ch;width:6.5ch}
   .service-proposal__amount-actions,.service-proposal__fields{grid-template-columns:1fr;padding-inline:0}
   .service-proposal__booking-actions{grid-template-columns:1fr}

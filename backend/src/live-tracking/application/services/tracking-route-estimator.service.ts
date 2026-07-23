@@ -3,7 +3,7 @@ import { GeocodeAddressUseCase } from '../../../geolocation/application/use-case
 import { ComputeRoutesUseCase } from '../../../routing/application/use-cases/compute-routes.use-case';
 import type { ReservationTrackingView } from '../ports/live-tracking-repository.port';
 
-const ROUTE_CACHE_TTL_MS = 15_000;
+const ROUTE_CACHE_TTL_MS = 5_000;
 
 @Injectable()
 export class TrackingRouteEstimatorService {
@@ -94,8 +94,8 @@ export class TrackingRouteEstimatorService {
     destinationAddress: string,
   ): string {
     return [
-      latitude.toFixed(4),
-      longitude.toFixed(4),
+      latitude.toFixed(5),
+      longitude.toFixed(5),
       destinationAddress.trim().toLocaleLowerCase('fr'),
     ].join('|');
   }

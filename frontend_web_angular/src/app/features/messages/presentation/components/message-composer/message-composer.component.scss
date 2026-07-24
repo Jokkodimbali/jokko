@@ -209,9 +209,10 @@
 .message-composer__voice-panel {
   align-items: center;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 32px max-content minmax(92px, 1fr) max-content 44px;
+  gap: 8px;
+  grid-template-columns: 32px max-content minmax(72px, 1fr) max-content 40px;
   min-height: 50px;
+  overflow: hidden;
   padding: 0 6px 0 9px;
 }
 
@@ -260,17 +261,12 @@
 }
 
 .message-composer__voice-finish {
-  animation: voice-mic-rise 0.22s ease-out, voice-recording-pulse 1s ease-in-out infinite;
+  animation: voice-recording-pulse 1s ease-in-out infinite;
   background: #128c7e;
-  box-shadow: 0 8px 18px rgba(18, 140, 126, 0.24);
+  box-shadow: 0 6px 14px rgba(18, 140, 126, 0.2);
   color: #fff;
-  height: 42px;
-  transform: translateY(-8px);
-  width: 42px;
-}
-
-.message-composer--disabled {
-  opacity: 0.86;
+  height: 40px;
+  width: 40px;
 }
 
 .message-composer--disabled .message-composer__tool,
@@ -282,18 +278,6 @@
 
 .message-composer button:disabled {
   opacity: 0.55;
-}
-
-@keyframes voice-mic-rise {
-  from {
-    opacity: 0.7;
-    transform: translateY(8px) scale(0.84);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(-8px) scale(1);
-  }
 }
 
 @keyframes voice-recording-pulse {
@@ -345,7 +329,8 @@
   }
 
   .message-composer__voice-panel {
-    grid-template-columns: 28px max-content minmax(56px, 1fr) 38px;
+    gap: 6px;
+    grid-template-columns: 28px max-content minmax(52px, 1fr) 38px;
   }
 
   .message-composer__voice-hint {

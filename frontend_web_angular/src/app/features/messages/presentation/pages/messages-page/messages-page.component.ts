@@ -776,37 +776,55 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected startVoiceRecording(): void {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      this.feedback.error("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+      this.feedback.error(this.voiceRecordingUnavailableMessage());
       return;
     }
 
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
       .then((stream) => {
+        const mimeType = this.supportedVoiceMimeType();
+        let recorder: MediaRecorder;
+        try {
+          recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        } catch (error) {
+          stream.getTracks().forEach((track) => track.stop());
+          throw error;
+        }
         this.voiceChunks = [];
-        this.mediaRecorder = new MediaRecorder(stream);
-        this.mediaRecorder.ondataavailable = (event) => {
+        this.mediaRecorder = recorder;
+        recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             this.voiceChunks.push(event.data);
           }
         };
-        this.mediaRecorder.onstop = () => {
+        recorder.onstop = () => {
           const durationSeconds = this.voiceRecordingSeconds();
           this.clearVoiceRecordingTimer();
           this.stopVoiceLevelMeter();
           stream.getTracks().forEach((track) => track.stop());
-          const voiceBlob = new Blob(this.voiceChunks, { type: 'audio/webm' });
+          const voiceType = recorder.mimeType || mimeType || 'audio/webm';
+          const voiceBlob = new Blob(this.voiceChunks, { type: voiceType });
           this.voiceChunks = [];
+          this.mediaRecorder = null;
+          this.voiceRecordingSeconds.set(0);
+          this.voiceLevel.set(0);
           if (voiceBlob.size === 0) {
             return;
           }
 
-          const file = new File([voiceBlob], `message-vocal-${Date.now()}.webm`, {
-            type: 'audio/webm',
+          const file = new File([voiceBlob], `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`, {
+            type: voiceType,
           });
-          this.uploadMediaForComposer(file, 'audio', durationSeconds);
+          this.uploadVoiceAndSend(file, durationSeconds);
         };
-        this.mediaRecorder.start();
+        recorder.start();
         this.startVoiceLevelMeter(stream);
         this.isRecordingVoice.set(true);
         this.voiceRecordingSeconds.set(0);
@@ -814,8 +832,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.voiceRecordingSeconds.update((seconds) => seconds + 1);
         }, 1000);
       })
-      .catch(() => {
-        this.feedback.error("Autorisez le micro pour envoyer un message vocal.");
+      .catch((error: unknown) => {
+        this.cancelVoiceRecording();
+        this.feedback.error(this.voiceRecordingErrorMessage(error));
       });
   }
 
@@ -893,6 +912,58 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.voiceAudioContext?.close().catch(() => undefined);
     this.voiceAudioContext = null;
     this.voiceLevel.set(0);
+  }
+
+  private supportedVoiceMimeType(): string {
+    if (typeof MediaRecorder.isTypeSupported !== 'function') {
+      return '';
+    }
+
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ];
+
+    return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? '';
+  }
+
+  private voiceFileExtension(mimeType: string): string {
+    if (mimeType.includes('mp4')) return 'm4a';
+    if (mimeType.includes('ogg')) return 'ogg';
+    return 'webm';
+  }
+
+  private voiceRecordingUnavailableMessage(): string {
+    if (!window.isSecureContext) {
+      return "Le micro fonctionne seulement sur HTTPS ou localhost dans le navigateur.";
+    }
+
+    return "L'enregistrement vocal n'est pas disponible sur ce navigateur.";
+  }
+
+  private voiceRecordingErrorMessage(error: unknown): string {
+    const name = error instanceof DOMException ? error.name : '';
+
+    switch (name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return "Le navigateur bloque le micro pour ce site. Verifiez l'autorisation du site dans la barre d'adresse.";
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'Aucun micro detecte sur cet appareil.';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'Le micro est autorise, mais il est deja utilise ou bloque par Windows.';
+      case 'AbortError':
+        return "Le micro n'a pas pu demarrer. Fermez les autres applications audio puis reessayez.";
+      case 'NotSupportedError':
+        return "Ce navigateur ne supporte pas le format d'enregistrement vocal.";
+      default:
+        return "Impossible de demarrer l'enregistrement vocal. Verifiez le micro puis reessayez.";
+    }
   }
 
   protected openCounterOffer(): void {
@@ -1175,7 +1246,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isUpdatingProposal.set(true);
     this.errorMessage.set(null);
 
-    this.proposalService.rejectPriceProposal(negotiationId, 'Proposition refusee par le prestataire.').subscribe({
+    this.proposalService.rejectPriceProposal(negotiationId, 'Negociation annulee par le prestataire.').subscribe({
       next: (updatedProposal) => {
         this.upsertProposal(updatedProposal);
         this.pendingProposal.update((current) =>
@@ -1190,7 +1261,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         );
         this.isUpdatingProposal.set(false);
         this.isCounterOfferOpen.set(false);
-        this.feedback.success('Proposition refusee.');
+        this.feedback.success('Negociation annulee.');
       },
       error: () => {
         const message = 'Impossible de refuser cette proposition.';
@@ -1318,6 +1389,33 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.errorMessage.set(message);
         this.feedback.error(message);
         this.isLoadingConversations.set(false);
+      },
+    });
+  }
+
+  private uploadVoiceAndSend(file: File, durationSeconds: number): void {
+    const conversation = this.selectedConversation();
+    if (!conversation || this.isUploadingMedia() || this.isSending()) {
+      return;
+    }
+
+    this.selectedAttachmentName.set(file.name);
+    this.pendingMediaKind.set('audio');
+    this.pendingVoiceDurationSeconds.set(durationSeconds);
+    this.isUploadingMedia.set(true);
+    this.messagesService.uploadMedia(file).subscribe({
+      next: ({ mediaUrl }) => {
+        this.isUploadingMedia.set(false);
+        this.pendingMediaUrl.set(mediaUrl);
+        this.sendMessageWithMedia(mediaUrl, 'Message vocal');
+      },
+      error: () => {
+        this.isUploadingMedia.set(false);
+        this.selectedAttachmentName.set(null);
+        this.pendingMediaUrl.set(null);
+        this.pendingMediaKind.set(null);
+        this.pendingVoiceDurationSeconds.set(0);
+        this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
       },
     });
   }
@@ -1924,7 +2022,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const message = `J'ai refuse l'offre initiale et propose ${this.formatAmount(
+    const message = `J'ai annule l'offre initiale et propose ${this.formatAmount(
       proposal.montantCourant,
     )} FCFA.`;
 
@@ -2007,7 +2105,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     if (proposal.status !== 'EN_ATTENTE_PRESTATAIRE') {
       const actionLabel =
-        action === 'accept' ? 'acceptee' : action === 'reject' ? 'refusee' : 'modifiee';
+        action === 'accept' ? 'acceptee' : action === 'reject' ? 'annulee' : 'modifiee';
       this.errorMessage.set(`Cette proposition ne peut plus etre ${actionLabel}.`);
       return false;
     }

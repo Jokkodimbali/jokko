@@ -109,6 +109,53 @@
     border-radius: 16px;
   }
 
+  .service-proposal__closed {
+    border-radius: 24px;
+  }
+
+  .service-proposal__closed-hero {
+    min-height: 178px;
+    padding: 28px 18px 24px;
+  }
+
+  .service-proposal__closed-icon {
+    height: 62px;
+    width: 62px;
+  }
+
+  .service-proposal__closed-hero h1 {
+    font-size: 22px;
+  }
+
+  .service-proposal__closed-party {
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .service-proposal__closed-party strong,
+  .service-proposal__closed-details dd {
+    font-size: 14px;
+  }
+
+  .service-proposal__closed-party p,
+  .service-proposal__closed-details dt {
+    font-size: 13px;
+  }
+
+  .service-proposal__closed-details {
+    padding: 6px 18px 0;
+  }
+
+  .service-proposal__closed-details div {
+    gap: 10px;
+    grid-template-columns: minmax(92px, 0.86fr) minmax(0, 1fr);
+    min-height: 58px;
+  }
+
+  .service-proposal__closed-actions {
+    padding: 14px 18px 20px;
+  }
+
   .service-proposal__panel-body {
     padding: 14px;
   }
@@ -146,5 +193,32 @@
   .service-proposal__message,
   .service-proposal__counter-refuse--modern {
     width: 100%;
+  }
+
+  .service-proposal__waiting-track {
+    gap: 10px;
+    grid-template-columns: minmax(58px, 72px) minmax(64px, 1fr) minmax(58px, 72px);
+    padding-inline: 14px;
+  }
+
+  .service-proposal__waiting-party small {
+    font-size: 10px;
+  }
+
+  .service-proposal__waiting-avatar,
+  .service-proposal__waiting-avatar img,
+  .service-proposal__waiting-avatar em {
+    height: 42px;
+    width: 42px;
+  }
+
+  .service-proposal__waiting-party--you strong {
+    height: 42px;
+    width: 42px;
+  }
+
+  .service-proposal__help-card {
+    margin-top: 18px;
+    padding: 18px 20px;
   }
 }

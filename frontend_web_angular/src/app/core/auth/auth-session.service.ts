@@ -9,6 +9,7 @@ import { publicAssetUrl } from '../../shared/utils/public-asset-url';
 
 const CURRENT_USER_KEY = 'currentUser';
 const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 const AUTH_STORAGE_MODE_KEY = 'authStorageMode';
 const REMEMBERED_LOGIN_IDENTIFIER_KEY = 'rememberedLoginIdentifier';
 const REMEMBERED_LOGIN_PHONE_KEY = 'rememberedLoginPhoneNumber';
@@ -41,10 +42,17 @@ export class AuthSessionService {
     if (response.accessToken) {
       this.saveAccessToken(response.accessToken, storage);
     }
+    if (response.refreshToken) {
+      this.saveRefreshToken(response.refreshToken, storage);
+    }
   }
 
   getAccessToken(): string | null {
     return this.getItem(ACCESS_TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return this.getItem(REFRESH_TOKEN_KEY);
   }
 
   getAuthenticatedRole(): UserDto['role'] | null {
@@ -144,6 +152,10 @@ export class AuthSessionService {
     storage?.setItem(ACCESS_TOKEN_KEY, token);
   }
 
+  private saveRefreshToken(token: string, storage = this.getCurrentStorage()): void {
+    storage?.setItem(REFRESH_TOKEN_KEY, token);
+  }
+
   private readStoredUser(): UserDto | null {
     const rawUser = this.getItem(CURRENT_USER_KEY);
     if (!rawUser) return null;
@@ -238,6 +250,7 @@ export class AuthSessionService {
 
     storage.removeItem(CURRENT_USER_KEY);
     storage.removeItem(ACCESS_TOKEN_KEY);
+    storage.removeItem(REFRESH_TOKEN_KEY);
     storage.removeItem(AUTH_STORAGE_MODE_KEY);
   }
 

@@ -124,7 +124,11 @@ function refreshAndRetry(
   refreshInProgress = true;
   refreshTokenSignal.next(null);
 
-  return authService.refresh().pipe(
+  const fallbackRefreshToken = authSession.getRefreshToken();
+
+  return authService.refresh(
+    fallbackRefreshToken ? { refreshToken: fallbackRefreshToken } : {},
+  ).pipe(
     switchMap((response) => {
       authSession.saveAuthResponse(
         response,

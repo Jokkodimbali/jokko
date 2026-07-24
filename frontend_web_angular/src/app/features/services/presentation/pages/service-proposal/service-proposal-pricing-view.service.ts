@@ -59,6 +59,20 @@ export class ServiceProposalPricingViewService {
       : 'PRIX EQUITABLE DU SERVICE';
   }
 
+  clientCounterDifferenceLabel(servicePrice: number, offerAmount: number): string {
+    const base = Math.trunc(Number(servicePrice));
+    const amount = Math.trunc(Number(offerAmount));
+    if (!base || !Number.isFinite(amount) || amount <= 0) {
+      return 'Montant a confirmer avec le prestataire';
+    }
+
+    const difference = amount - base;
+    if (difference === 0) return 'Votre offre correspond au prix equitable du service';
+
+    const sign = difference > 0 ? '+' : '-';
+    return `${sign}${this.formatAmount(Math.abs(difference))} FCFA par rapport au prix equitable du service`;
+  }
+
   offerDifferenceLabel(input: {
     servicePrice: number;
     offerAmount: number;

@@ -341,6 +341,11 @@
   width: 52px;
 }
 
+.app-navbar__notification-menu {
+  display: inline-flex;
+  position: relative;
+}
+
 .app-navbar__notification--mobile {
   display: none;
 }

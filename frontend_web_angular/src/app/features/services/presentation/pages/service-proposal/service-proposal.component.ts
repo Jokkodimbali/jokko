@@ -697,7 +697,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
   protected readonly counterDifferenceLabel = computed(() =>
-    this.pricingView.counterDifferenceLabel(this.pendingProposal()),
+    this.hasProviderCounterOffer()
+      ? this.pricingView.clientCounterDifferenceLabel(this.fairServiceAmount(), this.offerAmount())
+      : this.pricingView.counterDifferenceLabel(this.pendingProposal()),
   );
   protected readonly counterActionLabel = computed(() =>
     this.pricingView.counterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -1187,13 +1189,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.isProviderProposalSubmitting.set(true);
     this.proposalService
-      .rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.')
+      .rejectPriceProposal(proposal.id, 'Negociation annulee par le prestataire.')
       .subscribe({
         next: (updated) => {
           this.applyIncomingProposal(updated, { force: true });
           this.isProviderOfferDirty.set(false);
           this.isProviderProposalSubmitting.set(false);
-          this.feedback.success('La proposition a été refusée.');
+          this.feedback.success('La negociation a ete annulee.');
         },
         error: (error) => {
           this.isProviderProposalSubmitting.set(false);
@@ -1405,10 +1407,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.isCancellingProposal.set(true);
     this.proposalService
-      .cancelPriceProposal(proposal.id, 'Contre-proposition refusee par le client.')
+      .cancelPriceProposal(proposal.id, 'Negociation annulee par le client.')
       .subscribe({
         next: () => {
-          this.feedback.success('La proposition du prestataire a ete refusee.');
+          this.feedback.success('La negociation a ete annulee.');
           this.pendingProposal.set(null);
           this.stopProposalRefresh();
           this.isCancellingProposal.set(false);

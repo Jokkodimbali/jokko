@@ -60,9 +60,8 @@ export function negotiationStatusLabel(status: string | null | undefined): strin
       return 'Acceptee';
     case 'CONVERTIE_EN_RESERVATION':
       return 'Confirme';
-    case 'REFUSEE':
-      return 'Refusee';
     case 'ANNULEE':
+    case 'REFUSEE':
       return 'Annulee';
     case 'EN_ATTENTE_PRESTATAIRE':
     case 'EN_ATTENTE_CLIENT':

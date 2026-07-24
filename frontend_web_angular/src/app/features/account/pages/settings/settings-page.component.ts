@@ -1165,7 +1165,9 @@ export class SettingsPageComponent implements OnInit {
 
   protected logout(): void {
     this.authService
-      .logout()
+      .logout(this.authSession.getRefreshToken()
+        ? { refreshToken: this.authSession.getRefreshToken()! }
+        : {})
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {

@@ -23,15 +23,9 @@ export class ServiceProposalStateService {
         : 'Reservation annulee';
     }
 
-    if (input.proposal.statut === 'ANNULEE') {
-      return input.isProviderProposalMode
-        ? 'Le client a annule la negociation'
-        : 'Negociation annulee';
-    }
-
     return input.isProviderProposalMode
-      ? 'Negociation refusee'
-      : 'Le prestataire a refuse la negociation';
+      ? 'Le client a annule la negociation'
+      : 'Negociation annulee';
   }
 
   isValidAppointmentDate(value: string): boolean {

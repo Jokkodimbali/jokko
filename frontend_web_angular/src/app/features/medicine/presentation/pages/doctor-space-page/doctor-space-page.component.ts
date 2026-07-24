@@ -1548,7 +1548,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     if (isNegotiationInProgressStatus(negotiation.statut)) return 'rejected';
     if (negotiation.statut === 'ACCEPTEE') return 'accepted';
     if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'confirmed';
-    if (negotiation.statut === 'REFUSEE') return 'rejected';
+    if (negotiation.statut === 'REFUSEE') return 'cancelled';
     return 'cancelled';
   }
 

@@ -68,6 +68,18 @@ export class SearchProfessionalsQueryDto {
   role?: 'PRESTATAIRE' | 'MEDECIN';
 
   @ApiPropertyOptional({
+    description: 'Mode de deplacement du service a inclure dans les resultats.',
+    example: 'PRESTATAIRE_SE_DEPLACE',
+    enum: ['PRESTATAIRE_SE_DEPLACE', 'CLIENT_SE_DEPLACE', 'TRANSPORT_COLIS'],
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsOptional()
+  @IsIn(['PRESTATAIRE_SE_DEPLACE', 'CLIENT_SE_DEPLACE', 'TRANSPORT_COLIS'])
+  travelMode?: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
+
+  @ApiPropertyOptional({
     description: API_DOCS.search.latitudeField,
     example: 14.7167,
   })

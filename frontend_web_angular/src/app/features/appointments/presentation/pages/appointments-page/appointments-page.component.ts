@@ -670,7 +670,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'Vous proposez un nouveau prix';
     if (negotiation.statut === 'ACCEPTEE') return 'Le prix a ete accepte';
     if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'Le rendez-vous est confirme';
-    if (negotiation.statut === 'REFUSEE') return 'La proposition a ete refusee';
     return 'La negociation a ete annulee';
   }
 

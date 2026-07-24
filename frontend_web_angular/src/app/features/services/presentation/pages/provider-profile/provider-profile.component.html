@@ -153,7 +153,15 @@
               <h2>Avis clients</h2>
               <div>
                 <strong>{{ ratingLabel() }}</strong>
-                <span class="provider-profile__stars" aria-label="Note globale">
+                <span
+                  class="provider-profile__stars"
+                  aria-label="Note globale"
+                  [style.--rating-fill.%]="reviewCountFillPercent(detail()?.profile?.nombreAvis ?? 0)"
+                >
+                  <span class="provider-profile__stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                  <span class="provider-profile__stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                </span>
+                <span hidden>
                   <i
                     *ngFor="let star of ratingStars()"
                     [class.provider-profile__star--filled]="star.filled"
@@ -177,7 +185,15 @@
                 </ng-template>
                 <div>
                   <strong>{{ review.client.nom }}</strong>
-                  <span class="provider-profile__stars" aria-label="Note de l'avis">
+                  <span
+                    class="provider-profile__stars"
+                    aria-label="Note de l'avis"
+                    [style.--rating-fill.%]="ratingFillPercent(review.note)"
+                  >
+                    <span class="provider-profile__stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                    <span class="provider-profile__stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                  </span>
+                  <span hidden>
                     <i
                       *ngFor="let star of ratingStarViews(review.note)"
                       [class.provider-profile__star--filled]="star.filled"

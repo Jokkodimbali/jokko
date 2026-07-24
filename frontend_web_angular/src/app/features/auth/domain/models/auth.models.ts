@@ -41,6 +41,7 @@ export interface SendOtpResponseDto {
 export interface AuthResponseDto {
   user: UserDto;
   accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface UserDto {

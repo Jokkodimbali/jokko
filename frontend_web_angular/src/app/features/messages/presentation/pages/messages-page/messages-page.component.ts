@@ -6,6 +6,12 @@ import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import {
+  isNegotiationInProgressStatus,
+  negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusLabel,
+  reservationStatusTone,
+} from '../../../../../shared/utils/jokko-status-labels';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -131,6 +137,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly requestedDirectProfessionalUserId = signal<string | null>(null);
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
+  private readonly appointmentPreviewByReservationId = new Map<string, AppointmentView>();
   private activeMessagesRequestId = 0;
   private isOpeningDirectConversation = false;
   private pendingThreadScrollId: ReturnType<typeof setTimeout> | null = null;
@@ -149,12 +156,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected readonly visibleAppointmentPreview = computed(() => {
     const appointment = this.appointmentPreview();
-    const reservationId =
-      this.selectedConversation()?.reservationId ??
-      this.visibleProposal()?.reservationId ??
-      this.requestedReservationId();
+    const reservationId = this.currentVisibleReservationId();
 
-    return appointment && reservationId && appointment.id === reservationId ? appointment : null;
+    if (!reservationId) {
+      return null;
+    }
+
+    if (appointment?.id === reservationId) {
+      return appointment;
+    }
+
+    return this.appointmentPreviewByReservationId.get(reservationId) ?? null;
   });
 
   protected readonly paidAppointmentPreview = computed(() => this.visibleAppointmentPreview());
@@ -279,6 +291,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const proposal = this.visibleProposal();
     if (
       this.visibleAppointmentPreview() ||
+      Boolean(proposal?.reservationId) ||
       this.isPaidConversationStatus(proposal?.status) ||
       (Boolean(proposal?.reservationId) && this.isLoadingAppointmentPreview())
     ) {
@@ -368,10 +381,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.scrollThreadToBottom();
     this.markConversationAsReadLocally(conversationId);
     this.messagesRealtime.joinConversation(conversationId);
-    this.appointmentPreview.set(null);
     this.loadMessages(conversationId);
-    this.loadAppointmentPreviewForSelectedConversation();
-    setTimeout(() => this.loadAppointmentPreviewForVisibleProposal(), 0);
+    this.loadAppointmentPreviewForSelectedConversation({ force: true });
+    setTimeout(() => this.loadAppointmentPreviewForVisibleProposal({ force: true }), 0);
   }
 
   protected updateSearch(value: string): void {
@@ -764,37 +776,55 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected startVoiceRecording(): void {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      this.feedback.error("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+      this.feedback.error(this.voiceRecordingUnavailableMessage());
       return;
     }
 
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
       .then((stream) => {
+        const mimeType = this.supportedVoiceMimeType();
+        let recorder: MediaRecorder;
+        try {
+          recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        } catch (error) {
+          stream.getTracks().forEach((track) => track.stop());
+          throw error;
+        }
         this.voiceChunks = [];
-        this.mediaRecorder = new MediaRecorder(stream);
-        this.mediaRecorder.ondataavailable = (event) => {
+        this.mediaRecorder = recorder;
+        recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             this.voiceChunks.push(event.data);
           }
         };
-        this.mediaRecorder.onstop = () => {
+        recorder.onstop = () => {
           const durationSeconds = this.voiceRecordingSeconds();
           this.clearVoiceRecordingTimer();
           this.stopVoiceLevelMeter();
           stream.getTracks().forEach((track) => track.stop());
-          const voiceBlob = new Blob(this.voiceChunks, { type: 'audio/webm' });
+          const voiceType = recorder.mimeType || mimeType || 'audio/webm';
+          const voiceBlob = new Blob(this.voiceChunks, { type: voiceType });
           this.voiceChunks = [];
+          this.mediaRecorder = null;
+          this.voiceRecordingSeconds.set(0);
+          this.voiceLevel.set(0);
           if (voiceBlob.size === 0) {
             return;
           }
 
-          const file = new File([voiceBlob], `message-vocal-${Date.now()}.webm`, {
-            type: 'audio/webm',
+          const file = new File([voiceBlob], `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`, {
+            type: voiceType,
           });
-          this.uploadMediaForComposer(file, 'audio', durationSeconds);
+          this.uploadVoiceAndSend(file, durationSeconds);
         };
-        this.mediaRecorder.start();
+        recorder.start();
         this.startVoiceLevelMeter(stream);
         this.isRecordingVoice.set(true);
         this.voiceRecordingSeconds.set(0);
@@ -802,8 +832,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.voiceRecordingSeconds.update((seconds) => seconds + 1);
         }, 1000);
       })
-      .catch(() => {
-        this.feedback.error("Autorisez le micro pour envoyer un message vocal.");
+      .catch((error: unknown) => {
+        this.cancelVoiceRecording();
+        this.feedback.error(this.voiceRecordingErrorMessage(error));
       });
   }
 
@@ -881,6 +912,58 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.voiceAudioContext?.close().catch(() => undefined);
     this.voiceAudioContext = null;
     this.voiceLevel.set(0);
+  }
+
+  private supportedVoiceMimeType(): string {
+    if (typeof MediaRecorder.isTypeSupported !== 'function') {
+      return '';
+    }
+
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ];
+
+    return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? '';
+  }
+
+  private voiceFileExtension(mimeType: string): string {
+    if (mimeType.includes('mp4')) return 'm4a';
+    if (mimeType.includes('ogg')) return 'ogg';
+    return 'webm';
+  }
+
+  private voiceRecordingUnavailableMessage(): string {
+    if (!window.isSecureContext) {
+      return "Le micro fonctionne seulement sur HTTPS ou localhost dans le navigateur.";
+    }
+
+    return "L'enregistrement vocal n'est pas disponible sur ce navigateur.";
+  }
+
+  private voiceRecordingErrorMessage(error: unknown): string {
+    const name = error instanceof DOMException ? error.name : '';
+
+    switch (name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return "Le navigateur bloque le micro pour ce site. Verifiez l'autorisation du site dans la barre d'adresse.";
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'Aucun micro detecte sur cet appareil.';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'Le micro est autorise, mais il est deja utilise ou bloque par Windows.';
+      case 'AbortError':
+        return "Le micro n'a pas pu demarrer. Fermez les autres applications audio puis reessayez.";
+      case 'NotSupportedError':
+        return "Ce navigateur ne supporte pas le format d'enregistrement vocal.";
+      default:
+        return "Impossible de demarrer l'enregistrement vocal. Verifiez le micro puis reessayez.";
+    }
   }
 
   protected openCounterOffer(): void {
@@ -1163,7 +1246,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isUpdatingProposal.set(true);
     this.errorMessage.set(null);
 
-    this.proposalService.rejectPriceProposal(negotiationId, 'Proposition refusee par le prestataire.').subscribe({
+    this.proposalService.rejectPriceProposal(negotiationId, 'Negociation annulee par le prestataire.').subscribe({
       next: (updatedProposal) => {
         this.upsertProposal(updatedProposal);
         this.pendingProposal.update((current) =>
@@ -1178,7 +1261,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         );
         this.isUpdatingProposal.set(false);
         this.isCounterOfferOpen.set(false);
-        this.feedback.success('Proposition refusee.');
+        this.feedback.success('Negociation annulee.');
       },
       error: () => {
         const message = 'Impossible de refuser cette proposition.';
@@ -1238,7 +1321,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.scrollThreadToBottom();
           this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
-          this.loadAppointmentPreviewForSelectedConversation();
+          this.loadAppointmentPreviewForSelectedConversation({ force: true });
         }
       },
       error: () => {
@@ -1299,12 +1382,40 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.scrollThreadToBottom();
         this.messagesRealtime.joinConversation(conversation.id);
         this.loadMessages(conversation.id);
+        this.loadAppointmentPreview(reservationId);
       },
       error: () => {
         const message = "Impossible d'ouvrir la discussion liee a cette reservation.";
         this.errorMessage.set(message);
         this.feedback.error(message);
         this.isLoadingConversations.set(false);
+      },
+    });
+  }
+
+  private uploadVoiceAndSend(file: File, durationSeconds: number): void {
+    const conversation = this.selectedConversation();
+    if (!conversation || this.isUploadingMedia() || this.isSending()) {
+      return;
+    }
+
+    this.selectedAttachmentName.set(file.name);
+    this.pendingMediaKind.set('audio');
+    this.pendingVoiceDurationSeconds.set(durationSeconds);
+    this.isUploadingMedia.set(true);
+    this.messagesService.uploadMedia(file).subscribe({
+      next: ({ mediaUrl }) => {
+        this.isUploadingMedia.set(false);
+        this.pendingMediaUrl.set(mediaUrl);
+        this.sendMessageWithMedia(mediaUrl, 'Message vocal');
+      },
+      error: () => {
+        this.isUploadingMedia.set(false);
+        this.selectedAttachmentName.set(null);
+        this.pendingMediaUrl.set(null);
+        this.pendingMediaKind.set(null);
+        this.pendingVoiceDurationSeconds.set(0);
+        this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
       },
     });
   }
@@ -1387,7 +1498,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.proposalService.listMyPriceProposals(scope).subscribe({
       next: (proposals) => {
         this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
-        this.loadAppointmentPreviewForVisibleProposal();
+        this.loadAppointmentPreviewForVisibleProposal({ force: true });
       },
       error: () => {
         this.priceProposals.set([]);
@@ -1421,6 +1532,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           reservationId: currentProposal.reservationId,
         });
         this.upsertProposal(currentProposal);
+        if (currentProposal.reservationId) {
+          this.loadAppointmentPreview(currentProposal.reservationId);
+        }
       },
       error: () => undefined,
     });
@@ -1744,28 +1858,50 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private loadAppointmentPreviewForVisibleProposal(): void {
+  private currentVisibleReservationId(): string | null {
+    const conversation = this.selectedConversation();
+    if (conversation?.reservationId) {
+      return conversation.reservationId;
+    }
+
+    const proposalReservationId = this.visibleProposal()?.reservationId;
+    if (proposalReservationId) {
+      return proposalReservationId;
+    }
+
+    const requestedReservationId = this.requestedReservationId();
+    if (!requestedReservationId) {
+      return null;
+    }
+
+    const requestedConversationId = this.requestedConversationId();
+    if (!conversation || !requestedConversationId || conversation.id === requestedConversationId) {
+      return requestedReservationId;
+    }
+
+    return null;
+  }
+
+  private loadAppointmentPreviewForVisibleProposal(options: { force?: boolean } = {}): void {
     const proposal = this.visibleProposal();
     if (!proposal?.reservationId) {
       return;
     }
 
-    if (this.appointmentPreview()?.id === proposal.reservationId) {
+    if (!options.force && this.appointmentPreview()?.id === proposal.reservationId) {
       return;
     }
 
     this.loadAppointmentPreview(proposal.reservationId);
   }
 
-  private loadAppointmentPreviewForSelectedConversation(): void {
-    const reservationId =
-      this.selectedConversation()?.reservationId ??
-      this.requestedReservationId();
+  private loadAppointmentPreviewForSelectedConversation(options: { force?: boolean } = {}): void {
+    const reservationId = this.currentVisibleReservationId();
     if (!reservationId) {
       return;
     }
 
-    if (this.appointmentPreview()?.id === reservationId) {
+    if (!options.force && this.appointmentPreview()?.id === reservationId) {
       return;
     }
 
@@ -1776,6 +1912,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isLoadingAppointmentPreview.set(true);
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
       next: (appointment) => {
+        this.appointmentPreviewByReservationId.set(appointment.id, appointment);
         this.appointmentPreview.set(appointment);
         this.isLoadingAppointmentPreview.set(false);
       },
@@ -1885,7 +2022,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const message = `J'ai refuse l'offre initiale et propose ${this.formatAmount(
+    const message = `J'ai annule l'offre initiale et propose ${this.formatAmount(
       proposal.montantCourant,
     )} FCFA.`;
 
@@ -1968,7 +2105,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     if (proposal.status !== 'EN_ATTENTE_PRESTATAIRE') {
       const actionLabel =
-        action === 'accept' ? 'acceptee' : action === 'reject' ? 'refusee' : 'modifiee';
+        action === 'accept' ? 'acceptee' : action === 'reject' ? 'annulee' : 'modifiee';
       this.errorMessage.set(`Cette proposition ne peut plus etre ${actionLabel}.`);
       return false;
     }
@@ -2052,63 +2189,25 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private appointmentStatusLabel(status: AppointmentView['status']): string {
-    switch (status) {
-      case 'CONFIRMEE':
-        return 'Confirmee';
-      case 'PAYEE_SEQUESTRE':
-        return 'Payee';
-      case 'EN_COURS':
-        return 'En cours';
-      case 'TERMINEE':
-        return 'Terminee';
-      case 'ANNULEE':
-        return 'Annulee';
-      case 'NO_SHOW':
-        return 'Absence';
-      case 'LITIGE':
-        return 'Litige';
-      default:
-        return 'Reservation';
-    }
+    return reservationStatusLabel(status);
   }
 
   private appointmentStatusTone(
     status: AppointmentView['status'],
   ): ConversationReservationCard['statusTone'] {
-    switch (status) {
-      case 'CONFIRMEE':
-      case 'PAYEE_SEQUESTRE':
-        return 'active';
-      case 'EN_COURS':
-        return 'pending';
-      case 'TERMINEE':
-        return 'success';
-      case 'ANNULEE':
-      case 'NO_SHOW':
-      case 'LITIGE':
-        return 'danger';
-      default:
-        return 'neutral';
-    }
+    return this.reservationToneForMessages(status);
+  }
+
+  private reservationToneForMessages(status: AppointmentView['status']): ConversationReservationCard['statusTone'] {
+    const tone = reservationStatusTone(status);
+    if (tone === 'blue') return 'active';
+    if (tone === 'green') return 'success';
+    if (tone === 'red') return 'danger';
+    return 'neutral';
   }
 
   private proposalStatusLabel(status: string | null): string {
-    switch (status) {
-      case 'EN_ATTENTE_PRESTATAIRE':
-        return 'En negociation';
-      case 'EN_ATTENTE_CLIENT':
-        return 'Contre-offre';
-      case 'ACCEPTEE':
-        return 'Acceptee';
-      case 'CONVERTIE_EN_RESERVATION':
-        return 'Reservation creee';
-      case 'REFUSEE':
-        return 'Refusee';
-      case 'ANNULEE':
-        return 'Annulee';
-      default:
-        return 'En negociation';
-    }
+    return sharedNegotiationStatusLabel(status);
   }
 
   private proposalStatusTone(status: string | null): ConversationReservationCard['statusTone'] {
@@ -2121,9 +2220,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         return 'danger';
       case 'EN_ATTENTE_CLIENT':
       case 'EN_ATTENTE_PRESTATAIRE':
-        return 'pending';
+        return 'danger';
       default:
-        return 'neutral';
+        return isNegotiationInProgressStatus(status) ? 'danger' : 'neutral';
     }
   }
 

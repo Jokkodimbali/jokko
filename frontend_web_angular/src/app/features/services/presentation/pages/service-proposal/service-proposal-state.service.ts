@@ -23,42 +23,9 @@ export class ServiceProposalStateService {
         : 'Reservation annulee';
     }
 
-    if (input.proposal.statut === 'ANNULEE') {
-      return input.isProviderProposalMode
-        ? 'Le client a annule la negociation'
-        : 'Negociation annulee';
-    }
-
     return input.isProviderProposalMode
-      ? 'Negociation refusee'
-      : 'Le prestataire a refuse la negociation';
-  }
-
-  closedNegotiationMessage(input: {
-    proposal: NegotiationView;
-    serviceName: string;
-    isLinkedReservationCancelled: boolean;
-    cancellationReason: string | null;
-    isProviderProposalMode: boolean;
-    proposalClientName: string;
-    providerName: string;
-  }): string {
-    if (input.isLinkedReservationCancelled) {
-      const reason = input.cancellationReason;
-      return input.isProviderProposalMode
-        ? `${input.proposalClientName} a annule la reservation pour ${input.serviceName} avant le paiement.${reason ? ` Motif : ${reason}` : ''}`
-        : `Cette reservation pour ${input.serviceName} a ete annulee avant paiement.${reason ? ` Motif : ${reason}` : ''}`;
-    }
-
-    if (input.proposal.statut === 'ANNULEE') {
-      return input.isProviderProposalMode
-        ? `${input.proposalClientName} a annule la negociation pour ${input.serviceName}. Vous pouvez quitter cet ecran.`
-        : `Cette negociation pour ${input.serviceName} est annulee. Vous pouvez choisir un autre prestataire ou quitter cet ecran.`;
-    }
-
-    return input.isProviderProposalMode
-      ? `Vous avez refuse cette negociation pour ${input.serviceName}.`
-      : `${input.providerName} a refuse la negociation pour ${input.serviceName}. Vous pouvez quitter cet ecran.`;
+      ? 'Le client a annule la negociation'
+      : 'Negociation annulee';
   }
 
   isValidAppointmentDate(value: string): boolean {

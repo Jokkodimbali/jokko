@@ -22,6 +22,14 @@ export interface AppSearchProviderSuggestion {
   initials: string;
 }
 
+export interface AppSearchModeOption {
+  value: string;
+  label: string;
+  icon?: string;
+  imageUrl?: string;
+  tone?: 'all' | 'client' | 'route' | 'provider';
+}
+
 @Component({
   selector: 'app-search-bar',
   standalone: true,
@@ -42,6 +50,8 @@ export class AppSearchBarComponent {
   @Input() locationOptions: string[] = [];
   @Input() categorySuggestions: AppSearchCategorySuggestion[] = [];
   @Input() providerSuggestions: AppSearchProviderSuggestion[] = [];
+  @Input() modeOptions: AppSearchModeOption[] = [];
+  @Input() selectedMode = '';
   @Input() resultsNearLabel = '';
   @Input() showSuggestions = false;
   @Input() showLocationMenu = false;
@@ -68,6 +78,7 @@ export class AppSearchBarComponent {
   @Output() currentLocationSelect = new EventEmitter<void>();
   @Output() categorySelect = new EventEmitter<string>();
   @Output() providerSelect = new EventEmitter<string>();
+  @Output() modeSelect = new EventEmitter<string>();
   @Output() suggestionsClose = new EventEmitter<void>();
   @Output() panelClose = new EventEmitter<void>();
 
@@ -87,6 +98,10 @@ export class AppSearchBarComponent {
 
   get hiddenCategoryCount(): number {
     return Math.max(0, this.categorySuggestions.length - this.collapsedCategoryCount);
+  }
+
+  protected reviewCountFillPercent(reviews: number): number {
+    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
   }
 
   onInput(value: string): void {
@@ -113,6 +128,10 @@ export class AppSearchBarComponent {
 
   onFocus(): void {
     this.inputFocus.emit();
+  }
+
+  onModeSelect(mode: string): void {
+    this.modeSelect.emit(mode);
   }
 
   toggleCategoryList(): void {

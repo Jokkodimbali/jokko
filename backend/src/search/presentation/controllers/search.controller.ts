@@ -51,6 +51,12 @@ export class SearchController {
     description: 'Filtre les resultats par type de profil professionnel.',
   })
   @ApiQuery({
+    name: 'travelMode',
+    required: false,
+    enum: ['PRESTATAIRE_SE_DEPLACE', 'CLIENT_SE_DEPLACE', 'TRANSPORT_COLIS'],
+    description: 'Filtre les resultats par mode de deplacement du service.',
+  })
+  @ApiQuery({
     name: 'latitude',
     required: false,
     type: Number,
@@ -106,6 +112,7 @@ export class SearchController {
       subCategoryId: query.subCategoryId,
       query: query.query,
       role: query.role,
+      travelMode: query.travelMode,
       latitude: query.latitude,
       longitude: query.longitude,
       radiusKm: query.radiusKm,

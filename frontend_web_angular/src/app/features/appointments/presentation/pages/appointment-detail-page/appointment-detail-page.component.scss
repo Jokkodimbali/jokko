@@ -19,76 +19,235 @@
   color: #b42318;
 }
 
-.appointment-detail__hero {
-  background: #435cef;
-  border-radius: 13px;
-  color: #fff;
-  margin: 20px 30px 35px;
-  min-height: 205px;
-  padding: 20px 226px 20px 15px;
-  position: relative;
+.appointment-detail__cancelled {
+  align-items: start;
+  background: #ffffff;
+  display: grid;
+  justify-items: center;
+  min-height: 100vh;
+  padding: 10px 16px 58px;
 }
 
-.appointment-detail__hero > span {
+.appointment-detail__cancelled-card {
+  background: #ffffff;
+  border: 1px solid #eadccd;
+  border-radius: 32px;
+  box-shadow: 0 20px 44px rgba(80, 50, 24, 0.11);
+  margin: 0;
+  max-width: 460px;
+  overflow: hidden;
+  width: min(100%, 460px);
+}
+
+.appointment-detail__cancelled-hero {
   align-items: center;
-  background: rgba(255, 255, 255, 0.22);
-  border-radius: 19px;
+  background: #955d24;
+  color: #ffffff;
+  display: grid;
+  justify-items: center;
+  min-height: 207px;
+  padding: 36px 26px 31px;
+  text-align: center;
+}
+
+.appointment-detail__cancelled-hero > span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
   display: inline-flex;
-  font-size: 16px;
-  font-weight: 800;
-  gap: 9px;
-  padding: 11px 18px;
+  height: 70px;
+  justify-content: center;
+  margin-bottom: 20px;
+  width: 70px;
 }
 
-.appointment-detail__hero h2 {
-  font-size: clamp(25px, 3vw, 32px);
+.appointment-detail__cancelled-hero h1 {
+  font-size: 24px;
   font-weight: 950;
-  margin: 16px 0 5px;
-}
-
-.appointment-detail__hero p {
-  font-size: 13px;
-  font-weight: 700;
+  letter-spacing: 0;
   margin: 0;
 }
 
-.appointment-detail__hero div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 34px;
-  margin-top: 26px;
+.appointment-detail__cancelled-hero p {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  font-weight: 650;
+  margin: 9px 0 0;
 }
 
-.appointment-detail__hero em {
+.appointment-detail__cancelled-provider {
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  display: inline-flex;
-  font-style: normal;
-  font-weight: 850;
-  gap: 9px;
-  min-height: 40px;
-  padding: 0 20px;
+  border-bottom: 1px solid #f0e6dc;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 84px;
+  padding: 18px 24px;
 }
 
-.appointment-detail__hero-icon {
-  background: rgba(255, 255, 255, 0.22);
-  border-radius: 13px;
-  padding: 16px;
+.appointment-detail__cancelled-provider > span {
+  border-radius: 16px;
+  display: block;
+  height: 44px;
+  position: relative;
+  width: 44px;
+}
+
+.appointment-detail__cancelled-provider img,
+.appointment-detail__cancelled-provider b {
+  border-radius: 16px;
+  display: block;
+  height: 44px;
+  width: 44px;
+}
+
+.appointment-detail__cancelled-provider img {
+  object-fit: cover;
+}
+
+.appointment-detail__cancelled-provider b {
+  align-items: center;
+  background: #f3e8dc;
+  color: #955d24;
+  display: flex;
+  font-size: 13px;
+  font-weight: 950;
+  justify-content: center;
+}
+
+.appointment-detail__cancelled-provider i {
+  background: #20c579;
+  border: 2px solid #fffdfb;
+  border-radius: 50%;
+  bottom: -2px;
+  height: 12px;
   position: absolute;
-  right: 25px;
-  top: 10px;
+  right: -2px;
+  width: 12px;
 }
 
-.appointment-detail__hero--route {
-  margin-bottom: 35px;
-  min-height: 205px;
+.appointment-detail__cancelled-provider div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
-.appointment-detail__hero--working {
-  margin: 4px 20px 32px;
-  min-height: 205px;
-  padding: 12px 105px 20px 15px;
+.appointment-detail__cancelled-provider strong {
+  color: #1d2233;
+  font-size: 16px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-detail__cancelled-provider small {
+  align-items: center;
+  color: #758094;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 650;
+  gap: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-detail__cancelled-provider em {
+  align-items: center;
+  color: #1d2233;
+  display: inline-flex;
+  font-size: 14px;
+  font-style: normal;
+  gap: 6px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.appointment-detail__cancelled-provider em b {
+  color: #f5b400;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.appointment-detail__cancelled-details {
+  display: grid;
+  padding: 0 24px;
+}
+
+.appointment-detail__cancelled-details p {
+  align-items: center;
+  border-bottom: 1px solid #f0e6dc;
+  color: #955d24;
+  display: grid;
+  gap: 17px;
+  grid-template-columns: 18px minmax(120px, 1fr) minmax(0, auto);
+  margin: 0;
+  min-height: 61px;
+}
+
+.appointment-detail__cancelled-details span {
+  color: #748096;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.appointment-detail__cancelled-details strong {
+  align-items: center;
+  color: #1d2233;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.appointment-detail__cancelled-details small {
+  background: #fff4e8;
+  border: 1px solid #ead9c4;
+  border-radius: 6px;
+  color: #cf7d22;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 5px 9px;
+}
+
+.appointment-detail__cancelled-actions {
+  display: grid;
+  gap: 12px;
+  padding: 16px 24px 22px;
+}
+
+.appointment-detail__cancelled-actions button {
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 900;
+  gap: 9px;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.appointment-detail__cancelled-actions button:first-child {
+  background: #4f8737;
+  border: 0;
+  box-shadow: 0 10px 18px rgba(79, 135, 55, 0.18);
+  color: #ffffff;
+}
+
+.appointment-detail__cancelled-actions button:last-child {
+  background: #fffdfb;
+  border: 1px solid #eadccd;
+  color: #955d24;
 }
 
 .appointment-detail__provider-controls {
@@ -791,33 +950,46 @@
 
 .appointment-detail__review-stars {
   display: inline-flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .appointment-detail__review-stars button {
   align-items: center;
   background: transparent;
   border: 0;
-  color: #e1e4ea;
+  color: transparent;
   cursor: pointer;
   display: inline-flex;
-  height: 28px;
+  font-size: 35px;
+  font-weight: 900;
+  height: 38px;
   justify-content: center;
+  line-height: 1;
   padding: 0;
-  width: 28px;
+  text-shadow: 0 3px 9px rgba(245, 158, 11, 0.12);
+  transition: color 150ms ease, text-shadow 150ms ease, transform 150ms ease;
+  width: 38px;
+  -webkit-text-stroke: 1.7px #f59e0b;
 }
 
 .appointment-detail__review-star--active {
-  color: #f5a623 !important;
-}
-
-.appointment-detail__review-star--active lucide-icon {
-  fill: currentColor;
+  color: #f59e0b !important;
+  text-shadow: 0 7px 16px rgba(245, 158, 11, 0.26);
+  -webkit-text-stroke: 0;
 }
 
 .appointment-detail__review-stars button:hover,
 .appointment-detail__review-stars button:focus-visible {
-  color: #f5a623;
+  color: #f59e0b;
+  outline: none;
+  text-shadow: 0 7px 16px rgba(245, 158, 11, 0.22);
+  transform: translateY(-1px);
+  -webkit-text-stroke: 0;
+}
+
+.appointment-detail__review-stars button span {
+  display: block;
+  transform: translateY(-1px);
 }
 
 .appointment-detail__review-fields textarea {

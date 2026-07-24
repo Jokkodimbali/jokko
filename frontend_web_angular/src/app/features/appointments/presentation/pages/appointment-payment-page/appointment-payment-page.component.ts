@@ -3,7 +3,6 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -17,6 +16,7 @@ interface PaymentOption {
   id: PaymentMethod;
   label: string;
   logoUrl: string;
+  subtitle: string;
 }
 
 @Component({
@@ -33,9 +33,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
-  private readonly authSession = inject(AuthSessionService);
 
-  protected readonly currentUser = this.authSession.currentUser;
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
   protected readonly isLoading = signal(true);
@@ -44,14 +42,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly paymentOptions: PaymentOption[] = [
-    { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png' },
-    { id: 'ORANGE_MONEY', label: 'Orange Money', logoUrl: '/Orange-Money-logo.png' },
-    { id: 'CARD', label: 'Carte bancaire', logoUrl: '/logo vissa.avif' },
+    { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png', subtitle: 'Paiement mobile instantane' },
+    { id: 'ORANGE_MONEY', label: 'Orange Money', logoUrl: '/Orange-Money-logo.png', subtitle: 'Transfert depuis votre mobile' },
+    { id: 'CARD', label: 'Carte bancaire', logoUrl: '/logo vissa.avif', subtitle: 'Visa, Mastercard acceptes' },
   ];
-
-  protected readonly amountLabel = computed(() =>
-    this.formatAmount(this.appointment()?.agreedPrice ?? 0),
-  );
 
   protected readonly amountValueLabel = computed(() =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
@@ -66,56 +60,6 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly counterpartRoleLabel = computed(() =>
     this.isMedicinePaymentFlow() ? 'Medecin' : 'Prestataire',
   );
-  protected readonly messageActionLabel = computed(() =>
-    this.isMedicinePaymentFlow() ? 'Message au medecin' : 'Message au prestataire',
-  );
-  protected readonly acceptedEyebrowLabel = computed(() =>
-    this.isMedicinePaymentFlow() ? 'Rendez-vous medical confirme' : 'Prestation acceptee',
-  );
-  protected readonly acceptedTitleLabel = computed(() => {
-    const appointment = this.appointment();
-    const name = appointment?.doctorName || this.counterpartRoleLabel().toLowerCase();
-    return this.isMedicinePaymentFlow()
-      ? `Rendez-vous avec ${name}`
-      : `Vous avez accepte l'offre de ${name}`;
-  });
-  protected readonly selectedPaymentOption = computed(
-    () =>
-      this.paymentOptions.find((option) => option.id === this.selectedMethod()) ??
-      this.paymentOptions[0],
-  );
-  protected readonly clientNameLabel = computed(
-    () => this.currentUser()?.name || 'Client Jokko',
-  );
-  protected readonly reservationNumberLabel = computed(() => {
-    const id = this.appointment()?.id ?? '';
-    const compact = id.replace(/-/g, '').toUpperCase();
-    return `#RDV-${compact.slice(0, 4) || '----'}-${compact.slice(-5) || '-----'}`;
-  });
-  protected readonly acceptedDateTimeLabel = computed(() => {
-    const appointment = this.appointment();
-    return appointment ? `${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}` : 'Date a confirmer';
-  });
-  protected readonly providerReviewLabel = computed(() => {
-    const appointment = this.appointment();
-    if (!appointment) {
-      return 'Avis non renseigne';
-    }
-
-    const rating = this.toPositiveAmount(appointment.professionalRating);
-    const reviews = Math.trunc(Number(appointment.professionalReviews ?? 0));
-    if (!rating || reviews <= 0) {
-      return 'Avis non renseigne';
-    }
-
-    const ratingLabel = new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    })
-      .format(rating)
-      .replace(/\s/g, ' ');
-    return `${ratingLabel} (${reviews} avis)`;
-  });
   protected readonly comparisonLabel = computed(() => {
     const appointment = this.appointment();
     const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
@@ -145,7 +89,47 @@ export class AppointmentPaymentPageComponent implements OnInit {
     }
 
     const difference = Math.abs(servicePrice - agreedPrice);
-    return `+${this.formatAmountValue(difference)} FCFA`;
+    const sign = agreedPrice < servicePrice ? '-' : '+';
+    return `${sign} ${this.formatAmountValue(difference)} FCFA`;
+  });
+  protected readonly basePriceLabel = computed(() => {
+    const appointment = this.appointment();
+    const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
+    return servicePrice ? `${this.formatAmountValue(servicePrice)} FCFA` : 'A confirmer';
+  });
+  protected readonly hasNegotiatedDiscount = computed(() => {
+    const appointment = this.appointment();
+    const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
+    const agreedPrice = this.toPositiveAmount(appointment?.agreedPrice);
+    return Boolean(servicePrice && agreedPrice && agreedPrice < servicePrice);
+  });
+  protected readonly savingsBannerLabel = computed(() => {
+    const appointment = this.appointment();
+    const servicePrice = this.toPositiveAmount(appointment?.servicePrice);
+    const agreedPrice = this.toPositiveAmount(appointment?.agreedPrice);
+    if (servicePrice && agreedPrice && agreedPrice < servicePrice) {
+      return `Vous economisez ${this.formatAmountValue(servicePrice - agreedPrice)} FCFA`;
+    }
+    return 'Votre reservation est prete a etre finalisee';
+  });
+  protected readonly acceptedOfferBannerTitle = computed(() => {
+    const appointment = this.appointment();
+    const name = appointment?.doctorName || this.counterpartRoleLabel().toLowerCase();
+    return `Vous avez accepte l'offre de ${name}`;
+  });
+  protected readonly providerRatingShortLabel = computed(() => {
+    const appointment = this.appointment();
+    const rating = this.toPositiveAmount(appointment?.professionalRating);
+    if (!rating) {
+      return 'Nouveau';
+    }
+
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })
+      .format(rating)
+      .replace(/\s/g, ' ');
   });
 
   ngOnInit(): void {
@@ -285,50 +269,6 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.router.navigate(['/appointments', appointment.id], {
       queryParams: { returnUrl: '/appointments' },
     });
-  }
-
-  protected goHome(): void {
-    this.router.navigate(['/appointments']);
-  }
-
-  protected downloadReceipt(appointment: AppointmentView): void {
-    const lines = [
-      'Jokko - Recu de paiement',
-      this.reservationNumberLabel(),
-      `Reservation: ${appointment.id}`,
-      `Client: ${this.clientNameLabel()}`,
-      `Prestataire: ${appointment.doctorName}`,
-      `Service: ${appointment.serviceName}`,
-      `Date: ${this.formatPaymentDate(appointment)} - ${appointment.timeLabel}`,
-      `Adresse: ${appointment.addressLabel}`,
-      `Moyen de paiement: ${this.selectedPaymentOption().label}`,
-      `Total paye: ${this.amountLabel()}`,
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `recu-jokko-${appointment.id.slice(0, 8)}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  protected shareReceipt(appointment: AppointmentView): void {
-    const text = `Paiement confirme sur Jokko: ${appointment.serviceName} avec ${appointment.doctorName}, ${this.amountLabel()}, ${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}.`;
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      navigator.share({ title: 'Reservation Jokko confirmee', text }).catch(() => undefined);
-      return;
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(
-        () => this.feedback.success('Informations de reservation copiees.'),
-        () => this.feedback.info(text),
-      );
-      return;
-    }
-
-    this.feedback.info(text);
   }
 
   private handlePaidAppointment(appointment: AppointmentView): void {
@@ -504,8 +444,75 @@ export class AppointmentPaymentPageComponent implements OnInit {
       .replace('.', '');
   }
 
+  protected confirmedServiceLabel(appointment: AppointmentView): string {
+    return this.firstDisplayLabel(
+      appointment.serviceName,
+      appointment.specialty,
+      appointment.professionalSubCategoryName,
+      appointment.serviceCategoryName,
+      this.isMedicinePaymentFlow() ? 'Consultation medicale' : 'Prestation confirmee',
+    );
+  }
+
+  protected confirmedProviderSubtitle(appointment: AppointmentView): string {
+    return this.firstDisplayLabel(
+      appointment.specialty,
+      appointment.professionalSubCategoryName,
+      appointment.serviceCategoryName,
+      this.confirmedServiceLabel(appointment),
+    );
+  }
+
+  protected confirmedDateLabel(appointment: AppointmentView): string {
+    const formatted = this.formatPaymentDate(appointment);
+    return this.firstDisplayLabel(
+      formatted,
+      appointment.shortDateLabel,
+      appointment.fullDateLabel,
+      'Date a confirmer',
+    );
+  }
+
+  protected confirmedTimeLabel(appointment: AppointmentView): string {
+    if (!this.isPlaceholderLabel(appointment.timeLabel)) {
+      return appointment.timeLabel;
+    }
+
+    const date = new Date(appointment.scheduledAt);
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+        .format(date)
+        .replace(':', 'h');
+    }
+
+    return 'Heure a confirmer';
+  }
+
   protected methodAriaLabel(option: PaymentOption): string {
     return `Payer avec ${option.label}`;
+  }
+
+  protected paymentOptionSubtitle(option: PaymentOption): string {
+    return option.subtitle;
+  }
+
+  protected formatPaymentLongDate(appointment: AppointmentView): string {
+    const date = new Date(appointment.scheduledAt);
+    if (Number.isNaN(date.getTime())) {
+      return appointment.fullDateLabel || 'Date a confirmer';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+      .format(date)
+      .replace(/^\p{Ll}/u, (char) => char.toUpperCase());
   }
 
   private loadAppointment(reservationId: string): void {
@@ -514,7 +521,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
       next: (appointment) => {
-        this.appointment.set(appointment);
+        this.appointment.set(this.withPaymentDisplayLabels(appointment));
         this.isLoading.set(false);
       },
       error: () => {
@@ -537,6 +544,42 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private toPositiveAmount(value: number | null | undefined): number | null {
     const amount = Number(value ?? 0);
     return Number.isFinite(amount) && amount > 0 ? Math.trunc(amount) : null;
+  }
+
+  private withPaymentDisplayLabels(appointment: AppointmentView): AppointmentView {
+    const serviceName = this.confirmedServiceLabel(appointment);
+    const specialty = this.confirmedProviderSubtitle({ ...appointment, serviceName });
+
+    return {
+      ...appointment,
+      serviceName,
+      specialty,
+      timeLabel: this.confirmedTimeLabel(appointment),
+    };
+  }
+
+  private firstDisplayLabel(...values: Array<string | null | undefined>): string {
+    return values.find((value) => !this.isPlaceholderLabel(value))?.trim() ?? 'Prestation confirmee';
+  }
+
+  private isPlaceholderLabel(value: string | null | undefined): boolean {
+    if (!value) {
+      return true;
+    }
+
+    const normalized = value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    return (
+      normalized.length === 0 ||
+      normalized === 'a confirmer' ||
+      normalized.includes('non rense') ||
+      normalized.includes('rendez-vous non') ||
+      normalized.includes('rendez vous non')
+    );
   }
 
   private canRedirectToPaymentUrl(paymentUrl?: string): boolean {

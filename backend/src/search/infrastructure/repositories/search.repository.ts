@@ -44,6 +44,7 @@ export class SearchRepository implements SearchRepositoryPort {
     const queryText = input.query?.trim();
     const city = input.city?.trim();
     const role = input.role ?? 'PRESTATAIRE';
+    const travelMode = input.travelMode;
 
     const geoDistanceFragment = hasGeo
       ? Prisma.sql`
@@ -136,6 +137,19 @@ export class SearchRepository implements SearchRepositoryPort {
         `
       : Prisma.empty;
 
+    const travelModeFilter = travelMode
+      ? Prisma.sql`
+          AND EXISTS (
+            SELECT 1
+            FROM services s_mode
+            WHERE s_mode.professional_id = pp.id
+              AND s_mode.is_available = true
+              AND s_mode.travel_mode = ${travelMode}::"ModeDeplacementService"
+              ${input.categoryId ? Prisma.sql`AND s_mode.category_id = ${input.categoryId}::uuid` : Prisma.empty}
+          )
+        `
+      : Prisma.empty;
+
     const geoFilter = hasGeo
       ? Prisma.sql`
           AND pp.localisation IS NOT NULL
@@ -193,6 +207,7 @@ export class SearchRepository implements SearchRepositoryPort {
         ${cityFilter}
         ${categoryFilter}
         ${subCategoryFilter}
+        ${travelModeFilter}
         ${queryFilter}
         ${geoFilter}
     `;
@@ -225,6 +240,7 @@ export class SearchRepository implements SearchRepositoryPort {
           FROM services s_rank
           WHERE s_rank.professional_id = pp.id
             AND s_rank.is_available = true
+            ${travelMode ? Prisma.sql`AND s_rank.travel_mode = ${travelMode}::"ModeDeplacementService"` : Prisma.empty}
             ${
               input.categoryId
                 ? Prisma.sql`AND s_rank.category_id = ${input.categoryId}::uuid`
@@ -253,6 +269,7 @@ export class SearchRepository implements SearchRepositoryPort {
             profilProfessionnelId: { in: profileIds },
             estDisponible: true,
             ...(input.categoryId ? { categorieId: input.categoryId } : {}),
+            ...(input.travelMode ? { modeDeplacement: input.travelMode } : {}),
           },
           orderBy: [{ creeLe: 'desc' }],
           select: {

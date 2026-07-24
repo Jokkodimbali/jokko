@@ -647,7 +647,7 @@
                 <strong>{{ negotiationPendingCount() }}</strong>
               </button>
               <button type="button" [class.is-active]="negotiationFilter() === 'WAITING_CLIENT'" (click)="selectNegotiationFilter('WAITING_CLIENT')">
-                <span>Attente client</span>
+                <span>En negociation</span>
                 <strong>{{ negotiationWaitingClientCount() }}</strong>
               </button>
               <button type="button" [class.is-active]="negotiationFilter() === 'CONFIRMED'" (click)="selectNegotiationFilter('CONFIRMED')">

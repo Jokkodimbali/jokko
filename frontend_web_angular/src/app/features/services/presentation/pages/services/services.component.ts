@@ -27,6 +27,7 @@ import {
   ServiceSection,
   PaginationMeta,
   Professional,
+  ServiceTravelMode,
   ServiceSubCategory,
 } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
@@ -46,6 +47,7 @@ import {
 } from '../../components/provider-card/provider-card.component';
 
 type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
+type TravelModeFilter = 'ALL' | ServiceTravelMode;
 const SERVICE_CARD_COVER_URL =
   'https://res.cloudinary.com/dobuolool/image/upload/v1784219907/jokko/app-assets/service-card-cover.png';
 
@@ -91,6 +93,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   activeFilter = signal<ProfessionalFilter>('ALL');
   activeCategoryId = signal<string | null>(null);
   activeSubCategoryId = signal<string | null>(null);
+  activeTravelMode = signal<TravelModeFilter>('ALL');
   categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
   selectedCity = signal<string>('Toutes villes');
@@ -145,6 +148,27 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     { value: 'PRESTATAIRE', label: 'Prestataires', countLabel: 'prestataires disponibles' },
   ];
   protected readonly typeFilters = this.filters.filter((filter) => filter.value !== 'ALL');
+  protected readonly travelModeFilters = [
+    { value: 'ALL', label: 'Tout', tone: 'all' as const },
+    {
+      value: 'CLIENT_SE_DEPLACE',
+      label: 'Vous vous deplacez',
+      imageUrl: '/mode travel/le_client_se_deplace-removebg-preview.png',
+      tone: 'client' as const,
+    },
+    {
+      value: 'TRANSPORT_COLIS',
+      label: 'Trajet personnalise',
+      imageUrl: '/mode travel/livraisonde_colis-removebg-preview.png',
+      tone: 'route' as const,
+    },
+    {
+      value: 'PRESTATAIRE_SE_DEPLACE',
+      label: 'Il se deplace chez vous',
+      imageUrl: '/mode travel/le_prestataire_se_deplace-removebg-preview.png',
+      tone: 'provider' as const,
+    },
+  ];
   favoriteProviders = computed(() =>
     this.favoritesService.favorites().map((favorite) => ({
       id: favorite.professionalId,
@@ -198,6 +222,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     () =>
       this.searchTerm().trim().length > 0 ||
       this.activeFilter() !== 'ALL' ||
+      this.activeTravelMode() !== 'ALL' ||
       this.activeCategoryId() !== null ||
       this.activeSubCategoryId() !== null,
   );
@@ -291,6 +316,19 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   useCurrentLocation(): void {
     this.selectSearchCity('Dakar');
+  }
+
+  selectTravelMode(mode: string): void {
+    const nextMode = this.isTravelModeFilter(mode) ? mode : 'ALL';
+    if (this.activeTravelMode() === nextMode) {
+      return;
+    }
+
+    this.activeTravelMode.set(nextMode);
+    this.showSearchSuggestions.set(false);
+    this.showLocationMenu.set(false);
+    this.loadProfessionals(1);
+    this.loadSearchSuggestions();
   }
 
   closeSearchSuggestionsAndShowFilters(): void {
@@ -516,19 +554,21 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const categoryId = this.activeCategoryId() ?? undefined;
     const subCategoryId = this.activeSubCategoryId() ?? undefined;
     const city = this.effectiveCityFilter();
+    const travelMode = this.activeServiceTravelMode();
 
     if (filter === 'ALL') {
-      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId);
+      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId, travelMode);
     }
 
-    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId);
+    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId, travelMode);
   }
 
   private loadSearchSuggestions(): void {
     const query = this.searchTerm().trim();
     const requestId = ++this.suggestionRequestVersion;
+    const travelMode = this.activeServiceTravelMode();
 
-    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter()).subscribe({
+    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter(), undefined, undefined, travelMode).subscribe({
       next: (result) => {
         if (requestId !== this.suggestionRequestVersion) {
           return;
@@ -562,9 +602,12 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const activeFilter = this.filters.find((filter) => filter.value === this.activeFilter()) ?? this.filters[0];
     const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
     const activeSubCategory = this.activeSubCategory();
+    const activeTravelModeLabel = this.travelModeFilters.find((filter) => filter.value === this.activeTravelMode())?.label;
     const total = result.meta?.total || result.providers.length;
     const title = query
       ? `Recherche ${query}`
+      : this.activeTravelMode() !== 'ALL' && activeTravelModeLabel
+        ? activeTravelModeLabel
       : activeSubCategory
         ? activeSubCategory.nom
         : activeCategory
@@ -574,7 +617,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
           : activeFilter.label;
 
     return {
-      id: `providers-${this.activeFilter().toLowerCase()}-${this.activeCategoryId() ?? 'all'}-${this.activeSubCategoryId() ?? 'all'}`,
+      id: `providers-${this.activeFilter().toLowerCase()}-${this.activeCategoryId() ?? 'all'}-${this.activeSubCategoryId() ?? 'all'}-${this.activeTravelMode().toLowerCase()}`,
       title,
       countLabel: `${total} ${activeCategory || activeSubCategory ? 'profils disponibles' : activeFilter.countLabel}`,
       providers: result.providers,
@@ -634,6 +677,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     clearTimeout(this.searchDebounce);
     this.searchDebounce = null;
+  }
+
+  private isTravelModeFilter(mode: string): mode is TravelModeFilter {
+    return mode === 'ALL' ||
+      mode === 'PRESTATAIRE_SE_DEPLACE' ||
+      mode === 'CLIENT_SE_DEPLACE' ||
+      mode === 'TRANSPORT_COLIS';
+  }
+
+  private activeServiceTravelMode(): ServiceTravelMode | undefined {
+    const mode = this.activeTravelMode();
+    return mode === 'ALL' ? undefined : mode;
   }
 
   resolveProviderAvatar(provider: { avatar?: string }): string | null {

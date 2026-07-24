@@ -17,6 +17,7 @@ import {
   ProviderProfileDetail,
   ServiceSection,
   PaginationMeta,
+  ServiceTravelMode,
 } from '../domain/models/services.models';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
@@ -93,12 +94,13 @@ export class ServicesService {
     city?: string,
     categoryId?: string,
     subCategoryId?: string,
+    travelMode?: ServiceTravelMode,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     return forkJoin([
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role: 'PRESTATAIRE' }).pipe(
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role: 'PRESTATAIRE' }).pipe(
         catchError(() => of({ providers: [], meta: undefined })),
       ),
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role: 'MEDECIN' }).pipe(
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role: 'MEDECIN' }).pipe(
         catchError(() => of({ providers: [], meta: undefined })),
       ),
     ]).pipe(
@@ -138,8 +140,9 @@ export class ServicesService {
     city?: string,
     categoryId?: string,
     subCategoryId?: string,
+    travelMode?: ServiceTravelMode,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
-    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, role });
+    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role });
   }
 
   private fetchProfessionals({
@@ -149,6 +152,7 @@ export class ServicesService {
     city,
     categoryId,
     subCategoryId,
+    travelMode,
     role,
   }: {
     query: string;
@@ -157,6 +161,7 @@ export class ServicesService {
     city?: string;
     categoryId?: string;
     subCategoryId?: string;
+    travelMode?: ServiceTravelMode;
     role?: 'PRESTATAIRE' | 'MEDECIN';
   }): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     const params: Record<string, string> = {
@@ -178,6 +183,10 @@ export class ServicesService {
 
     if (subCategoryId?.trim()) {
       params['subCategoryId'] = subCategoryId.trim();
+    }
+
+    if (travelMode?.trim()) {
+      params['travelMode'] = travelMode.trim();
     }
 
     if (role) {

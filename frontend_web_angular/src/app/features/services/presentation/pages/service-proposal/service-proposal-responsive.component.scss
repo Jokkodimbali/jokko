@@ -9,9 +9,6 @@
     overflow: visible;
   }
 
-  .service-proposal__content--accepted {
-    max-height: none;
-  }
 }
 
 .service-proposal__state {
@@ -51,43 +48,6 @@
   .service-proposal__content {
     grid-template-columns: minmax(0, 1fr);
     padding: 16px 10px 32px;
-  }
-
-  .service-proposal__content--accepted {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: auto;
-    padding-bottom: 130px;
-  }
-
-  .service-proposal__accepted-hero {
-    min-height: 174px;
-    padding-inline: 18px;
-  }
-
-  .service-proposal__accepted-body {
-    padding: 16px;
-  }
-
-  .service-proposal__accepted-price {
-    grid-template-columns: 1fr;
-  }
-
-  .service-proposal__accepted-price span:last-child {
-    justify-items: start;
-    text-align: left;
-  }
-
-  .service-proposal__checkout-bar {
-    align-items: stretch;
-    display: grid;
-    gap: 10px;
-    min-height: 118px;
-    padding: 12px;
-  }
-
-  .service-proposal__checkout-bar button {
-    min-width: 0;
-    width: 100%;
   }
 
   .service-proposal__hero {
@@ -134,9 +94,6 @@
     justify-self: start;
   }
 
-  .service-proposal__checkout-bar {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
 }
 
 @media (max-width: 430px) {
@@ -150,6 +107,53 @@
   .service-proposal__materials-card,
   .service-proposal__booking-accordion {
     border-radius: 16px;
+  }
+
+  .service-proposal__closed {
+    border-radius: 24px;
+  }
+
+  .service-proposal__closed-hero {
+    min-height: 178px;
+    padding: 28px 18px 24px;
+  }
+
+  .service-proposal__closed-icon {
+    height: 62px;
+    width: 62px;
+  }
+
+  .service-proposal__closed-hero h1 {
+    font-size: 22px;
+  }
+
+  .service-proposal__closed-party {
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .service-proposal__closed-party strong,
+  .service-proposal__closed-details dd {
+    font-size: 14px;
+  }
+
+  .service-proposal__closed-party p,
+  .service-proposal__closed-details dt {
+    font-size: 13px;
+  }
+
+  .service-proposal__closed-details {
+    padding: 6px 18px 0;
+  }
+
+  .service-proposal__closed-details div {
+    gap: 10px;
+    grid-template-columns: minmax(92px, 0.86fr) minmax(0, 1fr);
+    min-height: 58px;
+  }
+
+  .service-proposal__closed-actions {
+    padding: 14px 18px 20px;
   }
 
   .service-proposal__panel-body {
@@ -189,5 +193,32 @@
   .service-proposal__message,
   .service-proposal__counter-refuse--modern {
     width: 100%;
+  }
+
+  .service-proposal__waiting-track {
+    gap: 10px;
+    grid-template-columns: minmax(58px, 72px) minmax(64px, 1fr) minmax(58px, 72px);
+    padding-inline: 14px;
+  }
+
+  .service-proposal__waiting-party small {
+    font-size: 10px;
+  }
+
+  .service-proposal__waiting-avatar,
+  .service-proposal__waiting-avatar img,
+  .service-proposal__waiting-avatar em {
+    height: 42px;
+    width: 42px;
+  }
+
+  .service-proposal__waiting-party--you strong {
+    height: 42px;
+    width: 42px;
+  }
+
+  .service-proposal__help-card {
+    margin-top: 18px;
+    padding: 18px 20px;
   }
 }

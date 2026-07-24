@@ -124,7 +124,9 @@ export class AuthService {
     };
 
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/login`, payload)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/login`, payload, {
+        withCredentials: true,
+      })
       .pipe(map(unwrapApiResponse));
   }
 
@@ -148,7 +150,9 @@ export class AuthService {
     };
 
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/register`, payload)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/register`, payload, {
+        withCredentials: true,
+      })
       .pipe(map(unwrapApiResponse));
   }
 
@@ -160,7 +164,9 @@ export class AuthService {
 
   verifyOtp(data: VerifyOtpRequestDto): Observable<AuthResponseDto> {
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/otp/verify`, data)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/otp/verify`, data, {
+        withCredentials: true,
+      })
       .pipe(map(unwrapApiResponse));
   }
 
@@ -174,7 +180,9 @@ export class AuthService {
 
   googleLogin(data: GoogleLoginRequestDto): Observable<AuthResponseDto> {
     return this.http
-      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/google/login`, data)
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/google/login`, data, {
+        withCredentials: true,
+      })
       .pipe(map(unwrapApiResponse));
   }
 
@@ -412,9 +420,11 @@ export class AuthService {
       .pipe(map(unwrapApiResponse));
   }
 
-  logout(): Observable<void> {
+  logout(data: RefreshTokenRequestDto = {}): Observable<void> {
     return this.http
-      .post<ApiResponse<null>>(`${this.apiUrl}/logout`, {})
+      .post<ApiResponse<null>>(`${this.apiUrl}/logout`, data, {
+        withCredentials: true,
+      })
       .pipe(map(() => undefined));
   }
 

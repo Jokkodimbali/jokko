@@ -16,14 +16,6 @@ export interface ReservationDraft {
   paymentMethod: PaymentMethod;
 }
 
-export interface AcceptedReservationSummary {
-  reservationId: string;
-  proposal: NegotiationView;
-  dateHeure: string;
-  adresseClient: string;
-  dureeMinutes: number;
-}
-
 @Injectable({ providedIn: 'root' })
 export class ServiceProposalReservationBuilderService {
   buildProposalMessage(input: {

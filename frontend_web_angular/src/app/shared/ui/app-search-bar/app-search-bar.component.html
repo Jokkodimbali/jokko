@@ -53,6 +53,27 @@
     Chercher
   </button>
 
+  <div *ngIf="isServiceVariant && modeOptions.length > 0" class="app-search-bar__modes" aria-label="Modes de deplacement">
+    <span>Mode</span>
+    <button
+      *ngFor="let option of modeOptions"
+      type="button"
+      class="app-search-bar__mode"
+      [class.app-search-bar__mode--active]="option.value === selectedMode"
+      [class.app-search-bar__mode--all]="option.tone === 'all'"
+      [class.app-search-bar__mode--client]="option.tone === 'client'"
+      [class.app-search-bar__mode--route]="option.tone === 'route'"
+      [class.app-search-bar__mode--provider]="option.tone === 'provider'"
+      (click)="onModeSelect(option.value)"
+    >
+      <img *ngIf="option.imageUrl; else modeIcon" [src]="option.imageUrl" alt="" aria-hidden="true" />
+      <ng-template #modeIcon>
+        <lucide-icon *ngIf="option.icon" [name]="option.icon" size="14" [strokeWidth]="2.4"></lucide-icon>
+      </ng-template>
+      {{ option.label }}
+    </button>
+  </div>
+
   <div *ngIf="isServiceVariant && showLocationMenu" class="app-search-bar__location-menu">
     <p>Choisir une ville</p>
     <button type="button" class="app-search-bar__current-location" (click)="currentLocationSelect.emit()">
@@ -129,7 +150,17 @@
           <strong>{{ provider.name }} <small>{{ provider.category }}</small></strong>
           <span>
             {{ provider.profession }}
-            <b> &starf; {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})</b>
+            <b>
+              <span
+                class="app-search-bar__provider-stars"
+                aria-label="Avis"
+                [style.--rating-fill.%]="reviewCountFillPercent(provider.totalReviews)"
+              >
+                <span class="app-search-bar__provider-stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                <span class="app-search-bar__provider-stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+              </span>
+              {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})
+            </b>
             <em>{{ provider.location }}</em>
           </span>
         </span>

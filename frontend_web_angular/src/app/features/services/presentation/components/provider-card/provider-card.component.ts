@@ -106,6 +106,10 @@ export class ProviderCardComponent {
     return this.provider.totalReviews > 0 ? `(${this.provider.totalReviews})` : '';
   }
 
+  protected get ratingFillPercent(): number {
+    return this.reviewCountFillPercent(this.provider.totalReviews);
+  }
+
   protected isRatingStarFilled(star: number): boolean {
     if (this.provider.totalReviews <= 0) {
       return false;
@@ -117,7 +121,13 @@ export class ProviderCardComponent {
 
   private normalizedRating(): number {
     const rating = Math.max(0, Math.min(5, Number(this.provider.rating) || 0));
-    return this.provider.totalReviews > 0 && rating <= 0 ? 5 : rating;
+    return this.provider.totalReviews > 0 && rating <= 0
+      ? Math.min(5, this.provider.totalReviews)
+      : rating;
+  }
+
+  private reviewCountFillPercent(reviews: number): number {
+    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
   }
 
   protected get movementImageUrl(): string | null {

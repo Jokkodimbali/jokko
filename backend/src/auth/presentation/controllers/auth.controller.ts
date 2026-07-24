@@ -307,7 +307,11 @@ export class AuthController {
     },
   ) {
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
-    return { accessToken: result.accessToken, user: result.user };
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: result.user,
+    };
   }
 
   private setAuthCookies(

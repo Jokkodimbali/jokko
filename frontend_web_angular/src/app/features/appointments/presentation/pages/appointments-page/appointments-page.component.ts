@@ -1,17 +1,22 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, forkJoin } from 'rxjs';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import {
+  isNegotiationInProgressStatus,
+  negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusLabel,
+  reservationStatusTone,
+} from '../../../../../shared/utils/jokko-status-labels';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentStatus, AppointmentView } from '../../../domain/appointments.models';
 import {
-  NegotiationStatus,
   NegotiationScope,
   NegotiationView,
   ServiceProposalService,
@@ -364,36 +369,18 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected rowTone(appointment: AppointmentView): AppointmentTone {
-    if (this.isOverdueAppointment(appointment)) return 'neutral';
     if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'red';
-    if (appointment.status === 'TERMINEE' || appointment.status === 'CONFIRMEE') return 'green';
-    if (appointment.status === 'ANNULEE') return 'red';
-    if (appointment.status === 'NO_SHOW') {
-      return 'neutral';
-    }
-    return 'blue';
+    return reservationStatusTone(appointment.status);
   }
 
   protected statusLabel(appointment: AppointmentView): string {
-    if (this.isOverdueAppointment(appointment)) return 'A cloturer';
     if (appointment.status === 'LITIGE') return 'Litige';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
 
-    const labels: Record<AppointmentStatus, string> = {
-      CONFIRMEE: 'Confirme',
-      PAYEE_SEQUESTRE: 'En cours',
-      EN_COURS: 'En cours',
-      TERMINEE: 'Terminee',
-      ANNULEE: 'Annulée',
-      NO_SHOW: 'Absent',
-      LITIGE: 'Urgent',
-    };
-
-    return labels[appointment.status];
+    return reservationStatusLabel(appointment.status);
   }
 
   protected statusPanelTitle(appointment: AppointmentView): string {
-    if (this.isOverdueAppointment(appointment)) return 'Rendez-vous a cloturer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Demande en cours';
     if (appointment.status === 'TERMINEE') return 'Prestation terminee';
     if (appointment.status === 'EN_COURS' || appointment.status === 'PAYEE_SEQUESTRE') {
@@ -405,10 +392,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected statusPanelMessage(appointment: AppointmentView): string {
-    if (this.isOverdueAppointment(appointment)) {
-      return 'La date prevue est passee, mais la prestation ne sera terminee que lorsque le prestataire la marquera comme terminee.';
-    }
-
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') {
       const amount = appointment.proposedAdjustedPrice
         ? `${this.formatAmount(appointment.proposedAdjustedPrice)} FCFA`
@@ -430,7 +413,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected progressValue(appointment: AppointmentView): number {
-    if (this.isOverdueAppointment(appointment)) return 0;
     if (appointment.status === 'TERMINEE') return 100;
     if (appointment.status === 'EN_COURS') return 65;
     if (appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'CONFIRMEE') return 43;
@@ -445,7 +427,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (this.canProviderCloseAppointment(appointment)) return 'Cloturer';
     if (this.shouldPayAppointment(appointment)) return 'Payer';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Repondre';
-    return 'Résumé';
+    return 'Resume';
   }
 
   protected primaryActionIcon(appointment: AppointmentView): string {
@@ -551,12 +533,12 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected scheduleItemTitle(item: ScheduleItem): string {
     if (item.kind === 'appointment') {
       if (item.appointment.status === 'ANNULEE') {
-        return 'Prix proposé';
+        return 'Prix propose';
       }
       return item.appointment.serviceName;
     }
     if (item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE') {
-      return 'Prix proposé';
+      return 'Prix propose';
     }
     return item.negotiation.service?.nom || 'Proposition de prix';
   }
@@ -688,7 +670,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'Vous proposez un nouveau prix';
     if (negotiation.statut === 'ACCEPTEE') return 'Le prix a ete accepte';
     if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'Le rendez-vous est confirme';
-    if (negotiation.statut === 'REFUSEE') return 'La proposition a ete refusee';
     return 'La negociation a ete annulee';
   }
 
@@ -736,22 +717,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationStatusLabel(negotiation: NegotiationView): string {
-    const labels: Record<NegotiationStatus, string> = {
-      EN_ATTENTE_PRESTATAIRE: 'Attente prestataire',
-      EN_ATTENTE_CLIENT: 'Attente client',
-      ACCEPTEE: 'Acceptee',
-      REFUSEE: 'Refusée',
-      ANNULEE: 'Annulée',
-      CONVERTIE_EN_RESERVATION: 'Convertie en RDV',
-    };
-    return labels[negotiation.statut];
+    return sharedNegotiationStatusLabel(negotiation.statut);
   }
 
   protected negotiationTone(negotiation: NegotiationView): AppointmentTone {
     if (negotiation.statut === 'ACCEPTEE' || negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'green';
     if (negotiation.statut === 'REFUSEE') return 'red';
     if (negotiation.statut === 'ANNULEE') return 'red';
-    return 'blue';
+    if (isNegotiationInProgressStatus(negotiation.statut)) return 'red';
+    return 'red';
   }
 
   protected negotiationRoute(negotiation: NegotiationView): string[] {
@@ -945,10 +919,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return !this.isPastAppointment(appointment);
   }
 
-  private isOverdueAppointment(appointment: AppointmentView): boolean {
-    return !this.isDone(appointment.status) && appointment.status !== 'LITIGE' && this.isPastAppointment(appointment);
-  }
-
   private isPastAppointment(appointment: AppointmentView): boolean {
     const date = this.safeDate(appointment.scheduledAt);
     return Number.isNaN(date.getTime()) || date.getTime() < Date.now();
@@ -1097,3 +1067,4 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'EN_ATTENTE_PRESTATAIRE';
   }
 }
+

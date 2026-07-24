@@ -347,26 +347,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isDisputedAppointment = computed(
     () => this.appointment()?.status === 'LITIGE',
   );
-  protected readonly closedStatusLabel = computed(() => {
-    const status = this.appointment()?.status;
-    if (status === 'ANNULEE') return 'Rendez-vous annule';
-    if (status === 'NO_SHOW') return 'Client absent';
-    if (status === 'LITIGE') return 'Rendez-vous en litige';
-    return 'Rendez-vous cloture';
-  });
-  protected readonly closedStatusDescription = computed(() => {
-    const status = this.appointment()?.status;
-    if (status === 'ANNULEE') {
-      return 'Le suivi de localisation et les instructions de navigation sont arretes.';
-    }
-    if (status === 'NO_SHOW') {
-      return 'La mission est cloturee sans prestation. Aucun suivi GPS ne reste actif.';
-    }
-    if (status === 'LITIGE') {
-      return 'Le suivi est suspendu pendant le traitement du litige.';
-    }
-    return 'Le suivi temps reel est arrete.';
-  });
   protected readonly currentPriceLabel = computed(() =>
     this.formatter.formatCurrency(this.appointment()?.agreedPrice ?? 0),
   );
@@ -1313,6 +1293,69 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return `${rating.toFixed(1)} · ${reviews} avis`;
   }
 
+  protected cancelledRatingLabel(appointment: AppointmentView): string {
+    const rating = appointment.professionalRating;
+    const reviews = appointment.professionalReviews;
+    if (typeof rating !== 'number' || reviews <= 0) {
+      return 'Nouveau';
+    }
+
+    return rating.toFixed(1);
+  }
+
+  protected cancelledHeaderDateLabel(appointment: AppointmentView): string {
+    const date = new Date(appointment.scheduledAt);
+    if (Number.isNaN(date.getTime())) return 'Date non renseignee';
+
+    const dayMonth = new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+
+    return `Le ${dayMonth} à ${this.formatter.formatTimeFromDate(date)}`;
+  }
+
+  protected cancelledDateLabel(appointment: AppointmentView): string {
+    const date = new Date(appointment.scheduledAt);
+    if (Number.isNaN(date.getTime())) return appointment.shortDateLabel || 'Date non renseignee';
+
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  protected cancelledScreenTitle(appointment: AppointmentView): string {
+    if (appointment.status === 'LITIGE') {
+      return 'Rendez-vous en litige';
+    }
+
+    if (appointment.status === 'NO_SHOW') {
+      return 'Rendez-vous non honore';
+    }
+
+    return 'Rendez-vous annulé';
+  }
+
+  protected cancelledAmountBadgeLabel(appointment: AppointmentView): string {
+    if (appointment.status === 'LITIGE') {
+      return 'En litige';
+    }
+
+    return appointment.status === 'ANNULEE' ? 'Remboursé' : 'Clôturé';
+  }
+
+  protected restartCancelledAppointment(appointment: AppointmentView): void {
+    this.router.navigate(['/services', appointment.professionalId], {
+      queryParams: {
+        serviceId: appointment.serviceId,
+        returnUrl: this.router.url,
+      },
+    });
+  }
+
   private initialsFromName(name: string, fallback: string): string {
     return userInitials(name, fallback);
   }
@@ -1340,8 +1383,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected openReviewModal(appointment: AppointmentView): void {
     if (!this.canReviewAppointment(appointment)) return;
 
-    this.selectedRating.set(appointment.clientRating ?? 0);
-    this.reviewComment.set(appointment.clientReview ?? '');
+    this.selectedRating.set(0);
+    this.reviewComment.set('');
     this.isReviewSuccessModalOpen.set(false);
     this.isReviewModalOpen.set(true);
   }
@@ -1682,6 +1725,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const appointment = this.appointment();
     if (!appointment || this.isUpdatingStatus()) return;
 
+    if (!this.canOpenDispute(appointment)) {
+      this.feedback.info(this.disputeUnavailableReason(appointment));
+      return;
+    }
+
     const reason = this.isProviderViewer()
       ? "Signalement prestataire : incident constate sur le rendez-vous."
       : "Signalement client : le prestataire ne s'est pas presente ou la prestation n'a pas ete honoree.";
@@ -1706,6 +1754,26 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         );
       },
     });
+  }
+
+  protected canOpenDispute(appointment: AppointmentView): boolean {
+    if (appointment.status === 'TERMINEE' || appointment.status === 'NO_SHOW') return true;
+    if (appointment.status !== 'PAYEE_SEQUESTRE' && appointment.status !== 'EN_COURS') return false;
+    return this.isPastScheduledEnd(appointment);
+  }
+
+  protected disputeUnavailableReason(appointment: AppointmentView): string {
+    if (this.canOpenDispute(appointment)) return 'Signaler un litige';
+    if (appointment.status === 'LITIGE') return 'Ce rendez-vous est deja en litige.';
+    if (appointment.status === 'ANNULEE') return 'Ce rendez-vous annule ne peut pas etre signale en litige.';
+    return 'Le litige sera disponible apres la fin prevue de la prestation.';
+  }
+
+  private isPastScheduledEnd(appointment: AppointmentView): boolean {
+    const start = new Date(appointment.scheduledAt);
+    if (Number.isNaN(start.getTime())) return false;
+    const durationMinutes = Math.max(0, appointment.durationMinutes || 0);
+    return start.getTime() + durationMinutes * 60 * 1000 <= Date.now();
   }
 
   protected openQrCodePage(

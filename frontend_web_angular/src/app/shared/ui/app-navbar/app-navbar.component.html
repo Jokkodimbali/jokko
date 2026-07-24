@@ -16,7 +16,7 @@
       <span>{{ item.label }}</span>
       <b *ngIf="navItemBadgeLabel(item)" class="app-navbar__nav-badge">{{ navItemBadgeLabel(item) }}</b>
     </a>
-    <div class="app-navbar__info-menu" (mouseenter)="openInfoMenu()">
+    <div class="app-navbar__info-menu" (mouseenter)="openInfoMenu()" (mouseleave)="scheduleCloseInfoMenu()">
       <button
         type="button"
         class="app-navbar__nav-item app-navbar__nav-item--button"
@@ -71,18 +71,51 @@
     </a>
 
     <ng-template #connectedProfile>
-      <button
-        type="button"
-        class="app-navbar__notification"
-        [class.app-navbar__notification--open]="isNotificationsOpen()"
-        aria-label="Ouvrir les notifications"
-        [attr.aria-expanded]="isNotificationsOpen()"
-        aria-haspopup="menu"
-        (click)="openNotifications()"
-      >
-        <lucide-icon name="bell" size="22" [strokeWidth]="2.5"></lucide-icon>
-        <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
-      </button>
+      <div class="app-navbar__notification-menu" (mouseenter)="openNotificationsMenu()" (mouseleave)="scheduleCloseNotificationsMenu()">
+        <button
+          type="button"
+          class="app-navbar__notification"
+          [class.app-navbar__notification--open]="isNotificationsOpen()"
+          aria-label="Ouvrir les notifications"
+          [attr.aria-expanded]="isNotificationsOpen()"
+          aria-haspopup="menu"
+          (click)="toggleNotificationsMenu()"
+        >
+          <lucide-icon name="bell" size="22" [strokeWidth]="2.5"></lucide-icon>
+          <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
+        </button>
+
+        <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications" role="menu" aria-label="Notifications recentes">
+          <header>
+            <div>
+              <strong>Notifications</strong>
+              <small>{{ unreadNotificationsCount() }} non lue(s)</small>
+            </div>
+            <a routerLink="/notifications" (click)="closeNotificationsMenu()">Tout voir</a>
+          </header>
+
+          <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
+          <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
+            Aucune notification pour le moment.
+          </p>
+
+          <button
+            *ngFor="let notification of notificationPreview()"
+            type="button"
+            class="app-navbar__notification-item"
+            [class.app-navbar__notification-item--unread]="!isRead(notification)"
+            (click)="openNotification(notification)"
+          >
+            <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
+            <span>
+              <small>{{ notificationTypeLabel(notification.type) }}</small>
+              <strong>{{ notificationTitle(notification) }}</strong>
+              <em>{{ notificationBody(notification) }}</em>
+              <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
+            </span>
+          </button>
+        </section>
+      </div>
       <button
         type="button"
         class="app-navbar__profile"
@@ -203,36 +236,6 @@
         </button>
       </section>
 
-      <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications" role="menu" aria-label="Notifications recentes">
-        <header>
-          <div>
-            <strong>Notifications</strong>
-            <small>{{ unreadNotificationsCount() }} non lue(s)</small>
-          </div>
-          <a routerLink="/notifications" (click)="closeNotificationsMenu()">Tout voir</a>
-        </header>
-
-        <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
-        <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
-          Aucune notification pour le moment.
-        </p>
-
-        <button
-          *ngFor="let notification of notificationPreview()"
-          type="button"
-          class="app-navbar__notification-item"
-          [class.app-navbar__notification-item--unread]="!isRead(notification)"
-          (click)="openNotification(notification)"
-        >
-          <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
-          <span>
-            <small>{{ notificationTypeLabel(notification.type) }}</small>
-            <strong>{{ notificationTitle(notification) }}</strong>
-            <em>{{ notificationBody(notification) }}</em>
-            <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
-          </span>
-        </button>
-      </section>
     </ng-template>
   </div>
 

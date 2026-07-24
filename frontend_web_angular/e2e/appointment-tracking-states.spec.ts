@@ -389,7 +389,7 @@ test.describe('Appointment tracking lifecycle', () => {
         'ANNULEE',
         state === 'LITIGE' ? 'PRESTATAIRE' : undefined,
       );
-      await expect(page.locator('.appointment-detail__closed')).toBeVisible();
+      await expect(page.locator('.appointment-detail__cancelled')).toBeVisible();
       await expect(page.locator('.appointment-detail__provider-controls')).toHaveCount(0);
       await expect(page.locator('.appointment-detail__google-map')).toHaveCount(0);
       await expect(page.locator('.jokko-tracking-taxi-marker')).toHaveCount(0);
@@ -400,7 +400,7 @@ test.describe('Appointment tracking lifecycle', () => {
         await expect(
           page.getByRole('button', { name: /Consulter le suivi du litige/i }),
         ).toBeVisible();
-        await expect(page.getByText(/actions de prestation sont bloquees/i)).toBeVisible();
+        await expect(page.getByText(/Rendez-vous en litige/i)).toBeVisible();
       }
       await expectNoSpeech(page);
     });

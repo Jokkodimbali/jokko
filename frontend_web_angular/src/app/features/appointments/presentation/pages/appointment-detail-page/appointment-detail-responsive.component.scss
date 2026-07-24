@@ -1,19 +1,6 @@
 @media (max-width: 920px) {
-  .appointment-detail__closed-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .appointment-detail__closed-summary {
-    min-height: 400px;
-  }
-
-  .appointment-detail__hero {
-    margin: 18px 16px 26px;
-    padding: 18px;
-  }
-
-  .appointment-detail__hero-icon {
-    display: none;
+  .appointment-detail__cancelled-card {
+    border-radius: 28px;
   }
 
   .appointment-detail__body {
@@ -120,21 +107,60 @@
 }
 
 @media (max-width: 620px) {
-  .appointment-detail__closed-topbar {
-    padding: 0 12px;
+  .appointment-detail__cancelled-card {
+    border-radius: 24px;
+    width: 100%;
   }
 
-  .appointment-detail__closed-layout {
-    padding: 16px 10px;
+  .appointment-detail__cancelled-hero {
+    min-height: 178px;
+    padding: 28px 18px 24px;
   }
 
-  .appointment-detail__closed-summary {
-    min-height: 360px;
-    padding: 28px 18px;
+  .appointment-detail__cancelled-hero > span {
+    height: 62px;
+    width: 62px;
   }
 
-  .appointment-detail__closed-summary h1 {
-    font-size: 25px;
+  .appointment-detail__cancelled-hero h1 {
+    font-size: 22px;
+  }
+
+  .appointment-detail__cancelled-provider {
+    gap: 12px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    padding: 16px 20px;
+  }
+
+  .appointment-detail__cancelled-provider > span,
+  .appointment-detail__cancelled-provider img,
+  .appointment-detail__cancelled-provider b {
+    height: 44px;
+    width: 44px;
+  }
+
+  .appointment-detail__cancelled-provider strong,
+  .appointment-detail__cancelled-details strong {
+    font-size: 14px;
+  }
+
+  .appointment-detail__cancelled-provider small,
+  .appointment-detail__cancelled-details span {
+    font-size: 13px;
+  }
+
+  .appointment-detail__cancelled-details {
+    padding: 6px 18px 0;
+  }
+
+  .appointment-detail__cancelled-details p {
+    gap: 10px;
+    grid-template-columns: 18px minmax(72px, 0.82fr) minmax(0, 1fr);
+    min-height: 58px;
+  }
+
+  .appointment-detail__cancelled-actions {
+    padding: 14px 18px 20px;
   }
 
   .appointment-detail__route-topbar {
@@ -291,13 +317,62 @@
     width: 100%;
   }
 
-  .appointment-detail__work-steps,
   .appointment-detail__work-facts {
     grid-template-columns: 1fr;
   }
 
-  .appointment-detail__work-steps i {
-    display: none;
+}
+
+@media (min-width: 481px) and (max-width: 620px) {
+  .appointment-detail__cancelled {
+    padding: 10px 16px 58px;
+  }
+
+  .appointment-detail__cancelled-card {
+    border-radius: 32px;
+    width: min(100%, 460px);
+  }
+
+  .appointment-detail__cancelled-hero {
+    min-height: 207px;
+    padding: 36px 26px 31px;
+  }
+
+  .appointment-detail__cancelled-hero > span {
+    height: 70px;
+    width: 70px;
+  }
+
+  .appointment-detail__cancelled-hero h1 {
+    font-size: 24px;
+  }
+
+  .appointment-detail__cancelled-provider {
+    gap: 18px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    min-height: 84px;
+    padding: 18px 24px;
+  }
+
+  .appointment-detail__cancelled-provider > span,
+  .appointment-detail__cancelled-provider img,
+  .appointment-detail__cancelled-provider b {
+    height: 44px;
+    width: 44px;
+  }
+
+  .appointment-detail__cancelled-details {
+    padding: 0 24px;
+  }
+
+  .appointment-detail__cancelled-details p {
+    gap: 17px;
+    grid-template-columns: 18px minmax(120px, 1fr) minmax(0, auto);
+    min-height: 61px;
+  }
+
+  .appointment-detail__cancelled-actions {
+    padding: 16px 24px 22px;
   }
 }
 

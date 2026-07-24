@@ -48,6 +48,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
+  private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly subscriptions = new Subscription();
 
   protected readonly logo = '/logojokko.png';
@@ -178,13 +180,26 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected openInfoMenu(): void {
+    this.clearInfoMenuCloseTimer();
     this.closeProfileMenu();
     this.closeNotificationsMenu();
     this.isInfoMenuOpen.set(true);
   }
 
+  protected scheduleCloseInfoMenu(): void {
+    this.clearInfoMenuCloseTimer();
+    this.infoMenuCloseTimer = setTimeout(() => this.closeInfoMenu(), 140);
+  }
+
   protected closeInfoMenu(): void {
+    this.clearInfoMenuCloseTimer();
     this.isInfoMenuOpen.set(false);
+  }
+
+  private clearInfoMenuCloseTimer(): void {
+    if (!this.infoMenuCloseTimer) return;
+    clearTimeout(this.infoMenuCloseTimer);
+    this.infoMenuCloseTimer = null;
   }
 
   protected toggleProfileMenu(): void {
@@ -205,6 +220,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected toggleNotificationsMenu(): void {
     if (!this.isAuthenticated()) return;
+    this.clearNotificationsCloseTimer();
     this.closeInfoMenu();
     this.closeProfileMenu();
     this.isNotificationsOpen.update((isOpen) => !isOpen);
@@ -213,8 +229,31 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected openNotificationsMenu(): void {
+    if (!this.isAuthenticated()) return;
+    this.clearNotificationsCloseTimer();
+    this.closeInfoMenu();
+    this.closeProfileMenu();
+    this.isNotificationsOpen.set(true);
+    if (this.notificationPreview().length === 0) {
+      this.loadNotificationPreview();
+    }
+  }
+
+  protected scheduleCloseNotificationsMenu(): void {
+    this.clearNotificationsCloseTimer();
+    this.notificationsCloseTimer = setTimeout(() => this.closeNotificationsMenu(), 140);
+  }
+
   protected closeNotificationsMenu(): void {
+    this.clearNotificationsCloseTimer();
     this.isNotificationsOpen.set(false);
+  }
+
+  private clearNotificationsCloseTimer(): void {
+    if (!this.notificationsCloseTimer) return;
+    clearTimeout(this.notificationsCloseTimer);
+    this.notificationsCloseTimer = null;
   }
 
   protected toggleMobileNav(): void {
@@ -238,7 +277,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
     this.isLoggingOut.set(true);
     this.authService
-      .logout()
+      .logout(this.authSession.getRefreshToken()
+        ? { refreshToken: this.authSession.getRefreshToken()! }
+        : {})
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {
@@ -343,6 +384,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearInfoMenuCloseTimer();
+    this.clearNotificationsCloseTimer();
     if (this.unreadMessagesIntervalId) {
       clearInterval(this.unreadMessagesIntervalId);
       this.unreadMessagesIntervalId = null;

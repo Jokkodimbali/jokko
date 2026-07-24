@@ -53,7 +53,6 @@ import {
   ProposalDetailsModal,
   ServiceProposalDetailsModalComponent,
 } from '../../components/service-proposal-details-modal/service-proposal-details-modal.component';
-import { ServiceProposalAcceptedSummaryComponent } from '../../components/service-proposal-accepted-summary/service-proposal-accepted-summary.component';
 import { ServiceProposalFormatService } from './service-proposal-format.service';
 import {
   MaterialQuoteAuthor,
@@ -68,7 +67,6 @@ import {
 } from './service-proposal-parcel.service';
 import { ServiceProposalPricingViewService } from './service-proposal-pricing-view.service';
 import {
-  AcceptedReservationSummary,
   PaymentMethod,
   ReservationDraft,
   ServiceProposalReservationBuilderService,
@@ -140,6 +138,14 @@ interface ServiceProposalClientDraft {
   selectedOfferStep: number;
 }
 
+interface AcceptedReservationConfirmation {
+  reservationId: string;
+  proposal: NegotiationView;
+  dateHeure: string;
+  adresseClient: string;
+  dureeMinutes: number;
+}
+
 @Component({
   selector: 'app-service-proposal',
   standalone: true,
@@ -147,7 +153,6 @@ interface ServiceProposalClientDraft {
     CommonModule,
     FormsModule,
     LucideAngularModule,
-    ServiceProposalAcceptedSummaryComponent,
     ServiceProposalDetailsModalComponent,
   ],
   templateUrl: './service-proposal.component.html',
@@ -191,7 +196,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly pendingProposal = signal<NegotiationView | null>(null);
   protected readonly isProviderProposalSubmitting = signal(false);
   protected readonly isProviderOfferDirty = signal(false);
-  protected readonly acceptedReservation = signal<AcceptedReservationSummary | null>(null);
+  protected readonly acceptedConfirmation = signal<AcceptedReservationConfirmation | null>(null);
   protected readonly linkedReservationStatus = signal<ProposalReservationStatus | null>(null);
   protected readonly linkedReservationCancellationReason = signal<string | null>(null);
   protected readonly isCancellingProposal = signal(false);
@@ -376,10 +381,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isProviderWaitingForReservation = computed(
     () => this.pendingProposal()?.statut === 'ACCEPTEE' && !this.pendingProposal()?.reservationId,
   );
-  protected readonly providerProposalStatusLabel = computed(() =>
-    this.pricingView.providerProposalStatusLabel(this.pendingProposal()?.statut),
-  );
-
   protected readonly providerBaseOfferAmount = computed(() =>
     this.pricingView.providerBaseOfferAmount({
       proposal: this.pendingProposal(),
@@ -460,34 +461,80 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   });
   protected readonly closedProposal = computed(() => {
     const proposal = this.pendingProposal();
-    return proposal && (this.isNegotiationClosed(proposal) || this.isLinkedReservationCancelled())
+    return proposal && (this.proposalState.isNegotiationClosed(proposal) || this.isLinkedReservationCancelled())
       ? proposal
       : null;
   });
-  protected readonly providerFinalizedAmountLabel = computed(() =>
+  protected readonly closedNegotiationTitleLabel = computed(() => {
+    const proposal = this.closedProposal();
+    return proposal ? this.closedNegotiationTitle(proposal) : '';
+  });
+  protected readonly closedMessageActionLabel = computed(() =>
+    this.isProviderProposalMode ? 'Message au client' : 'Message au prestataire',
+  );
+  protected readonly confirmedReservationProposal = computed(
+    () => this.acceptedConfirmation()?.proposal ?? this.providerProposalFinalized(),
+  );
+  protected readonly confirmedReservationId = computed(
+    () => this.acceptedConfirmation()?.reservationId ?? this.providerProposalFinalized()?.reservationId ?? null,
+  );
+  protected readonly confirmedReservationServiceLabel = computed(
+    () =>
+      this.confirmedReservationProposal()?.service?.nom ||
+      this.currentService()?.nom ||
+      this.customServiceName() ||
+      this.categoryLabel(),
+  );
+  protected readonly confirmedReservationAmountLabel = computed(() =>
     this.formatAmount(
-      this.providerProposalFinalized()?.montantAccepte ??
-        this.providerProposalFinalized()?.montantCourant ??
+      this.confirmedReservationProposal()?.montantAccepte ??
+        this.confirmedReservationProposal()?.montantCourant ??
         this.offerAmount(),
     ),
   );
-  protected readonly providerFinalizedComparisonLabel = computed(() =>
-    this.pricingView.providerFinalizedComparisonLabel(
-      this.toPositiveAmount(this.providerBaseOfferAmount()),
-      this.toPositiveAmount(
-        this.providerProposalFinalized()?.montantAccepte ??
-          this.providerProposalFinalized()?.montantCourant,
-      ),
-    ),
+  protected readonly confirmedReservationDateLabel = computed(() => {
+    const date =
+      this.acceptedConfirmation()?.dateHeure ||
+      this.confirmedReservationProposal()?.dateHeureProposee ||
+      this.appointmentDate();
+    return date ? this.formatAcceptedDate(date) : this.formattedDate();
+  });
+  protected readonly confirmedReservationTimeLabel = computed(() => {
+    const date =
+      this.acceptedConfirmation()?.dateHeure ||
+      this.confirmedReservationProposal()?.dateHeureProposee ||
+      this.appointmentDate();
+    return date ? this.formatAcceptedTime(date) : this.formattedTime();
+  });
+  protected readonly confirmedReservationAddressLabel = computed(
+    () =>
+      this.acceptedConfirmation()?.adresseClient ||
+      this.confirmedReservationProposal()?.adresseClientProposee ||
+      this.shortAddress(),
   );
-  protected readonly providerFinalizedComparisonAmountLabel = computed(() =>
-    this.pricingView.providerFinalizedComparisonAmountLabel(
-      this.toPositiveAmount(this.providerBaseOfferAmount()),
-      this.toPositiveAmount(
-        this.providerProposalFinalized()?.montantAccepte ??
-          this.providerProposalFinalized()?.montantCourant,
-      ),
-    ),
+  protected readonly confirmedCounterpartName = computed(() =>
+    this.isProviderProposalMode ? this.proposalClientName() : this.displayName(),
+  );
+  protected readonly confirmedCounterpartRole = computed(() =>
+    this.isProviderProposalMode ? 'Client' : 'Prestataire',
+  );
+  protected readonly confirmedCounterpartSubtitle = computed(() =>
+    this.isProviderProposalMode
+      ? 'Reservation acceptee'
+      : this.confirmedReservationServiceLabel(),
+  );
+  protected readonly confirmedCounterpartAvatarUrl = computed(() =>
+    this.isProviderProposalMode
+      ? this.confirmedReservationProposal()?.client?.urlAvatar || ''
+      : this.avatarUrl(),
+  );
+  protected readonly confirmedCounterpartInitials = computed(() =>
+    userInitials(this.confirmedCounterpartName(), this.isProviderProposalMode ? 'CL' : 'JD'),
+  );
+  protected readonly confirmedCounterpartMeta = computed(() =>
+    this.isProviderProposalMode
+      ? 'Prix accepte'
+      : `${this.confirmedCounterpartSubtitle()} · ★ ${this.ratingLabel()}`,
   );
 
   protected readonly categoryLabel = computed(
@@ -643,54 +690,19 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly hasProviderCounterOffer = computed(
     () => this.pendingProposal()?.statut === 'EN_ATTENTE_CLIENT',
   );
-  protected readonly initialOfferAmountLabel = computed(() =>
-    this.formatAmount(this.pendingProposal()?.montantInitial ?? this.offerAmount()),
+  protected readonly clientLatestOfferAmountLabel = computed(() =>
+    this.formatAmount(this.clientLatestOfferAmount()),
   );
   protected readonly providerCounterAmountLabel = computed(() =>
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
   protected readonly counterDifferenceLabel = computed(() =>
-    this.pricingView.counterDifferenceLabel(this.pendingProposal()),
+    this.hasProviderCounterOffer()
+      ? this.pricingView.clientCounterDifferenceLabel(this.fairServiceAmount(), this.offerAmount())
+      : this.pricingView.counterDifferenceLabel(this.pendingProposal()),
   );
   protected readonly counterActionLabel = computed(() =>
     this.pricingView.counterActionLabel(this.pendingProposal(), this.offerAmount()),
-  );
-  protected readonly acceptedAmountLabel = computed(() =>
-    this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount()),
-  );
-  protected readonly acceptedTotalLabel = computed(
-    () =>
-      `${this.formatAmount(this.acceptedReservation()?.proposal.montantCourant ?? this.offerAmount())} FCFA`,
-  );
-  protected readonly acceptedDateTimeLabel = computed(() => {
-    const accepted = this.acceptedReservation();
-    return accepted
-      ? this.formatAcceptedDateTime(accepted.dateHeure)
-      : `${this.formattedDate()} a ${this.formattedTime()}`;
-  });
-  protected readonly acceptedDateLabel = computed(() => {
-    const accepted = this.acceptedReservation();
-    return accepted ? this.formatAcceptedDate(accepted.dateHeure) : this.formattedDate();
-  });
-  protected readonly acceptedTimeLabel = computed(() => {
-    const accepted = this.acceptedReservation();
-    return accepted ? this.formatAcceptedTime(accepted.dateHeure) : this.formattedTime();
-  });
-  protected readonly acceptedAddressLabel = computed(
-    () =>
-      this.acceptedReservation()?.adresseClient || this.address().trim() || 'Adresse a confirmer',
-  );
-  protected readonly acceptedComparisonLabel = computed(() =>
-    this.pricingView.acceptedComparisonLabel(
-      this.toPositiveAmount(this.fairServiceAmount()),
-      this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant),
-    ),
-  );
-  protected readonly acceptedComparisonAmountLabel = computed(() =>
-    this.pricingView.acceptedComparisonAmountLabel(
-      this.toPositiveAmount(this.fairServiceAmount()),
-      this.toPositiveAmount(this.acceptedReservation()?.proposal.montantCourant),
-    ),
   );
   protected readonly minAppointmentDate = computed(() =>
     this.toDateInputValue(new Date(Date.now() + 5 * 60 * 1000)),
@@ -1177,13 +1189,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.isProviderProposalSubmitting.set(true);
     this.proposalService
-      .rejectPriceProposal(proposal.id, 'Proposition refusée par le prestataire.')
+      .rejectPriceProposal(proposal.id, 'Negociation annulee par le prestataire.')
       .subscribe({
         next: (updated) => {
           this.applyIncomingProposal(updated, { force: true });
           this.isProviderOfferDirty.set(false);
           this.isProviderProposalSubmitting.set(false);
-          this.feedback.success('La proposition a été refusée.');
+          this.feedback.success('La negociation a ete annulee.');
         },
         error: (error) => {
           this.isProviderProposalSubmitting.set(false);
@@ -1395,10 +1407,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.isCancellingProposal.set(true);
     this.proposalService
-      .cancelPriceProposal(proposal.id, 'Contre-proposition refusee par le client.')
+      .cancelPriceProposal(proposal.id, 'Negociation annulee par le client.')
       .subscribe({
         next: () => {
-          this.feedback.success('La proposition du prestataire a ete refusee.');
+          this.feedback.success('La negociation a ete annulee.');
           this.pendingProposal.set(null);
           this.stopProposalRefresh();
           this.isCancellingProposal.set(false);
@@ -1921,7 +1933,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private showPendingProposal(proposal: NegotiationView, draft: ReservationDraft): void {
-    this.acceptedReservation.set(null);
+    this.acceptedConfirmation.set(null);
     this.applyPendingProposalState(proposal, { fallbackAmount: draft.amount });
     this.isSubmitting.set(false);
   }
@@ -2004,16 +2016,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             return;
           }
 
-          this.acceptedReservation.set({
+          this.linkedReservationStatus.set('CONFIRMEE');
+          this.linkedReservationCancellationReason.set(null);
+          this.finalizeMaterialQuotesForReservation(proposal, reservationId);
+          this.acceptedConfirmation.set({
             reservationId,
             proposal,
             dateHeure: reservationPayload.dateHeure,
             adresseClient: reservationPayload.adresseClient,
             dureeMinutes: reservationPayload.dureeMinutes,
           });
-          this.linkedReservationStatus.set('CONFIRMEE');
-          this.linkedReservationCancellationReason.set(null);
-          this.finalizeMaterialQuotesForReservation(proposal, reservationId);
         },
         error: (error) => {
           this.isRespondingToCounterOffer.set(false);
@@ -2022,26 +2034,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       });
   }
 
-  protected payAcceptedReservation(): void {
-    const accepted = this.acceptedReservation();
-    if (!accepted?.reservationId) {
-      this.feedback.error('Impossible de retrouver cette reservation pour le paiement.');
-      return;
-    }
-
-    if (this.hasBlockingMaterialQuote()) {
-      this.feedback.info('Validez ou refusez le devis materiel avant de finaliser la reservation.');
-      return;
-    }
-
-    this.router.navigate(['/appointments', accepted.reservationId, 'payment'], {
-      queryParams: { returnUrl: '/appointments' },
-      replaceUrl: true,
-    });
-  }
-
-  protected openProviderFinalizedReservation(): void {
-    const reservationId = this.providerProposalFinalized()?.reservationId;
+  protected openConfirmedReservation(): void {
+    const reservationId = this.confirmedReservationId();
     if (!reservationId) {
       this.feedback.info('La reservation est en cours de finalisation.');
       return;
@@ -2053,10 +2047,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     });
   }
 
-  protected isNegotiationClosed(proposal: NegotiationView | null): boolean {
-    return this.proposalState.isNegotiationClosed(proposal);
-  }
-
   protected closedNegotiationTitle(proposal: NegotiationView): string {
     return this.proposalState.closedNegotiationTitle({
       proposal,
@@ -2065,16 +2055,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     });
   }
 
-  protected closedNegotiationMessage(proposal: NegotiationView): string {
-    return this.proposalState.closedNegotiationMessage({
-      proposal,
-      serviceName: proposal.service?.nom || this.categoryLabel(),
-      isLinkedReservationCancelled: this.isLinkedReservationCancelled(),
-      cancellationReason: this.linkedReservationCancellationReason(),
-      isProviderProposalMode: this.isProviderProposalMode,
-      proposalClientName: this.proposalClientName(),
-      providerName: this.displayName(),
-    });
+  protected closedProposalStatusLabel(proposal: NegotiationView): string {
+    return this.pricingView.providerProposalStatusLabel(proposal.statut);
   }
 
   protected exitClosedNegotiation(): void {
@@ -2233,16 +2215,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return false;
     }
 
-    this.acceptedReservation.set({
+    this.linkedReservationStatus.set('CONFIRMEE');
+    this.linkedReservationCancellationReason.set(null);
+    this.isRespondingToCounterOffer.set(false);
+    this.acceptedConfirmation.set({
       reservationId: proposal.reservationId,
       proposal,
       dateHeure: reservationPayload.dateHeure,
       adresseClient: reservationPayload.adresseClient,
       dureeMinutes: reservationPayload.dureeMinutes,
     });
-    this.linkedReservationStatus.set('CONFIRMEE');
-    this.linkedReservationCancellationReason.set(null);
-    this.isRespondingToCounterOffer.set(false);
     return true;
   }
 
@@ -3210,6 +3192,27 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected formatAmount(value: number): string {
     return this.formatter.formatAmount(value);
+  }
+
+  private clientLatestOfferAmount(): number {
+    const proposal = this.pendingProposal();
+    if (!proposal) return this.offerAmount();
+
+    return (
+      this.latestNegotiationOffer(proposal, 'CLIENT') ??
+      Number(proposal.montantInitial || this.offerAmount())
+    );
+  }
+
+  private latestNegotiationOffer(
+    negotiation: NegotiationView,
+    actor: 'CLIENT' | 'PRESTATAIRE',
+  ): number | null {
+    const offer = [...(negotiation.propositions ?? [])]
+      .reverse()
+      .find((item) => item.proposePar === actor);
+    const amount = Number(offer?.montant);
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
   }
 
   private formatDecimal(value: number, digits = 1): string {

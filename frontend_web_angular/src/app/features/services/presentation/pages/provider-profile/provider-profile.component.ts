@@ -373,6 +373,20 @@ export class ProviderProfileComponent implements OnInit {
     }));
   }
 
+  protected ratingFillPercent(value: number, reviews = 1): number {
+    if (reviews <= 0) {
+      return 0;
+    }
+
+    const rating = Math.max(0, Math.min(5, Number(value) || 0));
+    const normalizedRating = rating <= 0 ? Math.min(5, reviews) : rating;
+    return Math.round((normalizedRating / 5) * 100);
+  }
+
+  protected reviewCountFillPercent(reviews: number): number {
+    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
+  }
+
   protected visibleImageUrl(url: string | null | undefined): string | null {
     const value = url?.trim();
     if (!value || this.failedImageUrls().has(value)) {

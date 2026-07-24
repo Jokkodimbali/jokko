@@ -214,7 +214,12 @@
           <span>Preparation</span>
           <i><b [style.width.%]="upcomingPreparationProgress()"></b></i>
           <strong>{{ upcomingPreparationProgress() }}%</strong>
-          <button type="button" (click)="reportAppointment()">
+          <button
+            type="button"
+            (click)="reportAppointment()"
+            [disabled]="!canOpenDispute(appointment) || isUpdatingStatus()"
+            [title]="disputeUnavailableReason(appointment)"
+          >
             <lucide-icon name="info" size="16" [strokeWidth]="2.4"></lucide-icon>
             Signaler
           </button>
@@ -264,160 +269,83 @@
 
     <section
       *ngIf="detailUiState() === 'closed'"
-      class="appointment-detail__closed"
-      aria-label="Rendez-vous cloture"
+      class="appointment-detail__cancelled"
+      [attr.aria-label]="cancelledScreenTitle(appointment)"
     >
-      <header class="appointment-detail__closed-topbar">
-        <button type="button" aria-label="Retour" (click)="goBack()">
-          <lucide-icon name="arrow-left" size="17" [strokeWidth]="2.5"></lucide-icon>
-        </button>
-        <div>
-          <span>Rendez-vous cloture</span>
-          <strong>{{ closedStatusLabel() }}</strong>
-        </div>
-      </header>
-
-      <div class="appointment-detail__closed-layout">
-        <article class="appointment-detail__closed-summary">
-          <span>
-            <lucide-icon
-              [name]="appointment.status === 'LITIGE' ? 'gavel' : 'circle-x'"
-              size="34"
-              [strokeWidth]="2.6"
-            ></lucide-icon>
+      <article class="appointment-detail__cancelled-card">
+        <section class="appointment-detail__cancelled-hero">
+          <span aria-hidden="true">
+            <lucide-icon name="x" size="34" [strokeWidth]="2.7"></lucide-icon>
           </span>
-          <small>STATUT FINAL</small>
-          <h1>{{ closedStatusLabel() }}</h1>
-          <p>{{ closedStatusDescription() }}</p>
-          <dl>
-            <div>
-              <dt>Service</dt>
-              <dd>{{ appointment.serviceName }}</dd>
-            </div>
-            <div>
-              <dt>Date</dt>
-              <dd>{{ appointment.fullDateLabel }} a {{ appointment.timeLabel }}</dd>
-            </div>
-            <div>
-              <dt>Adresse</dt>
-              <dd>{{ appointment.addressLabel }}</dd>
-            </div>
-          </dl>
-        </article>
+          <h1>{{ cancelledScreenTitle(appointment) }}</h1>
+          <p>{{ cancelledHeaderDateLabel(appointment) }}</p>
+        </section>
 
-        <aside class="appointment-detail__closed-aside">
-          <header>
-            <span
-              [class.appointment-detail__closed-badge--dispute]="isDisputedAppointment()"
-            >
-              <lucide-icon
-                [name]="isDisputedAppointment() ? 'shield-alert' : 'lock-keyhole'"
-                size="15"
-                [strokeWidth]="2.5"
-              ></lucide-icon>
-              {{ isDisputedAppointment() ? 'Traitement securise' : 'Dossier ferme' }}
-            </span>
-            <h2>
-              {{ isDisputedAppointment() ? 'Suivi du dossier' : 'Resume du rendez-vous' }}
-            </h2>
-            <p>
-              {{
-                isDisputedAppointment()
-                  ? 'Les actions de prestation sont bloquees pendant la mediation.'
-                  : 'Aucune action operationnelle nest encore disponible.'
-              }}
-            </p>
-          </header>
+        <section class="appointment-detail__cancelled-provider">
+          <span>
+            <img
+              *ngIf="appointment.avatarUrl; else cancelledProviderInitials"
+              [src]="appointment.avatarUrl"
+              [alt]="appointment.doctorName"
+            />
+            <ng-template #cancelledProviderInitials>
+              <b>{{ avatarInitials(appointment) }}</b>
+            </ng-template>
+            <i aria-hidden="true"></i>
+          </span>
+          <div>
+            <strong>{{ appointment.doctorName }}</strong>
+            <small>
+              {{ appointment.specialty || appointment.serviceName }}
+              <em><b aria-hidden="true">★</b> {{ cancelledRatingLabel(appointment) }}</em>
+            </small>
+          </div>
+        </section>
 
-          <section class="appointment-detail__closed-party">
-            <span>
-              <img
-                *ngIf="
-                  (isProviderViewer() ? appointment.clientAvatarUrl : appointment.avatarUrl) as avatar;
-                  else closedPartyInitials
-                "
-                [src]="avatar"
-                alt=""
-              />
-              <ng-template #closedPartyInitials>
-                {{
-                  isProviderViewer()
-                    ? clientInitials(appointment)
-                    : avatarInitials(appointment)
-                }}
-              </ng-template>
-            </span>
-            <div>
-              <small>{{ isProviderViewer() ? 'CLIENT' : 'PRESTATAIRE' }}</small>
-              <strong>
-                {{ isProviderViewer() ? appointment.clientName : appointment.doctorName }}
-              </strong>
-              <p>{{ appointment.serviceName }}</p>
-            </div>
-          </section>
+        <section class="appointment-detail__cancelled-details">
+          <p>
+            <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.1"></lucide-icon>
+            <span>Date</span>
+            <strong>{{ cancelledDateLabel(appointment) }}</strong>
+          </p>
+          <p>
+            <lucide-icon name="clock-3" size="17" [strokeWidth]="2.1"></lucide-icon>
+            <span>Heure</span>
+            <strong>{{ appointment.timeLabel }}</strong>
+          </p>
+          <p>
+            <lucide-icon name="map-pin" size="17" [strokeWidth]="2.1"></lucide-icon>
+            <span>Adresse</span>
+            <strong>{{ appointment.addressLabel }}</strong>
+          </p>
+          <p>
+            <lucide-icon name="banknote" size="17" [strokeWidth]="2.1"></lucide-icon>
+            <span>Montant</span>
+            <strong>
+              <small>{{ cancelledAmountBadgeLabel(appointment) }}</small>
+              {{ finalPriceLabel() }}
+            </strong>
+          </p>
+          <p>
+            <lucide-icon name="briefcase-business" size="17" [strokeWidth]="2.1"></lucide-icon>
+            <span>Motif de consultation</span>
+            <strong>{{ appointment.serviceName }}</strong>
+          </p>
+        </section>
 
-          <dl>
-            <div>
-              <dt>Montant concerne</dt>
-              <dd>{{ finalPriceLabel() }}</dd>
-            </div>
-            <div>
-              <dt>Localisation</dt>
-              <dd>Suivi GPS suspendu</dd>
-            </div>
-            <div>
-              <dt>Prochaine etape</dt>
-              <dd>
-                {{ isDisputedAppointment() ? 'Analyse par la mediation' : 'Aucune action requise' }}
-              </dd>
-            </div>
-          </dl>
-
+        <footer class="appointment-detail__cancelled-actions">
           <button
-            *ngIf="isDisputedAppointment()"
             type="button"
-            (click)="openDisputeTracking(appointment)"
+            (click)="isDisputedAppointment() ? openDisputeTracking(appointment) : restartCancelledAppointment(appointment)"
           >
-            <lucide-icon name="folder-search" size="16" [strokeWidth]="2.5"></lucide-icon>
-            Consulter le suivi du litige
+            {{ isDisputedAppointment() ? 'Consulter le suivi du litige' : 'Reprendre un rendez-vous' }}
           </button>
-        </aside>
-      </div>
-    </section>
-
-    <section
-      *ngIf="false && !isAppointmentCompleted() && isProviderWorking()"
-      class="appointment-detail__hero"
-      [class.appointment-detail__hero--working]="isProviderWorking()"
-    >
-      <span>
-        <lucide-icon name="wrench" size="22" [strokeWidth]="2.4"></lucide-icon>
-        {{ statusLabel() }}
-      </span>
-      <lucide-icon
-        class="appointment-detail__hero-icon"
-        name="wrench"
-        size="54"
-        [strokeWidth]="2.8"
-      ></lucide-icon>
-
-      <ng-container>
-        <h2>{{ appointment.doctorName }} travaille</h2>
-        <div class="appointment-detail__work-steps" aria-label="Progression de la prestation">
-          <ng-container
-            *ngFor="let step of workProgressSteps(); let last = last; let index = index"
-          >
-            <span
-              [class.appointment-detail__work-step--done]="step.state === 'done'"
-              [class.appointment-detail__work-step--active]="step.state === 'active'"
-            >
-              <b>{{ step.state === 'done' ? 'OK' : index + 1 }}</b>
-              {{ step.label }}
-            </span>
-            <i *ngIf="!last"></i>
-          </ng-container>
-        </div>
-      </ng-container>
+          <button type="button" (click)="messageProvider(appointment)">
+            <lucide-icon name="message-circle" size="16" [strokeWidth]="2.2"></lucide-icon>
+            Message au prestataire
+          </button>
+        </footer>
+      </article>
     </section>
 
     <section
@@ -938,7 +866,8 @@
           type="button"
           class="appointment-detail__dispute-cta"
           (click)="reportAppointment()"
-          [disabled]="isUpdatingStatus()"
+          [disabled]="!canOpenDispute(appointment) || isUpdatingStatus()"
+          [title]="disputeUnavailableReason(appointment)"
         >
           Signaler litige
         </button>
@@ -1004,6 +933,8 @@
             type="button"
             class="appointment-detail__provider-console-report"
             (click)="reportAppointment()"
+            [disabled]="!canOpenDispute(appointment) || isUpdatingStatus()"
+            [title]="disputeUnavailableReason(appointment)"
           >
             {{ isAppointmentCompleted() ? 'Signaler litige' : 'Signaler un retard ou empechement' }}
           </button>
@@ -1112,10 +1043,11 @@
                 *ngFor="let star of reviewStars"
                 type="button"
                 [class.appointment-detail__review-star--active]="star <= selectedRating()"
+                [attr.aria-pressed]="star <= selectedRating()"
                 [attr.aria-label]="'Donner ' + star + ' etoile' + (star > 1 ? 's' : '')"
                 (click)="setRating(star)"
               >
-                <lucide-icon name="star" size="28" [strokeWidth]="2.1"></lucide-icon>
+                <span aria-hidden="true">&#9733;</span>
               </button>
             </div>
           </fieldset>

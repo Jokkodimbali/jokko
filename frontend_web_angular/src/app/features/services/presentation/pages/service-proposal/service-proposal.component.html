@@ -1,4 +1,4 @@
-<main class="service-proposal">
+﻿<main class="service-proposal">
   <ng-template #priceCardHeader let-equityLabel="equityLabel">
     <header>
       <span class="service-proposal__price-card-title">
@@ -13,6 +13,99 @@
         <strong>{{ categoryLabel() }}</strong>
       </span>
     </header>
+  </ng-template>
+
+  <ng-template #closedNegotiationCard let-closed>
+    <section class="service-proposal__panel service-proposal__closed" aria-label="Negociation cloturee">
+      <div class="service-proposal__closed-hero">
+        <span class="service-proposal__closed-icon">
+          <lucide-icon name="x" size="28" [strokeWidth]="2.8"></lucide-icon>
+        </span>
+        <h1>{{ closedNegotiationTitleLabel() }}</h1>
+        <p>Le {{ formattedDate() }} &agrave; {{ formattedTime() }}</p>
+      </div>
+
+      <div class="service-proposal__closed-party">
+        <span class="service-proposal__closed-avatar">
+          <img
+            *ngIf="isProviderProposalMode ? closed.client?.urlAvatar : avatarUrl(); else closedPartyInitials"
+            [src]="isProviderProposalMode ? closed.client?.urlAvatar : avatarUrl()"
+            [alt]="isProviderProposalMode ? proposalClientName() : displayName()"
+          />
+          <ng-template #closedPartyInitials>
+            <em>{{ isProviderProposalMode ? proposalClientInitials() : providerInitials() }}</em>
+          </ng-template>
+          <i aria-hidden="true"></i>
+        </span>
+        <div>
+          <strong>{{ isProviderProposalMode ? proposalClientName() : displayName() }}</strong>
+          <p>
+            <span>{{ isProviderProposalMode ? 'Client' : categoryLabel() }}</span>
+            <span *ngIf="!isProviderProposalMode" class="service-proposal__closed-rating">
+              <b aria-hidden="true">&#9733;</b>
+              {{ ratingLabel() }}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div class="service-proposal__closed-body">
+        <dl class="service-proposal__closed-details">
+          <div>
+            <dt>
+              <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
+              Date
+            </dt>
+            <dd>{{ formattedDate() }}</dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="clock-3" size="16" [strokeWidth]="2.2"></lucide-icon>
+              Heure
+            </dt>
+            <dd>{{ formattedTime() }}</dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+              Adresse
+            </dt>
+            <dd>{{ isParcelDeliveryService() ? parcelDropoffAddress() || shortAddress() : shortAddress() }}</dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="circle-dollar-sign" size="16" [strokeWidth]="2.2"></lucide-icon>
+              Montant
+            </dt>
+            <dd>
+              <span class="service-proposal__closed-refund">{{ closedProposalStatusLabel(closed) }}</span>
+              {{ pendingOfferAmountLabel() }} FCFA
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
+              Motif de consultation
+            </dt>
+            <dd>{{ closed.service?.nom || categoryLabel() }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <footer class="service-proposal__closed-actions">
+        <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
+          Reprendre un rendez-vous
+        </button>
+        <button
+          type="button"
+          class="service-proposal__closed-action service-proposal__closed-action--message"
+          (click)="isProviderProposalMode ? messageClient() : messageProvider()"
+        >
+          <lucide-icon name="message-circle" size="16" [strokeWidth]="2.2"></lucide-icon>
+          {{ closedMessageActionLabel() }}
+        </button>
+      </footer>
+    </section>
   </ng-template>
 
   <section class="service-proposal__bar">
@@ -38,46 +131,21 @@
   <ng-container *ngIf="!isLoading() && !errorMessage()">
     <ng-container *ngIf="isProviderProposalMode; else clientProposalContent">
       <section
-        class="service-proposal__content service-proposal__content--accepted"
+        class="service-proposal__confirmed"
         *ngIf="providerProposalFinalized() as proposal"
       >
-        <app-service-proposal-accepted-summary
-          [avatarAlt]="proposalClientName()"
-          [avatarUrl]="proposal.client?.urlAvatar || ''"
-          [initials]="proposalClientInitials()"
-          eyebrow="Reservation finalisee"
-          [title]="proposalClientName() + ' a accepte le prix'"
-          descriptionPrefix="Le rendez-vous est confirme pour le"
-          [descriptionStrong]="formattedDate() + ' a ' + formattedTime()"
-          pricePrimaryLabel="Prix convenu"
-          [pricePrimaryValue]="providerFinalizedAmountLabel()"
-          pricePrimarySuffix="FCFA"
-          [priceSecondaryLabel]="providerFinalizedComparisonLabel()"
-          [priceSecondaryValue]="providerFinalizedComparisonAmountLabel()"
-          [dateValue]="formattedDate() + ' · ' + formattedTime()"
-          [addressValue]="shortAddress()"
-          actionIcon="calendar-days"
-          actionLabel="Voir la reservation"
-          (action)="openProviderFinalizedReservation()"
-        ></app-service-proposal-accepted-summary>
+        <ng-container *ngTemplateOutlet="confirmedReservationCard"></ng-container>
       </section>
 
       <section
         class="service-proposal__content service-proposal__content--provider"
+        [class.service-proposal__content--closed]="closedProposal()"
         *ngIf="!providerProposalFinalized() && pendingProposal() as proposal"
       >
         <ng-container *ngIf="closedProposal() as closed; else providerOpenNegotiation">
-          <section class="service-proposal__panel service-proposal__closed" aria-label="Negociation cloturee">
-            <span class="service-proposal__closed-icon">
-              <lucide-icon name="x" size="24" [strokeWidth]="2.8"></lucide-icon>
-            </span>
-            <small>{{ providerProposalStatusLabel() }}</small>
-            <h1>{{ closedNegotiationTitle(closed) }}</h1>
-            <p>{{ closedNegotiationMessage(closed) }}</p>
-            <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
-              Quitter la negociation
-            </button>
-          </section>
+          <ng-container
+            *ngTemplateOutlet="closedNegotiationCard; context: { $implicit: closed }"
+          ></ng-container>
         </ng-container>
 
         <ng-template #providerOpenNegotiation>
@@ -375,32 +443,24 @@
 
     <ng-template #clientProposalContent>
       <section
-        class="service-proposal__content"
-        [class.service-proposal__content--accepted]="acceptedReservation()"
+        *ngIf="closedProposal() as closed; else clientProposalOpenContent"
+        class="service-proposal__content service-proposal__content--closed"
       >
-        <ng-container *ngIf="acceptedReservation() as accepted; else bookingContent">
-          <app-service-proposal-accepted-summary
-            [avatarAlt]="displayName()"
-            [avatarUrl]="avatarUrl()"
-            [initials]="providerInitials()"
-            eyebrow="Prestation acceptée"
-            [title]="&quot;Vous avez accepté l'offre de &quot; + displayName()"
-            descriptionPrefix="Rendez-vous le"
-            [descriptionStrong]="acceptedDateTimeLabel()"
-            pricePrimaryLabel="Prix convenu"
-            [pricePrimaryValue]="acceptedAmountLabel()"
-            pricePrimarySuffix="FCFA"
-            [priceSecondaryLabel]="acceptedComparisonLabel()"
-            [priceSecondaryValue]="acceptedComparisonAmountLabel()"
-            [dateValue]="acceptedDateLabel() + ' · ' + acceptedTimeLabel()"
-            [addressValue]="acceptedAddressLabel()"
-            actionIcon="message-circle"
-            actionLabel="Message au prestataire"
-            (action)="messageProvider()"
-          ></app-service-proposal-accepted-summary>
-        </ng-container>
+        <ng-container
+          *ngTemplateOutlet="closedNegotiationCard; context: { $implicit: closed }"
+        ></ng-container>
+      </section>
 
-        <ng-template #bookingContent>
+      <ng-template #clientProposalOpenContent>
+      <section
+        class="service-proposal__content"
+      >
+        <ng-container *ngIf="acceptedConfirmation(); else bookingContent">
+          <section class="service-proposal__confirmed">
+            <ng-container *ngTemplateOutlet="confirmedReservationCard"></ng-container>
+          </section>
+        </ng-container>
+<ng-template #bookingContent>
           <section
             *ngIf="!pendingProposal(); else pendingProposalPanel"
             class="service-proposal__panel"
@@ -792,21 +852,6 @@
               </header>
 
               <div class="service-proposal__panel-body">
-              <ng-container *ngIf="closedProposal() as closed; else clientOpenNegotiation">
-                <section class="service-proposal__closed" aria-label="Negociation cloturee">
-                  <span class="service-proposal__closed-icon">
-                    <lucide-icon name="x" size="24" [strokeWidth]="2.8"></lucide-icon>
-                  </span>
-                  <small>{{ providerProposalStatusLabel() }}</small>
-                  <h1>{{ closedNegotiationTitle(closed) }}</h1>
-                  <p>{{ closedNegotiationMessage(closed) }}</p>
-                  <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
-                    Quitter la negociation
-                  </button>
-                </section>
-              </ng-container>
-
-              <ng-template #clientOpenNegotiation>
               <ng-container *ngIf="!hasProviderCounterOffer(); else providerCounterOfferPanel">
                 <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
@@ -872,7 +917,7 @@
                     <div class="service-proposal__counter-offer-values">
                       <span>
                         <small>Votre offre</small>
-                        <strong>{{ initialOfferAmountLabel() }} <em>FCFA</em></strong>
+                        <strong>{{ clientLatestOfferAmountLabel() }} <em>FCFA</em></strong>
                       </span>
                       <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.2"></lucide-icon>
                       <span>
@@ -968,7 +1013,6 @@
 
                   <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                 </div>
-              </ng-template>
               </ng-template>
               </div>
             </section>
@@ -1092,6 +1136,7 @@
           </aside>
         </ng-template>
       </section>
+      </ng-template>
     </ng-template>
   </ng-container>
 
@@ -1339,17 +1384,77 @@
     (locate)="useCurrentLocationForAddress()"
   />
 
-  <footer
-    *ngIf="acceptedReservation() && !isProviderProposalMode"
-    class="service-proposal__checkout-bar"
-  >
-    <span>
-      <small>Total &agrave; payer</small>
-      <strong>{{ acceptedTotalLabel() }}</strong>
-    </span>
-    <button type="button" (click)="payAcceptedReservation()">
-      Payez la r&eacute;servation
-      <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.4"></lucide-icon>
-    </button>
-  </footer>
+  <ng-template #confirmedReservationCard>
+    <article class="service-proposal__confirmed-card">
+      <span class="service-proposal__confirmed-icon" aria-hidden="true">
+        <lucide-icon name="check" size="34" [strokeWidth]="2.8"></lucide-icon>
+      </span>
+
+      <header class="service-proposal__confirmed-heading">
+        <h1>Rendez-vous confirme !</h1>
+        <p>Votre reservation a ete enregistree. Le prestataire se prepare pour votre service.</p>
+      </header>
+
+      <section class="service-proposal__confirmed-summary" aria-label="Resume du rendez-vous confirme">
+        <header>
+          <span>
+            <lucide-icon name="package" size="23" [strokeWidth]="2.2"></lucide-icon>
+          </span>
+          <div>
+            <small>Prestation</small>
+            <strong>{{ confirmedReservationServiceLabel() }}</strong>
+          </div>
+          <div>
+            <small>Total paye</small>
+            <strong>{{ confirmedReservationAmountLabel() }} FCFA</strong>
+          </div>
+        </header>
+
+        <dl>
+          <div>
+            <dt><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon> Date</dt>
+            <dd>{{ confirmedReservationDateLabel() }}</dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon> Heure</dt>
+            <dd>{{ confirmedReservationTimeLabel() }}</dd>
+          </div>
+          <div>
+            <dt><lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon> Adresse</dt>
+            <dd>{{ confirmedReservationAddressLabel() }}</dd>
+          </div>
+        </dl>
+
+        <footer>
+          <span class="service-proposal__confirmed-avatar">
+            <img
+              *ngIf="confirmedCounterpartAvatarUrl(); else confirmedCounterpartInitialsTpl"
+              [src]="confirmedCounterpartAvatarUrl()"
+              [alt]="confirmedCounterpartName()"
+            />
+            <ng-template #confirmedCounterpartInitialsTpl>
+              <em>{{ confirmedCounterpartInitials() }}</em>
+            </ng-template>
+          </span>
+          <div>
+            <small>{{ confirmedCounterpartRole() }}</small>
+            <strong>{{ confirmedCounterpartName() }}</strong>
+            <p>{{ confirmedCounterpartMeta() }}</p>
+          </div>
+          <span class="service-proposal__confirmed-status">
+            <i aria-hidden="true"></i>
+            Confirme
+          </span>
+        </footer>
+      </section>
+
+      <button type="button" class="service-proposal__confirmed-primary" (click)="openConfirmedReservation()">
+        <lucide-icon name="calendar-days" size="18" [strokeWidth]="2.4"></lucide-icon>
+        Voir le rendez-vous
+      </button>
+
+      <p class="service-proposal__confirmed-note">Un recapitulatif a ete envoye par SMS et email</p>
+    </article>
+  </ng-template>
 </main>
+

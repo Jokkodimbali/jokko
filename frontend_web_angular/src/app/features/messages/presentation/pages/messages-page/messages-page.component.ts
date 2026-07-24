@@ -6,6 +6,12 @@ import { Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import {
+  isNegotiationInProgressStatus,
+  negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusLabel,
+  reservationStatusTone,
+} from '../../../../../shared/utils/jokko-status-labels';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
@@ -131,6 +137,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly requestedDirectProfessionalUserId = signal<string | null>(null);
   private readonly messagesPageSize = 100;
   private readonly messagesByConversation = new Map<string, ConversationMessage[]>();
+  private readonly appointmentPreviewByReservationId = new Map<string, AppointmentView>();
   private activeMessagesRequestId = 0;
   private isOpeningDirectConversation = false;
   private pendingThreadScrollId: ReturnType<typeof setTimeout> | null = null;
@@ -149,12 +156,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected readonly visibleAppointmentPreview = computed(() => {
     const appointment = this.appointmentPreview();
-    const reservationId =
-      this.selectedConversation()?.reservationId ??
-      this.visibleProposal()?.reservationId ??
-      this.requestedReservationId();
+    const reservationId = this.currentVisibleReservationId();
 
-    return appointment && reservationId && appointment.id === reservationId ? appointment : null;
+    if (!reservationId) {
+      return null;
+    }
+
+    if (appointment?.id === reservationId) {
+      return appointment;
+    }
+
+    return this.appointmentPreviewByReservationId.get(reservationId) ?? null;
   });
 
   protected readonly paidAppointmentPreview = computed(() => this.visibleAppointmentPreview());
@@ -279,6 +291,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const proposal = this.visibleProposal();
     if (
       this.visibleAppointmentPreview() ||
+      Boolean(proposal?.reservationId) ||
       this.isPaidConversationStatus(proposal?.status) ||
       (Boolean(proposal?.reservationId) && this.isLoadingAppointmentPreview())
     ) {
@@ -368,10 +381,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.scrollThreadToBottom();
     this.markConversationAsReadLocally(conversationId);
     this.messagesRealtime.joinConversation(conversationId);
-    this.appointmentPreview.set(null);
     this.loadMessages(conversationId);
-    this.loadAppointmentPreviewForSelectedConversation();
-    setTimeout(() => this.loadAppointmentPreviewForVisibleProposal(), 0);
+    this.loadAppointmentPreviewForSelectedConversation({ force: true });
+    setTimeout(() => this.loadAppointmentPreviewForVisibleProposal({ force: true }), 0);
   }
 
   protected updateSearch(value: string): void {
@@ -1238,7 +1250,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.scrollThreadToBottom();
           this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
-          this.loadAppointmentPreviewForSelectedConversation();
+          this.loadAppointmentPreviewForSelectedConversation({ force: true });
         }
       },
       error: () => {
@@ -1299,6 +1311,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.scrollThreadToBottom();
         this.messagesRealtime.joinConversation(conversation.id);
         this.loadMessages(conversation.id);
+        this.loadAppointmentPreview(reservationId);
       },
       error: () => {
         const message = "Impossible d'ouvrir la discussion liee a cette reservation.";
@@ -1387,7 +1400,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.proposalService.listMyPriceProposals(scope).subscribe({
       next: (proposals) => {
         this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
-        this.loadAppointmentPreviewForVisibleProposal();
+        this.loadAppointmentPreviewForVisibleProposal({ force: true });
       },
       error: () => {
         this.priceProposals.set([]);
@@ -1421,6 +1434,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           reservationId: currentProposal.reservationId,
         });
         this.upsertProposal(currentProposal);
+        if (currentProposal.reservationId) {
+          this.loadAppointmentPreview(currentProposal.reservationId);
+        }
       },
       error: () => undefined,
     });
@@ -1744,28 +1760,50 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private loadAppointmentPreviewForVisibleProposal(): void {
+  private currentVisibleReservationId(): string | null {
+    const conversation = this.selectedConversation();
+    if (conversation?.reservationId) {
+      return conversation.reservationId;
+    }
+
+    const proposalReservationId = this.visibleProposal()?.reservationId;
+    if (proposalReservationId) {
+      return proposalReservationId;
+    }
+
+    const requestedReservationId = this.requestedReservationId();
+    if (!requestedReservationId) {
+      return null;
+    }
+
+    const requestedConversationId = this.requestedConversationId();
+    if (!conversation || !requestedConversationId || conversation.id === requestedConversationId) {
+      return requestedReservationId;
+    }
+
+    return null;
+  }
+
+  private loadAppointmentPreviewForVisibleProposal(options: { force?: boolean } = {}): void {
     const proposal = this.visibleProposal();
     if (!proposal?.reservationId) {
       return;
     }
 
-    if (this.appointmentPreview()?.id === proposal.reservationId) {
+    if (!options.force && this.appointmentPreview()?.id === proposal.reservationId) {
       return;
     }
 
     this.loadAppointmentPreview(proposal.reservationId);
   }
 
-  private loadAppointmentPreviewForSelectedConversation(): void {
-    const reservationId =
-      this.selectedConversation()?.reservationId ??
-      this.requestedReservationId();
+  private loadAppointmentPreviewForSelectedConversation(options: { force?: boolean } = {}): void {
+    const reservationId = this.currentVisibleReservationId();
     if (!reservationId) {
       return;
     }
 
-    if (this.appointmentPreview()?.id === reservationId) {
+    if (!options.force && this.appointmentPreview()?.id === reservationId) {
       return;
     }
 
@@ -1776,6 +1814,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isLoadingAppointmentPreview.set(true);
     this.appointmentsService.getAppointmentById(reservationId).subscribe({
       next: (appointment) => {
+        this.appointmentPreviewByReservationId.set(appointment.id, appointment);
         this.appointmentPreview.set(appointment);
         this.isLoadingAppointmentPreview.set(false);
       },
@@ -2052,63 +2091,25 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private appointmentStatusLabel(status: AppointmentView['status']): string {
-    switch (status) {
-      case 'CONFIRMEE':
-        return 'Confirmee';
-      case 'PAYEE_SEQUESTRE':
-        return 'Payee';
-      case 'EN_COURS':
-        return 'En cours';
-      case 'TERMINEE':
-        return 'Terminee';
-      case 'ANNULEE':
-        return 'Annulee';
-      case 'NO_SHOW':
-        return 'Absence';
-      case 'LITIGE':
-        return 'Litige';
-      default:
-        return 'Reservation';
-    }
+    return reservationStatusLabel(status);
   }
 
   private appointmentStatusTone(
     status: AppointmentView['status'],
   ): ConversationReservationCard['statusTone'] {
-    switch (status) {
-      case 'CONFIRMEE':
-      case 'PAYEE_SEQUESTRE':
-        return 'active';
-      case 'EN_COURS':
-        return 'pending';
-      case 'TERMINEE':
-        return 'success';
-      case 'ANNULEE':
-      case 'NO_SHOW':
-      case 'LITIGE':
-        return 'danger';
-      default:
-        return 'neutral';
-    }
+    return this.reservationToneForMessages(status);
+  }
+
+  private reservationToneForMessages(status: AppointmentView['status']): ConversationReservationCard['statusTone'] {
+    const tone = reservationStatusTone(status);
+    if (tone === 'blue') return 'active';
+    if (tone === 'green') return 'success';
+    if (tone === 'red') return 'danger';
+    return 'neutral';
   }
 
   private proposalStatusLabel(status: string | null): string {
-    switch (status) {
-      case 'EN_ATTENTE_PRESTATAIRE':
-        return 'En negociation';
-      case 'EN_ATTENTE_CLIENT':
-        return 'Contre-offre';
-      case 'ACCEPTEE':
-        return 'Acceptee';
-      case 'CONVERTIE_EN_RESERVATION':
-        return 'Reservation creee';
-      case 'REFUSEE':
-        return 'Refusee';
-      case 'ANNULEE':
-        return 'Annulee';
-      default:
-        return 'En negociation';
-    }
+    return sharedNegotiationStatusLabel(status);
   }
 
   private proposalStatusTone(status: string | null): ConversationReservationCard['statusTone'] {
@@ -2121,9 +2122,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         return 'danger';
       case 'EN_ATTENTE_CLIENT':
       case 'EN_ATTENTE_PRESTATAIRE':
-        return 'pending';
+        return 'danger';
       default:
-        return 'neutral';
+        return isNegotiationInProgressStatus(status) ? 'danger' : 'neutral';
     }
   }
 

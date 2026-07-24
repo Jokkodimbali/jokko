@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,6 +8,12 @@ import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import {
+  isNegotiationInProgressStatus,
+  negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusLabel,
+  reservationStatusTone,
+} from '../../../../../shared/utils/jokko-status-labels';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import {
@@ -507,21 +513,21 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     {
       id: 'WAVE',
       label: 'WAVE',
-      detail: 'Instantané · 0 FCFA',
+      detail: 'Instantane - 0 FCFA',
       logoUrl: '/wave.png',
       enabled: true,
     },
     {
       id: 'ORANGE_MONEY',
       label: 'Orange Money',
-      detail: 'Instantané · 1% frais',
+      detail: 'Instantane - 1% frais',
       logoUrl: '/Orange-Money-logo.png',
       enabled: true,
     },
     {
       id: 'BANK_TRANSFER',
       label: 'Virement bancaire',
-      detail: '1-3 jours ouvrés',
+      detail: '1-3 jours ouvres',
       enabled: false,
     },
   ];
@@ -538,7 +544,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.isProviderSpace() ? 'Mes services' : 'Services / motifs',
   );
   protected readonly appointmentHistorySectionLabel = computed(() =>
-    this.isProviderSpace() ? 'Historique des RDV' : 'Historique médical',
+    this.isProviderSpace() ? 'Historique des RDV' : 'Historique medical',
   );
   protected readonly agendaSectionLabel = computed(() => 'Gestion RDV');
   protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
@@ -1124,17 +1130,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'profile':
         return 'Profil professionnel';
       case 'availability':
-        return 'Mes disponibilités';
+        return 'Mes disponibilites';
       case 'consultation':
         return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
       case 'negotiations':
-        return 'RDV et Négociation clients';
+        return 'RDV et Negociation clients';
       case 'patient-appointments':
         return 'RDV patients';
       case 'agenda':
         return this.agendaSectionLabel();
       case 'medical-history':
-        return this.isProviderSpace() ? 'Historique des rendez-vous' : 'Historique médical';
+        return this.isProviderSpace() ? 'Historique des rendez-vous' : 'Historique medical';
       case 'wallet':
         return 'WALLET';
     }
@@ -1144,9 +1150,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'profile':
         return 'Completez votre fiche publique, vos justificatifs KYC et vos realisations.';
       case 'availability':
-        return "Vos modifications s'appliquent immédiatement à l'agenda des rendez-vous";
+        return "Vos modifications s'appliquent immediatement a l'agenda des rendez-vous";
       case 'consultation':
-        return 'Définissez les motifs du patient. Les motifs obligatoires devront être cochés à la prise de rendez-vous';
+        return 'Definissez les motifs du patient. Les motifs obligatoires devront etre coches a la prise de rendez-vous';
       case 'negotiations':
         return '';
       case 'patient-appointments':
@@ -1155,8 +1161,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         return '';
       case 'medical-history':
         return this.isProviderSpace()
-          ? `${this.providerHistoryTotalCount()} rendez-vous · ${this.providerHistoryMonthLabel()}`
-          : 'Consultez les informations médicales liées aux rendez-vous et aux patients.';
+          ? `${this.providerHistoryTotalCount()} rendez-vous - ${this.providerHistoryMonthLabel()}`
+          : 'Consultez les informations medicales liees aux rendez-vous et aux patients.';
       case 'wallet':
         return 'Suivez vos revenus et retirez vos gains via Wave, Orange Money ou virement bancaire.';
     }
@@ -1520,22 +1526,26 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationStatusLabel(status: NegotiationStatus | AppointmentStatus): string {
-    const labels: Partial<Record<NegotiationStatus | AppointmentStatus, string>> = {
-      EN_ATTENTE_PRESTATAIRE: 'À valider',
-      EN_ATTENTE_CLIENT: 'Attente client',
-      ACCEPTEE: 'Prix accepté',
-      REFUSEE: 'Refusée',
-      ANNULEE: 'Annulée',
-      CONVERTIE_EN_RESERVATION: 'Confirmé',
-    };
-    return labels[status] ?? this.negotiationReservationStatusLabel(status as AppointmentStatus);
+    return this.isNegotiationReservationStatus(status)
+      ? reservationStatusLabel(status)
+      : sharedNegotiationStatusLabel(status);
   }
 
+  private isNegotiationReservationStatus(status: NegotiationStatus | AppointmentStatus): status is AppointmentStatus {
+    return (
+      status === 'CONFIRMEE' ||
+      status === 'PAYEE_SEQUESTRE' ||
+      status === 'EN_COURS' ||
+      status === 'TERMINEE' ||
+      status === 'ANNULEE' ||
+      status === 'NO_SHOW' ||
+      status === 'LITIGE'
+    );
+  }
 
   protected negotiationTone(negotiation: NegotiationView): string {
     if (this.isTimelineReservation(negotiation)) return this.negotiationReservationTone(negotiation.statut as AppointmentStatus);
-    if (negotiation.statut === 'EN_ATTENTE_PRESTATAIRE') return 'pending';
-    if (negotiation.statut === 'EN_ATTENTE_CLIENT') return 'counter';
+    if (isNegotiationInProgressStatus(negotiation.statut)) return 'rejected';
     if (negotiation.statut === 'ACCEPTEE') return 'accepted';
     if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'confirmed';
     if (negotiation.statut === 'REFUSEE') return 'rejected';
@@ -1555,7 +1565,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationLocation(negotiation: NegotiationView): string {
-    return negotiation.adresseClientProposee || negotiation.client?.adresse || 'Lieu à confirmer';
+    return negotiation.adresseClientProposee || negotiation.client?.adresse || 'Lieu a confirmer';
   }
 
   protected negotiationPhoneHref(negotiation: NegotiationView): string | null {
@@ -1637,9 +1647,12 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationReservationTone(status: AppointmentStatus): string {
+    const tone = reservationStatusTone(status);
+    if (tone === 'blue') return 'active';
+    if (tone === 'green') return 'confirmed';
     if (status === 'ANNULEE' || status === 'NO_SHOW') return 'cancelled';
     if (status === 'LITIGE') return 'rejected';
-    return 'confirmed';
+    return 'cancelled';
   }
 
   protected updateProviderHistoryPageSize(value: string | number): void {
@@ -1948,17 +1961,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected agendaReservationStatusLabel(status: AppointmentStatus): string {
-    const labels: Record<AppointmentStatus, string> = {
-      CONFIRMEE: 'Confirmee',
-      PAYEE_SEQUESTRE: 'Payee et confirmee',
-      EN_COURS: 'En cours',
-      TERMINEE: 'Terminee',
-      ANNULEE: 'Annulée',
-      NO_SHOW: 'Absent',
-      LITIGE: 'Litige',
-    };
-
-    return labels[status];
+    return reservationStatusLabel(status);
   }
 
   protected agendaReservationDateLabel(reservation: BackendReservation): string {
@@ -2727,7 +2730,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       next: (negotiations) => this.negotiations.set(negotiations),
       error: (error) =>
         this.feedback.error(
-          getHttpErrorMessage(error, 'Impossible de charger les négociations clients.'),
+          getHttpErrorMessage(error, 'Impossible de charger les negociations clients.'),
         ),
     });
   }
@@ -3187,7 +3190,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     })
       .format(date)
       .replace('.', '');
-    return `${datePart} — ${this.formatAgendaTime(date)}`;
+    return `${datePart} - ${this.formatAgendaTime(date)}`;
   }
 
   private formatMedicalHistoryDate(date: Date): string {
@@ -3327,9 +3330,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   private agendaEventVariant(status: AppointmentStatus): AgendaEvent['variant'] {
+    const tone = reservationStatusTone(status);
+    if (tone === 'blue') return 'pending';
+    if (tone === 'green') return status === 'TERMINEE' ? 'done' : 'confirmed';
+    if (status === 'LITIGE') return 'dispute';
+    if (status === 'NO_SHOW') return 'absent';
+    if (status === 'ANNULEE') return 'cancelled';
+
     const variants: Record<AppointmentStatus, AgendaEvent['variant']> = {
       CONFIRMEE: 'confirmed',
-      PAYEE_SEQUESTRE: 'paid',
+      PAYEE_SEQUESTRE: 'active',
       EN_COURS: 'active',
       TERMINEE: 'done',
       ANNULEE: 'cancelled',
@@ -3359,17 +3369,19 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   private providerHistoryStatusLabel(status: AppointmentStatus): string {
-    if (status === 'TERMINEE') return 'Terminé';
-    if (status === 'ANNULEE') return 'Annulé';
+    if (status === 'TERMINEE') return 'Termine';
+    if (status === 'ANNULEE') return 'Annule';
     if (status === 'NO_SHOW') return 'Absent';
     return this.agendaReservationStatusLabel(status);
   }
 
   private providerHistoryStatusTone(status: AppointmentStatus): ProviderAppointmentHistoryRow['statusTone'] {
-    if (status === 'TERMINEE') return 'done';
+    const tone = reservationStatusTone(status);
+    if (tone === 'blue') return 'pending';
+    if (tone === 'green') return 'done';
     if (status === 'ANNULEE') return 'cancelled';
     if (status === 'NO_SHOW') return 'absent';
-    return 'pending';
+    return tone === 'red' ? 'cancelled' : 'pending';
   }
 
   private sumProviderRows(rows: ProviderAppointmentHistoryRow[]): number {
@@ -3846,4 +3858,5 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     };
   }
 }
+
 

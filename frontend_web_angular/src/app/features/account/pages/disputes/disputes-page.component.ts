@@ -8,6 +8,7 @@ import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
+import { reservationStatusLabel, reservationStatusTone } from '../../../../shared/utils/jokko-status-labels';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 import { AppointmentView, ReservationDisputeView, DisputeEvidenceView } from '../../../appointments/domain/appointments.models';
 
@@ -256,24 +257,17 @@ export class DisputesPageComponent implements OnInit {
 
   protected statusLabel(appointment: AppointmentView): string {
     if (this.canOpenDispute(appointment)) return 'Signalez le litige';
-
-    const labels: Record<AppointmentView['status'], string> = {
-      CONFIRMEE: 'A venir',
-      PAYEE_SEQUESTRE: 'Confirmee',
-      EN_COURS: 'En cours',
-      TERMINEE: 'Terminee',
-      ANNULEE: 'Annulee',
-      NO_SHOW: 'Absent',
-      LITIGE: 'Litige en cours',
-    };
-    return labels[appointment.status];
+    return reservationStatusLabel(appointment.status);
   }
 
   protected statusTone(appointment: AppointmentView): string {
     if (this.canOpenDispute(appointment)) return 'report';
+    const tone = reservationStatusTone(appointment.status);
     if (appointment.status === 'LITIGE') return 'dispute';
-    if (this.isUpcoming(appointment)) return 'upcoming';
-    return 'neutral';
+    if (tone === 'blue') return 'active';
+    if (tone === 'green') return 'done';
+    if (tone === 'red') return 'dispute';
+    return this.isUpcoming(appointment) ? 'upcoming' : 'neutral';
   }
 
   protected actionLabel(appointment: AppointmentView): string {

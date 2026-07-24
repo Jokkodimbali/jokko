@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { negotiationStatusLabel } from '../../../../../shared/utils/jokko-status-labels';
 import { NegotiationView } from '../../../data-access/service-proposal.service';
 import { BackendProfessionalDetailService } from '../../../domain/models/services.models';
 import { ServiceProposalFormatService } from './service-proposal-format.service';
@@ -8,13 +9,7 @@ export class ServiceProposalPricingViewService {
   constructor(private readonly formatter: ServiceProposalFormatService) {}
 
   providerProposalStatusLabel(status: NegotiationView['statut'] | undefined): string {
-    if (status === 'EN_ATTENTE_PRESTATAIRE') return 'En attente de votre r\u00e9ponse';
-    if (status === 'EN_ATTENTE_CLIENT') return 'Contre-proposition envoy\u00e9e au client';
-    if (status === 'ACCEPTEE') return 'Le prix a \u00e9t\u00e9 accept\u00e9';
-    if (status === 'CONVERTIE_EN_RESERVATION') return 'La r\u00e9servation est confirm\u00e9e';
-    if (status === 'REFUSEE') return 'Proposition refus\u00e9e';
-    if (status === 'ANNULEE') return 'N\u00e9gociation annul\u00e9e';
-    return 'Proposition de prix';
+    return negotiationStatusLabel(status);
   }
 
   providerBaseOfferAmount(input: {
@@ -64,16 +59,6 @@ export class ServiceProposalPricingViewService {
       : 'PRIX EQUITABLE DU SERVICE';
   }
 
-  providerFinalizedComparisonLabel(base: number | null, accepted: number | null): string {
-    if (!base || !accepted || base === accepted) return 'Prix initial';
-    return accepted < base ? 'Remise accordee' : 'Ajustement';
-  }
-
-  providerFinalizedComparisonAmountLabel(base: number | null, accepted: number | null): string {
-    if (!base || !accepted || base === accepted) return '0 FCFA';
-    return `${accepted > base ? '+' : '-'}${this.formatAmount(Math.abs(accepted - base))} FCFA`;
-  }
-
   offerDifferenceLabel(input: {
     servicePrice: number;
     offerAmount: number;
@@ -120,8 +105,9 @@ export class ServiceProposalPricingViewService {
 
   counterDifferenceLabel(proposal: NegotiationView | null): string {
     if (!proposal) return '';
-    const difference = Math.trunc(proposal.montantCourant - proposal.montantInitial);
-    if (difference === 0) return 'La proposition correspond a votre offre initiale';
+    const clientOffer = this.latestNegotiationOffer(proposal, 'CLIENT') ?? proposal.montantInitial;
+    const difference = Math.trunc(proposal.montantCourant - clientOffer);
+    if (difference === 0) return 'La proposition correspond a votre offre';
 
     const direction = difference > 0 ? 'de plus que votre offre' : 'de moins que votre offre';
     return `${this.formatAmount(Math.abs(difference))} FCFA ${direction}`;
@@ -148,5 +134,16 @@ export class ServiceProposalPricingViewService {
 
   private formatAmount(value: number): string {
     return this.formatter.formatAmount(value);
+  }
+
+  private latestNegotiationOffer(
+    negotiation: NegotiationView,
+    actor: 'CLIENT' | 'PRESTATAIRE',
+  ): number | null {
+    const offer = [...(negotiation.propositions ?? [])]
+      .reverse()
+      .find((item) => item.proposePar === actor);
+    const amount = Number(offer?.montant);
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
   }
 }

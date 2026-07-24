@@ -89,6 +89,10 @@ export class AppSearchBarComponent {
     return Math.max(0, this.categorySuggestions.length - this.collapsedCategoryCount);
   }
 
+  protected reviewCountFillPercent(reviews: number): number {
+    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
+  }
+
   onInput(value: string): void {
     this.searchValue = value;
     this.showAllCategories = false;

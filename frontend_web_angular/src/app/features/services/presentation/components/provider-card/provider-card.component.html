@@ -81,13 +81,21 @@
 
     <div class="provider-card__meta">
       <strong>{{ provider.priceRangeLabel }}</strong>
-      <span aria-label="Note">
+      <span
+        class="provider-card__rating"
+        aria-label="Note"
+        [style.--rating-fill.%]="ratingFillPercent"
+      >
+        <span class="provider-card__rating-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        <span class="provider-card__rating-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      </span>
+      <span hidden>
         <i
           *ngFor="let star of ratingStarValues"
           class="provider-card__rating-star"
           [class.provider-card__star--filled]="isRatingStarFilled(star)"
           aria-hidden="true"
-        >★</i>
+        >&#9733;</i>
       </span>
       <small>{{ provider.totalReviews }} avis</small>
     </div>

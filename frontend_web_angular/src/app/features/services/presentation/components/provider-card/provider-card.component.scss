@@ -241,6 +241,38 @@
   gap: 2px;
 }
 
+.provider-card__meta span[hidden] {
+  display: none !important;
+}
+
+.provider-card__rating {
+  color: #f59e0b;
+  display: inline-grid !important;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1;
+  position: relative;
+  width: max-content;
+}
+
+.provider-card__rating-base,
+.provider-card__rating-fill {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.provider-card__rating-base {
+  color: #f59e0b;
+  opacity: 0.32;
+}
+
+.provider-card__rating-fill {
+  color: #f59e0b;
+  max-width: var(--rating-fill, 0%);
+  overflow: hidden;
+}
+
 .provider-card__rating-star {
   color: #f59e0b;
   font-size: 14px;

@@ -29,7 +29,6 @@ import {
   AppointmentView,
   MedicalPrescriptionPayload,
 } from '../../../domain/appointments.models';
-import { AppointmentDetailLoadingComponent } from '../../components/appointment-detail-loading/appointment-detail-loading.component';
 import { AppointmentDetailFormatService } from './appointment-detail-format.service';
 import { AppointmentDocumentBuilderService } from './appointment-document-builder.service';
 import { AppointmentDocumentRendererService } from './appointment-document-renderer.service';
@@ -87,8 +86,7 @@ const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
-const LIVE_LOCATION_UPDATE_INTERVAL_MS = 2000;
-const ROUTE_DEVIATION_THRESHOLD_METERS = 45;
+const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 5_000;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<
@@ -139,7 +137,6 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     CommonModule,
     FormsModule,
     LucideAngularModule,
-    AppointmentDetailLoadingComponent,
     AppointmentTrackingStepperComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
@@ -1167,10 +1164,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     },
   );
   protected readonly showProviderConsoleVisual = computed(
-    () =>
-      this.isProviderViewer() &&
-      !this.isProviderOnTheWay() &&
-      !this.isParcelDropoffNavigationActive(),
+    () => {
+      if (!this.isProviderViewer()) return false;
+
+      if (this.isProviderWorking() || this.isAppointmentCompleted()) {
+        return true;
+      }
+
+      return !this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive();
+    },
   );
   protected readonly showClientRoutePanel = computed(
     () => this.isClientViewer() && !this.isProviderViewer(),
@@ -2138,6 +2140,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected shareProviderLocation(appointment: AppointmentView): void {
     if (this.isUpdatingStatus() || !this.isRouteActorViewer()) return;
 
+    void this.providerLocation.requestOrientationPermission();
     this.isUpdatingStatus.set(true);
     this.feedback.info(
       "Autorisez la localisation du navigateur pour partager automatiquement votre position reelle.",
@@ -2259,6 +2262,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
+    if (!silent) {
+      void this.providerLocation.requestOrientationPermission();
+    }
     this.isUpdatingStatus.set(true);
     this.routeActorArrivalConfirmed.set(false);
     this.arrivalState.clear(appointment.id);
@@ -2335,7 +2341,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
-        this.synchronizeLiveNavigation(updated);
+        this.synchronizeLiveNavigationAfterStatusPaint(updated);
         this.refreshAppointmentState(updated.id);
         this.refreshTracking(updated.id);
         if (this.isParcelTransportAppointment(updated)) {
@@ -2404,7 +2410,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.mergeAppointment(current ?? appointment, updated),
         );
         this.hydrateMedicalPrescriptionFromAppointment(updated);
-        this.synchronizeLiveNavigation(updated);
+        this.synchronizeLiveNavigationAfterStatusPaint(updated);
         this.loadTerminalTrackingSnapshot(appointment.id);
         this.refreshAppointmentState(appointment.id);
         this.isUpdatingStatus.set(false);
@@ -2536,6 +2542,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!this.trackingSubscription) {
       this.startTrackingPolling(appointment.id);
     }
+  }
+
+  private synchronizeLiveNavigationAfterStatusPaint(appointment: AppointmentView): void {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const current = this.appointment();
+        if (!current || current.id !== appointment.id || current.status !== appointment.status) {
+          return;
+        }
+
+        this.synchronizeLiveNavigation(current);
+      });
+    });
   }
 
   private stopLiveNavigation(
@@ -3328,6 +3347,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const destination = this.destinationCoordinates();
+    const tracking = this.tracking();
     const arrived = this.hasTravelerArrivedAtDestination();
     const arrivalPoint = arrived
       ? this.resolveArrivalPoint(destination, this.tracking())
@@ -3355,12 +3375,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     ) {
       this.clearNavigationRouteAfterArrival();
     }
-    if (
-      destination &&
-      !arrived &&
-      this.recalculateRouteIfOffCourse(trackedProvider, destination)
-    ) {
-      return;
+    if (destination && !arrived) {
+      this.recalculateRouteIfOffCourse(trackedProvider, destination);
     }
     if (
       destination &&
@@ -3386,6 +3402,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       remainingLabel: this.routeRemainingBadgeLabel(),
       statusLabel: this.vehicleStatusLabel(),
       headingDegrees: this.reliableTrackingHeading(),
+      accuracyMeters:
+        tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? null,
+      speedKmh: tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null,
       routes: this.serializedMapRoutes(),
       showManeuverMarkers: this.isRouteActorViewer(),
       arrived: this.hasTravelerArrivedAtDestination(),
@@ -3615,14 +3634,27 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const deviationMeters = this.distanceFromCurrentRouteMeters(currentPosition);
-    if (deviationMeters <= ROUTE_DEVIATION_THRESHOLD_METERS) {
+    const tracking = this.tracking();
+    const accuracyMeters =
+      tracking?.lastAccuracyMeters ??
+      tracking?.presence.lastAccuracyMeters ??
+      35;
+    const dynamicDeviationThreshold = Math.max(
+      18,
+      Math.min(35, accuracyMeters * 1.4),
+    );
+    if (deviationMeters <= dynamicDeviationThreshold) {
       return false;
     }
 
     this.routeDeviationRecalculationBlockedUntilMs =
       Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
     this.routeCoordinatesKey = '';
-    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng]);
+    this.loadRouteCoordinates(
+      trackedProvider,
+      [destination.lat, destination.lng],
+      true,
+    );
     return true;
   }
 
@@ -3805,15 +3837,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const tracking = this.tracking();
-    const speed =
-      tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null;
     const heading =
       tracking?.lastHeadingDegrees ??
       tracking?.presence.lastHeadingDegrees ??
       null;
-    return typeof speed === 'number' &&
-      speed >= 3 &&
-      typeof heading === 'number' &&
+    return typeof heading === 'number' &&
       Number.isFinite(heading)
       ? heading
       : null;
@@ -3863,15 +3891,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.trackingMapElement = undefined;
   }
 
-  private loadRouteCoordinates(provider: [number, number], destinationPoint: [number, number]): void {
+  private loadRouteCoordinates(
+    provider: [number, number],
+    destinationPoint: [number, number],
+    preserveCurrentRoute = false,
+  ): void {
     const key = `${this.geo.routePointKey(provider)}|${this.geo.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
     this.routeCoordinatesKey = key;
-    this.routeCoordinates = [];
-    this.routeOptions = [];
-    this.routeAlternatives.set([]);
-    this.routeDistanceKm.set(null);
-    this.routeDurationMinutes.set(null);
+    if (!preserveCurrentRoute) {
+      this.routeCoordinates = [];
+      this.routeOptions = [];
+      this.routeAlternatives.set([]);
+      this.routeDistanceKm.set(null);
+      this.routeDurationMinutes.set(null);
+    }
     this.routeStatus.set('calculating');
 
     this.appointmentsService
@@ -3894,11 +3928,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           !this.geo.isCoordinateInSenegal(provider[0], provider[1]) ||
           !this.geo.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
         ) {
-          this.routeCoordinates = [];
-          this.routeOptions = [];
-          this.routeAlternatives.set([]);
-          this.mapRenderer.resetRoute();
-          this.routeStatus.set('unavailable');
+          if (!preserveCurrentRoute) {
+            this.routeCoordinates = [];
+            this.routeOptions = [];
+            this.routeAlternatives.set([]);
+            this.mapRenderer.resetRoute();
+          }
+          this.routeCoordinatesKey = '';
+          this.routeStatus.set(
+            preserveCurrentRoute && this.routeCoordinates.length > 1
+              ? 'ready'
+              : 'unavailable',
+          );
           return;
         }
 
@@ -3917,14 +3958,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.announceNavigationInstruction();
         },
         error: () => {
-        this.routeCoordinates = [];
-        this.routeOptions = [];
-        this.routeAlternatives.set([]);
-        this.mapRenderer.resetRoute();
-        this.routeDistanceKm.set(null);
-        this.routeDurationMinutes.set(null);
+        if (!preserveCurrentRoute) {
+          this.routeCoordinates = [];
+          this.routeOptions = [];
+          this.routeAlternatives.set([]);
+          this.mapRenderer.resetRoute();
+          this.routeDistanceKm.set(null);
+          this.routeDurationMinutes.set(null);
+        }
+        this.routeCoordinatesKey = '';
         this.routeRequestBlockedUntilMs = Date.now() + 20_000;
-        this.routeStatus.set('unavailable');
+        this.routeStatus.set(
+          preserveCurrentRoute && this.routeCoordinates.length > 1
+            ? 'ready'
+            : 'unavailable',
+        );
         },
       });
   }

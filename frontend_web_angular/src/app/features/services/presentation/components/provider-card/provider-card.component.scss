@@ -2,7 +2,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  justify-self: center;
+  max-width: 450px;
   min-width: 0;
+  width: 100%;
 }
 
 .provider-card {
@@ -248,18 +251,30 @@
 .provider-card__rating {
   color: #f59e0b;
   display: inline-grid !important;
-  font-size: 14px;
   font-weight: 900;
-  letter-spacing: 1px;
   line-height: 1;
   position: relative;
   width: max-content;
+  border-radius: 22px;
 }
 
 .provider-card__rating-base,
 .provider-card__rating-fill {
+  display: inline-flex;
+  gap: 1px;
   grid-area: 1 / 1;
   white-space: nowrap;
+}
+
+.provider-card__rating svg {
+  fill: currentColor;
+  flex: 0 0 17px;
+  height: 17px;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-width: 0.8px;
+  width: 17px;
 }
 
 .provider-card__rating-base {

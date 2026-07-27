@@ -279,14 +279,6 @@
     overflow-wrap: anywhere;
   }
 
-  .appointment-detail__route-layout--completed .appointment-detail__client-summary-panel {
-    padding-top: 18px;
-  }
-
-  .appointment-detail__route-layout--completed .appointment-detail__client-summary-status h2 {
-    font-size: 30px;
-  }
-
   .appointment-detail__client-summary-contact {
     grid-template-columns: 1fr;
   }
@@ -408,7 +400,4 @@
     max-width: calc(100% - 110px);
   }
 
-  .appointment-detail__route-layout--completed .appointment-detail__client-summary-status h2 {
-    font-size: 27px;
-  }
 }

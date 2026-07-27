@@ -15,6 +15,10 @@
   background: #f3f5f4;
 }
 
+.appointment-payment--confirmed {
+  padding-bottom: 0;
+}
+
 .appointment-payment__topbar {
   align-items: center;
   background: #ffffff;
@@ -53,21 +57,6 @@
   color: #4f883a;
 }
 
-.appointment-payment__finalized-label {
-  align-items: center;
-  color: #8d948f;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 750;
-  gap: 8px;
-}
-
-.appointment-payment__finalized-label lucide-icon {
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  padding: 1px;
-}
-
 .appointment-payment__state {
   color: #43535d;
   font-size: 18px;
@@ -93,7 +82,7 @@
   background: #eef0f2;
   display: grid;
   justify-items: center;
-  min-height: 100vh;
+  min-height: calc(100vh - 42px);
   padding: 40px 16px;
 }
 

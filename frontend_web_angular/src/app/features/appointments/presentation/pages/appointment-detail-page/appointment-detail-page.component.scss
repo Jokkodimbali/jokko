@@ -5,6 +5,7 @@
 .appointment-detail {
   background: #ffffff;
   color: #070b12;
+  font-family: var(--font-app);
   min-height: 100vh;
 }
 
@@ -25,7 +26,12 @@
   display: grid;
   justify-items: center;
   min-height: 100vh;
-  padding: 10px 16px 58px;
+  padding: 0 16px 58px;
+}
+
+.appointment-detail__cancelled-topbar {
+  margin: 0 -16px 10px;
+  width: calc(100% + 32px);
 }
 
 .appointment-detail__cancelled-card {

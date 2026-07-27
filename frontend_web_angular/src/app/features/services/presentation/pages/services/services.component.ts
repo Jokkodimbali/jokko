@@ -170,7 +170,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   ];
   favoriteProviders = computed(() =>
-    this.favoritesService.favorites().map((favorite) => ({
+    this.favoritesService.favorites()
+      .filter((favorite) => !this.isOwnProfessionalIdentity(favorite.professionalId))
+      .map((favorite) => ({
       id: favorite.professionalId,
       nom: favorite.name,
       categoryName: favorite.subtitle,
@@ -191,7 +193,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
       services: [],
       route: `/services/${favorite.professionalId}`,
-    })),
+      })),
   );
   protected readonly activeFilterLabel = computed(() => {
     const activeSubCategory = this.activeSubCategory();
@@ -246,6 +248,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
   private suggestionRequestVersion = 0;
   private requestVersion = 0;
+  private professionalsRequestSubscription?: Subscription;
+  private suggestionsRequestSubscription?: Subscription;
+  private allTravelModesSnapshot: { contextKey: string; providers: Professional[] } | null = null;
   private readonly locationLabelCache = new Map<string, string>();
   private serviceFilterWheelCleanups: Array<() => void> = [];
   private serviceFilterRefsChangesSubscription?: Subscription;
@@ -258,6 +263,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearSearchDebounce();
+    this.professionalsRequestSubscription?.unsubscribe();
+    this.suggestionsRequestSubscription?.unsubscribe();
     this.clearServiceFilterWheelListeners();
     this.serviceFilterRefsChangesSubscription?.unsubscribe();
   }
@@ -324,9 +331,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    this.clearSearchDebounce();
     this.activeTravelMode.set(nextMode);
     this.showSearchSuggestions.set(false);
     this.showLocationMenu.set(false);
+    this.applyTravelModeImmediately(nextMode);
     this.loadProfessionals(1);
     this.loadSearchSuggestions();
   }
@@ -503,10 +512,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.fetchProfessionals(query, page).subscribe({
+    this.professionalsRequestSubscription?.unsubscribe();
+    this.professionalsRequestSubscription = this.fetchProfessionals(query, page).subscribe({
       next: (result) => {
         if (requestId !== this.requestVersion) {
           return;
+        }
+
+        if (page === 1 && this.activeTravelMode() === 'ALL') {
+          this.allTravelModesSnapshot = {
+            contextKey: this.travelModeContextKey(),
+            providers: result.providers,
+          };
         }
 
         const section = this.buildSection(result, query);
@@ -568,7 +585,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const requestId = ++this.suggestionRequestVersion;
     const travelMode = this.activeServiceTravelMode();
 
-    this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter(), undefined, undefined, travelMode).subscribe({
+    this.suggestionsRequestSubscription?.unsubscribe();
+    this.suggestionsRequestSubscription = this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter(), undefined, undefined, travelMode).subscribe({
       next: (result) => {
         if (requestId !== this.suggestionRequestVersion) {
           return;
@@ -576,8 +594,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
         setTimeout(() => {
           if (requestId === this.suggestionRequestVersion) {
-            this.suggestionProviders.set(result.providers);
-            this.resolveProviderLocationLabels(result.providers);
+            const visibleProviders = this.withoutConnectedProfessional(result.providers);
+            this.suggestionProviders.set(visibleProviders);
+            this.resolveProviderLocationLabels(visibleProviders);
           }
         });
       },
@@ -603,7 +622,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
     const activeSubCategory = this.activeSubCategory();
     const activeTravelModeLabel = this.travelModeFilters.find((filter) => filter.value === this.activeTravelMode())?.label;
-    const total = result.meta?.total || result.providers.length;
+    const providers = this.withoutConnectedProfessional(result.providers);
+    const hiddenOwnProviderCount = result.providers.length - providers.length;
+    const total = Math.max(0, (result.meta?.total || result.providers.length) - hiddenOwnProviderCount);
     const title = query
       ? `Recherche ${query}`
       : this.activeTravelMode() !== 'ALL' && activeTravelModeLabel
@@ -620,9 +641,25 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       id: `providers-${this.activeFilter().toLowerCase()}-${this.activeCategoryId() ?? 'all'}-${this.activeSubCategoryId() ?? 'all'}-${this.activeTravelMode().toLowerCase()}`,
       title,
       countLabel: `${total} ${activeCategory || activeSubCategory ? 'profils disponibles' : activeFilter.countLabel}`,
-      providers: result.providers,
+      providers,
       pagination: result.meta,
     };
+  }
+
+  private withoutConnectedProfessional(providers: Professional[]): Professional[] {
+    return providers.filter((provider) => !this.isOwnProfessionalIdentity(provider.id, provider.userId));
+  }
+
+  private isOwnProfessionalIdentity(professionalId: string, professionalUserId?: string): boolean {
+    const currentUser = this.authSession.currentUser();
+    if (!currentUser || (currentUser.role !== 'PRESTATAIRE' && currentUser.role !== 'MEDECIN')) {
+      return false;
+    }
+
+    return (
+      professionalUserId === currentUser.id ||
+      professionalId === currentUser.professionalProfile?.id
+    );
   }
 
   private loadCategories(): void {
@@ -689,6 +726,30 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private activeServiceTravelMode(): ServiceTravelMode | undefined {
     const mode = this.activeTravelMode();
     return mode === 'ALL' ? undefined : mode;
+  }
+
+  private applyTravelModeImmediately(mode: TravelModeFilter): void {
+    const snapshot = this.allTravelModesSnapshot;
+    if (!snapshot || snapshot.contextKey !== this.travelModeContextKey()) {
+      this.sections.set([]);
+      return;
+    }
+
+    const providers = mode === 'ALL'
+      ? snapshot.providers
+      : snapshot.providers.filter((provider) => provider.serviceTravelMode === mode);
+    this.sections.set([this.buildSection({ providers }, this.searchTerm().trim())]);
+    this.categoryPagination.set(undefined);
+  }
+
+  private travelModeContextKey(): string {
+    return [
+      this.searchTerm().trim().toLowerCase(),
+      this.activeFilter(),
+      this.activeCategoryId() ?? '',
+      this.activeSubCategoryId() ?? '',
+      this.effectiveCityFilter() ?? '',
+    ].join('|');
   }
 
   resolveProviderAvatar(provider: { avatar?: string }): string | null {

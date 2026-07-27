@@ -473,20 +473,15 @@
   display: grid !important;
   gap: 20px !important;
   grid-auto-rows: 1fr !important;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 450px)) !important;
+  justify-content: center !important;
   overflow: visible !important;
-}
-
-@media (min-width: 1180px) {
-  :host .provider-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
 }
 
 :host .provider-row app-provider-card {
   display: flex !important;
   height: 100% !important;
-  max-width: 100% !important;
+  max-width: 450px !important;
   min-width: 0 !important;
 }
 

@@ -1,7 +1,10 @@
-<main class="appointment-payment" [class.appointment-payment--medicine]="isMedicinePaymentFlow()">
-  <section *ngIf="!isPaymentConfirmed()" class="appointment-payment__topbar" aria-label="Navigation paiement">
+<main
+  class="appointment-payment"
+  [class.appointment-payment--medicine]="isMedicinePaymentFlow()"
+  [class.appointment-payment--confirmed]="isPaymentConfirmed()"
+>
+  <section class="appointment-payment__topbar" aria-label="Navigation paiement">
     <button
-      *ngIf="!isPaymentConfirmed(); else reservationFinalizedLabel"
       type="button"
       class="appointment-payment__back"
       (click)="goBack()"
@@ -9,12 +12,6 @@
       <lucide-icon name="arrow-left" size="17" [strokeWidth]="2.4"></lucide-icon>
       <span>Retour</span>
     </button>
-    <ng-template #reservationFinalizedLabel>
-      <span class="appointment-payment__finalized-label">
-        <lucide-icon name="check" size="15" [strokeWidth]="2.5"></lucide-icon>
-        Reservation finalisee
-      </span>
-    </ng-template>
 
     <span class="appointment-payment__secure">
       <lucide-icon name="shield-check" size="13" [strokeWidth]="2.4"></lucide-icon>

@@ -578,22 +578,6 @@
   overflow-wrap: anywhere;
 }
 
-.appointment-detail__route-layout--completed .appointment-detail__client-summary-panel {
-  align-content: start;
-  box-sizing: border-box;
-  padding-top: 132px;
-}
-
-.appointment-detail__route-layout--completed .appointment-detail__client-summary-status {
-  gap: 14px;
-}
-
-.appointment-detail__route-layout--completed .appointment-detail__client-summary-status h2 {
-  font-size: clamp(30px, 3.2vw, 42px);
-  line-height: 1.16;
-  max-width: min(100%, 390px);
-}
-
 .appointment-detail__client-summary-status p {
   color: #667085;
   font-size: 19px;

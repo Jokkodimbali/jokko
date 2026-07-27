@@ -1,6 +1,4 @@
 ﻿<main class="appointment-detail">
-  <app-appointment-detail-loading *ngIf="isLoading()" />
-
   <section
     class="appointment-detail__state appointment-detail__state--error"
     *ngIf="!isLoading() && errorMessage()"
@@ -272,6 +270,18 @@
       class="appointment-detail__cancelled"
       [attr.aria-label]="cancelledScreenTitle(appointment)"
     >
+      <header class="appointment-detail__upcoming-topbar appointment-detail__cancelled-topbar">
+        <div class="appointment-detail__upcoming-heading">
+          <button type="button" aria-label="Retour" (click)="goBack()">
+            <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+          <div>
+            <span>Rendez-vous</span>
+            <strong>{{ cancelledScreenTitle(appointment) }}</strong>
+          </div>
+        </div>
+      </header>
+
       <article class="appointment-detail__cancelled-card">
         <section class="appointment-detail__cancelled-hero">
           <span aria-hidden="true">
@@ -402,7 +412,6 @@
       [class.appointment-detail__route-layout--arrived]="isProviderWorking() && !isParcelDropoffNavigationActive()"
       [class.appointment-detail__route-layout--client]="showClientRoutePanel()"
       [class.appointment-detail__route-layout--provider]="isProviderViewer()"
-      [class.appointment-detail__route-layout--completed]="isAppointmentCompleted()"
       [attr.aria-label]="
         isProviderWorking() && !isParcelDropoffNavigationActive()
           ? 'Prestation en cours'
@@ -433,9 +442,13 @@
         class="appointment-detail__live-map"
         [class.appointment-detail__live-map--fullscreen]="isMapFullscreen()"
       >
-        <div *ngIf="showProviderConsoleVisual()" class="appointment-detail__provider-console-visual">
-          <ng-container *ngIf="isAppointmentCompleted(); else providerActiveConsoleVisual">
-            <div class="appointment-detail__provider-console-done">
+        <div
+          *ngIf="isProviderViewer()"
+          class="appointment-detail__provider-console-visual"
+          [class.appointment-detail__provider-console-visual--visible]="showProviderConsoleVisual()"
+          [attr.aria-hidden]="!showProviderConsoleVisual()"
+        >
+            <div class="appointment-detail__provider-console-done" [hidden]="!isAppointmentCompleted()">
               <span>
                 <lucide-icon name="check" size="34" [strokeWidth]="3"></lucide-icon>
               </span>
@@ -454,10 +467,10 @@
                 Ordonnance medicale
               </button>
             </div>
-          </ng-container>
-          <ng-template #providerActiveConsoleVisual>
+          <div [hidden]="isAppointmentCompleted()">
             <section
-              *ngIf="isDoctorViewer() && isProviderWorking(); else providerDefaultConsoleVisual"
+              *ngIf="isDoctorViewer()"
+              [hidden]="!isProviderWorking()"
               class="appointment-detail__medical-workbench"
             >
               <header class="appointment-detail__medical-head">
@@ -590,8 +603,10 @@
               </footer>
             </section>
 
-            <ng-template #providerDefaultConsoleVisual>
-            <div class="appointment-detail__provider-console-ready">
+            <div
+              class="appointment-detail__provider-console-ready"
+              [hidden]="isDoctorViewer() && isProviderWorking()"
+            >
               <p>{{ providerConsoleEyebrow() }}</p>
               <h2>{{ providerConsoleTitle() }}</h2>
               <small>{{ providerConsoleDescription() }}</small>
@@ -605,8 +620,7 @@
                 {{ providerPrimaryActionLabel() }}
               </button>
             </div>
-            </ng-template>
-          </ng-template>
+          </div>
         </div>
         <div *ngIf="showClientTrackingVisual()" class="appointment-detail__client-tracking-visual">
           <ng-container *ngIf="isAppointmentCompleted(); else clientActiveTrackingVisual">

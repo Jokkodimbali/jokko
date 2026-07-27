@@ -33,6 +33,7 @@ export class MessageComposerComponent {
   @Output() readonly startVoice = new EventEmitter<void>();
   @Output() readonly stopVoice = new EventEmitter<void>();
   @Output() readonly cancelVoice = new EventEmitter<void>();
+  @Output() readonly negotiatePrice = new EventEmitter<void>();
 
   protected readonly voiceWaveIndexes = Array.from({ length: 12 }, (_, index) => index);
 

@@ -5,9 +5,10 @@
     class="message-composer__amount"
     aria-label="Proposer un montant pour cette conversation"
     [disabled]="isDisabled"
+    (click)="negotiatePrice.emit()"
   >
     <lucide-icon name="banknote" size="24" [strokeWidth]="2.4"></lucide-icon>
-    Negocier le prix
+    Négocier le prix
   </button>
 
   <div class="message-composer__voice-panel" *ngIf="isRecordingVoice; else normalComposerField">

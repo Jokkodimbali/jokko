@@ -73,6 +73,8 @@ type DestinationMarkerSize = {
 
 export type TrackingMapRenderState = {
   provider: GoogleMapsPoint | null;
+  accuracyMeters?: number | null;
+  speedKmh?: number | null;
   destination: GoogleMapsPoint | null;
   routes: TrackingMapRoute[];
   showManeuverMarkers?: boolean;
@@ -96,6 +98,8 @@ const MAP_MAX_ZOOM = 21;
 const NAVIGATION_LOOK_AHEAD_METERS = 44;
 const NAVIGATION_FOCUS_PROVIDER_WEIGHT = 0.72;
 const ROUTE_SNAP_MAX_DISTANCE_METERS = 80;
+const MARKER_STATIONARY_RADIUS_METERS = 4;
+const MARKER_MAX_ACCURACY_METERS = 100;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
 const MANEUVER_MARKER_LIMIT = 48;
 const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
@@ -152,6 +156,7 @@ export class TrackingGoogleMapRendererService {
   private applyingCameraUpdate = false;
   private controlsStyleElement?: HTMLStyleElement;
   private currentCameraHeading = 0;
+  private currentTravelerHeading = 0;
   private topViewEnabled = false;
   private showManeuverMarkers = false;
   private renderedRouteForIcons: TrackingMapRoute | null = null;
@@ -198,6 +203,9 @@ export class TrackingGoogleMapRendererService {
       this.refreshRenderedTravelerMarker();
       this.refreshRenderedDestinationMarker();
     });
+    this.routeMap.addListener('heading_changed', () => {
+      this.refreshRenderedTravelerMarker();
+    });
     this.hideNativeGoogleMapControls(element);
   }
 
@@ -206,24 +214,10 @@ export class TrackingGoogleMapRendererService {
 
     if (this.routeMap) {
       this.showManeuverMarkers = state.showManeuverMarkers === true;
-      const selectedRoute = state.routes.find((route) => route.selected);
-      const displayedProvider = state.provider;
-      const trackingHeading =
-        typeof state.headingDegrees === 'number' && Number.isFinite(state.headingDegrees)
-          ? this.normalizeHeading(state.headingDegrees)
-          : null;
-      if (!this.topViewEnabled && trackingHeading !== null) {
-        this.currentCameraHeading = trackingHeading;
-      } else {
-        const routeHeading =
-          !this.topViewEnabled &&
-          state.travelerMarker.kind === 'navigation' &&
-          selectedRoute
-            ? this.headingAlongRoute(displayedProvider, selectedRoute.coordinates)
-            : null;
-        if (routeHeading !== null) {
-          this.currentCameraHeading = routeHeading;
-        }
+      const displayedProvider = this.stabilizeProviderPosition(state.provider, state);
+      this.currentTravelerHeading = this.resolveHeading(displayedProvider, state);
+      if (!this.topViewEnabled) {
+        this.currentCameraHeading = this.currentTravelerHeading;
       }
       this.lastRenderedState = state;
       this.lastRenderedProviderPosition = displayedProvider;
@@ -235,6 +229,7 @@ export class TrackingGoogleMapRendererService {
         this.routeMap,
         displayedProvider,
         state,
+        this.currentTravelerHeading,
       );
       if (state.destination) {
         this.destinationMarker = this.upsertDestinationMarker(
@@ -253,6 +248,7 @@ export class TrackingGoogleMapRendererService {
           );
       this.renderRoutes(visibleRoutes);
       this.fitRoute(displayedProvider, state.destination, visibleRoutes);
+      this.refreshRenderedTravelerMarker();
     }
   }
 
@@ -267,6 +263,7 @@ export class TrackingGoogleMapRendererService {
     this.topViewEnabled = enabled;
     this.lastBoundsKey = '';
     this.applyImmersiveCamera();
+    this.refreshRenderedTravelerMarker();
   }
 
   setHeading(headingDegrees: number): void {
@@ -292,6 +289,7 @@ export class TrackingGoogleMapRendererService {
     this.routeMap?.setHeading?.(heading);
     this.routeMap?.setTilt?.(this.cameraTilt());
     this.applyCssRotationFallback(0);
+    this.refreshRenderedTravelerMarker();
   }
 
   private applyImmersiveCamera(): void {
@@ -357,6 +355,7 @@ export class TrackingGoogleMapRendererService {
     this.clearRoutePolylines();
     this.lastBoundsKey = '';
     this.lastProviderPosition = null;
+    this.currentTravelerHeading = 0;
   }
 
   destroyRouteMap(): void {
@@ -572,12 +571,8 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
-    const heading = this.resolveHeading(
-      this.lastRenderedProviderPosition,
-      this.lastRenderedState,
-    );
     this.providerMarker.content = this.providerMarkerContent(
-      heading,
+      this.currentTravelerHeading,
       this.lastRenderedProviderPosition,
       this.lastRenderedState.travelerMarker,
     );
@@ -817,14 +812,13 @@ export class TrackingGoogleMapRendererService {
     map: GoogleMapsMapInstance,
     position: GoogleMapsPoint,
     state: TrackingMapRenderState,
+    heading: number,
   ): GoogleMapsAdvancedMarkerInstance {
     const AdvancedMarkerElement =
       this.google?.maps.marker?.AdvancedMarkerElement;
     if (!AdvancedMarkerElement) {
       throw new Error('GOOGLE_MAPS_NOT_INITIALIZED');
     }
-    const heading = this.resolveHeading(position, state);
-    this.currentCameraHeading = heading;
     if (!marker) {
       this.lastProviderPosition = position;
       return new AdvancedMarkerElement({
@@ -917,10 +911,15 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
+    const distance = this.distanceMeters(current, destination);
+    if (distance < MARKER_STATIONARY_RADIUS_METERS) {
+      return;
+    }
+
     this.cancelAnimation();
     const origin = current;
     const startedAt = performance.now();
-    const duration = 750;
+    const duration = Math.min(1200, Math.max(500, distance * 24));
     const animate = (timestamp: number): void => {
       const progress = Math.min(1, (timestamp - startedAt) / duration);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -1200,8 +1199,15 @@ export class TrackingGoogleMapRendererService {
       'display:grid;justify-items:center;pointer-events:none;';
 
     const traveler = document.createElement('div');
+    const mapHeading = this.routeMap?.getHeading?.();
+    const renderedCameraHeading =
+      typeof mapHeading === 'number' && Number.isFinite(mapHeading)
+        ? this.normalizeHeading(mapHeading)
+        : this.topViewEnabled
+          ? 0
+          : this.currentCameraHeading;
     const markerHeading = this.normalizeHeading(
-      headingDegrees - this.currentCameraHeading,
+      headingDegrees - renderedCameraHeading,
     );
     const navigationSize = this.navigationMarkerSize();
     traveler.style.cssText =
@@ -1482,24 +1488,80 @@ export class TrackingGoogleMapRendererService {
     position: GoogleMapsPoint,
     state: TrackingMapRenderState,
   ): number {
+    const movementMeters = this.lastProviderPosition
+      ? this.distanceMeters(this.lastProviderPosition, position)
+      : Number.POSITIVE_INFINITY;
+    const moving = movementMeters >= MARKER_STATIONARY_RADIUS_METERS;
+
+    if (!moving && this.lastProviderPosition) {
+      return this.currentTravelerHeading;
+    }
+
+    let candidateHeading: number | null = null;
+    let alignedToRoute = false;
+    const selectedRoute = state.routes.find((route) => route.selected);
+    if (moving && selectedRoute) {
+      candidateHeading = this.headingAlongRoute(
+        position,
+        selectedRoute.coordinates,
+      );
+      alignedToRoute = candidateHeading !== null;
+    }
+
     if (
+      candidateHeading === null &&
+      moving &&
       typeof state.headingDegrees === 'number' &&
       Number.isFinite(state.headingDegrees)
     ) {
-      return this.normalizeHeading(state.headingDegrees);
+      candidateHeading = this.normalizeHeading(state.headingDegrees);
     }
 
-    const selectedRoute = state.routes.find((route) => route.selected);
-    const routeHeading = selectedRoute
-      ? this.headingAlongRoute(position, selectedRoute.coordinates)
-      : null;
-    if (routeHeading !== null) {
-      return routeHeading;
+    if (candidateHeading === null) {
+      candidateHeading = this.lastProviderPosition && moving
+        ? this.bearing(this.lastProviderPosition, position)
+        : null;
     }
 
-    return this.lastProviderPosition
-      ? this.bearing(this.lastProviderPosition, position)
-      : 90;
+    if (candidateHeading === null) return this.currentTravelerHeading || 90;
+    if (!this.lastProviderPosition) return candidateHeading;
+    const delta = ((candidateHeading - this.currentTravelerHeading + 540) % 360) - 180;
+    const smoothing = alignedToRoute
+      ? (state.speedKmh ?? 0) >= 20 ? 0.82 : 0.68
+      : (state.speedKmh ?? 0) >= 20 ? 0.5 : 0.32;
+    return this.normalizeHeading(this.currentTravelerHeading + delta * smoothing);
+  }
+
+  private stabilizeProviderPosition(
+    position: GoogleMapsPoint,
+    state: TrackingMapRenderState,
+  ): GoogleMapsPoint {
+    const previous = this.lastRenderedProviderPosition;
+    if (!previous) return position;
+
+    const distance = this.distanceMeters(previous, position);
+    const accuracy =
+      typeof state.accuracyMeters === 'number' && Number.isFinite(state.accuracyMeters)
+        ? Math.max(1, state.accuracyMeters)
+        : 25;
+    const reportedSpeedKmh = state.speedKmh ?? 0;
+    const movementThreshold =
+      reportedSpeedKmh >= 8
+        ? Math.max(3, Math.min(7, accuracy * 0.25))
+        : Math.max(MARKER_STATIONARY_RADIUS_METERS, Math.min(12, accuracy * 0.5));
+    const moving = distance > movementThreshold;
+
+    if (!moving) return previous;
+    if (accuracy > MARKER_MAX_ACCURACY_METERS && distance < accuracy * 1.5) {
+      return previous;
+    }
+
+    const alpha =
+      (state.speedKmh ?? 0) >= 25 ? 0.72 : accuracy <= 10 ? 0.58 : accuracy <= 25 ? 0.42 : 0.28;
+    return {
+      lat: previous.lat + (position.lat - previous.lat) * alpha,
+      lng: previous.lng + (position.lng - previous.lng) * alpha,
+    };
   }
 
   private headingAlongRoute(
@@ -1513,7 +1575,7 @@ export class TrackingGoogleMapRendererService {
     if (projection.distanceFromRouteMeters > ROUTE_SNAP_MAX_DISTANCE_METERS) return null;
 
     const lookAhead =
-      this.routePointAhead(projection.point, coordinates, Math.max(12, NAVIGATION_LOOK_AHEAD_METERS * 0.55)) ??
+      this.routePointAhead(projection.point, coordinates, 12) ??
       coordinates[Math.min(projection.segmentIndex + 1, coordinates.length - 1)];
 
     if (!lookAhead || this.distanceMeters(projection.point, lookAhead) < 1) {

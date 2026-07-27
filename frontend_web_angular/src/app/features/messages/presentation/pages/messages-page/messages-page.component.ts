@@ -174,6 +174,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly conversationReservationCard = computed<ConversationReservationCard | null>(() => {
     const appointment = this.visibleAppointmentPreview();
     if (appointment) {
+      if (appointment.status === 'TERMINEE') {
+        return null;
+      }
+
       return {
         source: 'appointment',
         id: appointment.id,
@@ -315,13 +319,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   });
   protected readonly canShowNegotiationButton = computed(() => {
-    const proposal = this.visibleProposalStep();
-    return (
-      this.currentUser()?.role === 'CLIENT' &&
-      Boolean(proposal?.negotiationId) &&
-      (proposal?.status === 'EN_ATTENTE_CLIENT' ||
-        proposal?.status === 'EN_ATTENTE_PRESTATAIRE')
-    );
+    const conversation = this.selectedConversation();
+    if (!conversation) return false;
+    if (!conversation.reservationId) return true;
+
+    return this.visibleAppointmentPreview()?.status === 'TERMINEE';
   });
 
   protected readonly canPayAcceptedProposal = computed(
@@ -384,6 +386,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.loadMessages(conversationId);
     this.loadAppointmentPreviewForSelectedConversation({ force: true });
     setTimeout(() => this.loadAppointmentPreviewForVisibleProposal({ force: true }), 0);
+  }
+
+  protected startNewNegotiation(): void {
+    if (!this.canShowNegotiationButton()) {
+      return;
+    }
+
+    this.router.navigate(['/services']);
   }
 
   protected updateSearch(value: string): void {
@@ -1552,6 +1562,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       if (conversationId) {
         this.refreshMessagesSilently(conversationId);
       }
+      this.loadAppointmentPreviewForSelectedConversation({ force: true });
       this.refreshPendingProposalStatus();
     }, 10000);
   }

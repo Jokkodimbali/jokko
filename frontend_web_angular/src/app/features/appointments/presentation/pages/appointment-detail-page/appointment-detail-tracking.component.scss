@@ -1,5 +1,4 @@
 .appointment-detail__route-layout {
-  background: #eef1f3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 334px;
   grid-template-rows: minmax(0, 1fr);
@@ -186,7 +185,6 @@
 }
 
 .appointment-detail__live-map {
-  background: #dbe7ef;
   border-radius: 0;
   box-shadow: none;
   grid-column: 1;
@@ -259,33 +257,69 @@
 .appointment-detail__client-tracking-visual {
   align-items: center;
   background: #ffffff;
+  box-sizing: border-box;
+  contain: layout paint;
   display: grid;
+  font-family: inherit;
+  height: 100%;
   inset: 0;
   justify-items: center;
+  overflow: hidden;
   padding: 34px;
   position: absolute;
   text-align: center;
+  width: 100%;
   z-index: 6;
 }
 
 .appointment-detail__provider-console-visual {
   align-items: center;
   background: #ffffff;
+  box-sizing: border-box;
+  contain: layout paint;
   display: grid;
+  font-family: inherit;
+  height: 100%;
   inset: 0;
   justify-items: center;
+  opacity: 0;
+  overflow: hidden;
   padding: 44px;
+  pointer-events: none;
   position: absolute;
   text-align: center;
+  transition: opacity 80ms linear, visibility 0s linear 80ms;
+  visibility: hidden;
+  width: 100%;
   z-index: 6;
+}
+
+.appointment-detail__provider-console-visual--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 80ms linear;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appointment-detail__provider-console-visual,
+  .appointment-detail__provider-console-visual--visible {
+    transition: none;
+  }
+}
+
+.appointment-detail__provider-console-visual [hidden] {
+  display: none !important;
 }
 
 .appointment-detail__provider-console-ready,
 .appointment-detail__provider-console-done {
+  align-content: center;
   align-items: center;
   display: grid;
   justify-items: center;
   max-width: 560px;
+  min-height: 340px;
   width: 100%;
 }
 
@@ -934,10 +968,12 @@
 .appointment-detail__client-tracking-confirmed,
 .appointment-detail__client-tracking-work,
 .appointment-detail__client-tracking-complete {
+  align-content: center;
   align-items: center;
   display: grid;
   justify-items: center;
   max-width: 520px;
+  min-height: 320px;
   width: 100%;
 }
 

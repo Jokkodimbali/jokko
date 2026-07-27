@@ -101,7 +101,59 @@ describe('ProviderLocationService', () => {
     expect(received[1]?.latitude).toBe(received[0]?.latitude);
     expect(received[1]?.heading).not.toBe(received[0]?.heading);
   });
+
+  it('ignores an isolated speed value when the coordinates only drift', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 9;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const received: ProviderCoordinates[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      received.push({ latitude: position.latitude, longitude: position.longitude });
+    });
+
+    success?.(thisPosition(14.7167, -17.4677, 8, 90, 0));
+    success?.(thisPosition(14.716706, -17.467696, 10, 90, 15));
+    subscription.unsubscribe();
+
+    expect(received[1]).toEqual(received[0]);
+  });
+
+  it('keeps a confirmed slow movement instead of waiting for a four-meter jump', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 10;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const latitudes: number[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      latitudes.push(position.latitude);
+    });
+
+    success?.(thisPosition(14.7167, -17.4677, 7, 0, 5));
+    success?.(thisPosition(14.71672, -17.4677, 7, 0, 5));
+    subscription.unsubscribe();
+
+    expect(latitudes[1]).toBeGreaterThan(latitudes[0] ?? Number.POSITIVE_INFINITY);
+  });
 });
+
+type ProviderCoordinates = { latitude: number; longitude: number };
 
 function orientationEvent(alpha: number): Event {
   const event = new Event('deviceorientationabsolute');

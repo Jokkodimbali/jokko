@@ -1491,7 +1491,9 @@ export class TrackingGoogleMapRendererService {
     const movementMeters = this.lastProviderPosition
       ? this.distanceMeters(this.lastProviderPosition, position)
       : Number.POSITIVE_INFINITY;
-    const moving = movementMeters >= MARKER_STATIONARY_RADIUS_METERS;
+    const moving =
+      movementMeters >= MARKER_STATIONARY_RADIUS_METERS ||
+      ((state.speedKmh ?? 0) >= 3 && movementMeters >= 1.5);
 
     if (!moving && this.lastProviderPosition) {
       return this.currentTravelerHeading;
@@ -1546,8 +1548,8 @@ export class TrackingGoogleMapRendererService {
         : 25;
     const reportedSpeedKmh = state.speedKmh ?? 0;
     const movementThreshold =
-      reportedSpeedKmh >= 8
-        ? Math.max(3, Math.min(7, accuracy * 0.25))
+      reportedSpeedKmh >= 3
+        ? Math.max(1.5, Math.min(3, accuracy * 0.18))
         : Math.max(MARKER_STATIONARY_RADIUS_METERS, Math.min(12, accuracy * 0.5));
     const moving = distance > movementThreshold;
 

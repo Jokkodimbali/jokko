@@ -86,8 +86,7 @@ const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
-const LIVE_LOCATION_UPDATE_INTERVAL_MS = 2000;
-const ROUTE_DEVIATION_THRESHOLD_METERS = 45;
+const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 5_000;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<
@@ -3639,7 +3638,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const accuracyMeters =
       tracking?.lastAccuracyMeters ??
       tracking?.presence.lastAccuracyMeters ??
-      ROUTE_DEVIATION_THRESHOLD_METERS;
+      35;
     const dynamicDeviationThreshold = Math.max(
       18,
       Math.min(35, accuracyMeters * 1.4),

@@ -30,7 +30,7 @@ export class ProviderLocationService {
     }
   }
 
-  watch(intervalMilliseconds = 2000): Observable<ProviderGpsPosition> {
+  watch(intervalMilliseconds = 1000): Observable<ProviderGpsPosition> {
     return new Observable((subscriber) => {
       if (typeof navigator === 'undefined' || !navigator.geolocation) {
         subscriber.error(new Error('GEOLOCATION_UNAVAILABLE'));
@@ -141,7 +141,9 @@ export class ProviderLocationService {
       MIN_MOVEMENT_METERS,
       Math.min(12, raw.accuracyMeters * 0.5),
     );
-    const moving = (raw.speedKmh ?? 0) >= STATIONARY_SPEED_KMH;
+    const moving =
+      (raw.speedKmh ?? 0) >= STATIONARY_SPEED_KMH &&
+      rawDistance >= 1.5;
     const poorAccuracyJump =
       raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS &&
       rawDistance < raw.accuracyMeters * 1.5;

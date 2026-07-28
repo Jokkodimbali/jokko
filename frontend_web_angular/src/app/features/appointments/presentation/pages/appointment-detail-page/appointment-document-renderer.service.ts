@@ -48,24 +48,29 @@ export class AppointmentDocumentRendererService {
   }
 
   private async renderDesignedDocumentAsPdf(html: string, fileName: string): Promise<void> {
-    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/i);
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    const host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.left = '-10000px';
-    host.style.top = '0';
-    host.style.width = '794px';
-    host.style.height = 'auto';
-    host.style.overflow = 'visible';
-    host.style.background = '#ffffff';
-    host.style.zIndex = '-1';
-    host.innerHTML = `<style>${styleMatch?.[1] ?? ''}</style>${bodyMatch?.[1] ?? html}`;
-    document.body.appendChild(host);
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.position = 'fixed';
+    frame.style.left = '-10000px';
+    frame.style.top = '0';
+    frame.style.width = '794px';
+    frame.style.height = '1123px';
+    frame.style.border = '0';
+    document.body.appendChild(frame);
 
     try {
-      await document.fonts?.ready;
+      const frameDocument = frame.contentDocument;
+      if (!frameDocument) throw new Error('PDF frame document unavailable');
+
+      frameDocument.open();
+      frameDocument.write(html);
+      frameDocument.close();
+      await frameDocument.fonts?.ready;
+
+      const host = frameDocument.body;
       const captureScale = Math.max(3, Math.min(4, (window.devicePixelRatio || 1) * 2));
       const contentHeight = Math.max(1123, Math.ceil(host.scrollHeight));
+      frame.style.height = `${contentHeight}px`;
       const protectedRanges = this.collectProtectedPageRanges(host, captureScale);
       const canvas = await html2canvas(host, {
         backgroundColor: '#ffffff',
@@ -87,7 +92,7 @@ export class AppointmentDocumentRendererService {
     } catch {
       this.feedback.error('Impossible de generer le PDF pour le moment.');
     } finally {
-      document.body.removeChild(host);
+      frame.remove();
     }
   }
 

@@ -4,6 +4,11 @@ import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import {
+  AppointmentTrackingStepperComponent,
+  appointmentJourneyProgress,
+  appointmentJourneySteps,
+} from '../../components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -23,7 +28,7 @@ interface PaymentOption {
 @Component({
   selector: 'app-appointment-payment-page',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent],
+  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent, AppointmentTrackingStepperComponent],
   templateUrl: './appointment-payment-page.component.html',
   styleUrl: './appointment-payment-page.component.scss',
 })
@@ -57,10 +62,21 @@ export class AppointmentPaymentPageComponent implements OnInit {
     const status = this.appointment()?.status;
     return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS' || status === 'TERMINEE';
   });
+  protected readonly journeyCurrentStep = computed<2 | 3>(() => this.isPaymentConfirmed() ? 3 : 2);
+  protected readonly journeySteps = computed(() => appointmentJourneySteps(this.journeyCurrentStep()));
+  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyCurrentStep()));
   protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
   protected readonly counterpartRoleLabel = computed(() =>
     this.isMedicinePaymentFlow() ? 'Medecin' : 'Prestataire',
   );
+  protected readonly paymentCommissionLabel = computed(() => {
+    const total = this.toPositiveAmount(this.appointment()?.agreedPrice) ?? 0;
+    return this.formatAmountValue(Math.round(total * 0.1));
+  });
+  protected readonly paymentServiceShareLabel = computed(() => {
+    const total = this.toPositiveAmount(this.appointment()?.agreedPrice) ?? 0;
+    return this.formatAmountValue(total - Math.round(total * 0.1));
+  });
   protected readonly comparisonLabel = computed(() => {
     const appointment = this.appointment();
     const servicePrice = this.toPositiveAmount(appointment?.servicePrice);

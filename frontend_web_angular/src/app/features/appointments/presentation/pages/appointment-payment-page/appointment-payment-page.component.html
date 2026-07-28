@@ -25,6 +25,15 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && appointment() as appointment">
+    <app-appointment-tracking-stepper
+      [steps]="journeySteps()"
+      [progress]="journeyProgress()"
+      [showBack]="false"
+      [embedded]="true"
+      [clickableStepIndexes]="isPaymentConfirmed() ? [3] : []"
+      ariaLabel="Étapes de la réservation"
+      (stepSelected)="openAppointmentPage(appointment)"
+    />
     <section
       *ngIf="isPaymentConfirmed(); else paymentForm"
       class="appointment-payment__confirmed"
@@ -106,32 +115,41 @@
     <section class="appointment-payment__content" aria-label="Paiement de la reservation">
       <article class="appointment-payment__shell">
         <section class="appointment-payment__summary-panel" aria-label="Resume de la prestation">
-          <span class="appointment-payment__service-icon">
-            <lucide-icon name="package" size="34" [strokeWidth]="2.2"></lucide-icon>
-          </span>
-          <small>Motif de prestation</small>
-          <h1>{{ appointment.serviceName }}</h1>
+          <article class="appointment-payment__offer-card">
+            <header class="appointment-payment__offer-banner">
+              <span><lucide-icon name="circle-check" size="24" [strokeWidth]="1.9"></lucide-icon></span>
+              <div>
+                <small>Offre acceptee</small>
+                <strong>{{ acceptedOfferBannerTitle() }}</strong>
+              </div>
+            </header>
 
-          <dl class="appointment-payment__summary-list">
-            <div>
-              <dt><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon></dt>
-              <dd>{{ formatPaymentLongDate(appointment) }}</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon></dt>
-              <dd>{{ appointment.timeLabel }} - Arrivee prevue</dd>
-            </div>
-            <div>
-              <dt><lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon></dt>
-              <dd>{{ appointment.addressLabel }}</dd>
-            </div>
-          </dl>
+            <section class="appointment-payment__offer-provider">
+              <span class="appointment-payment__offer-avatar">
+                <img *ngIf="appointment.avatarUrl; else offerProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+                <ng-template #offerProviderInitials><em>{{ avatarInitials(appointment) }}</em></ng-template>
+              </span>
+              <div>
+                <strong>{{ appointment.doctorName }}</strong>
+                <small>{{ appointment.specialty || appointment.serviceName }}</small>
+              </div>
+            </section>
 
-          <aside class="appointment-payment__accepted-note">
-            <strong>{{ acceptedOfferBannerTitle() }}</strong>
-            <span>{{ savingsBannerLabel() }}</span>
-            <lucide-icon name="sparkles" size="28" [strokeWidth]="2.2"></lucide-icon>
-          </aside>
+            <dl class="appointment-payment__offer-breakdown">
+              <div>
+                <dt>{{ appointment.serviceName }}</dt>
+                <dd>{{ paymentServiceShareLabel() }} F</dd>
+              </div>
+              <div class="appointment-payment__offer-commission">
+                <dt>Commission 10%</dt>
+                <dd>{{ paymentCommissionLabel() }} FCFA</dd>
+              </div>
+              <div class="appointment-payment__offer-total">
+                <dt>Total a payer</dt>
+                <dd><strong>{{ amountValueLabel() }}</strong> <small>FCFA</small></dd>
+              </div>
+            </dl>
+          </article>
         </section>
 
         <section class="appointment-payment__payment-panel" aria-label="Choix du paiement">
@@ -165,54 +183,12 @@
             </div>
           </section>
 
-          <dl class="appointment-payment__total-card">
-            <div>
-              <dt>Prix de base</dt>
-              <dd [class.appointment-payment__total-muted]="hasNegotiatedDiscount()">
-                {{ basePriceLabel() }}
-              </dd>
-            </div>
-            <div>
-              <dt>{{ comparisonLabel() }}</dt>
-              <dd [class.appointment-payment__total-saving]="hasNegotiatedDiscount()">
-                {{ comparisonAmountLabel() }}
-              </dd>
-            </div>
-            <div>
-              <dt>Total a payer</dt>
-              <dd>{{ amountValueLabel() }} FCFA</dd>
-            </div>
-          </dl>
-
-          <section class="appointment-payment__provider-line" aria-label="Prestataire">
-            <span class="appointment-payment__provider-avatar">
-              <img *ngIf="appointment.avatarUrl; else paymentProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
-              <ng-template #paymentProviderInitials>
-                <em>{{ avatarInitials(appointment) }}</em>
-              </ng-template>
-            </span>
-            <div>
-              <strong>{{ appointment.doctorName }}</strong>
-              <small>{{ appointment.specialty || appointment.serviceName }}</small>
-              <span>
-                <app-star-rating [value]="appointment.professionalRating" size="small" />
-                {{ providerRatingShortLabel() }}
-              </span>
-            </div>
-            <nav aria-label="Contact prestataire">
-              <a
-                *ngIf="appointment.professionalPhone"
-                class="appointment-payment__contact appointment-payment__contact--call"
-                [href]="'tel:' + appointment.professionalPhone"
-              >
-                <lucide-icon name="phone" size="14" [strokeWidth]="2.2"></lucide-icon>
-                Appeler
-              </a>
-              <button type="button" class="appointment-payment__contact" (click)="messageProvider()">
-                <lucide-icon name="message-circle" size="14" [strokeWidth]="2.2"></lucide-icon>
-                Message
-              </button>
-            </nav>
+          <section class="appointment-payment__delivery-address" aria-label="Adresse de livraison">
+            <small>Adresse de livraison</small>
+            <p>
+              <lucide-icon name="map-pin" size="15" [strokeWidth]="2.1"></lucide-icon>
+              <span>{{ appointment.addressLabel }}</span>
+            </p>
           </section>
 
           <button

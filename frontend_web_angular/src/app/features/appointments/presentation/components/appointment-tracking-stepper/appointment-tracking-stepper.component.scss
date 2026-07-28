@@ -9,6 +9,14 @@
   z-index: 30;
 }
 
+:host(.appointment-tracking-stepper-host--embedded) {
+  left: auto;
+  position: static;
+  right: auto;
+  top: auto;
+  z-index: auto;
+}
+
 .appointment-tracking-stepper {
   background: transparent;
   border-bottom: 0;
@@ -60,6 +68,10 @@
 
 .appointment-tracking-stepper__line {
   background: #eef0f3;
+}
+
+:host(.appointment-tracking-stepper-host--embedded) .appointment-tracking-stepper__line {
+  background: rgba(149, 93, 36, 0.55);
 }
 
 .appointment-tracking-stepper__progress {
@@ -124,6 +136,10 @@
 
 .appointment-tracking-stepper__step.is-active strong {
   color: #111827;
+}
+
+.appointment-tracking-stepper__step.is-clickable {
+  cursor: pointer;
 }
 
 @media (max-width: 920px) {

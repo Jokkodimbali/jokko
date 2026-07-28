@@ -16,7 +16,17 @@
 }
 
 .appointment-payment--confirmed {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   padding-bottom: 0;
+}
+
+.appointment-payment--confirmed .appointment-payment__topbar,
+.appointment-payment--confirmed app-appointment-tracking-stepper {
+  flex: 0 0 auto;
 }
 
 .appointment-payment__topbar {
@@ -82,8 +92,10 @@
   background: #eef0f2;
   display: grid;
   justify-items: center;
-  min-height: calc(100vh - 42px);
-  padding: 40px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(8px, 1.8vh, 18px) 16px;
 }
 
 .appointment-payment__confirmed-card {
@@ -94,32 +106,33 @@
   display: grid;
   justify-items: center;
   max-width: 560px;
-  padding: 50px 38px 40px;
+  max-height: 100%;
+  padding: clamp(18px, 2.5vh, 28px) 38px clamp(16px, 2vh, 24px);
   width: min(100%, 560px);
 }
 
 .appointment-payment__confirmed-icon {
   align-items: center;
   background: #4f883a;
-  border: 11px solid #eef4ed;
+  border: 7px solid #eef4ed;
   border-radius: 50%;
   box-shadow: 0 12px 26px rgba(79, 136, 58, 0.2);
   color: #ffffff;
   display: inline-flex;
-  height: 96px;
+  height: 68px;
   justify-content: center;
-  width: 96px;
+  width: 68px;
   animation: payment-confirm-pop 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .appointment-payment__confirmed-heading {
-  margin: 32px 0 34px;
+  margin: 14px 0 16px;
   text-align: center;
 }
 
 .appointment-payment__confirmed-heading h1 {
   color: #050505;
-  font-size: clamp(32px, 3.8vw, 40px);
+  font-size: clamp(26px, 3vw, 34px);
   font-weight: 950;
   letter-spacing: 0;
   line-height: 1.02;
@@ -132,7 +145,7 @@
   font-size: 16px;
   font-weight: 650;
   line-height: 1.5;
-  margin: 17px auto 0;
+  margin: 8px auto 0;
   max-width: 390px;
 }
 
@@ -151,8 +164,8 @@
   display: grid;
   gap: 14px;
   grid-template-columns: 50px minmax(0, 1fr) auto;
-  min-height: 82px;
-  padding: 18px 24px;
+  min-height: 64px;
+  padding: 10px 18px;
 }
 
 .appointment-payment__confirmed-summary > header > span {
@@ -205,8 +218,8 @@
   border-bottom: 1px solid #eef1f4;
   display: grid;
   gap: 7px;
-  min-height: 64px;
-  padding: 16px 24px;
+  min-height: 50px;
+  padding: 9px 18px;
 }
 
 .appointment-payment__confirmed-summary dl div:first-child {
@@ -240,8 +253,8 @@
   display: grid;
   gap: 12px;
   grid-template-columns: 54px minmax(0, 1fr) auto;
-  min-height: 82px;
-  padding: 18px 24px;
+  min-height: 64px;
+  padding: 9px 18px;
 }
 
 .appointment-payment__confirmed-avatar,
@@ -315,8 +328,8 @@
   font-weight: 950;
   gap: 12px;
   justify-content: center;
-  margin-top: 30px;
-  min-height: 54px;
+  margin-top: 14px;
+  min-height: 46px;
   transition: background 170ms ease, box-shadow 170ms ease, transform 170ms ease;
   width: 100%;
 }
@@ -335,7 +348,7 @@
   color: #aeb6c2;
   font-size: 13px;
   font-weight: 650;
-  margin: 20px 0 0;
+  margin: 9px 0 0;
   text-align: center;
 }
 
@@ -432,7 +445,7 @@
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 16px 38px rgba(15, 23, 42, 0.06);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 450px);
-  min-height: 650px;
+  min-height: min(650px, calc(100vh - 150px));
   overflow: hidden;
   width: 100%;
 }
@@ -444,6 +457,167 @@
   min-width: 0;
   padding: 32px 60px;
   text-align: center;
+}
+
+.appointment-payment__offer-card {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 14px;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+  color: #172033;
+  font-family: var(--font-app);
+  overflow: hidden;
+  text-align: left;
+  width: min(100%, 430px);
+}
+
+.appointment-payment__offer-card :is(header, section, div, span, small, strong, dl, dt, dd, em) {
+  font-family: inherit;
+}
+
+.appointment-payment__offer-banner {
+  align-items: center;
+  background: #d9f0df;
+  color: #159447;
+  display: flex;
+  gap: 10px;
+  min-height: 66px;
+  padding: 12px 22px;
+}
+
+.appointment-payment__offer-banner > span {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: inline-flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+}
+
+.appointment-payment__offer-banner div {
+  display: grid;
+  gap: 3px;
+}
+
+.appointment-payment__offer-banner small {
+  color: #319559;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.appointment-payment__offer-banner strong {
+  color: #159447;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.appointment-payment__offer-provider {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin: 0 22px;
+  min-height: 76px;
+  padding: 14px 0;
+}
+
+.appointment-payment__offer-avatar,
+.appointment-payment__offer-avatar img,
+.appointment-payment__offer-avatar em {
+  border-radius: 8px;
+  display: block;
+  height: 38px;
+  width: 38px;
+}
+
+.appointment-payment__offer-avatar img {
+  object-fit: cover;
+}
+
+.appointment-payment__offer-avatar em {
+  align-items: center;
+  background: #8b572a;
+  color: #fff;
+  display: flex;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.appointment-payment__offer-provider div {
+  display: grid;
+  gap: 3px;
+}
+
+.appointment-payment__offer-provider strong {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.appointment-payment__offer-provider small {
+  color: #8c96a8;
+  font-size: 11px;
+}
+
+.appointment-payment__offer-breakdown {
+  margin: 0 22px;
+}
+
+.appointment-payment__offer-breakdown > div {
+  align-items: center;
+  border-top: 1px solid #e1e4e8;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 58px;
+}
+
+.appointment-payment__offer-breakdown dt,
+.appointment-payment__offer-breakdown dd {
+  margin: 0;
+}
+
+.appointment-payment__offer-breakdown dt,
+.appointment-payment__offer-breakdown dd {
+  color: #354052;
+  font-size: 12px;
+}
+
+.appointment-payment__offer-commission dt,
+.appointment-payment__offer-commission dd {
+  color: #7895c3;
+}
+
+.appointment-payment__offer-total {
+  min-height: 82px !important;
+}
+
+.appointment-payment__offer-total dt {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.appointment-payment__offer-total dd {
+  align-items: baseline;
+  color: #6f3c16;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.appointment-payment__offer-total strong {
+  font-size: 30px;
+  font-weight: 950;
+}
+
+.appointment-payment__offer-total small {
+  color: #6f3c16;
+  font-size: 10px;
+  font-weight: 850;
 }
 
 .appointment-payment__service-icon {
@@ -585,6 +759,35 @@
   gap: 18px;
   margin: 0;
   padding: 0;
+}
+
+.appointment-payment__delivery-address {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.appointment-payment__delivery-address > small {
+  color: #9aa5b5;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.appointment-payment__delivery-address p {
+  align-items: center;
+  background: #f7f8fa;
+  border: 1px solid #e6e9ee;
+  border-radius: 14px;
+  color: #596579;
+  display: grid;
+  font-size: 12px;
+  gap: 10px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  margin: 0;
+  min-height: 48px;
+  padding: 8px 14px;
 }
 
 .appointment-payment__methods {
@@ -986,18 +1189,18 @@
   }
 
   .appointment-payment__confirmed {
-    padding: 20px 10px;
+    padding: 8px 10px;
   }
 
   .appointment-payment__confirmed-card {
     border-radius: 24px;
-    padding: 34px 18px 26px;
+    padding: 14px 18px 12px;
   }
 
   .appointment-payment__confirmed-summary > header,
   .appointment-payment__confirmed-summary footer {
     grid-template-columns: 46px minmax(0, 1fr);
-    padding: 16px;
+    padding: 10px 12px;
   }
 
   .appointment-payment__confirmed-summary > header div:last-child,
@@ -1043,10 +1246,29 @@
   }
 
   .appointment-payment__confirmed-heading {
-    margin: 26px 0 28px;
+    margin: 10px 0 12px;
   }
 
   .appointment-payment__confirmed-heading h1 {
     font-size: clamp(25px, 7.1vw, 30px);
   }
+}
+
+@media (min-width: 1024px) and (max-height: 760px) {
+  .appointment-payment__content:has(.appointment-payment__shell) { padding-block: 12px 16px; }
+  .appointment-payment__shell { min-height: 0; }
+  .appointment-payment__summary-panel { padding: 20px 42px; }
+  .appointment-payment__payment-panel { padding: 18px 32px 16px; }
+  .appointment-payment__payment-panel > header { margin-bottom: 12px; }
+  .appointment-payment__payment-panel h2 { font-size: 30px; margin-bottom: 7px; }
+  .appointment-payment__payment-panel header p { font-size: 13px; }
+  .appointment-payment__method-card,
+  .appointment-payment__methods { gap: 8px; }
+  .appointment-payment__method { min-height: 56px; padding-block: 6px; }
+  .appointment-payment__delivery-address { margin-top: 10px; }
+  .appointment-payment__delivery-address p { min-height: 42px; }
+  .appointment-payment__confirmed { min-height: 0; padding: 8px 16px; }
+  .appointment-payment__confirmed-card { padding: 24px 30px 22px; }
+  .appointment-payment__confirmed-icon { border-width: 7px; height: 68px; width: 68px; }
+  .appointment-payment__confirmed-heading { margin: 16px 0 18px; }
 }

@@ -3,7 +3,7 @@
   [class.appointment-tracking-stepper--provider]="providerMode"
   [attr.aria-label]="ariaLabel"
 >
-  <button type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
+  <button *ngIf="showBack" type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
     <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
     Retour
   </button>
@@ -15,6 +15,8 @@
       class="appointment-tracking-stepper__step"
       [class.is-done]="step.state === 'done'"
       [class.is-active]="step.state === 'active'"
+      [class.is-clickable]="clickableStepIndexes.includes(index)"
+      (click)="selectStep(index)"
     >
       <span>
         <lucide-icon

@@ -297,7 +297,7 @@
 .appointment-detail__provider-console-visual--visible {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity 80ms linear;
+  transition: none;
   visibility: visible;
 }
 
@@ -317,6 +317,7 @@
   align-content: center;
   align-items: center;
   display: grid;
+  font-family: var(--font-app);
   justify-items: center;
   max-width: 560px;
   min-height: 340px;
@@ -346,7 +347,7 @@
   color: #7f8793;
   display: block;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 500;
   line-height: 1.5;
   margin-top: 20px;
   max-width: 460px;
@@ -379,6 +380,26 @@
 .appointment-detail__provider-console-done button:hover:not(:disabled) {
   box-shadow: 0 24px 48px rgba(149, 93, 36, 0.28);
   transform: translateY(-2px);
+}
+
+.appointment-detail__provider-console-done button {
+  font-family: var(--font-app);
+  font-weight: 600;
+}
+
+.appointment-detail__provider-console-done,
+.appointment-detail__client-tracking-complete,
+.appointment-detail__provider-console-done h2,
+.appointment-detail__provider-console-done p,
+.appointment-detail__provider-console-done button,
+.appointment-detail__client-tracking-complete h2,
+.appointment-detail__client-tracking-complete p,
+.appointment-detail__client-tracking-complete button {
+  animation: none;
+  text-decoration: none;
+  text-transform: none;
+  transform: none;
+  transition: none;
 }
 
 .appointment-detail__provider-console-ready button:disabled {
@@ -958,11 +979,16 @@
 }
 
 .appointment-detail__provider-console-done h2 {
+  background-image: none;
+  border: 0;
+  box-shadow: none;
   color: #111827;
-  font-size: clamp(30px, 4vw, 44px);
-  font-weight: 950;
+  font-size: clamp(25px, 3vw, 30px);
+  font-family: var(--font-app);
+  font-weight: 600;
   letter-spacing: 0;
   margin: 0;
+  text-decoration: none !important;
 }
 
 .appointment-detail__client-tracking-confirmed,
@@ -971,6 +997,7 @@
   align-content: center;
   align-items: center;
   display: grid;
+  font-family: var(--font-app);
   justify-items: center;
   max-width: 520px;
   min-height: 320px;
@@ -1020,7 +1047,7 @@
   display: inline-flex;
   font: inherit;
   font-size: 14px;
-  font-weight: 950;
+  font-weight: 600;
   gap: 9px;
   justify-content: center;
   margin-top: 28px;
@@ -1041,8 +1068,9 @@
 .appointment-detail__client-tracking-work h2,
 .appointment-detail__client-tracking-complete h2 {
   color: #0c0d10;
-  font-size: clamp(26px, 4vw, 42px);
-  font-weight: 950;
+  font-size: clamp(25px, 3vw, 30px);
+  font-family: var(--font-app);
+  font-weight: 600;
   letter-spacing: 0;
   margin: 0 0 10px;
 }
@@ -1051,7 +1079,7 @@
 .appointment-detail__client-tracking-complete p {
   color: #818895;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 500;
   line-height: 1.5;
   margin: 0;
   max-width: 440px;

@@ -1168,6 +1168,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly showProviderConsoleVisual = computed(
     () => {
       if (!this.isProviderViewer()) return false;
+      if (this.shouldRenderTrackingMap()) return false;
 
       if (this.isProviderWorking() || this.isAppointmentCompleted()) {
         return true;

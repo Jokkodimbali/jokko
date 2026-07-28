@@ -45,12 +45,15 @@ export class ProviderLocationService {
         const eventWithCompass = event as DeviceOrientationEvent & {
           webkitCompassHeading?: number;
         };
+        const screenAngle = this.screenOrientationAngle();
+        const isAbsoluteOrientation =
+          event.absolute || event.type === 'deviceorientationabsolute';
         const measuredHeading =
           typeof eventWithCompass.webkitCompassHeading === 'number' &&
           Number.isFinite(eventWithCompass.webkitCompassHeading)
-            ? eventWithCompass.webkitCompassHeading
-            : event.absolute && typeof event.alpha === 'number' && Number.isFinite(event.alpha)
-              ? 360 - event.alpha
+            ? eventWithCompass.webkitCompassHeading + screenAngle
+            : isAbsoluteOrientation && typeof event.alpha === 'number' && Number.isFinite(event.alpha)
+              ? 360 - event.alpha + screenAngle
               : null;
         if (measuredHeading === null) return;
         const normalized = this.normalizeHeading(measuredHeading);
@@ -218,5 +221,16 @@ export class ProviderLocationService {
 
   private normalizeHeading(value: number): number {
     return ((value % 360) + 360) % 360;
+  }
+
+  private screenOrientationAngle(): number {
+    const screenAngle = globalThis.screen?.orientation?.angle;
+    if (typeof screenAngle === 'number' && Number.isFinite(screenAngle)) {
+      return screenAngle;
+    }
+    const legacyAngle = (globalThis as typeof globalThis & { orientation?: number }).orientation;
+    return typeof legacyAngle === 'number' && Number.isFinite(legacyAngle)
+      ? legacyAngle
+      : 0;
   }
 }

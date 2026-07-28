@@ -153,3 +153,53 @@
     max-width: 84%;
   }
 }
+
+@media (max-width: 560px) {
+  :host {
+    top: 30px;
+  }
+
+  .appointment-tracking-stepper {
+    padding-inline: 8px;
+  }
+
+  .appointment-tracking-stepper__back {
+    left: 10px;
+    min-height: 32px;
+    padding-inline: 10px;
+    top: -8px;
+  }
+
+  .appointment-tracking-stepper__rail {
+    grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
+    min-width: 0;
+    overflow: visible;
+    padding-top: 36px;
+  }
+
+  .appointment-tracking-stepper__line,
+  .appointment-tracking-stepper__progress {
+    left: 10%;
+    right: 10%;
+    top: 53px;
+  }
+
+  .appointment-tracking-stepper__step {
+    gap: 5px;
+  }
+
+  .appointment-tracking-stepper__step span,
+  .appointment-tracking-stepper__step.is-active span {
+    font-size: 11px;
+    height: 34px;
+    margin-top: 0;
+    width: 34px;
+  }
+
+  .appointment-tracking-stepper__step strong {
+    font-size: clamp(7px, 2.15vw, 9px);
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    max-width: 100%;
+  }
+}

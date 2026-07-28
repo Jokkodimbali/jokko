@@ -1,0 +1,157 @@
+@media (max-width: 860px) {
+  .doctor-space__content {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .doctor-space__content > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .doctor-space__header {
+    margin-bottom: 18px;
+  }
+
+  .doctor-space__header h1 {
+    font-size: clamp(27px, 7vw, 34px);
+    font-weight: 750;
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  .doctor-space__header p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  .doctor-space__blocked-card,
+  .doctor-space__params-card {
+    border-radius: 20px;
+    box-shadow: 0 14px 34px rgba(78, 47, 20, 0.08);
+  }
+
+  .doctor-space__schedule,
+  .doctor-space__calendar,
+  .doctor-space__motif-form,
+  .doctor-space__motif-list,
+  .doctor-space__negotiation-card,
+  .doctor-space__next-card,
+  .doctor-space__patient-card,
+  .doctor-space__patient-hero,
+  .doctor-space__wallet-balance,
+  .doctor-space__wallet-revenue,
+  .doctor-space__wallet-escrow,
+  .doctor-space__wallet-history,
+  .doctor-space__agenda-board,
+  .doctor-space__provider-history-stat,
+  .doctor-space__provider-history-row {
+    border-radius: 18px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .doctor-space input,
+  .doctor-space select,
+  .doctor-space textarea,
+  .doctor-space button {
+    max-width: 100%;
+  }
+
+  .doctor-space__medical-toolbar {
+    align-items: stretch;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-space__medical-search,
+  .doctor-space__medical-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .doctor-space__medical-tabs,
+  .doctor-space__medical-filters,
+  .doctor-space__provider-history-tabs,
+  .doctor-space__negotiation-filters {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .doctor-space__medical-tabs::-webkit-scrollbar,
+  .doctor-space__medical-filters::-webkit-scrollbar,
+  .doctor-space__provider-history-tabs::-webkit-scrollbar,
+  .doctor-space__negotiation-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .doctor-space__medical-tabs button,
+  .doctor-space__medical-filters button,
+  .doctor-space__provider-history-tabs button,
+  .doctor-space__negotiation-filters button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .doctor-space__content {
+    padding: 18px 12px 38px;
+  }
+
+  .doctor-space__header {
+    margin-bottom: 15px;
+  }
+
+  .doctor-space__header h1 {
+    font-size: clamp(24px, 7.4vw, 29px);
+  }
+
+  .doctor-space__header p {
+    font-size: 13px;
+  }
+
+  .doctor-space__blocked-card,
+  .doctor-space__params-card,
+  .doctor-space__schedule,
+  .doctor-space__calendar,
+  .doctor-space__motif-form,
+  .doctor-space__motif-list,
+  .doctor-space__patient-card,
+  .doctor-space__patient-hero,
+  .doctor-space__wallet-balance,
+  .doctor-space__wallet-revenue,
+  .doctor-space__wallet-escrow,
+  .doctor-space__wallet-history {
+    border-radius: 16px;
+  }
+
+  .doctor-space__calendar-head {
+    gap: 4px;
+    grid-template-columns: 28px 28px minmax(0, 1fr) 28px 28px;
+  }
+
+  .doctor-space__calendar-head strong {
+    font-size: 13px;
+    min-width: 0;
+  }
+
+  .doctor-space__calendar-grid {
+    gap: 5px;
+  }
+
+  .doctor-space__motif-form-actions,
+  .doctor-space__withdraw-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .doctor-space__motif-form-actions button,
+  .doctor-space__withdraw-actions button {
+    width: 100%;
+  }
+}

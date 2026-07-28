@@ -29,6 +29,10 @@
   width: 34px;
 }
 
+.doctor-space-sidebar__identity {
+  display: none;
+}
+
 .doctor-space-sidebar__back:hover,
 .doctor-space-sidebar__back:focus-visible {
   background: rgba(255, 255, 255, 0.22);
@@ -109,35 +113,149 @@
 }
 
 @media (max-width: 860px) {
+  :host {
+    position: relative;
+    z-index: 40;
+  }
+
   .doctor-space-sidebar {
+    background: linear-gradient(135deg, #8f5722 0%, #a96e31 100%);
+    box-shadow: 0 10px 30px rgba(76, 43, 17, 0.16);
     height: auto;
     min-height: auto;
-    position: relative;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+    position: sticky;
+    top: 0;
     width: 100%;
+  }
+
+  .doctor-space-sidebar__head {
+    align-items: center;
+    display: flex;
+    gap: 11px;
+    min-height: 62px;
+    padding: 9px 14px 7px;
+  }
+
+  .doctor-space-sidebar__identity {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .doctor-space-sidebar__identity small {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .doctor-space-sidebar__identity strong {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .doctor-space-sidebar nav {
+    display: flex;
     gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 0 14px 14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 4px 14px 13px;
+    scroll-padding-inline: 14px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .doctor-space-sidebar nav::-webkit-scrollbar {
+    display: none;
   }
 
   .doctor-space-sidebar nav button {
-    border-radius: 999px;
-    font-size: 15px;
-    gap: 12px;
-    grid-template-columns: 22px minmax(0, 1fr);
-    min-height: 48px;
-    padding: 0 14px;
-    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 15px;
+    flex: 0 0 auto;
+    font-size: 11px;
+    gap: 7px;
+    grid-template-columns: 18px minmax(0, auto);
+    min-height: 46px;
+    padding: 0 13px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    width: auto;
+  }
+
+  .doctor-space-sidebar nav button lucide-icon {
+    align-items: center;
+    display: inline-flex;
+    height: 18px;
+    width: 18px;
+  }
+
+  .doctor-space-sidebar nav button lucide-icon ::ng-deep svg {
+    height: 18px;
+    width: 18px;
   }
 
   .doctor-space-sidebar nav button.doctor-space-sidebar__nav-item--active {
-    border-radius: 999px;
-    width: 100%;
+    border-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 7px 18px rgba(67, 37, 13, 0.2);
+    min-height: 46px;
+    width: auto;
   }
 
   .doctor-space-sidebar__back {
-    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.14);
+    flex: 0 0 38px;
+    height: 38px;
+    margin: 0;
+    width: 38px;
+  }
+
+  .doctor-space-sidebar__back lucide-icon {
+    align-items: center;
+    display: inline-flex;
+    height: 20px;
+    width: 20px;
+  }
+
+  .doctor-space-sidebar__back lucide-icon ::ng-deep svg {
+    height: 20px;
+    width: 20px;
+  }
+
+  .doctor-space-sidebar nav button span {
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .doctor-space-sidebar__head {
+    min-height: 58px;
+    padding-inline: 12px;
+  }
+
+  .doctor-space-sidebar nav {
+    padding-inline: 12px;
+    scroll-padding-inline: 12px;
+  }
+
+  .doctor-space-sidebar nav button {
+    font-size: 10px;
+    min-height: 42px;
+    padding-inline: 11px;
+  }
+
+  .doctor-space-sidebar nav button.doctor-space-sidebar__nav-item--active {
+    min-height: 42px;
   }
 }

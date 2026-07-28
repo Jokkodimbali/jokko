@@ -42,6 +42,7 @@
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-motifs.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-wallet.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-patient-detail.scss",
+              "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-mobile-premium.scss",
               "src/app/features/account/pages/settings/styles/_settings-professional-profile.scss"
             ]
           },
@@ -62,7 +63,7 @@
                {
                  "type": "anyComponentStyle",
                  "maximumWarning": "28kB",
-                 "maximumError": "32kB"
+                 "maximumError": "35kB"
                }
               ],
               "outputHashing": "all"

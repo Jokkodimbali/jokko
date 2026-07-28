@@ -525,3 +525,22 @@
   }
 }
 
+@media (max-width: 480px) {
+  .doctor-space__motif-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding: 13px;
+  }
+
+  .doctor-space__motif-image-cell {
+    height: 48px;
+    width: 48px;
+  }
+
+  .doctor-space__motif-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-end;
+  }
+}
+

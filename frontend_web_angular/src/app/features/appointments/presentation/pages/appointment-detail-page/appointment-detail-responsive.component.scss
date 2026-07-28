@@ -107,6 +107,11 @@
 }
 
 @media (max-width: 620px) {
+  .appointment-detail__route-layout--client .appointment-detail__live-map,
+  .appointment-detail__route-layout--provider .appointment-detail__live-map {
+    margin-top: 120px;
+  }
+
   .appointment-detail__cancelled-card {
     border-radius: 24px;
     width: 100%;
@@ -198,11 +203,12 @@
   }
 
   .appointment-detail__map-top-actions {
-    bottom: 12px;
-    justify-content: flex-start;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    justify-content: flex-end;
     left: 10px;
     right: 10px;
     top: auto;
+    padding-bottom: 0;
   }
 
   .appointment-detail__map-toolbar,
@@ -213,29 +219,50 @@
     scrollbar-width: none;
   }
 
+  .appointment-detail__map-toolbar {
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    box-shadow: none;
+    gap: 6px;
+    padding: 0;
+  }
+
   .appointment-detail__map-toolbar::-webkit-scrollbar,
   .appointment-detail__route-provider-actions::-webkit-scrollbar {
     display: none;
   }
 
   .appointment-detail__map-tool {
+    border-radius: 999px;
+    height: 36px;
+    min-height: 36px;
     padding: 0 8px;
   }
 
+  .appointment-detail__map-tool--compact {
+    min-width: 42px;
+    padding: 0;
+    width: 42px;
+  }
+
   .appointment-detail__map-primary-actions {
-    bottom: 66px;
-    display: grid;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    display: flex;
     gap: 8px;
-    grid-template-columns: 1fr;
-    left: 10px;
-    max-width: none;
-    right: 10px;
-    transform: none;
+    left: 50%;
+    max-width: calc(100% - 32px);
+    right: auto;
+    transform: translateX(-50%);
+    width: auto;
   }
 
   .appointment-detail__map-primary-actions button {
+    font-size: 10px;
+    min-height: 40px;
     min-width: 0;
-    width: 100%;
+    padding: 0 15px;
+    width: auto;
   }
 
   .appointment-detail__route-action {
@@ -255,18 +282,25 @@
   }
 
   .appointment-detail__route-bottom {
-    bottom: auto;
-    flex-wrap: wrap;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    flex-wrap: nowrap;
     left: 10px;
     max-width: calc(100% - 124px);
     right: auto;
-    top: 84px;
+    top: auto;
   }
 
   .appointment-detail__route-bottom strong,
   .appointment-detail__route-bottom em {
-    min-height: 31px;
+    height: 36px;
+    min-height: 36px;
     padding: 0 10px;
+  }
+
+  .appointment-detail__route-view-toggle {
+    height: 36px;
+    min-height: 36px;
+    width: 42px;
   }
 
   .appointment-detail__provider-console-sidebar h2 {
@@ -376,9 +410,58 @@
   }
 
   .appointment-detail__navigation-guidance {
-    gap: 9px;
-    grid-template-columns: 38px minmax(0, 1fr);
-    padding: 9px 10px;
+    border-radius: 12px;
+    gap: 8px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    left: 8px;
+    max-width: calc(100% - 74px);
+    min-height: 52px;
+    padding: 7px 9px;
+    top: 8px;
+    transform: none;
+    width: calc(100% - 74px);
+  }
+
+  .appointment-detail__navigation-guidance > span {
+    border-radius: 9px;
+    height: 34px;
+    width: 34px;
+  }
+
+  .appointment-detail__navigation-guidance > span lucide-icon {
+    transform: scale(0.76);
+  }
+
+  .appointment-detail__navigation-guidance strong {
+    display: -webkit-box;
+    font-size: 12px;
+    line-height: 1.18;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .appointment-detail__navigation-guidance small {
+    font-size: 9px;
+  }
+
+  .appointment-detail__navigation-up-next {
+    display: none;
+  }
+
+  .appointment-detail__map-primary-actions {
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    max-width: calc(100% - 24px);
+    right: auto;
+  }
+
+  .appointment-detail__map-primary-actions button {
+    border-radius: 10px;
+    font-size: 9px;
+    min-height: 36px;
+    padding: 0 12px;
+    white-space: nowrap;
   }
 
   .appointment-detail__map-direction-pad {
@@ -397,7 +480,34 @@
   }
 
   .appointment-detail__route-bottom {
-    max-width: calc(100% - 110px);
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+    max-width: calc(100% - 124px);
+    top: auto;
+  }
+
+  .appointment-detail__route-bottom strong,
+  .appointment-detail__route-bottom em {
+    font-size: 10px;
+    height: 32px;
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+
+  .appointment-detail__route-view-toggle {
+    height: 32px;
+    min-height: 32px;
+    width: 36px;
+  }
+
+  .appointment-detail__map-tool {
+    height: 32px;
+    min-height: 32px;
+  }
+
+  .appointment-detail__map-tool--compact {
+    min-width: 36px;
+    width: 36px;
   }
 
 }

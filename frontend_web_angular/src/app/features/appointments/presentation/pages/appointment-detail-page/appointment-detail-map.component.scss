@@ -52,11 +52,16 @@
   left: auto;
   overflow-x: auto;
   padding-bottom: 2px;
+  pointer-events: none;
   position: absolute;
   right: 16px;
   top: auto;
   white-space: nowrap;
   z-index: 450;
+}
+
+.appointment-detail__map-top-actions > * {
+  pointer-events: auto;
 }
 
 .appointment-detail__map-top-actions::-webkit-scrollbar {

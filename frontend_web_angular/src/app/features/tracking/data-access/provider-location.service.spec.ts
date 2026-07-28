@@ -74,7 +74,7 @@ describe('ProviderLocationService', () => {
     expect(received[1]).toEqual(received[0]);
   });
 
-  it('updates orientation from the phone compass without moving the GPS position', () => {
+  it('updates orientation from the phone compass without waiting for another GPS event', () => {
     let success: ((position: GeolocationPosition) => void) | undefined;
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
@@ -95,9 +95,9 @@ describe('ProviderLocationService', () => {
     window.dispatchEvent(orientationEvent(10));
     success?.(thisPosition(14.7167, -17.4677, 8, null, 0));
     window.dispatchEvent(orientationEvent(100));
-    success?.(thisPosition(14.71671, -17.46769, 10, null, 0));
     subscription.unsubscribe();
 
+    expect(received).toHaveLength(2);
     expect(received[1]?.latitude).toBe(received[0]?.latitude);
     expect(received[1]?.heading).not.toBe(received[0]?.heading);
   });

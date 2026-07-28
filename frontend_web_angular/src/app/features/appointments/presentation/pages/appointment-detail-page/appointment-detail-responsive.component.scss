@@ -300,7 +300,19 @@
   .appointment-detail__route-view-toggle {
     height: 36px;
     min-height: 36px;
+    position: relative;
     width: 42px;
+    z-index: 2;
+    touch-action: manipulation;
+  }
+
+  .appointment-detail__live-map--fullscreen .appointment-detail__route-bottom,
+  .appointment-detail__live-map--fullscreen .appointment-detail__map-top-actions {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .appointment-detail__live-map--fullscreen .appointment-detail__map-primary-actions {
+    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
   }
 
   .appointment-detail__provider-console-sidebar h2 {
@@ -498,6 +510,15 @@
     height: 32px;
     min-height: 32px;
     width: 36px;
+  }
+
+  .appointment-detail__live-map--fullscreen .appointment-detail__route-bottom,
+  .appointment-detail__live-map--fullscreen .appointment-detail__map-top-actions {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .appointment-detail__live-map--fullscreen .appointment-detail__map-primary-actions {
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px));
   }
 
   .appointment-detail__map-tool {

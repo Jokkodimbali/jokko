@@ -295,8 +295,9 @@ export class TrackingGoogleMapRendererService {
 
   setHeading(headingDegrees: number): void {
     this.cancelCameraAnimation();
-    const heading = this.normalizeHeading(headingDegrees);
-    this.currentCameraHeading = heading;
+    const requestedHeading = this.normalizeHeading(headingDegrees);
+    this.currentCameraHeading = requestedHeading;
+    const heading = this.topViewEnabled ? 0 : requestedHeading;
     this.routeMap?.setOptions?.({
       headingInteractionEnabled: false,
       tiltInteractionEnabled: false,

@@ -59,11 +59,24 @@ export class ProviderLocationService {
         const normalized = this.normalizeHeading(measuredHeading);
         if (compassHeading === null) {
           compassHeading = normalized;
-          return;
+        } else {
+          const difference = Math.abs(((normalized - compassHeading + 540) % 360) - 180);
+          if (difference < 2) return;
+          compassHeading = this.smoothHeading(compassHeading, normalized, 0.22);
         }
-        const difference = Math.abs(((normalized - compassHeading + 540) % 360) - 180);
-        if (difference < 2) return;
-        compassHeading = this.smoothHeading(compassHeading, normalized, 0.22);
+
+        if (!filteredPosition) return;
+        const now = Date.now();
+        if (now - lastEmissionAt < intervalMilliseconds) return;
+        const orientedPosition = this.applyCompassHeading(
+          { ...filteredPosition, recordedAt: now },
+          stableHeading,
+          compassHeading,
+        );
+        filteredPosition = orientedPosition;
+        stableHeading = orientedPosition.headingDegrees;
+        lastEmissionAt = now;
+        subscriber.next(orientedPosition);
       };
       window.addEventListener('deviceorientationabsolute', handleOrientation, true);
       window.addEventListener('deviceorientation', handleOrientation, true);

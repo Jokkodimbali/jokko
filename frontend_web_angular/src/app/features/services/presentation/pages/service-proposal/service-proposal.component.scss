@@ -307,7 +307,7 @@
   display: grid;
   grid-column: 1 / -1;
   justify-items: center;
-  min-height: calc(100vh - 46px);
+  min-height: calc(100vh - 126px);
   padding: 40px 16px;
 }
 
@@ -1472,7 +1472,7 @@
   color: #c4cbd5;
 }
 
-.service-proposal__counter-offer-values span:first-child strong {
+.service-proposal__counter-offer-values span:first-child:not(:last-child) strong {
   color: #9aa3ad;
   text-decoration: line-through;
   text-decoration-thickness: 2px;
@@ -1631,4 +1631,19 @@
     max-width: calc(100% - 36px);
   }
 
+}
+
+@media (min-width: 1024px) and (max-height: 760px) {
+  .service-proposal__content {
+    gap: 14px;
+    padding-block: 12px 16px;
+  }
+
+  .service-proposal__confirmed {
+    padding: 16px;
+  }
+
+  .service-proposal__confirmed-card {
+    padding: 24px 30px 22px;
+  }
 }

@@ -9,6 +9,13 @@
   min-height: 100vh;
 }
 
+.appointment-detail button,
+.appointment-detail input,
+.appointment-detail select,
+.appointment-detail textarea {
+  font-family: inherit;
+}
+
 .appointment-detail__state {
   font-size: 18px;
   font-weight: 900;
@@ -335,13 +342,13 @@
 
 .appointment-detail__completed-hero h2 {
   font-size: clamp(25px, 3vw, 30px);
-  font-weight: 950;
+  font-weight: 600;
   margin: 26px 0 24px;
 }
 
 .appointment-detail__completed-hero p {
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 500;
   margin: 0 0 27px;
 }
 

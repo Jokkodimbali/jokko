@@ -124,6 +124,14 @@
     </span>
   </section>
 
+  <app-appointment-tracking-stepper
+    [steps]="journeySteps"
+    [progress]="journeyProgress"
+    [showBack]="false"
+    [embedded]="true"
+    ariaLabel="Étapes de la réservation"
+  />
+
   <section *ngIf="isLoading()" class="service-proposal__state">
     Chargement de la proposition...
   </section>
@@ -396,7 +404,7 @@
                     [strokeWidth]="2.4"
                     fill="currentColor"
                   ></lucide-icon>
-                  {{ proposal.service?.nom || categoryLabel() }}
+                  {{ categoryLabel() || proposal.service?.nom }}
                 </p>
               </div>
             </div>

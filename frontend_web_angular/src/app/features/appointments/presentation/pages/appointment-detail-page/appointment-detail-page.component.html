@@ -450,10 +450,8 @@
         [class.appointment-detail__live-map--fullscreen]="isMapFullscreen()"
       >
         <div
-          *ngIf="isProviderViewer()"
-          class="appointment-detail__provider-console-visual"
-          [class.appointment-detail__provider-console-visual--visible]="showProviderConsoleVisual()"
-          [attr.aria-hidden]="!showProviderConsoleVisual()"
+          *ngIf="showProviderConsoleVisual()"
+          class="appointment-detail__provider-console-visual appointment-detail__provider-console-visual--visible"
         >
             <div class="appointment-detail__provider-console-done" [hidden]="!isAppointmentCompleted()">
               <span>

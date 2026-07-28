@@ -2,7 +2,7 @@
   background: #eef1f3;
   color: #0b0f1d;
   font-family: var(--font-app);
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
 }
 
 .appointment-detail__upcoming-topbar {

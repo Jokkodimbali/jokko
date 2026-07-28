@@ -24,6 +24,11 @@ import {
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import {
+  AppointmentTrackingStepperComponent,
+  appointmentJourneyProgress,
+  appointmentJourneySteps,
+} from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
@@ -155,6 +160,7 @@ interface AcceptedReservationConfirmation {
     FormsModule,
     LucideAngularModule,
     AppStarRatingComponent,
+    AppointmentTrackingStepperComponent,
     ServiceProposalDetailsModalComponent,
   ],
   templateUrl: './service-proposal.component.html',
@@ -167,6 +173,8 @@ interface AcceptedReservationConfirmation {
   ],
 })
 export class ServiceProposalComponent implements OnDestroy, OnInit {
+  protected readonly journeySteps = appointmentJourneySteps(1);
+  protected readonly journeyProgress = appointmentJourneyProgress(1);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly servicesService = inject(ServicesService);
@@ -399,14 +407,22 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         this.latestNegotiationOffer(this.pendingProposal()!, 'PRESTATAIRE'),
     ),
   );
-  protected readonly providerCurrentClientOfferLabel = computed(() =>
-    this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
-  );
+  protected readonly providerCurrentClientOfferLabel = computed(() => {
+    const proposal = this.pendingProposal();
+    const amount = proposal
+      ? this.latestNegotiationOffer(proposal, 'CLIENT') ??
+        proposal.montantCourant ??
+        proposal.montantInitial
+      : this.offerAmount();
+    return this.formatAmount(amount);
+  });
   protected readonly providerCounterDifferenceLabel = computed(() =>
-    this.pricingView.providerCounterDifferenceLabel(
-      this.providerBaseOfferAmount(),
-      this.offerAmount(),
-    ),
+    this.customServiceName()
+      ? 'Prix proposé par le client pour ce nouveau motif'
+      : this.pricingView.providerCounterDifferenceLabel(
+          this.providerBaseOfferAmount(),
+          this.offerAmount(),
+        ),
   );
   protected readonly providerCounterActionLabel = computed(() =>
     this.pricingView.providerCounterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -688,7 +704,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     (this.customOfferTouched() && Math.trunc(Number(this.offerAmount())) >= 500),
   );
   protected readonly formattedOffer = computed(() =>
-    this.customServiceName() && !this.customOfferTouched()
+    !this.isProviderProposalMode && this.customServiceName() && !this.customOfferTouched()
       ? ''
       : this.formatAmount(this.offerAmount()),
   );

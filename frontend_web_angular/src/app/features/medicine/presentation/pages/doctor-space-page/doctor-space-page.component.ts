@@ -1042,7 +1042,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       service: reservation.service
         ? {
             id: reservation.service.id,
-            nom: reservation.service.nom,
+            nom: this.requestedReservationServiceName(reservation) ?? reservation.service.nom,
             prix: servicePrice,
           }
         : undefined,
@@ -1185,6 +1185,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.backNavigation.back(
       this.route.snapshot.queryParamMap.get('returnUrl'),
       '/services',
+      { preferReturnUrl: true },
     );
   }
 
@@ -1586,7 +1587,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return 'Prix propose';
     }
 
-    return negotiation.service?.nom || 'Service';
+    return this.requestedNegotiationServiceName(negotiation) || negotiation.service?.nom || 'Service';
   }
 
 
@@ -1989,7 +1990,27 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected agendaReservationServiceName(reservation: BackendReservation): string {
-    return reservation.service?.nom ?? 'Service non renseigne';
+    return this.requestedReservationServiceName(reservation) ?? 'Service non renseigne';
+  }
+
+  private requestedReservationServiceName(reservation: BackendReservation): string | null {
+    const match = reservation.notes?.match(
+      /(?:^|\s)Motif reserve:\s*(.+?)\.\s*(?:Reservation creee|$)/i,
+    );
+    return match?.[1]?.trim().replace(/\s+/g, ' ') || reservation.service?.nom || null;
+  }
+
+  private requestedNegotiationServiceName(negotiation: NegotiationView): string | null {
+    const messages = [
+      negotiation.messageCourant,
+      ...(negotiation.propositions ?? []).slice().reverse().map((offer) => offer.message),
+    ];
+    for (const message of messages) {
+      const match = message?.match(/(?:^|\s)Service:\s*(.+?)\.\s*(?:Proposition de prix:|$)/i);
+      const name = match?.[1]?.trim().replace(/\s+/g, ' ');
+      if (name) return name;
+    }
+    return null;
   }
 
   protected agendaReservationCategoryName(reservation: BackendReservation): string {
@@ -3006,7 +3027,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
         return {
           id: reservation.id,
-          title: reservation.service?.nom ?? localService?.name ?? 'Consultation',
+          title: this.requestedReservationServiceName(reservation) ?? localService?.name ?? 'Consultation',
           timeLabel: `${this.formatAgendaTime(scheduledAt)} - ${this.formatAgendaTime(
             new Date(scheduledAt.getTime() + duration * 60 * 1000),
           )}`,
@@ -3041,7 +3062,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           clientId: reservation.clientId,
           patientName: this.clientLabel(reservation),
           avatarUrl: reservation.client?.urlAvatar ?? null,
-          serviceName: reservation.service?.nom ?? 'Consultation',
+          serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
           scheduledAt,
           appointmentLabel: this.formatMedicalHistoryAppointment(scheduledAt),
           lastAppointmentLabel: this.lastAppointmentLabelForClient(
@@ -3075,7 +3096,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           clientName,
           avatarUrl: reservation.client?.urlAvatar ?? null,
           initials: this.initialsForName(clientName),
-          serviceName: reservation.service?.nom ?? 'Service non renseigne',
+          serviceName: this.requestedReservationServiceName(reservation) ?? 'Service non renseigne',
           scheduledAt,
           timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
           dateLabel: new Intl.DateTimeFormat('fr-FR', {
@@ -3123,7 +3144,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         const scheduledAt = new Date(reservation.dateHeure);
         return {
           id: reservation.id,
-          title: reservation.service?.nom ?? 'Consultation',
+          title: this.requestedReservationServiceName(reservation) ?? 'Consultation',
           category: reservation.service?.categorie?.nom ?? 'Acte medical',
           dateLabel: Number.isNaN(scheduledAt.getTime())
             ? 'Date non renseignee'
@@ -3269,7 +3290,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       patientName,
       avatarUrl: reservation.client?.urlAvatar ?? null,
       initials: this.initialsForName(patientName),
-      serviceName: reservation.service?.nom ?? 'Consultation',
+      serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
       locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
       timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
       dayLabel: scheduledAt.getDate().toString().padStart(2, '0'),

@@ -20,6 +20,7 @@ import { LucideAngularModule } from 'lucide-angular';
 export class AppScrollHintComponent implements OnInit {
   @Input() label = 'Glissez vers le bas';
   @Input() scrollRatio = 0.82;
+  @Input() hideOnMobile = false;
 
   protected readonly visible = signal(false);
 

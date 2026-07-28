@@ -1050,14 +1050,22 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyResolvedProviderLocation(providerId: string, addressLabel: string): void {
     this.sections.update((sections) =>
-      sections.map((section) => ({
-        ...section,
-        providers: section.providers.map((provider) =>
-          provider.id === providerId
-            ? { ...provider, location: this.mergeLocationDistance(provider.location, addressLabel) }
-            : provider,
-        ),
-      })),
+      sections.map((section) => {
+        const providerIndex = section.providers.findIndex((provider) => provider.id === providerId);
+        if (providerIndex < 0) {
+          return section;
+        }
+
+        const provider = section.providers[providerIndex];
+        const location = this.mergeLocationDistance(provider.location, addressLabel);
+        if (location === provider.location) {
+          return section;
+        }
+
+        const providers = [...section.providers];
+        providers[providerIndex] = { ...provider, location };
+        return { ...section, providers };
+      }),
     );
 
     this.suggestionProviders.update((providers) =>
@@ -1067,6 +1075,14 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
           : provider,
       ),
     );
+  }
+
+  protected trackBySectionId(_index: number, section: ServiceSection): string {
+    return section.id;
+  }
+
+  protected trackByProviderId(_index: number, provider: Professional): string {
+    return provider.id;
   }
 
   private mergeLocationDistance(currentLocation: string, addressLabel: string): string {

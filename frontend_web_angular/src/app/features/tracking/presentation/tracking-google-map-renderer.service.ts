@@ -948,12 +948,12 @@ export class TrackingGoogleMapRendererService {
     const startedAt = performance.now();
     const duration =
       (speedKmh ?? 0) >= 50
-        ? 280
+        ? 160
         : (speedKmh ?? 0) >= 25
-          ? 420
+          ? 220
           : (speedKmh ?? 0) >= 8
-            ? 620
-            : Math.min(850, Math.max(500, distance * 20));
+            ? 300
+            : Math.min(460, Math.max(260, distance * 12));
     const animate = (timestamp: number): void => {
       const progress = Math.min(1, (timestamp - startedAt) / duration);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -1091,7 +1091,7 @@ export class TrackingGoogleMapRendererService {
     const originTilt = this.renderedCameraTilt;
     const headingDelta = ((targetHeading - originHeading + 540) % 360) - 180;
     const startedAt = performance.now();
-    const duration = (speedKmh ?? 0) >= 50 ? 480 : (speedKmh ?? 0) >= 15 ? 580 : 720;
+    const duration = (speedKmh ?? 0) >= 50 ? 180 : (speedKmh ?? 0) >= 15 ? 240 : 320;
 
     const animate = (timestamp: number): void => {
       const progress = Math.min(1, (timestamp - startedAt) / duration);
@@ -1612,8 +1612,8 @@ export class TrackingGoogleMapRendererService {
     if (!this.lastProviderPosition) return candidateHeading;
     const delta = ((candidateHeading - this.currentTravelerHeading + 540) % 360) - 180;
     const smoothing = alignedToRoute
-      ? (state.speedKmh ?? 0) >= 20 ? 0.82 : 0.68
-      : (state.speedKmh ?? 0) >= 20 ? 0.5 : 0.32;
+      ? (state.speedKmh ?? 0) >= 20 ? 0.94 : 0.84
+      : (state.speedKmh ?? 0) >= 20 ? 0.78 : 0.62;
     return this.normalizeHeading(this.currentTravelerHeading + delta * smoothing);
   }
 
@@ -1708,7 +1708,7 @@ export class TrackingGoogleMapRendererService {
     }
 
     this.pendingStationaryHeading = candidate;
-    return this.normalizeHeading(this.currentTravelerHeading + delta * 0.38);
+    return this.normalizeHeading(this.currentTravelerHeading + delta * 0.62);
   }
 
   private headingAlongRoute(

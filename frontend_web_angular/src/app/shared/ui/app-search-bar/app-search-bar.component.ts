@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { AppStarRatingComponent } from '../app-star-rating/app-star-rating.component';
 
 export interface AppSearchCategorySuggestion {
   id: string;
@@ -33,7 +34,7 @@ export interface AppSearchModeOption {
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent],
   templateUrl: './app-search-bar.component.html',
   styleUrl: './app-search-bar.component.scss',
 })
@@ -98,10 +99,6 @@ export class AppSearchBarComponent {
 
   get hiddenCategoryCount(): number {
     return Math.max(0, this.categorySuggestions.length - this.collapsedCategoryCount);
-  }
-
-  protected reviewCountFillPercent(reviews: number): number {
-    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
   }
 
   onInput(value: string): void {

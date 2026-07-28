@@ -1,0 +1,51 @@
+:host {
+  display: inline-flex;
+  line-height: 1;
+}
+
+.app-star-rating {
+  color: #f59e0b;
+  display: inline-grid;
+  line-height: 1;
+  width: max-content;
+}
+
+.app-star-rating__base,
+.app-star-rating__fill {
+  display: inline-flex;
+  gap: 1px;
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.app-star-rating__base {
+  opacity: 0.32;
+}
+
+.app-star-rating__fill {
+  max-width: var(--rating-fill, 0%);
+  overflow: hidden;
+}
+
+.app-star-rating svg {
+  fill: currentColor;
+  flex: 0 0 17px;
+  height: 17px;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-width: 0.8px;
+  width: 17px;
+}
+
+.app-star-rating--small svg {
+  flex-basis: 14px;
+  height: 14px;
+  width: 14px;
+}
+
+.app-star-rating--large svg {
+  flex-basis: 20px;
+  height: 20px;
+  width: 20px;
+}

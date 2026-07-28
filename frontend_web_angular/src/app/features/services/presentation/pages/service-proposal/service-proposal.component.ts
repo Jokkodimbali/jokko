@@ -23,6 +23,7 @@ import {
 } from '../../../../../shared/maps/google-maps-loader.service';
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import {
@@ -153,6 +154,7 @@ interface AcceptedReservationConfirmation {
     CommonModule,
     FormsModule,
     LucideAngularModule,
+    AppStarRatingComponent,
     ServiceProposalDetailsModalComponent,
   ],
   templateUrl: './service-proposal.component.html',
@@ -391,6 +393,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly providerBaseOfferLabel = computed(() =>
     this.formatAmount(this.providerBaseOfferAmount()),
   );
+  protected readonly providerHasPreviousOffer = computed(() =>
+    Boolean(
+      this.pendingProposal() &&
+        this.latestNegotiationOffer(this.pendingProposal()!, 'PRESTATAIRE'),
+    ),
+  );
   protected readonly providerCurrentClientOfferLabel = computed(() =>
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
@@ -480,9 +488,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly confirmedReservationServiceLabel = computed(
     () =>
+      this.reservationBuilder.extractRequestedServiceName(this.confirmedReservationProposal()) ||
+      this.customServiceName() ||
       this.confirmedReservationProposal()?.service?.nom ||
       this.currentService()?.nom ||
-      this.customServiceName() ||
       this.categoryLabel(),
   );
   protected readonly confirmedReservationAmountLabel = computed(() =>
@@ -760,9 +769,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     const fallback = this.isProviderProposalMode
-      ? '/prestataire/espace'
+      ? '/prestataire/espace?section=negotiations'
       : `/services/${this.profileId || this.detail()?.profile.id || ''}`;
-    this.backNavigation.back(this.safeReturnUrl(), fallback);
+    this.backNavigation.back(this.safeReturnUrl(), fallback, {
+      preferReturnUrl: this.isProviderProposalMode,
+    });
   }
 
   protected trackByParcelId(_index: number, parcel: ParcelDraft): string {
@@ -2019,12 +2030,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.linkedReservationStatus.set('CONFIRMEE');
           this.linkedReservationCancellationReason.set(null);
           this.finalizeMaterialQuotesForReservation(proposal, reservationId);
-          this.acceptedConfirmation.set({
-            reservationId,
-            proposal,
-            dateHeure: reservationPayload.dateHeure,
-            adresseClient: reservationPayload.adresseClient,
-            dureeMinutes: reservationPayload.dureeMinutes,
+          this.router.navigate(['/appointments', reservationId, 'payment'], {
+            queryParams: { returnUrl: '/appointments' },
+            replaceUrl: true,
           });
         },
         error: (error) => {
@@ -2127,6 +2135,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.pendingProposal.set(proposal);
     this.refreshLinkedReservationStatus(proposal);
+    this.restoreRequestedServiceName(proposal);
     this.loadMaterialQuotes(proposal.id);
 
     const shouldKeepProviderDraft =
@@ -2570,6 +2579,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.pendingProposal.set(proposal);
     this.refreshLinkedReservationStatus(proposal);
     this.selectedServiceId.set(proposal.serviceId);
+    this.restoreRequestedServiceName(proposal);
     this.offerAmount.set(proposal.montantCourant || options.fallbackAmount || 0);
     this.isProviderOfferDirty.set(false);
 
@@ -2707,6 +2717,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       isParcelDeliveryService: this.isParcelDeliveryService(),
       parcelNotes: this.reservationLocationNotes(),
     });
+  }
+
+  private restoreRequestedServiceName(proposal: NegotiationView): void {
+    const requestedServiceName = this.reservationBuilder.extractRequestedServiceName(proposal);
+    const persistedServiceName = proposal.service?.nom?.trim() || this.currentService()?.nom?.trim() || '';
+    this.customServiceName.set(
+      requestedServiceName && requestedServiceName !== persistedServiceName ? requestedServiceName : '',
+    );
   }
 
   private buildAcceptedReservationNotes(proposal: NegotiationView): string {

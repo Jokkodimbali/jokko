@@ -14,6 +14,7 @@ import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { normalizeSenegalPhoneNumber } from '../../../../auth/domain/auth.validators';
 import { UserProfileDto } from '../../../../auth/domain/models/auth.models';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import {
   AvailabilityRealtimeService,
   ProfessionalAvailabilityChangedEvent,
@@ -101,7 +102,13 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
 @Component({
   selector: 'app-medicine-appointment-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, ServiceProposalDetailsModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    ServiceProposalDetailsModalComponent,
+    AppStarRatingComponent,
+  ],
   templateUrl: './medicine-appointment-booking.component.html',
   styleUrl: './medicine-appointment-booking.component.scss',
 })

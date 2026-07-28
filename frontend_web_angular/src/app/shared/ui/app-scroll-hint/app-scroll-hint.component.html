@@ -2,6 +2,7 @@
   *ngIf="visible()"
   type="button"
   class="app-scroll-hint"
+  [class.app-scroll-hint--mobile-hidden]="hideOnMobile"
   [attr.aria-label]="label"
   (click)="scrollDown()"
 >

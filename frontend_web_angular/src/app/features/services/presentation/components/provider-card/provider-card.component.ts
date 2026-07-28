@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { ProfessionalVehicleType } from '../../../domain/models/services.models';
 
 export interface ProviderCardImage {
@@ -74,7 +75,7 @@ const TRAVEL_MODE_IMAGES: Record<ProviderCardTravelMode, string> = {
 @Component({
   selector: 'app-provider-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppStarRatingComponent],
   templateUrl: './provider-card.component.html',
   styleUrl: './provider-card.component.scss',
 })
@@ -91,7 +92,6 @@ export class ProviderCardComponent {
   @Output() imageError = new EventEmitter<string>();
 
   protected readonly emptySlots = [0, 1];
-  protected readonly ratingStarValues = [1, 2, 3, 4, 5];
   protected selectedServiceId: string | null = null;
 
   protected get ratingText(): string {
@@ -106,28 +106,11 @@ export class ProviderCardComponent {
     return this.provider.totalReviews > 0 ? `(${this.provider.totalReviews})` : '';
   }
 
-  protected get ratingFillPercent(): number {
-    return this.reviewCountFillPercent(this.provider.totalReviews);
-  }
-
-  protected isRatingStarFilled(star: number): boolean {
-    if (this.provider.totalReviews <= 0) {
-      return false;
-    }
-
-    const rating = this.normalizedRating();
-    return star <= Math.round(rating);
-  }
-
   private normalizedRating(): number {
     const rating = Math.max(0, Math.min(5, Number(this.provider.rating) || 0));
     return this.provider.totalReviews > 0 && rating <= 0
       ? Math.min(5, this.provider.totalReviews)
       : rating;
-  }
-
-  private reviewCountFillPercent(reviews: number): number {
-    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
   }
 
   protected get movementImageUrl(): string | null {

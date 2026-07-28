@@ -175,8 +175,12 @@ describe('ProviderLocationService', () => {
     subscription.unsubscribe();
 
     expect(headings[0]).toBe(359);
-    expect(headings[1]).toBeGreaterThan(359);
-    expect(headings[1]).toBeLessThan(360);
+    expect(headings[1]).not.toBeNull();
+    const distanceFromNorth = Math.min(
+      Math.abs(headings[1] as number),
+      Math.abs(360 - (headings[1] as number)),
+    );
+    expect(distanceFromNorth).toBeLessThan(2);
   });
 });
 

@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -22,7 +23,7 @@ interface PaymentOption {
 @Component({
   selector: 'app-appointment-payment-page',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent],
   templateUrl: './appointment-payment-page.component.html',
   styleUrl: './appointment-payment-page.component.scss',
 })

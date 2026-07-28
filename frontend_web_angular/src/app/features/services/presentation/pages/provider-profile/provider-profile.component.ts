@@ -14,6 +14,7 @@ import {
 } from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../data-access/services.service';
 import {
@@ -33,11 +34,6 @@ interface OfferedServiceVisual {
   id: string;
   name: string;
   imageUrl: string | null;
-}
-
-interface RatingStarView {
-  index: number;
-  filled: boolean;
 }
 
 const PROFESSIONAL_VEHICLE_BADGES: Record<
@@ -71,6 +67,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     CommonModule,
     AppFooterComponent,
     AppNavbarComponent,
+    AppStarRatingComponent,
     LucideAngularModule,
     RouterLink,
   ],
@@ -164,9 +161,6 @@ export class ProviderProfileComponent implements OnInit {
     const total = this.detail()?.profile.nombreAvis ?? 0;
     return `${this.formatNumber(total)} avis`;
   });
-  protected readonly ratingStars = computed(() =>
-    this.ratingStarViews(this.detail()?.profile.noteGlobale ?? 0, this.detail()?.profile.nombreAvis ?? 0),
-  );
   private readonly professionalBiography = computed(() => {
     const biography = this.detail()?.profile.biographie ?? '';
     const lines = biography
@@ -362,29 +356,6 @@ export class ProviderProfileComponent implements OnInit {
       month: 'long',
       year: 'numeric',
     }).format(date);
-  }
-
-  protected ratingStarViews(value: number, reviews = 1): RatingStarView[] {
-    const rounded = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
-    const filledCount = reviews > 0 && rounded <= 0 ? 5 : rounded;
-    return [1, 2, 3, 4, 5].map((index) => ({
-      index,
-      filled: index <= filledCount,
-    }));
-  }
-
-  protected ratingFillPercent(value: number, reviews = 1): number {
-    if (reviews <= 0) {
-      return 0;
-    }
-
-    const rating = Math.max(0, Math.min(5, Number(value) || 0));
-    const normalizedRating = rating <= 0 ? Math.min(5, reviews) : rating;
-    return Math.round((normalizedRating / 5) * 100);
-  }
-
-  protected reviewCountFillPercent(reviews: number): number {
-    return Math.round(Math.min(100, Math.max(0, reviews) * 10));
   }
 
   protected visibleImageUrl(url: string | null | undefined): string | null {

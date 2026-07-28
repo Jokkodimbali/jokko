@@ -20,6 +20,13 @@
     overflow-wrap: anywhere;
   }
 
+  .doctor-space__header--negotiations h1 {
+    font-size: clamp(17px, 5.2vw, 23px) !important;
+    letter-spacing: -0.02em;
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+
   .doctor-space__header p {
     font-size: 14px;
     line-height: 1.5;
@@ -109,6 +116,10 @@
 
   .doctor-space__header h1 {
     font-size: clamp(24px, 7.4vw, 29px);
+  }
+
+  .doctor-space__header--negotiations h1 {
+    font-size: clamp(17px, 5.2vw, 20px) !important;
   }
 
   .doctor-space__header p {

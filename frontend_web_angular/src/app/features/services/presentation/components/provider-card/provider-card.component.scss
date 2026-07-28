@@ -244,63 +244,6 @@
   gap: 2px;
 }
 
-.provider-card__meta span[hidden] {
-  display: none !important;
-}
-
-.provider-card__rating {
-  color: #f59e0b;
-  display: inline-grid !important;
-  font-weight: 900;
-  line-height: 1;
-  position: relative;
-  width: max-content;
-  border-radius: 22px;
-}
-
-.provider-card__rating-base,
-.provider-card__rating-fill {
-  display: inline-flex;
-  gap: 1px;
-  grid-area: 1 / 1;
-  white-space: nowrap;
-}
-
-.provider-card__rating svg {
-  fill: currentColor;
-  flex: 0 0 17px;
-  height: 17px;
-  overflow: visible;
-  stroke: currentColor;
-  stroke-linejoin: round;
-  stroke-width: 0.8px;
-  width: 17px;
-}
-
-.provider-card__rating-base {
-  color: #f59e0b;
-  opacity: 0.32;
-}
-
-.provider-card__rating-fill {
-  color: #f59e0b;
-  max-width: var(--rating-fill, 0%);
-  overflow: hidden;
-}
-
-.provider-card__rating-star {
-  color: #f59e0b;
-  font-size: 14px;
-  font-style: normal;
-  line-height: 1;
-  opacity: 0.34;
-}
-
-.provider-card__meta .provider-card__star--filled {
-  color: #f59e0b;
-  opacity: 1;
-}
-
 .provider-card__meta small {
   color: #8e8396;
   font-size: 12px;
@@ -368,32 +311,35 @@
   align-items: center;
   background: rgba(255, 248, 241, 0.94);
   border: 1px solid #e2c5aa;
-  border-radius: 999px;
+  border-radius: 18px;
+  box-sizing: border-box;
   box-shadow: 0 8px 18px rgba(31, 23, 15, 0.12);
   color: #7a4318;
   display: inline-flex;
   gap: 6px;
   left: 12px;
   max-width: calc(100% - 24px);
-  min-height: 32px;
+  height: 52px;
   padding: 5px 12px 5px 8px;
   position: absolute;
   top: 12px;
+  width: 170px;
   z-index: 3;
 }
 
 .provider-card__vehicle-badge img {
   display: block;
   flex: 0 0 auto;
-  height: 20px;
+  height: 40px;
   object-fit: contain;
-  width: 20px;
+  width: 40px;
 }
 
 .provider-card__vehicle-badge strong {
   background: transparent;
   color: inherit;
   display: block;
+  flex: 1 1 auto;
   font-size: 13px;
   font-weight: 850;
   line-height: 1;

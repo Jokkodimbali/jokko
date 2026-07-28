@@ -47,7 +47,9 @@ export class ServiceProposalReservationBuilderService {
     acceptedAmountLabel: string;
     parcelNotes: string[];
   }): string {
+    const requestedServiceName = this.extractRequestedServiceName(input.proposal);
     const lines = [
+      requestedServiceName ? `Motif reserve: ${requestedServiceName}.` : '',
       `Reservation creee apres acceptation du prix propose: ${input.acceptedAmountLabel} FCFA.`,
       ...input.parcelNotes,
     ];
@@ -60,6 +62,23 @@ export class ServiceProposalReservationBuilderService {
     }
 
     return this.joinLimitedNotes(lines);
+  }
+
+  extractRequestedServiceName(proposal: NegotiationView | null | undefined): string | null {
+    if (!proposal) return null;
+
+    const messages = [
+      proposal.messageCourant,
+      ...(proposal.propositions ?? []).slice().reverse().map((offer) => offer.message),
+    ];
+
+    for (const message of messages) {
+      const match = message?.match(/(?:^|\s)Service:\s*(.+?)\.\s*(?:Proposition de prix:|$)/i);
+      const serviceName = match?.[1]?.trim().replace(/\s+/g, ' ');
+      if (serviceName) return serviceName;
+    }
+
+    return null;
   }
 
   buildAcceptedNegotiationReservationPayload(input: {

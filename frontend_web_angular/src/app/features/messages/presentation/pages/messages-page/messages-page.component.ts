@@ -320,7 +320,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   });
   protected readonly canShowNegotiationButton = computed(() => {
     const conversation = this.selectedConversation();
-    if (!conversation) return false;
+    if (!conversation || this.currentUser()?.role !== 'CLIENT') return false;
     if (!conversation.reservationId) return true;
 
     return this.visibleAppointmentPreview()?.status === 'TERMINEE';
@@ -393,7 +393,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.router.navigate(['/services']);
+    const conversation = this.selectedConversation();
+    const professionalProfileId =
+      conversation?.professionalProfileId || conversation?.counterpart.professionalProfileId;
+    if (!professionalProfileId) {
+      this.feedback.error('Impossible de retrouver le prestataire associe a cette discussion.');
+      return;
+    }
+
+    this.router.navigate(['/services', professionalProfileId, 'proposition'], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   protected updateSearch(value: string): void {

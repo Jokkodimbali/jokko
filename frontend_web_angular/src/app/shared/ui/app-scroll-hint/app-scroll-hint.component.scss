@@ -33,6 +33,10 @@
 
 /* Mobile: <768px */
 @media (max-width: 767px) {
+  .app-scroll-hint--mobile-hidden {
+    display: none !important;
+  }
+
   .app-scroll-hint {
     bottom: 16px;
     font-size: 16px;

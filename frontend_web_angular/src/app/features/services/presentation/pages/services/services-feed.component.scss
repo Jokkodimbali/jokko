@@ -14,7 +14,7 @@
 /* ─── Favorites sidebar ─────────────────────────────────────────── */
 :host .favorites {
   background-color: #955d24;
-  border-radius: 17px;
+  border-radius: 28px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@
 :host .favorite-row {
   align-items: center !important;
   background: #8f4721;
-  border-radius: 10px;
+  border-radius: 999px;
   color: #fff;
   display: flex !important;
   gap: 10px !important;
@@ -158,11 +158,12 @@
   white-space: nowrap;
 }
 
+
 :host .favorites-manage {
   align-items: center;
   background: #9a4b24;
   border: 0;
-  border-radius: 12px;
+  border-radius: 18px;
   box-sizing: border-box;
   color: #fff;
   cursor: pointer;
@@ -211,6 +212,7 @@
 :host .empty-favorites .auth-link:hover {
   background: rgba(255, 255, 255, 0.25);
 }
+
 
 /* ─── Service feed ──────────────────────────────────────────────── */
 :host .service-feed {

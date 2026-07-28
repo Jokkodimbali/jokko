@@ -270,7 +270,11 @@
               <div>
                 <h2>{{ doctorName() }}</h2>
                 <p>
-                  <lucide-icon name="star" size="15" [strokeWidth]="2.4"></lucide-icon>
+                  <app-star-rating
+                    [value]="detail()?.profile?.noteGlobale ?? 0"
+                    [reviews]="detail()?.profile?.nombreAvis ?? 0"
+                    size="small"
+                  />
                   {{ doctorRatingLabel() }} · {{ doctorReviewsLabel() }}
                 </p>
               </div>

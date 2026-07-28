@@ -611,34 +611,6 @@
   line-height: 1;
 }
 
-.app-search-bar__provider-stars {
-  color: #f59e0b;
-  display: inline-grid;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  line-height: 1;
-  position: relative;
-  width: max-content;
-}
-
-.app-search-bar__provider-stars-base,
-.app-search-bar__provider-stars-fill {
-  grid-area: 1 / 1;
-  white-space: nowrap;
-}
-
-.app-search-bar__provider-stars-base {
-  color: #f59e0b;
-  opacity: 0.32;
-}
-
-.app-search-bar__provider-stars-fill {
-  color: #f59e0b;
-  max-width: var(--rating-fill, 0%);
-  overflow: hidden;
-}
-
 .app-search-bar__provider-info em {
   color: #9aa3af;
   font-style: normal;

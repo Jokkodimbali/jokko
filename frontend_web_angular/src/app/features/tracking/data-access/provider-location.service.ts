@@ -138,7 +138,7 @@ export class ProviderLocationService {
         : this.smoothHeading(gpsHeading, compassHeading, compassWeight);
     return {
       ...position,
-      headingDegrees: this.smoothHeading(previousHeading, target, speed >= 8 ? 0.42 : 0.3),
+      headingDegrees: this.smoothHeading(previousHeading, target, speed >= 8 ? 0.68 : 0.52),
     };
   }
 
@@ -153,13 +153,14 @@ export class ProviderLocationService {
     }
 
     const rawDistance = this.distanceMeters(previous, raw);
+    const elapsedSeconds = Math.max(0.1, (raw.recordedAt - previous.recordedAt) / 1000);
+    const inferredSpeedKmh = (rawDistance / elapsedSeconds) * 3.6;
+    const effectiveSpeedKmh = raw.speedKmh ?? inferredSpeedKmh;
     const stationaryRadius = Math.max(
       MIN_MOVEMENT_METERS,
       Math.min(12, raw.accuracyMeters * 0.5),
     );
-    const moving =
-      (raw.speedKmh ?? 0) >= STATIONARY_SPEED_KMH &&
-      rawDistance >= 1.5;
+    const moving = effectiveSpeedKmh >= STATIONARY_SPEED_KMH && rawDistance >= 1.2;
     const poorAccuracyJump =
       raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS &&
       rawDistance < raw.accuracyMeters * 1.5;
@@ -174,7 +175,7 @@ export class ProviderLocationService {
       };
     }
 
-    const alpha = this.positionSmoothingFactor(raw.accuracyMeters, raw.speedKmh);
+    const alpha = this.positionSmoothingFactor(raw.accuracyMeters, effectiveSpeedKmh);
     const latitude = previous.latitude + (raw.latitude - previous.latitude) * alpha;
     const longitude = previous.longitude + (raw.longitude - previous.longitude) * alpha;
     const filteredDistance = this.distanceMeters(previous, { ...raw, latitude, longitude });
@@ -189,15 +190,18 @@ export class ProviderLocationService {
       ...raw,
       latitude,
       longitude,
-      headingDegrees: this.smoothHeading(previousHeading, measuredHeading, moving ? 0.45 : 0.28),
+      speedKmh: effectiveSpeedKmh,
+      headingDegrees: this.smoothHeading(previousHeading, measuredHeading, moving ? 0.72 : 0.4),
     };
   }
 
   private positionSmoothingFactor(accuracyMeters: number, speedKmh: number | null): number {
-    if ((speedKmh ?? 0) >= 25) return 0.72;
-    if (accuracyMeters <= 10) return 0.58;
-    if (accuracyMeters <= 25) return 0.42;
-    return 0.28;
+    if ((speedKmh ?? 0) >= 60) return 0.96;
+    if ((speedKmh ?? 0) >= 25) return 0.9;
+    if ((speedKmh ?? 0) >= 8) return 0.78;
+    if (accuracyMeters <= 10) return 0.68;
+    if (accuracyMeters <= 25) return 0.52;
+    return 0.38;
   }
 
   private smoothHeading(previous: number | null, next: number | null, factor: number): number | null {

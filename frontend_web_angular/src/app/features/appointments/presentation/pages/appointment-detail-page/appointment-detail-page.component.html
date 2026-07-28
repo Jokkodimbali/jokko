@@ -40,7 +40,7 @@
               <div>
                 <h2>{{ appointment.doctorName }}</h2>
                 <p>
-                  <span>★</span>
+                  <app-star-rating [value]="appointment.professionalRating" size="small" />
                   {{ providerRatingLabel(appointment) }} · {{ appointment.specialty || appointment.serviceName }}
                 </p>
               </div>
@@ -307,7 +307,14 @@
             <strong>{{ appointment.doctorName }}</strong>
             <small>
               {{ appointment.specialty || appointment.serviceName }}
-              <em><b aria-hidden="true">★</b> {{ cancelledRatingLabel(appointment) }}</em>
+              <em>
+                <app-star-rating
+                  [value]="appointment.professionalRating ?? 0"
+                  [reviews]="appointment.professionalReviews"
+                  size="small"
+                />
+                {{ cancelledRatingLabel(appointment) }}
+              </em>
             </small>
           </div>
         </section>
@@ -845,7 +852,11 @@
           </ng-template>
           <div>
             <h3>{{ appointment.doctorName }}</h3>
-            <p>{{ appointment.specialty || appointment.serviceName }} · ★ {{ providerRatingLabel(appointment) }}</p>
+            <p>
+              {{ appointment.specialty || appointment.serviceName }} ·
+              <app-star-rating [value]="appointment.professionalRating" size="small" />
+              {{ providerRatingLabel(appointment) }}
+            </p>
           </div>
         </section>
 

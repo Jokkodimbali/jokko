@@ -13,7 +13,11 @@
   ></app-doctor-space-sidebar>
 
   <section class="doctor-space__content">
-    <header class="doctor-space__header" [class.doctor-space__header--agenda]="activeSection() === 'agenda'">
+    <header
+      class="doctor-space__header"
+      [class.doctor-space__header--agenda]="activeSection() === 'agenda'"
+      [class.doctor-space__header--negotiations]="activeSection() === 'negotiations'"
+    >
       <h1>{{ pageTitle() }}</h1>
       <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
     </header>
@@ -688,7 +692,7 @@
                   <div>
                     <p class="doctor-space__negotiation-titleline">
                       <strong>{{ negotiationClientName(negotiation) }}</strong>
-                      <span *ngIf="!isClosedNegotiation(negotiation)">· {{ negotiation.service?.nom || 'Service' }}</span>
+                      <span *ngIf="!isClosedNegotiation(negotiation)">· {{ negotiationCardTitle(negotiation) }}</span>
                     </p>
                     <h3>{{ negotiationCardTitle(negotiation) }}</h3>
                     <div *ngIf="!isClosedNegotiation(negotiation)" class="doctor-space__negotiation-meta">
@@ -770,7 +774,7 @@
                       <strong>{{ negotiationReservationClientName(reservation) }}</strong>
                       <span>· {{ reservation.service?.categorie?.nom || 'Service' }}</span>
                     </p>
-                    <h3>{{ reservation.service?.nom || 'Service' }}</h3>
+                    <h3>{{ agendaReservationServiceName(reservation) }}</h3>
                     <div class="doctor-space__negotiation-meta">
                       <span>
                         <lucide-icon name="calendar-days" size="15" [strokeWidth]="2"></lucide-icon>

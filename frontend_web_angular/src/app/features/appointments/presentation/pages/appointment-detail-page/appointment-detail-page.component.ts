@@ -20,6 +20,7 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -137,6 +138,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     CommonModule,
     FormsModule,
     LucideAngularModule,
+    AppStarRatingComponent,
     AppointmentTrackingStepperComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
@@ -708,8 +710,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     if (status === 'CONFIRMEE') {
       return this.isProviderViewer()
-        ? 'Les actions demarrer et terminer sont bloquees tant que le client na pas finalise le paiement.'
-        : 'Finalisez le paiement pour permettre au prestataire de demarrer puis terminer la prestation.';
+        ? "Le partage de position et les actions de trajet restent bloques tant que le client n'a pas finalise le paiement."
+        : 'Finalisez le paiement pour debloquer le bouton de partage de position et les actions de trajet.';
     }
     return 'Consultez le statut avant de poursuivre les actions sur ce rendez-vous.';
   });

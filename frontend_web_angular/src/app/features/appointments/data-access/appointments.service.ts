@@ -404,7 +404,11 @@ export class AppointmentsService {
       reservation.professionnel?.nomEntreprise,
       reservation.professionnel?.utilisateur.nom,
     );
-    const serviceName = this.firstNonEmpty(professional.serviceName, reservation.service?.nom);
+    const serviceName = this.firstNonEmpty(
+      this.requestedServiceNameFromNotes(reservation.notes),
+      professional.serviceName,
+      reservation.service?.nom,
+    );
     const avatarUrl = this.firstNonEmpty(
       professional.avatarUrl,
       reservation.professionnel?.utilisateur.urlAvatar,
@@ -479,6 +483,11 @@ export class AppointmentsService {
 
   private normalizeReservationStatus(status: BackendReservation['statut'] | 'EN_ATTENTE'): AppointmentView['status'] {
     return status === 'EN_ATTENTE' ? 'CONFIRMEE' : status;
+  }
+
+  private requestedServiceNameFromNotes(notes: string | null | undefined): string | null {
+    const match = notes?.match(/(?:^|\s)Motif reserve:\s*(.+?)\.\s*(?:Reservation creee|$)/i);
+    return match?.[1]?.trim().replace(/\s+/g, ' ') || null;
   }
 
   private isDone(status: AppointmentView['status']): boolean {

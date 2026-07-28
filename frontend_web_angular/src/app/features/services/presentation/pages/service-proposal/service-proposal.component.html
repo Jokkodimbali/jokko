@@ -42,7 +42,11 @@
           <p>
             <span>{{ isProviderProposalMode ? 'Client' : categoryLabel() }}</span>
             <span *ngIf="!isProviderProposalMode" class="service-proposal__closed-rating">
-              <b aria-hidden="true">&#9733;</b>
+              <app-star-rating
+                [value]="detail()?.profile?.noteGlobale ?? 0"
+                [reviews]="detail()?.profile?.nombreAvis ?? 0"
+                size="small"
+              />
               {{ ratingLabel() }}
             </span>
           </p>
@@ -254,13 +258,18 @@
               <div class="service-proposal__counter-offer-card">
               <h2>Nouvelle offre de {{ proposalClientName() }}</h2>
               <div class="service-proposal__counter-offer-values">
-                <span>
-                  <small>Votre offre</small>
+                <span *ngIf="providerHasPreviousOffer()">
+                  <small>Votre précédente contre-offre</small>
                   <strong>{{ providerBaseOfferLabel() }} <em>FCFA</em></strong>
                 </span>
-                <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.2"></lucide-icon>
+                <lucide-icon
+                  *ngIf="providerHasPreviousOffer()"
+                  name="arrow-right"
+                  size="14"
+                  [strokeWidth]="2.2"
+                ></lucide-icon>
                 <span>
-                  <small>Offre {{ shortOfferName(proposalClientName()) }}</small>
+                  <small>Offre du client {{ shortOfferName(proposalClientName()) }}</small>
                   <strong>{{ providerCurrentClientOfferLabel() }} <em>FCFA</em></strong>
                 </span>
               </div>

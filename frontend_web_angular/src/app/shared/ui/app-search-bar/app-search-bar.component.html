@@ -151,14 +151,7 @@
           <span>
             {{ provider.profession }}
             <b>
-              <span
-                class="app-search-bar__provider-stars"
-                aria-label="Avis"
-                [style.--rating-fill.%]="reviewCountFillPercent(provider.totalReviews)"
-              >
-                <span class="app-search-bar__provider-stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                <span class="app-search-bar__provider-stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-              </span>
+              <app-star-rating [value]="provider.rating" [reviews]="provider.totalReviews" size="small" />
               {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})
             </b>
             <em>{{ provider.location }}</em>

@@ -8,44 +8,58 @@
   }
 
   :host .favorites {
-    border-radius: 18px !important;
+    background: linear-gradient(155deg, #955d24 0%, #7f461d 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 28px !important;
+    box-shadow: 0 14px 32px rgba(77, 43, 17, 0.18);
     height: auto !important;
-    margin: 14px 10px 10px !important;
+    margin: 30px 10px 10px !important;
     overflow: hidden;
-    padding: 14px !important;
+    padding: 15px !important;
     width: calc(100% - 20px) !important;
   }
 
   :host .favorites-header {
     align-items: center;
-    gap: 10px;
+    gap: 11px;
     margin-bottom: 12px;
   }
 
   :host .favorites-header__icon {
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 6px 16px rgba(54, 28, 10, 0.16);
+    color: #b24732;
     height: 40px;
     width: 40px;
   }
 
+  :host .favorites-header__icon lucide-icon {
+    fill: rgba(178, 71, 50, 0.14);
+  }
+
   :host .favorites-header__text h2 {
+    color: #fff !important;
     font-size: 18px !important;
     margin-top: 0 !important;
   }
 
   :host .favorites-header__text span {
+    color: rgba(255, 255, 255, 0.78);
     font-size: 12px;
+    font-weight: 650;
   }
 
   :host .favorite-list {
     display: grid;
-    gap: 10px;
-    margin-inline: -2px;
-    max-height: 286px;
+    gap: 8px;
+    margin-inline: 0;
+    max-height: 260px;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 2px 2px 8px;
+    padding: 1px 1px 8px;
     scrollbar-width: none;
     touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
   }
 
   :host .favorite-list::-webkit-scrollbar {
@@ -54,26 +68,31 @@
 
   :host .favorite-row {
     align-items: center !important;
-    border-radius: 14px !important;
-    min-width: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 999px !important;
+    box-shadow: none;
+    color: #fff;
     gap: 10px !important;
-    min-height: 78px !important;
-    padding: 10px !important;
+    min-height: 68px !important;
+    padding: 8px 10px !important;
     width: 100%;
   }
 
   :host .favorite-row img,
   :host .favorite-avatar__initials {
-    height: 50px !important;
-    width: 50px !important;
+    height: 46px !important;
+    width: 46px !important;
   }
 
   :host .favorite-row strong {
-    font-size: 16px;
+    color: #fff;
+    font-size: 15px;
     line-height: 1.15;
   }
 
   :host .favorite-row small {
+    color: rgba(255, 255, 255, 0.72);
     display: -webkit-box;
     font-size: 11px;
     line-height: 1.25;
@@ -85,20 +104,23 @@
   }
 
   :host .favorites-manage {
-    border-radius: 14px;
-    margin-top: 8px;
-    min-height: 42px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 7px 18px rgba(54, 28, 10, 0.15);
+    color: #84491f;
+    margin-top: 4px;
+    min-height: 40px;
   }
 
   :host .empty-favorites {
     align-items: flex-start;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 14px;
     color: #fff;
-    min-height: 96px;
+    min-height: 104px;
     padding: 14px;
-    text-align: left;
+    text-align: center;
   }
 
   :host .empty-favorites p {
@@ -108,7 +130,8 @@
 
   :host .empty-favorites .auth-link {
     background: #fff;
-    color: #8f4721;
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #824b20;
     font-weight: 900;
   }
 
@@ -162,13 +185,14 @@
 
 @media (max-width: 390px) {
   :host .favorites {
+    border-radius: 26px !important;
     margin-inline: 8px !important;
     padding: 12px !important;
     width: calc(100% - 16px) !important;
   }
 
   :host .favorite-row {
-    min-height: 70px !important;
+    min-height: 64px !important;
   }
 
   :host .favorite-row img,

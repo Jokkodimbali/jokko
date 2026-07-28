@@ -314,53 +314,19 @@
     aria-modal="true"
     aria-label="Menu de navigation"
   >
-    <!-- Drawer Header -->
     <div class="app-navbar__mobile-drawer-header">
-      <a
-        class="app-navbar__mobile-drawer-brand"
-        routerLink="/services"
-        aria-label="Accueil"
-        (click)="closeMobileNav()"
-      >
-        <img [src]="logo" alt="Jokko Dimbali" />
-      </a>
       <button
         type="button"
         class="app-navbar__mobile-drawer-close"
         aria-label="Fermer le menu"
         (click)="closeMobileNav()"
       >
-        <lucide-icon name="x" size="24" [strokeWidth]="2.5"></lucide-icon>
+        <lucide-icon name="arrow-left" size="26" [strokeWidth]="2.4"></lucide-icon>
       </button>
+      <span>Menu</span>
+      <span aria-hidden="true"></span>
     </div>
 
-    <!-- Mobile Nav Items -->
-    <nav class="app-navbar__mobile-nav" aria-label="Navigation mobile">
-      <a
-        *ngFor="let item of navItems()"
-        class="app-navbar__mobile-nav-item"
-        [class.app-navbar__mobile-nav-item--active]="isActive(item.route)"
-        [routerLink]="item.route"
-        (click)="closeMobileNav()"
-      >
-        <lucide-icon [name]="item.icon" size="24" [strokeWidth]="2.5"></lucide-icon>
-        <span>{{ item.label }}</span>
-        <b *ngIf="navItemBadgeLabel(item)" class="app-navbar__mobile-nav-badge">{{ navItemBadgeLabel(item) }}</b>
-      </a>
-      <a
-        *ngFor="let item of infoNavItems()"
-        class="app-navbar__mobile-nav-item"
-        [class.app-navbar__mobile-nav-item--active]="isActive(item.route)"
-        [routerLink]="item.route"
-        [fragment]="item.fragment"
-        (click)="closeMobileNav()"
-      >
-        <lucide-icon [name]="item.icon" size="24" [strokeWidth]="2.5"></lucide-icon>
-        <span>{{ item.label }}</span>
-      </a>
-    </nav>
-
-    <!-- Mobile Auth Actions -->
     <div class="app-navbar__mobile-actions">
       <ng-container *ngIf="isAuthenticated(); else mobileGuest">
         <div class="app-navbar__mobile-user">
@@ -374,55 +340,93 @@
             />
             <ng-template #mobileInitials>{{ profileLabel() }}</ng-template>
           </span>
-          <span class="app-navbar__mobile-username">{{ profileName() }}</span>
+          <span class="app-navbar__mobile-username">
+            <strong>{{ profileName() }}</strong>
+            <small>{{ mobileProfileSubtitle() }}</small>
+          </span>
         </div>
-        <a routerLink="/favorites" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
-          <lucide-icon name="heart" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Mes favoris</span>
-        </a>
-        <button type="button" class="app-navbar__mobile-action-item" (click)="closeMobileNav(); toggleNotificationsMenu()">
-          <lucide-icon name="bell" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Notifications</span>
-          <b *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</b>
-        </button>
-        <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__mobile-action-item app-navbar__mobile-action-item--dispute" (click)="closeMobileNav()">
-          <lucide-icon name="scale" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Litige</span>
-        </a>
-        <a routerLink="/settings" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
-          <lucide-icon name="settings" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Mes Param&egrave;tres</span>
-        </a>
+
+        <nav class="app-navbar__mobile-shortcuts" aria-label="Raccourcis du compte">
+          <a routerLink="/appointments" (click)="closeMobileNav()">
+            <i><lucide-icon name="calendar-days" size="23" [strokeWidth]="2.5"></lucide-icon></i>
+            <span>Rendez-vous</span>
+          </a>
+          <a routerLink="/messages" (click)="closeMobileNav()">
+            <i><lucide-icon name="message-circle" size="23" [strokeWidth]="2.5"></lucide-icon></i>
+            <span>Messages</span>
+            <b *ngIf="unreadMessagesCount() > 0">{{ messageBadgeLabel() }}</b>
+          </a>
+          <a routerLink="/favorites" (click)="closeMobileNav()">
+            <i><lucide-icon name="heart" size="23" [strokeWidth]="2.5"></lucide-icon></i>
+            <span>Favoris</span>
+          </a>
+          <a routerLink="/settings" (click)="closeMobileNav()">
+            <i><lucide-icon name="settings" size="23" [strokeWidth]="2.5"></lucide-icon></i>
+            <span>Param&egrave;tres</span>
+          </a>
+        </nav>
+
+        <nav class="app-navbar__mobile-card" aria-label="Navigation principale">
+          <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
+            <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
+            <span><strong>{{ item.label }}</strong><small>Ouvrir cette rubrique</small></span>
+            <b *ngIf="navItemBadgeLabel(item)">{{ navItemBadgeLabel(item) }}</b>
+            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </a>
+        </nav>
+
+        <nav class="app-navbar__mobile-card" aria-label="Compte et assistance">
+          <button type="button" (click)="closeMobileNav(); toggleNotificationsMenu()">
+            <i><lucide-icon name="bell" size="21" [strokeWidth]="2.4"></lucide-icon></i>
+            <span><strong>Notifications</strong><small>Voir les nouvelles activit&eacute;s</small></span>
+            <b *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</b>
+            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </button>
+          <a *ngIf="showDisputeAccess()" routerLink="/litiges" (click)="closeMobileNav()">
+            <i><lucide-icon name="scale" size="21" [strokeWidth]="2.4"></lucide-icon></i>
+            <span><strong>Litiges</strong><small>Suivre mes r&eacute;clamations</small></span>
+            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </a>
+          <a *ngFor="let item of infoNavItems()" [routerLink]="item.route" [fragment]="item.fragment" (click)="closeMobileNav()">
+            <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
+            <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
+            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </a>
+        </nav>
+
         <a
           *ngIf="showAdminSpace()"
           routerLink="/admin"
-          class="app-navbar__mobile-action-item app-navbar__mobile-action-item--provider"
+          class="app-navbar__mobile-role-card"
           (click)="closeMobileNav()"
         >
           <lucide-icon name="layout-dashboard" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Administration</span>
+          <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
         </a>
         <a
           *ngIf="showDoctorSpace()"
           routerLink="/medecine/espace"
-          class="app-navbar__mobile-action-item app-navbar__mobile-action-item--doctor"
+          class="app-navbar__mobile-role-card"
           (click)="closeMobileNav()"
         >
           <lucide-icon name="heart-plus" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Espace M&eacute;decin</span>
+          <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
         </a>
         <a
           *ngIf="showProviderSpace()"
           routerLink="/prestataire/espace"
-          class="app-navbar__mobile-action-item app-navbar__mobile-action-item--provider"
+          class="app-navbar__mobile-role-card"
           (click)="closeMobileNav()"
         >
           <lucide-icon name="user-round-cog" size="22" [strokeWidth]="2.4"></lucide-icon>
           <span>Espace Prestataire</span>
+          <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
         </a>
         <button
           type="button"
-          class="app-navbar__mobile-action-item app-navbar__mobile-logout"
+          class="app-navbar__mobile-logout"
           [disabled]="isLoggingOut()"
           (click)="logout()"
         >
@@ -432,13 +436,21 @@
       </ng-container>
 
       <ng-template #mobileGuest>
+        <div class="app-navbar__mobile-guest-brand">
+          <img [src]="logo" alt="Jokko Dimbali" />
+          <strong>Bienvenue sur Jokko</strong>
+          <small>Connectez-vous pour retrouver tous vos services.</small>
+        </div>
         <a routerLink="/auth/login" class="app-navbar__mobile-login" (click)="closeMobileNav()">
           Connexion
         </a>
-        <a routerLink="/settings" class="app-navbar__mobile-action-item" (click)="closeMobileNav()">
-          <lucide-icon name="settings" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Param&egrave;tres</span>
-        </a>
+        <nav class="app-navbar__mobile-card">
+          <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
+            <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
+            <span><strong>{{ item.label }}</strong><small>Découvrir Jokko</small></span>
+            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
+          </a>
+        </nav>
       </ng-template>
     </div>
   </aside>

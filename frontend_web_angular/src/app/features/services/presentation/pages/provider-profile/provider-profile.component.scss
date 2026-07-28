@@ -269,7 +269,7 @@
 
 .provider-profile__stats .provider-profile__vehicle-badge strong {
   color: #5f421f;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 950;
   line-height: 1;
   white-space: nowrap;
@@ -461,13 +461,18 @@
 }
 
 .provider-profile__service-visual {
+  display: grid;
+  gap: 10px;
   margin-top: 14px;
+  min-width: 0;
 }
 
 .provider-profile__service-visual-main {
-  aspect-ratio: 2.9 / 1;
-  background: #f7f2ed;
-  border-radius: 22px;
+  aspect-ratio: 2.35 / 1;
+  background: #f2ede8;
+  border: 1px solid #e4d5c7;
+  border-radius: 14px;
+  box-sizing: border-box;
   margin: 0;
   overflow: hidden;
   position: relative;
@@ -497,42 +502,44 @@
 }
 
 .provider-profile__service-thumbnails {
+  bottom: 12px;
   display: flex;
-  flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: -70px;
-  min-height: 0;
   overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 0 20px 2px 0;
-  position: relative;
-  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+  padding: 0 14px 4px;
+  position: absolute;
+  right: 0;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  width: 100%;
   z-index: 2;
+}
+
+.provider-profile__service-thumbnails::-webkit-scrollbar,
+.provider-profile__service-labels::-webkit-scrollbar {
+  display: none;
 }
 
 .provider-profile__service-thumbnails button {
   background: transparent;
   border: 0;
-  color: #fff;
   cursor: pointer;
-  display: grid;
-  gap: 7px;
   flex: 0 0 auto;
-  justify-items: center;
   padding: 0;
 }
 
 .provider-profile__service-thumb-image {
-  background: rgba(255, 255, 255, 0.82);
-  border: 2px solid rgba(255, 255, 255, 0.68);
-  border-radius: 14px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  background: transparent;
+  border: 2px solid #e4d5c7;
+  border-radius: 12px;
+  box-shadow: none;
   display: block;
-  height: 68px;
+  height: 54px;
   overflow: hidden;
   transition: border-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
-  width: 68px;
+  width: 54px;
 }
 
 .provider-profile__service-thumb-image img,
@@ -557,41 +564,42 @@
   justify-content: center;
 }
 
-.provider-profile__service-thumb-label {
-  background: #111;
-  border: 2px solid transparent;
+.provider-profile__service-labels {
+  display: flex;
+  gap: 7px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1px 1px 3px;
+  scrollbar-width: none;
+}
+
+.provider-profile__service-labels button {
+  background: #fff8f1;
+  border: 1px solid #e2c5aa;
   border-radius: 999px;
-  color: #fff;
-  display: inline-flex;
+  color: #8a4f1d;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 850;
   line-height: 1.1;
-  max-width: 190px;
-  min-height: 32px;
-  padding: 7px 13px;
+  min-height: 36px;
+  padding: 7px 15px;
   text-align: center;
-  transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
-}
-
-.provider-profile__service-thumb-image + .provider-profile__service-thumb-label {
-  margin-top: 4px;
-}
-
-.provider-profile__service-thumbnails button:hover .provider-profile__service-thumb-image,
-.provider-profile__service-thumbnails button:focus-visible .provider-profile__service-thumb-image {
-  transform: translateY(-2px);
+  white-space: nowrap;
 }
 
 .provider-profile__service-thumb--active .provider-profile__service-thumb-image {
-  border-color: #fff;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
-  transform: translateY(-3px);
+  border-color: #9a5a20;
+  box-shadow: none;
 }
 
-.provider-profile__service-thumb--active .provider-profile__service-thumb-label {
-  border-color: #9a5f28;
-  box-shadow: inset 0 0 0 1px rgba(154, 95, 40, 0.65), 0 8px 18px rgba(154, 95, 40, 0.2);
-  transform: translateY(-1px);
+.provider-profile__service-label--active {
+  background: #fff3e7 !important;
+  border-color: #b9793d !important;
+  box-shadow: inset 0 0 0 1px rgba(185, 121, 61, 0.18);
 }
 
 @keyframes providerServiceImageIn {
@@ -631,39 +639,6 @@
 
 .provider-profile__reviews header span {
   font-size: 14px;
-}
-
-.provider-profile__reviews span[hidden],
-.provider-profile__review span[hidden] {
-  display: none !important;
-}
-
-.provider-profile__stars {
-  align-items: center;
-  color: #f59e0b;
-  display: inline-grid;
-  font-weight: 900;
-  letter-spacing: 1px;
-  line-height: 1;
-  position: relative;
-  width: max-content;
-}
-
-.provider-profile__stars-base,
-.provider-profile__stars-fill {
-  grid-area: 1 / 1;
-  white-space: nowrap;
-}
-
-.provider-profile__stars-base {
-  color: #f59e0b;
-  opacity: 0.32;
-}
-
-.provider-profile__stars-fill {
-  color: #f59e0b;
-  max-width: var(--rating-fill, 0%);
-  overflow: hidden;
 }
 
 .provider-profile__reviews header small {
@@ -963,30 +938,6 @@
 
   .provider-profile__side {
     grid-template-columns: 1fr;
-  }
-
-  .provider-profile__service-visual-main {
-    aspect-ratio: 1.65 / 1;
-    border-radius: 18px;
-  }
-
-  .provider-profile__service-thumbnails {
-    margin-top: 12px;
-    min-height: 0;
-    overflow-x: auto;
-    padding: 0;
-  }
-
-  .provider-profile__service-thumb-image {
-    height: 68px;
-    width: 68px;
-  }
-
-  .provider-profile__service-thumb-label {
-    color: #fff;
-    font-size: 13px;
-    min-height: 34px;
-    padding: 8px 12px;
   }
 
   .provider-profile__reviews header,

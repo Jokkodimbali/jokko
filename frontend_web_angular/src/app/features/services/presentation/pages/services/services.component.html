@@ -47,16 +47,16 @@
         decoding="async"
       />
 
-      <app-scroll-hint />
+      <app-scroll-hint [hideOnMobile]="true" />
     </div>
   </section>
 
   <section class="content-shell" [class.content-shell--focused]="isSearchOrFilterActive()">
     <aside *ngIf="!isSearchOrFilterActive()" class="favorites" aria-label="Vos favoris">
       <div class="favorites-header">
-        <button type="button" class="favorites-header__icon" aria-label="Vos favoris">
+        <span class="favorites-header__icon" aria-hidden="true">
           <lucide-icon name="heart" size="20" [strokeWidth]="2"></lucide-icon>
-        </button>
+        </span>
         <div class="favorites-header__text">
           <h2>Vos favoris</h2>
           <span>{{ favoriteProviders().length }} prestataires</span>
@@ -65,7 +65,7 @@
 
       <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list">
         <a
-          *ngFor="let provider of favoriteProviders()"
+          *ngFor="let provider of favoriteProviders(); trackBy: trackByProviderId"
           class="favorite-row"
           [routerLink]="provider.route"
         >
@@ -93,9 +93,10 @@
           <p>Ajoutez des prestataires en favoris pour les retrouver rapidement ici.</p>
           <a routerLink="/favorites" class="auth-link">Voir ma liste</a>
         </div>
-        <br>
       </ng-template>
-  <var></var>    <a routerLink="/favorites" class="favorites-manage">G&eacute;rer mes favoris</a>
+      <a routerLink="/favorites" class="favorites-manage">
+        G&eacute;rer mes favoris
+      </a>
     </aside>
 
     <div class="service-feed">
@@ -130,7 +131,7 @@
         </button>
       </div>
 
-      <section *ngFor="let section of sections()" class="service-section">
+      <section *ngFor="let section of sections(); trackBy: trackBySectionId" class="service-section">
         <div
           #serviceFilters
           id="services-filters"
@@ -190,7 +191,7 @@
 
         <div class="provider-row">
           <app-provider-card
-            *ngFor="let provider of section.providers; let providerIndex = index"
+            *ngFor="let provider of section.providers; trackBy: trackByProviderId"
             [provider]="providerCardView(provider)"
             [isFavorite]="isProviderFavorite(provider.id)"
             (favoriteToggle)="toggleProviderFavorite(provider.id)"

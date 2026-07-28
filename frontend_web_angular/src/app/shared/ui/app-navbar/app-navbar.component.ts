@@ -80,6 +80,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     return user ? `${user.name} (${user.role})` : 'Connexion';
   });
   protected readonly profileName = computed(() => this.currentUser()?.name || 'Mon Compte');
+  protected readonly mobileProfileSubtitle = computed(() => {
+    const role = this.currentUser()?.role;
+    if (role === 'PRESTATAIRE') return 'Compte prestataire';
+    if (role === 'MEDECIN') return 'Compte medecin';
+    if (role === 'ADMIN') return 'Compte administrateur';
+    return 'Compte client';
+  });
   protected readonly showDoctorSpace = computed(() => {
     const user = this.currentUser();
     if (!user || (user.role !== 'PRESTATAIRE' && user.role !== 'MEDECIN')) return false;

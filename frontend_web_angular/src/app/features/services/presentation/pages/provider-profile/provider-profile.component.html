@@ -124,22 +124,31 @@
                     {{ serviceVisualInitials(selectedService.name) }}
                   </span>
                 </ng-template>
+                <div class="provider-profile__service-thumbnails" aria-label="Services proposes">
+                  <button
+                    *ngFor="let service of offeredServices()"
+                    type="button"
+                    [class.provider-profile__service-thumb--active]="selectedService.id === service.id"
+                    (click)="selectVisualService(service)"
+                  >
+                    <span class="provider-profile__service-thumb-image">
+                      <img *ngIf="service.imageUrl; else serviceThumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="handleImageError(service.imageUrl)" />
+                      <ng-template #serviceThumbFallback>
+                        <strong>{{ serviceVisualInitials(service.name) }}</strong>
+                      </ng-template>
+                    </span>
+                  </button>
+                </div>
               </figure>
 
-              <div class="provider-profile__service-thumbnails" aria-label="Services proposes">
+              <div class="provider-profile__service-labels" aria-label="Motifs proposes">
                 <button
                   *ngFor="let service of offeredServices()"
                   type="button"
-                  [class.provider-profile__service-thumb--active]="selectedService.id === service.id"
+                  [class.provider-profile__service-label--active]="selectedService.id === service.id"
                   (click)="selectVisualService(service)"
                 >
-                  <span class="provider-profile__service-thumb-image">
-                    <img *ngIf="service.imageUrl; else serviceThumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="handleImageError(service.imageUrl)" />
-                    <ng-template #serviceThumbFallback>
-                      <strong>{{ serviceVisualInitials(service.name) }}</strong>
-                    </ng-template>
-                  </span>
-                  <span class="provider-profile__service-thumb-label">{{ service.name }}</span>
+                  {{ service.name }}
                 </button>
               </div>
             </div>
@@ -153,21 +162,12 @@
               <h2>Avis clients</h2>
               <div>
                 <strong>{{ ratingLabel() }}</strong>
-                <span
-                  class="provider-profile__stars"
-                  aria-label="Note globale"
-                  [style.--rating-fill.%]="reviewCountFillPercent(detail()?.profile?.nombreAvis ?? 0)"
-                >
-                  <span class="provider-profile__stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                  <span class="provider-profile__stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                </span>
-                <span hidden>
-                  <i
-                    *ngFor="let star of ratingStars()"
-                    [class.provider-profile__star--filled]="star.filled"
-                    aria-hidden="true"
-                  >★</i>
-                </span>
+                <app-star-rating
+                  [value]="detail()?.profile?.noteGlobale ?? 0"
+                  [reviews]="detail()?.profile?.nombreAvis ?? 0"
+                  size="large"
+                  label="Note globale"
+                />
                 <small>{{ reviewTotalLabel() }}</small>
               </div>
             </header>
@@ -185,21 +185,7 @@
                 </ng-template>
                 <div>
                   <strong>{{ review.client.nom }}</strong>
-                  <span
-                    class="provider-profile__stars"
-                    aria-label="Note de l'avis"
-                    [style.--rating-fill.%]="ratingFillPercent(review.note)"
-                  >
-                    <span class="provider-profile__stars-base" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                    <span class="provider-profile__stars-fill" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                  </span>
-                  <span hidden>
-                    <i
-                      *ngFor="let star of ratingStarViews(review.note)"
-                      [class.provider-profile__star--filled]="star.filled"
-                      aria-hidden="true"
-                    >★</i>
-                  </span>
+                  <app-star-rating [value]="review.note" size="small" label="Note de l'avis" />
                   <p>{{ review.commentaire || 'Avis sans commentaire.' }}</p>
                 </div>
                 <small>{{ formatReviewDate(review.reviewedAt || review.creeLe) }}</small>

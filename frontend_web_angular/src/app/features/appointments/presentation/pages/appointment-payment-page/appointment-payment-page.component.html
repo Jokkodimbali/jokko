@@ -80,7 +80,11 @@
             <div>
               <small>{{ counterpartRoleLabel() }}</small>
               <strong>{{ appointment.doctorName }}</strong>
-              <p>{{ confirmedProviderSubtitle(appointment) }} &middot; &#9733; {{ providerRatingShortLabel() }}</p>
+              <p>
+                {{ confirmedProviderSubtitle(appointment) }} &middot;
+                <app-star-rating [value]="appointment.professionalRating" size="small" />
+                {{ providerRatingShortLabel() }}
+              </p>
             </div>
             <span class="appointment-payment__confirmed-status">
               <i aria-hidden="true"></i>
@@ -191,7 +195,7 @@
               <strong>{{ appointment.doctorName }}</strong>
               <small>{{ appointment.specialty || appointment.serviceName }}</small>
               <span>
-                <b aria-hidden="true">&#9733;</b>
+                <app-star-rating [value]="appointment.professionalRating" size="small" />
                 {{ providerRatingShortLabel() }}
               </span>
             </div>

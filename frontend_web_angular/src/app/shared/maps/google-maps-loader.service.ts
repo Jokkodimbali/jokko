@@ -40,6 +40,17 @@ type GoogleMapsConfig = {
 };
 
 export type GoogleMapsPoint = { lat: number; lng: number };
+export type GoogleMapsPixel = { x: number; y: number };
+
+export type GoogleMapsOverlayViewInstance = {
+  setMap: (map: GoogleMapsMapInstance | null) => void;
+  getProjection: () => {
+    fromLatLngToDivPixel: (point: GoogleMapsPoint) => GoogleMapsPixel | null;
+  } | null;
+  onAdd: () => void;
+  draw: () => void;
+  onRemove: () => void;
+};
 
 export type GoogleMapsMapInstance = {
   setCenter: (coordinate: GoogleMapsPoint) => void;
@@ -106,6 +117,7 @@ export type GoogleMapsRuntime = {
       options: Record<string, unknown>,
     ) => GoogleMapsPolylineInstance;
     LatLngBounds: new () => GoogleMapsBoundsInstance;
+    OverlayView?: new () => GoogleMapsOverlayViewInstance;
     marker?: {
       AdvancedMarkerElement: new (
         options: Record<string, unknown>,

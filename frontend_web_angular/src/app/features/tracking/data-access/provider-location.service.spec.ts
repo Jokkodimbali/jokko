@@ -151,6 +151,33 @@ describe('ProviderLocationService', () => {
 
     expect(latitudes[1]).toBeGreaterThan(latitudes[0] ?? Number.POSITIVE_INFINITY);
   });
+
+  it('smooths heading across north without rotating the long way around', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 11;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const headings: Array<number | null> = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      headings.push(position.headingDegrees);
+    });
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 359, 20));
+    success?.(thisPosition(14.71673, -17.4677, 6, 1, 20));
+    subscription.unsubscribe();
+
+    expect(headings[0]).toBe(359);
+    expect(headings[1]).toBeGreaterThan(359);
+    expect(headings[1]).toBeLessThan(360);
+  });
 });
 
 type ProviderCoordinates = { latitude: number; longitude: number };

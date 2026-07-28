@@ -470,3 +470,104 @@
   }
 }
 
+@media (max-width: 900px) {
+  .doctor-space__provider-history-table {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+  }
+
+  .doctor-space__provider-history-head {
+    display: none;
+  }
+
+  .doctor-space__provider-history-row {
+    align-items: start;
+    border: 1px solid #e2eaf4;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    gap: 16px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+    min-width: 0;
+    padding: 18px;
+  }
+
+  .doctor-space__provider-history-row > span {
+    align-content: start;
+    display: grid;
+    gap: 5px;
+    overflow: visible;
+    text-overflow: initial;
+    white-space: normal;
+  }
+
+  .doctor-space__provider-history-row > span::before {
+    color: #7890b0;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(2)::before {
+    content: 'Service';
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(3)::before {
+    content: 'Date et heure';
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(4)::before {
+    content: 'Lieu';
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(5)::before {
+    content: 'Montant';
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(6)::before {
+    content: 'Statut';
+  }
+
+  .doctor-space__provider-history-location,
+  .doctor-space__provider-history-client strong,
+  .doctor-space__provider-history-amount {
+    overflow: visible;
+    text-overflow: initial;
+    white-space: normal;
+  }
+
+  .doctor-space__provider-history-status {
+    justify-self: stretch;
+    width: fit-content;
+  }
+}
+
+@media (max-width: 480px) {
+  .doctor-space__provider-history-row {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(1) {
+    grid-column: auto;
+  }
+
+  .doctor-space__provider-history-foot {
+    padding-inline: 16px;
+  }
+
+  .doctor-space__provider-history-pagination {
+    justify-content: space-between;
+  }
+}
+

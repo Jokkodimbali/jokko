@@ -37,18 +37,15 @@
   }
 
   :host .favorite-list {
-    display: flex;
+    display: grid;
     gap: 10px;
     margin-inline: -2px;
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-inline: contain;
+    max-height: 286px;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 2px 2px 8px;
-    scroll-padding-inline: 2px;
-    scroll-snap-type: x proximity;
     scrollbar-width: none;
-    touch-action: pan-x;
+    touch-action: pan-y;
   }
 
   :host .favorite-list::-webkit-scrollbar {
@@ -58,11 +55,11 @@
   :host .favorite-row {
     align-items: center !important;
     border-radius: 14px !important;
-    flex: 0 0 min(78vw, 270px);
+    min-width: 0;
     gap: 10px !important;
     min-height: 78px !important;
     padding: 10px !important;
-    scroll-snap-align: start;
+    width: 100%;
   }
 
   :host .favorite-row img,
@@ -171,7 +168,7 @@
   }
 
   :host .favorite-row {
-    flex-basis: min(84vw, 252px);
+    min-height: 70px !important;
   }
 
   :host .favorite-row img,

@@ -270,12 +270,48 @@
   }
 
   .favorites-page__hero {
-    display: flex;
-    padding: 22px;
+    align-items: center;
+    display: grid;
+    gap: 14px 12px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .favorites-page__hero-icon {
+    height: 48px;
+    width: 48px;
+  }
+
+  .favorites-page__hero-title {
+    min-width: 0;
+  }
+
+  .favorites-page__hero-title h1 {
+    font-size: clamp(23px, 7vw, 29px);
+  }
+
+  .favorites-page__hero-title p {
+    overflow-wrap: anywhere;
   }
 
   .favorites-page__hero-stats {
+    grid-column: 1 / -1;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .favorites-page__hero-stats div {
+    background: rgba(255, 255, 255, 0.08);
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 4px;
+  }
+
+  .favorites-page__hero-stats dt {
+    font-size: 20px;
+  }
+
+  .favorites-page__share {
+    grid-column: 1 / -1;
   }
 
   .favorites-page__toolbar {
@@ -289,6 +325,25 @@
     width: 100%;
   }
 
+  .favorites-page__tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .favorites-page__tools label {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .favorites-page__tools select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .favorites-page__filter {
+    width: auto;
+  }
+
   .favorites-page__grid {
     grid-template-columns: 1fr;
   }
@@ -296,14 +351,27 @@
 
 @media (max-width: 460px) {
   .favorites-page__hero-stats {
-    gap: 10px;
-    grid-template-columns: 1fr;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .favorites-page__hero-stats div {
     border-left: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    padding-top: 10px;
+    border-top: 0;
+    padding: 9px 2px;
+  }
+
+  .favorites-page__hero-stats dd {
+    font-size: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .favorites-page__tools {
+    grid-template-columns: 1fr;
+  }
+
+  .favorites-page__filter {
+    width: 100%;
   }
 
 }

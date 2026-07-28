@@ -376,6 +376,10 @@
 
 @media (max-width: 860px) {
   .doctor-space__next-card:not(.doctor-space__next-card--empty) {
+    background: linear-gradient(145deg, #15945b 0%, #20ad6d 100%);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(13, 117, 74, 0.22);
     gap: 14px;
     padding: 16px;
   }
@@ -401,8 +405,16 @@
   }
 
   .doctor-space__next-date {
+    align-items: center;
+    display: flex;
+    gap: 9px;
     justify-items: start;
+    min-height: 0;
     text-align: left;
+  }
+
+  .doctor-space__next-date strong {
+    font-size: 30px;
   }
 
   .doctor-space__next-confirmation {
@@ -414,5 +426,34 @@
     align-items: stretch;
     gap: 12px;
     padding: 0;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) footer button {
+    border-radius: 12px;
+    min-height: 42px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .doctor-space__next-client h2,
+  .doctor-space__agenda-section-heading h2 {
+    font-size: 23px;
+  }
+
+  .doctor-space__next-client h2::before,
+  .doctor-space__agenda-section-heading h2::before {
+    height: 30px;
+    width: 5px;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) {
+    border-radius: 17px;
+    padding: 14px;
+  }
+
+  .doctor-space__next-card:not(.doctor-space__next-card--empty) header strong {
+    font-size: 10px;
+    padding: 6px 10px;
   }
 }

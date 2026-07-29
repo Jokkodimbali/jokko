@@ -74,7 +74,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private scanCanvas?: HTMLCanvasElement;
   private scanCanvasContext?: CanvasRenderingContext2D | null;
   private autoReturnScheduled = false;
+  private autoReturnTimerId: number | undefined;
   private isFinalizingScan = false;
+  private isDestroyed = false;
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly isLoading = signal(true);
@@ -249,13 +251,20 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   ngOnDestroy(): void {
+    this.isDestroyed = true;
+    this.clearAutoReturnTimer();
     this.stopCamera();
   }
 
   protected goBack(): void {
+    this.clearAutoReturnTimer();
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     const reservationId = this.route.snapshot.paramMap.get('id');
-    this.backNavigation.back(returnUrl, reservationId ? `/appointments/${reservationId}` : '/appointments');
+    this.backNavigation.back(
+      returnUrl,
+      reservationId ? `/appointments/${reservationId}` : '/appointments',
+      { preferReturnUrl: true },
+    );
   }
 
   protected downloadQrPdf(): void {
@@ -794,6 +803,12 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private activateDropoffTrackingAfterPickup(appointment: AppointmentView, message: string): void {
+    // Le statut EN_COURS suffit pour ouvrir immediatement la carte vers le
+    // destinataire. La position precise est publiee en arriere-plan et la page
+    // de suivi la complete aussi avec son flux GPS temps reel.
+    this.validationMessage.set(`${message} Trajet vers le destinataire active.`);
+    this.scheduleAutoReturnAfterScan(0);
+
     this.resolveCurrentLocationForTracking()
       .then((location) => {
         this.appointmentsService
@@ -802,22 +817,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
             locationLabel: 'Livreur en route vers le destinataire',
           })
           .subscribe({
-            next: () => {
-              this.validationMessage.set(`${message} Trajet vers le destinataire active.`);
-              this.scheduleAutoReturnAfterScan();
-            },
-            error: () => {
-              this.validationMessage.set(`${message} Retour au suivi de livraison.`);
-              this.validationError.set(null);
-              this.scheduleAutoReturnAfterScan();
-            },
+            next: () => undefined,
+            error: () => undefined,
           });
       })
-      .catch(() => {
-        this.validationMessage.set(`${message} Retour au suivi de livraison.`);
-        this.validationError.set(null);
-        this.scheduleAutoReturnAfterScan();
-      });
+      .catch(() => undefined);
   }
 
   private resolveCurrentLocationForTracking(): Promise<{
@@ -834,8 +838,8 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          if (!this.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)) {
-            reject(new Error('Location outside Senegal'));
+          if (!this.isValidCoordinate(position.coords.latitude, position.coords.longitude)) {
+            reject(new Error('Invalid geolocation coordinates'));
             return;
           }
 
@@ -864,21 +868,29 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     return value;
   }
 
-  private isCoordinateInSenegal(latitude: number, longitude: number): boolean {
+  private isValidCoordinate(latitude: number, longitude: number): boolean {
     return (
       Number.isFinite(latitude) &&
       Number.isFinite(longitude) &&
-      latitude >= 12.0 &&
-      latitude <= 16.9 &&
-      longitude >= -17.8 &&
-      longitude <= -11.0
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
     );
   }
 
-  private scheduleAutoReturnAfterScan(): void {
-    if (!this.scanMode() || this.autoReturnScheduled) return;
+  private scheduleAutoReturnAfterScan(delayMilliseconds = 800): void {
+    if (this.isDestroyed || !this.scanMode() || this.autoReturnScheduled) return;
     this.autoReturnScheduled = true;
-    window.setTimeout(() => this.goBack(), 800);
+    this.autoReturnTimerId = window.setTimeout(() => this.goBack(), delayMilliseconds);
+  }
+
+  private clearAutoReturnTimer(): void {
+    if (this.autoReturnTimerId !== undefined) {
+      window.clearTimeout(this.autoReturnTimerId);
+      this.autoReturnTimerId = undefined;
+    }
+    this.autoReturnScheduled = false;
   }
 
   private parcelTokenSignature(

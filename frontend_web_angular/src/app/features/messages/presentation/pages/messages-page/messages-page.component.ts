@@ -864,7 +864,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           const file = new File([voiceBlob], `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`, {
             type: voiceType,
           });
-          this.uploadVoiceAndSend(file, durationSeconds);
+          this.uploadVoiceAndSend(file);
         };
         recorder.start();
         this.startVoiceLevelMeter(stream);
@@ -1082,7 +1082,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.isCounterOfferOpen.set(false);
           this.counterOfferAmount.set(null);
           this.feedback.success('Nouvelle offre envoyee au client.');
-          this.notifyCounterOfferInConversation(updatedProposal);
         },
         error: () => {
           const message = "Impossible d'envoyer cette nouvelle offre.";
@@ -1456,31 +1455,45 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private uploadVoiceAndSend(file: File, durationSeconds: number): void {
+  private uploadVoiceAndSend(file: File): void {
     const conversation = this.selectedConversation();
     if (!conversation || this.isUploadingMedia() || this.isSending()) {
       return;
     }
 
-    this.selectedAttachmentName.set(file.name);
-    this.pendingMediaKind.set('audio');
-    this.pendingVoiceDurationSeconds.set(durationSeconds);
     this.isUploadingMedia.set(true);
     this.messagesService.uploadMedia(file).subscribe({
       next: ({ mediaUrl }) => {
         this.isUploadingMedia.set(false);
-        this.pendingMediaUrl.set(mediaUrl);
-        this.sendMessageWithMedia(mediaUrl, 'Message vocal');
+        this.sendUploadedVoice(conversation.id, mediaUrl);
       },
       error: () => {
         this.isUploadingMedia.set(false);
-        this.selectedAttachmentName.set(null);
-        this.pendingMediaUrl.set(null);
-        this.pendingMediaKind.set(null);
-        this.pendingVoiceDurationSeconds.set(0);
         this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
       },
     });
+  }
+
+  private sendUploadedVoice(
+    conversationId: string,
+    mediaUrl: string,
+  ): void {
+    if (this.isSending()) return;
+
+    this.isSending.set(true);
+    this.messagesService
+      .sendMessage(conversationId, '', mediaUrl)
+      .subscribe({
+        next: (message) => {
+          this.upsertMessage(message);
+          this.isSending.set(false);
+          this.refreshConversationsSilently();
+        },
+        error: () => {
+          this.isSending.set(false);
+          this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
+        },
+      });
   }
 
   private openNegotiationConversation(negotiationId: string): void {
@@ -2087,25 +2100,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     const date = new Date(Date.UTC(Number(match[3]), month, Number(match[1]), hours, minutes, 0));
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
-  }
-
-  private notifyCounterOfferInConversation(proposal: NegotiationView): void {
-    const conversationId = this.selectedConversationId();
-    if (!conversationId) {
-      return;
-    }
-
-    const message = `J'ai annule l'offre initiale et propose ${this.formatAmount(
-      proposal.montantCourant,
-    )} FCFA.`;
-
-    this.messagesService.sendMessage(conversationId, message).subscribe({
-      next: (createdMessage) => {
-        this.upsertMessage(createdMessage);
-        this.refreshConversationsSilently();
-      },
-      error: () => undefined,
-    });
   }
 
   private buildPaymentReturnQuery(proposal: PendingProposal): Record<string, string | number> {

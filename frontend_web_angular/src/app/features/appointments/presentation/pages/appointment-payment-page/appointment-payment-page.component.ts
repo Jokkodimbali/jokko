@@ -306,18 +306,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
       reservationId: appointment.id,
       professionalProfileId: appointment.professionalId,
     }).subscribe({
-      next: (conversation) => {
-        const message = [
-          `Paiement confirme pour ${appointment.serviceName}.`,
-          `Montant paye: ${this.formatAmount(appointment.agreedPrice ?? 0)}.`,
-          `Rendez-vous le ${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}.`,
-        ].join(' ');
-
-        this.messagesService.sendMessage(conversation.id, message).subscribe({
-          next: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
-          error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
-        });
-      },
+      next: (conversation) => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
       error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
     });
   }

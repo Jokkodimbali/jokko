@@ -1827,7 +1827,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           } else {
             this.feedback.success('Votre proposition a ete envoyee au prestataire.');
           }
-          this.sendInitialNegotiationMessage(proposal);
+          this.ensureNegotiationConversation(proposal);
           this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
         },
         error: (error) => {
@@ -1909,7 +1909,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       });
   }
 
-  private sendInitialNegotiationMessage(proposal: NegotiationView): void {
+  private ensureNegotiationConversation(proposal: NegotiationView): void {
     this.messagesService
       .createConversation(
         proposal.professionnelId
@@ -1928,17 +1928,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         }),
       )
       .subscribe({
-      next: (conversation) => {
-        if (!conversation) {
-          return;
-        }
-
-        const message = proposal.messageCourant || [
-          `Demande de negociation pour ${proposal.service?.nom || this.categoryLabel()}.`,
-          `Montant propose: ${this.formatAmount(proposal.montantCourant)} FCFA.`,
-        ].join(' ');
-        this.messagesService.sendMessage(conversation.id, message).subscribe({ error: () => undefined });
-      },
+      next: () => undefined,
       error: () => undefined,
     });
   }

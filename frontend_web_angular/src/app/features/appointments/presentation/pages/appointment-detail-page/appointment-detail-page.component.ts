@@ -1153,6 +1153,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly shouldRenderTrackingMap = computed(
     () => {
+      // Conserver la meme carte montee pendant toute la transition qui suit
+      // le QR retrait. Les coordonnees et l'itineraire peuvent arriver juste
+      // apres le changement de statut, sans remplacer le contenu de la page.
+      if (this.isParcelDropoffNavigationActive()) return true;
+
       const hasArrival = this.hasTravelerArrivedAtDestination();
       const hasLivePosition =
         this.hasActiveTrackingNavigation() && this.hasTrackingCoordinates();
@@ -1170,6 +1175,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (!this.isProviderViewer()) return false;
       if (this.shouldRenderTrackingMap()) return false;
 
+      // Apres le QR retrait, le statut passe a EN_COURS avant que la nouvelle
+      // position GPS et l'itineraire vers le destinataire soient disponibles.
+      // Ne jamais afficher le faux panneau de navigation "-- min" pendant
+      // cette courte synchronisation : l'etat d'attente de la carte le remplace.
+      if (this.isParcelDropoffNavigationActive()) return false;
+
       if (this.isProviderWorking() || this.isAppointmentCompleted()) {
         return true;
       }
@@ -1183,6 +1194,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly showClientTrackingVisual = computed(
     () =>
       this.showClientRoutePanel() &&
+      !this.isParcelDropoffNavigationActive() &&
       !this.shouldRenderTrackingMap(),
   );
   protected readonly upcomingCountdownLabel = computed(() => {

@@ -21,35 +21,41 @@
   background: transparent;
   border-bottom: 0;
   display: flex;
+  font-family: var(--font-app);
   justify-content: center;
-  padding: 0 18px;
+  min-height: 96px;
+  padding: 6px 18px 0;
+  position: relative;
   width: 100%;
 }
 
 .appointment-tracking-stepper__back {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #eadccd;
+  background: #955d24;
+  border: 1px solid #955d24;
   border-radius: 999px;
-  color: #955d24;
+  color: #ffffff;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   gap: 8px;
-  left: 24px;
-  min-height: 38px;
-  padding: 0 15px;
+  left: 10px;
+  min-height: 30px;
+  opacity: 1;
+  padding: 0 14px;
   position: absolute;
-  top: 4px;
+  top: 21px;
   z-index: 4;
+  visibility: visible;
 }
 
 .appointment-tracking-stepper__rail {
   display: grid;
-  grid-template-columns: repeat(var(--step-count, 4), minmax(132px, 1fr));
-  max-width: 1120px;
+  grid-template-columns: repeat(var(--step-count, 4), minmax(110px, 1fr));
+  margin-inline: 112px;
+  max-width: 920px;
   overflow: visible;
   position: relative;
   width: 100%;
@@ -58,16 +64,11 @@
 
 .appointment-tracking-stepper__line,
 .appointment-tracking-stepper__progress {
-  border-radius: 999px;
-  height: 2px;
-  left: 9%;
-  position: absolute;
-  right: 9%;
-  top: 27px;
+  display: none;
 }
 
 .appointment-tracking-stepper__line {
-  background: #eef0f3;
+  background: #955d24;
 }
 
 :host(.appointment-tracking-stepper-host--embedded) .appointment-tracking-stepper__line {
@@ -82,10 +83,10 @@
 }
 
 .appointment-tracking-stepper__step {
-  align-items: center;
-  color: #a28f7f;
+  align-items: start;
+  color: #955d24;
   display: grid;
-  gap: 10px;
+  gap: 7px;
   justify-items: center;
   min-width: 0;
   padding-inline: 2px;
@@ -94,28 +95,46 @@
   z-index: 1;
 }
 
+.appointment-tracking-stepper__step:not(:last-child)::after {
+  background: #955d24;
+  content: '';
+  height: 1.5px;
+  left: calc(50% + 38px);
+  position: absolute;
+  top: 23px;
+  width: calc(100% - 76px);
+  z-index: 0;
+}
+
+.appointment-tracking-stepper__step:nth-last-child(2)::after {
+  width: calc(100% - 99px);
+}
+
 .appointment-tracking-stepper__step span {
   align-items: center;
   background: #ffffff;
-  border: 1px solid #e2e7ee;
+  border: 1.5px solid #955d24;
   border-radius: 50%;
-  color: #c9d0db;
+  color: #955d24;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 600;
   height: 40px;
   justify-content: center;
-  margin-top: 7px;
+  margin-top: 4px;
   transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
   width: 40px;
+  z-index: 2;
 }
 
 .appointment-tracking-stepper__step strong {
-  color: #9da4b3;
-  font-size: 11px;
-  font-weight: 950;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: #955d24;
+  font-size: 14px;
+  font-family: var(--font-app);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
 }
 
 .appointment-tracking-stepper__step.is-done span {
@@ -125,17 +144,23 @@
 }
 
 .appointment-tracking-stepper__step.is-active span {
-  background: #ffffff;
-  border: 2px solid #955d24;
-  color: #955d24;
-  font-size: 13px;
-  height: 54px;
-  margin-top: 0;
-  width: 54px;
+  background: #955d24;
+  border: 1.5px solid #955d24;
+  color: #ffffff;
+  font-size: 14px;
+  height: 40px;
+  margin-top: 4px;
+  width: 40px;
 }
 
 .appointment-tracking-stepper__step.is-active strong {
-  color: #111827;
+  color: #955d24;
+}
+
+.appointment-tracking-stepper__step:last-child span {
+  border-radius: 999px;
+  height: 40px;
+  width: 86px;
 }
 
 .appointment-tracking-stepper__step.is-clickable {
@@ -149,20 +174,20 @@
   }
 
   .appointment-tracking-stepper__back {
-    left: 12px;
-    top: -2px;
+    left: 10px;
+    top: 21px;
   }
 
   .appointment-tracking-stepper__rail {
+    margin-inline: 82px;
     max-width: none;
-    min-width: calc(var(--step-count, 4) * 132px);
+    min-width: calc(var(--step-count, 4) * 110px);
     overflow-x: auto;
   }
 
   .appointment-tracking-stepper__line,
   .appointment-tracking-stepper__progress {
-    left: 8%;
-    right: 8%;
+    display: none;
   }
 
   .appointment-tracking-stepper__progress {
@@ -183,21 +208,20 @@
     left: 10px;
     min-height: 32px;
     padding-inline: 10px;
-    top: -8px;
+    top: 4px;
   }
 
   .appointment-tracking-stepper__rail {
     grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
     min-width: 0;
+    margin-inline: 0;
     overflow: visible;
-    padding-top: 36px;
+    padding-top: 34px;
   }
 
   .appointment-tracking-stepper__line,
   .appointment-tracking-stepper__progress {
-    left: 10%;
-    right: 10%;
-    top: 53px;
+    display: none;
   }
 
   .appointment-tracking-stepper__step {
@@ -210,6 +234,21 @@
     height: 34px;
     margin-top: 0;
     width: 34px;
+  }
+
+  .appointment-tracking-stepper__step:not(:last-child)::after {
+    left: calc(50% + 30px);
+    top: 51px;
+    width: calc(100% - 60px);
+  }
+
+
+  .appointment-tracking-stepper__step:nth-last-child(2)::after {
+    width: calc(100% - 67px);
+  }
+
+  .appointment-tracking-stepper__step:last-child span {
+    width: 54px;
   }
 
   .appointment-tracking-stepper__step strong {

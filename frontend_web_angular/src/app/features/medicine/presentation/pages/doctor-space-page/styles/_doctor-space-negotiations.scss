@@ -225,6 +225,11 @@
   --tone-soft: #f7eee4;
 }
 
+.doctor-space__negotiation-card[data-tone='done'] {
+  --tone: #8b9199;
+  --tone-soft: #f2f3f4;
+}
+
 .doctor-space__negotiation-card > header {
   display: contents;
 }
@@ -245,6 +250,20 @@
   right: 22px;
   top: 22px;
   z-index: 1;
+}
+
+.doctor-space__negotiation-card > header lucide-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.doctor-space__status-dot {
+  background: currentColor;
+  border-radius: 50%;
+  display: block;
+  flex: 0 0 auto;
+  height: 8px;
+  width: 8px;
 }
 
 .doctor-space__negotiation-card-body {

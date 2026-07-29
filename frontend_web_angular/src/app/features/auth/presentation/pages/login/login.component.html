@@ -92,7 +92,7 @@
             <a href="#">Mot de passe oublie ?</a>
           </div>
 
-          <button type="submit" class="login-submit" [disabled]="isLoading() || loginForm.invalid">
+          <button type="submit" class="login-submit" [disabled]="isLoading()">
             {{ isLoading() ? 'Connexion en cours...' : 'Se connecter' }}
           </button>
         </form>

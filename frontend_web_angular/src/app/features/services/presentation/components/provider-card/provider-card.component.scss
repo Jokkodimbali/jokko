@@ -307,6 +307,24 @@
   justify-content: center;
 }
 
+.provider-card__service-image-fallback {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.provider-card__service-image-fallback lucide-icon {
+  display: block;
+  height: 44px;
+  width: 44px;
+}
+
+.provider-card__service-image-fallback strong {
+  color: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
 .provider-card__vehicle-badge {
   align-items: center;
   background: rgba(255, 248, 241, 0.94);
@@ -537,5 +555,60 @@
 
   .provider-card__actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .provider-card {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .provider-card__movement {
+    min-height: 36px;
+  }
+
+  .provider-card__head {
+    gap: 8px;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+  }
+
+  .provider-card__avatar {
+    height: 52px;
+    width: 52px;
+  }
+
+  .provider-card__body,
+  .provider-card__services {
+    gap: 7px;
+  }
+
+  .provider-card__service-main {
+    aspect-ratio: 2.7 / 1;
+  }
+
+  .provider-card__vehicle-badge {
+    height: 46px;
+    top: 8px;
+  }
+
+  .provider-card__vehicle-badge img {
+    height: 34px;
+    width: 34px;
+  }
+
+  .provider-card__service-thumbs span {
+    height: 46px;
+    width: 46px;
+  }
+
+  .provider-card__action {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 420px) {
+  .provider-card__head {
+    grid-template-columns: 52px minmax(0, 1fr);
   }
 }

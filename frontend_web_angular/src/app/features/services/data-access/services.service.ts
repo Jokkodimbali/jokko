@@ -22,6 +22,12 @@ import {
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 
+export interface ProfessionalSearchLocation {
+  latitude: number;
+  longitude: number;
+  radiusKm?: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -95,12 +101,13 @@ export class ServicesService {
     categoryId?: string,
     subCategoryId?: string,
     travelMode?: ServiceTravelMode,
+    location?: ProfessionalSearchLocation,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     return forkJoin([
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role: 'PRESTATAIRE' }).pipe(
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role: 'PRESTATAIRE' }).pipe(
         catchError(() => of({ providers: [], meta: undefined })),
       ),
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role: 'MEDECIN' }).pipe(
+      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role: 'MEDECIN' }).pipe(
         catchError(() => of({ providers: [], meta: undefined })),
       ),
     ]).pipe(
@@ -141,8 +148,9 @@ export class ServicesService {
     categoryId?: string,
     subCategoryId?: string,
     travelMode?: ServiceTravelMode,
+    location?: ProfessionalSearchLocation,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
-    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, role });
+    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role });
   }
 
   private fetchProfessionals({
@@ -153,6 +161,7 @@ export class ServicesService {
     categoryId,
     subCategoryId,
     travelMode,
+    location,
     role,
   }: {
     query: string;
@@ -162,6 +171,7 @@ export class ServicesService {
     categoryId?: string;
     subCategoryId?: string;
     travelMode?: ServiceTravelMode;
+    location?: ProfessionalSearchLocation;
     role?: 'PRESTATAIRE' | 'MEDECIN';
   }): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     const params: Record<string, string> = {
@@ -187,6 +197,12 @@ export class ServicesService {
 
     if (travelMode?.trim()) {
       params['travelMode'] = travelMode.trim();
+    }
+
+    if (location) {
+      params['latitude'] = location.latitude.toString();
+      params['longitude'] = location.longitude.toString();
+      params['radiusKm'] = (location.radiusKm ?? 25).toString();
     }
 
     if (role) {

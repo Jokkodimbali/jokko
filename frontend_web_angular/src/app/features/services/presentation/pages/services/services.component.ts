@@ -21,7 +21,7 @@ import {
   FavoriteStatus,
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
-import { ServicesService } from '../../../data-access/services.service';
+import { ProfessionalSearchLocation, ServicesService } from '../../../data-access/services.service';
 import {
   CategoryStructure,
   ServiceSection,
@@ -97,6 +97,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
   selectedCity = signal<string>('Toutes villes');
+  currentSearchLocation = signal<ProfessionalSearchLocation | null>(null);
+  isLocating = signal<boolean>(false);
   showSearchSuggestions = signal<boolean>(false);
   showLocationMenu = signal<boolean>(false);
   suggestionProviders = signal<Professional[]>([]);
@@ -104,9 +106,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions]);
   protected readonly locationValue = computed(() => this.selectedCity());
   protected readonly searchResultsNearLabel = computed(() =>
-    this.effectiveCityFilter()
-      ? `Resultats pres de ${this.selectedCity()}`
-      : 'Resultats dans toutes les villes',
+    this.currentSearchLocation()
+      ? 'Résultats proches de votre position'
+      : this.effectiveCityFilter()
+        ? `Résultats près de ${this.selectedCity()}`
+        : 'Résultats dans toutes les villes',
   );
   protected readonly searchCategorySuggestions = computed<AppSearchCategorySuggestion[]>(() => {
     const providerCounts = new Map<string, number>();
@@ -226,7 +230,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeFilter() !== 'ALL' ||
       this.activeTravelMode() !== 'ALL' ||
       this.activeCategoryId() !== null ||
-      this.activeSubCategoryId() !== null,
+      this.activeSubCategoryId() !== null ||
+      this.effectiveCityFilter() !== undefined ||
+      this.currentSearchLocation() !== null,
   );
   protected readonly activeSubCategory = computed(() => {
     const subCategoryId = this.activeSubCategoryId();
@@ -315,6 +321,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectSearchCity(city: string): void {
+    this.currentSearchLocation.set(null);
     this.selectedCity.set(city);
     this.showLocationMenu.set(false);
     this.loadProfessionals(1);
@@ -322,7 +329,34 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   useCurrentLocation(): void {
-    this.selectSearchCity('Dakar');
+    if (!navigator.geolocation) {
+      this.feedback.error('La géolocalisation n’est pas prise en charge par ce navigateur.');
+      return;
+    }
+
+    this.isLocating.set(true);
+    this.showLocationMenu.set(false);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        this.currentSearchLocation.set({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          radiusKm: 25,
+        });
+        this.selectedCity.set('Ma position actuelle');
+        this.isLocating.set(false);
+        this.loadProfessionals(1);
+        this.loadSearchSuggestions();
+      },
+      (error) => {
+        this.isLocating.set(false);
+        const message = error.code === error.PERMISSION_DENIED
+          ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
+          : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
+        this.feedback.error(message);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+    );
   }
 
   selectTravelMode(mode: string): void {
@@ -502,8 +536,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private effectiveCityFilter(): string | undefined {
+    if (this.currentSearchLocation()) return undefined;
     const city = this.selectedCity().trim();
-    return city && city !== 'Toutes villes' ? city : undefined;
+    return city && city !== 'Toutes villes' && city !== 'Ma position actuelle' ? city : undefined;
   }
 
   private loadProfessionals(page: number = 1, appendToSection?: ServiceSection): void {
@@ -572,12 +607,13 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const subCategoryId = this.activeSubCategoryId() ?? undefined;
     const city = this.effectiveCityFilter();
     const travelMode = this.activeServiceTravelMode();
+    const location = this.currentSearchLocation() ?? undefined;
 
     if (filter === 'ALL') {
-      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId, travelMode);
+      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId, travelMode, location);
     }
 
-    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId, travelMode);
+    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId, travelMode, location);
   }
 
   private loadSearchSuggestions(): void {
@@ -586,7 +622,16 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const travelMode = this.activeServiceTravelMode();
 
     this.suggestionsRequestSubscription?.unsubscribe();
-    this.suggestionsRequestSubscription = this.servicesService.searchUnifiedProfessionals(query, 1, 6, this.effectiveCityFilter(), undefined, undefined, travelMode).subscribe({
+    this.suggestionsRequestSubscription = this.servicesService.searchUnifiedProfessionals(
+      query,
+      1,
+      6,
+      this.effectiveCityFilter(),
+      undefined,
+      undefined,
+      travelMode,
+      this.currentSearchLocation() ?? undefined,
+    ).subscribe({
       next: (result) => {
         if (requestId !== this.suggestionRequestVersion) {
           return;

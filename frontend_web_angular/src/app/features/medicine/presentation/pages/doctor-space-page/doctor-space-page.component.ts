@@ -10,7 +10,9 @@ import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
   isNegotiationInProgressStatus,
+  negotiationStatusIcon as sharedNegotiationStatusIcon,
   negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusIcon,
   reservationStatusLabel,
   reservationStatusTone,
 } from '../../../../../shared/utils/jokko-status-labels';
@@ -1532,6 +1534,12 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       : sharedNegotiationStatusLabel(status);
   }
 
+  protected negotiationStatusIcon(status: NegotiationStatus | AppointmentStatus): string | null {
+    return this.isNegotiationReservationStatus(status)
+      ? reservationStatusIcon(status)
+      : sharedNegotiationStatusIcon(status);
+  }
+
   private isNegotiationReservationStatus(status: NegotiationStatus | AppointmentStatus): status is AppointmentStatus {
     return (
       status === 'CONFIRMEE' ||
@@ -1648,6 +1656,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationReservationTone(status: AppointmentStatus): string {
+    if (status === 'TERMINEE') return 'done';
     const tone = reservationStatusTone(status);
     if (tone === 'blue') return 'active';
     if (tone === 'green') return 'confirmed';

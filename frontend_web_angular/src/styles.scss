@@ -20,6 +20,27 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+.app-inline-field-error {
+  color: #b42318;
+  display: block;
+  flex-basis: 100%;
+  font-family: var(--font-app);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin-top: 6px;
+  text-align: left;
+  width: 100%;
+}
+
+input.app-field--invalid,
+textarea.app-field--invalid,
+select.app-field--invalid {
+  border-color: #d92d20 !important;
+  box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.11) !important;
+  outline: none;
+}
+
 body {
   font-family: var(--font-app);
   margin: 0;

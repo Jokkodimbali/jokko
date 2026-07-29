@@ -1092,7 +1092,7 @@
 
         <footer>
           <button type="button" (click)="closeReviewModal()" [disabled]="isSubmittingReview()">Annuler</button>
-          <button type="submit" [disabled]="!canSubmitReview()">
+          <button type="submit">
             {{ isSubmittingReview() ? 'Publication...' : 'Publier mon avis' }}
           </button>
         </footer>

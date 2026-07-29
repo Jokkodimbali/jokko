@@ -110,7 +110,7 @@
         <button
           type="button"
           class="dispute-report__submit"
-          [disabled]="!canSubmit(currentAppointment) || isSubmitting()"
+          [disabled]="isSubmitting()"
           (click)="submitDispute()"
         >
           Soumettre le litige

@@ -2635,11 +2635,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private confirmClientArrival(appointment: AppointmentView): void {
-    const destination = this.currentReservationTrackingPoint();
-    if (!destination) {
+    const currentPosition = this.currentReservationTrackingPoint();
+    if (!currentPosition) {
       this.routeActorArrivalConfirmed.set(false);
       this.arrivalState.clear(appointment.id);
       this.feedback.info("Partagez d'abord votre position GPS reelle avant de confirmer l'arrivee.");
+      return;
+    }
+
+    const destination = this.providerArrivalDestination(appointment);
+    if (!destination) {
+      this.routeActorArrivalConfirmed.set(false);
+      this.arrivalState.clear(appointment.id);
+      this.feedback.error("L'adresse d'intervention ne peut pas encore etre positionnee sur la carte.");
       return;
     }
 

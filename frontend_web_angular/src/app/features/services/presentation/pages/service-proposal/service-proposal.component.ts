@@ -1032,9 +1032,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.proposalService.listMaterialQuotes(negotiationId).subscribe({
       next: (quotes) => {
-        this.materialQuoteEntries.set(
-          quotes.map((quote) => this.materialQuoteMapper.toEntry(quote)),
+        if (this.pendingProposal()?.id !== negotiationId) return;
+
+        const serverEntries = quotes.map((quote) => this.materialQuoteMapper.toEntry(quote));
+        const serverIds = new Set(serverEntries.map((entry) => entry.id));
+        const entriesPendingServerRefresh = this.materialQuoteEntries().filter(
+          (entry) => !serverIds.has(entry.id),
         );
+        this.materialQuoteEntries.set([...serverEntries, ...entriesPendingServerRefresh]);
         this.materialQuotesLoadedFor.set(negotiationId);
         this.isMaterialQuotesLoading.set(false);
       },
@@ -2047,7 +2052,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.linkedReservationCancellationReason.set(null);
           this.finalizeMaterialQuotesForReservation(proposal, reservationId);
           this.router.navigate(['/appointments', reservationId, 'payment'], {
-            queryParams: { returnUrl: '/appointments' },
+            queryParams: {
+              returnUrl: '/appointments',
+              providerName: this.displayName(),
+            },
             replaceUrl: true,
           });
         },

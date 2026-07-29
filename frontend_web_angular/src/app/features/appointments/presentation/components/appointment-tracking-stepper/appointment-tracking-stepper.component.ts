@@ -42,6 +42,7 @@ export class AppointmentTrackingStepperComponent {
   @Input() providerMode = false;
   @Input() showBack = true;
   @Input() embedded = false;
+  @Input() hideLastStepContent = false;
   @Input() clickableStepIndexes: number[] = [];
 
   @Output() back = new EventEmitter<void>();

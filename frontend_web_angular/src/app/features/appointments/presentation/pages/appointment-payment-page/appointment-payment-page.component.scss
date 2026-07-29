@@ -3,7 +3,7 @@
 }
 
 .appointment-payment {
-  background: #eef1ef;
+  background: #ffffff;
   color: #17181d;
   font-family: var(--font-app);
   min-height: 100vh;
@@ -12,7 +12,7 @@
 }
 
 .appointment-payment--medicine {
-  background: #f3f5f4;
+  background: #ffffff;
 }
 
 .appointment-payment--confirmed {
@@ -84,12 +84,13 @@
   gap: 16px;
   grid-template-columns: minmax(360px, 560px);
   justify-content: center;
-  padding: 28px 16px 24px;
+  min-height: calc(100vh - 96px);
+  padding: 32px 16px 38px;
 }
 
 .appointment-payment__confirmed {
   align-items: center;
-  background: #eef0f2;
+  background: #ffffff;
   display: grid;
   justify-items: center;
   flex: 1 1 auto;
@@ -102,21 +103,22 @@
   align-items: center;
   background: #ffffff;
   border-radius: 30px;
-  box-shadow: 0 24px 62px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 52px rgba(15, 23, 42, 0.16);
   display: grid;
   justify-items: center;
   max-width: 560px;
   max-height: 100%;
-  padding: clamp(18px, 2.5vh, 28px) 38px clamp(16px, 2vh, 24px);
+  min-height: min(620px, calc(100dvh - 120px));
+  padding: clamp(28px, 4vh, 42px) 38px clamp(24px, 3.5vh, 36px);
   width: min(100%, 560px);
 }
 
 .appointment-payment__confirmed-icon {
   align-items: center;
   background: #4f883a;
-  border: 7px solid #eef4ed;
+  border: 0;
   border-radius: 50%;
-  box-shadow: 0 12px 26px rgba(79, 136, 58, 0.2);
+  box-shadow: none;
   color: #ffffff;
   display: inline-flex;
   height: 68px;
@@ -319,7 +321,7 @@
   background: #955d24;
   border: 0;
   border-radius: 14px;
-  box-shadow: 0 18px 34px rgba(149, 93, 36, 0.24);
+  box-shadow: none;
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
@@ -330,13 +332,13 @@
   justify-content: center;
   margin-top: 14px;
   min-height: 46px;
-  transition: background 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+  transition: background 170ms ease, transform 170ms ease;
   width: 100%;
 }
 
 .appointment-payment__confirmed-primary:hover {
   background: #834f1d;
-  box-shadow: 0 20px 40px rgba(149, 93, 36, 0.3);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -439,19 +441,23 @@
 }
 
 .appointment-payment__shell {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 34px;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 16px 38px rgba(15, 23, 42, 0.06);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  column-gap: 28px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 450px);
-  min-height: min(650px, calc(100vh - 150px));
-  overflow: hidden;
+  min-height: min(690px, calc(100vh - 130px));
+  overflow: visible;
   width: 100%;
 }
 
 .appointment-payment__summary-panel {
   align-content: center;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
   justify-items: center;
   min-width: 0;
@@ -463,7 +469,7 @@
   background: #fff;
   border: 1px solid #d9d9d9;
   border-radius: 14px;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.11);
   color: #172033;
   font-family: var(--font-app);
   overflow: hidden;
@@ -723,7 +729,7 @@
 }
 
 .appointment-payment__payment-panel {
-  border-left: 1px solid #edf0f3;
+  border-left: 0;
   display: grid;
   min-width: 0;
   padding: 32px 44px 28px;
@@ -843,6 +849,7 @@
 }
 
 .appointment-payment__method-logo img {
+  border-radius: 10px;
   display: block;
   max-height: 40px;
   max-width: 50px;
@@ -1194,6 +1201,7 @@
 
   .appointment-payment__confirmed-card {
     border-radius: 24px;
+    min-height: 0;
     padding: 14px 18px 12px;
   }
 
@@ -1269,6 +1277,6 @@
   .appointment-payment__delivery-address p { min-height: 42px; }
   .appointment-payment__confirmed { min-height: 0; padding: 8px 16px; }
   .appointment-payment__confirmed-card { padding: 24px 30px 22px; }
-  .appointment-payment__confirmed-icon { border-width: 7px; height: 68px; width: 68px; }
+  .appointment-payment__confirmed-icon { border-width: 0; height: 68px; width: 68px; }
   .appointment-payment__confirmed-heading { margin: 16px 0 18px; }
 }

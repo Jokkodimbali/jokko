@@ -3,7 +3,7 @@
   [class.appointment-tracking-stepper--provider]="providerMode"
   [attr.aria-label]="ariaLabel"
 >
-  <button *ngIf="showBack" type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
+  <button type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
     <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
     Retour
   </button>
@@ -20,12 +20,14 @@
     >
       <span>
         <lucide-icon
-          *ngIf="step.state === 'done'; else stepNumber"
+          *ngIf="step.state === 'done' && !(hideLastStepContent && index === steps.length - 1); else stepNumber"
           [name]="step.state === 'done' ? 'check' : step.icon"
           size="16"
           [strokeWidth]="2.7"
         ></lucide-icon>
-        <ng-template #stepNumber>{{ index + 1 }}</ng-template>
+        <ng-template #stepNumber>
+          <ng-container *ngIf="!(hideLastStepContent && index === steps.length - 1)">{{ index + 1 }}</ng-container>
+        </ng-template>
       </span>
       <strong>{{ step.label }}</strong>
     </div>

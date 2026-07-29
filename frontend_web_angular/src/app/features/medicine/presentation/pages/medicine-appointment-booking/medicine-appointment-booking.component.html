@@ -190,7 +190,6 @@
               <button
                 type="button"
                 class="medicine-booking__primary medicine-booking__primary--dark"
-                [disabled]="!canGoToReservationStep()"
                 (click)="goToReservationStep()"
               >
                 Finaliser le rendez-vous
@@ -251,7 +250,7 @@
                 <lucide-icon name="arrow-left" size="20" [strokeWidth]="2.6"></lucide-icon>
                 Retour
               </button>
-              <button type="button" class="medicine-booking__primary" [disabled]="!canConfirm()" (click)="confirmAppointment()">
+              <button type="button" class="medicine-booking__primary" (click)="confirmAppointment()">
                 <lucide-icon name="check" size="21" [strokeWidth]="2.8"></lucide-icon>
                 {{ isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
                 <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.8"></lucide-icon>

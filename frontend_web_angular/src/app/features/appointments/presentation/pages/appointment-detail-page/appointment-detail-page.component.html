@@ -419,6 +419,9 @@
       [class.appointment-detail__route-layout--arrived]="isProviderWorking() && !isParcelDropoffNavigationActive()"
       [class.appointment-detail__route-layout--client]="showClientRoutePanel()"
       [class.appointment-detail__route-layout--provider]="isProviderViewer()"
+      [class.appointment-detail__route-layout--parcel-completed]="
+        showClientRoutePanel() && isParcelDeliveryFlow() && isAppointmentCompleted()
+      "
       [attr.aria-label]="
         isProviderWorking() && !isParcelDropoffNavigationActive()
           ? 'Prestation en cours'
@@ -674,7 +677,11 @@
         ></div>
         <div
           class="appointment-detail__map-empty"
-          *ngIf="isProviderOnTheWay() && shouldShowMapEmptyState()"
+          *ngIf="
+            (isProviderOnTheWay() || isParcelDropoffNavigationActive()) &&
+            shouldShowMapEmptyState() &&
+            !isParcelDropoffNavigationActive()
+          "
         >
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
           <strong>
@@ -790,7 +797,12 @@
           </ng-container>
         </div>
         <div
-          *ngIf="isRouteActorViewer() && (isProviderOnTheWay() || isParcelDropoffNavigationActive()) && !hasTravelerArrivedAtDestination()"
+          *ngIf="
+            isRouteActorViewer() &&
+            (isProviderOnTheWay() || isParcelDropoffNavigationActive()) &&
+            !hasTravelerArrivedAtDestination() &&
+            (!isParcelDropoffNavigationActive() || hasTrackingCoordinates())
+          "
           class="appointment-detail__navigation-guidance"
           aria-live="polite"
         >
@@ -823,11 +835,13 @@
           >
             <lucide-icon [name]="isMapTopView() ? 'navigation' : 'map'" size="16" [strokeWidth]="2.6"></lucide-icon>
           </button>
-          <strong>
-            <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
-            {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}
-          </strong>
-          <em><i></i> {{ hasActiveTrackingNavigation() ? 'GPS actif' : 'GPS en attente' }}</em>
+            <strong *ngIf="!isParcelDeliveryFlow()">
+              <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
+              {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}
+            </strong>
+            <em *ngIf="!isParcelDeliveryFlow()">
+              <i></i> {{ hasActiveTrackingNavigation() ? 'GPS actif' : 'GPS en attente' }}
+            </em>
         </div>
       </article>
 
@@ -1092,7 +1106,7 @@
 
         <footer>
           <button type="button" (click)="closeReviewModal()" [disabled]="isSubmittingReview()">Annuler</button>
-          <button type="submit" [disabled]="!canSubmitReview()">
+          <button type="submit">
             {{ isSubmittingReview() ? 'Publication...' : 'Publier mon avis' }}
           </button>
         </footer>

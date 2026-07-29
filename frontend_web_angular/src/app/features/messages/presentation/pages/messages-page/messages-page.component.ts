@@ -16,6 +16,7 @@ import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
+import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
 import {
   NegotiationView,
@@ -93,6 +94,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly appointmentsService = inject(AppointmentsService);
+  private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly authSession = inject(AuthSessionService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly feedback = inject(AppFeedbackService);
@@ -142,7 +144,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private isOpeningDirectConversation = false;
   private pendingThreadScrollId: ReturnType<typeof setTimeout> | null = null;
   private proposalStatusRefreshId: ReturnType<typeof setInterval> | null = null;
+  private completionClockId: ReturnType<typeof setInterval> | null = null;
+  private readonly completionClock = signal(Date.now());
   private realtimeMessageSubscription: Subscription | null = null;
+  private reservationRealtimeSubscription: Subscription | null = null;
+  private reservationRealtimeScope: 'CLIENT' | 'PRESTATAIRE' | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private voiceChunks: Blob[] = [];
   private voiceRecordingTimer: ReturnType<typeof setInterval> | null = null;
@@ -174,7 +180,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly conversationReservationCard = computed<ConversationReservationCard | null>(() => {
     const appointment = this.visibleAppointmentPreview();
     if (appointment) {
-      if (appointment.status === 'TERMINEE') {
+      if (appointment.status === 'TERMINEE' && !this.isCompletedReservationGracePeriodActive(appointment)) {
         return null;
       }
 
@@ -203,6 +209,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         proposal: this.visibleProposal(),
         appointment,
       };
+    }
+
+    // Une conversation liee a une reservation ne doit jamais reutiliser le
+    // statut potentiellement ancien de la negotiation pendant son chargement.
+    if (this.currentVisibleReservationId()) {
+      return null;
     }
 
     const proposal = this.visibleProposalStep();
@@ -293,12 +305,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected readonly visibleProposalStep = computed<PendingProposal | null>(() => {
     const proposal = this.visibleProposal();
-    if (
-      this.visibleAppointmentPreview() ||
-      Boolean(proposal?.reservationId) ||
-      this.isPaidConversationStatus(proposal?.status) ||
-      (Boolean(proposal?.reservationId) && this.isLoadingAppointmentPreview())
-    ) {
+    if (this.visibleAppointmentPreview()) {
       return null;
     }
 
@@ -321,9 +328,15 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly canShowNegotiationButton = computed(() => {
     const conversation = this.selectedConversation();
     if (!conversation || this.currentUser()?.role !== 'CLIENT') return false;
-    if (!conversation.reservationId) return true;
+    const reservationId = this.currentVisibleReservationId();
+    if (!reservationId) return true;
 
-    return this.visibleAppointmentPreview()?.status === 'TERMINEE';
+    const appointment = this.visibleAppointmentPreview();
+    return Boolean(
+      appointment?.id === reservationId &&
+      appointment.status === 'TERMINEE' &&
+      !this.isCompletedReservationGracePeriodActive(appointment),
+    );
   });
 
   protected readonly canPayAcceptedProposal = computed(
@@ -351,8 +364,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.completionClockId = setInterval(() => this.completionClock.set(Date.now()), 1000);
     this.readPendingProposalFromQuery();
     this.startRealtimeMessaging();
+    this.startReservationRealtime();
     this.startProposalRefresh();
     this.loadConversations();
   }
@@ -361,6 +376,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     if (this.proposalStatusRefreshId) {
       clearInterval(this.proposalStatusRefreshId);
     }
+    if (this.completionClockId) {
+      clearInterval(this.completionClockId);
+    }
     this.clearVoiceRecordingTimer();
     this.stopVoiceLevelMeter();
     if (this.pendingThreadScrollId) {
@@ -368,6 +386,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
     this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
     this.realtimeMessageSubscription?.unsubscribe();
+    this.reservationRealtimeSubscription?.unsubscribe();
+    if (this.reservationRealtimeScope) {
+      this.reservationsRealtime.stopWatching(this.reservationRealtimeScope);
+    }
     this.messagesRealtime.disconnect();
     this.revokePendingAttachmentPreview();
   }
@@ -842,7 +864,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           const file = new File([voiceBlob], `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`, {
             type: voiceType,
           });
-          this.uploadVoiceAndSend(file, durationSeconds);
+          this.uploadVoiceAndSend(file);
         };
         recorder.start();
         this.startVoiceLevelMeter(stream);
@@ -1060,7 +1082,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.isCounterOfferOpen.set(false);
           this.counterOfferAmount.set(null);
           this.feedback.success('Nouvelle offre envoyee au client.');
-          this.notifyCounterOfferInConversation(updatedProposal);
         },
         error: () => {
           const message = "Impossible d'envoyer cette nouvelle offre.";
@@ -1386,8 +1407,29 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private refreshConversationsSilently(): void {
     this.messagesService.listConversations().subscribe({
-      next: (conversations) => this.conversations.set(this.sortConversations(conversations)),
+      next: (conversations) => {
+        this.conversations.set(this.sortConversations(conversations));
+        this.loadAppointmentPreviewForSelectedConversation({ force: true });
+      },
     });
+  }
+
+  private startReservationRealtime(): void {
+    if (!this.authSession.hasAuthenticatedSession() || this.reservationRealtimeSubscription) return;
+
+    const scope = this.isProfessionalRole() ? 'PRESTATAIRE' : 'CLIENT';
+    this.reservationRealtimeScope = scope;
+    this.reservationRealtimeSubscription = this.reservationsRealtime
+      .watchMyReservations(scope)
+      .subscribe((event) => {
+        const visibleReservationId = this.currentVisibleReservationId();
+        if (event.reservationId === visibleReservationId) {
+          this.loadAppointmentPreview(event.reservationId);
+          return;
+        }
+
+        this.refreshConversationsSilently();
+      });
   }
 
   private openReservationConversation(reservationId: string): void {
@@ -1413,31 +1455,45 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private uploadVoiceAndSend(file: File, durationSeconds: number): void {
+  private uploadVoiceAndSend(file: File): void {
     const conversation = this.selectedConversation();
     if (!conversation || this.isUploadingMedia() || this.isSending()) {
       return;
     }
 
-    this.selectedAttachmentName.set(file.name);
-    this.pendingMediaKind.set('audio');
-    this.pendingVoiceDurationSeconds.set(durationSeconds);
     this.isUploadingMedia.set(true);
     this.messagesService.uploadMedia(file).subscribe({
       next: ({ mediaUrl }) => {
         this.isUploadingMedia.set(false);
-        this.pendingMediaUrl.set(mediaUrl);
-        this.sendMessageWithMedia(mediaUrl, 'Message vocal');
+        this.sendUploadedVoice(conversation.id, mediaUrl);
       },
       error: () => {
         this.isUploadingMedia.set(false);
-        this.selectedAttachmentName.set(null);
-        this.pendingMediaUrl.set(null);
-        this.pendingMediaKind.set(null);
-        this.pendingVoiceDurationSeconds.set(0);
         this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
       },
     });
+  }
+
+  private sendUploadedVoice(
+    conversationId: string,
+    mediaUrl: string,
+  ): void {
+    if (this.isSending()) return;
+
+    this.isSending.set(true);
+    this.messagesService
+      .sendMessage(conversationId, '', mediaUrl)
+      .subscribe({
+        next: (message) => {
+          this.upsertMessage(message);
+          this.isSending.set(false);
+          this.refreshConversationsSilently();
+        },
+        error: () => {
+          this.isSending.set(false);
+          this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
+        },
+      });
   }
 
   private openNegotiationConversation(negotiationId: string): void {
@@ -1903,6 +1959,15 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  private isCompletedReservationGracePeriodActive(appointment: AppointmentView): boolean {
+    if (appointment.status !== 'TERMINEE') return false;
+
+    const completedAt = new Date(appointment.updatedAt).getTime();
+    if (!Number.isFinite(completedAt)) return false;
+
+    return this.completionClock() - completedAt < 5 * 60 * 1000;
+  }
+
   private loadAppointmentPreviewForVisibleProposal(options: { force?: boolean } = {}): void {
     const proposal = this.visibleProposal();
     if (!proposal?.reservationId) {
@@ -2035,25 +2100,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     const date = new Date(Date.UTC(Number(match[3]), month, Number(match[1]), hours, minutes, 0));
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
-  }
-
-  private notifyCounterOfferInConversation(proposal: NegotiationView): void {
-    const conversationId = this.selectedConversationId();
-    if (!conversationId) {
-      return;
-    }
-
-    const message = `J'ai annule l'offre initiale et propose ${this.formatAmount(
-      proposal.montantCourant,
-    )} FCFA.`;
-
-    this.messagesService.sendMessage(conversationId, message).subscribe({
-      next: (createdMessage) => {
-        this.upsertMessage(createdMessage);
-        this.refreshConversationsSilently();
-      },
-      error: () => undefined,
-    });
   }
 
   private buildPaymentReturnQuery(proposal: PendingProposal): Record<string, string | number> {

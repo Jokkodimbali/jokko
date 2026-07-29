@@ -3,22 +3,6 @@
   [class.appointment-payment--medicine]="isMedicinePaymentFlow()"
   [class.appointment-payment--confirmed]="isPaymentConfirmed()"
 >
-  <section class="appointment-payment__topbar" aria-label="Navigation paiement">
-    <button
-      type="button"
-      class="appointment-payment__back"
-      (click)="goBack()"
-    >
-      <lucide-icon name="arrow-left" size="17" [strokeWidth]="2.4"></lucide-icon>
-      <span>Retour</span>
-    </button>
-
-    <span class="appointment-payment__secure">
-      <lucide-icon name="shield-check" size="13" [strokeWidth]="2.4"></lucide-icon>
-      Paiement securise
-    </span>
-  </section>
-
   <section class="appointment-payment__state" *ngIf="isLoading()">Chargement du paiement...</section>
   <section class="appointment-payment__state appointment-payment__state--error" *ngIf="!isLoading() && errorMessage()">
     {{ errorMessage() }}
@@ -28,10 +12,12 @@
     <app-appointment-tracking-stepper
       [steps]="journeySteps()"
       [progress]="journeyProgress()"
-      [showBack]="false"
+      [showBack]="true"
       [embedded]="true"
+      [hideLastStepContent]="true"
       [clickableStepIndexes]="isPaymentConfirmed() ? [3] : []"
       ariaLabel="Étapes de la réservation"
+      (back)="goBack()"
       (stepSelected)="openAppointmentPage(appointment)"
     />
     <section

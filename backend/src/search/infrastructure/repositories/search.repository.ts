@@ -43,6 +43,10 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const queryText = input.query?.trim();
     const city = input.city?.trim();
+    const normalizedCity = city
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
     const role = input.role ?? 'PRESTATAIRE';
     const travelMode = input.travelMode;
 
@@ -101,8 +105,14 @@ export class SearchRepository implements SearchRepositoryPort {
         `
       : Prisma.empty;
 
-    const cityFilter = city
-      ? Prisma.sql`AND pp.city ILIKE ${city}`
+    const cityFilter = normalizedCity
+      ? Prisma.sql`
+          AND translate(
+            lower(pp.city),
+            'éèêëîïôöùûüàâäç',
+            'eeeeiioouuuaaac'
+          ) LIKE ${`%${normalizedCity}%`}
+        `
       : Prisma.empty;
 
     const categoryFilter = input.categoryId

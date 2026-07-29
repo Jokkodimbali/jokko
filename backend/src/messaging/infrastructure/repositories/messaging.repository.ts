@@ -84,9 +84,43 @@ export class MessagingRepository implements MessagingRepositoryPort {
       select: this.buildConversationSelect(params.userId),
     });
 
-    return conversations.map((conversation) =>
-      this.mapConversation(conversation, params.userId),
-    );
+    const reservationPairs = conversations.flatMap((conversation) => {
+      const professionalProfileId = conversation.prestataire.profilProfessionnel?.id;
+      return professionalProfileId
+        ? [{ clientId: conversation.clientId, professionnelId: professionalProfileId }]
+        : [];
+    });
+    const latestReservations = reservationPairs.length
+      ? await this.prisma.reservation.findMany({
+          where: { OR: reservationPairs },
+          orderBy: [{ creeLe: 'desc' }],
+          select: {
+            id: true,
+            clientId: true,
+            professionnelId: true,
+          },
+        })
+      : [];
+    const latestReservationByPair = new Map<string, string>();
+    latestReservations.forEach((reservation) => {
+      const key = `${reservation.clientId}:${reservation.professionnelId}`;
+      if (!latestReservationByPair.has(key)) {
+        latestReservationByPair.set(key, reservation.id);
+      }
+    });
+
+    return conversations.map((conversation) => {
+      const professionalProfileId = conversation.prestataire.profilProfessionnel?.id;
+      const latestReservationId = professionalProfileId
+        ? latestReservationByPair.get(`${conversation.clientId}:${professionalProfileId}`)
+        : undefined;
+      return this.mapConversation(
+        latestReservationId
+          ? { ...conversation, reservationId: latestReservationId }
+          : conversation,
+        params.userId,
+      );
+    });
   }
 
   async findConversationById(
@@ -167,7 +201,10 @@ export class MessagingRepository implements MessagingRepositoryPort {
         currentUserId,
       });
     if (existingByParticipants) {
-      if (input.reservationId && !existingByParticipants.reservationId) {
+      if (
+        input.reservationId &&
+        existingByParticipants.reservationId !== input.reservationId
+      ) {
         const updated = await this.prisma.conversation.update({
           where: { id: existingByParticipants.id },
           data: { reservationId: input.reservationId },

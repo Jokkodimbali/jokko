@@ -8,15 +8,7 @@
   }
 
   :host .favorites {
-    background: linear-gradient(155deg, #955d24 0%, #7f461d 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 28px !important;
-    box-shadow: 0 14px 32px rgba(77, 43, 17, 0.18);
-    height: auto !important;
-    margin: 30px 10px 10px !important;
-    overflow: hidden;
-    padding: 15px !important;
-    width: calc(100% - 20px) !important;
+    display: none !important;
   }
 
   :host .favorites-header {
@@ -137,7 +129,7 @@
 
   :host .service-section {
     min-height: auto !important;
-    padding: 24px 12px 20px !important;
+    padding: 20px 6px 18px !important;
   }
 
   :host .service-section:first-of-type {
@@ -154,7 +146,7 @@
   }
 
   :host .provider-row {
-    gap: 12px !important;
+    gap: 10px !important;
     overflow: visible !important;
     padding: 0 !important;
   }
@@ -169,6 +161,11 @@
   :host .provider-card__actions {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+  }
+
+  :host .provider-row app-provider-card {
+    margin-inline: auto;
+    max-width: 360px !important;
   }
 
   :host .provider-card__action {
@@ -207,7 +204,7 @@
   }
 
   :host .service-section {
-    padding-inline: 8px !important;
+    padding-inline: 5px !important;
   }
 
   :host .provider-card__actions {

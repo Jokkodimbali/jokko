@@ -105,6 +105,7 @@ export interface AppointmentView {
   professionalUserId: string | null;
   serviceId: string;
   status: AppointmentStatus;
+  updatedAt: string;
   scheduledAt: string;
   durationMinutes: number;
   eyebrow: string;

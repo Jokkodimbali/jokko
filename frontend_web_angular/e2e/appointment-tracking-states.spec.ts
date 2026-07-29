@@ -118,6 +118,7 @@ test.describe('Appointment tracking lifecycle', () => {
     page,
     request,
   }) => {
+    const destination = { latitude: 14.74584, longitude: -17.40015 };
     await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
       travelMode: 'CLIENT_SE_DEPLACE',
       browserGeolocation: { latitude: 14.7405004, longitude: -17.4749579 },
@@ -127,12 +128,17 @@ test.describe('Appointment tracking lifecycle', () => {
 
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
     await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Partager ma position$/i }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Je suis arriv/i })).toBeEnabled();
     await expect(page.getByRole('button', { name: /^Commencer$/i })).toHaveCount(0);
 
     await page.getByRole('button', { name: /Je suis arriv/i }).click();
-    await expect(page.getByText(/Travaux en cours/i)).toBeVisible();
+    await page.waitForFunction((position) => {
+      const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
+      const marker = debug?.providerMarkerPositions.at(-1);
+      return !!marker &&
+        Math.abs(marker.lat - position.latitude) < 0.00001 &&
+        Math.abs(marker.lng - position.longitude) < 0.00001;
+    }, destination);
   });
 
   test('client-travels client can start route when browser GPS is outside Senegal by using departure address', async ({

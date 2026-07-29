@@ -20,7 +20,7 @@ describe('ComputeRoutesUseCase', () => {
     });
   });
 
-  it('rejects coordinates outside Senegal before calling Google', async () => {
+  it('rejects impossible coordinates before calling Google', async () => {
     const provider = {
       computeRoutes: jest.fn(),
     } as unknown as jest.Mocked<RoutingProviderPort>;
@@ -28,7 +28,7 @@ describe('ComputeRoutesUseCase', () => {
 
     expect(() =>
       useCase.execute({
-        origin: { latitude: 48.8566, longitude: 2.3522 },
+        origin: { latitude: 91, longitude: 2.3522 },
         destination: { latitude: 14.6937, longitude: -17.4441 },
       }),
     ).toThrow();

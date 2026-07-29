@@ -112,24 +112,14 @@
     </section>
   </ng-template>
 
-  <section class="service-proposal__bar">
-    <button type="button" class="service-proposal__back" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.4"></lucide-icon>
-      <span>Retour</span>
-    </button>
-
-    <span class="service-proposal__secure">
-      <span></span>
-      Paiement s&eacute;curis&eacute;
-    </span>
-  </section>
-
   <app-appointment-tracking-stepper
     [steps]="journeySteps"
     [progress]="journeyProgress"
-    [showBack]="false"
+    [showBack]="true"
     [embedded]="true"
+    [hideLastStepContent]="true"
     ariaLabel="Étapes de la réservation"
+    (back)="goBack()"
   />
 
   <section *ngIf="isLoading()" class="service-proposal__state">
@@ -480,7 +470,7 @@
 <ng-template #bookingContent>
           <section
             *ngIf="!pendingProposal(); else pendingProposalPanel"
-            class="service-proposal__panel"
+            class="service-proposal__panel service-proposal__panel--reservation-final"
             aria-label="Formulaire de proposition"
           >
             <header class="service-proposal__hero">
@@ -744,7 +734,6 @@
                 <button
                   type="button"
                   class="service-proposal__submit service-proposal__submit--dark"
-                  [disabled]="!canGoToClientPriceStep()"
                   (click)="goToClientPriceStep()"
                 >
                   {{ isParcelDeliveryService() ? 'Continuer vers la finalisation de la livraison' : 'Continuer vers la finalisation' }}
@@ -830,8 +819,7 @@
                     [disabled]="
                       isSubmitting() ||
                       isCheckingAvailability() ||
-                      isLoadingAvailabilitySlots() ||
-                      !hasCustomOfferAmount()
+                      isLoadingAvailabilitySlots()
                     "
                   >
                     <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>
@@ -845,7 +833,7 @@
 
           <ng-template #pendingProposalPanel>
             <section
-              class="service-proposal__panel service-proposal__counter-shell"
+              class="service-proposal__panel service-proposal__panel--reservation-final service-proposal__counter-shell"
               aria-label="Suivi de la proposition"
             >
               <header class="service-proposal__hero">

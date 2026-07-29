@@ -97,9 +97,11 @@ export class AppointmentsService {
 
               return this.mapAppointment(reservation, {
                 doctorName:
-                  detail.profile.nomEntreprise ||
                   detail.profile.utilisateur.nom ||
-                  'Prestataire non renseigne',
+                  detail.profile.nomEntreprise ||
+                  reservation.professionnel?.utilisateur.nom ||
+                  reservation.professionnel?.nomEntreprise ||
+                  '',
                 specialty: service?.nom || 'Service non renseigne',
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
@@ -421,6 +423,7 @@ export class AppointmentsService {
       professionalUserId: reservation.professionnel?.utilisateur.id ?? null,
       serviceId: reservation.serviceId,
       status,
+      updatedAt: reservation.misAJourLe,
       scheduledAt: reservation.dateHeure,
       durationMinutes: reservation.dureeMinutes,
       eyebrow: this.isDone(status) ? 'RENDEZ-VOUS TERMINE' : 'PROCHAIN RENDEZ-VOUS',

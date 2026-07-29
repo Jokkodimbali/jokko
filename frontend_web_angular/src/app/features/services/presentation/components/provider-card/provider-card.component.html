@@ -93,7 +93,10 @@
       <figure class="provider-card__service-main">
         <img *ngIf="selected.imageUrl; else serviceFallback" [src]="selected.imageUrl" [alt]="selected.name" (error)="onImageError(selected.imageUrl)" />
         <ng-template #serviceFallback>
-          <span>{{ serviceInitials(selected.name) }}</span>
+          <span class="provider-card__service-image-fallback" aria-label="Aucune image disponible">
+            <lucide-icon name="image-plus" size="44" [strokeWidth]="1.8" aria-hidden="true"></lucide-icon>
+            <strong>Aucune image</strong>
+          </span>
         </ng-template>
 
         <span *ngIf="vehicleBadge as vehicle" class="provider-card__vehicle-badge" [attr.aria-label]="vehicle.label">

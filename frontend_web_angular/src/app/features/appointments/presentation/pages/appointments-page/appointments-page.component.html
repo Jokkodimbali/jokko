@@ -169,7 +169,14 @@
 
             <div class="appointment-row__side">
               <span class="appointment-row__badge">
-                <i></i>
+                <lucide-icon
+                  *ngIf="scheduleItemStatusIcon(item) as statusIcon; else statusDot"
+                  [name]="statusIcon"
+                  size="17"
+                  [strokeWidth]="2.3"
+                  aria-hidden="true"
+                ></lucide-icon>
+                <ng-template #statusDot><i></i></ng-template>
                 {{ scheduleItemStatusLabel(item) }}
               </span>
               <div class="appointment-row__actions">

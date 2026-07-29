@@ -32,12 +32,6 @@ import type { TrackingLocationCommand } from '../commands/tracking-location.comm
 import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
 import { resolveTrackingDestinationAddress } from './tracking-parcel-destination.helper';
 
-const SENEGAL_GEO_BOUNDS = {
-  minLat: 12,
-  maxLat: 17.2,
-  minLng: -18.7,
-  maxLng: -11,
-} as const;
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 
 @Injectable()
@@ -472,7 +466,7 @@ export class LiveTrackingCommandService {
     if (
       dto.latitude !== undefined &&
       dto.longitude !== undefined &&
-      !this.isCoordinateInSenegal(dto.latitude, dto.longitude)
+      !this.isValidCoordinate(dto.latitude, dto.longitude)
     ) {
       throw LiveTrackingDomainError.invalidLocation();
     }
@@ -560,14 +554,14 @@ export class LiveTrackingCommandService {
     }
   }
 
-  private isCoordinateInSenegal(lat: number, lng: number): boolean {
+  private isValidCoordinate(lat: number, lng: number): boolean {
     return (
       Number.isFinite(lat) &&
       Number.isFinite(lng) &&
-      lat >= SENEGAL_GEO_BOUNDS.minLat &&
-      lat <= SENEGAL_GEO_BOUNDS.maxLat &&
-      lng >= SENEGAL_GEO_BOUNDS.minLng &&
-      lng <= SENEGAL_GEO_BOUNDS.maxLng
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
     );
   }
 }

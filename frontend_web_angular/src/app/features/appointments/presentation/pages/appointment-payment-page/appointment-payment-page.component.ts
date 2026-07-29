@@ -253,7 +253,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
       return;
     }
 
-    this.messagesService.createConversation({ professionalProfileId: appointment.professionalId }).subscribe({
+    this.messagesService.createConversation({
+      reservationId: appointment.id,
+      professionalProfileId: appointment.professionalId,
+    }).subscribe({
       next: (conversation) => {
         this.router.navigate(['/messages'], {
           queryParams: {
@@ -291,7 +294,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private handlePaidAppointment(appointment: AppointmentView): void {
     this.isPaying.set(false);
     if (!this.shouldReturnToMessages()) {
-      this.appointment.set(appointment);
+      this.appointment.set(this.withPaymentDisplayLabels(appointment));
       this.router.navigateByUrl(this.withQueryParams(this.paymentConfirmationPath(appointment), {
         confirmed: '1',
         returnUrl: this.safeReturnUrl() ?? '/appointments',
@@ -299,19 +302,11 @@ export class AppointmentPaymentPageComponent implements OnInit {
       return;
     }
 
-    this.messagesService.createConversation({ professionalProfileId: appointment.professionalId }).subscribe({
-      next: (conversation) => {
-        const message = [
-          `Paiement confirme pour ${appointment.serviceName}.`,
-          `Montant paye: ${this.formatAmount(appointment.agreedPrice ?? 0)}.`,
-          `Rendez-vous le ${this.formatPaymentDate(appointment)} a ${appointment.timeLabel}.`,
-        ].join(' ');
-
-        this.messagesService.sendMessage(conversation.id, message).subscribe({
-          next: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
-          error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
-        });
-      },
+    this.messagesService.createConversation({
+      reservationId: appointment.id,
+      professionalProfileId: appointment.professionalId,
+    }).subscribe({
+      next: (conversation) => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
       error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
     });
   }
@@ -422,11 +417,18 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   private paymentConfirmationPath(appointment: AppointmentView): string {
-    if (this.isMedicineFlow()) {
-      return `/medecine/reservations/${appointment.id}/confirmation?source=medecine`;
-    }
+    const path = this.isMedicineFlow()
+      ? `/medecine/reservations/${appointment.id}/confirmation?source=medecine`
+      : `/appointments/${appointment.id}/payment`;
+    const providerName = [
+      appointment.doctorName,
+      this.appointment()?.doctorName,
+      this.route.snapshot.queryParamMap.get('providerName'),
+    ].find((value) => !this.isPlaceholderLabel(value));
 
-    return `/appointments/${appointment.id}/payment`;
+    return providerName
+      ? this.withQueryParams(path, { providerName: providerName.trim() })
+      : path;
   }
 
   private withQueryParams(path: string, params: Record<string, string>): string {
@@ -566,9 +568,16 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private withPaymentDisplayLabels(appointment: AppointmentView): AppointmentView {
     const serviceName = this.confirmedServiceLabel(appointment);
     const specialty = this.confirmedProviderSubtitle({ ...appointment, serviceName });
+    const doctorName = this.firstDisplayLabel(
+      appointment.doctorName,
+      this.appointment()?.doctorName,
+      this.route.snapshot.queryParamMap.get('providerName'),
+      this.counterpartRoleLabel(),
+    );
 
     return {
       ...appointment,
+      doctorName,
       serviceName,
       specialty,
       timeLabel: this.confirmedTimeLabel(appointment),

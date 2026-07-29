@@ -7,7 +7,9 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import {
   isNegotiationInProgressStatus,
+  negotiationStatusIcon,
   negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusIcon,
   reservationStatusLabel,
   reservationStatusTone,
 } from '../../../../../shared/utils/jokko-status-labels';
@@ -370,12 +372,15 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected rowTone(appointment: AppointmentView): AppointmentTone {
     if (appointment.status === 'LITIGE' || appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'red';
+    if (appointment.status === 'TERMINEE') return 'neutral';
     return reservationStatusTone(appointment.status);
   }
 
   protected statusLabel(appointment: AppointmentView): string {
     if (appointment.status === 'LITIGE') return 'Litige';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
+    if (appointment.status === 'CONFIRMEE') return 'Confirmé';
+    if (appointment.status === 'TERMINEE') return 'Terminé';
 
     return reservationStatusLabel(appointment.status);
   }
@@ -593,7 +598,16 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected scheduleItemStatusLabel(item: ScheduleItem): string {
-    return item.kind === 'appointment' ? this.statusLabel(item.appointment) : this.negotiationStatusLabel(item.negotiation);
+    if (item.kind === 'appointment') return this.statusLabel(item.appointment);
+    return isNegotiationInProgressStatus(item.negotiation.statut)
+      ? 'En négociation'
+      : this.negotiationStatusLabel(item.negotiation);
+  }
+
+  protected scheduleItemStatusIcon(item: ScheduleItem): string | null {
+    return item.kind === 'negotiation'
+      ? negotiationStatusIcon(item.negotiation.statut)
+      : reservationStatusIcon(item.appointment.status);
   }
 
   protected scheduleItemRoute(item: ScheduleItem): string[] {

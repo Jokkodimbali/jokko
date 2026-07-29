@@ -16,18 +16,19 @@ export type JokkoNegotiationStatus =
   | 'CONVERTIE_EN_RESERVATION';
 
 export type JokkoStatusTone = 'blue' | 'green' | 'red' | 'neutral';
+export type JokkoStatusIcon = 'circle-check' | 'handshake' | 'more-horizontal' | 'scale' | null;
 
 export function reservationStatusLabel(status: string | null | undefined): string {
   switch (status) {
     case 'CONFIRMEE':
-      return 'Confirme';
+      return 'Confirmé';
     case 'PAYEE_SEQUESTRE':
     case 'EN_COURS':
       return 'En cours';
     case 'TERMINEE':
-      return 'Terminee';
+      return 'Terminé';
     case 'ANNULEE':
-      return 'Annulee';
+      return 'Annulée';
     case 'NO_SHOW':
       return 'Absent';
     case 'LITIGE':
@@ -43,8 +44,9 @@ export function reservationStatusTone(status: string | null | undefined): JokkoS
     case 'EN_COURS':
       return 'blue';
     case 'CONFIRMEE':
-    case 'TERMINEE':
       return 'green';
+    case 'TERMINEE':
+      return 'neutral';
     case 'ANNULEE':
     case 'NO_SHOW':
     case 'LITIGE':
@@ -54,20 +56,40 @@ export function reservationStatusTone(status: string | null | undefined): JokkoS
   }
 }
 
+export function reservationStatusIcon(status: string | null | undefined): JokkoStatusIcon {
+  switch (status) {
+    case 'CONFIRMEE':
+      return 'circle-check';
+    case 'PAYEE_SEQUESTRE':
+    case 'EN_COURS':
+      return 'more-horizontal';
+    case 'LITIGE':
+      return 'scale';
+    default:
+      return null;
+  }
+}
+
 export function negotiationStatusLabel(status: string | null | undefined): string {
   switch (status) {
     case 'ACCEPTEE':
-      return 'Acceptee';
+      return 'Acceptée';
     case 'CONVERTIE_EN_RESERVATION':
-      return 'Confirme';
+      return 'Confirmé';
     case 'ANNULEE':
     case 'REFUSEE':
-      return 'Annulee';
+      return 'Annulée';
     case 'EN_ATTENTE_PRESTATAIRE':
     case 'EN_ATTENTE_CLIENT':
     default:
-      return 'En negociation';
+      return 'En négociation';
   }
+}
+
+export function negotiationStatusIcon(status: string | null | undefined): JokkoStatusIcon {
+  if (status === 'EN_ATTENTE_PRESTATAIRE' || status === 'EN_ATTENTE_CLIENT') return 'handshake';
+  if (status === 'ACCEPTEE' || status === 'CONVERTIE_EN_RESERVATION') return 'circle-check';
+  return null;
 }
 
 export function isNegotiationInProgressStatus(status: string | null | undefined): boolean {

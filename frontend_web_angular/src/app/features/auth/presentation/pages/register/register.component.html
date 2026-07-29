@@ -261,7 +261,7 @@
           Vous devez accepter les conditions pour creer un compte.
         </small>
 
-        <button type="submit" class="register-submit" [disabled]="isLoading() || registerForm.invalid">
+        <button type="submit" class="register-submit" [disabled]="isLoading()">
           {{ isLoading() ? 'Creation en cours...' : selectedRole() === 'MEDECIN' ? 'Creer mon compte Medecin' : 'Creer mon compte' }}
         </button>
 

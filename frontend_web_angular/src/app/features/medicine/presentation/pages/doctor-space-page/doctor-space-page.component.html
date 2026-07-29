@@ -679,7 +679,17 @@
               [attr.data-tone]="negotiationTone(negotiation)"
             >
               <header>
-                <span><lucide-icon name="handshake" size="15"></lucide-icon>{{ negotiationStatusLabel(negotiation.statut) }}</span>
+                <span>
+                  <lucide-icon
+                    *ngIf="negotiationStatusIcon(negotiation.statut) as statusIcon; else negotiationStatusDot"
+                    [name]="statusIcon"
+                    size="17"
+                    [strokeWidth]="2.3"
+                    aria-hidden="true"
+                  ></lucide-icon>
+                  <ng-template #negotiationStatusDot><i class="doctor-space__status-dot"></i></ng-template>
+                  {{ negotiationStatusLabel(negotiation.statut) }}
+                </span>
               </header>
 
               <div class="doctor-space__negotiation-card-body">
@@ -751,7 +761,14 @@
             >
               <header>
                 <span>
-                  <lucide-icon name="calendar-days" size="15"></lucide-icon>
+                  <lucide-icon
+                    *ngIf="negotiationStatusIcon(reservation.statut) as statusIcon; else reservationStatusDot"
+                    [name]="statusIcon"
+                    size="17"
+                    [strokeWidth]="2.3"
+                    aria-hidden="true"
+                  ></lucide-icon>
+                  <ng-template #reservationStatusDot><i class="doctor-space__status-dot"></i></ng-template>
                   {{ negotiationReservationStatusLabel(reservation.statut) }}
                 </span>
               </header>

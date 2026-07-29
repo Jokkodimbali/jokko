@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from './core/feedback/app-feedback.service';
+import { InlineFormValidationService } from './core/forms/inline-form-validation.service';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +13,11 @@ import { AppFeedbackService } from './core/feedback/app-feedback.service';
 })
 export class App {
   private readonly feedback = inject(AppFeedbackService);
+  private readonly inlineFormValidation = inject(InlineFormValidationService);
 
   protected readonly feedbackMessage = this.feedback.message;
+
+  constructor() {
+    this.inlineFormValidation.install();
+  }
 }

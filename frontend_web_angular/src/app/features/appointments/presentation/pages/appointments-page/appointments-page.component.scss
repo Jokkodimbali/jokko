@@ -493,6 +493,11 @@
   width: 8px;
 }
 
+.appointment-row__badge lucide-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
 .appointment-row__actions {
   align-items: center;
   display: flex;

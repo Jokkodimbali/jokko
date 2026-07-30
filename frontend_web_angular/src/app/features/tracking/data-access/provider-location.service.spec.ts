@@ -182,6 +182,57 @@ describe('ProviderLocationService', () => {
     );
     expect(distanceFromNorth).toBeLessThan(2);
   });
+
+  it('rejects an impossible isolated GPS jump', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 12;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const received: ProviderCoordinates[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      received.push({ latitude: position.latitude, longitude: position.longitude });
+    });
+    const startedAt = Date.now();
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 90, 25, startedAt));
+    success?.(thisPosition(14.8067, -17.3677, 6, 90, 25, startedAt + 1000));
+    subscription.unsubscribe();
+
+    expect(received[1]).toEqual(received[0]);
+  });
+
+  it('uses the GPS measurement timestamp instead of the network reception time', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 13;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const recordedAt: number[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      recordedAt.push(position.recordedAt);
+    });
+    const measuredAt = Date.now() - 750;
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
+    subscription.unsubscribe();
+
+    expect(recordedAt).toEqual([measuredAt]);
+  });
 });
 
 type ProviderCoordinates = { latitude: number; longitude: number };
@@ -201,6 +252,7 @@ function thisPosition(
   accuracy: number,
   heading: number | null,
   speed: number | null,
+  timestamp = Date.now(),
 ): GeolocationPosition {
   return {
     coords: {
@@ -213,7 +265,7 @@ function thisPosition(
       speed,
       toJSON: () => ({}),
     },
-    timestamp: Date.now(),
+    timestamp,
     toJSON: () => ({}),
   };
 }

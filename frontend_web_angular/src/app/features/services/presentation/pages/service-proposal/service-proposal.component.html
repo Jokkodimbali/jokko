@@ -113,8 +113,8 @@
   </ng-template>
 
   <app-appointment-tracking-stepper
-    [steps]="journeySteps"
-    [progress]="journeyProgress"
+    [steps]="journeySteps()"
+    [progress]="journeyProgress()"
     [showBack]="true"
     [embedded]="true"
     [hideLastStepContent]="true"

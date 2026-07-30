@@ -97,6 +97,13 @@ export class ProviderProfileComponent implements OnInit {
     const profile = this.detail()?.profile;
     return profile?.nomEntreprise || profile?.utilisateur.nom || 'Prestataire';
   });
+  protected readonly subCategoryNames = computed(() => [
+    ...new Set(
+      (this.detail()?.profile.subCategoryNames ?? [])
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ]);
 
   protected readonly primaryService = computed(() => {
     const services = this.detail()?.services ?? [];

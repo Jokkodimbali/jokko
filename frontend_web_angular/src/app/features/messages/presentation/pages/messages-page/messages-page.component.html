@@ -3,7 +3,11 @@
     <app-navbar />
   </section>
 
-  <section class="messages-page__workspace" aria-label="Messagerie">
+  <section
+    class="messages-page__workspace"
+    [class.messages-page__workspace--thread]="!!selectedConversation()"
+    aria-label="Messagerie"
+  >
     <aside class="messages-page__sidebar">
       <header class="messages-page__sidebar-head">
         <h1>Messages</h1>
@@ -105,9 +109,21 @@
       </div>
     </aside>
 
-    <section class="messages-page__chat" *ngIf="selectedConversation() as conversation; else emptyThread">
+    <section
+      class="messages-page__chat"
+      [class.messages-page__chat--searching]="isThreadSearchOpen()"
+      *ngIf="selectedConversation() as conversation; else emptyThread"
+    >
       <header class="messages-page__chat-head">
         <span class="messages-page__chat-identity">
+          <button
+            type="button"
+            class="messages-page__mobile-back"
+            aria-label="Retour aux conversations"
+            (click)="closeMobileConversation()"
+          >
+            <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.2"></lucide-icon>
+          </button>
           <span class="messages-page__avatar messages-page__avatar--large">
             <img
               *ngIf="visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl; else selectedInitials"
@@ -121,23 +137,54 @@
           </span>
           <span class="messages-page__chat-title">
             <strong>{{ conversation.counterpart.name }}</strong>
-            <small>En ligne</small>
+            <small *ngIf="conversation.counterpart.subCategoryNames?.length">
+              {{ conversation.counterpart.subCategoryNames?.join(' · ') }}
+            </small>
+            <small *ngIf="conversation.counterpart.rating != null" class="messages-page__chat-rating">
+              <app-star-rating
+                [value]="conversation.counterpart.rating"
+                [reviews]="conversation.counterpart.reviewCount ?? 0"
+                size="small"
+                label="Note du prestataire"
+              />
+              <span>
+                {{ conversation.counterpart.rating | number: '1.1-1' }}
+                ({{ conversation.counterpart.reviewCount ?? 0 }} avis)
+              </span>
+            </small>
           </span>
         </span>
 
         <span class="messages-page__chat-actions">
-          <button type="button" aria-label="Rechercher dans la conversation">
+          <button
+            type="button"
+            aria-label="Rechercher dans la conversation"
+            [class.messages-page__chat-action--active]="isThreadSearchOpen()"
+            [attr.aria-expanded]="isThreadSearchOpen()"
+            (click)="toggleThreadSearch()"
+          >
             <lucide-icon name="search" size="18" [strokeWidth]="2"></lucide-icon>
           </button>
         </span>
       </header>
+
+      <label *ngIf="isThreadSearchOpen()" class="messages-page__thread-search">
+        <lucide-icon name="search" size="16" [strokeWidth]="2"></lucide-icon>
+        <input
+          type="search"
+          [value]="threadSearch()"
+          placeholder="Rechercher dans cette discussion..."
+          (input)="updateThreadSearchFromEvent($event)"
+        />
+        <small *ngIf="threadSearch().trim()">{{ filteredMessages().length }} résultat(s)</small>
+      </label>
 
       <div class="messages-page__thread" #messageThread>
         <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
         <p *ngIf="isLoadingMessages()" class="messages-page__state">Chargement de la discussion...</p>
 
         <article
-          *ngFor="let message of messages()"
+          *ngFor="let message of filteredMessages()"
           class="messages-page__bubble-row"
           [class.messages-page__bubble-row--own]="isOwnMessage(message)"
         >
@@ -201,6 +248,13 @@
           </span>
         </article>
 
+        <p
+          *ngIf="!isLoadingMessages() && threadSearch().trim() && filteredMessages().length === 0"
+          class="messages-page__state"
+        >
+          Aucun message ne correspond à cette recherche.
+        </p>
+
         <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row messages-page__reservation-row--thread">
           <section class="messages-page__reservation-card" aria-label="Resume du rendez-vous">
             <span class="messages-page__reservation-avatar">
@@ -225,7 +279,13 @@
                   <span>· {{ card.categoryLabel }}</span>
                 </p>
                 <em [attr.data-tone]="card.statusTone">
-                  <i></i>
+                  <lucide-icon
+                    *ngIf="card.statusIcon; else threadStatusDot"
+                    [name]="card.statusIcon"
+                    size="15"
+                    [strokeWidth]="2.4"
+                  ></lucide-icon>
+                  <ng-template #threadStatusDot><i></i></ng-template>
                   {{ card.statusLabel }}
                 </em>
               </header>
@@ -314,7 +374,13 @@
                 <span>- {{ card.categoryLabel }}</span>
               </p>
               <em [attr.data-tone]="card.statusTone">
-                <i></i>
+                <lucide-icon
+                  *ngIf="card.statusIcon; else dockStatusDot"
+                  [name]="card.statusIcon"
+                  size="15"
+                  [strokeWidth]="2.4"
+                ></lucide-icon>
+                <ng-template #dockStatusDot><i></i></ng-template>
                 {{ card.statusLabel }}
               </em>
             </header>
@@ -371,10 +437,15 @@
     <ng-template #emptyThread>
       <section class="messages-page__chat messages-page__chat--empty">
         <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
-        <lucide-icon name="message-circle" size="52" [strokeWidth]="2"></lucide-icon>
-        <h2>Selectionnez une conversation</h2>
-        <p>Vos echanges avec les prestataires et clients apparaitront ici.</p>
-        <a *ngIf="!currentUser()" routerLink="/auth/login">Se connecter</a>
+        <ng-container *ngIf="isLoadingConversations(); else chooseConversation">
+          <p class="messages-page__state">Chargement de la discussion...</p>
+        </ng-container>
+        <ng-template #chooseConversation>
+          <lucide-icon name="message-circle" size="52" [strokeWidth]="2"></lucide-icon>
+          <h2>Selectionnez une conversation</h2>
+          <p>Vos echanges avec les prestataires et clients apparaitront ici.</p>
+          <a *ngIf="!currentUser()" routerLink="/auth/login">Se connecter</a>
+        </ng-template>
       </section>
     </ng-template>
   </section>

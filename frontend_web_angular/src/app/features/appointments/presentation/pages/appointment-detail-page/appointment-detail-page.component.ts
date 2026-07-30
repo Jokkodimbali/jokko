@@ -3420,6 +3420,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         lat: displayedProvider[0],
         lng: displayedProvider[1],
       },
+      positionTimestampMs: this.trackingPositionTimestampMs(tracking),
       destination,
       destinationMarker: this.destinationMapMarker(),
       remainingLabel: this.routeRemainingBadgeLabel(),
@@ -3433,6 +3434,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       arrived: this.hasTravelerArrivedAtDestination(),
       travelerMarker: this.travelerMapMarker(),
     });
+  }
+
+  private trackingPositionTimestampMs(
+    tracking: AppointmentTrackingView | null,
+  ): number | null {
+    const value = tracking?.lastPositionAt ?? tracking?.presence.lastPositionAt;
+    if (!value) return null;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : null;
   }
 
   private travelerMapMarker(): {

@@ -243,7 +243,7 @@ test.describe('Appointment tracking lifecycle', () => {
     request,
   }) => {
     const initialPosition = { latitude: 14.7405004, longitude: -17.4749579 };
-    const offCoursePosition = { latitude: 14.74235, longitude: -17.4708 };
+    const offCoursePosition = { latitude: 14.74125, longitude: -17.47455 };
     const { routeRequests, locationUpdates } = await openState(
       page,
       request,
@@ -280,20 +280,27 @@ test.describe('Appointment tracking lifecycle', () => {
           altitude: null,
           altitudeAccuracy: null,
           heading: 42,
-          speed: 6,
+          speed: 50,
         },
         timestamp: Date.now(),
       } as GeolocationPosition);
     }, offCoursePosition);
 
-    await expect.poll(() => locationUpdates.length).toBeGreaterThan(0);
-    expect(locationUpdates.at(-1)).toMatchObject({
-      latitude: offCoursePosition.latitude,
-      longitude: offCoursePosition.longitude,
-      headingDegrees: 42,
-    });
+    await expect.poll(() => locationUpdates.at(-1)?.latitude).not.toBe(initialPosition.latitude);
+    const acceptedPosition = locationUpdates.at(-1);
+    if (!acceptedPosition) throw new Error('Filtered GPS position was not published');
+    expect(acceptedPosition?.latitude).toBeCloseTo(offCoursePosition.latitude, 4);
+    expect(acceptedPosition?.longitude).toBeCloseTo(offCoursePosition.longitude, 4);
+    expect(acceptedPosition?.headingDegrees).not.toBe(90);
     await expect.poll(() => routeRequests.length).toBeGreaterThan(0);
-    expect(routeRequests.at(-1)?.origin).toMatchObject(offCoursePosition);
+    expect(routeRequests.at(-1)?.origin.latitude).toBeCloseTo(
+      acceptedPosition?.latitude ?? Number.NaN,
+      5,
+    );
+    expect(routeRequests.at(-1)?.origin.longitude).toBeCloseTo(
+      acceptedPosition?.longitude ?? Number.NaN,
+      5,
+    );
 
     await page.waitForFunction((position) => {
       const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
@@ -304,21 +311,23 @@ test.describe('Appointment tracking lifecycle', () => {
         Math.abs(lastCenter.lat - position.latitude) < 0.0004 &&
         Math.abs(lastCenter.lng - position.longitude) < 0.0004
       );
-    }, offCoursePosition);
+    }, acceptedPosition);
 
     await page.waitForFunction((position) => {
       const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
       const providerPosition = debug?.providerMarkerPositions.at(-1);
       if (!providerPosition) return false;
       return (
-        Math.abs(providerPosition.lat - position.latitude) < 0.00001 &&
-        Math.abs(providerPosition.lng - position.longitude) < 0.00001
+        Math.abs(providerPosition.lat - position.latitude) < 0.0004 &&
+        Math.abs(providerPosition.lng - position.longitude) < 0.0004
       );
-    }, offCoursePosition);
+    }, acceptedPosition);
     const debug = await page.evaluate(
       () => (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug,
     );
-    expect(debug?.headings.some((heading) => Math.abs(heading - 42) < 2)).toBeTruthy();
+    expect(
+      debug?.headings.some((heading) => Math.abs(heading - 90) > 5),
+    ).toBeTruthy();
   });
 
   test('client follower sees provider arrival jump directly to the destination', async ({

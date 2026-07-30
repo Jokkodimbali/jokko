@@ -475,7 +475,7 @@
   display: grid !important;
   gap: 20px !important;
   grid-auto-rows: 1fr !important;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   justify-content: center !important;
   overflow: visible !important;
 }

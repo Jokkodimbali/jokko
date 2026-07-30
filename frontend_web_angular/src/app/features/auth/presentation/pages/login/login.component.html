@@ -28,7 +28,13 @@
           <p>{{ errorMessage() }}</p>
         </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form__body">
+        <form
+          [formGroup]="loginForm"
+          (ngSubmit)="onSubmit()"
+          class="login-form__body"
+          data-inline-validation="off"
+          novalidate
+        >
           <label class="login-field" [class.login-field--invalid]="isFieldInvalid('identifier')">
             <span>Telephone ou email</span>
             <div class="login-identifier-input">

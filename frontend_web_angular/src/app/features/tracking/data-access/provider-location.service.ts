@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 const STATIONARY_SPEED_KMH = 3;
 const MIN_MOVEMENT_METERS = 4;
 const MAX_ACCEPTED_ACCURACY_METERS = 100;
+const MAX_PLAUSIBLE_VEHICLE_SPEED_KMH = 220;
 
 export type ProviderGpsPosition = {
   latitude: number;
@@ -85,6 +86,9 @@ export class ProviderLocationService {
           const now = Date.now();
           if (now - lastEmissionAt < intervalMilliseconds) return;
           lastEmissionAt = now;
+          const recordedAt = Number.isFinite(position.timestamp) && position.timestamp > 0
+            ? position.timestamp
+            : now;
           const rawPosition: ProviderGpsPosition = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -99,7 +103,7 @@ export class ProviderLocationService {
               typeof position.coords.speed === 'number' && Number.isFinite(position.coords.speed)
                 ? Math.max(0, position.coords.speed * 3.6)
                 : null,
-            recordedAt: now,
+            recordedAt,
           };
           const nextPosition = this.filterPosition(rawPosition, filteredPosition, stableHeading);
           const orientedPosition = this.applyCompassHeading(
@@ -151,11 +155,22 @@ export class ProviderLocationService {
       const moving = (raw.speedKmh ?? 0) >= STATIONARY_SPEED_KMH;
       return { ...raw, headingDegrees: moving ? raw.headingDegrees : null };
     }
+    if (raw.recordedAt < previous.recordedAt) return previous;
 
     const rawDistance = this.distanceMeters(previous, raw);
     const elapsedSeconds = Math.max(0.1, (raw.recordedAt - previous.recordedAt) / 1000);
     const inferredSpeedKmh = (rawDistance / elapsedSeconds) * 3.6;
     const effectiveSpeedKmh = raw.speedKmh ?? inferredSpeedKmh;
+    const reportedSpeedKmh = raw.speedKmh ?? previous.speedKmh ?? 0;
+    const accuracyAllowance = Math.max(
+      25,
+      raw.accuracyMeters + previous.accuracyMeters,
+    );
+    const plausibleDistance =
+      (Math.max(reportedSpeedKmh, 15) / 3.6) * elapsedSeconds + accuracyAllowance;
+    const impossibleJump =
+      inferredSpeedKmh > MAX_PLAUSIBLE_VEHICLE_SPEED_KMH &&
+      rawDistance > plausibleDistance;
     const stationaryRadius = Math.max(
       MIN_MOVEMENT_METERS,
       Math.min(12, raw.accuracyMeters * 0.5),
@@ -165,13 +180,13 @@ export class ProviderLocationService {
       raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS &&
       rawDistance < raw.accuracyMeters * 1.5;
 
-    if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump) {
+    if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump || impossibleJump) {
       return {
         ...raw,
         latitude: previous.latitude,
         longitude: previous.longitude,
         headingDegrees: previousHeading,
-        speedKmh: 0,
+        speedKmh: impossibleJump ? previous.speedKmh : 0,
       };
     }
 

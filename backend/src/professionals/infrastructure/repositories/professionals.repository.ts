@@ -46,6 +46,13 @@ const PROFESSIONAL_SELECT = {
   typeVehicule: true,
   noteGlobale: true,
   nombreAvis: true,
+  specialites: {
+    select: {
+      sousCategorie: {
+        select: { nom: true },
+      },
+    },
+  },
   creeLe: true,
   utilisateur: {
     select: {
@@ -113,6 +120,9 @@ type RawProfessionalProfile = {
   longitude?: number | null;
   noteGlobale: Prisma.Decimal;
   nombreAvis: number;
+  specialites?: Array<{
+    sousCategorie: { nom: string } | null;
+  }>;
   creeLe: Date;
   utilisateur?: {
     id: string;
@@ -792,6 +802,13 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       longitude: profile.longitude ?? null,
       noteGlobale: profile.noteGlobale.toNumber(),
       nombreAvis: profile.nombreAvis,
+      subCategoryNames: [
+        ...new Set(
+          (profile.specialites ?? [])
+            .map((specialty) => specialty.sousCategorie?.nom.trim())
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ],
       creeLe: profile.creeLe,
       utilisateur: profile.utilisateur
         ? {

@@ -50,6 +50,10 @@ import {
   DoctorWalletView,
   ProfessionalUploadView,
 } from '../../../data-access/doctor-space.service';
+import {
+  DoctorSpaceSectionData,
+  DoctorSpaceSectionLoaderService,
+} from '../../../data-access/doctor-space-section-loader.service';
 import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
 
 type DoctorSpaceSection =
@@ -329,6 +333,7 @@ type UploadPreview = {
 })
 export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly doctorSpaceService = inject(DoctorSpaceService);
+  private readonly sectionLoader = inject(DoctorSpaceSectionLoaderService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
@@ -340,6 +345,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private reservationsRealtimeSubscription?: Subscription;
   private professionalRealtimeFallbackSubscription?: Subscription;
   private isReservationsRefreshInProgress = false;
+  private readonly loadedSections = new Set<DoctorSpaceSection>();
 
   protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
   protected readonly isLoading = signal(false);
@@ -1240,16 +1246,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     this.setActiveSection(section);
-    if (section === 'patient-appointments') {
-      this.refreshReservations();
-    }
-    if (section === 'negotiations') {
-      this.refreshReservations();
-      this.refreshNegotiations();
-    }
-    if (section === 'wallet') {
-      this.refreshWallet();
-    }
+    this.loadSection(section);
   }
 
   protected selectAgendaFilter(filter: AgendaFilter): void {
@@ -2588,73 +2585,51 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             this.setActiveSection('profile');
           }
 
-          return forkJoin({
-            availabilities: profile
-              ? this.doctorSpaceService
-                  .listMyAvailabilities()
-                  .pipe(catchError(() => of([] as BackendProfessionalAvailability[])))
-              : of([] as BackendProfessionalAvailability[]),
-            services: profile
-              ? this.doctorSpaceService
-                  .listMyServices()
-                  .pipe(catchError(() => of([] as BackendProfessionalDetailService[])))
-              : of([] as BackendProfessionalDetailService[]),
-            categories: this.doctorSpaceService
-              .listCategoryStructure()
-              .pipe(catchError(() => of([] as CategoryStructure[]))),
-            reservations: profile
-              ? this.doctorSpaceService
-                  .listMyReservations()
-                  .pipe(catchError(() => of([] as BackendReservation[])))
-              : of([] as BackendReservation[]),
-            negotiations: profile && this.isProviderSpace()
-              ? this.proposalService
-                  .listMyPriceProposals('PRESTATAIRE')
-                  .pipe(catchError(() => of([] as NegotiationView[])))
-              : of([] as NegotiationView[]),
-            wallet: profile
-              ? this.doctorSpaceService
-                  .getWallet()
-                  .pipe(catchError(() => of(null as DoctorWalletView | null)))
-              : of(null as DoctorWalletView | null),
-            portfolio: profile?.statutKyc === 'VERIFIE'
-              ? this.doctorSpaceService
-                  .listPortfolio(profile.id)
-                  .pipe(catchError(() => of([] as BackendProfessionalPortfolioItem[])))
-              : of([] as BackendProfessionalPortfolioItem[]),
-          });
+          return profile
+            ? this.sectionLoader.load(this.activeSection(), profile, this.isProviderSpace())
+            : of({} as DoctorSpaceSectionData);
         }),
         catchError((error) => {
           this.errorMessage.set(getHttpErrorMessage(error, "Impossible de charger l'espace prestataire."));
-          return of({
-            availabilities: [],
-            services: [],
-            categories: [],
-            reservations: [],
-            negotiations: [],
-            wallet: null,
-            portfolio: [],
-          });
+          return of({} as DoctorSpaceSectionData);
         }),
         finalize(() => this.isLoading.set(false)),
       )
-      .subscribe(({ availabilities, services, categories, reservations, negotiations, wallet, portfolio }) => {
-        this.applyAvailabilities(availabilities);
-        this.applyServices(services);
-        this.categories.set(categories);
-        this.reservations.set(reservations);
-        this.syncAgendaCursorWithReservations(reservations);
-        this.negotiations.set(negotiations);
-        this.wallet.set(wallet);
-        this.portfolioItems.set(portfolio);
+      .subscribe((data) => {
+        this.applySectionData(data);
+        this.loadedSections.add(this.activeSection());
         this.ensureActiveSectionIsAvailable();
         this.startNegotiationRealtime();
         this.startReservationRealtime();
         this.startProfessionalRealtimeFallback();
-        if (this.activeSection() === 'wallet') {
-          this.refreshWallet();
-        }
       });
+  }
+
+  private loadSection(section: DoctorSpaceSection): void {
+    const profile = this.professionalProfile();
+    if (!profile || this.loadedSections.has(section)) return;
+
+    this.isLoading.set(true);
+    this.sectionLoader
+      .load(section, profile, this.isProviderSpace())
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe((data) => {
+        this.applySectionData(data);
+        this.loadedSections.add(section);
+      });
+  }
+
+  private applySectionData(data: DoctorSpaceSectionData): void {
+    if (data.availabilities) this.applyAvailabilities(data.availabilities);
+    if (data.services) this.applyServices(data.services);
+    if (data.categories) this.categories.set(data.categories);
+    if (data.reservations) {
+      this.reservations.set(data.reservations);
+      this.syncAgendaCursorWithReservations(data.reservations);
+    }
+    if (data.negotiations) this.negotiations.set(data.negotiations);
+    if (data.wallet !== undefined) this.wallet.set(data.wallet);
+    if (data.portfolio) this.portfolioItems.set(data.portfolio);
   }
 
   private ensureActiveSectionIsAvailable(): void {

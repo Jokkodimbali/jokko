@@ -8,13 +8,16 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import {
   isNegotiationInProgressStatus,
+  negotiationStatusIcon,
   negotiationStatusLabel as sharedNegotiationStatusLabel,
+  reservationStatusIcon,
   reservationStatusLabel,
   reservationStatusTone,
 } from '../../../../../shared/utils/jokko-status-labels';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
@@ -64,6 +67,7 @@ interface ConversationReservationCard {
   id: string | null;
   status: string | null;
   statusLabel: string;
+  statusIcon: string | null;
   statusTone: 'pending' | 'active' | 'success' | 'danger' | 'neutral';
   personName: string;
   categoryLabel: string;
@@ -84,7 +88,14 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent, MessageComposerComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    LucideAngularModule,
+    AppNavbarComponent,
+    AppStarRatingComponent,
+    MessageComposerComponent,
+  ],
   templateUrl: './messages-page.component.html',
   styleUrl: './messages-page.component.scss',
 })
@@ -106,6 +117,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly messages = signal<ConversationMessage[]>([]);
   protected readonly selectedConversationId = signal<string | null>(null);
   protected readonly search = signal('');
+  protected readonly isThreadSearchOpen = signal(false);
+  protected readonly threadSearch = signal('');
   protected readonly draft = signal('');
   protected readonly conversationFilter = signal<ConversationFilter>('ALL');
   protected readonly favoriteConversationIds = signal<Set<string>>(new Set());
@@ -189,6 +202,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         id: appointment.id,
         status: appointment.status,
         statusLabel: this.appointmentStatusLabel(appointment.status),
+        statusIcon: reservationStatusIcon(appointment.status),
         statusTone: this.appointmentStatusTone(appointment.status),
         personName: this.isClientViewerForAppointment(appointment)
           ? appointment.doctorName
@@ -227,6 +241,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       id: proposal.reservationId,
       status: proposal.status,
       statusLabel: this.proposalStatusLabel(proposal.status),
+      statusIcon: negotiationStatusIcon(proposal.status),
       statusTone: this.proposalStatusTone(proposal.status),
       personName: proposal.providerName,
       categoryLabel: 'Negociation',
@@ -339,6 +354,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   });
 
+  protected readonly filteredMessages = computed(() => {
+    const query = this.threadSearch().trim().toLocaleLowerCase('fr');
+    if (!query) {
+      return this.messages();
+    }
+
+    return this.messages().filter((message) =>
+      (message.content ?? '').toLocaleLowerCase('fr').includes(query),
+    );
+  });
+
   protected readonly canPayAcceptedProposal = computed(
     () => this.currentUser()?.role === 'CLIENT' && this.isProposalAccepted(),
   );
@@ -400,6 +426,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     this.clearPendingMedia();
+    this.isThreadSearchOpen.set(false);
+    this.threadSearch.set('');
     this.selectedConversationId.set(conversationId);
     this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
     this.scrollThreadToBottom();
@@ -408,6 +436,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.loadMessages(conversationId);
     this.loadAppointmentPreviewForSelectedConversation({ force: true });
     setTimeout(() => this.loadAppointmentPreviewForVisibleProposal({ force: true }), 0);
+  }
+
+  protected closeMobileConversation(): void {
+    this.clearPendingMedia();
+    this.isThreadSearchOpen.set(false);
+    this.threadSearch.set('');
+    this.selectedConversationId.set(null);
+    this.messages.set([]);
+    this.appointmentPreview.set(null);
+    this.pendingProposal.set(null);
+    void this.router.navigate(['/messages'], { replaceUrl: true });
   }
 
   protected startNewNegotiation(): void {
@@ -459,6 +498,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected updateDraft(value: string): void {
     this.draft.set(value);
+  }
+
+  protected toggleThreadSearch(): void {
+    this.isThreadSearchOpen.update((isOpen) => !isOpen);
+    if (!this.isThreadSearchOpen()) {
+      this.threadSearch.set('');
+    }
+  }
+
+  protected updateThreadSearchFromEvent(event: Event): void {
+    this.threadSearch.set((event.target as HTMLInputElement | null)?.value ?? '');
   }
 
   protected updateDraftFromEvent(event: Event): void {
@@ -1351,7 +1401,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           requestedReservationConversation?.id ??
           requestedProposalConversation?.id ??
           requestedDirectConversation?.id ??
-          sortedConversations[0]?.id ??
           null;
         this.selectedConversationId.set(selectedId);
         this.loadPriceProposals();
@@ -1363,6 +1412,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.messagesRealtime.joinConversation(selectedId);
           this.loadMessages(selectedId);
           this.loadAppointmentPreviewForSelectedConversation({ force: true });
+        } else {
+          this.messages.set([]);
         }
       },
       error: () => {
@@ -1936,6 +1987,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private currentVisibleReservationId(): string | null {
+    const requestedNegotiationId = this.requestedNegotiationId();
+    const requestedProposal = this.visibleProposal();
+    if (
+      requestedNegotiationId &&
+      requestedProposal?.negotiationId === requestedNegotiationId
+    ) {
+      // Une nouvelle negociation entre deux personnes peut reutiliser une
+      // conversation qui contient encore l'ancien rendez-vous du meme duo.
+      // Tant que la negociation courante n'a pas cree sa propre reservation,
+      // cet ancien rendez-vous ne doit pas masquer le widget En negociation.
+      return requestedProposal.reservationId;
+    }
+
     const conversation = this.selectedConversation();
     if (conversation?.reservationId) {
       return conversation.reservationId;

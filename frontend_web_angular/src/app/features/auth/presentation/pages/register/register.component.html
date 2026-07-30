@@ -17,7 +17,13 @@
     </aside>
 
     <section class="register-card__form-panel">
-      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      <form
+        [formGroup]="registerForm"
+        (ngSubmit)="onSubmit()"
+        class="register-form"
+        data-inline-validation="off"
+        novalidate
+      >
         <header class="register-form__header">
           <h1>Inscription</h1>
           <p>Rejoignez la plateforme et choisissez votre profil.</p>

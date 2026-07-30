@@ -25,7 +25,12 @@ type PrismaConversationRecord = {
     id: string;
     nom: string;
     urlAvatar: string | null;
-    profilProfessionnel: { id: string } | null;
+    profilProfessionnel: {
+      id: string;
+      noteGlobale: Prisma.Decimal;
+      nombreAvis: number;
+      specialites: Array<{ sousCategorie: { nom: string } | null }>;
+    } | null;
   };
   messages: Array<{
     id: string;
@@ -85,9 +90,15 @@ export class MessagingRepository implements MessagingRepositoryPort {
     });
 
     const reservationPairs = conversations.flatMap((conversation) => {
-      const professionalProfileId = conversation.prestataire.profilProfessionnel?.id;
+      const professionalProfileId =
+        conversation.prestataire.profilProfessionnel?.id;
       return professionalProfileId
-        ? [{ clientId: conversation.clientId, professionnelId: professionalProfileId }]
+        ? [
+            {
+              clientId: conversation.clientId,
+              professionnelId: professionalProfileId,
+            },
+          ]
         : [];
     });
     const latestReservations = reservationPairs.length
@@ -110,9 +121,12 @@ export class MessagingRepository implements MessagingRepositoryPort {
     });
 
     return conversations.map((conversation) => {
-      const professionalProfileId = conversation.prestataire.profilProfessionnel?.id;
+      const professionalProfileId =
+        conversation.prestataire.profilProfessionnel?.id;
       const latestReservationId = professionalProfileId
-        ? latestReservationByPair.get(`${conversation.clientId}:${professionalProfileId}`)
+        ? latestReservationByPair.get(
+            `${conversation.clientId}:${professionalProfileId}`,
+          )
         : undefined;
       return this.mapConversation(
         latestReservationId
@@ -431,6 +445,13 @@ export class MessagingRepository implements MessagingRepositoryPort {
           profilProfessionnel: {
             select: {
               id: true,
+              noteGlobale: true,
+              nombreAvis: true,
+              specialites: {
+                select: {
+                  sousCategorie: { select: { nom: true } },
+                },
+              },
             },
           },
         },
@@ -490,12 +511,27 @@ export class MessagingRepository implements MessagingRepositoryPort {
             conversation.prestataire.profilProfessionnel?.id ?? null,
           name: conversation.prestataire.nom,
           avatarUrl: conversation.prestataire.urlAvatar,
+          subCategoryNames: [
+            ...new Set(
+              (conversation.prestataire.profilProfessionnel?.specialites ?? [])
+                .map((specialty) => specialty.sousCategorie?.nom.trim())
+                .filter((name): name is string => Boolean(name)),
+            ),
+          ],
+          rating: conversation.prestataire.profilProfessionnel
+            ? conversation.prestataire.profilProfessionnel.noteGlobale.toNumber()
+            : null,
+          reviewCount:
+            conversation.prestataire.profilProfessionnel?.nombreAvis ?? 0,
         }
       : {
           userId: conversation.client.id,
           professionalProfileId: null,
           name: conversation.client.nom,
           avatarUrl: conversation.client.urlAvatar,
+          subCategoryNames: [],
+          rating: null,
+          reviewCount: 0,
         };
     const lastMessage = conversation.messages[0] ?? null;
 

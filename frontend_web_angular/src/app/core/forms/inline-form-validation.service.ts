@@ -60,6 +60,9 @@ export class InlineFormValidationService implements OnDestroy {
       target instanceof HTMLTextAreaElement ||
       target instanceof HTMLSelectElement
     ) {
+      if (target.closest('form[data-inline-validation="off"]')) {
+        return null;
+      }
       if (target instanceof HTMLInputElement && ['hidden', 'button', 'submit', 'reset'].includes(target.type)) {
         return null;
       }

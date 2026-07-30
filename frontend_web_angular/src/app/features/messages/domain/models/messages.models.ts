@@ -3,6 +3,9 @@ export interface ConversationCounterpart {
   professionalProfileId: string | null;
   name: string;
   avatarUrl: string | null;
+  subCategoryNames?: string[];
+  rating?: number | null;
+  reviewCount?: number;
 }
 
 export interface ConversationLastMessage {

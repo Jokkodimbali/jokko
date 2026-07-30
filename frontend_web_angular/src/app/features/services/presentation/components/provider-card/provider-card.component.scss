@@ -315,6 +315,7 @@
 .provider-card__service-image-fallback lucide-icon {
   display: block;
   height: 44px;
+  transform: translateY(-20px);
   width: 44px;
 }
 
@@ -323,6 +324,7 @@
   font-size: 16px;
   font-weight: 650;
   line-height: 1.2;
+  transform: translateY(-20px);
 }
 
 .provider-card__vehicle-badge {

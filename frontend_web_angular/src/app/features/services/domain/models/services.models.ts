@@ -79,6 +79,7 @@ export interface BackendProfessionalProfile {
   longitude: number | null;
   noteGlobale: number;
   nombreAvis: number;
+  subCategoryNames?: string[];
   creeLe: string;
   utilisateur: {
     id: string;

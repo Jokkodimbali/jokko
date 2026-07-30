@@ -29,24 +29,6 @@
           <span></span>
           {{ presenceLabel() || 'Hors ligne' }}
         </span>
-      </section>
-
-      <section class="provider-profile__identity-card">
-        <img
-          *ngIf="visibleImageUrl(avatarUrl()) as avatar; else avatarInitials"
-          class="provider-profile__avatar"
-          [src]="avatar"
-          [alt]="displayName()"
-          (error)="handleImageError(avatar)"
-        />
-        <ng-template #avatarInitials>
-          <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
-        </ng-template>
-
-        <div class="provider-profile__name">
-          <h1>{{ displayName() }}</h1>
-          <p>{{ formatLocation() }}</p>
-        </div>
 
         <div class="provider-profile__actions" aria-label="Actions prestataire">
           <button type="button" aria-label="Partager">
@@ -66,6 +48,27 @@
             ></lucide-icon>
           </button>
         </div>
+      </section>
+
+      <section class="provider-profile__identity-card">
+        <img
+          *ngIf="visibleImageUrl(avatarUrl()) as avatar; else avatarInitials"
+          class="provider-profile__avatar"
+          [src]="avatar"
+          [alt]="displayName()"
+          (error)="handleImageError(avatar)"
+        />
+        <ng-template #avatarInitials>
+          <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
+        </ng-template>
+
+        <div class="provider-profile__name">
+          <h1>{{ displayName() }}</h1>
+          <p *ngIf="subCategoryNames().length > 0" class="provider-profile__subcategories">
+            {{ subCategoryNames().join(' · ') }}
+          </p>
+          <small>{{ formatLocation() }}</small>
+        </div>
 
         <div class="provider-profile__stats" aria-label="Statistiques du prestataire">
           <div>
@@ -74,7 +77,7 @@
           </div>
           <div>
             <span><lucide-icon name="star" size="18" [strokeWidth]="2.4" fill="currentColor"></lucide-icon></span>
-            <p><strong>{{ reviewsCountLabel() }}</strong><small>Avis</small></p>
+            <p><strong>{{ ratingLabel() }}</strong><small>{{ reviewTotalLabel() }}</small></p>
           </div>
           <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__vehicle-stat">
             <span class="provider-profile__vehicle-badge" [attr.aria-label]="vehicle.label">

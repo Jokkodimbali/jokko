@@ -30,6 +30,7 @@ export type ProfessionalProfileView = {
   longitude: number | null;
   noteGlobale: number;
   nombreAvis: number;
+  subCategoryNames: string[];
   creeLe: Date;
   utilisateur: {
     id: string;

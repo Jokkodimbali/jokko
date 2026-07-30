@@ -219,7 +219,7 @@
   border-radius: 10px;
   color: #1d1814;
   font: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 750;
   height: 44px;
   outline: 0;
@@ -230,7 +230,7 @@
 .register-field input:focus,
 .register-field select:focus {
   border-color: #8e5a2f;
-  box-shadow: 0 0 0 3px rgba(142, 90, 47, 0.12);
+  box-shadow: none;
 }
 
 .register-field small {
@@ -350,7 +350,7 @@
   border-radius: 10px;
   color: #1d1814;
   font: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 750;
   height: 44px;
   min-width: 0;
@@ -361,7 +361,7 @@
 
 .specialty-picker__fields select:focus {
   border-color: #8e5a2f;
-  box-shadow: 0 0 0 3px rgba(142, 90, 47, 0.12);
+  box-shadow: none;
 }
 
 .specialty-picker__fields select:disabled {
@@ -558,7 +558,7 @@
   border: 1px dashed #9b6a43;
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 800;
   height: 34px;
   padding: 0 14px;

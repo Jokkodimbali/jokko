@@ -343,6 +343,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly canShowNegotiationButton = computed(() => {
     const conversation = this.selectedConversation();
     if (!conversation || this.currentUser()?.role !== 'CLIENT') return false;
+    if (this.conversationReservationCard()) return false;
     const reservationId = this.currentVisibleReservationId();
     if (!reservationId) return true;
 

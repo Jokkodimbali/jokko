@@ -74,6 +74,7 @@ type DestinationMarkerSize = {
 
 export type TrackingMapRenderState = {
   provider: GoogleMapsPoint | null;
+  positionTimestampMs?: number | null;
   accuracyMeters?: number | null;
   speedKmh?: number | null;
   destination: GoogleMapsPoint | null;
@@ -99,6 +100,11 @@ const MAP_MAX_ZOOM = 21;
 const ROUTE_SNAP_MAX_DISTANCE_METERS = 80;
 const MARKER_STATIONARY_RADIUS_METERS = 4;
 const MARKER_MAX_ACCURACY_METERS = 100;
+const MARKER_DEFAULT_UPDATE_INTERVAL_MS = 1000;
+const MARKER_MIN_ANIMATION_DURATION_MS = 120;
+const MARKER_MAX_ANIMATION_DURATION_MS = 2500;
+const MARKER_MAX_PREDICTION_MS = 900;
+const MARKER_MAX_PREDICTION_METERS = 35;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
 const MANEUVER_MARKER_LIMIT = 48;
 const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
@@ -151,6 +157,9 @@ export class TrackingGoogleMapRendererService {
   private routePolylines: GoogleMapsPolylineInstance[] = [];
   private lastBoundsKey = '';
   private animationFrameId: number | null = null;
+  private lastMarkerUpdateAt: number | null = null;
+  private lastMarkerSourceAt: number | null = null;
+  private renderedMarkerHeading = 0;
   private cameraAnimationFrameId: number | null = null;
   private renderedCameraCenter: GoogleMapsPoint | null = null;
   private renderedCameraHeading = 0;
@@ -391,6 +400,9 @@ export class TrackingGoogleMapRendererService {
     this.lastBoundsKey = '';
     this.lastProviderPosition = null;
     this.lastFilteredProviderPosition = null;
+    this.lastMarkerUpdateAt = null;
+    this.lastMarkerSourceAt = null;
+    this.renderedMarkerHeading = 0;
     this.currentTravelerHeading = 0;
     this.pendingStationaryHeading = null;
     this.pendingStationaryHeadingConfirmations = 0;
@@ -422,6 +434,9 @@ export class TrackingGoogleMapRendererService {
     this.lastRenderedProviderPosition = null;
     this.lastFilteredProviderPosition = null;
     this.lastProviderPosition = null;
+    this.lastMarkerUpdateAt = null;
+    this.lastMarkerSourceAt = null;
+    this.renderedMarkerHeading = 0;
     this.routeMap = undefined;
     this.routeMapElement = undefined;
     this.lastBoundsKey = '';
@@ -846,6 +861,9 @@ export class TrackingGoogleMapRendererService {
     }
     if (!marker) {
       this.lastProviderPosition = position;
+      this.lastMarkerUpdateAt = this.animationClock();
+      this.lastMarkerSourceAt = this.validTimestamp(state.positionTimestampMs);
+      this.renderedMarkerHeading = heading;
       return new AdvancedMarkerElement({
         map,
         position,
@@ -863,14 +881,25 @@ export class TrackingGoogleMapRendererService {
 
     this.applyProviderMarkerAnchor(marker, state.travelerMarker);
     marker.content = this.providerMarkerContent(
-      heading,
+      this.renderedMarkerHeading,
       position,
       state.travelerMarker,
     );
     if (state.arrived) {
+      this.cancelAnimation();
       marker.position = position;
+      this.setMarkerHeading(marker, heading);
+      this.renderedMarkerHeading = heading;
+      this.lastMarkerUpdateAt = this.animationClock();
+      this.lastMarkerSourceAt = this.validTimestamp(state.positionTimestampMs);
     } else {
-      this.animateMarker(marker, position, state.speedKmh);
+      this.animateMarker(
+        marker,
+        position,
+        heading,
+        state.speedKmh,
+        state.positionTimestampMs,
+      );
     }
     this.lastProviderPosition = position;
     return marker;
@@ -929,43 +958,112 @@ export class TrackingGoogleMapRendererService {
   private animateMarker(
     marker: GoogleMapsAdvancedMarkerInstance,
     destination: GoogleMapsPoint,
+    destinationHeading: number,
     speedKmh: number | null | undefined,
+    sourceTimestampMs: number | null | undefined,
   ): void {
     const current = this.markerPosition(marker);
     if (!current || typeof requestAnimationFrame === 'undefined') {
       marker.position = destination;
+      this.setMarkerHeading(marker, destinationHeading);
+      this.renderedMarkerHeading = destinationHeading;
       return;
     }
 
+    const receivedAt = this.animationClock();
+    const sourceAt = this.validTimestamp(sourceTimestampMs);
+    const sourceInterval = sourceAt !== null && this.lastMarkerSourceAt !== null
+      ? sourceAt - this.lastMarkerSourceAt
+      : null;
+    const updateInterval = sourceInterval !== null && sourceInterval > 0
+      ? sourceInterval
+      : this.lastMarkerUpdateAt === null
+        ? MARKER_DEFAULT_UPDATE_INTERVAL_MS
+        : receivedAt - this.lastMarkerUpdateAt;
+    this.lastMarkerUpdateAt = receivedAt;
+    if (sourceAt !== null) this.lastMarkerSourceAt = sourceAt;
     const distance = this.distanceMeters(current, destination);
     const movementThreshold = (speedKmh ?? 0) >= 3 ? 0.5 : MARKER_STATIONARY_RADIUS_METERS;
     if (distance < movementThreshold) {
+      this.setMarkerHeading(marker, destinationHeading);
+      this.renderedMarkerHeading = destinationHeading;
       return;
     }
 
     this.cancelAnimation();
     const origin = current;
-    const startedAt = performance.now();
-    const duration =
-      (speedKmh ?? 0) >= 50
-        ? 160
-        : (speedKmh ?? 0) >= 25
-          ? 220
-          : (speedKmh ?? 0) >= 8
-            ? 300
-            : Math.min(460, Math.max(260, distance * 12));
+    const originHeading = this.renderedMarkerHeading;
+    const headingDelta =
+      ((destinationHeading - originHeading + 540) % 360) - 180;
+    const duration = Math.min(
+      MARKER_MAX_ANIMATION_DURATION_MS,
+      Math.max(
+        MARKER_MIN_ANIMATION_DURATION_MS,
+        updateInterval * 1.08,
+      ),
+    );
+    const predictionDuration = (speedKmh ?? 0) >= 3
+      ? Math.min(MARKER_MAX_PREDICTION_MS, duration * 0.75)
+      : 0;
+    const maximumPredictionRatio = distance > 0
+      ? Math.min(
+          predictionDuration / duration,
+          MARKER_MAX_PREDICTION_METERS / distance,
+        )
+      : 0;
+    const startedAt = receivedAt;
     const animate = (timestamp: number): void => {
-      const progress = Math.min(1, (timestamp - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const elapsed = timestamp - startedAt;
+      const progress = Math.min(1, elapsed / duration);
+      // Smoothstep conserve une vitesse fluide, sans depassement du point GPS.
+      const eased = progress * progress * (3 - 2 * progress);
+      const predictionProgress = predictionDuration > 0
+        ? Math.min(1, Math.max(0, elapsed - duration) / predictionDuration)
+        : 0;
+      const predictionEase =
+        predictionProgress +
+        predictionProgress * predictionProgress -
+        predictionProgress * predictionProgress * predictionProgress;
+      const positionFactor = progress + maximumPredictionRatio * predictionEase;
       marker.position = {
-        lat: origin.lat + (destination.lat - origin.lat) * eased,
-        lng: origin.lng + (destination.lng - origin.lng) * eased,
+        lat: origin.lat + (destination.lat - origin.lat) * positionFactor,
+        lng: origin.lng + (destination.lng - origin.lng) * positionFactor,
       };
-      if (progress < 1) {
+      this.renderedMarkerHeading = this.normalizeHeading(
+        originHeading + headingDelta * eased,
+      );
+      this.setMarkerHeading(marker, this.renderedMarkerHeading);
+      if (elapsed < duration + predictionDuration) {
         this.animationFrameId = requestAnimationFrame(animate);
+      } else {
+        this.animationFrameId = null;
       }
     };
     this.animationFrameId = requestAnimationFrame(animate);
+  }
+
+  private setMarkerHeading(
+    marker: GoogleMapsAdvancedMarkerInstance,
+    headingDegrees: number,
+  ): void {
+    const content = marker.content;
+    if (!(content instanceof HTMLElement)) return;
+    const direction = content.querySelector<HTMLElement>(
+      '.jokko-tracking-marker-direction',
+    );
+    if (!direction) return;
+    direction.style.transition = 'none';
+    direction.style.transform = `rotate(${this.headingRelativeToCamera(headingDegrees)}deg)`;
+  }
+
+  private animationClock(): number {
+    return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  }
+
+  private validTimestamp(value: number | null | undefined): number | null {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? value
+      : null;
   }
 
   private fitRoute(

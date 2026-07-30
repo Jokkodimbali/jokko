@@ -31,6 +31,7 @@ import {
 } from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { AuthService } from '../../../../auth/data-access/auth.service';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import {
   AvailabilityRealtimeService,
   ProfessionalAvailabilityChangedEvent,
@@ -173,14 +174,13 @@ interface AcceptedReservationConfirmation {
   ],
 })
 export class ServiceProposalComponent implements OnDestroy, OnInit {
-  protected readonly journeySteps = appointmentJourneySteps(1);
-  protected readonly journeyProgress = appointmentJourneyProgress(1);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly servicesService = inject(ServicesService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
+  private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly authService = inject(AuthService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
@@ -208,6 +208,17 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly isProviderOfferDirty = signal(false);
   protected readonly acceptedConfirmation = signal<AcceptedReservationConfirmation | null>(null);
   protected readonly linkedReservationStatus = signal<ProposalReservationStatus | null>(null);
+  protected readonly journeyStep = computed<1 | 2 | 3 | 4>(() => {
+    const status = this.linkedReservationStatus();
+    if (status === 'CONFIRMEE') return 2;
+    if (status === 'PAYEE_SEQUESTRE') return 3;
+    if (status === 'EN_COURS' || status === 'TERMINEE' || status === 'NO_SHOW' || status === 'LITIGE') {
+      return 4;
+    }
+    return 1;
+  });
+  protected readonly journeySteps = computed(() => appointmentJourneySteps(this.journeyStep()));
+  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyStep()));
   protected readonly linkedReservationCancellationReason = signal<string | null>(null);
   protected readonly isCancellingProposal = signal(false);
   protected readonly isRespondingToCounterOffer = signal(false);
@@ -227,6 +238,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly usedParcelNumbers = new Set<string>();
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private proposalRealtimeSubscription: Subscription | null = null;
+  private reservationRealtimeSubscription: Subscription | null = null;
+  private linkedReservationRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private watchedReservationId: string | null = null;
   private parcelPriceRequestId = 0;
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -776,6 +790,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.stopAvailabilityRealtime();
     this.stopProposalRefresh();
+    this.stopLinkedReservationSync();
   }
 
   protected goBack(): void {
@@ -1295,20 +1310,27 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     const service = this.currentService();
     const proposal = this.pendingProposal();
-    const professionalId = service?.profilProfessionnelId ?? proposal?.professionnelId;
+    const professionalId = proposal?.professionnelId ?? service?.profilProfessionnelId;
     if (!professionalId) {
       this.feedback.error('Impossible d ouvrir la discussion avec ce prestataire.');
       return;
     }
 
-    this.router.navigate(['/messages'], {
-      queryParams: this.buildMessageQuery({
+    const messageQuery = this.buildMessageQuery({
         professionalId,
         providerName: this.displayName(),
         serviceName: service?.nom || this.categoryLabel(),
         proposal,
-      }),
-    });
+      });
+
+    if (!proposal?.id) {
+      this.router.navigate(['/messages'], { queryParams: messageQuery });
+      return;
+    }
+
+    // L'identifiant de conversation renvoye par le backend est la seule
+    // reference fiable quand le client a deja plusieurs discussions.
+    this.openNegotiationConversation(proposal.id, messageQuery);
   }
 
   protected messageClient(): void {
@@ -1326,13 +1348,29 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.router.navigate(['/messages'], {
-      queryParams: this.buildMessageQuery({
+    const messageQuery = this.buildMessageQuery({
         professionalId: proposal.professionnelId,
         providerName: this.proposalClientName(),
         serviceName: proposal.service?.nom || this.categoryLabel(),
         proposal,
-      }),
+      });
+
+    this.openNegotiationConversation(proposal.id, messageQuery);
+  }
+
+  private openNegotiationConversation(
+    negotiationId: string,
+    messageQuery: Record<string, string | number>,
+  ): void {
+    this.messagesService.createConversation({ negotiationId }).subscribe({
+      next: (conversation) => {
+        this.router.navigate(['/messages'], {
+          queryParams: { ...messageQuery, conversationId: conversation.id },
+        });
+      },
+      error: () => {
+        this.router.navigate(['/messages'], { queryParams: messageQuery });
+      },
     });
   }
 
@@ -2777,15 +2815,51 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.proposalService.getReservation(proposal.reservationId).subscribe({
+    this.startLinkedReservationSync(proposal.reservationId);
+
+    this.fetchLinkedReservationStatus(proposal.reservationId);
+  }
+
+  private startLinkedReservationSync(reservationId: string): void {
+    if (!this.isProviderProposalMode || this.watchedReservationId === reservationId) return;
+
+    this.stopLinkedReservationSync();
+    this.watchedReservationId = reservationId;
+    this.reservationRealtimeSubscription = this.reservationsRealtime
+      .watchMyReservations('PRESTATAIRE')
+      .subscribe((event) => {
+        if (event.reservationId !== reservationId) return;
+        if (event.reservation?.statut) {
+          this.linkedReservationStatus.set(event.reservation.statut as ProposalReservationStatus);
+          this.linkedReservationCancellationReason.set(event.reservation.raisonAnnulation ?? null);
+          return;
+        }
+        this.fetchLinkedReservationStatus(reservationId);
+      });
+    this.linkedReservationRefreshIntervalId = setInterval(
+      () => this.fetchLinkedReservationStatus(reservationId),
+      2500,
+    );
+  }
+
+  private stopLinkedReservationSync(): void {
+    if (this.linkedReservationRefreshIntervalId) {
+      clearInterval(this.linkedReservationRefreshIntervalId);
+      this.linkedReservationRefreshIntervalId = null;
+    }
+    this.reservationRealtimeSubscription?.unsubscribe();
+    this.reservationRealtimeSubscription = null;
+    this.reservationsRealtime.stopWatching('PRESTATAIRE');
+    this.watchedReservationId = null;
+  }
+
+  private fetchLinkedReservationStatus(reservationId: string): void {
+    this.proposalService.getReservation(reservationId).subscribe({
       next: (reservation) => {
         this.linkedReservationStatus.set(reservation.statut);
         this.linkedReservationCancellationReason.set(reservation.raisonAnnulation);
       },
-      error: () => {
-        this.linkedReservationStatus.set(null);
-        this.linkedReservationCancellationReason.set(null);
-      },
+      error: () => undefined,
     });
   }
 

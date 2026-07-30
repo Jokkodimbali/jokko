@@ -47,6 +47,10 @@ export class DoctorSpaceSectionLoaderService {
       case 'availability':
         return forkJoin({
           availabilities: this.safe(this.doctorSpaceService.listMyAvailabilities(), []),
+          // Le formulaire de disponibilite permet aussi de modifier le mode
+          // commun aux services: ces services font donc partie des donnees
+          // requises par cette section.
+          services: this.safe(this.doctorSpaceService.listMyServices(), []),
         });
       case 'consultation':
         return forkJoin({

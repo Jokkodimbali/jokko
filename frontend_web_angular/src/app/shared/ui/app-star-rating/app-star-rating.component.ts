@@ -12,7 +12,7 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 export class AppStarRatingComponent {
   @Input() value: number | null | undefined = 0;
   @Input() reviews = 0;
-  @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  @Input() size: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
   @Input() label = 'Note';
 
   protected readonly stars = [1, 2, 3, 4, 5];

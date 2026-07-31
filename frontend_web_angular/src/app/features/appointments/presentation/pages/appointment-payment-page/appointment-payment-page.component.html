@@ -32,7 +32,7 @@
 
         <header class="appointment-payment__confirmed-heading">
           <h1>Rendez-vous confirme !</h1>
-          <p>Votre reservation a ete enregistree. Le prestataire se prepare pour votre service.</p>
+          <p>{{ confirmedHeadingDescription() }}</p>
         </header>
 
         <section class="appointment-payment__confirmed-summary" aria-label="Resume du rendez-vous confirme">
@@ -45,7 +45,7 @@
               <strong>{{ confirmedServiceLabel(appointment) }}</strong>
             </div>
             <div>
-              <small>Total paye</small>
+              <small>{{ confirmedAmountCaption() }}</small>
               <strong>{{ amountValueLabel() }} FCFA</strong>
             </div>
           </header>
@@ -67,18 +67,21 @@
 
           <footer>
             <span class="appointment-payment__confirmed-avatar">
-              <img *ngIf="appointment.avatarUrl; else confirmedProviderInitials" [src]="appointment.avatarUrl" [alt]="appointment.doctorName" />
+              <img *ngIf="confirmedCounterpartAvatar(appointment) as counterpartAvatar; else confirmedProviderInitials" [src]="counterpartAvatar" [alt]="confirmedCounterpartName(appointment)" />
               <ng-template #confirmedProviderInitials>
-                <em>{{ avatarInitials(appointment) }}</em>
+                <em>{{ confirmedCounterpartInitials(appointment) }}</em>
               </ng-template>
             </span>
             <div>
               <small>{{ counterpartRoleLabel() }}</small>
-              <strong>{{ appointment.doctorName }}</strong>
+              <strong>{{ confirmedCounterpartName(appointment) }}</strong>
               <p>
-                {{ confirmedProviderSubtitle(appointment) }} &middot;
-                <app-star-rating [value]="appointment.professionalRating" size="small" />
-                {{ providerRatingShortLabel() }}
+                {{ confirmedCounterpartSubtitle(appointment) }}
+                <ng-container *ngIf="!isProfessionalViewer()">
+                  &middot;
+                  <app-star-rating [value]="appointment.professionalRating" size="small" />
+                  {{ providerRatingShortLabel() }}
+                </ng-container>
               </p>
             </div>
             <span class="appointment-payment__confirmed-status">
@@ -93,7 +96,7 @@
           Voir le rendez-vous
         </button>
 
-        <p class="appointment-payment__confirmed-note">Un recapitulatif a ete envoye par SMS et email</p>
+        <p class="appointment-payment__confirmed-note">{{ confirmedNotificationNote() }}</p>
       </article>
     </section>
 

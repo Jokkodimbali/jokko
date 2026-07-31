@@ -837,7 +837,6 @@
 }
 
 .appointment-detail__prescription-section {
-  counter-reset: prescription-step;
   display: grid;
   gap: 10px;
   padding: 0 34px 34px;
@@ -857,33 +856,66 @@
 }
 
 .appointment-detail__prescription-section li {
-  align-items: center;
+  align-items: start;
   background: #fbfdff;
   border: 1px solid #e3edf6;
   border-radius: 13px;
   color: #445066;
-  counter-increment: prescription-step;
   display: grid;
   font-size: 13px;
   font-weight: 700;
   gap: 16px;
-  grid-template-columns: 26px 1fr;
+  grid-template-columns: 30px minmax(0, 1fr);
   line-height: 1.55;
   padding: 13px 18px;
 }
 
-.appointment-detail__prescription-section li::before {
-  align-items: center;
-  background: #9b6429;
-  border-radius: 50%;
-  color: #ffffff;
-  content: counter(prescription-step);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 950;
+.appointment-detail__prescription-section li > span {
+  display: block;
   height: 24px;
-  justify-content: center;
+  margin-top: 2px;
   width: 24px;
+}
+
+.appointment-detail__prescription-section li > span svg {
+  display: block;
+  height: 24px;
+  overflow: visible;
+  width: 24px;
+}
+
+.appointment-detail__prescription-section li > span circle {
+  fill: #9b6429;
+}
+
+.appointment-detail__prescription-section li > span text {
+  fill: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+}
+
+.appointment-detail__prescription-section li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.appointment-detail__prescription-section li strong {
+  color: #344054;
+  display: block;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.appointment-detail__prescription-section li em {
+  color: #7d8796;
+  display: block;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  margin-top: 4px;
 }
 
 .appointment-detail__prescription-section p {

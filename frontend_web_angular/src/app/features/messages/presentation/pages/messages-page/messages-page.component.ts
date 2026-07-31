@@ -26,6 +26,7 @@ import {
   ServiceProposalService,
 } from '../../../../services/data-access/service-proposal.service';
 import { MessageComposerComponent } from '../../components/message-composer/message-composer.component';
+import { MessagesNavigationStateService } from '../../../data-access/messages-navigation-state.service';
 import { MessagesService } from '../../../data-access/messages.service';
 import { MessagesRealtimeService } from '../../../data-access/messages-realtime.service';
 import { Conversation, ConversationMessage } from '../../../domain/models/messages.models';
@@ -108,6 +109,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly authSession = inject(AuthSessionService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly messagesNavigationState = inject(MessagesNavigationStateService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -252,7 +254,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       avatarUrl: this.selectedConversation()?.counterpart.avatarUrl ?? null,
       initials: this.initials(proposal.providerName),
       detailLink: proposal.reservationId
-        ? this.reservationDetailLink(proposal.reservationId, proposal.status)
+        ? this.reservationDetailLink(
+            proposal.reservationId,
+            proposal.status,
+            !this.isProfessionalRole(),
+          )
         : this.negotiationDetailLink(proposal),
       detailQueryParams: proposal.reservationId
         ? this.appointmentDetailQueryParams()
@@ -342,7 +348,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   });
   protected readonly canShowNegotiationButton = computed(() => {
     const conversation = this.selectedConversation();
-    if (!conversation || this.currentUser()?.role !== 'CLIENT') return false;
+    // Un compte professionnel peut egalement reserver un service comme client.
+    // Le droit d'ouvrir une nouvelle negociation depend donc de sa place dans
+    // cette conversation, pas du role principal affiche sur son compte.
+    if (!conversation || !this.isConversationClient(conversation)) return false;
     if (this.conversationReservationCard()) return false;
     const reservationId = this.currentVisibleReservationId();
     if (!reservationId) return true;
@@ -393,6 +402,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.completionClockId = setInterval(() => this.completionClock.set(Date.now()), 1000);
     this.readPendingProposalFromQuery();
+    this.restoreLastSelectedConversation();
     this.startRealtimeMessaging();
     this.startReservationRealtime();
     this.startProposalRefresh();
@@ -429,6 +439,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.clearPendingMedia();
     this.isThreadSearchOpen.set(false);
     this.threadSearch.set('');
+    this.requestedConversationId.set(conversationId);
+    this.requestedReservationId.set(null);
+    this.requestedNegotiationId.set(null);
+    this.requestedDirectProfessionalId.set(null);
+    this.requestedDirectProfessionalUserId.set(null);
+    this.pendingProposal.set(null);
+    this.appointmentPreview.set(null);
+    this.rememberSelectedConversation(conversationId);
     this.selectedConversationId.set(conversationId);
     this.messages.set(this.messagesByConversation.get(conversationId) ?? []);
     this.scrollThreadToBottom();
@@ -437,6 +455,13 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.loadMessages(conversationId);
     this.loadAppointmentPreviewForSelectedConversation({ force: true });
     setTimeout(() => this.loadAppointmentPreviewForVisibleProposal({ force: true }), 0);
+    // L'URL doit toujours representer la discussion visible. Sans cela, un
+    // retour navigateur relit les anciens parametres et ouvre un autre fil.
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { conversationId },
+      replaceUrl: true,
+    });
   }
 
   protected closeMobileConversation(): void {
@@ -444,6 +469,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isThreadSearchOpen.set(false);
     this.threadSearch.set('');
     this.selectedConversationId.set(null);
+    this.forgetSelectedConversation();
     this.messages.set([]);
     this.appointmentPreview.set(null);
     this.pendingProposal.set(null);
@@ -1404,6 +1430,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           requestedDirectConversation?.id ??
           null;
         this.selectedConversationId.set(selectedId);
+        if (selectedId) {
+          this.rememberSelectedConversation(selectedId);
+        } else if (requestedConversationId) {
+          this.forgetSelectedConversation();
+          this.requestedConversationId.set(null);
+        }
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
 
@@ -1490,6 +1522,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
         this.selectedConversationId.set(conversation.id);
         this.requestedConversationId.set(conversation.id);
+        this.rememberSelectedConversation(conversation.id);
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
         this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
@@ -1554,6 +1587,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
         this.selectedConversationId.set(conversation.id);
         this.requestedConversationId.set(conversation.id);
+        this.rememberSelectedConversation(conversation.id);
+        this.pendingProposal.update((proposal) =>
+          proposal?.negotiationId === negotiationId
+            ? { ...proposal, conversationId: conversation.id }
+            : proposal,
+        );
         this.loadPriceProposals();
         this.isLoadingConversations.set(false);
         this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
@@ -1595,6 +1634,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
           this.selectedConversationId.set(conversation.id);
           this.requestedConversationId.set(conversation.id);
+          this.rememberSelectedConversation(conversation.id);
           this.loadPriceProposals();
           this.isLoadingConversations.set(false);
           this.messages.set(this.messagesByConversation.get(conversation.id) ?? []);
@@ -1705,7 +1745,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!professionalId && !Number.isFinite(rawAmount)) {
+    // Les boutons lies a une reservation ou une negociation possedent deja
+    // une reference metier fiable. Le widget ne doit pas dependre de champs
+    // d'affichage optionnels comme le montant ou le profil professionnel.
+    if (
+      !negotiationId &&
+      !reservationId &&
+      !conversationId &&
+      !professionalId &&
+      !professionalUserId &&
+      !Number.isFinite(rawAmount)
+    ) {
       return;
     }
 
@@ -1723,6 +1773,32 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       durationMinutes: Number(query.get('durationMinutes')) || 60,
       proposalMessage: null,
     });
+  }
+
+  private restoreLastSelectedConversation(): void {
+    if (
+      this.requestedConversationId() ||
+      this.requestedReservationId() ||
+      this.requestedNegotiationId() ||
+      this.requestedDirectProfessionalId() ||
+      this.requestedDirectProfessionalUserId()
+    ) {
+      return;
+    }
+
+    const conversationId = this.messagesNavigationState.getLastConversationId(this.currentUser()?.id);
+    this.requestedConversationId.set(this.normalizeUuid(conversationId));
+  }
+
+  private rememberSelectedConversation(conversationId: string): void {
+    const normalizedId = this.normalizeUuid(conversationId);
+    if (!normalizedId) return;
+
+    this.messagesNavigationState.rememberConversation(this.currentUser()?.id, normalizedId);
+  }
+
+  private forgetSelectedConversation(): void {
+    this.messagesNavigationState.forgetConversation(this.currentUser()?.id);
   }
 
   private hasRequestedDirectConversation(): boolean {
@@ -1759,6 +1835,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private findProposalConversation(conversations: Conversation[]): Conversation | null {
     const proposal = this.pendingProposal();
+    const requestedConversationId = this.requestedConversationId();
+
+    if (requestedConversationId) {
+      const requested = conversations.find(
+        (conversation) => conversation.id === requestedConversationId,
+      );
+      if (requested) return requested;
+    }
 
     if (!proposal) {
       return null;
@@ -1796,12 +1880,18 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       this.isProfessionalRole()
         ? conversation.counterpart.userId
         : this.currentUser()?.id;
-    const proposal = this.priceProposals().find(
-      (item) =>
-        professionalId &&
-        item.professionnelId === professionalId &&
-        (!clientId || item.clientId === clientId),
-    );
+    const requestedNegotiationId = this.requestedNegotiationId();
+    const proposals = this.priceProposals();
+    const proposal =
+      (requestedNegotiationId
+        ? proposals.find((item) => item.id === requestedNegotiationId)
+        : null) ??
+      proposals.find(
+        (item) =>
+          professionalId &&
+          item.professionnelId === professionalId &&
+          (!clientId || item.clientId === clientId),
+      );
 
     if (!proposal) {
       return null;
@@ -2316,6 +2406,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return Boolean(userId && currentUserId && userId.trim() === currentUserId.trim());
   }
 
+  private isConversationClient(conversation: Conversation): boolean {
+    return this.isCurrentUserId(conversation.clientUserId);
+  }
+
   private isClientViewerForAppointment(appointment: AppointmentView): boolean {
     return this.isCurrentUserId(appointment.clientId);
   }
@@ -2380,11 +2474,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private appointmentDetailLink(appointment: AppointmentView): string[] {
-    return this.reservationDetailLink(appointment.id, appointment.status);
+    return this.reservationDetailLink(
+      appointment.id,
+      appointment.status,
+      this.isClientViewerForAppointment(appointment),
+    );
   }
 
-  private reservationDetailLink(reservationId: string, status: string | null): string[] {
-    if (status === 'CONFIRMEE') {
+  private reservationDetailLink(
+    reservationId: string,
+    status: string | null,
+    canPay: boolean,
+  ): string[] {
+    if (status === 'CONFIRMEE' && canPay) {
       return ['/appointments', reservationId, 'payment'];
     }
 

@@ -300,6 +300,11 @@ export class TrackingGoogleMapRendererService {
     this.lastBoundsKey = '';
     this.applyImmersiveCamera();
     this.refreshRenderedTravelerMarker();
+    // Le changement de perspective doit recadrer le tracé courant, même si
+    // Google Maps conserve encore le centre de l'itinéraire précédent.
+    if (this.lastRenderedState) {
+      this.render(this.lastRenderedState);
+    }
   }
 
   setHeading(headingDegrees: number): void {
@@ -1101,6 +1106,7 @@ export class TrackingGoogleMapRendererService {
       routes.find((route) => route.selected)?.coordinates ??
       routes[0]?.coordinates ??
       [];
+    const routeCameraKey = this.routeCameraKey(selectedRouteCoordinates);
     if (this.topViewEnabled) {
       const selectedRouteId = routes.find((route) => route.selected)?.id ?? routes[0]?.id ?? 'route';
       const routeReady = selectedRouteCoordinates.length >= 2;
@@ -1109,9 +1115,11 @@ export class TrackingGoogleMapRendererService {
         selectedRouteId,
         destination.lat.toFixed(6),
         destination.lng.toFixed(6),
+        routeCameraKey,
         routeReady ? 'ready' : 'pending',
       ].join('|');
       if (key === this.lastBoundsKey) return;
+      this.cancelCameraAnimation();
       this.withCameraUpdate(() => {
         const bounds = new this.google!.maps.LatLngBounds();
         bounds.extend(provider);
@@ -1141,12 +1149,28 @@ export class TrackingGoogleMapRendererService {
       this.currentCameraHeading.toFixed(1),
       targetZoom.toFixed(2),
       targetTilt.toFixed(1),
-      selectedRouteCoordinates.length,
+      routeCameraKey,
+      destination.lat.toFixed(6),
+      destination.lng.toFixed(6),
       this.topViewEnabled ? 'top' : 'nav',
     ].join('|');
     if (key === this.lastBoundsKey) return;
     this.lastBoundsKey = key;
     this.animateFollowCamera(focus, this.currentCameraHeading, speedKmh);
+  }
+
+  private routeCameraKey(coordinates: GoogleMapsPoint[]): string {
+    if (coordinates.length === 0) return 'empty';
+
+    const points = [
+      coordinates[0],
+      coordinates[Math.floor(coordinates.length / 2)],
+      coordinates[coordinates.length - 1],
+    ];
+    return [
+      coordinates.length,
+      ...points.flatMap((point) => [point.lat.toFixed(5), point.lng.toFixed(5)]),
+    ].join(':');
   }
 
   private animateFollowCamera(

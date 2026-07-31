@@ -10,6 +10,7 @@ import {
   appointmentJourneySteps,
 } from '../../components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
@@ -39,6 +40,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly authSession = inject(AuthSessionService);
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
@@ -46,6 +48,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly isPaying = signal(false);
   protected readonly isCancelling = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly isProfessionalViewer = computed(() => {
+    const role = this.authSession.currentUser()?.role;
+    return role === 'PRESTATAIRE' || role === 'MEDECIN';
+  });
 
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png', subtitle: 'Paiement mobile instantane' },
@@ -67,7 +73,29 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyCurrentStep()));
   protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
   protected readonly counterpartRoleLabel = computed(() =>
-    this.isMedicinePaymentFlow() ? 'Medecin' : 'Prestataire',
+    this.isProfessionalViewer()
+      ? 'Client'
+      : this.isMedicinePaymentFlow()
+        ? 'Medecin'
+        : 'Prestataire',
+  );
+  protected readonly confirmedHeadingDescription = computed(() => {
+    const appointment = this.appointment();
+    if (this.isProfessionalViewer()) {
+      const clientName = appointment?.clientName || 'Le client';
+      return `La reservation de ${clientName} est confirmee. Vous pouvez maintenant preparer la prestation.`;
+    }
+
+    const providerLabel = this.isMedicinePaymentFlow() ? 'Le medecin' : 'Le prestataire';
+    return `Votre reservation a ete enregistree. ${providerLabel} se prepare pour votre service.`;
+  });
+  protected readonly confirmedAmountCaption = computed(() =>
+    this.isProfessionalViewer() ? 'Paiement du client' : 'Total paye',
+  );
+  protected readonly confirmedNotificationNote = computed(() =>
+    this.isProfessionalViewer()
+      ? 'Le client a recu le recapitulatif par SMS et email'
+      : 'Un recapitulatif vous a ete envoye par SMS et email',
   );
   protected readonly paymentCommissionLabel = computed(() => {
     const total = this.toPositiveAmount(this.appointment()?.agreedPrice) ?? 0;
@@ -172,6 +200,28 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   protected avatarInitials(appointment: AppointmentView): string {
     return userInitials(appointment.doctorName, 'JD');
+  }
+
+  protected confirmedCounterpartName(appointment: AppointmentView): string {
+    return this.isProfessionalViewer()
+      ? appointment.clientName || 'Client'
+      : appointment.doctorName;
+  }
+
+  protected confirmedCounterpartAvatar(appointment: AppointmentView): string | null {
+    return this.isProfessionalViewer()
+      ? appointment.clientAvatarUrl
+      : appointment.avatarUrl;
+  }
+
+  protected confirmedCounterpartInitials(appointment: AppointmentView): string {
+    return userInitials(this.confirmedCounterpartName(appointment), this.isProfessionalViewer() ? 'CL' : 'PR');
+  }
+
+  protected confirmedCounterpartSubtitle(appointment: AppointmentView): string {
+    return this.isProfessionalViewer()
+      ? appointment.addressLabel
+      : this.confirmedProviderSubtitle(appointment);
   }
 
   protected pay(): void {

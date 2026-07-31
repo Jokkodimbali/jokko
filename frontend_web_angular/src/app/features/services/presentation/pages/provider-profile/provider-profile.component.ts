@@ -15,11 +15,11 @@ import {
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
-  BackendProfessionalPresence,
   ProfessionalVehicleType,
   ProviderProfileDetail,
   ServiceTravelMode,
@@ -68,6 +68,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     AppFooterComponent,
     AppNavbarComponent,
     AppStarRatingComponent,
+    ProviderTravelBadgeComponent,
     LucideAngularModule,
     RouterLink,
   ],
@@ -282,15 +283,6 @@ export class ProviderProfileComponent implements OnInit {
     const mode = this.primaryTravelMode();
     return mode ? TRAVEL_MODE_IMAGES[mode] : null;
   });
-  protected readonly travelModeBadgeClass = computed(() => {
-    const mode = this.primaryTravelMode();
-    if (mode === 'PRESTATAIRE_SE_DEPLACE') return 'provider-profile__movement-badge--provider';
-    if (mode === 'TRANSPORT_COLIS') return 'provider-profile__movement-badge--parcel';
-    if (mode === 'CLIENT_SE_DEPLACE') return 'provider-profile__movement-badge--client';
-    return 'provider-profile__movement-badge--flexible';
-  });
-  protected readonly presenceLabel = computed(() => this.formatPresence(this.detail()?.presence ?? null));
-  protected readonly isOnline = computed(() => this.detail()?.presence?.isOnline === true);
   protected readonly isFavorite = signal(false);
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly expertiseTags = computed(() => this.professionalBiography().expertises);
@@ -467,19 +459,6 @@ export class ProviderProfileComponent implements OnInit {
 
   private dayName(day: number): string {
     return ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][day] || 'Jour';
-  }
-
-  private formatPresence(presence: BackendProfessionalPresence | null): string {
-    if (!presence) return '';
-
-    const labels: Record<BackendProfessionalPresence['status'], string> = {
-      HORS_LIGNE: 'Hors ligne',
-      EN_LIGNE: 'En ligne',
-      EN_ROUTE: 'En route',
-      EN_PRESTATION: 'En prestation',
-    };
-
-    return labels[presence.status];
   }
 
   private formatTime(value: string): string {

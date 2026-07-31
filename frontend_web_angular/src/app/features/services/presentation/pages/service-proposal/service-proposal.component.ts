@@ -247,6 +247,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly negotiationId = this.route.snapshot.queryParamMap.get('negotiationId') || '';
   protected readonly isProviderProposalMode =
     this.route.snapshot.queryParamMap.get('mode') === 'prestataire';
+  private readonly isNewReservationFlow =
+    this.route.snapshot.queryParamMap.get('newReservation') === '1';
   protected readonly selectedServiceId = signal(
     this.route.snapshot.queryParamMap.get('serviceId') || '',
   );
@@ -2407,7 +2409,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           return;
         } else {
           this.clientDefaultAddress.set(user?.adresse?.trim() || '');
-          const restoredDraft = this.restoreClientReservationDraft();
+          if (this.isNewReservationFlow) {
+            this.clearClientReservationDraft();
+            this.clientBookingStep.set('DETAILS');
+          }
+          const restoredDraft = this.isNewReservationFlow
+            ? false
+            : this.restoreClientReservationDraft();
           const service = this.currentService();
           if (!restoredDraft) {
             const providerAddress = this.resolveInitialAddress(detail);
@@ -2424,7 +2432,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             this.refreshParcelDeliveryPriceEstimate();
           }
           this.draftPersistenceReady.set(!this.isProviderProposalMode);
-          if (!this.isProviderProposalMode && service && this.authSession.hasAuthenticatedSession()) {
+          if (
+            !this.isNewReservationFlow &&
+            !this.isProviderProposalMode &&
+            service &&
+            this.authSession.hasAuthenticatedSession()
+          ) {
             this.resumeActiveClientProposal(service);
             return;
           }

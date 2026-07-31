@@ -29,6 +29,11 @@
   width: 100%;
 }
 
+.appointment-tracking-stepper--back-only {
+  justify-content: flex-start;
+  min-height: 64px;
+}
+
 .appointment-tracking-stepper__back {
   align-items: center;
   background: #955d24;

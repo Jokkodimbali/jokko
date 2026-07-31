@@ -352,6 +352,7 @@
 
         <footer class="appointment-detail__cancelled-actions">
           <button
+            *ngIf="isDisputedAppointment() || isClientViewer()"
             type="button"
             (click)="isDisputedAppointment() ? openDisputeTracking(appointment) : restartCancelledAppointment(appointment)"
           >
@@ -359,7 +360,7 @@
           </button>
           <button type="button" (click)="messageProvider(appointment)">
             <lucide-icon name="message-circle" size="16" [strokeWidth]="2.2"></lucide-icon>
-            Message au prestataire
+            {{ cancelledMessageButtonLabel() }}
           </button>
         </footer>
       </article>
@@ -1206,7 +1207,7 @@
               </li>
             </ol>
             <ng-template #noPrescriptionTreatment>
-              <p>Aucun traitement de fond prescrit sur cette ordonnance.</p>
+              <p>Aucune prescription renseignée sur cette ordonnance.</p>
             </ng-template>
           </section>
 

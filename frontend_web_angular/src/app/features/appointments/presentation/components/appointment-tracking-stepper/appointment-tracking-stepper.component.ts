@@ -41,6 +41,7 @@ export class AppointmentTrackingStepperComponent {
   @Input() ariaLabel = 'Suivi de la reservation';
   @Input() providerMode = false;
   @Input() showBack = true;
+  @Input() backOnly = false;
   @Input() embedded = false;
   @Input() hideLastStepContent = false;
   @Input() clickableStepIndexes: number[] = [];

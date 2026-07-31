@@ -56,10 +56,6 @@ import { TrackingStore } from '../../../../tracking/state/tracking.store';
 type MapCoordinate = { lat: number; lng: number };
 type TrackingStepView = AppointmentTrackingStep;
 type MedicalRecordKind = 'act' | 'vaccine' | 'treatment';
-type MedicalPrescriptionPreviewItem = {
-  label: string;
-  text: string;
-};
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
 
 const COMMON_MEDICAL_ACTS = [
@@ -202,6 +198,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
+  private navigationRetryTimeoutId?: number;
+  private medicalPrescriptionSaveVersion = 0;
+  private medicalPrescriptionDraftDirty = false;
   private readonly refreshParcelCheckpoints = (): void => {
     this.parcelCheckpointVersion.update((version) => version + 1);
     const appointment = this.appointment();
@@ -250,11 +249,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly currentMedicalVaccine = signal('');
   protected readonly currentMedicalTreatment = signal('');
   protected readonly isPrescriptionPreviewOpen = signal(false);
-  protected readonly medicalPrescriptionPreviewItems = computed<MedicalPrescriptionPreviewItem[]>(() => [
-    ...this.medicalTreatments().map((text) => ({ label: 'Traitement', text })),
-    ...this.medicalVaccines().map((text) => ({ label: 'Vaccin administre', text })),
-    ...this.medicalActs().map((text) => ({ label: 'Acte medical', text })),
-  ]);
+  protected readonly medicalPrescriptionPreviewItems = computed(() =>
+    this.documentBuilder.medicalPrescriptionItems(this.currentMedicalPrescriptionPayload()),
+  );
   protected readonly commonMedicalActs = COMMON_MEDICAL_ACTS;
   protected readonly commonVaccines = COMMON_VACCINES;
   protected readonly commonTreatments = COMMON_TREATMENTS;
@@ -1281,6 +1278,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.elapsedClockInterval) {
       clearInterval(this.elapsedClockInterval);
     }
+    this.clearNavigationRetry();
     this.trackingStore.reset();
   }
 
@@ -1365,12 +1363,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected restartCancelledAppointment(appointment: AppointmentView): void {
-    this.router.navigate(['/services', appointment.professionalId], {
+    if (!this.isClientViewer()) {
+      return;
+    }
+
+    this.router.navigate(['/services', appointment.professionalId, 'proposition'], {
       queryParams: {
         serviceId: appointment.serviceId,
+        newReservation: 1,
         returnUrl: this.router.url,
       },
     });
+  }
+
+  protected cancelledMessageButtonLabel(): string {
+    return this.isProviderViewer() ? 'Message au client' : 'Message au prestataire';
   }
 
   private initialsFromName(name: string, fallback: string): string {
@@ -1684,7 +1691,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           });
         },
         error: () => {
-          this.feedback.error("Impossible d'ouvrir la discussion avec ce prestataire.");
+          const counterpart = this.isProviderViewer() ? 'ce client' : 'ce prestataire';
+          this.feedback.error(`Impossible d'ouvrir la discussion avec ${counterpart}.`);
         },
       });
   }
@@ -1898,6 +1906,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeCoordinates = [];
     this.routeOptions = [];
     this.routeCoordinatesKey = '';
+    this.routeRequestBlockedUntilMs = 0;
+    this.routeDeviationRecalculationBlockedUntilMs = 0;
+    this.clearNavigationRetry();
     this.routeAlternatives.set([]);
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);
@@ -2461,6 +2472,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.selectedRating.set(appointment.clientRating ?? 0);
         this.reviewComment.set(appointment.clientReview ?? '');
         this.isLoading.set(false);
+        // Une nouvelle instance de page peut encore partager l'etat d'arrivee
+        // du trajet vers l'expediteur. Le retrait valide ouvre un nouveau
+        // trajet et doit toujours effacer cet ancien point d'arrivee.
+        if (this.isParcelTransportAppointment(appointment) && this.isParcelPickupValidated()) {
+          this.prepareParcelDropoffNavigationAfterPickup(appointment);
+        }
         this.synchronizeLiveNavigation(appointment);
         if (appointment.status === 'TERMINEE') {
           this.loadTerminalTrackingSnapshot(appointment.id);
@@ -3987,6 +4004,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
         this.routeAlternatives.set([]);
         this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+        this.clearNavigationRetry();
         this.updateGoogleMaps();
         this.announceNavigationInstruction();
         },
@@ -4000,12 +4018,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.routeDurationMinutes.set(null);
         }
         this.routeCoordinatesKey = '';
-        this.routeRequestBlockedUntilMs = Date.now() + 20_000;
+        this.routeRequestBlockedUntilMs = Date.now() + 2_500;
         this.routeStatus.set(
           preserveCurrentRoute && this.routeCoordinates.length > 1
             ? 'ready'
             : 'unavailable',
         );
+        this.scheduleNavigationRetry();
         },
       });
   }
@@ -4086,15 +4105,49 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             lng: result.longitude,
           });
           this.destinationStatus.set('ready');
+          this.clearNavigationRetry();
           this.updateGoogleMaps();
           return;
         }
         this.destinationStatus.set('unavailable');
+        this.scheduleNavigationRetry();
       },
       error: () => {
         this.destinationStatus.set('unavailable');
+        this.scheduleNavigationRetry();
       },
     });
+  }
+
+  private scheduleNavigationRetry(): void {
+    if (this.navigationRetryTimeoutId !== undefined) return;
+
+    this.navigationRetryTimeoutId = window.setTimeout(() => {
+      this.navigationRetryTimeoutId = undefined;
+      const appointment = this.appointment();
+      if (
+        !appointment ||
+        this.isAppointmentCompleted() ||
+        (!this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive())
+      ) {
+        return;
+      }
+
+      if (!this.destinationCoordinates()) {
+        this.lastResolvedDestinationAddress = '';
+        this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
+        return;
+      }
+
+      this.routeRequestBlockedUntilMs = 0;
+      this.updateGoogleMaps();
+    }, 2_600);
+  }
+
+  private clearNavigationRetry(): void {
+    if (this.navigationRetryTimeoutId === undefined) return;
+    window.clearTimeout(this.navigationRetryTimeoutId);
+    this.navigationRetryTimeoutId = undefined;
   }
 
   private clearResolvedDestination(): void {
@@ -4189,12 +4242,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     const prescription = this.currentMedicalPrescriptionPayload();
     if (!this.medicalPrescriptionService.hasContent(prescription)) return;
+    const saveVersion = ++this.medicalPrescriptionSaveVersion;
+    this.medicalPrescriptionDraftDirty = true;
 
     this.appointmentsService
       .saveMedicalPrescription(appointment.id, prescription)
       .pipe(catchError(() => of(null)))
       .subscribe((updated) => {
-        if (!updated) return;
+        // Un ajout plus recent est deja visible et en cours de sauvegarde :
+        // une ancienne reponse ne doit jamais reecrire le brouillon courant.
+        if (saveVersion !== this.medicalPrescriptionSaveVersion) return;
+        if (!updated) {
+          this.feedback.error("Impossible d'enregistrer l'ordonnance. Vos ajouts restent affiches pour reessayer.");
+          return;
+        }
+        this.medicalPrescriptionDraftDirty = false;
         this.appointment.update((current) =>
           current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
         );
@@ -4215,6 +4277,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private hydrateMedicalPrescriptionFromAppointment(appointment: AppointmentView): void {
+    // Le polling et le temps reel peuvent encore contenir la version precedente
+    // pendant que le medecin modifie l'ordonnance. Le brouillon local est alors prioritaire.
+    if (this.medicalPrescriptionDraftDirty) return;
+
     const prescription = this.medicalPrescriptionService.hasContent(appointment.medicalPrescription)
       ? appointment.medicalPrescription
       : this.medicalPrescriptionService.extractFromNotes(appointment.notes);

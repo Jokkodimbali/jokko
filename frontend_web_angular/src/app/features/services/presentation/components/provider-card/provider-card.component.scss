@@ -1,4 +1,6 @@
 :host {
+  container-name: provider-card;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -35,66 +37,12 @@
   grid-template-columns: minmax(0, 1fr) 38px;
 }
 
-.provider-card__movement,
 .provider-card__favorite,
 .provider-card__avatar,
 .provider-card__action {
   align-items: center;
   display: inline-flex;
   justify-content: center;
-}
-
-.provider-card__movement {
-  align-items: center;
-  background: #f5c0bd;
-  border-radius: 10px;
-  color: #d7141f;
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  min-height: 40px;
-  min-width: 0;
-  overflow: hidden;
-  padding: 0 3px 0 12px;
-  position: relative;
-}
-
-.provider-card__movement span {
-  flex: 1 1 auto;
-  font-size: 13px;
-  font-weight: 850;
-  min-width: 0;
-  overflow: hidden;
-  padding-right: 74px;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.provider-card__movement-image {
-  display: block;
-  flex: 0 0 auto;
-  height: 100%;
-  max-height: 40px;
-  min-height: 40px;
-  min-width: 70px;
-  object-fit: contain;
-  object-position: center;
-  position: absolute;
-  right: 3px;
-  transform: scale(1.12);
-  transform-origin: center;
-  width: auto;
-}
-
-.provider-card:has(.provider-card__movement-image[src*="livraisonde_colis"]) .provider-card__movement {
-  background: #efe2d1;
-  color: #94612d;
-}
-
-.provider-card:has(.provider-card__movement-image[src*="le_prestataire_se_deplace"]) .provider-card__movement {
-  background: #bfe0b3;
-  color: #436b45;
 }
 
 .provider-card__favorite {
@@ -299,8 +247,6 @@
 .provider-card__service-main > span:not(.provider-card__vehicle-badge),
 .provider-card__empty-service {
   align-items: center;
-  background: #fffdfb;
-  color: #9a5a20;
   display: flex;
   font-size: 24px;
   font-weight: 950;
@@ -308,8 +254,19 @@
 }
 
 .provider-card__service-image-fallback {
+  background: linear-gradient(
+    135deg,
+    var(--service-gallery-placeholder-start),
+    var(--service-gallery-placeholder-end)
+  );
+  color: var(--service-gallery-placeholder-text);
   flex-direction: column;
   gap: 10px;
+}
+
+.provider-card__empty-service {
+  background: #fffdfb;
+  color: #9a5a20;
 }
 
 .provider-card__service-image-fallback lucide-icon {
@@ -325,47 +282,6 @@
   font-weight: 650;
   line-height: 1.2;
   transform: translateY(-20px);
-}
-
-.provider-card__vehicle-badge {
-  align-items: center;
-  background: rgba(255, 248, 241, 0.94);
-  border: 1px solid #e2c5aa;
-  border-radius: 18px;
-  box-sizing: border-box;
-  box-shadow: 0 8px 18px rgba(31, 23, 15, 0.12);
-  color: #7a4318;
-  display: inline-flex;
-  gap: 6px;
-  left: 12px;
-  max-width: calc(100% - 24px);
-  height: 52px;
-  padding: 5px 12px 5px 8px;
-  position: absolute;
-  top: 12px;
-  width: 170px;
-  z-index: 3;
-}
-
-.provider-card__vehicle-badge img {
-  display: block;
-  flex: 0 0 auto;
-  height: 40px;
-  object-fit: contain;
-  width: 40px;
-}
-
-.provider-card__vehicle-badge strong {
-  background: transparent;
-  color: inherit;
-  display: block;
-  flex: 1 1 auto;
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .provider-card__service-thumbs {
@@ -426,8 +342,8 @@
 
 .provider-card__service-thumbs strong {
   align-items: center;
-  background: #fffdfb;
-  color: #9a5a20;
+  background: var(--service-gallery-thumbnail-placeholder);
+  color: var(--service-gallery-thumbnail-text);
   display: flex;
   font-size: 13px;
   justify-content: center;
@@ -566,10 +482,6 @@
     padding: 8px;
   }
 
-  .provider-card__movement {
-    min-height: 36px;
-  }
-
   .provider-card__head {
     gap: 8px;
     grid-template-columns: 52px minmax(0, 1fr) auto;
@@ -587,16 +499,6 @@
 
   .provider-card__service-main {
     aspect-ratio: 2.7 / 1;
-  }
-
-  .provider-card__vehicle-badge {
-    height: 46px;
-    top: 8px;
-  }
-
-  .provider-card__vehicle-badge img {
-    height: 34px;
-    width: 34px;
   }
 
   .provider-card__service-thumbs span {

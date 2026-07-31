@@ -97,7 +97,12 @@
       </div>
 
       <footer class="service-proposal__closed-actions">
-        <button type="button" class="service-proposal__closed-action" (click)="exitClosedNegotiation()">
+        <button
+          *ngIf="!isProviderProposalMode"
+          type="button"
+          class="service-proposal__closed-action service-proposal__closed-action--restart"
+          (click)="exitClosedNegotiation()"
+        >
           Reprendre un rendez-vous
         </button>
         <button
@@ -116,6 +121,7 @@
     [steps]="journeySteps()"
     [progress]="journeyProgress()"
     [showBack]="true"
+    [backOnly]="isLoading() || !!closedProposal()"
     [embedded]="true"
     [hideLastStepContent]="true"
     ariaLabel="Étapes de la réservation"

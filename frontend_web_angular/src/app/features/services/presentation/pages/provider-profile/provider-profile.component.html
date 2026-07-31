@@ -22,12 +22,9 @@
           <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
         </button>
 
-        <span
-          class="provider-profile__online"
-          [class.provider-profile__online--offline]="!isOnline()"
-        >
+        <span class="provider-profile__online">
           <span></span>
-          {{ presenceLabel() || 'Hors ligne' }}
+          En ligne
         </span>
 
         <div class="provider-profile__actions" aria-label="Actions prestataire">
@@ -41,7 +38,7 @@
             (click)="toggleFavorite()"
           >
             <lucide-icon
-              name="heart"
+              name="bookmark"
               size="21"
               [strokeWidth]="2.3"
               [attr.fill]="isFavorite() ? 'currentColor' : 'none'"
@@ -51,16 +48,18 @@
       </section>
 
       <section class="provider-profile__identity-card">
-        <img
-          *ngIf="visibleImageUrl(avatarUrl()) as avatar; else avatarInitials"
-          class="provider-profile__avatar"
-          [src]="avatar"
-          [alt]="displayName()"
-          (error)="handleImageError(avatar)"
-        />
-        <ng-template #avatarInitials>
-          <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
-        </ng-template>
+        <span class="provider-profile__avatar-shell">
+          <img
+            *ngIf="visibleImageUrl(avatarUrl()) as avatar; else avatarInitials"
+            class="provider-profile__avatar"
+            [src]="avatar"
+            [alt]="displayName()"
+            (error)="handleImageError(avatar)"
+          />
+          <ng-template #avatarInitials>
+            <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
+          </ng-template>
+        </span>
 
         <div class="provider-profile__name">
           <h1>{{ displayName() }}</h1>
@@ -70,30 +69,34 @@
           <small>{{ formatLocation() }}</small>
         </div>
 
-        <div class="provider-profile__stats" aria-label="Statistiques du prestataire">
-          <div>
-            <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
+        <div
+          class="provider-profile__stats"
+          [class.provider-profile__stats--with-vehicle]="!!vehicleBadge()"
+          aria-label="Statistiques du prestataire"
+        >
+          <div class="provider-profile__service-stat">
+            <span><lucide-icon name="users" size="46" [strokeWidth]="2.1"></lucide-icon></span>
             <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
           </div>
-          <div>
-            <span><lucide-icon name="star" size="18" [strokeWidth]="2.4" fill="currentColor"></lucide-icon></span>
-            <p><strong>{{ ratingLabel() }}</strong><small>{{ reviewTotalLabel() }}</small></p>
+          <div class="provider-profile__review-stat">
+            <span class="provider-profile__rating-stars">
+              <app-star-rating
+                [value]="detail()?.profile?.noteGlobale ?? 0"
+                [reviews]="detail()?.profile?.nombreAvis ?? 0"
+                size="xlarge"
+              />
+            </span>
+            <small class="provider-profile__review-total">{{ reviewTotalLabel() }}</small>
           </div>
           <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__vehicle-stat">
-            <span class="provider-profile__vehicle-badge" [attr.aria-label]="vehicle.label">
-              <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
-              <strong>{{ vehicle.label }}</strong>
-            </span>
+            <app-provider-travel-badge variant="vehicle" [label]="vehicle.label" [imageUrl]="vehicle.imageUrl" />
           </div>
           <div class="provider-profile__movement-stat">
-            <span
-              class="provider-profile__movement-badge"
-              [ngClass]="travelModeBadgeClass()"
-              [attr.aria-label]="travelModeLabel()"
-            >
-              <strong>{{ travelModeLabel() }}</strong>
-              <img *ngIf="travelModeImageUrl() as imageUrl" [src]="imageUrl" alt="" aria-hidden="true" />
-            </span>
+            <app-provider-travel-badge
+              [label]="travelModeLabel()"
+              [imageUrl]="travelModeImageUrl()"
+              [tone]="primaryTravelMode() || 'DEFAULT'"
+            />
           </div>
         </div>
       </section>

@@ -7,24 +7,12 @@
   (keydown)="openProfileFromKeyboard($event)"
 >
   <div class="provider-card__top">
-    <div class="provider-card__movement" [attr.aria-label]="provider.movementTitle">
-      <span>{{ provider.movementTitle }}</span>
-      <img
-        *ngIf="movementImageUrl as imageUrl; else movementIconList"
-        class="provider-card__movement-image"
-        [src]="imageUrl"
-        alt=""
-        aria-hidden="true"
-      />
-      <ng-template #movementIconList>
-      <lucide-icon
-        *ngFor="let icon of movementIcons"
-        [name]="icon"
-        size="15"
-        [strokeWidth]="2.6"
-      ></lucide-icon>
-      </ng-template>
-    </div>
+    <app-provider-travel-badge
+      [label]="provider.movementTitle"
+      [imageUrl]="movementImageUrl"
+      [icons]="movementIcons"
+      [tone]="provider.travelMode || 'DEFAULT'"
+    />
 
     <button
       type="button"
@@ -99,10 +87,13 @@
           </span>
         </ng-template>
 
-        <span *ngIf="vehicleBadge as vehicle" class="provider-card__vehicle-badge" [attr.aria-label]="vehicle.label">
-          <img [src]="vehicle.imageUrl" [alt]="vehicle.label" />
-          <strong>{{ vehicle.label }}</strong>
-        </span>
+        <app-provider-travel-badge
+          *ngIf="vehicleBadge as vehicle"
+          variant="vehicle"
+          [label]="vehicle.label"
+          [imageUrl]="vehicle.imageUrl"
+          [overlay]="true"
+        />
 
         <div class="provider-card__service-thumbs" aria-label="Services proposes">
           <button

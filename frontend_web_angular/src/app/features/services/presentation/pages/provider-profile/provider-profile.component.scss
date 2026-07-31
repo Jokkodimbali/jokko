@@ -97,33 +97,6 @@
   width: 48px;
 }
 
-.provider-profile__online {
-  border-radius: 999px;
-  box-shadow: 0 12px 28px rgba(21, 33, 42, 0.18);
-  font-size: 18px;
-  font-weight: 800;
-  gap: 12px;
-  min-height: 54px;
-  padding: 0 24px;
-  position: absolute;
-  left: auto;
-  right: 24px;
-  top: 24px;
-}
-
-.provider-profile__online span {
-  background: #22c55e;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
-  height: 13px;
-  width: 13px;
-}
-
-.provider-profile__online--offline span {
-  background: #97a1a8;
-  box-shadow: 0 0 0 4px rgba(151, 161, 168, 0.14);
-}
-
 .provider-profile__identity-card {
   align-items: center;
   background: #fff;
@@ -136,17 +109,44 @@
   padding: 0 44px 30px;
 }
 
+.provider-profile__avatar-shell {
+  display: block;
+  height: 116px;
+  margin-top: -54px;
+  position: relative;
+  width: 116px;
+  z-index: 2;
+}
+
+.provider-profile__online {
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(21, 33, 42, 0.18);
+  font-size: 18px;
+  font-weight: 800;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 24px;
+  position: absolute;
+  right: 24px;
+  top: 24px;
+}
+
+.provider-profile__online span {
+  background: #17c66a;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(23, 198, 106, 0.14);
+  height: 13px;
+  width: 13px;
+}
+
 .provider-profile__avatar {
   background: #9a5f28;
   border: 6px solid #fff;
   border-radius: 26px;
   box-shadow: 0 14px 30px rgba(42, 36, 31, 0.22);
-  height: 116px;
-  margin-top: -54px;
+  height: 100%;
   object-fit: cover;
-  position: relative;
-  width: 116px;
-  z-index: 2;
+  width: 100%;
 }
 
 .provider-profile__avatar--initials {
@@ -213,9 +213,13 @@
   display: grid;
   gap: 0;
   grid-column: 1 / -1;
-  grid-template-columns: minmax(140px, 170px) minmax(140px, 170px) minmax(210px, max-content) minmax(260px, max-content);
+  grid-template-columns: minmax(180px, 200px) minmax(230px, 250px) minmax(280px, 1fr);
   margin-top: 4px;
   padding-top: 28px;
+}
+
+.provider-profile__stats--with-vehicle {
+  grid-template-columns: minmax(180px, 200px) minmax(230px, 250px) minmax(180px, 220px) minmax(280px, 1fr);
 }
 
 .provider-profile__stats div {
@@ -235,7 +239,7 @@
   border-right: 0;
 }
 
-.provider-profile__stats span {
+.provider-profile__stats > div > span {
   align-items: center;
   background: #f0e6dc;
   border-radius: 50%;
@@ -247,6 +251,70 @@
   width: 48px;
 }
 
+.provider-profile__stats .provider-profile__rating-stars {
+  background: none !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+  flex: 0 0 auto;
+  height: auto;
+  margin-left: 0;
+  padding: 0;
+  width: auto;
+}
+
+.provider-profile__stats .provider-profile__service-stat > span {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  flex-basis: 58px;
+  height: 58px;
+  padding: 0;
+  width: 58px;
+}
+
+.provider-profile__stats .provider-profile__service-stat {
+  gap: 20px;
+  min-height: 70px;
+}
+
+.provider-profile__stats .provider-profile__service-stat p {
+  gap: 6px;
+}
+
+.provider-profile__stats .provider-profile__service-stat strong {
+  font-size: 25px;
+}
+
+.provider-profile__stats .provider-profile__service-stat small {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.provider-profile__stats .provider-profile__review-stat {
+  align-content: center;
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-height: 70px;
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 28px;
+}
+
+.provider-profile__stats .provider-profile__review-stat .provider-profile__review-total {
+  color: #858585;
+  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  margin-left: 0;
+  text-align: center;
+}
+
 .provider-profile__movement-stat {
   align-items: center;
   justify-content: center;
@@ -255,93 +323,6 @@
 .provider-profile__vehicle-stat {
   align-items: center;
   justify-content: center;
-}
-
-.provider-profile__stats .provider-profile__vehicle-badge {
-  align-items: center;
-  background: #f1e8dc;
-  border: 1px solid #ded0bd;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgb(95 66 31 / 8%), inset 0 1px 0 rgb(255 255 255 / 65%);
-  color: #5f421f;
-  display: inline-flex;
-  flex: initial;
-  gap: 9px;
-  height: auto;
-  justify-content: center;
-  min-height: 38px;
-  padding: 7px 17px 7px 14px;
-  width: auto;
-}
-
-.provider-profile__stats .provider-profile__vehicle-badge img {
-  display: block;
-  flex: 0 0 auto;
-  height: 20px;
-  object-fit: contain;
-  width: 20px;
-}
-
-.provider-profile__stats .provider-profile__vehicle-badge strong {
-  color: #5f421f;
-  font-size: 13px;
-  font-weight: 950;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.provider-profile__stats .provider-profile__movement-badge {
-  align-items: center;
-  background: #f5c0bd;
-  border-radius: 999px;
-  color: #d7141f;
-  display: inline-flex;
-  flex: initial;
-  gap: 4px;
-  height: auto;
-  justify-content: center;
-  max-width: 100%;
-  min-height: 40px;
-  overflow: visible;
-  padding: 8px 14px;
-  width: auto;
-}
-
-.provider-profile__stats .provider-profile__movement-badge--parcel {
-  background: #efe2d1;
-  color: #94612d;
-}
-
-.provider-profile__stats .provider-profile__movement-badge--provider {
-  background: #bfe0b3;
-  color: #436b45;
-}
-
-.provider-profile__stats .provider-profile__movement-badge--flexible {
-  background: #efe2d1;
-  color: #7a4318;
-}
-
-.provider-profile__stats .provider-profile__movement-badge strong {
-  color: inherit;
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1.15;
-  overflow: visible;
-  text-align: center;
-  white-space: normal;
-}
-
-.provider-profile__stats .provider-profile__movement-badge img {
-  display: block;
-  flex: 0 0 auto;
-  height: 24px;
-  object-fit: contain;
-  width: 30px;
-}
-
-.provider-profile__stats .provider-profile__movement-badge img[src*="livraisonde_colis"] {
-  width: 42px;
 }
 
 .provider-profile__stats p {
@@ -508,8 +489,12 @@
 
 .provider-profile__gallery-fallback {
   align-items: center;
-  background: linear-gradient(135deg, #f8efe5, #ead8c4);
-  color: #865221;
+  background: linear-gradient(
+    135deg,
+    var(--service-gallery-placeholder-start),
+    var(--service-gallery-placeholder-end)
+  );
+  color: var(--service-gallery-placeholder-text);
   display: inline-flex;
   font-size: 28px;
   font-weight: 950;
@@ -571,8 +556,8 @@
 
 .provider-profile__service-thumb-image strong {
   align-items: center;
-  background: #9a5f28;
-  color: #fff;
+  background: var(--service-gallery-thumbnail-placeholder);
+  color: var(--service-gallery-thumbnail-text);
   display: flex;
   font-size: 17px;
   font-weight: 950;
@@ -874,7 +859,8 @@
 }
 
 @media (max-width: 900px) {
-  .provider-profile__stats {
+  .provider-profile__stats,
+  .provider-profile__stats--with-vehicle {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -898,15 +884,6 @@
     height: 230px;
   }
 
-  .provider-profile__online {
-    font-size: 14px;
-    left: 64px;
-    min-height: 42px;
-    padding: 0 14px;
-    right: auto;
-    top: 14px;
-  }
-
   .provider-profile__back {
     height: 42px;
     left: 14px;
@@ -921,7 +898,7 @@
     padding: 0 22px 26px;
   }
 
-  .provider-profile__avatar {
+  .provider-profile__avatar-shell {
     grid-column: 1;
     grid-row: 1;
     height: 88px;
@@ -984,6 +961,15 @@
     padding: 12px;
   }
 
+  .provider-profile__stats .provider-profile__review-stat {
+    padding-inline: 12px;
+  }
+
+  .provider-profile__stats .provider-profile__rating-stars,
+  .provider-profile__stats .provider-profile__review-stat .provider-profile__review-total {
+    margin-left: 0;
+  }
+
   .provider-profile__stats div:first-child {
     padding-left: 12px;
   }
@@ -999,10 +985,16 @@
     padding: 10px;
   }
 
-  .provider-profile__stats span:not(.provider-profile__vehicle-badge):not(.provider-profile__movement-badge) {
+  .provider-profile__stats > div > span:not(.provider-profile__rating-stars) {
     flex-basis: 42px;
     height: 42px;
     width: 42px;
+  }
+
+  .provider-profile__stats .provider-profile__service-stat > span {
+    flex-basis: 44px;
+    height: 44px;
+    width: 44px;
   }
 
   .provider-profile__stats p {
@@ -1016,32 +1008,6 @@
   .provider-profile__stats p small {
     font-size: 12px;
     line-height: 1.2;
-  }
-
-  .provider-profile__stats .provider-profile__movement-badge {
-    border: 1px solid rgba(116, 77, 42, 0.12);
-    border-radius: 16px;
-    justify-content: space-between;
-    min-height: 48px;
-    padding: 8px 14px 8px 16px;
-    width: 100%;
-  }
-
-  .provider-profile__stats .provider-profile__movement-badge strong {
-    font-size: 13px;
-    text-align: left;
-  }
-
-  .provider-profile__stats .provider-profile__movement-badge img {
-    height: 34px;
-    width: 46px;
-  }
-
-  .provider-profile__stats .provider-profile__vehicle-badge {
-    border-radius: 14px;
-    justify-content: flex-start;
-    min-height: 44px;
-    width: 100%;
   }
 
   .provider-profile__side {
@@ -1080,7 +1046,10 @@
   }
 
   .provider-profile__online {
+    font-size: 14px;
     left: 64px;
+    min-height: 42px;
+    padding: 0 14px;
     right: auto;
     top: 14px;
   }
@@ -1090,7 +1059,7 @@
     padding: 0 16px 20px;
   }
 
-  .provider-profile__avatar {
+  .provider-profile__avatar-shell {
     height: 78px;
     margin-top: -34px;
     width: 78px;

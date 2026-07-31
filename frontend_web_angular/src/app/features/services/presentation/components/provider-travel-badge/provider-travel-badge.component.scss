@@ -1,0 +1,160 @@
+:host {
+  display: contents;
+}
+
+.provider-travel-badge {
+  box-sizing: border-box;
+  color: #7a4318;
+  font-family: var(--font-app);
+}
+
+.provider-travel-badge--movement {
+  align-items: center;
+  background: #f5c0bd;
+  border-radius: 10px;
+  color: #d7141f;
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 3px 0 12px;
+  position: relative;
+}
+
+.provider-travel-badge--movement > span {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 850;
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 74px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-travel-badge--movement img {
+  display: block;
+  flex: 0 0 auto;
+  height: 100%;
+  max-height: 40px;
+  min-height: 40px;
+  min-width: 70px;
+  object-fit: contain;
+  object-position: center;
+  position: absolute;
+  right: 3px;
+  transform: scale(1.12);
+  transform-origin: center;
+  width: auto;
+}
+
+.provider-travel-badge--provider {
+  background: #bfe0b3;
+  color: #436b45;
+}
+
+.provider-travel-badge--parcel {
+  background: #efe2d1;
+  color: #94612d;
+}
+
+.provider-travel-badge--vehicle {
+  align-items: center;
+  background: rgba(255, 248, 241, 0.94);
+  border: 1px solid #e2c5aa;
+  border-radius: 18px;
+  box-shadow: 0 8px 18px rgba(31, 23, 15, 0.12);
+  display: inline-flex;
+  gap: 6px;
+  height: 52px;
+  max-width: 170px;
+  padding: 5px 12px 5px 8px;
+  width: 170px;
+}
+
+.provider-travel-badge--vehicle img {
+  display: block;
+  flex: 0 0 auto;
+  height: 40px;
+  object-fit: contain;
+  width: 40px;
+}
+
+.provider-travel-badge--vehicle > span {
+  color: inherit;
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-travel-badge--overlay {
+  left: 12px;
+  max-width: calc(100% - 24px);
+  position: absolute;
+  top: 12px;
+  width: min(170px, 42cqi);
+  z-index: 3;
+}
+
+@media (max-width: 767px) {
+  .provider-travel-badge--movement {
+    min-height: 36px;
+  }
+
+  .provider-travel-badge--overlay {
+    height: 46px;
+    top: 8px;
+  }
+
+  .provider-travel-badge--overlay img {
+    height: 34px;
+    width: 34px;
+  }
+}
+
+@container provider-card (max-width: 340px) {
+  .provider-travel-badge--overlay {
+    border-radius: 15px;
+    gap: 5px;
+    height: 44px;
+    left: 8px;
+    max-width: calc(100% - 16px);
+    padding: 4px 9px 4px 6px;
+    top: 8px;
+    width: 46cqi;
+  }
+
+  .provider-travel-badge--overlay img {
+    height: clamp(26px, 10cqi, 32px);
+    width: clamp(26px, 10cqi, 32px);
+  }
+
+  .provider-travel-badge--overlay > span {
+    font-size: 12px;
+  }
+}
+
+@container provider-card (max-width: 250px) {
+  .provider-travel-badge--overlay {
+    left: 6px;
+    max-width: calc(100% - 12px);
+    padding-inline: 5px 7px;
+    width: 48cqi;
+  }
+
+  .provider-travel-badge--overlay img {
+    height: 28px;
+    width: 28px;
+  }
+
+  .provider-travel-badge--overlay > span {
+    font-size: 11px;
+  }
+}

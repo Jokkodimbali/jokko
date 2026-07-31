@@ -20,7 +20,7 @@ export interface MedicalReceiptDocumentData {
   generatedAtIso: string;
 }
 
-type MedicalPrescriptionItem = {
+export type MedicalPrescriptionItem = {
   label: string;
   text: string;
 };
@@ -293,7 +293,7 @@ export class AppointmentDocumentBuilderService {
     return `Le prestataire ${appointment.doctorName} s'est deplace chez le client ${appointment.clientName} a l'adresse : ${appointment.addressLabel}.`;
   }
 
-  private medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): MedicalPrescriptionItem[] {
+  medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): MedicalPrescriptionItem[] {
     return [
       ...prescription.treatments.map((treatment) => ({
         label: 'Traitement',

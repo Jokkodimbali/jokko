@@ -1,0 +1,15 @@
+<span
+  class="provider-travel-badge"
+  [class.provider-travel-badge--movement]="variant === 'movement'"
+  [class.provider-travel-badge--vehicle]="variant === 'vehicle'"
+  [class.provider-travel-badge--overlay]="overlay"
+  [class.provider-travel-badge--provider]="tone === 'PRESTATAIRE_SE_DEPLACE'"
+  [class.provider-travel-badge--parcel]="tone === 'TRANSPORT_COLIS'"
+  [attr.aria-label]="label"
+>
+  <span>{{ label }}</span>
+  <img *ngIf="imageUrl; else iconList" [src]="imageUrl" [alt]="variant === 'vehicle' ? label : ''" [attr.aria-hidden]="variant === 'movement' ? true : null" />
+  <ng-template #iconList>
+    <lucide-icon *ngFor="let icon of icons" [name]="icon" size="15" [strokeWidth]="2.6"></lucide-icon>
+  </ng-template>
+</span>

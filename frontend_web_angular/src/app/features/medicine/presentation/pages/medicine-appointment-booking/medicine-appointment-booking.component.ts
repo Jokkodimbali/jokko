@@ -39,6 +39,11 @@ import {
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
+import {
+  AppointmentTrackingStepperComponent,
+  appointmentJourneyProgress,
+  medicineAppointmentJourneySteps,
+} from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
 const PROFESSIONAL_VEHICLE_BADGES: Record<
@@ -111,6 +116,7 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
     AppPresenceStatusComponent,
     ServiceProposalDetailsModalComponent,
     AppStarRatingComponent,
+    AppointmentTrackingStepperComponent,
   ],
   templateUrl: './medicine-appointment-booking.component.html',
   styleUrl: './medicine-appointment-booking.component.scss',
@@ -135,6 +141,8 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly user = signal<UserProfileDto | null>(null);
   protected readonly activeStep = signal<BookingStep>('PERSONAL');
+  protected readonly journeySteps = medicineAppointmentJourneySteps(1);
+  protected readonly journeyProgress = appointmentJourneyProgress(1);
   protected readonly appointmentFor = signal<AppointmentFor>('ME');
   protected readonly selectedServiceId = signal<string>('');
   protected readonly selectedDateIso = signal<string>('');

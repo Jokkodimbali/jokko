@@ -6,6 +6,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { ProviderTravelBadgeComponent } from '../provider-travel-badge/provider-travel-badge.component';
 import { ProfessionalVehicleType } from '../../../domain/models/services.models';
+import { ProfessionalMessagingNavigationService } from '../../../../messages/data-access/professional-messaging-navigation.service';
 
 export interface ProviderCardImage {
   url: string;
@@ -84,6 +85,7 @@ const TRAVEL_MODE_IMAGES: Record<ProviderCardTravelMode, string> = {
 })
 export class ProviderCardComponent {
   private readonly router = inject(Router);
+  private readonly messagingNavigation = inject(ProfessionalMessagingNavigationService);
 
   @Input({ required: true }) provider!: ProviderCardView;
   @Input() isFavorite = false;
@@ -175,6 +177,17 @@ export class ProviderCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.primaryAction.emit();
+  }
+
+  protected openMessages(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.messagingNavigation.open({
+      professionalProfileId: this.provider.id,
+      professionalUserId: this.provider.userId,
+      providerName: this.provider.name,
+      serviceId: this.provider.queryParams?.['serviceId'] ?? undefined,
+    });
   }
 
   protected stopCardNavigation(event: Event): void {

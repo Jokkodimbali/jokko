@@ -333,7 +333,7 @@
 }
 
 .app-navbar__notification {
-  border-radius: 10px;
+  border-radius: var(--app-navbar-profile-radius);
   color: #865221;
   cursor: pointer;
   flex: 0 0 auto;

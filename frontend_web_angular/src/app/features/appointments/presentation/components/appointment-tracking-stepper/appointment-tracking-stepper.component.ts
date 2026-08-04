@@ -16,12 +16,30 @@ const APPOINTMENT_JOURNEY_LABELS = [
   'Suivi rendez-vous',
 ] as const;
 
-export function appointmentJourneySteps(currentStep: 1 | 2 | 3 | 4): AppointmentTrackingStep[] {
-  return APPOINTMENT_JOURNEY_LABELS.map((label, index) => ({
+const MEDICINE_APPOINTMENT_JOURNEY_LABELS = [
+  'Informations patient',
+  'Paiement',
+  'Confirmé',
+  'Suivi rendez-vous',
+] as const;
+
+function journeySteps(
+  labels: readonly string[],
+  currentStep: 1 | 2 | 3 | 4,
+): AppointmentTrackingStep[] {
+  return labels.map((label, index) => ({
     label,
     icon: 'circle',
     state: index + 1 < currentStep ? 'done' : index + 1 === currentStep ? 'active' : 'pending',
   }));
+}
+
+export function appointmentJourneySteps(currentStep: 1 | 2 | 3 | 4): AppointmentTrackingStep[] {
+  return journeySteps(APPOINTMENT_JOURNEY_LABELS, currentStep);
+}
+
+export function medicineAppointmentJourneySteps(currentStep: 1 | 2 | 3 | 4): AppointmentTrackingStep[] {
+  return journeySteps(MEDICINE_APPOINTMENT_JOURNEY_LABELS, currentStep);
 }
 
 export function appointmentJourneyProgress(currentStep: 1 | 2 | 3 | 4): number {

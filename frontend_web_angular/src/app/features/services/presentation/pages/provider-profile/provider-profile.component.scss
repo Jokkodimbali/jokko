@@ -310,7 +310,8 @@
 
 .provider-profile__movement-stat {
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: 24px !important;
 }
 
 .provider-profile__vehicle-stat {
@@ -976,6 +977,11 @@
     grid-column: 1 / -1;
     min-height: 62px;
     padding: 10px;
+  }
+
+  .provider-profile__stats > div.provider-profile__movement-stat {
+    justify-content: center;
+    padding-left: 10px !important;
   }
 
   .provider-profile__stats > div > span:not(.provider-profile__rating-stars) {

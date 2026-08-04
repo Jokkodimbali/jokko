@@ -18,35 +18,6 @@
   font-family: var(--font-app);
 }
 
-.medicine-booking__topbar {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin: 0 auto;
-  min-height: 54px;
-  width: min(calc(100% - 40px), 1160px);
-}
-
-.medicine-booking__back,
-.medicine-booking__secure {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: #626b76;
-  display: inline-flex;
-  font-size: 14px;
-  font-weight: 650;
-  gap: 8px;
-}
-
-.medicine-booking__back {
-  cursor: pointer;
-}
-
-.medicine-booking__secure {
-  color: #009b55;
-}
-
 .medicine-booking__shell {
   margin: 0 auto;
   width: min(calc(100% - 40px), 1160px);
@@ -1090,13 +1061,8 @@
 }
 
 @media (max-width: 720px) {
-  .medicine-booking__topbar,
   .medicine-booking__shell {
     width: min(calc(100% - 18px), 640px);
-  }
-
-  .medicine-booking__secure {
-    display: none;
   }
 
   .medicine-booking__card-head {

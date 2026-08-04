@@ -100,7 +100,7 @@ describe('ReservationCommandService', () => {
         statut: 'ACCEPTEE',
         montantCourant: 12000,
         montantAccepte: 12000,
-        dateHeureProposee: new Date('2026-06-20T10:00:00.000Z'),
+        dateHeureProposee: new Date('2030-06-20T10:00:00.000Z'),
         adresseClientProposee: 'Dakar Plateau',
         dureeMinutesProposee: 60,
       }),
@@ -145,7 +145,7 @@ describe('ReservationCommandService', () => {
     try {
       await service.createReservationFromNegotiation(clientUser, {
         negotiationId: 'negotiation-id',
-        dateHeure: '2026-06-21T10:00:00.000Z',
+        dateHeure: '2030-06-21T10:00:00.000Z',
         adresseClient: 'Dakar Plateau',
         dureeMinutes: 60,
       });

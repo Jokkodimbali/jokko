@@ -8,6 +8,7 @@ import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
   appointmentJourneySteps,
+  medicineAppointmentJourneySteps,
 } from '../../components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -69,9 +70,13 @@ export class AppointmentPaymentPageComponent implements OnInit {
     return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS' || status === 'TERMINEE';
   });
   protected readonly journeyCurrentStep = computed<2 | 3>(() => this.isPaymentConfirmed() ? 3 : 2);
-  protected readonly journeySteps = computed(() => appointmentJourneySteps(this.journeyCurrentStep()));
-  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyCurrentStep()));
   protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
+  protected readonly journeySteps = computed(() =>
+    this.isMedicinePaymentFlow()
+      ? medicineAppointmentJourneySteps(this.journeyCurrentStep())
+      : appointmentJourneySteps(this.journeyCurrentStep()),
+  );
+  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyCurrentStep()));
   protected readonly counterpartRoleLabel = computed(() =>
     this.isProfessionalViewer()
       ? 'Client'

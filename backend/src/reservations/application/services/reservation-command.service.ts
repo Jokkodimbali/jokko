@@ -821,6 +821,7 @@ export class ReservationCommandService extends ReservationAppService {
     if (
       negotiatedDate &&
       !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() > Date.now() &&
       negotiatedDate.getTime() !== requestedDate.getTime()
     ) {
       throw appHttpException('RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH');

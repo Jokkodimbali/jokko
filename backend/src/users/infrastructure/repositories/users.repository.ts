@@ -263,14 +263,28 @@ export class UsersRepository implements UsersRepositoryPort {
           latitude !== undefined ||
           longitude !== undefined
         ) {
-          await tx.profilProfessionnel.updateMany({
-            where: { utilisateurId: userId },
-            data: {
-              ...(data.adresse !== undefined ? { ville: data.adresse } : {}),
-              ...(latitude !== undefined ? { latitude } : {}),
-              ...(longitude !== undefined ? { longitude } : {}),
-            },
-          });
+          if (data.adresse !== undefined) {
+            await tx.profilProfessionnel.updateMany({
+              where: { utilisateurId: userId },
+              // `city` is kept for backward compatibility and is limited to
+              // 100 characters. The complete address remains on the user.
+              data: { ville: data.adresse?.slice(0, 100) ?? null },
+            });
+          }
+
+          if (latitude === null || longitude === null) {
+            await tx.$executeRaw`
+              UPDATE professional_profiles
+              SET localisation = NULL
+              WHERE user_id = ${userId}::uuid
+            `;
+          } else if (latitude !== undefined && longitude !== undefined) {
+            await tx.$executeRaw`
+              UPDATE professional_profiles
+              SET localisation = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+              WHERE user_id = ${userId}::uuid
+            `;
+          }
         }
         return updatedUser;
       });

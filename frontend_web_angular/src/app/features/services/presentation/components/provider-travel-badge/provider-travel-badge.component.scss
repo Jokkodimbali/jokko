@@ -51,6 +51,25 @@
   width: auto;
 }
 
+.provider-travel-badge--movement.provider-travel-badge--compact {
+  border-radius: 7px;
+  flex: 0 1 210px;
+  min-height: 34px;
+  padding-left: 10px;
+}
+
+.provider-travel-badge--movement.provider-travel-badge--compact > span {
+  font-size: 12px;
+  padding-right: 62px;
+}
+
+.provider-travel-badge--movement.provider-travel-badge--compact img {
+  max-height: 34px;
+  min-height: 34px;
+  min-width: 58px;
+  transform: scale(1.04);
+}
+
 .provider-travel-badge--provider {
   background: #bfe0b3;
   color: #436b45;

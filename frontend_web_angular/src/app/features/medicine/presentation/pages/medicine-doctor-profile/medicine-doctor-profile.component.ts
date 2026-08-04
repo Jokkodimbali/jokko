@@ -266,7 +266,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
     const profile = detail.profile;
     const medicalSpecialty = this.extractMedicalSpecialty(profile.biographie);
     const nextAvailability = this.buildNextAvailabilityLabels(detail.availabilities);
-    const interventionAddress = profile.ville || profile.utilisateur.adresse || 'Localisation non renseignee';
+    const interventionAddress = profile.utilisateur.adresse || profile.ville || 'Localisation non renseignee';
     const modes = Array.from(new Set(
       detail.services
         .map(s => s.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)

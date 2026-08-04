@@ -441,12 +441,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return this.formatAmount(amount);
   });
   protected readonly providerCounterDifferenceLabel = computed(() =>
-    this.customServiceName()
-      ? 'Prix proposé par le client pour ce nouveau motif'
-      : this.pricingView.providerCounterDifferenceLabel(
-          this.providerBaseOfferAmount(),
-          this.offerAmount(),
-        ),
+    this.pricingView.counterOfferDifferenceFromLastReceived({
+      proposal: this.pendingProposal(),
+      offerAmount: this.offerAmount(),
+      viewer: 'PRESTATAIRE',
+    }),
   );
   protected readonly providerCounterActionLabel = computed(() =>
     this.pricingView.providerCounterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -745,9 +744,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
   protected readonly counterDifferenceLabel = computed(() =>
-    this.hasProviderCounterOffer()
-      ? this.pricingView.clientCounterDifferenceLabel(this.fairServiceAmount(), this.offerAmount())
-      : this.pricingView.counterDifferenceLabel(this.pendingProposal()),
+    this.pricingView.counterOfferDifferenceFromLastReceived({
+      proposal: this.pendingProposal(),
+      offerAmount: this.offerAmount(),
+      viewer: 'CLIENT',
+    }),
   );
   protected readonly counterActionLabel = computed(() =>
     this.pricingView.counterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -1472,6 +1473,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (this.hasBlockingMaterialQuote()) {
       this.feedback.info('Validez ou refusez le devis materiel avant de finaliser la reservation.');
+      return;
+    }
+
+    if (!this.ensureFutureSlotForExpiredProposal(proposal, service)) {
       return;
     }
 
@@ -3216,8 +3221,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private buildAcceptedNegotiationReservationPayload(
     proposal: NegotiationView,
   ): CreateReservationFromNegotiationPayload | null {
-    const dateHeure = proposal.dateHeureProposee
-      ? this.toIsoDateTime(proposal.dateHeureProposee)
+    const negotiatedDate = proposal.dateHeureProposee
+      ? new Date(proposal.dateHeureProposee)
+      : null;
+    const negotiatedDateIsFuture = Boolean(
+      negotiatedDate &&
+      !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() > Date.now(),
+    );
+    const dateHeure = negotiatedDateIsFuture
+      ? negotiatedDate!.toISOString()
       : this.toIsoDateTime(this.appointmentDate());
     const adresseClient =
       proposal.adresseClientProposee?.trim() ||
@@ -3232,6 +3245,42 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       adresseClient,
       dureeMinutes,
     });
+  }
+
+  private ensureFutureSlotForExpiredProposal(
+    proposal: NegotiationView,
+    service: BackendProfessionalDetailService,
+  ): boolean {
+    const negotiatedDate = proposal.dateHeureProposee
+      ? new Date(proposal.dateHeureProposee)
+      : null;
+    if (
+      negotiatedDate &&
+      !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() > Date.now()
+    ) {
+      return true;
+    }
+
+    const selectedDate = this.toIsoDateTime(this.appointmentDate());
+    if (!selectedDate || !this.isValidAppointmentDate()) {
+      this.feedback.info("L'ancien horaire est depasse. Choisissez un nouveau creneau disponible.");
+      this.openDetailsModal('schedule');
+      return false;
+    }
+
+    const availability = this.availabilityStatus();
+    if (!availability || availability.dateHeure !== selectedDate || !availability.available) {
+      this.feedback.info(
+        availability?.reason ||
+          "L'ancien horaire est depasse. Selectionnez et verifiez un nouveau creneau.",
+      );
+      this.openDetailsModal('schedule');
+      this.checkAvailabilityNow(service, selectedDate);
+      return false;
+    }
+
+    return true;
   }
 
   private resetParcelDeliveryPricing(): void {

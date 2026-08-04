@@ -171,6 +171,12 @@ export class MessagingCommandService extends MessagingAppService {
     if (!resolvedProfessional || !resolvedProfessional.utilisateur.estActif) {
       throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
     }
+    if (
+      normalizedUserId &&
+      resolvedProfessional.utilisateur.id !== normalizedUserId
+    ) {
+      throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
+    }
     if (resolvedProfessional.utilisateur.id === requestUser.sub) {
       throw appHttpException('MESSAGING_SELF_CONVERSATION_FORBIDDEN');
     }

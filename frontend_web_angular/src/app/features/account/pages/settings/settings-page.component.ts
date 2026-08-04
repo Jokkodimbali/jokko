@@ -106,6 +106,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isEditingProfessionalAbout = signal(false);
   protected readonly isEditingAddress = signal(false);
   protected readonly isAddressMapVisible = signal(false);
+  protected readonly isAddressMapExpanded = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
   protected readonly paymentHistory = signal<PaymentHistoryView[]>([]);
@@ -420,6 +421,7 @@ export class SettingsPageComponent implements OnInit {
     this.syncForms(this.profile());
     this.isEditingProfile.set(true);
     this.isAddressMapVisible.set(false);
+    this.isAddressMapExpanded.set(false);
   }
 
   protected startProfessionalAboutEdit(): void {
@@ -436,6 +438,7 @@ export class SettingsPageComponent implements OnInit {
     this.syncForms(this.profile());
     this.isEditingProfile.set(false);
     this.isAddressMapVisible.set(false);
+    this.isAddressMapExpanded.set(false);
   }
 
   protected cancelProfessionalAboutEdit(): void {
@@ -484,6 +487,10 @@ export class SettingsPageComponent implements OnInit {
 
   protected showAddressMap(): void {
     this.isAddressMapVisible.set(true);
+  }
+
+  protected setAddressMapExpanded(expanded: boolean): void {
+    this.isAddressMapExpanded.set(expanded);
   }
 
   protected saveProfessionalAbout(): void {

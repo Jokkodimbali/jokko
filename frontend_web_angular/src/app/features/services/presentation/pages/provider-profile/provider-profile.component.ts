@@ -305,7 +305,7 @@ export class ProviderProfileComponent implements OnInit {
     const coordinates = this.resolveMapCoordinates(detail);
     const query = coordinates
       ? `${coordinates.latitude},${coordinates.longitude}`
-      : detail?.profile.ville || '';
+      : this.formatLocation();
     if (!query) {
       return null;
     }
@@ -425,16 +425,27 @@ export class ProviderProfileComponent implements OnInit {
     latitude: number;
     longitude: number;
   } | null {
-    const liveLatitude = detail?.presence.lastLatitude;
-    const liveLongitude = detail?.presence.lastLongitude;
-    if (this.isValidCoordinate(liveLatitude, liveLongitude)) {
-      return { latitude: liveLatitude, longitude: liveLongitude as number };
+    const realtimeProfile = this.presence.professionalProfile(
+      detail?.profile.utilisateurId,
+      detail?.profile.id,
+    );
+    if (this.isValidCoordinate(realtimeProfile?.latitude, realtimeProfile?.longitude)) {
+      return {
+        latitude: realtimeProfile.latitude,
+        longitude: realtimeProfile.longitude as number,
+      };
     }
 
     const profileLatitude = detail?.profile.latitude;
     const profileLongitude = detail?.profile.longitude;
     if (this.isValidCoordinate(profileLatitude, profileLongitude)) {
       return { latitude: profileLatitude, longitude: profileLongitude as number };
+    }
+
+    const liveLatitude = detail?.presence.lastLatitude;
+    const liveLongitude = detail?.presence.lastLongitude;
+    if (this.isValidCoordinate(liveLatitude, liveLongitude)) {
+      return { latitude: liveLatitude, longitude: liveLongitude as number };
     }
 
     return null;

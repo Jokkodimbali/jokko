@@ -291,7 +291,8 @@
             <div *ngIf="isAddressMapVisible()" class="settings-page__address-map">
               <app-service-proposal-interactive-map
                 [address]="addressForm.address"
-                [expanded]="false"
+                [expanded]="isAddressMapExpanded()"
+                (expandedChange)="setAddressMapExpanded($event)"
                 (addressSelected)="updateAddressFromMap($event)"
                 (addressResolved)="resolveAddressFromMap($event)"
               ></app-service-proposal-interactive-map>

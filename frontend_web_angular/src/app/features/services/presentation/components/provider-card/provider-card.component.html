@@ -128,15 +128,14 @@
     </ng-template>
 
     <div class="provider-card__actions">
-      <a
+      <button
+        type="button"
         class="provider-card__action provider-card__action--message"
-        [routerLink]="provider.messageCommands || ['/messages']"
-        [queryParams]="provider.messageQueryParams"
-        (click)="stopCardNavigation($event)"
+        (click)="openMessages($event)"
       >
         <lucide-icon name="message-circle" size="14" [strokeWidth]="2.4"></lucide-icon>
         <span>Message</span>
-      </a>
+      </button>
       <button
         type="button"
         class="provider-card__action provider-card__action--primary"

@@ -1052,8 +1052,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const queryParams = provider.serviceId ? { serviceId: provider.serviceId } : null;
     const profileCommands = this.providerProfileCommands(provider);
     const messageQueryParams = {
-      professionalId: provider.id,
-      ...(provider.userId ? { professionalUserId: provider.userId } : {}),
+      ...(provider.userId
+        ? { professionalUserId: provider.userId }
+        : { professionalId: provider.id }),
       providerName: provider.nom,
       ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
     };

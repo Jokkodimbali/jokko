@@ -515,11 +515,31 @@
 }
 
 .app-navbar__login {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--app-navbar-profile-radius);
+  box-shadow: 0 8px 18px rgba(48, 28, 10, 0.16);
   font-size: 16px;
   font-weight: 800;
+  min-width: 126px;
   padding: 0 22px;
   text-decoration: none;
-  width: 126px;
+  width: auto;
+  transition:
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-navbar__login:hover,
+.app-navbar__login:focus-visible {
+  box-shadow: 0 12px 24px rgba(48, 28, 10, 0.24);
+  color: var(--color-brand, #865221);
+  transform: translateY(-1px);
+}
+
+.app-navbar__login:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 3px;
 }
 
 .app-navbar__profile {

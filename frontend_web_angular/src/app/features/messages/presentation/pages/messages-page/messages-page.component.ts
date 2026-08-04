@@ -18,6 +18,7 @@ import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
@@ -95,6 +96,7 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
     LucideAngularModule,
     AppNavbarComponent,
     AppStarRatingComponent,
+    AppPresenceDotComponent,
     MessageComposerComponent,
   ],
   templateUrl: './messages-page.component.html',
@@ -163,6 +165,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly completionClock = signal(Date.now());
   private realtimeMessageSubscription: Subscription | null = null;
   private reservationRealtimeSubscription: Subscription | null = null;
+  private routeQuerySubscription: Subscription | null = null;
   private reservationRealtimeScope: 'CLIENT' | 'PRESTATAIRE' | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private voiceChunks: Blob[] = [];
@@ -407,6 +410,29 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.startReservationRealtime();
     this.startProposalRefresh();
     this.loadConversations();
+    let isInitialQueryEmission = true;
+    this.routeQuerySubscription = this.route.queryParamMap.subscribe((query) => {
+      if (isInitialQueryEmission) {
+        isInitialQueryEmission = false;
+        return;
+      }
+
+      const professionalId = query.get('professionalId');
+      const professionalUserId = query.get('professionalUserId');
+      if (!professionalId && !professionalUserId) return;
+      if (
+        professionalId === this.requestedDirectProfessionalId() &&
+        professionalUserId === this.requestedDirectProfessionalUserId()
+      ) {
+        return;
+      }
+
+      this.clearPendingMedia();
+      this.selectedConversationId.set(null);
+      this.messages.set([]);
+      this.readPendingProposalFromQuery();
+      this.loadConversations();
+    });
   }
 
   ngOnDestroy(): void {
@@ -424,6 +450,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
     this.realtimeMessageSubscription?.unsubscribe();
     this.reservationRealtimeSubscription?.unsubscribe();
+    this.routeQuerySubscription?.unsubscribe();
     if (this.reservationRealtimeScope) {
       this.reservationsRealtime.stopWatching(this.reservationRealtimeScope);
     }

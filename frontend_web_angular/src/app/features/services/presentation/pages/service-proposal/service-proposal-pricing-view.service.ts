@@ -33,17 +33,31 @@ export class ServiceProposalPricingViewService {
     );
   }
 
-  providerCounterDifferenceLabel(base: number, offerAmount: number): string {
-    const amount = Math.trunc(Number(offerAmount));
-    if (!base || !Number.isFinite(amount) || amount <= 0) {
-      return 'Montant a confirmer avec le client';
+  counterOfferDifferenceFromLastReceived(input: {
+    proposal: NegotiationView | null;
+    offerAmount: number;
+    viewer: 'CLIENT' | 'PRESTATAIRE';
+  }): string {
+    const receivedFrom = input.viewer === 'CLIENT' ? 'PRESTATAIRE' : 'CLIENT';
+    const receivedLabel = input.viewer === 'CLIENT' ? 'du prestataire' : 'du client';
+    const base = input.proposal
+      ? this.latestNegotiationOffer(input.proposal, receivedFrom)
+      : null;
+    const amount = Math.trunc(Number(input.offerAmount));
+
+    if (!base) return `Aucune offre ${receivedLabel} a comparer`;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return `Montant a comparer a la derniere offre ${receivedLabel}`;
     }
 
-    const difference = Math.abs(amount - base);
-    if (difference === 0) return 'Votre contre-offre correspond a votre offre';
+    const normalizedBase = Math.trunc(base);
+    const difference = Math.abs(amount - normalizedBase);
+    if (difference === 0) {
+      return `Votre contre-offre correspond a la derniere offre ${receivedLabel}`;
+    }
 
-    const direction = amount < base ? 'moins cher que votre offre' : 'plus cher que votre offre';
-    return `${this.formatAmount(difference)} FCFA ${direction}`;
+    const direction = amount < normalizedBase ? 'moins chere' : 'plus chere';
+    return `${this.formatAmount(difference)} FCFA ${direction} que la derniere offre ${receivedLabel}`;
   }
 
   providerCounterActionLabel(proposal: NegotiationView | null, offerAmount: number): string {
@@ -57,20 +71,6 @@ export class ServiceProposalPricingViewService {
     return proposal?.statut === 'EN_ATTENTE_CLIENT'
       ? 'PRIX EQUITABLE MIS A JOUR'
       : 'PRIX EQUITABLE DU SERVICE';
-  }
-
-  clientCounterDifferenceLabel(servicePrice: number, offerAmount: number): string {
-    const base = Math.trunc(Number(servicePrice));
-    const amount = Math.trunc(Number(offerAmount));
-    if (!base || !Number.isFinite(amount) || amount <= 0) {
-      return 'Montant a confirmer avec le prestataire';
-    }
-
-    const difference = amount - base;
-    if (difference === 0) return 'Votre offre correspond au prix equitable du service';
-
-    const sign = difference > 0 ? '+' : '-';
-    return `${sign}${this.formatAmount(Math.abs(difference))} FCFA par rapport au prix equitable du service`;
   }
 
   offerDifferenceLabel(input: {
@@ -115,16 +115,6 @@ export class ServiceProposalPricingViewService {
     return input.isFixedPriceService
       ? 'Tarif du prestataire.'
       : 'Offre equitable pour le prestataire.';
-  }
-
-  counterDifferenceLabel(proposal: NegotiationView | null): string {
-    if (!proposal) return '';
-    const clientOffer = this.latestNegotiationOffer(proposal, 'CLIENT') ?? proposal.montantInitial;
-    const difference = Math.trunc(proposal.montantCourant - clientOffer);
-    if (difference === 0) return 'La proposition correspond a votre offre';
-
-    const direction = difference > 0 ? 'de plus que votre offre' : 'de moins que votre offre';
-    return `${this.formatAmount(Math.abs(difference))} FCFA ${direction}`;
   }
 
   counterActionLabel(proposal: NegotiationView | null, offerAmount: number): string {

@@ -18,6 +18,8 @@ export type FavoriteProfessionalVehicleType =
 export interface FavoriteItem {
   id: string;
   professionalId: string;
+  userId: string;
+  profileType: 'PRESTATAIRE' | 'MEDECIN';
   createdAt: string;
   name: string;
   subtitle: string;
@@ -35,6 +37,16 @@ export interface FavoriteItem {
     id: string;
     title: string;
     url: string;
+  }[];
+  services: {
+    id: string;
+    name: string;
+    price: number;
+    priceType: string;
+    travelMode?: FavoriteServiceTravelMode;
+    imageUrl: string | null;
+    categoryId: string;
+    categoryName: string;
   }[];
   service: {
     id: string;
@@ -111,4 +123,5 @@ export class FavoritesService {
         }),
       );
   }
+
 }

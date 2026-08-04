@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { FavoriteItem } from '../../../../core/favorites/favorites.service';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../core/presence/session-presence.service';
 import { FavoritesService } from '../../../../core/favorites/favorites.service';
 import { AccountShellComponent } from '../../../../shared/ui/account-shell/account-shell.component';
 import { userInitials } from '../../../../shared/utils/user-initials';
@@ -36,6 +37,7 @@ export class FavoritesPageComponent {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly presence = inject(SessionPresenceService);
 
   protected readonly favorites = this.favoritesService.favorites;
   protected readonly currentUser = this.authSession.currentUser;
@@ -48,7 +50,7 @@ export class FavoritesPageComponent {
 
   protected readonly totalFavorites = computed(() => this.favorites().length);
   protected readonly onlineFavorites = computed(() =>
-    this.favorites().filter((favorite) => favorite.isOnline).length,
+    this.favorites().filter((favorite) => this.isFavoriteOnline(favorite)).length,
   );
   protected readonly availableFavorites = computed(() =>
     this.favorites().filter((favorite) => favorite.isAvailableToday).length,
@@ -72,7 +74,7 @@ export class FavoritesPageComponent {
         category === 'Tous' ||
         (favorite.service?.categoryName || favorite.subtitle) === category;
       const matchesAvailability =
-        !this.availableOnly() || favorite.isOnline || favorite.isAvailableToday;
+        !this.availableOnly() || this.isFavoriteOnline(favorite) || favorite.isAvailableToday;
 
       return matchesCategory && matchesAvailability;
     });
@@ -89,6 +91,10 @@ export class FavoritesPageComponent {
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     });
   });
+
+  private isFavoriteOnline(favorite: FavoriteItem): boolean {
+    return this.presence.isOnlineFor(undefined, favorite.professionalId, favorite.isOnline);
+  }
 
   constructor() {
     if (!this.hasUsableFavoriteSession()) {
@@ -148,12 +154,7 @@ export class FavoritesPageComponent {
   }
 
   protected detailRoute(favorite: FavoriteItem): string[] {
-    const category = `${favorite.service?.categoryName ?? ''} ${favorite.subtitle ?? ''}`
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-
-    return category.includes('medecin') || category.includes('sante')
+    return favorite.profileType === 'MEDECIN'
       ? ['/medecine', favorite.professionalId]
       : ['/services', favorite.professionalId];
   }
@@ -170,13 +171,14 @@ export class FavoritesPageComponent {
     const isMedical = this.isMedicalFavorite(favorite);
     const travelMode = this.favoriteTravelMode(favorite);
     const messageQueryParams = {
-      professionalId: favorite.professionalId,
+      professionalUserId: favorite.userId,
       providerName: favorite.name,
       ...(serviceId ? { serviceId } : {}),
     };
 
     return {
       id: favorite.professionalId,
+      userId: favorite.userId,
       name: favorite.name,
       title: this.favoriteCardTitle(favorite),
       category: (favorite.service?.categoryName || favorite.subtitle || 'Service').toUpperCase(),
@@ -192,13 +194,11 @@ export class FavoritesPageComponent {
       priceRangeLabel: this.favoritePriceRangeLabel(favorite),
       isMedical,
       images,
-      services: favorite.service
-        ? [{
-            id: favorite.service.id,
-            name: favorite.service.name,
-            imageUrl: images[0]?.url ?? null,
-          }]
-        : [],
+      services: (favorite.services ?? []).map((service) => ({
+        id: service.id,
+        name: service.name,
+        imageUrl: service.imageUrl,
+      })),
       primaryActionLabel: isMedical ? 'Prendre rendez-vous' : 'Negocier',
       profileCommands: route,
       messageCommands: ['/messages'],
@@ -209,13 +209,19 @@ export class FavoritesPageComponent {
   }
 
   private favoritePriceRangeLabel(favorite: FavoriteItem): string {
-    const price = Number(favorite.service?.price);
-    if (!Number.isFinite(price) || price <= 0) {
+    const prices = (favorite.services ?? [])
+      .map((service) => Number(service.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+    if (!prices.length) {
       return favorite.service?.priceType === 'NEGOCIABLE' ? 'Prix negociable' : 'Tarif a confirmer';
     }
 
     const suffix = favorite.service?.travelMode === 'TRANSPORT_COLIS' ? ' FCFA/KM' : ' FCFA';
-    return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.trunc(price))}${suffix}`;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const format = (value: number) =>
+      new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.trunc(value));
+    return min === max ? `${format(min)}${suffix}` : `${format(min)}-${format(max)}${suffix}`;
   }
 
   protected handleImageError(url: string | null | undefined): void {
@@ -300,8 +306,7 @@ export class FavoritesPageComponent {
   }
 
   private isMedicalFavorite(favorite: FavoriteItem): boolean {
-    const category = this.favoriteSearchText(favorite);
-    return category.includes('medecin') || category.includes('sante');
+    return favorite.profileType === 'MEDECIN';
   }
 
   private favoriteTravelMode(favorite: FavoriteItem): NonNullable<ProviderCardView['travelMode']> {

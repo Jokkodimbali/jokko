@@ -123,10 +123,18 @@ export class AdminUsersPanelComponent implements OnInit {
       .subscribe((updated) => {
         if (updated) {
           this.feedback.success(updated.estActif ? 'Compte active.' : 'Compte desactive.');
-          this.selectedUser.set(updated);
-          this.users.update((users) =>
-            users.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
-          );
+          const remainsVisible = this.matchesActiveFilter(updated.estActif);
+
+          this.users.update((users) => {
+            if (!remainsVisible) return users.filter((item) => item.id !== updated.id);
+            return users.map((item) => (item.id === updated.id ? { ...item, ...updated } : item));
+          });
+
+          if (remainsVisible) {
+            this.selectedUser.set(updated);
+          } else {
+            this.closeDetail();
+          }
         }
         this.pendingActivation.set(null);
         this.isActionLoading.set(false);
@@ -136,6 +144,10 @@ export class AdminUsersPanelComponent implements OnInit {
   protected closeDetail(): void {
     this.selectedUser.set(null);
     this.history.set(null);
+  }
+
+  private matchesActiveFilter(isActive: boolean): boolean {
+    return this.active === '' || (this.active === 'true') === isActive;
   }
 
   protected initials(name: string): string {

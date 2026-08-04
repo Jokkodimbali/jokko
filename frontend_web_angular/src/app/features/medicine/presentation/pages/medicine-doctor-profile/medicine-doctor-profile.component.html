@@ -9,10 +9,14 @@
         <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
       </button>
 
-      <span class="doctor-profile__online" [class.doctor-profile__online--offline]="!doctor().isOnline">
-        <span></span>
-        {{ doctor().isOnline ? messages.status.online : messages.status.offline }}
-      </span>
+      <app-presence-status
+        class="doctor-profile__online"
+        [userId]="detail()?.profile?.utilisateurId"
+        [professionalId]="detail()?.profile?.id || doctor().id"
+        [initialOnline]="doctor().isOnline"
+        [onlineLabel]="messages.status.online"
+        [offlineLabel]="messages.status.offline"
+      />
     </section>
 
     <section class="doctor-profile__identity">
@@ -94,7 +98,7 @@
           <h2>Adresse d'intervention</h2>
           <p>
             <lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon>
-            <span>{{ doctor().location }}</span>
+            <span>{{ doctorLocation() }}</span>
           </p>
           <p>
             <lucide-icon name="phone" size="15" [strokeWidth]="2.4"></lucide-icon>
@@ -103,7 +107,7 @@
           <iframe
             *ngIf="mapUrl()"
             [src]="mapUrl()"
-            [title]="'Carte de localisation - ' + doctor().location"
+            [title]="'Carte de localisation - ' + doctorLocation()"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"
           ></iframe>

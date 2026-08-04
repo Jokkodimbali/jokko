@@ -20,6 +20,8 @@ const FAVORITE_SELECT = {
         select: {
           id: true,
           nom: true,
+          role: true,
+          adresse: true,
           numeroTelephone: true,
           urlAvatar: true,
           estActif: true,
@@ -28,13 +30,13 @@ const FAVORITE_SELECT = {
       services: {
         where: { estDisponible: true },
         orderBy: { creeLe: 'desc' },
-        take: 1,
         select: {
           id: true,
           nom: true,
           prix: true,
           typePrix: true,
           modeDeplacement: true,
+          urlImage: true,
           categorie: {
             select: {
               id: true,
@@ -194,6 +196,8 @@ export class FavoritesService {
     return {
       id: favorite.id,
       professionalId: professional.id,
+      userId: professional.utilisateur.id,
+      profileType: professional.utilisateur.role,
       createdAt: favorite.creeLe,
       name: professional.nomEntreprise || professional.utilisateur.nom,
       subtitle:
@@ -201,7 +205,8 @@ export class FavoritesService {
         primaryService?.categorie.nom ||
         primaryService?.nom ||
         'Prestataire',
-      location: professional.ville || 'Senegal',
+      location:
+        professional.utilisateur.adresse || professional.ville || 'Senegal',
       vehicleType: professional.typeVehicule,
       avatarUrl: professional.utilisateur.urlAvatar,
       rating: professional.noteGlobale.toNumber(),
@@ -216,6 +221,16 @@ export class FavoritesService {
         id: item.id,
         title: item.titre,
         url: item.urlImage,
+      })),
+      services: professional.services.map((service) => ({
+        id: service.id,
+        name: service.nom,
+        price: service.prix.toNumber(),
+        priceType: service.typePrix,
+        travelMode: service.modeDeplacement,
+        imageUrl: service.urlImage,
+        categoryId: service.categorie.id,
+        categoryName: service.categorie.nom,
       })),
       service: primaryService
         ? {

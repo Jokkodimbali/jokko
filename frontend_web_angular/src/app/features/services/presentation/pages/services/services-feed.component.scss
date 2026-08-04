@@ -123,15 +123,9 @@
 }
 
 :host .favorite-avatar__dot {
-  background: #20d66b;
-  border: 2px solid #fff;
-  border-radius: 50%;
   bottom: 1px;
-  display: block;
-  height: 13px;
   position: absolute;
   right: 1px;
-  width: 13px;
 }
 
 :host .favorite-row span,
@@ -157,7 +151,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 
 :host .favorites-manage {
   align-items: center;

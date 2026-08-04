@@ -22,10 +22,12 @@
           <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
         </button>
 
-        <span class="provider-profile__online">
-          <span></span>
-          En ligne
-        </span>
+        <app-presence-status
+          class="provider-profile__online"
+          [userId]="detail()?.profile?.utilisateurId"
+          [professionalId]="detail()?.profile?.id || profileId"
+          [initialOnline]="detail()?.presence?.isOnline ?? false"
+        />
 
         <div class="provider-profile__actions" aria-label="Actions prestataire">
           <button type="button" aria-label="Partager">
@@ -96,6 +98,7 @@
               [label]="travelModeLabel()"
               [imageUrl]="travelModeImageUrl()"
               [tone]="primaryTravelMode() || 'DEFAULT'"
+              [compact]="true"
             />
           </div>
         </div>

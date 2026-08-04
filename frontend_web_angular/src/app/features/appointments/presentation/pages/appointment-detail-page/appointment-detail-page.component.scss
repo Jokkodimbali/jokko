@@ -129,15 +129,11 @@
   justify-content: center;
 }
 
-.appointment-detail__cancelled-provider i {
-  background: #20c579;
-  border: 2px solid #fffdfb;
-  border-radius: 50%;
+.appointment-detail__cancelled-provider app-presence-dot {
   bottom: -2px;
-  height: 12px;
   position: absolute;
   right: -2px;
-  width: 12px;
+  --presence-dot-size: 12px;
 }
 
 .appointment-detail__cancelled-provider div {

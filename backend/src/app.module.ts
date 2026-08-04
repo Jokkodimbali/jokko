@@ -45,6 +45,6 @@ import { MapsModule } from './maps/maps.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuditLoggerMiddleware).forRoutes('*');
+    consumer.apply(AuditLoggerMiddleware).forRoutes('{*path}');
   }
 }

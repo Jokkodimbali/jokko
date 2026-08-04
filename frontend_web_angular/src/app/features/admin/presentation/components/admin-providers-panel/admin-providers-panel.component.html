@@ -3,15 +3,15 @@
   <header class="admin-providers-heading">
     <div>
       <lucide-icon name="users" size="38" [strokeWidth]="2.2"></lucide-icon>
-      <h1>Prestataires</h1>
+      <h1>Prestataires et médecins</h1>
     </div>
-    <p>Liste operationnelle des prestataires. Chaque ligne ouvre le dossier complet du profil selectionne.</p>
+    <p>Liste opérationnelle des prestataires et médecins. Chaque ligne ouvre le dossier complet du profil sélectionné.</p>
   </header>
 
   <section class="admin-providers-kpis">
     <article>
       <lucide-icon name="shield-check" size="20" [strokeWidth]="2.1"></lucide-icon>
-      <span>Prestataires verifies</span>
+      <span>Professionnels vérifiés</span>
       <strong>{{ verifiedCount() }}</strong>
     </article>
     <article>
@@ -31,7 +31,7 @@
     </article>
   </section>
 
-  <section class="admin-provider-toolbar" aria-label="Filtres prestataires">
+  <section class="admin-provider-toolbar" aria-label="Filtres professionnels">
     <label class="admin-provider-search">
       <lucide-icon name="search" size="18" [strokeWidth]="2.2"></lucide-icon>
       <input
@@ -55,14 +55,14 @@
     </select>
   </section>
 
-  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des prestataires...</section>
+  <section class="admin-validation-empty" *ngIf="isLoading">Chargement des professionnels...</section>
 
   <section class="admin-provider-table-card" *ngIf="!isLoading && providers.length > 0; else noProviders">
     <div class="admin-provider-table-scroll">
       <table class="admin-provider-table">
         <thead>
           <tr>
-            <th>Prestataire</th>
+            <th>Professionnel</th>
             <th>Ville</th>
             <th>KYC</th>
             <th>Compte</th>
@@ -128,7 +128,7 @@
     </div>
 
     <footer class="admin-provider-pagination" *ngIf="pagination">
-      <span>{{ pagination.total }} prestataire(s)</span>
+      <span>{{ pagination.total }} professionnel(s)</span>
       <button type="button" [disabled]="!pagination.hasPrevious" (click)="goToPage(pagination.page - 1)">
         <lucide-icon name="arrow-left" size="16"></lucide-icon>
       </button>

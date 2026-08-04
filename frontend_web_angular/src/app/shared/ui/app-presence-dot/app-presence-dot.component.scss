@@ -1,0 +1,12 @@
+:host {
+  background: #0f172a;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  display: block;
+  height: var(--presence-dot-size, 13px);
+  width: var(--presence-dot-size, 13px);
+}
+
+:host.app-presence-dot--online {
+  background: #20d66b;
+}

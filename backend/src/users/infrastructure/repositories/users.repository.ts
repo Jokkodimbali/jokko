@@ -251,10 +251,42 @@ export class UsersRepository implements UsersRepositoryPort {
     data: UserProfileUpdateInput,
   ): Promise<UserProfileUpdateResult> {
     try {
-      const user = await this.prisma.utilisateur.update({
-        where: { id: userId },
-        data,
-        select: USER_ME_SELECT,
+      const { latitude, longitude, ...userData } = data;
+      const user = await this.prisma.$transaction(async (tx) => {
+        const updatedUser = await tx.utilisateur.update({
+          where: { id: userId },
+          data: userData,
+          select: USER_ME_SELECT,
+        });
+        if (
+          data.adresse !== undefined ||
+          latitude !== undefined ||
+          longitude !== undefined
+        ) {
+          if (data.adresse !== undefined) {
+            await tx.profilProfessionnel.updateMany({
+              where: { utilisateurId: userId },
+              // `city` is kept for backward compatibility and is limited to
+              // 100 characters. The complete address remains on the user.
+              data: { ville: data.adresse?.slice(0, 100) ?? null },
+            });
+          }
+
+          if (latitude === null || longitude === null) {
+            await tx.$executeRaw`
+              UPDATE professional_profiles
+              SET localisation = NULL
+              WHERE user_id = ${userId}::uuid
+            `;
+          } else if (latitude !== undefined && longitude !== undefined) {
+            await tx.$executeRaw`
+              UPDATE professional_profiles
+              SET localisation = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+              WHERE user_id = ${userId}::uuid
+            `;
+          }
+        }
+        return updatedUser;
       });
       return { status: 'updated', user: this.mapUserMe(user) };
     } catch (error) {

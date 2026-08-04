@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RoleUtilisateur } from '@prisma/client';
 import {
   normalizeEmail,
@@ -31,6 +32,7 @@ export class UsersService {
     private readonly usersRepository: UsersRepositoryPort,
     private readonly passwordHashService: PasswordHashService,
     private readonly phoneNumberValidator: PhoneNumberValidator,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async me(userId: string) {
@@ -53,6 +55,8 @@ export class UsersService {
       email: emailNormalized,
       numeroTelephone: phoneNumberNormalized,
       adresse: addressNormalized,
+      latitude: command.latitude,
+      longitude: command.longitude,
       urlAvatar: command.avatarUrl?.trim(),
     };
 
@@ -61,6 +65,8 @@ export class UsersService {
       emailNormalized !== undefined ||
       phoneNumberNormalized !== undefined ||
       addressNormalized !== undefined ||
+      command.latitude !== undefined ||
+      command.longitude !== undefined ||
       payload.urlAvatar !== undefined;
 
     if (!hasUpdate) {
@@ -94,6 +100,23 @@ export class UsersService {
     }
     if (updatedUser.status === 'phone_conflict') {
       throw appHttpException('AUTH_PHONE_ALREADY_USED');
+    }
+
+    const professionalId = updatedUser.user.profilProfessionnel?.id ?? null;
+    if (
+      professionalId &&
+      (addressNormalized !== undefined ||
+        command.latitude !== undefined ||
+        command.longitude !== undefined)
+    ) {
+      this.eventEmitter.emit('catalog.profile.changed', {
+        userId,
+        professionalId,
+        address: updatedUser.user.adresse,
+        latitude: command.latitude ?? null,
+        longitude: command.longitude ?? null,
+        changedAt: new Date().toISOString(),
+      });
     }
 
     return updatedUser.user;
@@ -253,6 +276,7 @@ export class UsersService {
     if (!user) {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
+    this.emitCatalogAccountStatus(user);
     return user;
   }
 
@@ -278,6 +302,7 @@ export class UsersService {
     if (!user) {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
+    this.emitCatalogAccountStatus(user);
     return user;
   }
 
@@ -287,7 +312,17 @@ export class UsersService {
     if (!user) {
       throw appHttpException('USERS_USER_NOT_FOUND');
     }
+    this.emitCatalogAccountStatus(user);
     return user;
+  }
+
+  private emitCatalogAccountStatus(user: UserMeView): void {
+    this.eventEmitter.emit('catalog.account-status.changed', {
+      userId: user.id,
+      professionalId: user.profilProfessionnel?.id ?? null,
+      active: user.estActif,
+      changedAt: new Date().toISOString(),
+    });
   }
 
   async getMyHistory(userId: string, query: GetMyHistoryQuery) {

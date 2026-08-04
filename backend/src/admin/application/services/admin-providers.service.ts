@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma, type StatutKyc, type StatutReservation } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -20,7 +21,10 @@ type ListAdminProvidersQuery = {
 
 @Injectable()
 export class AdminProvidersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async listProviders(
     requestUser: AuthUser,
@@ -34,7 +38,7 @@ export class AdminProvidersService {
     const limit = query.limit ?? 12;
     const where = this.buildProviderWhere(query);
 
-    const [total, providers] = await this.prisma.$transaction([
+    const [total, providers] = await Promise.all([
       this.prisma.profilProfessionnel.count({ where }),
       this.prisma.profilProfessionnel.findMany({
         where,
@@ -77,6 +81,13 @@ export class AdminProvidersService {
     await this.prisma.utilisateur.update({
       where: { id: provider.utilisateurId },
       data: { estActif: active },
+    });
+
+    this.eventEmitter.emit('catalog.account-status.changed', {
+      userId: provider.utilisateurId,
+      professionalId: providerId,
+      active,
+      changedAt: new Date().toISOString(),
     });
 
     return this.getProviderDetails(providerId);
@@ -340,7 +351,7 @@ export class AdminProvidersService {
     return {
       statutKyc: query.kycStatus,
       utilisateur: {
-        role: 'PRESTATAIRE',
+        role: { in: ['PRESTATAIRE', 'MEDECIN'] },
         estActif: query.active,
       },
       ...(search
@@ -384,7 +395,7 @@ export class AdminProvidersService {
     }
 
     const [verifiedCount, activeCount, reservationsCount, paymentTotals] =
-      await this.prisma.$transaction([
+      await Promise.all([
         this.prisma.profilProfessionnel.count({
           where: { id: { in: providerIds }, statutKyc: 'VERIFIE' },
         }),

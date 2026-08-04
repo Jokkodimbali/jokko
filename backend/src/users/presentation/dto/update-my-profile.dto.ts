@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -78,6 +79,16 @@ export class UpdateMyProfileDto {
   @IsString()
   @MaxLength(255, { message: VALIDATION_MESSAGES.ADDRESS_MAX })
   address?: string | null;
+
+  @ApiPropertyOptional({ example: 14.7167 })
+  @IsOptional()
+  @IsNumber()
+  latitude?: number | null;
+
+  @ApiPropertyOptional({ example: -17.4677 })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number | null;
 
   @ApiPropertyOptional({
     description: API_DOCS.users.avatarUrlField,

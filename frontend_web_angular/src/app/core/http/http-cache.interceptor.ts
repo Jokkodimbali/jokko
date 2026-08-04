@@ -21,6 +21,10 @@ const LONG_TTL_MS = 60_000;
 const MAX_CACHE_ENTRIES = 120;
 const cache = new Map<string, CacheEntry>();
 
+export function clearHttpResponseCache(): void {
+  cache.clear();
+}
+
 export const httpCacheInterceptor: HttpInterceptorFn = (req, next) => {
   if (!isApplicationApiRequest(req.url)) {
     return next(req);

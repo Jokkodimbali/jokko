@@ -15,6 +15,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
@@ -24,6 +25,8 @@ import {
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
@@ -161,6 +164,8 @@ interface AcceptedReservationConfirmation {
     FormsModule,
     LucideAngularModule,
     AppStarRatingComponent,
+    AppPresenceStatusComponent,
+    AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
     ServiceProposalDetailsModalComponent,
   ],
@@ -177,6 +182,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly servicesService = inject(ServicesService);
+  private readonly presence = inject(SessionPresenceService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
@@ -348,9 +354,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return Math.trunc(Number(this.currentService()?.prix ?? 0));
   });
   protected readonly clientTravelsToProvider = computed(() => !this.providerTravelsToClient());
-  protected readonly providerInterventionAddress = computed(() =>
-    this.resolveInitialAddress(this.detail()),
-  );
+  protected readonly providerInterventionAddress = computed(() => {
+    const profile = this.detail()?.profile;
+    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      this.resolveInitialAddress(this.detail());
+  });
   protected readonly providerInterventionAddressLabel = computed(
     () => this.providerInterventionAddress() || 'Adresse du prestataire non renseignee',
   );
@@ -433,12 +441,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return this.formatAmount(amount);
   });
   protected readonly providerCounterDifferenceLabel = computed(() =>
-    this.customServiceName()
-      ? 'Prix proposé par le client pour ce nouveau motif'
-      : this.pricingView.providerCounterDifferenceLabel(
-          this.providerBaseOfferAmount(),
-          this.offerAmount(),
-        ),
+    this.pricingView.counterOfferDifferenceFromLastReceived({
+      proposal: this.pendingProposal(),
+      offerAmount: this.offerAmount(),
+      viewer: 'PRESTATAIRE',
+    }),
   );
   protected readonly providerCounterActionLabel = computed(() =>
     this.pricingView.providerCounterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -589,7 +596,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       ? 'Confirmez votre rendez-vous'
       : 'Proposez un prix et choisissez votre rendez-vous',
   );
-  protected readonly providerOnlineLabel = computed(() => this.proposalUi.providerOnlineLabel(this.detail()));
   protected readonly priceSectionTitle = computed(() => this.proposalUi.priceSectionTitle(this.isFixedPriceService()));
   protected readonly offerFieldLabel = computed(() => this.proposalUi.offerFieldLabel(this.isFixedPriceService()));
   protected readonly summaryPriceLabel = computed(() => this.proposalUi.summaryPriceLabel(this.isFixedPriceService()));
@@ -738,9 +744,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.formatAmount(this.pendingProposal()?.montantCourant ?? this.offerAmount()),
   );
   protected readonly counterDifferenceLabel = computed(() =>
-    this.hasProviderCounterOffer()
-      ? this.pricingView.clientCounterDifferenceLabel(this.fairServiceAmount(), this.offerAmount())
-      : this.pricingView.counterDifferenceLabel(this.pendingProposal()),
+    this.pricingView.counterOfferDifferenceFromLastReceived({
+      proposal: this.pendingProposal(),
+      offerAmount: this.offerAmount(),
+      viewer: 'CLIENT',
+    }),
   );
   protected readonly counterActionLabel = computed(() =>
     this.pricingView.counterActionLabel(this.pendingProposal(), this.offerAmount()),
@@ -1465,6 +1473,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     if (this.hasBlockingMaterialQuote()) {
       this.feedback.info('Validez ou refusez le devis materiel avant de finaliser la reservation.');
+      return;
+    }
+
+    if (!this.ensureFutureSlotForExpiredProposal(proposal, service)) {
       return;
     }
 
@@ -3209,8 +3221,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private buildAcceptedNegotiationReservationPayload(
     proposal: NegotiationView,
   ): CreateReservationFromNegotiationPayload | null {
-    const dateHeure = proposal.dateHeureProposee
-      ? this.toIsoDateTime(proposal.dateHeureProposee)
+    const negotiatedDate = proposal.dateHeureProposee
+      ? new Date(proposal.dateHeureProposee)
+      : null;
+    const negotiatedDateIsFuture = Boolean(
+      negotiatedDate &&
+      !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() > Date.now(),
+    );
+    const dateHeure = negotiatedDateIsFuture
+      ? negotiatedDate!.toISOString()
       : this.toIsoDateTime(this.appointmentDate());
     const adresseClient =
       proposal.adresseClientProposee?.trim() ||
@@ -3225,6 +3245,42 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       adresseClient,
       dureeMinutes,
     });
+  }
+
+  private ensureFutureSlotForExpiredProposal(
+    proposal: NegotiationView,
+    service: BackendProfessionalDetailService,
+  ): boolean {
+    const negotiatedDate = proposal.dateHeureProposee
+      ? new Date(proposal.dateHeureProposee)
+      : null;
+    if (
+      negotiatedDate &&
+      !Number.isNaN(negotiatedDate.getTime()) &&
+      negotiatedDate.getTime() > Date.now()
+    ) {
+      return true;
+    }
+
+    const selectedDate = this.toIsoDateTime(this.appointmentDate());
+    if (!selectedDate || !this.isValidAppointmentDate()) {
+      this.feedback.info("L'ancien horaire est depasse. Choisissez un nouveau creneau disponible.");
+      this.openDetailsModal('schedule');
+      return false;
+    }
+
+    const availability = this.availabilityStatus();
+    if (!availability || availability.dateHeure !== selectedDate || !availability.available) {
+      this.feedback.info(
+        availability?.reason ||
+          "L'ancien horaire est depasse. Selectionnez et verifiez un nouveau creneau.",
+      );
+      this.openDetailsModal('schedule');
+      this.checkAvailabilityNow(service, selectedDate);
+      return false;
+    }
+
+    return true;
   }
 
   private resetParcelDeliveryPricing(): void {

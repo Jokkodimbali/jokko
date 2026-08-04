@@ -16,12 +16,18 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Observable, Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { clearHttpResponseCache } from '../../../../../core/http/http-cache.interceptor';
 import {
   FavoriteItem,
   FavoriteStatus,
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
 import { ProfessionalSearchLocation, ServicesService } from '../../../data-access/services.service';
+import {
+  CatalogAccountStatusChangedEvent,
+  CatalogProfileChangedEvent,
+  CatalogRealtimeService,
+} from '../../../data-access/catalog-realtime.service';
 import {
   CategoryStructure,
   ServiceSection,
@@ -34,6 +40,7 @@ import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import {
   AppSearchBarComponent,
   AppSearchCategorySuggestion,
@@ -60,6 +67,7 @@ const SERVICE_CARD_COVER_URL =
     AppFooterComponent,
     AppNavbarComponent,
     AppScrollHintComponent,
+    AppPresenceDotComponent,
     AppSearchBarComponent,
     ProviderCardComponent,
     LucideAngularModule,
@@ -82,6 +90,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly catalogRealtime = inject(CatalogRealtimeService);
 
   protected readonly heroIllustration = '/image%20haut.png';
 
@@ -134,6 +143,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly searchProviderSuggestions = computed<AppSearchProviderSuggestion[]>(() =>
     this.suggestionProviders().slice(0, 3).map((provider) => ({
       id: provider.id,
+      userId: provider.userId,
       name: provider.nom,
       category: provider.categoryName || 'Service',
       profession: this.providerProfessionLabel(provider),
@@ -260,11 +270,19 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly locationLabelCache = new Map<string, string>();
   private serviceFilterWheelCleanups: Array<() => void> = [];
   private serviceFilterRefsChangesSubscription?: Subscription;
+  private catalogRealtimeSubscription?: Subscription;
+  private catalogProfileSubscription?: Subscription;
 
   ngOnInit(): void {
     this.loadCategories();
     this.loadFavorites();
     this.loadHomeData();
+    this.catalogRealtimeSubscription = this.catalogRealtime
+      .watchAccountStatuses()
+      .subscribe((event) => this.applyCatalogAccountStatus(event));
+    this.catalogProfileSubscription = this.catalogRealtime
+      .watchProfiles()
+      .subscribe((event) => this.applyCatalogProfile(event));
   }
 
   ngOnDestroy(): void {
@@ -273,6 +291,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.suggestionsRequestSubscription?.unsubscribe();
     this.clearServiceFilterWheelListeners();
     this.serviceFilterRefsChangesSubscription?.unsubscribe();
+    this.catalogRealtimeSubscription?.unsubscribe();
+    this.catalogProfileSubscription?.unsubscribe();
   }
 
   ngAfterViewInit(): void {
@@ -291,6 +311,82 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loadProfessionals(1);
       this.loadSearchSuggestions();
     }, 280);
+  }
+
+  private applyCatalogAccountStatus(event: CatalogAccountStatusChangedEvent): void {
+    this.requestVersion += 1;
+    this.suggestionRequestVersion += 1;
+    this.professionalsRequestSubscription?.unsubscribe();
+    this.suggestionsRequestSubscription?.unsubscribe();
+    this.servicesService.clearCache();
+    clearHttpResponseCache();
+
+    if (event.active) {
+      this.loadProfessionals(1);
+      this.loadSearchSuggestions();
+      return;
+    }
+
+    const excludesAccount = (provider: Professional) =>
+      provider.userId === event.userId || provider.id === event.professionalId;
+
+    this.sections.update((sections) =>
+      sections.map((section) => {
+        const providers = section.providers.filter((provider) => !excludesAccount(provider));
+        const removedCount = section.providers.length - providers.length;
+        if (!removedCount) return section;
+
+        return {
+          ...section,
+          providers,
+          countLabel: section.countLabel.replace(/^\d+/, (count) =>
+            String(Math.max(0, Number(count) - removedCount)),
+          ),
+        };
+      }),
+    );
+    this.suggestionProviders.update((providers) =>
+      providers.filter((provider) => !excludesAccount(provider)),
+    );
+    if (this.allTravelModesSnapshot) {
+      this.allTravelModesSnapshot = {
+        ...this.allTravelModesSnapshot,
+        providers: this.allTravelModesSnapshot.providers.filter((provider) => !excludesAccount(provider)),
+      };
+    }
+
+    this.loadProfessionals(1);
+    this.loadSearchSuggestions();
+  }
+
+  private applyCatalogProfile(event: CatalogProfileChangedEvent): void {
+    this.servicesService.clearCache();
+    clearHttpResponseCache();
+    const updateProvider = (provider: Professional): Professional =>
+      provider.id === event.professionalId || provider.userId === event.userId
+        ? {
+            ...provider,
+            location: event.address || 'Adresse non renseignee',
+            latitude: event.latitude,
+            longitude: event.longitude,
+          }
+        : provider;
+
+    this.sections.update((sections) =>
+      sections.map((section) => ({
+        ...section,
+        providers: section.providers.map(updateProvider),
+      })),
+    );
+    this.suggestionProviders.update((providers) => providers.map(updateProvider));
+    if (this.allTravelModesSnapshot) {
+      this.allTravelModesSnapshot = {
+        ...this.allTravelModesSnapshot,
+        providers: this.allTravelModesSnapshot.providers.map(updateProvider),
+      };
+    }
+    this.loadProfessionals(1);
+    this.loadSearchSuggestions();
   }
 
   submitSearch(value: string): void {
@@ -956,14 +1052,16 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const queryParams = provider.serviceId ? { serviceId: provider.serviceId } : null;
     const profileCommands = this.providerProfileCommands(provider);
     const messageQueryParams = {
-      professionalId: provider.id,
-      ...(provider.userId ? { professionalUserId: provider.userId } : {}),
+      ...(provider.userId
+        ? { professionalUserId: provider.userId }
+        : { professionalId: provider.id }),
       providerName: provider.nom,
       ...(provider.serviceId ? { serviceId: provider.serviceId } : {}),
     };
 
     return {
       id: provider.id,
+      userId: provider.userId,
       name: provider.nom,
       title: this.providerCardSubCategoryLabel(provider),
       category: this.providerCardCategoryLabel(provider),

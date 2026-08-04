@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
   FavoriteItem,
@@ -15,6 +16,7 @@ import {
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../data-access/services.service';
@@ -68,6 +70,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     AppFooterComponent,
     AppNavbarComponent,
     AppStarRatingComponent,
+    AppPresenceStatusComponent,
     ProviderTravelBadgeComponent,
     LucideAngularModule,
     RouterLink,
@@ -83,6 +86,7 @@ export class ProviderProfileComponent implements OnInit {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly presence = inject(SessionPresenceService);
 
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
@@ -301,7 +305,7 @@ export class ProviderProfileComponent implements OnInit {
     const coordinates = this.resolveMapCoordinates(detail);
     const query = coordinates
       ? `${coordinates.latitude},${coordinates.longitude}`
-      : detail?.profile.ville || '';
+      : this.formatLocation();
     if (!query) {
       return null;
     }
@@ -340,7 +344,9 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   protected formatLocation(): string {
-    return this.detail()?.profile.ville || 'Localisation non renseignee';
+    const profile = this.detail()?.profile;
+    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      profile?.ville || 'Localisation non renseignee';
   }
 
   protected formatPhone(): string {
@@ -419,16 +425,27 @@ export class ProviderProfileComponent implements OnInit {
     latitude: number;
     longitude: number;
   } | null {
-    const liveLatitude = detail?.presence.lastLatitude;
-    const liveLongitude = detail?.presence.lastLongitude;
-    if (this.isValidCoordinate(liveLatitude, liveLongitude)) {
-      return { latitude: liveLatitude, longitude: liveLongitude as number };
+    const realtimeProfile = this.presence.professionalProfile(
+      detail?.profile.utilisateurId,
+      detail?.profile.id,
+    );
+    if (this.isValidCoordinate(realtimeProfile?.latitude, realtimeProfile?.longitude)) {
+      return {
+        latitude: realtimeProfile.latitude,
+        longitude: realtimeProfile.longitude as number,
+      };
     }
 
     const profileLatitude = detail?.profile.latitude;
     const profileLongitude = detail?.profile.longitude;
     if (this.isValidCoordinate(profileLatitude, profileLongitude)) {
       return { latitude: profileLatitude, longitude: profileLongitude as number };
+    }
+
+    const liveLatitude = detail?.presence.lastLatitude;
+    const liveLongitude = detail?.presence.lastLongitude;
+    if (this.isValidCoordinate(liveLatitude, liveLongitude)) {
+      return { latitude: liveLatitude, longitude: liveLongitude as number };
     }
 
     return null;

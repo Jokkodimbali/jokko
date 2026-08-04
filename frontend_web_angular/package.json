@@ -15,14 +15,14 @@
   },
   "private": true,
   "engines": {
-    "node": ">=22.12.0 <23",
-    "npm": ">=10.9.0 <12"
+    "node": ">=24.0.0 <25",
+    "npm": ">=11.6.0 <12"
   },
   "volta": {
-    "node": "22.12.0",
-    "npm": "11.12.1"
+    "node": "24.18.0",
+    "npm": "11.16.0"
   },
-  "packageManager": "npm@11.12.1",
+  "packageManager": "npm@11.16.0",
   "dependencies": {
     "@angular/common": "^21.2.11",
     "@angular/compiler": "^21.2.11",

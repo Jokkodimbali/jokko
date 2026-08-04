@@ -21,6 +21,7 @@ import { BackNavigationService } from '../../../../../core/navigation/back-navig
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -135,6 +136,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     FormsModule,
     LucideAngularModule,
     AppStarRatingComponent,
+    AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',

@@ -155,15 +155,11 @@
   justify-content: center;
 }
 
-.service-proposal__closed-avatar i {
-  background: #20c579;
-  border: 2px solid #fffdfb;
-  border-radius: 50%;
+.service-proposal__closed-avatar app-presence-dot {
   bottom: -2px;
-  height: 12px;
   position: absolute;
   right: -2px;
-  width: 12px;
+  --presence-dot-size: 12px;
 }
 
 .service-proposal__closed-party > div {
@@ -649,11 +645,8 @@
   justify-content: center;
 }
 
-.service-proposal__online-badge i {
-  background: #11b66f;
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
+.service-proposal__online-badge app-presence-status {
+  --presence-status-dot-size: 6px;
 }
 
 .service-proposal__panel-body {

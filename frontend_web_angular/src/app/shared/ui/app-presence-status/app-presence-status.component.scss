@@ -1,0 +1,14 @@
+:host {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+:host app-presence-dot {
+  flex: 0 0 auto;
+  --presence-dot-size: var(--presence-status-dot-size, 10px);
+}
+
+:host span {
+  color: inherit;
+}

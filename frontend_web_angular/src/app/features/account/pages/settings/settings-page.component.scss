@@ -1172,7 +1172,12 @@
 
 .settings-page__address-map ::ng-deep .interactive-map__canvas-wrap {
   border-radius: 16px;
-  height: 160px;
+  height: 300px;
+}
+
+.settings-page__address-map ::ng-deep .interactive-map--expanded .interactive-map__canvas-wrap {
+  height: clamp(480px, 68vh, 680px);
+  min-height: 480px;
 }
 
 .settings-page__form input,
@@ -1753,6 +1758,15 @@
 }
 
 @media (max-width: 720px) {
+  .settings-page__address-map ::ng-deep .interactive-map__canvas-wrap {
+    height: 260px;
+  }
+
+  .settings-page__address-map ::ng-deep .interactive-map--expanded .interactive-map__canvas-wrap {
+    height: 62vh;
+    min-height: 360px;
+  }
+
   .settings-page__identity,
   .settings-page__switcher,
   .settings-page__panel,

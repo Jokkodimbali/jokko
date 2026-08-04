@@ -1,28 +1,30 @@
 <main class="medicine-booking">
-  <header class="medicine-booking__topbar">
-    <button type="button" class="medicine-booking__back" (click)="goBack()">
-      <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.5"></lucide-icon>
-      Retour
-    </button>
-    <span class="medicine-booking__secure">
-      <lucide-icon name="shield-check" size="16" [strokeWidth]="2.6"></lucide-icon>
-      Paiement securise
-    </span>
-  </header>
-
   <section class="medicine-booking__shell">
     <p *ngIf="isLoading()" class="medicine-booking__state">Chargement du medecin...</p>
     <p *ngIf="errorMessage()" class="medicine-booking__state medicine-booking__state--error">{{ errorMessage() }}</p>
 
     <ng-container *ngIf="!isLoading() && !errorMessage()">
+      <app-appointment-tracking-stepper
+        [steps]="journeySteps"
+        [progress]="journeyProgress"
+        [showBack]="true"
+        [embedded]="true"
+        [hideLastStepContent]="true"
+        ariaLabel="Étapes de la réservation médicale"
+        (back)="goBack()"
+      />
+
       <section class="medicine-booking__layout">
         <article class="medicine-booking__card">
           <header class="medicine-booking__card-head">
             <div>
               <span class="medicine-booking__provider-line">
                 {{ doctorName() }}
-                <i></i>
-                {{ doctorStatusLabel() }}
+                <app-presence-status
+                  [userId]="detail()?.profile?.utilisateurId"
+                  [professionalId]="detail()?.profile?.id"
+                  [initialOnline]="detail()?.presence?.isOnline ?? false"
+                />
               </span>
               <h1>{{ activeStep() === 'PERSONAL' ? 'Saisie des informations' : 'Finalisation du rendez-vous' }}</h1>
             </div>

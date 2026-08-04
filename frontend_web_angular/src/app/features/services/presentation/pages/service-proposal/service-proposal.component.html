@@ -35,7 +35,11 @@
           <ng-template #closedPartyInitials>
             <em>{{ isProviderProposalMode ? proposalClientInitials() : providerInitials() }}</em>
           </ng-template>
-          <i aria-hidden="true"></i>
+          <app-presence-dot
+            [userId]="isProviderProposalMode ? closed.client?.id : detail()?.profile?.utilisateurId"
+            [professionalId]="isProviderProposalMode ? null : detail()?.profile?.id"
+            [initialOnline]="isProviderProposalMode ? false : (detail()?.presence?.isOnline ?? false)"
+          />
         </span>
         <div>
           <strong>{{ isProviderProposalMode ? proposalClientName() : displayName() }}</strong>
@@ -198,7 +202,7 @@
                     <ng-template #providerWaitingClientInitials>
                       <em>{{ proposalClientInitials() }}</em>
                     </ng-template>
-                    <b aria-hidden="true"></b>
+                    <app-presence-dot [userId]="proposal.client?.id" />
                   </span>
                   <small>CLIENT</small>
                 </span>
@@ -247,8 +251,11 @@
                   <ng-template #providerActionInitials>
                     <em>{{ proposalClientInitials() }}</em>
                   </ng-template>
-                  <i aria-hidden="true"></i>
-                  Client
+                  <app-presence-status
+                    [userId]="proposal.client?.id"
+                    onlineLabel="Client en ligne"
+                    offlineLabel="Client hors ligne"
+                  />
                 </span>
               </p>
             </div>
@@ -388,7 +395,7 @@
                     proposalClientInitials()
                   }}</span>
                 </ng-template>
-                <i aria-hidden="true"></i>
+                <app-presence-dot [userId]="proposal.client?.id" />
               </span>
               <div>
                 <h2>{{ proposalClientName() }}</h2>
@@ -491,8 +498,11 @@
                     <ng-template #heroInitials>
                       <em>{{ providerInitials() }}</em>
                     </ng-template>
-                    <i aria-hidden="true"></i>
-                    {{ providerOnlineLabel() }}
+                    <app-presence-status
+                      [userId]="detail()?.profile?.utilisateurId"
+                      [professionalId]="detail()?.profile?.id"
+                      [initialOnline]="detail()?.presence?.isOnline ?? false"
+                    />
                   </span>
                 </p>
               </div>
@@ -854,8 +864,11 @@
                       <ng-template #pendingHeroInitials>
                         <em>{{ providerInitials() }}</em>
                       </ng-template>
-                      <i aria-hidden="true"></i>
-                      {{ providerOnlineLabel() }}
+                      <app-presence-status
+                        [userId]="detail()?.profile?.utilisateurId"
+                        [professionalId]="detail()?.profile?.id"
+                        [initialOnline]="detail()?.presence?.isOnline ?? false"
+                      />
                     </span>
                   </p>
                 </div>
@@ -900,7 +913,11 @@
                       <ng-template #pendingInitials>
                         <em>{{ providerInitials() }}</em>
                       </ng-template>
-                      <b aria-hidden="true"></b>
+                      <app-presence-dot
+                        [userId]="detail()?.profile?.utilisateurId"
+                        [professionalId]="detail()?.profile?.id"
+                        [initialOnline]="detail()?.presence?.isOnline ?? false"
+                      />
                     </span>
                     <small>ARTISAN</small>
                   </span>
@@ -1041,7 +1058,11 @@
                   <ng-template #serviceProposalInitials>
                     <span class="service-proposal__provider-initials">{{ providerInitials() }}</span>
                   </ng-template>
-                  <i aria-hidden="true"></i>
+                  <app-presence-dot
+                    [userId]="detail()?.profile?.utilisateurId"
+                    [professionalId]="detail()?.profile?.id"
+                    [initialOnline]="detail()?.presence?.isOnline ?? false"
+                  />
                 </span>
                 <div>
                   <h2>{{ displayName() }}</h2>

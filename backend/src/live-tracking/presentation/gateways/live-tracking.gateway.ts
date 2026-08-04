@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { LiveTrackingFacade } from '../../application/services/live-tracking-facade.service';
@@ -33,11 +34,13 @@ export class LiveTrackingGateway
   server!: Server;
 
   private readonly socketUsers = new Map<string, AuthUser>();
+  private readonly userSockets = new Map<string, Set<string>>();
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly liveTrackingFacade: LiveTrackingFacade,
+    private readonly realtimeEvents: EventEmitter2,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
@@ -53,7 +56,18 @@ export class LiveTrackingGateway
       });
       this.setSocketUser(client, user);
       await client.join(this.buildUserRoom(user.sub));
-      await this.liveTrackingFacade.syncProfessionalConnection(user, true);
+      const sockets = this.userSockets.get(user.sub) ?? new Set<string>();
+      const isFirstConnection = sockets.size === 0;
+      sockets.add(client.id);
+      this.userSockets.set(user.sub, sockets);
+      if (isFirstConnection) {
+        await this.liveTrackingFacade.syncProfessionalConnection(user, true);
+        this.realtimeEvents.emit('user.presence.updated', {
+          userId: user.sub,
+          isOnline: true,
+          changedAt: new Date().toISOString(),
+        });
+      }
     } catch {
       client.disconnect();
     }
@@ -66,7 +80,18 @@ export class LiveTrackingGateway
       return;
     }
 
+    const sockets = this.userSockets.get(user.sub);
+    sockets?.delete(client.id);
+    if (sockets?.size) {
+      return;
+    }
+    this.userSockets.delete(user.sub);
     await this.liveTrackingFacade.syncProfessionalConnection(user, false);
+    this.realtimeEvents.emit('user.presence.updated', {
+      userId: user.sub,
+      isOnline: false,
+      changedAt: new Date().toISOString(),
+    });
   }
 
   @SubscribeMessage('tracking.subscribe')

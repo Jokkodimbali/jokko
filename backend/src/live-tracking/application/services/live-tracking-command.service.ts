@@ -402,7 +402,10 @@ export class LiveTrackingCommandService {
       locationLabel: entity.toView().lastLocationLabel,
     });
 
-    this.realtimeEvents.emit('live-tracking.presence.updated', presence);
+    this.realtimeEvents.emit('live-tracking.presence.updated', {
+      ...presence,
+      userId: user.sub,
+    });
     return presence;
   }
 

@@ -108,7 +108,7 @@ export class SearchRepository implements SearchRepositoryPort {
     const cityFilter = normalizedCity
       ? Prisma.sql`
           AND translate(
-            lower(pp.city),
+            lower(COALESCE(u.address, pp.city)),
             'éèêëîïôöùûüàâäç',
             'eeeeiioouuuaaac'
           ) LIKE ${`%${normalizedCity}%`}
@@ -232,7 +232,7 @@ export class SearchRepository implements SearchRepositoryPort {
         u.avatar_url AS "avatarUrl",
         pp.company_name AS "companyName",
         pp.bio AS bio,
-        pp.city AS city,
+        COALESCE(u.address, pp.city) AS city,
         pp.vehicle_type AS "typeVehicule",
         CASE
           WHEN pp.localisation IS NULL THEN NULL

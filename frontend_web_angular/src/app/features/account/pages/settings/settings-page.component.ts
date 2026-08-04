@@ -106,6 +106,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isEditingProfessionalAbout = signal(false);
   protected readonly isEditingAddress = signal(false);
   protected readonly isAddressMapVisible = signal(false);
+  protected readonly isAddressMapExpanded = signal(false);
   protected readonly selectedPaymentType = signal<SavedPaymentMethodType>('CARD');
   protected readonly savedPaymentMethods = signal<SavedPaymentMethodView[]>([]);
   protected readonly paymentHistory = signal<PaymentHistoryView[]>([]);
@@ -132,6 +133,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly addressForm = {
     address: '',
   };
+  private readonly addressCoordinate = signal<{ latitude: number; longitude: number } | null>(null);
   protected readonly cardForm = {
     cardNumber: '',
     holderName: '',
@@ -419,6 +421,7 @@ export class SettingsPageComponent implements OnInit {
     this.syncForms(this.profile());
     this.isEditingProfile.set(true);
     this.isAddressMapVisible.set(false);
+    this.isAddressMapExpanded.set(false);
   }
 
   protected startProfessionalAboutEdit(): void {
@@ -435,6 +438,7 @@ export class SettingsPageComponent implements OnInit {
     this.syncForms(this.profile());
     this.isEditingProfile.set(false);
     this.isAddressMapVisible.set(false);
+    this.isAddressMapExpanded.set(false);
   }
 
   protected cancelProfessionalAboutEdit(): void {
@@ -470,6 +474,7 @@ export class SettingsPageComponent implements OnInit {
         email: this.profileForm.email.trim() || null,
         phoneNumber: phoneNumber ? normalizeSenegalPhoneNumber(phoneNumber) : undefined,
         address: this.addressForm.address.trim() || null,
+        ...(this.addressCoordinate() ?? {}),
       })
       .pipe(finalize(() => this.isSavingProfile.set(false)))
       .subscribe({
@@ -482,6 +487,10 @@ export class SettingsPageComponent implements OnInit {
 
   protected showAddressMap(): void {
     this.isAddressMapVisible.set(true);
+  }
+
+  protected setAddressMapExpanded(expanded: boolean): void {
+    this.isAddressMapExpanded.set(expanded);
   }
 
   protected saveProfessionalAbout(): void {
@@ -524,6 +533,7 @@ export class SettingsPageComponent implements OnInit {
     this.authService
       .updateMyProfile({
         address: this.addressForm.address.trim() || null,
+        ...(this.addressCoordinate() ?? {}),
       })
       .pipe(finalize(() => this.isSavingAddress.set(false)))
       .subscribe({
@@ -540,6 +550,10 @@ export class SettingsPageComponent implements OnInit {
 
   protected resolveAddressFromMap(selection: ServiceProposalMapAddressSelection): void {
     this.addressForm.address = selection.address;
+    this.addressCoordinate.set({
+      latitude: selection.coordinate.latitude,
+      longitude: selection.coordinate.longitude,
+    });
   }
 
   protected uploadAvatar(event: Event): void {
@@ -1398,6 +1412,7 @@ export class SettingsPageComponent implements OnInit {
       ? toSenegalLocalPhoneInput(this.displayPhoneNumber()!)
       : '';
     this.addressForm.address = profile?.adresse || '';
+    this.addressCoordinate.set(null);
     this.cardForm.holderName = profile?.nom || this.currentUser()?.name || '';
     this.waveForm.phoneNumber = this.displayPhoneNumber() || '';
   }

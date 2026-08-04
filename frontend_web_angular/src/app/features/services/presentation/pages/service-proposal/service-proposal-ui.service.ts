@@ -22,11 +22,6 @@ export class ServiceProposalUiService {
     { id: 'VISA', label: 'Carte bancaire', mark: 'VISA', logoUrl: '/logo vissa.avif' },
   ];
 
-  providerOnlineLabel(detail: ProviderProfileDetail | null): string {
-    const presence = detail?.presence;
-    return presence?.isOnline ? 'En ligne' : 'Disponible';
-  }
-
   priceSectionTitle(isFixedPriceService: boolean): string {
     return isFixedPriceService ? 'Tarif fixe du service' : 'Proposez un prix au prestataire';
   }

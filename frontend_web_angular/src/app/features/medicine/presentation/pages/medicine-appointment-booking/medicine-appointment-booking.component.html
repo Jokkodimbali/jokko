@@ -21,8 +21,11 @@
             <div>
               <span class="medicine-booking__provider-line">
                 {{ doctorName() }}
-                <i></i>
-                {{ doctorStatusLabel() }}
+                <app-presence-status
+                  [userId]="detail()?.profile?.utilisateurId"
+                  [professionalId]="detail()?.profile?.id"
+                  [initialOnline]="detail()?.presence?.isOnline ?? false"
+                />
               </span>
               <h1>{{ activeStep() === 'PERSONAL' ? 'Saisie des informations' : 'Finalisation du rendez-vous' }}</h1>
             </div>

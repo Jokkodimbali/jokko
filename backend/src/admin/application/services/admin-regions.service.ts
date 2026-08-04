@@ -125,7 +125,7 @@ export class AdminRegionsService {
       throw appHttpException('USERS_ADMIN_FORBIDDEN_ROLE');
     }
 
-    const [providers, clients] = await this.prisma.$transaction([
+    const [providers, clients] = await Promise.all([
       this.prisma.profilProfessionnel.findMany({
         select: {
           id: true,

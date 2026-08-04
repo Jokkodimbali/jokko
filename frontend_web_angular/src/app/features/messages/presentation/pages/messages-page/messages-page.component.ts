@@ -18,6 +18,7 @@ import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { AppointmentsService } from '../../../../appointments/data-access/appointments.service';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import { AppointmentView } from '../../../../appointments/domain/appointments.models';
@@ -95,6 +96,7 @@ type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
     LucideAngularModule,
     AppNavbarComponent,
     AppStarRatingComponent,
+    AppPresenceDotComponent,
     MessageComposerComponent,
   ],
   templateUrl: './messages-page.component.html',

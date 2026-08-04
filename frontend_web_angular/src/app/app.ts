@@ -4,6 +4,7 @@ import { RouterOutlet } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from './core/feedback/app-feedback.service';
 import { InlineFormValidationService } from './core/forms/inline-form-validation.service';
+import { SessionPresenceService } from './core/presence/session-presence.service';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,7 @@ import { InlineFormValidationService } from './core/forms/inline-form-validation
 export class App {
   private readonly feedback = inject(AppFeedbackService);
   private readonly inlineFormValidation = inject(InlineFormValidationService);
+  private readonly sessionPresence = inject(SessionPresenceService);
 
   protected readonly feedbackMessage = this.feedback.message;
 

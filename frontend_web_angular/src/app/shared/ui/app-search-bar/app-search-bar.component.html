@@ -144,7 +144,7 @@
         <span class="app-search-bar__avatar">
           <img *ngIf="provider.avatarUrl; else providerInitials" [src]="provider.avatarUrl" [alt]="provider.name" />
           <ng-template #providerInitials>{{ provider.initials }}</ng-template>
-          <i *ngIf="provider.isOnline" aria-hidden="true"></i>
+          <app-presence-dot [userId]="provider.userId" [professionalId]="provider.id" [initialOnline]="provider.isOnline" />
         </span>
         <span class="app-search-bar__provider-info">
           <strong>{{ provider.name }} <small>{{ provider.category }}</small></strong>

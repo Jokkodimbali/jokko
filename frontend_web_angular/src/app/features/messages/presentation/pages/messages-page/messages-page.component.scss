@@ -165,16 +165,11 @@
   width: 42px;
 }
 
-.messages-page__avatar::after {
-  background: #17c66a;
-  border: 2px solid #fff;
-  border-radius: 50%;
+.messages-page__avatar app-presence-dot {
   bottom: 1px;
-  content: '';
-  height: 15px;
   position: absolute;
   right: 0;
-  width: 15px;
+  --presence-dot-size: 15px;
 }
 
 .messages-page__avatar img,

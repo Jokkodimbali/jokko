@@ -3,6 +3,8 @@ export type UpdateMyProfileCommand = {
   email?: string | null;
   phoneNumber?: string | null;
   address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   avatarUrl?: string | null;
 };
 

@@ -5,10 +5,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
@@ -58,6 +60,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     RouterLink,
     AppFooterComponent,
     AppNavbarComponent,
+    AppPresenceStatusComponent,
     LucideAngularModule,
   ],
   templateUrl: './medicine-doctor-profile.component.html',
@@ -72,6 +75,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly servicesService = inject(ServicesService);
+  private readonly presence = inject(SessionPresenceService);
   private readonly navigationState = (history.state || {}) as { doctor?: DoctorProfile };
 
   private readonly routeProfileId = this.route.snapshot.paramMap.get('id') ?? '';
@@ -80,6 +84,11 @@ export class MedicineDoctorProfileComponent implements OnInit {
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly doctor = signal<DoctorProfile>(this.initialDoctor);
   protected readonly coverUrl = '/boabab.png';
+  protected readonly doctorLocation = computed(() => {
+    const profile = this.detail()?.profile;
+    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      this.doctor().location;
+  });
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
   protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {

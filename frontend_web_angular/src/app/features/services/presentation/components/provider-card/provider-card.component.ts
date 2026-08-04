@@ -3,6 +3,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { ProviderTravelBadgeComponent } from '../provider-travel-badge/provider-travel-badge.component';
 import { ProfessionalVehicleType } from '../../../domain/models/services.models';
 
@@ -24,6 +25,7 @@ export type ProviderCardTravelMode =
 
 export interface ProviderCardView {
   id: string;
+  userId?: string;
   name: string;
   title: string;
   category: string;
@@ -76,7 +78,7 @@ const TRAVEL_MODE_IMAGES: Record<ProviderCardTravelMode, string> = {
 @Component({
   selector: 'app-provider-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppStarRatingComponent, ProviderTravelBadgeComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppStarRatingComponent, AppPresenceDotComponent, ProviderTravelBadgeComponent],
   templateUrl: './provider-card.component.html',
   styleUrl: './provider-card.component.scss',
 })

@@ -67,6 +67,8 @@ export type UserProfileUpdateInput = {
   email?: string | null;
   numeroTelephone?: string;
   adresse?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   urlAvatar?: string | null;
 };
 

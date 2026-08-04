@@ -109,19 +109,10 @@
   justify-content: center;
 }
 
-.provider-card__avatar i {
-  background: #0f172a;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
+.provider-card__avatar app-presence-dot {
   bottom: 2px;
-  height: 13px;
   position: absolute;
   right: 0;
-  width: 13px;
-}
-
-.provider-card__avatar i.provider-card__avatar-dot--online {
-  background: #22c76f;
 }
 
 .provider-card__identity {

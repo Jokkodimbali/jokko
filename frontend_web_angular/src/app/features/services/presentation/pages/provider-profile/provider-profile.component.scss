@@ -129,14 +129,7 @@
   position: absolute;
   right: 24px;
   top: 24px;
-}
-
-.provider-profile__online span {
-  background: #17c66a;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(23, 198, 106, 0.14);
-  height: 13px;
-  width: 13px;
+  --presence-status-dot-size: 13px;
 }
 
 .provider-profile__avatar {

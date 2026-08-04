@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
   FavoriteItem,
@@ -15,6 +16,7 @@ import {
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { ServicesService } from '../../../data-access/services.service';
@@ -68,6 +70,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     AppFooterComponent,
     AppNavbarComponent,
     AppStarRatingComponent,
+    AppPresenceStatusComponent,
     ProviderTravelBadgeComponent,
     LucideAngularModule,
     RouterLink,
@@ -83,6 +86,7 @@ export class ProviderProfileComponent implements OnInit {
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly presence = inject(SessionPresenceService);
 
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly isLoading = signal(true);
@@ -340,7 +344,9 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   protected formatLocation(): string {
-    return this.detail()?.profile.ville || 'Localisation non renseignee';
+    const profile = this.detail()?.profile;
+    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      profile?.ville || 'Localisation non renseignee';
   }
 
   protected formatPhone(): string {

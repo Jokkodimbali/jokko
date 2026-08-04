@@ -587,10 +587,39 @@ export class AdminDashboardPageComponent implements OnInit {
     this.isProviderActionLoading.set(false);
     if (!provider) return;
     this.feedback.success('Statut du prestataire mis a jour.');
-    this.selectedProviderDetail.set(provider);
-    this.providerProfiles.set(
-      this.providerProfiles().map((item) => (item.id === provider.id ? { ...item, ...provider } : item)),
-    );
+    const query = this.providerQuery();
+    const remainsVisible = query.active === undefined || query.active === provider.active;
+    const previousProvider = this.providerProfiles().find((item) => item.id === provider.id);
+
+    if (previousProvider && previousProvider.active !== provider.active) {
+      this.providerStats.update((stats) =>
+        stats
+          ? {
+              ...stats,
+              activeCount: Math.max(0, stats.activeCount + (provider.active ? 1 : -1)),
+            }
+          : stats,
+      );
+    }
+
+    if (remainsVisible) {
+      this.selectedProviderDetail.set(provider);
+      this.providerProfiles.set(
+        this.providerProfiles().map((item) => (item.id === provider.id ? { ...item, ...provider } : item)),
+      );
+    } else {
+      this.providerProfiles.set(this.providerProfiles().filter((item) => item.id !== provider.id));
+      this.providerPagination.update((pagination) =>
+        pagination
+          ? {
+              ...pagination,
+              total: Math.max(0, pagination.total - 1),
+            }
+          : pagination,
+      );
+      this.closeProviderDetail();
+    }
+
     this.adminDashboardService
       .getDashboard()
       .pipe(catchError(() => of(null)))

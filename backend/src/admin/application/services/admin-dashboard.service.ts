@@ -48,7 +48,7 @@ export class AdminDashboardService {
       authTrafficSessions,
       recentAuditLogs,
       recentPayments,
-    ] = await this.prisma.$transaction([
+    ] = await Promise.all([
       this.prisma.utilisateur.count({ where: { estActif: true } }),
       this.prisma.utilisateur.count(),
       this.prisma.profilProfessionnel.count({

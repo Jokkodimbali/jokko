@@ -91,11 +91,8 @@
   letter-spacing: 0;
 }
 
-.medicine-booking__provider-line i {
-  background: #25c48d;
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
+.medicine-booking__provider-line app-presence-status {
+  --presence-status-dot-size: 6px;
 }
 
 .medicine-booking__card-head h1 {

@@ -4,10 +4,12 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { Subscription, firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AuthService } from '../../../../auth/data-access/auth.service';
@@ -106,6 +108,7 @@ const GPS_COLLECTION_TIMEOUT_MS = 12_000;
     CommonModule,
     FormsModule,
     LucideAngularModule,
+    AppPresenceStatusComponent,
     ServiceProposalDetailsModalComponent,
     AppStarRatingComponent,
   ],
@@ -117,6 +120,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly servicesService = inject(ServicesService);
+  private readonly presence = inject(SessionPresenceService);
   private readonly proposalService = inject(ServiceProposalService);
   private readonly availabilityRealtime = inject(AvailabilityRealtimeService);
   private readonly authService = inject(AuthService);
@@ -172,9 +176,6 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly doctorReviewsLabel = computed(() =>
     `${this.detail()?.profile.nombreAvis ?? 0} avis`,
   );
-  protected readonly doctorStatusLabel = computed(() =>
-    this.detail()?.presence.isOnline ? 'Disponible' : 'Indisponible',
-  );
   protected readonly selectedService = computed(() =>
     this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
   );
@@ -188,6 +189,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly doctorInterventionAddress = computed(() => {
     const profile = this.detail()?.profile;
     return (
+      this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address?.trim() ||
       profile?.ville?.trim() ||
       profile?.utilisateur.adresse?.trim() ||
       ''

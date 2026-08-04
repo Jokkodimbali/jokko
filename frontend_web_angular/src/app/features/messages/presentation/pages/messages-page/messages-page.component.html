@@ -79,6 +79,7 @@
             <ng-template #conversationInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
             </ng-template>
+            <app-presence-dot [userId]="conversation.counterpart.userId" [professionalId]="conversation.counterpart.professionalProfileId" />
           </span>
           <span class="messages-page__conversation-copy">
             <strong>{{ conversation.counterpart.name }}</strong>
@@ -134,6 +135,7 @@
             <ng-template #selectedInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
             </ng-template>
+            <app-presence-dot [userId]="conversation.counterpart.userId" [professionalId]="conversation.counterpart.professionalProfileId" />
           </span>
           <span class="messages-page__chat-title">
             <strong>{{ conversation.counterpart.name }}</strong>

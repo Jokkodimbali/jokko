@@ -559,15 +559,11 @@
   width: 100%;
 }
 
-.app-search-bar__avatar i {
-  background: #17b766;
-  border: 2px solid #fff;
-  border-radius: 50%;
+.app-search-bar__avatar app-presence-dot {
   bottom: 0;
-  height: 10px;
   position: absolute;
   right: 0;
-  width: 10px;
+  --presence-dot-size: 10px;
 }
 
 .app-search-bar__provider-info {

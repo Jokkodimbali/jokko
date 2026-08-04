@@ -251,10 +251,28 @@ export class UsersRepository implements UsersRepositoryPort {
     data: UserProfileUpdateInput,
   ): Promise<UserProfileUpdateResult> {
     try {
-      const user = await this.prisma.utilisateur.update({
-        where: { id: userId },
-        data,
-        select: USER_ME_SELECT,
+      const { latitude, longitude, ...userData } = data;
+      const user = await this.prisma.$transaction(async (tx) => {
+        const updatedUser = await tx.utilisateur.update({
+          where: { id: userId },
+          data: userData,
+          select: USER_ME_SELECT,
+        });
+        if (
+          data.adresse !== undefined ||
+          latitude !== undefined ||
+          longitude !== undefined
+        ) {
+          await tx.profilProfessionnel.updateMany({
+            where: { utilisateurId: userId },
+            data: {
+              ...(data.adresse !== undefined ? { ville: data.adresse } : {}),
+              ...(latitude !== undefined ? { latitude } : {}),
+              ...(longitude !== undefined ? { longitude } : {}),
+            },
+          });
+        }
+        return updatedUser;
       });
       return { status: 'updated', user: this.mapUserMe(user) };
     } catch (error) {

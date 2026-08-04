@@ -301,7 +301,10 @@
             <ng-template #cancelledProviderInitials>
               <b>{{ avatarInitials(appointment) }}</b>
             </ng-template>
-            <i aria-hidden="true"></i>
+            <app-presence-dot
+              [userId]="appointment.professionalUserId"
+              [professionalId]="appointment.professionalId"
+            />
           </span>
           <div>
             <strong>{{ appointment.doctorName }}</strong>

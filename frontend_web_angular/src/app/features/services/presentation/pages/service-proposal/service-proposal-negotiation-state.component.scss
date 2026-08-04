@@ -140,7 +140,7 @@
 .service-proposal__waiting-avatar em { border-radius: 50%; display: block; height: 46px; width: 46px; }
 .service-proposal__waiting-avatar img { object-fit: cover; }
 .service-proposal__waiting-avatar em { align-items: center; background: #955d24; color: #ffffff; display: inline-flex; font-style: normal; font-weight: 950; justify-content: center; }
-.service-proposal__waiting-avatar b { background: #12b76a; border: 2px solid #ffffff; border-radius: 50%; bottom: 2px; height: 12px; position: absolute; right: 2px; width: 12px; }
+.service-proposal__waiting-avatar app-presence-dot { bottom: 2px; position: absolute; right: 2px; --presence-dot-size: 12px; }
 
 .service-proposal__pending-offer {
   align-items: center;
@@ -621,15 +621,11 @@
   white-space: nowrap;
 }
 
-.service-proposal__avatar-wrap i {
-  background: #11b66f;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
+.service-proposal__avatar-wrap app-presence-dot {
   bottom: -1px;
-  height: 12px;
   position: absolute;
   right: -1px;
-  width: 12px;
+  --presence-dot-size: 12px;
 }
 
 .service-proposal__provider h2 {

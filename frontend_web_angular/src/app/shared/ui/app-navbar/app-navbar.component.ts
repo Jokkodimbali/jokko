@@ -6,6 +6,7 @@ import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
+import { SessionPresenceService } from '../../../core/presence/session-presence.service';
 import {
   NotificationsService,
   UserNotificationView,
@@ -47,6 +48,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly presence = inject(SessionPresenceService);
   private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
   private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -282,11 +284,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.closeNotificationsMenu();
     this.closeMobileNav();
 
+    const refreshToken = this.authSession.getRefreshToken();
     this.isLoggingOut.set(true);
+    this.presence.disconnectAuthenticatedSession();
+    this.messagesRealtime.disconnect();
     this.authService
-      .logout(this.authSession.getRefreshToken()
-        ? { refreshToken: this.authSession.getRefreshToken()! }
-        : {})
+      .logout(refreshToken ? { refreshToken } : {})
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {

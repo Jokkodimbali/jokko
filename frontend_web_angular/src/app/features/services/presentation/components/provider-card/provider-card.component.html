@@ -79,7 +79,22 @@
 
     <section class="provider-card__services" *ngIf="selectedService as selected; else emptyGallery">
       <figure class="provider-card__service-main">
-        <img *ngIf="selected.imageUrl; else serviceFallback" [src]="selected.imageUrl" [alt]="selected.name" (error)="onImageError(selected.imageUrl)" />
+        <ng-container *ngIf="selected.imageUrl; else serviceFallback">
+          <img
+            class="provider-card__service-image-backdrop"
+            [src]="selected.imageUrl"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="provider-card__service-image"
+            [class.provider-card__service-image--landscape]="isLandscapeImage(selected.imageUrl)"
+            [src]="selected.imageUrl"
+            [alt]="selected.name"
+            (load)="onServiceImageLoad($event, selected.imageUrl)"
+            (error)="onImageError(selected.imageUrl)"
+          />
+        </ng-container>
         <ng-template #serviceFallback>
           <span class="provider-card__service-image-fallback" aria-label="Aucune image disponible">
             <lucide-icon name="image-plus" size="44" [strokeWidth]="1.8" aria-hidden="true"></lucide-icon>

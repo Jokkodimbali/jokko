@@ -1,4 +1,5 @@
 import {
+  Ack,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -91,6 +92,25 @@ export class LiveTrackingGateway
       userId: user.sub,
       isOnline: false,
       changedAt: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('session.logout')
+  handleSessionLogout(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @Ack() acknowledge: () => void,
+  ): void {
+    const user = this.getSocketUser(client);
+    if (!user) return;
+
+    this.realtimeEvents.emit('user.presence.updated', {
+      userId: user.sub,
+      isOnline: false,
+      changedAt: new Date().toISOString(),
+    });
+    acknowledge();
+    queueMicrotask(() => {
+      this.server.in(this.buildUserRoom(user.sub)).disconnectSockets(true);
     });
   }
 

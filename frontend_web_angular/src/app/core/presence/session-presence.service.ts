@@ -35,9 +35,9 @@ export class SessionPresenceService {
     });
   }
 
-  isOnline(identifier: string | null | undefined, _fallback = false): boolean {
-    if (!identifier) return false;
-    return this.statuses()[identifier] ?? false;
+  isOnline(identifier: string | null | undefined, fallback = false): boolean {
+    if (!identifier) return fallback;
+    return this.statuses()[identifier] ?? fallback;
   }
 
   isOnlineFor(
@@ -55,6 +55,17 @@ export class SessionPresenceService {
     const profiles = this.profiles();
     return (professionalId ? profiles[professionalId] : null) ??
       (userId ? profiles[userId] : null) ?? null;
+  }
+
+  disconnectAuthenticatedSession(): void {
+    const socket = this.socket;
+    if (!socket) return;
+
+    const finishDisconnect = (): void => {
+      socket.disconnect();
+      if (this.socket === socket) this.socket = null;
+    };
+    socket.timeout(1500).emit('session.logout', () => finishDisconnect());
   }
 
   private connect(): void {

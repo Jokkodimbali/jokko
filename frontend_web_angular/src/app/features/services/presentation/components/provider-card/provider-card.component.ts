@@ -98,6 +98,7 @@ export class ProviderCardComponent {
 
   protected readonly emptySlots = [0, 1];
   protected selectedServiceId: string | null = null;
+  private readonly landscapeImageUrls = new Set<string>();
 
   protected get ratingText(): string {
     if (this.provider.totalReviews <= 0) {
@@ -212,5 +213,20 @@ export class ProviderCardComponent {
 
   protected onImageError(url: string): void {
     this.imageError.emit(url);
+  }
+
+  protected onServiceImageLoad(event: Event, url: string): void {
+    const image = event.currentTarget as HTMLImageElement | null;
+    if (!image) return;
+
+    if (image.naturalWidth >= image.naturalHeight) {
+      this.landscapeImageUrls.add(url);
+    } else {
+      this.landscapeImageUrls.delete(url);
+    }
+  }
+
+  protected isLandscapeImage(url: string): boolean {
+    return this.landscapeImageUrls.has(url);
   }
 }

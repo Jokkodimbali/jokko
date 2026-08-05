@@ -110,6 +110,15 @@ const RESERVATION_DETAIL_SELECT = {
       },
     },
   },
+  negotiation: {
+    select: {
+      messageCourant: true,
+      propositions: {
+        orderBy: { creeLe: 'desc' as const },
+        select: { message: true },
+      },
+    },
+  },
 } as const;
 
 type ReservationRecord = {
@@ -192,6 +201,10 @@ type ReservationDetailRecord = ReservationRecord & {
       } | null;
     }>;
   };
+  negotiation: {
+    messageCourant: string | null;
+    propositions: Array<{ message: string | null }>;
+  } | null;
 };
 
 @Injectable()
@@ -772,8 +785,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
   private mapToDetailedView(
     record: ReservationDetailRecord,
   ): ReservationDetailedView {
+    const notes = this.resolveDetailedReservationNotes(record);
     return {
-      ...this.mapToDomain(record),
+      ...this.mapToDomain({ ...record, notes }),
       client: record.client,
       service: {
         ...record.service,
@@ -789,6 +803,30 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         noteGlobale: record.professionnel.noteGlobale.toNumber(),
       },
     };
+  }
+
+  private resolveDetailedReservationNotes(record: ReservationDetailRecord): string | null {
+    const notes = record.notes?.trim() ?? '';
+    if (this.hasCompleteParcelContacts(notes)) {
+      return notes;
+    }
+
+    const negotiationMessages = [
+      record.negotiation?.messageCourant,
+      ...(record.negotiation?.propositions.map((proposal) => proposal.message) ?? []),
+    ];
+    const parcelMessage = negotiationMessages.find(
+      (message) => this.hasCompleteParcelContacts(message ?? ''),
+    )?.trim();
+
+    return [parcelMessage, notes].filter(Boolean).join(' ').trim() || null;
+  }
+
+  private hasCompleteParcelContacts(value: string): boolean {
+    return (
+      /Exp[eé]diteur\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value) &&
+      /Destinataire\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value)
+    );
   }
 
   private buildFilterWhere(filters: {

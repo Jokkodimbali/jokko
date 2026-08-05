@@ -92,6 +92,7 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
+  protected readonly landscapeImageUrls = signal<Set<string>>(new Set());
   protected readonly selectedVisualServiceId = signal<string | null>(null);
 
   protected readonly profileId = this.route.snapshot.paramMap.get('id') || '';
@@ -164,6 +165,22 @@ export class ProviderProfileComponent implements OnInit {
 
   protected selectVisualService(service: OfferedServiceVisual): void {
     this.selectedVisualServiceId.set(service.id);
+  }
+
+  protected handleServiceImageLoad(event: Event, url: string): void {
+    const image = event.currentTarget as HTMLImageElement | null;
+    if (!image) return;
+
+    this.landscapeImageUrls.update((urls) => {
+      const next = new Set(urls);
+      if (image.naturalWidth >= image.naturalHeight) next.add(url);
+      else next.delete(url);
+      return next;
+    });
+  }
+
+  protected isLandscapeServiceImage(url: string): boolean {
+    return this.landscapeImageUrls().has(url);
   }
   protected readonly ratingLabel = computed(() => {
     const rating = Number(this.detail()?.profile.noteGlobale ?? 0);

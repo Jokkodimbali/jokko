@@ -468,17 +468,35 @@
   position: relative;
 }
 
-.provider-profile__service-visual-main img,
+.provider-profile__service-visual-main > img,
 .provider-profile__gallery-fallback {
   display: block;
   height: 100%;
   width: 100%;
 }
 
-.provider-profile__service-visual-main img {
+.provider-profile__service-visual-main > img {
   animation: providerServiceImageIn 240ms ease both;
-  object-fit: cover;
+  inset: 0;
+  object-fit: contain;
   object-position: center;
+  position: absolute;
+}
+
+.provider-profile__service-visual-main > .provider-profile__service-image-backdrop {
+  animation: none;
+  filter: blur(14px);
+  object-fit: cover;
+  opacity: 0.32;
+  transform: scale(1.12);
+}
+
+.provider-profile__service-visual-main > .provider-profile__service-image {
+  z-index: 1;
+}
+
+.provider-profile__service-visual-main > .provider-profile__service-image--landscape {
+  object-fit: cover;
 }
 
 .provider-profile__gallery-fallback {

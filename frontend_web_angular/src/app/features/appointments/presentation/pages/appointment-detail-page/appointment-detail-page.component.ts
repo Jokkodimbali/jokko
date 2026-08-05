@@ -224,6 +224,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isPriceAdjustmentModalOpen = signal(false);
   protected readonly isReviewModalOpen = signal(false);
   protected readonly isReviewSuccessModalOpen = signal(false);
+  protected readonly parcelContactsModal = signal<{
+    sender: { name: string; phone: string };
+    recipient: { name: string; phone: string };
+  } | null>(null);
   protected readonly rescheduleDateTime = signal('');
   protected readonly priceAdjustmentForm = {
     proposedPrice: 0,
@@ -1733,7 +1737,34 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected contactClientByPhone(appointment: AppointmentView): void {
+    if (this.isProviderViewer() && this.isParcelTransportAppointment(appointment)) {
+      const sender = this.parseParcelContact(appointment.notes, 'Expediteur');
+      const recipient = this.parseParcelContact(appointment.notes, 'Destinataire');
+      this.parcelContactsModal.set({
+        sender: {
+          name: this.validParcelContactName(sender.name)
+            ? sender.name
+            : appointment.clientName || 'Nom non renseigne',
+          phone: sender.phone || appointment.clientPhone || 'Numero non renseigne',
+        },
+        recipient: {
+          name: recipient.name || 'Nom non renseigne',
+          phone: recipient.phone || 'Numero non renseigne',
+        },
+      });
+      return;
+    }
+
     this.callPhoneNumber(appointment.clientPhone, 'Le numero du client nest pas renseigne.');
+  }
+
+  protected closeParcelContactsModal(): void {
+    this.parcelContactsModal.set(null);
+  }
+
+  protected phoneHref(phone: string): string | null {
+    const normalized = phone.replace(/[^+\d]/g, '');
+    return normalized ? `tel:${normalized}` : null;
   }
 
   private callPhoneNumber(phoneNumber: string | null, missingMessage: string): void {
@@ -1944,6 +1975,27 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
     const match = notes.match(pattern);
     return match?.[1]?.trim().replace(/\.$/, '').trim() || null;
+  }
+
+  private parseParcelContact(
+    notes: string | null,
+    key: 'Expediteur' | 'Destinataire',
+  ): { name: string; phone: string } {
+    const compatibleNotes = notes
+      ?.replace(/expéditeur/gi, 'Expediteur')
+      .replace(/téléphone/gi, 'Telephone') ?? null;
+    const value = this.extractAppointmentNoteValue(compatibleNotes, key) ?? '';
+    const parts = value.split(/\s+[-–—]\s+/);
+    const name = parts.shift()?.trim() ?? '';
+    const phone = parts.join(' - ').trim();
+    return {
+      name,
+      phone,
+    };
+  }
+
+  private validParcelContactName(name: string): boolean {
+    return name.replace(/[^A-Za-zÀ-ÿ]/g, '').length >= 2;
   }
 
   protected arrivalDestinationLabel(appointment: AppointmentView): string {

@@ -188,6 +188,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .filter((favorite) => !this.isOwnProfessionalIdentity(favorite.professionalId))
       .map((favorite) => ({
       id: favorite.professionalId,
+      userId: favorite.userId,
       nom: favorite.name,
       categoryName: favorite.subtitle,
       subCategoryName: favorite.service?.subCategoryName || favorite.subtitle,

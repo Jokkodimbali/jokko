@@ -79,7 +79,12 @@
             <ng-template #favoriteInitials>
               <span class="favorite-avatar__initials">{{ providerInitials(provider.nom) }}</span>
             </ng-template>
-            <app-presence-dot class="favorite-avatar__dot" [professionalId]="provider.id" [initialOnline]="provider.isOnline" />
+            <app-presence-dot
+              class="favorite-avatar__dot"
+              [userId]="provider.userId"
+              [professionalId]="provider.id"
+              [initialOnline]="provider.isOnline"
+            />
           </div>
           <span class="favorite-row__info">
             <strong>{{ provider.nom }}</strong>

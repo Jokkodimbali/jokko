@@ -1241,4 +1241,51 @@
     </section>
   </ng-container>
 
+  <section
+    *ngIf="parcelContactsModal() as contacts"
+    class="appointment-detail__modal appointment-detail__parcel-contacts-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="parcel-contacts-title"
+    (click)="closeParcelContactsModal()"
+  >
+    <article class="appointment-detail__modal-card appointment-detail__parcel-contacts-card" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <small>Livraison de colis</small>
+          <h2 id="parcel-contacts-title">Coordonnees des contacts</h2>
+        </div>
+        <button type="button" aria-label="Fermer" (click)="closeParcelContactsModal()">
+          <lucide-icon name="x" size="20" [strokeWidth]="2.5"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="appointment-detail__parcel-contact-list">
+        <section class="appointment-detail__parcel-contact">
+          <span>Expediteur</span>
+          <strong>{{ contacts.sender.name }}</strong>
+          <a *ngIf="phoneHref(contacts.sender.phone) as senderPhone; else missingSenderPhone" [href]="senderPhone">
+            <lucide-icon name="phone" size="17" [strokeWidth]="2.5"></lucide-icon>
+            {{ contacts.sender.phone }}
+          </a>
+          <ng-template #missingSenderPhone><em>{{ contacts.sender.phone }}</em></ng-template>
+        </section>
+
+        <section class="appointment-detail__parcel-contact">
+          <span>Destinataire</span>
+          <strong>{{ contacts.recipient.name }}</strong>
+          <a *ngIf="phoneHref(contacts.recipient.phone) as recipientPhone; else missingRecipientPhone" [href]="recipientPhone">
+            <lucide-icon name="phone" size="17" [strokeWidth]="2.5"></lucide-icon>
+            {{ contacts.recipient.phone }}
+          </a>
+          <ng-template #missingRecipientPhone><em>{{ contacts.recipient.phone }}</em></ng-template>
+        </section>
+      </div>
+
+      <footer>
+        <button type="button" (click)="closeParcelContactsModal()">Fermer</button>
+      </footer>
+    </article>
+  </section>
+
 </main>

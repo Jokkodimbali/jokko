@@ -122,12 +122,22 @@
             <h2>Les services proposes</h2>
             <div *ngIf="selectedVisualService() as selectedService; else noServicesVisual" class="provider-profile__service-visual">
               <figure class="provider-profile__service-visual-main">
-                <img
-                  *ngIf="selectedService.imageUrl as imageUrl; else serviceVisualFallback"
-                  [src]="imageUrl"
-                  [alt]="selectedService.name"
-                  (error)="handleImageError(imageUrl)"
-                />
+                <ng-container *ngIf="selectedService.imageUrl as imageUrl; else serviceVisualFallback">
+                  <img
+                    class="provider-profile__service-image-backdrop"
+                    [src]="imageUrl"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <img
+                    class="provider-profile__service-image"
+                    [class.provider-profile__service-image--landscape]="isLandscapeServiceImage(imageUrl)"
+                    [src]="imageUrl"
+                    [alt]="selectedService.name"
+                    (load)="handleServiceImageLoad($event, imageUrl)"
+                    (error)="handleImageError(imageUrl)"
+                  />
+                </ng-container>
                 <ng-template #serviceVisualFallback>
                   <span class="provider-profile__gallery-fallback">
                     {{ serviceVisualInitials(selectedService.name) }}

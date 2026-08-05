@@ -213,7 +213,7 @@
 }
 
 .provider-card__service-main {
-  aspect-ratio: 2.35 / 1;
+  aspect-ratio: 16 / 9;
   background: #f2ede8;
   border: 1px solid #e4d5c7;
   border-radius: 14px;
@@ -223,19 +223,40 @@
   position: relative;
 }
 
-.provider-card__service-main img,
-.provider-card__service-main > span:not(.provider-card__vehicle-badge) {
+.provider-card__service-main > .provider-card__service-image-fallback {
   display: block;
   height: 100%;
   width: 100%;
 }
 
-.provider-card__service-main img {
-  object-fit: cover;
-  object-position: center;
+.provider-card__service-main > img {
+  inset: 0;
+  position: absolute;
 }
 
-.provider-card__service-main > span:not(.provider-card__vehicle-badge),
+.provider-card__service-image-backdrop {
+  filter: blur(14px);
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.32;
+  transform: scale(1.12);
+  width: 100%;
+}
+
+.provider-card__service-main > .provider-card__service-image {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  width: 100%;
+  z-index: 1;
+}
+
+.provider-card__service-main > .provider-card__service-image--landscape {
+  object-fit: cover;
+}
+
+.provider-card__service-main > .provider-card__service-image-fallback,
 .provider-card__empty-service {
   align-items: center;
   display: flex;
@@ -245,6 +266,7 @@
 }
 
 .provider-card__service-image-fallback {
+  aspect-ratio: 16 / 9;
   background: linear-gradient(
     135deg,
     var(--service-gallery-placeholder-start),
@@ -323,9 +345,10 @@
 }
 
 .provider-card__service-thumbs img {
+  background: #f2ede8;
   filter: none;
   image-rendering: auto;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   opacity: 0.72;
   transform: translateZ(0);
@@ -486,10 +509,6 @@
   .provider-card__body,
   .provider-card__services {
     gap: 7px;
-  }
-
-  .provider-card__service-main {
-    aspect-ratio: 2.7 / 1;
   }
 
   .provider-card__service-thumbs span {

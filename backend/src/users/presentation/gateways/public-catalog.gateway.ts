@@ -61,10 +61,14 @@ export class PublicCatalogGateway implements OnGatewayConnection {
   @OnEvent('user.presence.updated')
   handleUserPresenceChanged(payload: {
     userId: string;
+    professionalId?: string;
     isOnline: boolean;
     changedAt: string;
   }): void {
     this.presences.set(`user:${payload.userId}`, payload);
+    if (payload.professionalId) {
+      this.presences.set(`professional:${payload.professionalId}`, payload);
+    }
     this.server.emit('catalog.presence.changed', payload);
   }
 }

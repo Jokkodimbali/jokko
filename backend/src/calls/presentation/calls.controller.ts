@@ -7,17 +7,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { IsIn, IsUUID } from 'class-validator';
+import { IsUUID } from 'class-validator';
 import type { AuthUser } from '../../auth/security/auth-user.type';
 import { CurrentUser } from '../../auth/security/current-user.decorator';
 import { JwtAuthGuard } from '../../auth/security/jwt-auth.guard';
 import { createApiResponse } from '../../shared/dto/api-response.dto';
 import { CallsService } from '../application/services/calls.service';
-import type { CallKind } from '../domain/call.types';
 
 class JoinCallDto {
   @IsUUID() callId!: string;
-  @IsIn(['VOICE', 'VIDEO']) kind!: CallKind;
 }
 
 @Controller('calls')
@@ -40,6 +38,11 @@ export class CallsController {
     );
   }
 
+  @Get('active')
+  async active(@CurrentUser() user: AuthUser) {
+    return createApiResponse(await this.calls.getActiveCall(user));
+  }
+
   @Post('conversations/:conversationId/join-credential')
   async createCredential(
     @CurrentUser() user: AuthUser,
@@ -47,12 +50,7 @@ export class CallsController {
     @Body() dto: JoinCallDto,
   ) {
     return createApiResponse(
-      await this.calls.createJoinCredential(
-        user,
-        conversationId,
-        dto.callId,
-        dto.kind,
-      ),
+      await this.calls.createJoinCredential(user, conversationId, dto.callId),
     );
   }
 }

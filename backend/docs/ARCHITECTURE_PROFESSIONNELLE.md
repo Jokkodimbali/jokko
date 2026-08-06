@@ -14,10 +14,11 @@ Il ne s'agit pas d'une architecture cible theorique. C'est une reference de trav
 
 ## 2. Resume executif
 
-Le backend Jokko est une API NestJS modulaire, orientee domaines metier, avec PostgreSQL via Prisma, messages centralises, Swagger exploitable, audit HTTP, notifications multi-canaux et deux briques temps reel Socket.IO :
+Le backend Jokko est une API NestJS modulaire, orientee domaines metier, avec PostgreSQL via Prisma, messages centralises, Swagger exploitable, audit HTTP, notifications multi-canaux et trois briques temps reel Socket.IO :
 
 - `messaging`
 - `live-tracking`
+- `calls`
 
 Le projet a deja depasse le stade d'une simple base CRUD. Il supporte aujourd'hui des flux inter-modules complets :
 
@@ -48,6 +49,7 @@ Le module racine charge actuellement :
 - `SearchModule`
 - `ReservationsModule`
 - `PaymentsModule`
+- `CallsModule`
 
 L'application applique aussi globalement `AuditLoggerMiddleware`.
 
@@ -257,7 +259,21 @@ Responsabilites :
 - points GPS
 - temps reel Socket.IO
 
-### 8.10 Payments
+### 8.10 Calls
+
+Responsabilites :
+
+- signalisation des appels vocaux et video avec Socket.IO
+- validation des participants et de la conversation
+- persistance du cycle de vie des appels avec Prisma
+- generation serveur des jetons LiveKit a duree courte
+- resynchronisation de l'appel actif apres reconnexion
+- protection multi-onglet et prevention des appels concurrents
+- nettoyage des appels abandonnes apres un delai de grace
+
+L'audio et la video transitent directement par LiveKit/WebRTC. Socket.IO porte uniquement les decisions metier et la synchronisation d'etat. La reference detaillee se trouve dans `docs/APPELS_LIVEKIT_WEBRTC.md`.
+
+### 8.11 Payments
 
 Responsabilites :
 
@@ -269,7 +285,7 @@ Responsabilites :
 - retraits pro
 - statistiques admin
 
-### 8.11 Notifications
+### 8.12 Notifications
 
 Responsabilites :
 
@@ -280,7 +296,7 @@ Responsabilites :
 - delivery push
 - branchages email et SMS
 
-### 8.12 Disputes
+### 8.13 Disputes
 
 Responsabilites :
 
@@ -290,18 +306,21 @@ Responsabilites :
 - resolution ou rejet
 - traces de decision
 
-### 8.13 Admin
+### 8.14 Admin
+
 Responsabilites :
 
 - dashboard global
 - vue de gouvernance transverse
 
-### 8.14 Sante
+### 8.15 Sante
+
 Responsabilites :
 
 - healthcheck API
 
 ## 9. Surface HTTP reelle
+
 Les controllers HTTP actuels sont :
 
 - `admin-dashboard.controller.ts`
@@ -310,6 +329,7 @@ Les controllers HTTP actuels sont :
 - `categories.controller.ts`
 - `admin-disputes.controller.ts`
 - `live-tracking.controller.ts`
+- `calls.controller.ts`
 - `conversations.controller.ts`
 - `negotiations.controller.ts`
 - `admin-notifications.controller.ts`
@@ -326,10 +346,12 @@ Les controllers HTTP actuels sont :
 - `users.controller.ts`
 
 ## 10. Surface temps reel reelle
+
 Les gateways Socket.IO actuels sont :
 
 - `messaging.gateway.ts`
 - `live-tracking.gateway.ts`
+- `calls.gateway.ts`
 
 Ces briques couvrent les besoins temps reel du projet actuellement implementes.
 
@@ -360,6 +382,7 @@ Ces briques couvrent les besoins temps reel du projet actuellement implementes.
 ```
 
 ## 12. Documentation API
+
 Swagger est une vraie brique de l'architecture documentaire.
 
 Chemin local :
@@ -422,6 +445,7 @@ Objectif :
 4. resolution ou rejet
 
 ## 14. Base de donnees
+
 Le schema Prisma du projet couvre notamment :
 
 - utilisateurs
@@ -451,6 +475,7 @@ Le backend applique aussi des contraintes de coherence importantes :
 - indexes de lecture
 
 ## 15. Event-driven et robustesse
+
 Le backend prepare ou applique deja plusieurs briques de robustesse :
 
 - outbox events
@@ -462,6 +487,7 @@ Le backend prepare ou applique deja plusieurs briques de robustesse :
 Ce n'est pas encore une architecture de workers distribues complete, mais le socle actuel est serieux.
 
 ## 16. Ce qui est encore hors scope backend aujourd'hui
+
 Les modules suivants ne sont pas encore implementes completement :
 
 - upload media reel
@@ -471,6 +497,7 @@ Les modules suivants ne sont pas encore implementes completement :
 Cette limite doit etre consideree comme la frontiere fonctionnelle actuelle du backend.
 
 ## 17. Exigences de coherence documentaire
+
 Ce document doit rester aligne avec :
 
 - `backend/docs/TABLEAU_MESSAGES_HTTP.md`
@@ -481,6 +508,7 @@ Ce document doit rester aligne avec :
 et avec le code reel sous `backend/src/`.
 
 ## 18. Conclusion
+
 Le backend Jokko est aujourd'hui une base modulaire et deja riche, organisee autour de domaines metier clairs et de flux inter-modules reels.
 
 Sa force principale n'est pas seulement le nombre de modules implementes. C'est surtout la coherence d'ensemble :

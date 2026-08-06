@@ -318,6 +318,12 @@
           [class.messages-page__call-event--missed]="
             callItem.status === 'MISSED' && callItem.direction === 'INCOMING'
           "
+          [class.messages-page__call-event--failed]="
+            callItem.status === 'MISSED' ||
+            callItem.status === 'REJECTED' ||
+            callItem.status === 'FAILED'
+          "
+          [class.messages-page__call-event--completed]="callItem.status === 'ENDED'"
           [class.messages-page__call-event--incoming]="callItem.direction === 'INCOMING'"
           [class.messages-page__call-event--outgoing]="callItem.direction === 'OUTGOING'"
         >
@@ -336,7 +342,12 @@
           </span>
           <span>
             <strong>{{ callHistoryLabel(callItem) }}</strong>
-            <small>{{ callItem.startedAt | date: 'dd/MM/yyyy à HH:mm' }}</small>
+            <small>
+              {{ callItem.startedAt | date: 'dd/MM/yyyy à HH:mm' }}
+              <ng-container *ngIf="callDurationLabel(callItem) as duration">
+                · {{ duration }}
+              </ng-container>
+            </small>
           </span>
         </article>
 

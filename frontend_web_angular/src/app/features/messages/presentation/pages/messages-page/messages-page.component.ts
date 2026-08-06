@@ -134,7 +134,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly selectedConversationCalls = computed(() => {
     const conversationId = this.selectedConversationId();
     return conversationId
-      ? this.callHistory().filter((call) => call.conversationId === conversationId)
+      ? this.callHistory()
+          .filter((call) => call.conversationId === conversationId)
+          .sort(
+            (first, second) =>
+              new Date(first.startedAt).getTime() - new Date(second.startedAt).getTime(),
+          )
       : [];
   });
   private readonly callHistoryEffect = effect(() => {
@@ -553,9 +558,24 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return `Appel ${media} ${direction} ${label}`;
   }
 
+  protected callDurationLabel(call: CallHistoryItem): string | null {
+    if (call.durationSeconds === null || call.durationSeconds < 0) return null;
+    const hours = Math.floor(call.durationSeconds / 3600);
+    const minutes = Math.floor((call.durationSeconds % 3600) / 60);
+    const seconds = call.durationSeconds % 60;
+    if (hours > 0) return `${hours} h ${minutes.toString().padStart(2, '0')} min`;
+    if (minutes > 0) return `${minutes} min ${seconds.toString().padStart(2, '0')} s`;
+    return `${seconds} s`;
+  }
+
   private loadCallHistory(): void {
     if (!this.currentUser()) return;
-    this.callsApi.listHistory().subscribe({ next: (history) => this.callHistory.set(history) });
+    this.callsApi.listHistory().subscribe({
+      next: (history) => {
+        this.callHistory.set(history);
+        if (this.selectedConversationId()) this.scrollThreadToBottom();
+      },
+    });
   }
 
   protected closeMobileConversation(): void {

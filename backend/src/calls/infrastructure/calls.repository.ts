@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   CallHistoryView,
+  CallView,
   CallsRepositoryPort,
   CallStatus,
 } from '../application/ports/calls-repository.port';
@@ -23,6 +24,14 @@ const statusFromDb = Object.fromEntries(
 @Injectable()
 export class CallsRepository implements CallsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
+  async isUserActive(userId: string): Promise<boolean> {
+    return Boolean(
+      await this.prisma.utilisateur.findFirst({
+        where: { id: userId, estActif: true },
+        select: { id: true },
+      }),
+    );
+  }
   async create(input: {
     id: string;
     conversationId: string;
@@ -30,17 +39,43 @@ export class CallsRepository implements CallsRepositoryPort {
     recipientId: string;
     kind: CallKind;
     expiresAt: Date;
-  }): Promise<void> {
-    await this.prisma.appel.create({
-      data: {
-        id: input.id,
-        conversationId: input.conversationId,
-        appelantId: input.callerId,
-        destinataireId: input.recipientId,
-        type: input.kind === 'VIDEO' ? TypeAppel.VIDEO : TypeAppel.VOCAL,
-        expireLe: input.expiresAt,
+  }): Promise<'CREATED' | 'IDEMPOTENT' | 'BUSY'> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.appel.findUnique({ where: { id: input.id } });
+        if (existing) {
+          return existing.conversationId === input.conversationId &&
+            existing.appelantId === input.callerId &&
+            existing.destinataireId === input.recipientId &&
+            existing.type ===
+              (input.kind === 'VIDEO' ? TypeAppel.VIDEO : TypeAppel.VOCAL)
+            ? 'IDEMPOTENT'
+            : 'BUSY';
+        }
+        const active = await tx.appel.count({
+          where: {
+            statut: { in: [StatutAppel.SONNE, StatutAppel.ACCEPTE] },
+            OR: [
+              { appelantId: { in: [input.callerId, input.recipientId] } },
+              { destinataireId: { in: [input.callerId, input.recipientId] } },
+            ],
+          },
+        });
+        if (active > 0) return 'BUSY';
+        await tx.appel.create({
+          data: {
+            id: input.id,
+            conversationId: input.conversationId,
+            appelantId: input.callerId,
+            destinataireId: input.recipientId,
+            type: input.kind === 'VIDEO' ? TypeAppel.VIDEO : TypeAppel.VOCAL,
+            expireLe: input.expiresAt,
+          },
+        });
+        return 'CREATED';
       },
-    });
+      { isolationLevel: 'Serializable' },
+    );
   }
   async transition(input: {
     id: string;
@@ -116,8 +151,74 @@ export class CallsRepository implements CallsRepositoryPort {
         startedAt: call.sonneLe,
         acceptedAt: call.accepteLe,
         endedAt: call.termineLe,
+        durationSeconds:
+          call.accepteLe && call.termineLe
+            ? Math.max(
+                0,
+                Math.floor(
+                  (call.termineLe.getTime() - call.accepteLe.getTime()) / 1000,
+                ),
+              )
+            : null,
       };
     });
+  }
+  async findForParticipant(
+    id: string,
+    userId: string,
+  ): Promise<CallView | null> {
+    const call = await this.prisma.appel.findFirst({
+      where: {
+        id,
+        OR: [{ appelantId: userId }, { destinataireId: userId }],
+      },
+      include: {
+        appelant: { select: { nom: true, urlAvatar: true } },
+        destinataire: { select: { nom: true, urlAvatar: true } },
+      },
+    });
+    return call ? this.toCallView(call) : null;
+  }
+
+  async findActiveForUser(userId: string): Promise<CallView | null> {
+    const call = await this.prisma.appel.findFirst({
+      where: {
+        statut: { in: [StatutAppel.SONNE, StatutAppel.ACCEPTE] },
+        OR: [{ appelantId: userId }, { destinataireId: userId }],
+      },
+      orderBy: { creeLe: 'desc' },
+      include: {
+        appelant: { select: { nom: true, urlAvatar: true } },
+        destinataire: { select: { nom: true, urlAvatar: true } },
+      },
+    });
+    return call ? this.toCallView(call) : null;
+  }
+
+  private toCallView(call: {
+    id: string;
+    conversationId: string;
+    type: TypeAppel;
+    statut: StatutAppel;
+    appelantId: string;
+    destinataireId: string;
+    sonneLe: Date;
+    appelant: { nom: string; urlAvatar: string | null };
+    destinataire: { nom: string; urlAvatar: string | null };
+  }): CallView {
+    return {
+      id: call.id,
+      conversationId: call.conversationId,
+      kind: call.type === TypeAppel.VIDEO ? 'VIDEO' : 'VOICE',
+      status: statusFromDb[call.statut],
+      callerId: call.appelantId,
+      recipientId: call.destinataireId,
+      callerName: call.appelant.nom,
+      callerAvatarUrl: call.appelant.urlAvatar,
+      recipientName: call.destinataire.nom,
+      recipientAvatarUrl: call.destinataire.urlAvatar,
+      startedAt: call.sonneLe,
+    };
   }
   async expireRinging(now: Date) {
     const expired = await this.prisma.appel.findMany({

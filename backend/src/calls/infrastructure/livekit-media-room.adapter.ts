@@ -25,7 +25,7 @@ export class LiveKitMediaRoomAdapter implements MediaRoomProviderPort {
     const accessToken = new AccessToken(apiKey, apiSecret, {
       identity: input.userId,
       name: input.displayName,
-      ttl: '10m',
+      ttl: '3m',
     });
     const grant: VideoGrant = {
       room: input.roomName,

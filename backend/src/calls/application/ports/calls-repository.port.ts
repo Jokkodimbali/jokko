@@ -21,9 +21,24 @@ export type CallHistoryView = {
   startedAt: Date;
   acceptedAt: Date | null;
   endedAt: Date | null;
+  durationSeconds: number | null;
+};
+export type CallView = {
+  id: string;
+  conversationId: string;
+  kind: CallKind;
+  status: CallStatus;
+  callerId: string;
+  recipientId: string;
+  callerName: string;
+  callerAvatarUrl: string | null;
+  recipientName: string;
+  recipientAvatarUrl: string | null;
+  startedAt: Date;
 };
 
 export interface CallsRepositoryPort {
+  isUserActive(userId: string): Promise<boolean>;
   create(input: {
     id: string;
     conversationId: string;
@@ -31,13 +46,15 @@ export interface CallsRepositoryPort {
     recipientId: string;
     kind: CallKind;
     expiresAt: Date;
-  }): Promise<void>;
+  }): Promise<'CREATED' | 'IDEMPOTENT' | 'BUSY'>;
   transition(input: {
     id: string;
     actorId: string;
     from: CallStatus[];
     to: CallStatus;
   }): Promise<boolean>;
+  findForParticipant(id: string, userId: string): Promise<CallView | null>;
+  findActiveForUser(userId: string): Promise<CallView | null>;
   listForUser(
     userId: string,
     limit: number,

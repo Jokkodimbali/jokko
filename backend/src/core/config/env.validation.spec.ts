@@ -10,6 +10,9 @@ const baseEnv = {
   JWT_REFRESH_SECRET: 'b'.repeat(32),
   PAYMENT_GATEWAY_MODE: 'external',
   PAYMENT_WEBHOOK_SECRET: 'c'.repeat(32),
+  LIVEKIT_URL: 'wss://jokko.livekit.cloud',
+  LIVEKIT_API_KEY: 'livekit-api-key',
+  LIVEKIT_API_SECRET: 'livekit-api-secret-value',
 };
 
 describe('validerEnv', () => {
@@ -67,8 +70,21 @@ describe('validerEnv', () => {
       validerEnv({
         ...baseEnv,
         LIVEKIT_URL: 'wss://jokko.livekit.cloud',
+        LIVEKIT_API_KEY: '',
+        LIVEKIT_API_SECRET: '',
       }),
     ).toThrow('LIVEKIT_API_KEY');
+  });
+
+  it('rejects production without LiveKit configuration', () => {
+    expect(() =>
+      validerEnv({
+        ...baseEnv,
+        LIVEKIT_URL: '',
+        LIVEKIT_API_KEY: '',
+        LIVEKIT_API_SECRET: '',
+      }),
+    ).toThrow('LIVEKIT_URL');
   });
 
   it('rejects an invalid LiveKit URL', () => {

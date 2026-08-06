@@ -422,11 +422,12 @@
   right: -4px;
 }
 
-.messages-page__call-event--incoming .messages-page__call-direction {
-  color: #d92d20;
-}
-.messages-page__call-event--outgoing .messages-page__call-direction {
+.messages-page__call-event .messages-page__call-direction,
+.messages-page__call-event--completed .messages-page__call-direction {
   color: #16a34a;
+}
+.messages-page__call-event--failed .messages-page__call-direction {
+  color: #d92d20;
 }
 
 .messages-page__call-event > span:last-child {

@@ -22,8 +22,10 @@ type AuthStorageMode = 'local' | 'session';
 export class AuthSessionService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly currentUserSignal = signal<UserDto | null>(this.readStoredUser());
+  private readonly authVersionSignal = signal(0);
 
   readonly currentUser = this.currentUserSignal.asReadonly();
+  readonly authVersion = this.authVersionSignal.asReadonly();
 
   saveAuthResponse(response: AuthResponseDto, rememberMe = true): void {
     const storage = this.getWritableStorage(rememberMe ? 'local' : 'session');
@@ -43,6 +45,7 @@ export class AuthSessionService {
     if (response.refreshToken) {
       this.saveRefreshToken(response.refreshToken, storage);
     }
+    this.authVersionSignal.update((version) => version + 1);
   }
 
   getAccessToken(): string | null {
@@ -132,6 +135,7 @@ export class AuthSessionService {
     this.clearAuthFromStorage(localStorage);
     this.clearAuthFromStorage(sessionStorage);
     this.currentUserSignal.set(null);
+    this.authVersionSignal.update((version) => version + 1);
   }
 
   private getItem(key: string): string | null {

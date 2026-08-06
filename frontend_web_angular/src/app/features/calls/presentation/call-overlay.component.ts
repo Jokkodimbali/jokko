@@ -1,55 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { CallFacade } from '../application/call-facade.service';
-import type { LocalVideoTrack, RemoteTrack } from 'livekit-client';
+import type { RemoteTrack } from 'livekit-client';
+import { CallMediaTrackDirective } from './call-media-track.directive';
 
 @Component({
   selector: 'app-call-overlay',
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, CallMediaTrackDirective],
   templateUrl: './call-overlay.component.html',
   styleUrl: './call-overlay.component.scss',
 })
-export class CallOverlayComponent implements AfterViewChecked {
+export class CallOverlayComponent {
   protected readonly calls = inject(CallFacade);
   private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
-  @ViewChild('remoteMedia') private remoteMedia?: ElementRef<HTMLElement>;
-  @ViewChild('localVideo') private localVideo?: ElementRef<HTMLElement>;
   @ViewChild('callSurface') private callSurface?: ElementRef<HTMLElement>;
-  private attachedTracks = new Set<RemoteTrack>();
-  private attachedLocalTrack: LocalVideoTrack | null = null;
   protected readonly openDeviceMenu = signal<'audioinput' | 'videoinput' | null>(null);
   protected readonly isLocalVideoMain = signal(false);
-  ngAfterViewChecked(): void {
-    const host = this.remoteMedia?.nativeElement;
-    if (!host) return;
-    for (const track of this.calls.remoteTrack()) {
-      if (this.attachedTracks.has(track)) continue;
-      host.appendChild(track.attach());
-      this.attachedTracks.add(track);
-    }
-    for (const element of Array.from(host.querySelectorAll<HTMLMediaElement>('audio, video'))) {
-      element.muted = !this.calls.isSpeakerEnabled();
-    }
-    const localTrack = this.calls.localVideoTrack();
-    const localHost = this.localVideo?.nativeElement;
-    if (localTrack && localHost && localTrack !== this.attachedLocalTrack) {
-      const element = localTrack.attach();
-      element.muted = true;
-      localHost.replaceChildren(element);
-      this.attachedLocalTrack = localTrack;
-    }
-    if (!this.calls.call() && this.attachedTracks.size) {
-      host.replaceChildren();
-      this.attachedTracks.clear();
-      localHost?.replaceChildren();
-      this.attachedLocalTrack = null;
-    }
-  }
-
+  protected readonly floatingPosition = signal<{ x: number; y: number } | null>(null);
+  private floatingDrag: {
+    pointerId: number;
+    offsetX: number;
+    offsetY: number;
+    element: HTMLElement;
+  } | null = null;
   protected formatDuration(totalSeconds: number): string {
     const minutes = Math.floor(totalSeconds / 60)
       .toString()
@@ -64,7 +41,13 @@ export class CallOverlayComponent implements AfterViewChecked {
   }
 
   protected hasRemoteVideo(): boolean {
-    return this.calls.remoteTrack().some((track) => track.kind === 'video');
+    const muted = this.calls.mutedRemoteTrackIds();
+    return this.calls
+      .remoteTrack()
+      .some(
+        (track) =>
+          track.kind === 'video' && !track.isMuted && (!track.sid || !muted.has(track.sid)),
+      );
   }
 
   protected ownDisplayName(): string {
@@ -106,10 +89,64 @@ export class CallOverlayComponent implements AfterViewChecked {
   }
 
   protected toggleFullscreen(): void {
+    if (!this.calls.isOverlayVisible()) {
+      this.calls.showOverlay();
+      return;
+    }
     if (document.fullscreenElement) {
       void document.exitFullscreen();
       return;
     }
     void this.callSurface?.nativeElement.requestFullscreen();
+  }
+
+  protected startFloatingDrag(event: PointerEvent): void {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    const element = event.currentTarget as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    this.floatingDrag = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      element,
+    };
+    element.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  protected moveFloatingWindow(event: PointerEvent): void {
+    const drag = this.floatingDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const margin = 8;
+    const x = Math.min(
+      Math.max(margin, event.clientX - drag.offsetX),
+      Math.max(margin, viewportWidth - drag.element.offsetWidth - margin),
+    );
+    const y = Math.min(
+      Math.max(margin, event.clientY - drag.offsetY),
+      Math.max(margin, viewportHeight - drag.element.offsetHeight - margin),
+    );
+    this.floatingPosition.set({ x, y });
+  }
+
+  protected stopFloatingDrag(event: PointerEvent): void {
+    const drag = this.floatingDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.element.hasPointerCapture(event.pointerId)) {
+      drag.element.releasePointerCapture(event.pointerId);
+    }
+    this.floatingDrag = null;
+  }
+
+  protected visibleRemoteTracks(): RemoteTrack[] {
+    const muted = this.calls.mutedRemoteTrackIds();
+    return this.calls
+      .remoteTrack()
+      .filter(
+        (track) =>
+          track.kind !== 'video' || (!track.isMuted && (!track.sid || !muted.has(track.sid))),
+      );
   }
 }

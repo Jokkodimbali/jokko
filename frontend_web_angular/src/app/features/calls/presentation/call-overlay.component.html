@@ -3,7 +3,22 @@
   #callSurface
   class="call-overlay"
   [class.call-overlay--minimized]="!calls.isOverlayVisible()"
+  [class.call-overlay--floating-video]="!calls.isOverlayVisible() && call.kind === 'VIDEO'"
   [class.call-overlay--video]="call.kind === 'VIDEO'"
+  [style.left.px]="
+    !calls.isOverlayVisible() && call.kind === 'VIDEO' ? floatingPosition()?.x : null
+  "
+  [style.top.px]="!calls.isOverlayVisible() && call.kind === 'VIDEO' ? floatingPosition()?.y : null"
+  [style.right]="
+    !calls.isOverlayVisible() && call.kind === 'VIDEO' && floatingPosition() ? 'auto' : null
+  "
+  [style.bottom]="
+    !calls.isOverlayVisible() && call.kind === 'VIDEO' && floatingPosition() ? 'auto' : null
+  "
+  (pointerdown)="!calls.isOverlayVisible() && call.kind === 'VIDEO' && startFloatingDrag($event)"
+  (pointermove)="moveFloatingWindow($event)"
+  (pointerup)="stopFloatingDrag($event)"
+  (pointercancel)="stopFloatingDrag($event)"
   role="dialog"
   aria-modal="true"
   aria-label="Appel en cours"
@@ -25,12 +40,33 @@
   </header>
 
   <main class="call-overlay__stage">
+    <div *ngIf="calls.networkState() !== 'CONNECTED'" class="call-overlay__network-state">
+      {{
+        calls.networkState() === 'COUNTERPART_DISCONNECTED'
+          ? 'Participant déconnecté — reconnexion en attente…'
+          : 'Reconnexion en cours…'
+      }}
+    </div>
+    <button
+      *ngIf="calls.audioPlaybackBlocked()"
+      type="button"
+      class="call-overlay__enable-audio"
+      (click)="calls.enableRemoteAudio()"
+    >
+      Activer le son
+    </button>
     <div
       class="call-overlay__remote-media"
       [class.call-overlay__remote-media--thumbnail]="isLocalVideoMain()"
       #remoteMedia
+      (pointerdown)="isLocalVideoMain() && $event.stopPropagation()"
       (click)="showRemoteVideoAsMain()"
     >
+      <span
+        *ngFor="let track of visibleRemoteTracks()"
+        [appCallMediaTrack]="track"
+        [callMediaMuted]="!calls.isSpeakerEnabled()"
+      ></span>
       <strong *ngIf="isLocalVideoMain()">{{ call.counterpartName }}</strong>
     </div>
 
@@ -66,11 +102,13 @@
       class="call-overlay__local-video"
       [class.call-overlay__local-video--main]="isLocalVideoMain()"
       aria-label="Votre caméra"
+      (pointerdown)="$event.stopPropagation()"
       (click)="showLocalVideoAsMain()"
     >
       <div
         *ngIf="calls.localVideoTrack() && calls.isCameraEnabled(); else localCameraOff"
-        #localVideo
+        [appCallMediaTrack]="calls.localVideoTrack()"
+        [callMediaMuted]="true"
       ></div>
       <ng-template #localCameraOff>
         <span class="call-overlay__local-placeholder">
@@ -142,7 +180,7 @@
         <small>Caméra</small>
         <div
           *ngIf="openDeviceMenu() === 'videoinput'"
-          class="call-overlay__device-menu"
+          class="call-overlay__device-menu call-overlay__device-menu--camera"
           role="menu"
         >
           <strong>Choisir une caméra</strong>
@@ -189,7 +227,7 @@
         <small>Micro</small>
         <div
           *ngIf="openDeviceMenu() === 'audioinput'"
-          class="call-overlay__device-menu"
+          class="call-overlay__device-menu call-overlay__device-menu--audio"
           role="menu"
         >
           <strong>Choisir un microphone</strong>
@@ -231,17 +269,27 @@
   </footer>
 </section>
 
-<button
-  *ngIf="calls.call() as call"
+<section
+  *ngIf="!calls.isOverlayVisible() && calls.call()?.kind === 'VOICE' && calls.call() as call"
   class="call-overlay__return"
-  [class.call-overlay__return--hidden]="calls.isOverlayVisible()"
-  type="button"
-  (click)="calls.showOverlay()"
+  [class.call-overlay__return--voice]="call.kind === 'VOICE'"
+  [style.left.px]="floatingPosition()?.x ?? null"
+  [style.top.px]="floatingPosition()?.y ?? null"
+  [style.right]="floatingPosition() ? 'auto' : null"
+  [style.bottom]="floatingPosition() ? 'auto' : null"
+  (pointerdown)="startFloatingDrag($event)"
+  (pointermove)="moveFloatingWindow($event)"
+  (pointerup)="stopFloatingDrag($event)"
+  (pointercancel)="stopFloatingDrag($event)"
 >
-  <lucide-icon [name]="call.kind === 'VIDEO' ? 'video' : 'phone'" size="18" />
-  <span
-    ><strong>Appel en cours</strong
-    ><small>{{ call.counterpartName }} · {{ formatDuration(calls.durationSeconds()) }}</small></span
-  >
-  <lucide-icon name="maximize-2" size="17" />
-</button>
+  <ng-container>
+    <lucide-icon name="phone" size="18" />
+    <button type="button" class="call-overlay__return-summary" (click)="calls.showOverlay()">
+      <strong>Appel en cours</strong>
+      <small>{{ call.counterpartName }} · {{ formatDuration(calls.durationSeconds()) }}</small>
+    </button>
+    <button type="button" aria-label="Agrandir l'appel" (click)="calls.showOverlay()">
+      <lucide-icon name="maximize-2" size="17" />
+    </button>
+  </ng-container>
+</section>

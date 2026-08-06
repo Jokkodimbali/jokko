@@ -1,5 +1,5 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { DestroyRef, Injectable, PLATFORM_ID, inject } from '@angular/core';
 
 type CallTone = 'INCOMING' | 'OUTGOING';
 
@@ -7,15 +7,24 @@ type CallTone = 'INCOMING' | 'OUTGOING';
 export class CallAudioService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
   private context: AudioContext | null = null;
   private repeatTimer: ReturnType<typeof setInterval> | null = null;
   private generation = 0;
+  private readonly nodes = new Set<AudioNode>();
 
   constructor() {
     if (!isPlatformBrowser(this.platformId)) return;
     const unlock = () => void this.audioContext().resume();
     this.document.addEventListener('pointerdown', unlock, { once: true, passive: true });
     this.document.addEventListener('keydown', unlock, { once: true, passive: true });
+    this.destroyRef.onDestroy(() => {
+      this.stop();
+      for (const node of this.nodes) node.disconnect();
+      this.nodes.clear();
+      void this.context?.close();
+      this.context = null;
+    });
   }
 
   playIncoming(): void {
@@ -71,12 +80,25 @@ export class CallAudioService {
     gain.gain.setValueAtTime(0.11, Math.max(startAt + 0.03, endAt - 0.05));
     gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
     gain.connect(context.destination);
+    this.nodes.add(gain);
+
+    let remaining = frequencies.length;
 
     for (const frequency of frequencies) {
       const oscillator = context.createOscillator();
       oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(frequency, startAt);
       oscillator.connect(gain);
+      this.nodes.add(oscillator);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        this.nodes.delete(oscillator);
+        remaining -= 1;
+        if (remaining === 0) {
+          gain.disconnect();
+          this.nodes.delete(gain);
+        }
+      };
       oscillator.start(startAt);
       oscillator.stop(endAt + 0.02);
     }

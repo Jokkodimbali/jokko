@@ -177,6 +177,12 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     liveKitApiSecret,
   ].filter(Boolean).length;
 
+  if (nodeEnv === 'production' && configuredLiveKitValues !== 3) {
+    throw new Error(
+      'LIVEKIT_URL, LIVEKIT_API_KEY et LIVEKIT_API_SECRET sont obligatoires en production.',
+    );
+  }
+
   if (configuredLiveKitValues > 0 && configuredLiveKitValues < 3) {
     throw new Error(
       'LIVEKIT_URL, LIVEKIT_API_KEY et LIVEKIT_API_SECRET doivent etre configures ensemble.',

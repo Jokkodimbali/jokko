@@ -1,5 +1,10 @@
 export type CallKind = 'VOICE' | 'VIDEO';
 export type CallPhase = 'OUTGOING' | 'INCOMING' | 'CONNECTING' | 'ACTIVE';
+export type CallNetworkState =
+  | 'CONNECTED'
+  | 'SIGNAL_RECONNECTING'
+  | 'RECONNECTING'
+  | 'COUNTERPART_DISCONNECTED';
 
 export interface CallSignal {
   callId: string;
@@ -18,6 +23,13 @@ export interface ActiveCall extends CallSignal {
   counterpartAvatarUrl: string | null;
 }
 
+export interface ActiveCallSnapshot extends CallSignal {
+  status: 'RINGING' | 'ACCEPTED';
+  direction: 'INCOMING' | 'OUTGOING';
+  counterpartName: string;
+  counterpartAvatarUrl: string | null;
+}
+
 export interface CallHistoryItem {
   id: string;
   conversationId: string;
@@ -31,4 +43,5 @@ export interface CallHistoryItem {
   startedAt: string;
   acceptedAt: string | null;
   endedAt: string | null;
+  durationSeconds: number | null;
 }

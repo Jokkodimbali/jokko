@@ -70,6 +70,7 @@ const allowedSensitivePatterns = new Map(
       'bypassSecurityTrust',
     ],
     'src/app/core/auth/auth-session.service.ts': ['localStorage', 'sessionStorage'],
+    'src/app/core/storage/tab-session-storage.service.ts': ['sessionStorage'],
   }),
 );
 

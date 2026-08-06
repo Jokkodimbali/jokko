@@ -4,11 +4,7 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
-import {
-  AdminPaginatedResult,
-  AdminProviderListQuery,
-  AdminProviderProfile,
-} from './admin.models';
+import { AdminPaginatedResult, AdminProviderListQuery, AdminProviderProfile } from './admin.models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminProvidersService {
@@ -25,7 +21,9 @@ export class AdminProvidersService {
           const pagination = response.meta?.['pagination'] as
             | AdminPaginatedResult<AdminProviderProfile>['pagination']
             | undefined;
-          const stats = response.meta?.['stats'] as AdminPaginatedResult<AdminProviderProfile>['stats'] | undefined;
+          const stats = response.meta?.['stats'] as
+            | AdminPaginatedResult<AdminProviderProfile>['stats']
+            | undefined;
           return {
             items: unwrapApiResponse(response),
             pagination: pagination ?? {

@@ -60,7 +60,8 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
   },
   CAMIONNETTE: {
     label: 'Camionnette',
-    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    imageUrl:
+      'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
 };
 
@@ -169,10 +170,12 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
   protected readonly doctorName = computed(() => {
     const detail = this.detail();
-    return detail?.profile.nomEntreprise || detail?.profile.utilisateur.nom || 'Medecin non renseigne';
+    return (
+      detail?.profile.nomEntreprise || detail?.profile.utilisateur.nom || 'Medecin non renseigne'
+    );
   });
-  protected readonly doctorAvatarUrl = computed(() =>
-    publicAssetUrl(this.detail()?.profile.utilisateur.urlAvatar) || '',
+  protected readonly doctorAvatarUrl = computed(
+    () => publicAssetUrl(this.detail()?.profile.utilisateur.urlAvatar) || '',
   );
   protected readonly doctorInitials = computed(() => this.initials(this.doctorName()));
   protected readonly doctorVehicleBadge = computed(() => {
@@ -181,11 +184,11 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly doctorRatingLabel = computed(() =>
     Number(this.detail()?.profile.noteGlobale ?? 0).toFixed(1),
   );
-  protected readonly doctorReviewsLabel = computed(() =>
-    `${this.detail()?.profile.nombreAvis ?? 0} avis`,
+  protected readonly doctorReviewsLabel = computed(
+    () => `${this.detail()?.profile.nombreAvis ?? 0} avis`,
   );
-  protected readonly selectedService = computed(() =>
-    this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
+  protected readonly selectedService = computed(
+    () => this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
   );
   protected readonly doctorTravelsToPatient = computed(
     () => this.selectedService()?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE',
@@ -214,22 +217,30 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   );
   protected readonly userName = computed(() => this.user()?.nom?.trim() || 'Nom non renseigne');
   protected readonly userPhoneNumber = computed(() => this.user()?.numeroTelephone?.trim() || '');
-  protected readonly userPhone = computed(() => this.userPhoneNumber() || 'Telephone non renseigne');
+  protected readonly userPhone = computed(
+    () => this.userPhoneNumber() || 'Telephone non renseigne',
+  );
   protected readonly userAddress = computed(() => this.user()?.adresse?.trim() || '');
-  protected readonly appointmentPhoneValue = computed(() => this.appointmentPhoneOverride() || this.userPhoneNumber());
+  protected readonly appointmentPhoneValue = computed(
+    () => this.appointmentPhoneOverride() || this.userPhoneNumber(),
+  );
   protected readonly patientSummaryPhone = computed(() => {
     if (this.appointmentFor() === 'ME') {
       return normalizeSenegalPhoneNumber(this.appointmentPhoneValue()) || 'Telephone a renseigner';
     }
 
-    return normalizeSenegalPhoneNumber(this.relativePatient().phoneNumber || this.userPhoneNumber()) || 'Telephone a renseigner';
+    return (
+      normalizeSenegalPhoneNumber(this.relativePatient().phoneNumber || this.userPhoneNumber()) ||
+      'Telephone a renseigner'
+    );
   });
   protected readonly locationSummary = computed(() => {
     const location = this.appointmentLocation();
     if (!location) return 'Adresse textuelle uniquement';
-    const accuracy = location.accuracyMeters === null
-      ? 'precision Google Maps'
-      : `precision ${Math.round(location.accuracyMeters)} m`;
+    const accuracy =
+      location.accuracyMeters === null
+        ? 'precision Google Maps'
+        : `precision ${Math.round(location.accuracyMeters)} m`;
     return `${location.label} (${accuracy})`;
   });
   protected readonly selectedSlotLabel = computed(() => {
@@ -274,7 +285,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(dateHeure)).toUpperCase();
+    })
+      .format(new Date(dateHeure))
+      .toUpperCase();
   });
   protected readonly selectedTimeLabel = computed(() => {
     const dateHeure = this.selectedDateTime();
@@ -283,7 +296,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     return new Intl.DateTimeFormat('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateHeure)).replace(':', 'h');
+    })
+      .format(new Date(dateHeure))
+      .replace(':', 'h');
   });
   protected readonly availableSlotsCount = computed(
     () => this.selectedDateSlots().filter((slot) => slot.available).length,
@@ -305,9 +320,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     () => Object.keys(this.collectPersonalStepErrors()).length === 0,
   );
   protected readonly canConfirm = computed(
-    () =>
-      this.canGoToReservationStep() &&
-      !this.isSubmitting(),
+    () => this.canGoToReservationStep() && !this.isSubmitting(),
   );
 
   ngOnInit(): void {
@@ -457,9 +470,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     this.updateRelativePatient('address', address);
   }
 
-  protected resolveAppointmentAddressFromMap(
-    selection: ServiceProposalMapAddressSelection,
-  ): void {
+  protected resolveAppointmentAddressFromMap(selection: ServiceProposalMapAddressSelection): void {
     if (this.patientTravelsToDoctor()) {
       this.feedback.info('Le lieu du rendez-vous est fixe par le cabinet du medecin.');
       return;
@@ -516,7 +527,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
   protected useCurrentLocationForAppointment(): void {
     if (this.patientTravelsToDoctor()) {
-      this.feedback.info('La geolocalisation nest pas necessaire: le rendez-vous se fait au cabinet du medecin.');
+      this.feedback.info(
+        'La geolocalisation nest pas necessaire: le rendez-vous se fait au cabinet du medecin.',
+      );
       return;
     }
 
@@ -526,7 +539,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
 
     this.isLocatingAddress.set(true);
-    this.feedback.info('Autorisez le partage de votre position pour renseigner le lieu exact du rendez-vous.');
+    this.feedback.info(
+      'Autorisez le partage de votre position pour renseigner le lieu exact du rendez-vous.',
+    );
 
     let bestPosition: GeolocationPosition | null = null;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -573,10 +588,14 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
         stopWatching();
         this.isLocatingAddress.set(false);
         if (error.code === error.PERMISSION_DENIED) {
-          this.feedback.error('Autorisez la geolocalisation dans votre navigateur pour pointer le rendez-vous.');
+          this.feedback.error(
+            'Autorisez la geolocalisation dans votre navigateur pour pointer le rendez-vous.',
+          );
           return;
         }
-        this.feedback.error('Impossible de recuperer votre position. Verifiez que le GPS est active.');
+        this.feedback.error(
+          'Impossible de recuperer votre position. Verifiez que le GPS est active.',
+        );
       },
       {
         enableHighAccuracy: true,
@@ -707,7 +726,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
 
     if (this.appointmentFor() === 'ME') {
-      return this.appointmentAddressOverride() || this.userAddress() || 'Adresse a ajouter au profil';
+      return (
+        this.appointmentAddressOverride() || this.userAddress() || 'Adresse a ajouter au profil'
+      );
     }
     return this.normalizeText(this.relativePatient().address) || 'Adresse du proche a renseigner';
   }
@@ -798,7 +819,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
           const days = this.buildCalendarDays(21);
           this.calendarDays.set(days);
           const todayIso = this.toIsoDate(new Date());
-          this.selectedDateIso.set(days.find((day) => day.isoDate === todayIso)?.isoDate ?? days[0]?.isoDate ?? '');
+          this.selectedDateIso.set(
+            days.find((day) => day.isoDate === todayIso)?.isoDate ?? days[0]?.isoDate ?? '',
+          );
           this.startAvailabilityRealtime(detail.profile.id);
           this.loadAvailabilityForSelectedDate();
         },
@@ -927,7 +950,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
             `Patient: ${this.userName()}.`,
             phoneNumber ? `Telephone: ${phoneNumber}.` : '',
             this.patientTravelsToDoctor() ? 'Lieu: cabinet du medecin.' : this.formatLocationNote(),
-          ].filter(Boolean).join(' '),
+          ]
+            .filter(Boolean)
+            .join(' '),
         ),
       };
     }
@@ -1030,9 +1055,10 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     const location = this.appointmentLocation();
     if (!location) return '';
 
-    const accuracy = location.accuracyMeters === null
-      ? ''
-      : ` Precision GPS: ${Math.round(location.accuracyMeters)} metres.`;
+    const accuracy =
+      location.accuracyMeters === null
+        ? ''
+        : ` Precision GPS: ${Math.round(location.accuracyMeters)} metres.`;
     return `Adresse selectionnee (${location.source}): ${location.label}.${accuracy} Coordonnees exactes conservees pour le trajet.`;
   }
 
@@ -1042,9 +1068,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     fallbackLabel: string,
   ): Promise<string> {
     try {
-      const result = await firstValueFrom(
-        this.googleMaps.reverseGeocode({ latitude, longitude }),
-      );
+      const result = await firstValueFrom(this.googleMaps.reverseGeocode({ latitude, longitude }));
       return result?.formattedAddress || fallbackLabel;
     } catch {
       return fallbackLabel;
@@ -1088,9 +1112,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   }
 
   private normalizeAccuracy(value: number | null | undefined): number {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? value
-      : Number.POSITIVE_INFINITY;
+    return typeof value === 'number' && Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
   }
 
   private humanMapAddressLabel(value: string): string {

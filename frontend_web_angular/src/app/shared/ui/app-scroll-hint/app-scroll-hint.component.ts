@@ -1,13 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import {
-  Component,
-  HostListener,
-  Inject,
-  Input,
-  OnInit,
-  PLATFORM_ID,
-  signal,
-} from '@angular/core';
+import { Component, HostListener, Inject, Input, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({

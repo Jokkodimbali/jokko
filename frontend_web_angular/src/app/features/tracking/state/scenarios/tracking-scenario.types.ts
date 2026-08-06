@@ -1,4 +1,7 @@
-import { AppointmentTravelMode, AppointmentView } from '../../../appointments/domain/appointments.models';
+import {
+  AppointmentTravelMode,
+  AppointmentView,
+} from '../../../appointments/domain/appointments.models';
 import { AppointmentTrackingStep } from '../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 
 export type TrackingScenarioId =

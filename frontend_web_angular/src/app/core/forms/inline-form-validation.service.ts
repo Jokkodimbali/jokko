@@ -63,7 +63,10 @@ export class InlineFormValidationService implements OnDestroy {
       if (target.closest('form[data-inline-validation="off"]')) {
         return null;
       }
-      if (target instanceof HTMLInputElement && ['hidden', 'button', 'submit', 'reset'].includes(target.type)) {
+      if (
+        target instanceof HTMLInputElement &&
+        ['hidden', 'button', 'submit', 'reset'].includes(target.type)
+      ) {
         return null;
       }
       return target.disabled ? null : target;
@@ -91,7 +94,10 @@ export class InlineFormValidationService implements OnDestroy {
     error.textContent = this.validationMessage(field);
     field.classList.add('app-field--invalid');
     field.setAttribute('aria-invalid', 'true');
-    field.setAttribute('aria-describedby', this.appendId(field.getAttribute('aria-describedby'), id));
+    field.setAttribute(
+      'aria-describedby',
+      this.appendId(field.getAttribute('aria-describedby'), id),
+    );
   }
 
   private clearError(field: ValidatableField): void {
@@ -100,11 +106,14 @@ export class InlineFormValidationService implements OnDestroy {
     field.classList.remove('app-field--invalid');
     field.removeAttribute('aria-invalid');
     if (id) {
-      const describedBy = field.getAttribute('aria-describedby')
+      const describedBy = field
+        .getAttribute('aria-describedby')
         ?.split(/\s+/)
         .filter((value) => value && value !== id)
         .join(' ');
-      describedBy ? field.setAttribute('aria-describedby', describedBy) : field.removeAttribute('aria-describedby');
+      describedBy
+        ? field.setAttribute('aria-describedby', describedBy)
+        : field.removeAttribute('aria-describedby');
     }
   }
 

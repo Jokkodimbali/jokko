@@ -111,7 +111,6 @@
   .appointment-detail__client-summary-status h2 {
     font-size: clamp(34px, 3.6vw, 42px);
   }
-
 }
 
 @media (max-width: 620px) {
@@ -366,7 +365,6 @@
   .appointment-detail__work-facts {
     grid-template-columns: 1fr;
   }
-
 }
 
 @media (min-width: 481px) and (max-width: 620px) {
@@ -538,5 +536,4 @@
     min-width: 36px;
     width: 36px;
   }
-
 }

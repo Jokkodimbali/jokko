@@ -44,38 +44,41 @@ export class AppointmentsService {
               const enriched = this.mapFromEnrichedReservation(reservation);
               if (enriched) return of(enriched);
 
-              return this.servicesService.getProviderProfileDetail(reservation.professionnelId).pipe(
-                map((detail) => {
-                  const service =
-                    detail.services.find((item) => item.id === reservation.serviceId) ??
-                    detail.services[0];
+              return this.servicesService
+                .getProviderProfileDetail(reservation.professionnelId)
+                .pipe(
+                  map((detail) => {
+                    const service =
+                      detail.services.find((item) => item.id === reservation.serviceId) ??
+                      detail.services[0];
 
-                  return this.mapAppointment(reservation, {
-                    doctorName:
-                      detail.profile.nomEntreprise ||
-                      detail.profile.utilisateur.nom ||
-                      'Prestataire non renseigne',
-                    specialty: service?.nom || 'Service non renseigne',
-                    avatarUrl: detail.profile.utilisateur.urlAvatar || '',
-                    professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
-                    professionalAddressLabel: detail.profile.ville || null,
-                    professionalLatitude: detail.profile.latitude ?? null,
-                    professionalLongitude: detail.profile.longitude ?? null,
-                    professionalRating: detail.profile.noteGlobale ?? null,
-                    professionalReviews: detail.profile.nombreAvis ?? 0,
-                    serviceName: service?.nom || 'Service non renseigne',
-                    serviceDescription: service?.description || null,
-                    serviceCategoryName: null,
-                    professionalSubCategoryName: this.firstNonEmpty(
-                      (service as { subCategoryName?: string | null } | undefined)?.subCategoryName,
-                    ),
-                    servicePrice: service?.prix ?? null,
-                    travelMode: service?.modeDeplacement ?? null,
-                    vehicleType: detail.profile.typeVehicule ?? null,
-                  });
-                }),
-                catchError(() => of(this.mapAppointment(reservation))),
-              );
+                    return this.mapAppointment(reservation, {
+                      doctorName:
+                        detail.profile.nomEntreprise ||
+                        detail.profile.utilisateur.nom ||
+                        'Prestataire non renseigne',
+                      specialty: service?.nom || 'Service non renseigne',
+                      avatarUrl: detail.profile.utilisateur.urlAvatar || '',
+                      professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
+                      professionalAddressLabel: detail.profile.ville || null,
+                      professionalLatitude: detail.profile.latitude ?? null,
+                      professionalLongitude: detail.profile.longitude ?? null,
+                      professionalRating: detail.profile.noteGlobale ?? null,
+                      professionalReviews: detail.profile.nombreAvis ?? 0,
+                      serviceName: service?.nom || 'Service non renseigne',
+                      serviceDescription: service?.description || null,
+                      serviceCategoryName: null,
+                      professionalSubCategoryName: this.firstNonEmpty(
+                        (service as { subCategoryName?: string | null } | undefined)
+                          ?.subCategoryName,
+                      ),
+                      servicePrice: service?.prix ?? null,
+                      travelMode: service?.modeDeplacement ?? null,
+                      vehicleType: detail.profile.typeVehicule ?? null,
+                    });
+                  }),
+                  catchError(() => of(this.mapAppointment(reservation))),
+                );
             }),
           );
         }),
@@ -134,9 +137,9 @@ export class AppointmentsService {
 
   getAppointmentTracking(reservationId: string): Observable<AppointmentTrackingView> {
     return this.http
-      .get<ApiResponse<AppointmentTrackingView>>(
-        `${this.apiUrl}/reservations/${reservationId}/live-tracking`,
-      )
+      .get<
+        ApiResponse<AppointmentTrackingView>
+      >(`${this.apiUrl}/reservations/${reservationId}/live-tracking`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -159,20 +162,24 @@ export class AppointmentsService {
 
   markAppointmentAsPaid(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/mark-paid`,
-        {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/mark-paid`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   confirmAppointment(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/confirm`,
-        {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/confirm`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   rescheduleAppointment(
@@ -182,19 +189,27 @@ export class AppointmentsService {
     },
   ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/reschedule`,
-        data,
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/reschedule`, data)
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   openDispute(reservationId: string, reason: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/dispute`, {
-        reason,
-      })
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/dispute`,
+        {
+          reason,
+        },
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   uploadDisputeEvidence(reservationId: string, files: File[]): Observable<unknown[]> {
@@ -202,26 +217,25 @@ export class AppointmentsService {
     files.forEach((file) => formData.append('evidence', file));
 
     return this.http
-      .post<ApiResponse<unknown[]>>(
-        `${this.apiUrl}/reservations/${reservationId}/dispute/evidence`,
-        formData,
-      )
+      .post<
+        ApiResponse<unknown[]>
+      >(`${this.apiUrl}/reservations/${reservationId}/dispute/evidence`, formData)
       .pipe(map(unwrapApiResponse));
   }
 
   deleteDisputeEvidence(reservationId: string, evidenceId: string): Observable<unknown[]> {
     return this.http
-      .delete<ApiResponse<unknown[]>>(
-        `${this.apiUrl}/reservations/${reservationId}/dispute/evidence/${evidenceId}`
-      )
+      .delete<
+        ApiResponse<unknown[]>
+      >(`${this.apiUrl}/reservations/${reservationId}/dispute/evidence/${evidenceId}`)
       .pipe(map(unwrapApiResponse));
   }
 
   getReservationDispute(reservationId: string): Observable<ReservationDisputeView> {
     return this.http
-      .get<ApiResponse<ReservationDisputeView>>(
-        `${this.apiUrl}/reservations/${reservationId}/dispute`,
-      )
+      .get<
+        ApiResponse<ReservationDisputeView>
+      >(`${this.apiUrl}/reservations/${reservationId}/dispute`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -237,10 +251,9 @@ export class AppointmentsService {
     },
   ): Observable<AppointmentTrackingView> {
     return this.http
-      .patch<ApiResponse<AppointmentTrackingView>>(
-        `${this.apiUrl}/reservations/${reservationId}/on-the-way`,
-        location,
-      )
+      .patch<
+        ApiResponse<AppointmentTrackingView>
+      >(`${this.apiUrl}/reservations/${reservationId}/on-the-way`, location)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -256,20 +269,21 @@ export class AppointmentsService {
     },
   ): Observable<AppointmentTrackingView> {
     return this.http
-      .patch<ApiResponse<AppointmentTrackingView>>(
-        `${this.apiUrl}/reservations/${reservationId}/live-tracking/location`,
-        location,
-      )
+      .patch<
+        ApiResponse<AppointmentTrackingView>
+      >(`${this.apiUrl}/reservations/${reservationId}/live-tracking/location`, location)
       .pipe(map(unwrapApiResponse));
   }
 
   startAppointment(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/start`,
-        {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/start`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   completeAppointment(
@@ -277,11 +291,13 @@ export class AppointmentsService {
     prescription?: MedicalPrescriptionPayload,
   ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/complete`,
-        prescription ? { prescription } : {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/complete`, prescription ? { prescription } : {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   saveMedicalPrescription(
@@ -289,11 +305,13 @@ export class AppointmentsService {
     prescription: MedicalPrescriptionPayload,
   ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/medical-prescription`,
-        { prescription },
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/medical-prescription`, { prescription })
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   initiatePayment(
@@ -308,7 +326,9 @@ export class AppointmentsService {
           bookingId: reservationId,
           method,
           successUrl: this.absoluteUrl(options?.successPath ?? `/appointments/${reservationId}`),
-          cancelUrl: this.absoluteUrl(options?.cancelPath ?? `/appointments/${reservationId}/payment`),
+          cancelUrl: this.absoluteUrl(
+            options?.cancelPath ?? `/appointments/${reservationId}/payment`,
+          ),
         },
         {
           headers: {
@@ -324,28 +344,38 @@ export class AppointmentsService {
     reason = 'Annulation demandee depuis l espace rendez-vous.',
   ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/cancel`, {
-        reason,
-      })
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/cancel`,
+        {
+          reason,
+        },
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   acceptPriceAdjustment(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/accept`,
-        {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/price-adjustment/accept`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   rejectPriceAdjustment(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/reject`,
-        {},
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/price-adjustment/reject`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   proposePriceAdjustment(
@@ -356,26 +386,39 @@ export class AppointmentsService {
     },
   ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/price-adjustment/propose`,
-        data,
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/price-adjustment/propose`, data)
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   markNoShow(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}/no-show`, {})
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/no-show`, {})
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
-  submitReview(reservationId: string, rating: number, review?: string): Observable<AppointmentView> {
+  submitReview(
+    reservationId: string,
+    rating: number,
+    review?: string,
+  ): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/review`,
-        { rating, review },
-      )
-      .pipe(map(unwrapApiResponse), map((reservation) => this.mapAppointment(reservation)));
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/review`, { rating, review })
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
   }
 
   private mapAppointment(
@@ -436,7 +479,9 @@ export class AppointmentsService {
       specialty: professional.specialty || serviceName || 'Service non renseigne',
       avatarUrl: publicAssetUrl(avatarUrl) || '',
       professionalPhone:
-        professional.professionalPhone ?? reservation.professionnel?.utilisateur.numeroTelephone ?? null,
+        professional.professionalPhone ??
+        reservation.professionnel?.utilisateur.numeroTelephone ??
+        null,
       professionalAddressLabel:
         professional.professionalAddressLabel ?? reservation.professionnel?.ville ?? null,
       professionalLatitude:
@@ -451,25 +496,23 @@ export class AppointmentsService {
       clientPhone: reservation.client?.numeroTelephone || null,
       clientAvatarUrl: publicAssetUrl(reservation.client?.urlAvatar) || '',
       serviceName: serviceName || 'Service non renseigne',
-      serviceDescription: professional.serviceDescription ?? reservation.service?.description ?? null,
-      serviceCategoryName: professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
+      serviceDescription:
+        professional.serviceDescription ?? reservation.service?.description ?? null,
+      serviceCategoryName:
+        professional.serviceCategoryName ?? reservation.service?.categorie?.nom ?? null,
       professionalSubCategoryName:
         this.validProfessionalSubCategoryName(
-          professional.professionalSubCategoryName ??
-            this.professionalSubCategoryName(reservation),
+          professional.professionalSubCategoryName ?? this.professionalSubCategoryName(reservation),
           reservation,
         ) ?? null,
       servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
-      vehicleType:
-        professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
+      vehicleType: professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
       notes: reservation.notes,
       medicalPrescription: {
         acts: this.normalizePrescriptionItems(reservation.actesPrescriptionMedicale),
         vaccines: this.normalizePrescriptionItems(reservation.vaccinsPrescriptionMedicale),
-        treatments: this.normalizePrescriptionItems(
-          reservation.traitementsPrescriptionMedicale,
-        ),
+        treatments: this.normalizePrescriptionItems(reservation.traitementsPrescriptionMedicale),
       },
       agreedPrice: reservation.prixConvenu,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
@@ -484,7 +527,9 @@ export class AppointmentsService {
     };
   }
 
-  private normalizeReservationStatus(status: BackendReservation['statut'] | 'EN_ATTENTE'): AppointmentView['status'] {
+  private normalizeReservationStatus(
+    status: BackendReservation['statut'] | 'EN_ATTENTE',
+  ): AppointmentView['status'] {
     return status === 'EN_ATTENTE' ? 'CONFIRMEE' : status;
   }
 
@@ -574,7 +619,9 @@ export class AppointmentsService {
   }
 
   private firstNonEmpty(...values: Array<string | null | undefined>): string | null {
-    return values.map((value) => value?.trim()).find((value): value is string => Boolean(value)) ?? null;
+    return (
+      values.map((value) => value?.trim()).find((value): value is string => Boolean(value)) ?? null
+    );
   }
 
   private normalizePrescriptionItems(value: unknown): string[] {
@@ -610,7 +657,9 @@ export class AppointmentsService {
     return new Intl.DateTimeFormat('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(date).replace(':', 'h');
+    })
+      .format(date)
+      .replace(':', 'h');
   }
 
   private absoluteUrl(path: string): string {

@@ -102,7 +102,9 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly medicalCredentialProfiles = signal<AdminMedicalValidation[]>([]);
   protected readonly providerProfiles = signal<AdminProviderProfile[]>([]);
   protected readonly selectedProviderDetail = signal<AdminProviderProfile | null>(null);
-  protected readonly providerPagination = signal<AdminPaginatedResult<AdminProviderProfile>['pagination'] | null>(null);
+  protected readonly providerPagination = signal<
+    AdminPaginatedResult<AdminProviderProfile>['pagination'] | null
+  >(null);
   protected readonly providerStats = signal<AdminProviderStats | null>(null);
   protected readonly regionsReport = signal<AdminRegionsReport | null>(null);
   protected readonly revenueReport = signal<AdminRevenueReport | null>(null);
@@ -142,10 +144,16 @@ export class AdminDashboardPageComponent implements OnInit {
     return kpi?.value ?? 0;
   });
   protected readonly trafficCount = computed(() =>
-    (this.dashboard()?.overview.platforms ?? []).reduce((sum, platform) => sum + Number(platform.value ?? 0), 0),
+    (this.dashboard()?.overview.platforms ?? []).reduce(
+      (sum, platform) => sum + Number(platform.value ?? 0),
+      0,
+    ),
   );
   protected readonly categoryTotal = computed(() =>
-    (this.dashboard()?.overview.categoryDistribution ?? []).reduce((sum, item) => sum + item.value, 0),
+    (this.dashboard()?.overview.categoryDistribution ?? []).reduce(
+      (sum, item) => sum + item.value,
+      0,
+    ),
   );
   protected readonly navItems: Array<{
     key: AdminSection;
@@ -154,19 +162,64 @@ export class AdminDashboardPageComponent implements OnInit {
     badge?: () => number;
   }> = [
     { key: 'overview', label: 'Vue d ensemble', icon: 'layout-dashboard' },
-    { key: 'validations', label: 'Validations', icon: 'shield-check', badge: () => this.dashboard()?.kyc.pending ?? 0 },
-    { key: 'doctors', label: 'Medecins- Diplomes', icon: 'stethoscope', badge: () => this.medicalCredentialProfiles().length },
+    {
+      key: 'validations',
+      label: 'Validations',
+      icon: 'shield-check',
+      badge: () => this.dashboard()?.kyc.pending ?? 0,
+    },
+    {
+      key: 'doctors',
+      label: 'Medecins- Diplomes',
+      icon: 'stethoscope',
+      badge: () => this.medicalCredentialProfiles().length,
+    },
     { key: 'disputes', label: 'Litiges', icon: 'scale', badge: () => this.openDisputes() },
     { key: 'providers', label: 'Prestataires', icon: 'users', badge: () => this.providerCount() },
-    { key: 'users', label: 'Utilisateurs', icon: 'user-round-cog', badge: () => this.dashboard()?.users.total ?? 0 },
-    { key: 'reservations', label: 'Reservations', icon: 'calendar-days', badge: () => this.dashboard()?.reservations.active ?? 0 },
-    { key: 'payments', label: 'Paiements', icon: 'banknote', badge: () => this.dashboard()?.reservations.inEscrow ?? 0 },
+    {
+      key: 'users',
+      label: 'Utilisateurs',
+      icon: 'user-round-cog',
+      badge: () => this.dashboard()?.users.total ?? 0,
+    },
+    {
+      key: 'reservations',
+      label: 'Reservations',
+      icon: 'calendar-days',
+      badge: () => this.dashboard()?.reservations.active ?? 0,
+    },
+    {
+      key: 'payments',
+      label: 'Paiements',
+      icon: 'banknote',
+      badge: () => this.dashboard()?.reservations.inEscrow ?? 0,
+    },
     { key: 'notifications', label: 'Notifications', icon: 'bell' },
-    { key: 'traffic', label: 'Trafic & Analytics', icon: 'chart-no-axes-combined', badge: () => this.trafficCount() },
-    { key: 'revenue', label: 'Chiffre d affaire', icon: 'wallet-cards', badge: () => this.dashboard()?.revenue.monthlyGross ?? 0 },
-    { key: 'regions', label: 'Regions Senegal', icon: 'globe-2', badge: () => this.regionsReport()?.totals.regions ?? 0 },
+    {
+      key: 'traffic',
+      label: 'Trafic & Analytics',
+      icon: 'chart-no-axes-combined',
+      badge: () => this.trafficCount(),
+    },
+    {
+      key: 'revenue',
+      label: 'Chiffre d affaire',
+      icon: 'wallet-cards',
+      badge: () => this.dashboard()?.revenue.monthlyGross ?? 0,
+    },
+    {
+      key: 'regions',
+      label: 'Regions Senegal',
+      icon: 'globe-2',
+      badge: () => this.regionsReport()?.totals.regions ?? 0,
+    },
     { key: 'archives', label: 'Archives', icon: 'archive', badge: () => this.closedDisputes() },
-    { key: 'structure', label: 'Structure des Services', icon: 'git-fork', badge: () => this.serviceStructureReport()?.totals.categories ?? this.categoryTotal() },
+    {
+      key: 'structure',
+      label: 'Structure des Services',
+      icon: 'git-fork',
+      badge: () => this.serviceStructureReport()?.totals.categories ?? this.categoryTotal(),
+    },
   ];
 
   ngOnInit(): void {
@@ -340,7 +393,9 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .deleteEmptyCategory(categoryId)
       .pipe(catchError(() => of(null)))
-      .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie supprimee definitivement.'));
+      .subscribe((result) =>
+        this.afterCategoryMutation(!!result, 'Categorie supprimee definitivement.'),
+      );
   }
 
   protected createSubCategory(payload: AdminSubCategoryPayload): void {
@@ -372,7 +427,9 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService
       .deleteUnusedSubCategory(subCategoryId)
       .pipe(catchError(() => of(null)))
-      .subscribe((result) => this.afterCategoryMutation(!!result, 'Sous-categorie supprimee definitivement.'));
+      .subscribe((result) =>
+        this.afterCategoryMutation(!!result, 'Sous-categorie supprimee definitivement.'),
+      );
   }
 
   private afterCategoryMutation(succeeded: boolean, successMessage: string): void {
@@ -480,10 +537,18 @@ export class AdminDashboardPageComponent implements OnInit {
       );
     }
     if (payload.action === 'message-client') {
-      return this.adminDisputesService.sendMessage(payload.disputeId, 'CLIENT', payload.notes ?? '');
+      return this.adminDisputesService.sendMessage(
+        payload.disputeId,
+        'CLIENT',
+        payload.notes ?? '',
+      );
     }
     if (payload.action === 'message-professional') {
-      return this.adminDisputesService.sendMessage(payload.disputeId, 'PRESTATAIRE', payload.notes ?? '');
+      return this.adminDisputesService.sendMessage(
+        payload.disputeId,
+        'PRESTATAIRE',
+        payload.notes ?? '',
+      );
     }
     if (payload.action === 'message-both') {
       return this.adminDisputesService.sendMessage(payload.disputeId, 'TOUS', payload.notes ?? '');
@@ -605,7 +670,9 @@ export class AdminDashboardPageComponent implements OnInit {
     if (remainsVisible) {
       this.selectedProviderDetail.set(provider);
       this.providerProfiles.set(
-        this.providerProfiles().map((item) => (item.id === provider.id ? { ...item, ...provider } : item)),
+        this.providerProfiles().map((item) =>
+          item.id === provider.id ? { ...item, ...provider } : item,
+        ),
       );
     } else {
       this.providerProfiles.set(this.providerProfiles().filter((item) => item.id !== provider.id));
@@ -703,7 +770,9 @@ export class AdminDashboardPageComponent implements OnInit {
       .pipe(catchError(() => of(null)))
       .subscribe((detail) => {
         if (!detail) return;
-        this.kycProfiles.set(this.kycProfiles().map((profile) => (profile.id === detail.id ? detail : profile)));
+        this.kycProfiles.set(
+          this.kycProfiles().map((profile) => (profile.id === detail.id ? detail : profile)),
+        );
       });
   }
 
@@ -791,7 +860,9 @@ export class AdminDashboardPageComponent implements OnInit {
     if (!profileId) return;
     this.feedback.success('Dossier medecin traite avec succes.');
     const dashboard = this.dashboard();
-    const remaining = this.medicalCredentialProfiles().filter((profile) => profile.id !== profileId);
+    const remaining = this.medicalCredentialProfiles().filter(
+      (profile) => profile.id !== profileId,
+    );
     this.medicalCredentialProfiles.set(remaining);
     if (!dashboard) return;
     this.dashboard.set({

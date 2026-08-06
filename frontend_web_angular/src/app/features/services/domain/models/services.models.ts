@@ -48,14 +48,8 @@ export interface Professional {
   services: BackendProfessionalService[];
 }
 
-export type ServiceTravelMode =
-  | 'PRESTATAIRE_SE_DEPLACE'
-  | 'CLIENT_SE_DEPLACE'
-  | 'TRANSPORT_COLIS';
-export type ProfessionalVehicleType =
-  | 'MOTO_SCOOTER'
-  | 'VOITURE'
-  | 'CAMIONNETTE';
+export type ServiceTravelMode = 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
+export type ProfessionalVehicleType = 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
 
 export interface ProviderProfileDetail {
   profile: BackendProfessionalProfile;

@@ -77,7 +77,10 @@ export class SearchProfessionalsQueryDto {
   )
   @IsOptional()
   @IsIn(['PRESTATAIRE_SE_DEPLACE', 'CLIENT_SE_DEPLACE', 'TRANSPORT_COLIS'])
-  travelMode?: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
+  travelMode?:
+    | 'PRESTATAIRE_SE_DEPLACE'
+    | 'CLIENT_SE_DEPLACE'
+    | 'TRANSPORT_COLIS';
 
   @ApiPropertyOptional({
     description: API_DOCS.search.latitudeField,

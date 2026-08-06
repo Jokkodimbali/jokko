@@ -104,17 +104,36 @@ export class ServicesService {
     location?: ProfessionalSearchLocation,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     return forkJoin([
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role: 'PRESTATAIRE' }).pipe(
-        catchError(() => of({ providers: [], meta: undefined })),
-      ),
-      this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role: 'MEDECIN' }).pipe(
-        catchError(() => of({ providers: [], meta: undefined })),
-      ),
+      this.fetchProfessionals({
+        query,
+        page,
+        limit,
+        city,
+        categoryId,
+        subCategoryId,
+        travelMode,
+        location,
+        role: 'PRESTATAIRE',
+      }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
+      this.fetchProfessionals({
+        query,
+        page,
+        limit,
+        city,
+        categoryId,
+        subCategoryId,
+        travelMode,
+        location,
+        role: 'MEDECIN',
+      }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
     ]).pipe(
       map(([providersResult, doctorsResult]) => {
         const providers = this.mergeProfessionals(
           providersResult.providers,
-          doctorsResult.providers.map((provider) => ({ ...provider, profileType: 'MEDECIN' as const })),
+          doctorsResult.providers.map((provider) => ({
+            ...provider,
+            profileType: 'MEDECIN' as const,
+          })),
         );
         const total =
           (providersResult.meta?.total ?? providersResult.providers.length) +
@@ -150,7 +169,17 @@ export class ServicesService {
     travelMode?: ServiceTravelMode,
     location?: ProfessionalSearchLocation,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
-    return this.fetchProfessionals({ query, page, limit, city, categoryId, subCategoryId, travelMode, location, role });
+    return this.fetchProfessionals({
+      query,
+      page,
+      limit,
+      city,
+      categoryId,
+      subCategoryId,
+      travelMode,
+      location,
+      role,
+    });
   }
 
   private fetchProfessionals({
@@ -262,15 +291,17 @@ export class ServicesService {
   }
 
   getProviderProfileDetail(profileId: string): Observable<ProviderProfileDetail> {
-    return this.cacheFor(`provider-profile-detail:${profileId}`, () =>
-      forkJoin({
-        profile: this.getProfessionalProfile(profileId),
-        services: this.getProfessionalServices(profileId),
-        portfolio: this.getProfessionalPortfolio(profileId),
-        availabilities: this.getProfessionalAvailabilities(profileId),
-        reviews: this.getProfessionalReviews(profileId),
-        presence: this.getProfessionalPresence(profileId),
-      }),
+    return this.cacheFor(
+      `provider-profile-detail:${profileId}`,
+      () =>
+        forkJoin({
+          profile: this.getProfessionalProfile(profileId),
+          services: this.getProfessionalServices(profileId),
+          portfolio: this.getProfessionalPortfolio(profileId),
+          availabilities: this.getProfessionalAvailabilities(profileId),
+          reviews: this.getProfessionalReviews(profileId),
+          presence: this.getProfessionalPresence(profileId),
+        }),
       20_000,
     );
   }
@@ -296,11 +327,13 @@ export class ServicesService {
       );
   }
 
-  private getProfessionalServices(profileId: string): Observable<BackendProfessionalDetailService[]> {
+  private getProfessionalServices(
+    profileId: string,
+  ): Observable<BackendProfessionalDetailService[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalDetailService[]>>(
-        `${this.apiUrl}/professionals/${profileId}/services`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalDetailService[]>
+      >(`${this.apiUrl}/professionals/${profileId}/services`)
       .pipe(
         map((response) =>
           unwrapApiResponse(response).map((service) => ({
@@ -311,11 +344,13 @@ export class ServicesService {
       );
   }
 
-  private getProfessionalPortfolio(profileId: string): Observable<BackendProfessionalPortfolioItem[]> {
+  private getProfessionalPortfolio(
+    profileId: string,
+  ): Observable<BackendProfessionalPortfolioItem[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalPortfolioItem[]>>(
-        `${this.apiUrl}/professionals/${profileId}/portfolio`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalPortfolioItem[]>
+      >(`${this.apiUrl}/professionals/${profileId}/portfolio`)
       .pipe(
         map((response) =>
           unwrapApiResponse(response).map((item) => ({
@@ -326,27 +361,29 @@ export class ServicesService {
       );
   }
 
-  private getProfessionalAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
+  private getProfessionalAvailabilities(
+    profileId: string,
+  ): Observable<BackendProfessionalAvailability[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalAvailability[]>>(
-        `${this.apiUrl}/professionals/${profileId}/availabilities`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalAvailability[]>
+      >(`${this.apiUrl}/professionals/${profileId}/availabilities`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   private getProfessionalReviews(profileId: string): Observable<BackendProfessionalReview[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalReview[]>>(
-        `${this.apiUrl}/professionals/${profileId}/reviews`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalReview[]>
+      >(`${this.apiUrl}/professionals/${profileId}/reviews`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   private getProfessionalPresence(profileId: string): Observable<BackendProfessionalPresence> {
     return this.http
-      .get<ApiResponse<BackendProfessionalPresence>>(
-        `${this.apiUrl}/professionals/${profileId}/presence`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalPresence>
+      >(`${this.apiUrl}/professionals/${profileId}/presence`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -358,12 +395,10 @@ export class ServicesService {
   ): Professional {
     const primaryService = data.services[0];
     const primarySpecialty = data.specialties?.[0];
-    const subCategoryNames = this.uniqueLabels(
-      [
-        ...(data.specialties ?? []).map((specialty) => specialty.subCategoryName || specialty.name),
-        ...(data.services ?? []).map((service) => service.subCategoryName),
-      ],
-    );
+    const subCategoryNames = this.uniqueLabels([
+      ...(data.specialties ?? []).map((specialty) => specialty.subCategoryName || specialty.name),
+      ...(data.services ?? []).map((service) => service.subCategoryName),
+    ]);
     const isOnline = Boolean(presence?.isOnline);
     const servicePrices = data.services
       .map((service) => Number(service.price))

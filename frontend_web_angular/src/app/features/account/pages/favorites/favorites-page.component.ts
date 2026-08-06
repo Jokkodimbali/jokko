@@ -49,14 +49,14 @@ export class FavoritesPageComponent {
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
 
   protected readonly totalFavorites = computed(() => this.favorites().length);
-  protected readonly onlineFavorites = computed(() =>
-    this.favorites().filter((favorite) => this.isFavoriteOnline(favorite)).length,
+  protected readonly onlineFavorites = computed(
+    () => this.favorites().filter((favorite) => this.isFavoriteOnline(favorite)).length,
   );
-  protected readonly availableFavorites = computed(() =>
-    this.favorites().filter((favorite) => favorite.isAvailableToday).length,
+  protected readonly availableFavorites = computed(
+    () => this.favorites().filter((favorite) => favorite.isAvailableToday).length,
   );
-  protected readonly newFavorites = computed(() =>
-    this.favorites().filter((favorite) => favorite.isNew).length,
+  protected readonly newFavorites = computed(
+    () => this.favorites().filter((favorite) => favorite.isNew).length,
   );
   protected readonly categories = computed(() => {
     const values = new Set(
@@ -71,8 +71,7 @@ export class FavoritesPageComponent {
     const category = this.selectedCategory();
     const favorites = this.favorites().filter((favorite) => {
       const matchesCategory =
-        category === 'Tous' ||
-        (favorite.service?.categoryName || favorite.subtitle) === category;
+        category === 'Tous' || (favorite.service?.categoryName || favorite.subtitle) === category;
       const matchesAvailability =
         !this.availableOnly() || this.isFavoriteOnline(favorite) || favorite.isAvailableToday;
 
@@ -313,7 +312,9 @@ export class FavoritesPageComponent {
     return favorite.service?.travelMode ?? this.legacyFavoriteTravelMode(favorite);
   }
 
-  private legacyFavoriteTravelMode(favorite: FavoriteItem): NonNullable<ProviderCardView['travelMode']> {
+  private legacyFavoriteTravelMode(
+    favorite: FavoriteItem,
+  ): NonNullable<ProviderCardView['travelMode']> {
     return this.isTransportFavorite(favorite) ? 'TRANSPORT_COLIS' : 'PRESTATAIRE_SE_DEPLACE';
   }
 

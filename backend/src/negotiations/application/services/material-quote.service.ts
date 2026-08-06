@@ -9,7 +9,7 @@ import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type { CreateMaterialQuoteDto } from '../../presentation/dto/material-quote.dto';
+import type { CreateMaterialQuoteInput } from '../models/material-quote-input';
 
 const MATERIAL_QUOTE_SELECT = {
   id: true,
@@ -53,7 +53,7 @@ export class MaterialQuoteService {
   async createForNegotiation(
     requestUser: AuthUser,
     negotiationId: string,
-    dto: CreateMaterialQuoteDto,
+    dto: CreateMaterialQuoteInput,
   ) {
     const { actor, negotiation } = await this.getAuthorizedNegotiation(
       requestUser,
@@ -237,7 +237,7 @@ export class MaterialQuoteService {
         data: {
           conversationId: conversation.id,
           expediteurId: requestUser.sub,
-          contenu: this.buildFinalMessage(validQuotes, total, pdfUrl),
+          contenu: this.buildFinalMessage(validQuotes, total),
           urlMedia: pdfUrl,
         },
       });
@@ -390,7 +390,6 @@ export class MaterialQuoteService {
   private buildFinalMessage(
     quotes: MaterialQuoteRecord[],
     total: number,
-    _pdfUrl: string,
   ): string {
     return [
       'Devis materiel finalise',

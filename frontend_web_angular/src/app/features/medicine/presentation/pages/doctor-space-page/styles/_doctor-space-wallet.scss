@@ -346,31 +346,30 @@
 }
 
 @media (max-width: 860px) {
-.doctor-space__wallet-summary {
+  .doctor-space__wallet-summary {
     grid-template-columns: 1fr;
   }
 
-.doctor-space__wallet-escrow header {
+  .doctor-space__wallet-escrow header {
     align-items: flex-start;
     flex-direction: column;
   }
 
-.doctor-space__wallet-escrow-item {
+  .doctor-space__wallet-escrow-item {
     grid-template-columns: 42px minmax(0, 1fr);
   }
 
-.doctor-space__wallet-escrow-item em,
-.doctor-space__wallet-escrow-item button {
+  .doctor-space__wallet-escrow-item em,
+  .doctor-space__wallet-escrow-item button {
     grid-column: 2;
     justify-self: start;
   }
 
-.doctor-space__wallet-transaction {
+  .doctor-space__wallet-transaction {
     grid-template-columns: 1fr;
   }
 
-.doctor-space__wallet-transaction em {
+  .doctor-space__wallet-transaction em {
     justify-self: start;
   }
 }
-

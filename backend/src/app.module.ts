@@ -19,6 +19,7 @@ import { LiveTrackingModule } from './live-tracking/live-tracking.module';
 import { AdminModule } from './admin/admin.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { MapsModule } from './maps/maps.module';
+import { CallsModule } from './calls/calls.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { MapsModule } from './maps/maps.module';
     SearchModule,
     ReservationsModule,
     PaymentsModule,
+    CallsModule,
   ],
 })
 export class AppModule implements NestModule {

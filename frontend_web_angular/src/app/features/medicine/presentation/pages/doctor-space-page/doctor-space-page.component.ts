@@ -194,7 +194,15 @@ type AgendaEvent = {
   dayIndex: number;
   rowStart: number;
   rowSpan: number;
-  variant: 'pending' | 'confirmed' | 'paid' | 'active' | 'done' | 'cancelled' | 'absent' | 'dispute';
+  variant:
+    | 'pending'
+    | 'confirmed'
+    | 'paid'
+    | 'active'
+    | 'done'
+    | 'cancelled'
+    | 'absent'
+    | 'dispute';
 };
 
 type AgendaReservationDetail = BackendReservation;
@@ -307,7 +315,12 @@ type ProfessionalPortfolioForm = {
   imageUrl: string;
 };
 
-type ProfessionalUploadTarget = 'kyc-front' | 'kyc-back' | 'portfolio' | 'service-image' | 'service-edit-image';
+type ProfessionalUploadTarget =
+  | 'kyc-front'
+  | 'kyc-back'
+  | 'portfolio'
+  | 'service-image'
+  | 'service-edit-image';
 
 type UploadPreview = {
   url: string;
@@ -373,7 +386,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly selectedTravelMode = signal<ServiceTravelMode>('PRESTATAIRE_SE_DEPLACE');
   protected readonly selectedVehicleType = signal<ProfessionalVehicleType>('VOITURE');
   protected readonly interventionAddress = signal('');
-  protected readonly interventionCoordinate = signal<{ latitude: number; longitude: number } | null>(null);
+  protected readonly interventionCoordinate = signal<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   protected readonly isInterventionMapExpanded = signal(false);
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
@@ -388,7 +404,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
   protected readonly selectedNegotiationDate = signal<string | null>(null);
   protected readonly providerHistoryPage = signal(1);
-  protected readonly providerHistoryPageSize = signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
+  protected readonly providerHistoryPageSize =
+    signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
   protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
   protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
   protected readonly selectedAvailabilityPreviewKey = signal<string | null>(null);
@@ -452,12 +469,14 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     {
       value: 'VOITURE',
       title: 'Voiture',
-      imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
+      imageUrl:
+        'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/voiture.png',
     },
     {
       value: 'CAMIONNETTE',
       title: 'Camionnette',
-      imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+      imageUrl:
+        'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
     },
   ];
   protected readonly shouldShowInterventionMap = computed(
@@ -573,9 +592,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly motifAveragePrice = computed(() => {
     const motifs = this.motifs();
     if (motifs.length === 0) return 0;
-    return Math.round(
-      motifs.reduce((total, motif) => total + motif.price, 0) / motifs.length,
-    );
+    return Math.round(motifs.reduce((total, motif) => total + motif.price, 0) / motifs.length);
   });
   protected readonly profileCompletionItems = computed(() => [
     {
@@ -673,11 +690,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected readonly calendarDays = computed(() =>
-    this.buildCalendarDays(
-      this.calendarCursor(),
-      this.days(),
-      this.blockedCalendarDates(),
-    ),
+    this.buildCalendarDays(this.calendarCursor(), this.days(), this.blockedCalendarDates()),
   );
   protected readonly blockedCalendarDateLabels = computed(() =>
     Array.from(this.blockedCalendarDates())
@@ -699,8 +712,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly pauseProgress = computed(() =>
     this.progressPercent(this.appointmentPause(), 0, 60),
   );
-  protected readonly appointmentStepMinutes = computed(() =>
-    this.appointmentDuration() + this.appointmentPause(),
+  protected readonly appointmentStepMinutes = computed(
+    () => this.appointmentDuration() + this.appointmentPause(),
   );
   protected readonly weeklyAppointmentCapacity = computed(() =>
     this.days().reduce((total, day) => total + this.dayAppointmentCapacity(day), 0),
@@ -741,7 +754,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.sumPeriodRevenue((status) => status === 'ANNULEE' || status === 'NO_SHOW'),
   );
   protected readonly nextAgendaReservation = computed(() => this.buildNextAgendaReservationView());
-  protected readonly agendaNextDelayLabel = computed(() => this.nextAgendaReservation()?.delayLabel ?? '--');
+  protected readonly agendaNextDelayLabel = computed(
+    () => this.nextAgendaReservation()?.delayLabel ?? '--',
+  );
   protected readonly agendaPeriodCaption = computed(() => {
     switch (this.agendaViewMode()) {
       case 'day':
@@ -808,7 +823,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     if (!months.has(this.providerHistoryMonth())) {
       const fallback = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
-      months.set(this.providerHistoryMonth(), new Date(fallback.getFullYear(), fallback.getMonth(), 1));
+      months.set(
+        this.providerHistoryMonth(),
+        new Date(fallback.getFullYear(), fallback.getMonth(), 1),
+      );
     }
 
     return Array.from(months, ([value, date]) => ({
@@ -818,7 +836,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   });
   protected readonly providerHistoryMonthRows = computed(() => {
     const selectedMonth = this.providerHistoryMonth();
-    return this.providerHistoryRows().filter((row) => this.monthInputValue(row.scheduledAt) === selectedMonth);
+    return this.providerHistoryRows().filter(
+      (row) => this.monthInputValue(row.scheduledAt) === selectedMonth,
+    );
   });
   protected readonly providerHistoryVisibleRows = computed(() => {
     const search = this.providerHistorySearch().trim().toLowerCase();
@@ -836,7 +856,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   });
   protected readonly providerHistoryPageSizeOptions = PROVIDER_HISTORY_PAGE_SIZE_OPTIONS;
   protected readonly providerHistoryTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.providerHistoryVisibleRows().length / this.providerHistoryPageSize())),
+    Math.max(
+      1,
+      Math.ceil(this.providerHistoryVisibleRows().length / this.providerHistoryPageSize()),
+    ),
   );
   protected readonly providerHistoryCurrentPage = computed(() =>
     Math.min(this.providerHistoryPage(), this.providerHistoryTotalPages()),
@@ -857,13 +880,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       this.providerHistoryVisibleRows().length,
     ),
   );
-  protected readonly providerHistoryTotalCount = computed(() => this.providerHistoryMonthRows().length);
+  protected readonly providerHistoryTotalCount = computed(
+    () => this.providerHistoryMonthRows().length,
+  );
   protected readonly providerHistoryMonthLabel = computed(() => {
     const month = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
     return this.formatProviderHistoryMonth(month);
   });
   protected readonly providerHistoryTotalRevenue = computed(() =>
-    this.sumProviderRows(this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE')),
+    this.sumProviderRows(
+      this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE'),
+    ),
   );
   protected readonly providerHistoryDoneCount = computed(
     () => this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE').length,
@@ -874,7 +901,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly providerHistoryAbsentCount = computed(
     () => this.providerHistoryMonthRows().filter((row) => row.status === 'NO_SHOW').length,
   );
-  protected readonly providerHistoryVisibleTotal = computed(() => this.sumProviderRows(this.providerHistoryVisibleRows()));
+  protected readonly providerHistoryVisibleTotal = computed(() =>
+    this.sumProviderRows(this.providerHistoryVisibleRows()),
+  );
   protected readonly negotiationMonthOptions = computed(() => {
     const months = new Map<string, Date>();
     for (const negotiation of this.negotiations()) {
@@ -898,19 +927,23 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   });
   protected readonly negotiationMonthRows = computed(() =>
     this.negotiations().filter(
-      (negotiation) => this.monthInputValue(this.negotiationDate(negotiation)) === this.negotiationMonth(),
+      (negotiation) =>
+        this.monthInputValue(this.negotiationDate(negotiation)) === this.negotiationMonth(),
     ),
   );
   protected readonly negotiationVisibleRows = computed(() =>
     this.negotiationMonthRows().filter((negotiation) => {
       if (negotiation.reservationId) return false;
       const selectedDate = this.selectedNegotiationDate();
-      if (selectedDate && this.dateInputValue(this.negotiationDate(negotiation)) !== selectedDate) return false;
+      if (selectedDate && this.dateInputValue(this.negotiationDate(negotiation)) !== selectedDate)
+        return false;
       const filter = this.negotiationFilter();
       if (filter === 'ALL') return true;
       if (filter === 'PENDING') return negotiation.statut === 'EN_ATTENTE_PRESTATAIRE';
-      if (filter === 'WAITING_CLIENT') return negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE';
-      if (filter === 'CLOSED') return negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE';
+      if (filter === 'WAITING_CLIENT')
+        return negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE';
+      if (filter === 'CLOSED')
+        return negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE';
       return false;
     }),
   );
@@ -926,48 +959,56 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
-      }).format(this.negotiationDate(items[0])).toUpperCase(),
+      })
+        .format(this.negotiationDate(items[0]))
+        .toUpperCase(),
       items: this.sortNegotiationsByDate(items),
     })).sort((left, right) => right.key.localeCompare(left.key));
   });
-  protected readonly negotiationTimelineGroups = computed<ProviderNegotiationTimelineGroup[]>(() => {
-    const groups = new Map<string, ProviderNegotiationTimelineItem[]>();
-    const addItem = (item: ProviderNegotiationTimelineItem) => {
-      const key = this.dateInputValue(item.timelineDate);
-      groups.set(key, [...(groups.get(key) ?? []), item]);
-    };
+  protected readonly negotiationTimelineGroups = computed<ProviderNegotiationTimelineGroup[]>(
+    () => {
+      const groups = new Map<string, ProviderNegotiationTimelineItem[]>();
+      const addItem = (item: ProviderNegotiationTimelineItem) => {
+        const key = this.dateInputValue(item.timelineDate);
+        groups.set(key, [...(groups.get(key) ?? []), item]);
+      };
 
-    for (const negotiation of this.negotiationVisibleRows()) {
-      addItem({
-        ...negotiation,
-        timelineDate: this.negotiationDate(negotiation),
-        timelineKind: 'negotiation',
-      });
-    }
+      for (const negotiation of this.negotiationVisibleRows()) {
+        addItem({
+          ...negotiation,
+          timelineDate: this.negotiationDate(negotiation),
+          timelineKind: 'negotiation',
+        });
+      }
 
-    for (const reservation of this.negotiationReservationVisibleRows()) {
-      addItem(this.reservationToNegotiationTimelineItem(reservation));
-    }
+      for (const reservation of this.negotiationReservationVisibleRows()) {
+        addItem(this.reservationToNegotiationTimelineItem(reservation));
+      }
 
-    return Array.from(groups, ([key, items]) => ({
-      key,
-      label: new Intl.DateTimeFormat('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }).format(items[0].timelineDate).toUpperCase(),
-      items: this.sortTimelineByDate(items),
-    })).sort((left, right) => right.key.localeCompare(left.key));
-  });
+      return Array.from(groups, ([key, items]) => ({
+        key,
+        label: new Intl.DateTimeFormat('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })
+          .format(items[0].timelineDate)
+          .toUpperCase(),
+        items: this.sortTimelineByDate(items),
+      })).sort((left, right) => right.key.localeCompare(left.key));
+    },
+  );
   protected readonly negotiationReservationMonthRows = computed(() =>
     this.reservations().filter(
-      (reservation) => this.monthInputValue(new Date(reservation.dateHeure)) === this.negotiationMonth(),
+      (reservation) =>
+        this.monthInputValue(new Date(reservation.dateHeure)) === this.negotiationMonth(),
     ),
   );
   protected readonly negotiationReservationVisibleRows = computed(() =>
     this.negotiationReservationMonthRows().filter((reservation) => {
       const selectedDate = this.selectedNegotiationDate();
-      if (selectedDate && this.dateInputValue(new Date(reservation.dateHeure)) !== selectedDate) return false;
+      if (selectedDate && this.dateInputValue(new Date(reservation.dateHeure)) !== selectedDate)
+        return false;
       const filter = this.negotiationFilter();
       if (filter === 'ALL') return true;
       if (filter === 'CONFIRMED') {
@@ -979,7 +1020,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         );
       }
       if (filter === 'CLOSED') {
-        return reservation.statut === 'ANNULEE' || reservation.statut === 'NO_SHOW' || reservation.statut === 'LITIGE';
+        return (
+          reservation.statut === 'ANNULEE' ||
+          reservation.statut === 'NO_SHOW' ||
+          reservation.statut === 'LITIGE'
+        );
       }
       return false;
     }),
@@ -997,7 +1042,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
-      }).format(new Date(items[0].dateHeure)).toUpperCase(),
+      })
+        .format(new Date(items[0].dateHeure))
+        .toUpperCase(),
       items: this.sortReservationsByDate(items),
     })).sort((left, right) => right.key.localeCompare(left.key));
   });
@@ -1014,11 +1061,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private sortTimelineByDate(items: ProviderNegotiationTimelineItem[]): ProviderNegotiationTimelineItem[] {
-    return [...items].sort((left, right) => this.compareDatesDescending(left.timelineDate, right.timelineDate));
+  private sortTimelineByDate(
+    items: ProviderNegotiationTimelineItem[],
+  ): ProviderNegotiationTimelineItem[] {
+    return [...items].sort((left, right) =>
+      this.compareDatesDescending(left.timelineDate, right.timelineDate),
+    );
   }
 
-  private reservationToNegotiationTimelineItem(reservation: BackendReservation): ProviderNegotiationTimelineItem {
+  private reservationToNegotiationTimelineItem(
+    reservation: BackendReservation,
+  ): ProviderNegotiationTimelineItem {
     const servicePrice = reservation.prixConvenu ?? reservation.service?.prix ?? 0;
     const reservationDate = new Date(reservation.dateHeure);
 
@@ -1095,43 +1148,49 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return { key, day, count: counts.get(key) ?? 0, dateKey: key };
     });
   });
-  protected readonly negotiationAllCount = computed(() =>
-    this.negotiationMonthRows().filter((negotiation) => !negotiation.reservationId).length +
-    this.negotiationReservationMonthRows().length,
+  protected readonly negotiationAllCount = computed(
+    () =>
+      this.negotiationMonthRows().filter((negotiation) => !negotiation.reservationId).length +
+      this.negotiationReservationMonthRows().length,
   );
-  protected readonly negotiationPendingCount = computed(() =>
-    this.negotiationMonthRows().filter(
-      (negotiation) => !negotiation.reservationId && negotiation.statut === 'EN_ATTENTE_PRESTATAIRE',
-    ).length,
+  protected readonly negotiationPendingCount = computed(
+    () =>
+      this.negotiationMonthRows().filter(
+        (negotiation) =>
+          !negotiation.reservationId && negotiation.statut === 'EN_ATTENTE_PRESTATAIRE',
+      ).length,
   );
-  protected readonly negotiationWaitingClientCount = computed(() =>
-    this.negotiationMonthRows().filter(
-      (negotiation) =>
-        !negotiation.reservationId &&
-        (negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE'),
-    ).length,
+  protected readonly negotiationWaitingClientCount = computed(
+    () =>
+      this.negotiationMonthRows().filter(
+        (negotiation) =>
+          !negotiation.reservationId &&
+          (negotiation.statut === 'EN_ATTENTE_CLIENT' || negotiation.statut === 'ACCEPTEE'),
+      ).length,
   );
-  protected readonly negotiationConfirmedCount = computed(() =>
-    this.negotiationReservationMonthRows().filter(
-      (reservation) =>
-        reservation.statut === 'CONFIRMEE' ||
-        reservation.statut === 'PAYEE_SEQUESTRE' ||
-        reservation.statut === 'EN_COURS' ||
-        reservation.statut === 'TERMINEE',
-    ).length,
+  protected readonly negotiationConfirmedCount = computed(
+    () =>
+      this.negotiationReservationMonthRows().filter(
+        (reservation) =>
+          reservation.statut === 'CONFIRMEE' ||
+          reservation.statut === 'PAYEE_SEQUESTRE' ||
+          reservation.statut === 'EN_COURS' ||
+          reservation.statut === 'TERMINEE',
+      ).length,
   );
-  protected readonly negotiationClosedCount = computed(() =>
-    this.negotiationMonthRows().filter(
-      (negotiation) =>
-        !negotiation.reservationId &&
-        (negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE'),
-    ).length +
-    this.negotiationReservationMonthRows().filter(
-      (reservation) =>
-        reservation.statut === 'ANNULEE' ||
-        reservation.statut === 'NO_SHOW' ||
-        reservation.statut === 'LITIGE',
-    ).length,
+  protected readonly negotiationClosedCount = computed(
+    () =>
+      this.negotiationMonthRows().filter(
+        (negotiation) =>
+          !negotiation.reservationId &&
+          (negotiation.statut === 'REFUSEE' || negotiation.statut === 'ANNULEE'),
+      ).length +
+      this.negotiationReservationMonthRows().filter(
+        (reservation) =>
+          reservation.statut === 'ANNULEE' ||
+          reservation.statut === 'NO_SHOW' ||
+          reservation.statut === 'LITIGE',
+      ).length,
   );
   protected readonly pageTitle = computed(() => {
     switch (this.activeSection()) {
@@ -1190,11 +1249,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected goBack(): void {
-    this.backNavigation.back(
-      this.route.snapshot.queryParamMap.get('returnUrl'),
-      '/services',
-      { preferReturnUrl: true },
-    );
+    this.backNavigation.back(this.route.snapshot.queryParamMap.get('returnUrl'), '/services', {
+      preferReturnUrl: true,
+    });
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {
@@ -1235,7 +1292,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected selectSection(section: DoctorSpaceSection): void {
     if (section !== 'profile' && !this.professionalProfileId()) {
-      this.feedback.info('Completez votre profil professionnel dans les parametres pour activer cette section.');
+      this.feedback.info(
+        'Completez votre profil professionnel dans les parametres pour activer cette section.',
+      );
       this.router.navigate(['/settings'], { queryParams: { section: 'health' } });
       return;
     }
@@ -1280,22 +1339,20 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       : this.doctorSpaceService.createMyProfessionalProfile(payload);
 
     this.isProfileSaving.set(true);
-    request$
-      .pipe(finalize(() => this.isProfileSaving.set(false)))
-      .subscribe({
-        next: (profile) => {
-          this.professionalProfile.set(profile);
-          this.professionalProfileId.set(profile.id);
-          this.professionalName.set(profile.utilisateur.nom);
-          this.patchProfileForm(profile);
-          this.feedback.success(
-            isUpdate ? 'Profil professionnel enregistre.' : 'Profil professionnel cree.',
-          );
-          this.loadSchedule();
-        },
-        error: (error) =>
-          this.feedback.error(getHttpErrorMessage(error, 'Enregistrement du profil impossible.')),
-      });
+    request$.pipe(finalize(() => this.isProfileSaving.set(false))).subscribe({
+      next: (profile) => {
+        this.professionalProfile.set(profile);
+        this.professionalProfileId.set(profile.id);
+        this.professionalName.set(profile.utilisateur.nom);
+        this.patchProfileForm(profile);
+        this.feedback.success(
+          isUpdate ? 'Profil professionnel enregistre.' : 'Profil professionnel cree.',
+        );
+        this.loadSchedule();
+      },
+      error: (error) =>
+        this.feedback.error(getHttpErrorMessage(error, 'Enregistrement du profil impossible.')),
+    });
   }
 
   protected submitProfessionalKyc(): void {
@@ -1327,7 +1384,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             ...((back?.fileUrl ?? idCardUrlVerso)
               ? {
                   idCardUrlVerso:
-                    publicAssetUrl(back?.fileUrl ?? idCardUrlVerso) ?? back?.fileUrl ?? idCardUrlVerso,
+                    publicAssetUrl(back?.fileUrl ?? idCardUrlVerso) ??
+                    back?.fileUrl ??
+                    idCardUrlVerso,
                 }
               : {}),
           }),
@@ -1351,7 +1410,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.kycBackPreview.set(null);
           this.feedback.success('Dossier KYC soumis pour verification.');
         },
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Soumission KYC impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Soumission KYC impossible.')),
       });
   }
 
@@ -1447,7 +1507,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.portfolioFile.set(null);
           this.feedback.success('Element portfolio ajoute.');
         },
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Ajout du portfolio impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Ajout du portfolio impossible.')),
       });
   }
 
@@ -1461,7 +1522,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.portfolioItems.update((items) => items.filter((current) => current.id !== item.id));
           this.feedback.success('Element portfolio supprime.');
         },
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression du portfolio impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Suppression du portfolio impossible.')),
       });
   }
 
@@ -1494,7 +1556,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected selectNegotiationCalendarDay(day: ProviderNegotiationCalendarDay): void {
     if (!day.dateKey) return;
-    this.selectedNegotiationDate.update((selected) => selected === day.dateKey ? null : day.dateKey);
+    this.selectedNegotiationDate.update((selected) =>
+      selected === day.dateKey ? null : day.dateKey,
+    );
   }
 
   protected updateNegotiationMonth(value: string): void {
@@ -1537,7 +1601,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       : sharedNegotiationStatusIcon(status);
   }
 
-  private isNegotiationReservationStatus(status: NegotiationStatus | AppointmentStatus): status is AppointmentStatus {
+  private isNegotiationReservationStatus(
+    status: NegotiationStatus | AppointmentStatus,
+  ): status is AppointmentStatus {
     return (
       status === 'CONFIRMEE' ||
       status === 'PAYEE_SEQUESTRE' ||
@@ -1550,7 +1616,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected negotiationTone(negotiation: NegotiationView): string {
-    if (this.isTimelineReservation(negotiation)) return this.negotiationReservationTone(negotiation.statut as AppointmentStatus);
+    if (this.isTimelineReservation(negotiation))
+      return this.negotiationReservationTone(negotiation.statut as AppointmentStatus);
     if (isNegotiationInProgressStatus(negotiation.statut)) return 'rejected';
     if (negotiation.statut === 'ACCEPTEE') return 'accepted';
     if (negotiation.statut === 'CONVERTIE_EN_RESERVATION') return 'confirmed';
@@ -1578,7 +1645,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     const reservation = this.timelineReservationFor(negotiation);
     if (reservation) return this.negotiationReservationPhoneHref(reservation);
 
-    const phone = (negotiation.client as { numeroTelephone?: string } | undefined)?.numeroTelephone?.trim();
+    const phone = (
+      negotiation.client as { numeroTelephone?: string } | undefined
+    )?.numeroTelephone?.trim();
     return phone ? `tel:${phone.replace(/\s+/g, '')}` : null;
   }
 
@@ -1592,12 +1661,15 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return 'Prix propose';
     }
 
-    return this.requestedNegotiationServiceName(negotiation) || negotiation.service?.nom || 'Service';
+    return (
+      this.requestedNegotiationServiceName(negotiation) || negotiation.service?.nom || 'Service'
+    );
   }
 
-
   protected negotiationAmountValue(negotiation: NegotiationView): number {
-    return negotiation.montantAccepte || negotiation.montantCourant || negotiation.montantInitial || 0;
+    return (
+      negotiation.montantAccepte || negotiation.montantCourant || negotiation.montantInitial || 0
+    );
   }
 
   protected negotiationMessageQueryParams(negotiation: NegotiationView): Record<string, string> {
@@ -1619,7 +1691,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return (negotiation as Partial<ProviderNegotiationTimelineItem>).timelineReservation ?? null;
   }
 
-
   protected openNegotiationReservation(reservation: BackendReservation): void {
     this.openReservationDetail(reservation.id);
   }
@@ -1637,7 +1708,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return phone ? `tel:${phone.replace(/\s+/g, '')}` : null;
   }
 
-  protected negotiationReservationMessageQueryParams(reservation: BackendReservation): Record<string, string> {
+  protected negotiationReservationMessageQueryParams(
+    reservation: BackendReservation,
+  ): Record<string, string> {
     return {
       reservationId: reservation.id,
       returnUrl: this.router.url,
@@ -1665,7 +1738,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected updateProviderHistoryPageSize(value: string | number): void {
     const pageSize = Number(value);
     if (PROVIDER_HISTORY_PAGE_SIZE_OPTIONS.some((option) => option === pageSize)) {
-      this.providerHistoryPageSize.set(pageSize as (typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]);
+      this.providerHistoryPageSize.set(
+        pageSize as (typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number],
+      );
       this.resetProviderHistoryPagination();
     }
   }
@@ -1747,10 +1822,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected walletTotalBalance(): number {
-    return (
-      this.wallet()?.totalCollected ??
-      this.walletBalance() + this.walletPendingEscrowTotal()
-    );
+    return this.wallet()?.totalCollected ?? this.walletBalance() + this.walletPendingEscrowTotal();
   }
 
   protected walletMonthlyRevenue(): number {
@@ -1820,9 +1892,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.refreshWallet();
         },
         error: (error) =>
-          this.feedback.error(
-            getHttpErrorMessage(error, 'Impossible de liberer ces fonds.'),
-          ),
+          this.feedback.error(getHttpErrorMessage(error, 'Impossible de liberer ces fonds.')),
       });
   }
 
@@ -1871,8 +1941,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.isWithdrawalModalOpen.set(false);
           this.feedback.success('Retrait demande avec succes.');
         },
-        error: (error) =>
-          this.feedback.error(getHttpErrorMessage(error, 'Retrait impossible.')),
+        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Retrait impossible.')),
       });
   }
 
@@ -1944,8 +2013,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
 
     const reason =
-      this.agendaCancelForm.reason.trim() ||
-      'Annulation demandee depuis l agenda professionnel.';
+      this.agendaCancelForm.reason.trim() || 'Annulation demandee depuis l agenda professionnel.';
     this.isAgendaReservationCancelling.set(true);
     this.agendaReservationError.set(null);
 
@@ -2009,7 +2077,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private requestedNegotiationServiceName(negotiation: NegotiationView): string | null {
     const messages = [
       negotiation.messageCourant,
-      ...(negotiation.propositions ?? []).slice().reverse().map((offer) => offer.message),
+      ...(negotiation.propositions ?? [])
+        .slice()
+        .reverse()
+        .map((offer) => offer.message),
     ];
     for (const message of messages) {
       const match = message?.match(/(?:^|\s)Service:\s*(.+?)\.\s*(?:Proposition de prix:|$)/i);
@@ -2090,18 +2161,23 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.applyAvailabilities(
-            this.days()
-              .flatMap((item) =>
-                item.slots
-                  .filter((candidate) => candidate.id && candidate.id !== slot.id)
-                  .map((candidate) =>
-                    this.toAvailability(item.dayOfWeek, candidate.id!, candidate.startTime, candidate.endTime),
+            this.days().flatMap((item) =>
+              item.slots
+                .filter((candidate) => candidate.id && candidate.id !== slot.id)
+                .map((candidate) =>
+                  this.toAvailability(
+                    item.dayOfWeek,
+                    candidate.id!,
+                    candidate.startTime,
+                    candidate.endTime,
                   ),
-              ),
+                ),
+            ),
           );
           this.feedback.success('Disponibilite supprimee.');
         },
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Suppression impossible.')),
       });
   }
 
@@ -2277,7 +2353,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         },
         error: (error: unknown) =>
           this.feedback.error(
-            getHttpErrorMessage(error, "Mise a jour du mode de deplacement impossible."),
+            getHttpErrorMessage(error, 'Mise a jour du mode de deplacement impossible.'),
           ),
       });
   }
@@ -2313,7 +2389,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected remainingAvailabilitySlotCount(slot: AvailabilitySlot): number {
-    return Math.max(0, this.availabilitySlotCapacity(slot) - this.availabilitySlotPreviews(slot).length);
+    return Math.max(
+      0,
+      this.availabilitySlotCapacity(slot) - this.availabilitySlotPreviews(slot).length,
+    );
   }
 
   protected timeOptionsFor(...currentValues: string[]): string[] {
@@ -2327,14 +2406,22 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .filter((value) => /^\d{2}:\d{2}$/.test(value))
       .forEach((value) => options.add(value));
 
-    return Array.from(options).sort((left, right) => this.timeToMinutes(left) - this.timeToMinutes(right));
+    return Array.from(options).sort(
+      (left, right) => this.timeToMinutes(left) - this.timeToMinutes(right),
+    );
   }
 
-  protected selectAvailablePreview(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): void {
+  protected selectAvailablePreview(
+    day: AvailabilityPreviewDay,
+    preview: AppointmentSlotPreview,
+  ): void {
     this.selectedAvailabilityPreviewKey.set(this.availabilityPreviewKey(day, preview));
   }
 
-  protected isAvailablePreviewSelected(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): boolean {
+  protected isAvailablePreviewSelected(
+    day: AvailabilityPreviewDay,
+    preview: AppointmentSlotPreview,
+  ): boolean {
     return this.selectedAvailabilityPreviewKey() === this.availabilityPreviewKey(day, preview);
   }
 
@@ -2380,9 +2467,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       return;
     }
     if (!name || price <= 0) {
-      this.feedback.info(
-        'Renseignez un nom et un tarif valides.',
-      );
+      this.feedback.info('Renseignez un nom et un tarif valides.');
       return;
     }
 
@@ -2421,12 +2506,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.refreshServices();
         },
         error: (error) =>
-          this.feedback.error(
-            getHttpErrorMessage(
-              error,
-              'Creation du motif impossible.',
-            ),
-          ),
+          this.feedback.error(getHttpErrorMessage(error, 'Creation du motif impossible.')),
       });
   }
 
@@ -2550,7 +2630,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => this.refreshServices(),
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Mise a jour impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Mise a jour impossible.')),
       });
   }
 
@@ -2564,7 +2645,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.feedback.success('Motif supprime.');
           this.refreshServices();
         },
-        error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Suppression du motif impossible.')),
+        error: (error) =>
+          this.feedback.error(getHttpErrorMessage(error, 'Suppression du motif impossible.')),
       });
   }
 
@@ -2590,7 +2672,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             : of({} as DoctorSpaceSectionData);
         }),
         catchError((error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, "Impossible de charger l'espace prestataire."));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, "Impossible de charger l'espace prestataire."),
+          );
           return of({} as DoctorSpaceSectionData);
         }),
         finalize(() => this.isLoading.set(false)),
@@ -2653,7 +2737,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     this.doctorSpaceService.listMyAvailabilities().subscribe({
       next: (availabilities) => this.applyAvailabilities(availabilities),
-      error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Synchronisation impossible.')),
+      error: (error) =>
+        this.feedback.error(getHttpErrorMessage(error, 'Synchronisation impossible.')),
     });
   }
 
@@ -2724,7 +2809,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     this.doctorSpaceService.listMyServices().subscribe({
       next: (services) => this.applyServices(services),
-      error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Synchronisation des motifs impossible.')),
+      error: (error) =>
+        this.feedback.error(getHttpErrorMessage(error, 'Synchronisation des motifs impossible.')),
     });
   }
 
@@ -2753,18 +2839,18 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         }),
       )
       .subscribe({
-      next: (reservations) => {
-        this.reservations.set(reservations);
-        this.syncAgendaCursorWithReservations(reservations);
-      },
-      error: (error) => {
-        if (showErrors) {
-          this.feedback.error(
-            getHttpErrorMessage(error, 'Impossible de charger les rendez-vous.'),
-          );
-        }
-      },
-    });
+        next: (reservations) => {
+          this.reservations.set(reservations);
+          this.syncAgendaCursorWithReservations(reservations);
+        },
+        error: (error) => {
+          if (showErrors) {
+            this.feedback.error(
+              getHttpErrorMessage(error, 'Impossible de charger les rendez-vous.'),
+            );
+          }
+        },
+      });
   }
 
   private startReservationRealtime(): void {
@@ -2789,14 +2875,22 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     this.professionalRealtimeFallbackSubscription = timer(2500, 2500).subscribe(() => {
       const section = this.activeSection();
-      if (section === 'patient-appointments' || section === 'negotiations' || section === 'agenda') {
+      if (
+        section === 'patient-appointments' ||
+        section === 'negotiations' ||
+        section === 'agenda'
+      ) {
         this.refreshReservations(false);
       }
     });
   }
 
   private startNegotiationRealtime(): void {
-    if (!this.professionalProfileId() || !this.isProviderSpace() || this.negotiationsRealtimeSubscription) {
+    if (
+      !this.professionalProfileId() ||
+      !this.isProviderSpace() ||
+      this.negotiationsRealtimeSubscription
+    ) {
       return;
     }
 
@@ -2843,9 +2937,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     const durationMinutes = this.appointmentDuration();
     const pauseMinutes = this.appointmentPause();
     const motifsToSync = this.motifs().filter(
-      (motif) =>
-        motif.durationMinutes !== durationMinutes ||
-        motif.pauseMinutes !== pauseMinutes,
+      (motif) => motif.durationMinutes !== durationMinutes || motif.pauseMinutes !== pauseMinutes,
     );
     if (motifsToSync.length === 0) return;
 
@@ -2864,7 +2956,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.feedback.success('Parametres des rendez-vous synchronises avec les motifs.');
         },
         error: (error) =>
-          this.feedback.error(getHttpErrorMessage(error, 'Synchronisation de la duree impossible.')),
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Synchronisation de la duree impossible.'),
+          ),
       });
   }
 
@@ -2872,7 +2966,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.reservations.update((reservations) => {
       const exists = reservations.some((reservation) => reservation.id === updated.id);
       if (!exists) return [...reservations, updated];
-      return reservations.map((reservation) => (reservation.id === updated.id ? updated : reservation));
+      return reservations.map((reservation) =>
+        reservation.id === updated.id ? updated : reservation,
+      );
     });
   }
 
@@ -2902,8 +2998,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     const now = new Date();
     const target =
       datedReservations
-        .filter(({ scheduledAt, reservation }) =>
-          scheduledAt >= now && this.matchesAgendaFilter(reservation.statut),
+        .filter(
+          ({ scheduledAt, reservation }) =>
+            scheduledAt >= now && this.matchesAgendaFilter(reservation.statut),
         )
         .sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())[0] ??
       datedReservations
@@ -2950,7 +3047,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       if (!weekDays.some((day) => this.isSameDay(day.date, scheduledAt))) continue;
 
       const start = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
-      const end = start + Math.max(30, reservation.dureeMinutes || reservation.service?.dureeMinutes || 30);
+      const end =
+        start + Math.max(30, reservation.dureeMinutes || reservation.service?.dureeMinutes || 30);
       minMinutes = Math.min(minMinutes, Math.max(0, Math.floor(start / 60) * 60));
       maxMinutes = Math.max(maxMinutes, Math.min(24 * 60, Math.ceil(end / 60) * 60));
     }
@@ -3004,14 +3102,14 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         const rowStart = 2 + Math.floor((startMinutes - minMinutes) / slotMinutes);
         const rowSpan = Math.max(1, Math.ceil((duration + this.appointmentPause()) / slotMinutes));
         const price =
-          reservation.prixConvenu ??
-          reservation.service?.prix ??
-          localService?.price ??
-          0;
+          reservation.prixConvenu ?? reservation.service?.prix ?? localService?.price ?? 0;
 
         return {
           id: reservation.id,
-          title: this.requestedReservationServiceName(reservation) ?? localService?.name ?? 'Consultation',
+          title:
+            this.requestedReservationServiceName(reservation) ??
+            localService?.name ??
+            'Consultation',
           timeLabel: `${this.formatAgendaTime(scheduledAt)} - ${this.formatAgendaTime(
             new Date(scheduledAt.getTime() + duration * 60 * 1000),
           )}`,
@@ -3090,7 +3188,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           })
             .format(scheduledAt)
             .replace('.', ''),
-          locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Lieu non renseigne',
+          locationLabel:
+            reservation.adresseClient || reservation.client?.adresse || 'Lieu non renseigne',
           amount: this.agendaReservationPrice(reservation),
           status: reservation.statut,
           statusLabel: this.providerHistoryStatusLabel(reservation.statut),
@@ -3183,7 +3282,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .filter((date) => date.getTime() < Date.now())
       .sort((left, right) => right.getTime() - left.getTime())[0];
 
-    return pastReservation ? this.formatMedicalHistoryDate(pastReservation) : 'Aucun rendez-vous passe';
+    return pastReservation
+      ? this.formatMedicalHistoryDate(pastReservation)
+      : 'Aucun rendez-vous passe';
   }
 
   private formatMedicalHistoryAppointment(date: Date): string {
@@ -3220,7 +3321,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       }
 
       const service = this.motifs().find((motif) => motif.id === reservation.serviceId);
-      return total + Number(reservation.prixConvenu ?? reservation.service?.prix ?? service?.price ?? 0);
+      return (
+        total + Number(reservation.prixConvenu ?? reservation.service?.prix ?? service?.price ?? 0)
+      );
     }, 0);
   }
 
@@ -3275,7 +3378,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       avatarUrl: reservation.client?.urlAvatar ?? null,
       initials: this.initialsForName(patientName),
       serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
-      locationLabel: reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
+      locationLabel:
+        reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
       timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
       dayLabel: scheduledAt.getDate().toString().padStart(2, '0'),
       monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'short' })
@@ -3286,10 +3390,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       delayLabel: this.formatDelayLabel(minutes),
       progress: Math.max(8, Math.min(100, 100 - (minutes / (24 * 60)) * 100)),
       statusLabel: this.agendaReservationStatusLabel(reservation.statut),
-      confirmationLabel:
-        this.isAgendaUpcomingStatus(reservation.statut)
-          ? 'LE RDV EST CONFIRME'
-          : this.agendaReservationStatusLabel(reservation.statut).toUpperCase(),
+      confirmationLabel: this.isAgendaUpcomingStatus(reservation.statut)
+        ? 'LE RDV EST CONFIRME'
+        : this.agendaReservationStatusLabel(reservation.statut).toUpperCase(),
     };
   }
 
@@ -3314,11 +3417,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   private isAgendaActiveStatus(status: AppointmentStatus): boolean {
-    return (
-      status === 'CONFIRMEE' ||
-      status === 'PAYEE_SEQUESTRE' ||
-      status === 'EN_COURS'
-    );
+    return status === 'CONFIRMEE' || status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
   }
 
   private isAgendaRevenueStatus(status: AppointmentStatus): boolean {
@@ -3380,7 +3479,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return this.agendaReservationStatusLabel(status);
   }
 
-  private providerHistoryStatusTone(status: AppointmentStatus): ProviderAppointmentHistoryRow['statusTone'] {
+  private providerHistoryStatusTone(
+    status: AppointmentStatus,
+  ): ProviderAppointmentHistoryRow['statusTone'] {
     const tone = reservationStatusTone(status);
     if (tone === 'blue') return 'pending';
     if (tone === 'green') return 'done';
@@ -3466,43 +3567,47 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   private applyServices(services: BackendProfessionalDetailService[]): void {
     const activeServices = services.filter((service) => service.estDisponible);
-    const firstTravelMode = activeServices.find((service) => service.modeDeplacement)?.modeDeplacement;
+    const firstTravelMode = activeServices.find(
+      (service) => service.modeDeplacement,
+    )?.modeDeplacement;
     if (firstTravelMode) {
       this.selectedTravelMode.set(this.normalizeTravelModeForSpace(firstTravelMode));
     }
 
-    const firstDuration = activeServices.find((service) => Number(service.dureeMinutes) > 0)?.dureeMinutes;
+    const firstDuration = activeServices.find(
+      (service) => Number(service.dureeMinutes) > 0,
+    )?.dureeMinutes;
     if (firstDuration) {
       this.appointmentDuration.set(this.normalizeMinutes(firstDuration, 0, 90));
       this.motifForm.durationMinutes = this.appointmentDuration();
     }
-    const firstPause = activeServices.find((service) => Number(service.pauseMinutes) >= 0)?.pauseMinutes;
+    const firstPause = activeServices.find(
+      (service) => Number(service.pauseMinutes) >= 0,
+    )?.pauseMinutes;
     if (typeof firstPause === 'number') {
       this.appointmentPause.set(this.normalizeMinutes(firstPause, 0, 60));
     }
 
     this.motifs.set(
       activeServices.map((service) => ({
-          id: service.id,
-          categoryId: service.categorieId,
-          name: service.nom,
-          description: service.description,
-          imageUrl: publicAssetUrl(service.urlImage) ?? service.urlImage ?? null,
-          durationMinutes: service.dureeMinutes ?? 15,
-          pauseMinutes: service.pauseMinutes ?? 0,
-          price: Number(service.prix),
-          isRequired: service.estObligatoire ?? false,
-          travelMode: this.normalizeTravelModeForSpace(
-            service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
-          ),
-        })),
+        id: service.id,
+        categoryId: service.categorieId,
+        name: service.nom,
+        description: service.description,
+        imageUrl: publicAssetUrl(service.urlImage) ?? service.urlImage ?? null,
+        durationMinutes: service.dureeMinutes ?? 15,
+        pauseMinutes: service.pauseMinutes ?? 0,
+        price: Number(service.prix),
+        isRequired: service.estObligatoire ?? false,
+        travelMode: this.normalizeTravelModeForSpace(
+          service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
+        ),
+      })),
     );
   }
 
   private normalizeTravelModeForSpace(mode: ServiceTravelMode): ServiceTravelMode {
-    return !this.isProviderSpace() && mode === 'TRANSPORT_COLIS'
-      ? 'PRESTATAIRE_SE_DEPLACE'
-      : mode;
+    return !this.isProviderSpace() && mode === 'TRANSPORT_COLIS' ? 'PRESTATAIRE_SE_DEPLACE' : mode;
   }
 
   private resolveMotifCategoryId(): string | null {
@@ -3560,8 +3665,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private createDefaultSlots(dayOfWeek: number): void {
     this.isSaving.set(true);
     forkJoin([
-      this.doctorSpaceService.createAvailability({ dayOfWeek, startTime: '09:00', endTime: '12:00' }),
-      this.doctorSpaceService.createAvailability({ dayOfWeek, startTime: '14:00', endTime: '17:00' }),
+      this.doctorSpaceService.createAvailability({
+        dayOfWeek,
+        startTime: '09:00',
+        endTime: '12:00',
+      }),
+      this.doctorSpaceService.createAvailability({
+        dayOfWeek,
+        startTime: '14:00',
+        endTime: '17:00',
+      }),
     ])
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
@@ -3612,15 +3725,15 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private applyDaySlots(dayOfWeek: number, slots: AvailabilitySlot[]): void {
     this.days.update((days) =>
       days.map((day) =>
-        day.dayOfWeek === dayOfWeek
-          ? { ...day, enabled: slots.length > 0, slots }
-          : day,
+        day.dayOfWeek === dayOfWeek ? { ...day, enabled: slots.length > 0, slots } : day,
       ),
     );
   }
 
   private updateAppointmentSettings(days: DaySchedule[]): void {
-    const firstServiceDuration = this.motifs().find((motif) => motif.durationMinutes > 0)?.durationMinutes;
+    const firstServiceDuration = this.motifs().find(
+      (motif) => motif.durationMinutes > 0,
+    )?.durationMinutes;
     if (firstServiceDuration) {
       this.appointmentDuration.set(this.normalizeMinutes(firstServiceDuration, 0, 90));
     }
@@ -3643,7 +3756,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     ];
   }
 
-  private buildCalendarDays(date: Date, days: DaySchedule[], selectedDateKeys: ReadonlySet<string>): CalendarDay[] {
+  private buildCalendarDays(
+    date: Date,
+    days: DaySchedule[],
+    selectedDateKeys: ReadonlySet<string>,
+  ): CalendarDay[] {
     const today = new Date();
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -3671,9 +3788,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       cells.push({
         dayOfMonth: day,
         isToday:
-          day === today.getDate() &&
-          month === today.getMonth() &&
-          year === today.getFullYear(),
+          day === today.getDate() && month === today.getMonth() && year === today.getFullYear(),
         isSelected: selectedDateKeys.has(this.dateKey(cellDate)),
         date: cellDate,
         isWorkingDay,
@@ -3756,7 +3871,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   private isValidSlot(slot: AvailabilitySlot): boolean {
-    return /^\d{2}:\d{2}$/.test(slot.startTime) && /^\d{2}:\d{2}$/.test(slot.endTime) && slot.startTime < slot.endTime;
+    return (
+      /^\d{2}:\d{2}$/.test(slot.startTime) &&
+      /^\d{2}:\d{2}$/.test(slot.endTime) &&
+      slot.startTime < slot.endTime
+    );
   }
 
   private formatTime(value: string): string {
@@ -3798,7 +3917,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return previews;
   }
 
-  private availabilityPreviewKey(day: AvailabilityPreviewDay, preview: AppointmentSlotPreview): string {
+  private availabilityPreviewKey(
+    day: AvailabilityPreviewDay,
+    preview: AppointmentSlotPreview,
+  ): string {
     return `${day.key}-${preview.startTime}-${preview.endTime}`;
   }
 
@@ -3824,9 +3946,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       day: '2-digit',
       month: 'short',
     }).format(date);
-    return value
-      .replace('.', '')
-      .replace(/^\p{L}/u, (letter) => letter.toUpperCase());
+    return value.replace('.', '').replace(/^\p{L}/u, (letter) => letter.toUpperCase());
   }
 
   private normalizeMinutes(value: string | number, min: number, max: number): number {
@@ -3863,5 +3983,3 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     };
   }
 }
-
-

@@ -50,7 +50,9 @@ async function settle(page: Page): Promise<void> {
 
 async function expectNoPageOverflow(page: Page, label: string): Promise<void> {
   const overflow = await page.evaluate(
-    () => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth,
+    () =>
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) -
+      document.documentElement.clientWidth,
   );
   expect(overflow, `${label}: debordement horizontal`).toBeLessThanOrEqual(2);
 }

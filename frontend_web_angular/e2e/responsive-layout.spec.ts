@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const publicRoutes = ['/services', '/auth/login', '/auth/register', '/contact', '/a-propos'] as const;
+const publicRoutes = [
+  '/services',
+  '/auth/login',
+  '/auth/register',
+  '/contact',
+  '/a-propos',
+] as const;
 
 const protectedProfiles = [
   {
@@ -45,7 +51,11 @@ test.describe('Responsivite globale sans debordement', () => {
             await expectResponsiveLayout(page, route);
 
             if (route === '/appointments') {
-              await auditFirstLinkedPage(page, 'a[href^="/appointments/"]:not([href*="/payment"])', 'detail rendez-vous');
+              await auditFirstLinkedPage(
+                page,
+                'a[href^="/appointments/"]:not([href*="/payment"])',
+                'detail rendez-vous',
+              );
             }
 
             if (route === '/prestataire/espace') {
@@ -72,7 +82,11 @@ async function login(page: Page, identifier: string, password: string): Promise<
 }
 
 async function auditFirstLinkedPage(page: Page, selector: string, label: string): Promise<void> {
-  const href = await page.locator(selector).first().getAttribute('href').catch(() => null);
+  const href = await page
+    .locator(selector)
+    .first()
+    .getAttribute('href')
+    .catch(() => null);
   if (!href) {
     return;
   }
@@ -99,7 +113,11 @@ async function auditReservationEntry(page: Page): Promise<void> {
   await page.goto('/services');
   await waitForStableLayout(page);
 
-  const providerHref = await page.locator('a[href^="/services/"]:not([href*="proposition"])').first().getAttribute('href').catch(() => null);
+  const providerHref = await page
+    .locator('a[href^="/services/"]:not([href*="proposition"])')
+    .first()
+    .getAttribute('href')
+    .catch(() => null);
   if (!providerHref) {
     return;
   }
@@ -108,7 +126,11 @@ async function auditReservationEntry(page: Page): Promise<void> {
   await waitForStableLayout(page);
   await expectResponsiveLayout(page, 'profil prestataire');
 
-  const proposalHref = await page.locator('a[href$="/proposition"]').first().getAttribute('href').catch(() => null);
+  const proposalHref = await page
+    .locator('a[href$="/proposition"]')
+    .first()
+    .getAttribute('href')
+    .catch(() => null);
   if (!proposalHref) {
     return;
   }
@@ -131,10 +153,13 @@ async function waitForStableLayout(page: Page): Promise<void> {
 async function expectResponsiveLayout(page: Page, route: string): Promise<void> {
   const report = await page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth;
-    const pageOverflow = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - viewportWidth;
+    const pageOverflow =
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - viewportWidth;
     const offenders = [...document.querySelectorAll<HTMLElement>('body *')]
       .filter((element) => {
-        const closedDrawer = element.closest('.app-navbar__mobile-drawer:not(.app-navbar__mobile-drawer--open)');
+        const closedDrawer = element.closest(
+          '.app-navbar__mobile-drawer:not(.app-navbar__mobile-drawer--open)',
+        );
         if (closedDrawer || element.closest('[aria-hidden="true"], [inert]')) {
           return false;
         }
@@ -153,7 +178,12 @@ async function expectResponsiveLayout(page: Page, route: string): Promise<void> 
         let clippingContainer = false;
         while (ancestor && ancestor !== document.body) {
           const overflow = getComputedStyle(ancestor).overflowX;
-          if (overflow === 'auto' || overflow === 'scroll' || overflow === 'hidden' || overflow === 'clip') {
+          if (
+            overflow === 'auto' ||
+            overflow === 'scroll' ||
+            overflow === 'hidden' ||
+            overflow === 'clip'
+          ) {
             clippingContainer = true;
             break;
           }
@@ -180,6 +210,9 @@ async function expectResponsiveLayout(page: Page, route: string): Promise<void> 
     return { pageOverflow: Math.round(pageOverflow), offenders };
   });
 
-  expect(report.pageOverflow, `${route}: debordement global ${JSON.stringify(report)}`).toBeLessThanOrEqual(2);
+  expect(
+    report.pageOverflow,
+    `${route}: debordement global ${JSON.stringify(report)}`,
+  ).toBeLessThanOrEqual(2);
   expect(report.offenders, `${route}: elements hors viewport`).toEqual([]);
 }

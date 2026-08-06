@@ -66,7 +66,8 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
   },
   CAMIONNETTE: {
     label: 'Camionnette',
-    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    imageUrl:
+      'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
 };
 
@@ -79,7 +80,14 @@ const TRAVEL_MODE_IMAGES: Record<ProviderCardTravelMode, string> = {
 @Component({
   selector: 'app-provider-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppStarRatingComponent, AppPresenceDotComponent, ProviderTravelBadgeComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    LucideAngularModule,
+    AppStarRatingComponent,
+    AppPresenceDotComponent,
+    ProviderTravelBadgeComponent,
+  ],
   templateUrl: './provider-card.component.html',
   styleUrl: './provider-card.component.scss',
 })
@@ -160,12 +168,14 @@ export class ProviderCardComponent {
   }
 
   protected serviceInitials(name: string): string {
-    return name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || 'SV';
+    return (
+      name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('') || 'SV'
+    );
   }
 
   protected onFavoriteClick(event: Event): void {

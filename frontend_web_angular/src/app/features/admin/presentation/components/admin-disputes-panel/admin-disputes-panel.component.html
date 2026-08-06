@@ -19,7 +19,9 @@
         (click)="select(dispute.id)"
       >
         <strong>{{ title(dispute) }}</strong>
-        <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{ statusLabel(dispute.statut) }}</span>
+        <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{
+          statusLabel(dispute.statut)
+        }}</span>
         <small>{{ serviceLabel(dispute) }} . {{ formatMoney(disputeAmount(dispute)) }} FCFA</small>
         <em>{{ priorityLabel(dispute.priorite) }}</em>
         <time>
@@ -29,11 +31,17 @@
       </button>
     </aside>
 
-    <article class="admin-dispute-detail" *ngIf="selectedDispute() as dispute" aria-label="Discussion du litige selectionne">
+    <article
+      class="admin-dispute-detail"
+      *ngIf="selectedDispute() as dispute"
+      aria-label="Discussion du litige selectionne"
+    >
       <section class="admin-dispute-detail__fixed">
         <header>
           <h2>{{ serviceLabel(dispute) }}</h2>
-          <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{ statusLabel(dispute.statut) }}</span>
+          <span class="admin-dispute-status" [ngClass]="statusClass(dispute.statut)">{{
+            statusLabel(dispute.statut)
+          }}</span>
         </header>
 
         <section class="admin-dispute-parties">
@@ -80,21 +88,35 @@
         >
           <strong>{{ message.author }}</strong>
           <p>{{ message.content }}</p>
-          <a *ngIf="message.mediaUrl" [href]="message.mediaUrl" target="_blank" rel="noreferrer">Voir le media</a>
+          <a *ngIf="message.mediaUrl" [href]="message.mediaUrl" target="_blank" rel="noreferrer"
+            >Voir le media</a
+          >
         </article>
       </section>
 
       <footer class="admin-dispute-composer">
         <div class="admin-dispute-actions">
-          <button type="button" (click)="openFinancialDecision('refund-client')" [disabled]="actionId === dispute.id || isClosed(dispute)">
+          <button
+            type="button"
+            (click)="openFinancialDecision('refund-client')"
+            [disabled]="actionId === dispute.id || isClosed(dispute)"
+          >
             <lucide-icon name="banknote" size="14" [strokeWidth]="2"></lucide-icon>
             Remboursement client
           </button>
-          <button type="button" (click)="openFinancialDecision('credit-professional')" [disabled]="actionId === dispute.id || isClosed(dispute)">
+          <button
+            type="button"
+            (click)="openFinancialDecision('credit-professional')"
+            [disabled]="actionId === dispute.id || isClosed(dispute)"
+          >
             <lucide-icon name="wallet-cards" size="14" [strokeWidth]="2"></lucide-icon>
             Indemniser le prestataire
           </button>
-          <button type="button" (click)="runAction('reject')" [disabled]="actionId === dispute.id || !canResolve(dispute)">
+          <button
+            type="button"
+            (click)="runAction('reject')"
+            [disabled]="actionId === dispute.id || !canResolve(dispute)"
+          >
             <lucide-icon name="x" size="14" [strokeWidth]="2"></lucide-icon>
             Rejeter le litige
           </button>
@@ -109,15 +131,27 @@
         ></textarea>
 
         <div class="admin-dispute-send">
-          <button type="button" (click)="runAction('message-client')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+          <button
+            type="button"
+            (click)="runAction('message-client')"
+            [disabled]="actionId === dispute.id || !canSendMessage(dispute)"
+          >
             <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
             Envoyer au client
           </button>
-          <button type="button" (click)="runAction('message-professional')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+          <button
+            type="button"
+            (click)="runAction('message-professional')"
+            [disabled]="actionId === dispute.id || !canSendMessage(dispute)"
+          >
             <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
             Envoyer au prestataire
           </button>
-          <button type="button" (click)="runAction('message-both')" [disabled]="actionId === dispute.id || !canSendMessage(dispute)">
+          <button
+            type="button"
+            (click)="runAction('message-both')"
+            [disabled]="actionId === dispute.id || !canSendMessage(dispute)"
+          >
             <lucide-icon name="send" size="14" [strokeWidth]="2"></lucide-icon>
             Envoyer aux deux
           </button>
@@ -128,7 +162,9 @@
 </section>
 
 <ng-template #noDisputes>
-  <section class="admin-validation-empty" *ngIf="!isLoading">Aucun litige ouvert ou historise pour le moment.</section>
+  <section class="admin-validation-empty" *ngIf="!isLoading">
+    Aucun litige ouvert ou historise pour le moment.
+  </section>
 </ng-template>
 
 <section
@@ -137,14 +173,21 @@
   (click)="closeFinancialDecision()"
   aria-label="Decision financiere du litige"
 >
-  <article class="admin-financial-modal" *ngIf="selectedDispute() as dispute" (click)="$event.stopPropagation()">
+  <article
+    class="admin-financial-modal"
+    *ngIf="selectedDispute() as dispute"
+    (click)="$event.stopPropagation()"
+  >
     <header>
       <span>
         <lucide-icon name="wallet-cards" size="26" [strokeWidth]="2.1"></lucide-icon>
       </span>
       <div>
         <h2>Decision financiere - {{ shortDisputeCode(dispute) }}</h2>
-        <p>Choisissez le beneficiaire du remboursement. Le montant sera preleve sur le sequestre du litige</p>
+        <p>
+          Choisissez le beneficiaire du remboursement. Le montant sera preleve sur le sequestre du
+          litige
+        </p>
       </div>
     </header>
 
@@ -176,7 +219,12 @@
 
     <label class="admin-financial-input">
       <span>Montant ( FCFA )</span>
-      <input type="text" inputmode="numeric" [value]="financialAmount()" (input)="updateFinancialAmount($event)" />
+      <input
+        type="text"
+        inputmode="numeric"
+        [value]="financialAmount()"
+        (input)="updateFinancialAmount($event)"
+      />
     </label>
 
     <label class="admin-financial-input">
@@ -185,7 +233,9 @@
     </label>
 
     <footer>
-      <button type="button" class="admin-financial-cancel" (click)="closeFinancialDecision()">Annuler</button>
+      <button type="button" class="admin-financial-cancel" (click)="closeFinancialDecision()">
+        Annuler
+      </button>
       <button
         type="button"
         class="admin-financial-confirm"

@@ -5,7 +5,11 @@ import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { userInitials } from '../../../../../shared/utils/user-initials';
-import { AdminUserHistory, AdminUserProfile, AdminUserRow } from '../../../data-access/admin.models';
+import {
+  AdminUserHistory,
+  AdminUserProfile,
+  AdminUserRow,
+} from '../../../data-access/admin.models';
 import { AdminUsersService } from '../../../data-access/admin-users.service';
 
 @Component({
@@ -159,6 +163,8 @@ export class AdminUsersPanelComponent implements OnInit {
   }
 
   protected formatDate(value: string | Date): string {
-    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(value),
+    );
   }
 }

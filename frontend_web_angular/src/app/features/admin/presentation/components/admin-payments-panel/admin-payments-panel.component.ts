@@ -135,7 +135,9 @@ export class AdminPaymentsPanelComponent implements OnInit {
           this.feedback.success('Paiement rembourse avec succes.');
           this.selected.set(result.payment);
           this.payments.update((payments) =>
-            payments.map((item) => (item.id === result.payment.id ? { ...item, ...result.payment } : item)),
+            payments.map((item) =>
+              item.id === result.payment.id ? { ...item, ...result.payment } : item,
+            ),
           );
           this.load();
         }
@@ -171,8 +173,9 @@ export class AdminPaymentsPanelComponent implements OnInit {
 
   protected date(value?: string | Date): string {
     return value
-      ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+      ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
+          new Date(value),
+        )
       : 'Date non exposee';
   }
-
 }

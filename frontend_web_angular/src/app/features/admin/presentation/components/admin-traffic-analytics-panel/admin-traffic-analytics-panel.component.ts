@@ -1,7 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { AdminDashboard, AdminPlatformMetric, AdminSeriesPoint } from '../../../data-access/admin.models';
+import {
+  AdminDashboard,
+  AdminPlatformMetric,
+  AdminSeriesPoint,
+} from '../../../data-access/admin.models';
 
 type PlatformKey = 'web' | 'ios' | 'android';
 
@@ -16,7 +20,10 @@ export class AdminTrafficAnalyticsPanelComponent {
   @Input({ required: true }) data!: AdminDashboard;
 
   protected totalTraffic(): number {
-    return this.data.overview.platforms.reduce((sum, platform) => sum + Number(platform.value ?? 0), 0);
+    return this.data.overview.platforms.reduce(
+      (sum, platform) => sum + Number(platform.value ?? 0),
+      0,
+    );
   }
 
   protected activeUsers(): number {
@@ -79,7 +86,10 @@ export class AdminTrafficAnalyticsPanelComponent {
   }
 
   protected platformTotal(key: PlatformKey): number {
-    return this.data.overview.trafficSeries.reduce((sum, point) => sum + Number(point[key] ?? 0), 0);
+    return this.data.overview.trafficSeries.reduce(
+      (sum, point) => sum + Number(point[key] ?? 0),
+      0,
+    );
   }
 
   protected platformShare(key: PlatformKey): number {

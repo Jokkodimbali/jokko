@@ -48,7 +48,11 @@
       <ng-template #avatarInitials>
         <span>{{ provider.initials }}</span>
       </ng-template>
-      <app-presence-dot [userId]="provider.userId" [professionalId]="provider.id" [initialOnline]="provider.isOnline" />
+      <app-presence-dot
+        [userId]="provider.userId"
+        [professionalId]="provider.id"
+        [initialOnline]="provider.isOnline"
+      />
     </a>
 
     <div class="provider-card__identity">
@@ -97,7 +101,12 @@
         </ng-container>
         <ng-template #serviceFallback>
           <span class="provider-card__service-image-fallback" aria-label="Aucune image disponible">
-            <lucide-icon name="image-plus" size="44" [strokeWidth]="1.8" aria-hidden="true"></lucide-icon>
+            <lucide-icon
+              name="image-plus"
+              size="44"
+              [strokeWidth]="1.8"
+              aria-hidden="true"
+            ></lucide-icon>
             <strong>Aucune image</strong>
           </span>
         </ng-template>
@@ -118,8 +127,15 @@
             (click)="selectService($event, service)"
           >
             <span>
-              <img *ngIf="service.imageUrl; else thumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="onImageError(service.imageUrl)" />
-              <ng-template #thumbFallback><strong>{{ serviceInitials(service.name) }}</strong></ng-template>
+              <img
+                *ngIf="service.imageUrl; else thumbFallback"
+                [src]="service.imageUrl"
+                [alt]="service.name"
+                (error)="onImageError(service.imageUrl)"
+              />
+              <ng-template #thumbFallback
+                ><strong>{{ serviceInitials(service.name) }}</strong></ng-template
+              >
             </span>
           </button>
         </div>

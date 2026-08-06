@@ -127,7 +127,10 @@
   height: 40px;
   justify-content: center;
   margin-top: 4px;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
   width: 40px;
   z-index: 2;
 }
@@ -246,7 +249,6 @@
     top: 51px;
     width: calc(100% - 60px);
   }
-
 
   .appointment-tracking-stepper__step:nth-last-child(2)::after {
     width: calc(100% - 67px);

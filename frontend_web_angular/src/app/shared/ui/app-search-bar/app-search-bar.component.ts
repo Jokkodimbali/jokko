@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  Output,
+  inject,
+} from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppStarRatingComponent } from '../app-star-rating/app-star-rating.component';
 import { AppPresenceDotComponent } from '../app-presence-dot/app-presence-dot.component';

@@ -78,7 +78,10 @@ test.describe('Jokko business flow e2e', () => {
       return priceType === 'NEGOCIABLE' && item.estDisponible !== false;
     });
 
-    expect(service, 'Le prestataire seed doit avoir au moins un service negociable disponible.').toBeTruthy();
+    expect(
+      service,
+      'Le prestataire seed doit avoir au moins un service negociable disponible.',
+    ).toBeTruthy();
 
     await cancelActiveNegotiationsForService(request, clientToken, service!.id);
 
@@ -89,19 +92,14 @@ test.describe('Jokko business flow e2e', () => {
     const initialAmount = 5000;
     const counterAmount = initialAmount + 750;
 
-    const createdNegotiation = await apiPost<Negotiation>(
-      request,
-      '/negotiations',
-      clientToken,
-      {
-        serviceId: service!.id,
-        proposedAmount: initialAmount,
-        message: 'Flux e2e automatique: proposition client.',
-        dateHeure: scheduledAt,
-        adresseClient: address,
-        dureeMinutes: durationMinutes,
-      },
-    );
+    const createdNegotiation = await apiPost<Negotiation>(request, '/negotiations', clientToken, {
+      serviceId: service!.id,
+      proposedAmount: initialAmount,
+      message: 'Flux e2e automatique: proposition client.',
+      dateHeure: scheduledAt,
+      adresseClient: address,
+      dureeMinutes: durationMinutes,
+    });
     expect(createdNegotiation.statut).toBe('EN_ATTENTE_PRESTATAIRE');
 
     const providerCounter = await apiPatch<Negotiation>(
@@ -226,24 +224,16 @@ async function cancelActiveNegotiationsForService(
   token: string,
   serviceId: string,
 ): Promise<void> {
-  const negotiations = await apiGet<Negotiation[]>(
-    request,
-    '/negotiations/my?scope=CLIENT',
-    token,
-  );
+  const negotiations = await apiGet<Negotiation[]>(request, '/negotiations/my?scope=CLIENT', token);
   const activeStatuses = new Set(['EN_ATTENTE_PRESTATAIRE', 'EN_ATTENTE_CLIENT']);
   const active = negotiations.filter(
-    (negotiation) =>
-      negotiation.serviceId === serviceId && activeStatuses.has(negotiation.statut),
+    (negotiation) => negotiation.serviceId === serviceId && activeStatuses.has(negotiation.statut),
   );
 
   for (const negotiation of active) {
-    await apiPatch<Negotiation>(
-      request,
-      `/negotiations/${negotiation.id}/cancel`,
-      token,
-      { reason: 'Nettoyage avant flux e2e automatique.' },
-    );
+    await apiPatch<Negotiation>(request, `/negotiations/${negotiation.id}/cancel`, token, {
+      reason: 'Nettoyage avant flux e2e automatique.',
+    });
   }
 }
 
@@ -279,11 +269,7 @@ async function ensureAvailabilityForDate(
   throw new Error(`${response.status()} ${response.url()}: ${body}`);
 }
 
-async function apiGet<T>(
-  request: APIRequestContext,
-  path: string,
-  token: string,
-): Promise<T> {
+async function apiGet<T>(request: APIRequestContext, path: string, token: string): Promise<T> {
   const response = await request.get(`${apiBaseURL}${path}`, {
     headers: authHeaders(token),
   });

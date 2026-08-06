@@ -32,7 +32,9 @@ export class NotificationsPageComponent implements OnInit {
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly unreadCount = computed(() => this.notifications().filter((item) => !this.isRead(item)).length);
+  protected readonly unreadCount = computed(
+    () => this.notifications().filter((item) => !this.isRead(item)).length,
+  );
   protected readonly readCount = computed(() => this.notifications().length - this.unreadCount());
 
   ngOnInit(): void {
@@ -48,7 +50,9 @@ export class NotificationsPageComponent implements OnInit {
       .subscribe({
         next: (notifications) => this.notifications.set(notifications),
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger vos notifications.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de charger vos notifications.'),
+          );
         },
       });
   }
@@ -61,11 +65,15 @@ export class NotificationsPageComponent implements OnInit {
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: () => {
-          this.notifications.update((items) => items.map((item) => ({ ...item, isRead: true, estLue: true })));
+          this.notifications.update((items) =>
+            items.map((item) => ({ ...item, isRead: true, estLue: true })),
+          );
           this.feedback.success('Toutes vos notifications sont marquees comme lues.');
         },
         error: (error) => {
-          this.feedback.error(getHttpErrorMessage(error, 'Impossible de marquer les notifications comme lues.'));
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Impossible de marquer les notifications comme lues.'),
+          );
         },
       });
   }
@@ -75,11 +83,17 @@ export class NotificationsPageComponent implements OnInit {
     this.notificationsService.markAsRead(notification.id).subscribe({
       next: (updated) => {
         this.notifications.update((items) =>
-          items.map((item) => (item.id === notification.id ? { ...item, ...updated, isRead: true, estLue: true } : item)),
+          items.map((item) =>
+            item.id === notification.id
+              ? { ...item, ...updated, isRead: true, estLue: true }
+              : item,
+          ),
         );
       },
       error: (error) => {
-        this.feedback.error(getHttpErrorMessage(error, 'Impossible de marquer cette notification comme lue.'));
+        this.feedback.error(
+          getHttpErrorMessage(error, 'Impossible de marquer cette notification comme lue.'),
+        );
       },
     });
   }
@@ -95,7 +109,11 @@ export class NotificationsPageComponent implements OnInit {
     this.notificationsService.markAsRead(notification.id).subscribe({
       next: (updated) => {
         this.notifications.update((items) =>
-          items.map((item) => (item.id === notification.id ? { ...item, ...updated, isRead: true, estLue: true } : item)),
+          items.map((item) =>
+            item.id === notification.id
+              ? { ...item, ...updated, isRead: true, estLue: true }
+              : item,
+          ),
         );
         this.navigateToTarget(target);
       },
@@ -163,7 +181,8 @@ export class NotificationsPageComponent implements OnInit {
 
     const type = (notification.type || '').toLowerCase();
     if (type.includes('message')) return { commands: ['/messages'] };
-    if (type.includes('payment') || type.includes('paiement')) return { commands: ['/settings'], queryParams: { section: 'account' } };
+    if (type.includes('payment') || type.includes('paiement'))
+      return { commands: ['/settings'], queryParams: { section: 'account' } };
     if (type.includes('kyc') || type.includes('profil')) return { commands: ['/settings'] };
     return { commands: ['/notifications'] };
   }
@@ -199,7 +218,9 @@ export class NotificationsPageComponent implements OnInit {
           return;
         }
 
-        this.feedback.info("Cette reservation n'est plus disponible ou n'est pas accessible avec ce compte.");
+        this.feedback.info(
+          "Cette reservation n'est plus disponible ou n'est pas accessible avec ce compte.",
+        );
         this.router.navigate(['/appointments']);
       },
       error: () => {

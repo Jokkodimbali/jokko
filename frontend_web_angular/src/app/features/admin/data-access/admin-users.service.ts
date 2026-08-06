@@ -25,13 +25,17 @@ export class AdminUsersService {
 
   history(userId: string, limit = 20): Observable<AdminUserHistory> {
     return this.http
-      .get<ApiResponse<AdminUserHistory>>(`${this.usersUrl}/${userId}/history`, { params: { limit } })
+      .get<
+        ApiResponse<AdminUserHistory>
+      >(`${this.usersUrl}/${userId}/history`, { params: { limit } })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   setActive(userId: string, active: boolean): Observable<AdminUserProfile> {
     return this.http
-      .patch<ApiResponse<AdminUserProfile>>(`${this.usersUrl}/${userId}/${active ? 'unblock' : 'block'}`, {})
+      .patch<
+        ApiResponse<AdminUserProfile>
+      >(`${this.usersUrl}/${userId}/${active ? 'unblock' : 'block'}`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

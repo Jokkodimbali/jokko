@@ -31,7 +31,9 @@ export class NotificationsService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/notifications`;
 
-  list(options: { read?: boolean; limit?: number; offset?: number } = {}): Observable<UserNotificationView[]> {
+  list(
+    options: { read?: boolean; limit?: number; offset?: number } = {},
+  ): Observable<UserNotificationView[]> {
     const params: Record<string, string> = {};
     if (typeof options.read === 'boolean') params['read'] = String(options.read);
     if (typeof options.limit === 'number') params['limit'] = String(options.limit);

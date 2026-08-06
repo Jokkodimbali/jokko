@@ -6,7 +6,10 @@
         Trafic & Analytics
       </span>
       <h1>Lecture temps reel de l'activite</h1>
-      <p>Suivez les utilisateurs connectes, les plateformes actives et les signaux recents de la plateforme.</p>
+      <p>
+        Suivez les utilisateurs connectes, les plateformes actives et les signaux recents de la
+        plateforme.
+      </p>
     </div>
     <aside>
       <strong>{{ formatNumber(totalTraffic()) }}</strong>
@@ -41,7 +44,7 @@
     <article class="admin-traffic-chart-card">
       <header>
         <div>
-        <h2>Utilisateurs connectes sur 7 jours</h2>
+          <h2>Utilisateurs connectes sur 7 jours</h2>
           <p>Repartition par jour et par plateforme des utilisateurs authentifies.</p>
         </div>
         <ul class="admin-traffic-legend" aria-label="Legende trafic">
@@ -54,9 +57,18 @@
       <div class="admin-traffic-bars" role="img" aria-label="Diagramme du trafic sur sept jours">
         <div *ngFor="let point of data.overview.trafficSeries" class="admin-traffic-bars__day">
           <div class="admin-traffic-bars__stack">
-            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--web" [style.height.px]="barHeight(point.web)"></span>
-            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--ios" [style.height.px]="barHeight(point.ios)"></span>
-            <span class="admin-traffic-bars__bar admin-traffic-bars__bar--android" [style.height.px]="barHeight(point.android)"></span>
+            <span
+              class="admin-traffic-bars__bar admin-traffic-bars__bar--web"
+              [style.height.px]="barHeight(point.web)"
+            ></span>
+            <span
+              class="admin-traffic-bars__bar admin-traffic-bars__bar--ios"
+              [style.height.px]="barHeight(point.ios)"
+            ></span>
+            <span
+              class="admin-traffic-bars__bar admin-traffic-bars__bar--android"
+              [style.height.px]="barHeight(point.android)"
+            ></span>
             <b>
               {{ point.label }}<br />
               Web {{ point.web || 0 }} | iOS {{ point.ios || 0 }} | Android {{ point.android || 0 }}

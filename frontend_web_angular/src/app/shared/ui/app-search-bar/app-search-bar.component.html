@@ -12,8 +12,15 @@
     [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
     (click)="onLocationClick()"
   >
-    <lucide-icon name="map-pin" [size]="isServiceVariant ? 17 : 22" [strokeWidth]="isServiceVariant ? 2.4 : 3"></lucide-icon>
-    <span><strong>{{ locationTitle }}</strong>{{ locationValue }}</span>
+    <lucide-icon
+      name="map-pin"
+      [size]="isServiceVariant ? 17 : 22"
+      [strokeWidth]="isServiceVariant ? 2.4 : 3"
+    ></lucide-icon>
+    <span
+      ><strong>{{ locationTitle }}</strong
+      >{{ locationValue }}</span
+    >
     <lucide-icon
       *ngIf="isServiceVariant"
       class="app-search-bar__chevron"
@@ -25,7 +32,11 @@
   </button>
 
   <label class="app-search-bar__field">
-    <lucide-icon name="search" [size]="isServiceVariant ? 18 : 35" [strokeWidth]="isServiceVariant ? 2.2 : 2.6"></lucide-icon>
+    <lucide-icon
+      name="search"
+      [size]="isServiceVariant ? 18 : 35"
+      [strokeWidth]="isServiceVariant ? 2.2 : 2.6"
+    ></lucide-icon>
     <input
       type="search"
       [value]="value"
@@ -49,11 +60,13 @@
     </span>
   </button>
 
-  <button *ngIf="isServiceVariant" type="submit" class="app-search-bar__submit">
-    Chercher
-  </button>
+  <button *ngIf="isServiceVariant" type="submit" class="app-search-bar__submit">Chercher</button>
 
-  <div *ngIf="isServiceVariant && modeOptions.length > 0" class="app-search-bar__modes" aria-label="Modes de deplacement">
+  <div
+    *ngIf="isServiceVariant && modeOptions.length > 0"
+    class="app-search-bar__modes"
+    aria-label="Modes de deplacement"
+  >
     <span>Mode</span>
     <button
       *ngFor="let option of modeOptions"
@@ -66,9 +79,19 @@
       [class.app-search-bar__mode--provider]="option.tone === 'provider'"
       (click)="onModeSelect(option.value)"
     >
-      <img *ngIf="option.imageUrl; else modeIcon" [src]="option.imageUrl" alt="" aria-hidden="true" />
+      <img
+        *ngIf="option.imageUrl; else modeIcon"
+        [src]="option.imageUrl"
+        alt=""
+        aria-hidden="true"
+      />
       <ng-template #modeIcon>
-        <lucide-icon *ngIf="option.icon" [name]="option.icon" size="14" [strokeWidth]="2.4"></lucide-icon>
+        <lucide-icon
+          *ngIf="option.icon"
+          [name]="option.icon"
+          size="14"
+          [strokeWidth]="2.4"
+        ></lucide-icon>
       </ng-template>
       {{ option.label }}
     </button>
@@ -76,7 +99,11 @@
 
   <div *ngIf="isServiceVariant && showLocationMenu" class="app-search-bar__location-menu">
     <p>Choisir une ville</p>
-    <button type="button" class="app-search-bar__current-location" (click)="currentLocationSelect.emit()">
+    <button
+      type="button"
+      class="app-search-bar__current-location"
+      (click)="currentLocationSelect.emit()"
+    >
       <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.3"></lucide-icon>
       Ma position actuelle
     </button>
@@ -102,11 +129,7 @@
           <lucide-icon name="bookmark" size="13" [strokeWidth]="2"></lucide-icon>
           Cat&eacute;gories
         </span>
-        <button
-          *ngIf="hasHiddenCategories"
-          type="button"
-          (click)="toggleCategoryList()"
-        >
+        <button *ngIf="hasHiddenCategories" type="button" (click)="toggleCategoryList()">
           {{ showAllCategories ? 'Voir moins' : 'Tout voir' }}
         </button>
       </div>
@@ -120,7 +143,11 @@
           class="app-search-bar__category-chip"
           (click)="categorySelect.emit(category.id)"
         >
-          <lucide-icon [name]="category.icon || 'wrench'" size="14" [strokeWidth]="2.1"></lucide-icon>
+          <lucide-icon
+            [name]="category.icon || 'wrench'"
+            size="14"
+            [strokeWidth]="2.1"
+          ></lucide-icon>
           {{ category.name }}
           <small>{{ category.count }}</small>
         </button>
@@ -142,16 +169,30 @@
         (click)="providerSelect.emit(provider.id)"
       >
         <span class="app-search-bar__avatar">
-          <img *ngIf="provider.avatarUrl; else providerInitials" [src]="provider.avatarUrl" [alt]="provider.name" />
+          <img
+            *ngIf="provider.avatarUrl; else providerInitials"
+            [src]="provider.avatarUrl"
+            [alt]="provider.name"
+          />
           <ng-template #providerInitials>{{ provider.initials }}</ng-template>
-          <app-presence-dot [userId]="provider.userId" [professionalId]="provider.id" [initialOnline]="provider.isOnline" />
+          <app-presence-dot
+            [userId]="provider.userId"
+            [professionalId]="provider.id"
+            [initialOnline]="provider.isOnline"
+          />
         </span>
         <span class="app-search-bar__provider-info">
-          <strong>{{ provider.name }} <small>{{ provider.category }}</small></strong>
+          <strong
+            >{{ provider.name }} <small>{{ provider.category }}</small></strong
+          >
           <span>
             {{ provider.profession }}
             <b>
-              <app-star-rating [value]="provider.rating" [reviews]="provider.totalReviews" size="small" />
+              <app-star-rating
+                [value]="provider.rating"
+                [reviews]="provider.totalReviews"
+                size="small"
+              />
               {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})
             </b>
             <em>{{ provider.location }}</em>
@@ -164,12 +205,15 @@
       </button>
     </section>
 
-    <p *ngIf="categorySuggestions.length === 0 && providerSuggestions.length === 0" class="app-search-bar__empty">
+    <p
+      *ngIf="categorySuggestions.length === 0 && providerSuggestions.length === 0"
+      class="app-search-bar__empty"
+    >
       Tapez un service ou un nom de prestataire pour commencer.
     </p>
 
     <footer class="app-search-bar__suggestion-footer">
-      <span>{{ resultsNearLabel || ('Resultats pres de ' + locationValue) }}</span>
+      <span>{{ resultsNearLabel || 'Resultats pres de ' + locationValue }}</span>
       <strong>Jokko Dimbali</strong>
     </footer>
   </div>

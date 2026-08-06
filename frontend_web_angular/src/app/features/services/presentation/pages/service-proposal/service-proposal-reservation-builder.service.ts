@@ -49,8 +49,7 @@ export class ServiceProposalReservationBuilderService {
   }): string {
     const requestedServiceName = this.extractRequestedServiceName(input.proposal);
     const localParcelNotes = input.parcelNotes.join(' ');
-    const hasCompleteLocalContacts =
-      this.hasCompleteParcelContacts(localParcelNotes);
+    const hasCompleteLocalContacts = this.hasCompleteParcelContacts(localParcelNotes);
     const recoveredParcelMessage = hasCompleteLocalContacts
       ? ''
       : this.extractParcelMessageFromProposal(input.proposal);
@@ -69,7 +68,10 @@ export class ServiceProposalReservationBuilderService {
 
     const messages = [
       proposal.messageCourant,
-      ...(proposal.propositions ?? []).slice().reverse().map((offer) => offer.message),
+      ...(proposal.propositions ?? [])
+        .slice()
+        .reverse()
+        .map((offer) => offer.message),
     ];
 
     for (const message of messages) {
@@ -130,7 +132,10 @@ export class ServiceProposalReservationBuilderService {
   private extractParcelMessageFromProposal(proposal: NegotiationView): string {
     const messages = [
       proposal.messageCourant,
-      ...(proposal.propositions ?? []).slice().reverse().map((item) => item.message),
+      ...(proposal.propositions ?? [])
+        .slice()
+        .reverse()
+        .map((item) => item.message),
     ];
     const message = messages.find((item) => this.hasCompleteParcelContacts(item ?? ''));
 

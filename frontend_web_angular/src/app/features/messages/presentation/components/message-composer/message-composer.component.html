@@ -12,7 +12,12 @@
   </button>
 
   <div class="message-composer__voice-panel" *ngIf="isRecordingVoice; else normalComposerField">
-    <button type="button" class="message-composer__voice-cancel" aria-label="Annuler le vocal" (click)="cancelVoice.emit()">
+    <button
+      type="button"
+      class="message-composer__voice-cancel"
+      aria-label="Annuler le vocal"
+      (click)="cancelVoice.emit()"
+    >
       <lucide-icon name="x" size="16" [strokeWidth]="2.6"></lucide-icon>
     </button>
     <span class="message-composer__voice-timer">{{ formatDuration(voiceRecordingSeconds) }}</span>
@@ -23,7 +28,12 @@
       ></i>
     </span>
     <span class="message-composer__voice-hint">Enregistrement</span>
-    <button type="button" class="message-composer__voice-finish" aria-label="Terminer le message vocal" (click)="stopVoice.emit()">
+    <button
+      type="button"
+      class="message-composer__voice-finish"
+      aria-label="Terminer le message vocal"
+      (click)="stopVoice.emit()"
+    >
       <lucide-icon name="mic" size="22" [strokeWidth]="2.6"></lucide-icon>
     </button>
   </div>
@@ -32,18 +42,33 @@
     <div class="message-composer__field">
       <span *ngIf="pendingMediaUrl" class="message-composer__pending-media">
         <lucide-icon
-          [name]="pendingMediaKind === 'audio' ? 'mic' : pendingMediaKind === 'image' ? 'camera' : 'paperclip'"
+          [name]="
+            pendingMediaKind === 'audio'
+              ? 'mic'
+              : pendingMediaKind === 'image'
+                ? 'camera'
+                : 'paperclip'
+          "
           size="15"
           [strokeWidth]="2.4"
         ></lucide-icon>
         {{ pendingMediaLabel }}
-        <button type="button" aria-label="Retirer le media" [disabled]="isDisabled" (click)="clearMedia.emit()">
+        <button
+          type="button"
+          aria-label="Retirer le media"
+          [disabled]="isDisabled"
+          (click)="clearMedia.emit()"
+        >
           <lucide-icon name="x" size="14" [strokeWidth]="2.5"></lucide-icon>
         </button>
       </span>
 
       <span class="message-composer__input-row">
-        <label class="message-composer__tool" [class.message-composer__tool--disabled]="isDisabled" aria-label="Envoyer une image">
+        <label
+          class="message-composer__tool"
+          [class.message-composer__tool--disabled]="isDisabled"
+          aria-label="Envoyer une image"
+        >
           <lucide-icon name="camera" size="20" [strokeWidth]="2.35"></lucide-icon>
           <input
             type="file"
@@ -53,7 +78,11 @@
           />
         </label>
 
-        <label class="message-composer__tool" [class.message-composer__tool--disabled]="isDisabled" aria-label="Envoyer une piece jointe">
+        <label
+          class="message-composer__tool"
+          [class.message-composer__tool--disabled]="isDisabled"
+          aria-label="Envoyer une piece jointe"
+        >
           <lucide-icon name="paperclip" size="20" [strokeWidth]="2.35"></lucide-icon>
           <input
             type="file"

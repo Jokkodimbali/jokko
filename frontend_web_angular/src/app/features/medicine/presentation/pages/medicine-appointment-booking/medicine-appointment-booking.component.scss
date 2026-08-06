@@ -222,7 +222,10 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
   width: 100%;
 }
 
@@ -886,7 +889,9 @@
   background: #f1e8dc;
   border: 1px solid #ded0bd;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgb(95 66 31 / 8%), inset 0 1px 0 rgb(255 255 255 / 65%);
+  box-shadow:
+    0 1px 3px rgb(95 66 31 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 65%);
   color: #5f421f;
   display: inline-flex;
   gap: 9px;
@@ -990,7 +995,10 @@
   min-height: 52px;
   font-weight: 760;
   text-transform: none;
-  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
   width: 100%;
 }
 

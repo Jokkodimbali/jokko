@@ -32,6 +32,8 @@ const PRISMA_NOTIFICATION_TYPE_BY_DOMAIN: Record<
   LITIGE_RESOLU: TypeNotification.LITIGE_RESOLU,
   RESERVATION_FINALISEE: TypeNotification.RESERVATION_FINALISEE,
   ANNONCE_ADMIN: TypeNotification.ANNONCE_ADMIN,
+  APPEL_ENTRANT: TypeNotification.APPEL_ENTRANT,
+  APPEL_MANQUE: TypeNotification.APPEL_MANQUE,
 };
 
 type PrismaNotification = {

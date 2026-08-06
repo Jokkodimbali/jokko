@@ -96,6 +96,6 @@ export class AppointmentDetailFormatService {
       return 'La position GPS recue est invalide. Activez la localisation precise puis reessayez.';
     }
 
-    return "Impossible de recuperer votre position exacte. Autorisez la localisation GPS du navigateur et reessayez.";
+    return 'Impossible de recuperer votre position exacte. Autorisez la localisation GPS du navigateur et reessayez.';
   }
 }

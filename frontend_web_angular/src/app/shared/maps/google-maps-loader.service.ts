@@ -67,10 +67,7 @@ export type GoogleMapsMapInstance = {
   }) => void;
   setOptions?: (options: Record<string, unknown>) => void;
   getRenderingType?: () => 'VECTOR' | 'RASTER' | string;
-  fitBounds: (
-    bounds: GoogleMapsBoundsInstance,
-    padding?: number | Record<string, number>,
-  ) => void;
+  fitBounds: (bounds: GoogleMapsBoundsInstance, padding?: number | Record<string, number>) => void;
   addListener: (
     eventName: string,
     handler: (event: {
@@ -109,13 +106,8 @@ export type GoogleMapsBoundsInstance = {
 export type GoogleMapsRuntime = {
   mapId: string;
   maps: {
-    Map: new (
-      element: HTMLElement,
-      options: Record<string, unknown>,
-    ) => GoogleMapsMapInstance;
-    Polyline: new (
-      options: Record<string, unknown>,
-    ) => GoogleMapsPolylineInstance;
+    Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMapsMapInstance;
+    Polyline: new (options: Record<string, unknown>) => GoogleMapsPolylineInstance;
     LatLngBounds: new () => GoogleMapsBoundsInstance;
     OverlayView?: new () => GoogleMapsOverlayViewInstance;
     marker?: {
@@ -228,12 +220,12 @@ export class GoogleMapsLoaderService {
               resolve(runtime);
               return;
             }
-            existingScript.addEventListener(
-              'load',
-              () => resolve(this.requireGoogleRuntime()),
-              { once: true },
+            existingScript.addEventListener('load', () => resolve(this.requireGoogleRuntime()), {
+              once: true,
+            });
+            existingScript.addEventListener('error', () =>
+              reject(new Error('Google Maps failed to load.')),
             );
-            existingScript.addEventListener('error', () => reject(new Error('Google Maps failed to load.')));
             return;
           }
 
@@ -291,29 +283,24 @@ export class GoogleMapsLoaderService {
       .pipe(map(unwrapApiResponse));
   }
 
-  reverseGeocode(
-    coordinate: GoogleMapsCoordinate,
-  ): Observable<GoogleMapsGeocodeResult | null> {
+  reverseGeocode(coordinate: GoogleMapsCoordinate): Observable<GoogleMapsGeocodeResult | null> {
     return this.http
-      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(
-        `${this.apiUrl}/maps/reverse-geocode`,
-        {
-          params: {
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
-          },
+      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/reverse-geocode`, {
+        params: {
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
         },
-      )
+      })
       .pipe(map(unwrapApiResponse));
   }
 
   private googleRuntime(mapId: string): GoogleMapsRuntime | undefined {
-    const google = (window as unknown as {
-      google?: Omit<GoogleMapsRuntime, 'mapId'>;
-    }).google;
-    return google?.maps
-      ? { maps: google.maps, mapId: mapId || 'DEMO_MAP_ID' }
-      : undefined;
+    const google = (
+      window as unknown as {
+        google?: Omit<GoogleMapsRuntime, 'mapId'>;
+      }
+    ).google;
+    return google?.maps ? { maps: google.maps, mapId: mapId || 'DEMO_MAP_ID' } : undefined;
   }
 
   private requireGoogleRuntime(): GoogleMapsRuntime {

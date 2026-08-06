@@ -5,10 +5,11 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AppFeedbackService } from './core/feedback/app-feedback.service';
 import { InlineFormValidationService } from './core/forms/inline-form-validation.service';
 import { SessionPresenceService } from './core/presence/session-presence.service';
+import { CallOverlayComponent } from './features/calls/presentation/call-overlay.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, LucideAngularModule],
+  imports: [CommonModule, RouterOutlet, LucideAngularModule, CallOverlayComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

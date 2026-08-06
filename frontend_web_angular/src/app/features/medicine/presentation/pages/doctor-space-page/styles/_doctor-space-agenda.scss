@@ -591,24 +591,24 @@
 }
 
 @media (max-width: 860px) {
-.doctor-space__agenda-stats {
+  .doctor-space__agenda-stats {
     grid-template-columns: 1fr;
   }
 
-.doctor-space__agenda-filters {
+  .doctor-space__agenda-filters {
     align-items: flex-start;
     flex-direction: column;
   }
 
-.doctor-space__agenda-period {
+  .doctor-space__agenda-period {
     margin-left: 0;
   }
 
-.doctor-space__agenda-detail-panel {
+  .doctor-space__agenda-detail-panel {
     max-width: none;
   }
 
-.doctor-space__agenda-detail-grid {
+  .doctor-space__agenda-detail-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -765,22 +765,26 @@
   color: #8193ad;
 }
 
-.doctor-space__agenda-filters > .doctor-space__agenda-chip--confirmed:not(.doctor-space__agenda-chip--active) {
+.doctor-space__agenda-filters
+  > .doctor-space__agenda-chip--confirmed:not(.doctor-space__agenda-chip--active) {
   background: #eefaf4;
   color: #22945f;
 }
 
-.doctor-space__agenda-filters > .doctor-space__agenda-chip--done:not(.doctor-space__agenda-chip--active) {
+.doctor-space__agenda-filters
+  > .doctor-space__agenda-chip--done:not(.doctor-space__agenda-chip--active) {
   background: #edf2f7;
   color: #475467;
 }
 
-.doctor-space__agenda-filters > .doctor-space__agenda-chip--cancelled:not(.doctor-space__agenda-chip--active) {
+.doctor-space__agenda-filters
+  > .doctor-space__agenda-chip--cancelled:not(.doctor-space__agenda-chip--active) {
   background: #fff1f2;
   color: #d7192c;
 }
 
-.doctor-space__agenda-filters > .doctor-space__agenda-chip--dispute:not(.doctor-space__agenda-chip--active) {
+.doctor-space__agenda-filters
+  > .doctor-space__agenda-chip--dispute:not(.doctor-space__agenda-chip--active) {
   background: #f2e8ff;
   color: #6d28d9;
 }
@@ -801,14 +805,13 @@
 }
 
 .doctor-space__agenda-grid {
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      #fff 0,
-      #fff var(--agenda-row-height, 27px),
-      #f8fafc var(--agenda-row-height, 27px),
-      #f8fafc calc(var(--agenda-row-height, 27px) * 2)
-    );
+  background: repeating-linear-gradient(
+    to bottom,
+    #fff 0,
+    #fff var(--agenda-row-height, 27px),
+    #f8fafc var(--agenda-row-height, 27px),
+    #f8fafc calc(var(--agenda-row-height, 27px) * 2)
+  );
   grid-template-columns: 56px repeat(7, minmax(112px, 1fr));
   grid-template-rows: 55px;
 }
@@ -1050,5 +1053,3 @@
 .doctor-space__header--agenda h1 {
   color: #111827;
 }
-
-

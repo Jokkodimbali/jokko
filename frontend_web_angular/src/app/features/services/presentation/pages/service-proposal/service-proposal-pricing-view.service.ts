@@ -40,9 +40,7 @@ export class ServiceProposalPricingViewService {
   }): string {
     const receivedFrom = input.viewer === 'CLIENT' ? 'PRESTATAIRE' : 'CLIENT';
     const receivedLabel = input.viewer === 'CLIENT' ? 'du prestataire' : 'du client';
-    const base = input.proposal
-      ? this.latestNegotiationOffer(input.proposal, receivedFrom)
-      : null;
+    const base = input.proposal ? this.latestNegotiationOffer(input.proposal, receivedFrom) : null;
     const amount = Math.trunc(Number(input.offerAmount));
 
     if (!base) return `Aucune offre ${receivedLabel} a comparer`;
@@ -81,7 +79,12 @@ export class ServiceProposalPricingViewService {
     const servicePrice = Number(input.servicePrice);
     const offer = Number(input.offerAmount);
 
-    if (!Number.isFinite(servicePrice) || servicePrice <= 0 || !Number.isFinite(offer) || offer <= 0) {
+    if (
+      !Number.isFinite(servicePrice) ||
+      servicePrice <= 0 ||
+      !Number.isFinite(offer) ||
+      offer <= 0
+    ) {
       return input.hasCustomServiceName
         ? 'Definissez le prix que vous souhaitez proposer au prestataire.'
         : 'Montant a confirmer avec le prestataire';
@@ -99,7 +102,10 @@ export class ServiceProposalPricingViewService {
     return `${this.formatAmount(difference)} FCFA ${direction}`;
   }
 
-  offerDifferenceIcon(servicePrice: number, offerAmount: number): 'check' | 'arrow-down' | 'arrow-up-right' {
+  offerDifferenceIcon(
+    servicePrice: number,
+    offerAmount: number,
+  ): 'check' | 'arrow-down' | 'arrow-up-right' {
     if (!servicePrice || !offerAmount || servicePrice === offerAmount) {
       return 'check';
     }
@@ -128,7 +134,10 @@ export class ServiceProposalPricingViewService {
     return acceptedAmount < servicePrice ? 'Economie' : 'Ajustement';
   }
 
-  acceptedComparisonAmountLabel(servicePrice: number | null, acceptedAmount: number | null): string {
+  acceptedComparisonAmountLabel(
+    servicePrice: number | null,
+    acceptedAmount: number | null,
+  ): string {
     if (!servicePrice) return 'A confirmer';
     if (!acceptedAmount || servicePrice === acceptedAmount) return '0 FCFA';
 

@@ -13,14 +13,22 @@
 
     <section class="settings-page__identity" *ngIf="profile() as profile">
       <label class="settings-page__avatar" aria-label="Uploader la photo de profil">
-        <img *ngIf="profileAvatarUrl() as avatarUrl; else initialsAvatar" [src]="avatarUrl" [alt]="displayName()" />
+        <img
+          *ngIf="profileAvatarUrl() as avatarUrl; else initialsAvatar"
+          [src]="avatarUrl"
+          [alt]="displayName()"
+        />
         <ng-template #initialsAvatar>
           <span>{{ initials() }}</span>
         </ng-template>
         <i>
           <lucide-icon name="camera" size="20" [strokeWidth]="2.6"></lucide-icon>
         </i>
-        <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadAvatar($event)" />
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          (change)="uploadAvatar($event)"
+        />
       </label>
       <div>
         <h1>{{ displayName() }}</h1>
@@ -30,25 +38,52 @@
     </section>
 
     <section class="settings-page__switcher" aria-label="Sections des parametres">
-      <button type="button" [class.settings-page__switcher-button--active]="activeSection() === 'health'" (click)="selectSection('health')">
+      <button
+        type="button"
+        [class.settings-page__switcher-button--active]="activeSection() === 'health'"
+        (click)="selectSection('health')"
+      >
         <lucide-icon name="heart-pulse" size="18" [strokeWidth]="2.4"></lucide-icon>
         {{ isProfessionalSettings() ? 'Profil professionnel' : 'Dossier medical' }}
       </button>
-      <button type="button" [class.settings-page__switcher-button--active]="activeSection() === 'account'" (click)="selectSection('account')">
+      <button
+        type="button"
+        [class.settings-page__switcher-button--active]="activeSection() === 'account'"
+        (click)="selectSection('account')"
+      >
         <lucide-icon name="shield-check" size="18" [strokeWidth]="2.4"></lucide-icon>
         Compte et securite
       </button>
     </section>
 
     <p *ngIf="isLoading()" class="settings-page__state">Synchronisation du profil...</p>
-    <p *ngIf="errorMessage()" class="settings-page__state settings-page__state--error">{{ errorMessage() }}</p>
+    <p *ngIf="errorMessage()" class="settings-page__state settings-page__state--error">
+      {{ errorMessage() }}
+    </p>
 
-    <section *ngIf="activeSection() === 'health' && isProfessionalSettings() && profile() as profile" class="settings-page__panel settings-page__panel--professional">
+    <section
+      *ngIf="activeSection() === 'health' && isProfessionalSettings() && profile() as profile"
+      class="settings-page__panel settings-page__panel--professional"
+    >
       <article class="settings-page__card settings-page__about-card">
         <header>
           <h2>À propos de moi</h2>
-          <button *ngIf="!isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="startProfessionalAboutEdit()">Modifier</button>
-          <button *ngIf="isEditingProfessionalAbout()" type="button" class="settings-page__chip" (click)="cancelProfessionalAboutEdit()">Annuler</button>
+          <button
+            *ngIf="!isEditingProfessionalAbout()"
+            type="button"
+            class="settings-page__chip"
+            (click)="startProfessionalAboutEdit()"
+          >
+            Modifier
+          </button>
+          <button
+            *ngIf="isEditingProfessionalAbout()"
+            type="button"
+            class="settings-page__chip"
+            (click)="cancelProfessionalAboutEdit()"
+          >
+            Annuler
+          </button>
         </header>
         <i></i>
         <ng-container *ngIf="!isEditingProfessionalAbout(); else editProfessionalAbout">
@@ -58,9 +93,16 @@
           <form class="settings-page__form" (ngSubmit)="saveProfessionalAbout()">
             <label class="settings-page__form-wide">
               <span>Bio publique</span>
-              <textarea name="professionalAbout" [(ngModel)]="professionalAboutForm.about" rows="5" placeholder="Presentez votre parcours, vos services et votre maniere de travailler."></textarea>
+              <textarea
+                name="professionalAbout"
+                [(ngModel)]="professionalAboutForm.about"
+                rows="5"
+                placeholder="Presentez votre parcours, vos services et votre maniere de travailler."
+              ></textarea>
             </label>
-            <button type="submit" [disabled]="isSavingProfessionalAbout()">Enregistrer la presentation</button>
+            <button type="submit" [disabled]="isSavingProfessionalAbout()">
+              Enregistrer la presentation
+            </button>
           </form>
         </ng-template>
       </article>
@@ -83,21 +125,63 @@
               <small>{{ document.meta }} - {{ document.status }}</small>
             </div>
             <nav>
-              <a *ngIf="document.url" [href]="document.url" target="_blank" rel="noreferrer" aria-label="Voir le document"><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon></a>
-              <a *ngIf="document.url" [href]="document.url" download aria-label="Telecharger le document"><lucide-icon name="download" size="15" [strokeWidth]="2.3"></lucide-icon></a>
-              <button type="button" (click)="deleteProfessionalDocument(document)" aria-label="Supprimer le document"><lucide-icon name="trash-2" size="15" [strokeWidth]="2.3"></lucide-icon></button>
+              <a
+                *ngIf="document.url"
+                [href]="document.url"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Voir le document"
+                ><lucide-icon name="eye" size="15" [strokeWidth]="2.3"></lucide-icon
+              ></a>
+              <a
+                *ngIf="document.url"
+                [href]="document.url"
+                download
+                aria-label="Telecharger le document"
+                ><lucide-icon name="download" size="15" [strokeWidth]="2.3"></lucide-icon
+              ></a>
+              <button
+                type="button"
+                (click)="deleteProfessionalDocument(document)"
+                aria-label="Supprimer le document"
+              >
+                <lucide-icon name="trash-2" size="15" [strokeWidth]="2.3"></lucide-icon>
+              </button>
             </nav>
           </article>
-          <label class="settings-page__upload-zone" [class.settings-page__upload-zone--loading]="isUploadingProfessionalDocument()">
+          <label
+            class="settings-page__upload-zone"
+            [class.settings-page__upload-zone--loading]="isUploadingProfessionalDocument()"
+          >
             <lucide-icon name="file-up" size="28" [strokeWidth]="2.4"></lucide-icon>
-            <strong>{{ isUploadingProfessionalDocument() ? 'Upload en cours...' : 'Ajouter un justificatif' }}</strong>
+            <strong>{{
+              isUploadingProfessionalDocument() ? 'Upload en cours...' : 'Ajouter un justificatif'
+            }}</strong>
             <span>PDF, image ou Word - 10 Mo maximum</span>
-            <input type="file" accept="application/pdf,.doc,.docx,image/png,image/jpeg,image/webp,image/gif" [disabled]="isUploadingProfessionalDocument()" (change)="uploadProfessionalDocument($event)" />
+            <input
+              type="file"
+              accept="application/pdf,.doc,.docx,image/png,image/jpeg,image/webp,image/gif"
+              [disabled]="isUploadingProfessionalDocument()"
+              (change)="uploadProfessionalDocument($event)"
+            />
           </label>
-          <p *ngIf="lastProfessionalDocumentUpload() as upload" class="settings-page__document-feedback" [class.settings-page__document-feedback--error]="upload.status === 'error'">
-            {{ upload.name }} - {{ upload.status === 'pending' ? 'envoi en cours' : upload.status === 'success' ? 'ajoute' : 'erreur upload' }}
+          <p
+            *ngIf="lastProfessionalDocumentUpload() as upload"
+            class="settings-page__document-feedback"
+            [class.settings-page__document-feedback--error]="upload.status === 'error'"
+          >
+            {{ upload.name }} -
+            {{
+              upload.status === 'pending'
+                ? 'envoi en cours'
+                : upload.status === 'success'
+                  ? 'ajoute'
+                  : 'erreur upload'
+            }}
           </p>
-          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">Aucun document rattache a ce profil. Ajoutez vos justificatifs directement ici.</p>
+          <p *ngIf="professionalDocuments().length === 0" class="settings-page__empty-line">
+            Aucun document rattache a ce profil. Ajoutez vos justificatifs directement ici.
+          </p>
         </section>
 
         <section class="settings-page__expertise-table">
@@ -108,29 +192,48 @@
           </div>
           <article *ngFor="let expertise of professionalExpertises()">
             <span>{{ expertise }}</span>
-            <button type="button" (click)="removeProfessionalExpertise(expertise)" [disabled]="isSavingProfessionalExpertise()" aria-label="Supprimer cette expertise">
+            <button
+              type="button"
+              (click)="removeProfessionalExpertise(expertise)"
+              [disabled]="isSavingProfessionalExpertise()"
+              aria-label="Supprimer cette expertise"
+            >
               <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
             </button>
           </article>
           <form class="settings-page__expertise-form" (ngSubmit)="addProfessionalExpertise()">
-            <input type="text" name="professionalExpertise" [(ngModel)]="professionalExpertiseForm.name" placeholder="Ajouter une expertise" />
+            <input
+              type="text"
+              name="professionalExpertise"
+              [(ngModel)]="professionalExpertiseForm.name"
+              placeholder="Ajouter une expertise"
+            />
             <button type="submit" [disabled]="isSavingProfessionalExpertise()">Ajouter</button>
           </form>
-          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">Aucune expertise renseignee. Ajoutez vos competences directement ici.</p>
+          <p *ngIf="professionalExpertises().length === 0" class="settings-page__empty-line">
+            Aucune expertise renseignee. Ajoutez vos competences directement ici.
+          </p>
         </section>
       </article>
-
     </section>
 
-    <section *ngIf="activeSection() === 'health' && !isProfessionalSettings() && profile() as profile" class="settings-page__panel">
+    <section
+      *ngIf="activeSection() === 'health' && !isProfessionalSettings() && profile() as profile"
+      class="settings-page__panel"
+    >
       <article class="settings-page__card settings-page__medical">
         <header>
           <h2>Fiche medicale</h2>
-          <button type="button" class="settings-page__chip" (click)="openMedicalProfileModal()">Modifier</button>
+          <button type="button" class="settings-page__chip" (click)="openMedicalProfileModal()">
+            Modifier
+          </button>
         </header>
 
         <div class="settings-page__medical-grid">
-          <div *ngFor="let item of medicalOverview()" [class]="'settings-page__medical-cell settings-page__medical-cell--' + item.tone">
+          <div
+            *ngFor="let item of medicalOverview()"
+            [class]="'settings-page__medical-cell settings-page__medical-cell--' + item.tone"
+          >
             <span>{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
           </div>
@@ -139,15 +242,18 @@
         <div class="settings-page__alerts">
           <strong>Alertes :</strong>
           <ng-container *ngIf="medicalAlerts().length > 0; else noMedicalAlerts">
-            <span *ngFor="let alert of medicalAlerts()" [class]="'settings-page__alert settings-page__alert--' + alert.tone">
+            <span
+              *ngFor="let alert of medicalAlerts()"
+              [class]="'settings-page__alert settings-page__alert--' + alert.tone"
+            >
               <lucide-icon name="triangle-alert" size="14" [strokeWidth]="2.5"></lucide-icon>
               {{ alert.label }}
             </span>
           </ng-container>
           <ng-template #noMedicalAlerts>
             <span class="settings-page__alert settings-page__alert--empty">
-            <lucide-icon name="triangle-alert" size="14" [strokeWidth]="2.5"></lucide-icon>
-            Aucune alerte medicale renseignee
+              <lucide-icon name="triangle-alert" size="14" [strokeWidth]="2.5"></lucide-icon>
+              Aucune alerte medicale renseignee
             </span>
           </ng-template>
         </div>
@@ -160,13 +266,24 @@
             Traitements en cours
           </span>
         </header>
-        <div *ngIf="medicalTreatments().length > 0; else noTreatments" class="settings-page__treatment-list">
-          <article *ngFor="let treatment of medicalTreatments()" class="settings-page__treatment-item">
+        <div
+          *ngIf="medicalTreatments().length > 0; else noTreatments"
+          class="settings-page__treatment-list"
+        >
+          <article
+            *ngFor="let treatment of medicalTreatments()"
+            class="settings-page__treatment-item"
+          >
             <i><lucide-icon name="stethoscope" size="15" [strokeWidth]="2.5"></lucide-icon></i>
             <div>
               <strong>{{ treatment.name }}</strong>
-              <span>{{ treatment.dosage || 'Dosage non renseigne' }} - {{ treatment.frequency || 'Frequence non renseignee' }}</span>
-              <small *ngIf="treatment.startedAt">Depuis le {{ treatment.startedAt | date:'d MMM yyyy' }}</small>
+              <span
+                >{{ treatment.dosage || 'Dosage non renseigne' }} -
+                {{ treatment.frequency || 'Frequence non renseignee' }}</span
+              >
+              <small *ngIf="treatment.startedAt"
+                >Depuis le {{ treatment.startedAt | date: 'd MMM yyyy' }}</small
+              >
             </div>
             <nav>
               <button type="button" (click)="editTreatment(treatment)">Modifier</button>
@@ -175,7 +292,9 @@
           </article>
         </div>
         <ng-template #noTreatments>
-          <p class="settings-page__empty-line">Aucun traitement en cours n'est renseigne dans votre dossier.</p>
+          <p class="settings-page__empty-line">
+            Aucun traitement en cours n'est renseigne dans votre dossier.
+          </p>
         </ng-template>
         <button type="button" class="settings-page__dashed-action" (click)="openTreatmentModal()">
           <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
@@ -190,8 +309,13 @@
             Vaccinations
           </span>
         </header>
-        <p class="settings-page__empty-line">Aucune vaccination n'est encore rattachee a votre profil.</p>
-        <button type="button" class="settings-page__link-action">Voir tout l'historique <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.5"></lucide-icon></button>
+        <p class="settings-page__empty-line">
+          Aucune vaccination n'est encore rattachee a votre profil.
+        </p>
+        <button type="button" class="settings-page__link-action">
+          Voir tout l'historique
+          <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.5"></lucide-icon>
+        </button>
       </article>
 
       <article class="settings-page__card">
@@ -209,7 +333,7 @@
               <strong>{{ act.service.nom }}</strong>
               <span>{{ act.statut }}</span>
             </div>
-            <time>{{ act.dateHeure | date:'d MMM yyyy' }}</time>
+            <time>{{ act.dateHeure | date: 'd MMM yyyy' }}</time>
           </div>
         </div>
         <ng-template #noMedicalHistory>
@@ -218,12 +342,29 @@
       </article>
     </section>
 
-    <section *ngIf="activeSection() === 'account' && profile() as profile" class="settings-page__panel">
+    <section
+      *ngIf="activeSection() === 'account' && profile() as profile"
+      class="settings-page__panel"
+    >
       <article class="settings-page__card settings-page__account-card">
         <header>
           <h2>Information personnelles</h2>
-          <button *ngIf="!isEditingProfile()" type="button" class="settings-page__chip" (click)="startProfileEdit()">Modifier</button>
-          <button *ngIf="isEditingProfile()" type="button" class="settings-page__chip" (click)="cancelProfileEdit()">Annuler</button>
+          <button
+            *ngIf="!isEditingProfile()"
+            type="button"
+            class="settings-page__chip"
+            (click)="startProfileEdit()"
+          >
+            Modifier
+          </button>
+          <button
+            *ngIf="isEditingProfile()"
+            type="button"
+            class="settings-page__chip"
+            (click)="cancelProfileEdit()"
+          >
+            Annuler
+          </button>
         </header>
 
         <div class="settings-page__identity-grid" *ngIf="!isEditingProfile(); else editProfile">
@@ -306,7 +447,8 @@
             <h3>{{ hasLocalPassword() ? 'Modifier le mot de passe' : 'Creer un mot de passe' }}</h3>
           </header>
           <p *ngIf="!hasLocalPassword()" class="settings-page__empty-line">
-            Votre compte a ete cree avec Google. Definissez un mot de passe local pour vous connecter aussi par email ou telephone.
+            Votre compte a ete cree avec Google. Definissez un mot de passe local pour vous
+            connecter aussi par email ou telephone.
           </p>
           <form class="settings-page__password" (ngSubmit)="savePassword()">
             <input
@@ -316,7 +458,12 @@
               [(ngModel)]="passwordForm.currentPassword"
               placeholder="Mot de passe actuel"
             />
-            <input type="password" name="newPassword" [(ngModel)]="passwordForm.newPassword" placeholder="Nouveau mot de passe" />
+            <input
+              type="password"
+              name="newPassword"
+              [(ngModel)]="passwordForm.newPassword"
+              placeholder="Nouveau mot de passe"
+            />
             <button type="submit" [disabled]="isSavingPassword()">
               {{ hasLocalPassword() ? 'Enregistrer' : 'Creer mon mot de passe' }}
             </button>
@@ -330,24 +477,55 @@
         </div>
         <div class="settings-page__payment-cards">
           <article class="settings-page__bank-card">
-            <button type="button" class="settings-page__reveal-card" [class.settings-page__reveal-card--active]="showSensitivePaymentInfo()" (click)="toggleSensitivePaymentInfo()" [attr.aria-label]="showSensitivePaymentInfo() ? 'Masquer les informations' : 'Afficher les informations'">
+            <button
+              type="button"
+              class="settings-page__reveal-card"
+              [class.settings-page__reveal-card--active]="showSensitivePaymentInfo()"
+              (click)="toggleSensitivePaymentInfo()"
+              [attr.aria-label]="
+                showSensitivePaymentInfo()
+                  ? 'Masquer les informations'
+                  : 'Afficher les informations'
+              "
+            >
               <lucide-icon name="eye" size="15" [strokeWidth]="2.5"></lucide-icon>
             </button>
-            <button type="button" class="settings-page__payment-edit" (click)="selectAccountPayment('CARD')">Modifier la carte</button>
+            <button
+              type="button"
+              class="settings-page__payment-edit"
+              (click)="selectAccountPayment('CARD')"
+            >
+              Modifier la carte
+            </button>
             <span>{{ visibleCardLabel() }}</span>
             <img src="/logo%20vissa.avif" alt="Visa" />
           </article>
           <article class="settings-page__wave-card">
             <img src="/wave.png" alt="Wave" />
-            <button type="button" class="settings-page__reveal-card" [class.settings-page__reveal-card--active]="showSensitivePaymentInfo()" (click)="toggleSensitivePaymentInfo()" [attr.aria-label]="showSensitivePaymentInfo() ? 'Masquer les informations' : 'Afficher les informations'">
+            <button
+              type="button"
+              class="settings-page__reveal-card"
+              [class.settings-page__reveal-card--active]="showSensitivePaymentInfo()"
+              (click)="toggleSensitivePaymentInfo()"
+              [attr.aria-label]="
+                showSensitivePaymentInfo()
+                  ? 'Masquer les informations'
+                  : 'Afficher les informations'
+              "
+            >
               <lucide-icon name="eye" size="15" [strokeWidth]="2.5"></lucide-icon>
             </button>
-            <button type="button" class="settings-page__payment-edit" (click)="selectAccountPayment('WAVE')">Changer numero</button>
+            <button
+              type="button"
+              class="settings-page__payment-edit"
+              (click)="selectAccountPayment('WAVE')"
+            >
+              Changer numero
+            </button>
             <span>Numero lie :</span>
             <strong>{{ visibleWaveLabel() }}</strong>
           </article>
         </div>
-
       </section>
 
       <article class="settings-page__card settings-page__security">
@@ -369,7 +547,12 @@
             <h3>Administration</h3>
             <strong>Suppression de Compte</strong>
             <p>Detruisez votre profil definitivement. Les sessions rattachees seront revoquees.</p>
-            <button type="button" class="danger" (click)="deleteAccount()" [disabled]="isDeleting()">
+            <button
+              type="button"
+              class="danger"
+              (click)="deleteAccount()"
+              [disabled]="isDeleting()"
+            >
               <lucide-icon name="trash-2" size="18" [strokeWidth]="2.5"></lucide-icon>
               Suppression de Compte
             </button>
@@ -378,10 +561,18 @@
       </article>
     </section>
 
-    <section *ngIf="isPaymentModalOpen()" class="settings-page__modal" role="dialog" aria-modal="true" aria-label="Modifier le moyen de paiement">
+    <section
+      *ngIf="isPaymentModalOpen()"
+      class="settings-page__modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifier le moyen de paiement"
+    >
       <div class="settings-page__modal-card">
         <header>
-          <h2>{{ selectedPaymentType() === 'CARD' ? 'Modifier la carte' : 'Modifier le numero Wave' }}</h2>
+          <h2>
+            {{ selectedPaymentType() === 'CARD' ? 'Modifier la carte' : 'Modifier le numero Wave' }}
+          </h2>
           <button type="button" aria-label="Fermer" (click)="closePaymentModal()">
             <lucide-icon name="x" size="20" [strokeWidth]="2.6"></lucide-icon>
           </button>
@@ -405,27 +596,54 @@
             </label>
             <label class="settings-page__form-wide">
               <span>Titulaire</span>
-              <input type="text" name="holderName" [(ngModel)]="cardForm.holderName" autocomplete="cc-name" required />
+              <input
+                type="text"
+                name="holderName"
+                [(ngModel)]="cardForm.holderName"
+                autocomplete="cc-name"
+                required
+              />
             </label>
             <div class="settings-page__payment-row">
               <label>
                 <span>Mois</span>
-                <input type="number" name="expiryMonth" min="1" max="12" [(ngModel)]="cardForm.expiryMonth" required />
+                <input
+                  type="number"
+                  name="expiryMonth"
+                  min="1"
+                  max="12"
+                  [(ngModel)]="cardForm.expiryMonth"
+                  required
+                />
               </label>
               <label>
                 <span>Annee</span>
-                <input type="number" name="expiryYear" min="2026" max="2100" [(ngModel)]="cardForm.expiryYear" required />
+                <input
+                  type="number"
+                  name="expiryYear"
+                  min="2026"
+                  max="2100"
+                  [(ngModel)]="cardForm.expiryYear"
+                  required
+                />
               </label>
             </div>
           </ng-container>
           <ng-template #waveFormTpl>
             <label class="settings-page__form-wide">
               <span>Numero Wave</span>
-              <input type="tel" name="wavePhoneNumber" [(ngModel)]="waveForm.phoneNumber" required />
+              <input
+                type="tel"
+                name="wavePhoneNumber"
+                [(ngModel)]="waveForm.phoneNumber"
+                required
+              />
             </label>
           </ng-template>
 
-          <button type="submit" [disabled]="isSavingPaymentMethod()">{{ editingPaymentMethodId() ? 'Modifier' : 'Enregistrer' }}</button>
+          <button type="submit" [disabled]="isSavingPaymentMethod()">
+            {{ editingPaymentMethodId() ? 'Modifier' : 'Enregistrer' }}
+          </button>
         </form>
 
         <div class="settings-page__saved-methods">
@@ -442,7 +660,13 @@
       </div>
     </section>
 
-    <section *ngIf="isMedicalProfileModalOpen()" class="settings-page__modal" role="dialog" aria-modal="true" aria-label="Modifier la fiche medicale">
+    <section
+      *ngIf="isMedicalProfileModalOpen()"
+      class="settings-page__modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifier la fiche medicale"
+    >
       <div class="settings-page__modal-card settings-page__modal-card--wide">
         <header>
           <h2>Modifier la fiche medicale</h2>
@@ -454,42 +678,92 @@
         <form class="settings-page__medical-form" (ngSubmit)="saveMedicalProfile()">
           <label>
             <span>Groupe sanguin</span>
-            <input type="text" name="bloodGroup" [(ngModel)]="medicalProfileForm.bloodGroup" placeholder="B+" />
+            <input
+              type="text"
+              name="bloodGroup"
+              [(ngModel)]="medicalProfileForm.bloodGroup"
+              placeholder="B+"
+            />
           </label>
           <label>
             <span>Rhesus</span>
-            <input type="text" name="rhesus" [(ngModel)]="medicalProfileForm.rhesus" placeholder="Positif" />
+            <input
+              type="text"
+              name="rhesus"
+              [(ngModel)]="medicalProfileForm.rhesus"
+              placeholder="Positif"
+            />
           </label>
           <label>
             <span>Poids (kg)</span>
-            <input type="number" name="weightKg" min="1" max="400" [(ngModel)]="medicalProfileForm.weightKg" placeholder="62" />
+            <input
+              type="number"
+              name="weightKg"
+              min="1"
+              max="400"
+              [(ngModel)]="medicalProfileForm.weightKg"
+              placeholder="62"
+            />
           </label>
           <label>
             <span>Taille (cm)</span>
-            <input type="number" name="heightCm" min="30" max="260" [(ngModel)]="medicalProfileForm.heightCm" placeholder="168" />
+            <input
+              type="number"
+              name="heightCm"
+              min="30"
+              max="260"
+              [(ngModel)]="medicalProfileForm.heightCm"
+              placeholder="168"
+            />
           </label>
           <label>
             <span>Medecin referent</span>
-            <input type="text" name="referenceDoctorName" [(ngModel)]="medicalProfileForm.referenceDoctorName" placeholder="Dr. Amadou Fall" />
+            <input
+              type="text"
+              name="referenceDoctorName"
+              [(ngModel)]="medicalProfileForm.referenceDoctorName"
+              placeholder="Dr. Amadou Fall"
+            />
           </label>
           <label>
             <span>Profession</span>
-            <input type="text" name="profession" [(ngModel)]="medicalProfileForm.profession" placeholder="Infirmiere" />
+            <input
+              type="text"
+              name="profession"
+              [(ngModel)]="medicalProfileForm.profession"
+              placeholder="Infirmiere"
+            />
           </label>
           <label class="settings-page__form-wide">
             <span>Allergies</span>
-            <textarea name="allergiesText" [(ngModel)]="medicalProfileForm.allergiesText" placeholder="Une allergie par ligne"></textarea>
+            <textarea
+              name="allergiesText"
+              [(ngModel)]="medicalProfileForm.allergiesText"
+              placeholder="Une allergie par ligne"
+            ></textarea>
           </label>
           <label class="settings-page__form-wide">
             <span>Antecedents et alertes</span>
-            <textarea name="conditionsText" [(ngModel)]="medicalProfileForm.conditionsText" placeholder="Une information par ligne"></textarea>
+            <textarea
+              name="conditionsText"
+              [(ngModel)]="medicalProfileForm.conditionsText"
+              placeholder="Une information par ligne"
+            ></textarea>
           </label>
-          <button type="submit" [disabled]="isSavingMedicalProfile()">Enregistrer la fiche medicale</button>
+          <button type="submit" [disabled]="isSavingMedicalProfile()">
+            Enregistrer la fiche medicale
+          </button>
         </form>
       </div>
     </section>
 
-    <section *ngIf="isTreatmentModalOpen()" class="settings-page__modal" role="dialog" aria-modal="true" aria-label="Modifier un traitement">
+    <section
+      *ngIf="isTreatmentModalOpen()"
+      class="settings-page__modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifier un traitement"
+    >
       <div class="settings-page__modal-card">
         <header>
           <h2>{{ editingTreatmentId() ? 'Modifier le traitement' : 'Ajouter un traitement' }}</h2>
@@ -501,15 +775,31 @@
         <form class="settings-page__medical-form" (ngSubmit)="saveTreatment()">
           <label class="settings-page__form-wide">
             <span>Nom du traitement</span>
-            <input type="text" name="treatmentName" [(ngModel)]="treatmentForm.name" required placeholder="Vitamine D3 1000UI" />
+            <input
+              type="text"
+              name="treatmentName"
+              [(ngModel)]="treatmentForm.name"
+              required
+              placeholder="Vitamine D3 1000UI"
+            />
           </label>
           <label>
             <span>Dosage</span>
-            <input type="text" name="treatmentDosage" [(ngModel)]="treatmentForm.dosage" placeholder="1 cp" />
+            <input
+              type="text"
+              name="treatmentDosage"
+              [(ngModel)]="treatmentForm.dosage"
+              placeholder="1 cp"
+            />
           </label>
           <label>
             <span>Frequence</span>
-            <input type="text" name="treatmentFrequency" [(ngModel)]="treatmentForm.frequency" placeholder="1 fois par jour" />
+            <input
+              type="text"
+              name="treatmentFrequency"
+              [(ngModel)]="treatmentForm.frequency"
+              placeholder="1 fois par jour"
+            />
           </label>
           <label>
             <span>Date de debut</span>
@@ -521,15 +811,30 @@
           </label>
           <label class="settings-page__form-wide">
             <span>Notes</span>
-            <textarea name="treatmentNotes" [(ngModel)]="treatmentForm.notes" placeholder="Consignes, horaire, remarque du medecin..."></textarea>
+            <textarea
+              name="treatmentNotes"
+              [(ngModel)]="treatmentForm.notes"
+              placeholder="Consignes, horaire, remarque du medecin..."
+            ></textarea>
           </label>
-          <button type="submit" [disabled]="isSavingTreatment()">{{ editingTreatmentId() ? 'Modifier le traitement' : 'Ajouter le traitement' }}</button>
+          <button type="submit" [disabled]="isSavingTreatment()">
+            {{ editingTreatmentId() ? 'Modifier le traitement' : 'Ajouter le traitement' }}
+          </button>
         </form>
       </div>
     </section>
 
-    <section *ngIf="confirmationDialog() as dialog" class="settings-page__modal" role="dialog" aria-modal="true" aria-labelledby="settingsConfirmationTitle">
-      <div class="settings-page__modal-card settings-page__confirm-card" [class.settings-page__confirm-card--danger]="dialog.tone === 'danger'">
+    <section
+      *ngIf="confirmationDialog() as dialog"
+      class="settings-page__modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsConfirmationTitle"
+    >
+      <div
+        class="settings-page__modal-card settings-page__confirm-card"
+        [class.settings-page__confirm-card--danger]="dialog.tone === 'danger'"
+      >
         <header>
           <h2 id="settingsConfirmationTitle">{{ dialog.title }}</h2>
           <button type="button" aria-label="Fermer" (click)="closeConfirmation()">
@@ -538,8 +843,16 @@
         </header>
         <p>{{ dialog.message }}</p>
         <footer>
-          <button type="button" class="settings-page__confirm-cancel" (click)="closeConfirmation()">Annuler</button>
-          <button type="button" class="settings-page__confirm-submit" (click)="confirmDialogAction()">{{ dialog.confirmLabel }}</button>
+          <button type="button" class="settings-page__confirm-cancel" (click)="closeConfirmation()">
+            Annuler
+          </button>
+          <button
+            type="button"
+            class="settings-page__confirm-submit"
+            (click)="confirmDialogAction()"
+          >
+            {{ dialog.confirmLabel }}
+          </button>
         </footer>
       </div>
     </section>

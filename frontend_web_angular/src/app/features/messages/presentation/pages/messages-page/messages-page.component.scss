@@ -359,6 +359,7 @@
 
 .messages-page__chat-actions {
   display: inline-flex;
+  gap: 10px;
 }
 
 .messages-page__chat-actions button {
@@ -381,6 +382,74 @@
 .messages-page__chat-actions button:focus-visible {
   background: #e6e3df;
   transform: translateY(-1px);
+}
+
+.messages-page__chat-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+.messages-page__call-event {
+  align-items: center;
+  align-self: center;
+  background: #f1f0ee;
+  border-radius: 14px;
+  color: #5f5a56;
+  display: inline-flex;
+  gap: 10px;
+  margin: 6px auto;
+  padding: 10px 14px;
+}
+
+.messages-page__call-event-icon {
+  align-items: center;
+  background: #e1ddd9;
+  border-radius: 50%;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  position: relative;
+  width: 36px;
+}
+
+.messages-page__call-direction {
+  background: #f1f0ee;
+  border-radius: 50%;
+  bottom: -3px;
+  padding: 1px;
+  position: absolute;
+  right: -4px;
+}
+
+.messages-page__call-event--incoming .messages-page__call-direction {
+  color: #d92d20;
+}
+.messages-page__call-event--outgoing .messages-page__call-direction {
+  color: #16a34a;
+}
+
+.messages-page__call-event > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.messages-page__call-event strong {
+  font-size: 13px;
+}
+.messages-page__call-event small {
+  color: #8b8581;
+  font-size: 11px;
+}
+.messages-page__call-event--missed {
+  color: #b42318;
+  background: #fff0ee;
+}
+.messages-page__call-event--missed .messages-page__call-event-icon {
+  background: #ffd9d4;
+}
+.messages-page__call-event--missed .messages-page__call-direction {
+  background: #fff0ee;
 }
 
 .messages-page__chat-actions .messages-page__chat-action--active {
@@ -1006,7 +1075,6 @@
   text-decoration: none;
 }
 
-
 .messages-page__state {
   color: #7e7e7e;
   font-size: 13px;
@@ -1229,7 +1297,6 @@
   .messages-page__preview-stage {
     padding: 14px;
   }
-
 }
 
 .messages-page__reservation-main em lucide-icon {
@@ -1264,5 +1331,4 @@
     height: 40px;
     width: 40px;
   }
-
 }

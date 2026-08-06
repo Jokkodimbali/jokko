@@ -68,7 +68,7 @@
 
 .provider-profile__hero-card::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.12));
-  content: "";
+  content: '';
   inset: 0;
   pointer-events: none;
   position: absolute;
@@ -212,7 +212,10 @@
 }
 
 .provider-profile__stats--with-vehicle {
-  grid-template-columns: minmax(180px, 200px) minmax(230px, 250px) minmax(180px, 220px) minmax(280px, 1fr);
+  grid-template-columns: minmax(180px, 200px) minmax(230px, 250px) minmax(180px, 220px) minmax(
+      280px,
+      1fr
+    );
 }
 
 .provider-profile__stats div {
@@ -496,7 +499,7 @@
 }
 
 .provider-profile__service-visual-main > .provider-profile__service-image--landscape {
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .provider-profile__gallery-fallback {
@@ -550,7 +553,10 @@
   display: block;
   height: 54px;
   overflow: hidden;
-  transition: border-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+  transition:
+    border-color 170ms ease,
+    transform 170ms ease,
+    box-shadow 170ms ease;
   width: 54px;
 }
 
@@ -562,7 +568,8 @@
 }
 
 .provider-profile__service-thumb-image img {
-  object-fit: cover;
+  background: #f2ede8;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -887,6 +894,10 @@
 }
 
 @media (max-width: 760px) {
+  .provider-profile__service-visual-main {
+    aspect-ratio: 2.7 / 1;
+  }
+
   .provider-profile__shell {
     width: min(calc(100% - 14px), 640px);
   }

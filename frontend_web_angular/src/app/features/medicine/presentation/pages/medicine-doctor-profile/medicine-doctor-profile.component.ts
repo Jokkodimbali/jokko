@@ -42,7 +42,8 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
   },
   CAMIONNETTE: {
     label: 'Camionnette',
-    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    imageUrl:
+      'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
 };
 
@@ -86,8 +87,10 @@ export class MedicineDoctorProfileComponent implements OnInit {
   protected readonly coverUrl = '/boabab.png';
   protected readonly doctorLocation = computed(() => {
     const profile = this.detail()?.profile;
-    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
-      this.doctor().location;
+    return (
+      this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      this.doctor().location
+    );
   });
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
@@ -193,10 +196,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.backNavigation.back(
-      this.route.snapshot.queryParamMap.get('returnUrl'),
-      '/services',
-    );
+    this.backNavigation.back(this.route.snapshot.queryParamMap.get('returnUrl'), '/services');
   }
 
   protected doctorInitials(): string {
@@ -262,16 +262,24 @@ export class MedicineDoctorProfileComponent implements OnInit {
   }
 
   private mapDoctor(detail: ProviderProfileDetail): DoctorProfile {
-    const primaryService = detail.services.find((service) => service.estDisponible) ?? detail.services[0];
+    const primaryService =
+      detail.services.find((service) => service.estDisponible) ?? detail.services[0];
     const profile = detail.profile;
     const medicalSpecialty = this.extractMedicalSpecialty(profile.biographie);
     const nextAvailability = this.buildNextAvailabilityLabels(detail.availabilities);
-    const interventionAddress = profile.utilisateur.adresse || profile.ville || 'Localisation non renseignee';
-    const modes = Array.from(new Set(
-      detail.services
-        .map(s => s.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)
-        .filter(Boolean) as string[]
-    ));
+    const interventionAddress =
+      profile.utilisateur.adresse || profile.ville || 'Localisation non renseignee';
+    const modes = Array.from(
+      new Set(
+        detail.services
+          .map((s) =>
+            s.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE'
+              ? MEDICINE_UI_MESSAGES.modes.remote
+              : MEDICINE_UI_MESSAGES.modes.office,
+          )
+          .filter(Boolean) as string[],
+      ),
+    );
 
     return {
       id: profile.id,

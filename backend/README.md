@@ -127,6 +127,7 @@ Variables importantes :
 
 - `DATABASE_URL`
 - `JWT_ACCESS_SECRET`
+- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` pour les appels audio/video. Les secrets restent uniquement sur le backend.
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGINS`
 - `REDIS_ENABLED`

@@ -11,7 +11,10 @@
     <div>
       <span>Centre de notifications</span>
       <h1>Vos alertes Jokko</h1>
-      <p>Retrouvez ici les informations importantes de vos reservations, paiements, messages et validations de profil.</p>
+      <p>
+        Retrouvez ici les informations importantes de vos reservations, paiements, messages et
+        validations de profil.
+      </p>
     </div>
     <aside>
       <strong>{{ unreadCount() }}</strong>
@@ -25,16 +28,25 @@
         <h2>Notifications recentes</h2>
         <p>{{ notifications().length }} notification(s), {{ readCount() }} deja lue(s).</p>
       </div>
-      <button type="button" [disabled]="isSaving() || unreadCount() === 0" (click)="markAllAsRead()">
+      <button
+        type="button"
+        [disabled]="isSaving() || unreadCount() === 0"
+        (click)="markAllAsRead()"
+      >
         <lucide-icon name="check" size="18" [strokeWidth]="2.4"></lucide-icon>
         Tout marquer comme lu
       </button>
     </header>
 
     <p *ngIf="isLoading()" class="notifications-page__state">Chargement de vos notifications...</p>
-    <p *ngIf="errorMessage()" class="notifications-page__state notifications-page__state--error">{{ errorMessage() }}</p>
+    <p *ngIf="errorMessage()" class="notifications-page__state notifications-page__state--error">
+      {{ errorMessage() }}
+    </p>
 
-    <div *ngIf="!isLoading() && notifications().length > 0; else emptyNotifications" class="notifications-page__list">
+    <div
+      *ngIf="!isLoading() && notifications().length > 0; else emptyNotifications"
+      class="notifications-page__list"
+    >
       <article
         *ngFor="let notification of notifications()"
         class="notifications-page__item"
@@ -52,9 +64,15 @@
           <span>{{ typeLabel(notification.type) }}</span>
           <h3>{{ title(notification) }}</h3>
           <p>{{ body(notification) }}</p>
-          <time *ngIf="date(notification)">{{ date(notification) | date:'d MMM yyyy, HH:mm' }}</time>
+          <time *ngIf="date(notification)">{{
+            date(notification) | date: 'd MMM yyyy, HH:mm'
+          }}</time>
         </div>
-        <button type="button" [disabled]="isRead(notification)" (click)="$event.stopPropagation(); markAsRead(notification)">
+        <button
+          type="button"
+          [disabled]="isRead(notification)"
+          (click)="$event.stopPropagation(); markAsRead(notification)"
+        >
           {{ isRead(notification) ? 'Lue' : 'Marquer comme lue' }}
         </button>
       </article>
@@ -64,7 +82,10 @@
       <section *ngIf="!isLoading()" class="notifications-page__empty">
         <lucide-icon name="bell-off" size="38" [strokeWidth]="2.2"></lucide-icon>
         <h2>Aucune notification pour le moment</h2>
-        <p>Quand une reservation, un paiement, un message ou une validation evolue, vous le verrez clairement ici.</p>
+        <p>
+          Quand une reservation, un paiement, un message ou une validation evolue, vous le verrez
+          clairement ici.
+        </p>
       </section>
     </ng-template>
   </section>

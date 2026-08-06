@@ -130,7 +130,17 @@ export class AppointmentDocumentRendererService {
 
       context.fillStyle = '#ffffff';
       context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      context.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+      context.drawImage(
+        canvas,
+        0,
+        sourceY,
+        canvas.width,
+        sliceHeight,
+        0,
+        0,
+        canvas.width,
+        sliceHeight,
+      );
 
       if (pageIndex > 0) {
         pdf.addPage('a4', 'portrait');
@@ -156,7 +166,13 @@ export class AppointmentDocumentRendererService {
 
     const start = sourceY + minimumHeight;
     const end = Math.min(sourceY + preferredHeight, canvas.height - 1);
-    const protectedCut = this.findProtectedRangeCut(sourceY, end, start, preferredHeight, protectedRanges);
+    const protectedCut = this.findProtectedRangeCut(
+      sourceY,
+      end,
+      start,
+      preferredHeight,
+      protectedRanges,
+    );
     if (protectedCut !== null) return protectedCut;
 
     const scanStep = 4;

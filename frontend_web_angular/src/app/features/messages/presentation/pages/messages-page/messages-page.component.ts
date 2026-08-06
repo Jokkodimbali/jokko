@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription } from 'rxjs';
@@ -31,6 +41,9 @@ import { MessagesNavigationStateService } from '../../../data-access/messages-na
 import { MessagesService } from '../../../data-access/messages.service';
 import { MessagesRealtimeService } from '../../../data-access/messages-realtime.service';
 import { Conversation, ConversationMessage } from '../../../domain/models/messages.models';
+import { CallFacade } from '../../../../calls/application/call-facade.service';
+import { CallsApiService } from '../../../../calls/data-access/calls-api.service';
+import type { CallHistoryItem } from '../../../../calls/domain/call.models';
 
 interface PendingProposal {
   negotiationId: string | null;
@@ -115,6 +128,19 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  protected readonly calls = inject(CallFacade);
+  private readonly callsApi = inject(CallsApiService);
+  protected readonly callHistory = signal<CallHistoryItem[]>([]);
+  protected readonly selectedConversationCalls = computed(() => {
+    const conversationId = this.selectedConversationId();
+    return conversationId
+      ? this.callHistory().filter((call) => call.conversationId === conversationId)
+      : [];
+  });
+  private readonly callHistoryEffect = effect(() => {
+    this.calls.historyVersion();
+    this.loadCallHistory();
+  });
 
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly conversations = signal<Conversation[]>([]);
@@ -174,8 +200,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private voiceAnalyser: AnalyserNode | null = null;
   private voiceLevelFrame: number | null = null;
 
-  protected readonly selectedConversation = computed(() =>
-    this.conversations().find((conversation) => conversation.id === this.selectedConversationId()) ?? null,
+  protected readonly selectedConversation = computed(
+    () =>
+      this.conversations().find(
+        (conversation) => conversation.id === this.selectedConversationId(),
+      ) ?? null,
   );
 
   protected readonly visibleAppointmentPreview = computed(() => {
@@ -195,81 +224,93 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   protected readonly paidAppointmentPreview = computed(() => this.visibleAppointmentPreview());
 
-  protected readonly conversationReservationCard = computed<ConversationReservationCard | null>(() => {
-    const appointment = this.visibleAppointmentPreview();
-    if (appointment) {
-      if (appointment.status === 'TERMINEE' && !this.isCompletedReservationGracePeriodActive(appointment)) {
+  protected readonly conversationReservationCard = computed<ConversationReservationCard | null>(
+    () => {
+      const appointment = this.visibleAppointmentPreview();
+      if (appointment) {
+        if (
+          appointment.status === 'TERMINEE' &&
+          !this.isCompletedReservationGracePeriodActive(appointment)
+        ) {
+          return null;
+        }
+
+        return {
+          source: 'appointment',
+          id: appointment.id,
+          status: appointment.status,
+          statusLabel: this.appointmentStatusLabel(appointment.status),
+          statusIcon: reservationStatusIcon(appointment.status),
+          statusTone: this.appointmentStatusTone(appointment.status),
+          personName: this.isClientViewerForAppointment(appointment)
+            ? appointment.doctorName
+            : appointment.clientName,
+          categoryLabel: appointment.serviceCategoryName || appointment.specialty || 'Service',
+          serviceName: appointment.serviceName,
+          dateLabel: appointment.fullDateLabel,
+          timeLabel: appointment.timeLabel,
+          priceLabel:
+            this.formatAmount(appointment.agreedPrice ?? appointment.servicePrice ?? 0) + ' FCFA',
+          avatarUrl: this.isClientViewerForAppointment(appointment)
+            ? appointment.avatarUrl
+            : appointment.clientAvatarUrl,
+          initials: this.initials(
+            this.isClientViewerForAppointment(appointment)
+              ? appointment.doctorName
+              : appointment.clientName,
+          ),
+          detailLink: this.appointmentDetailLink(appointment),
+          detailQueryParams: this.appointmentDetailQueryParams(),
+          proposal: this.visibleProposal(),
+          appointment,
+        };
+      }
+
+      // Une conversation liee a une reservation ne doit jamais reutiliser le
+      // statut potentiellement ancien de la negotiation pendant son chargement.
+      if (this.currentVisibleReservationId()) {
+        return null;
+      }
+
+      const proposal = this.visibleProposalStep();
+      if (!proposal) {
         return null;
       }
 
       return {
-        source: 'appointment',
-        id: appointment.id,
-        status: appointment.status,
-        statusLabel: this.appointmentStatusLabel(appointment.status),
-        statusIcon: reservationStatusIcon(appointment.status),
-        statusTone: this.appointmentStatusTone(appointment.status),
-        personName: this.isClientViewerForAppointment(appointment)
-          ? appointment.doctorName
-          : appointment.clientName,
-        categoryLabel: appointment.serviceCategoryName || appointment.specialty || 'Service',
-        serviceName: appointment.serviceName,
-        dateLabel: appointment.fullDateLabel,
-        timeLabel: appointment.timeLabel,
-        priceLabel: this.formatAmount(appointment.agreedPrice ?? appointment.servicePrice ?? 0) + ' FCFA',
-        avatarUrl: this.isClientViewerForAppointment(appointment)
-          ? appointment.avatarUrl
-          : appointment.clientAvatarUrl,
-        initials: this.initials(
-          this.isClientViewerForAppointment(appointment) ? appointment.doctorName : appointment.clientName,
-        ),
-        detailLink: this.appointmentDetailLink(appointment),
-        detailQueryParams: this.appointmentDetailQueryParams(),
-        proposal: this.visibleProposal(),
-        appointment,
+        source: 'proposal',
+        id: proposal.reservationId,
+        status: proposal.status,
+        statusLabel: this.proposalStatusLabel(proposal.status),
+        statusIcon: negotiationStatusIcon(proposal.status),
+        statusTone: this.proposalStatusTone(proposal.status),
+        personName: proposal.providerName,
+        categoryLabel: 'Negociation',
+        serviceName: proposal.serviceName,
+        dateLabel: proposal.appointmentDate
+          ? this.formatFullDateTimePart(proposal.appointmentDate, 'date')
+          : 'Date a confirmer',
+        timeLabel: proposal.appointmentDate
+          ? this.formatFullDateTimePart(proposal.appointmentDate, 'time')
+          : 'Heure a confirmer',
+        priceLabel: this.formatAmount(proposal.amount) + ' FCFA',
+        avatarUrl: this.selectedConversation()?.counterpart.avatarUrl ?? null,
+        initials: this.initials(proposal.providerName),
+        detailLink: proposal.reservationId
+          ? this.reservationDetailLink(
+              proposal.reservationId,
+              proposal.status,
+              !this.isProfessionalRole(),
+            )
+          : this.negotiationDetailLink(proposal),
+        detailQueryParams: proposal.reservationId
+          ? this.appointmentDetailQueryParams()
+          : this.negotiationDetailQueryParams(proposal),
+        proposal,
+        appointment: null,
       };
-    }
-
-    // Une conversation liee a une reservation ne doit jamais reutiliser le
-    // statut potentiellement ancien de la negotiation pendant son chargement.
-    if (this.currentVisibleReservationId()) {
-      return null;
-    }
-
-    const proposal = this.visibleProposalStep();
-    if (!proposal) {
-      return null;
-    }
-
-    return {
-      source: 'proposal',
-      id: proposal.reservationId,
-      status: proposal.status,
-      statusLabel: this.proposalStatusLabel(proposal.status),
-      statusIcon: negotiationStatusIcon(proposal.status),
-      statusTone: this.proposalStatusTone(proposal.status),
-      personName: proposal.providerName,
-      categoryLabel: 'Negociation',
-      serviceName: proposal.serviceName,
-      dateLabel: proposal.appointmentDate ? this.formatFullDateTimePart(proposal.appointmentDate, 'date') : 'Date a confirmer',
-      timeLabel: proposal.appointmentDate ? this.formatFullDateTimePart(proposal.appointmentDate, 'time') : 'Heure a confirmer',
-      priceLabel: this.formatAmount(proposal.amount) + ' FCFA',
-      avatarUrl: this.selectedConversation()?.counterpart.avatarUrl ?? null,
-      initials: this.initials(proposal.providerName),
-      detailLink: proposal.reservationId
-        ? this.reservationDetailLink(
-            proposal.reservationId,
-            proposal.status,
-            !this.isProfessionalRole(),
-          )
-        : this.negotiationDetailLink(proposal),
-      detailQueryParams: proposal.reservationId
-        ? this.appointmentDetailQueryParams()
-        : this.negotiationDetailQueryParams(proposal),
-      proposal,
-      appointment: null,
-    };
-  });
+    },
+  );
 
   protected readonly filteredConversations = computed(() => {
     const query = this.search().trim().toLowerCase();
@@ -277,10 +318,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     return this.conversations().filter((conversation) => {
       const lastMessage = conversation.lastMessage?.content ?? '';
-      const matchesSearch = !query || (
+      const matchesSearch =
+        !query ||
         conversation.counterpart.name.toLowerCase().includes(query) ||
-        lastMessage.toLowerCase().includes(query)
-      );
+        lastMessage.toLowerCase().includes(query);
 
       if (!matchesSearch) {
         return false;
@@ -489,6 +530,32 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       queryParams: { conversationId },
       replaceUrl: true,
     });
+  }
+
+  protected callHistoryLabel(call: CallHistoryItem): string {
+    const media = call.kind === 'VIDEO' ? 'vidéo' : 'vocal';
+    const direction = call.direction === 'INCOMING' ? 'entrant' : 'sortant';
+    if (call.status === 'MISSED') {
+      return call.direction === 'INCOMING'
+        ? `Appel ${media} entrant manqué`
+        : `Appel ${media} sortant sans réponse`;
+    }
+    const label =
+      (
+        {
+          RINGING: 'sans réponse',
+          ACCEPTED: 'accepté',
+          REJECTED: 'refusé',
+          ENDED: 'terminé',
+          FAILED: 'échoué',
+        } as Record<string, string>
+      )[call.status] ?? call.status.toLowerCase();
+    return `Appel ${media} ${direction} ${label}`;
+  }
+
+  private loadCallHistory(): void {
+    if (!this.currentUser()) return;
+    this.callsApi.listHistory().subscribe({ next: (history) => this.callHistory.set(history) });
   }
 
   protected closeMobileConversation(): void {
@@ -799,9 +866,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     const maxSize = kind === 'image' ? 8 * 1024 * 1024 : 12 * 1024 * 1024;
     if (file.size > maxSize) {
-      this.feedback.error(kind === 'image'
-        ? "L'image ne doit pas depasser 8 Mo."
-        : 'La piece jointe ne doit pas depasser 12 Mo.');
+      this.feedback.error(
+        kind === 'image'
+          ? "L'image ne doit pas depasser 8 Mo."
+          : 'La piece jointe ne doit pas depasser 12 Mo.',
+      );
       return;
     }
 
@@ -897,7 +966,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return extension ? extension.toUpperCase() : 'Document';
   }
 
-  private uploadMediaForComposer(file: File, kind: 'image' | 'file' | 'audio', durationSeconds = 0): void {
+  private uploadMediaForComposer(
+    file: File,
+    kind: 'image' | 'file' | 'audio',
+    durationSeconds = 0,
+  ): void {
     const conversation = this.selectedConversation();
     if (!conversation || this.isUploadingMedia() || this.isSending()) {
       return;
@@ -965,9 +1038,13 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             return;
           }
 
-          const file = new File([voiceBlob], `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`, {
-            type: voiceType,
-          });
+          const file = new File(
+            [voiceBlob],
+            `message-vocal-${Date.now()}.${this.voiceFileExtension(voiceType)}`,
+            {
+              type: voiceType,
+            },
+          );
           this.uploadVoiceAndSend(file);
         };
         recorder.start();
@@ -1019,9 +1096,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private startVoiceLevelMeter(stream: MediaStream): void {
-    const AudioContextCtor = window.AudioContext || (
-      window as typeof window & { webkitAudioContext?: typeof AudioContext }
-    ).webkitAudioContext;
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
     if (!AudioContextCtor) {
       return;
@@ -1084,7 +1161,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private voiceRecordingUnavailableMessage(): string {
     if (!window.isSecureContext) {
-      return "Le micro fonctionne seulement sur HTTPS ou localhost dans le navigateur.";
+      return 'Le micro fonctionne seulement sur HTTPS ou localhost dans le navigateur.';
     }
 
     return "L'enregistrement vocal n'est pas disponible sur ce navigateur.";
@@ -1291,7 +1368,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             this.refreshConversationsSilently();
           },
           error: (error) => {
-            this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'annuler cette reservation."));
+            this.errorMessage.set(
+              getHttpErrorMessage(error, "Impossible d'annuler cette reservation."),
+            );
             this.isCancellingAcceptedProposal.set(false);
           },
         });
@@ -1305,7 +1384,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.isCancellingAcceptedProposal.set(true);
     this.proposalService
-      .cancelPriceProposal(proposal.negotiationId, 'Annulation demandee par le client depuis la messagerie.')
+      .cancelPriceProposal(
+        proposal.negotiationId,
+        'Annulation demandee par le client depuis la messagerie.',
+      )
       .subscribe({
         next: (updatedProposal) => {
           this.upsertProposal(updatedProposal);
@@ -1391,30 +1473,32 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.isUpdatingProposal.set(true);
     this.errorMessage.set(null);
 
-    this.proposalService.rejectPriceProposal(negotiationId, 'Negociation annulee par le prestataire.').subscribe({
-      next: (updatedProposal) => {
-        this.upsertProposal(updatedProposal);
-        this.pendingProposal.update((current) =>
-          current?.negotiationId === updatedProposal.id
-            ? {
-                ...current,
-                amount: updatedProposal.montantCourant,
-                status: updatedProposal.statut,
-                reservationId: updatedProposal.reservationId,
-              }
-            : current,
-        );
-        this.isUpdatingProposal.set(false);
-        this.isCounterOfferOpen.set(false);
-        this.feedback.success('Negociation annulee.');
-      },
-      error: () => {
-        const message = 'Impossible de refuser cette proposition.';
-        this.errorMessage.set(message);
-        this.feedback.error(message);
-        this.isUpdatingProposal.set(false);
-      },
-    });
+    this.proposalService
+      .rejectPriceProposal(negotiationId, 'Negociation annulee par le prestataire.')
+      .subscribe({
+        next: (updatedProposal) => {
+          this.upsertProposal(updatedProposal);
+          this.pendingProposal.update((current) =>
+            current?.negotiationId === updatedProposal.id
+              ? {
+                  ...current,
+                  amount: updatedProposal.montantCourant,
+                  status: updatedProposal.statut,
+                  reservationId: updatedProposal.reservationId,
+                }
+              : current,
+          );
+          this.isUpdatingProposal.set(false);
+          this.isCounterOfferOpen.set(false);
+          this.feedback.success('Negociation annulee.');
+        },
+        error: () => {
+          const message = 'Impossible de refuser cette proposition.';
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+          this.isUpdatingProposal.set(false);
+        },
+      });
   }
 
   private loadConversations(): void {
@@ -1438,7 +1522,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           (conversation) => conversation.reservationId === requestedReservationId,
         );
         const requestedProposalConversation = this.findProposalConversation(sortedConversations);
-        if (requestedReservationId && !requestedReservationConversation && !requestedConversationId) {
+        if (
+          requestedReservationId &&
+          !requestedReservationConversation &&
+          !requestedConversationId
+        ) {
           this.openReservationConversation(requestedReservationId);
           return;
         }
@@ -1446,12 +1534,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           this.openNegotiationConversation(requestedNegotiationId);
           return;
         }
-        if (this.hasRequestedDirectConversation() && !requestedDirectConversation && !requestedConversationId) {
+        if (
+          this.hasRequestedDirectConversation() &&
+          !requestedDirectConversation &&
+          !requestedConversationId
+        ) {
           this.openDirectConversation();
           return;
         }
         const selectedId =
-          sortedConversations.find((conversation) => conversation.id === requestedConversationId)?.id ??
+          sortedConversations.find((conversation) => conversation.id === requestedConversationId)
+            ?.id ??
           requestedReservationConversation?.id ??
           requestedProposalConversation?.id ??
           requestedDirectConversation?.id ??
@@ -1492,7 +1585,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.messagesService.listMessages(conversationId, this.messagesPageSize).subscribe({
       next: (messages) => {
-        if (requestId !== this.activeMessagesRequestId || conversationId !== this.selectedConversationId()) {
+        if (
+          requestId !== this.activeMessagesRequestId ||
+          conversationId !== this.selectedConversationId()
+        ) {
           return;
         }
 
@@ -1504,7 +1600,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         this.refreshConversationsSilently();
       },
       error: () => {
-        if (requestId !== this.activeMessagesRequestId || conversationId !== this.selectedConversationId()) {
+        if (
+          requestId !== this.activeMessagesRequestId ||
+          conversationId !== this.selectedConversationId()
+        ) {
           return;
         }
 
@@ -1586,26 +1685,21 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private sendUploadedVoice(
-    conversationId: string,
-    mediaUrl: string,
-  ): void {
+  private sendUploadedVoice(conversationId: string, mediaUrl: string): void {
     if (this.isSending()) return;
 
     this.isSending.set(true);
-    this.messagesService
-      .sendMessage(conversationId, '', mediaUrl)
-      .subscribe({
-        next: (message) => {
-          this.upsertMessage(message);
-          this.isSending.set(false);
-          this.refreshConversationsSilently();
-        },
-        error: () => {
-          this.isSending.set(false);
-          this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
-        },
-      });
+    this.messagesService.sendMessage(conversationId, '', mediaUrl).subscribe({
+      next: (message) => {
+        this.upsertMessage(message);
+        this.isSending.set(false);
+        this.refreshConversationsSilently();
+      },
+      error: () => {
+        this.isSending.set(false);
+        this.feedback.error("Impossible d'envoyer le message vocal pour le moment.");
+      },
+    });
   }
 
   private openNegotiationConversation(negotiationId: string): void {
@@ -1641,12 +1735,10 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const professionalProfileId = this.normalizeUuid(
-      this.requestedDirectProfessionalId(),
-    ) ?? undefined;
-    const professionalUserId = this.normalizeUuid(
-      this.requestedDirectProfessionalUserId(),
-    ) ?? undefined;
+    const professionalProfileId =
+      this.normalizeUuid(this.requestedDirectProfessionalId()) ?? undefined;
+    const professionalUserId =
+      this.normalizeUuid(this.requestedDirectProfessionalUserId()) ?? undefined;
     if (!professionalProfileId && !professionalUserId) {
       this.isLoadingConversations.set(false);
       return;
@@ -1692,7 +1784,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
     this.proposalService.listMyPriceProposals(scope).subscribe({
       next: (proposals) => {
-        this.priceProposals.set(proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)));
+        this.priceProposals.set(
+          proposals.filter((proposal) => this.isVisibleProposalStatus(proposal.statut)),
+        );
         this.loadAppointmentPreviewForVisibleProposal({ force: true });
       },
       error: () => {
@@ -1768,7 +1862,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     this.requestedDirectProfessionalId.set(professionalId);
     this.requestedDirectProfessionalUserId.set(professionalUserId);
 
-    if (!negotiationId && !reservationId && !status && (!Number.isFinite(rawAmount) || rawAmount <= 0)) {
+    if (
+      !negotiationId &&
+      !reservationId &&
+      !status &&
+      (!Number.isFinite(rawAmount) || rawAmount <= 0)
+    ) {
       return;
     }
 
@@ -1813,7 +1912,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const conversationId = this.messagesNavigationState.getLastConversationId(this.currentUser()?.id);
+    const conversationId = this.messagesNavigationState.getLastConversationId(
+      this.currentUser()?.id,
+    );
     this.requestedConversationId.set(this.normalizeUuid(conversationId));
   }
 
@@ -1829,7 +1930,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private hasRequestedDirectConversation(): boolean {
-    return Boolean(this.requestedDirectProfessionalId() || this.requestedDirectProfessionalUserId());
+    return Boolean(
+      this.requestedDirectProfessionalId() || this.requestedDirectProfessionalUserId(),
+    );
   }
 
   private normalizeUuid(value: string | null): string | null {
@@ -1881,7 +1984,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         (conversation) =>
           conversation.counterpart.professionalProfileId === proposal.professionalId ||
           conversation.counterpart.name === proposal.providerName,
-      ) ?? null
+      ) ??
+      null
     );
   }
 
@@ -1903,10 +2007,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private proposalFromConversation(conversation: Conversation): PendingProposal | null {
     const professionalId =
       conversation.professionalProfileId ?? conversation.counterpart.professionalProfileId;
-    const clientId =
-      this.isProfessionalRole()
-        ? conversation.counterpart.userId
-        : this.currentUser()?.id;
+    const clientId = this.isProfessionalRole()
+      ? conversation.counterpart.userId
+      : this.currentUser()?.id;
     const requestedNegotiationId = this.requestedNegotiationId();
     const proposals = this.priceProposals();
     const proposal =
@@ -1929,10 +2032,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       negotiationId: proposal.id,
       conversationId: conversation.id,
       professionalId: proposal.professionnelId,
-      providerName:
-        this.isProfessionalRole()
-          ? 'vous'
-          : conversation.counterpart.name,
+      providerName: this.isProfessionalRole() ? 'vous' : conversation.counterpart.name,
       serviceName: details.serviceName ?? 'service',
       amount: proposal.montantCourant || proposal.montantInitial,
       status: proposal.statut,
@@ -1963,9 +2063,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private upsertProposal(proposal: NegotiationView): void {
     this.priceProposals.update((items) => {
       const others = items.filter((item) => item.id !== proposal.id);
-      return this.isVisibleProposalStatus(proposal.statut)
-        ? [proposal, ...others]
-        : others;
+      return this.isVisibleProposalStatus(proposal.statut) ? [proposal, ...others] : others;
     });
   }
 
@@ -1987,19 +2085,21 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     this.messagesRealtime.connect();
-    this.realtimeMessageSubscription = this.messagesRealtime.messageCreated$.subscribe((message) => {
-      const isSelectedConversation = message.conversationId === this.selectedConversationId();
-      this.upsertConversationFromMessage(message, isSelectedConversation);
+    this.realtimeMessageSubscription = this.messagesRealtime.messageCreated$.subscribe(
+      (message) => {
+        const isSelectedConversation = message.conversationId === this.selectedConversationId();
+        this.upsertConversationFromMessage(message, isSelectedConversation);
 
-      if (!isSelectedConversation) {
+        if (!isSelectedConversation) {
+          this.refreshConversationsSilently();
+          return;
+        }
+
+        this.upsertMessage(message);
+        this.messagesRealtime.joinConversation(message.conversationId);
         this.refreshConversationsSilently();
-        return;
-      }
-
-      this.upsertMessage(message);
-      this.messagesRealtime.joinConversation(message.conversationId);
-      this.refreshConversationsSilently();
-    });
+      },
+    );
   }
 
   private upsertMessage(message: ConversationMessage): void {
@@ -2035,7 +2135,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         return {
           ...conversation,
           lastMessageAt: message.createdAt,
-          unreadCount: shouldIncrementUnread ? conversation.unreadCount + 1 : conversation.unreadCount,
+          unreadCount: shouldIncrementUnread
+            ? conversation.unreadCount + 1
+            : conversation.unreadCount,
           lastMessage: {
             id: message.id,
             senderId: message.senderId,
@@ -2050,10 +2152,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private cacheConversationMessages(
-    conversationId: string,
-    messages: ConversationMessage[],
-  ): void {
+  private cacheConversationMessages(conversationId: string, messages: ConversationMessage[]): void {
     this.messagesByConversation.set(conversationId, this.sortMessages(messages));
   }
 
@@ -2097,9 +2196,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private markConversationAsReadLocally(conversationId: string): void {
     this.conversations.update((items) =>
       items.map((conversation) =>
-        conversation.id === conversationId
-          ? { ...conversation, unreadCount: 0 }
-          : conversation,
+        conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
       ),
     );
   }
@@ -2107,10 +2204,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private currentVisibleReservationId(): string | null {
     const requestedNegotiationId = this.requestedNegotiationId();
     const requestedProposal = this.visibleProposal();
-    if (
-      requestedNegotiationId &&
-      requestedProposal?.negotiationId === requestedNegotiationId
-    ) {
+    if (requestedNegotiationId && requestedProposal?.negotiationId === requestedNegotiationId) {
       // Une nouvelle negociation entre deux personnes peut reutiliser une
       // conversation qui contient encore l'ancien rendez-vous du meme duo.
       // Tant que la negociation courante n'a pas cree sa propre reservation,
@@ -2232,7 +2326,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     address: string | null;
     durationMinutes: number;
   } {
-    const messageDetails = this.extractProposalDetails(proposal.proposalMessage || proposal.serviceName);
+    const messageDetails = this.extractProposalDetails(
+      proposal.proposalMessage || proposal.serviceName,
+    );
 
     return {
       appointmentDate: proposal.appointmentDate || messageDetails.appointmentDate,
@@ -2331,7 +2427,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     if (amount === Math.round(proposal.amount)) {
-      this.errorMessage.set('La contre-proposition doit etre differente du prix propose par le client.');
+      this.errorMessage.set(
+        'La contre-proposition doit etre differente du prix propose par le client.',
+      );
       return false;
     }
 
@@ -2399,7 +2497,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     }
 
     if (scheduledAt.getTime() <= Date.now()) {
-      this.errorMessage.set('Impossible de creer la reservation: la date du rendez-vous est deja passee.');
+      this.errorMessage.set(
+        'Impossible de creer la reservation: la date du rendez-vous est deja passee.',
+      );
       return null;
     }
 
@@ -2451,7 +2551,9 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     return this.reservationToneForMessages(status);
   }
 
-  private reservationToneForMessages(status: AppointmentView['status']): ConversationReservationCard['statusTone'] {
+  private reservationToneForMessages(
+    status: AppointmentView['status'],
+  ): ConversationReservationCard['statusTone'] {
     const tone = reservationStatusTone(status);
     if (tone === 'blue') return 'active';
     if (tone === 'green') return 'success';

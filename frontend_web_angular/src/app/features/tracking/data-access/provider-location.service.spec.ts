@@ -2,9 +2,7 @@ import { ProviderLocationService } from './provider-location.service';
 
 describe('ProviderLocationService', () => {
   it('normalizes GPS speed and clears the browser watcher on unsubscribe', () => {
-    let success:
-      | ((position: GeolocationPosition) => void)
-      | undefined;
+    let success: ((position: GeolocationPosition) => void) | undefined;
     const clearWatch = vi.fn();
     const geolocation = {
       watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {

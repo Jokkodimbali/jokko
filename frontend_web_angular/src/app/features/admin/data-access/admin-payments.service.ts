@@ -39,7 +39,9 @@ export class AdminPaymentsService {
 
   refund(paymentId: string, reason: string): Observable<AdminPaymentRefundResult> {
     return this.http
-      .post<ApiResponse<AdminPaymentRefundResult>>(`${this.paymentsUrl}/${paymentId}/refund`, { reason })
+      .post<
+        ApiResponse<AdminPaymentRefundResult>
+      >(`${this.paymentsUrl}/${paymentId}/refund`, { reason })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

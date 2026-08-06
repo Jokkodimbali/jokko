@@ -6,8 +6,8 @@
         Structure des Services
       </span>
       <p>
-        Gere les categories visibles sur la plateforme et controle les services declares par les prestataires dans
-        chaque famille.
+        Gere les categories visibles sur la plateforme et controle les services declares par les
+        prestataires dans chaque famille.
       </p>
     </div>
 
@@ -31,20 +31,87 @@
     </div>
 
     <div class="service-filter-group">
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'all'" (click)="setCategoryFilter('all')">Toutes</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'active'" (click)="setCategoryFilter('active')">Actives</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'inactive'" (click)="setCategoryFilter('inactive')">Inactives</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'with-subcategories'" (click)="setCategoryFilter('with-subcategories')">Avec sous-categories</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'without-subcategories'" (click)="setCategoryFilter('without-subcategories')">Sans sous-categories</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'with-services'" (click)="setCategoryFilter('with-services')">Avec services</button>
-      <button type="button" [class.service-filter-chip--active]="categoryFilter === 'without-services'" (click)="setCategoryFilter('without-services')">Sans services</button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'all'"
+        (click)="setCategoryFilter('all')"
+      >
+        Toutes
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'active'"
+        (click)="setCategoryFilter('active')"
+      >
+        Actives
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'inactive'"
+        (click)="setCategoryFilter('inactive')"
+      >
+        Inactives
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'with-subcategories'"
+        (click)="setCategoryFilter('with-subcategories')"
+      >
+        Avec sous-categories
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'without-subcategories'"
+        (click)="setCategoryFilter('without-subcategories')"
+      >
+        Sans sous-categories
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'with-services'"
+        (click)="setCategoryFilter('with-services')"
+      >
+        Avec services
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="categoryFilter === 'without-services'"
+        (click)="setCategoryFilter('without-services')"
+      >
+        Sans services
+      </button>
     </div>
 
     <div class="service-filter-group service-filter-group--secondary">
-      <button type="button" [class.service-filter-chip--active]="subCategoryFilter === 'all'" (click)="setSubCategoryFilter('all')">Toutes les sous-categories</button>
-      <button type="button" [class.service-filter-chip--active]="subCategoryFilter === 'assigned'" (click)="setSubCategoryFilter('assigned')">Affectees</button>
-      <button type="button" [class.service-filter-chip--active]="subCategoryFilter === 'unassigned'" (click)="setSubCategoryFilter('unassigned')">Libres</button>
-      <button type="button" class="service-filter-reset" *ngIf="activeFilterCount() > 0" (click)="clearFilters()">Reinitialiser</button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="subCategoryFilter === 'all'"
+        (click)="setSubCategoryFilter('all')"
+      >
+        Toutes les sous-categories
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="subCategoryFilter === 'assigned'"
+        (click)="setSubCategoryFilter('assigned')"
+      >
+        Affectees
+      </button>
+      <button
+        type="button"
+        [class.service-filter-chip--active]="subCategoryFilter === 'unassigned'"
+        (click)="setSubCategoryFilter('unassigned')"
+      >
+        Libres
+      </button>
+      <button
+        type="button"
+        class="service-filter-reset"
+        *ngIf="activeFilterCount() > 0"
+        (click)="clearFilters()"
+      >
+        Reinitialiser
+      </button>
     </div>
 
     <p *ngIf="searchQuery.trim()" class="service-filter-summary">
@@ -52,7 +119,10 @@
     </p>
   </section>
 
-  <section class="service-free-subcategories" *ngIf="filteredAvailableSubCategories(data).length > 0">
+  <section
+    class="service-free-subcategories"
+    *ngIf="filteredAvailableSubCategories(data).length > 0"
+  >
     <header>
       <div>
         <strong>Sous-categories libres</strong>
@@ -64,8 +134,17 @@
       </button>
     </header>
     <div>
-      <span *ngFor="let subCategory of filteredAvailableSubCategories(data); trackBy: subCategoryTrackBy">
-        <lucide-icon [name]="subCategoryIconName(subCategory)" size="15" [strokeWidth]="2.2"></lucide-icon>
+      <span
+        *ngFor="
+          let subCategory of filteredAvailableSubCategories(data);
+          trackBy: subCategoryTrackBy
+        "
+      >
+        <lucide-icon
+          [name]="subCategoryIconName(subCategory)"
+          size="15"
+          [strokeWidth]="2.2"
+        ></lucide-icon>
         <b>{{ subCategory.name }}</b>
         <small>{{ subCategory.description || 'Non affectee' }}</small>
         <button
@@ -97,32 +176,56 @@
               (error)="handleCategoryIconError(iconUrl)"
             />
             <ng-template #categoryFallback>
-              <lucide-icon [name]="categoryIconName(category)" size="20" [strokeWidth]="2.2"></lucide-icon>
+              <lucide-icon
+                [name]="categoryIconName(category)"
+                size="20"
+                [strokeWidth]="2.2"
+              ></lucide-icon>
             </ng-template>
           </span>
           <span>
             <strong>{{ category.name }}</strong>
-            <small>{{ filteredSubCategoryCount(category) }} / {{ subCategoryCount(category) }} sous-categories</small>
+            <small
+              >{{ filteredSubCategoryCount(category) }} /
+              {{ subCategoryCount(category) }} sous-categories</small
+            >
           </span>
         </button>
 
         <div class="service-category-actions">
-          <button type="button" title="Modifier la categorie" aria-label="Modifier la categorie" (click)="openEditForm(category)">
+          <button
+            type="button"
+            title="Modifier la categorie"
+            aria-label="Modifier la categorie"
+            (click)="openEditForm(category)"
+          >
             <lucide-icon name="pencil" size="16" [strokeWidth]="2.2"></lucide-icon>
           </button>
-          <button type="button" class="service-category-action--assign" title="Affecter ou desaffecter les sous-categories" aria-label="Affecter ou desaffecter les sous-categories" (click)="openAssignmentForm(category)">
+          <button
+            type="button"
+            class="service-category-action--assign"
+            title="Affecter ou desaffecter les sous-categories"
+            aria-label="Affecter ou desaffecter les sous-categories"
+            (click)="openAssignmentForm(category)"
+          >
             <lucide-icon name="clipboard" size="16" [strokeWidth]="2.2"></lucide-icon>
             <span>Affecter</span>
           </button>
           <button
             type="button"
             [title]="category.isActive ? 'Desactiver la categorie' : 'Reactiver la categorie'"
-            [attr.aria-label]="category.isActive ? 'Desactiver la categorie' : 'Reactiver la categorie'"
+            [attr.aria-label]="
+              category.isActive ? 'Desactiver la categorie' : 'Reactiver la categorie'
+            "
             [class.service-category-action--activate]="!category.isActive"
             [disabled]="actionId === category.id"
             (click)="category.isActive ? requestDisable(category) : requestActivate(category)"
           >
-            <lucide-icon [name]="category.isActive ? 'power' : 'rotate-ccw'" size="16" [strokeWidth]="2.2"></lucide-icon>
+            <lucide-icon
+              [name]="category.isActive ? 'power' : 'rotate-ccw'"
+              size="16"
+              [strokeWidth]="2.2"
+            ></lucide-icon>
           </button>
           <button
             *ngIf="canDeleteCategory(category)"
@@ -148,9 +251,16 @@
 
       <div class="service-category-body" *ngIf="expandedCategoryId === category.id">
         <ng-container *ngIf="filteredSubCategories(category).length > 0; else categoryEmpty">
-          <section class="service-branch" *ngFor="let subCategory of filteredSubCategories(category); trackBy: subCategoryTrackBy">
+          <section
+            class="service-branch"
+            *ngFor="let subCategory of filteredSubCategories(category); trackBy: subCategoryTrackBy"
+          >
             <h3>
-              <lucide-icon [name]="subCategoryIconName(subCategory)" size="15" [strokeWidth]="2.2"></lucide-icon>
+              <lucide-icon
+                [name]="subCategoryIconName(subCategory)"
+                size="15"
+                [strokeWidth]="2.2"
+              ></lucide-icon>
               {{ subCategory.name }}
               <small>Sous-categorie</small>
             </h3>
@@ -175,12 +285,20 @@
           </ul>
         </section>
 
-        <button type="button" class="service-add-subcategory" (click)="openSubCategoryForm(category)">
+        <button
+          type="button"
+          class="service-add-subcategory"
+          (click)="openSubCategoryForm(category)"
+        >
           <lucide-icon name="plus" size="14" [strokeWidth]="2.3"></lucide-icon>
           Creer une sous-categorie
         </button>
 
-        <button type="button" class="service-add-subcategory service-add-subcategory--assign" (click)="openAssignmentForm(category)">
+        <button
+          type="button"
+          class="service-add-subcategory service-add-subcategory--assign"
+          (click)="openAssignmentForm(category)"
+        >
           <lucide-icon name="clipboard" size="14" [strokeWidth]="2.3"></lucide-icon>
           Affecter / desaffecter
         </button>
@@ -201,13 +319,24 @@
         <div class="service-modal-title">
           <span>
             <lucide-icon
-              [name]="modalMode === 'confirm-disable-category' || modalMode === 'confirm-activate-category' || modalMode === 'confirm-delete-category' || modalMode === 'confirm-delete-subcategory' ? 'triangle-alert' : modalMode === 'assign-subcategories' ? 'clipboard' : 'git-fork'"
+              [name]="
+                modalMode === 'confirm-disable-category' ||
+                modalMode === 'confirm-activate-category' ||
+                modalMode === 'confirm-delete-category' ||
+                modalMode === 'confirm-delete-subcategory'
+                  ? 'triangle-alert'
+                  : modalMode === 'assign-subcategories'
+                    ? 'clipboard'
+                    : 'git-fork'
+              "
               size="20"
               [strokeWidth]="2.3"
             ></lucide-icon>
           </span>
           <div>
-            <h2 *ngIf="modalMode === 'category'">{{ form.id ? 'Modifier la categorie' : 'Nouvelle categorie' }}</h2>
+            <h2 *ngIf="modalMode === 'category'">
+              {{ form.id ? 'Modifier la categorie' : 'Nouvelle categorie' }}
+            </h2>
             <h2 *ngIf="modalMode === 'bulk-categories'">Import des categories</h2>
             <h2 *ngIf="modalMode === 'subcategory'">Nouvelle sous-categorie</h2>
             <h2 *ngIf="modalMode === 'bulk-subcategories'">Import des sous-categories</h2>
@@ -216,13 +345,31 @@
             <h2 *ngIf="modalMode === 'confirm-activate-category'">Confirmer la reactivation</h2>
             <h2 *ngIf="modalMode === 'confirm-delete-category'">Supprimer la categorie</h2>
             <h2 *ngIf="modalMode === 'confirm-delete-subcategory'">Supprimer la sous-categorie</h2>
-            <small *ngIf="modalMode === 'category'">Renseignez les informations visibles par les utilisateurs.</small>
-            <small *ngIf="modalMode === 'subcategory'">Creez un regroupement simple a affecter ensuite a une categorie.</small>
-            <small *ngIf="modalMode === 'bulk-categories' || modalMode === 'bulk-subcategories'">Ajoutez une ligne par element pour gagner du temps.</small>
-            <small *ngIf="modalMode === 'assign-subcategories'">Selectionnez uniquement ce qui doit apparaitre dans cette categorie.</small>
-            <small *ngIf="modalMode === 'confirm-disable-category'">Cette action retire la categorie de la structure active.</small>
-            <small *ngIf="modalMode === 'confirm-activate-category'">Cette action remet la categorie dans la structure active.</small>
-            <small *ngIf="modalMode === 'confirm-delete-category' || modalMode === 'confirm-delete-subcategory'">Suppression definitive autorisee seulement pour un element inutilise.</small>
+            <small *ngIf="modalMode === 'category'"
+              >Renseignez les informations visibles par les utilisateurs.</small
+            >
+            <small *ngIf="modalMode === 'subcategory'"
+              >Creez un regroupement simple a affecter ensuite a une categorie.</small
+            >
+            <small *ngIf="modalMode === 'bulk-categories' || modalMode === 'bulk-subcategories'"
+              >Ajoutez une ligne par element pour gagner du temps.</small
+            >
+            <small *ngIf="modalMode === 'assign-subcategories'"
+              >Selectionnez uniquement ce qui doit apparaitre dans cette categorie.</small
+            >
+            <small *ngIf="modalMode === 'confirm-disable-category'"
+              >Cette action retire la categorie de la structure active.</small
+            >
+            <small *ngIf="modalMode === 'confirm-activate-category'"
+              >Cette action remet la categorie dans la structure active.</small
+            >
+            <small
+              *ngIf="
+                modalMode === 'confirm-delete-category' ||
+                modalMode === 'confirm-delete-subcategory'
+              "
+              >Suppression definitive autorisee seulement pour un element inutilise.</small
+            >
           </div>
         </div>
         <button type="button" (click)="closeModal()">
@@ -234,7 +381,13 @@
         <div class="service-modal-section">
           <label>
             <span>Nom de la categorie</span>
-            <input name="categoryName" [(ngModel)]="form.name" required maxlength="100" placeholder="Ex : Plomberie & Sanitaires" />
+            <input
+              name="categoryName"
+              [(ngModel)]="form.name"
+              required
+              maxlength="100"
+              placeholder="Ex : Plomberie & Sanitaires"
+            />
           </label>
 
           <div class="service-icon-field">
@@ -243,7 +396,11 @@
               <small>Choisissez une icone simple. Elle ne cassera pas en production.</small>
             </div>
             <figure>
-              <lucide-icon [name]="categoryFormIconName()" size="22" [strokeWidth]="2.3"></lucide-icon>
+              <lucide-icon
+                [name]="categoryFormIconName()"
+                size="22"
+                [strokeWidth]="2.3"
+              ></lucide-icon>
             </figure>
             <div class="service-icon-options" aria-label="Choix de l'icone de categorie">
               <button
@@ -263,43 +420,86 @@
         <div class="service-structure-form-grid">
           <label>
             <span>Ordre d'affichage</span>
-            <input name="categorySortOrder" type="number" min="0" max="32767" [(ngModel)]="form.sortOrder" />
+            <input
+              name="categorySortOrder"
+              type="number"
+              min="0"
+              max="32767"
+              [(ngModel)]="form.sortOrder"
+            />
           </label>
           <label>
             <span>Commission (%)</span>
-            <input name="categoryCommissionRate" type="number" min="0" max="100" step="0.01" [(ngModel)]="form.commissionRate" />
+            <input
+              name="categoryCommissionRate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              [(ngModel)]="form.commissionRate"
+            />
           </label>
         </div>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'bulk-categories'">
         <p>Indique une categorie par ligne. L'ordre sera applique automatiquement.</p>
-        <textarea name="bulkCategories" [(ngModel)]="bulkCategoriesText" placeholder="Plomberie & Sanitaires&#10;Electricite&#10;Automobile & Mecanique"></textarea>
+        <textarea
+          name="bulkCategories"
+          [(ngModel)]="bulkCategoriesText"
+          placeholder="Plomberie & Sanitaires&#10;Electricite&#10;Automobile & Mecanique"
+        ></textarea>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'subcategory'">
         <label>
           <span>Nom de la sous-categorie</span>
-          <input name="subCategoryName" [(ngModel)]="subCategoryForm.name" required maxlength="120" placeholder="Ex : Installation" />
+          <input
+            name="subCategoryName"
+            [(ngModel)]="subCategoryForm.name"
+            required
+            maxlength="120"
+            placeholder="Ex : Installation"
+          />
         </label>
         <label>
           <span>Description</span>
-          <input name="subCategoryDescription" [(ngModel)]="subCategoryForm.description" maxlength="500" placeholder="Optionnel" />
+          <input
+            name="subCategoryDescription"
+            [(ngModel)]="subCategoryForm.description"
+            maxlength="500"
+            placeholder="Optionnel"
+          />
         </label>
         <label>
           <span>Ordre d'affichage</span>
-          <input name="subCategorySortOrder" type="number" min="0" max="32767" [(ngModel)]="subCategoryForm.sortOrder" />
+          <input
+            name="subCategorySortOrder"
+            type="number"
+            min="0"
+            max="32767"
+            [(ngModel)]="subCategoryForm.sortOrder"
+          />
         </label>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'bulk-subcategories'">
-        <p>Une sous-categorie par ligne. Tu peux ajouter une description avec le format : nom | description.</p>
-        <textarea name="bulkSubCategories" [(ngModel)]="bulkSubCategoriesText" placeholder="Reparation et depannage | Interventions urgentes&#10;Installation&#10;Entretien"></textarea>
+        <p>
+          Une sous-categorie par ligne. Tu peux ajouter une description avec le format : nom |
+          description.
+        </p>
+        <textarea
+          name="bulkSubCategories"
+          [(ngModel)]="bulkSubCategoriesText"
+          placeholder="Reparation et depannage | Interventions urgentes&#10;Installation&#10;Entretien"
+        ></textarea>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'assign-subcategories' && report as currentReport">
         <div class="service-assignment-summary">
-          <p class="service-modal-lead">Categorie : <b>{{ assignmentCategory?.name }}</b></p>
+          <p class="service-modal-lead">
+            Categorie : <b>{{ assignmentCategory?.name }}</b>
+          </p>
           <div>
             <span>{{ selectedSubCategoryIds.size }} selectionnee(s)</span>
             <span>{{ filteredAssignmentOptions(currentReport).length }} visible(s)</span>
@@ -307,18 +507,40 @@
           </div>
         </div>
         <div class="service-assignment-toolbar">
-          <p>Selectionnez les sous-categories libres a afficher. Les sous-categories deja affectees ailleurs ne sont pas proposees.</p>
+          <p>
+            Selectionnez les sous-categories libres a afficher. Les sous-categories deja affectees
+            ailleurs ne sont pas proposees.
+          </p>
           <div>
-            <button type="button" (click)="selectAllAssignmentOptions(currentReport)" [disabled]="filteredAssignmentOptions(currentReport).length === 0 || allAssignmentOptionsSelected(currentReport)">
+            <button
+              type="button"
+              (click)="selectAllAssignmentOptions(currentReport)"
+              [disabled]="
+                filteredAssignmentOptions(currentReport).length === 0 ||
+                allAssignmentOptionsSelected(currentReport)
+              "
+            >
               Tout selectionner
             </button>
-            <button type="button" (click)="clearAssignmentSelection()" [disabled]="selectedSubCategoryIds.size === 0">
+            <button
+              type="button"
+              (click)="clearAssignmentSelection()"
+              [disabled]="selectedSubCategoryIds.size === 0"
+            >
               Tout deselectionner
             </button>
           </div>
         </div>
-        <div class="service-checkbox-list" *ngIf="filteredAssignmentOptions(currentReport).length > 0; else noSubCategories">
-          <label *ngFor="let subCategory of filteredAssignmentOptions(currentReport); trackBy: subCategoryTrackBy">
+        <div
+          class="service-checkbox-list"
+          *ngIf="filteredAssignmentOptions(currentReport).length > 0; else noSubCategories"
+        >
+          <label
+            *ngFor="
+              let subCategory of filteredAssignmentOptions(currentReport);
+              trackBy: subCategoryTrackBy
+            "
+          >
             <input
               type="checkbox"
               [checked]="isSubCategorySelected(subCategory)"
@@ -343,65 +565,124 @@
           </label>
         </div>
         <ng-template #noSubCategories>
-          <div class="service-category-empty">Aucune sous-categorie ne correspond aux filtres actuels.</div>
+          <div class="service-category-empty">
+            Aucune sous-categorie ne correspond aux filtres actuels.
+          </div>
         </ng-template>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'confirm-disable-category'">
         <p class="service-modal-lead">
-          La categorie <b>{{ categoryPendingDisable?.name }}</b> ne sera plus disponible pour les nouvelles offres.
+          La categorie <b>{{ categoryPendingDisable?.name }}</b> ne sera plus disponible pour les
+          nouvelles offres.
         </p>
-        <p>Confirme uniquement si cette categorie doit vraiment etre retiree de la structure active.</p>
+        <p>
+          Confirme uniquement si cette categorie doit vraiment etre retiree de la structure active.
+        </p>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'confirm-activate-category'">
         <p class="service-modal-lead">
-          La categorie <b>{{ categoryPendingActivation?.name }}</b> sera de nouveau visible et utilisable dans la plateforme.
+          La categorie <b>{{ categoryPendingActivation?.name }}</b> sera de nouveau visible et
+          utilisable dans la plateforme.
         </p>
-        <p>Confirme pour permettre a nouveau son utilisation dans les services et les recherches publiques.</p>
+        <p>
+          Confirme pour permettre a nouveau son utilisation dans les services et les recherches
+          publiques.
+        </p>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'confirm-delete-category'">
         <p class="service-modal-lead">
-          La categorie <b>{{ categoryPendingDelete?.name }}</b> est vide et peut etre supprimee definitivement.
+          La categorie <b>{{ categoryPendingDelete?.name }}</b> est vide et peut etre supprimee
+          definitivement.
         </p>
-        <p>Cette action est irreversible. Elle est bloquee automatiquement si la categorie contient un service ou une sous-categorie affectee.</p>
+        <p>
+          Cette action est irreversible. Elle est bloquee automatiquement si la categorie contient
+          un service ou une sous-categorie affectee.
+        </p>
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'confirm-delete-subcategory'">
         <p class="service-modal-lead">
-          La sous-categorie <b>{{ subCategoryPendingDelete?.name }}</b> n'est affectee a aucune categorie.
+          La sous-categorie <b>{{ subCategoryPendingDelete?.name }}</b> n'est affectee a aucune
+          categorie.
         </p>
-        <p>Cette action est irreversible. Elle est bloquee automatiquement si la sous-categorie est encore utilisee.</p>
+        <p>
+          Cette action est irreversible. Elle est bloquee automatiquement si la sous-categorie est
+          encore utilisee.
+        </p>
       </ng-container>
 
       <footer>
-        <button type="button" class="service-structure-secondary" (click)="closeModal()">Annuler</button>
+        <button type="button" class="service-structure-secondary" (click)="closeModal()">
+          Annuler
+        </button>
         <button *ngIf="modalMode === 'category'" type="submit" class="service-structure-primary">
           {{ form.id ? 'Enregistrer' : 'Ajouter' }}
         </button>
-        <button *ngIf="modalMode === 'bulk-categories'" type="button" class="service-structure-primary" (click)="submitBulkCategories()">
+        <button
+          *ngIf="modalMode === 'bulk-categories'"
+          type="button"
+          class="service-structure-primary"
+          (click)="submitBulkCategories()"
+        >
           Importer
         </button>
-        <button *ngIf="modalMode === 'subcategory'" type="button" class="service-structure-primary" (click)="submitSubCategory()">
+        <button
+          *ngIf="modalMode === 'subcategory'"
+          type="button"
+          class="service-structure-primary"
+          (click)="submitSubCategory()"
+        >
           Ajouter
         </button>
-        <button *ngIf="modalMode === 'bulk-subcategories'" type="button" class="service-structure-primary" (click)="submitBulkSubCategories()">
+        <button
+          *ngIf="modalMode === 'bulk-subcategories'"
+          type="button"
+          class="service-structure-primary"
+          (click)="submitBulkSubCategories()"
+        >
           Importer
         </button>
-        <button *ngIf="modalMode === 'assign-subcategories'" type="button" class="service-structure-primary" (click)="submitAssignments()">
+        <button
+          *ngIf="modalMode === 'assign-subcategories'"
+          type="button"
+          class="service-structure-primary"
+          (click)="submitAssignments()"
+        >
           Affecter
         </button>
-        <button *ngIf="modalMode === 'confirm-disable-category'" type="button" class="service-structure-danger" (click)="confirmDisableCategory()">
+        <button
+          *ngIf="modalMode === 'confirm-disable-category'"
+          type="button"
+          class="service-structure-danger"
+          (click)="confirmDisableCategory()"
+        >
           Desactiver
         </button>
-        <button *ngIf="modalMode === 'confirm-activate-category'" type="button" class="service-structure-primary" (click)="confirmActivateCategory()">
+        <button
+          *ngIf="modalMode === 'confirm-activate-category'"
+          type="button"
+          class="service-structure-primary"
+          (click)="confirmActivateCategory()"
+        >
           Reactiver
         </button>
-        <button *ngIf="modalMode === 'confirm-delete-category'" type="button" class="service-structure-danger" (click)="confirmDeleteCategory()">
+        <button
+          *ngIf="modalMode === 'confirm-delete-category'"
+          type="button"
+          class="service-structure-danger"
+          (click)="confirmDeleteCategory()"
+        >
           Supprimer definitivement
         </button>
-        <button *ngIf="modalMode === 'confirm-delete-subcategory'" type="button" class="service-structure-danger" (click)="confirmDeleteSubCategory()">
+        <button
+          *ngIf="modalMode === 'confirm-delete-subcategory'"
+          type="button"
+          class="service-structure-danger"
+          (click)="confirmDeleteSubCategory()"
+        >
           Supprimer definitivement
         </button>
       </footer>
@@ -411,16 +692,30 @@
 
 <ng-template #structureState>
   <section class="service-structure-state">
-    <lucide-icon [name]="isLoading ? 'loader-circle' : 'git-fork'" size="36" [strokeWidth]="2.2"></lucide-icon>
+    <lucide-icon
+      [name]="isLoading ? 'loader-circle' : 'git-fork'"
+      size="36"
+      [strokeWidth]="2.2"
+    ></lucide-icon>
     <h1>{{ isLoading ? 'Chargement de la structure' : 'Structure indisponible' }}</h1>
-    <p>{{ isLoading ? 'Preparation des categories et services.' : 'Impossible de charger les services pour le moment.' }}</p>
+    <p>
+      {{
+        isLoading
+          ? 'Preparation des categories et services.'
+          : 'Impossible de charger les services pour le moment.'
+      }}
+    </p>
   </section>
 </ng-template>
 
 <ng-template #noStructure>
   <section class="service-structure-empty">
     <lucide-icon name="git-fork" size="28" [strokeWidth]="2.2"></lucide-icon>
-    <span *ngIf="!searchQuery.trim() && activeFilterCount() === 0">Aucune categorie disponible.</span>
-    <span *ngIf="searchQuery.trim() || activeFilterCount() > 0">Aucune categorie ne correspond a la recherche ou aux filtres.</span>
+    <span *ngIf="!searchQuery.trim() && activeFilterCount() === 0"
+      >Aucune categorie disponible.</span
+    >
+    <span *ngIf="searchQuery.trim() || activeFilterCount() > 0"
+      >Aucune categorie ne correspond a la recherche ou aux filtres.</span
+    >
   </section>
 </ng-template>

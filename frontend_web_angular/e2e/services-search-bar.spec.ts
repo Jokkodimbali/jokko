@@ -1,11 +1,51 @@
 import { expect, test } from '@playwright/test';
 
 const categories = [
-  { id: 'cat-admin', nom: 'Administration', urlIcone: null, ordreTri: 1, tauxCommission: 0, estActive: true, subCategories: [] },
-  { id: 'cat-agri', nom: 'Agriculture', urlIcone: null, ordreTri: 2, tauxCommission: 0, estActive: true, subCategories: [] },
-  { id: 'cat-artisan', nom: 'Artisanat / metiers', urlIcone: null, ordreTri: 3, tauxCommission: 0, estActive: true, subCategories: [] },
-  { id: 'cat-auto', nom: 'Voiture', urlIcone: null, ordreTri: 4, tauxCommission: 0, estActive: true, subCategories: [] },
-  { id: 'cat-cuisine', nom: 'Cuisine', urlIcone: null, ordreTri: 5, tauxCommission: 0, estActive: true, subCategories: [] },
+  {
+    id: 'cat-admin',
+    nom: 'Administration',
+    urlIcone: null,
+    ordreTri: 1,
+    tauxCommission: 0,
+    estActive: true,
+    subCategories: [],
+  },
+  {
+    id: 'cat-agri',
+    nom: 'Agriculture',
+    urlIcone: null,
+    ordreTri: 2,
+    tauxCommission: 0,
+    estActive: true,
+    subCategories: [],
+  },
+  {
+    id: 'cat-artisan',
+    nom: 'Artisanat / metiers',
+    urlIcone: null,
+    ordreTri: 3,
+    tauxCommission: 0,
+    estActive: true,
+    subCategories: [],
+  },
+  {
+    id: 'cat-auto',
+    nom: 'Voiture',
+    urlIcone: null,
+    ordreTri: 4,
+    tauxCommission: 0,
+    estActive: true,
+    subCategories: [],
+  },
+  {
+    id: 'cat-cuisine',
+    nom: 'Cuisine',
+    urlIcone: null,
+    ordreTri: 5,
+    tauxCommission: 0,
+    estActive: true,
+    subCategories: [],
+  },
 ];
 
 const providers = [
@@ -93,7 +133,16 @@ test('services search suggestions stay attached above page filters', async ({ pa
       json: {
         success: true,
         data: providers,
-        meta: { pagination: { total: providers.length, page: 1, limit: 6, totalPages: 1, hasNext: false, hasPrevious: false } },
+        meta: {
+          pagination: {
+            total: providers.length,
+            page: 1,
+            limit: 6,
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false,
+          },
+        },
       },
     });
   });

@@ -53,8 +53,11 @@ export class SessionPresenceService {
     professionalId: string | null | undefined,
   ): RealtimeProfessionalProfile | null {
     const profiles = this.profiles();
-    return (professionalId ? profiles[professionalId] : null) ??
-      (userId ? profiles[userId] : null) ?? null;
+    return (
+      (professionalId ? profiles[professionalId] : null) ??
+      (userId ? profiles[userId] : null) ??
+      null
+    );
   }
 
   disconnectAuthenticatedSession(): void {
@@ -105,17 +108,14 @@ export class SessionPresenceService {
       (events: Array<{ userId?: string; professionalId?: string; isOnline: boolean }>) =>
         events.forEach((event) => this.applyPresence(event)),
     );
-    this.publicSocket.on(
-      'catalog.profile.changed',
-      (event: RealtimeProfessionalProfile) => {
-        clearHttpResponseCache();
-        this.profiles.update((profiles) => ({
-          ...profiles,
-          [event.userId]: event,
-          [event.professionalId]: event,
-        }));
-      },
-    );
+    this.publicSocket.on('catalog.profile.changed', (event: RealtimeProfessionalProfile) => {
+      clearHttpResponseCache();
+      this.profiles.update((profiles) => ({
+        ...profiles,
+        [event.userId]: event,
+        [event.professionalId]: event,
+      }));
+    });
   }
 
   private applyPresence(event: {

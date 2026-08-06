@@ -213,7 +213,7 @@
 }
 
 .provider-card__service-main {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2.35 / 1;
   background: #f2ede8;
   border: 1px solid #e4d5c7;
   border-radius: 14px;
@@ -253,7 +253,7 @@
 }
 
 .provider-card__service-main > .provider-card__service-image--landscape {
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .provider-card__service-main > .provider-card__service-image-fallback,
@@ -509,6 +509,10 @@
   .provider-card__body,
   .provider-card__services {
     gap: 7px;
+  }
+
+  .provider-card__service-main {
+    aspect-ratio: 2.7 / 1;
   }
 
   .provider-card__service-thumbs span {

@@ -1,6 +1,7 @@
 import { environment } from '../../../environments/environment';
 
-const LOCAL_HTTP_ASSET_PATTERN = /^http:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?(\/.*)$/i;
+const LOCAL_HTTP_ASSET_PATTERN =
+  /^http:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?(\/.*)$/i;
 
 export function publicAssetUrl(url: string | null | undefined): string | null {
   const value = url?.trim();

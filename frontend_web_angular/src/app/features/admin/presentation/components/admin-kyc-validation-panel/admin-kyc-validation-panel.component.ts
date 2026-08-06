@@ -24,7 +24,8 @@ export class AdminKycValidationPanelComponent implements OnChanges {
   protected readonly rejectionProfileId = signal<string | null>(null);
   protected rejectionReason = '';
   protected readonly selectedProfile = computed(
-    () => this.profiles.find((profile) => profile.id === this.selectedId()) ?? this.profiles[0] ?? null,
+    () =>
+      this.profiles.find((profile) => profile.id === this.selectedId()) ?? this.profiles[0] ?? null,
   );
 
   ngOnChanges(): void {

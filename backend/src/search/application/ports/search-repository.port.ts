@@ -6,7 +6,10 @@ export type SearchProfessionalsInput = {
   subCategoryId?: string;
   query?: string;
   role?: 'PRESTATAIRE' | 'MEDECIN';
-  travelMode?: 'PRESTATAIRE_SE_DEPLACE' | 'CLIENT_SE_DEPLACE' | 'TRANSPORT_COLIS';
+  travelMode?:
+    | 'PRESTATAIRE_SE_DEPLACE'
+    | 'CLIENT_SE_DEPLACE'
+    | 'TRANSPORT_COLIS';
   latitude?: number;
   longitude?: number;
   radiusKm?: number;

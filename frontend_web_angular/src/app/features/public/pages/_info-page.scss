@@ -3,8 +3,7 @@
 }
 
 .info-page {
-  background:
-    linear-gradient(180deg, #fffaf4 0%, #f7fbfc 42%, #fff 100%);
+  background: linear-gradient(180deg, #fffaf4 0%, #f7fbfc 42%, #fff 100%);
   color: #17212b;
   font-family: var(--font-app, system-ui, sans-serif);
   min-height: 100vh;
@@ -282,9 +281,7 @@
   min-height: 368px;
   padding: 22px;
   position: relative;
-  background:
-    linear-gradient(145deg, rgba(17, 25, 35, 0.96), rgba(22, 38, 45, 0.96)),
-    #15191d;
+  background: linear-gradient(145deg, rgba(17, 25, 35, 0.96), rgba(22, 38, 45, 0.96)), #15191d;
 }
 
 .contact-console__top {

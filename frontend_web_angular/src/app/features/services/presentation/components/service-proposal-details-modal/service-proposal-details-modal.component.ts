@@ -9,7 +9,12 @@ import {
   ServiceProposalMapAddressSelection,
 } from '../service-proposal-interactive-map/service-proposal-interactive-map.component';
 
-export type ProposalDetailsModal = 'service' | 'schedule' | 'address' | 'parcelPickup' | 'parcelDropoff';
+export type ProposalDetailsModal =
+  | 'service'
+  | 'schedule'
+  | 'address'
+  | 'parcelPickup'
+  | 'parcelDropoff';
 
 export interface ProposalAddressSuggestion {
   id: string;
@@ -82,9 +87,7 @@ export class ServiceProposalDetailsModalComponent {
   }
 
   protected get contactPhoneLabel(): string {
-    return this.mode === 'parcelPickup'
-      ? "Telephone de l'expediteur"
-      : 'Telephone du destinataire';
+    return this.mode === 'parcelPickup' ? "Telephone de l'expediteur" : 'Telephone du destinataire';
   }
 
   protected get contactNamePlaceholder(): string {

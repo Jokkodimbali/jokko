@@ -565,7 +565,6 @@
   min-width: 42px;
 }
 
-
 .appointment-detail__tool {
   align-items: center;
   background: #347ff0;
@@ -1030,7 +1029,10 @@
   line-height: 1;
   padding: 0;
   text-shadow: 0 3px 9px rgba(245, 158, 11, 0.12);
-  transition: color 150ms ease, text-shadow 150ms ease, transform 150ms ease;
+  transition:
+    color 150ms ease,
+    text-shadow 150ms ease,
+    transform 150ms ease;
   width: 38px;
   -webkit-text-stroke: 1.7px #f59e0b;
 }
@@ -1240,4 +1242,3 @@
   font-style: normal;
   font-weight: 700;
 }
-

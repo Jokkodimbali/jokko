@@ -38,7 +38,9 @@ export function appointmentJourneySteps(currentStep: 1 | 2 | 3 | 4): Appointment
   return journeySteps(APPOINTMENT_JOURNEY_LABELS, currentStep);
 }
 
-export function medicineAppointmentJourneySteps(currentStep: 1 | 2 | 3 | 4): AppointmentTrackingStep[] {
+export function medicineAppointmentJourneySteps(
+  currentStep: 1 | 2 | 3 | 4,
+): AppointmentTrackingStep[] {
   return journeySteps(MEDICINE_APPOINTMENT_JOURNEY_LABELS, currentStep);
 }
 

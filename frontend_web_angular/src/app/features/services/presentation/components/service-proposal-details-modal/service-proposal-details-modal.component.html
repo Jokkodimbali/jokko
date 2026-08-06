@@ -55,7 +55,9 @@
         <span><lucide-icon [name]="serviceIcon(service)" size="19" [strokeWidth]="2.3" /></span>
         <div>
           <strong>{{ serviceName(service) }}</strong>
-          <small class="details-modal__service-price">Tarif : {{ servicePriceLabel(service) }} FCFA</small>
+          <small class="details-modal__service-price"
+            >Tarif : {{ servicePriceLabel(service) }} FCFA</small
+          >
         </div>
         <lucide-icon
           *ngIf="service.id === selectedServiceId"
@@ -95,9 +97,7 @@
           placeholder="ex : Soudure de portail, Peinture..."
           [(ngModel)]="customServiceName"
         />
-        <button
-          type="submit"
-        >
+        <button type="submit">
           <lucide-icon name="check" size="16" [strokeWidth]="2.6" />
           Cr&eacute;er ma prestation
         </button>

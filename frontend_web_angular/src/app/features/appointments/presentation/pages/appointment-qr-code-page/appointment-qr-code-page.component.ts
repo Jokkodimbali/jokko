@@ -70,7 +70,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private cameraVideo?: HTMLVideoElement;
   private cameraStream?: MediaStream;
   private cameraScanIntervalId?: number;
-  private barcodeDetector?: { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> };
+  private barcodeDetector?: {
+    detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>>;
+  };
   private scanCanvas?: HTMLCanvasElement;
   private scanCanvasContext?: CanvasRenderingContext2D | null;
   private autoReturnScheduled = false;
@@ -107,7 +109,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   protected readonly targetRoleDisplay = computed(() =>
     this.mode() === 'expediteur' ? 'EXPEDITEUR' : 'DESTINATAIRE',
   );
-  protected readonly manifest = computed(() => this.parseParcelManifest(this.appointment()?.notes ?? null));
+  protected readonly manifest = computed(() =>
+    this.parseParcelManifest(this.appointment()?.notes ?? null),
+  );
   protected readonly targetName = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return '';
@@ -145,9 +149,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       : "Le meme QR code sert au retrait chez l'expediteur et a la livraison chez le destinataire.",
   );
   protected readonly statusLabel = computed(() =>
-    this.mode() === 'expediteur'
-      ? 'En attente de validation'
-      : 'En attente de validation',
+    this.mode() === 'expediteur' ? 'En attente de validation' : 'En attente de validation',
   );
   protected readonly steps = computed<QrStep[]>(() => {
     const role = this.targetRoleLabel();
@@ -507,7 +509,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       this.manualScanValue.set('');
       this.validateScannedQr();
     } catch {
-      this.cameraError.set('Lecture du QR code impossible pour le moment. Rapprochez le code de la camera.');
+      this.cameraError.set(
+        'Lecture du QR code impossible pour le moment. Rapprochez le code de la camera.',
+      );
     }
   }
 
@@ -600,16 +604,16 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private cameraActivationErrorMessage(error: unknown): string {
     const name = error instanceof DOMException ? error.name : '';
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      return "Acces camera refuse. Autorisez la camera dans le navigateur puis reessayez.";
+      return 'Acces camera refuse. Autorisez la camera dans le navigateur puis reessayez.';
     }
     if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
       return "Aucune camera n'a ete detectee sur cet appareil. Saisissez le numero de colis manuellement.";
     }
     if (name === 'NotReadableError' || name === 'TrackStartError') {
-      return "La camera est deja utilisee par une autre application. Fermez-la puis reessayez.";
+      return 'La camera est deja utilisee par une autre application. Fermez-la puis reessayez.';
     }
     if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
-      return "La camera disponible ne correspond pas aux reglages demandes. Reessayez ou saisissez le numero de colis.";
+      return 'La camera disponible ne correspond pas aux reglages demandes. Reessayez ou saisissez le numero de colis.';
     }
     return "Impossible d'activer la camera. Autorisez l'acces camera ou saisissez le numero de colis manuellement.";
   }
@@ -645,7 +649,10 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     return value.trim().replace(/\s+/g, '').toUpperCase();
   }
 
-  private validateQrToken(value: string, appointment: AppointmentView): 'valid' | 'invalid' | 'none' {
+  private validateQrToken(
+    value: string,
+    appointment: AppointmentView,
+  ): 'valid' | 'invalid' | 'none' {
     const token = this.extractQrTokenFromScannedValue(value);
     if (!token) return 'none';
 
@@ -748,7 +755,10 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     const signature = this.route.snapshot.queryParamMap.get('sig');
     if (!reservationId || !checkpoint || !reference || !signature) return null;
 
-    const url = new URL(`/appointments/${this.route.snapshot.paramMap.get('id')}/qr/${this.mode()}`, window.location.origin);
+    const url = new URL(
+      `/appointments/${this.route.snapshot.paramMap.get('id')}/qr/${this.mode()}`,
+      window.location.origin,
+    );
     url.searchParams.set('r', reservationId);
     url.searchParams.set('c', checkpoint);
     url.searchParams.set('ref', reference);
@@ -860,7 +870,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     });
   }
 
-  private sanitizeOptionalNumber(value: number | null | undefined, min: number, max: number): number | null {
+  private sanitizeOptionalNumber(
+    value: number | null | undefined,
+    min: number,
+    max: number,
+  ): number | null {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
       return null;
     }
@@ -893,10 +907,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     this.autoReturnScheduled = false;
   }
 
-  private parcelTokenSignature(
-    appointment: AppointmentView,
-    reference: string,
-  ): string {
+  private parcelTokenSignature(appointment: AppointmentView, reference: string): string {
     return this.checksum(
       [
         'JOKKO_PARCEL_CHECKPOINT',
@@ -904,7 +915,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         appointment.serviceId,
         this.normalizeParcelReference(reference),
       ].join('|'),
-    ).toString(36).toUpperCase();
+    )
+      .toString(36)
+      .toUpperCase();
   }
 
   private legacyParcelTokenSignature(
@@ -920,17 +933,15 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         checkpoint,
         this.normalizeParcelReference(reference),
       ].join('|'),
-    ).toString(36).toUpperCase();
+    )
+      .toString(36)
+      .toUpperCase();
   }
 
   private encodePayloadForUrl(value: string): string {
     const bytes = new TextEncoder().encode(value);
     const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
-    return window
-      .btoa(binary)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/g, '');
+    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
   private decodePayloadFromUrl(value: string): string | null {
@@ -1013,7 +1024,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     return [...new Set(numbers)];
   }
 
-  private toFourDigitParcelNumber(value: string, appointment: AppointmentView, index: number): string {
+  private toFourDigitParcelNumber(
+    value: string,
+    appointment: AppointmentView,
+    index: number,
+  ): string {
     const digits = value.replace(/\D/g, '');
     if (/^\d{4}$/.test(digits)) return digits;
 

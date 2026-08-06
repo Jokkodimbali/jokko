@@ -55,14 +55,17 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const normalizedMessage = Array.isArray(message)
       ? message.join('. ')
       : message;
+    const errorDetails = (response.locals as Record<string, unknown>)[
+      'errorDetails'
+    ];
 
     response.status(statusCode).json({
       success: false,
       statusCode,
       errorCode,
       message: normalizedMessage,
-      ...(process.env.NODE_ENV !== 'production' && response.locals.errorDetails
-        ? { details: response.locals.errorDetails }
+      ...(process.env.NODE_ENV !== 'production' && errorDetails
+        ? { details: errorDetails }
         : {}),
       timestamp: new Date().toISOString(),
       path: request.url,

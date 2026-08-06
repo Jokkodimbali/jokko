@@ -6,19 +6,19 @@ import { OtpVerifyComponent } from './presentation/pages/otp-verify/otp-verify.c
 export const authRoutes: Routes = [
   {
     path: 'login',
-    component: LoginComponent
+    component: LoginComponent,
   },
   {
     path: 'register',
-    component: RegisterComponent
+    component: RegisterComponent,
   },
   {
     path: 'verify-otp',
-    component: OtpVerifyComponent
+    component: OtpVerifyComponent,
   },
   {
     path: '',
     redirectTo: 'login',
-    pathMatch: 'full'
-  }
+    pathMatch: 'full',
+  },
 ];

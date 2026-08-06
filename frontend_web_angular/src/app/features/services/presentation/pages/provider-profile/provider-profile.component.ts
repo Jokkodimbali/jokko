@@ -52,7 +52,8 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
   },
   CAMIONNETTE: {
     label: 'Camionnette',
-    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    imageUrl:
+      'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
 };
 
@@ -105,9 +106,7 @@ export class ProviderProfileComponent implements OnInit {
   });
   protected readonly subCategoryNames = computed(() => [
     ...new Set(
-      (this.detail()?.profile.subCategoryNames ?? [])
-        .map((name) => name.trim())
-        .filter(Boolean),
+      (this.detail()?.profile.subCategoryNames ?? []).map((name) => name.trim()).filter(Boolean),
     ),
   ]);
 
@@ -135,7 +134,9 @@ export class ProviderProfileComponent implements OnInit {
       ...(serviceId ? { serviceId } : {}),
     };
   });
-  protected readonly avatarUrl = computed(() => this.detail()?.profile.utilisateur.urlAvatar ?? null);
+  protected readonly avatarUrl = computed(
+    () => this.detail()?.profile.utilisateur.urlAvatar ?? null,
+  );
   protected readonly initials = computed(() => userInitials(this.displayName()));
   protected readonly coverUrl = computed(() => this.defaultCoverUrl);
   protected readonly offeredServices = computed<OfferedServiceVisual[]>(() =>
@@ -152,9 +153,7 @@ export class ProviderProfileComponent implements OnInit {
     const selectedId = this.selectedVisualServiceId() || this.primaryService()?.id;
     return services.find((service) => service.id === selectedId) ?? services[0] ?? null;
   });
-  protected readonly reviewItems = computed(() =>
-    (this.detail()?.reviews ?? []).slice(0, 2),
-  );
+  protected readonly reviewItems = computed(() => (this.detail()?.reviews ?? []).slice(0, 2));
   protected formatReviewInitials(name: string): string {
     return userInitials(name);
   }
@@ -220,7 +219,9 @@ export class ProviderProfileComponent implements OnInit {
     };
   });
   protected readonly bio = computed(
-    () => this.professionalBiography().about || "Ce prestataire n'a pas encore renseigné sa présentation.",
+    () =>
+      this.professionalBiography().about ||
+      "Ce prestataire n'a pas encore renseigné sa présentation.",
   );
   protected readonly priceLabel = computed(() => {
     const price = this.primaryService()?.prix;
@@ -263,7 +264,9 @@ export class ProviderProfileComponent implements OnInit {
     return years > 0 ? `${years} ans` : 'Nouveau';
   });
   protected readonly servicesCountLabel = computed(() => `${this.detail()?.services.length ?? 0}`);
-  protected readonly reviewsCountLabel = computed(() => `${this.detail()?.profile.nombreAvis ?? 0}`);
+  protected readonly reviewsCountLabel = computed(
+    () => `${this.detail()?.profile.nombreAvis ?? 0}`,
+  );
   protected readonly vehicleBadge = computed(() => {
     const hasParcelDelivery = (this.detail()?.services ?? []).some(
       (service) => service.estDisponible && service.modeDeplacement === 'TRANSPORT_COLIS',
@@ -307,7 +310,9 @@ export class ProviderProfileComponent implements OnInit {
   protected readonly isFavorite = signal(false);
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly expertiseTags = computed(() => this.professionalBiography().expertises);
-  protected readonly schedule = computed(() => this.buildSchedule(this.detail()?.availabilities ?? []));
+  protected readonly schedule = computed(() =>
+    this.buildSchedule(this.detail()?.availabilities ?? []),
+  );
   protected readonly scheduleSlotsCount = computed(() =>
     this.schedule().reduce((total, row) => total + row.slots.length, 0),
   );
@@ -336,10 +341,7 @@ export class ProviderProfileComponent implements OnInit {
   }
 
   protected goBack(): void {
-    this.backNavigation.back(
-      this.route.snapshot.queryParamMap.get('returnUrl'),
-      '/services',
-    );
+    this.backNavigation.back(this.route.snapshot.queryParamMap.get('returnUrl'), '/services');
   }
 
   protected loadProviderDetail(): void {
@@ -347,10 +349,12 @@ export class ProviderProfileComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.servicesService.getProviderProfileDetail(this.profileId).subscribe({
-        next: (detail) => {
-          this.detail.set(detail);
-          this.selectedVisualServiceId.set(this.primaryService()?.id ?? detail.services[0]?.id ?? null);
-          this.isLoading.set(false);
+      next: (detail) => {
+        this.detail.set(detail);
+        this.selectedVisualServiceId.set(
+          this.primaryService()?.id ?? detail.services[0]?.id ?? null,
+        );
+        this.isLoading.set(false);
         this.loadFavoriteStatus();
       },
       error: () => {
@@ -362,8 +366,11 @@ export class ProviderProfileComponent implements OnInit {
 
   protected formatLocation(): string {
     const profile = this.detail()?.profile;
-    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
-      profile?.ville || 'Localisation non renseignee';
+    return (
+      this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      profile?.ville ||
+      'Localisation non renseignee'
+    );
   }
 
   protected formatPhone(): string {
@@ -419,9 +426,7 @@ export class ProviderProfileComponent implements OnInit {
       next: () => {
         const isNowFavorite = !this.isFavorite();
         this.isFavorite.set(isNowFavorite);
-        this.feedback.success(
-          isNowFavorite ? 'Ajoute aux favoris.' : 'Retire des favoris.',
-        );
+        this.feedback.success(isNowFavorite ? 'Ajoute aux favoris.' : 'Retire des favoris.');
       },
       error: () => {
         this.feedback.error('Impossible de mettre a jour vos favoris pour le moment.');
@@ -472,8 +477,12 @@ export class ProviderProfileComponent implements OnInit {
     latitude: number | null | undefined,
     longitude: number | null | undefined,
   ): latitude is number {
-    return typeof latitude === 'number' && Number.isFinite(latitude)
-      && typeof longitude === 'number' && Number.isFinite(longitude);
+    return (
+      typeof latitude === 'number' &&
+      Number.isFinite(latitude) &&
+      typeof longitude === 'number' &&
+      Number.isFinite(longitude)
+    );
   }
 
   private buildSchedule(availabilities: BackendProfessionalAvailability[]): ScheduleRow[] {
@@ -482,7 +491,9 @@ export class ProviderProfileComponent implements OnInit {
     for (const availability of availabilities) {
       if (!availability.estActive) continue;
       const slots = rows.get(availability.jourSemaine) ?? [];
-      slots.push(`${this.formatTime(availability.heureDebut)} - ${this.formatTime(availability.heureFin)}`);
+      slots.push(
+        `${this.formatTime(availability.heureDebut)} - ${this.formatTime(availability.heureFin)}`,
+      );
       rows.set(availability.jourSemaine, slots);
     }
 

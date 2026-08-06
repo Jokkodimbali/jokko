@@ -245,16 +245,13 @@ export class ServiceProposalService {
     payload: CreatePriceProposalPayload,
   ): Observable<NegotiationView> {
     return this.http
-      .patch<ApiResponse<NegotiationView>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/counter`,
-        {
-          proposedAmount: payload.proposedAmount,
-          message: payload.message,
-          dateHeure: payload.dateHeure,
-          adresseClient: payload.adresseClient,
-          dureeMinutes: payload.dureeMinutes,
-        },
-      )
+      .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/counter`, {
+        proposedAmount: payload.proposedAmount,
+        message: payload.message,
+        dateHeure: payload.dateHeure,
+        adresseClient: payload.adresseClient,
+        dureeMinutes: payload.dureeMinutes,
+      })
       .pipe(
         map((response) => unwrapApiResponse(response)),
         tap(() => this.clearProposalsCache()),
@@ -263,7 +260,9 @@ export class ServiceProposalService {
 
   acceptPriceProposal(negotiationId: string): Observable<NegotiationView> {
     return this.http
-      .patch<ApiResponse<NegotiationView>>(`${this.apiUrl}/negotiations/${negotiationId}/accept`, {})
+      .patch<
+        ApiResponse<NegotiationView>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/accept`, {})
       .pipe(
         map((response) => unwrapApiResponse(response)),
         tap(() => this.clearProposalsCache()),
@@ -294,9 +293,9 @@ export class ServiceProposalService {
 
   listMaterialQuotes(negotiationId: string): Observable<MaterialQuoteView[]> {
     return this.http
-      .get<ApiResponse<MaterialQuoteView[]>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes`,
-      )
+      .get<
+        ApiResponse<MaterialQuoteView[]>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -305,28 +304,25 @@ export class ServiceProposalService {
     payload: CreateMaterialQuotePayload,
   ): Observable<MaterialQuoteView> {
     return this.http
-      .post<ApiResponse<MaterialQuoteView>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes`,
-        payload,
-      )
+      .post<
+        ApiResponse<MaterialQuoteView>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   approveMaterialQuote(negotiationId: string, quoteId: string): Observable<MaterialQuoteView> {
     return this.http
-      .patch<ApiResponse<MaterialQuoteView>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/approve`,
-        {},
-      )
+      .patch<
+        ApiResponse<MaterialQuoteView>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/approve`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   rejectMaterialQuote(negotiationId: string, quoteId: string): Observable<MaterialQuoteView> {
     return this.http
-      .patch<ApiResponse<MaterialQuoteView>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/reject`,
-        {},
-      )
+      .patch<
+        ApiResponse<MaterialQuoteView>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes/${quoteId}/reject`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -335,10 +331,9 @@ export class ServiceProposalService {
     reservationId: string,
   ): Observable<{ ready: boolean; quoteCount: number; pdfUrl: string | null }> {
     return this.http
-      .post<ApiResponse<{ ready: boolean; quoteCount: number; pdfUrl: string | null }>>(
-        `${this.apiUrl}/negotiations/${negotiationId}/material-quotes/finalize`,
-        { reservationId },
-      )
+      .post<
+        ApiResponse<{ ready: boolean; quoteCount: number; pdfUrl: string | null }>
+      >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes/finalize`, { reservationId })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -403,10 +398,9 @@ export class ServiceProposalService {
     }
 
     return this.http
-      .get<ApiResponse<ReservationAvailabilitySlotsView>>(
-        `${this.apiUrl}/reservations/availability/slots`,
-        { params },
-      )
+      .get<
+        ApiResponse<ReservationAvailabilitySlotsView>
+      >(`${this.apiUrl}/reservations/availability/slots`, { params })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

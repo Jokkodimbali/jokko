@@ -55,9 +55,15 @@ export class AdminRevenuePanelComponent {
     return 248 - (Number(value || 0) / this.chartMax(report)) * 188;
   }
 
-  protected linePoints(report: AdminRevenueReport, key: 'gross' | 'net' | 'commission' | 'refunded'): string {
+  protected linePoints(
+    report: AdminRevenueReport,
+    key: 'gross' | 'net' | 'commission' | 'refunded',
+  ): string {
     return report.series
-      .map((point, index) => `${this.chartPointX(index, report.series.length)},${this.chartPointY(point[key] || 0, report)}`)
+      .map(
+        (point, index) =>
+          `${this.chartPointX(index, report.series.length)},${this.chartPointY(point[key] || 0, report)}`,
+      )
       .join(' ');
   }
 
@@ -124,6 +130,7 @@ export class AdminRevenuePanelComponent {
   }
 
   protected nextRecentPaymentsPage(report: AdminRevenueReport): void {
-    if (this.recentPaymentsPage < this.recentPaymentsPageCount(report)) this.recentPaymentsPage += 1;
+    if (this.recentPaymentsPage < this.recentPaymentsPageCount(report))
+      this.recentPaymentsPage += 1;
   }
 }

@@ -14,7 +14,10 @@
         </span>
         <div>
           <h1>Signalez un probleme</h1>
-          <p>Nous sommes desoles que votre experience ne soit pas deroulee comme prevu. Remplissez les etapes ci-dessous pour ouvrir un litige</p>
+          <p>
+            Nous sommes desoles que votre experience ne soit pas deroulee comme prevu. Remplissez
+            les etapes ci-dessous pour ouvrir un litige
+          </p>
         </div>
       </header>
 
@@ -25,7 +28,10 @@
 
         <div>
           <strong>{{ currentAppointment.serviceName }}</strong>
-          <span>Avec {{ currentAppointment.doctorName }} - Le {{ currentAppointment.scheduledAt | date:'d MMM y' }}</span>
+          <span
+            >Avec {{ currentAppointment.doctorName }} - Le
+            {{ currentAppointment.scheduledAt | date: 'd MMM y' }}</span
+          >
         </div>
 
         <aside>
@@ -86,11 +92,19 @@
         </header>
 
         <div class="dispute-report__evidence">
-          <article *ngFor="let file of evidenceFiles(); let index = index" class="dispute-report__file">
+          <article
+            *ngFor="let file of evidenceFiles(); let index = index"
+            class="dispute-report__file"
+          >
             <button type="button" aria-label="Retirer la preuve" (click)="removeEvidence(index)">
               <lucide-icon name="x" size="14" [strokeWidth]="2.6"></lucide-icon>
             </button>
-            <img *ngIf="isImageFile(file); else docIcon" [src]="getFilePreviewUrl(file)" alt="Aperçu" class="dispute-report__file-preview" />
+            <img
+              *ngIf="isImageFile(file); else docIcon"
+              [src]="getFilePreviewUrl(file)"
+              alt="Aperçu"
+              class="dispute-report__file-preview"
+            />
             <ng-template #docIcon>
               <lucide-icon [name]="fileIcon(file)" size="32" [strokeWidth]="2.2"></lucide-icon>
             </ng-template>
@@ -98,7 +112,12 @@
           </article>
 
           <label class="dispute-report__add-file">
-            <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" multiple (change)="onEvidenceSelected($event)" />
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+              multiple
+              (change)="onEvidenceSelected($event)"
+            />
             <lucide-icon name="plus" size="34" [strokeWidth]="2"></lucide-icon>
             <span>Ajouter</span>
           </label>

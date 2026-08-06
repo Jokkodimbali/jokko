@@ -166,8 +166,10 @@ export class ConversationsController {
   }
 
   @Get('media/download-url')
-  @ApiOperation({ summary: 'Generer une URL de telechargement Cloudinary signee' })
-  async createMediaDownloadUrl(
+  @ApiOperation({
+    summary: 'Generer une URL de telechargement Cloudinary signee',
+  })
+  createMediaDownloadUrl(
     @Query('mediaUrl') mediaUrl: string | undefined,
     @Query('fileName') fileName?: string,
   ) {
@@ -177,7 +179,10 @@ export class ConversationsController {
 
     const download = (() => {
       try {
-        return this.cloudinaryMedia.createPrivateDownloadUrl(mediaUrl, fileName);
+        return this.cloudinaryMedia.createPrivateDownloadUrl(
+          mediaUrl,
+          fileName,
+        );
       } catch {
         throw appHttpException('VALIDATION_REQUEST_INVALID');
       }

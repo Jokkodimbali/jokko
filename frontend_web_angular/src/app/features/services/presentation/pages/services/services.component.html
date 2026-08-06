@@ -98,11 +98,9 @@
           <p>Ajoutez des prestataires en favoris pour les retrouver rapidement ici.</p>
           <a routerLink="/favorites" class="auth-link">Voir ma liste</a>
         </div>
-        <br>
+        <br />
       </ng-template>
-      <a routerLink="/favorites" class="favorites-manage">
-        G&eacute;rer mes favoris
-      </a>
+      <a routerLink="/favorites" class="favorites-manage"> G&eacute;rer mes favoris </a>
     </aside>
 
     <div class="service-feed">
@@ -137,7 +135,10 @@
         </button>
       </div>
 
-      <section *ngFor="let section of sections(); trackBy: trackBySectionId" class="service-section">
+      <section
+        *ngFor="let section of sections(); trackBy: trackBySectionId"
+        class="service-section"
+      >
         <div
           #serviceFilters
           id="services-filters"
@@ -147,7 +148,9 @@
           <button
             type="button"
             class="service-filters__button service-filters__button--all"
-            [class.service-filters__button--active]="activeFilter() === 'ALL' && activeCategoryId() === null"
+            [class.service-filters__button--active]="
+              activeFilter() === 'ALL' && activeCategoryId() === null
+            "
             (click)="selectCategory(null)"
           >
             <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
@@ -160,16 +163,30 @@
             [class.service-filters__button--active]="activeFilter() === filter.value"
             (click)="selectFilter(filter.value)"
           >
-            <lucide-icon *ngIf="filter.value === 'MEDECIN'" name="stethoscope" size="16" [strokeWidth]="2.4"></lucide-icon>
-            <lucide-icon *ngIf="filter.value === 'PRESTATAIRE'" name="briefcase-business" size="16" [strokeWidth]="2.4"></lucide-icon>
+            <lucide-icon
+              *ngIf="filter.value === 'MEDECIN'"
+              name="stethoscope"
+              size="16"
+              [strokeWidth]="2.4"
+            ></lucide-icon>
+            <lucide-icon
+              *ngIf="filter.value === 'PRESTATAIRE'"
+              name="briefcase-business"
+              size="16"
+              [strokeWidth]="2.4"
+            ></lucide-icon>
             {{ filter.label }}
           </button>
           <ng-container *ngFor="let category of categories()">
             <button
               type="button"
               class="service-filters__button"
-              [class.service-filters__button--active]="activeCategoryId() === category.id && activeSubCategoryId() === null"
-              [class.service-filters__button--parent]="activeCategoryId() === category.id && activeSubCategoryId() !== null"
+              [class.service-filters__button--active]="
+                activeCategoryId() === category.id && activeSubCategoryId() === null
+              "
+              [class.service-filters__button--parent]="
+                activeCategoryId() === category.id && activeSubCategoryId() !== null
+              "
               (click)="selectCategory(category.id)"
             >
               {{ category.nom }}

@@ -9,8 +9,18 @@
   [attr.aria-label]="label"
 >
   <span>{{ label }}</span>
-  <img *ngIf="imageUrl; else iconList" [src]="imageUrl" [alt]="variant === 'vehicle' ? label : ''" [attr.aria-hidden]="variant === 'movement' ? true : null" />
+  <img
+    *ngIf="imageUrl; else iconList"
+    [src]="imageUrl"
+    [alt]="variant === 'vehicle' ? label : ''"
+    [attr.aria-hidden]="variant === 'movement' ? true : null"
+  />
   <ng-template #iconList>
-    <lucide-icon *ngFor="let icon of icons" [name]="icon" size="15" [strokeWidth]="2.6"></lucide-icon>
+    <lucide-icon
+      *ngFor="let icon of icons"
+      [name]="icon"
+      size="15"
+      [strokeWidth]="2.6"
+    ></lucide-icon>
   </ng-template>
 </span>

@@ -7,8 +7,7 @@ export const AUTH_UI_MESSAGES = {
   otpInvalid: 'Code OTP invalide ou expiré.',
   otpResendFailed: 'Erreur lors du renvoi du code.',
   otpResent: 'Un nouveau code a été envoyé.',
-  phoneRequired:
-    'Veuillez entrer un numero senegalais valide au format +221770000000.',
+  phoneRequired: 'Veuillez entrer un numero senegalais valide au format +221770000000.',
   emailInvalid: 'Veuillez entrer une adresse email valide.',
   loginIdentifierInvalid:
     'Veuillez entrer un numero senegalais valide ou une adresse email valide.',

@@ -18,11 +18,15 @@ export class AdminReservationsService {
 
   list(query: AdminDateRangeQuery = {}): Observable<AdminReservationsPage> {
     return this.http
-      .get<ApiResponse<AdminReservationDetail[]>>(this.reservationsUrl, { params: this.toParams(query) })
-      .pipe(map((response) => ({
-        items: unwrapApiResponse(response),
-        pagination: response.meta?.['pagination'] as AdminReservationsPage['pagination'],
-      })));
+      .get<
+        ApiResponse<AdminReservationDetail[]>
+      >(this.reservationsUrl, { params: this.toParams(query) })
+      .pipe(
+        map((response) => ({
+          items: unwrapApiResponse(response),
+          pagination: response.meta?.['pagination'] as AdminReservationsPage['pagination'],
+        })),
+      );
   }
 
   statistics(query: AdminDateRangeQuery = {}): Observable<AdminReservationStatistics> {

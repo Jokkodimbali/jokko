@@ -1,11 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  NgZone,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, ElementRef, NgZone, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -164,7 +157,7 @@ export class LoginComponent {
 
     if (this.isLocalhostGoogleOrigin()) {
       this.errorMessage.set(
-        "Connexion Google indisponible en local : ajoutez http://localhost:4200 dans les origines autorisees du client OAuth Google, puis rechargez la page.",
+        'Connexion Google indisponible en local : ajoutez http://localhost:4200 dans les origines autorisees du client OAuth Google, puis rechargez la page.',
       );
       return;
     }

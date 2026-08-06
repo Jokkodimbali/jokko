@@ -32,17 +32,20 @@ export class ProfessionalMessagingNavigationService {
       return;
     }
 
-    this.messages.createConversation({
-      ...(target.professionalUserId
-        ? { professionalUserId: target.professionalUserId }
-        : { professionalProfileId: target.professionalProfileId }),
-    }).subscribe({
-      next: (conversation) => {
-        void this.router.navigate(['/messages'], {
-          queryParams: { conversationId: conversation.id },
-        });
-      },
-      error: () => this.feedback.error("Impossible d'ouvrir la discussion avec ce professionnel."),
-    });
+    this.messages
+      .createConversation({
+        ...(target.professionalUserId
+          ? { professionalUserId: target.professionalUserId }
+          : { professionalProfileId: target.professionalProfileId }),
+      })
+      .subscribe({
+        next: (conversation) => {
+          void this.router.navigate(['/messages'], {
+            queryParams: { conversationId: conversation.id },
+          });
+        },
+        error: () =>
+          this.feedback.error("Impossible d'ouvrir la discussion avec ce professionnel."),
+      });
   }
 }

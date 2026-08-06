@@ -23,7 +23,8 @@ export class MessagesRealtimeService {
   private readonly authSession = inject(AuthSessionService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly messageCreatedSubject = new Subject<ConversationMessage>();
-  private readonly disputeMediationMessageCreatedSubject = new Subject<DisputeMediationRealtimeMessage>();
+  private readonly disputeMediationMessageCreatedSubject =
+    new Subject<DisputeMediationRealtimeMessage>();
   private readonly joinedConversationIds = new Set<string>();
   private socket: Socket | null = null;
 
@@ -62,9 +63,12 @@ export class MessagesRealtimeService {
       this.messageCreatedSubject.next(message);
     });
 
-    this.socket.on('dispute.mediation.message.created', (message: DisputeMediationRealtimeMessage) => {
-      this.disputeMediationMessageCreatedSubject.next(message);
-    });
+    this.socket.on(
+      'dispute.mediation.message.created',
+      (message: DisputeMediationRealtimeMessage) => {
+        this.disputeMediationMessageCreatedSubject.next(message);
+      },
+    );
   }
 
   joinConversation(conversationId: string | null): void {

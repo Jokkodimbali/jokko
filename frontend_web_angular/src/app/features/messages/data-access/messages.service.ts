@@ -116,7 +116,9 @@ export class MessagesService {
     );
   }
 
-  private getSignedCloudinaryDownloadUrl(mediaUrl: string): Observable<{ url: string; fileName: string }> {
+  private getSignedCloudinaryDownloadUrl(
+    mediaUrl: string,
+  ): Observable<{ url: string; fileName: string }> {
     return this.http
       .get<ApiResponse<{ url: string; fileName: string }>>(`${this.apiUrl}/media/download-url`, {
         params: {
@@ -133,9 +135,7 @@ export class MessagesService {
     }
 
     const apiOrigin = new URL(environment.apiUrl).origin;
-    return mediaUrl.startsWith('/')
-      ? `${apiOrigin}${mediaUrl}`
-      : `${apiOrigin}/${mediaUrl}`;
+    return mediaUrl.startsWith('/') ? `${apiOrigin}${mediaUrl}` : `${apiOrigin}/${mediaUrl}`;
   }
 
   private isCloudinaryUrl(mediaUrl: string): boolean {

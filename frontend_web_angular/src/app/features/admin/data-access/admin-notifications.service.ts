@@ -12,7 +12,9 @@ export class AdminNotificationsService {
 
   broadcast(payload: AdminBroadcastPayload): Observable<AdminBroadcastResult> {
     return this.http
-      .post<ApiResponse<AdminBroadcastResult>>(`${environment.apiUrl}/admin/notifications/broadcast`, payload)
+      .post<
+        ApiResponse<AdminBroadcastResult>
+      >(`${environment.apiUrl}/admin/notifications/broadcast`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 }

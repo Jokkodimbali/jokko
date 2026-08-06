@@ -25,7 +25,10 @@
   align-items: start;
   display: grid;
   gap: clamp(22px, 3vw, 38px);
-  grid-template-columns: minmax(280px, 1.2fr) minmax(150px, 0.55fr) minmax(150px, 0.55fr) minmax(210px, 0.76fr);
+  grid-template-columns: minmax(280px, 1.2fr) minmax(150px, 0.55fr) minmax(150px, 0.55fr) minmax(
+      210px,
+      0.76fr
+    );
 }
 
 .app-footer__brand {

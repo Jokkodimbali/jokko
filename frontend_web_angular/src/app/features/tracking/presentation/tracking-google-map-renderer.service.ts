@@ -111,8 +111,7 @@ const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
 const ROUTE_TURN_DOT_MIN_SEGMENT_METERS = 7;
 const ROUTE_STROKE_MIN_WEIGHT = 8.5;
 const ROUTE_STROKE_MAX_WEIGHT = 14;
-const ROUTE_TURN_DOT_SYMBOL_PATH =
-  'M 0,-6 A 6,6 0 1,1 0,6 A 6,6 0 1,1 0,-6';
+const ROUTE_TURN_DOT_SYMBOL_PATH = 'M 0,-6 A 6,6 0 1,1 0,6 A 6,6 0 1,1 0,-6';
 
 const DRIVER_ACTION_MANEUVERS = new Set([
   'TURN_LEFT',
@@ -272,17 +271,9 @@ export class TrackingGoogleMapRendererService {
       }
       const visibleRoutes = state.arrived
         ? []
-        : this.routesStartingAtProvider(
-            displayedProvider,
-            state.routes,
-          );
+        : this.routesStartingAtProvider(displayedProvider, state.routes);
       this.renderRoutes(visibleRoutes);
-      this.fitRoute(
-        displayedProvider,
-        state.destination,
-        visibleRoutes,
-        state.speedKmh,
-      );
+      this.fitRoute(displayedProvider, state.destination, visibleRoutes, state.speedKmh);
       this.refreshRenderedTravelerMarker();
     }
   }
@@ -486,7 +477,6 @@ export class TrackingGoogleMapRendererService {
         polyline.setMap(this.routeMap as GoogleMapsMapInstance);
       }
     });
-
   }
 
   private routesStartingAtProvider(
@@ -497,10 +487,7 @@ export class TrackingGoogleMapRendererService {
       route.selected
         ? {
             ...route,
-            coordinates: this.routeCoordinatesStartingAt(
-              provider,
-              route.coordinates,
-            ),
+            coordinates: this.routeCoordinatesStartingAt(provider, route.coordinates),
           }
         : route,
     );
@@ -517,10 +504,7 @@ export class TrackingGoogleMapRendererService {
       return coordinates;
     }
 
-    const start = this.routePointAtDistance(
-      coordinates,
-      projection.distanceAlongRouteMeters,
-    );
+    const start = this.routePointAtDistance(coordinates, projection.distanceAlongRouteMeters);
     if (!start) return coordinates;
 
     const remainingCoordinates = coordinates.slice(start.nextIndex);
@@ -596,11 +580,7 @@ export class TrackingGoogleMapRendererService {
   }
 
   private refreshRenderedTravelerMarker(): void {
-    if (
-      !this.providerMarker ||
-      !this.lastRenderedState ||
-      !this.lastRenderedProviderPosition
-    ) {
+    if (!this.providerMarker || !this.lastRenderedState || !this.lastRenderedProviderPosition) {
       return;
     }
 
@@ -672,10 +652,7 @@ export class TrackingGoogleMapRendererService {
     let lastOffsetDistance = Number.NEGATIVE_INFINITY;
 
     for (const candidate of candidates) {
-      if (
-        candidate.distanceMeters - lastOffsetDistance <
-        MANEUVER_MARKER_MIN_SPACING_METERS
-      ) {
+      if (candidate.distanceMeters - lastOffsetDistance < MANEUVER_MARKER_MIN_SPACING_METERS) {
         continue;
       }
 
@@ -708,9 +685,9 @@ export class TrackingGoogleMapRendererService {
   private routeGeometryTurnMarkerViews(coordinates: GoogleMapsPoint[]): RouteManeuverMarkerView[] {
     if (coordinates.length < 3) return [];
 
-    const segmentLengths = coordinates.slice(1).map((point, index) =>
-      this.distanceMeters(coordinates[index], point),
-    );
+    const segmentLengths = coordinates
+      .slice(1)
+      .map((point, index) => this.distanceMeters(coordinates[index], point));
     const totalDistanceMeters = segmentLengths.reduce((total, length) => total + length, 0);
     if (totalDistanceMeters <= 0) return [];
 
@@ -730,19 +707,13 @@ export class TrackingGoogleMapRendererService {
 
       const previousBearing = this.bearing(coordinates[index - 1], coordinates[index]);
       const nextBearing = this.bearing(coordinates[index], coordinates[index + 1]);
-      if (
-        this.headingDifference(previousBearing, nextBearing) <
-        ROUTE_TURN_DOT_MIN_ANGLE_DEGREES
-      ) {
+      if (this.headingDifference(previousBearing, nextBearing) < ROUTE_TURN_DOT_MIN_ANGLE_DEGREES) {
         continue;
       }
 
       markers.push({
         distanceMeters: distanceAlongRoute,
-        offsetPercent: Math.min(
-          99,
-          Math.max(1, (distanceAlongRoute / totalDistanceMeters) * 100),
-        ),
+        offsetPercent: Math.min(99, Math.max(1, (distanceAlongRoute / totalDistanceMeters) * 100)),
       });
     }
 
@@ -783,9 +754,9 @@ export class TrackingGoogleMapRendererService {
   ): { percent: number; distanceMeters: number } | null {
     if (coordinates.length < 2) return null;
 
-    const segmentLengths = coordinates.slice(1).map((point, index) =>
-      this.distanceMeters(coordinates[index], point),
-    );
+    const segmentLengths = coordinates
+      .slice(1)
+      .map((point, index) => this.distanceMeters(coordinates[index], point));
     const totalDistance = segmentLengths.reduce((total, length) => total + length, 0);
     if (totalDistance <= 0) return null;
 
@@ -802,8 +773,7 @@ export class TrackingGoogleMapRendererService {
       const projection = this.projectPointToSegment(position, start, end);
       if (projection.distanceSquared < nearestDistance) {
         nearestDistance = projection.distanceSquared;
-        bestDistanceAlongRoute =
-          distanceBeforeSegment + segmentLength * projection.ratio;
+        bestDistanceAlongRoute = distanceBeforeSegment + segmentLength * projection.ratio;
       }
       distanceBeforeSegment += segmentLength;
     }
@@ -825,9 +795,7 @@ export class TrackingGoogleMapRendererService {
     if (lengthSquared <= 0) {
       return {
         ratio: 0,
-        distanceSquared:
-          Math.pow(point.lat - start.lat, 2) +
-          Math.pow(point.lng - start.lng, 2),
+        distanceSquared: Math.pow(point.lat - start.lat, 2) + Math.pow(point.lng - start.lng, 2),
       };
     }
 
@@ -835,8 +803,7 @@ export class TrackingGoogleMapRendererService {
       1,
       Math.max(
         0,
-        ((point.lat - start.lat) * deltaLat + (point.lng - start.lng) * deltaLng) /
-          lengthSquared,
+        ((point.lat - start.lat) * deltaLat + (point.lng - start.lng) * deltaLng) / lengthSquared,
       ),
     );
     const projected = {
@@ -847,8 +814,7 @@ export class TrackingGoogleMapRendererService {
     return {
       ratio,
       distanceSquared:
-        Math.pow(point.lat - projected.lat, 2) +
-        Math.pow(point.lng - projected.lng, 2),
+        Math.pow(point.lat - projected.lat, 2) + Math.pow(point.lng - projected.lng, 2),
     };
   }
 
@@ -859,8 +825,7 @@ export class TrackingGoogleMapRendererService {
     state: TrackingMapRenderState,
     heading: number,
   ): GoogleMapsAdvancedMarkerInstance {
-    const AdvancedMarkerElement =
-      this.google?.maps.marker?.AdvancedMarkerElement;
+    const AdvancedMarkerElement = this.google?.maps.marker?.AdvancedMarkerElement;
     if (!AdvancedMarkerElement) {
       throw new Error('GOOGLE_MAPS_NOT_INITIALIZED');
     }
@@ -873,11 +838,7 @@ export class TrackingGoogleMapRendererService {
         map,
         position,
         title: 'Prestataire en route',
-        content: this.providerMarkerContent(
-          heading,
-          position,
-          state.travelerMarker,
-        ),
+        content: this.providerMarkerContent(heading, position, state.travelerMarker),
         anchorLeft: '-50%',
         anchorTop: this.providerMarkerAnchorTop(state.travelerMarker),
         zIndex: 30,
@@ -898,13 +859,7 @@ export class TrackingGoogleMapRendererService {
       this.lastMarkerUpdateAt = this.animationClock();
       this.lastMarkerSourceAt = this.validTimestamp(state.positionTimestampMs);
     } else {
-      this.animateMarker(
-        marker,
-        position,
-        heading,
-        state.speedKmh,
-        state.positionTimestampMs,
-      );
+      this.animateMarker(marker, position, heading, state.speedKmh, state.positionTimestampMs);
     }
     this.lastProviderPosition = position;
     return marker;
@@ -940,8 +895,7 @@ export class TrackingGoogleMapRendererService {
     position: GoogleMapsPoint,
     destinationMarker: TrackingDestinationMarker,
   ): GoogleMapsAdvancedMarkerInstance {
-    const AdvancedMarkerElement =
-      this.google?.maps.marker?.AdvancedMarkerElement;
+    const AdvancedMarkerElement = this.google?.maps.marker?.AdvancedMarkerElement;
     if (!AdvancedMarkerElement) {
       throw new Error('GOOGLE_MAPS_NOT_INITIALIZED');
     }
@@ -977,14 +931,16 @@ export class TrackingGoogleMapRendererService {
 
     const receivedAt = this.animationClock();
     const sourceAt = this.validTimestamp(sourceTimestampMs);
-    const sourceInterval = sourceAt !== null && this.lastMarkerSourceAt !== null
-      ? sourceAt - this.lastMarkerSourceAt
-      : null;
-    const updateInterval = sourceInterval !== null && sourceInterval > 0
-      ? sourceInterval
-      : this.lastMarkerUpdateAt === null
-        ? MARKER_DEFAULT_UPDATE_INTERVAL_MS
-        : receivedAt - this.lastMarkerUpdateAt;
+    const sourceInterval =
+      sourceAt !== null && this.lastMarkerSourceAt !== null
+        ? sourceAt - this.lastMarkerSourceAt
+        : null;
+    const updateInterval =
+      sourceInterval !== null && sourceInterval > 0
+        ? sourceInterval
+        : this.lastMarkerUpdateAt === null
+          ? MARKER_DEFAULT_UPDATE_INTERVAL_MS
+          : receivedAt - this.lastMarkerUpdateAt;
     this.lastMarkerUpdateAt = receivedAt;
     if (sourceAt !== null) this.lastMarkerSourceAt = sourceAt;
     const distance = this.distanceMeters(current, destination);
@@ -998,33 +954,27 @@ export class TrackingGoogleMapRendererService {
     this.cancelAnimation();
     const origin = current;
     const originHeading = this.renderedMarkerHeading;
-    const headingDelta =
-      ((destinationHeading - originHeading + 540) % 360) - 180;
+    const headingDelta = ((destinationHeading - originHeading + 540) % 360) - 180;
     const duration = Math.min(
       MARKER_MAX_ANIMATION_DURATION_MS,
-      Math.max(
-        MARKER_MIN_ANIMATION_DURATION_MS,
-        updateInterval * 1.08,
-      ),
+      Math.max(MARKER_MIN_ANIMATION_DURATION_MS, updateInterval * 1.08),
     );
-    const predictionDuration = (speedKmh ?? 0) >= 3
-      ? Math.min(MARKER_MAX_PREDICTION_MS, duration * 0.75)
-      : 0;
-    const maximumPredictionRatio = distance > 0
-      ? Math.min(
-          predictionDuration / duration,
-          MARKER_MAX_PREDICTION_METERS / distance,
-        )
-      : 0;
+    const predictionDuration =
+      (speedKmh ?? 0) >= 3 ? Math.min(MARKER_MAX_PREDICTION_MS, duration * 0.75) : 0;
+    const maximumPredictionRatio =
+      distance > 0
+        ? Math.min(predictionDuration / duration, MARKER_MAX_PREDICTION_METERS / distance)
+        : 0;
     const startedAt = receivedAt;
     const animate = (timestamp: number): void => {
       const elapsed = timestamp - startedAt;
       const progress = Math.min(1, elapsed / duration);
       // Smoothstep conserve une vitesse fluide, sans depassement du point GPS.
       const eased = progress * progress * (3 - 2 * progress);
-      const predictionProgress = predictionDuration > 0
-        ? Math.min(1, Math.max(0, elapsed - duration) / predictionDuration)
-        : 0;
+      const predictionProgress =
+        predictionDuration > 0
+          ? Math.min(1, Math.max(0, elapsed - duration) / predictionDuration)
+          : 0;
       const predictionEase =
         predictionProgress +
         predictionProgress * predictionProgress -
@@ -1034,9 +984,7 @@ export class TrackingGoogleMapRendererService {
         lat: origin.lat + (destination.lat - origin.lat) * positionFactor,
         lng: origin.lng + (destination.lng - origin.lng) * positionFactor,
       };
-      this.renderedMarkerHeading = this.normalizeHeading(
-        originHeading + headingDelta * eased,
-      );
+      this.renderedMarkerHeading = this.normalizeHeading(originHeading + headingDelta * eased);
       this.setMarkerHeading(marker, this.renderedMarkerHeading);
       if (elapsed < duration + predictionDuration) {
         this.animationFrameId = requestAnimationFrame(animate);
@@ -1047,15 +995,10 @@ export class TrackingGoogleMapRendererService {
     this.animationFrameId = requestAnimationFrame(animate);
   }
 
-  private setMarkerHeading(
-    marker: GoogleMapsAdvancedMarkerInstance,
-    headingDegrees: number,
-  ): void {
+  private setMarkerHeading(marker: GoogleMapsAdvancedMarkerInstance, headingDegrees: number): void {
     const content = marker.content;
     if (!(content instanceof HTMLElement)) return;
-    const direction = content.querySelector<HTMLElement>(
-      '.jokko-tracking-marker-direction',
-    );
+    const direction = content.querySelector<HTMLElement>('.jokko-tracking-marker-direction');
     if (!direction) return;
     direction.style.transition = 'none';
     direction.style.transform = `rotate(${this.headingRelativeToCamera(headingDegrees)}deg)`;
@@ -1066,9 +1009,7 @@ export class TrackingGoogleMapRendererService {
   }
 
   private validTimestamp(value: number | null | undefined): number | null {
-    return typeof value === 'number' && Number.isFinite(value) && value > 0
-      ? value
-      : null;
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
   }
 
   private fitRoute(
@@ -1103,12 +1044,11 @@ export class TrackingGoogleMapRendererService {
     }
 
     const selectedRouteCoordinates =
-      routes.find((route) => route.selected)?.coordinates ??
-      routes[0]?.coordinates ??
-      [];
+      routes.find((route) => route.selected)?.coordinates ?? routes[0]?.coordinates ?? [];
     const routeCameraKey = this.routeCameraKey(selectedRouteCoordinates);
     if (this.topViewEnabled) {
-      const selectedRouteId = routes.find((route) => route.selected)?.id ?? routes[0]?.id ?? 'route';
+      const selectedRouteId =
+        routes.find((route) => route.selected)?.id ?? routes[0]?.id ?? 'route';
       const routeReady = selectedRouteCoordinates.length >= 2;
       const key = [
         'top-route',
@@ -1183,9 +1123,7 @@ export class TrackingGoogleMapRendererService {
     const requestedHeadingDelta =
       ((requestedHeading - this.renderedCameraHeading + 540) % 360) - 180;
     const targetHeading =
-      Math.abs(requestedHeadingDelta) < 1.5
-        ? this.renderedCameraHeading
-        : requestedHeading;
+      Math.abs(requestedHeadingDelta) < 1.5 ? this.renderedCameraHeading : requestedHeading;
     const targetZoom = this.topViewEnabled
       ? TOP_VIEW_CAMERA_ZOOM
       : this.navigationCameraZoom(speedKmh);
@@ -1251,7 +1189,8 @@ export class TrackingGoogleMapRendererService {
     speedKmh: number | null | undefined,
   ): GoogleMapsPoint {
     const speed = speedKmh ?? 0;
-    const lookAheadMeters = speed >= 80 ? 65 : speed >= 50 ? 50 : speed >= 25 ? 36 : speed >= 8 ? 24 : 14;
+    const lookAheadMeters =
+      speed >= 80 ? 65 : speed >= 50 ? 50 : speed >= 25 ? 36 : speed >= 8 ? 24 : 14;
     const routeTarget = this.routePointAhead(provider, routeCoordinates, lookAheadMeters);
     const target = routeTarget ?? this.pointAtBearing(provider, headingDegrees, lookAheadMeters);
     const forwardWeight = speed >= 50 ? 0.46 : speed >= 20 ? 0.38 : 0.3;
@@ -1344,8 +1283,7 @@ export class TrackingGoogleMapRendererService {
           point: projectedPoint,
           segmentIndex: index,
           ratio: segmentProjection.ratio,
-          distanceAlongRouteMeters:
-            distanceBeforeSegment + segmentMeters * segmentProjection.ratio,
+          distanceAlongRouteMeters: distanceBeforeSegment + segmentMeters * segmentProjection.ratio,
           distanceFromRouteMeters,
         };
       }
@@ -1404,21 +1342,19 @@ export class TrackingGoogleMapRendererService {
     content.className = 'jokko-tracking-taxi-marker';
     content.dataset['latitude'] = String(position.lat);
     content.dataset['longitude'] = String(position.lng);
-    content.style.cssText =
-      'display:grid;justify-items:center;pointer-events:none;';
+    content.style.cssText = 'display:grid;justify-items:center;pointer-events:none;';
 
     const traveler = document.createElement('div');
     traveler.className = 'jokko-tracking-marker-direction';
     const markerHeading =
-      this.visibleRouteHeading(position) ??
-      this.headingRelativeToCamera(headingDegrees);
+      this.visibleRouteHeading(position) ?? this.headingRelativeToCamera(headingDegrees);
     const navigationSize = this.navigationMarkerSize();
     traveler.style.cssText =
       travelerMarker.kind === 'navigation'
         ? `align-items:center;background:transparent;border:0;display:flex;height:${navigationSize.container}px;justify-content:center;overflow:visible;transform:rotate(${markerHeading}deg);transform-origin:50% 55%;transition:transform 500ms ease;width:${navigationSize.container}px;`
         : travelerMarker.kind === 'vehicle'
-        ? `align-items:center;background:transparent;border:0;display:flex;height:104px;justify-content:center;overflow:visible;transform:rotate(${markerHeading}deg);transform-origin:50% 55%;transition:transform 500ms ease;width:124px;`
-        : 'align-items:center;background:#eff6ff;border:3px solid #2f80ff;border-radius:999px;box-shadow:0 10px 20px rgba(15,23,42,.28);display:flex;height:52px;justify-content:center;overflow:hidden;transform-origin:50% 50%;transition:transform 500ms ease;width:52px;';
+          ? `align-items:center;background:transparent;border:0;display:flex;height:104px;justify-content:center;overflow:visible;transform:rotate(${markerHeading}deg);transform-origin:50% 55%;transition:transform 500ms ease;width:124px;`
+          : 'align-items:center;background:#eff6ff;border:3px solid #2f80ff;border-radius:999px;box-shadow:0 10px 20px rgba(15,23,42,.28);display:flex;height:52px;justify-content:center;overflow:hidden;transform-origin:50% 50%;transition:transform 500ms ease;width:52px;';
     traveler.appendChild(this.travelerMarkerVisual(travelerMarker));
 
     const badge = this.travelerMarkerBadge(travelerMarker);
@@ -1437,8 +1373,7 @@ export class TrackingGoogleMapRendererService {
     const accentColor = marker.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const badge = document.createElement('span');
     badge.textContent = label;
-    badge.style.cssText =
-      `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
     return badge;
   }
 
@@ -1447,8 +1382,7 @@ export class TrackingGoogleMapRendererService {
       const size = this.navigationMarkerSize();
       const shell = document.createElement('span');
       shell.setAttribute('aria-label', marker.name || 'Navigation');
-      shell.style.cssText =
-        `align-items:center;background:rgba(255,255,255,.92);border-radius:999px;box-shadow:0 9px 18px rgba(15,23,42,.22);display:flex;height:${size.shell}px;justify-content:center;width:${size.shell}px;`;
+      shell.style.cssText = `align-items:center;background:rgba(255,255,255,.92);border-radius:999px;box-shadow:0 9px 18px rgba(15,23,42,.22);display:flex;height:${size.shell}px;justify-content:center;width:${size.shell}px;`;
 
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 64 64');
@@ -1459,10 +1393,7 @@ export class TrackingGoogleMapRendererService {
         'display:block;filter:drop-shadow(0 2px 2px rgba(15,23,42,.24));transform:translateY(-1px);transform-origin:50% 50%;';
 
       const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      arrow.setAttribute(
-        'd',
-        'M32 4 51 56 33.5 45.5 16 56 32 4Z',
-      );
+      arrow.setAttribute('d', 'M32 4 51 56 33.5 45.5 16 56 32 4Z');
       arrow.setAttribute('fill', '#1a73e8');
       arrow.setAttribute('stroke', '#ffffff');
       arrow.setAttribute('stroke-width', '2.2');
@@ -1498,17 +1429,7 @@ export class TrackingGoogleMapRendererService {
   } {
     const zoom = this.currentZoomLevel();
     const shell =
-      zoom <= 16
-        ? 34
-        : zoom <= 17
-        ? 38
-        : zoom <= 18
-        ? 42
-        : zoom <= 19
-        ? 46
-        : zoom <= 20
-        ? 50
-        : 54;
+      zoom <= 16 ? 34 : zoom <= 17 ? 38 : zoom <= 18 ? 42 : zoom <= 19 ? 46 : zoom <= 20 ? 50 : 54;
 
     return {
       container: shell + 10,
@@ -1535,8 +1456,7 @@ export class TrackingGoogleMapRendererService {
     content.style.cssText = `align-items:center;display:flex;flex-direction:column;pointer-events:none;width:${size.cardWidth}px;`;
 
     const card = document.createElement('div');
-    card.style.cssText =
-      `align-items:center;background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:${size.radius}px;box-shadow:0 ${size.shadowY}px ${size.shadowBlur}px rgba(15,23,42,.18);display:flex;gap:${size.gap}px;min-height:${size.cardMinHeight}px;padding:${size.paddingY}px ${size.paddingRight}px ${size.paddingY}px ${size.paddingLeft}px;width:100%;`;
+    card.style.cssText = `align-items:center;background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:${size.radius}px;box-shadow:0 ${size.shadowY}px ${size.shadowBlur}px rgba(15,23,42,.18);display:flex;gap:${size.gap}px;min-height:${size.cardMinHeight}px;padding:${size.paddingY}px ${size.paddingRight}px ${size.paddingY}px ${size.paddingLeft}px;width:100%;`;
 
     const etaBox = document.createElement('span');
     etaBox.style.cssText = `align-items:center;background:${accentColor};border-radius:${size.etaRadius}px;color:#fff;display:flex;flex-direction:column;height:${size.etaBox}px;justify-content:center;min-width:${size.etaBox}px;text-transform:uppercase;`;
@@ -1547,26 +1467,21 @@ export class TrackingGoogleMapRendererService {
 
     const etaUnit = document.createElement('small');
     etaUnit.textContent = eta.unit;
-    etaUnit.style.cssText =
-      `font:800 ${size.etaUnitFont}px/1.1 "DM Sans",sans-serif;letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
+    etaUnit.style.cssText = `font:800 ${size.etaUnitFont}px/1.1 "DM Sans",sans-serif;letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
 
     const body = document.createElement('span');
-    body.style.cssText =
-      `display:flex;flex:1;flex-direction:column;gap:${size.bodyGap}px;min-width:0;white-space:nowrap;`;
+    body.style.cssText = `display:flex;flex:1;flex-direction:column;gap:${size.bodyGap}px;min-width:0;white-space:nowrap;`;
 
     const title = document.createElement('strong');
     title.textContent = marker.title;
-    title.style.cssText =
-      `color:#111827;font:900 ${size.titleFont}px/1.15 "DM Sans",sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;`;
+    title.style.cssText = `color:#111827;font:900 ${size.titleFont}px/1.15 "DM Sans",sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;`;
 
     const subtitle = document.createElement('small');
     subtitle.textContent = marker.subtitle;
-    subtitle.style.cssText =
-      `color:#64748b;font:700 ${size.subtitleFont}px/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:uppercase;`;
+    subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:uppercase;`;
 
     const pointer = document.createElement('span');
-    pointer.style.cssText =
-      `background:#fff;border-bottom:1px solid rgba(15,23,42,.08);border-right:1px solid rgba(15,23,42,.08);box-shadow:${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowBlur / 2)}px rgba(15,23,42,.08);height:${size.pointer}px;margin-top:-${Math.round(size.pointer / 2)}px;transform:rotate(45deg);width:${size.pointer}px;`;
+    pointer.style.cssText = `background:#fff;border-bottom:1px solid rgba(15,23,42,.08);border-right:1px solid rgba(15,23,42,.08);box-shadow:${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowBlur / 2)}px rgba(15,23,42,.08);height:${size.pointer}px;margin-top:-${Math.round(size.pointer / 2)}px;transform:rotate(45deg);width:${size.pointer}px;`;
 
     body.append(title, subtitle);
     etaBox.append(etaValue, etaUnit);
@@ -1588,12 +1503,10 @@ export class TrackingGoogleMapRendererService {
 
     const accentColor = marker.person.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const wrapper = document.createElement('span');
-    wrapper.style.cssText =
-      `align-items:center;display:flex;flex-direction:column;margin-top:${Math.max(4, Math.round(6 * size.scale))}px;`;
+    wrapper.style.cssText = `align-items:center;display:flex;flex-direction:column;margin-top:${Math.max(4, Math.round(6 * size.scale))}px;`;
 
     const avatar = document.createElement('span');
-    avatar.style.cssText =
-      `align-items:center;background:#eff6ff;border:${Math.max(2, Math.round(3 * size.scale))}px solid ${accentColor};border-radius:999px;box-shadow:0 ${Math.round(8 * size.scale)}px ${Math.round(16 * size.scale)}px rgba(15,23,42,.24);display:flex;height:${size.destinationAvatar}px;justify-content:center;overflow:hidden;width:${size.destinationAvatar}px;`;
+    avatar.style.cssText = `align-items:center;background:#eff6ff;border:${Math.max(2, Math.round(3 * size.scale))}px solid ${accentColor};border-radius:999px;box-shadow:0 ${Math.round(8 * size.scale)}px ${Math.round(16 * size.scale)}px rgba(15,23,42,.24);display:flex;height:${size.destinationAvatar}px;justify-content:center;overflow:hidden;width:${size.destinationAvatar}px;`;
 
     if (marker.person.imageUrl) {
       const image = document.createElement('img');
@@ -1611,8 +1524,7 @@ export class TrackingGoogleMapRendererService {
 
     const badge = document.createElement('span');
     badge.textContent = marker.person.label;
-    badge.style.cssText =
-      `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;text-overflow:ellipsis;white-space:nowrap;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;text-overflow:ellipsis;white-space:nowrap;`;
 
     wrapper.append(avatar, badge);
     return wrapper;
@@ -1624,14 +1536,14 @@ export class TrackingGoogleMapRendererService {
       zoom <= 15
         ? 0.76
         : zoom <= 16
-        ? 0.82
-        : zoom <= 17
-        ? 0.88
-        : zoom <= 18
-        ? 0.92
-        : zoom <= 19
-        ? 0.96
-        : 1;
+          ? 0.82
+          : zoom <= 17
+            ? 0.88
+            : zoom <= 18
+              ? 0.92
+              : zoom <= 19
+                ? 0.96
+                : 1;
 
     return {
       bodyGap: Math.max(3, Math.round(4 * factor)),
@@ -1672,9 +1584,7 @@ export class TrackingGoogleMapRendererService {
     };
   }
 
-  private markerPosition(
-    marker: GoogleMapsAdvancedMarkerInstance,
-  ): GoogleMapsPoint | null {
+  private markerPosition(marker: GoogleMapsAdvancedMarkerInstance): GoogleMapsPoint | null {
     const position = marker.position;
     if (!position) return null;
     const latitude = position.lat;
@@ -1687,10 +1597,7 @@ export class TrackingGoogleMapRendererService {
       : null;
   }
 
-  private resolveHeading(
-    position: GoogleMapsPoint,
-    state: TrackingMapRenderState,
-  ): number {
+  private resolveHeading(position: GoogleMapsPoint, state: TrackingMapRenderState): number {
     const movementMeters = this.lastProviderPosition
       ? this.distanceMeters(this.lastProviderPosition, position)
       : Number.POSITIVE_INFINITY;
@@ -1708,10 +1615,7 @@ export class TrackingGoogleMapRendererService {
     let alignedToRoute = false;
     const selectedRoute = state.routes.find((route) => route.selected);
     if (moving && selectedRoute) {
-      candidateHeading = this.headingAlongRoute(
-        position,
-        selectedRoute.coordinates,
-      );
+      candidateHeading = this.headingAlongRoute(position, selectedRoute.coordinates);
       alignedToRoute = candidateHeading !== null;
     }
 
@@ -1725,17 +1629,22 @@ export class TrackingGoogleMapRendererService {
     }
 
     if (candidateHeading === null) {
-      candidateHeading = this.lastProviderPosition && moving
-        ? this.bearing(this.lastProviderPosition, position)
-        : null;
+      candidateHeading =
+        this.lastProviderPosition && moving
+          ? this.bearing(this.lastProviderPosition, position)
+          : null;
     }
 
     if (candidateHeading === null) return this.currentTravelerHeading || 90;
     if (!this.lastProviderPosition) return candidateHeading;
     const delta = ((candidateHeading - this.currentTravelerHeading + 540) % 360) - 180;
     const smoothing = alignedToRoute
-      ? (state.speedKmh ?? 0) >= 20 ? 0.94 : 0.84
-      : (state.speedKmh ?? 0) >= 20 ? 0.78 : 0.62;
+      ? (state.speedKmh ?? 0) >= 20
+        ? 0.94
+        : 0.84
+      : (state.speedKmh ?? 0) >= 20
+        ? 0.78
+        : 0.62;
     return this.normalizeHeading(this.currentTravelerHeading + delta * smoothing);
   }
 
@@ -1797,9 +1706,7 @@ export class TrackingGoogleMapRendererService {
         ? Math.max(1, state.accuracyMeters)
         : 12;
     const snapThresholdMeters = Math.max(12, Math.min(30, accuracy * 1.5));
-    return projection.distanceFromRouteMeters <= snapThresholdMeters
-      ? projection.point
-      : position;
+    return projection.distanceFromRouteMeters <= snapThresholdMeters ? projection.point : position;
   }
 
   private confirmStationaryHeading(headingDegrees: number | null): number {
@@ -1936,9 +1843,7 @@ export class TrackingGoogleMapRendererService {
     const toLatitude = (to.lat * Math.PI) / 180;
     const haversine =
       Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(fromLatitude) *
-        Math.cos(toLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
+      Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) ** 2;
     return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   }
 
@@ -1947,20 +1852,14 @@ export class TrackingGoogleMapRendererService {
   }
 
   private cancelAnimation(): void {
-    if (
-      this.animationFrameId !== null &&
-      typeof cancelAnimationFrame !== 'undefined'
-    ) {
+    if (this.animationFrameId !== null && typeof cancelAnimationFrame !== 'undefined') {
       cancelAnimationFrame(this.animationFrameId);
     }
     this.animationFrameId = null;
   }
 
   private cancelCameraAnimation(): void {
-    if (
-      this.cameraAnimationFrameId !== null &&
-      typeof cancelAnimationFrame !== 'undefined'
-    ) {
+    if (this.cameraAnimationFrameId !== null && typeof cancelAnimationFrame !== 'undefined') {
       cancelAnimationFrame(this.cameraAnimationFrameId);
     }
     this.cameraAnimationFrameId = null;

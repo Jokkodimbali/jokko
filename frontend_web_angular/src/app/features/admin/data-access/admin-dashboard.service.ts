@@ -57,79 +57,99 @@ export class AdminDashboardService {
 
   getServiceStructure(): Observable<AdminServiceStructureReport> {
     return this.http
-      .get<ApiResponse<AdminServiceStructureReport>>(`${environment.apiUrl}/admin/service-structure`)
+      .get<
+        ApiResponse<AdminServiceStructureReport>
+      >(`${environment.apiUrl}/admin/service-structure`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   createCategory(payload: AdminCategoryPayload): Observable<AdminServiceStructureCategory> {
     return this.http
-      .post<ApiResponse<AdminServiceStructureCategory>>(`${environment.apiUrl}/admin/categories`, payload)
+      .post<
+        ApiResponse<AdminServiceStructureCategory>
+      >(`${environment.apiUrl}/admin/categories`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  bulkCreateCategories(payload: AdminCategoryPayload[]): Observable<AdminBulkImportResult<AdminServiceStructureCategory>> {
+  bulkCreateCategories(
+    payload: AdminCategoryPayload[],
+  ): Observable<AdminBulkImportResult<AdminServiceStructureCategory>> {
     return this.http
-      .post<ApiResponse<AdminBulkImportResult<AdminServiceStructureCategory>>>(
-        `${environment.apiUrl}/admin/service-structure/categories/bulk`,
-        { categories: payload },
-      )
+      .post<
+        ApiResponse<AdminBulkImportResult<AdminServiceStructureCategory>>
+      >(`${environment.apiUrl}/admin/service-structure/categories/bulk`, { categories: payload })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  updateCategory(categoryId: string, payload: AdminCategoryPayload): Observable<AdminServiceStructureCategory> {
+  updateCategory(
+    categoryId: string,
+    payload: AdminCategoryPayload,
+  ): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<ApiResponse<AdminServiceStructureCategory>>(`${environment.apiUrl}/admin/categories/${categoryId}`, payload)
+      .patch<
+        ApiResponse<AdminServiceStructureCategory>
+      >(`${environment.apiUrl}/admin/categories/${categoryId}`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   disableCategory(categoryId: string): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<ApiResponse<AdminServiceStructureCategory>>(`${environment.apiUrl}/admin/categories/${categoryId}/disable`, {})
+      .patch<
+        ApiResponse<AdminServiceStructureCategory>
+      >(`${environment.apiUrl}/admin/categories/${categoryId}/disable`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   activateCategory(categoryId: string): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<ApiResponse<AdminServiceStructureCategory>>(`${environment.apiUrl}/admin/categories/${categoryId}/activate`, {})
+      .patch<
+        ApiResponse<AdminServiceStructureCategory>
+      >(`${environment.apiUrl}/admin/categories/${categoryId}/activate`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   deleteEmptyCategory(categoryId: string): Observable<{ id: string }> {
     return this.http
-      .delete<ApiResponse<{ id: string }>>(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}`)
+      .delete<
+        ApiResponse<{ id: string }>
+      >(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   createSubCategory(payload: AdminSubCategoryPayload): Observable<AdminServiceSubCategory> {
     return this.http
-      .post<ApiResponse<AdminServiceSubCategory>>(
-        `${environment.apiUrl}/admin/service-structure/subcategories`,
-        payload,
-      )
+      .post<
+        ApiResponse<AdminServiceSubCategory>
+      >(`${environment.apiUrl}/admin/service-structure/subcategories`, payload)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  bulkCreateSubCategories(payload: AdminSubCategoryPayload[]): Observable<AdminBulkImportResult<AdminServiceSubCategory>> {
+  bulkCreateSubCategories(
+    payload: AdminSubCategoryPayload[],
+  ): Observable<AdminBulkImportResult<AdminServiceSubCategory>> {
     return this.http
-      .post<ApiResponse<AdminBulkImportResult<AdminServiceSubCategory>>>(
-        `${environment.apiUrl}/admin/service-structure/subcategories/bulk`,
-        { subCategories: payload },
-      )
+      .post<
+        ApiResponse<AdminBulkImportResult<AdminServiceSubCategory>>
+      >(`${environment.apiUrl}/admin/service-structure/subcategories/bulk`, { subCategories: payload })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  assignSubCategories(categoryId: string, subCategoryIds: string[]): Observable<AdminServiceStructureCategory> {
+  assignSubCategories(
+    categoryId: string,
+    subCategoryIds: string[],
+  ): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<ApiResponse<AdminServiceStructureCategory>>(
-        `${environment.apiUrl}/admin/service-structure/categories/${categoryId}/subcategories`,
-        { subCategoryIds },
-      )
+      .patch<
+        ApiResponse<AdminServiceStructureCategory>
+      >(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}/subcategories`, { subCategoryIds })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   deleteUnusedSubCategory(subCategoryId: string): Observable<{ id: string }> {
     return this.http
-      .delete<ApiResponse<{ id: string }>>(`${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`)
+      .delete<
+        ApiResponse<{ id: string }>
+      >(`${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -137,7 +157,9 @@ export class AdminDashboardService {
     const formData = new FormData();
     formData.append('image', file);
     return this.http
-      .post<ApiResponse<{ imageUrl: string }>>(`${environment.apiUrl}/admin/service-structure/images`, formData)
+      .post<
+        ApiResponse<{ imageUrl: string }>
+      >(`${environment.apiUrl}/admin/service-structure/images`, formData)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 }

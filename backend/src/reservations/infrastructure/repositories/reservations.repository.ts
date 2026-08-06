@@ -765,8 +765,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       notes: record.notes,
       actesPrescriptionMedicale: record.actesPrescriptionMedicale,
       vaccinsPrescriptionMedicale: record.vaccinsPrescriptionMedicale,
-      traitementsPrescriptionMedicale:
-        record.traitementsPrescriptionMedicale,
+      traitementsPrescriptionMedicale: record.traitementsPrescriptionMedicale,
       prixConvenu: record.prixConvenu?.toNumber() ?? null,
       statutAjustementPrix:
         record.statutAjustementPrix as ReservationPriceAdjustmentStatus,
@@ -805,7 +804,9 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     };
   }
 
-  private resolveDetailedReservationNotes(record: ReservationDetailRecord): string | null {
+  private resolveDetailedReservationNotes(
+    record: ReservationDetailRecord,
+  ): string | null {
     const notes = record.notes?.trim() ?? '';
     if (this.hasCompleteParcelContacts(notes)) {
       return notes;
@@ -813,18 +814,22 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
 
     const negotiationMessages = [
       record.negotiation?.messageCourant,
-      ...(record.negotiation?.propositions.map((proposal) => proposal.message) ?? []),
+      ...(record.negotiation?.propositions.map(
+        (proposal) => proposal.message,
+      ) ?? []),
     ];
-    const parcelMessage = negotiationMessages.find(
-      (message) => this.hasCompleteParcelContacts(message ?? ''),
-    )?.trim();
+    const parcelMessage = negotiationMessages
+      .find((message) => this.hasCompleteParcelContacts(message ?? ''))
+      ?.trim();
 
     return [parcelMessage, notes].filter(Boolean).join(' ').trim() || null;
   }
 
   private hasCompleteParcelContacts(value: string): boolean {
     return (
-      /Exp[eé]diteur\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value) &&
+      /Exp[eé]diteur\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(
+        value,
+      ) &&
       /Destinataire\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value)
     );
   }

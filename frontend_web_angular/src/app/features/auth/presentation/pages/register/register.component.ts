@@ -15,7 +15,10 @@ import {
   normalizeSenegalPhoneNumber,
 } from '../../../domain/auth.validators';
 import { ServicesService } from '../../../../services/data-access/services.service';
-import { CategoryStructure, ServiceSubCategory } from '../../../../services/domain/models/services.models';
+import {
+  CategoryStructure,
+  ServiceSubCategory,
+} from '../../../../services/domain/models/services.models';
 
 type RegisterRole = 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN';
 
@@ -99,8 +102,12 @@ export class RegisterComponent implements OnInit {
 
     if (formData.role === 'MEDECIN') {
       payload.medicalSpecialty = formData.medicalSpecialty || undefined;
-      payload.medicalExpertises = this.medicalExpertises().map((item) => this.normalizeTextValue(item));
-      payload.medicalDocumentNames = this.selectedMedicalDocuments().map((item) => item.trim()).filter(Boolean);
+      payload.medicalExpertises = this.medicalExpertises().map((item) =>
+        this.normalizeTextValue(item),
+      );
+      payload.medicalDocumentNames = this.selectedMedicalDocuments()
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
 
     this.authService
@@ -165,7 +172,10 @@ export class RegisterComponent implements OnInit {
     return this.selectedCategories()
       .flatMap((category) => category.subCategories)
       .filter((subCategory) => !selected.has(subCategory.id))
-      .sort((first, second) => first.ordreTri - second.ordreTri || first.nom.localeCompare(second.nom, 'fr'));
+      .sort(
+        (first, second) =>
+          first.ordreTri - second.ordreTri || first.nom.localeCompare(second.nom, 'fr'),
+      );
   }
 
   protected isCategorySelected(categoryId: string): boolean {
@@ -262,9 +272,7 @@ export class RegisterComponent implements OnInit {
     if (!value) return;
 
     this.medicalExpertises.update((items) =>
-      items.some((item) => item.toLowerCase() === value.toLowerCase())
-        ? items
-        : [...items, value],
+      items.some((item) => item.toLowerCase() === value.toLowerCase()) ? items : [...items, value],
     );
     this.expertiseDraft.set('');
   }

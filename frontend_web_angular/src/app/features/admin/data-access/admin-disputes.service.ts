@@ -30,7 +30,11 @@ export class AdminDisputesService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  refundClient(disputeId: string, notes: string, clientRefundPercentage = 100): Observable<AdminDisputeCase> {
+  refundClient(
+    disputeId: string,
+    notes: string,
+    clientRefundPercentage = 100,
+  ): Observable<AdminDisputeCase> {
     const normalizedPercentage = this.normalizePercentage(clientRefundPercentage);
     return this.resolve(disputeId, {
       decision: normalizedPercentage >= 100 ? 'REMBOURSER_CLIENT' : 'PARTAGER',
@@ -39,7 +43,11 @@ export class AdminDisputesService {
     });
   }
 
-  creditProfessional(disputeId: string, notes: string, clientRefundPercentage = 0): Observable<AdminDisputeCase> {
+  creditProfessional(
+    disputeId: string,
+    notes: string,
+    clientRefundPercentage = 0,
+  ): Observable<AdminDisputeCase> {
     const normalizedPercentage = this.normalizePercentage(clientRefundPercentage);
     return this.resolve(disputeId, {
       decision: normalizedPercentage <= 0 ? 'CREDITER_PRESTATAIRE' : 'PARTAGER',
@@ -76,7 +84,9 @@ export class AdminDisputesService {
     },
   ): Observable<AdminDisputeCase> {
     return this.http
-      .patch<ApiResponse<{ dispute: AdminDisputeCase }>>(`${this.disputesUrl}/${disputeId}/resolve`, payload)
+      .patch<
+        ApiResponse<{ dispute: AdminDisputeCase }>
+      >(`${this.disputesUrl}/${disputeId}/resolve`, payload)
       .pipe(map((response) => unwrapApiResponse(response).dispute));
   }
 

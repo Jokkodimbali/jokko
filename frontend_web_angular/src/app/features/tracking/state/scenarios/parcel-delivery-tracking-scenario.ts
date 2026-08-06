@@ -1,4 +1,7 @@
-import { AppointmentTravelMode, AppointmentView } from '../../../appointments/domain/appointments.models';
+import {
+  AppointmentTravelMode,
+  AppointmentView,
+} from '../../../appointments/domain/appointments.models';
 import { BaseServiceTrackingScenario } from './base-service-tracking-scenario';
 import { TrackingScenarioStep, TrackingScenarioViewContext } from './tracking-scenario.types';
 
@@ -109,13 +112,14 @@ export class ParcelDeliveryTrackingScenario extends BaseServiceTrackingScenario 
     return 'Le livreur';
   }
 
-  private parcelSteps(providerMode: boolean, context: TrackingScenarioViewContext): TrackingScenarioStep[] {
+  private parcelSteps(
+    providerMode: boolean,
+    context: TrackingScenarioViewContext,
+  ): TrackingScenarioStep[] {
     return [
       {
         label: 'Planifie',
-        description: providerMode
-          ? 'Livraison confirmee'
-          : 'Le transport du colis est programme',
+        description: providerMode ? 'Livraison confirmee' : 'Le transport du colis est programme',
         icon: 'calendar-days',
       },
       {
@@ -141,9 +145,10 @@ export class ParcelDeliveryTrackingScenario extends BaseServiceTrackingScenario 
       },
       {
         label: context.appointmentCompleted ? 'Livre' : 'QR depot',
-        description: context.parcelDropoffValidated || context.appointmentCompleted
-          ? 'Livraison validee chez le destinataire'
-          : 'Scan chez le destinataire attendu',
+        description:
+          context.parcelDropoffValidated || context.appointmentCompleted
+            ? 'Livraison validee chez le destinataire'
+            : 'Scan chez le destinataire attendu',
         icon: 'check',
       },
     ];

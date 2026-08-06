@@ -31,7 +31,10 @@
   display: inline-flex;
   height: 29px;
   justify-content: center;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
   width: 29px;
 }
 
@@ -198,7 +201,10 @@
   justify-content: center;
   margin-top: 19px;
   min-height: 38px;
-  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
   width: 100%;
 }
 
@@ -363,7 +369,13 @@
 .parcel-qr__camera {
   align-items: center;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.4)),
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.4),
+      transparent 22%,
+      transparent 78%,
+      rgba(0, 0, 0, 0.4)
+    ),
     #111;
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.32);

@@ -47,13 +47,14 @@ export class ProviderLocationService {
           webkitCompassHeading?: number;
         };
         const screenAngle = this.screenOrientationAngle();
-        const isAbsoluteOrientation =
-          event.absolute || event.type === 'deviceorientationabsolute';
+        const isAbsoluteOrientation = event.absolute || event.type === 'deviceorientationabsolute';
         const measuredHeading =
           typeof eventWithCompass.webkitCompassHeading === 'number' &&
           Number.isFinite(eventWithCompass.webkitCompassHeading)
             ? eventWithCompass.webkitCompassHeading + screenAngle
-            : isAbsoluteOrientation && typeof event.alpha === 'number' && Number.isFinite(event.alpha)
+            : isAbsoluteOrientation &&
+                typeof event.alpha === 'number' &&
+                Number.isFinite(event.alpha)
               ? 360 - event.alpha + screenAngle
               : null;
         if (measuredHeading === null) return;
@@ -86,9 +87,10 @@ export class ProviderLocationService {
           const now = Date.now();
           if (now - lastEmissionAt < intervalMilliseconds) return;
           lastEmissionAt = now;
-          const recordedAt = Number.isFinite(position.timestamp) && position.timestamp > 0
-            ? position.timestamp
-            : now;
+          const recordedAt =
+            Number.isFinite(position.timestamp) && position.timestamp > 0
+              ? position.timestamp
+              : now;
           const rawPosition: ProviderGpsPosition = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -96,7 +98,8 @@ export class ProviderLocationService {
               ? Math.max(1, position.coords.accuracy)
               : MAX_ACCEPTED_ACCURACY_METERS,
             headingDegrees:
-              typeof position.coords.heading === 'number' && Number.isFinite(position.coords.heading)
+              typeof position.coords.heading === 'number' &&
+              Number.isFinite(position.coords.heading)
                 ? position.coords.heading
                 : null,
             speedKmh:
@@ -162,23 +165,15 @@ export class ProviderLocationService {
     const inferredSpeedKmh = (rawDistance / elapsedSeconds) * 3.6;
     const effectiveSpeedKmh = raw.speedKmh ?? inferredSpeedKmh;
     const reportedSpeedKmh = raw.speedKmh ?? previous.speedKmh ?? 0;
-    const accuracyAllowance = Math.max(
-      25,
-      raw.accuracyMeters + previous.accuracyMeters,
-    );
+    const accuracyAllowance = Math.max(25, raw.accuracyMeters + previous.accuracyMeters);
     const plausibleDistance =
       (Math.max(reportedSpeedKmh, 15) / 3.6) * elapsedSeconds + accuracyAllowance;
     const impossibleJump =
-      inferredSpeedKmh > MAX_PLAUSIBLE_VEHICLE_SPEED_KMH &&
-      rawDistance > plausibleDistance;
-    const stationaryRadius = Math.max(
-      MIN_MOVEMENT_METERS,
-      Math.min(12, raw.accuracyMeters * 0.5),
-    );
+      inferredSpeedKmh > MAX_PLAUSIBLE_VEHICLE_SPEED_KMH && rawDistance > plausibleDistance;
+    const stationaryRadius = Math.max(MIN_MOVEMENT_METERS, Math.min(12, raw.accuracyMeters * 0.5));
     const moving = effectiveSpeedKmh >= STATIONARY_SPEED_KMH && rawDistance >= 1.2;
     const poorAccuracyJump =
-      raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS &&
-      rawDistance < raw.accuracyMeters * 1.5;
+      raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS && rawDistance < raw.accuracyMeters * 1.5;
 
     if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump || impossibleJump) {
       return {
@@ -219,7 +214,11 @@ export class ProviderLocationService {
     return 0.38;
   }
 
-  private smoothHeading(previous: number | null, next: number | null, factor: number): number | null {
+  private smoothHeading(
+    previous: number | null,
+    next: number | null,
+    factor: number,
+  ): number | null {
     if (next === null) return previous;
     if (previous === null) return this.normalizeHeading(next);
     const delta = ((next - previous + 540) % 360) - 180;
@@ -245,9 +244,7 @@ export class ProviderLocationService {
     const toLatitude = (to.latitude * Math.PI) / 180;
     const haversine =
       Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(fromLatitude) *
-        Math.cos(toLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
+      Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) ** 2;
     return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   }
 
@@ -261,8 +258,6 @@ export class ProviderLocationService {
       return screenAngle;
     }
     const legacyAngle = (globalThis as typeof globalThis & { orientation?: number }).orientation;
-    return typeof legacyAngle === 'number' && Number.isFinite(legacyAngle)
-      ? legacyAngle
-      : 0;
+    return typeof legacyAngle === 'number' && Number.isFinite(legacyAngle) ? legacyAngle : 0;
   }
 }

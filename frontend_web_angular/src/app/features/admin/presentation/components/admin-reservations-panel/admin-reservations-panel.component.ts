@@ -4,7 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
-import { AdminReservationDetail, AdminReservationStatistics } from '../../../data-access/admin.models';
+import {
+  AdminReservationDetail,
+  AdminReservationStatistics,
+} from '../../../data-access/admin.models';
 import { AdminReservationsService } from '../../../data-access/admin-reservations.service';
 
 @Component({
@@ -119,7 +122,9 @@ export class AdminReservationsPanelComponent implements OnInit {
     this.load();
   }
 
-  protected statusEntries(stats: AdminReservationStatistics | null): Array<{ key: string; value: number }> {
+  protected statusEntries(
+    stats: AdminReservationStatistics | null,
+  ): Array<{ key: string; value: number }> {
     return Object.entries(stats?.byStatus ?? {}).map(([key, value]) => ({ key, value }));
   }
 
@@ -128,6 +133,8 @@ export class AdminReservationsPanelComponent implements OnInit {
   }
 
   protected date(value: string | Date): string {
-    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(value),
+    );
   }
 }

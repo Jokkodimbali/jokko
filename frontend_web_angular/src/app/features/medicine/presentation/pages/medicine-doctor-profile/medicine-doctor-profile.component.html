@@ -28,7 +28,9 @@
         (error)="handleImageError(imageUrl)"
       />
       <ng-template #doctorProfileInitials>
-        <span class="doctor-profile__avatar doctor-profile__avatar-initials">{{ doctorInitials() }}</span>
+        <span class="doctor-profile__avatar doctor-profile__avatar-initials">{{
+          doctorInitials()
+        }}</span>
       </ng-template>
       <div class="doctor-profile__name">
         <h1>{{ doctor().name }}</h1>
@@ -47,18 +49,36 @@
           [attr.aria-label]="isFavorite() ? 'Retirer des favoris' : 'Ajouter aux favoris'"
           (click)="toggleFavorite()"
         >
-          <lucide-icon name="heart" size="21" [strokeWidth]="2.3" [attr.fill]="isFavorite() ? 'currentColor' : 'none'"></lucide-icon>
+          <lucide-icon
+            name="heart"
+            size="21"
+            [strokeWidth]="2.3"
+            [attr.fill]="isFavorite() ? 'currentColor' : 'none'"
+          ></lucide-icon>
         </button>
       </div>
 
       <section class="doctor-profile__stats" aria-label="Statistiques du medecin">
         <div>
           <span><lucide-icon name="users" size="18" [strokeWidth]="2.4"></lucide-icon></span>
-          <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
+          <p>
+            <strong>{{ servicesCountLabel() }}</strong
+            ><small>Services</small>
+          </p>
         </div>
         <div>
-          <span><lucide-icon name="star" size="18" [strokeWidth]="2.4" fill="currentColor"></lucide-icon></span>
-          <p><strong>{{ doctor().reviewCount }}</strong><small>Avis</small></p>
+          <span
+            ><lucide-icon
+              name="star"
+              size="18"
+              [strokeWidth]="2.4"
+              fill="currentColor"
+            ></lucide-icon
+          ></span>
+          <p>
+            <strong>{{ doctor().reviewCount }}</strong
+            ><small>Avis</small>
+          </p>
         </div>
         <div class="doctor-profile__movement-stat">
           <span
@@ -67,7 +87,12 @@
             [attr.aria-label]="travelModeLabel()"
           >
             <strong>{{ travelModeLabel() }}</strong>
-            <img *ngIf="travelModeImageUrl() as imageUrl" [src]="imageUrl" alt="" aria-hidden="true" />
+            <img
+              *ngIf="travelModeImageUrl() as imageUrl"
+              [src]="imageUrl"
+              alt=""
+              aria-hidden="true"
+            />
           </span>
           <p><small>Deplacement</small></p>
         </div>
@@ -81,13 +106,16 @@
           {{ doctor().name }} vous accueille pour un accompagnement medical clair, attentif et
           organise. Les disponibilites et informations affichees sont synchronisees avec le profil
           professionnel.
-        </p>    
+        </p>
       </article>
 
       <aside class="doctor-profile__side">
         <article class="doctor-profile__card doctor-profile__price">
           <span>Consultation</span>
-          <p>Prenez rendez-vous avec ce médecin en sélectionnant la date, l’heure et le motif de prestation qui vous conviennent.</p>
+          <p>
+            Prenez rendez-vous avec ce médecin en sélectionnant la date, l’heure et le motif de
+            prestation qui vous conviennent.
+          </p>
           <button type="button" [routerLink]="['/medecine', doctor().id, 'rendez-vous']">
             <lucide-icon name="calendar-days" size="25" [strokeWidth]="2.4"></lucide-icon>
             Prendre Rendez-vous
@@ -139,7 +167,10 @@
             <p>{{ scheduleSummary() }}</p>
           </div>
         </div>
-        <div *ngIf="activeSchedule().length > 0; else noDoctorSchedule" class="doctor-profile__hours-list">
+        <div
+          *ngIf="activeSchedule().length > 0; else noDoctorSchedule"
+          class="doctor-profile__hours-list"
+        >
           <div *ngFor="let day of activeSchedule()" class="doctor-profile__schedule-row">
             <strong>{{ day.dayLabel }}</strong>
             <div>

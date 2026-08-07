@@ -31,10 +31,13 @@
           type="search"
           [value]="adminSearchQuery()"
           (input)="updateAdminSearch($event)"
-          [placeholder]="activeSection() === 'structure' ? 'Rechercher categorie, sous-categorie, service...' : 'Recherche dans la section active...'"
+          [placeholder]="
+            activeSection() === 'structure'
+              ? 'Rechercher categorie, sous-categorie, service...'
+              : 'Recherche dans la section active...'
+          "
         />
       </label>
-      
     </header>
 
     <ng-container *ngIf="dashboard() as data; else adminState">
@@ -177,19 +180,36 @@
       </ng-template>
 
       <ng-template #overviewContent>
-        <app-admin-overview-panel [data]="data" [userName]="user()?.name"></app-admin-overview-panel>
+        <app-admin-overview-panel
+          [data]="data"
+          [userName]="user()?.name"
+        ></app-admin-overview-panel>
       </ng-template>
     </ng-container>
 
     <ng-template #adminState>
       <section class="admin-empty">
-        <lucide-icon *ngIf="isLoading()" name="sliders-horizontal" size="36" [strokeWidth]="2.2"></lucide-icon>
-        <lucide-icon *ngIf="!isLoading()" name="triangle-alert" size="36" [strokeWidth]="2.2"></lucide-icon>
+        <lucide-icon
+          *ngIf="isLoading()"
+          name="sliders-horizontal"
+          size="36"
+          [strokeWidth]="2.2"
+        ></lucide-icon>
+        <lucide-icon
+          *ngIf="!isLoading()"
+          name="triangle-alert"
+          size="36"
+          [strokeWidth]="2.2"
+        ></lucide-icon>
         <h1>{{ isLoading() ? 'Chargement administration' : 'Tableau de bord indisponible' }}</h1>
-        <p>{{ isLoading() ? 'Actualisation des donnees de la console.' : 'Impossible de charger les donnees admin pour le moment.' }}</p>
-        <button *ngIf="!isLoading()" type="button" (click)="loadAdminDashboard()">
-          Reessayer
-        </button>
+        <p>
+          {{
+            isLoading()
+              ? 'Actualisation des donnees de la console.'
+              : 'Impossible de charger les donnees admin pour le moment.'
+          }}
+        </p>
+        <button *ngIf="!isLoading()" type="button" (click)="loadAdminDashboard()">Reessayer</button>
       </section>
     </ng-template>
   </section>

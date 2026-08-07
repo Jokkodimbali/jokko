@@ -16,7 +16,10 @@
   </ng-template>
 
   <ng-template #closedNegotiationCard let-closed>
-    <section class="service-proposal__panel service-proposal__closed" aria-label="Negociation cloturee">
+    <section
+      class="service-proposal__panel service-proposal__closed"
+      aria-label="Negociation cloturee"
+    >
       <div class="service-proposal__closed-hero">
         <span class="service-proposal__closed-icon">
           <lucide-icon name="x" size="28" [strokeWidth]="2.8"></lucide-icon>
@@ -28,7 +31,10 @@
       <div class="service-proposal__closed-party">
         <span class="service-proposal__closed-avatar">
           <img
-            *ngIf="isProviderProposalMode ? closed.client?.urlAvatar : avatarUrl(); else closedPartyInitials"
+            *ngIf="
+              isProviderProposalMode ? closed.client?.urlAvatar : avatarUrl();
+              else closedPartyInitials
+            "
             [src]="isProviderProposalMode ? closed.client?.urlAvatar : avatarUrl()"
             [alt]="isProviderProposalMode ? proposalClientName() : displayName()"
           />
@@ -38,7 +44,9 @@
           <app-presence-dot
             [userId]="isProviderProposalMode ? closed.client?.id : detail()?.profile?.utilisateurId"
             [professionalId]="isProviderProposalMode ? null : detail()?.profile?.id"
-            [initialOnline]="isProviderProposalMode ? false : (detail()?.presence?.isOnline ?? false)"
+            [initialOnline]="
+              isProviderProposalMode ? false : (detail()?.presence?.isOnline ?? false)
+            "
           />
         </span>
         <div>
@@ -78,7 +86,13 @@
               <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
               Adresse
             </dt>
-            <dd>{{ isParcelDeliveryService() ? parcelDropoffAddress() || shortAddress() : shortAddress() }}</dd>
+            <dd>
+              {{
+                isParcelDeliveryService()
+                  ? parcelDropoffAddress() || shortAddress()
+                  : shortAddress()
+              }}
+            </dd>
           </div>
           <div>
             <dt>
@@ -86,7 +100,9 @@
               Montant
             </dt>
             <dd>
-              <span class="service-proposal__closed-refund">{{ closedProposalStatusLabel(closed) }}</span>
+              <span class="service-proposal__closed-refund">{{
+                closedProposalStatusLabel(closed)
+              }}</span>
               {{ pendingOfferAmountLabel() }} FCFA
             </dd>
           </div>
@@ -142,10 +158,7 @@
 
   <ng-container *ngIf="!isLoading() && !errorMessage()">
     <ng-container *ngIf="isProviderProposalMode; else clientProposalContent">
-      <section
-        class="service-proposal__confirmed"
-        *ngIf="providerProposalFinalized() as proposal"
-      >
+      <section class="service-proposal__confirmed" *ngIf="providerProposalFinalized() as proposal">
         <ng-container *ngTemplateOutlet="confirmedReservationCard"></ng-container>
       </section>
 
@@ -161,713 +174,110 @@
         </ng-container>
 
         <ng-template #providerOpenNegotiation>
-        <ng-container *ngIf="isProviderWaitingForClient(); else providerNotWaitingForClient">
-          <section
-            class="service-proposal__panel service-proposal__provider-wait-shell"
-            aria-label="Attente de reponse du client"
-          >
-            <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
-
+          <ng-container *ngIf="isProviderWaitingForClient(); else providerNotWaitingForClient">
             <section
-              class="service-proposal__pending service-proposal__pending--provider-wait"
-              aria-label="Negociation en cours"
+              class="service-proposal__panel service-proposal__provider-wait-shell"
+              aria-label="Attente de reponse du client"
             >
-              <div class="service-proposal__waiting-copy">
-                <h1>N&eacute;gociation en cours...</h1>
-                <p>
-                  Veuillez patienter pendant que {{ proposalClientName() }} examine votre
-                  contre-offre sur son application client.
-                </p>
-              </div>
-
-              <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
-
-              <div class="service-proposal__waiting-track" aria-label="Suivi de la negotiation">
-                <span class="service-proposal__waiting-party service-proposal__waiting-party--you">
-                  <strong>VOUS</strong>
-                  <small>{{ providerSummaryAmountLabel() }} FCFA</small>
-                </span>
-
-                <span class="service-proposal__waiting-line" aria-hidden="true">
-                  <i></i>
-                </span>
-
-                <span class="service-proposal__waiting-party service-proposal__waiting-party--provider">
-                  <span class="service-proposal__waiting-avatar">
-                    <img
-                      *ngIf="proposal.client?.urlAvatar; else providerWaitingClientInitials"
-                      [src]="proposal.client?.urlAvatar"
-                      [alt]="proposalClientName()"
-                    />
-                    <ng-template #providerWaitingClientInitials>
-                      <em>{{ proposalClientInitials() }}</em>
-                    </ng-template>
-                    <app-presence-dot [userId]="proposal.client?.id" />
-                  </span>
-                  <small>CLIENT</small>
-                </span>
-              </div>
-            </section>
-
-            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-          </section>
-        </ng-container>
-
-        <ng-template #providerNotWaitingForClient>
-        <ng-container *ngIf="isProviderWaitingForReservation(); else providerActionPanel">
-          <section class="service-proposal__panel service-proposal__provider-wait-shell" aria-label="Reservation en finalisation">
-            <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
-
-            <section class="service-proposal__pending service-proposal__pending--provider-wait" aria-label="Reservation en finalisation">
-              <div class="service-proposal__waiting-copy">
-                <h1>Prix accept&eacute;</h1>
-                <p>
-                  La r&eacute;servation est en cours de finalisation sur l'application client.
-                </p>
-              </div>
-
-              <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
-            </section>
-
-            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-          </section>
-        </ng-container>
-        </ng-template>
-
-        <ng-template #providerActionPanel>
-        <section
-          class="service-proposal__panel service-proposal__counter-shell"
-          aria-label="Proposition de prix du client"
-        >
-          <header class="service-proposal__hero">
-            <div>
-              <h1>R&eacute;servation finale</h1>
-              <p>
-                avec <strong>{{ proposalClientName() }}</strong>
-                <span class="service-proposal__online-badge">
-                  <ng-container *ngIf="proposal.client?.urlAvatar; else providerActionInitials">
-                    <img [src]="proposal.client?.urlAvatar" [alt]="proposalClientName()" />
-                  </ng-container>
-                  <ng-template #providerActionInitials>
-                    <em>{{ proposalClientInitials() }}</em>
-                  </ng-template>
-                  <app-presence-status
-                    [userId]="proposal.client?.id"
-                    onlineLabel="Client en ligne"
-                    offlineLabel="Client hors ligne"
-                  />
-                </span>
-              </p>
-            </div>
-            <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2"></lucide-icon>
-          </header>
-
-          <div class="service-proposal__panel-body">
-            <div class="service-proposal__counter-modern">
               <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
-              <div class="service-proposal__counter-offer-card">
-              <h2>Nouvelle offre de {{ proposalClientName() }}</h2>
-              <div class="service-proposal__counter-offer-values">
-                <span *ngIf="providerHasPreviousOffer()">
-                  <small>Votre précédente contre-offre</small>
-                  <strong>{{ providerBaseOfferLabel() }} <em>FCFA</em></strong>
-                </span>
-                <lucide-icon
-                  *ngIf="providerHasPreviousOffer()"
-                  name="arrow-right"
-                  size="14"
-                  [strokeWidth]="2.2"
-                ></lucide-icon>
-                <span>
-                  <small>Offre du client {{ shortOfferName(proposalClientName()) }}</small>
-                  <strong>{{ providerCurrentClientOfferLabel() }} <em>FCFA</em></strong>
-                </span>
-              </div>
-            </div>
-
-            <section class="service-proposal__price-card service-proposal__price-card--counter">
-            <ng-container
-              *ngTemplateOutlet="
-                priceCardHeader;
-                context: { equityLabel: providerCounterDifferenceLabel() }
-              "
-            ></ng-container>
-
-            <div class="service-proposal__offer-display">
-              <small>Votre contre-offre</small>
-              <label>
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  [readonly]="!canProviderRespond()"
-                  [ngModel]="formattedOffer()"
-                  (ngModelChange)="updateOfferAmount($event)"
-                  aria-label="Nouvelle proposition du prestataire"
-                />
-                <strong>FCFA</strong>
-              </label>
-            </div>
-
-            <div class="service-proposal__amount-actions">
-              <button
-                type="button"
-                class="service-proposal__amount-action service-proposal__amount-action--down"
-                [disabled]="!canProviderRespond()"
-                (click)="decreaseOffer()"
+              <section
+                class="service-proposal__pending service-proposal__pending--provider-wait"
+                aria-label="Negociation en cours"
               >
-                <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
-                Diminuer
-              </button>
-              <button
-                type="button"
-                class="service-proposal__amount-action service-proposal__amount-action--up"
-                [disabled]="!canProviderRespond()"
-                (click)="increaseOffer()"
-              >
-                <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
-                Augmenter
-              </button>
-            </div>
-
-            <div class="service-proposal__steps" aria-label="Paliers de modification">
-              <span class="service-proposal__steps-title">Palier :</span>
-              <input
-                class="service-proposal__steps-range"
-                type="range"
-                min="100"
-                max="1000"
-                step="50"
-                [ngModel]="selectedOfferStep()"
-                (ngModelChange)="updateOfferStep($event)"
-                aria-label="Palier de modification du prix"
-              />
-              <output>{{ selectedOfferStep() }} FCFA</output>
-            </div>
-            </section>
-
-            <div class="service-proposal__counter-modern-actions">
-            <button
-              *ngIf="canProviderRespond(); else providerWaitingPanel"
-              type="button"
-              class="service-proposal__submit"
-              [disabled]="isProviderProposalSubmitting()"
-              (click)="respondToClientProposal()"
-            >
-              <lucide-icon name="check" size="17" [strokeWidth]="2.6"></lucide-icon>
-              {{ isProviderProposalSubmitting() ? 'Traitement...' : providerCounterActionLabel() }}
-            </button>
-
-            <ng-template #providerWaitingPanel>
-              <p class="service-proposal__provider-waiting">
-                La page se met a jour automatiquement lorsque le client repond.
-              </p>
-            </ng-template>
-
-            <button
-              *ngIf="canProviderRespond()"
-              type="button"
-              class="service-proposal__counter-refuse service-proposal__counter-refuse--modern"
-              [disabled]="isProviderProposalSubmitting()"
-              (click)="rejectClientProposal()"
-            >
-              Refuser la mission
-            </button>
-            </div>
-
-            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-          </div>
-          </div>
-        </section>
-        </ng-template>
-
-        <aside class="service-proposal__side-stack">
-          <section class="service-proposal__summary" aria-label="Recapitulatif de la proposition">
-            <div class="service-proposal__provider">
-              <span class="service-proposal__avatar-wrap">
-                <img
-                  *ngIf="proposal.client?.urlAvatar; else providerSummaryInitials"
-                  [src]="proposal.client?.urlAvatar"
-                  [alt]="proposalClientName()"
-                />
-                <ng-template #providerSummaryInitials>
-                  <span class="service-proposal__provider-initials">{{
-                    proposalClientInitials()
-                  }}</span>
-                </ng-template>
-                <app-presence-dot [userId]="proposal.client?.id" />
-              </span>
-              <div>
-                <h2>{{ proposalClientName() }}</h2>
-                <span>Client</span>
-                <p>
-                  <lucide-icon
-                    name="star"
-                    size="14"
-                    [strokeWidth]="2.4"
-                    fill="currentColor"
-                  ></lucide-icon>
-                  {{ categoryLabel() || proposal.service?.nom }}
-                </p>
-              </div>
-            </div>
-
-            <div class="service-proposal__summary-row">
-              <span>
-                <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon>
-              </span>
-              <p>
-                <small>Date</small><strong>{{ formattedDate() }}</strong>
-              </p>
-            </div>
-
-            <div class="service-proposal__summary-row">
-              <span>
-                <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
-              </span>
-              <p>
-                <small>Heure d'intervention</small><strong>{{ formattedTime() }}</strong>
-              </p>
-            </div>
-
-            <div class="service-proposal__summary-row">
-              <span>
-                <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
-              </span>
-              <p>
-                <small>{{ appointmentAddressLabel() }}</small>
-                <strong>{{ shortAddress() }}</strong>
-                <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
-              </p>
-            </div>
-
-            <div class="service-proposal__summary-row">
-              <span>
-                <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
-              </span>
-              <p>
-                <small>{{ providerSummaryPriceLabel() }}</small>
-                <strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
-              </p>
-            </div>
-          </section>
-
-          <button type="button" class="service-proposal__message" (click)="messageClient()">
-            <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-            Message au client
-          </button>
-        </aside>
-        </ng-template>
-      </section>
-    </ng-container>
-
-    <ng-template #clientProposalContent>
-      <section
-        *ngIf="closedProposal() as closed; else clientProposalOpenContent"
-        class="service-proposal__content service-proposal__content--closed"
-      >
-        <ng-container
-          *ngTemplateOutlet="closedNegotiationCard; context: { $implicit: closed }"
-        ></ng-container>
-      </section>
-
-      <ng-template #clientProposalOpenContent>
-      <section
-        class="service-proposal__content"
-      >
-        <ng-container *ngIf="acceptedConfirmation(); else bookingContent">
-          <section class="service-proposal__confirmed">
-            <ng-container *ngTemplateOutlet="confirmedReservationCard"></ng-container>
-          </section>
-        </ng-container>
-<ng-template #bookingContent>
-          <section
-            *ngIf="!pendingProposal(); else pendingProposalPanel"
-            class="service-proposal__panel service-proposal__panel--reservation-final"
-            aria-label="Formulaire de proposition"
-          >
-            <header class="service-proposal__hero">
-              <div>
-                <h1>Reservation finale</h1>
-                <p>
-                  avec <strong>{{ displayName() }}</strong>
-                  <span class="service-proposal__online-badge">
-                    <ng-container *ngIf="avatarUrl(); else heroInitials">
-                      <img [src]="avatarUrl()" [alt]="displayName()" />
-                    </ng-container>
-                    <ng-template #heroInitials>
-                      <em>{{ providerInitials() }}</em>
-                    </ng-template>
-                    <app-presence-status
-                      [userId]="detail()?.profile?.utilisateurId"
-                      [professionalId]="detail()?.profile?.id"
-                      [initialOnline]="detail()?.presence?.isOnline ?? false"
-                    />
-                  </span>
-                </p>
-              </div>
-              <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2"></lucide-icon>
-            </header>
-
-            <div class="service-proposal__panel-body service-proposal__panel-body--booking">
-              <div class="service-proposal__progress" aria-hidden="true">
-                <span class="service-proposal__progress-segment service-proposal__progress-segment--active"></span>
-                <span
-                  class="service-proposal__progress-segment"
-                  [class.service-proposal__progress-segment--active]="clientBookingStep() === 'PRICE'"
-                ></span>
-              </div>
-
-              <ng-container *ngIf="clientBookingStep() === 'DETAILS'; else clientPriceStep">
-                <ng-container *ngIf="isParcelDeliveryService(); else standardBookingDetails">
-                  <section class="service-proposal__booking-details service-proposal__parcel-booking" aria-label="Details de la livraison">
-                    <button
-                      type="button"
-                      class="service-proposal__service-field service-proposal__service-field--parcel"
-                      (click)="openDetailsModal('service')"
-                    >
-                      <span class="service-proposal__field-icon">
-                        <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
-                      </span>
-                      <span>
-                        <small>Type de livraison</small>
-                        <strong>{{ parcelDeliveryType() || categoryLabel() }}</strong>
-                      </span>
-                      <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                    </button>
-
-                    <section class="service-proposal__parcel-card" aria-label="Description des colis">
-                      <button type="button" class="service-proposal__parcel-card-header" (click)="toggleParcelDescription()">
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <h2>Description des colis <b>{{ parcels().length }} colis</b></h2>
-                        <lucide-icon
-                          name="chevron-down"
-                          size="16"
-                          [strokeWidth]="2.5"
-                          [class.service-proposal__parcel-chevron--open]="parcelDescriptionExpanded()"
-                        ></lucide-icon>
-                      </button>
-
-                      <div *ngIf="parcelDescriptionExpanded()" class="service-proposal__parcel-table" role="table" aria-label="Liste des colis">
-                        <div class="service-proposal__parcel-head" role="row">
-                          <span>N de colis</span>
-                          <span>Apercu</span>
-                          <span>Description & dimensions</span>
-                          <span>Action</span>
-                        </div>
-                        <p *ngIf="parcels().length === 0" class="service-proposal__parcel-empty">
-                          Aucun colis ajoute. Cliquez sur Ajouter un colis pour renseigner une ligne.
-                        </p>
-                        <div *ngFor="let parcel of parcels(); trackBy: trackByParcelId" class="service-proposal__parcel-row" role="row">
-                          <strong>{{ parcel.number }}</strong>
-                          <span class="service-proposal__parcel-preview">
-                            <lucide-icon name="package" size="18" [strokeWidth]="2.1"></lucide-icon>
-                            Colis
-                          </span>
-                          <input
-                            type="text"
-                            [ngModel]="parcel.description"
-                            (ngModelChange)="updateParcelDescription(parcel.id, $event)"
-                            placeholder="ex : Carton lourd d'imprimantes ..."
-                          />
-                          <button type="button" aria-label="Supprimer ce colis" (click)="removeParcel(parcel.id)">
-                            <lucide-icon name="trash-2" size="15" [strokeWidth]="2.4"></lucide-icon>
-                          </button>
-                        </div>
-                      </div>
-
-                      <button *ngIf="parcelDescriptionExpanded()" type="button" class="service-proposal__parcel-add" (click)="addParcel()">
-                        <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
-                        Ajouter un colis
-                      </button>
-                    </section>
-                    <p *ngIf="clientDetailsErrors().parcels" class="service-proposal__field-error service-proposal__field-error--full">
-                      {{ clientDetailsErrors().parcels }}
-                    </p>
-
-                    <div class="service-proposal__fields service-proposal__fields--parcel">
-                      <div class="service-proposal__field-stack">
-                        <button type="button" class="service-proposal__field" (click)="openDetailsModal('schedule')">
-                          <span class="service-proposal__field-icon">
-                            <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                          </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Date & heure de retrait colis</small>
-                          <strong [class.service-proposal__field-placeholder]="!appointmentDate()">
-                            {{ formattedDate() }} a {{ selectedSlotLabel() }}
-                          </strong>
-                        </span>
-                          <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                        </button>
-                        <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
-                          {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
-                        </p>
-                      </div>
-
-                      <label class="service-proposal__field service-proposal__field--input">
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon name="file-text" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Note utile pour la livraison</small>
-                          <input
-                            type="text"
-                            [ngModel]="parcelNote()"
-                            (ngModelChange)="updateParcelNote($event)"
-                            placeholder="Remplissez la note utile pour la livraison..."
-                          />
-                        </span>
-                      </label>
-
-                      <button type="button" class="service-proposal__field service-proposal__field--parcel-address" (click)="openDetailsModal('parcelPickup')">
-                        <span class="service-proposal__field-icon service-proposal__field-icon--pickup">
-                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Depart</small>
-                          <strong [class.service-proposal__field-placeholder]="!parcelPickupAddress()">
-                            {{ parcelPickupAddress() || "Choisir l'adresse de depart et l'expediteur" }}
-                          </strong>
-                          <em *ngIf="parcelPickupContact().name || parcelPickupContact().phone">
-                            {{ parcelPickupContact().name || 'Expediteur' }} - {{ parcelPickupContact().phone || 'Telephone manquant' }}
-                          </em>
-                        </span>
-                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                      </button>
-
-                      <button type="button" class="service-proposal__field service-proposal__field--parcel-address" (click)="openDetailsModal('parcelDropoff')">
-                        <span class="service-proposal__field-icon service-proposal__field-icon--dropoff">
-                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Arrivee</small>
-                          <strong [class.service-proposal__field-placeholder]="!parcelDropoffAddress()">
-                            {{ parcelDropoffAddress() || "Choisir l'adresse d'arrivee et le destinataire" }}
-                          </strong>
-                          <em *ngIf="parcelDropoffContact().name || parcelDropoffContact().phone">
-                            {{ parcelDropoffContact().name || 'Destinataire' }} - {{ parcelDropoffContact().phone || 'Telephone manquant' }}
-                          </em>
-                        </span>
-                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                      </button>
-                    </div>
-
-                    <div class="service-proposal__parcel-errors">
-                      <p *ngIf="clientDetailsErrors().pickupContact" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().pickupContact }}
-                      </p>
-                      <p *ngIf="clientDetailsErrors().pickupAddress" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().pickupAddress }}
-                      </p>
-                      <p *ngIf="clientDetailsErrors().dropoffContact" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().dropoffContact }}
-                      </p>
-                      <p *ngIf="clientDetailsErrors().dropoffAddress" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().dropoffAddress }}
-                      </p>
-                    </div>
-                  </section>
-                </ng-container>
-
-                <ng-template #standardBookingDetails>
-                <section class="service-proposal__booking-details" aria-label="Details du rendez-vous">
-                  <button
-                    type="button"
-                    class="service-proposal__service-field"
-                    (click)="openDetailsModal('service')"
-                  >
-                    <span class="service-proposal__field-icon">
-                      <lucide-icon name="briefcase-business" size="16" [strokeWidth]="2.2"></lucide-icon>
-                    </span>
-                    <span>
-                      <small>Motif de prestation</small>
-                      <strong [class.service-proposal__field-placeholder]="!currentService() && !customServiceName()">
-                        {{ categoryLabel() }}
-                      </strong>
-                    </span>
-                    <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                  </button>
-                  <p *ngIf="clientDetailsErrors().service" class="service-proposal__field-error service-proposal__field-error--full">
-                    {{ clientDetailsErrors().service }}
+                <div class="service-proposal__waiting-copy">
+                  <h1>N&eacute;gociation en cours...</h1>
+                  <p>
+                    Veuillez patienter pendant que {{ proposalClientName() }} examine votre
+                    contre-offre sur son application client.
                   </p>
+                </div>
 
-                  <div class="service-proposal__fields" aria-label="Informations du rendez-vous">
-                    <div class="service-proposal__field-stack">
-                      <button
-                        type="button"
-                        class="service-proposal__field"
-                        (click)="openDetailsModal('schedule')"
-                      >
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon name="calendar-days" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>Date &amp; heure d'intervention</small>
-                          <strong [class.service-proposal__field-placeholder]="!appointmentDate()">
-                            {{ formattedDate() }} a {{ selectedSlotLabel() }}
-                          </strong>
-                        </span>
-                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
-                      </button>
-                      <p *ngIf="clientDetailsErrors().schedule || clientDetailsErrors().availability" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().schedule || clientDetailsErrors().availability }}
-                      </p>
-                    </div>
+                <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
 
-                    <div class="service-proposal__field-stack">
-                      <button
-                        type="button"
-                        class="service-proposal__field"
-                        [class.service-proposal__field--readonly]="clientTravelsToProvider()"
-                        (click)="openDetailsModal('address')"
-                      >
-                        <span class="service-proposal__field-icon">
-                          <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
-                        </span>
-                        <span class="service-proposal__field-copy">
-                          <small>{{ appointmentAddressLabel() }}</small>
-                          <strong [class.service-proposal__field-placeholder]="providerTravelsToClient() && !address()">
-                            {{ shortAddress() }}
-                          </strong>
-                        </span>
-                        <lucide-icon
-                          *ngIf="providerTravelsToClient()"
-                          name="pencil"
-                          size="15"
-                          [strokeWidth]="2.2"
-                          ></lucide-icon>
-                      </button>
-                      <p *ngIf="clientDetailsErrors().address" class="service-proposal__field-error">
-                        {{ clientDetailsErrors().address }}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-                </ng-template>
+                <div class="service-proposal__waiting-track" aria-label="Suivi de la negotiation">
+                  <span
+                    class="service-proposal__waiting-party service-proposal__waiting-party--you"
+                  >
+                    <strong>VOUS</strong>
+                    <small>{{ providerSummaryAmountLabel() }} FCFA</small>
+                  </span>
 
-                <button
-                  type="button"
-                  class="service-proposal__submit service-proposal__submit--dark"
-                  (click)="goToClientPriceStep()"
-                >
-                  {{ isParcelDeliveryService() ? 'Continuer vers la finalisation de la livraison' : 'Continuer vers la finalisation' }}
-                  <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
-                </button>
-              </ng-container>
+                  <span class="service-proposal__waiting-line" aria-hidden="true">
+                    <i></i>
+                  </span>
 
-              <ng-template #clientPriceStep>
+                  <span
+                    class="service-proposal__waiting-party service-proposal__waiting-party--provider"
+                  >
+                    <span class="service-proposal__waiting-avatar">
+                      <img
+                        *ngIf="proposal.client?.urlAvatar; else providerWaitingClientInitials"
+                        [src]="proposal.client?.urlAvatar"
+                        [alt]="proposalClientName()"
+                      />
+                      <ng-template #providerWaitingClientInitials>
+                        <em>{{ proposalClientInitials() }}</em>
+                      </ng-template>
+                      <app-presence-dot [userId]="proposal.client?.id" />
+                    </span>
+                    <small>CLIENT</small>
+                  </span>
+                </div>
+              </section>
+
+              <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+            </section>
+          </ng-container>
+
+          <ng-template #providerNotWaitingForClient>
+            <ng-container *ngIf="isProviderWaitingForReservation(); else providerActionPanel">
+              <section
+                class="service-proposal__panel service-proposal__provider-wait-shell"
+                aria-label="Reservation en finalisation"
+              >
                 <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
-                <section class="service-proposal__price-card" aria-label="Prix propose">
-                  <ng-container
-                    *ngTemplateOutlet="
-                      priceCardHeader;
-                      context: { equityLabel: isOfferAdjusted() ? offerDifferenceLabel() : offerEquityLabel() }
-                    "
-                  ></ng-container>
-
-                  <div class="service-proposal__offer-display">
-                    <small>{{ offerFieldLabel() }}</small>
-                    <label>
-                      <input
-                        type="text"
-                        inputmode="numeric"
-                        min="1"
-                        step="500"
-                        [readonly]="isFixedPriceService()"
-                        [ngModel]="formattedOffer()"
-                        (ngModelChange)="updateOfferAmount($event)"
-                        [attr.aria-label]="offerFieldLabel()"
-                        [attr.placeholder]="customServiceName() ? 'Prix propose' : null"
-                      />
-                      <strong>FCFA</strong>
-                    </label>
+                <section
+                  class="service-proposal__pending service-proposal__pending--provider-wait"
+                  aria-label="Reservation en finalisation"
+                >
+                  <div class="service-proposal__waiting-copy">
+                    <h1>Prix accept&eacute;</h1>
+                    <p>
+                      La r&eacute;servation est en cours de finalisation sur l'application client.
+                    </p>
                   </div>
 
-                  <div class="service-proposal__amount-actions">
-                    <button
-                      type="button"
-                      class="service-proposal__amount-action service-proposal__amount-action--down"
-                      [disabled]="isFixedPriceService()"
-                      (click)="decreaseOffer()"
-                    >
-                      <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
-                      Diminuer
-                    </button>
-                    <button
-                      type="button"
-                      class="service-proposal__amount-action service-proposal__amount-action--up"
-                      [disabled]="isFixedPriceService()"
-                      (click)="increaseOffer()"
-                    >
-                      <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
-                      Augmenter
-                    </button>
-                  </div>
-
-                  <div class="service-proposal__steps" aria-label="Paliers de modification">
-                    <span class="service-proposal__steps-title">Palier :</span>
-                    <input
-                      class="service-proposal__steps-range"
-                      type="range"
-                      min="100"
-                      max="1000"
-                      step="50"
-                      [ngModel]="selectedOfferStep()"
-                      (ngModelChange)="updateOfferStep($event)"
-                      aria-label="Palier de modification du prix"
-                    />
-                    <output>{{ selectedOfferStep() }} FCFA</output>
-                  </div>
+                  <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
                 </section>
 
                 <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+              </section>
+            </ng-container>
+          </ng-template>
 
-                <div class="service-proposal__booking-actions">
-                  <button
-                    type="button"
-                    class="service-proposal__submit"
-                    [class.service-proposal__submit--counter]="isOfferAdjusted()"
-                    [attr.aria-label]="submitButtonLabel()"
-                    (click)="submitProposal()"
-                    [disabled]="
-                      isSubmitting() ||
-                      isCheckingAvailability() ||
-                      isLoadingAvailabilitySlots()
-                    "
-                  >
-                    <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>
-                    {{ submitButtonVisualLabel() }}
-                    <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
-                  </button>
-                </div>
-              </ng-template>
-            </div>
-          </section>
-
-          <ng-template #pendingProposalPanel>
+          <ng-template #providerActionPanel>
             <section
-              class="service-proposal__panel service-proposal__panel--reservation-final service-proposal__counter-shell"
-              aria-label="Suivi de la proposition"
+              class="service-proposal__panel service-proposal__counter-shell"
+              aria-label="Proposition de prix du client"
             >
               <header class="service-proposal__hero">
                 <div>
-                  <h1>Reservation finale</h1>
+                  <h1>R&eacute;servation finale</h1>
                   <p>
-                    avec <strong>{{ displayName() }}</strong>
+                    avec <strong>{{ proposalClientName() }}</strong>
                     <span class="service-proposal__online-badge">
-                      <ng-container *ngIf="avatarUrl(); else pendingHeroInitials">
-                        <img [src]="avatarUrl()" [alt]="displayName()" />
+                      <ng-container *ngIf="proposal.client?.urlAvatar; else providerActionInitials">
+                        <img [src]="proposal.client?.urlAvatar" [alt]="proposalClientName()" />
                       </ng-container>
-                      <ng-template #pendingHeroInitials>
-                        <em>{{ providerInitials() }}</em>
+                      <ng-template #providerActionInitials>
+                        <em>{{ proposalClientInitials() }}</em>
                       </ng-template>
                       <app-presence-status
-                        [userId]="detail()?.profile?.utilisateurId"
-                        [professionalId]="detail()?.profile?.id"
-                        [initialOnline]="detail()?.presence?.isOnline ?? false"
+                        [userId]="proposal.client?.id"
+                        onlineLabel="Client en ligne"
+                        offlineLabel="Client hors ligne"
                       />
                     </span>
                   </p>
@@ -876,90 +286,36 @@
               </header>
 
               <div class="service-proposal__panel-body">
-              <ng-container *ngIf="!hasProviderCounterOffer(); else providerCounterOfferPanel">
-                <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
-
-                <section
-                  class="service-proposal__pending service-proposal__pending--inside"
-                  aria-label="Negociation en cours"
-                >
-                <div class="service-proposal__waiting-copy">
-                  <h1>N&eacute;gociation en cours...</h1>
-                  <p>
-                    Veuillez patienter pendant que {{ displayName() }} examine votre proposition
-                    sur son application prestataire.
-                  </p>
-                </div>
-
-                <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
-
-                <div class="service-proposal__waiting-track" aria-label="Suivi de la negotiation">
-                  <span class="service-proposal__waiting-party service-proposal__waiting-party--you">
-                    <strong>VOUS</strong>
-                    <small>{{ pendingOfferAmountLabel() }} FCFA</small>
-                  </span>
-
-                  <span class="service-proposal__waiting-line" aria-hidden="true">
-                    <i></i>
-                  </span>
-
-                  <span class="service-proposal__waiting-party service-proposal__waiting-party--provider">
-                    <span class="service-proposal__waiting-avatar">
-                      <img
-                        *ngIf="avatarUrl(); else pendingInitials"
-                        [src]="avatarUrl()"
-                        [alt]="displayName()"
-                      />
-                      <ng-template #pendingInitials>
-                        <em>{{ providerInitials() }}</em>
-                      </ng-template>
-                      <app-presence-dot
-                        [userId]="detail()?.profile?.utilisateurId"
-                        [professionalId]="detail()?.profile?.id"
-                        [initialOnline]="detail()?.presence?.isOnline ?? false"
-                      />
-                    </span>
-                    <small>ARTISAN</small>
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  class="service-proposal__cancel-offer"
-                  [disabled]="isCancellingProposal()"
-                  (click)="cancelPendingProposal()"
-                >
-                  {{ isCancellingProposal() ? 'Annulation en cours...' : "Annuler l'offre" }}
-                </button>
-                </section>
-
-                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-              </ng-container>
-
-              <ng-template #providerCounterOfferPanel>
                 <div class="service-proposal__counter-modern">
                   <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
 
                   <div class="service-proposal__counter-offer-card">
-                    <h2>Nouvelle offre de {{ displayName() }}</h2>
+                    <h2>Nouvelle offre de {{ proposalClientName() }}</h2>
                     <div class="service-proposal__counter-offer-values">
-                      <span>
-                        <small>Votre offre</small>
-                        <strong>{{ clientLatestOfferAmountLabel() }} <em>FCFA</em></strong>
+                      <span *ngIf="providerHasPreviousOffer()">
+                        <small>Votre précédente contre-offre</small>
+                        <strong>{{ providerBaseOfferLabel() }} <em>FCFA</em></strong>
                       </span>
-                      <lucide-icon name="arrow-right" size="14" [strokeWidth]="2.2"></lucide-icon>
+                      <lucide-icon
+                        *ngIf="providerHasPreviousOffer()"
+                        name="arrow-right"
+                        size="14"
+                        [strokeWidth]="2.2"
+                      ></lucide-icon>
                       <span>
-                        <small>Offre {{ shortOfferName(displayName()) }}</small>
-                        <strong>{{ providerCounterAmountLabel() }} <em>FCFA</em></strong>
+                        <small>Offre du client {{ shortOfferName(proposalClientName()) }}</small>
+                        <strong>{{ providerCurrentClientOfferLabel() }} <em>FCFA</em></strong>
                       </span>
                     </div>
                   </div>
 
-                  <section class="service-proposal__price-card service-proposal__price-card--counter">
+                  <section
+                    class="service-proposal__price-card service-proposal__price-card--counter"
+                  >
                     <ng-container
                       *ngTemplateOutlet="
                         priceCardHeader;
-                        context: { equityLabel: counterDifferenceLabel() }
+                        context: { equityLabel: providerCounterDifferenceLabel() }
                       "
                     ></ng-container>
 
@@ -969,9 +325,10 @@
                         <input
                           type="text"
                           inputmode="numeric"
+                          [readonly]="!canProviderRespond()"
                           [ngModel]="formattedOffer()"
                           (ngModelChange)="updateOfferAmount($event)"
-                          aria-label="Nouvelle proposition du client"
+                          aria-label="Nouvelle proposition du prestataire"
                         />
                         <strong>FCFA</strong>
                       </label>
@@ -981,6 +338,7 @@
                       <button
                         type="button"
                         class="service-proposal__amount-action service-proposal__amount-action--down"
+                        [disabled]="!canProviderRespond()"
                         (click)="decreaseOffer()"
                       >
                         <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
@@ -989,6 +347,7 @@
                       <button
                         type="button"
                         class="service-proposal__amount-action service-proposal__amount-action--up"
+                        [disabled]="!canProviderRespond()"
                         (click)="increaseOffer()"
                       >
                         <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
@@ -1014,59 +373,62 @@
 
                   <div class="service-proposal__counter-modern-actions">
                     <button
+                      *ngIf="canProviderRespond(); else providerWaitingPanel"
                       type="button"
                       class="service-proposal__submit"
-                      [disabled]="isRespondingToCounterOffer() || !isMaterialQuoteStateReady()"
-                      (click)="respondToProviderCounterOffer()"
+                      [disabled]="isProviderProposalSubmitting()"
+                      (click)="respondToClientProposal()"
                     >
                       <lucide-icon name="check" size="17" [strokeWidth]="2.6"></lucide-icon>
                       {{
-                        isRespondingToCounterOffer()
+                        isProviderProposalSubmitting()
                           ? 'Traitement...'
-                          : !isMaterialQuoteStateReady()
-                            ? 'Verification du devis...'
-                            : counterActionLabel()
+                          : providerCounterActionLabel()
                       }}
                     </button>
 
+                    <ng-template #providerWaitingPanel>
+                      <p class="service-proposal__provider-waiting">
+                        La page se met a jour automatiquement lorsque le client repond.
+                      </p>
+                    </ng-template>
+
                     <button
+                      *ngIf="canProviderRespond()"
                       type="button"
                       class="service-proposal__counter-refuse service-proposal__counter-refuse--modern"
-                      [disabled]="isCancellingProposal()"
-                      (click)="refuseProviderCounterOffer()"
+                      [disabled]="isProviderProposalSubmitting()"
+                      (click)="rejectClientProposal()"
                     >
-                      {{ isCancellingProposal() ? 'Refus en cours...' : 'Refuser la mission' }}
+                      Refuser la mission
                     </button>
                   </div>
 
                   <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                 </div>
-              </ng-template>
               </div>
             </section>
           </ng-template>
 
           <aside class="service-proposal__side-stack">
-            <section class="service-proposal__summary" aria-label="Recapitulatif du rendez-vous">
-              <div class="service-proposal__provider service-proposal__provider--booking-summary">
+            <section class="service-proposal__summary" aria-label="Recapitulatif de la proposition">
+              <div class="service-proposal__provider">
                 <span class="service-proposal__avatar-wrap">
                   <img
-                    *ngIf="avatarUrl(); else serviceProposalInitials"
-                    [src]="avatarUrl()"
-                    [alt]="displayName()"
+                    *ngIf="proposal.client?.urlAvatar; else providerSummaryInitials"
+                    [src]="proposal.client?.urlAvatar"
+                    [alt]="proposalClientName()"
                   />
-                  <ng-template #serviceProposalInitials>
-                    <span class="service-proposal__provider-initials">{{ providerInitials() }}</span>
+                  <ng-template #providerSummaryInitials>
+                    <span class="service-proposal__provider-initials">{{
+                      proposalClientInitials()
+                    }}</span>
                   </ng-template>
-                  <app-presence-dot
-                    [userId]="detail()?.profile?.utilisateurId"
-                    [professionalId]="detail()?.profile?.id"
-                    [initialOnline]="detail()?.presence?.isOnline ?? false"
-                  />
+                  <app-presence-dot [userId]="proposal.client?.id" />
                 </span>
                 <div>
-                  <h2>{{ displayName() }}</h2>
-                  <span>{{ categoryLabel() }}</span>
+                  <h2>{{ proposalClientName() }}</h2>
+                  <span>Client</span>
                   <p>
                     <lucide-icon
                       name="star"
@@ -1074,28 +436,9 @@
                       [strokeWidth]="2.4"
                       fill="currentColor"
                     ></lucide-icon>
-                    {{ ratingLabel() }}
+                    {{ categoryLabel() || proposal.service?.nom }}
                   </p>
                 </div>
-                <span
-                  class="service-proposal__movement-badge"
-                  [ngClass]="reservationTravelModeBadgeClass()"
-                  [attr.aria-label]="reservationTravelModeLabel()"
-                >
-                  <strong>{{ reservationTravelModeLabel() }}</strong>
-                  <img
-                    *ngIf="reservationTravelModeImageUrl() as travelModeImage"
-                    [src]="travelModeImage"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                </span>
-                <span *ngIf="providerVehicleBadge() as vehicleBadge" class="professional-vehicle-badge">
-                  <span class="professional-vehicle-badge__icon">
-                    <img [src]="vehicleBadge.imageUrl" [alt]="vehicleBadge.label" />
-                  </span>
-                  <strong>{{ vehicleBadge.label }}</strong>
-                </span>
               </div>
 
               <div class="service-proposal__summary-row">
@@ -1112,17 +455,7 @@
                   <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
                 </span>
                 <p>
-                  <small>{{ isParcelDeliveryService() ? 'Heure de retrait colis' : "Heure d'intervention" }}</small><strong>{{ formattedTime() }}</strong>
-                </p>
-              </div>
-
-              <div *ngIf="isParcelDeliveryService()" class="service-proposal__summary-row service-proposal__summary-row--pickup">
-                <span>
-                  <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
-                </span>
-                <p>
-                  <small>Depart colis</small>
-                  <strong>{{ parcelPickupAddress() || '(VIDE)' }}</strong>
+                  <small>Heure d'intervention</small><strong>{{ formattedTime() }}</strong>
                 </p>
               </div>
 
@@ -1132,42 +465,926 @@
                 </span>
                 <p>
                   <small>{{ appointmentAddressLabel() }}</small>
-                  <strong>{{ isParcelDeliveryService() ? parcelDropoffAddress() || '(VIDE)' : shortAddress() }}</strong>
-                  <em *ngIf="!isParcelDeliveryService()">{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
+                  <strong>{{ shortAddress() }}</strong>
+                  <em>{{ clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile' }}</em>
                 </p>
               </div>
 
               <div class="service-proposal__summary-row">
                 <span>
-                  <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2.2"></lucide-icon>
+                  <lucide-icon
+                    name="circle-dollar-sign"
+                    size="17"
+                    [strokeWidth]="2.2"
+                  ></lucide-icon>
                 </span>
                 <p>
-                  <small>Prix equitable du service</small><strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
-                  <em *ngIf="isParcelDeliveryService()">{{ parcelPriceBasisLabel() }}</em>
+                  <small>{{ providerSummaryPriceLabel() }}</small>
+                  <strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
                 </p>
               </div>
-
             </section>
 
-            <button type="button" class="service-proposal__message" (click)="messageProvider()">
+            <button type="button" class="service-proposal__message" (click)="messageClient()">
               <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
-              Message au prestataire
+              Message au client
             </button>
-
-            <section class="service-proposal__help-card" aria-label="Fonctionnement">
-              <h2>
-                <lucide-icon name="info" size="14" [strokeWidth]="2.2"></lucide-icon>
-                Fonctionnement :
-              </h2>
-              <p>
-                Double-cliquez sur les paliers ou utilisez <strong>Diminuer</strong> /
-                <strong>Augmenter</strong> pour ajuster le montant du devis. Le bouton
-                d'engagement principal s'adapte automatiquement a votre contre-offre.
-              </p>
-            </section>
           </aside>
         </ng-template>
       </section>
+    </ng-container>
+
+    <ng-template #clientProposalContent>
+      <section
+        *ngIf="closedProposal() as closed; else clientProposalOpenContent"
+        class="service-proposal__content service-proposal__content--closed"
+      >
+        <ng-container
+          *ngTemplateOutlet="closedNegotiationCard; context: { $implicit: closed }"
+        ></ng-container>
+      </section>
+
+      <ng-template #clientProposalOpenContent>
+        <section class="service-proposal__content">
+          <ng-container *ngIf="acceptedConfirmation(); else bookingContent">
+            <section class="service-proposal__confirmed">
+              <ng-container *ngTemplateOutlet="confirmedReservationCard"></ng-container>
+            </section>
+          </ng-container>
+          <ng-template #bookingContent>
+            <section
+              *ngIf="!pendingProposal(); else pendingProposalPanel"
+              class="service-proposal__panel service-proposal__panel--reservation-final"
+              aria-label="Formulaire de proposition"
+            >
+              <header class="service-proposal__hero">
+                <div>
+                  <h1>Reservation finale</h1>
+                  <p>
+                    avec <strong>{{ displayName() }}</strong>
+                    <span class="service-proposal__online-badge">
+                      <ng-container *ngIf="avatarUrl(); else heroInitials">
+                        <img [src]="avatarUrl()" [alt]="displayName()" />
+                      </ng-container>
+                      <ng-template #heroInitials>
+                        <em>{{ providerInitials() }}</em>
+                      </ng-template>
+                      <app-presence-status
+                        [userId]="detail()?.profile?.utilisateurId"
+                        [professionalId]="detail()?.profile?.id"
+                        [initialOnline]="detail()?.presence?.isOnline ?? false"
+                      />
+                    </span>
+                  </p>
+                </div>
+                <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2"></lucide-icon>
+              </header>
+
+              <div class="service-proposal__panel-body service-proposal__panel-body--booking">
+                <div class="service-proposal__progress" aria-hidden="true">
+                  <span
+                    class="service-proposal__progress-segment service-proposal__progress-segment--active"
+                  ></span>
+                  <span
+                    class="service-proposal__progress-segment"
+                    [class.service-proposal__progress-segment--active]="
+                      clientBookingStep() === 'PRICE'
+                    "
+                  ></span>
+                </div>
+
+                <ng-container *ngIf="clientBookingStep() === 'DETAILS'; else clientPriceStep">
+                  <ng-container *ngIf="isParcelDeliveryService(); else standardBookingDetails">
+                    <section
+                      class="service-proposal__booking-details service-proposal__parcel-booking"
+                      aria-label="Details de la livraison"
+                    >
+                      <button
+                        type="button"
+                        class="service-proposal__service-field service-proposal__service-field--parcel"
+                        (click)="openDetailsModal('service')"
+                      >
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
+                        </span>
+                        <span>
+                          <small>Type de livraison</small>
+                          <strong>{{ parcelDeliveryType() || categoryLabel() }}</strong>
+                        </span>
+                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                      </button>
+
+                      <section
+                        class="service-proposal__parcel-card"
+                        aria-label="Description des colis"
+                      >
+                        <button
+                          type="button"
+                          class="service-proposal__parcel-card-header"
+                          (click)="toggleParcelDescription()"
+                        >
+                          <span class="service-proposal__field-icon">
+                            <lucide-icon name="package" size="17" [strokeWidth]="2.2"></lucide-icon>
+                          </span>
+                          <h2>
+                            Description des colis <b>{{ parcels().length }} colis</b>
+                          </h2>
+                          <lucide-icon
+                            name="chevron-down"
+                            size="16"
+                            [strokeWidth]="2.5"
+                            [class.service-proposal__parcel-chevron--open]="
+                              parcelDescriptionExpanded()
+                            "
+                          ></lucide-icon>
+                        </button>
+
+                        <div
+                          *ngIf="parcelDescriptionExpanded()"
+                          class="service-proposal__parcel-table"
+                          role="table"
+                          aria-label="Liste des colis"
+                        >
+                          <div class="service-proposal__parcel-head" role="row">
+                            <span>N de colis</span>
+                            <span>Apercu</span>
+                            <span>Description & dimensions</span>
+                            <span>Action</span>
+                          </div>
+                          <p *ngIf="parcels().length === 0" class="service-proposal__parcel-empty">
+                            Aucun colis ajoute. Cliquez sur Ajouter un colis pour renseigner une
+                            ligne.
+                          </p>
+                          <div
+                            *ngFor="let parcel of parcels(); trackBy: trackByParcelId"
+                            class="service-proposal__parcel-row"
+                            role="row"
+                          >
+                            <strong>{{ parcel.number }}</strong>
+                            <span class="service-proposal__parcel-preview">
+                              <lucide-icon
+                                name="package"
+                                size="18"
+                                [strokeWidth]="2.1"
+                              ></lucide-icon>
+                              Colis
+                            </span>
+                            <input
+                              type="text"
+                              [ngModel]="parcel.description"
+                              (ngModelChange)="updateParcelDescription(parcel.id, $event)"
+                              placeholder="ex : Carton lourd d'imprimantes ..."
+                            />
+                            <button
+                              type="button"
+                              aria-label="Supprimer ce colis"
+                              (click)="removeParcel(parcel.id)"
+                            >
+                              <lucide-icon
+                                name="trash-2"
+                                size="15"
+                                [strokeWidth]="2.4"
+                              ></lucide-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <button
+                          *ngIf="parcelDescriptionExpanded()"
+                          type="button"
+                          class="service-proposal__parcel-add"
+                          (click)="addParcel()"
+                        >
+                          <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+                          Ajouter un colis
+                        </button>
+                      </section>
+                      <p
+                        *ngIf="clientDetailsErrors().parcels"
+                        class="service-proposal__field-error service-proposal__field-error--full"
+                      >
+                        {{ clientDetailsErrors().parcels }}
+                      </p>
+
+                      <div class="service-proposal__fields service-proposal__fields--parcel">
+                        <div class="service-proposal__field-stack">
+                          <button
+                            type="button"
+                            class="service-proposal__field"
+                            (click)="openDetailsModal('schedule')"
+                          >
+                            <span class="service-proposal__field-icon">
+                              <lucide-icon
+                                name="calendar-days"
+                                size="16"
+                                [strokeWidth]="2.2"
+                              ></lucide-icon>
+                            </span>
+                            <span class="service-proposal__field-copy">
+                              <small>Date & heure de retrait colis</small>
+                              <strong
+                                [class.service-proposal__field-placeholder]="!appointmentDate()"
+                              >
+                                {{ formattedDate() }} a {{ selectedSlotLabel() }}
+                              </strong>
+                            </span>
+                            <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                          </button>
+                          <p
+                            *ngIf="
+                              clientDetailsErrors().schedule || clientDetailsErrors().availability
+                            "
+                            class="service-proposal__field-error"
+                          >
+                            {{
+                              clientDetailsErrors().schedule || clientDetailsErrors().availability
+                            }}
+                          </p>
+                        </div>
+
+                        <label class="service-proposal__field service-proposal__field--input">
+                          <span class="service-proposal__field-icon">
+                            <lucide-icon
+                              name="file-text"
+                              size="16"
+                              [strokeWidth]="2.2"
+                            ></lucide-icon>
+                          </span>
+                          <span class="service-proposal__field-copy">
+                            <small>Note utile pour la livraison</small>
+                            <input
+                              type="text"
+                              [ngModel]="parcelNote()"
+                              (ngModelChange)="updateParcelNote($event)"
+                              placeholder="Remplissez la note utile pour la livraison..."
+                            />
+                          </span>
+                        </label>
+
+                        <button
+                          type="button"
+                          class="service-proposal__field service-proposal__field--parcel-address"
+                          (click)="openDetailsModal('parcelPickup')"
+                        >
+                          <span
+                            class="service-proposal__field-icon service-proposal__field-icon--pickup"
+                          >
+                            <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                          </span>
+                          <span class="service-proposal__field-copy">
+                            <small>Depart</small>
+                            <strong
+                              [class.service-proposal__field-placeholder]="!parcelPickupAddress()"
+                            >
+                              {{
+                                parcelPickupAddress() ||
+                                  "Choisir l'adresse de depart et l'expediteur"
+                              }}
+                            </strong>
+                            <em *ngIf="parcelPickupContact().name || parcelPickupContact().phone">
+                              {{ parcelPickupContact().name || 'Expediteur' }} -
+                              {{ parcelPickupContact().phone || 'Telephone manquant' }}
+                            </em>
+                          </span>
+                          <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="service-proposal__field service-proposal__field--parcel-address"
+                          (click)="openDetailsModal('parcelDropoff')"
+                        >
+                          <span
+                            class="service-proposal__field-icon service-proposal__field-icon--dropoff"
+                          >
+                            <lucide-icon name="map-pin" size="16" [strokeWidth]="2.2"></lucide-icon>
+                          </span>
+                          <span class="service-proposal__field-copy">
+                            <small>Arrivee</small>
+                            <strong
+                              [class.service-proposal__field-placeholder]="!parcelDropoffAddress()"
+                            >
+                              {{
+                                parcelDropoffAddress() ||
+                                  "Choisir l'adresse d'arrivee et le destinataire"
+                              }}
+                            </strong>
+                            <em *ngIf="parcelDropoffContact().name || parcelDropoffContact().phone">
+                              {{ parcelDropoffContact().name || 'Destinataire' }} -
+                              {{ parcelDropoffContact().phone || 'Telephone manquant' }}
+                            </em>
+                          </span>
+                          <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                        </button>
+                      </div>
+
+                      <div class="service-proposal__parcel-errors">
+                        <p
+                          *ngIf="clientDetailsErrors().pickupContact"
+                          class="service-proposal__field-error"
+                        >
+                          {{ clientDetailsErrors().pickupContact }}
+                        </p>
+                        <p
+                          *ngIf="clientDetailsErrors().pickupAddress"
+                          class="service-proposal__field-error"
+                        >
+                          {{ clientDetailsErrors().pickupAddress }}
+                        </p>
+                        <p
+                          *ngIf="clientDetailsErrors().dropoffContact"
+                          class="service-proposal__field-error"
+                        >
+                          {{ clientDetailsErrors().dropoffContact }}
+                        </p>
+                        <p
+                          *ngIf="clientDetailsErrors().dropoffAddress"
+                          class="service-proposal__field-error"
+                        >
+                          {{ clientDetailsErrors().dropoffAddress }}
+                        </p>
+                      </div>
+                    </section>
+                  </ng-container>
+
+                  <ng-template #standardBookingDetails>
+                    <section
+                      class="service-proposal__booking-details"
+                      aria-label="Details du rendez-vous"
+                    >
+                      <button
+                        type="button"
+                        class="service-proposal__service-field"
+                        (click)="openDetailsModal('service')"
+                      >
+                        <span class="service-proposal__field-icon">
+                          <lucide-icon
+                            name="briefcase-business"
+                            size="16"
+                            [strokeWidth]="2.2"
+                          ></lucide-icon>
+                        </span>
+                        <span>
+                          <small>Motif de prestation</small>
+                          <strong
+                            [class.service-proposal__field-placeholder]="
+                              !currentService() && !customServiceName()
+                            "
+                          >
+                            {{ categoryLabel() }}
+                          </strong>
+                        </span>
+                        <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                      </button>
+                      <p
+                        *ngIf="clientDetailsErrors().service"
+                        class="service-proposal__field-error service-proposal__field-error--full"
+                      >
+                        {{ clientDetailsErrors().service }}
+                      </p>
+
+                      <div
+                        class="service-proposal__fields"
+                        aria-label="Informations du rendez-vous"
+                      >
+                        <div class="service-proposal__field-stack">
+                          <button
+                            type="button"
+                            class="service-proposal__field"
+                            (click)="openDetailsModal('schedule')"
+                          >
+                            <span class="service-proposal__field-icon">
+                              <lucide-icon
+                                name="calendar-days"
+                                size="16"
+                                [strokeWidth]="2.2"
+                              ></lucide-icon>
+                            </span>
+                            <span class="service-proposal__field-copy">
+                              <small>Date &amp; heure d'intervention</small>
+                              <strong
+                                [class.service-proposal__field-placeholder]="!appointmentDate()"
+                              >
+                                {{ formattedDate() }} a {{ selectedSlotLabel() }}
+                              </strong>
+                            </span>
+                            <lucide-icon name="pencil" size="15" [strokeWidth]="2.2"></lucide-icon>
+                          </button>
+                          <p
+                            *ngIf="
+                              clientDetailsErrors().schedule || clientDetailsErrors().availability
+                            "
+                            class="service-proposal__field-error"
+                          >
+                            {{
+                              clientDetailsErrors().schedule || clientDetailsErrors().availability
+                            }}
+                          </p>
+                        </div>
+
+                        <div class="service-proposal__field-stack">
+                          <button
+                            type="button"
+                            class="service-proposal__field"
+                            [class.service-proposal__field--readonly]="clientTravelsToProvider()"
+                            (click)="openDetailsModal('address')"
+                          >
+                            <span class="service-proposal__field-icon">
+                              <lucide-icon
+                                name="map-pin"
+                                size="16"
+                                [strokeWidth]="2.2"
+                              ></lucide-icon>
+                            </span>
+                            <span class="service-proposal__field-copy">
+                              <small>{{ appointmentAddressLabel() }}</small>
+                              <strong
+                                [class.service-proposal__field-placeholder]="
+                                  providerTravelsToClient() && !address()
+                                "
+                              >
+                                {{ shortAddress() }}
+                              </strong>
+                            </span>
+                            <lucide-icon
+                              *ngIf="providerTravelsToClient()"
+                              name="pencil"
+                              size="15"
+                              [strokeWidth]="2.2"
+                            ></lucide-icon>
+                          </button>
+                          <p
+                            *ngIf="clientDetailsErrors().address"
+                            class="service-proposal__field-error"
+                          >
+                            {{ clientDetailsErrors().address }}
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+                  </ng-template>
+
+                  <button
+                    type="button"
+                    class="service-proposal__submit service-proposal__submit--dark"
+                    (click)="goToClientPriceStep()"
+                  >
+                    {{
+                      isParcelDeliveryService()
+                        ? 'Continuer vers la finalisation de la livraison'
+                        : 'Continuer vers la finalisation'
+                    }}
+                    <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
+                  </button>
+                </ng-container>
+
+                <ng-template #clientPriceStep>
+                  <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
+                  <section class="service-proposal__price-card" aria-label="Prix propose">
+                    <ng-container
+                      *ngTemplateOutlet="
+                        priceCardHeader;
+                        context: {
+                          equityLabel: isOfferAdjusted()
+                            ? offerDifferenceLabel()
+                            : offerEquityLabel(),
+                        }
+                      "
+                    ></ng-container>
+
+                    <div class="service-proposal__offer-display">
+                      <small>{{ offerFieldLabel() }}</small>
+                      <label>
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          min="1"
+                          step="500"
+                          [readonly]="isFixedPriceService()"
+                          [ngModel]="formattedOffer()"
+                          (ngModelChange)="updateOfferAmount($event)"
+                          [attr.aria-label]="offerFieldLabel()"
+                          [attr.placeholder]="customServiceName() ? 'Prix propose' : null"
+                        />
+                        <strong>FCFA</strong>
+                      </label>
+                    </div>
+
+                    <div class="service-proposal__amount-actions">
+                      <button
+                        type="button"
+                        class="service-proposal__amount-action service-proposal__amount-action--down"
+                        [disabled]="isFixedPriceService()"
+                        (click)="decreaseOffer()"
+                      >
+                        <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
+                        Diminuer
+                      </button>
+                      <button
+                        type="button"
+                        class="service-proposal__amount-action service-proposal__amount-action--up"
+                        [disabled]="isFixedPriceService()"
+                        (click)="increaseOffer()"
+                      >
+                        <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+                        Augmenter
+                      </button>
+                    </div>
+
+                    <div class="service-proposal__steps" aria-label="Paliers de modification">
+                      <span class="service-proposal__steps-title">Palier :</span>
+                      <input
+                        class="service-proposal__steps-range"
+                        type="range"
+                        min="100"
+                        max="1000"
+                        step="50"
+                        [ngModel]="selectedOfferStep()"
+                        (ngModelChange)="updateOfferStep($event)"
+                        aria-label="Palier de modification du prix"
+                      />
+                      <output>{{ selectedOfferStep() }} FCFA</output>
+                    </div>
+                  </section>
+
+                  <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+
+                  <div class="service-proposal__booking-actions">
+                    <button
+                      type="button"
+                      class="service-proposal__submit"
+                      [class.service-proposal__submit--counter]="isOfferAdjusted()"
+                      [attr.aria-label]="submitButtonLabel()"
+                      (click)="submitProposal()"
+                      [disabled]="
+                        isSubmitting() || isCheckingAvailability() || isLoadingAvailabilitySlots()
+                      "
+                    >
+                      <lucide-icon name="check" size="17" [strokeWidth]="2.4"></lucide-icon>
+                      {{ submitButtonVisualLabel() }}
+                      <lucide-icon name="chevron-right" size="17" [strokeWidth]="2.4"></lucide-icon>
+                    </button>
+                  </div>
+                </ng-template>
+              </div>
+            </section>
+
+            <ng-template #pendingProposalPanel>
+              <section
+                class="service-proposal__panel service-proposal__panel--reservation-final service-proposal__counter-shell"
+                aria-label="Suivi de la proposition"
+              >
+                <header class="service-proposal__hero">
+                  <div>
+                    <h1>Reservation finale</h1>
+                    <p>
+                      avec <strong>{{ displayName() }}</strong>
+                      <span class="service-proposal__online-badge">
+                        <ng-container *ngIf="avatarUrl(); else pendingHeroInitials">
+                          <img [src]="avatarUrl()" [alt]="displayName()" />
+                        </ng-container>
+                        <ng-template #pendingHeroInitials>
+                          <em>{{ providerInitials() }}</em>
+                        </ng-template>
+                        <app-presence-status
+                          [userId]="detail()?.profile?.utilisateurId"
+                          [professionalId]="detail()?.profile?.id"
+                          [initialOnline]="detail()?.presence?.isOnline ?? false"
+                        />
+                      </span>
+                    </p>
+                  </div>
+                  <lucide-icon name="rotate-ccw" size="15" [strokeWidth]="2"></lucide-icon>
+                </header>
+
+                <div class="service-proposal__panel-body">
+                  <ng-container *ngIf="!hasProviderCounterOffer(); else providerCounterOfferPanel">
+                    <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
+                    <section
+                      class="service-proposal__pending service-proposal__pending--inside"
+                      aria-label="Negociation en cours"
+                    >
+                      <div class="service-proposal__waiting-copy">
+                        <h1>N&eacute;gociation en cours...</h1>
+                        <p>
+                          Veuillez patienter pendant que {{ displayName() }} examine votre
+                          proposition sur son application prestataire.
+                        </p>
+                      </div>
+
+                      <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
+
+                      <div
+                        class="service-proposal__waiting-track"
+                        aria-label="Suivi de la negotiation"
+                      >
+                        <span
+                          class="service-proposal__waiting-party service-proposal__waiting-party--you"
+                        >
+                          <strong>VOUS</strong>
+                          <small>{{ pendingOfferAmountLabel() }} FCFA</small>
+                        </span>
+
+                        <span class="service-proposal__waiting-line" aria-hidden="true">
+                          <i></i>
+                        </span>
+
+                        <span
+                          class="service-proposal__waiting-party service-proposal__waiting-party--provider"
+                        >
+                          <span class="service-proposal__waiting-avatar">
+                            <img
+                              *ngIf="avatarUrl(); else pendingInitials"
+                              [src]="avatarUrl()"
+                              [alt]="displayName()"
+                            />
+                            <ng-template #pendingInitials>
+                              <em>{{ providerInitials() }}</em>
+                            </ng-template>
+                            <app-presence-dot
+                              [userId]="detail()?.profile?.utilisateurId"
+                              [professionalId]="detail()?.profile?.id"
+                              [initialOnline]="detail()?.presence?.isOnline ?? false"
+                            />
+                          </span>
+                          <small>ARTISAN</small>
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="service-proposal__cancel-offer"
+                        [disabled]="isCancellingProposal()"
+                        (click)="cancelPendingProposal()"
+                      >
+                        {{ isCancellingProposal() ? 'Annulation en cours...' : "Annuler l'offre" }}
+                      </button>
+                    </section>
+
+                    <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+                  </ng-container>
+
+                  <ng-template #providerCounterOfferPanel>
+                    <div class="service-proposal__counter-modern">
+                      <ng-container *ngTemplateOutlet="proposalDetailsAccordion"></ng-container>
+
+                      <div class="service-proposal__counter-offer-card">
+                        <h2>Nouvelle offre de {{ displayName() }}</h2>
+                        <div class="service-proposal__counter-offer-values">
+                          <span>
+                            <small>Votre offre</small>
+                            <strong>{{ clientLatestOfferAmountLabel() }} <em>FCFA</em></strong>
+                          </span>
+                          <lucide-icon
+                            name="arrow-right"
+                            size="14"
+                            [strokeWidth]="2.2"
+                          ></lucide-icon>
+                          <span>
+                            <small>Offre {{ shortOfferName(displayName()) }}</small>
+                            <strong>{{ providerCounterAmountLabel() }} <em>FCFA</em></strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <section
+                        class="service-proposal__price-card service-proposal__price-card--counter"
+                      >
+                        <ng-container
+                          *ngTemplateOutlet="
+                            priceCardHeader;
+                            context: { equityLabel: counterDifferenceLabel() }
+                          "
+                        ></ng-container>
+
+                        <div class="service-proposal__offer-display">
+                          <small>Votre contre-offre</small>
+                          <label>
+                            <input
+                              type="text"
+                              inputmode="numeric"
+                              [ngModel]="formattedOffer()"
+                              (ngModelChange)="updateOfferAmount($event)"
+                              aria-label="Nouvelle proposition du client"
+                            />
+                            <strong>FCFA</strong>
+                          </label>
+                        </div>
+
+                        <div class="service-proposal__amount-actions">
+                          <button
+                            type="button"
+                            class="service-proposal__amount-action service-proposal__amount-action--down"
+                            (click)="decreaseOffer()"
+                          >
+                            <lucide-icon name="minus" size="14" [strokeWidth]="3"></lucide-icon>
+                            Diminuer
+                          </button>
+                          <button
+                            type="button"
+                            class="service-proposal__amount-action service-proposal__amount-action--up"
+                            (click)="increaseOffer()"
+                          >
+                            <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+                            Augmenter
+                          </button>
+                        </div>
+
+                        <div class="service-proposal__steps" aria-label="Paliers de modification">
+                          <span class="service-proposal__steps-title">Palier :</span>
+                          <input
+                            class="service-proposal__steps-range"
+                            type="range"
+                            min="100"
+                            max="1000"
+                            step="50"
+                            [ngModel]="selectedOfferStep()"
+                            (ngModelChange)="updateOfferStep($event)"
+                            aria-label="Palier de modification du prix"
+                          />
+                          <output>{{ selectedOfferStep() }} FCFA</output>
+                        </div>
+                      </section>
+
+                      <div class="service-proposal__counter-modern-actions">
+                        <button
+                          type="button"
+                          class="service-proposal__submit"
+                          [disabled]="isRespondingToCounterOffer() || !isMaterialQuoteStateReady()"
+                          (click)="respondToProviderCounterOffer()"
+                        >
+                          <lucide-icon name="check" size="17" [strokeWidth]="2.6"></lucide-icon>
+                          {{
+                            isRespondingToCounterOffer()
+                              ? 'Traitement...'
+                              : !isMaterialQuoteStateReady()
+                                ? 'Verification du devis...'
+                                : counterActionLabel()
+                          }}
+                        </button>
+
+                        <button
+                          type="button"
+                          class="service-proposal__counter-refuse service-proposal__counter-refuse--modern"
+                          [disabled]="isCancellingProposal()"
+                          (click)="refuseProviderCounterOffer()"
+                        >
+                          {{ isCancellingProposal() ? 'Refus en cours...' : 'Refuser la mission' }}
+                        </button>
+                      </div>
+
+                      <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
+                    </div>
+                  </ng-template>
+                </div>
+              </section>
+            </ng-template>
+
+            <aside class="service-proposal__side-stack">
+              <section class="service-proposal__summary" aria-label="Recapitulatif du rendez-vous">
+                <div class="service-proposal__provider service-proposal__provider--booking-summary">
+                  <span class="service-proposal__avatar-wrap">
+                    <img
+                      *ngIf="avatarUrl(); else serviceProposalInitials"
+                      [src]="avatarUrl()"
+                      [alt]="displayName()"
+                    />
+                    <ng-template #serviceProposalInitials>
+                      <span class="service-proposal__provider-initials">{{
+                        providerInitials()
+                      }}</span>
+                    </ng-template>
+                    <app-presence-dot
+                      [userId]="detail()?.profile?.utilisateurId"
+                      [professionalId]="detail()?.profile?.id"
+                      [initialOnline]="detail()?.presence?.isOnline ?? false"
+                    />
+                  </span>
+                  <div>
+                    <h2>{{ displayName() }}</h2>
+                    <span>{{ categoryLabel() }}</span>
+                    <p>
+                      <lucide-icon
+                        name="star"
+                        size="14"
+                        [strokeWidth]="2.4"
+                        fill="currentColor"
+                      ></lucide-icon>
+                      {{ ratingLabel() }}
+                    </p>
+                  </div>
+                  <span
+                    class="service-proposal__movement-badge"
+                    [ngClass]="reservationTravelModeBadgeClass()"
+                    [attr.aria-label]="reservationTravelModeLabel()"
+                  >
+                    <strong>{{ reservationTravelModeLabel() }}</strong>
+                    <img
+                      *ngIf="reservationTravelModeImageUrl() as travelModeImage"
+                      [src]="travelModeImage"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span
+                    *ngIf="providerVehicleBadge() as vehicleBadge"
+                    class="professional-vehicle-badge"
+                  >
+                    <span class="professional-vehicle-badge__icon">
+                      <img [src]="vehicleBadge.imageUrl" [alt]="vehicleBadge.label" />
+                    </span>
+                    <strong>{{ vehicleBadge.label }}</strong>
+                  </span>
+                </div>
+
+                <div class="service-proposal__summary-row">
+                  <span>
+                    <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon>
+                  </span>
+                  <p>
+                    <small>Date</small><strong>{{ formattedDate() }}</strong>
+                  </p>
+                </div>
+
+                <div class="service-proposal__summary-row">
+                  <span>
+                    <lucide-icon name="clock-3" size="17" [strokeWidth]="2.2"></lucide-icon>
+                  </span>
+                  <p>
+                    <small>{{
+                      isParcelDeliveryService() ? 'Heure de retrait colis' : "Heure d'intervention"
+                    }}</small
+                    ><strong>{{ formattedTime() }}</strong>
+                  </p>
+                </div>
+
+                <div
+                  *ngIf="isParcelDeliveryService()"
+                  class="service-proposal__summary-row service-proposal__summary-row--pickup"
+                >
+                  <span>
+                    <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
+                  </span>
+                  <p>
+                    <small>Depart colis</small>
+                    <strong>{{ parcelPickupAddress() || '(VIDE)' }}</strong>
+                  </p>
+                </div>
+
+                <div class="service-proposal__summary-row">
+                  <span>
+                    <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon>
+                  </span>
+                  <p>
+                    <small>{{ appointmentAddressLabel() }}</small>
+                    <strong>{{
+                      isParcelDeliveryService()
+                        ? parcelDropoffAddress() || '(VIDE)'
+                        : shortAddress()
+                    }}</strong>
+                    <em *ngIf="!isParcelDeliveryService()">{{
+                      clientTravelsToProvider() ? 'Chez le prestataire' : 'Domicile'
+                    }}</em>
+                  </p>
+                </div>
+
+                <div class="service-proposal__summary-row">
+                  <span>
+                    <lucide-icon
+                      name="circle-dollar-sign"
+                      size="17"
+                      [strokeWidth]="2.2"
+                    ></lucide-icon>
+                  </span>
+                  <p>
+                    <small>Prix equitable du service</small
+                    ><strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
+                    <em *ngIf="isParcelDeliveryService()">{{ parcelPriceBasisLabel() }}</em>
+                  </p>
+                </div>
+              </section>
+
+              <button type="button" class="service-proposal__message" (click)="messageProvider()">
+                <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
+                Message au prestataire
+              </button>
+
+              <section class="service-proposal__help-card" aria-label="Fonctionnement">
+                <h2>
+                  <lucide-icon name="info" size="14" [strokeWidth]="2.2"></lucide-icon>
+                  Fonctionnement :
+                </h2>
+                <p>
+                  Double-cliquez sur les paliers ou utilisez <strong>Diminuer</strong> /
+                  <strong>Augmenter</strong> pour ajuster le montant du devis. Le bouton
+                  d'engagement principal s'adapte automatiquement a votre contre-offre.
+                </p>
+              </section>
+            </aside>
+          </ng-template>
+        </section>
       </ng-template>
     </ng-template>
   </ng-container>
@@ -1194,12 +1411,23 @@
         ></lucide-icon>
       </button>
 
-      <div *ngIf="clientBookingDetailsExpanded()" class="service-proposal__booking-accordion-content">
-        <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('service')">
+      <div
+        *ngIf="clientBookingDetailsExpanded()"
+        class="service-proposal__booking-accordion-content"
+      >
+        <button
+          type="button"
+          class="service-proposal__booking-detail-row"
+          (click)="openDetailsModal('service')"
+        >
           <span>Motif</span>
           <strong>{{ categoryLabel() }}</strong>
         </button>
-        <button type="button" class="service-proposal__booking-detail-row" (click)="openDetailsModal('schedule')">
+        <button
+          type="button"
+          class="service-proposal__booking-detail-row"
+          (click)="openDetailsModal('schedule')"
+        >
           <span>Date &amp; heure</span>
           <strong>{{ formattedDate() }} a {{ selectedSlotLabel() }}</strong>
         </button>
@@ -1263,7 +1491,9 @@
         >
           <header>
             <h3>NOUVEAU MATERIEL ( AJOUTE PAR VOUS )</h3>
-            <span class="service-proposal__materials-role">{{ materialQuoteDraftAuthorLabel() }}</span>
+            <span class="service-proposal__materials-role">{{
+              materialQuoteDraftAuthorLabel()
+            }}</span>
           </header>
 
           <label class="service-proposal__materials-designation">
@@ -1299,12 +1529,14 @@
           </div>
 
           <footer>
-            <button type="button" class="service-proposal__materials-cancel" (click)="closeMaterialQuoteForm()">
+            <button
+              type="button"
+              class="service-proposal__materials-cancel"
+              (click)="closeMaterialQuoteForm()"
+            >
               Annuler
             </button>
-            <button type="submit" class="service-proposal__materials-validate">
-              Valider
-            </button>
+            <button type="submit" class="service-proposal__materials-validate">Valider</button>
           </footer>
         </form>
 
@@ -1326,7 +1558,9 @@
               <span class="service-proposal__materials-role">
                 {{ materialQuoteEntryAuthorLabel(entry) }}
               </span>
-              <ng-container *ngIf="canShowMaterialQuoteDecision(entry); else materialValidatedBadge">
+              <ng-container
+                *ngIf="canShowMaterialQuoteDecision(entry); else materialValidatedBadge"
+              >
                 <span class="service-proposal__materials-approval">
                   VOUS :
                   <button
@@ -1350,8 +1584,12 @@
               <ng-template #materialValidatedBadge>
                 <span
                   class="service-proposal__materials-approved-badge"
-                  [class.service-proposal__materials-approved-badge--pending]="entry.status === 'EN_ATTENTE'"
-                  [class.service-proposal__materials-approved-badge--rejected]="entry.status === 'REFUSE'"
+                  [class.service-proposal__materials-approved-badge--pending]="
+                    entry.status === 'EN_ATTENTE'
+                  "
+                  [class.service-proposal__materials-approved-badge--rejected]="
+                    entry.status === 'REFUSE'
+                  "
                 >
                   {{ materialQuoteEntryStatusLabel(entry) }}
                 </span>
@@ -1373,11 +1611,14 @@
           </button>
         </div>
 
-        <div *ngIf="!isMaterialQuotesLoading() && materialQuoteEntries().length === 0" class="service-proposal__materials-empty">
+        <div
+          *ngIf="!isMaterialQuotesLoading() && materialQuoteEntries().length === 0"
+          class="service-proposal__materials-empty"
+        >
           <strong>Aucune fourniture supplementaire</strong>
           <p>
-            Si des fournitures ou pieces sont requises, le prestataire peut les ajouter
-            ici avant validation du client.
+            Si des fournitures ou pieces sont requises, le prestataire peut les ajouter ici avant
+            validation du client.
           </p>
         </div>
       </div>
@@ -1427,7 +1668,10 @@
         <p>Votre reservation a ete enregistree. Le prestataire se prepare pour votre service.</p>
       </header>
 
-      <section class="service-proposal__confirmed-summary" aria-label="Resume du rendez-vous confirme">
+      <section
+        class="service-proposal__confirmed-summary"
+        aria-label="Resume du rendez-vous confirme"
+      >
         <header>
           <span>
             <lucide-icon name="package" size="23" [strokeWidth]="2.2"></lucide-icon>
@@ -1444,7 +1688,9 @@
 
         <dl>
           <div>
-            <dt><lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon> Date</dt>
+            <dt>
+              <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.2"></lucide-icon> Date
+            </dt>
             <dd>{{ confirmedReservationDateLabel() }}</dd>
           </div>
           <div>
@@ -1452,7 +1698,9 @@
             <dd>{{ confirmedReservationTimeLabel() }}</dd>
           </div>
           <div>
-            <dt><lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon> Adresse</dt>
+            <dt>
+              <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon> Adresse
+            </dt>
             <dd>{{ confirmedReservationAddressLabel() }}</dd>
           </div>
         </dl>
@@ -1480,7 +1728,11 @@
         </footer>
       </section>
 
-      <button type="button" class="service-proposal__confirmed-primary" (click)="openConfirmedReservation()">
+      <button
+        type="button"
+        class="service-proposal__confirmed-primary"
+        (click)="openConfirmedReservation()"
+      >
         <lucide-icon name="calendar-days" size="18" [strokeWidth]="2.4"></lucide-icon>
         Voir le rendez-vous
       </button>
@@ -1489,4 +1741,3 @@
     </article>
   </ng-template>
 </main>
-

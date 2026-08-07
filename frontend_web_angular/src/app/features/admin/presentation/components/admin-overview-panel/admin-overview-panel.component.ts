@@ -20,7 +20,14 @@ export class AdminOverviewPanelComponent {
   @Input({ required: true }) data!: AdminDashboard;
   @Input() userName: string | null | undefined = null;
 
-  protected readonly categoryColors = ['#d58a38', '#b95f34', '#86a361', '#9b8172', '#c96f48', '#6f8f77'];
+  protected readonly categoryColors = [
+    '#d58a38',
+    '#b95f34',
+    '#86a361',
+    '#9b8172',
+    '#c96f48',
+    '#6f8f77',
+  ];
 
   protected formatMetric(value: number, unit?: string): string {
     if (unit === 'FCFA') {
@@ -47,7 +54,10 @@ export class AdminOverviewPanelComponent {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
   }
 
-  protected chartMax(series: AdminSeriesPoint[], keys: Array<'gross' | 'commission' | 'web' | 'ios' | 'android'>): number {
+  protected chartMax(
+    series: AdminSeriesPoint[],
+    keys: Array<'gross' | 'commission' | 'web' | 'ios' | 'android'>,
+  ): number {
     return Math.max(1, ...series.flatMap((point) => keys.map((key) => Number(point[key] ?? 0))));
   }
 
@@ -95,7 +105,10 @@ export class AdminOverviewPanelComponent {
   }
 
   protected barHeight(value: number, series: AdminSeriesPoint[]): number {
-    return Math.max(2, (Number(value || 0) / this.chartMax(series, ['web', 'ios', 'android'])) * 118);
+    return Math.max(
+      2,
+      (Number(value || 0) / this.chartMax(series, ['web', 'ios', 'android'])) * 118,
+    );
   }
 
   protected categoryOffset(categories: AdminCategoryMetric[], index: number): number {

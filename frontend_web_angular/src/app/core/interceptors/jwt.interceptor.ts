@@ -1,9 +1,4 @@
-import {
-  HttpEvent,
-  HttpHandlerFn,
-  HttpInterceptorFn,
-  HttpRequest,
-} from '@angular/common/http';
+import { HttpEvent, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {
@@ -27,8 +22,7 @@ let refreshInProgress = false;
 type RefreshTokenSignalValue = string | 'EXPIRED' | 'RETRYABLE_FAILED';
 const refreshTokenSignal = new BehaviorSubject<RefreshTokenSignalValue | null>(null);
 let lastRefreshFailure: unknown = null;
-const SESSION_EXPIRED_MESSAGE =
-  'Votre session a expire. Reconnectez-vous pour continuer.';
+const SESSION_EXPIRED_MESSAGE = 'Votre session a expire. Reconnectez-vous pour continuer.';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authSession = inject(AuthSessionService);
@@ -42,9 +36,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const headers = token
-    ? req.headers.set('Authorization', `Bearer ${token}`)
-    : req.headers;
+  const headers = token ? req.headers.set('Authorization', `Bearer ${token}`) : req.headers;
   const authenticatedRequest = req.clone({
     headers,
     withCredentials: true,
@@ -55,14 +47,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     authSession.isAccessTokenExpiring() &&
     shouldHandleUnauthorized(req.url, router.url)
   ) {
-    return refreshAndRetry(
-      authenticatedRequest,
-      next,
-      authSession,
-      authService,
-      feedback,
-      router,
-    );
+    return refreshAndRetry(authenticatedRequest, next, authSession, authService, feedback, router);
   }
 
   return next(authenticatedRequest).pipe(
@@ -79,7 +64,9 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error?.status === 403) {
-        feedback.error(getHttpErrorMessage(error, 'Vous n avez pas les droits necessaires pour cette action.'));
+        feedback.error(
+          getHttpErrorMessage(error, 'Vous n avez pas les droits necessaires pour cette action.'),
+        );
       } else if (error?.status === 0) {
         feedback.error('Connexion au serveur impossible. Verifiez votre reseau puis reessayez.');
       } else if (error?.status >= 500) {
@@ -102,8 +89,7 @@ function refreshAndRetry(
   if (refreshInProgress) {
     return refreshTokenSignal.pipe(
       filter(
-        (refreshedToken): refreshedToken is RefreshTokenSignalValue =>
-          refreshedToken !== null,
+        (refreshedToken): refreshedToken is RefreshTokenSignalValue => refreshedToken !== null,
       ),
       take(1),
       switchMap((refreshedToken) => {
@@ -113,7 +99,9 @@ function refreshAndRetry(
         }
 
         if (refreshedToken === 'RETRYABLE_FAILED') {
-          return throwError(() => lastRefreshFailure ?? new Error('Refresh temporairement indisponible.'));
+          return throwError(
+            () => lastRefreshFailure ?? new Error('Refresh temporairement indisponible.'),
+          );
         }
 
         return next(withAccessToken(request, refreshedToken));
@@ -126,53 +114,47 @@ function refreshAndRetry(
 
   const fallbackRefreshToken = authSession.getRefreshToken();
 
-  return authService.refresh(
-    fallbackRefreshToken ? { refreshToken: fallbackRefreshToken } : {},
-  ).pipe(
-    switchMap((response) => {
-      authSession.saveAuthResponse(
-        response,
-        authSession.isRememberMeEnabled(),
-      );
-      const refreshedToken = authSession.getAccessToken();
-      if (!refreshedToken) {
-        refreshTokenSignal.next('EXPIRED');
-        handleExpiredSession(authSession, feedback, router);
-        return EMPTY;
-      }
-
-      lastRefreshFailure = null;
-      refreshTokenSignal.next(refreshedToken);
-      return next(withAccessToken(request, refreshedToken));
-    }),
-    catchError((error) => {
-      lastRefreshFailure = error;
-      if (isRefreshTokenInvalidError(error)) {
-        const latestToken = authSession.getAccessToken();
-        if (latestToken && latestToken !== readBearerToken(request)) {
-          lastRefreshFailure = null;
-          refreshTokenSignal.next(latestToken);
-          return next(withAccessToken(request, latestToken));
+  return authService
+    .refresh(fallbackRefreshToken ? { refreshToken: fallbackRefreshToken } : {})
+    .pipe(
+      switchMap((response) => {
+        authSession.saveAuthResponse(response, authSession.isRememberMeEnabled());
+        const refreshedToken = authSession.getAccessToken();
+        if (!refreshedToken) {
+          refreshTokenSignal.next('EXPIRED');
+          handleExpiredSession(authSession, feedback, router);
+          return EMPTY;
         }
 
-        refreshTokenSignal.next('EXPIRED');
-        handleExpiredSession(authSession, feedback, router);
-        return EMPTY;
-      }
+        lastRefreshFailure = null;
+        refreshTokenSignal.next(refreshedToken);
+        return next(withAccessToken(request, refreshedToken));
+      }),
+      catchError((error) => {
+        lastRefreshFailure = error;
+        if (isRefreshTokenInvalidError(error)) {
+          const latestToken = authSession.getAccessToken();
+          if (latestToken && latestToken !== readBearerToken(request)) {
+            lastRefreshFailure = null;
+            refreshTokenSignal.next(latestToken);
+            return next(withAccessToken(request, latestToken));
+          }
 
-      refreshTokenSignal.next('RETRYABLE_FAILED');
-      return throwError(() => error);
-    }),
-    finalize(() => {
-      refreshInProgress = false;
-    }),
-  );
+          refreshTokenSignal.next('EXPIRED');
+          handleExpiredSession(authSession, feedback, router);
+          return EMPTY;
+        }
+
+        refreshTokenSignal.next('RETRYABLE_FAILED');
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        refreshInProgress = false;
+      }),
+    );
 }
 
-function withAccessToken(
-  request: HttpRequest<unknown>,
-  token: string,
-): HttpRequest<unknown> {
+function withAccessToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
   return request.clone({
     headers: request.headers.set('Authorization', `Bearer ${token}`),
     withCredentials: true,

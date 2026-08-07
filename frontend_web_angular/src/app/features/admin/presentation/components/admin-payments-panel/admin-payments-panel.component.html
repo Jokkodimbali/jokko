@@ -1,26 +1,64 @@
 <section class="admin-payments">
   <header>
-    <div><span><lucide-icon name="wallet-cards" size="28"></lucide-icon></span><h1>Paiements & sequestre</h1><p>Controle des encaissements, remboursements et liberations en attente.</p></div>
+    <div>
+      <span><lucide-icon name="wallet-cards" size="28"></lucide-icon></span>
+      <h1>Paiements & sequestre</h1>
+      <p>Controle des encaissements, remboursements et liberations en attente.</p>
+    </div>
     <form (ngSubmit)="applyFilters()">
-      <select name="status" [(ngModel)]="status"><option value="">Tous les statuts</option><option value="SUCCESS">Succes</option><option value="PENDING">En attente</option><option value="REFUNDED">Rembourse</option><option value="FAILED">Echec</option></select>
-      <select name="method" [(ngModel)]="method"><option value="">Toutes les methodes</option><option value="WAVE">Wave</option><option value="ORANGE_MONEY">Orange Money</option><option value="CARD">Carte</option></select>
+      <select name="status" [(ngModel)]="status">
+        <option value="">Tous les statuts</option>
+        <option value="SUCCESS">Succes</option>
+        <option value="PENDING">En attente</option>
+        <option value="REFUNDED">Rembourse</option>
+        <option value="FAILED">Echec</option>
+      </select>
+      <select name="method" [(ngModel)]="method">
+        <option value="">Toutes les methodes</option>
+        <option value="WAVE">Wave</option>
+        <option value="ORANGE_MONEY">Orange Money</option>
+        <option value="CARD">Carte</option>
+      </select>
       <button type="submit">Actualiser</button>
     </form>
   </header>
   <div class="admin-payments__stats" *ngIf="statistics() as stats">
-    <article><small>Paiements</small><strong>{{ stats.totalPayments }}</strong></article>
-    <article><small>Volume brut</small><strong>{{ money(stats.totalGrossAmount ?? stats.totalRevenue) }}</strong></article>
-    <article><small>Revenu</small><strong>{{ money(stats.totalRevenue) }}</strong></article>
-    <article><small>Sequestre en attente</small><strong>{{ stats.pendingEscrowReleases }}</strong><b>{{ money(stats.totalEscrowAmount) }}</b></article>
+    <article>
+      <small>Paiements</small><strong>{{ stats.totalPayments }}</strong>
+    </article>
+    <article>
+      <small>Volume brut</small
+      ><strong>{{ money(stats.totalGrossAmount ?? stats.totalRevenue) }}</strong>
+    </article>
+    <article>
+      <small>Revenu</small><strong>{{ money(stats.totalRevenue) }}</strong>
+    </article>
+    <article>
+      <small>Sequestre en attente</small><strong>{{ stats.pendingEscrowReleases }}</strong
+      ><b>{{ money(stats.totalEscrowAmount) }}</b>
+    </article>
   </div>
   <div class="admin-payments__layout">
     <article class="admin-payments__table">
       <table>
-        <thead><tr><th>Paiement</th><th>Reservation</th><th>Methode</th><th>Montant</th><th>Sequestre</th><th>Action</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Paiement</th>
+            <th>Reservation</th>
+            <th>Methode</th>
+            <th>Montant</th>
+            <th>Sequestre</th>
+            <th>Action</th>
+          </tr>
+        </thead>
         <tbody>
           <tr *ngFor="let payment of payments()">
-            <td><button type="button" (click)="open(payment.id)">{{ payment.id | slice:0:8 }}</button><small>{{ payment.status }}</small></td>
-            <td>{{ payment.bookingId | slice:0:8 }}</td>
+            <td>
+              <button type="button" (click)="open(payment.id)">
+                {{ payment.id | slice: 0 : 8 }}</button
+              ><small>{{ payment.status }}</small>
+            </td>
+            <td>{{ payment.bookingId | slice: 0 : 8 }}</td>
             <td>{{ payment.method }}</td>
             <td>{{ money(payment.amount) }}</td>
             <td>{{ payment.escrowStatus || '-' }}</td>
@@ -29,13 +67,17 @@
         </tbody>
       </table>
       <p *ngIf="isLoading()">Chargement des paiements...</p>
-      <p *ngIf="!isLoading() && payments().length === 0">Aucun paiement ne correspond aux filtres.</p>
+      <p *ngIf="!isLoading() && payments().length === 0">
+        Aucun paiement ne correspond aux filtres.
+      </p>
       <footer class="admin-payments__pagination" *ngIf="!isLoading() && totalPayments() > 0">
         <span>{{ pageStart() }}-{{ pageEnd() }} sur {{ totalPayments() }} paiement(s)</span>
         <nav aria-label="Pagination des paiements">
           <button type="button" [disabled]="page() <= 1" (click)="previousPage()">Precedent</button>
           <b>Page {{ page() }} / {{ pageCount() }}</b>
-          <button type="button" [disabled]="page() >= pageCount()" (click)="nextPage()">Suivant</button>
+          <button type="button" [disabled]="page() >= pageCount()" (click)="nextPage()">
+            Suivant
+          </button>
         </nav>
       </footer>
     </article>
@@ -43,35 +85,79 @@
       <article *ngIf="selected() as payment">
         <h2>Dossier paiement</h2>
         <dl>
-          <div><dt>Reference</dt><dd>{{ payment.id }}</dd></div>
-          <div><dt>Montant</dt><dd>{{ money(payment.amount) }}</dd></div>
-          <div><dt>Commission</dt><dd>{{ money(payment.commissionAmount) }}</dd></div>
-          <div><dt>Net</dt><dd>{{ money(payment.netAmount) }}</dd></div>
-          <div><dt>Statut</dt><dd>{{ payment.status }}</dd></div>
-          <div><dt>Methode</dt><dd>{{ payment.method }}</dd></div>
+          <div>
+            <dt>Reference</dt>
+            <dd>{{ payment.id }}</dd>
+          </div>
+          <div>
+            <dt>Montant</dt>
+            <dd>{{ money(payment.amount) }}</dd>
+          </div>
+          <div>
+            <dt>Commission</dt>
+            <dd>{{ money(payment.commissionAmount) }}</dd>
+          </div>
+          <div>
+            <dt>Net</dt>
+            <dd>{{ money(payment.netAmount) }}</dd>
+          </div>
+          <div>
+            <dt>Statut</dt>
+            <dd>{{ payment.status }}</dd>
+          </div>
+          <div>
+            <dt>Methode</dt>
+            <dd>{{ payment.method }}</dd>
+          </div>
         </dl>
       </article>
       <article>
-        <div class="admin-payments__escrow-head"><h2>Sequestre</h2><button type="button" [disabled]="escrow().length === 0" (click)="confirmEscrow = true">Traiter</button></div>
-        <p *ngFor="let payment of escrow()"><b>{{ money(payment.netAmount) }}</b><span>{{ payment.id | slice:0:8 }} · {{ date(payment.createdAt) }}</span></p>
+        <div class="admin-payments__escrow-head">
+          <h2>Sequestre</h2>
+          <button type="button" [disabled]="escrow().length === 0" (click)="confirmEscrow = true">
+            Traiter
+          </button>
+        </div>
+        <p *ngFor="let payment of escrow()">
+          <b>{{ money(payment.netAmount) }}</b
+          ><span>{{ payment.id | slice: 0 : 8 }} · {{ date(payment.createdAt) }}</span>
+        </p>
         <small *ngIf="escrow().length === 0">Aucun versement automatique en attente.</small>
-        <em *ngIf="escrowResult() as result">{{ result.processedCount }} traite(s), {{ result.failedCount }} en erreur.</em>
+        <em *ngIf="escrowResult() as result"
+          >{{ result.processedCount }} traite(s), {{ result.failedCount }} en erreur.</em
+        >
       </article>
     </aside>
   </div>
   <div class="admin-payments__modal" *ngIf="refundCandidate as payment">
     <article>
       <h2>Confirmer le remboursement</h2>
-      <p>{{ money(payment.amount) }} sera traite sur le paiement {{ payment.id | slice:0:8 }}.</p>
+      <p>
+        {{ money(payment.amount) }} sera traite sur le paiement {{ payment.id | slice: 0 : 8 }}.
+      </p>
       <label>Motif <textarea [(ngModel)]="refundReason" rows="3"></textarea></label>
-      <footer><button type="button" (click)="refundCandidate = null">Annuler</button><button type="button" [disabled]="!refundReason.trim() || action() === 'refund'" (click)="confirmRefund()">Confirmer</button></footer>
+      <footer>
+        <button type="button" (click)="refundCandidate = null">Annuler</button
+        ><button
+          type="button"
+          [disabled]="!refundReason.trim() || action() === 'refund'"
+          (click)="confirmRefund()"
+        >
+          Confirmer
+        </button>
+      </footer>
     </article>
   </div>
   <div class="admin-payments__modal" *ngIf="confirmEscrow">
     <article>
       <h2>Liberer les sequestres eligibles ?</h2>
       <p>Le traitement utilise les paiements actuellement remontes comme prets a verser.</p>
-      <footer><button type="button" (click)="confirmEscrow = false">Annuler</button><button type="button" [disabled]="action() === 'escrow'" (click)="processEscrow()">Confirmer</button></footer>
+      <footer>
+        <button type="button" (click)="confirmEscrow = false">Annuler</button
+        ><button type="button" [disabled]="action() === 'escrow'" (click)="processEscrow()">
+          Confirmer
+        </button>
+      </footer>
     </article>
   </div>
 </section>

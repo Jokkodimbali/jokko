@@ -1,26 +1,70 @@
 <section class="admin-notifications">
-  <header><span><lucide-icon name="bell" size="30"></lucide-icon></span><div><h1>Notifications</h1><p>Diffusez une annonce aux audiences autorisees avec un message clair et trace.</p></div></header>
+  <header>
+    <span><lucide-icon name="bell" size="30"></lucide-icon></span>
+    <div>
+      <h1>Notifications</h1>
+      <p>Diffusez une annonce aux audiences autorisees avec un message clair et trace.</p>
+    </div>
+  </header>
   <div class="admin-notifications__grid">
     <form (ngSubmit)="requestBroadcast()">
-      <label>Audience
-        <select name="target" [(ngModel)]="target"><option value="ALL">Tous</option><option value="CLIENT">Clients</option><option value="PRESTATAIRE">Prestataires</option></select>
+      <label
+        >Audience
+        <select name="target" [(ngModel)]="target">
+          <option value="ALL">Tous</option>
+          <option value="CLIENT">Clients</option>
+          <option value="PRESTATAIRE">Prestataires</option>
+        </select>
       </label>
-      <label>Titre <input name="title" [(ngModel)]="title" maxlength="200" placeholder="Maintenance planifiee" /></label>
-      <label>Message <textarea name="body" [(ngModel)]="body" maxlength="2000" rows="6" placeholder="Votre message sera envoye aux destinataires selectionnes."></textarea></label>
-      <label>Contexte optionnel JSON <textarea name="context" [(ngModel)]="contextJson" rows="3" placeholder='{"kind":"announcement"}'></textarea></label>
+      <label
+        >Titre
+        <input name="title" [(ngModel)]="title" maxlength="200" placeholder="Maintenance planifiee"
+      /></label>
+      <label
+        >Message
+        <textarea
+          name="body"
+          [(ngModel)]="body"
+          maxlength="2000"
+          rows="6"
+          placeholder="Votre message sera envoye aux destinataires selectionnes."
+        ></textarea>
+      </label>
+      <label
+        >Contexte optionnel JSON
+        <textarea
+          name="context"
+          [(ngModel)]="contextJson"
+          rows="3"
+          placeholder='{"kind":"announcement"}'
+        ></textarea>
+      </label>
       <button type="submit" [disabled]="!title.trim() || !body.trim()">Preparer l envoi</button>
     </form>
     <aside>
-      <article><h2>Cadre d envoi</h2><p>Les destinataires sont determines par les roles reels au moment de l emission.</p><b>{{ target }}</b></article>
-      <article *ngIf="result() as sent"><h2>Dernier envoi</h2><strong>{{ sent.recipientCount }}</strong><p>destinataire(s) touches pour {{ sent.target }}.</p></article>
+      <article>
+        <h2>Cadre d envoi</h2>
+        <p>Les destinataires sont determines par les roles reels au moment de l emission.</p>
+        <b>{{ target }}</b>
+      </article>
+      <article *ngIf="result() as sent">
+        <h2>Dernier envoi</h2>
+        <strong>{{ sent.recipientCount }}</strong>
+        <p>destinataire(s) touches pour {{ sent.target }}.</p>
+      </article>
       <p class="admin-notifications__error" *ngIf="error()">{{ error() }}</p>
     </aside>
   </div>
   <div class="admin-notifications__modal" *ngIf="confirmOpen">
     <article>
       <h2>Envoyer cette notification ?</h2>
-      <p>Audience: {{ target }}. Le message apparaitra dans les notifications des comptes concernes.</p>
-      <footer><button type="button" (click)="confirmOpen = false">Annuler</button><button type="button" [disabled]="isSending()" (click)="send()">Envoyer</button></footer>
+      <p>
+        Audience: {{ target }}. Le message apparaitra dans les notifications des comptes concernes.
+      </p>
+      <footer>
+        <button type="button" (click)="confirmOpen = false">Annuler</button
+        ><button type="button" [disabled]="isSending()" (click)="send()">Envoyer</button>
+      </footer>
     </article>
   </div>
 </section>

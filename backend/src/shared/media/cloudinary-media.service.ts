@@ -179,24 +179,30 @@ export class CloudinaryMediaService {
     const resourceType = parts[cloudNameIndex + 1];
     const deliveryType = parts[cloudNameIndex + 2];
     const uploadSegments = parts.slice(cloudNameIndex + 3);
-    const versionIndex = uploadSegments.findIndex((part) => /^v\d+$/.test(part));
+    const versionIndex = uploadSegments.findIndex((part) =>
+      /^v\d+$/.test(part),
+    );
     const publicIdSegments =
-      versionIndex >= 0 ? uploadSegments.slice(versionIndex + 1) : uploadSegments;
+      versionIndex >= 0
+        ? uploadSegments.slice(versionIndex + 1)
+        : uploadSegments;
     const lastSegment = publicIdSegments.at(-1) ?? 'media';
     const parsedName = parse(lastSegment);
     const format = parsedName.ext.replace(/^\./, '');
 
-    if (!resourceType || !deliveryType || publicIdSegments.length === 0 || !format) {
+    if (
+      !resourceType ||
+      !deliveryType ||
+      publicIdSegments.length === 0 ||
+      !format
+    ) {
       throw new Error('CLOUDINARY_DELIVERY_URL_INVALID');
     }
 
     const isRawResource = resourceType === 'raw';
     const publicId = isRawResource
       ? publicIdSegments.join('/')
-      : [
-          ...publicIdSegments.slice(0, -1),
-          parsedName.name,
-        ].join('/');
+      : [...publicIdSegments.slice(0, -1), parsedName.name].join('/');
 
     return {
       resourceType,

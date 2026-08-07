@@ -24,9 +24,7 @@ export class AvailabilityRealtimeService {
     this.connect();
     this.subscribeToProfessional(professionalId);
 
-    return this.changes.pipe(
-      filter((event) => event.professionalId === professionalId),
-    );
+    return this.changes.pipe(filter((event) => event.professionalId === professionalId));
   }
 
   stopWatching(professionalId: string): void {
@@ -55,9 +53,12 @@ export class AvailabilityRealtimeService {
         this.subscribeToProfessional(professionalId),
       );
     });
-    this.socket.on('professional.availability.changed', (event: ProfessionalAvailabilityChangedEvent) => {
-      this.changes.next(event);
-    });
+    this.socket.on(
+      'professional.availability.changed',
+      (event: ProfessionalAvailabilityChangedEvent) => {
+        this.changes.next(event);
+      },
+    );
   }
 
   private subscribeToProfessional(professionalId: string): void {

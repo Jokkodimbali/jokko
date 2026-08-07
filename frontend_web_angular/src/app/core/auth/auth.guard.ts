@@ -5,8 +5,7 @@ import { AuthSessionService } from './auth-session.service';
 
 type AppRole = 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN';
 
-const LOGIN_REQUIRED_MESSAGE =
-  'Connectez-vous d abord pour acceder a cet espace.';
+const LOGIN_REQUIRED_MESSAGE = 'Connectez-vous d abord pour acceder a cet espace.';
 
 function redirectToLogin(router: Router, url: string) {
   return router.createUrlTree(['/auth/login'], {

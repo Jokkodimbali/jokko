@@ -72,7 +72,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of visibleRows(data); trackBy: trackById">
-            <td><strong>{{ row.reference }}</strong></td>
+            <td>
+              <strong>{{ row.reference }}</strong>
+            </td>
             <td>{{ formatDate(row.date) }}</td>
             <td>{{ row.serviceName || row.type }}</td>
             <td>{{ row.from }}</td>
@@ -91,11 +93,18 @@
         </tbody>
       </table>
       <footer class="admin-archives__pagination" *ngIf="data.pagination.total > 0">
-        <span>{{ pageStart(data) }}-{{ pageEnd(data) }} sur {{ data.pagination.total }} element(s)</span>
+        <span
+          >{{ pageStart(data) }}-{{ pageEnd(data) }} sur
+          {{ data.pagination.total }} element(s)</span
+        >
         <nav aria-label="Pagination des archives">
-          <button type="button" [disabled]="page(data) <= 1" (click)="previousPage(data)">Precedent</button>
+          <button type="button" [disabled]="page(data) <= 1" (click)="previousPage(data)">
+            Precedent
+          </button>
           <b>Page {{ page(data) }} / {{ pageCount(data) }}</b>
-          <button type="button" [disabled]="page(data) >= pageCount(data)" (click)="nextPage(data)">Suivant</button>
+          <button type="button" [disabled]="page(data) >= pageCount(data)" (click)="nextPage(data)">
+            Suivant
+          </button>
         </nav>
       </footer>
     </div>
@@ -109,7 +118,13 @@
         [strokeWidth]="2.2"
       ></lucide-icon>
       <h2>{{ isLoading ? 'Chargement des archives' : 'Archives indisponibles' }}</h2>
-      <p>{{ isLoading ? 'Preparation des historiques consolides.' : 'Impossible de charger les archives pour le moment.' }}</p>
+      <p>
+        {{
+          isLoading
+            ? 'Preparation des historiques consolides.'
+            : 'Impossible de charger les archives pour le moment.'
+        }}
+      </p>
     </section>
   </ng-template>
 </section>

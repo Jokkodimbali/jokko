@@ -19,19 +19,20 @@ export class AdminMedicalCredentialsService {
 
   certify(profileId: string): Observable<{ professionalId: string; status: string }> {
     return this.http
-      .patch<ApiResponse<{ professionalId: string; status: string }>>(
-        `${this.medicalCredentialsUrl}/${profileId}/certify`,
-        {},
-      )
+      .patch<
+        ApiResponse<{ professionalId: string; status: string }>
+      >(`${this.medicalCredentialsUrl}/${profileId}/certify`, {})
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  reject(profileId: string, reason: string): Observable<{ professionalId: string; status: string }> {
+  reject(
+    profileId: string,
+    reason: string,
+  ): Observable<{ professionalId: string; status: string }> {
     return this.http
-      .patch<ApiResponse<{ professionalId: string; status: string }>>(
-        `${this.medicalCredentialsUrl}/${profileId}/reject`,
-        { reason },
-      )
+      .patch<
+        ApiResponse<{ professionalId: string; status: string }>
+      >(`${this.medicalCredentialsUrl}/${profileId}/reject`, { reason })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 }

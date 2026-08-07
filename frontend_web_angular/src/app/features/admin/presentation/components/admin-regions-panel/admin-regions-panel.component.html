@@ -7,14 +7,17 @@
       </span>
       <h1>Carte operationnelle du Senegal</h1>
       <p>
-        Visualisez la repartition des prestataires, des clients, des reservations et du chiffre d'affaires par region.
-        Chaque indicateur est calcule depuis les donnees enregistrees.
+        Visualisez la repartition des prestataires, des clients, des reservations et du chiffre
+        d'affaires par region. Chaque indicateur est calcule depuis les donnees enregistrees.
       </p>
     </div>
     <aside>
       <small>Region la plus active</small>
       <strong>{{ data.coverage.strongestRegion || 'Aucune region' }}</strong>
-      <em>{{ formatNumber(data.totals.providers) }} prestataires et {{ formatNumber(data.totals.clients) }} clients</em>
+      <em
+        >{{ formatNumber(data.totals.providers) }} prestataires et
+        {{ formatNumber(data.totals.clients) }} clients</em
+      >
     </aside>
   </header>
 
@@ -54,18 +57,37 @@
       <div class="admin-senegal-map-shell" *ngIf="data.regions.length > 0; else noRegions">
         <div class="admin-senegal-map-canvas">
           <div class="admin-senegal-map-legend">
-            <span><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--empty"></i>Aucune activite</span>
-            <span><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--low"></i>Faible</span>
-            <span><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--medium"></i>Moyenne</span>
-            <span><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--strong"></i>Forte</span>
+            <span
+              ><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--empty"></i
+              >Aucune activite</span
+            >
+            <span
+              ><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--low"></i
+              >Faible</span
+            >
+            <span
+              ><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--medium"></i
+              >Moyenne</span
+            >
+            <span
+              ><i class="admin-senegal-map-legend__dot admin-senegal-map-legend__dot--strong"></i
+              >Forte</span
+            >
           </div>
 
-          <svg class="admin-senegal-map" viewBox="0 0 760 590" role="img" aria-label="Repartition regionale du Senegal">
+          <svg
+            class="admin-senegal-map"
+            viewBox="0 0 760 590"
+            role="img"
+            aria-label="Repartition regionale du Senegal"
+          >
             <g *ngFor="let mapRegion of mapRegions">
               <polygon
                 [attr.points]="mapRegion.points"
                 [attr.class]="mapRegionClass(data, mapRegion.name)"
-                [class.admin-senegal-map__region--selected]="selectedRegion(data)?.name === mapRegion.name"
+                [class.admin-senegal-map__region--selected]="
+                  selectedRegion(data)?.name === mapRegion.name
+                "
                 [attr.tabindex]="0"
                 [attr.aria-label]="mapRegionTitle(data, mapRegion.name)"
                 (click)="selectRegion(mapRegion.name)"
@@ -73,10 +95,18 @@
               >
                 <title>{{ mapRegionTitle(data, mapRegion.name) }}</title>
               </polygon>
-              <text class="admin-senegal-map__label" [attr.x]="mapRegion.labelX" [attr.y]="mapRegion.labelY">
+              <text
+                class="admin-senegal-map__label"
+                [attr.x]="mapRegion.labelX"
+                [attr.y]="mapRegion.labelY"
+              >
                 {{ mapRegion.name }}
               </text>
-              <text class="admin-senegal-map__value" [attr.x]="mapRegion.labelX" [attr.y]="mapRegion.labelY + 18">
+              <text
+                class="admin-senegal-map__value"
+                [attr.x]="mapRegion.labelX"
+                [attr.y]="mapRegion.labelY + 18"
+              >
                 {{ formatNumber(mapRegionActivity(data, mapRegion.name)) }}
               </text>
             </g>
@@ -105,7 +135,6 @@
           </div>
         </aside>
       </div>
-
     </article>
 
     <aside class="admin-regions-quality">
@@ -133,7 +162,10 @@
     <header>
       <div>
         <h2>Detail par region</h2>
-        <p>Les lignes croisent les profils, clients, reservations, paiements et litiges presents dans la base.</p>
+        <p>
+          Les lignes croisent les profils, clients, reservations, paiements et litiges presents dans
+          la base.
+        </p>
       </div>
       <span>{{ formatNumber(data.regions.length) }} regions</span>
     </header>
@@ -152,12 +184,19 @@
         <div>
           <strong>{{ region.name }}</strong>
           <small>
-            {{ region.topCategories.length ? region.topCategories[0].label : 'Aucune categorie renseignee' }}
+            {{
+              region.topCategories.length
+                ? region.topCategories[0].label
+                : 'Aucune categorie renseignee'
+            }}
           </small>
         </div>
         <div>
           <strong>{{ formatNumber(region.providers) }}</strong>
-          <small>{{ formatNumber(region.activeProviders) }} actifs - {{ region.verificationRate }}% verifies</small>
+          <small
+            >{{ formatNumber(region.activeProviders) }} actifs - {{ region.verificationRate }}%
+            verifies</small
+          >
         </div>
         <div>
           <strong>{{ formatNumber(region.clients) }}</strong>
@@ -165,7 +204,10 @@
         </div>
         <div>
           <strong>{{ formatNumber(region.reservations) }}</strong>
-          <small>{{ formatNumber(region.activeReservations) }} en cours - {{ formatNumber(region.disputes) }} litiges</small>
+          <small
+            >{{ formatNumber(region.activeReservations) }} en cours -
+            {{ formatNumber(region.disputes) }} litiges</small
+          >
         </div>
         <div>
           <strong>{{ formatMoney(region.grossRevenue) }}</strong>
@@ -182,7 +224,11 @@
 
 <ng-template #regionsState>
   <section class="admin-regions-state">
-    <lucide-icon [name]="isLoading ? 'loader-circle' : 'map'" size="38" [strokeWidth]="2.2"></lucide-icon>
+    <lucide-icon
+      [name]="isLoading ? 'loader-circle' : 'map'"
+      size="38"
+      [strokeWidth]="2.2"
+    ></lucide-icon>
     <h1>{{ isLoading ? 'Chargement des regions' : 'Aucune donnee regionale disponible' }}</h1>
     <p>
       {{

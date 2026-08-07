@@ -14,7 +14,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm.cmd start -- --host 127.0.0.1',
-    url: 'http://127.0.0.1:4200',
+    url: process.env['E2E_BASE_URL'] ?? 'http://127.0.0.1:4200',
     reuseExistingServer: true,
     timeout: 120_000,
   },

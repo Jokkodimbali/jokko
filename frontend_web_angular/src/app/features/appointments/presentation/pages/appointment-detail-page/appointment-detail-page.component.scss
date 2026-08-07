@@ -565,7 +565,6 @@
   min-width: 42px;
 }
 
-
 .appointment-detail__tool {
   align-items: center;
   background: #347ff0;
@@ -874,6 +873,60 @@
   opacity: 0.55;
 }
 
+.appointment-detail__parcel-contacts-card header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.appointment-detail__parcel-contacts-card header small,
+.appointment-detail__parcel-contact > span {
+  color: #8d5527;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.appointment-detail__parcel-contact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.appointment-detail__parcel-contact {
+  background: #fffaf5;
+  border: 1px solid #ead7c4;
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.appointment-detail__parcel-contact strong {
+  color: #171412;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.appointment-detail__parcel-contact a,
+.appointment-detail__parcel-contact em {
+  align-items: center;
+  color: #8d5527;
+  display: inline-flex;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 900;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.appointment-detail__parcel-contact a:hover {
+  text-decoration: underline;
+}
+
+.appointment-detail__parcel-contacts-card footer {
+  justify-content: flex-end;
+}
+
 .appointment-detail__review-modal {
   backdrop-filter: blur(5px);
 }
@@ -976,7 +1029,10 @@
   line-height: 1;
   padding: 0;
   text-shadow: 0 3px 9px rgba(245, 158, 11, 0.12);
-  transition: color 150ms ease, text-shadow 150ms ease, transform 150ms ease;
+  transition:
+    color 150ms ease,
+    text-shadow 150ms ease,
+    transform 150ms ease;
   width: 38px;
   -webkit-text-stroke: 1.7px #f59e0b;
 }
@@ -1186,4 +1242,3 @@
   font-style: normal;
   font-weight: 700;
 }
-

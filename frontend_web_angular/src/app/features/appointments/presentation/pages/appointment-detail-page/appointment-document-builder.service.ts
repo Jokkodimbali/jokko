@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
-import {
-  AppointmentView,
-  MedicalPrescriptionPayload,
-} from '../../../domain/appointments.models';
+import { AppointmentView, MedicalPrescriptionPayload } from '../../../domain/appointments.models';
 
 export interface MissionInvoiceDocumentData {
   appointment: AppointmentView;
@@ -121,16 +118,18 @@ export class AppointmentDocumentBuilderService {
   buildMedicalReceiptHtml(data: MedicalReceiptDocumentData): string {
     const actsRows = data.acts
       .map(
-        (act, index) => `<tr><td class="document-text">${this.formatDocumentText(act)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
-          this.formatCurrency(index === 0 ? data.finalPriceAmount : 5000),
-        )}</td></tr>`,
+        (act, index) =>
+          `<tr><td class="document-text">${this.formatDocumentText(act)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
+            this.formatCurrency(index === 0 ? data.finalPriceAmount : 5000),
+          )}</td></tr>`,
       )
       .join('');
     const vaccinesRows = data.vaccines
       .map(
-        (vaccine) => `<tr><td class="document-text">${this.formatDocumentText(vaccine)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
-          this.formatCurrency(3000),
-        )}</td></tr>`,
+        (vaccine) =>
+          `<tr><td class="document-text">${this.formatDocumentText(vaccine)}</td><td class="right">1</td><td class="right">${this.escapeHtml(
+            this.formatCurrency(3000),
+          )}</td></tr>`,
       )
       .join('');
 
@@ -319,7 +318,9 @@ export class AppointmentDocumentBuilderService {
   }
 
   private medicalPatientPhone(appointment: AppointmentView): string | null {
-    return this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone;
+    return (
+      this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone
+    );
   }
 
   private extractAppointmentNoteValue(notes: string | null, key: string): string | null {

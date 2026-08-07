@@ -1,4 +1,5 @@
 import {
+  Ack,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -9,8 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { OnEvent } from '@nestjs/event-emitter';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { LiveTrackingFacade } from '../../application/services/live-tracking-facade.service';
@@ -91,6 +91,25 @@ export class LiveTrackingGateway
       userId: user.sub,
       isOnline: false,
       changedAt: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('session.logout')
+  handleSessionLogout(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @Ack() acknowledge: () => void,
+  ): void {
+    const user = this.getSocketUser(client);
+    if (!user) return;
+
+    this.realtimeEvents.emit('user.presence.updated', {
+      userId: user.sub,
+      isOnline: false,
+      changedAt: new Date().toISOString(),
+    });
+    acknowledge();
+    queueMicrotask(() => {
+      this.server.in(this.buildUserRoom(user.sub)).disconnectSockets(true);
     });
   }
 

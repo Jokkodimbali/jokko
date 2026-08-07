@@ -81,9 +81,13 @@ test.describe('Service proposal redesign', () => {
     await mockProposalReadState(page, context.profile.id);
 
     await page.goto(`/services/${context.profile.id}/proposition?serviceId=${context.service.id}`);
-    await expect(page.getByRole('heading', { level: 1, name: /Reservation finale/i })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /Reservation finale/i }),
+    ).toBeVisible();
 
-    await page.getByRole('button', { name: /Motif de pr[ée]sentation|Motif de prestation/i }).click();
+    await page
+      .getByRole('button', { name: /Motif de pr[ée]sentation|Motif de prestation/i })
+      .click();
     const serviceModal = page.getByRole('dialog', { name: 'service' });
     await expect(serviceModal).toBeVisible();
     await expect(serviceModal).toContainText(context.service.nom);
@@ -97,9 +101,9 @@ test.describe('Service proposal redesign', () => {
     await expect(scheduleModal.getByRole('button', { name: '10:00' })).toBeEnabled();
     await scheduleModal.getByRole('button', { name: '10:00' }).click();
     await scheduleModal.getByRole('button', { name: /Appliquer la date/i }).click();
-    await expect(page.getByRole('button', { name: /Date.*heure|Date et disponibilite/i })).toContainText(
-      '10:00',
-    );
+    await expect(
+      page.getByRole('button', { name: /Date.*heure|Date et disponibilite/i }),
+    ).toContainText('10:00');
 
     const address = `Dakar Plateau test ${Date.now()}`;
     await page.getByRole('button', { name: /Adresse d'intervention/i }).click();
@@ -266,10 +270,7 @@ async function login(page: Page): Promise<void> {
   await page.waitForURL('**/services');
 }
 
-async function seedClientSession(
-  page: Page,
-  request: APIRequestContext,
-): Promise<void> {
+async function seedClientSession(page: Page, request: APIRequestContext): Promise<void> {
   const loginResponse = await request.post(`${apiBaseURL}/auth/login`, {
     data: { identifier: '+221772345678', password: 'client123' },
   });

@@ -1,4 +1,7 @@
-import { AppointmentTravelMode, AppointmentView } from '../../../appointments/domain/appointments.models';
+import {
+  AppointmentTravelMode,
+  AppointmentView,
+} from '../../../appointments/domain/appointments.models';
 import {
   TrackingRouteActor,
   TrackingScenarioStep,
@@ -67,7 +70,11 @@ export abstract class BaseServiceTrackingScenario implements TrackingScenarioStr
     return [
       { label: 'A venir', description: 'Mission planifiee', icon: 'briefcase-business' },
       { label: 'Trajet', description: 'Navigation active', icon: 'send' },
-      { label: this.workStepLabel(), description: this.workStepDescription(), icon: this.workStepIcon() },
+      {
+        label: this.workStepLabel(),
+        description: this.workStepDescription(),
+        icon: this.workStepIcon(),
+      },
       { label: 'Cloture', description: 'Mission terminee', icon: 'check' },
     ];
   }

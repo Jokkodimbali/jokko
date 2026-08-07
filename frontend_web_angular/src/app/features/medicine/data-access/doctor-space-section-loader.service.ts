@@ -8,7 +8,10 @@ import {
   BackendProfessionalProfile,
   CategoryStructure,
 } from '../../services/domain/models/services.models';
-import { NegotiationView, ServiceProposalService } from '../../services/data-access/service-proposal.service';
+import {
+  NegotiationView,
+  ServiceProposalService,
+} from '../../services/data-access/service-proposal.service';
 import { BackendReservation } from '../../appointments/domain/appointments.models';
 import { DoctorSpaceService, DoctorWalletView } from './doctor-space.service';
 

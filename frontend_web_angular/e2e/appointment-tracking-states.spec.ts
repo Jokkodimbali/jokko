@@ -63,10 +63,7 @@ test.describe('Appointment tracking lifecycle', () => {
     await expectNoSpeech(page);
   });
 
-  test('future paid appointment waits silently until service day', async ({
-    page,
-    request,
-  }) => {
+  test('future paid appointment waits silently until service day', async ({ page, request }) => {
     await openState(page, request, 'PAYEE_SEQUESTRE', 'INACTIF', undefined, {
       scheduled: 'future',
     });
@@ -135,9 +132,11 @@ test.describe('Appointment tracking lifecycle', () => {
     await page.waitForFunction((position) => {
       const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
       const marker = debug?.providerMarkerPositions.at(-1);
-      return !!marker &&
+      return (
+        !!marker &&
         Math.abs(marker.lat - position.latitude) < 0.00001 &&
-        Math.abs(marker.lng - position.longitude) < 0.00001;
+        Math.abs(marker.lng - position.longitude) < 0.00001
+      );
     }, destination);
   });
 
@@ -154,9 +153,7 @@ test.describe('Appointment tracking lifecycle', () => {
 
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
     await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();
-    await expect(
-      page.getByText(/position detectee est hors du Senegal/i),
-    ).toHaveCount(0);
+    await expect(page.getByText(/position detectee est hors du Senegal/i)).toHaveCount(0);
   });
 
   test('client-travels route is visible to provider once client is on the way', async ({
@@ -174,10 +171,7 @@ test.describe('Appointment tracking lifecycle', () => {
     await expect(page.getByRole('button', { name: /^Terminer$/i })).toHaveCount(0);
   });
 
-  test('provider can start once the client has arrived', async ({
-    page,
-    request,
-  }) => {
+  test('provider can start once the client has arrived', async ({ page, request }) => {
     await openState(page, request, 'PAYEE_SEQUESTRE', 'EN_ROUTE', 'PRESTATAIRE', {
       travelMode: 'CLIENT_SE_DEPLACE',
       routeDistanceMeters: 80,
@@ -259,8 +253,8 @@ test.describe('Appointment tracking lifecycle', () => {
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
     await page.waitForFunction(
       () =>
-        ((window as typeof window & { __jokkoGeoWatcherCount?: number })
-          .__jokkoGeoWatcherCount ?? 0) > 0,
+        ((window as typeof window & { __jokkoGeoWatcherCount?: number }).__jokkoGeoWatcherCount ??
+          0) > 0,
     );
     await page.waitForFunction(() => {
       const debug = (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug;
@@ -269,9 +263,11 @@ test.describe('Appointment tracking lifecycle', () => {
     await page.waitForTimeout(2_100);
 
     await page.evaluate((position) => {
-      const emit = (window as typeof window & {
-        __jokkoEmitGeolocation?: (position: GeolocationPosition) => void;
-      }).__jokkoEmitGeolocation;
+      const emit = (
+        window as typeof window & {
+          __jokkoEmitGeolocation?: (position: GeolocationPosition) => void;
+        }
+      ).__jokkoEmitGeolocation;
       emit?.({
         coords: {
           latitude: position.latitude,
@@ -325,9 +321,7 @@ test.describe('Appointment tracking lifecycle', () => {
     const debug = await page.evaluate(
       () => (window as typeof window & { __jokkoMapDebug?: MapDebugState }).__jokkoMapDebug,
     );
-    expect(
-      debug?.headings.some((heading) => Math.abs(heading - 90) > 5),
-    ).toBeTruthy();
+    expect(debug?.headings.some((heading) => Math.abs(heading - 90) > 5)).toBeTruthy();
   });
 
   test('client follower sees provider arrival jump directly to the destination', async ({
@@ -503,15 +497,13 @@ async function openState(
     ...reservation.data,
     statut: reservationState,
     dateHeure:
-      reservationState === 'CONFIRMEE' || options.scheduled === 'future'
-        ? futureDate
-        : todayDate,
+      reservationState === 'CONFIRMEE' || options.scheduled === 'future' ? futureDate : todayDate,
     service: {
       ...(reservation.data['service'] as Record<string, unknown> | undefined),
       modeDeplacement:
         options.travelMode ??
-        ((reservation.data['service'] as Record<string, unknown> | undefined)?.['modeDeplacement'] ??
-          'PRESTATAIRE_SE_DEPLACE'),
+        (reservation.data['service'] as Record<string, unknown> | undefined)?.['modeDeplacement'] ??
+        'PRESTATAIRE_SE_DEPLACE',
     },
   };
   let trackingData = {
@@ -740,9 +732,7 @@ async function openState(
       browserGeolocation: options.browserGeolocation,
     },
   );
-  await page.routeWebSocket('**/socket.io/**', (webSocket) =>
-    webSocket.close(),
-  );
+  await page.routeWebSocket('**/socket.io/**', (webSocket) => webSocket.close());
   await page.route('**/socket.io/**', (route) => route.abort());
   await page.route(`**/api/v1/reservations/${reservationId}`, (route) =>
     route.fulfill({
@@ -751,14 +741,12 @@ async function openState(
       body: JSON.stringify({ success: true, data: appointmentData }),
     }),
   );
-  await page.route(
-    `**/api/v1/reservations/${reservationId}/live-tracking`,
-    (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: trackingData }),
-      }),
+  await page.route(`**/api/v1/reservations/${reservationId}/live-tracking`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: trackingData }),
+    }),
   );
   await page.route(`**/api/v1/reservations/${reservationId}/on-the-way`, async (route) => {
     const payload = route.request().postDataJSON() as {
@@ -852,10 +840,12 @@ async function openState(
         data: [
           {
             distanceMeters: options.routeDistanceMeters ?? 7400,
-            durationSeconds: options.routeDistanceMeters && options.routeDistanceMeters <= 120 ? 20 : 900,
+            durationSeconds:
+              options.routeDistanceMeters && options.routeDistanceMeters <= 120 ? 20 : 900,
             encodedPolyline: '',
             coordinates: fallbackRoute(options.routeDistanceMeters, payload.origin).coordinates,
-            navigationSteps: fallbackRoute(options.routeDistanceMeters, payload.origin).navigationSteps,
+            navigationSteps: fallbackRoute(options.routeDistanceMeters, payload.origin)
+              .navigationSteps,
           },
         ],
       }),
@@ -991,10 +981,7 @@ function fallbackRoute(
     durationRemainingSeconds: durationSeconds,
     estimatedArrivalAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     encodedPolyline: '',
-    coordinates: [
-      origin,
-      destination,
-    ],
+    coordinates: [origin, destination],
     navigationSteps: [
       {
         id: 'step-1',
@@ -1046,4 +1033,3 @@ function fallbackTrackingData(): Record<string, unknown> & {
     route: fallbackRoute(),
   };
 }
-

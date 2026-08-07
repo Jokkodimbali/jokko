@@ -1,11 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
+import { SessionPresenceService } from '../../../core/presence/session-presence.service';
 import {
   NotificationsService,
   UserNotificationView,
@@ -47,6 +56,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly presence = inject(SessionPresenceService);
   private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
   private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -96,10 +106,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const profile = user.professionalProfile;
     if (!profile) return false;
 
-    const searchableText = [
-      profile.nomEntreprise,
-      ...(profile.categories || []),
-    ]
+    const searchableText = [profile.nomEntreprise, ...(profile.categories || [])]
       .filter(Boolean)
       .join(' ')
       .normalize('NFD')
@@ -282,11 +289,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.closeNotificationsMenu();
     this.closeMobileNav();
 
+    const refreshToken = this.authSession.getRefreshToken();
     this.isLoggingOut.set(true);
+    this.presence.disconnectAuthenticatedSession();
+    this.messagesRealtime.disconnect();
     this.authService
-      .logout(this.authSession.getRefreshToken()
-        ? { refreshToken: this.authSession.getRefreshToken()! }
-        : {})
+      .logout(refreshToken ? { refreshToken } : {})
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {
@@ -320,17 +328,24 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.notificationsService.markAsRead(notification.id).subscribe({
       next: (updated) => {
         this.notificationPreview.update((items) =>
-          items.map((item) => (item.id === notification.id ? { ...item, ...updated, isRead: true, estLue: true } : item)),
+          items.map((item) =>
+            item.id === notification.id
+              ? { ...item, ...updated, isRead: true, estLue: true }
+              : item,
+          ),
         );
         this.unreadNotificationsCount.update((count) => Math.max(0, count - 1));
         navigate();
       },
-      error: (error) => this.feedback.error(getHttpErrorMessage(error, 'Impossible d ouvrir cette notification.')),
+      error: (error) =>
+        this.feedback.error(getHttpErrorMessage(error, 'Impossible d ouvrir cette notification.')),
     });
   }
 
   protected notificationTitle(notification: UserNotificationView): string {
-    return notification.title || notification.titre || this.notificationTypeLabel(notification.type);
+    return (
+      notification.title || notification.titre || this.notificationTypeLabel(notification.type)
+    );
   }
 
   protected notificationBody(notification: UserNotificationView): string {
@@ -425,7 +440,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       )
       .subscribe((notifications) => {
         this.notificationPreview.set(notifications);
-        this.unreadNotificationsCount.set(notifications.filter((item) => !this.isRead(item)).length);
+        this.unreadNotificationsCount.set(
+          notifications.filter((item) => !this.isRead(item)).length,
+        );
       });
   }
 
@@ -440,7 +457,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       .listConversations(100)
       .pipe(catchError(() => of([])))
       .subscribe((conversations) => {
-        const total = conversations.reduce((sum, conversation) => sum + (conversation.unreadCount || 0), 0);
+        const total = conversations.reduce(
+          (sum, conversation) => sum + (conversation.unreadCount || 0),
+          0,
+        );
         this.unreadMessagesCount.set(total);
       });
   }
@@ -461,14 +481,16 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     if (reservationId) return { commands: ['/appointments', reservationId], reservationId };
 
     const paymentId = this.readMetadataString(metadata, 'paymentId');
-    if (paymentId) return { commands: ['/settings'], queryParams: { section: 'account', paymentId } };
+    if (paymentId)
+      return { commands: ['/settings'], queryParams: { section: 'account', paymentId } };
 
     const professionalId = this.readMetadataString(metadata, 'professionalId');
     if (professionalId) return { commands: ['/services', professionalId] };
 
     const type = (notification.type || '').toLowerCase();
     if (type.includes('message')) return { commands: ['/messages'] };
-    if (type.includes('payment') || type.includes('paiement')) return { commands: ['/settings'], queryParams: { section: 'account' } };
+    if (type.includes('payment') || type.includes('paiement'))
+      return { commands: ['/settings'], queryParams: { section: 'account' } };
     if (type.includes('kyc') || type.includes('profil')) return { commands: ['/settings'] };
     return { commands: ['/notifications'] };
   }
@@ -501,7 +523,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         const exists = groups.flat().some((appointment) => appointment.id === reservationId);
         this.router.navigate(exists ? ['/appointments', reservationId] : ['/appointments']);
         if (!exists) {
-          this.feedback.info("Cette reservation n'est plus disponible ou n'est pas accessible avec ce compte.");
+          this.feedback.info(
+            "Cette reservation n'est plus disponible ou n'est pas accessible avec ce compte.",
+          );
         }
       },
       error: () => {

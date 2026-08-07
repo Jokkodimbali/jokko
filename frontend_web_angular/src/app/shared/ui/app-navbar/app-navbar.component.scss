@@ -35,7 +35,7 @@
   padding: 6px;
   text-decoration: none;
   width: 112px;
-  margin-left: 24px;  
+  margin-left: 24px;
 }
 
 .app-navbar__brand img {
@@ -1441,7 +1441,8 @@
   .app-navbar {
     grid-template-columns: clamp(150px, 14vw, 168px) minmax(0, 1fr) auto;
     height: var(--app-navbar-height);
-    padding: clamp(10px, 1.2vw, 12px) clamp(44px, 5vw, 56px) clamp(10px, 1.2vw, 12px) clamp(14px, 1.5vw, 16px);
+    padding: clamp(10px, 1.2vw, 12px) clamp(44px, 5vw, 56px) clamp(10px, 1.2vw, 12px)
+      clamp(14px, 1.5vw, 16px);
   }
 
   .app-navbar__brand img {

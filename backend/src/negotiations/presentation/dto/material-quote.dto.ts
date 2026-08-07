@@ -10,8 +10,9 @@ import {
   Min,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
+import type { CreateMaterialQuoteInput } from '../../application/models/material-quote-input';
 
-export class CreateMaterialQuoteDto {
+export class CreateMaterialQuoteDto implements CreateMaterialQuoteInput {
   @ApiProperty({ example: 'PVC' })
   @IsString({ message: VALIDATION_MESSAGES.NEGOTIATION_MESSAGE_INVALID })
   @MaxLength(180, { message: VALIDATION_MESSAGES.NEGOTIATION_MESSAGE_MAX })

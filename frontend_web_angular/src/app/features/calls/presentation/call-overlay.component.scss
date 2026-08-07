@@ -1,0 +1,975 @@
+:host {
+  --call-ink: #3b2819;
+  --call-surface: #fbf8f4;
+  --call-stage: #ded4c5;
+  --call-control: #eadfce;
+  --call-red: #df352f;
+  --call-green: #3f8d55;
+}
+
+.call-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 126px minmax(0, 1fr) 142px;
+  gap: 0;
+  overflow: hidden;
+  padding: 0 clamp(18px, 2.2vw, 38px);
+  color: var(--call-ink);
+  background: var(--call-surface);
+  font-family: Inter, sans-serif;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
+  max-height: 100dvh;
+  box-sizing: border-box;
+}
+
+.call-overlay--minimized {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.call-overlay--floating-video {
+  inset: auto max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) auto;
+  grid-template-rows: 32px minmax(0, 1fr) 48px;
+  width: min(390px, calc(100vw - 24px));
+  height: min(310px, calc(100dvh - 24px));
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  padding: 6px;
+  visibility: visible;
+  border: 1px solid #e4ddd4;
+  border-radius: 16px;
+  background: var(--call-surface);
+  box-shadow: 0 10px 30px rgba(36, 25, 16, 0.26);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  overflow: visible;
+}
+.call-overlay--floating-video:active {
+  cursor: grabbing;
+}
+.call-overlay--floating-video .call-overlay__topbar {
+  padding: 0 2px 3px 8px;
+}
+.call-overlay--floating-video .call-overlay__logo,
+.call-overlay--floating-video .call-overlay__top-actions button:first-child {
+  display: none;
+}
+.call-overlay--floating-video .call-overlay__top-actions {
+  margin-left: auto;
+}
+.call-overlay--floating-video .call-overlay__top-actions button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.call-overlay--floating-video .call-overlay__top-actions ::ng-deep svg {
+  width: 16px;
+  height: 16px;
+}
+.call-overlay--floating-video .call-overlay__stage {
+  border-radius: 10px;
+}
+.call-overlay--floating-video .call-overlay__camera-off {
+  gap: 6px;
+}
+.call-overlay--floating-video .call-overlay__camera-off > span {
+  width: 62px;
+  height: 62px;
+}
+.call-overlay--floating-video .call-overlay__camera-off strong {
+  font-size: 17px;
+}
+.call-overlay--floating-video .call-overlay__local-video,
+.call-overlay--floating-video .call-overlay__remote-media--thumbnail {
+  right: 8px;
+  bottom: 8px;
+  width: 28%;
+  border-radius: 9px;
+}
+.call-overlay--floating-video .call-overlay__local-video--main {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.call-overlay--floating-video .call-overlay__remote-media > strong,
+.call-overlay--floating-video .call-overlay__local-video > strong {
+  padding: 3px 6px;
+  font-size: 9px;
+  line-height: 1.2;
+}
+.call-overlay--floating-video .call-overlay__controls {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 5px 3px 0;
+}
+.call-overlay--floating-video .call-overlay__control {
+  min-width: 38px;
+  gap: 0;
+}
+.call-overlay--floating-video .call-overlay__control > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+.call-overlay--floating-video .call-overlay__control ::ng-deep svg {
+  width: 17px;
+  height: 17px;
+}
+.call-overlay--floating-video .call-overlay__control--pill,
+.call-overlay--floating-video .call-overlay__control--pill > span {
+  width: 72px;
+  min-width: 72px;
+}
+.call-overlay--floating-video .call-overlay__control--pill > span > button {
+  width: 34px;
+  height: 34px;
+}
+.call-overlay--floating-video .call-overlay__control--reject {
+  min-width: 66px;
+  margin-left: auto;
+}
+.call-overlay--floating-video .call-overlay__control--reject > span {
+  width: 66px;
+  border-radius: 22px;
+}
+.call-overlay--floating-video .call-overlay__control small,
+.call-overlay--floating-video .call-overlay__control--utility {
+  display: none;
+}
+.call-overlay--floating-video .call-overlay__duration {
+  top: 8px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+.call-overlay--floating-video .call-overlay__device-menu {
+  position: absolute;
+  right: auto;
+  bottom: calc(100% + 7px);
+  left: 0;
+  width: min(220px, calc(100vw - 24px));
+  max-height: 170px;
+  padding: 6px;
+  border-radius: 11px;
+  transform: none;
+}
+.call-overlay--floating-video .call-overlay__device-menu > strong {
+  padding: 4px 6px;
+  font-size: 10px;
+}
+.call-overlay--floating-video .call-overlay__device-menu > button {
+  grid-template-columns: 16px minmax(0, 1fr) 14px;
+  min-height: 32px;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.call-overlay--floating-video .call-overlay__device-menu ::ng-deep svg {
+  width: 14px;
+  height: 14px;
+}
+
+.call-overlay__topbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: max(18px, env(safe-area-inset-top));
+}
+
+.call-overlay__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 74px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(48, 28, 10, 0.2);
+}
+
+.call-overlay__logo img {
+  display: block;
+  width: 96px;
+  height: 98px;
+  object-fit: contain;
+  object-position: center;
+}
+.call-overlay__top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.call-overlay__top-actions button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  color: var(--call-ink);
+  background: transparent;
+  cursor: pointer;
+}
+.call-overlay__top-actions button:hover {
+  background: var(--call-control);
+}
+
+.call-overlay__stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--call-stage);
+  width: 100%;
+  min-width: 0;
+}
+
+.call-overlay__network-state,
+.call-overlay__enable-audio {
+  position: absolute;
+  z-index: 8;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: rgb(255 255 255 / 92%);
+  color: #4a2d1b;
+  font-weight: 700;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.call-overlay__enable-audio {
+  cursor: pointer;
+}
+
+.call-overlay__remote-media {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    inset 0.22s ease,
+    width 0.22s ease,
+    border-radius 0.22s ease;
+}
+.call-overlay__remote-media > strong {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 7px 10px;
+  color: #fff;
+  background: #050505;
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-overlay__remote-media--thumbnail {
+  z-index: 5;
+  inset: auto 22px 22px auto;
+  width: clamp(180px, 27vw, 470px);
+  aspect-ratio: 1.55 / 1;
+  border-radius: 24px;
+  background: #cfc3b3;
+  box-shadow: 0 8px 22px rgba(59, 40, 25, 0.14);
+}
+.call-overlay__remote-media ::ng-deep video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.call-overlay__remote-media ::ng-deep audio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.call-overlay__camera-off,
+.call-overlay__voice-identity {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 20px;
+  text-align: center;
+}
+.call-overlay__voice-identity {
+  inset: auto 22px 22px auto;
+  width: clamp(190px, 24vw, 360px);
+  min-height: 250px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 248, 239, 0.5);
+  box-shadow: 0 8px 22px rgba(59, 40, 25, 0.1);
+}
+
+.call-overlay__camera-off > span {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: rgba(255, 248, 239, 0.55);
+}
+.call-overlay__camera-off strong {
+  font-size: clamp(24px, 2.5vw, 40px);
+  font-weight: 750;
+}
+.call-overlay__camera-off small {
+  margin-top: -10px;
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.call-overlay__voice-identity img,
+.call-overlay__voice-identity > span {
+  display: grid;
+  place-items: center;
+  width: clamp(120px, 12vw, 180px);
+  height: clamp(120px, 12vw, 180px);
+  border-radius: 50%;
+  color: #fff;
+  background: #9b642f;
+  object-fit: cover;
+  font-size: 54px;
+  font-weight: 800;
+}
+.call-overlay__voice-identity h2 {
+  margin: 0;
+  font-size: clamp(25px, 2.5vw, 38px);
+}
+.call-overlay__voice-identity p {
+  margin: -8px 0 0;
+  font-size: 16px;
+}
+
+.call-overlay__local-video {
+  position: absolute;
+  z-index: 4;
+  right: 22px;
+  bottom: 22px;
+  width: clamp(180px, 27vw, 470px);
+  aspect-ratio: 1.55 / 1;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(59, 40, 25, 0.14);
+  cursor: pointer;
+  transition:
+    inset 0.22s ease,
+    width 0.22s ease,
+    border-radius 0.22s ease;
+}
+.call-overlay__local-video--main {
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+.call-overlay__local-video--main > strong {
+  display: none;
+}
+.call-overlay__local-video > div {
+  width: 100%;
+  height: 100%;
+}
+.call-overlay__local-video ::ng-deep video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.call-overlay__local-placeholder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #fff;
+  background: #9b642f;
+  font-size: 48px;
+}
+.call-overlay__local-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.call-overlay__local-placeholder b {
+  font: inherit;
+  font-weight: 800;
+}
+.call-overlay__local-placeholder i {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.58);
+}
+.call-overlay__local-video > strong {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 7px 12px;
+  color: #fff;
+  background: #050505;
+  font-size: clamp(12px, 1.4vw, 21px);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-overlay__duration {
+  position: absolute;
+  z-index: 5;
+  top: 18px;
+  left: 50%;
+  padding: 7px 13px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.48);
+  font-size: 13px;
+  transform: translateX(-50%);
+}
+
+.call-overlay__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(10px, 2vw, 26px);
+  padding: 22px 8px max(22px, env(safe-area-inset-bottom));
+  min-width: 0;
+}
+.call-overlay__controls--incoming {
+  justify-content: center;
+}
+.call-overlay__control {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 60px;
+  padding: 0;
+  border: 0;
+  color: var(--call-ink);
+  background: transparent;
+  cursor: pointer;
+}
+.call-overlay__control > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 24px;
+  background: var(--call-control);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+.call-overlay__control:hover > span {
+  filter: brightness(0.96);
+  transform: translateY(-2px);
+}
+.call-overlay__control small {
+  font-size: 11px;
+  font-weight: 650;
+}
+.call-overlay__control--pill > span {
+  gap: 8px;
+  width: 132px;
+  border-radius: 42px;
+}
+.call-overlay__control--pill {
+  min-width: 132px;
+}
+.call-overlay__control--pill > span > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.call-overlay__control--pill > span > button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.call-overlay__device-menu {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 12px);
+  left: 0;
+  display: grid;
+  gap: 5px;
+  width: min(310px, calc(100vw - 24px));
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #dfd1c1;
+  border-radius: 16px;
+  color: var(--call-ink);
+  background: #fffdfb;
+  box-shadow: 0 14px 35px rgba(59, 40, 25, 0.2);
+  text-align: left;
+}
+.call-overlay__device-menu > strong {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.call-overlay__device-menu > button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 11px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.call-overlay__device-menu > button:hover,
+.call-overlay__device-menu > .call-overlay__device--active {
+  background: #f0e5d7;
+}
+.call-overlay__device-menu > button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-overlay__device-menu > small {
+  padding: 10px 8px;
+  color: #766656;
+  font-size: 12px;
+}
+.call-overlay__control--utility > span {
+  border-radius: 50%;
+}
+.call-overlay__control--selected > span {
+  color: #fff;
+  background: #6b5a48;
+}
+.call-overlay__control--accept > span {
+  color: #fff;
+  background: var(--call-green);
+}
+.call-overlay__control--reject {
+  margin-left: auto;
+}
+.call-overlay__controls--incoming .call-overlay__control--reject {
+  margin-left: 0;
+}
+.call-overlay__control--reject > span {
+  width: 142px;
+  color: #fff;
+  background: var(--call-red);
+  border-radius: 38px;
+}
+.call-overlay__control--reject {
+  min-width: 142px;
+}
+.call-overlay__control lucide-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.call-overlay__control ::ng-deep svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.call-overlay__return {
+  position: fixed;
+  z-index: 9999;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(360px, calc(100vw - 24px));
+  padding: 9px 13px;
+  border-radius: 14px;
+  color: #fff;
+  background: #7b522e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.call-overlay__return:active {
+  cursor: grabbing;
+}
+.call-overlay__return--voice > lucide-icon {
+  flex: 0 0 auto;
+}
+.call-overlay__return button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.call-overlay__return-summary {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+.call-overlay__return-summary strong,
+.call-overlay__return-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-overlay__return-summary strong {
+  font-size: 13px;
+}
+.call-overlay__return-summary small {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+}
+
+@media (max-width: 480px) {
+  .call-overlay__return--voice {
+    width: min(330px, calc(100vw - 16px));
+  }
+}
+
+@media (max-width: 760px) {
+  .call-overlay {
+    grid-template-rows: 76px minmax(0, 1fr) 104px;
+    padding: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+  }
+  .call-overlay__logo {
+    width: 72px;
+    height: 58px;
+    padding: 5px;
+  }
+  .call-overlay__logo img {
+    width: 62px;
+    height: 62px;
+  }
+  .call-overlay__top-actions button {
+    width: 40px;
+    height: 40px;
+  }
+  .call-overlay__stage {
+    border-radius: 20px;
+  }
+  .call-overlay__camera-off > span {
+    width: 94px;
+    height: 94px;
+  }
+  .call-overlay__local-video {
+    right: 12px;
+    bottom: 12px;
+    width: min(44vw, 220px);
+    border-radius: 16px;
+  }
+  .call-overlay__local-video--main {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+  .call-overlay__remote-media--thumbnail {
+    inset: auto 12px 12px auto;
+    width: min(44vw, 220px);
+    border-radius: 16px;
+  }
+  .call-overlay__voice-identity {
+    inset: 12px;
+    width: auto;
+    min-height: 0;
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .call-overlay__voice-identity img,
+  .call-overlay__voice-identity > span {
+    width: clamp(92px, 31vw, 148px);
+    height: clamp(92px, 31vw, 148px);
+  }
+  .call-overlay__voice-identity h2 {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: clamp(20px, 7vw, 30px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .call-overlay__controls {
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: clamp(5px, 2vw, 10px);
+    padding: 9px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .call-overlay__control--pill {
+    min-width: 86px;
+  }
+  .call-overlay__control--pill > span {
+    gap: 0;
+    width: 86px;
+  }
+  .call-overlay__control--pill > span > button {
+    width: 40px;
+    height: 40px;
+  }
+  .call-overlay__control > span {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+  .call-overlay__control--reject {
+    min-width: 78px;
+    margin-left: 0;
+  }
+  .call-overlay__control--reject > span {
+    width: 78px;
+  }
+  .call-overlay__control small {
+    font-size: 10px;
+    line-height: 1;
+  }
+  .call-overlay__device-menu {
+    position: fixed;
+    bottom: calc(104px + env(safe-area-inset-bottom));
+    left: 50%;
+    width: min(280px, calc(100vw - 24px));
+    max-height: min(38dvh, 240px);
+    padding: 8px;
+    border-radius: 14px;
+    transform: translateX(-50%);
+  }
+  .call-overlay__device-menu > button {
+    min-height: 38px;
+    padding-block: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  .call-overlay {
+    grid-template-rows: 68px minmax(0, 1fr) 92px;
+  }
+  .call-overlay__logo {
+    width: 64px;
+    height: 48px;
+    border-radius: 14px;
+  }
+  .call-overlay__logo img {
+    width: 54px;
+    height: 54px;
+  }
+  .call-overlay__top-actions {
+    gap: 2px;
+  }
+  .call-overlay__top-actions button {
+    width: 38px;
+    height: 38px;
+  }
+  .call-overlay__camera-off strong {
+    max-width: calc(100% - 24px);
+    font-size: 20px;
+    text-align: center;
+  }
+  .call-overlay__local-video {
+    right: 8px;
+    bottom: 8px;
+    width: min(40vw, 152px);
+    border-radius: 13px;
+  }
+  .call-overlay__remote-media--thumbnail {
+    inset: auto 8px 8px auto;
+    width: min(40vw, 152px);
+    border-radius: 13px;
+  }
+  .call-overlay__controls {
+    gap: 4px;
+    padding-top: 7px;
+  }
+  .call-overlay__control {
+    min-width: 42px;
+  }
+  .call-overlay__control--pill {
+    min-width: 72px;
+  }
+  .call-overlay__control--pill > span {
+    width: 72px;
+  }
+  .call-overlay__control--pill > span > button {
+    width: 34px;
+    height: 38px;
+  }
+  .call-overlay__control > span {
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+  }
+  .call-overlay__control--reject {
+    min-width: 68px;
+  }
+  .call-overlay__control--reject > span {
+    width: 68px;
+    border-radius: 24px;
+  }
+  .call-overlay__control ::ng-deep svg {
+    width: 22px;
+    height: 22px;
+  }
+  .call-overlay__control small {
+    max-width: 72px;
+    font-size: 9px;
+  }
+  .call-overlay__device-menu {
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    width: min(264px, calc(100vw - 20px));
+  }
+}
+
+@media (max-width: 350px) {
+  .call-overlay__controls {
+    gap: 2px;
+  }
+  .call-overlay__control--pill {
+    min-width: 66px;
+  }
+  .call-overlay__control--pill > span {
+    width: 66px;
+  }
+  .call-overlay__control--pill > span > button {
+    width: 31px;
+  }
+  .call-overlay__control--reject,
+  .call-overlay__control--reject > span {
+    width: 62px;
+    min-width: 62px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .call-overlay {
+    grid-template-rows: 52px minmax(0, 1fr) 68px;
+    padding-inline: max(8px, env(safe-area-inset-left));
+  }
+  .call-overlay__topbar {
+    padding-top: max(4px, env(safe-area-inset-top));
+  }
+  .call-overlay__logo {
+    width: 58px;
+    height: 40px;
+    padding: 3px;
+    border-radius: 11px;
+  }
+  .call-overlay__logo img {
+    width: 50px;
+    height: 46px;
+  }
+  .call-overlay__top-actions button {
+    width: 36px;
+    height: 36px;
+  }
+  .call-overlay__stage {
+    border-radius: 14px;
+  }
+  .call-overlay__camera-off {
+    gap: 8px;
+  }
+  .call-overlay__camera-off > span {
+    width: 64px;
+    height: 64px;
+  }
+  .call-overlay__camera-off strong {
+    font-size: 20px;
+  }
+  .call-overlay__voice-identity {
+    inset: 8px;
+    grid-auto-flow: column;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: center;
+    justify-content: center;
+    column-gap: 14px;
+    padding: 8px 18px;
+  }
+  .call-overlay__voice-identity img,
+  .call-overlay__voice-identity > span {
+    grid-row: 1 / 3;
+    width: 82px;
+    height: 82px;
+  }
+  .call-overlay__voice-identity h2,
+  .call-overlay__voice-identity p {
+    justify-self: start;
+    max-width: min(55vw, 420px);
+  }
+  .call-overlay__controls {
+    gap: 8px;
+    padding: 5px 0 max(4px, env(safe-area-inset-bottom));
+  }
+  .call-overlay__control > span {
+    width: 42px;
+    height: 42px;
+  }
+  .call-overlay__control--pill,
+  .call-overlay__control--pill > span {
+    width: 76px;
+    min-width: 76px;
+  }
+  .call-overlay__control--pill > span > button {
+    width: 35px;
+    height: 36px;
+  }
+  .call-overlay__control--reject,
+  .call-overlay__control--reject > span {
+    width: 72px;
+    min-width: 72px;
+  }
+  .call-overlay__control small {
+    display: none;
+  }
+  .call-overlay__device-menu {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    width: min(270px, calc(100vw - 24px));
+    max-height: min(50dvh, 210px);
+  }
+}

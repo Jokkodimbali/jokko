@@ -63,7 +63,9 @@ export class ServiceProposalParcelService {
   isValidContact(contact: ParcelContactDraft): boolean {
     const name = contact.name.trim().replace(/\s+/g, ' ');
     const phoneDigits = contact.phone.replace(/\D/g, '');
-    return name.length >= 2 && name.length <= 120 && phoneDigits.length >= 9 && phoneDigits.length <= 15;
+    return (
+      name.length >= 2 && name.length <= 120 && phoneDigits.length >= 9 && phoneDigits.length <= 15
+    );
   }
 
   normalizeCoordinate(coordinate: GoogleMapsCoordinate | null): GoogleMapsCoordinate | null {

@@ -55,7 +55,8 @@ export class AdminDisputesPanelComponent implements OnChanges {
   protected readonly financialAmount = signal('');
   protected readonly financialNote = signal('');
   protected readonly selectedDispute = computed(
-    () => this.disputes.find((dispute) => dispute.id === this.selectedId()) ?? this.disputes[0] ?? null,
+    () =>
+      this.disputes.find((dispute) => dispute.id === this.selectedId()) ?? this.disputes[0] ?? null,
   );
   protected readonly averageResponseLabel = computed(() => this.computeAverageResponseLabel());
 
@@ -86,7 +87,11 @@ export class AdminDisputesPanelComponent implements OnChanges {
       return;
     }
 
-    if (action === 'message-client' || action === 'message-professional' || action === 'message-both') {
+    if (
+      action === 'message-client' ||
+      action === 'message-professional' ||
+      action === 'message-both'
+    ) {
       if (notes.length < 2) return;
       this.action.emit({ disputeId: dispute.id, action, notes });
       this.resolutionNote.set('');
@@ -101,7 +106,8 @@ export class AdminDisputesPanelComponent implements OnChanges {
     const dispute = this.selectedDispute();
     if (!dispute || this.isClosed(dispute)) return;
 
-    const beneficiary: FinancialDecisionBeneficiary = action === 'refund-client' ? 'CLIENT' : 'PRESTATAIRE';
+    const beneficiary: FinancialDecisionBeneficiary =
+      action === 'refund-client' ? 'CLIENT' : 'PRESTATAIRE';
     this.financialDecision.set({ action, beneficiary, disputeId: dispute.id });
     this.financialAmount.set(String(this.defaultFinancialAmount(dispute, action)));
     this.financialNote.set(this.resolutionNote().trim());
@@ -118,7 +124,8 @@ export class AdminDisputesPanelComponent implements OnChanges {
     const current = this.financialDecision();
     if (!dispute || !current) return;
 
-    const action: FinancialDecisionAction = beneficiary === 'CLIENT' ? 'refund-client' : 'credit-professional';
+    const action: FinancialDecisionAction =
+      beneficiary === 'CLIENT' ? 'refund-client' : 'credit-professional';
     this.financialDecision.set({ ...current, action, beneficiary });
     this.financialAmount.set(String(this.defaultFinancialAmount(dispute, action)));
   }
@@ -135,7 +142,8 @@ export class AdminDisputesPanelComponent implements OnChanges {
   protected confirmFinancialDecision(): void {
     const decision = this.financialDecision();
     const dispute = this.selectedDispute();
-    if (!decision || !dispute || this.isClosed(dispute) || !this.canConfirmFinancialDecision()) return;
+    if (!decision || !dispute || this.isClosed(dispute) || !this.canConfirmFinancialDecision())
+      return;
 
     const notes = this.financialNote().trim();
     this.action.emit({
@@ -161,7 +169,11 @@ export class AdminDisputesPanelComponent implements OnChanges {
   }
 
   protected disputeAmount(dispute: AdminDisputeCase): number {
-    return dispute.payment?.montant ?? dispute.reservation.prixConvenu ?? dispute.reservation.service.prix;
+    return (
+      dispute.payment?.montant ??
+      dispute.reservation.prixConvenu ??
+      dispute.reservation.service.prix
+    );
   }
 
   protected professionalDecisionAmount(dispute: AdminDisputeCase): number {
@@ -267,7 +279,10 @@ export class AdminDisputesPanelComponent implements OnChanges {
     return labels[recipient] ?? recipient;
   }
 
-  protected financialBeneficiaryTitle(dispute: AdminDisputeCase, beneficiary: FinancialDecisionBeneficiary): string {
+  protected financialBeneficiaryTitle(
+    dispute: AdminDisputeCase,
+    beneficiary: FinancialDecisionBeneficiary,
+  ): string {
     return beneficiary === 'CLIENT' ? dispute.client.nom : dispute.professional.nom;
   }
 
@@ -275,15 +290,23 @@ export class AdminDisputesPanelComponent implements OnChanges {
     return beneficiary === 'CLIENT' ? 'Remboursement au client' : 'Versement au prestataire';
   }
 
-  private defaultFinancialAmount(dispute: AdminDisputeCase, action: FinancialDecisionAction): number {
-    return action === 'refund-client' ? this.disputeAmount(dispute) : this.professionalDecisionAmount(dispute);
+  private defaultFinancialAmount(
+    dispute: AdminDisputeCase,
+    action: FinancialDecisionAction,
+  ): number {
+    return action === 'refund-client'
+      ? this.disputeAmount(dispute)
+      : this.professionalDecisionAmount(dispute);
   }
 
   private parseFinancialAmount(): number {
     return Number(this.financialAmount().replace(/[^\d]/g, '')) || 0;
   }
 
-  private resolveClientRefundPercentage(dispute: AdminDisputeCase, action: FinancialDecisionAction): number {
+  private resolveClientRefundPercentage(
+    dispute: AdminDisputeCase,
+    action: FinancialDecisionAction,
+  ): number {
     const amount = this.parseFinancialAmount();
     const grossAmount = Math.max(this.disputeAmount(dispute), 1);
     if (action === 'refund-client') {
@@ -304,7 +327,10 @@ export class AdminDisputesPanelComponent implements OnChanges {
     return 'Moderation';
   }
 
-  private messageTone(dispute: AdminDisputeCase, message: AdminDisputeMessage): DisputeThreadItem['tone'] {
+  private messageTone(
+    dispute: AdminDisputeCase,
+    message: AdminDisputeMessage,
+  ): DisputeThreadItem['tone'] {
     if (message.expediteurId === dispute.client.id) return 'client';
     if (message.expediteurId === dispute.professional.userId) return 'professional';
     return 'moderation';
@@ -319,7 +345,9 @@ export class AdminDisputesPanelComponent implements OnChanges {
       .filter((duration): duration is number => typeof duration === 'number' && duration >= 0);
 
     if (durations.length === 0) return 'temps de reponse non disponible';
-    const averageMinutes = Math.round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length / 60_000);
+    const averageMinutes = Math.round(
+      durations.reduce((sum, duration) => sum + duration, 0) / durations.length / 60_000,
+    );
     const hours = Math.floor(averageMinutes / 60);
     const minutes = averageMinutes % 60;
     return `temps de reponse moyen : ${hours > 0 ? `${hours} h ` : ''}${minutes} min`;

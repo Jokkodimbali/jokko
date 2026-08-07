@@ -8,7 +8,11 @@
     <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
     Retour
   </button>
-  <div *ngIf="!backOnly" class="appointment-tracking-stepper__rail" [style.--step-count]="steps.length">
+  <div
+    *ngIf="!backOnly"
+    class="appointment-tracking-stepper__rail"
+    [style.--step-count]="steps.length"
+  >
     <i class="appointment-tracking-stepper__line"></i>
     <i class="appointment-tracking-stepper__progress" [style.width.%]="progress"></i>
     <div
@@ -21,13 +25,18 @@
     >
       <span>
         <lucide-icon
-          *ngIf="step.state === 'done' && !(hideLastStepContent && index === steps.length - 1); else stepNumber"
+          *ngIf="
+            step.state === 'done' && !(hideLastStepContent && index === steps.length - 1);
+            else stepNumber
+          "
           [name]="step.state === 'done' ? 'check' : step.icon"
           size="16"
           [strokeWidth]="2.7"
         ></lucide-icon>
         <ng-template #stepNumber>
-          <ng-container *ngIf="!(hideLastStepContent && index === steps.length - 1)">{{ index + 1 }}</ng-container>
+          <ng-container *ngIf="!(hideLastStepContent && index === steps.length - 1)">{{
+            index + 1
+          }}</ng-container>
         </ng-template>
       </span>
       <strong>{{ step.label }}</strong>

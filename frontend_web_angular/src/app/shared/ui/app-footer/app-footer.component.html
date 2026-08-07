@@ -38,10 +38,19 @@
     </section>
 
     <section class="app-footer__extras" aria-label="Newsletter et contact">
-      <form class="app-footer__newsletter" (submit)="subscribeNewsletter($event, newsletterEmail.value)">
+      <form
+        class="app-footer__newsletter"
+        (submit)="subscribeNewsletter($event, newsletterEmail.value)"
+      >
         <label for="footer-newsletter">Newsletter</label>
         <div>
-          <input #newsletterEmail id="footer-newsletter" type="email" placeholder="Votre email" autocomplete="email" />
+          <input
+            #newsletterEmail
+            id="footer-newsletter"
+            type="email"
+            placeholder="Votre email"
+            autocomplete="email"
+          />
           <button type="submit">S'inscrire</button>
         </div>
         @if (newsletterMessage()) {
@@ -53,9 +62,13 @@
         <a href="mailto:support@jokko.sn">support&#64;jokko.sn</a>
         <span>S&eacute;n&eacute;gal</span>
         <div class="app-footer__social" aria-label="Reseaux sociaux">
-          <a href="#" aria-label="Facebook"><img src="/Facebook_Logo_2023.png" alt="" decoding="async" /></a>
+          <a href="#" aria-label="Facebook"
+            ><img src="/Facebook_Logo_2023.png" alt="" decoding="async"
+          /></a>
           <a href="#" aria-label="X"><img src="/x-logo.svg" alt="" decoding="async" /></a>
-          <a href="#" aria-label="Instagram"><img src="/logo-instagram-png.webp" alt="" decoding="async" /></a>
+          <a href="#" aria-label="Instagram"
+            ><img src="/logo-instagram-png.webp" alt="" decoding="async"
+          /></a>
           <a href="#" aria-label="TikTok"><img src="/tiktoklogo.avif" alt="" decoding="async" /></a>
         </div>
       </div>

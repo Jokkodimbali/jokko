@@ -10,10 +10,7 @@ export type FavoriteServiceTravelMode =
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
 
-export type FavoriteProfessionalVehicleType =
-  | 'MOTO_SCOOTER'
-  | 'VOITURE'
-  | 'CAMIONNETTE';
+export type FavoriteProfessionalVehicleType = 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
 
 export interface FavoriteItem {
   id: string;
@@ -86,18 +83,13 @@ export class FavoritesService {
 
   status(professionalId: string): Observable<FavoriteStatus> {
     return this.http
-      .get<ApiResponse<FavoriteStatus>>(
-        `${this.apiUrl}/professionals/${professionalId}/status`,
-      )
+      .get<ApiResponse<FavoriteStatus>>(`${this.apiUrl}/professionals/${professionalId}/status`)
       .pipe(map(unwrapApiResponse));
   }
 
   add(professionalId: string): Observable<FavoriteItem> {
     return this.http
-      .post<ApiResponse<FavoriteItem>>(
-        `${this.apiUrl}/professionals/${professionalId}`,
-        {},
-      )
+      .post<ApiResponse<FavoriteItem>>(`${this.apiUrl}/professionals/${professionalId}`, {})
       .pipe(
         map(unwrapApiResponse),
         tap((favorite) => {
@@ -111,9 +103,7 @@ export class FavoritesService {
 
   remove(professionalId: string): Observable<FavoriteStatus> {
     return this.http
-      .delete<ApiResponse<FavoriteStatus>>(
-        `${this.apiUrl}/professionals/${professionalId}`,
-      )
+      .delete<ApiResponse<FavoriteStatus>>(`${this.apiUrl}/professionals/${professionalId}`)
       .pipe(
         map(unwrapApiResponse),
         tap(() => {
@@ -123,5 +113,4 @@ export class FavoritesService {
         }),
       );
   }
-
 }

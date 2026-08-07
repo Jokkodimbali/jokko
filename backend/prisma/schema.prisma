@@ -127,6 +127,22 @@ enum TypeNotification {
   LITIGE_RESOLU
   RESERVATION_FINALISEE
   ANNONCE_ADMIN
+  APPEL_ENTRANT
+  APPEL_MANQUE
+}
+
+enum TypeAppel {
+  VOCAL
+  VIDEO
+}
+
+enum StatutAppel {
+  SONNE
+  ACCEPTE
+  REFUSE
+  TERMINE
+  MANQUE
+  ECHEC
 }
 
 enum StatutPresenceProfessionnel {
@@ -234,6 +250,8 @@ model Utilisateur {
   preuvesLitigeUploadees    PreuveLitige[]         @relation("DisputeEvidenceUploaders")
   messagesLitigeAdmin       MessageLitige[]        @relation("DisputeAdminMessages")
   sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
+  appelsEmis                Appel[]                       @relation("CallsCaller")
+  appelsRecus               Appel[]                       @relation("CallsRecipient")
 
   @@map("users")
 }
@@ -899,10 +917,35 @@ model Conversation {
   prestataire       Utilisateur    @relation("ConversationsPrestataire", fields: [prestataireId], references: [id])
   reservation       Reservation?   @relation(fields: [reservationId], references: [id])
   messages          Message[]
+  appels            Appel[]
 
   @@unique([clientId, prestataireId], map: "conversations_client_professional_unique")
   @@index([dernierMessageLe])
   @@map("conversations")
+}
+
+model Appel {
+  id                String       @id @db.Uuid
+  conversationId    String       @map("conversation_id") @db.Uuid
+  appelantId        String       @map("caller_id") @db.Uuid
+  destinataireId    String       @map("recipient_id") @db.Uuid
+  type              TypeAppel
+  statut            StatutAppel  @default(SONNE)
+  sonneLe            DateTime     @default(now()) @map("ringing_at")
+  accepteLe          DateTime?    @map("accepted_at")
+  termineLe          DateTime?    @map("ended_at")
+  expireLe           DateTime     @map("expires_at")
+  creeLe             DateTime     @default(now()) @map("created_at")
+  misAJourLe         DateTime     @updatedAt @map("updated_at")
+
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  appelant           Utilisateur  @relation("CallsCaller", fields: [appelantId], references: [id], onDelete: Cascade)
+  destinataire       Utilisateur  @relation("CallsRecipient", fields: [destinataireId], references: [id], onDelete: Cascade)
+
+  @@index([appelantId, creeLe])
+  @@index([destinataireId, creeLe])
+  @@index([statut, expireLe])
+  @@map("calls")
 }
 
 model Message {

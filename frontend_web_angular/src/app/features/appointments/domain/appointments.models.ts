@@ -12,10 +12,7 @@ export type AppointmentTravelMode =
   | 'CLIENT_SE_DEPLACE'
   | 'TRANSPORT_COLIS';
 
-export type AppointmentVehicleType =
-  | 'MOTO_SCOOTER'
-  | 'VOITURE'
-  | 'CAMIONNETTE';
+export type AppointmentVehicleType = 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
 
 export interface BackendReservation {
   id: string;

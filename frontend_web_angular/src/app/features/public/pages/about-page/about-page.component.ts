@@ -66,32 +66,27 @@ export class AboutPageComponent {
     {
       icon: 'wallet-cards',
       title: 'Negociation avec un prestataire',
-      text:
-        'Pour les services non medicaux, le client peut lancer une proposition de prix. La discussion garde le contexte du prestataire, du service demande et des echanges afin de clarifier le besoin avant de confirmer.',
+      text: 'Pour les services non medicaux, le client peut lancer une proposition de prix. La discussion garde le contexte du prestataire, du service demande et des echanges afin de clarifier le besoin avant de confirmer.',
     },
     {
       icon: 'scale',
       title: 'Signalement de litige',
-      text:
-        "Si une prestation pose probleme, le client peut signaler un litige depuis son espace. Le suivi permet d'expliquer la situation, conserver les messages utiles et suivre l'evolution du dossier.",
+      text: "Si une prestation pose probleme, le client peut signaler un litige depuis son espace. Le suivi permet d'expliquer la situation, conserver les messages utiles et suivre l'evolution du dossier.",
     },
     {
       icon: 'user-round-cog',
       title: 'Suivi des prestataires',
-      text:
-        'Les prestataires disposent d un espace pour suivre leurs demandes, leurs negociations, leurs clients, leur profil et les informations importantes liees a leur activite.',
+      text: 'Les prestataires disposent d un espace pour suivre leurs demandes, leurs negociations, leurs clients, leur profil et les informations importantes liees a leur activite.',
     },
     {
       icon: 'calendar-check',
       title: 'Suivi des rendez-vous medicaux',
-      text:
-        'Pour les medecins, le parcours est separe de la negociation : le client prend rendez-vous, se deplace au cabinet ou au point de consultation, puis retrouve son historique dans ses rendez-vous.',
+      text: 'Pour les medecins, le parcours est separe de la negociation : le client prend rendez-vous, se deplace au cabinet ou au point de consultation, puis retrouve son historique dans ses rendez-vous.',
     },
     {
       icon: 'message-circle',
       title: 'Messagerie et preuves utiles',
-      text:
-        'La messagerie permet de discuter, envoyer des images, pieces jointes ou messages vocaux. Elle garde une trace claire pour le client, le prestataire et le suivi en cas de besoin.',
+      text: 'La messagerie permet de discuter, envoyer des images, pieces jointes ou messages vocaux. Elle garde une trace claire pour le client, le prestataire et le suivi en cas de besoin.',
     },
   ];
 }

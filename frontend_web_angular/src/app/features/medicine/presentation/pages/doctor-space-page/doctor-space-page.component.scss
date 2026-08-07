@@ -4,7 +4,6 @@
   display: block;
 }
 
-
 .doctor-space {
   background: #fbf6ed;
   color: #111;
@@ -168,7 +167,10 @@
   padding: 18px 18px 16px;
   position: relative;
   text-align: left;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .doctor-space__travel-layout--with-map .doctor-space__travel-option {
@@ -298,7 +300,10 @@
   padding: 36px 14px 18px;
   position: relative;
   text-align: center;
-  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .doctor-space__vehicle-option--active {

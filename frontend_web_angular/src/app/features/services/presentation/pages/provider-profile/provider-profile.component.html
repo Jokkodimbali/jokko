@@ -59,7 +59,9 @@
             (error)="handleImageError(avatar)"
           />
           <ng-template #avatarInitials>
-            <span class="provider-profile__avatar provider-profile__avatar--initials">{{ initials() }}</span>
+            <span class="provider-profile__avatar provider-profile__avatar--initials">{{
+              initials()
+            }}</span>
           </ng-template>
         </span>
 
@@ -78,7 +80,10 @@
         >
           <div class="provider-profile__service-stat">
             <span><lucide-icon name="users" size="46" [strokeWidth]="2.1"></lucide-icon></span>
-            <p><strong>{{ servicesCountLabel() }}</strong><small>Services</small></p>
+            <p>
+              <strong>{{ servicesCountLabel() }}</strong
+              ><small>Services</small>
+            </p>
           </div>
           <div class="provider-profile__review-stat">
             <span class="provider-profile__rating-stars">
@@ -91,7 +96,11 @@
             <small class="provider-profile__review-total">{{ reviewTotalLabel() }}</small>
           </div>
           <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__vehicle-stat">
-            <app-provider-travel-badge variant="vehicle" [label]="vehicle.label" [imageUrl]="vehicle.imageUrl" />
+            <app-provider-travel-badge
+              variant="vehicle"
+              [label]="vehicle.label"
+              [imageUrl]="vehicle.imageUrl"
+            />
           </div>
           <div class="provider-profile__movement-stat">
             <app-provider-travel-badge
@@ -120,14 +129,31 @@
 
           <article class="provider-profile__card provider-profile__gallery">
             <h2>Les services proposes</h2>
-            <div *ngIf="selectedVisualService() as selectedService; else noServicesVisual" class="provider-profile__service-visual">
+            <div
+              *ngIf="selectedVisualService() as selectedService; else noServicesVisual"
+              class="provider-profile__service-visual"
+            >
               <figure class="provider-profile__service-visual-main">
-                <img
+                <ng-container
                   *ngIf="selectedService.imageUrl as imageUrl; else serviceVisualFallback"
-                  [src]="imageUrl"
-                  [alt]="selectedService.name"
-                  (error)="handleImageError(imageUrl)"
-                />
+                >
+                  <img
+                    class="provider-profile__service-image-backdrop"
+                    [src]="imageUrl"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <img
+                    class="provider-profile__service-image"
+                    [class.provider-profile__service-image--landscape]="
+                      isLandscapeServiceImage(imageUrl)
+                    "
+                    [src]="imageUrl"
+                    [alt]="selectedService.name"
+                    (load)="handleServiceImageLoad($event, imageUrl)"
+                    (error)="handleImageError(imageUrl)"
+                  />
+                </ng-container>
                 <ng-template #serviceVisualFallback>
                   <span class="provider-profile__gallery-fallback">
                     {{ serviceVisualInitials(selectedService.name) }}
@@ -137,11 +163,18 @@
                   <button
                     *ngFor="let service of offeredServices()"
                     type="button"
-                    [class.provider-profile__service-thumb--active]="selectedService.id === service.id"
+                    [class.provider-profile__service-thumb--active]="
+                      selectedService.id === service.id
+                    "
                     (click)="selectVisualService(service)"
                   >
                     <span class="provider-profile__service-thumb-image">
-                      <img *ngIf="service.imageUrl; else serviceThumbFallback" [src]="service.imageUrl" [alt]="service.name" (error)="handleImageError(service.imageUrl)" />
+                      <img
+                        *ngIf="service.imageUrl; else serviceThumbFallback"
+                        [src]="service.imageUrl"
+                        [alt]="service.name"
+                        (error)="handleImageError(service.imageUrl)"
+                      />
                       <ng-template #serviceThumbFallback>
                         <strong>{{ serviceVisualInitials(service.name) }}</strong>
                       </ng-template>
@@ -154,7 +187,9 @@
                 <button
                   *ngFor="let service of offeredServices()"
                   type="button"
-                  [class.provider-profile__service-label--active]="selectedService.id === service.id"
+                  [class.provider-profile__service-label--active]="
+                    selectedService.id === service.id
+                  "
                   (click)="selectVisualService(service)"
                 >
                   {{ service.name }}
@@ -181,16 +216,24 @@
               </div>
             </header>
 
-            <div *ngIf="reviewItems().length > 0; else noReviews" class="provider-profile__review-list">
+            <div
+              *ngIf="reviewItems().length > 0; else noReviews"
+              class="provider-profile__review-list"
+            >
               <article *ngFor="let review of reviewItems()" class="provider-profile__review">
                 <img
-                  *ngIf="visibleImageUrl(review.client.urlAvatar) as reviewAvatar; else reviewInitials"
+                  *ngIf="
+                    visibleImageUrl(review.client.urlAvatar) as reviewAvatar;
+                    else reviewInitials
+                  "
                   [src]="reviewAvatar"
                   [alt]="review.client.nom"
                   (error)="handleImageError(reviewAvatar)"
                 />
                 <ng-template #reviewInitials>
-                  <span class="provider-profile__review-avatar">{{ formatReviewInitials(review.client.nom) }}</span>
+                  <span class="provider-profile__review-avatar">{{
+                    formatReviewInitials(review.client.nom)
+                  }}</span>
                 </ng-template>
                 <div>
                   <strong>{{ review.client.nom }}</strong>
@@ -251,7 +294,10 @@
 
           <article class="provider-profile__card provider-profile__hours">
             <h2>Horaires du cabinet</h2>
-            <div *ngIf="schedule().length > 0; else noSchedule" class="provider-profile__hours-list">
+            <div
+              *ngIf="schedule().length > 0; else noSchedule"
+              class="provider-profile__hours-list"
+            >
               <div *ngFor="let row of schedule()" class="provider-profile__schedule-row">
                 <strong>{{ row.day }} :</strong>
                 <div>

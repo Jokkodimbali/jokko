@@ -44,6 +44,7 @@ Le projet utilise :
 - `reservations`
 - `messaging`
 - `live-tracking`
+- `calls`
 - `payments`
 - `notifications`
 - `disputes`
@@ -127,6 +128,7 @@ Variables importantes :
 
 - `DATABASE_URL`
 - `JWT_ACCESS_SECRET`
+- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` pour les appels audio/video. Les secrets restent uniquement sur le backend.
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGINS`
 - `REDIS_ENABLED`
@@ -216,6 +218,7 @@ npm.cmd run test:e2e -- --runInBand
 - `users.e2e-spec.ts`
 
 ## Docker
+
 Le projet fournit :
 
 - `Dockerfile`
@@ -252,24 +255,29 @@ affiche un avertissement puis extrait l'URL directe avant d'executer
 `sslmode=verify-full` automatiquement.
 
 ## Temps reel
-Deux modules temps reel existent deja :
+
+Trois modules temps reel existent deja :
 
 - `messaging`
 - `live-tracking`
+- `calls`
 
 Gateways exposes :
 
 - `src/messaging/presentation/gateways/messaging.gateway.ts`
 - `src/live-tracking/presentation/gateways/live-tracking.gateway.ts`
+- `src/calls/presentation/calls.gateway.ts`
 
 Swagger documente les endpoints HTTP, mais les evenements Socket.IO doivent etre verifies avec les tests E2E et un client temps reel.
 
 ## Documentation du projet
+
 Les documents structurants du backend sont dans `backend/docs/`.
 
 Principaux fichiers :
 
 - `ARCHITECTURE_PROFESSIONNELLE.md`
+- `APPELS_LIVEKIT_WEBRTC.md`
 - `STANDARDS_MODULES_BACKEND.md`
 - `TABLEAU_MESSAGES_HTTP.md`
 - `POSTMAN_TESTS.md`
@@ -278,6 +286,7 @@ Principaux fichiers :
 - `cahier_des_charges_jokko.md`
 
 ## Standards du projet
+
 Le backend impose :
 
 - messages centralises
@@ -289,6 +298,7 @@ Le backend impose :
 - tests des flux critiques
 
 ## Surface fonctionnelle actuelle
+
 Le backend couvre deja les flux principaux suivants :
 
 - auth -> profil -> professionnel
@@ -301,6 +311,7 @@ Le backend couvre deja les flux principaux suivants :
 - reservation/paiement -> litige -> administration
 
 ## Ce qui reste a faire cote backend
+
 Le coeur metier principal est en place. Les prochaines briques backend naturelles sont :
 
 - upload media reel
@@ -308,6 +319,7 @@ Le coeur metier principal est en place. Les prochaines briques backend naturelle
 - parrainage
 
 ## Contribution
+
 Avant toute modification importante :
 
 1. verifier le module cible et ses dependances
@@ -316,4 +328,5 @@ Avant toute modification importante :
 4. relancer au minimum `build`, `lint` et les tests critiques du perimetre
 
 ## Resume
+
 Ce backend n'est plus un squelette NestJS de depart. C'est deja une base metier riche, modulaire et exploitable pour une vraie application mobile de marketplace de services.

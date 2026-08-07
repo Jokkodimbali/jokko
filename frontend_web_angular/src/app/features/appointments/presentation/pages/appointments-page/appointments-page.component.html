@@ -32,7 +32,9 @@
             [class.mini-calendar__day--selected]="selectedCalendarDate() === day.dateKey"
             [disabled]="day.day === 0"
             [attr.aria-pressed]="selectedCalendarDate() === day.dateKey"
-            [attr.aria-label]="day.day === 0 ? null : 'Filtrer les reservations du ' + day.day + ' ' + monthLabel()"
+            [attr.aria-label]="
+              day.day === 0 ? null : 'Filtrer les reservations du ' + day.day + ' ' + monthLabel()
+            "
             (click)="selectCalendarDay(day)"
           >
             {{ day.day || '' }}
@@ -40,14 +42,16 @@
           </button>
         </div>
 
-        <div class="mini-calendar__selection" [class.mini-calendar__selection--active]="selectedCalendarDate()">
+        <div
+          class="mini-calendar__selection"
+          [class.mini-calendar__selection--active]="selectedCalendarDate()"
+        >
           <p>{{ calendarFilterMessage() }}</p>
           <button *ngIf="selectedCalendarDate()" type="button" (click)="clearCalendarFilter()">
             Reinitialiser
           </button>
         </div>
       </section>
-
     </aside>
 
     <section class="appointments-page__workspace">
@@ -93,9 +97,27 @@
       </div>
 
       <div class="appointments-quick-filters" aria-label="Filtres rapides">
-        <button type="button" [class.is-active]="activePeriod() === 'ALL'" (click)="setPeriodFilter('ALL')">Tout</button>
-        <button type="button" [class.is-active]="activePeriod() === 'FUTURE'" (click)="setPeriodFilter('FUTURE')">Futur</button>
-        <button type="button" [class.is-active]="activePeriod() === 'PAST'" (click)="setPeriodFilter('PAST')">Passee</button>
+        <button
+          type="button"
+          [class.is-active]="activePeriod() === 'ALL'"
+          (click)="setPeriodFilter('ALL')"
+        >
+          Tout
+        </button>
+        <button
+          type="button"
+          [class.is-active]="activePeriod() === 'FUTURE'"
+          (click)="setPeriodFilter('FUTURE')"
+        >
+          Futur
+        </button>
+        <button
+          type="button"
+          [class.is-active]="activePeriod() === 'PAST'"
+          (click)="setPeriodFilter('PAST')"
+        >
+          Passee
+        </button>
       </div>
 
       <p
@@ -112,18 +134,30 @@
         <p *ngIf="!isLoading() && !currentUser()" class="appointments-state">
           Connectez-vous pour retrouver vos reservations.
         </p>
-        <p *ngIf="!isLoading() && currentUser() && loadErrorMessage()" class="appointments-state appointments-state--error">
+        <p
+          *ngIf="!isLoading() && currentUser() && loadErrorMessage()"
+          class="appointments-state appointments-state--error"
+        >
           {{ loadErrorMessage() }}
         </p>
         <p
-          *ngIf="!isLoading() && currentUser() && !loadErrorMessage() && groupedScheduleItems().length === 0"
+          *ngIf="
+            !isLoading() &&
+            currentUser() &&
+            !loadErrorMessage() &&
+            groupedScheduleItems().length === 0
+          "
           class="appointments-state"
         >
-          {{ selectedCalendarDateLabel()
-            ? 'Aucune reservation ne correspond aux filtres actifs pour le ' + selectedCalendarDateLabel() + '.'
-            : activeTab() === 'done'
-              ? 'Aucune reservation terminee, annulee ou en litige.'
-              : 'Aucune reservation ou negociation ne correspond a ces criteres.' }}
+          {{
+            selectedCalendarDateLabel()
+              ? 'Aucune reservation ne correspond aux filtres actifs pour le ' +
+                selectedCalendarDateLabel() +
+                '.'
+              : activeTab() === 'done'
+                ? 'Aucune reservation terminee, annulee ou en litige.'
+                : 'Aucune reservation ou negociation ne correspond a ces criteres.'
+          }}
         </p>
 
         <article *ngFor="let group of groupedScheduleItems()" class="appointment-group">
@@ -139,7 +173,11 @@
             [class]="'appointment-row appointment-row--' + scheduleItemTone(item)"
           >
             <div class="appointment-row__avatar">
-              <img *ngIf="scheduleItemAvatarUrl(item); else appointmentProviderInitials" [src]="scheduleItemAvatarUrl(item) || ''" [alt]="scheduleItemContactName(item)" />
+              <img
+                *ngIf="scheduleItemAvatarUrl(item); else appointmentProviderInitials"
+                [src]="scheduleItemAvatarUrl(item) || ''"
+                [alt]="scheduleItemContactName(item)"
+              />
               <ng-template #appointmentProviderInitials>
                 <span>{{ scheduleItemInitials(item) }}</span>
               </ng-template>

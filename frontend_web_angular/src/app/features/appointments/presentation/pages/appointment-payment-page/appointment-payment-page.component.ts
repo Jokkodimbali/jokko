@@ -30,7 +30,12 @@ interface PaymentOption {
 @Component({
   selector: 'app-appointment-payment-page',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent, AppointmentTrackingStepperComponent],
+  imports: [
+    CommonModule,
+    LucideAngularModule,
+    AppStarRatingComponent,
+    AppointmentTrackingStepperComponent,
+  ],
   templateUrl: './appointment-payment-page.component.html',
   styleUrl: './appointment-payment-page.component.scss',
 })
@@ -56,8 +61,18 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   protected readonly paymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png', subtitle: 'Paiement mobile instantane' },
-    { id: 'ORANGE_MONEY', label: 'Orange Money', logoUrl: '/Orange-Money-logo.png', subtitle: 'Transfert depuis votre mobile' },
-    { id: 'CARD', label: 'Carte bancaire', logoUrl: '/logo vissa.avif', subtitle: 'Visa, Mastercard acceptes' },
+    {
+      id: 'ORANGE_MONEY',
+      label: 'Orange Money',
+      logoUrl: '/Orange-Money-logo.png',
+      subtitle: 'Transfert depuis votre mobile',
+    },
+    {
+      id: 'CARD',
+      label: 'Carte bancaire',
+      logoUrl: '/logo vissa.avif',
+      subtitle: 'Visa, Mastercard acceptes',
+    },
   ];
 
   protected readonly amountValueLabel = computed(() =>
@@ -69,14 +84,18 @@ export class AppointmentPaymentPageComponent implements OnInit {
     const status = this.appointment()?.status;
     return status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS' || status === 'TERMINEE';
   });
-  protected readonly journeyCurrentStep = computed<2 | 3>(() => this.isPaymentConfirmed() ? 3 : 2);
+  protected readonly journeyCurrentStep = computed<2 | 3>(() =>
+    this.isPaymentConfirmed() ? 3 : 2,
+  );
   protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
   protected readonly journeySteps = computed(() =>
     this.isMedicinePaymentFlow()
       ? medicineAppointmentJourneySteps(this.journeyCurrentStep())
       : appointmentJourneySteps(this.journeyCurrentStep()),
   );
-  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyCurrentStep()));
+  protected readonly journeyProgress = computed(() =>
+    appointmentJourneyProgress(this.journeyCurrentStep()),
+  );
   protected readonly counterpartRoleLabel = computed(() =>
     this.isProfessionalViewer()
       ? 'Client'
@@ -214,13 +233,14 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected confirmedCounterpartAvatar(appointment: AppointmentView): string | null {
-    return this.isProfessionalViewer()
-      ? appointment.clientAvatarUrl
-      : appointment.avatarUrl;
+    return this.isProfessionalViewer() ? appointment.clientAvatarUrl : appointment.avatarUrl;
   }
 
   protected confirmedCounterpartInitials(appointment: AppointmentView): string {
-    return userInitials(this.confirmedCounterpartName(appointment), this.isProfessionalViewer() ? 'CL' : 'PR');
+    return userInitials(
+      this.confirmedCounterpartName(appointment),
+      this.isProfessionalViewer() ? 'CL' : 'PR',
+    );
   }
 
   protected confirmedCounterpartSubtitle(appointment: AppointmentView): string {
@@ -244,37 +264,37 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaying.set(true);
     this.errorMessage.set(null);
 
-    this.appointmentsService.initiatePayment(
-      appointment.id,
-      this.selectedMethod(),
-      this.buildPaymentRedirectOptions(appointment),
-    ).subscribe({
-      next: (payment) => {
-        this.isPaying.set(false);
-        this.feedback.success('Paiement initialise avec succes.');
+    this.appointmentsService
+      .initiatePayment(
+        appointment.id,
+        this.selectedMethod(),
+        this.buildPaymentRedirectOptions(appointment),
+      )
+      .subscribe({
+        next: (payment) => {
+          this.isPaying.set(false);
+          this.feedback.success('Paiement initialise avec succes.');
 
-        if (this.canRedirectToPaymentUrl(payment.paymentUrl)) {
-          window.location.href = payment.paymentUrl;
-          return;
-        }
+          if (this.canRedirectToPaymentUrl(payment.paymentUrl)) {
+            window.location.href = payment.paymentUrl;
+            return;
+          }
 
-        if (payment.paymentUrl) {
-          this.feedback.success(
-            'Paiement simule confirme pour le test web.',
-          );
-          this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
-            next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
-            error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
-          });
-          return;
-        }
+          if (payment.paymentUrl) {
+            this.feedback.success('Paiement simule confirme pour le test web.');
+            this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
+              next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
+              error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
+            });
+            return;
+          }
 
-        this.router.navigate(['/appointments', appointment.id]);
-      },
-      error: (error) => {
-        this.handlePaymentInitiationError(error, appointment);
-      },
-    });
+          this.router.navigate(['/appointments', appointment.id]);
+        },
+        error: (error) => {
+          this.handlePaymentInitiationError(error, appointment);
+        },
+      });
   }
 
   protected cancelReservation(): void {
@@ -287,19 +307,20 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isCancelling.set(true);
     this.errorMessage.set(null);
 
-    this.appointmentsService.cancelAppointment(
-      appointment.id,
-      'Annulation demandee depuis la page de paiement.',
-    ).subscribe({
-      next: () => {
-        this.feedback.success('Reservation annulee.');
-        this.router.navigate(['/appointments']);
-      },
-      error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'annuler cette reservation."));
-        this.isCancelling.set(false);
-      },
-    });
+    this.appointmentsService
+      .cancelAppointment(appointment.id, 'Annulation demandee depuis la page de paiement.')
+      .subscribe({
+        next: () => {
+          this.feedback.success('Reservation annulee.');
+          this.router.navigate(['/appointments']);
+        },
+        error: (error) => {
+          this.errorMessage.set(
+            getHttpErrorMessage(error, "Impossible d'annuler cette reservation."),
+          );
+          this.isCancelling.set(false);
+        },
+      });
   }
 
   protected messageProvider(): void {
@@ -308,36 +329,38 @@ export class AppointmentPaymentPageComponent implements OnInit {
       return;
     }
 
-    this.messagesService.createConversation({
-      reservationId: appointment.id,
-      professionalProfileId: appointment.professionalId,
-    }).subscribe({
-      next: (conversation) => {
-        this.router.navigate(['/messages'], {
-          queryParams: {
-            conversationId: conversation.id,
-            professionalId: appointment.professionalId,
-            providerName: appointment.doctorName,
-            serviceName: appointment.serviceName,
-            amount: appointment.agreedPrice ?? 0,
-            reservationId: appointment.id,
-            appointmentDate: appointment.scheduledAt,
-            address: appointment.addressLabel,
-            status: appointment.status,
-          },
-        });
-      },
-      error: (error) => {
-        this.feedback.error(
-          getHttpErrorMessage(
-            error,
-            this.isMedicinePaymentFlow()
-              ? "Impossible d'ouvrir la discussion avec ce medecin."
-              : "Impossible d'ouvrir la discussion avec ce prestataire.",
-          ),
-        );
-      },
-    });
+    this.messagesService
+      .createConversation({
+        reservationId: appointment.id,
+        professionalProfileId: appointment.professionalId,
+      })
+      .subscribe({
+        next: (conversation) => {
+          this.router.navigate(['/messages'], {
+            queryParams: {
+              conversationId: conversation.id,
+              professionalId: appointment.professionalId,
+              providerName: appointment.doctorName,
+              serviceName: appointment.serviceName,
+              amount: appointment.agreedPrice ?? 0,
+              reservationId: appointment.id,
+              appointmentDate: appointment.scheduledAt,
+              address: appointment.addressLabel,
+              status: appointment.status,
+            },
+          });
+        },
+        error: (error) => {
+          this.feedback.error(
+            getHttpErrorMessage(
+              error,
+              this.isMedicinePaymentFlow()
+                ? "Impossible d'ouvrir la discussion avec ce medecin."
+                : "Impossible d'ouvrir la discussion avec ce prestataire.",
+            ),
+          );
+        },
+      });
   }
 
   protected openAppointmentPage(appointment: AppointmentView): void {
@@ -350,20 +373,26 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaying.set(false);
     if (!this.shouldReturnToMessages()) {
       this.appointment.set(this.withPaymentDisplayLabels(appointment));
-      this.router.navigateByUrl(this.withQueryParams(this.paymentConfirmationPath(appointment), {
-        confirmed: '1',
-        returnUrl: this.safeReturnUrl() ?? '/appointments',
-      }), { replaceUrl: true });
+      this.router.navigateByUrl(
+        this.withQueryParams(this.paymentConfirmationPath(appointment), {
+          confirmed: '1',
+          returnUrl: this.safeReturnUrl() ?? '/appointments',
+        }),
+        { replaceUrl: true },
+      );
       return;
     }
 
-    this.messagesService.createConversation({
-      reservationId: appointment.id,
-      professionalProfileId: appointment.professionalId,
-    }).subscribe({
-      next: (conversation) => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
-      error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
-    });
+    this.messagesService
+      .createConversation({
+        reservationId: appointment.id,
+        professionalProfileId: appointment.professionalId,
+      })
+      .subscribe({
+        next: (conversation) =>
+          this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE', conversation.id),
+        error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
+      });
   }
 
   private handlePaymentInitiationError(error: unknown, appointment: AppointmentView): void {
@@ -374,7 +403,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
         next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
         error: (markPaidError) => {
           this.errorMessage.set(
-            getHttpErrorMessage(markPaidError, 'Paiement deja initie, mais la reservation na pas pu etre confirmee.'),
+            getHttpErrorMessage(
+              markPaidError,
+              'Paiement deja initie, mais la reservation na pas pu etre confirmee.',
+            ),
           );
           this.isPaying.set(false);
         },
@@ -386,10 +418,12 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaying.set(false);
   }
 
-  private buildPaymentRedirectOptions(appointment: AppointmentView): {
-    successPath?: string;
-    cancelPath?: string;
-  } | undefined {
+  private buildPaymentRedirectOptions(appointment: AppointmentView):
+    | {
+        successPath?: string;
+        cancelPath?: string;
+      }
+    | undefined {
     if (this.shouldReturnToMessages()) {
       return {
         successPath: this.buildMessagesPath(appointment, 'PAYEE_SEQUESTRE'),
@@ -460,7 +494,11 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   private isMedicineFlow(): boolean {
     const source = this.route.snapshot.queryParamMap.get('source')?.toLowerCase();
-    return this.router.url.startsWith('/medecine/reservations/') || source === 'medecine' || source === 'medicine';
+    return (
+      this.router.url.startsWith('/medecine/reservations/') ||
+      source === 'medecine' ||
+      source === 'medicine'
+    );
   }
 
   private paymentPath(appointment: AppointmentView): string {
@@ -481,9 +519,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
       this.route.snapshot.queryParamMap.get('providerName'),
     ].find((value) => !this.isPlaceholderLabel(value));
 
-    return providerName
-      ? this.withQueryParams(path, { providerName: providerName.trim() })
-      : path;
+    return providerName ? this.withQueryParams(path, { providerName: providerName.trim() }) : path;
   }
 
   private withQueryParams(path: string, params: Record<string, string>): string {
@@ -640,7 +676,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   private firstDisplayLabel(...values: Array<string | null | undefined>): string {
-    return values.find((value) => !this.isPlaceholderLabel(value))?.trim() ?? 'Prestation confirmee';
+    return (
+      values.find((value) => !this.isPlaceholderLabel(value))?.trim() ?? 'Prestation confirmee'
+    );
   }
 
   private isPlaceholderLabel(value: string | null | undefined): boolean {

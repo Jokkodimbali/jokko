@@ -133,7 +133,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .map((category, index) => ({
         id: category.id,
         name: category.nom,
-        count: providerCounts.get(this.normalizeLabel(category.nom)) ?? category.subCategories.length,
+        count:
+          providerCounts.get(this.normalizeLabel(category.nom)) ?? category.subCategories.length,
         icon: this.categoryIcon(category.nom),
         priority: this.categorySuggestionPriority(category.nom, index),
       }))
@@ -141,22 +142,28 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .map(({ priority: _priority, ...category }) => category);
   });
   protected readonly searchProviderSuggestions = computed<AppSearchProviderSuggestion[]>(() =>
-    this.suggestionProviders().slice(0, 3).map((provider) => ({
-      id: provider.id,
-      userId: provider.userId,
-      name: provider.nom,
-      category: provider.categoryName || 'Service',
-      profession: this.providerProfessionLabel(provider),
-      location: provider.location,
-      rating: provider.rating,
-      totalReviews: provider.totalReviews,
-      vehicleType: provider.vehicleType,
-      isOnline: provider.isOnline,
-      avatarUrl: this.resolveProviderAvatar(provider),
-      initials: this.providerInitials(provider.nom),
-    })),
+    this.suggestionProviders()
+      .slice(0, 3)
+      .map((provider) => ({
+        id: provider.id,
+        userId: provider.userId,
+        name: provider.nom,
+        category: provider.categoryName || 'Service',
+        profession: this.providerProfessionLabel(provider),
+        location: provider.location,
+        rating: provider.rating,
+        totalReviews: provider.totalReviews,
+        vehicleType: provider.vehicleType,
+        isOnline: provider.isOnline,
+        avatarUrl: this.resolveProviderAvatar(provider),
+        initials: this.providerInitials(provider.nom),
+      })),
   );
-  protected readonly filters: Array<{ value: ProfessionalFilter; label: string; countLabel: string }> = [
+  protected readonly filters: Array<{
+    value: ProfessionalFilter;
+    label: string;
+    countLabel: string;
+  }> = [
     { value: 'ALL', label: 'Tous', countLabel: 'profils disponibles' },
     { value: 'MEDECIN', label: 'Medecins', countLabel: 'medecins disponibles' },
     { value: 'PRESTATAIRE', label: 'Prestataires', countLabel: 'prestataires disponibles' },
@@ -184,29 +191,35 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   ];
   favoriteProviders = computed(() =>
-    this.favoritesService.favorites()
+    this.favoritesService
+      .favorites()
       .filter((favorite) => !this.isOwnProfessionalIdentity(favorite.professionalId))
       .map((favorite) => ({
-      id: favorite.professionalId,
-      nom: favorite.name,
-      categoryName: favorite.subtitle,
-      subCategoryName: favorite.service?.subCategoryName || favorite.subtitle,
-      subCategoryNames: favorite.service?.subCategoryNames || [favorite.service?.subCategoryName || favorite.subtitle].filter(Boolean),
-      professionName: favorite.subtitle,
-      speciality: favorite.subtitle,
-      location: this.humanLocationLabel(favorite.location),
-      status: favorite.totalReviews > 0
-        ? `${favorite.rating}/5 (${favorite.totalReviews} avis)`
-        : 'Favori',
-      rating: favorite.rating,
-      totalReviews: favorite.totalReviews,
-      vehicleType: favorite.service?.travelMode === 'TRANSPORT_COLIS' ? favorite.vehicleType : undefined,
-      isOnline: favorite.isOnline,
-      onlineLabel: favorite.isOnline ? 'En ligne' : 'Favori',
-      avatar: favorite.avatarUrl || undefined,
-      photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
-      services: [],
-      route: `/services/${favorite.professionalId}`,
+        id: favorite.professionalId,
+        userId: favorite.userId,
+        nom: favorite.name,
+        categoryName: favorite.subtitle,
+        subCategoryName: favorite.service?.subCategoryName || favorite.subtitle,
+        subCategoryNames:
+          favorite.service?.subCategoryNames ||
+          [favorite.service?.subCategoryName || favorite.subtitle].filter(Boolean),
+        professionName: favorite.subtitle,
+        speciality: favorite.subtitle,
+        location: this.humanLocationLabel(favorite.location),
+        status:
+          favorite.totalReviews > 0
+            ? `${favorite.rating}/5 (${favorite.totalReviews} avis)`
+            : 'Favori',
+        rating: favorite.rating,
+        totalReviews: favorite.totalReviews,
+        vehicleType:
+          favorite.service?.travelMode === 'TRANSPORT_COLIS' ? favorite.vehicleType : undefined,
+        isOnline: favorite.isOnline,
+        onlineLabel: favorite.isOnline ? 'En ligne' : 'Favori',
+        avatar: favorite.avatarUrl || undefined,
+        photos: favorite.portfolioImages.map((image) => image.url).filter(Boolean),
+        services: [],
+        route: `/services/${favorite.professionalId}`,
       })),
   );
   protected readonly activeFilterLabel = computed(() => {
@@ -215,7 +228,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       return activeSubCategory.nom;
     }
 
-    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    const activeCategory = this.categories().find(
+      (category) => category.id === this.activeCategoryId(),
+    );
     if (activeCategory) {
       return activeCategory.nom;
     }
@@ -231,7 +246,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     return 'Toutes categories';
   });
   protected readonly activeSubCategories = computed(() => {
-    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    const activeCategory = this.categories().find(
+      (category) => category.id === this.activeCategoryId(),
+    );
     return this.visibleSubCategories(activeCategory?.subCategories ?? []);
   });
   protected readonly isSearchOrFilterActive = computed(
@@ -351,7 +368,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.allTravelModesSnapshot) {
       this.allTravelModesSnapshot = {
         ...this.allTravelModesSnapshot,
-        providers: this.allTravelModesSnapshot.providers.filter((provider) => !excludesAccount(provider)),
+        providers: this.allTravelModesSnapshot.providers.filter(
+          (provider) => !excludesAccount(provider),
+        ),
       };
     }
 
@@ -446,9 +465,10 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       (error) => {
         this.isLocating.set(false);
-        const message = error.code === error.PERMISSION_DENIED
-          ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
-          : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
+            : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
         this.feedback.error(message);
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
@@ -487,8 +507,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectSuggestedProvider(providerId: string): void {
-    const provider = this.suggestionProviders().find((current) => current.id === providerId)
-      ?? this.sections().flatMap((section) => section.providers).find((current) => current.id === providerId);
+    const provider =
+      this.suggestionProviders().find((current) => current.id === providerId) ??
+      this.sections()
+        .flatMap((section) => section.providers)
+        .find((current) => current.id === providerId);
 
     this.showSearchSuggestions.set(false);
     this.showLocationMenu.set(false);
@@ -575,7 +598,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectCategory(categoryId: string | null): void {
-    if (this.activeFilter() === 'ALL' && this.activeCategoryId() === categoryId && this.activeSubCategoryId() === null) {
+    if (
+      this.activeFilter() === 'ALL' &&
+      this.activeCategoryId() === categoryId &&
+      this.activeSubCategoryId() === null
+    ) {
       return;
     }
 
@@ -684,9 +711,10 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        const message = page > 1
-          ? SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed
-          : SERVICES_UI_MESSAGES.loadServicesFailed;
+        const message =
+          page > 1
+            ? SERVICES_UI_MESSAGES.loadMoreProfessionalsFailed
+            : SERVICES_UI_MESSAGES.loadServicesFailed;
         this.errorMessage.set(message);
         this.feedback.error(message);
         this.isLoading.set(false);
@@ -706,10 +734,29 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const location = this.currentSearchLocation() ?? undefined;
 
     if (filter === 'ALL') {
-      return this.servicesService.searchUnifiedProfessionals(query, page, 24, city, categoryId, subCategoryId, travelMode, location);
+      return this.servicesService.searchUnifiedProfessionals(
+        query,
+        page,
+        24,
+        city,
+        categoryId,
+        subCategoryId,
+        travelMode,
+        location,
+      );
     }
 
-    return this.servicesService.searchProfessionalsByRole(filter, query, page, 24, city, categoryId, subCategoryId, travelMode, location);
+    return this.servicesService.searchProfessionalsByRole(
+      filter,
+      query,
+      page,
+      24,
+      city,
+      categoryId,
+      subCategoryId,
+      travelMode,
+      location,
+    );
   }
 
   private loadSearchSuggestions(): void {
@@ -718,65 +765,75 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     const travelMode = this.activeServiceTravelMode();
 
     this.suggestionsRequestSubscription?.unsubscribe();
-    this.suggestionsRequestSubscription = this.servicesService.searchUnifiedProfessionals(
-      query,
-      1,
-      6,
-      this.effectiveCityFilter(),
-      undefined,
-      undefined,
-      travelMode,
-      this.currentSearchLocation() ?? undefined,
-    ).subscribe({
-      next: (result) => {
-        if (requestId !== this.suggestionRequestVersion) {
-          return;
-        }
-
-        setTimeout(() => {
-          if (requestId === this.suggestionRequestVersion) {
-            const visibleProviders = this.withoutConnectedProfessional(result.providers);
-            this.suggestionProviders.set(visibleProviders);
-            this.resolveProviderLocationLabels(visibleProviders);
+    this.suggestionsRequestSubscription = this.servicesService
+      .searchUnifiedProfessionals(
+        query,
+        1,
+        6,
+        this.effectiveCityFilter(),
+        undefined,
+        undefined,
+        travelMode,
+        this.currentSearchLocation() ?? undefined,
+      )
+      .subscribe({
+        next: (result) => {
+          if (requestId !== this.suggestionRequestVersion) {
+            return;
           }
-        });
-      },
-      error: () => {
-        if (requestId !== this.suggestionRequestVersion) {
-          return;
-        }
 
-        setTimeout(() => {
-          if (requestId === this.suggestionRequestVersion) {
-            this.suggestionProviders.set([]);
+          setTimeout(() => {
+            if (requestId === this.suggestionRequestVersion) {
+              const visibleProviders = this.withoutConnectedProfessional(result.providers);
+              this.suggestionProviders.set(visibleProviders);
+              this.resolveProviderLocationLabels(visibleProviders);
+            }
+          });
+        },
+        error: () => {
+          if (requestId !== this.suggestionRequestVersion) {
+            return;
           }
-        });
-      },
-    });
+
+          setTimeout(() => {
+            if (requestId === this.suggestionRequestVersion) {
+              this.suggestionProviders.set([]);
+            }
+          });
+        },
+      });
   }
 
   private buildSection(
     result: { providers: Professional[]; meta?: PaginationMeta },
     query: string,
   ): ServiceSection {
-    const activeFilter = this.filters.find((filter) => filter.value === this.activeFilter()) ?? this.filters[0];
-    const activeCategory = this.categories().find((category) => category.id === this.activeCategoryId());
+    const activeFilter =
+      this.filters.find((filter) => filter.value === this.activeFilter()) ?? this.filters[0];
+    const activeCategory = this.categories().find(
+      (category) => category.id === this.activeCategoryId(),
+    );
     const activeSubCategory = this.activeSubCategory();
-    const activeTravelModeLabel = this.travelModeFilters.find((filter) => filter.value === this.activeTravelMode())?.label;
+    const activeTravelModeLabel = this.travelModeFilters.find(
+      (filter) => filter.value === this.activeTravelMode(),
+    )?.label;
     const providers = this.withoutConnectedProfessional(result.providers);
     const hiddenOwnProviderCount = result.providers.length - providers.length;
-    const total = Math.max(0, (result.meta?.total || result.providers.length) - hiddenOwnProviderCount);
+    const total = Math.max(
+      0,
+      (result.meta?.total || result.providers.length) - hiddenOwnProviderCount,
+    );
     const title = query
       ? `Recherche ${query}`
       : this.activeTravelMode() !== 'ALL' && activeTravelModeLabel
         ? activeTravelModeLabel
-      : activeSubCategory
-        ? activeSubCategory.nom
-        : activeCategory
-        ? activeCategory.nom
-        : this.activeFilter() === 'ALL'
-          ? 'Tous les prestataires'
-          : activeFilter.label;
+        : activeSubCategory
+          ? activeSubCategory.nom
+          : activeCategory
+            ? activeCategory.nom
+            : this.activeFilter() === 'ALL'
+              ? 'Tous les prestataires'
+              : activeFilter.label;
 
     return {
       id: `providers-${this.activeFilter().toLowerCase()}-${this.activeCategoryId() ?? 'all'}-${this.activeSubCategoryId() ?? 'all'}-${this.activeTravelMode().toLowerCase()}`,
@@ -788,7 +845,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private withoutConnectedProfessional(providers: Professional[]): Professional[] {
-    return providers.filter((provider) => !this.isOwnProfessionalIdentity(provider.id, provider.userId));
+    return providers.filter(
+      (provider) => !this.isOwnProfessionalIdentity(provider.id, provider.userId),
+    );
   }
 
   private isOwnProfessionalIdentity(professionalId: string, professionalUserId?: string): boolean {
@@ -858,10 +917,12 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private isTravelModeFilter(mode: string): mode is TravelModeFilter {
-    return mode === 'ALL' ||
+    return (
+      mode === 'ALL' ||
       mode === 'PRESTATAIRE_SE_DEPLACE' ||
       mode === 'CLIENT_SE_DEPLACE' ||
-      mode === 'TRANSPORT_COLIS';
+      mode === 'TRANSPORT_COLIS'
+    );
   }
 
   private activeServiceTravelMode(): ServiceTravelMode | undefined {
@@ -876,9 +937,10 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const providers = mode === 'ALL'
-      ? snapshot.providers
-      : snapshot.providers.filter((provider) => provider.serviceTravelMode === mode);
+    const providers =
+      mode === 'ALL'
+        ? snapshot.providers
+        : snapshot.providers.filter((provider) => provider.serviceTravelMode === mode);
     this.sections.set([this.buildSection({ providers }, this.searchTerm().trim())]);
     this.categoryPagination.set(undefined);
   }
@@ -978,7 +1040,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   providerSubCategoryLabel(provider: Professional): string {
-    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+    const labels = (
+      provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName]
+    )
       .map((label) => label?.trim())
       .filter((label): label is string => Boolean(label));
 
@@ -988,15 +1052,23 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   providerCardCategoryLabel(provider: Professional): string {
-    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+    const labels = (
+      provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName]
+    )
       .map((label) => label?.trim())
       .filter((label): label is string => Boolean(label));
 
     if (labels.length === 0) {
-      return (provider.professionName || provider.speciality || 'Sous categorie non renseignee').toUpperCase();
+      return (
+        provider.professionName ||
+        provider.speciality ||
+        'Sous categorie non renseignee'
+      ).toUpperCase();
     }
 
-    return labels.length > 1 ? `${labels[0].toUpperCase()} +${labels.length - 1}` : labels[0].toUpperCase();
+    return labels.length > 1
+      ? `${labels[0].toUpperCase()} +${labels.length - 1}`
+      : labels[0].toUpperCase();
   }
 
   providerPortfolioLabel(provider: Professional, index: number): string {
@@ -1012,7 +1084,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   providerCardSubCategoryLabel(provider: Professional): string {
-    const labels = (provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName])
+    const labels = (
+      provider.subCategoryNames?.length ? provider.subCategoryNames : [provider.subCategoryName]
+    )
       .map((label) => label?.trim())
       .filter((label): label is string => Boolean(label));
 
@@ -1068,7 +1142,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       location: this.humanLocationLabel(provider.location),
       rating: provider.rating,
       totalReviews: provider.totalReviews,
-      vehicleType: provider.serviceTravelMode === 'TRANSPORT_COLIS' ? provider.vehicleType : undefined,
+      vehicleType:
+        provider.serviceTravelMode === 'TRANSPORT_COLIS' ? provider.vehicleType : undefined,
       isOnline: provider.isOnline,
       avatarUrl: this.resolveProviderAvatar(provider),
       initials: this.providerInitials(provider.nom),

@@ -164,7 +164,9 @@
   height: 41px;
   outline: 0;
   padding: 0 14px;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
   width: 100%;
 }
 
@@ -175,7 +177,9 @@
   display: flex;
   height: 41px;
   overflow: hidden;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .login-identifier-input:focus-within {
@@ -210,7 +214,18 @@
 
 .login-identifier-input__flag span {
   background: #00853f;
-  clip-path: polygon(50% 0, 61% 34%, 98% 34%, 68% 55%, 79% 90%, 50% 68%, 21% 90%, 32% 55%, 2% 34%, 39% 34%);
+  clip-path: polygon(
+    50% 0,
+    61% 34%,
+    98% 34%,
+    68% 55%,
+    79% 90%,
+    50% 68%,
+    21% 90%,
+    32% 55%,
+    2% 34%,
+    39% 34%
+  );
   height: 6px;
   left: 50%;
   position: absolute;
@@ -260,7 +275,9 @@
   border-radius: 9px;
   display: flex;
   height: 41px;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .login-field__password:focus-within {

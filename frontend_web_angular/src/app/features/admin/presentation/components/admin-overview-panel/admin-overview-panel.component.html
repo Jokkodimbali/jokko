@@ -1,7 +1,10 @@
 <section class="admin-hero">
   <span><i></i> Systeme {{ data.overview.status }}</span>
   <h1>Bonjour {{ userName || 'Administrateur' }}, tout va bien</h1>
-  <p>Vue d ensemble de Jokko Dimbal - la plateforme qui connecte tous les prestataires du Senegal a leurs clients.</p>
+  <p>
+    Vue d ensemble de Jokko Dimbal - la plateforme qui connecte tous les prestataires du Senegal a
+    leurs clients.
+  </p>
 </section>
 
 <section class="admin-kpis" aria-label="Indicateurs admin">
@@ -50,35 +53,75 @@
         </g>
         <g class="admin-y-axis">
           <text
-            *ngFor="let tick of chartTicks(data.overview.revenueSeries, ['gross', 'commission']); let index = index"
+            *ngFor="
+              let tick of chartTicks(data.overview.revenueSeries, ['gross', 'commission']);
+              let index = index
+            "
             x="32"
             [attr.y]="chartTickY(index) + 3"
           >
             {{ formatCompact(tick) }}
           </text>
         </g>
-        <polygon class="admin-area admin-area--gross" [attr.points]="areaPoints(data.overview.revenueSeries, 'gross')"></polygon>
-        <polygon class="admin-area admin-area--commission" [attr.points]="areaPoints(data.overview.revenueSeries, 'commission')"></polygon>
-        <polyline class="admin-line admin-line--gross" [attr.points]="linePoints(data.overview.revenueSeries, 'gross')"></polyline>
-        <polyline class="admin-line admin-line--commission" [attr.points]="linePoints(data.overview.revenueSeries, 'commission')"></polyline>
+        <polygon
+          class="admin-area admin-area--gross"
+          [attr.points]="areaPoints(data.overview.revenueSeries, 'gross')"
+        ></polygon>
+        <polygon
+          class="admin-area admin-area--commission"
+          [attr.points]="areaPoints(data.overview.revenueSeries, 'commission')"
+        ></polygon>
+        <polyline
+          class="admin-line admin-line--gross"
+          [attr.points]="linePoints(data.overview.revenueSeries, 'gross')"
+        ></polyline>
+        <polyline
+          class="admin-line admin-line--commission"
+          [attr.points]="linePoints(data.overview.revenueSeries, 'commission')"
+        ></polyline>
         <g
           *ngFor="let point of data.overview.revenueSeries; let index = index"
           class="admin-svg-point admin-svg-point--gross"
-          [attr.transform]="'translate(' + chartPointX(index, data.overview.revenueSeries.length) + ',' + chartPointY(point.gross || 0, data.overview.revenueSeries, ['gross', 'commission']) + ')'"
+          [attr.transform]="
+            'translate(' +
+            chartPointX(index, data.overview.revenueSeries.length) +
+            ',' +
+            chartPointY(point.gross || 0, data.overview.revenueSeries, ['gross', 'commission']) +
+            ')'
+          "
         >
           <circle r="5"></circle>
-          <text x="-34" y="-14">CA {{ point.label }}: {{ formatCompact(point.gross || 0) }} FCFA</text>
+          <text x="-34" y="-14">
+            CA {{ point.label }}: {{ formatCompact(point.gross || 0) }} FCFA
+          </text>
         </g>
         <g
           *ngFor="let point of data.overview.revenueSeries; let index = index"
           class="admin-svg-point admin-svg-point--commission"
-          [attr.transform]="'translate(' + chartPointX(index, data.overview.revenueSeries.length) + ',' + chartPointY(point.commission || 0, data.overview.revenueSeries, ['gross', 'commission']) + ')'"
+          [attr.transform]="
+            'translate(' +
+            chartPointX(index, data.overview.revenueSeries.length) +
+            ',' +
+            chartPointY(point.commission || 0, data.overview.revenueSeries, [
+              'gross',
+              'commission',
+            ]) +
+            ')'
+          "
         >
           <circle r="4"></circle>
-          <text x="-52" y="20">Commission {{ point.label }}: {{ formatCompact(point.commission || 0) }} FCFA</text>
+          <text x="-52" y="20">
+            Commission {{ point.label }}: {{ formatCompact(point.commission || 0) }} FCFA
+          </text>
         </g>
         <g class="admin-axis-labels">
-          <text *ngFor="let point of data.overview.revenueSeries; let index = index" [attr.x]="chartPointX(index, data.overview.revenueSeries.length)" y="172">{{ point.label }}</text>
+          <text
+            *ngFor="let point of data.overview.revenueSeries; let index = index"
+            [attr.x]="chartPointX(index, data.overview.revenueSeries.length)"
+            y="172"
+          >
+            {{ point.label }}
+          </text>
         </g>
       </svg>
     </figure>
@@ -101,7 +144,9 @@
           [attr.stroke-dasharray]="category.share + ' ' + (100 - category.share)"
           [attr.stroke-dashoffset]="-categoryOffset(data.overview.categoryDistribution, index)"
         >
-          <title>{{ category.label }} - {{ category.value }} services - {{ category.share }}%</title>
+          <title>
+            {{ category.label }} - {{ category.value }} services - {{ category.share }}%
+          </title>
         </circle>
         <circle class="admin-donut__hole" cx="60" cy="60" r="24"></circle>
       </svg>
@@ -122,7 +167,9 @@
         <p>Visiteurs par plateforme</p>
       </div>
     </header>
-    <small class="admin-chart-legend admin-chart-legend--bars"><i></i> Web <i></i> iOS <i></i> Android</small>
+    <small class="admin-chart-legend admin-chart-legend--bars"
+      ><i></i> Web <i></i> iOS <i></i> Android</small
+    >
     <div class="admin-bar-chart">
       <div *ngFor="let point of data.overview.trafficSeries" class="admin-bar-chart__group">
         <span [style.height.px]="barHeight(point.web || 0, data.overview.trafficSeries)"></span>

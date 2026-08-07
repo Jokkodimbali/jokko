@@ -14,7 +14,8 @@ export class ProviderTravelBadgeComponent {
   @Input() imageUrl: string | null = null;
   @Input() icons: string[] = [];
   @Input() variant: 'movement' | 'vehicle' = 'movement';
-  @Input() tone: 'CLIENT_SE_DEPLACE' | 'PRESTATAIRE_SE_DEPLACE' | 'TRANSPORT_COLIS' | 'DEFAULT' = 'DEFAULT';
+  @Input() tone: 'CLIENT_SE_DEPLACE' | 'PRESTATAIRE_SE_DEPLACE' | 'TRANSPORT_COLIS' | 'DEFAULT' =
+    'DEFAULT';
   @Input() overlay = false;
   @Input() compact = false;
 }

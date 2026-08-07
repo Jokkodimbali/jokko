@@ -14,9 +14,15 @@
     >
       <lucide-icon [name]="item.icon" size="36" [strokeWidth]="2.6"></lucide-icon>
       <span>{{ item.label }}</span>
-      <b *ngIf="navItemBadgeLabel(item)" class="app-navbar__nav-badge">{{ navItemBadgeLabel(item) }}</b>
+      <b *ngIf="navItemBadgeLabel(item)" class="app-navbar__nav-badge">{{
+        navItemBadgeLabel(item)
+      }}</b>
     </a>
-    <div class="app-navbar__info-menu" (mouseenter)="openInfoMenu()" (mouseleave)="scheduleCloseInfoMenu()">
+    <div
+      class="app-navbar__info-menu"
+      (mouseenter)="openInfoMenu()"
+      (mouseleave)="scheduleCloseInfoMenu()"
+    >
       <button
         type="button"
         class="app-navbar__nav-item app-navbar__nav-item--button"
@@ -71,7 +77,11 @@
     </a>
 
     <ng-template #connectedProfile>
-      <div class="app-navbar__notification-menu" (mouseenter)="openNotificationsMenu()" (mouseleave)="scheduleCloseNotificationsMenu()">
+      <div
+        class="app-navbar__notification-menu"
+        (mouseenter)="openNotificationsMenu()"
+        (mouseleave)="scheduleCloseNotificationsMenu()"
+      >
         <button
           type="button"
           class="app-navbar__notification"
@@ -85,7 +95,12 @@
           <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
         </button>
 
-        <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications" role="menu" aria-label="Notifications recentes">
+        <section
+          *ngIf="isNotificationsOpen()"
+          class="app-navbar__notifications"
+          role="menu"
+          aria-label="Notifications recentes"
+        >
           <header>
             <div>
               <strong>Notifications</strong>
@@ -94,8 +109,13 @@
             <a routerLink="/notifications" (click)="closeNotificationsMenu()">Tout voir</a>
           </header>
 
-          <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
-          <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
+          <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">
+            Chargement...
+          </p>
+          <p
+            *ngIf="!isNotificationsLoading() && notificationPreview().length === 0"
+            class="app-navbar__notifications-state"
+          >
             Aucune notification pour le moment.
           </p>
 
@@ -111,7 +131,9 @@
               <small>{{ notificationTypeLabel(notification.type) }}</small>
               <strong>{{ notificationTitle(notification) }}</strong>
               <em>{{ notificationBody(notification) }}</em>
-              <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
+              <time *ngIf="notificationDate(notification)">{{
+                notificationDate(notification) | date: 'd MMM, HH:mm'
+              }}</time>
             </span>
           </button>
         </section>
@@ -162,25 +184,46 @@
           </span>
         </button>
 
-        <a routerLink="/favorites" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+        <a
+          routerLink="/favorites"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          (click)="closeProfileMenu()"
+        >
           <span class="app-navbar__dropdown-icon">
             <lucide-icon name="heart" size="19" [strokeWidth]="2.2"></lucide-icon>
           </span>
           <span>Mes favoris</span>
         </a>
-        <a routerLink="/notifications" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+        <a
+          routerLink="/notifications"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          (click)="closeProfileMenu()"
+        >
           <span class="app-navbar__dropdown-icon">
             <lucide-icon name="bell" size="18" [strokeWidth]="2.2"></lucide-icon>
           </span>
           <span>Notifications</span>
         </a>
-        <a *ngIf="showDisputeAccess()" routerLink="/litiges" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+        <a
+          *ngIf="showDisputeAccess()"
+          routerLink="/litiges"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          (click)="closeProfileMenu()"
+        >
           <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--dispute">
             <lucide-icon name="scale" size="18" [strokeWidth]="2.2"></lucide-icon>
           </span>
           <span>Litige</span>
         </a>
-        <a routerLink="/settings" class="app-navbar__dropdown-item" role="menuitem" (click)="closeProfileMenu()">
+        <a
+          routerLink="/settings"
+          class="app-navbar__dropdown-item"
+          role="menuitem"
+          (click)="closeProfileMenu()"
+        >
           <span class="app-navbar__dropdown-icon">
             <lucide-icon name="settings" size="18" [strokeWidth]="2.2"></lucide-icon>
           </span>
@@ -235,7 +278,6 @@
           <span>D&eacute;connexion</span>
         </button>
       </section>
-
     </ng-template>
   </div>
 
@@ -253,7 +295,12 @@
     <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
   </button>
 
-  <section *ngIf="isNotificationsOpen()" class="app-navbar__notifications app-navbar__notifications--mobile" role="menu" aria-label="Notifications recentes">
+  <section
+    *ngIf="isNotificationsOpen()"
+    class="app-navbar__notifications app-navbar__notifications--mobile"
+    role="menu"
+    aria-label="Notifications recentes"
+  >
     <header>
       <div>
         <strong>Notifications</strong>
@@ -263,7 +310,10 @@
     </header>
 
     <p *ngIf="isNotificationsLoading()" class="app-navbar__notifications-state">Chargement...</p>
-    <p *ngIf="!isNotificationsLoading() && notificationPreview().length === 0" class="app-navbar__notifications-state">
+    <p
+      *ngIf="!isNotificationsLoading() && notificationPreview().length === 0"
+      class="app-navbar__notifications-state"
+    >
       Aucune notification pour le moment.
     </p>
 
@@ -279,7 +329,9 @@
         <small>{{ notificationTypeLabel(notification.type) }}</small>
         <strong>{{ notificationTitle(notification) }}</strong>
         <em>{{ notificationBody(notification) }}</em>
-        <time *ngIf="notificationDate(notification)">{{ notificationDate(notification) | date:'d MMM, HH:mm' }}</time>
+        <time *ngIf="notificationDate(notification)">{{
+          notificationDate(notification) | date: 'd MMM, HH:mm'
+        }}</time>
       </span>
     </button>
   </section>
@@ -369,7 +421,10 @@
         <nav class="app-navbar__mobile-card" aria-label="Navigation principale">
           <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
             <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span><strong>{{ item.label }}</strong><small>Ouvrir cette rubrique</small></span>
+            <span
+              ><strong>{{ item.label }}</strong
+              ><small>Ouvrir cette rubrique</small></span
+            >
             <b *ngIf="navItemBadgeLabel(item)">{{ navItemBadgeLabel(item) }}</b>
             <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </a>
@@ -378,7 +433,10 @@
         <nav class="app-navbar__mobile-card" aria-label="Compte et assistance">
           <button type="button" (click)="closeMobileNav(); toggleNotificationsMenu()">
             <i><lucide-icon name="bell" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span><strong>Notifications</strong><small>Voir les nouvelles activit&eacute;s</small></span>
+            <span
+              ><strong>Notifications</strong
+              ><small>Voir les nouvelles activit&eacute;s</small></span
+            >
             <b *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</b>
             <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </button>
@@ -387,9 +445,17 @@
             <span><strong>Litiges</strong><small>Suivre mes r&eacute;clamations</small></span>
             <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </a>
-          <a *ngFor="let item of infoNavItems()" [routerLink]="item.route" [fragment]="item.fragment" (click)="closeMobileNav()">
+          <a
+            *ngFor="let item of infoNavItems()"
+            [routerLink]="item.route"
+            [fragment]="item.fragment"
+            (click)="closeMobileNav()"
+          >
             <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
+            <span
+              ><strong>{{ item.label }}</strong
+              ><small>{{ item.description }}</small></span
+            >
             <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </a>
         </nav>
@@ -447,7 +513,10 @@
         <nav class="app-navbar__mobile-card">
           <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
             <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span><strong>{{ item.label }}</strong><small>Découvrir Jokko</small></span>
+            <span
+              ><strong>{{ item.label }}</strong
+              ><small>Découvrir Jokko</small></span
+            >
             <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </a>
         </nav>

@@ -140,7 +140,9 @@ export class DoctorSpaceService {
     idCardUrlVerso?: string;
   }): Observable<BackendProfessionalProfile> {
     return this.http
-      .patch<ApiResponse<BackendProfessionalProfile>>(`${this.apiUrl}/professionals/me/kyc/submit`, data)
+      .patch<
+        ApiResponse<BackendProfessionalProfile>
+      >(`${this.apiUrl}/professionals/me/kyc/submit`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -150,7 +152,9 @@ export class DoctorSpaceService {
     imageUrl: string;
   }): Observable<BackendProfessionalPortfolioItem> {
     return this.http
-      .post<ApiResponse<BackendProfessionalPortfolioItem>>(`${this.apiUrl}/professionals/me/portfolio`, data)
+      .post<
+        ApiResponse<BackendProfessionalPortfolioItem>
+      >(`${this.apiUrl}/professionals/me/portfolio`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -165,47 +169,49 @@ export class DoctorSpaceService {
     formData.append('file', file);
 
     return this.http
-      .post<ApiResponse<ProfessionalUploadView>>(`${this.apiUrl}/professionals/me/uploads`, formData)
+      .post<
+        ApiResponse<ProfessionalUploadView>
+      >(`${this.apiUrl}/professionals/me/uploads`, formData)
       .pipe(map(unwrapApiResponse));
   }
 
   listAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalAvailability[]>>(
-        `${this.apiUrl}/professionals/${profileId}/availabilities`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalAvailability[]>
+      >(`${this.apiUrl}/professionals/${profileId}/availabilities`)
       .pipe(map(unwrapApiResponse));
   }
 
   listMyAvailabilities(): Observable<BackendProfessionalAvailability[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalAvailability[]>>(
-        `${this.apiUrl}/professionals/me/availabilities`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalAvailability[]>
+      >(`${this.apiUrl}/professionals/me/availabilities`)
       .pipe(map(unwrapApiResponse));
   }
 
   listServices(profileId: string): Observable<BackendProfessionalDetailService[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalDetailService[]>>(
-        `${this.apiUrl}/professionals/${profileId}/services`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalDetailService[]>
+      >(`${this.apiUrl}/professionals/${profileId}/services`)
       .pipe(map(unwrapApiResponse));
   }
 
   listPortfolio(profileId: string): Observable<BackendProfessionalPortfolioItem[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalPortfolioItem[]>>(
-        `${this.apiUrl}/professionals/${profileId}/portfolio`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalPortfolioItem[]>
+      >(`${this.apiUrl}/professionals/${profileId}/portfolio`)
       .pipe(map(unwrapApiResponse));
   }
 
   listMyServices(): Observable<BackendProfessionalDetailService[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalDetailService[]>>(
-        `${this.apiUrl}/professionals/me/services`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalDetailService[]>
+      >(`${this.apiUrl}/professionals/me/services`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -252,18 +258,17 @@ export class DoctorSpaceService {
 
   cancelReservation(reservationId: string, reason: string): Observable<BackendReservation> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/cancel`,
-        { reason },
-      )
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/cancel`, { reason })
       .pipe(map(unwrapApiResponse));
   }
 
   getPatientMedicalProfile(clientId: string): Observable<PatientMedicalProfile> {
     return this.http
-      .get<ApiResponse<PatientMedicalProfile>>(
-        `${this.apiUrl}/users/patients/${clientId}/medical-profile`,
-      )
+      .get<
+        ApiResponse<PatientMedicalProfile>
+      >(`${this.apiUrl}/users/patients/${clientId}/medical-profile`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -273,10 +278,7 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
-  requestWithdrawal(data: {
-    amount: number;
-    method: 'WAVE' | 'ORANGE_MONEY';
-  }): Observable<{
+  requestWithdrawal(data: { amount: number; method: 'WAVE' | 'ORANGE_MONEY' }): Observable<{
     withdrawalId: string;
     amount: number;
     method: string;
@@ -301,10 +303,9 @@ export class DoctorSpaceService {
     escrowReleased: boolean;
   }> {
     return this.http
-      .patch<ApiResponse<{ payment: unknown; escrowReleased: boolean }>>(
-        `${this.apiUrl}/payments/${paymentId}/escrow/release`,
-        {},
-      )
+      .patch<
+        ApiResponse<{ payment: unknown; escrowReleased: boolean }>
+      >(`${this.apiUrl}/payments/${paymentId}/escrow/release`, {})
       .pipe(map(unwrapApiResponse));
   }
 
@@ -321,10 +322,9 @@ export class DoctorSpaceService {
     isRequired: boolean;
   }): Observable<BackendProfessionalDetailService> {
     return this.http
-      .post<ApiResponse<BackendProfessionalDetailService>>(
-        `${this.apiUrl}/professionals/me/services`,
-        data,
-      )
+      .post<
+        ApiResponse<BackendProfessionalDetailService>
+      >(`${this.apiUrl}/professionals/me/services`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -343,18 +343,17 @@ export class DoctorSpaceService {
     },
   ): Observable<BackendProfessionalDetailService> {
     return this.http
-      .patch<ApiResponse<BackendProfessionalDetailService>>(
-        `${this.apiUrl}/professionals/me/services/${serviceId}`,
-        data,
-      )
+      .patch<
+        ApiResponse<BackendProfessionalDetailService>
+      >(`${this.apiUrl}/professionals/me/services/${serviceId}`, data)
       .pipe(map(unwrapApiResponse));
   }
 
   deleteService(serviceId: string): Observable<void> {
     return this.http
-      .delete<ApiResponse<BackendProfessionalDetailService>>(
-        `${this.apiUrl}/professionals/me/services/${serviceId}`,
-      )
+      .delete<
+        ApiResponse<BackendProfessionalDetailService>
+      >(`${this.apiUrl}/professionals/me/services/${serviceId}`)
       .pipe(map(() => undefined));
   }
 
@@ -364,10 +363,9 @@ export class DoctorSpaceService {
     endTime: string;
   }): Observable<BackendProfessionalAvailability> {
     return this.http
-      .post<ApiResponse<BackendProfessionalAvailability>>(
-        `${this.apiUrl}/professionals/me/availabilities`,
-        data,
-      )
+      .post<
+        ApiResponse<BackendProfessionalAvailability>
+      >(`${this.apiUrl}/professionals/me/availabilities`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -380,18 +378,17 @@ export class DoctorSpaceService {
     },
   ): Observable<BackendProfessionalAvailability> {
     return this.http
-      .patch<ApiResponse<BackendProfessionalAvailability>>(
-        `${this.apiUrl}/professionals/me/availabilities/${availabilityId}`,
-        data,
-      )
+      .patch<
+        ApiResponse<BackendProfessionalAvailability>
+      >(`${this.apiUrl}/professionals/me/availabilities/${availabilityId}`, data)
       .pipe(map(unwrapApiResponse));
   }
 
   deleteAvailability(availabilityId: string): Observable<void> {
     return this.http
-      .delete<ApiResponse<BackendProfessionalAvailability>>(
-        `${this.apiUrl}/professionals/me/availabilities/${availabilityId}`,
-      )
+      .delete<
+        ApiResponse<BackendProfessionalAvailability>
+      >(`${this.apiUrl}/professionals/me/availabilities/${availabilityId}`)
       .pipe(map(() => undefined));
   }
 }

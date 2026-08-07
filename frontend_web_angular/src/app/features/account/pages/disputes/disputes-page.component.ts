@@ -8,9 +8,16 @@ import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { reservationStatusLabel, reservationStatusTone } from '../../../../shared/utils/jokko-status-labels';
+import {
+  reservationStatusLabel,
+  reservationStatusTone,
+} from '../../../../shared/utils/jokko-status-labels';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
-import { AppointmentView, ReservationDisputeView, DisputeEvidenceView } from '../../../appointments/domain/appointments.models';
+import {
+  AppointmentView,
+  ReservationDisputeView,
+  DisputeEvidenceView,
+} from '../../../appointments/domain/appointments.models';
 
 type DisputeFilter = 'all' | 'upcoming' | 'completed' | 'disputed';
 
@@ -26,12 +33,7 @@ const DISPUTE_EVIDENCE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 @Component({
   selector: 'app-disputes-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    LucideAngularModule,
-    AppFooterComponent,
-  ],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppFooterComponent],
   templateUrl: './disputes-page.component.html',
   styleUrl: './disputes-page.component.scss',
 })
@@ -80,12 +82,18 @@ export class DisputesPageComponent implements OnInit {
     const selectedId = this.selectedReservationId();
     return this.appointments().find((appointment) => appointment.id === selectedId) ?? null;
   });
-  protected readonly conversationCount = computed(() => this.selectedDispute()?.reservation.messages.length ?? 0);
+  protected readonly conversationCount = computed(
+    () => this.selectedDispute()?.reservation.messages.length ?? 0,
+  );
   protected readonly photosCount = computed(
-    () => this.selectedDispute()?.evidence.filter((item) => item.mimeType.startsWith('image/')).length ?? 0,
+    () =>
+      this.selectedDispute()?.evidence.filter((item) => item.mimeType.startsWith('image/'))
+        .length ?? 0,
   );
   protected readonly invoicesCount = computed(
-    () => this.selectedDispute()?.evidence.filter((item) => item.mimeType === 'application/pdf').length ?? 0,
+    () =>
+      this.selectedDispute()?.evidence.filter((item) => item.mimeType === 'application/pdf')
+        .length ?? 0,
   );
 
   ngOnInit(): void {
@@ -244,7 +252,11 @@ export class DisputesPageComponent implements OnInit {
   }
 
   protected disputeAmount(dispute: ReservationDisputeView): number {
-    return dispute.payment?.montant ?? dispute.reservation.prixConvenu ?? dispute.reservation.service.prix;
+    return (
+      dispute.payment?.montant ??
+      dispute.reservation.prixConvenu ??
+      dispute.reservation.service.prix
+    );
   }
 
   protected formatDate(date: string | Date): string {
@@ -287,7 +299,9 @@ export class DisputesPageComponent implements OnInit {
       .listMyAppointments(this.scope())
       .pipe(
         catchError((error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger vos reservations.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de charger vos reservations.'),
+          );
           return of([]);
         }),
         finalize(() => this.isLoading.set(false)),
@@ -305,7 +319,9 @@ export class DisputesPageComponent implements OnInit {
       .getReservationDispute(reservationId)
       .pipe(
         catchError((error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger le resume du litige.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de charger le resume du litige.'),
+          );
           return of(null);
         }),
         finalize(() => this.isLoadingDispute.set(false)),
@@ -316,7 +332,9 @@ export class DisputesPageComponent implements OnInit {
   private restoreSelectedDispute(appointments: AppointmentView[]): void {
     const requestedId = this.route.snapshot.queryParamMap.get('reservationId');
     const selected =
-      appointments.find((appointment) => appointment.id === requestedId && appointment.status === 'LITIGE') ??
+      appointments.find(
+        (appointment) => appointment.id === requestedId && appointment.status === 'LITIGE',
+      ) ??
       appointments.find((appointment) => appointment.status === 'LITIGE') ??
       null;
 
@@ -335,7 +353,9 @@ export class DisputesPageComponent implements OnInit {
   }
 
   private isPaidLike(appointment: AppointmentView): boolean {
-    return ['PAYEE_SEQUESTRE', 'EN_COURS', 'TERMINEE', 'NO_SHOW', 'LITIGE'].includes(appointment.status);
+    return ['PAYEE_SEQUESTRE', 'EN_COURS', 'TERMINEE', 'NO_SHOW', 'LITIGE'].includes(
+      appointment.status,
+    );
   }
 
   private validateEvidenceFiles(files: File[]): string | null {

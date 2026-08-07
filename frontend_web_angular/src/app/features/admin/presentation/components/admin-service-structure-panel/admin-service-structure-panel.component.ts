@@ -37,7 +37,14 @@ type ModalMode =
   | 'confirm-delete-subcategory'
   | null;
 
-type CategoryFilter = 'all' | 'active' | 'inactive' | 'with-subcategories' | 'without-subcategories' | 'with-services' | 'without-services';
+type CategoryFilter =
+  | 'all'
+  | 'active'
+  | 'inactive'
+  | 'with-subcategories'
+  | 'without-subcategories'
+  | 'with-services'
+  | 'without-services';
 type SubCategoryFilter = 'all' | 'assigned' | 'unassigned';
 
 @Component({
@@ -54,14 +61,20 @@ export class AdminServiceStructurePanelComponent {
   @Input() searchQuery = '';
 
   @Output() createCategory = new EventEmitter<AdminCategoryPayload>();
-  @Output() updateCategory = new EventEmitter<{ categoryId: string; payload: AdminCategoryPayload }>();
+  @Output() updateCategory = new EventEmitter<{
+    categoryId: string;
+    payload: AdminCategoryPayload;
+  }>();
   @Output() disableCategory = new EventEmitter<string>();
   @Output() activateCategory = new EventEmitter<string>();
   @Output() deleteCategoryPermanently = new EventEmitter<string>();
   @Output() bulkCreateCategories = new EventEmitter<AdminCategoryPayload[]>();
   @Output() createSubCategory = new EventEmitter<AdminSubCategoryPayload>();
   @Output() bulkCreateSubCategories = new EventEmitter<AdminSubCategoryPayload[]>();
-  @Output() assignSubCategories = new EventEmitter<{ categoryId: string; subCategoryIds: string[] }>();
+  @Output() assignSubCategories = new EventEmitter<{
+    categoryId: string;
+    subCategoryIds: string[];
+  }>();
   @Output() deleteSubCategoryPermanently = new EventEmitter<string>();
   @Output() clearSearch = new EventEmitter<void>();
 
@@ -80,26 +93,95 @@ export class AdminServiceStructurePanelComponent {
   protected categoryFilter: CategoryFilter = 'all';
   protected subCategoryFilter: SubCategoryFilter = 'all';
   protected readonly iconOptions: IconOption[] = [
-    { token: 'lucide:wrench', icon: 'wrench', label: 'Technique', keywords: ['plomberie', 'sanitaire', 'mecanique', 'reparation', 'depannage', 'btp', 'construction', 'batiment', 'artisanat'] },
-    { token: 'lucide:power', icon: 'power', label: 'Electricite', keywords: ['electric', 'energie', 'solaire', 'telecommunication', 'domotique', 'ascenseur'] },
-    { token: 'lucide:stethoscope', icon: 'stethoscope', label: 'Sante', keywords: ['sante', 'medecine', 'medical', 'medecin', 'veterinaire', 'pharmacie'] },
-    { token: 'lucide:heart-pulse', icon: 'heart-pulse', label: 'Bien-etre', keywords: ['beaute', 'bien-etre', 'sport', 'fitness', 'massage'] },
-    { token: 'lucide:map-pinned', icon: 'map-pinned', label: 'Localisation', keywords: ['transport', 'logistique', 'livraison', 'regions', 'chauffeur'] },
-    { token: 'lucide:banknote', icon: 'banknote', label: 'Finance', keywords: ['finance', 'commerce', 'distribution', 'paiement', 'assurance'] },
-    { token: 'lucide:gavel', icon: 'gavel', label: 'Administratif', keywords: ['administratif', 'juridique', 'formalites', 'securite', 'gardiennage'] },
-    { token: 'lucide:users', icon: 'users', label: 'Personnes', keywords: ['personne', 'domicile', 'education', 'formation', 'social'] },
-    { token: 'lucide:smartphone', icon: 'smartphone', label: 'Digital', keywords: ['informatique', 'digital', 'telephone', 'mobile', 'reseau'] },
-    { token: 'lucide:globe-2', icon: 'globe-2', label: 'General', keywords: ['agriculture', 'elevage', 'peche', 'environnement', 'voyage'] },
-    { token: 'lucide:archive', icon: 'archive', label: 'Materiel', keywords: ['stockage', 'materiel', 'menuiserie', 'mobilier'] },
+    {
+      token: 'lucide:wrench',
+      icon: 'wrench',
+      label: 'Technique',
+      keywords: [
+        'plomberie',
+        'sanitaire',
+        'mecanique',
+        'reparation',
+        'depannage',
+        'btp',
+        'construction',
+        'batiment',
+        'artisanat',
+      ],
+    },
+    {
+      token: 'lucide:power',
+      icon: 'power',
+      label: 'Electricite',
+      keywords: ['electric', 'energie', 'solaire', 'telecommunication', 'domotique', 'ascenseur'],
+    },
+    {
+      token: 'lucide:stethoscope',
+      icon: 'stethoscope',
+      label: 'Sante',
+      keywords: ['sante', 'medecine', 'medical', 'medecin', 'veterinaire', 'pharmacie'],
+    },
+    {
+      token: 'lucide:heart-pulse',
+      icon: 'heart-pulse',
+      label: 'Bien-etre',
+      keywords: ['beaute', 'bien-etre', 'sport', 'fitness', 'massage'],
+    },
+    {
+      token: 'lucide:map-pinned',
+      icon: 'map-pinned',
+      label: 'Localisation',
+      keywords: ['transport', 'logistique', 'livraison', 'regions', 'chauffeur'],
+    },
+    {
+      token: 'lucide:banknote',
+      icon: 'banknote',
+      label: 'Finance',
+      keywords: ['finance', 'commerce', 'distribution', 'paiement', 'assurance'],
+    },
+    {
+      token: 'lucide:gavel',
+      icon: 'gavel',
+      label: 'Administratif',
+      keywords: ['administratif', 'juridique', 'formalites', 'securite', 'gardiennage'],
+    },
+    {
+      token: 'lucide:users',
+      icon: 'users',
+      label: 'Personnes',
+      keywords: ['personne', 'domicile', 'education', 'formation', 'social'],
+    },
+    {
+      token: 'lucide:smartphone',
+      icon: 'smartphone',
+      label: 'Digital',
+      keywords: ['informatique', 'digital', 'telephone', 'mobile', 'reseau'],
+    },
+    {
+      token: 'lucide:globe-2',
+      icon: 'globe-2',
+      label: 'General',
+      keywords: ['agriculture', 'elevage', 'peche', 'environnement', 'voyage'],
+    },
+    {
+      token: 'lucide:archive',
+      icon: 'archive',
+      label: 'Materiel',
+      keywords: ['stockage', 'materiel', 'menuiserie', 'mobilier'],
+    },
     { token: 'lucide:git-fork', icon: 'git-fork', label: 'Structure', keywords: [] },
   ];
   private readonly failedIconUrls = signal<Set<string>>(new Set());
 
-  protected visibleCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
+  protected visibleCategories(
+    report: AdminServiceStructureReport,
+  ): AdminServiceStructureCategory[] {
     return report.categories;
   }
 
-  protected filteredCategories(report: AdminServiceStructureReport): AdminServiceStructureCategory[] {
+  protected filteredCategories(
+    report: AdminServiceStructureReport,
+  ): AdminServiceStructureCategory[] {
     const term = this.normalizedSearchQuery();
 
     return this.visibleCategories(report).filter((category) => {
@@ -109,7 +191,9 @@ export class AdminServiceStructurePanelComponent {
     });
   }
 
-  protected filteredSubCategories(category: AdminServiceStructureCategory): AdminServiceSubCategory[] {
+  protected filteredSubCategories(
+    category: AdminServiceStructureCategory,
+  ): AdminServiceSubCategory[] {
     const term = this.normalizedSearchQuery();
 
     return category.subCategories.filter((subCategory) => {
@@ -119,7 +203,9 @@ export class AdminServiceStructurePanelComponent {
     });
   }
 
-  protected filteredAvailableSubCategories(report: AdminServiceStructureReport): AdminServiceSubCategory[] {
+  protected filteredAvailableSubCategories(
+    report: AdminServiceStructureReport,
+  ): AdminServiceSubCategory[] {
     const term = this.normalizedSearchQuery();
 
     return report.availableSubCategories.filter((subCategory) => {
@@ -196,7 +282,9 @@ export class AdminServiceStructurePanelComponent {
 
   protected openAssignmentForm(category: AdminServiceStructureCategory): void {
     this.assignmentCategory = category;
-    this.selectedSubCategoryIds = new Set(category.subCategories.map((subCategory) => subCategory.id));
+    this.selectedSubCategoryIds = new Set(
+      category.subCategories.map((subCategory) => subCategory.id),
+    );
     this.modalMode = 'assign-subcategories';
   }
 
@@ -262,14 +350,16 @@ export class AdminServiceStructurePanelComponent {
   }
 
   protected submitBulkSubCategories(): void {
-    const payload = this.parseLines(this.bulkSubCategoriesText).map((line, index) => {
-      const [name, description] = line.split('|').map((part) => part.trim());
-      return {
-        name,
-        description: description || null,
-        sortOrder: index,
-      };
-    }).filter((item) => item.name.length > 0);
+    const payload = this.parseLines(this.bulkSubCategoriesText)
+      .map((line, index) => {
+        const [name, description] = line.split('|').map((part) => part.trim());
+        return {
+          name,
+          description: description || null,
+          sortOrder: index,
+        };
+      })
+      .filter((item) => item.name.length > 0);
 
     if (payload.length === 0) return;
     this.bulkCreateSubCategories.emit(payload);
@@ -311,7 +401,9 @@ export class AdminServiceStructurePanelComponent {
     });
   }
 
-  protected filteredAssignmentOptions(report: AdminServiceStructureReport): AdminServiceSubCategory[] {
+  protected filteredAssignmentOptions(
+    report: AdminServiceStructureReport,
+  ): AdminServiceSubCategory[] {
     const term = this.normalizedSearchQuery();
 
     return this.assignmentOptions(report).filter((subCategory) => {
@@ -323,11 +415,16 @@ export class AdminServiceStructurePanelComponent {
 
   protected allAssignmentOptionsSelected(report: AdminServiceStructureReport): boolean {
     const options = this.filteredAssignmentOptions(report);
-    return options.length > 0 && options.every((subCategory) => this.selectedSubCategoryIds.has(subCategory.id));
+    return (
+      options.length > 0 &&
+      options.every((subCategory) => this.selectedSubCategoryIds.has(subCategory.id))
+    );
   }
 
   protected selectAllAssignmentOptions(report: AdminServiceStructureReport): void {
-    this.selectedSubCategoryIds = new Set(this.filteredAssignmentOptions(report).map((subCategory) => subCategory.id));
+    this.selectedSubCategoryIds = new Set(
+      this.filteredAssignmentOptions(report).map((subCategory) => subCategory.id),
+    );
   }
 
   protected clearAssignmentSelection(): void {
@@ -479,8 +576,10 @@ export class AdminServiceStructurePanelComponent {
   }
 
   private matchesSubCategoryFilter(subCategory: AdminServiceSubCategory): boolean {
-    if (this.subCategoryFilter === 'assigned') return this.isSubCategoryAssignedAnywhere(subCategory);
-    if (this.subCategoryFilter === 'unassigned') return !this.isSubCategoryAssignedAnywhere(subCategory);
+    if (this.subCategoryFilter === 'assigned')
+      return this.isSubCategoryAssignedAnywhere(subCategory);
+    if (this.subCategoryFilter === 'unassigned')
+      return !this.isSubCategoryAssignedAnywhere(subCategory);
     return true;
   }
 
@@ -503,13 +602,20 @@ export class AdminServiceStructurePanelComponent {
       ]),
     ]);
 
-    return [...directValues, ...branchValues].some((value) => this.normalizeSearch(value).includes(term))
-      || category.subCategories.some((subCategory) => this.subCategoryMatchesSearch(subCategory, term));
+    return (
+      [...directValues, ...branchValues].some((value) =>
+        this.normalizeSearch(value).includes(term),
+      ) ||
+      category.subCategories.some((subCategory) => this.subCategoryMatchesSearch(subCategory, term))
+    );
   }
 
   private subCategoryMatchesSearch(subCategory: AdminServiceSubCategory, term: string): boolean {
-    return [subCategory.name, subCategory.description ?? '', subCategory.isActive ? 'active actif disponible' : 'inactive inactif']
-      .some((value) => this.normalizeSearch(value).includes(term));
+    return [
+      subCategory.name,
+      subCategory.description ?? '',
+      subCategory.isActive ? 'active actif disponible' : 'inactive inactif',
+    ].some((value) => this.normalizeSearch(value).includes(term));
   }
 
   private normalizedSearchQuery(): string {

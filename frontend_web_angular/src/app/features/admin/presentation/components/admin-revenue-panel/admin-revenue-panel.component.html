@@ -6,7 +6,10 @@
         Chiffre d'affaires
       </span>
       <h1>Evolution financiere de la plateforme</h1>
-      <p>Analyse des paiements valides, commissions, montants reverses et remboursements sur la periode selectionnee.</p>
+      <p>
+        Analyse des paiements valides, commissions, montants reverses et remboursements sur la
+        periode selectionnee.
+      </p>
     </div>
     <nav aria-label="Periode chiffre d'affaires">
       <button
@@ -61,25 +64,69 @@
       <figure class="admin-revenue-chart" *ngIf="data.series.length > 0; else emptyChart">
         <svg viewBox="0 0 760 300" role="img" aria-label="Evolution du chiffre d'affaires">
           <g class="admin-revenue-grid-lines">
-            <line *ngFor="let tick of chartTicks(data); let index = index" x1="52" x2="708" [attr.y1]="chartTickY(index)" [attr.y2]="chartTickY(index)"></line>
+            <line
+              *ngFor="let tick of chartTicks(data); let index = index"
+              x1="52"
+              x2="708"
+              [attr.y1]="chartTickY(index)"
+              [attr.y2]="chartTickY(index)"
+            ></line>
           </g>
           <g class="admin-revenue-axis">
-            <text *ngFor="let tick of chartTicks(data); let index = index" x="44" [attr.y]="chartTickY(index) + 4">{{ formatCompact(tick) }}</text>
-            <text *ngFor="let point of data.series; let index = index" [attr.x]="chartPointX(index, data.series.length)" y="282">{{ point.label }}</text>
+            <text
+              *ngFor="let tick of chartTicks(data); let index = index"
+              x="44"
+              [attr.y]="chartTickY(index) + 4"
+            >
+              {{ formatCompact(tick) }}
+            </text>
+            <text
+              *ngFor="let point of data.series; let index = index"
+              [attr.x]="chartPointX(index, data.series.length)"
+              y="282"
+            >
+              {{ point.label }}
+            </text>
           </g>
-          <polygon class="admin-revenue-area admin-revenue-area--gross" [attr.points]="areaPoints(data, 'gross')"></polygon>
-          <polygon class="admin-revenue-area admin-revenue-area--net" [attr.points]="areaPoints(data, 'net')"></polygon>
-          <polyline class="admin-revenue-line admin-revenue-line--gross" [attr.points]="linePoints(data, 'gross')"></polyline>
-          <polyline class="admin-revenue-line admin-revenue-line--net" [attr.points]="linePoints(data, 'net')"></polyline>
-          <polyline class="admin-revenue-line admin-revenue-line--commission" [attr.points]="linePoints(data, 'commission')"></polyline>
-          <polyline class="admin-revenue-line admin-revenue-line--refund" [attr.points]="linePoints(data, 'refunded')"></polyline>
+          <polygon
+            class="admin-revenue-area admin-revenue-area--gross"
+            [attr.points]="areaPoints(data, 'gross')"
+          ></polygon>
+          <polygon
+            class="admin-revenue-area admin-revenue-area--net"
+            [attr.points]="areaPoints(data, 'net')"
+          ></polygon>
+          <polyline
+            class="admin-revenue-line admin-revenue-line--gross"
+            [attr.points]="linePoints(data, 'gross')"
+          ></polyline>
+          <polyline
+            class="admin-revenue-line admin-revenue-line--net"
+            [attr.points]="linePoints(data, 'net')"
+          ></polyline>
+          <polyline
+            class="admin-revenue-line admin-revenue-line--commission"
+            [attr.points]="linePoints(data, 'commission')"
+          ></polyline>
+          <polyline
+            class="admin-revenue-line admin-revenue-line--refund"
+            [attr.points]="linePoints(data, 'refunded')"
+          ></polyline>
           <g
             *ngFor="let point of data.series; let index = index"
             class="admin-revenue-point"
-            [attr.transform]="'translate(' + chartPointX(index, data.series.length) + ',' + chartPointY(point.gross || 0, data) + ')'"
+            [attr.transform]="
+              'translate(' +
+              chartPointX(index, data.series.length) +
+              ',' +
+              chartPointY(point.gross || 0, data) +
+              ')'
+            "
           >
             <circle r="6"></circle>
-            <text x="-58" y="-18">{{ point.label }} : {{ formatMoney(point.gross || 0) }} FCFA</text>
+            <text x="-58" y="-18">
+              {{ point.label }} : {{ formatMoney(point.gross || 0) }} FCFA
+            </text>
           </g>
         </svg>
       </figure>
@@ -158,7 +205,14 @@
             <td>{{ payment.clientName }}</td>
             <td>{{ payment.professionalName }}</td>
             <td>{{ payment.method }}</td>
-            <td><span [class]="'admin-revenue-status admin-revenue-status--' + payment.status.toLowerCase()">{{ payment.status }}</span></td>
+            <td>
+              <span
+                [class]="
+                  'admin-revenue-status admin-revenue-status--' + payment.status.toLowerCase()
+                "
+                >{{ payment.status }}</span
+              >
+            </td>
             <td>{{ formatMoney(payment.amount) }} FCFA</td>
             <td>{{ formatDate(payment.createdAt) }}</td>
           </tr>
@@ -168,9 +222,21 @@
     <footer class="admin-revenue-pagination" *ngIf="data.recentPayments.length > 0">
       <span>{{ data.recentPayments.length }} paiement(s) recents</span>
       <nav aria-label="Pagination des paiements recents">
-        <button type="button" [disabled]="recentPaymentsPage <= 1" (click)="previousRecentPaymentsPage()">Precedent</button>
+        <button
+          type="button"
+          [disabled]="recentPaymentsPage <= 1"
+          (click)="previousRecentPaymentsPage()"
+        >
+          Precedent
+        </button>
         <b>Page {{ recentPaymentsPage }} / {{ recentPaymentsPageCount(data) }}</b>
-        <button type="button" [disabled]="recentPaymentsPage >= recentPaymentsPageCount(data)" (click)="nextRecentPaymentsPage(data)">Suivant</button>
+        <button
+          type="button"
+          [disabled]="recentPaymentsPage >= recentPaymentsPageCount(data)"
+          (click)="nextRecentPaymentsPage(data)"
+        >
+          Suivant
+        </button>
       </nav>
     </footer>
   </section>
@@ -179,8 +245,16 @@
 <ng-template #revenueState>
   <section class="admin-revenue-empty">
     <lucide-icon name="wallet-cards" size="34" [strokeWidth]="2.2"></lucide-icon>
-    <h1>{{ isLoading ? 'Chargement du chiffre d affaires' : 'Chiffre d affaires indisponible' }}</h1>
-    <p>{{ isLoading ? 'Preparation des indicateurs financiers.' : 'Aucune donnee financiere disponible pour le moment.' }}</p>
+    <h1>
+      {{ isLoading ? 'Chargement du chiffre d affaires' : 'Chiffre d affaires indisponible' }}
+    </h1>
+    <p>
+      {{
+        isLoading
+          ? 'Preparation des indicateurs financiers.'
+          : 'Aucune donnee financiere disponible pour le moment.'
+      }}
+    </p>
   </section>
 </ng-template>
 

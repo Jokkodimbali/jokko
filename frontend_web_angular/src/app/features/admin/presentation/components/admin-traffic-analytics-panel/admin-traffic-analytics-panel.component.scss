@@ -228,7 +228,9 @@
   border-radius: 999px 999px 8px 8px;
   display: block;
   min-height: 4px;
-  transition: height 180ms ease, transform 180ms ease;
+  transition:
+    height 180ms ease,
+    transform 180ms ease;
 }
 
 .admin-traffic-bars__bar--web {
@@ -262,7 +264,9 @@
   pointer-events: none;
   position: absolute;
   transform: translateX(-50%) translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
   white-space: nowrap;
   z-index: 2;
 }

@@ -25,9 +25,7 @@ export class AppointmentNavigationService {
     const withDistance = steps
       .map((step) => ({
         step,
-        distance: step.end
-          ? distanceFromCurrentPosition(step.end)
-          : Number.POSITIVE_INFINITY,
+        distance: step.end ? distanceFromCurrentPosition(step.end) : Number.POSITIVE_INFINITY,
       }))
       .filter(({ distance }) => Number.isFinite(distance) && distance > 12)
       .sort((left, right) => left.distance - right.distance);

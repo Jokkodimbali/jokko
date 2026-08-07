@@ -7,7 +7,11 @@
 
       <div class="favorites-page__hero-title">
         <h1>Mes Favoris</h1>
-        <p>{{ totalFavorites() }} prestataire{{ totalFavorites() > 1 ? 's' : '' }} enregistré{{ totalFavorites() > 1 ? 's' : '' }}</p>
+        <p>
+          {{ totalFavorites() }} prestataire{{ totalFavorites() > 1 ? 's' : '' }} enregistré{{
+            totalFavorites() > 1 ? 's' : ''
+          }}
+        </p>
       </div>
 
       <dl class="favorites-page__hero-stats">
@@ -53,7 +57,11 @@
         <label>
           <lucide-icon name="sliders-horizontal" size="15" [strokeWidth]="2.1"></lucide-icon>
           <span>Trier par :</span>
-          <select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" aria-label="Trier les favoris">
+          <select
+            [ngModel]="sortBy()"
+            (ngModelChange)="sortBy.set($event)"
+            aria-label="Trier les favoris"
+          >
             <option value="recent">Récent</option>
             <option value="rating">Note</option>
             <option value="name">Nom</option>
@@ -72,7 +80,10 @@
       </div>
     </section>
 
-    <section *ngIf="!isLoading() && !errorMessage() && filteredFavorites().length > 0; else favoritesState" class="favorites-page__grid">
+    <section
+      *ngIf="!isLoading() && !errorMessage() && filteredFavorites().length > 0; else favoritesState"
+      class="favorites-page__grid"
+    >
       <app-provider-card
         *ngFor="let favorite of filteredFavorites()"
         [provider]="favoriteCardView(favorite)"
@@ -89,7 +100,10 @@
         <ng-container *ngIf="!currentUser(); else connectedFavoritesState">
           <lucide-icon name="lock-keyhole" size="42" [strokeWidth]="2.2"></lucide-icon>
           <h2>Connexion requise</h2>
-          <p>Connectez-vous pour retrouver vos prestataires favoris et les synchroniser avec votre compte.</p>
+          <p>
+            Connectez-vous pour retrouver vos prestataires favoris et les synchroniser avec votre
+            compte.
+          </p>
           <a routerLink="/auth/login">Se connecter</a>
         </ng-container>
 
@@ -114,7 +128,10 @@
           <ng-container *ngIf="totalFavorites() === 0; else noFilteredFavorites">
             <lucide-icon name="bookmark" size="42" [strokeWidth]="2.2"></lucide-icon>
             <h2>Aucun favori pour le moment</h2>
-            <p>Vous n'avez pas encore ajoute de prestataire a vos favoris. Les profils enregistres apparaitront ici.</p>
+            <p>
+              Vous n'avez pas encore ajoute de prestataire a vos favoris. Les profils enregistres
+              apparaitront ici.
+            </p>
             <a routerLink="/services">Explorer les services</a>
           </ng-container>
         </ng-template>
@@ -122,7 +139,9 @@
         <ng-template #noFilteredFavorites>
           <lucide-icon name="search" size="42" [strokeWidth]="2.2"></lucide-icon>
           <h2>Aucun favori avec ces filtres</h2>
-          <p>Votre liste contient des favoris, mais aucun ne correspond au tri ou au filtre actif.</p>
+          <p>
+            Votre liste contient des favoris, mais aucun ne correspond au tri ou au filtre actif.
+          </p>
           <button type="button" (click)="selectedCategory.set('Tous'); availableOnly.set(false)">
             Reinitialiser les filtres
           </button>
@@ -134,7 +153,9 @@
       <section class="favorites-page__empty">
         <lucide-icon name="bookmark" size="42" [strokeWidth]="2.2"></lucide-icon>
         <h2>Aucun favori pour le moment</h2>
-        <p>Ajoutez un prestataire depuis une page détail pour construire votre liste personnelle.</p>
+        <p>
+          Ajoutez un prestataire depuis une page détail pour construire votre liste personnelle.
+        </p>
         <a routerLink="/services">Explorer les services</a>
       </section>
     </ng-template>

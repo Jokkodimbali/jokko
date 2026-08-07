@@ -33,12 +33,7 @@ interface DisputeReasonOption {
 @Component({
   selector: 'app-dispute-report-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    LucideAngularModule,
-    AppFooterComponent,
-  ],
+  imports: [CommonModule, FormsModule, LucideAngularModule, AppFooterComponent],
   templateUrl: './dispute-report-page.component.html',
   styleUrl: './dispute-report-page.component.scss',
 })
@@ -86,7 +81,10 @@ export class DisputeReportPageComponent implements OnInit, OnDestroy {
   ];
 
   protected readonly selectedReasonLabel = computed(() => {
-    return this.reasonOptions.find((option) => option.key === this.selectedReason())?.label ?? 'Autre motif';
+    return (
+      this.reasonOptions.find((option) => option.key === this.selectedReason())?.label ??
+      'Autre motif'
+    );
   });
 
   ngOnInit(): void {
@@ -101,7 +99,9 @@ export class DisputeReportPageComponent implements OnInit, OnDestroy {
       .getAppointmentById(reservationId)
       .pipe(
         catchError((error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger cette reservation.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de charger cette reservation.'),
+          );
           return of(null);
         }),
         finalize(() => this.isLoading.set(false)),
@@ -161,11 +161,17 @@ export class DisputeReportPageComponent implements OnInit, OnDestroy {
     if (file) {
       this.previewUrls.delete(file);
     }
-    this.evidenceFiles.set(this.evidenceFiles().filter((_file, currentIndex) => currentIndex !== index));
+    this.evidenceFiles.set(
+      this.evidenceFiles().filter((_file, currentIndex) => currentIndex !== index),
+    );
   }
 
   protected canSubmit(appointment: AppointmentView | null): boolean {
-    return appointment !== null && this.canOpenDispute(appointment) && this.description().trim().length >= 20;
+    return (
+      appointment !== null &&
+      this.canOpenDispute(appointment) &&
+      this.description().trim().length >= 20
+    );
   }
 
   protected submitDispute(): void {
@@ -216,7 +222,9 @@ export class DisputeReportPageComponent implements OnInit, OnDestroy {
   }
 
   protected amountLabel(appointment: AppointmentView): string {
-    return ['PAYEE_SEQUESTRE', 'EN_COURS', 'TERMINEE', 'NO_SHOW', 'LITIGE'].includes(appointment.status)
+    return ['PAYEE_SEQUESTRE', 'EN_COURS', 'TERMINEE', 'NO_SHOW', 'LITIGE'].includes(
+      appointment.status,
+    )
       ? 'Montant paye'
       : 'Montant estime';
   }

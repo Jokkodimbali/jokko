@@ -10,10 +10,11 @@ const PRESCRIPTION_BLOCK_REPLACEMENT_PATTERN =
 @Injectable({ providedIn: 'root' })
 export class AppointmentMedicalPrescriptionService {
   hasContent(prescription: MedicalPrescriptionPayload | null | undefined): boolean {
-    return !!prescription && (
-      prescription.acts.length > 0 ||
-      prescription.vaccines.length > 0 ||
-      prescription.treatments.length > 0
+    return (
+      !!prescription &&
+      (prescription.acts.length > 0 ||
+        prescription.vaccines.length > 0 ||
+        prescription.treatments.length > 0)
     );
   }
 

@@ -11,20 +11,70 @@ type SenegalMapRegion = {
 };
 
 const SENEGAL_MAP_REGIONS: SenegalMapRegion[] = [
-  { name: 'Saint-Louis', labelX: 255, labelY: 51, points: '165,18 318,20 338,65 279,88 191,78 151,51' },
-  { name: 'Louga', labelX: 266, labelY: 117, points: '189,80 281,90 336,68 362,116 314,154 212,145 168,111' },
-  { name: 'Matam', labelX: 433, labelY: 122, points: '364,72 486,92 558,139 501,174 394,159 363,118' },
+  {
+    name: 'Saint-Louis',
+    labelX: 255,
+    labelY: 51,
+    points: '165,18 318,20 338,65 279,88 191,78 151,51',
+  },
+  {
+    name: 'Louga',
+    labelX: 266,
+    labelY: 117,
+    points: '189,80 281,90 336,68 362,116 314,154 212,145 168,111',
+  },
+  {
+    name: 'Matam',
+    labelX: 433,
+    labelY: 122,
+    points: '364,72 486,92 558,139 501,174 394,159 363,118',
+  },
   { name: 'Dakar', labelX: 75, labelY: 165, points: '44,137 98,137 112,176 76,204 35,182' },
-  { name: 'Thies', labelX: 164, labelY: 184, points: '111,133 171,116 211,147 205,214 141,230 94,183' },
+  {
+    name: 'Thies',
+    labelX: 164,
+    labelY: 184,
+    points: '111,133 171,116 211,147 205,214 141,230 94,183',
+  },
   { name: 'Diourbel', labelX: 269, labelY: 193, points: '214,148 315,156 342,206 296,255 209,216' },
-  { name: 'Fatick', labelX: 206, labelY: 285, points: '143,233 210,219 286,263 271,336 175,332 123,291' },
-  { name: 'Kaolack', labelX: 331, labelY: 304, points: '292,259 346,211 428,255 414,334 317,355 273,337' },
+  {
+    name: 'Fatick',
+    labelX: 206,
+    labelY: 285,
+    points: '143,233 210,219 286,263 271,336 175,332 123,291',
+  },
+  {
+    name: 'Kaolack',
+    labelX: 331,
+    labelY: 304,
+    points: '292,259 346,211 428,255 414,334 317,355 273,337',
+  },
   { name: 'Kaffrine', labelX: 430, labelY: 230, points: '345,207 395,161 503,178 519,243 430,254' },
-  { name: 'Tambacounda', labelX: 552, labelY: 296, points: '430,256 520,245 620,276 688,368 612,421 485,370 416,335' },
-  { name: 'Kedougou', labelX: 612, labelY: 449, points: '486,373 613,424 696,371 726,470 641,530 532,495' },
-  { name: 'Kolda', labelX: 416, labelY: 454, points: '290,387 402,344 483,373 529,497 408,506 301,465' },
+  {
+    name: 'Tambacounda',
+    labelX: 552,
+    labelY: 296,
+    points: '430,256 520,245 620,276 688,368 612,421 485,370 416,335',
+  },
+  {
+    name: 'Kedougou',
+    labelX: 612,
+    labelY: 449,
+    points: '486,373 613,424 696,371 726,470 641,530 532,495',
+  },
+  {
+    name: 'Kolda',
+    labelX: 416,
+    labelY: 454,
+    points: '290,387 402,344 483,373 529,497 408,506 301,465',
+  },
   { name: 'Sedhiou', labelX: 243, labelY: 420, points: '151,365 286,388 297,463 189,472 101,428' },
-  { name: 'Ziguinchor', labelX: 152, labelY: 514, points: '63,471 188,474 300,467 327,526 211,554 82,535' },
+  {
+    name: 'Ziguinchor',
+    labelX: 152,
+    labelY: 514,
+    points: '63,471 188,474 300,467 327,526 211,554 82,535',
+  },
 ];
 
 @Component({
@@ -43,7 +93,9 @@ export class AdminRegionsPanelComponent implements OnChanges {
 
   ngOnChanges(): void {
     if (!this.report) return;
-    const currentExists = this.report.regions.some((region) => region.name === this.selectedRegionName);
+    const currentExists = this.report.regions.some(
+      (region) => region.name === this.selectedRegionName,
+    );
     if (!currentExists || this.selectedRegionName === 'Dakar') {
       this.selectedRegionName = this.report.coverage.strongestRegion ?? 'Dakar';
     }
@@ -110,7 +162,10 @@ export class AdminRegionsPanelComponent implements OnChanges {
   }
 
   protected revenueWidth(region: AdminRegionRow, report: AdminRegionsReport): number {
-    return Math.max(4, Math.round((Number(region.grossRevenue || 0) / this.maxRevenue(report)) * 100));
+    return Math.max(
+      4,
+      Math.round((Number(region.grossRevenue || 0) / this.maxRevenue(report)) * 100),
+    );
   }
 
   protected regionTrackBy(_: number, region: AdminRegionRow): string {
@@ -118,6 +173,11 @@ export class AdminRegionsPanelComponent implements OnChanges {
   }
 
   private maxMapActivity(report: AdminRegionsReport): number {
-    return Math.max(1, ...report.regions.map((region) => Number(region.providers || 0) + Number(region.clients || 0)));
+    return Math.max(
+      1,
+      ...report.regions.map(
+        (region) => Number(region.providers || 0) + Number(region.clients || 0),
+      ),
+    );
   }
 }

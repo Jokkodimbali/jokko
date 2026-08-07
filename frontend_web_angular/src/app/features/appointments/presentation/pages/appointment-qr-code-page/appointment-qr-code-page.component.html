@@ -21,9 +21,7 @@
     </nav>
     <ng-template #singleQrHeader>
       <nav aria-label="QR code colis unique">
-        <button type="button" class="is-active">
-          QR colis unique
-        </button>
+        <button type="button" class="is-active">QR colis unique</button>
       </nav>
     </ng-template>
     <h1>
@@ -33,9 +31,7 @@
     <span aria-hidden="true"></span>
   </header>
 
-  <section *ngIf="isLoading()" class="parcel-qr__state">
-    Chargement du QR code...
-  </section>
+  <section *ngIf="isLoading()" class="parcel-qr__state">Chargement du QR code...</section>
 
   <section *ngIf="!isLoading() && errorMessage()" class="parcel-qr__state parcel-qr__state--error">
     {{ errorMessage() }}
@@ -62,7 +58,12 @@
             <span class="parcel-qr__corner parcel-qr__corner--top-right"></span>
             <span class="parcel-qr__corner parcel-qr__corner--bottom-left"></span>
             <span class="parcel-qr__corner parcel-qr__corner--bottom-right"></span>
-            <lucide-icon *ngIf="!isCameraActive()" name="maximize-2" size="30" [strokeWidth]="2.2"></lucide-icon>
+            <lucide-icon
+              *ngIf="!isCameraActive()"
+              name="maximize-2"
+              size="30"
+              [strokeWidth]="2.2"
+            ></lucide-icon>
           </div>
           <p>
             Placez le QR code de
@@ -78,7 +79,13 @@
             [disabled]="isCameraStarting()"
           >
             <lucide-icon name="camera" size="17" [strokeWidth]="2.4"></lucide-icon>
-            {{ isCameraActive() ? 'Desactiver la camera' : isCameraStarting() ? 'Activation...' : 'Activer la camera' }}
+            {{
+              isCameraActive()
+                ? 'Desactiver la camera'
+                : isCameraStarting()
+                  ? 'Activation...'
+                  : 'Activer la camera'
+            }}
           </button>
           <textarea
             [value]="manualScanValue()"
@@ -131,12 +138,20 @@
         {{ isCheckpointValidated() ? 'Validation effectuee' : statusLabel() }}
       </div>
 
-      <button *ngIf="!scanMode()" type="button" class="parcel-qr__download" (click)="downloadQrPdf()">
+      <button
+        *ngIf="!scanMode()"
+        type="button"
+        class="parcel-qr__download"
+        (click)="downloadQrPdf()"
+      >
         <lucide-icon name="arrow-down" size="17" [strokeWidth]="2.5"></lucide-icon>
         Telecharger le QR code en PDF
       </button>
 
-      <section class="parcel-qr__manifest" *ngIf="canRevealParcelDetails() && manifest().parcels.length > 0">
+      <section
+        class="parcel-qr__manifest"
+        *ngIf="canRevealParcelDetails() && manifest().parcels.length > 0"
+      >
         <h2>Colis concernes</h2>
         <p *ngFor="let parcel of manifest().parcels; trackBy: trackByIndex">
           <strong *ngIf="canRevealParcelCodes()">{{ parcelDisplayNumber(parcel) }}</strong>
@@ -171,8 +186,8 @@
         <h2>Validation livreur</h2>
         <p>
           Scannez le QR code presente par
-          {{ mode() === 'expediteur' ? "l'expediteur" : 'le destinataire' }},
-          puis validez uniquement si les colis correspondent.
+          {{ mode() === 'expediteur' ? "l'expediteur" : 'le destinataire' }}, puis validez
+          uniquement si les colis correspondent.
         </p>
         <textarea
           [value]="manualScanValue()"

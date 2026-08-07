@@ -44,6 +44,9 @@ type EnvValide = {
   CLOUDINARY_CLOUD_NAME?: string;
   CLOUDINARY_API_KEY?: string;
   CLOUDINARY_API_SECRET?: string;
+  LIVEKIT_URL?: string;
+  LIVEKIT_API_KEY?: string;
+  LIVEKIT_API_SECRET?: string;
   FCM_PROJECT_ID?: string;
   FCM_PRIVATE_KEY?: string;
   FCM_CLIENT_EMAIL?: string;
@@ -165,6 +168,30 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     nodeEnv === 'production'
       ? requiredProductionSecret('JWT_REFRESH_SECRET', env.JWT_REFRESH_SECRET)
       : requiredSecret('JWT_REFRESH_SECRET', env.JWT_REFRESH_SECRET);
+  const liveKitUrl = asString(env.LIVEKIT_URL).trim();
+  const liveKitApiKey = asString(env.LIVEKIT_API_KEY).trim();
+  const liveKitApiSecret = asString(env.LIVEKIT_API_SECRET).trim();
+  const configuredLiveKitValues = [
+    liveKitUrl,
+    liveKitApiKey,
+    liveKitApiSecret,
+  ].filter(Boolean).length;
+
+  if (nodeEnv === 'production' && configuredLiveKitValues !== 3) {
+    throw new Error(
+      'LIVEKIT_URL, LIVEKIT_API_KEY et LIVEKIT_API_SECRET sont obligatoires en production.',
+    );
+  }
+
+  if (configuredLiveKitValues > 0 && configuredLiveKitValues < 3) {
+    throw new Error(
+      'LIVEKIT_URL, LIVEKIT_API_KEY et LIVEKIT_API_SECRET doivent etre configures ensemble.',
+    );
+  }
+
+  if (liveKitUrl && !/^wss?:\/\//i.test(liveKitUrl)) {
+    throw new Error('LIVEKIT_URL doit commencer par ws:// ou wss://.');
+  }
 
   if (nodeEnv === 'production' && corsOrigins.trim().length === 0) {
     throw new Error(ENV_MESSAGES.PRODUCTION_CORS_ORIGINS_REQUIRED);
@@ -224,6 +251,9 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     CLOUDINARY_CLOUD_NAME: asString(env.CLOUDINARY_CLOUD_NAME),
     CLOUDINARY_API_KEY: asString(env.CLOUDINARY_API_KEY),
     CLOUDINARY_API_SECRET: asString(env.CLOUDINARY_API_SECRET),
+    LIVEKIT_URL: liveKitUrl,
+    LIVEKIT_API_KEY: liveKitApiKey,
+    LIVEKIT_API_SECRET: liveKitApiSecret,
     FCM_PROJECT_ID: asString(env.FCM_PROJECT_ID),
     FCM_PRIVATE_KEY: asString(env.FCM_PRIVATE_KEY),
     FCM_CLIENT_EMAIL: asString(env.FCM_CLIENT_EMAIL),

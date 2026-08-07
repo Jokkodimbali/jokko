@@ -41,7 +41,11 @@
         (click)="select(profile.id)"
         class="admin-validation-card"
       >
-        <img *ngIf="profile.utilisateur.urlAvatar; else validationAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
+        <img
+          *ngIf="profile.utilisateur.urlAvatar; else validationAvatar"
+          [src]="profile.utilisateur.urlAvatar"
+          alt=""
+        />
         <ng-template #validationAvatar>
           <span>{{ initials(profile) }}</span>
         </ng-template>
@@ -54,7 +58,11 @@
 
     <article class="admin-validation-detail" *ngIf="selectedProfile() as profile">
       <section class="admin-validation-profile">
-        <img *ngIf="profile.utilisateur.urlAvatar; else detailAvatar" [src]="profile.utilisateur.urlAvatar" alt="" />
+        <img
+          *ngIf="profile.utilisateur.urlAvatar; else detailAvatar"
+          [src]="profile.utilisateur.urlAvatar"
+          alt=""
+        />
         <ng-template #detailAvatar>
           <span>{{ initials(profile) }}</span>
         </ng-template>
@@ -88,14 +96,21 @@
 
       <section class="admin-validation-bio">
         <h3>Presentation</h3>
-        <p>{{ profile.biographie || 'Aucune biographie professionnelle renseignee pour ce dossier.' }}</p>
+        <p>
+          {{
+            profile.biographie || 'Aucune biographie professionnelle renseignee pour ce dossier.'
+          }}
+        </p>
       </section>
 
       <section class="admin-validation-checklist">
         <header>
           <div>
             <h3>Verification prestataire</h3>
-            <p>Les prestataires ne fournissent plus de pieces justificatives. Verifiez uniquement les informations du compte.</p>
+            <p>
+              Les prestataires ne fournissent plus de pieces justificatives. Verifiez uniquement les
+              informations du compte.
+            </p>
           </div>
         </header>
 
@@ -112,18 +127,32 @@
           <lucide-icon name="briefcase-business" size="17" [strokeWidth]="2.3"></lucide-icon>
           <span>
             <strong>Profil professionnel</strong>
-            <small>{{ profile.nomEntreprise || profile.biographie || 'Informations professionnelles a confirmer' }}</small>
+            <small>{{
+              profile.nomEntreprise ||
+                profile.biographie ||
+                'Informations professionnelles a confirmer'
+            }}</small>
           </span>
           <b>{{ profile.nomEntreprise || profile.biographie ? 'Renseigne' : 'A completer' }}</b>
         </article>
       </section>
 
       <footer>
-        <button type="button" class="admin-validation-reject" (click)="rejectSelected()" [disabled]="actionId === profile.id">
+        <button
+          type="button"
+          class="admin-validation-reject"
+          (click)="rejectSelected()"
+          [disabled]="actionId === profile.id"
+        >
           <lucide-icon name="x" size="18" [strokeWidth]="2.2"></lucide-icon>
           Rejeter
         </button>
-        <button type="button" class="admin-validation-approve" (click)="approveSelected()" [disabled]="actionId === profile.id">
+        <button
+          type="button"
+          class="admin-validation-approve"
+          (click)="approveSelected()"
+          [disabled]="actionId === profile.id"
+        >
           <lucide-icon name="check" size="18" [strokeWidth]="2.2"></lucide-icon>
           Approuver le compte
         </button>
@@ -143,7 +172,12 @@
 
       <label>
         Motif du rejet
-        <textarea name="rejectionReason" [(ngModel)]="rejectionReason" rows="4" placeholder="Ex : Piece d'identite illisible ou informations incompletes."></textarea>
+        <textarea
+          name="rejectionReason"
+          [(ngModel)]="rejectionReason"
+          rows="4"
+          placeholder="Ex : Piece d'identite illisible ou informations incompletes."
+        ></textarea>
       </label>
 
       <footer>

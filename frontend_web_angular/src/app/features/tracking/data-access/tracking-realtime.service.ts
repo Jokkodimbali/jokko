@@ -6,11 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { AppointmentTrackingView } from '../../appointments/domain/appointments.models';
 
-export type TrackingConnectionState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+export type TrackingConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 export type TrackingMissionEvent = {
   type: string;
@@ -27,9 +23,7 @@ export class TrackingRealtimeService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly updates = new Subject<AppointmentTrackingView>();
   private readonly missionUpdates = new Subject<TrackingMissionEvent>();
-  private readonly connectionState = new BehaviorSubject<TrackingConnectionState>(
-    'disconnected',
-  );
+  private readonly connectionState = new BehaviorSubject<TrackingConnectionState>('disconnected');
   private readonly reservationIds = new Set<string>();
   private socket: Socket | null = null;
 
@@ -41,9 +35,7 @@ export class TrackingRealtimeService {
     this.connect();
     this.subscribeToReservation(reservationId);
 
-    return this.updates.pipe(
-      filter((tracking) => tracking.reservationId === reservationId),
-    );
+    return this.updates.pipe(filter((tracking) => tracking.reservationId === reservationId));
   }
 
   stopWatching(reservationId: string): void {
@@ -81,9 +73,7 @@ export class TrackingRealtimeService {
     });
     this.socket.on('connect', () => {
       this.connectionState.next('connected');
-      this.reservationIds.forEach((reservationId) =>
-        this.subscribeToReservation(reservationId),
-      );
+      this.reservationIds.forEach((reservationId) => this.subscribeToReservation(reservationId));
     });
     this.socket.on('disconnect', () => {
       this.connectionState.next('disconnected');
@@ -91,21 +81,16 @@ export class TrackingRealtimeService {
     this.socket.on('connect_error', () => {
       this.connectionState.next('error');
     });
-    this.socket.on(
-      'tracking.snapshot',
-      (tracking: AppointmentTrackingView) => this.updates.next(tracking),
+    this.socket.on('tracking.snapshot', (tracking: AppointmentTrackingView) =>
+      this.updates.next(tracking),
     );
-    this.socket.on(
-      'tracking.location.updated',
-      (tracking: AppointmentTrackingView) => this.updates.next(tracking),
+    this.socket.on('tracking.location.updated', (tracking: AppointmentTrackingView) =>
+      this.updates.next(tracking),
     );
-    this.socket.on(
-      'tracking.mission.updated',
-      (event: TrackingMissionEvent) => {
-        this.missionUpdates.next(event);
-        this.subscribeToReservation(event.reservationId);
-      },
-    );
+    this.socket.on('tracking.mission.updated', (event: TrackingMissionEvent) => {
+      this.missionUpdates.next(event);
+      this.subscribeToReservation(event.reservationId);
+    });
   }
 
   private subscribeToReservation(reservationId: string): void {

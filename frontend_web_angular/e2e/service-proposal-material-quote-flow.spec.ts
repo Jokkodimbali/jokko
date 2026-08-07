@@ -21,7 +21,9 @@ test.describe('Service proposal material quote acceptance flow', () => {
 
     await loginAsClient(page, proposalPath());
 
-    const acceptOfferButton = page.locator('.service-proposal__counter-modern-actions .service-proposal__submit');
+    const acceptOfferButton = page.locator(
+      '.service-proposal__counter-modern-actions .service-proposal__submit',
+    );
     await expect(acceptOfferButton).toBeDisabled();
     await expect(acceptOfferButton).toContainText('Verification du devis...');
 
@@ -64,9 +66,13 @@ test.describe('Service proposal material quote acceptance flow', () => {
     await expect(page.getByRole('button', { name: /Valider ce materiel/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Refuser ce materiel/i })).toBeVisible();
 
-    const acceptOfferButton = page.locator('.service-proposal__counter-modern-actions .service-proposal__submit');
+    const acceptOfferButton = page.locator(
+      '.service-proposal__counter-modern-actions .service-proposal__submit',
+    );
     await acceptOfferButton.click();
-    await expect(page.getByText('Validez ou refusez le devis materiel avant de finaliser la reservation.')).toBeVisible();
+    await expect(
+      page.getByText('Validez ou refusez le devis materiel avant de finaliser la reservation.'),
+    ).toBeVisible();
     expect(acceptCalls).toBe(0);
     expect(reservationCalls).toBe(0);
 
@@ -75,7 +81,9 @@ test.describe('Service proposal material quote acceptance flow', () => {
 
     await acceptOfferButton.click();
     await expect(page.getByText(/Vous avez accept(?:e|é) l'offre/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /Payez|Payer|Finaliser|paiement/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Payez|Payer|Finaliser|paiement/i }),
+    ).toBeVisible();
 
     expect(acceptCalls).toBe(1);
     expect(reservationCalls).toBe(1);
@@ -102,7 +110,9 @@ test.describe('Service proposal material quote acceptance flow', () => {
     await expect(page.getByText('MATERIEL QUE LE PRESTATAIRE DOIT ACHETER')).toBeVisible();
     await expandMaterialQuotePanel(page);
     await expect(page.getByText('Aucune fourniture supplementaire')).toBeVisible();
-    await page.locator('.service-proposal__counter-modern-actions .service-proposal__submit').click();
+    await page
+      .locator('.service-proposal__counter-modern-actions .service-proposal__submit')
+      .click();
 
     await expect(page.getByText(/Vous avez accept(?:e|é) l'offre/i)).toBeVisible();
     expect(acceptCalls).toBe(1);
@@ -141,9 +151,7 @@ async function expandMaterialQuotePanel(page: Page): Promise<void> {
 }
 
 async function mockCommonServiceProposalRoutes(page: Page): Promise<void> {
-  await page.route('**/api/v1/auth/me', (route) =>
-    fulfillData(route, clientProfile()),
-  );
+  await page.route('**/api/v1/auth/me', (route) => fulfillData(route, clientProfile()));
   await page.route('**/api/v1/users/me', (route) => fulfillData(route, clientProfile()));
   await page.route('**/api/v1/notifications?**', (route) => fulfillData(route, []));
   await page.route('**/api/v1/conversations?**', (route) => fulfillData(route, []));
@@ -179,9 +187,15 @@ async function mockCommonServiceProposalRoutes(page: Page): Promise<void> {
       },
     ]),
   );
-  await page.route(`**/api/v1/professionals/${professionalId}/portfolio`, (route) => fulfillData(route, []));
-  await page.route(`**/api/v1/professionals/${professionalId}/availabilities`, (route) => fulfillData(route, []));
-  await page.route(`**/api/v1/professionals/${professionalId}/reviews`, (route) => fulfillData(route, []));
+  await page.route(`**/api/v1/professionals/${professionalId}/portfolio`, (route) =>
+    fulfillData(route, []),
+  );
+  await page.route(`**/api/v1/professionals/${professionalId}/availabilities`, (route) =>
+    fulfillData(route, []),
+  );
+  await page.route(`**/api/v1/professionals/${professionalId}/reviews`, (route) =>
+    fulfillData(route, []),
+  );
   await page.route(`**/api/v1/professionals/${professionalId}/presence`, (route) =>
     fulfillData(route, {
       professionalId,
@@ -250,13 +264,20 @@ async function mockClientNegotiationRoutes(
     }
     return fulfillData(route, status ? [materialQuote(status)] : []);
   });
-  await page.route(`**/api/v1/negotiations/${negotiationId}/material-quotes/material-quote-1/approve`, (route) => {
-    callbacks.onApproveQuote?.();
-    return fulfillData(route, materialQuote('VALIDE'));
-  });
+  await page.route(
+    `**/api/v1/negotiations/${negotiationId}/material-quotes/material-quote-1/approve`,
+    (route) => {
+      callbacks.onApproveQuote?.();
+      return fulfillData(route, materialQuote('VALIDE'));
+    },
+  );
   await page.route(`**/api/v1/negotiations/${negotiationId}/material-quotes/finalize`, (route) => {
     callbacks.onFinalizeQuote?.();
-    return fulfillData(route, { ready: true, quoteCount: 1, pdfUrl: '/api/v1/negotiations/e2e/material-quotes.pdf' });
+    return fulfillData(route, {
+      ready: true,
+      quoteCount: 1,
+      pdfUrl: '/api/v1/negotiations/e2e/material-quotes.pdf',
+    });
   });
   await page.route('**/api/v1/reservations/from-negotiation', (route) => {
     callbacks.onCreateReservation?.();

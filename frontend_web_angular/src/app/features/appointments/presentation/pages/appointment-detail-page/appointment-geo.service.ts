@@ -58,9 +58,7 @@ export class AppointmentGeoService {
     const destinationLatitude = (destination.lat * Math.PI) / 180;
     const a =
       Math.sin(latitudeDelta / 2) ** 2 +
-      Math.cos(originLatitude) *
-        Math.cos(destinationLatitude) *
-        Math.sin(longitudeDelta / 2) ** 2;
+      Math.cos(originLatitude) * Math.cos(destinationLatitude) * Math.sin(longitudeDelta / 2) ** 2;
     return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 

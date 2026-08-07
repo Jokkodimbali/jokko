@@ -50,7 +50,9 @@
         </button>
       </div>
 
-      <p *ngIf="isLoadingConversations()" class="messages-page__state">Chargement des conversations...</p>
+      <p *ngIf="isLoadingConversations()" class="messages-page__state">
+        Chargement des conversations...
+      </p>
       <p *ngIf="!isLoadingConversations() && !currentUser()" class="messages-page__state">
         Connectez-vous pour retrouver vos messages.
       </p>
@@ -71,7 +73,10 @@
         >
           <span class="messages-page__avatar">
             <img
-              *ngIf="visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl; else conversationInitials"
+              *ngIf="
+                visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl;
+                else conversationInitials
+              "
               [src]="avatarUrl"
               [alt]="conversation.counterpart.name"
               (error)="handleAvatarError(avatarUrl)"
@@ -79,7 +84,10 @@
             <ng-template #conversationInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
             </ng-template>
-            <app-presence-dot [userId]="conversation.counterpart.userId" [professionalId]="conversation.counterpart.professionalProfileId" />
+            <app-presence-dot
+              [userId]="conversation.counterpart.userId"
+              [professionalId]="conversation.counterpart.professionalProfileId"
+            />
           </span>
           <span class="messages-page__conversation-copy">
             <strong>{{ conversation.counterpart.name }}</strong>
@@ -95,7 +103,11 @@
               type="button"
               class="messages-page__favorite"
               [class.messages-page__favorite--active]="isFavoriteConversation(conversation.id)"
-              [attr.aria-label]="isFavoriteConversation(conversation.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+              [attr.aria-label]="
+                isFavoriteConversation(conversation.id)
+                  ? 'Retirer des favoris'
+                  : 'Ajouter aux favoris'
+              "
               (click)="toggleConversationFavorite($event, conversation.id)"
             >
               <lucide-icon
@@ -127,7 +139,10 @@
           </button>
           <span class="messages-page__avatar messages-page__avatar--large">
             <img
-              *ngIf="visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl; else selectedInitials"
+              *ngIf="
+                visibleAvatarUrl(conversation.counterpart.avatarUrl) as avatarUrl;
+                else selectedInitials
+              "
               [src]="avatarUrl"
               [alt]="conversation.counterpart.name"
               (error)="handleAvatarError(avatarUrl)"
@@ -135,14 +150,20 @@
             <ng-template #selectedInitials>
               <i>{{ initials(conversation.counterpart.name) }}</i>
             </ng-template>
-            <app-presence-dot [userId]="conversation.counterpart.userId" [professionalId]="conversation.counterpart.professionalProfileId" />
+            <app-presence-dot
+              [userId]="conversation.counterpart.userId"
+              [professionalId]="conversation.counterpart.professionalProfileId"
+            />
           </span>
           <span class="messages-page__chat-title">
             <strong>{{ conversation.counterpart.name }}</strong>
             <small *ngIf="conversation.counterpart.subCategoryNames?.length">
               {{ conversation.counterpart.subCategoryNames?.join(' · ') }}
             </small>
-            <small *ngIf="conversation.counterpart.rating != null" class="messages-page__chat-rating">
+            <small
+              *ngIf="conversation.counterpart.rating != null"
+              class="messages-page__chat-rating"
+            >
               <app-star-rating
                 [value]="conversation.counterpart.rating"
                 [reviews]="conversation.counterpart.reviewCount ?? 0"
@@ -158,6 +179,36 @@
         </span>
 
         <span class="messages-page__chat-actions">
+          <button
+            type="button"
+            aria-label="Appel vocal"
+            [disabled]="calls.isBusy()"
+            (click)="
+              calls.start(
+                conversation.id,
+                'VOICE',
+                conversation.counterpart.name,
+                conversation.counterpart.avatarUrl
+              )
+            "
+          >
+            <lucide-icon name="phone" size="18" [strokeWidth]="2"></lucide-icon>
+          </button>
+          <button
+            type="button"
+            aria-label="Appel vidéo"
+            [disabled]="calls.isBusy()"
+            (click)="
+              calls.start(
+                conversation.id,
+                'VIDEO',
+                conversation.counterpart.name,
+                conversation.counterpart.avatarUrl
+              )
+            "
+          >
+            <lucide-icon name="video" size="18" [strokeWidth]="2"></lucide-icon>
+          </button>
           <button
             type="button"
             aria-label="Rechercher dans la conversation"
@@ -182,8 +233,12 @@
       </label>
 
       <div class="messages-page__thread" #messageThread>
-        <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
-        <p *ngIf="isLoadingMessages()" class="messages-page__state">Chargement de la discussion...</p>
+        <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">
+          {{ errorMessage() }}
+        </p>
+        <p *ngIf="isLoadingMessages()" class="messages-page__state">
+          Chargement de la discussion...
+        </p>
 
         <article
           *ngFor="let message of filteredMessages()"
@@ -194,7 +249,10 @@
             <time>{{ formatDate(message.createdAt) }}</time>
             <p class="messages-page__bubble" *ngIf="message.content">{{ message.content }}</p>
             <ng-container *ngIf="message.mediaUrl as mediaUrl">
-              <span *ngIf="isImageMedia(mediaUrl); else nonImageMedia" class="messages-page__media-image-wrap">
+              <span
+                *ngIf="isImageMedia(mediaUrl); else nonImageMedia"
+                class="messages-page__media-image-wrap"
+              >
                 <a
                   class="messages-page__media-image-link"
                   [href]="mediaDisplayUrl(mediaUrl)"
@@ -230,7 +288,11 @@
                     <span class="messages-page__media-file-icon">
                       <lucide-icon name="file-text" size="18" [strokeWidth]="2.3"></lucide-icon>
                     </span>
-                    <button type="button" class="messages-page__media-file-copy" (click)="openMedia(mediaUrl)">
+                    <button
+                      type="button"
+                      class="messages-page__media-file-copy"
+                      (click)="openMedia(mediaUrl)"
+                    >
                       <strong>{{ mediaFileName(mediaUrl) }}</strong>
                       <small>{{ mediaTypeLabelFromUrl(mediaUrl) }}</small>
                     </button>
@@ -250,6 +312,45 @@
           </span>
         </article>
 
+        <article
+          *ngFor="let callItem of selectedConversationCalls()"
+          class="messages-page__call-event"
+          [class.messages-page__call-event--missed]="
+            callItem.status === 'MISSED' && callItem.direction === 'INCOMING'
+          "
+          [class.messages-page__call-event--failed]="
+            callItem.status === 'MISSED' ||
+            callItem.status === 'REJECTED' ||
+            callItem.status === 'FAILED'
+          "
+          [class.messages-page__call-event--completed]="callItem.status === 'ENDED'"
+          [class.messages-page__call-event--incoming]="callItem.direction === 'INCOMING'"
+          [class.messages-page__call-event--outgoing]="callItem.direction === 'OUTGOING'"
+        >
+          <span class="messages-page__call-event-icon">
+            <lucide-icon
+              [name]="callItem.kind === 'VIDEO' ? 'video' : 'phone'"
+              size="18"
+              [strokeWidth]="2.2"
+            ></lucide-icon>
+            <lucide-icon
+              class="messages-page__call-direction"
+              [name]="callItem.direction === 'INCOMING' ? 'arrow-down-left' : 'arrow-up-right'"
+              size="13"
+              [strokeWidth]="3"
+            ></lucide-icon>
+          </span>
+          <span>
+            <strong>{{ callHistoryLabel(callItem) }}</strong>
+            <small>
+              {{ callItem.startedAt | date: 'dd/MM/yyyy à HH:mm' }}
+              <ng-container *ngIf="callDurationLabel(callItem) as duration">
+                · {{ duration }}
+              </ng-container>
+            </small>
+          </span>
+        </article>
+
         <p
           *ngIf="!isLoadingMessages() && threadSearch().trim() && filteredMessages().length === 0"
           class="messages-page__state"
@@ -257,7 +358,10 @@
           Aucun message ne correspond à cette recherche.
         </p>
 
-        <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row messages-page__reservation-row--thread">
+        <article
+          *ngIf="conversationReservationCard() as card"
+          class="messages-page__reservation-row messages-page__reservation-row--thread"
+        >
           <section class="messages-page__reservation-card" aria-label="Resume du rendez-vous">
             <span class="messages-page__reservation-avatar">
               <img
@@ -316,7 +420,6 @@
             </footer>
           </section>
         </article>
-
       </div>
 
       <section
@@ -329,7 +432,11 @@
             <lucide-icon name="x" size="22" [strokeWidth]="2.4"></lucide-icon>
           </button>
           <strong>{{ preview.name }}</strong>
-          <button type="button" [attr.aria-label]="'Telecharger ' + preview.name" (click)="downloadPendingAttachment()">
+          <button
+            type="button"
+            [attr.aria-label]="'Telecharger ' + preview.name"
+            (click)="downloadPendingAttachment()"
+          >
             <lucide-icon name="download" size="21" [strokeWidth]="2.4"></lucide-icon>
           </button>
         </header>
@@ -349,7 +456,6 @@
             </div>
           </ng-template>
         </div>
-
       </section>
 
       <article *ngIf="conversationReservationCard() as card" class="messages-page__reservation-row">
@@ -438,7 +544,9 @@
 
     <ng-template #emptyThread>
       <section class="messages-page__chat messages-page__chat--empty">
-        <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">{{ errorMessage() }}</p>
+        <p *ngIf="errorMessage()" class="messages-page__state messages-page__state--error">
+          {{ errorMessage() }}
+        </p>
         <ng-container *ngIf="isLoadingConversations(); else chooseConversation">
           <p class="messages-page__state">Chargement de la discussion...</p>
         </ng-container>
@@ -452,4 +560,3 @@
     </ng-template>
   </section>
 </main>
-

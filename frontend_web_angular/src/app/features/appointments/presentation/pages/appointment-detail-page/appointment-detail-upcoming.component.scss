@@ -33,7 +33,11 @@
   cursor: pointer;
   display: inline-flex;
   justify-content: center;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
 .appointment-detail__upcoming-heading button {
@@ -147,9 +151,7 @@
 }
 
 .appointment-detail__upcoming-map {
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.06), rgba(12, 18, 28, 0.08)),
-    #cfd5d8;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.06), rgba(12, 18, 28, 0.08)), #cfd5d8;
   min-height: calc(100vh - 67px);
   overflow: hidden;
   position: relative;
@@ -157,10 +159,30 @@
 
 .appointment-detail__upcoming-map::before {
   background:
-    linear-gradient(28deg, transparent 0 17%, rgba(136, 91, 65, 0.55) 17% 18.2%, transparent 18.2% 100%),
-    linear-gradient(95deg, transparent 0 23%, rgba(105, 76, 141, 0.34) 23% 24.2%, transparent 24.2% 100%),
-    linear-gradient(143deg, transparent 0 38%, rgba(120, 123, 127, 0.42) 38% 39.1%, transparent 39.1% 100%),
-    linear-gradient(8deg, transparent 0 54%, rgba(120, 123, 127, 0.36) 54% 55%, transparent 55% 100%),
+    linear-gradient(
+      28deg,
+      transparent 0 17%,
+      rgba(136, 91, 65, 0.55) 17% 18.2%,
+      transparent 18.2% 100%
+    ),
+    linear-gradient(
+      95deg,
+      transparent 0 23%,
+      rgba(105, 76, 141, 0.34) 23% 24.2%,
+      transparent 24.2% 100%
+    ),
+    linear-gradient(
+      143deg,
+      transparent 0 38%,
+      rgba(120, 123, 127, 0.42) 38% 39.1%,
+      transparent 39.1% 100%
+    ),
+    linear-gradient(
+      8deg,
+      transparent 0 54%,
+      rgba(120, 123, 127, 0.36) 54% 55%,
+      transparent 55% 100%
+    ),
     radial-gradient(circle at 18% 32%, #ef713f 0 7px, transparent 8px),
     radial-gradient(circle at 69% 49%, #d74591 0 6px, transparent 7px),
     radial-gradient(circle at 41% 24%, #4ea9d8 0 6px, transparent 7px),
@@ -493,7 +515,10 @@
   justify-content: center;
   min-height: 40px;
   text-transform: uppercase;
-  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .appointment-detail__operational-status button:hover {
@@ -665,7 +690,10 @@
   font-weight: 900;
   justify-content: center;
   min-height: 38px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
   width: 100%;
 }
 
@@ -703,4 +731,3 @@
   background: #7f4e1d;
   box-shadow: 0 10px 24px rgba(149, 93, 36, 0.24);
 }
-

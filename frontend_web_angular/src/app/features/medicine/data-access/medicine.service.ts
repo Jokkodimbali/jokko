@@ -22,7 +22,10 @@ export class MedicineService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  listDoctors(page: number = 1, limit: number = 12): Observable<{ doctors: DoctorProfile[]; meta?: PaginationMeta }> {
+  listDoctors(
+    page: number = 1,
+    limit: number = 12,
+  ): Observable<{ doctors: DoctorProfile[]; meta?: PaginationMeta }> {
     return this.http
       .get<ApiResponse<BackendProfessional[]>>(`${this.apiUrl}/search/professionals`, {
         params: {
@@ -35,15 +38,24 @@ export class MedicineService {
         switchMap((response) => {
           const professionals = unwrapApiResponse(response);
           if (professionals.length === 0) {
-            return of({ doctors: [], meta: response.meta?.['pagination'] as PaginationMeta | undefined });
+            return of({
+              doctors: [],
+              meta: response.meta?.['pagination'] as PaginationMeta | undefined,
+            });
           }
 
           const doctorRequests = professionals.map((professional) =>
             forkJoin({
-              availabilities: this.getProfessionalAvailabilities(professional.id).pipe(catchError(() => of([]))),
-              presence: this.getProfessionalPresence(professional.id).pipe(catchError(() => of(null))),
+              availabilities: this.getProfessionalAvailabilities(professional.id).pipe(
+                catchError(() => of([])),
+              ),
+              presence: this.getProfessionalPresence(professional.id).pipe(
+                catchError(() => of(null)),
+              ),
             }).pipe(
-              map(({ availabilities, presence }) => this.mapDoctor(professional, availabilities, presence)),
+              map(({ availabilities, presence }) =>
+                this.mapDoctor(professional, availabilities, presence),
+              ),
             ),
           );
 
@@ -57,19 +69,21 @@ export class MedicineService {
       );
   }
 
-  private getProfessionalAvailabilities(profileId: string): Observable<BackendProfessionalAvailability[]> {
+  private getProfessionalAvailabilities(
+    profileId: string,
+  ): Observable<BackendProfessionalAvailability[]> {
     return this.http
-      .get<ApiResponse<BackendProfessionalAvailability[]>>(
-        `${this.apiUrl}/professionals/${profileId}/availabilities`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalAvailability[]>
+      >(`${this.apiUrl}/professionals/${profileId}/availabilities`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   private getProfessionalPresence(profileId: string): Observable<BackendProfessionalPresence> {
     return this.http
-      .get<ApiResponse<BackendProfessionalPresence>>(
-        `${this.apiUrl}/professionals/${profileId}/presence`,
-      )
+      .get<
+        ApiResponse<BackendProfessionalPresence>
+      >(`${this.apiUrl}/professionals/${profileId}/presence`)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -81,11 +95,17 @@ export class MedicineService {
     const primaryService = professional.services[0];
     const medicalSpecialty = this.extractMedicalSpecialty(professional.bio);
     const nextAvailability = this.buildNextAvailabilityLabels(availabilities);
-    const modes = Array.from(new Set(
-      professional.services
-        .map(s => s.travelMode === 'PRESTATAIRE_SE_DEPLACE' ? MEDICINE_UI_MESSAGES.modes.remote : MEDICINE_UI_MESSAGES.modes.office)
-        .filter(Boolean) as string[]
-    ));
+    const modes = Array.from(
+      new Set(
+        professional.services
+          .map((s) =>
+            s.travelMode === 'PRESTATAIRE_SE_DEPLACE'
+              ? MEDICINE_UI_MESSAGES.modes.remote
+              : MEDICINE_UI_MESSAGES.modes.office,
+          )
+          .filter(Boolean) as string[],
+      ),
+    );
 
     return {
       id: professional.id,
@@ -102,7 +122,7 @@ export class MedicineService {
       latitude: professional.latitude,
       longitude: professional.longitude,
       imageUrl: this.absoluteAssetUrl(professional.avatarUrl) || '',
-      isOnline: presence ? presence.isOnline : professional.isOnline ?? false,
+      isOnline: presence ? presence.isOnline : (professional.isOnline ?? false),
       modes: modes.length > 0 ? modes : [],
       nextAvailability,
       availability: [

@@ -47,7 +47,9 @@ test.describe('Jokko smoke browser checks', () => {
         await page.goto(route);
         await waitForPageReady(page);
 
-        await expect(page.locator('body')).not.toContainText('Connectez-vous d abord pour acceder a cet espace.');
+        await expect(page.locator('body')).not.toContainText(
+          'Connectez-vous d abord pour acceder a cet espace.',
+        );
         expect(await hasRuntimeOverlay(page)).toBe(false);
       }
 
@@ -82,7 +84,11 @@ async function waitForPageReady(page: Page): Promise<void> {
 }
 
 async function hasRuntimeOverlay(page: Page): Promise<boolean> {
-  return (await page.locator('text=/Application error|Internal Server Error|NG0\\d+|Cannot GET/i').count()) > 0;
+  return (
+    (await page
+      .locator('text=/Application error|Internal Server Error|NG0\\d+|Cannot GET/i')
+      .count()) > 0
+  );
 }
 
 function collectPageErrors(page: Page) {

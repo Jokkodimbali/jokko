@@ -344,8 +344,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   private placeMarker(lat: number, lng: number, label = 'Adresse selectionnee'): void {
-    const AdvancedMarkerElement =
-      this.google?.maps.marker?.AdvancedMarkerElement;
+    const AdvancedMarkerElement = this.google?.maps.marker?.AdvancedMarkerElement;
     if (!AdvancedMarkerElement || !this.map) return;
     const position = { lat, lng };
 
@@ -415,14 +414,13 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     this.autocompleteSessionToken ??= new places.AutocompleteSessionToken();
 
     try {
-      const { suggestions } =
-        await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: query,
-          includedRegionCodes: ['sn'],
-          language: 'fr',
-          region: 'sn',
-          sessionToken: this.autocompleteSessionToken,
-        });
+      const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: query,
+        includedRegionCodes: ['sn'],
+        language: 'fr',
+        region: 'sn',
+        sessionToken: this.autocompleteSessionToken,
+      });
       if (requestId !== this.autocompleteRequestId) return;
 
       this.zone.run(() => {
@@ -456,9 +454,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     }
   }
 
-  private async selectAutocompletePlace(
-    prediction: GoogleMapsPlacePrediction,
-  ): Promise<void> {
+  private async selectAutocompletePlace(prediction: GoogleMapsPlacePrediction): Promise<void> {
     const place = prediction.toPlace();
 
     await place.fetchFields({
@@ -468,8 +464,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     if (!location) return;
 
     this.zone.run(() => {
-      const address =
-        place.formattedAddress || place.displayName || this.searchQuery;
+      const address = place.formattedAddress || place.displayName || this.searchQuery;
       this.searchQuery = address;
       this.addressSuggestions.set([]);
       this.autocompleteSessionToken = null;

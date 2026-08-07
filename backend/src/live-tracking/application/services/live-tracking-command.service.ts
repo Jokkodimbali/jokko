@@ -379,6 +379,15 @@ export class LiveTrackingCommandService {
       return null;
     }
 
+    if (!isOnline) {
+      this.realtimeEvents.emit('user.presence.updated', {
+        userId: user.sub,
+        professionalId: professional.id,
+        isOnline: false,
+        changedAt: new Date().toISOString(),
+      });
+    }
+
     const entity = ProfessionalPresenceEntity.reconstitute(
       (await this.liveTrackingRepository.findProfessionalPresence(
         professional.id,

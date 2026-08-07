@@ -1,4 +1,9 @@
-import { ApplicationConfig, LOCALE_ID, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  LOCALE_ID,
+  importProvidersFrom,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { IMAGE_CONFIG, registerLocaleData } from '@angular/common';
@@ -10,6 +15,7 @@ import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import {
   Activity,
   ArrowDown,
+  ArrowDownLeft,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
@@ -82,6 +88,7 @@ import {
   MessageCircle,
   MessageSquareText,
   Mic,
+  MicOff,
   Minimize2,
   Minus,
   MoveRight,
@@ -96,6 +103,7 @@ import {
   PersonStanding,
   Phone,
   PhoneCall,
+  PhoneOff,
   Plus,
   Power,
   Receipt,
@@ -127,6 +135,7 @@ import {
   UserX,
   Users,
   Video,
+  VideoOff,
   Volume2,
   VolumeX,
   WalletCards,
@@ -138,10 +147,9 @@ import {
 // Register French locale
 registerLocaleData(localeFr);
 
-
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideBrowserGlobalErrorListeners(), 
+    provideBrowserGlobalErrorListeners(),
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(withInterceptors([jwtInterceptor, httpCacheInterceptor])),
@@ -149,6 +157,7 @@ export const appConfig: ApplicationConfig = {
       LucideAngularModule.pick({
         Activity,
         ArrowDown,
+        ArrowDownLeft,
         ArrowLeft,
         ArrowRight,
         ArrowUp,
@@ -221,6 +230,7 @@ export const appConfig: ApplicationConfig = {
         MessageCircle,
         MessageSquareText,
         Mic,
+        MicOff,
         Minimize2,
         Minus,
         MoveRight,
@@ -235,6 +245,7 @@ export const appConfig: ApplicationConfig = {
         PersonStanding,
         Phone,
         PhoneCall,
+        PhoneOff,
         Plus,
         Power,
         Receipt,
@@ -266,6 +277,7 @@ export const appConfig: ApplicationConfig = {
         UserX,
         Users,
         Video,
+        VideoOff,
         Volume2,
         VolumeX,
         WalletCards,
@@ -277,9 +289,9 @@ export const appConfig: ApplicationConfig = {
     {
       provide: IMAGE_CONFIG,
       useValue: {
-        disableImageSizeWarning: true, 
-        disableImageLazyLoadWarning: true
-      }
-    }
+        disableImageSizeWarning: true,
+        disableImageLazyLoadWarning: true,
+      },
+    },
   ],
 };

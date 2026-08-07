@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, computed, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  computed,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { userInitials } from '../../../../../shared/utils/user-initials';
@@ -49,7 +58,10 @@ export class AdminProvidersPanelComponent implements OnChanges, OnDestroy {
   private filterTimer: ReturnType<typeof setTimeout> | null = null;
   private detailTimer: ReturnType<typeof setTimeout> | null = null;
   protected verifiedCount(): number {
-    return this.stats?.verifiedCount ?? this.providers.filter((provider) => provider.kycStatus === 'VERIFIE').length;
+    return (
+      this.stats?.verifiedCount ??
+      this.providers.filter((provider) => provider.kycStatus === 'VERIFIE').length
+    );
   }
 
   protected activeCount(): number {
@@ -57,11 +69,17 @@ export class AdminProvidersPanelComponent implements OnChanges, OnDestroy {
   }
 
   protected totalRevenue(): number {
-    return this.stats?.revenueGross ?? this.providers.reduce((sum, provider) => sum + provider.revenueGross, 0);
+    return (
+      this.stats?.revenueGross ??
+      this.providers.reduce((sum, provider) => sum + provider.revenueGross, 0)
+    );
   }
 
   protected totalReservations(): number {
-    return this.stats?.reservationsCount ?? this.providers.reduce((sum, provider) => sum + provider.reservationsCount, 0);
+    return (
+      this.stats?.reservationsCount ??
+      this.providers.reduce((sum, provider) => sum + provider.reservationsCount, 0)
+    );
   }
 
   ngOnChanges(): void {

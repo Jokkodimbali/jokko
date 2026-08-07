@@ -1,7 +1,9 @@
 <main class="medicine-booking">
   <section class="medicine-booking__shell">
     <p *ngIf="isLoading()" class="medicine-booking__state">Chargement du medecin...</p>
-    <p *ngIf="errorMessage()" class="medicine-booking__state medicine-booking__state--error">{{ errorMessage() }}</p>
+    <p *ngIf="errorMessage()" class="medicine-booking__state medicine-booking__state--error">
+      {{ errorMessage() }}
+    </p>
 
     <ng-container *ngIf="!isLoading() && !errorMessage()">
       <app-appointment-tracking-stepper
@@ -26,15 +28,28 @@
                   [initialOnline]="detail()?.presence?.isOnline ?? false"
                 />
               </span>
-              <h1>{{ activeStep() === 'PERSONAL' ? 'Saisie des informations' : 'Finalisation du rendez-vous' }}</h1>
+              <h1>
+                {{
+                  activeStep() === 'PERSONAL'
+                    ? 'Saisie des informations'
+                    : 'Finalisation du rendez-vous'
+                }}
+              </h1>
             </div>
-            <button type="button" class="medicine-booking__close" aria-label="Fermer" (click)="goBack()">
+            <button
+              type="button"
+              class="medicine-booking__close"
+              aria-label="Fermer"
+              (click)="goBack()"
+            >
               <lucide-icon name="x" size="20" [strokeWidth]="2.2"></lucide-icon>
             </button>
           </header>
 
           <div class="medicine-booking__progress" aria-hidden="true">
-            <span class="medicine-booking__progress-segment medicine-booking__progress-segment--active"></span>
+            <span
+              class="medicine-booking__progress-segment medicine-booking__progress-segment--active"
+            ></span>
             <span
               class="medicine-booking__progress-segment"
               [class.medicine-booking__progress-segment--active]="activeStep() === 'RESERVATION'"
@@ -112,12 +127,20 @@
                   (click)="openDetailsModal('service')"
                 >
                   <span class="medicine-booking__picker-icon">
-                    <lucide-icon name="briefcase-medical" size="21" [strokeWidth]="2.3"></lucide-icon>
+                    <lucide-icon
+                      name="briefcase-medical"
+                      size="21"
+                      [strokeWidth]="2.3"
+                    ></lucide-icon>
                   </span>
                   <div>
                     <small>Motif du RDV medical</small>
                     <strong [class.medicine-booking__field-placeholder]="!selectedService()">
-                      {{ selectedService() ? selectedServiceSummary() : 'Selectionnez un motif de rdv...' }}
+                      {{
+                        selectedService()
+                          ? selectedServiceSummary()
+                          : 'Selectionnez un motif de rdv...'
+                      }}
                     </strong>
                   </div>
                   <lucide-icon name="pencil" size="16" [strokeWidth]="2.4"></lucide-icon>
@@ -128,14 +151,20 @@
               </div>
 
               <div class="medicine-booking__picker-stack">
-                <button type="button" class="medicine-booking__picker-card" (click)="openDetailsModal('schedule')">
+                <button
+                  type="button"
+                  class="medicine-booking__picker-card"
+                  (click)="openDetailsModal('schedule')"
+                >
                   <span class="medicine-booking__picker-icon">
                     <lucide-icon name="calendar-days" size="21" [strokeWidth]="2.3"></lucide-icon>
                   </span>
                   <div>
                     <small>Date & heure d'intervention</small>
                     <strong [class.medicine-booking__field-placeholder]="!selectedDateTime()">
-                      {{ selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...' }}
+                      {{
+                        selectedDateTime() ? selectedSlotLabel() : 'Definir la date & l heure...'
+                      }}
                     </strong>
                   </div>
                 </button>
@@ -156,7 +185,11 @@
                   </span>
                   <div>
                     <small>Adresse d'intervention</small>
-                    <strong [class.medicine-booking__field-placeholder]="doctorTravelsToPatient() && !appointmentAddressOverride() && !userAddress()">
+                    <strong
+                      [class.medicine-booking__field-placeholder]="
+                        doctorTravelsToPatient() && !appointmentAddressOverride() && !userAddress()
+                      "
+                    >
                       {{ patientSummaryAddress() || 'Saisir une adresse...' }}
                     </strong>
                   </div>
@@ -169,13 +202,18 @@
                     </span>
                     <div>
                       <small>Adresse d'intervention</small>
-                      <strong [class.medicine-booking__field-placeholder]="!doctorInterventionAddress()">
+                      <strong
+                        [class.medicine-booking__field-placeholder]="!doctorInterventionAddress()"
+                      >
                         {{ doctorInterventionAddressLabel() }}
                       </strong>
                     </div>
                   </div>
                 </ng-template>
-                <p *ngIf="fieldErrors().selfAddress || fieldErrors().address" class="medicine-booking__error-text">
+                <p
+                  *ngIf="fieldErrors().selfAddress || fieldErrors().address"
+                  class="medicine-booking__error-text"
+                >
                   {{ fieldErrors().selfAddress || fieldErrors().address }}
                 </p>
               </div>
@@ -202,7 +240,11 @@
 
           <section *ngIf="activeStep() === 'RESERVATION'" class="medicine-booking__panel">
             <section class="medicine-booking__prestation-accordion">
-              <button type="button" class="medicine-booking__prestation-toggle" (click)="togglePrestationDetails()">
+              <button
+                type="button"
+                class="medicine-booking__prestation-toggle"
+                (click)="togglePrestationDetails()"
+              >
                 <span class="medicine-booking__prestation-icon">
                   <lucide-icon name="stethoscope" size="25" [strokeWidth]="2.4"></lucide-icon>
                 </span>
@@ -210,17 +252,28 @@
                   <strong>Details de la prestation</strong>
                   <small>{{ selectedService()?.nom || 'Premiere consultation' }}</small>
                 </div>
-                <span class="medicine-booking__prestation-chevron" [class.medicine-booking__prestation-chevron--open]="prestationDetailsExpanded()">
+                <span
+                  class="medicine-booking__prestation-chevron"
+                  [class.medicine-booking__prestation-chevron--open]="prestationDetailsExpanded()"
+                >
                   <lucide-icon name="chevron-down" size="18" [strokeWidth]="2.6"></lucide-icon>
                 </span>
               </button>
 
               <div *ngIf="prestationDetailsExpanded()" class="medicine-booking__prestation-content">
-                <button type="button" class="medicine-booking__detail-row" (click)="openDetailsModal('service')">
+                <button
+                  type="button"
+                  class="medicine-booking__detail-row"
+                  (click)="openDetailsModal('service')"
+                >
                   <span>Motif</span>
                   <strong>{{ selectedServiceSummary() }}</strong>
                 </button>
-                <button type="button" class="medicine-booking__detail-row" (click)="openDetailsModal('schedule')">
+                <button
+                  type="button"
+                  class="medicine-booking__detail-row"
+                  (click)="openDetailsModal('schedule')"
+                >
                   <span>Date & heure</span>
                   <strong>{{ selectedSlotLabel() }}</strong>
                 </button>
@@ -233,7 +286,10 @@
                   <span>Adresse</span>
                   <strong>{{ patientSummaryAddress() }}</strong>
                 </button>
-                <div *ngIf="patientTravelsToDoctor()" class="medicine-booking__detail-row medicine-booking__detail-row--static">
+                <div
+                  *ngIf="patientTravelsToDoctor()"
+                  class="medicine-booking__detail-row medicine-booking__detail-row--static"
+                >
                   <span>Adresse</span>
                   <strong>{{ doctorInterventionAddressLabel() }}</strong>
                 </div>
@@ -242,17 +298,29 @@
 
             <section class="medicine-booking__fixed-price">
               <div>
-                <small>Prix du RDV medical<br />{{ selectedService()?.nom || 'Premiere consultation' }}</small>
+                <small
+                  >Prix du RDV medical<br />{{
+                    selectedService()?.nom || 'Premiere consultation'
+                  }}</small
+                >
                 <strong>{{ priceLabel() }}</strong>
               </div>
             </section>
 
             <footer class="medicine-booking__actions medicine-booking__actions--split">
-              <button type="button" class="medicine-booking__secondary" (click)="goToPersonalStep()">
+              <button
+                type="button"
+                class="medicine-booking__secondary"
+                (click)="goToPersonalStep()"
+              >
                 <lucide-icon name="arrow-left" size="20" [strokeWidth]="2.6"></lucide-icon>
                 Retour
               </button>
-              <button type="button" class="medicine-booking__primary" (click)="confirmAppointment()">
+              <button
+                type="button"
+                class="medicine-booking__primary"
+                (click)="confirmAppointment()"
+              >
                 <lucide-icon name="check" size="21" [strokeWidth]="2.8"></lucide-icon>
                 {{ isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
                 <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.8"></lucide-icon>
@@ -265,7 +333,11 @@
           <article class="medicine-booking__summary-card">
             <header class="medicine-booking__doctor">
               <span class="medicine-booking__avatar">
-                <img *ngIf="doctorAvatarUrl(); else doctorInitialsTemplate" [src]="doctorAvatarUrl()" [alt]="doctorName()" />
+                <img
+                  *ngIf="doctorAvatarUrl(); else doctorInitialsTemplate"
+                  [src]="doctorAvatarUrl()"
+                  [alt]="doctorName()"
+                />
                 <ng-template #doctorInitialsTemplate>{{ doctorInitials() }}</ng-template>
               </span>
               <div>
@@ -283,12 +355,16 @@
 
             <dl class="medicine-booking__summary-list">
               <div>
-                <span><lucide-icon name="briefcase-medical" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <span
+                  ><lucide-icon name="briefcase-medical" size="18" [strokeWidth]="2.3"></lucide-icon
+                ></span>
                 <dt>Motif</dt>
                 <dd>{{ selectedServiceSummary() }}</dd>
               </div>
               <div>
-                <span><lucide-icon name="calendar-days" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <span
+                  ><lucide-icon name="calendar-days" size="18" [strokeWidth]="2.3"></lucide-icon
+                ></span>
                 <dt>Date</dt>
                 <dd>{{ selectedDateTime() ? selectedDateShortLabel() : 'A choisir' }}</dd>
               </div>
@@ -303,13 +379,21 @@
                 <dd>{{ patientSummaryPhone() }}</dd>
               </div>
               <div>
-                <span><lucide-icon name="map-pin" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <span
+                  ><lucide-icon name="map-pin" size="18" [strokeWidth]="2.3"></lucide-icon
+                ></span>
                 <dt>{{ appointmentAddressLabel() }}</dt>
                 <dd>{{ patientSummaryAddress() }}</dd>
                 <em>{{ appointmentAddressBadge() }}</em>
               </div>
               <div>
-                <span><lucide-icon name="circle-dollar-sign" size="18" [strokeWidth]="2.3"></lucide-icon></span>
+                <span
+                  ><lucide-icon
+                    name="circle-dollar-sign"
+                    size="18"
+                    [strokeWidth]="2.3"
+                  ></lucide-icon
+                ></span>
                 <dt>Prix fixe</dt>
                 <dd>{{ priceLabel() }}</dd>
               </div>
@@ -327,8 +411,8 @@
               Fonctionnement :
             </h3>
             <p>
-              Completez les informations du patient, puis choisissez le motif et un creneau disponible.
-              Le prix est fixe et sera confirme avant le paiement.
+              Completez les informations du patient, puis choisissez le motif et un creneau
+              disponible. Le prix est fixe et sera confirme avant le paiement.
             </p>
           </article>
         </aside>

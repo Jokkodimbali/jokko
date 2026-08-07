@@ -144,9 +144,7 @@ export class AuthService {
       medicalExpertises: data.medicalExpertises
         ?.map((item) => this.normalizeText(item))
         .filter(Boolean),
-      medicalDocumentNames: data.medicalDocumentNames
-        ?.map((item) => item.trim())
-        .filter(Boolean),
+      medicalDocumentNames: data.medicalDocumentNames?.map((item) => item.trim()).filter(Boolean),
     };
 
     return this.http
@@ -236,7 +234,9 @@ export class AuthService {
     notes?: string | null;
   }): Observable<MedicalProfileView> {
     return this.http
-      .post<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments`, data)
+      .post<
+        ApiResponse<MedicalProfileView>
+      >(`${this.usersApiUrl}/me/medical-profile/treatments`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -252,13 +252,17 @@ export class AuthService {
     },
   ): Observable<MedicalProfileView> {
     return this.http
-      .patch<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`, data)
+      .patch<
+        ApiResponse<MedicalProfileView>
+      >(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`, data)
       .pipe(map(unwrapApiResponse));
   }
 
   deleteMyMedicalTreatment(treatmentId: string): Observable<MedicalProfileView> {
     return this.http
-      .delete<ApiResponse<MedicalProfileView>>(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`)
+      .delete<
+        ApiResponse<MedicalProfileView>
+      >(`${this.usersApiUrl}/me/medical-profile/treatments/${treatmentId}`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -295,15 +299,17 @@ export class AuthService {
     formData.append('document', file);
     formData.append('title', file.name);
     return this.http
-      .post<ApiResponse<unknown>>(`${this.usersApiUrl}/me/professional-credentials/upload`, formData)
-      .pipe(
-        switchMap(() => this.myUserProfile()),
-      );
+      .post<
+        ApiResponse<unknown>
+      >(`${this.usersApiUrl}/me/professional-credentials/upload`, formData)
+      .pipe(switchMap(() => this.myUserProfile()));
   }
 
   deleteMyProfessionalCredential(credentialId: string): Observable<UserProfileDto> {
     return this.http
-      .delete<ApiResponse<UserProfileDto>>(`${this.usersApiUrl}/me/professional-credentials/${credentialId}`)
+      .delete<
+        ApiResponse<UserProfileDto>
+      >(`${this.usersApiUrl}/me/professional-credentials/${credentialId}`)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -328,15 +334,10 @@ export class AuthService {
   }
 
   deleteMyAccount(): Observable<void> {
-    return this.http
-      .delete<ApiResponse<null>>(`${this.usersApiUrl}/me`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<null>>(`${this.usersApiUrl}/me`).pipe(map(() => undefined));
   }
 
-  changeMyPassword(data: {
-    currentPassword?: string;
-    newPassword: string;
-  }): Observable<void> {
+  changeMyPassword(data: { currentPassword?: string; newPassword: string }): Observable<void> {
     return this.http
       .patch<ApiResponse<null>>(`${this.usersApiUrl}/me/password`, data)
       .pipe(map(() => undefined));
@@ -374,7 +375,9 @@ export class AuthService {
     },
   ): Observable<SavedPaymentMethodView> {
     return this.http
-      .patch<ApiResponse<SavedPaymentMethodView>>(`${this.paymentsApiUrl}/methods/saved/${methodId}`, data)
+      .patch<
+        ApiResponse<SavedPaymentMethodView>
+      >(`${this.paymentsApiUrl}/methods/saved/${methodId}`, data)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -404,21 +407,28 @@ export class AuthService {
 
   releasePaymentEscrow(paymentId: string): Observable<PaymentHistoryView> {
     return this.http
-      .patch<ApiResponse<PaymentHistoryView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/release`, {})
+      .patch<
+        ApiResponse<PaymentHistoryView>
+      >(`${this.paymentsApiUrl}/${paymentId}/escrow/release`, {})
       .pipe(map(unwrapApiResponse));
   }
 
   disputePaymentEscrow(paymentId: string, reason?: string): Observable<PaymentHistoryView> {
     return this.http
-      .patch<ApiResponse<PaymentHistoryView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/dispute`, {
-        reason,
-      })
+      .patch<ApiResponse<PaymentHistoryView>>(
+        `${this.paymentsApiUrl}/${paymentId}/escrow/dispute`,
+        {
+          reason,
+        },
+      )
       .pipe(map(unwrapApiResponse));
   }
 
   getPaymentEscrowStatus(paymentId: string): Observable<PaymentEscrowStatusView> {
     return this.http
-      .get<ApiResponse<PaymentEscrowStatusView>>(`${this.paymentsApiUrl}/${paymentId}/escrow/status`)
+      .get<
+        ApiResponse<PaymentEscrowStatusView>
+      >(`${this.paymentsApiUrl}/${paymentId}/escrow/status`)
       .pipe(map(unwrapApiResponse));
   }
 

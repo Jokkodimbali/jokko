@@ -450,7 +450,9 @@ export class ReservationEntity {
       notes: this._notes,
       actesPrescriptionMedicale: [...this._actesPrescriptionMedicale],
       vaccinsPrescriptionMedicale: [...this._vaccinsPrescriptionMedicale],
-      traitementsPrescriptionMedicale: [...this._traitementsPrescriptionMedicale],
+      traitementsPrescriptionMedicale: [
+        ...this._traitementsPrescriptionMedicale,
+      ],
       prixConvenu: this._prixConvenu,
       statutAjustementPrix: this._statutAjustementPrix,
       prixAjustementPropose: this._prixAjustementPropose,

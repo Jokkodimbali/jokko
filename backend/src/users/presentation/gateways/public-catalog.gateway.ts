@@ -1,5 +1,9 @@
 import { OnEvent } from '@nestjs/event-emitter';
-import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import {
+  OnGatewayConnection,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
@@ -25,11 +29,14 @@ export interface CatalogPresenceChangedEvent {
 export class PublicCatalogGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
-  private readonly presences = new Map<string, {
-    userId?: string;
-    professionalId?: string;
-    isOnline: boolean;
-  }>();
+  private readonly presences = new Map<
+    string,
+    {
+      userId?: string;
+      professionalId?: string;
+      isOnline: boolean;
+    }
+  >();
 
   handleConnection(client: Socket): void {
     client.emit('catalog.presence.snapshot', [...this.presences.values()]);
@@ -61,10 +68,14 @@ export class PublicCatalogGateway implements OnGatewayConnection {
   @OnEvent('user.presence.updated')
   handleUserPresenceChanged(payload: {
     userId: string;
+    professionalId?: string;
     isOnline: boolean;
     changedAt: string;
   }): void {
     this.presences.set(`user:${payload.userId}`, payload);
+    if (payload.professionalId) {
+      this.presences.set(`professional:${payload.professionalId}`, payload);
+    }
     this.server.emit('catalog.presence.changed', payload);
   }
 }

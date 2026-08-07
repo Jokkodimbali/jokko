@@ -1,14 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -98,7 +90,8 @@ const PROFESSIONAL_VEHICLE_BADGES: Record<
   },
   CAMIONNETTE: {
     label: 'Camionnette',
-    imageUrl: 'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
+    imageUrl:
+      'https://res.cloudinary.com/dobuolool/image/upload/jokko/vehicle-assets/camionnette.png',
   },
 };
 
@@ -218,13 +211,20 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const status = this.linkedReservationStatus();
     if (status === 'CONFIRMEE') return 2;
     if (status === 'PAYEE_SEQUESTRE') return 3;
-    if (status === 'EN_COURS' || status === 'TERMINEE' || status === 'NO_SHOW' || status === 'LITIGE') {
+    if (
+      status === 'EN_COURS' ||
+      status === 'TERMINEE' ||
+      status === 'NO_SHOW' ||
+      status === 'LITIGE'
+    ) {
       return 4;
     }
     return 1;
   });
   protected readonly journeySteps = computed(() => appointmentJourneySteps(this.journeyStep()));
-  protected readonly journeyProgress = computed(() => appointmentJourneyProgress(this.journeyStep()));
+  protected readonly journeyProgress = computed(() =>
+    appointmentJourneyProgress(this.journeyStep()),
+  );
   protected readonly linkedReservationCancellationReason = signal<string | null>(null);
   protected readonly isCancellingProposal = signal(false);
   protected readonly isRespondingToCounterOffer = signal(false);
@@ -319,10 +319,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly currentService = computed<BackendProfessionalDetailService | null>(() => {
     const services = this.detail()?.services ?? [];
     const selectedId = this.selectedServiceId();
-    return selectedId ? services.find((service) => service.id === selectedId) ?? null : null;
+    return selectedId ? (services.find((service) => service.id === selectedId) ?? null) : null;
   });
-  protected readonly customNegotiationService = computed<BackendProfessionalDetailService | null>(() =>
-    this.resolveCustomNegotiationService(this.currentService()),
+  protected readonly customNegotiationService = computed<BackendProfessionalDetailService | null>(
+    () => this.resolveCustomNegotiationService(this.currentService()),
   );
   protected readonly providerTravelsToClient = computed(
     () => this.currentService()?.modeDeplacement !== 'CLIENT_SE_DEPLACE',
@@ -356,8 +356,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly clientTravelsToProvider = computed(() => !this.providerTravelsToClient());
   protected readonly providerInterventionAddress = computed(() => {
     const profile = this.detail()?.profile;
-    return this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
-      this.resolveInitialAddress(this.detail());
+    return (
+      this.presence.professionalProfile(profile?.utilisateurId, profile?.id)?.address ||
+      this.resolveInitialAddress(this.detail())
+    );
   });
   protected readonly providerInterventionAddressLabel = computed(
     () => this.providerInterventionAddress() || 'Adresse du prestataire non renseignee',
@@ -427,16 +429,15 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   );
   protected readonly providerHasPreviousOffer = computed(() =>
     Boolean(
-      this.pendingProposal() &&
-        this.latestNegotiationOffer(this.pendingProposal()!, 'PRESTATAIRE'),
+      this.pendingProposal() && this.latestNegotiationOffer(this.pendingProposal()!, 'PRESTATAIRE'),
     ),
   );
   protected readonly providerCurrentClientOfferLabel = computed(() => {
     const proposal = this.pendingProposal();
     const amount = proposal
-      ? this.latestNegotiationOffer(proposal, 'CLIENT') ??
+      ? (this.latestNegotiationOffer(proposal, 'CLIENT') ??
         proposal.montantCourant ??
-        proposal.montantInitial
+        proposal.montantInitial)
       : this.offerAmount();
     return this.formatAmount(amount);
   });
@@ -474,13 +475,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     return this.parcelPriceError() || 'Renseignez depart et arrivee pour calculer le prix.';
   });
   protected readonly materialQuoteTotalLabel = computed(() => {
-    const total = this.materialQuoteEntries().filter((item) => item.status !== 'REFUSE').reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0,
-    );
+    const total = this.materialQuoteEntries()
+      .filter((item) => item.status !== 'REFUSE')
+      .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     return `${this.formatAmount(total)} FCFA`;
   });
-  protected readonly materialQuoteAuthorLabel = computed(() => `${this.displayName().toUpperCase()} PROPOSE :`);
+  protected readonly materialQuoteAuthorLabel = computed(
+    () => `${this.displayName().toUpperCase()} PROPOSE :`,
+  );
   protected readonly canShowMaterialQuotePanel = computed(() => !this.isParcelDeliveryService());
   protected readonly canCurrentUserCreateMaterialQuote = computed(
     () => this.isProviderProposalMode && this.canShowMaterialQuotePanel(),
@@ -490,14 +492,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const entries = this.materialQuoteEntries();
     return entries.some((entry) => entry.status === 'EN_ATTENTE');
   });
-  protected readonly durationMinutes = computed(() => this.serviceDurationMinutes(this.currentService()));
+  protected readonly durationMinutes = computed(() =>
+    this.serviceDurationMinutes(this.currentService()),
+  );
   protected readonly pauseMinutes = computed(() => this.servicePauseMinutes(this.currentService()));
   protected readonly isMaterialQuoteStateReady = computed(() => {
     if (!this.canShowMaterialQuotePanel()) return true;
     const proposalId = this.pendingProposal()?.id;
     return !proposalId || this.materialQuotesLoadedFor() === proposalId;
   });
-  protected readonly canCurrentUserRespondToMaterialQuote = computed(() => !this.isProviderProposalMode);
+  protected readonly canCurrentUserRespondToMaterialQuote = computed(
+    () => !this.isProviderProposalMode,
+  );
   protected readonly providerProposalFinalized = computed(() => {
     const proposal = this.pendingProposal();
     if (!proposal) return null;
@@ -508,7 +514,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   });
   protected readonly closedProposal = computed(() => {
     const proposal = this.pendingProposal();
-    return proposal && (this.proposalState.isNegotiationClosed(proposal) || this.isLinkedReservationCancelled())
+    return proposal &&
+      (this.proposalState.isNegotiationClosed(proposal) || this.isLinkedReservationCancelled())
       ? proposal
       : null;
   });
@@ -523,7 +530,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     () => this.acceptedConfirmation()?.proposal ?? this.providerProposalFinalized(),
   );
   protected readonly confirmedReservationId = computed(
-    () => this.acceptedConfirmation()?.reservationId ?? this.providerProposalFinalized()?.reservationId ?? null,
+    () =>
+      this.acceptedConfirmation()?.reservationId ??
+      this.providerProposalFinalized()?.reservationId ??
+      null,
   );
   protected readonly confirmedReservationServiceLabel = computed(
     () =>
@@ -567,9 +577,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     this.isProviderProposalMode ? 'Client' : 'Prestataire',
   );
   protected readonly confirmedCounterpartSubtitle = computed(() =>
-    this.isProviderProposalMode
-      ? 'Reservation acceptee'
-      : this.confirmedReservationServiceLabel(),
+    this.isProviderProposalMode ? 'Reservation acceptee' : this.confirmedReservationServiceLabel(),
   );
   protected readonly confirmedCounterpartAvatarUrl = computed(() =>
     this.isProviderProposalMode
@@ -596,10 +604,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       ? 'Confirmez votre rendez-vous'
       : 'Proposez un prix et choisissez votre rendez-vous',
   );
-  protected readonly priceSectionTitle = computed(() => this.proposalUi.priceSectionTitle(this.isFixedPriceService()));
-  protected readonly offerFieldLabel = computed(() => this.proposalUi.offerFieldLabel(this.isFixedPriceService()));
-  protected readonly summaryPriceLabel = computed(() => this.proposalUi.summaryPriceLabel(this.isFixedPriceService()));
-  protected readonly checkoutTotalLabel = computed(() => this.proposalUi.checkoutTotalLabel(this.isFixedPriceService()));
+  protected readonly priceSectionTitle = computed(() =>
+    this.proposalUi.priceSectionTitle(this.isFixedPriceService()),
+  );
+  protected readonly offerFieldLabel = computed(() =>
+    this.proposalUi.offerFieldLabel(this.isFixedPriceService()),
+  );
+  protected readonly summaryPriceLabel = computed(() =>
+    this.proposalUi.summaryPriceLabel(this.isFixedPriceService()),
+  );
+  protected readonly checkoutTotalLabel = computed(() =>
+    this.proposalUi.checkoutTotalLabel(this.isFixedPriceService()),
+  );
   protected readonly canGoToClientPriceStep = computed(
     () => Object.keys(this.collectClientDetailsErrors(false)).length === 0,
   );
@@ -716,14 +732,15 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.isParcelDeliveryService()
         ? this.parcelDropoffAddress()
         : this.clientTravelsToProvider()
-        ? this.providerInterventionAddressLabel()
-        : this.address(),
+          ? this.providerInterventionAddressLabel()
+          : this.address(),
       28,
     ),
   );
-  protected readonly hasCustomOfferAmount = computed(() =>
-    !this.customServiceName() ||
-    (this.customOfferTouched() && Math.trunc(Number(this.offerAmount())) >= 500),
+  protected readonly hasCustomOfferAmount = computed(
+    () =>
+      !this.customServiceName() ||
+      (this.customOfferTouched() && Math.trunc(Number(this.offerAmount())) >= 500),
   );
   protected readonly formattedOffer = computed(() =>
     !this.isProviderProposalMode && this.customServiceName() && !this.customOfferTouched()
@@ -839,7 +856,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected openDetailsModal(modal: ProposalDetailsModal): void {
     if (modal === 'address' && this.clientTravelsToProvider()) {
       this.syncAddressForCurrentTravelMode();
-      this.feedback.info('Cette adresse est celle renseignee par le prestataire dans ses parametres.');
+      this.feedback.info(
+        'Cette adresse est celle renseignee par le prestataire dans ses parametres.',
+      );
       return;
     }
 
@@ -981,7 +1000,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     if (!proposal?.id || entryId.startsWith('local-')) {
       this.materialQuoteEntries.update((items) =>
         items.map((item) =>
-          item.id === entryId ? { ...item, status: 'VALIDE', clientValidatedAt: new Date().toISOString() } : item,
+          item.id === entryId
+            ? { ...item, status: 'VALIDE', clientValidatedAt: new Date().toISOString() }
+            : item,
         ),
       );
       return;
@@ -1327,11 +1348,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     const messageQuery = this.buildMessageQuery({
-        professionalId,
-        providerName: this.displayName(),
-        serviceName: service?.nom || this.categoryLabel(),
-        proposal,
-      });
+      professionalId,
+      providerName: this.displayName(),
+      serviceName: service?.nom || this.categoryLabel(),
+      proposal,
+    });
 
     if (!proposal?.id) {
       this.router.navigate(['/messages'], { queryParams: messageQuery });
@@ -1359,11 +1380,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     const messageQuery = this.buildMessageQuery({
-        professionalId: proposal.professionnelId,
-        providerName: this.proposalClientName(),
-        serviceName: proposal.service?.nom || this.categoryLabel(),
-        proposal,
-      });
+      professionalId: proposal.professionnelId,
+      providerName: this.proposalClientName(),
+      serviceName: proposal.service?.nom || this.categoryLabel(),
+      proposal,
+    });
 
     this.openNegotiationConversation(proposal.id, messageQuery);
   }
@@ -1667,7 +1688,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
-    if (this.activeDetailsModal() === 'parcelPickup' || this.activeDetailsModal() === 'parcelDropoff') {
+    if (
+      this.activeDetailsModal() === 'parcelPickup' ||
+      this.activeDetailsModal() === 'parcelDropoff'
+    ) {
       const coordinate =
         suggestion.latitude === null || suggestion.longitude === null
           ? null
@@ -1706,7 +1730,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.activeDetailsModal() === 'parcelPickup' || this.activeDetailsModal() === 'parcelDropoff';
     if (this.clientTravelsToProvider() && !isParcelAddressModal) {
       this.syncAddressForCurrentTravelMode();
-      this.feedback.info('La geolocalisation nest pas necessaire: le rendez-vous se fait chez le prestataire.');
+      this.feedback.info(
+        'La geolocalisation nest pas necessaire: le rendez-vous se fait chez le prestataire.',
+      );
       return;
     }
 
@@ -1763,7 +1789,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.googleMaps.reverseGeocode(coordinate).subscribe({
         next: (result) => {
           const label = result?.formattedAddress?.trim() || fallbackLabel;
-          this.updateActiveParcelAddressWithCoordinate(this.humanMapAddressLabel(label), coordinate);
+          this.updateActiveParcelAddressWithCoordinate(
+            this.humanMapAddressLabel(label),
+            coordinate,
+          );
         },
         error: () => undefined,
       });
@@ -1838,7 +1867,10 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (!this.customServiceName() && (draft.service.typePrix !== 'NEGOCIABLE' || !this.isOfferAdjusted())) {
+    if (
+      !this.customServiceName() &&
+      (draft.service.typePrix !== 'NEGOCIABLE' || !this.isOfferAdjusted())
+    ) {
       this.createDirectReservation(draft);
       return;
     }
@@ -1880,7 +1912,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
             this.feedback.success('Votre proposition a ete envoyee au prestataire.');
           }
           this.ensureNegotiationConversation(proposal);
-          this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
+          this.syncLocalMaterialQuotes(proposal.id, () =>
+            this.showPendingProposal(proposal, draft),
+          );
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -1912,7 +1946,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         next: (proposal) => {
           this.clearClientReservationDraft();
           this.feedback.success('Votre nouvelle proposition a ete envoyee.');
-          this.syncLocalMaterialQuotes(proposal.id, () => this.showPendingProposal(proposal, draft));
+          this.syncLocalMaterialQuotes(proposal.id, () =>
+            this.showPendingProposal(proposal, draft),
+          );
         },
         error: (error) => {
           this.isSubmitting.set(false);
@@ -1980,9 +2016,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         }),
       )
       .subscribe({
-      next: () => undefined,
-      error: () => undefined,
-    });
+        next: () => undefined,
+        error: () => undefined,
+      });
   }
 
   private ensureReservationConversation(reservationId: string): void {
@@ -1996,10 +2032,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       next: (proposal) => {
         if (!proposal) return;
         this.proposalService
-          .cancelPriceProposal(
-            proposal.id,
-            'Reservation directe finalisee au prix equitable.',
-          )
+          .cancelPriceProposal(proposal.id, 'Reservation directe finalisee au prix equitable.')
           .subscribe({ error: () => undefined });
       },
       error: () => undefined,
@@ -2249,10 +2282,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
   }
 
-  private isIncomingProposalFresh(
-    current: NegotiationView,
-    incoming: NegotiationView,
-  ): boolean {
+  private isIncomingProposalFresh(current: NegotiationView, incoming: NegotiationView): boolean {
     if (current.id !== incoming.id) {
       return true;
     }
@@ -2431,7 +2461,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           const service = this.currentService();
           if (!restoredDraft) {
             const providerAddress = this.resolveInitialAddress(detail);
-            this.address.set(service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '');
+            this.address.set(
+              service?.modeDeplacement === 'CLIENT_SE_DEPLACE' ? providerAddress : '',
+            );
           }
           if (service && !restoredDraft) {
             if (service.modeDeplacement === 'TRANSPORT_COLIS') {
@@ -2539,16 +2571,21 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       const clientBookingStep = parsed.clientBookingStep === 'PRICE' ? 'PRICE' : 'DETAILS';
 
       return {
-        selectedServiceId: typeof parsed.selectedServiceId === 'string' ? parsed.selectedServiceId : '',
-        customServiceName: typeof parsed.customServiceName === 'string' ? parsed.customServiceName : '',
+        selectedServiceId:
+          typeof parsed.selectedServiceId === 'string' ? parsed.selectedServiceId : '',
+        customServiceName:
+          typeof parsed.customServiceName === 'string' ? parsed.customServiceName : '',
         selectedPayment,
         appointmentDate: typeof parsed.appointmentDate === 'string' ? parsed.appointmentDate : '',
         address: typeof parsed.address === 'string' ? parsed.address : '',
         clientBookingStep,
-        parcelDeliveryType: typeof parsed.parcelDeliveryType === 'string' ? parsed.parcelDeliveryType : '',
+        parcelDeliveryType:
+          typeof parsed.parcelDeliveryType === 'string' ? parsed.parcelDeliveryType : '',
         parcelNote: typeof parsed.parcelNote === 'string' ? parsed.parcelNote : '',
-        parcelPickupAddress: typeof parsed.parcelPickupAddress === 'string' ? parsed.parcelPickupAddress : '',
-        parcelDropoffAddress: typeof parsed.parcelDropoffAddress === 'string' ? parsed.parcelDropoffAddress : '',
+        parcelPickupAddress:
+          typeof parsed.parcelPickupAddress === 'string' ? parsed.parcelPickupAddress : '',
+        parcelDropoffAddress:
+          typeof parsed.parcelDropoffAddress === 'string' ? parsed.parcelDropoffAddress : '',
         parcelPickupContact: this.normalizeDraftContact(parsed.parcelPickupContact),
         parcelDropoffContact: this.normalizeDraftContact(parsed.parcelDropoffContact),
         parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
@@ -2565,9 +2602,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private normalizeDraftPayment(value: unknown): PaymentMethod {
-    return value === 'ORANGE_MONEY' || value === 'VISA' || value === 'WAVE'
-      ? value
-      : 'WAVE';
+    return value === 'ORANGE_MONEY' || value === 'VISA' || value === 'WAVE' ? value : 'WAVE';
   }
 
   private normalizeDraftContact(value: unknown): ParcelContactDraft {
@@ -2623,7 +2658,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       next: (detail) => {
         this.detail.set(detail);
         if (!detail.services.some((service) => service.id === this.selectedServiceId())) {
-          this.selectedServiceId.set(detail.services.find((service) => service.estDisponible)?.id ?? '');
+          this.selectedServiceId.set(
+            detail.services.find((service) => service.estDisponible)?.id ?? '',
+          );
           this.availabilityStatus.set(null);
           this.availabilitySlots.set([]);
         }
@@ -2668,7 +2705,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.appointmentDate.set(this.toDateInputValue(new Date(proposal.dateHeureProposee)));
     }
 
-    const proposedAddress = proposal.adresseClientProposee?.trim() || proposal.client?.adresse || '';
+    const proposedAddress =
+      proposal.adresseClientProposee?.trim() || proposal.client?.adresse || '';
     if (proposedAddress) {
       this.address.set(proposedAddress);
     }
@@ -2798,9 +2836,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   private restoreRequestedServiceName(proposal: NegotiationView): void {
     const requestedServiceName = this.reservationBuilder.extractRequestedServiceName(proposal);
-    const persistedServiceName = proposal.service?.nom?.trim() || this.currentService()?.nom?.trim() || '';
+    const persistedServiceName =
+      proposal.service?.nom?.trim() || this.currentService()?.nom?.trim() || '';
     this.customServiceName.set(
-      requestedServiceName && requestedServiceName !== persistedServiceName ? requestedServiceName : '',
+      requestedServiceName && requestedServiceName !== persistedServiceName
+        ? requestedServiceName
+        : '',
     );
   }
 
@@ -2929,7 +2970,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     if (this.isParcelDeliveryService()) {
-      const describedParcels = this.parcels().filter((parcel) => parcel.description.trim().length >= 3);
+      const describedParcels = this.parcels().filter(
+        (parcel) => parcel.description.trim().length >= 3,
+      );
       const pickupAddress = this.parcelPickupAddress().trim().replace(/\s+/g, ' ');
       const dropoffAddress = this.parcelDropoffAddress().trim().replace(/\s+/g, ' ');
       const pickupContact = this.parcelPickupContact();
@@ -3039,7 +3082,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         : this.clientTravelsToProvider()
           ? this.providerInterventionAddress()
           : this.address()
-    ).trim().replace(/\s+/g, ' ');
+    )
+      .trim()
+      .replace(/\s+/g, ' ');
     if (adresseClient.length < 5 || adresseClient.length > 180) {
       this.feedback.info(
         this.clientTravelsToProvider()
@@ -3202,12 +3247,13 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           return;
         }
 
-        const routeDistance = routes.find((route) => Number(route.distanceMeters) > 0)
-          ?.distanceMeters;
+        const routeDistance = routes.find(
+          (route) => Number(route.distanceMeters) > 0,
+        )?.distanceMeters;
         const distanceMeters =
           typeof routeDistance === 'number' && routeDistance > 0
             ? routeDistance
-          : this.parcelService.estimateRoadDistanceMeters(pickup, dropoff);
+            : this.parcelService.estimateRoadDistanceMeters(pickup, dropoff);
 
         this.parcelDistanceMeters.set(distanceMeters);
         this.isParcelPriceLoading.set(false);
@@ -3221,9 +3267,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private buildAcceptedNegotiationReservationPayload(
     proposal: NegotiationView,
   ): CreateReservationFromNegotiationPayload | null {
-    const negotiatedDate = proposal.dateHeureProposee
-      ? new Date(proposal.dateHeureProposee)
-      : null;
+    const negotiatedDate = proposal.dateHeureProposee ? new Date(proposal.dateHeureProposee) : null;
     const negotiatedDateIsFuture = Boolean(
       negotiatedDate &&
       !Number.isNaN(negotiatedDate.getTime()) &&
@@ -3233,11 +3277,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       ? negotiatedDate!.toISOString()
       : this.toIsoDateTime(this.appointmentDate());
     const adresseClient =
-      proposal.adresseClientProposee?.trim() ||
-      this.resolveAppointmentAddress('').trim();
-    const dureeMinutes = Number(
-      proposal.dureeMinutesProposee ?? this.durationMinutes(),
-    );
+      proposal.adresseClientProposee?.trim() || this.resolveAppointmentAddress('').trim();
+    const dureeMinutes = Number(proposal.dureeMinutesProposee ?? this.durationMinutes());
 
     return this.reservationBuilder.buildAcceptedNegotiationReservationPayload({
       proposal,
@@ -3251,9 +3292,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     proposal: NegotiationView,
     service: BackendProfessionalDetailService,
   ): boolean {
-    const negotiatedDate = proposal.dateHeureProposee
-      ? new Date(proposal.dateHeureProposee)
-      : null;
+    const negotiatedDate = proposal.dateHeureProposee ? new Date(proposal.dateHeureProposee) : null;
     if (
       negotiatedDate &&
       !Number.isNaN(negotiatedDate.getTime()) &&

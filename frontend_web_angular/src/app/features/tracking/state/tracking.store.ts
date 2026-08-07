@@ -7,37 +7,23 @@ import {
 
 @Injectable()
 export class TrackingStore {
-  private readonly trackingState = signal<AppointmentTrackingView | null>(
-    null,
-  );
-  private readonly connectionStateValue =
-    signal<TrackingConnectionState>('disconnected');
-  private readonly missionEventValue = signal<TrackingMissionEvent | null>(
-    null,
-  );
+  private readonly trackingState = signal<AppointmentTrackingView | null>(null);
+  private readonly connectionStateValue = signal<TrackingConnectionState>('disconnected');
+  private readonly missionEventValue = signal<TrackingMissionEvent | null>(null);
 
   readonly tracking = this.trackingState.asReadonly();
   readonly connectionState = this.connectionStateValue.asReadonly();
   readonly missionEvent = this.missionEventValue.asReadonly();
   readonly lastUpdatedAt = computed(
-    () =>
-      this.trackingState()?.lastPositionAt ??
-      this.trackingState()?.updatedAt ??
-      null,
+    () => this.trackingState()?.lastPositionAt ?? this.trackingState()?.updatedAt ?? null,
   );
-  readonly isRealtimeConnected = computed(
-    () => this.connectionStateValue() === 'connected',
-  );
+  readonly isRealtimeConnected = computed(() => this.connectionStateValue() === 'connected');
   readonly route = computed(() => this.trackingState()?.route ?? null);
-  readonly distanceRemainingMeters = computed(
-    () => this.route()?.distanceRemainingMeters ?? null,
-  );
+  readonly distanceRemainingMeters = computed(() => this.route()?.distanceRemainingMeters ?? null);
   readonly durationRemainingSeconds = computed(
     () => this.route()?.durationRemainingSeconds ?? null,
   );
-  readonly estimatedArrivalAt = computed(
-    () => this.route()?.estimatedArrivalAt ?? null,
-  );
+  readonly estimatedArrivalAt = computed(() => this.route()?.estimatedArrivalAt ?? null);
 
   setTracking(tracking: AppointmentTrackingView): void {
     this.trackingState.set(tracking);

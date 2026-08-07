@@ -46,7 +46,12 @@
 
       <div class="contact-official">
         <h3>Contacts officiels</h3>
-        <a *ngFor="let item of officialContacts" [href]="item.href" target="_blank" rel="noreferrer">
+        <a
+          *ngFor="let item of officialContacts"
+          [href]="item.href"
+          target="_blank"
+          rel="noreferrer"
+        >
           <small>{{ item.label }}</small>
           <strong>{{ item.value }}</strong>
         </a>

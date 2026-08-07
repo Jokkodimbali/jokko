@@ -48,18 +48,17 @@ export class ServiceProposalReservationBuilderService {
     parcelNotes: string[];
   }): string {
     const requestedServiceName = this.extractRequestedServiceName(input.proposal);
+    const localParcelNotes = input.parcelNotes.join(' ');
+    const hasCompleteLocalContacts = this.hasCompleteParcelContacts(localParcelNotes);
+    const recoveredParcelMessage = hasCompleteLocalContacts
+      ? ''
+      : this.extractParcelMessageFromProposal(input.proposal);
     const lines = [
       requestedServiceName ? `Motif reserve: ${requestedServiceName}.` : '',
       `Reservation creee apres acceptation du prix propose: ${input.acceptedAmountLabel} FCFA.`,
-      ...input.parcelNotes,
+      ...(hasCompleteLocalContacts ? input.parcelNotes : []),
+      recoveredParcelMessage,
     ];
-
-    if (input.parcelNotes.length === 0) {
-      const parcelMessage = this.extractParcelMessageFromProposal(input.proposal);
-      if (parcelMessage) {
-        lines.push(parcelMessage);
-      }
-    }
 
     return this.joinLimitedNotes(lines);
   }
@@ -69,7 +68,10 @@ export class ServiceProposalReservationBuilderService {
 
     const messages = [
       proposal.messageCourant,
-      ...(proposal.propositions ?? []).slice().reverse().map((offer) => offer.message),
+      ...(proposal.propositions ?? [])
+        .slice()
+        .reverse()
+        .map((offer) => offer.message),
     ];
 
     for (const message of messages) {
@@ -128,11 +130,23 @@ export class ServiceProposalReservationBuilderService {
   }
 
   private extractParcelMessageFromProposal(proposal: NegotiationView): string {
-    const offer = [...(proposal.propositions ?? [])]
-      .reverse()
-      .find((item) => item.message?.includes('Colis '));
+    const messages = [
+      proposal.messageCourant,
+      ...(proposal.propositions ?? [])
+        .slice()
+        .reverse()
+        .map((item) => item.message),
+    ];
+    const message = messages.find((item) => this.hasCompleteParcelContacts(item ?? ''));
 
-    return offer?.message?.trim().replace(/\s+/g, ' ') ?? '';
+    return message?.trim().replace(/\s+/g, ' ') ?? '';
+  }
+
+  private hasCompleteParcelContacts(value: string): boolean {
+    return (
+      /Exp[eé]diteur\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value) &&
+      /Destinataire\s*[:=-]\s*[^.]*[A-Za-zÀ-ÿ][^.]*\s+-\s*\+?\d/i.test(value)
+    );
   }
 
   joinLimitedNotes(lines: string[], maxLength = 950): string {

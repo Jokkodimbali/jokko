@@ -176,7 +176,9 @@ export class SettingsPageComponent implements OnInit {
     endedAt: '',
     notes: '',
   };
-  protected readonly displayName = computed(() => this.profile()?.nom || this.currentUser()?.name || 'Mon profil');
+  protected readonly displayName = computed(
+    () => this.profile()?.nom || this.currentUser()?.name || 'Mon profil',
+  );
   protected readonly profileAvatarUrl = computed(() => publicAssetUrl(this.profile()?.urlAvatar));
   protected readonly initials = computed(() => userInitials(this.displayName(), 'U'));
   protected readonly roleLabel = computed(() => {
@@ -196,10 +198,15 @@ export class SettingsPageComponent implements OnInit {
       .filter(Boolean);
 
     return {
-      country: normalized.includes('senegal') || normalized.includes('senegal') || normalized.includes('sénégal')
-        ? 'Senegal'
-        : 'Non renseigne',
-      city: segments.find((part) => /dakar|thies|thiès|saint-louis|kaolack|ziguinchor/i.test(part)) || 'Non renseigne',
+      country:
+        normalized.includes('senegal') ||
+        normalized.includes('senegal') ||
+        normalized.includes('sénégal')
+          ? 'Senegal'
+          : 'Non renseigne',
+      city:
+        segments.find((part) => /dakar|thies|thiès|saint-louis|kaolack|ziguinchor/i.test(part)) ||
+        'Non renseigne',
       postalCode: 'Non renseigne',
     };
   });
@@ -214,9 +221,11 @@ export class SettingsPageComponent implements OnInit {
   );
   protected readonly defaultCard = computed(() => this.savedCards()[0] ?? null);
   protected readonly defaultWaveNumber = computed(() => this.savedWaveNumbers()[0] ?? null);
-  protected readonly defaultCardLabel = computed(() => this.defaultCard()?.maskedValue || 'Aucune carte');
-  protected readonly defaultWaveLabel = computed(() =>
-    this.defaultWaveNumber()?.maskedValue || this.displayPhoneNumber() || 'Non renseigne',
+  protected readonly defaultCardLabel = computed(
+    () => this.defaultCard()?.maskedValue || 'Aucune carte',
+  );
+  protected readonly defaultWaveLabel = computed(
+    () => this.defaultWaveNumber()?.maskedValue || this.displayPhoneNumber() || 'Non renseigne',
   );
   protected readonly visibleCardLabel = computed(() =>
     this.showSensitivePaymentInfo()
@@ -246,10 +255,22 @@ export class SettingsPageComponent implements OnInit {
     return [
       { label: 'Groupe sanguin', value: profile?.bloodGroup || 'Non renseigne', tone: 'orange' },
       { label: 'Rhesus', value: profile?.rhesus || 'Non renseigne', tone: 'green' },
-      { label: 'Poids', value: profile?.weightKg ? `${profile.weightKg} kg` : 'Non renseigne', tone: 'blue' },
-      { label: 'Medecin ref.', value: profile?.referenceDoctorName || 'Non renseigne', tone: 'dark' },
+      {
+        label: 'Poids',
+        value: profile?.weightKg ? `${profile.weightKg} kg` : 'Non renseigne',
+        tone: 'blue',
+      },
+      {
+        label: 'Medecin ref.',
+        value: profile?.referenceDoctorName || 'Non renseigne',
+        tone: 'dark',
+      },
       { label: 'Profession', value: profile?.profession || this.roleLabel(), tone: 'orange' },
-      { label: 'Taille', value: profile?.heightCm ? `${profile.heightCm} cm` : 'Non renseigne', tone: 'blue' },
+      {
+        label: 'Taille',
+        value: profile?.heightCm ? `${profile.heightCm} cm` : 'Non renseigne',
+        tone: 'blue',
+      },
       { label: 'IMC', value: profile?.bmi ? `${profile.bmi}` : 'Non renseigne', tone: 'dark' },
     ];
   });
@@ -276,13 +297,15 @@ export class SettingsPageComponent implements OnInit {
   protected readonly displayPhoneNumber = computed(() =>
     displaySenegalPhoneNumber(this.profile()?.numeroTelephone || this.currentUser()?.phoneNumber),
   );
-  protected readonly professionalProfile = computed(() => this.profile()?.profilProfessionnel ?? null);
-  protected readonly professionalProfileId = computed(() => this.professionalProfile()?.id ?? null);
-  protected readonly professionalCompanyName = computed(() =>
-    this.professionalProfile()?.nomEntreprise || this.displayName(),
+  protected readonly professionalProfile = computed(
+    () => this.profile()?.profilProfessionnel ?? null,
   );
-  protected readonly professionalCity = computed(() =>
-    this.professionalProfile()?.ville || this.profile()?.adresse || 'Ville non renseignee',
+  protected readonly professionalProfileId = computed(() => this.professionalProfile()?.id ?? null);
+  protected readonly professionalCompanyName = computed(
+    () => this.professionalProfile()?.nomEntreprise || this.displayName(),
+  );
+  protected readonly professionalCity = computed(
+    () => this.professionalProfile()?.ville || this.profile()?.adresse || 'Ville non renseignee',
   );
   protected readonly professionalKycLabel = computed(() => {
     const status = this.professionalProfile()?.statutKyc;
@@ -299,7 +322,9 @@ export class SettingsPageComponent implements OnInit {
   });
   protected readonly professionalTitle = computed(() => {
     const specialty = this.professionalSpecialty();
-    return specialty && specialty !== this.roleLabel() ? `${specialty} passionne par l'excellence` : 'Professionnel Jokko certifie';
+    return specialty && specialty !== this.roleLabel()
+      ? `${specialty} passionne par l'excellence`
+      : 'Professionnel Jokko certifie';
   });
   protected readonly professionalAbout = computed(() => {
     const rawBiography = this.professionalProfile()?.biographie || '';
@@ -312,7 +337,9 @@ export class SettingsPageComponent implements OnInit {
     if (cleaned && !cleaned.includes('Profil medecin en attente')) return cleaned;
     return `Bienvenue sur mon profil. Je suis ${this.displayName()}, ${this.professionalSpecialty().toLowerCase()}, et je propose un accompagnement professionnel valide par Jokko Dimbali.`;
   });
-  protected readonly professionalExpertises = computed(() => this.professionalBiographyLines().expertises);
+  protected readonly professionalExpertises = computed(
+    () => this.professionalBiographyLines().expertises,
+  );
   protected readonly professionalDocuments = computed(() => {
     const diplomas = this.professionalProfile()?.diplomesMedicaux ?? [];
     if (diplomas.length > 0) {
@@ -478,7 +505,8 @@ export class SettingsPageComponent implements OnInit {
       })
       .pipe(finalize(() => this.isSavingProfile.set(false)))
       .subscribe({
-        next: (profile) => this.applyUpdatedProfile(profile, 'Informations personnelles modifiees.'),
+        next: (profile) =>
+          this.applyUpdatedProfile(profile, 'Informations personnelles modifiees.'),
         error: (error) => {
           this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier le profil.'));
         },
@@ -507,23 +535,23 @@ export class SettingsPageComponent implements OnInit {
     this.errorMessage.set(null);
     const request = this.professionalProfileId()
       ? this.authService.updateMyProfessionalAbout(about)
-      : this.doctorSpaceService.createMyProfessionalProfile({
-        bio: about,
-      }).pipe(switchMap(() => this.authService.myUserProfile()));
+      : this.doctorSpaceService
+          .createMyProfessionalProfile({
+            bio: about,
+          })
+          .pipe(switchMap(() => this.authService.myUserProfile()));
 
-    request
-      .pipe(finalize(() => this.isSavingProfessionalAbout.set(false)))
-      .subscribe({
-        next: (profile) => {
-          this.isEditingProfessionalAbout.set(false);
-          this.applyUpdatedProfile(profile, 'Presentation professionnelle modifiee.');
-        },
-        error: (error) => {
-          const message = getHttpErrorMessage(error, 'Impossible de modifier la presentation.');
-          this.errorMessage.set(message);
-          this.feedback.error(message);
-        },
-      });
+    request.pipe(finalize(() => this.isSavingProfessionalAbout.set(false))).subscribe({
+      next: (profile) => {
+        this.isEditingProfessionalAbout.set(false);
+        this.applyUpdatedProfile(profile, 'Presentation professionnelle modifiee.');
+      },
+      error: (error) => {
+        const message = getHttpErrorMessage(error, 'Impossible de modifier la presentation.');
+        this.errorMessage.set(message);
+        this.feedback.error(message);
+      },
+    });
   }
 
   protected saveAddress(): void {
@@ -698,7 +726,10 @@ export class SettingsPageComponent implements OnInit {
           this.doctorSpaceService.createPortfolioItem({
             title,
             description: description || null,
-            imageUrl: publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ?? uploaded.imageUrl ?? uploaded.fileUrl,
+            imageUrl:
+              publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ??
+              uploaded.imageUrl ??
+              uploaded.fileUrl,
           }),
         ),
         finalize(() => this.isPortfolioSaving.set(false)),
@@ -734,7 +765,9 @@ export class SettingsPageComponent implements OnInit {
           .pipe(finalize(() => this.isPortfolioSaving.set(false)))
           .subscribe({
             next: () => {
-              this.portfolioItems.update((items) => items.filter((current) => current.id !== item.id));
+              this.portfolioItems.update((items) =>
+                items.filter((current) => current.id !== item.id),
+              );
               this.feedback.success('Realisation supprimee.');
             },
             error: (error) => {
@@ -855,14 +888,18 @@ export class SettingsPageComponent implements OnInit {
 
     request.pipe(finalize(() => this.isSavingPaymentMethod.set(false))).subscribe({
       next: () => {
-        this.feedback.success(editingId ? 'Moyen de paiement modifie.' : 'Moyen de paiement enregistre.');
+        this.feedback.success(
+          editingId ? 'Moyen de paiement modifie.' : 'Moyen de paiement enregistre.',
+        );
         this.editingPaymentMethodId.set(null);
         this.resetPaymentForms();
         this.isPaymentModalOpen.set(false);
         this.loadPaymentMethods();
       },
       error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible d enregistrer ce moyen de paiement.'));
+        this.errorMessage.set(
+          getHttpErrorMessage(error, 'Impossible d enregistrer ce moyen de paiement.'),
+        );
       },
     });
   }
@@ -914,7 +951,14 @@ export class SettingsPageComponent implements OnInit {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < currentYear || year > 2100) {
+    if (
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12 ||
+      !Number.isInteger(year) ||
+      year < currentYear ||
+      year > 2100
+    ) {
       const message = 'Renseignez une date d expiration valide.';
       this.errorMessage.set(message);
       this.feedback.error(message);
@@ -938,7 +982,12 @@ export class SettingsPageComponent implements OnInit {
     if (digits.length < 13 || digits.length > 19) {
       return 'Le numero de carte doit contenir entre 13 et 19 chiffres.';
     }
-    if (digits.startsWith('4') && digits.length !== 13 && digits.length !== 16 && digits.length !== 19) {
+    if (
+      digits.startsWith('4') &&
+      digits.length !== 13 &&
+      digits.length !== 16 &&
+      digits.length !== 19
+    ) {
       return 'Une carte Visa contient generalement 16 chiffres, parfois 13 ou 19.';
     }
     if (!this.isValidCardNumber(digits)) {
@@ -980,7 +1029,9 @@ export class SettingsPageComponent implements OnInit {
             this.loadPaymentMethods();
           },
           error: (error) => {
-            this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce moyen de paiement.'));
+            this.errorMessage.set(
+              getHttpErrorMessage(error, 'Impossible de supprimer ce moyen de paiement.'),
+            );
           },
         });
       },
@@ -1038,7 +1089,9 @@ export class SettingsPageComponent implements OnInit {
           this.feedback.success('Paiement synchronise.');
         },
         error: (error) => {
-          this.feedback.error(getHttpErrorMessage(error, 'Impossible de synchroniser ce paiement.'));
+          this.feedback.error(
+            getHttpErrorMessage(error, 'Impossible de synchroniser ce paiement.'),
+          );
         },
       });
   }
@@ -1117,7 +1170,9 @@ export class SettingsPageComponent implements OnInit {
           this.feedback.success('Fiche medicale mise a jour.');
         },
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier la fiche medicale.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de modifier la fiche medicale.'),
+          );
         },
       });
   }
@@ -1152,7 +1207,9 @@ export class SettingsPageComponent implements OnInit {
         this.feedback.success(editingId ? 'Traitement modifie.' : 'Traitement ajoute.');
       },
       error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible d enregistrer le traitement.'));
+        this.errorMessage.set(
+          getHttpErrorMessage(error, 'Impossible d enregistrer le traitement.'),
+        );
       },
     });
   }
@@ -1170,7 +1227,9 @@ export class SettingsPageComponent implements OnInit {
             this.feedback.success('Traitement supprime.');
           },
           error: (error) => {
-            this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer le traitement.'));
+            this.errorMessage.set(
+              getHttpErrorMessage(error, 'Impossible de supprimer le traitement.'),
+            );
           },
         });
       },
@@ -1179,9 +1238,11 @@ export class SettingsPageComponent implements OnInit {
 
   protected logout(): void {
     this.authService
-      .logout(this.authSession.getRefreshToken()
-        ? { refreshToken: this.authSession.getRefreshToken()! }
-        : {})
+      .logout(
+        this.authSession.getRefreshToken()
+          ? { refreshToken: this.authSession.getRefreshToken()! }
+          : {},
+      )
       .pipe(
         catchError(() => of(undefined)),
         finalize(() => {
@@ -1233,7 +1294,9 @@ export class SettingsPageComponent implements OnInit {
           );
         },
         error: (error) => {
-          this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de modifier le mot de passe.'));
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de modifier le mot de passe.'),
+          );
         },
       });
   }
@@ -1258,7 +1321,9 @@ export class SettingsPageComponent implements OnInit {
               this.router.navigate(['/auth/login']);
             },
             error: (error) => {
-              this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de supprimer ce compte.'));
+              this.errorMessage.set(
+                getHttpErrorMessage(error, 'Impossible de supprimer ce compte.'),
+              );
             },
           });
       },

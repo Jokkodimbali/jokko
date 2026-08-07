@@ -39,6 +39,9 @@ export type CallView = {
 
 export interface CallsRepositoryPort {
   isUserActive(userId: string): Promise<boolean>;
+  findUserIdentity(
+    userId: string,
+  ): Promise<{ name: string; avatarUrl: string | null } | null>;
   create(input: {
     id: string;
     conversationId: string;

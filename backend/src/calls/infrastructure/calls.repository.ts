@@ -32,6 +32,15 @@ export class CallsRepository implements CallsRepositoryPort {
       }),
     );
   }
+  async findUserIdentity(
+    userId: string,
+  ): Promise<{ name: string; avatarUrl: string | null } | null> {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: { nom: true, urlAvatar: true },
+    });
+    return user ? { name: user.nom, avatarUrl: user.urlAvatar } : null;
+  }
   async create(input: {
     id: string;
     conversationId: string;

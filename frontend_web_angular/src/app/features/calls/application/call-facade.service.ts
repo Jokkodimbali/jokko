@@ -7,6 +7,7 @@ import {
   Track,
   TrackEvent,
   LogLevel,
+  VideoPresets,
   setLogLevel,
   type LocalTrack,
   type LocalVideoTrack,
@@ -263,7 +264,17 @@ export class CallFacade {
     const credential = await firstValueFrom(
       this.api.createJoinCredential(call.conversationId, call.callId),
     );
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      videoCaptureDefaults: {
+        facingMode: 'user',
+        resolution: VideoPresets.h720.resolution,
+      },
+      publishDefaults: {
+        videoEncoding: VideoPresets.h720.encoding,
+      },
+    });
     this.room = room;
     room.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind === Track.Kind.Audio || track.kind === Track.Kind.Video) {

@@ -80,6 +80,35 @@ export class CallOverlayComponent {
     this.openDeviceMenu.set(null);
   }
 
+  protected cameraChoices(): Array<{ device: MediaDeviceInfo; label: string }> {
+    const devices = this.calls.videoInputDevices();
+    if (devices.length === 0) return [];
+
+    const matches = (device: MediaDeviceInfo, pattern: RegExp): boolean =>
+      pattern.test(
+        device.label
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase(),
+      );
+    const frontPattern = /front|face|user|avant/;
+    const rearPattern = /back|rear|environment|world|arriere|dos/;
+    const front = devices.find((device) => matches(device, frontPattern)) ?? devices[0];
+    const rear =
+      devices.find(
+        (device) => device.deviceId !== front.deviceId && matches(device, rearPattern),
+      ) ?? devices.find((device) => device.deviceId !== front.deviceId);
+
+    const choices = [{ device: front, label: devices.length === 1 ? 'Caméra' : 'Caméra avant' }];
+    if (rear) choices.push({ device: rear, label: 'Caméra arrière' });
+    return choices;
+  }
+
+  protected isRearCameraSelected(): boolean {
+    const rearCamera = this.cameraChoices().find((choice) => choice.label === 'Caméra arrière');
+    return rearCamera?.device.deviceId === this.calls.selectedVideoInputId();
+  }
+
   protected showLocalVideoAsMain(): void {
     if (this.calls.call()?.kind === 'VIDEO') this.isLocalVideoMain.set(true);
   }

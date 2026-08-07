@@ -135,14 +135,17 @@ export class CallsService {
       conversation.clientUserId === user.sub
         ? conversation.professionalUserId
         : conversation.clientUserId;
+    const callerIdentity = await this.callsRepository.findUserIdentity(
+      user.sub,
+    );
     return {
       callId,
       conversationId,
       kind,
       callerId: user.sub,
       recipientId,
-      callerName: user.phoneNumber,
-      callerAvatarUrl: null,
+      callerName: callerIdentity?.name || user.phoneNumber,
+      callerAvatarUrl: callerIdentity?.avatarUrl ?? null,
       occurredAt: new Date().toISOString(),
     };
   }

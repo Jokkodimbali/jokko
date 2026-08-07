@@ -25,6 +25,7 @@ describe('CallsService security and idempotency', () => {
   const mediaRooms = { createJoinCredential: jest.fn() };
   const repository = {
     isUserActive: jest.fn(),
+    findUserIdentity: jest.fn(),
     create: jest.fn(),
     transition: jest.fn(),
     listForUser: jest.fn(),
@@ -43,6 +44,10 @@ describe('CallsService security and idempotency', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     repository.isUserActive.mockResolvedValue(true);
+    repository.findUserIdentity.mockResolvedValue({
+      name: 'Client',
+      avatarUrl: null,
+    });
     repository.findForParticipant.mockResolvedValue(call);
     mediaRooms.createJoinCredential.mockResolvedValue({
       serverUrl: 'wss://livekit',
@@ -110,7 +115,7 @@ describe('CallsService security and idempotency', () => {
     });
     repository.transition.mockResolvedValue(true);
 
-    const signal = service.endActiveCallForDisconnectedUser(user.sub);
+    const signal = await service.endActiveCallForDisconnectedUser(user.sub);
 
     expect(repository.transition).toHaveBeenCalledWith({
       id: call.id,

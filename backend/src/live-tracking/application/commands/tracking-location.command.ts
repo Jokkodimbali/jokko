@@ -1,4 +1,5 @@
 export type TrackingLocationCommand = {
+  recordedAt?: string;
   latitude?: number;
   longitude?: number;
   accuracyMeters?: number;

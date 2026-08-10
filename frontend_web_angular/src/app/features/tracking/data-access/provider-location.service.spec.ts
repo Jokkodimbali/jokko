@@ -231,6 +231,54 @@ describe('ProviderLocationService', () => {
 
     expect(recordedAt).toEqual([measuredAt]);
   });
+
+  it.each([
+    ['arret', 0, 0],
+    ['marche', 4.5, 1.25],
+    ['velo ou circulation lente', 20, 5.56],
+    ['ville fluide', 50, 13.89],
+    ['autoroute', 130, 36.11],
+    ['train rapide', 250, 69.44],
+  ])('keeps coherent telemetry for %s at %d km/h', (_scenario, speedKmh, distanceMeters) => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 14;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const received: ProviderCoordinates[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      received.push({ latitude: position.latitude, longitude: position.longitude });
+    });
+    const measuredAt = Date.now();
+    const latitudeDelta = distanceMeters / 111_111;
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 20, speedKmh / 3.6, measuredAt));
+    success?.(
+      thisPosition(
+        14.7167 + latitudeDelta,
+        -17.4677,
+        6,
+        20,
+        speedKmh / 3.6,
+        measuredAt + 1000,
+      ),
+    );
+    subscription.unsubscribe();
+
+    expect(received).toHaveLength(2);
+    if (speedKmh === 0) {
+      expect(received[1]).toEqual(received[0]);
+    } else {
+      expect(received[1]?.latitude).toBeGreaterThan(received[0]?.latitude ?? Number.POSITIVE_INFINITY);
+    }
+  });
 });
 
 type ProviderCoordinates = { latitude: number; longitude: number };

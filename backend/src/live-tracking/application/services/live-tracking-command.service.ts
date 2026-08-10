@@ -173,7 +173,8 @@ export class LiveTrackingCommandService {
       throw LiveTrackingDomainError.invalidLocation();
     }
 
-    let tracking = await this.liveTrackingRepository.recordTrackingLocation({
+    const recordedAt = this.resolveRecordedAt(dto);
+    const write = await this.liveTrackingRepository.recordTrackingLocation({
       reservationId,
       professionalId: professional.id,
       latitude: dto.latitude,
@@ -182,47 +183,33 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
+      recordedAt,
     });
 
-    if (!tracking) {
-      tracking = await this.resumeParcelProviderTrackingFromLocation(
+    if (!write) {
+      const resumed = await this.resumeParcelProviderTrackingFromLocation(
         context,
         professional.id,
         dto,
       );
+      if (!resumed) {
+        throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
+      }
+      this.publishTrackingUpdate(resumed, context, dto, recordedAt);
+      return resumed;
     }
 
-    if (!tracking) {
-      throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
+    if (!write.accepted) {
+      return write.tracking;
     }
 
-    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
-    enrichedTracking =
-      (await this.startReservationAutomaticallyIfArrived(
-        context,
-        enrichedTracking,
-      )) ?? enrichedTracking;
-    await this.eventBus.publier(
-      new ProviderLocationUpdatedEvent({
-        reservationId,
-        clientUserId: context.clientUserId,
-        professionalId: professional.id,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        recordedAt: new Date().toISOString(),
-      }),
-    );
-
-    this.realtimeEvents.emit(
-      'live-tracking.location.updated',
-      enrichedTracking,
-    );
+    this.publishTrackingUpdate(write.tracking, context, dto, recordedAt);
     this.realtimeEvents.emit(
       'live-tracking.presence.updated',
-      tracking.presence,
+      write.tracking.presence,
     );
 
-    return enrichedTracking;
+    return write.tracking;
   }
 
   private async resumeParcelProviderTrackingFromLocation(
@@ -337,7 +324,8 @@ export class LiveTrackingCommandService {
       throw LiveTrackingDomainError.invalidLocation();
     }
 
-    const tracking =
+    const recordedAt = this.resolveRecordedAt(dto);
+    const write =
       await this.liveTrackingRepository.recordTravelerTrackingLocation({
         reservationId: context.reservationId,
         professionalId: context.professionalId,
@@ -347,24 +335,17 @@ export class LiveTrackingCommandService {
         headingDegrees: dto.headingDegrees ?? null,
         speedKmh: dto.speedKmh ?? null,
         locationLabel: dto.locationLabel?.trim() ?? 'Position GPS du client',
+        recordedAt,
       });
 
-    if (!tracking) {
+    if (!write) {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
+    if (!write.accepted) return write.tracking;
 
-    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
-    enrichedTracking =
-      (await this.startReservationAutomaticallyIfArrived(
-        context,
-        enrichedTracking,
-      )) ?? enrichedTracking;
-    this.realtimeEvents.emit(
-      'live-tracking.location.updated',
-      enrichedTracking,
-    );
+    this.publishTrackingUpdate(write.tracking, context, dto, recordedAt);
 
-    return enrichedTracking;
+    return write.tracking;
   }
 
   async syncProfessionalConnection(user: AuthUser, isOnline: boolean) {
@@ -564,6 +545,58 @@ export class LiveTrackingCommandService {
     ) {
       throw LiveTrackingDomainError.invalidLocation();
     }
+  }
+
+  private resolveRecordedAt(dto: TrackingLocationCommand): Date {
+    if (!dto.recordedAt) return new Date();
+    const timestamp = Date.parse(dto.recordedAt);
+    if (!Number.isFinite(timestamp) || timestamp > Date.now() + 60_000) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
+    return new Date(timestamp);
+  }
+
+  private publishTrackingUpdate(
+    tracking: ReservationTrackingView,
+    context: ReservationTrackingContext,
+    dto: TrackingLocationCommand,
+    recordedAt: Date,
+  ): void {
+    this.realtimeEvents.emit('live-tracking.location.updated', tracking);
+    void this.enrichAndPublishTrackingRoute(tracking, context, dto, recordedAt);
+  }
+
+  private async enrichAndPublishTrackingRoute(
+    tracking: ReservationTrackingView,
+    context: ReservationTrackingContext,
+    dto: TrackingLocationCommand,
+    recordedAt: Date,
+  ): Promise<void> {
+    const enriched = await this.enrichTrackingRoute(tracking, context);
+    const latest =
+      await this.liveTrackingRepository.findTrackingByReservationId(
+        tracking.reservationId,
+      );
+    if (
+      !latest?.lastPositionAt ||
+      latest.lastPositionAt.getTime() !== recordedAt.getTime()
+    ) {
+      return;
+    }
+    const resolved =
+      (await this.startReservationAutomaticallyIfArrived(context, enriched)) ??
+      enriched;
+    this.realtimeEvents.emit('live-tracking.location.updated', resolved);
+    await this.eventBus.publier(
+      new ProviderLocationUpdatedEvent({
+        reservationId: tracking.reservationId,
+        clientUserId: context.clientUserId,
+        professionalId: context.professionalId,
+        latitude: dto.latitude ?? tracking.lastLatitude ?? 0,
+        longitude: dto.longitude ?? tracking.lastLongitude ?? 0,
+        recordedAt: recordedAt.toISOString(),
+      }),
+    );
   }
 
   private isValidCoordinate(lat: number, lng: number): boolean {

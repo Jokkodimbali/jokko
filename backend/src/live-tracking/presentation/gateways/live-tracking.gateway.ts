@@ -129,6 +129,7 @@ export class LiveTrackingGateway
       payload.reservationId,
     );
     await client.join(this.buildReservationRoom(payload.reservationId));
+    client.emit('tracking.snapshot', tracking);
 
     return {
       event: 'tracking.snapshot',

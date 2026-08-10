@@ -362,7 +362,8 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
     headingDegrees?: number | null;
     speedKmh?: number | null;
     locationLabel?: string | null;
-  }): Promise<ReservationTrackingView | null> {
+    recordedAt: Date;
+  }): Promise<{ tracking: ReservationTrackingView; accepted: boolean } | null> {
     const record = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.sessionTrackingReservation.findUnique({
         where: { reservationId: input.reservationId },
@@ -377,7 +378,13 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         return null;
       }
 
-      const now = new Date();
+      if (
+        existing.dernierePositionLe &&
+        input.recordedAt <= existing.dernierePositionLe
+      ) {
+        return { record: existing, accepted: false };
+      }
+      const now = input.recordedAt;
 
       await tx.presenceProfessionnel.upsert({
         where: { profilProfessionnelId: input.professionalId },
@@ -421,7 +428,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
       });
 
-      return tx.sessionTrackingReservation.update({
+      const saved = await tx.sessionTrackingReservation.update({
         where: { id: existing.id },
         data: {
           derniereLatitude: this.requiredDecimal(input.latitude),
@@ -434,9 +441,12 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
         include: TRACKING_INCLUDE,
       });
+      return { record: saved, accepted: true };
     });
 
-    return record ? this.mapTracking(record) : null;
+    return record
+      ? { tracking: this.mapTracking(record.record), accepted: record.accepted }
+      : null;
   }
 
   async recordTravelerTrackingLocation(input: {
@@ -448,7 +458,8 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
     headingDegrees?: number | null;
     speedKmh?: number | null;
     locationLabel?: string | null;
-  }): Promise<ReservationTrackingView | null> {
+    recordedAt: Date;
+  }): Promise<{ tracking: ReservationTrackingView; accepted: boolean } | null> {
     const record = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.sessionTrackingReservation.findUnique({
         where: { reservationId: input.reservationId },
@@ -463,7 +474,13 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         return null;
       }
 
-      const now = new Date();
+      if (
+        existing.dernierePositionLe &&
+        input.recordedAt <= existing.dernierePositionLe
+      ) {
+        return { record: existing, accepted: false };
+      }
+      const now = input.recordedAt;
       await tx.pointTrackingReservation.create({
         data: {
           sessionTrackingId: existing.id,
@@ -477,7 +494,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
       });
 
-      return tx.sessionTrackingReservation.update({
+      const saved = await tx.sessionTrackingReservation.update({
         where: { id: existing.id },
         data: {
           derniereLatitude: this.requiredDecimal(input.latitude),
@@ -490,9 +507,12 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
         include: TRACKING_INCLUDE,
       });
+      return { record: saved, accepted: true };
     });
 
-    return record ? this.mapTracking(record) : null;
+    return record
+      ? { tracking: this.mapTracking(record.record), accepted: record.accepted }
+      : null;
   }
 
   async startReservationFromArrival(input: {

@@ -242,9 +242,9 @@ export class TrackingGoogleMapRendererService {
         ? state.provider
         : this.stabilizeProviderPosition(state.provider, state);
       this.lastFilteredProviderPosition = filteredProvider;
-      const displayedProvider = state.arrived
-        ? filteredProvider
-        : this.snapTravelerMarkerToRoute(filteredProvider, state);
+      // La position visible reste le GPS filtre. Projeter alternativement le marqueur
+      // sur la route et hors route cree des sauts, surtout dans les virages.
+      const displayedProvider = filteredProvider;
       this.currentTravelerHeading = this.resolveHeading(displayedProvider, state);
       if (!this.topViewEnabled) {
         this.currentCameraHeading = this.currentTravelerHeading;

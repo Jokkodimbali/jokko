@@ -46,6 +46,11 @@ export type ReservationTrackingView = ReservationTrackingSession & {
   } | null;
 };
 
+export type TrackingLocationWriteResult = {
+  tracking: ReservationTrackingView;
+  accepted: boolean;
+};
+
 export interface LiveTrackingRepositoryPort {
   findReservationContext(
     reservationId: string,
@@ -83,7 +88,8 @@ export interface LiveTrackingRepositoryPort {
     headingDegrees?: number | null;
     speedKmh?: number | null;
     locationLabel?: string | null;
-  }): Promise<ReservationTrackingView | null>;
+    recordedAt: Date;
+  }): Promise<TrackingLocationWriteResult | null>;
   recordTravelerTrackingLocation(input: {
     reservationId: string;
     professionalId: string;
@@ -93,7 +99,8 @@ export interface LiveTrackingRepositoryPort {
     headingDegrees?: number | null;
     speedKmh?: number | null;
     locationLabel?: string | null;
-  }): Promise<ReservationTrackingView | null>;
+    recordedAt: Date;
+  }): Promise<TrackingLocationWriteResult | null>;
   startReservationFromArrival(input: {
     reservationId: string;
     professionalId: string;

@@ -262,6 +262,7 @@ export class AppointmentsService {
     location: {
       latitude: number;
       longitude: number;
+      recordedAt?: string;
       accuracyMeters?: number | null;
       headingDegrees?: number | null;
       speedKmh?: number | null;

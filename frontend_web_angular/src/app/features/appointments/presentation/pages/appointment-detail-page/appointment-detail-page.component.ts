@@ -14,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, Subscription, catchError, merge, of, switchMap, timer } from 'rxjs';
+import { Observable, Subscription, catchError, finalize, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -85,6 +85,7 @@ const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
+const GPS_RECOVERY_DELAY_MS = 5_000;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 5_000;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
@@ -185,6 +186,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private connectionSubscription?: Subscription;
   private appointmentStatePollingSubscription?: Subscription;
   private providerLocationSubscription?: Subscription;
+  private locationRecoveryTimeoutId?: number;
+  private locationUpdateInFlight = false;
+  private lastAcceptedTrackingPositionMs: number | null = null;
   private elapsedClockInterval?: number;
   private routeCoordinates: Array<[number, number]> = [];
   private routeOptions: AppointmentRouteOption[] = [];
@@ -212,6 +216,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
   protected readonly isUpdatingStatus = signal(false);
+  protected readonly locationSharingState = signal<'active' | 'recovering' | 'unavailable'>('active');
   protected readonly nowMs = signal(Date.now());
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isRescheduleModalOpen = signal(false);
@@ -1268,6 +1273,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       clearInterval(this.elapsedClockInterval);
     }
     this.clearNavigationRetry();
+    this.clearLocationRecovery();
     this.trackingStore.reset();
   }
 
@@ -2660,6 +2666,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);
     this.routeStatus.set('idle');
+    this.lastAcceptedTrackingPositionMs = null;
   }
 
   private loadTerminalTrackingSnapshot(appointmentId: string): void {
@@ -3123,6 +3130,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
+    const timestamp = this.trackingPositionTimestampMs(tracking);
+    if (
+      timestamp !== null &&
+      this.lastAcceptedTrackingPositionMs !== null &&
+      timestamp < this.lastAcceptedTrackingPositionMs
+    ) {
+      return;
+    }
+    if (timestamp !== null) {
+      this.lastAcceptedTrackingPositionMs = Math.max(
+        this.lastAcceptedTrackingPositionMs ?? timestamp,
+        timestamp,
+      );
+    }
     const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
     this.trackingStore.setTracking(normalizedTracking);
     this.syncAppointmentStatusFromTracking(normalizedTracking);
@@ -3204,10 +3225,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
+    this.clearLocationRecovery();
     this.providerLocationSubscription = this.providerLocation
       .watch(LIVE_LOCATION_UPDATE_INTERVAL_MS)
       .subscribe({
         next: (position) => {
+          this.locationSharingState.set('active');
+          if (this.locationUpdateInFlight) {
+            return;
+          }
           if (!this.isProviderOnTheWay() && !this.isParcelDropoffNavigationActive()) {
             this.stopProviderLocationSharing();
             return;
@@ -3225,16 +3251,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             return;
           }
 
+          this.locationUpdateInFlight = true;
           this.appointmentsService
             .updateProviderTrackingLocation(appointmentId, {
               latitude: position.latitude,
               longitude: position.longitude,
+              recordedAt: new Date(position.recordedAt).toISOString(),
               accuracyMeters: position.accuracyMeters,
               headingDegrees: position.headingDegrees,
               speedKmh: position.speedKmh,
               locationLabel: this.trackedTravelerPositionLabel(),
             })
             .pipe(
+              finalize(() => {
+                this.locationUpdateInFlight = false;
+              }),
               catchError((error) => {
                 if (error instanceof HttpErrorResponse && error.status === 409) {
                   this.locationSharingBlockedUntilMs = Date.now() + 30_000;
@@ -3250,8 +3281,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               }
             });
         },
-        error: () => {
+        error: (error: GeolocationPositionError | Error) => {
           this.stopProviderLocationSharing();
+          if ('code' in error && error.code === error.PERMISSION_DENIED) {
+            this.locationSharingState.set('unavailable');
+            return;
+          }
+          this.locationSharingState.set('recovering');
+          this.scheduleLocationRecovery(appointmentId);
         },
       });
   }
@@ -3259,6 +3296,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private stopProviderLocationSharing(): void {
     this.providerLocationSubscription?.unsubscribe();
     this.providerLocationSubscription = undefined;
+    this.locationUpdateInFlight = false;
+  }
+
+  private scheduleLocationRecovery(appointmentId: string): void {
+    this.clearLocationRecovery();
+    this.locationRecoveryTimeoutId = window.setTimeout(() => {
+      this.locationRecoveryTimeoutId = undefined;
+      if (
+        this.isRouteActorViewer() &&
+        (this.isProviderOnTheWay() || this.isParcelDropoffNavigationActive()) &&
+        !this.hasTravelerArrivedAtDestination()
+      ) {
+        this.startProviderLocationSharing(appointmentId);
+      }
+    }, GPS_RECOVERY_DELAY_MS);
+  }
+
+  private clearLocationRecovery(): void {
+    if (this.locationRecoveryTimeoutId !== undefined) {
+      window.clearTimeout(this.locationRecoveryTimeoutId);
+      this.locationRecoveryTimeoutId = undefined;
+    }
   }
 
   private isServiceDay(appointment: AppointmentView): boolean {

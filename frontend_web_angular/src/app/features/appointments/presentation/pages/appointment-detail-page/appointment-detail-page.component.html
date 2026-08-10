@@ -730,7 +730,21 @@
           #trackingMap
           class="appointment-detail__google-map"
           aria-label="Carte temps reel du trajet prestataire"
-        ></div>
+        >
+          <span
+            *ngIf="isRouteActorViewer() && locationSharingState() !== 'active'"
+            class="appointment-detail__gps-recovery"
+            role="status"
+            aria-live="polite"
+          >
+            <lucide-icon name="locate-fixed" size="14" [strokeWidth]="2.5"></lucide-icon>
+            {{
+              locationSharingState() === 'recovering'
+                ? 'Position en cours d actualisation'
+                : 'GPS a activer pour reprendre le suivi'
+            }}
+          </span>
+        </div>
         <div
           class="appointment-detail__map-empty"
           *ngIf="

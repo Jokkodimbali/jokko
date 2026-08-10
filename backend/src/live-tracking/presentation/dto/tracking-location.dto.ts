@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsDateString,
   Max,
   MaxLength,
   Min,
@@ -12,6 +13,14 @@ import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import { VALIDATION_MESSAGE_CATALOG } from '../../../core/messages/validation-message.catalog';
 
 export class TrackingLocationDto {
+  @ApiPropertyOptional({
+    description: 'Horodatage ISO de la mesure GPS sur le telephone.',
+    example: '2026-08-10T12:15:30.123Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  recordedAt?: string;
+
   @ApiPropertyOptional({
     description: API_DOCS.liveTracking.latitudeField,
     example: 14.716677,

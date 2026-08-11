@@ -72,7 +72,9 @@ describe('ProviderLocationService', () => {
     expect(received[1]).toEqual(received[0]);
   });
 
-  it('updates orientation from the phone compass without waiting for another GPS event', () => {
+  it('applies compass orientation to the next GPS event without consuming its throttle slot', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-11T12:00:00.000Z'));
     let success: ((position: GeolocationPosition) => void) | undefined;
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
@@ -86,17 +88,20 @@ describe('ProviderLocationService', () => {
     });
     const service = new ProviderLocationService();
     const received: Array<{ latitude: number; heading: number | null }> = [];
-    const subscription = service.watch(0).subscribe((position) => {
+    const subscription = service.watch(1000).subscribe((position) => {
       received.push({ latitude: position.latitude, heading: position.headingDegrees });
     });
 
     window.dispatchEvent(orientationEvent(10));
     success?.(thisPosition(14.7167, -17.4677, 8, null, 0));
+    vi.advanceTimersByTime(1000);
     window.dispatchEvent(orientationEvent(100));
+    success?.(thisPosition(14.71672, -17.4677, 8, null, 5));
     subscription.unsubscribe();
+    vi.useRealTimers();
 
     expect(received).toHaveLength(2);
-    expect(received[1]?.latitude).toBe(received[0]?.latitude);
+    expect(received[1]?.latitude).toBeGreaterThan(received[0]?.latitude ?? Number.POSITIVE_INFINITY);
     expect(received[1]?.heading).not.toBe(received[0]?.heading);
   });
 
@@ -205,6 +210,37 @@ describe('ProviderLocationService', () => {
     subscription.unsubscribe();
 
     expect(received[1]).toEqual(received[0]);
+  });
+
+  it('recovers after three coherent GPS samples confirm a real relocation', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
+          success = handler;
+          return 15;
+        }),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const received: ProviderCoordinates[] = [];
+    const subscription = service.watch(0).subscribe((position) => {
+      received.push({ latitude: position.latitude, longitude: position.longitude });
+    });
+    const startedAt = Date.now();
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 90, 25, startedAt));
+    success?.(thisPosition(14.8067, -17.3677, 6, 90, 25, startedAt + 1000));
+    success?.(thisPosition(14.80671, -17.36769, 6, 90, 25, startedAt + 2000));
+    success?.(thisPosition(14.80672, -17.36768, 6, 90, 25, startedAt + 3000));
+    subscription.unsubscribe();
+
+    expect(received[1]).toEqual(received[0]);
+    expect(received[2]).toEqual(received[0]);
+    expect(received[3]?.latitude).toBeCloseTo(14.80672, 5);
+    expect(received[3]?.longitude).toBeCloseTo(-17.36768, 5);
   });
 
   it('uses the GPS measurement timestamp instead of the network reception time', () => {

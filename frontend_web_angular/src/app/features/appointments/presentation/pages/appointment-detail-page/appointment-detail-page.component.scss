@@ -1012,49 +1012,45 @@
 
 .appointment-detail__review-stars {
   display: inline-flex;
-  gap: 7px;
+  gap: 1px;
 }
 
 .appointment-detail__review-stars button {
   align-items: center;
   background: transparent;
   border: 0;
-  color: transparent;
+  color: #f59e0b;
   cursor: pointer;
   display: inline-flex;
-  font-size: 35px;
-  font-weight: 900;
-  height: 38px;
+  height: 36px;
   justify-content: center;
   line-height: 1;
   padding: 0;
-  text-shadow: 0 3px 9px rgba(245, 158, 11, 0.12);
+  opacity: 0.32;
   transition:
-    color 150ms ease,
-    text-shadow 150ms ease,
+    opacity 150ms ease,
     transform 150ms ease;
-  width: 38px;
-  -webkit-text-stroke: 1.7px #f59e0b;
+  width: 29px;
 }
 
 .appointment-detail__review-star--active {
-  color: #f59e0b !important;
-  text-shadow: 0 7px 16px rgba(245, 158, 11, 0.26);
-  -webkit-text-stroke: 0;
+  opacity: 1 !important;
 }
 
 .appointment-detail__review-stars button:hover,
 .appointment-detail__review-stars button:focus-visible {
-  color: #f59e0b;
   outline: none;
-  text-shadow: 0 7px 16px rgba(245, 158, 11, 0.22);
+  opacity: 1;
   transform: translateY(-1px);
-  -webkit-text-stroke: 0;
 }
 
-.appointment-detail__review-stars button span {
-  display: block;
-  transform: translateY(-1px);
+.appointment-detail__review-stars svg {
+  fill: currentColor;
+  height: 25px;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-width: 0.8px;
+  width: 25px;
 }
 
 .appointment-detail__review-fields textarea {

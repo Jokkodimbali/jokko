@@ -5,6 +5,12 @@ const STATIONARY_SPEED_KMH = 3;
 const MIN_MOVEMENT_METERS = 4;
 const MAX_ACCEPTED_ACCURACY_METERS = 100;
 const MAX_PLAUSIBLE_VEHICLE_SPEED_KMH = 220;
+const GPS_RELOCATION_CONFIRMATIONS = 3;
+
+type GpsRelocationCandidate = {
+  position: ProviderGpsPosition;
+  confirmations: number;
+};
 
 export type ProviderGpsPosition = {
   latitude: number;
@@ -38,8 +44,10 @@ export class ProviderLocationService {
         return undefined;
       }
 
-      let lastEmissionAt = 0;
+      let lastGpsEmissionAt = 0;
+      let lastOrientationEmissionAt = 0;
       let filteredPosition: ProviderGpsPosition | null = null;
+      let relocationCandidate: GpsRelocationCandidate | null = null;
       let stableHeading: number | null = null;
       let compassHeading: number | null = null;
       const handleOrientation = (event: DeviceOrientationEvent): void => {
@@ -69,24 +77,23 @@ export class ProviderLocationService {
 
         if (!filteredPosition) return;
         const now = Date.now();
-        if (now - lastEmissionAt < intervalMilliseconds) return;
+        if (now - lastOrientationEmissionAt < intervalMilliseconds) return;
         const orientedPosition = this.applyCompassHeading(
-          { ...filteredPosition, recordedAt: now },
+          filteredPosition,
           stableHeading,
           compassHeading,
         );
         filteredPosition = orientedPosition;
         stableHeading = orientedPosition.headingDegrees;
-        lastEmissionAt = now;
-        subscriber.next(orientedPosition);
+        lastOrientationEmissionAt = now;
       };
       window.addEventListener('deviceorientationabsolute', handleOrientation, true);
       window.addEventListener('deviceorientation', handleOrientation, true);
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const now = Date.now();
-          if (now - lastEmissionAt < intervalMilliseconds) return;
-          lastEmissionAt = now;
+          if (now - lastGpsEmissionAt < intervalMilliseconds) return;
+          lastGpsEmissionAt = now;
           const recordedAt =
             Number.isFinite(position.timestamp) && position.timestamp > 0
               ? position.timestamp
@@ -108,9 +115,15 @@ export class ProviderLocationService {
                 : null,
             recordedAt,
           };
-          const nextPosition = this.filterPosition(rawPosition, filteredPosition, stableHeading);
+          const filtered = this.filterPosition(
+            rawPosition,
+            filteredPosition,
+            stableHeading,
+            relocationCandidate,
+          );
+          relocationCandidate = filtered.relocationCandidate;
           const orientedPosition = this.applyCompassHeading(
-            nextPosition,
+            filtered.position,
             stableHeading,
             compassHeading,
           );
@@ -153,12 +166,18 @@ export class ProviderLocationService {
     raw: ProviderGpsPosition,
     previous: ProviderGpsPosition | null,
     previousHeading: number | null,
-  ): ProviderGpsPosition {
+    relocationCandidate: GpsRelocationCandidate | null,
+  ): { position: ProviderGpsPosition; relocationCandidate: GpsRelocationCandidate | null } {
     if (!previous) {
       const moving = (raw.speedKmh ?? 0) >= STATIONARY_SPEED_KMH;
-      return { ...raw, headingDegrees: moving ? raw.headingDegrees : null };
+      return {
+        position: { ...raw, headingDegrees: moving ? raw.headingDegrees : null },
+        relocationCandidate: null,
+      };
     }
-    if (raw.recordedAt < previous.recordedAt) return previous;
+    if (raw.recordedAt < previous.recordedAt) {
+      return { position: previous, relocationCandidate };
+    }
 
     const rawDistance = this.distanceMeters(previous, raw);
     const elapsedSeconds = Math.max(0.1, (raw.recordedAt - previous.recordedAt) / 1000);
@@ -175,13 +194,46 @@ export class ProviderLocationService {
     const poorAccuracyJump =
       raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS && rawDistance < raw.accuracyMeters * 1.5;
 
-    if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump || impossibleJump) {
+    if (impossibleJump) {
+      const candidateDistance = relocationCandidate
+        ? this.distanceMeters(relocationCandidate.position, raw)
+        : Number.POSITIVE_INFINITY;
+      const confirmationRadius = Math.max(25, raw.accuracyMeters * 1.5);
+      const nextCandidate =
+        candidateDistance <= confirmationRadius
+          ? { position: raw, confirmations: relocationCandidate!.confirmations + 1 }
+          : { position: raw, confirmations: 1 };
+      if (nextCandidate.confirmations >= GPS_RELOCATION_CONFIRMATIONS) {
+        return {
+          position: {
+            ...raw,
+            headingDegrees: raw.headingDegrees ?? previousHeading,
+          },
+          relocationCandidate: null,
+        };
+      }
       return {
-        ...raw,
-        latitude: previous.latitude,
-        longitude: previous.longitude,
-        headingDegrees: previousHeading,
-        speedKmh: impossibleJump ? previous.speedKmh : 0,
+        position: {
+          ...raw,
+          latitude: previous.latitude,
+          longitude: previous.longitude,
+          headingDegrees: previousHeading,
+          speedKmh: previous.speedKmh,
+        },
+        relocationCandidate: nextCandidate,
+      };
+    }
+
+    if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump) {
+      return {
+        position: {
+          ...raw,
+          latitude: previous.latitude,
+          longitude: previous.longitude,
+          headingDegrees: previousHeading,
+          speedKmh: 0,
+        },
+        relocationCandidate: null,
       };
     }
 
@@ -197,11 +249,14 @@ export class ProviderLocationService {
           : previousHeading;
 
     return {
-      ...raw,
-      latitude,
-      longitude,
-      speedKmh: effectiveSpeedKmh,
-      headingDegrees: this.smoothHeading(previousHeading, measuredHeading, moving ? 0.72 : 0.4),
+      position: {
+        ...raw,
+        latitude,
+        longitude,
+        speedKmh: effectiveSpeedKmh,
+        headingDegrees: this.smoothHeading(previousHeading, measuredHeading, moving ? 0.72 : 0.4),
+      },
+      relocationCandidate: null,
     };
   }
 

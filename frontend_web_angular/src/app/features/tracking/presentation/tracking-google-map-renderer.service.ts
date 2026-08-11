@@ -8,6 +8,12 @@ import {
   GoogleMapsPolylineInstance,
   GoogleMapsRuntime,
 } from '../../../shared/maps/google-maps-loader.service';
+import {
+  NAVIGATION_CAMERA_CONFIG,
+  NavigationCameraDecision,
+  NavigationCameraEngine,
+  shortestAngleDelta,
+} from './navigation-camera.engine';
 
 export type TrackingMapRoute = {
   id: string;
@@ -89,8 +95,8 @@ export type TrackingMapRenderState = {
 };
 
 const DAKAR_CENTER: GoogleMapsPoint = { lat: 14.7167, lng: -17.4677 };
-const NAVIGATION_CAMERA_TILT = 65;
-const NAVIGATION_CAMERA_ZOOM = 19.5;
+const NAVIGATION_CAMERA_TILT = NAVIGATION_CAMERA_CONFIG.tilt.low;
+const NAVIGATION_CAMERA_ZOOM = NAVIGATION_CAMERA_CONFIG.zoom.near;
 const TOP_VIEW_CAMERA_TILT = 0;
 const TOP_VIEW_CAMERA_ZOOM = 17.4;
 const TOP_VIEW_ROUTE_PADDING = { top: 92, right: 56, bottom: 128, left: 56 };
@@ -99,18 +105,18 @@ const NAVIGATION_MIN_ZOOM = 18;
 const MAP_MAX_ZOOM = 21;
 const ROUTE_SNAP_MAX_DISTANCE_METERS = 80;
 const MARKER_STATIONARY_RADIUS_METERS = 4;
-const MARKER_MAX_ACCURACY_METERS = 100;
 const MARKER_DEFAULT_UPDATE_INTERVAL_MS = 1000;
 const MARKER_MIN_ANIMATION_DURATION_MS = 120;
 const MARKER_MAX_ANIMATION_DURATION_MS = 2500;
-const MARKER_MAX_PREDICTION_MS = 900;
-const MARKER_MAX_PREDICTION_METERS = 35;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
 const MANEUVER_MARKER_LIMIT = 48;
 const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
 const ROUTE_TURN_DOT_MIN_SEGMENT_METERS = 7;
 const ROUTE_STROKE_MIN_WEIGHT = 8.5;
 const ROUTE_STROKE_MAX_WEIGHT = 14;
+const CAMERA_MIN_ANIMATION_DURATION_MS = 220;
+const CAMERA_MAX_ANIMATION_DURATION_MS = 1_600;
+const CAMERA_DEFAULT_UPDATE_INTERVAL_MS = 1_000;
 const ROUTE_TURN_DOT_SYMBOL_PATH = 'M 0,-6 A 6,6 0 1,1 0,6 A 6,6 0 1,1 0,-6';
 
 const DRIVER_ACTION_MANEUVERS = new Set([
@@ -160,10 +166,12 @@ export class TrackingGoogleMapRendererService {
   private lastMarkerSourceAt: number | null = null;
   private renderedMarkerHeading = 0;
   private cameraAnimationFrameId: number | null = null;
+  private lastCameraUpdateAt: number | null = null;
+  private lastCameraSourceAt: number | null = null;
   private renderedCameraCenter: GoogleMapsPoint | null = null;
   private renderedCameraHeading = 0;
-  private renderedCameraZoom = NAVIGATION_CAMERA_ZOOM;
-  private renderedCameraTilt = NAVIGATION_CAMERA_TILT;
+  private renderedCameraZoom: number = NAVIGATION_CAMERA_ZOOM;
+  private renderedCameraTilt: number = NAVIGATION_CAMERA_TILT;
   private routeSelected?: (routeId: string) => void;
   private lastProviderPosition: GoogleMapsPoint | null = null;
   private applyingCameraUpdate = false;
@@ -177,7 +185,8 @@ export class TrackingGoogleMapRendererService {
   private renderedRouteForIcons: TrackingMapRoute | null = null;
   private lastRenderedState: TrackingMapRenderState | null = null;
   private lastRenderedProviderPosition: GoogleMapsPoint | null = null;
-  private lastFilteredProviderPosition: GoogleMapsPoint | null = null;
+  private readonly navigationCamera = new NavigationCameraEngine();
+  private navigationCameraDecision: NavigationCameraDecision | null = null;
 
   async initializeRouteMap(
     element: HTMLElement,
@@ -238,13 +247,9 @@ export class TrackingGoogleMapRendererService {
 
     if (this.routeMap) {
       this.showManeuverMarkers = state.showManeuverMarkers === true;
-      const filteredProvider = state.arrived
-        ? state.provider
-        : this.stabilizeProviderPosition(state.provider, state);
-      this.lastFilteredProviderPosition = filteredProvider;
-      // La position visible reste le GPS filtre. Projeter alternativement le marqueur
-      // sur la route et hors route cree des sauts, surtout dans les virages.
-      const displayedProvider = filteredProvider;
+      // Le marqueur affiche toujours le GPS filtre. La route peut aider le
+      // heading, la camera et la navigation, mais ne modifie jamais la position.
+      const displayedProvider = state.provider;
       this.currentTravelerHeading = this.resolveHeading(displayedProvider, state);
       if (!this.topViewEnabled) {
         this.currentCameraHeading = this.currentTravelerHeading;
@@ -273,7 +278,14 @@ export class TrackingGoogleMapRendererService {
         ? []
         : this.routesStartingAtProvider(displayedProvider, state.routes);
       this.renderRoutes(visibleRoutes);
-      this.fitRoute(displayedProvider, state.destination, visibleRoutes, state.speedKmh);
+      this.fitRoute(
+        displayedProvider,
+        state.destination,
+        visibleRoutes,
+        state.speedKmh,
+        state.accuracyMeters,
+        state.positionTimestampMs,
+      );
       this.refreshRenderedTravelerMarker();
     }
   }
@@ -395,7 +407,6 @@ export class TrackingGoogleMapRendererService {
     this.clearRoutePolylines();
     this.lastBoundsKey = '';
     this.lastProviderPosition = null;
-    this.lastFilteredProviderPosition = null;
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
     this.renderedMarkerHeading = 0;
@@ -406,6 +417,10 @@ export class TrackingGoogleMapRendererService {
     this.renderedCameraHeading = 0;
     this.renderedCameraZoom = NAVIGATION_CAMERA_ZOOM;
     this.renderedCameraTilt = NAVIGATION_CAMERA_TILT;
+    this.lastCameraUpdateAt = null;
+    this.lastCameraSourceAt = null;
+    this.navigationCamera.reset();
+    this.navigationCameraDecision = null;
   }
 
   destroyRouteMap(): void {
@@ -427,8 +442,9 @@ export class TrackingGoogleMapRendererService {
     this.routePolylines = [];
     this.renderedRouteForIcons = null;
     this.lastRenderedState = null;
+    this.navigationCamera.reset();
+    this.navigationCameraDecision = null;
     this.lastRenderedProviderPosition = null;
-    this.lastFilteredProviderPosition = null;
     this.lastProviderPosition = null;
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
@@ -444,7 +460,7 @@ export class TrackingGoogleMapRendererService {
 
   private renderRoutes(routes: TrackingMapRoute[]): void {
     if (!this.google || !this.routeMap) return;
-    const visibleRoutes = routes.filter((route) => route.selected).slice(0, 1);
+    const visibleRoutes = routes.filter((route) => route.coordinates.length >= 2);
 
     while (this.routePolylines.length > visibleRoutes.length) {
       this.routePolylines.pop()?.setMap(null);
@@ -455,27 +471,30 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
-    visibleRoutes.forEach((route) => {
-      this.renderedRouteForIcons = route;
+    this.renderedRouteForIcons = visibleRoutes.find((route) => route.selected) ?? null;
+    visibleRoutes.forEach((route, index) => {
+      const selected = route.selected;
       const options = {
         map: this.routeMap,
         path: route.coordinates,
-        icons: this.routeManeuverIconSequences(route),
-        strokeColor: '#1eb980',
-        strokeOpacity: 0.96,
-        strokeWeight: this.routeStrokeWeight(),
-        zIndex: 20,
-        clickable: false,
+        icons: selected ? this.routeManeuverIconSequences(route) : [],
+        strokeColor: selected ? '#1eb980' : '#64748b',
+        strokeOpacity: selected ? 0.96 : 0.68,
+        strokeWeight: selected ? this.routeStrokeWeight() : Math.max(3, this.routeStrokeWeight() - 2),
+        zIndex: selected ? 20 : 10,
+        clickable: true,
       };
-      let polyline = this.routePolylines[0];
+      let polyline = this.routePolylines[index];
       if (!polyline) {
         polyline = new this.google!.maps.Polyline(options);
-        this.routePolylines[0] = polyline;
+        this.routePolylines[index] = polyline;
       } else {
         polyline.setOptions(options);
         polyline.setPath(route.coordinates);
         polyline.setMap(this.routeMap as GoogleMapsMapInstance);
       }
+      this.google!.maps.event?.clearInstanceListeners(polyline);
+      polyline.addListener('click', () => this.routeSelected?.(route.id));
     });
   }
 
@@ -959,34 +978,19 @@ export class TrackingGoogleMapRendererService {
       MARKER_MAX_ANIMATION_DURATION_MS,
       Math.max(MARKER_MIN_ANIMATION_DURATION_MS, updateInterval * 1.08),
     );
-    const predictionDuration =
-      (speedKmh ?? 0) >= 3 ? Math.min(MARKER_MAX_PREDICTION_MS, duration * 0.75) : 0;
-    const maximumPredictionRatio =
-      distance > 0
-        ? Math.min(predictionDuration / duration, MARKER_MAX_PREDICTION_METERS / distance)
-        : 0;
     const startedAt = receivedAt;
     const animate = (timestamp: number): void => {
       const elapsed = timestamp - startedAt;
       const progress = Math.min(1, elapsed / duration);
       // Smoothstep conserve une vitesse fluide, sans depassement du point GPS.
       const eased = progress * progress * (3 - 2 * progress);
-      const predictionProgress =
-        predictionDuration > 0
-          ? Math.min(1, Math.max(0, elapsed - duration) / predictionDuration)
-          : 0;
-      const predictionEase =
-        predictionProgress +
-        predictionProgress * predictionProgress -
-        predictionProgress * predictionProgress * predictionProgress;
-      const positionFactor = progress + maximumPredictionRatio * predictionEase;
       marker.position = {
-        lat: origin.lat + (destination.lat - origin.lat) * positionFactor,
-        lng: origin.lng + (destination.lng - origin.lng) * positionFactor,
+        lat: origin.lat + (destination.lat - origin.lat) * eased,
+        lng: origin.lng + (destination.lng - origin.lng) * eased,
       };
       this.renderedMarkerHeading = this.normalizeHeading(originHeading + headingDelta * eased);
       this.setMarkerHeading(marker, this.renderedMarkerHeading);
-      if (elapsed < duration + predictionDuration) {
+      if (elapsed < duration) {
         this.animationFrameId = requestAnimationFrame(animate);
       } else {
         this.animationFrameId = null;
@@ -1017,9 +1021,20 @@ export class TrackingGoogleMapRendererService {
     destination: GoogleMapsPoint | null,
     routes: TrackingMapRoute[],
     speedKmh: number | null | undefined,
+    accuracyMeters: number | null | undefined,
+    sourceTimestampMs: number | null | undefined,
   ): void {
     if (!this.google || !this.routeMap) return;
     if (!destination) {
+      const heading = this.topViewEnabled ? 0 : this.currentCameraHeading;
+      const focus = this.navigationCameraCenter(
+        provider,
+        [],
+        heading,
+        speedKmh,
+        accuracyMeters,
+        null,
+      );
       const targetZoom = this.topViewEnabled
         ? TOP_VIEW_CAMERA_ZOOM
         : this.navigationCameraZoom(speedKmh);
@@ -1037,9 +1052,7 @@ export class TrackingGoogleMapRendererService {
       ].join('|');
       if (key === this.lastBoundsKey) return;
       this.lastBoundsKey = key;
-      const heading = this.topViewEnabled ? 0 : this.currentCameraHeading;
-      const focus = this.navigationCameraCenter(provider, [], heading, speedKmh);
-      this.animateFollowCamera(focus, heading, speedKmh);
+      this.animateFollowCamera(focus, heading, speedKmh, sourceTimestampMs);
       return;
     }
 
@@ -1080,6 +1093,8 @@ export class TrackingGoogleMapRendererService {
       selectedRouteCoordinates,
       this.currentCameraHeading,
       speedKmh,
+      accuracyMeters,
+      this.nextManeuverDistanceMeters(provider, routes.find((route) => route.selected) ?? routes[0]),
     );
     const targetZoom = this.navigationCameraZoom(speedKmh);
     const targetTilt = this.navigationCameraTilt(speedKmh);
@@ -1096,7 +1111,12 @@ export class TrackingGoogleMapRendererService {
     ].join('|');
     if (key === this.lastBoundsKey) return;
     this.lastBoundsKey = key;
-    this.animateFollowCamera(focus, this.currentCameraHeading, speedKmh);
+    this.animateFollowCamera(
+      focus,
+      this.currentCameraHeading,
+      speedKmh,
+      sourceTimestampMs,
+    );
   }
 
   private routeCameraKey(coordinates: GoogleMapsPoint[]): string {
@@ -1117,11 +1137,11 @@ export class TrackingGoogleMapRendererService {
     targetCenter: GoogleMapsPoint,
     targetHeadingDegrees: number,
     speedKmh: number | null | undefined,
+    sourceTimestampMs: number | null | undefined,
   ): void {
     if (!this.routeMap) return;
     const requestedHeading = this.normalizeHeading(targetHeadingDegrees);
-    const requestedHeadingDelta =
-      ((requestedHeading - this.renderedCameraHeading + 540) % 360) - 180;
+    const requestedHeadingDelta = shortestAngleDelta(this.renderedCameraHeading, requestedHeading);
     const targetHeading =
       Math.abs(requestedHeadingDelta) < 1.5 ? this.renderedCameraHeading : requestedHeading;
     const targetZoom = this.topViewEnabled
@@ -1130,6 +1150,20 @@ export class TrackingGoogleMapRendererService {
     const targetTilt = this.topViewEnabled
       ? TOP_VIEW_CAMERA_TILT
       : this.navigationCameraTilt(speedKmh);
+    const receivedAt = this.animationClock();
+    const sourceAt = this.validTimestamp(sourceTimestampMs);
+    const sourceInterval =
+      sourceAt !== null && this.lastCameraSourceAt !== null
+        ? sourceAt - this.lastCameraSourceAt
+        : null;
+    const updateInterval =
+      sourceInterval !== null && sourceInterval > 0
+        ? sourceInterval
+        : this.lastCameraUpdateAt === null
+          ? CAMERA_DEFAULT_UPDATE_INTERVAL_MS
+          : receivedAt - this.lastCameraUpdateAt;
+    this.lastCameraUpdateAt = receivedAt;
+    if (sourceAt !== null) this.lastCameraSourceAt = sourceAt;
     if (typeof requestAnimationFrame === 'undefined' || typeof performance === 'undefined') {
       this.routeMap.moveCamera?.({
         center: targetCenter,
@@ -1149,9 +1183,12 @@ export class TrackingGoogleMapRendererService {
     const originHeading = this.renderedCameraHeading;
     const originZoom = this.renderedCameraZoom;
     const originTilt = this.renderedCameraTilt;
-    const headingDelta = ((targetHeading - originHeading + 540) % 360) - 180;
+    const headingDelta = shortestAngleDelta(originHeading, targetHeading);
     const startedAt = performance.now();
-    const duration = (speedKmh ?? 0) >= 50 ? 180 : (speedKmh ?? 0) >= 15 ? 240 : 320;
+    const duration = Math.min(
+      CAMERA_MAX_ANIMATION_DURATION_MS,
+      Math.max(CAMERA_MIN_ANIMATION_DURATION_MS, updateInterval * 1.05),
+    );
 
     const animate = (timestamp: number): void => {
       const progress = Math.min(1, (timestamp - startedAt) / duration);
@@ -1187,20 +1224,29 @@ export class TrackingGoogleMapRendererService {
     routeCoordinates: GoogleMapsPoint[],
     headingDegrees: number,
     speedKmh: number | null | undefined,
+    accuracyMeters: number | null | undefined,
+    nextManeuverDistanceMeters: number | null,
   ): GoogleMapsPoint {
-    const speed = speedKmh ?? 0;
-    const lookAheadMeters =
-      speed >= 80 ? 65 : speed >= 50 ? 50 : speed >= 25 ? 36 : speed >= 8 ? 24 : 14;
-    const routeTarget = this.routePointAhead(provider, routeCoordinates, lookAheadMeters);
-    const target = routeTarget ?? this.pointAtBearing(provider, headingDegrees, lookAheadMeters);
-    const forwardWeight = speed >= 50 ? 0.46 : speed >= 20 ? 0.38 : 0.3;
-    return {
-      lat: provider.lat + (target.lat - provider.lat) * forwardWeight,
-      lng: provider.lng + (target.lng - provider.lng) * forwardWeight,
+    const input = {
+      position: provider,
+      headingDegrees,
+      speedKmh,
+      accuracyMeters,
+      routeTarget: null,
+      nextManeuverDistanceMeters,
     };
+    const baseDecision = this.navigationCamera.decide(input);
+    const routeTarget = this.routePointAhead(provider, routeCoordinates, baseDecision.lookAheadMeters);
+    this.navigationCameraDecision = this.navigationCamera.applyRouteTarget(
+      input,
+      baseDecision,
+      routeTarget,
+    );
+    return this.navigationCameraDecision.target;
   }
 
   private navigationCameraZoom(speedKmh: number | null | undefined): number {
+    if (this.navigationCameraDecision) return this.navigationCameraDecision.zoom;
     const speed = speedKmh ?? 0;
     if (speed >= 90) return 18.2;
     if (speed >= 60) return 18.6;
@@ -1210,10 +1256,36 @@ export class TrackingGoogleMapRendererService {
   }
 
   private navigationCameraTilt(speedKmh: number | null | undefined): number {
+    if (this.navigationCameraDecision) return this.navigationCameraDecision.tilt;
     const speed = speedKmh ?? 0;
     if (speed >= 70) return 60;
     if (speed >= 30) return 63;
     return 67;
+  }
+
+  private nextManeuverDistanceMeters(
+    provider: GoogleMapsPoint,
+    route: TrackingMapRoute | undefined,
+  ): number | null {
+    if (!route?.navigationSteps?.length || route.coordinates.length < 2) return null;
+
+    const providerProjection = this.projectPointToRoute(provider, route.coordinates);
+    if (
+      !providerProjection ||
+      providerProjection.distanceFromRouteMeters > ROUTE_SNAP_MAX_DISTANCE_METERS
+    ) {
+      return null;
+    }
+
+    const distances = route.navigationSteps.flatMap((step) => {
+      if (!step.start || !step.maneuver || step.maneuver === 'CONTINUE') return [];
+      const maneuverProjection = this.projectPointToRoute(step.start, route.coordinates);
+      if (!maneuverProjection) return [];
+      const distance =
+        maneuverProjection.distanceAlongRouteMeters - providerProjection.distanceAlongRouteMeters;
+      return distance >= 0 ? [distance] : [];
+    });
+    return distances.length > 0 ? Math.min(...distances) : null;
   }
 
   private routePointAhead(
@@ -1481,6 +1553,7 @@ export class TrackingGoogleMapRendererService {
     subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:uppercase;`;
 
     const pointer = document.createElement('span');
+    pointer.className = 'jokko-tracking-arrival-pointer';
     pointer.style.cssText = `background:#fff;border-bottom:1px solid rgba(15,23,42,.08);border-right:1px solid rgba(15,23,42,.08);box-shadow:${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowBlur / 2)}px rgba(15,23,42,.08);height:${size.pointer}px;margin-top:-${Math.round(size.pointer / 2)}px;transform:rotate(45deg);width:${size.pointer}px;`;
 
     body.append(title, subtitle);
@@ -1488,7 +1561,10 @@ export class TrackingGoogleMapRendererService {
     card.append(etaBox, body);
     const person = this.destinationPersonContent(marker, size);
     if (person) {
-      content.append(card, pointer, person);
+      // L'AdvancedMarker est ancre sur le bas de son contenu. L'avatar doit
+      // donc rester au-dessus de la carte : la pointe est ainsi le seul
+      // element au contact de la coordonnee de destination.
+      content.append(person, card, pointer);
     } else {
       content.append(card, pointer);
     }
@@ -1614,7 +1690,15 @@ export class TrackingGoogleMapRendererService {
     let candidateHeading: number | null = null;
     let alignedToRoute = false;
     const selectedRoute = state.routes.find((route) => route.selected);
-    if (moving && selectedRoute) {
+    const hasReliableGpsHeading =
+      moving &&
+      (state.speedKmh ?? 0) >= 8 &&
+      typeof state.headingDegrees === 'number' &&
+      Number.isFinite(state.headingDegrees);
+    if (hasReliableGpsHeading) {
+      candidateHeading = this.normalizeHeading(state.headingDegrees as number);
+    }
+    if (candidateHeading === null && moving && selectedRoute) {
       candidateHeading = this.headingAlongRoute(position, selectedRoute.coordinates);
       alignedToRoute = candidateHeading !== null;
     }
@@ -1646,67 +1730,6 @@ export class TrackingGoogleMapRendererService {
         ? 0.78
         : 0.62;
     return this.normalizeHeading(this.currentTravelerHeading + delta * smoothing);
-  }
-
-  private stabilizeProviderPosition(
-    position: GoogleMapsPoint,
-    state: TrackingMapRenderState,
-  ): GoogleMapsPoint {
-    const previous = this.lastFilteredProviderPosition;
-    if (!previous) return position;
-
-    const distance = this.distanceMeters(previous, position);
-    const accuracy =
-      typeof state.accuracyMeters === 'number' && Number.isFinite(state.accuracyMeters)
-        ? Math.max(1, state.accuracyMeters)
-        : 25;
-    const reportedSpeedKmh = state.speedKmh ?? 0;
-    const movementThreshold =
-      reportedSpeedKmh >= 3
-        ? Math.max(1.5, Math.min(3, accuracy * 0.18))
-        : Math.max(MARKER_STATIONARY_RADIUS_METERS, Math.min(12, accuracy * 0.5));
-    const moving = distance > movementThreshold;
-
-    if (!moving) return previous;
-    if (accuracy > MARKER_MAX_ACCURACY_METERS && distance < accuracy * 1.5) {
-      return previous;
-    }
-
-    const alpha =
-      reportedSpeedKmh >= 60
-        ? 0.97
-        : reportedSpeedKmh >= 30
-          ? 0.92
-          : reportedSpeedKmh >= 15
-            ? 0.82
-            : accuracy <= 10
-              ? 0.64
-              : accuracy <= 25
-                ? 0.48
-                : 0.32;
-    return {
-      lat: previous.lat + (position.lat - previous.lat) * alpha,
-      lng: previous.lng + (position.lng - previous.lng) * alpha,
-    };
-  }
-
-  private snapTravelerMarkerToRoute(
-    position: GoogleMapsPoint,
-    state: TrackingMapRenderState,
-  ): GoogleMapsPoint {
-    if (state.travelerMarker.kind === 'avatar') return position;
-
-    const selectedRoute = state.routes.find((route) => route.selected);
-    if (!selectedRoute) return position;
-    const projection = this.projectPointToRoute(position, selectedRoute.coordinates);
-    if (!projection) return position;
-
-    const accuracy =
-      typeof state.accuracyMeters === 'number' && Number.isFinite(state.accuracyMeters)
-        ? Math.max(1, state.accuracyMeters)
-        : 12;
-    const snapThresholdMeters = Math.max(12, Math.min(30, accuracy * 1.5));
-    return projection.distanceFromRouteMeters <= snapThresholdMeters ? projection.point : position;
   }
 
   private confirmStationaryHeading(headingDegrees: number | null): number {

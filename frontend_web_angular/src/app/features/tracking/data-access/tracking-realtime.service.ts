@@ -17,6 +17,30 @@ export type TrackingMissionEvent = {
   tracking?: AppointmentTrackingView;
 };
 
+export type TrackingLocationUpdate = {
+  latitude: number;
+  longitude: number;
+  recordedAt?: string;
+  accuracyMeters?: number | null;
+  headingDegrees?: number | null;
+  speedKmh?: number | null;
+  locationLabel?: string | null;
+};
+
+type TrackingLocationAcknowledgement = {
+  accepted?: boolean;
+  tracking?: AppointmentTrackingView;
+};
+
+export type TrackingLocationPublishResult = {
+  status: 'accepted' | 'rejected' | 'unavailable';
+  tracking: AppointmentTrackingView | null;
+};
+
+// The backend enriches the first position with a route estimate before acknowledging it.
+// Keep WebSocket as the primary transport instead of needlessly falling back to HTTP.
+const LOCATION_ACK_TIMEOUT_MS = 6_000;
+
 @Injectable({ providedIn: 'root' })
 export class TrackingRealtimeService {
   private readonly authSession = inject(AuthSessionService);
@@ -43,6 +67,44 @@ export class TrackingRealtimeService {
     this.socket?.emit('tracking.unsubscribe', { reservationId });
   }
 
+  publishLocation(
+    reservationId: string,
+    location: TrackingLocationUpdate,
+  ): Promise<TrackingLocationPublishResult> {
+    this.connect();
+    if (!this.socket?.connected) {
+      return Promise.resolve({ status: 'unavailable', tracking: null });
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (result: TrackingLocationPublishResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(result);
+      };
+      const timeoutId = setTimeout(
+        () => finish({ status: 'unavailable', tracking: null }),
+        LOCATION_ACK_TIMEOUT_MS,
+      );
+      this.socket?.emit(
+        'tracking.location.update',
+        { reservationId, ...location },
+        (response?: TrackingLocationAcknowledgement) => {
+          if (!response) {
+            finish({ status: 'unavailable', tracking: null });
+            return;
+          }
+          finish({
+            status: response.accepted === true ? 'accepted' : 'rejected',
+            tracking: response.tracking ?? null,
+          });
+        },
+      );
+    });
+  }
+
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;
@@ -66,7 +128,7 @@ export class TrackingRealtimeService {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 5000,

@@ -3,14 +3,17 @@ import { GeocodeAddressUseCase } from '../../../geolocation/application/use-case
 import { ComputeRoutesUseCase } from '../../../routing/application/use-cases/compute-routes.use-case';
 import type { ReservationTrackingView } from '../ports/live-tracking-repository.port';
 
-const ROUTE_CACHE_TTL_MS = 5_000;
+const ROUTE_RECOMPUTE_MIN_INTERVAL_MS = 4_000;
+const ROUTE_RECOMPUTE_MIN_DISTANCE_METERS = 40;
 
 @Injectable()
 export class TrackingRouteEstimatorService {
-  private readonly routeCache = new Map<
+  private readonly recentRouteByJourney = new Map<
     string,
     {
-      expiresAt: number;
+      at: number;
+      latitude: number;
+      longitude: number;
       value: Promise<ReservationTrackingView['route']>;
     }
   >();
@@ -32,14 +35,20 @@ export class TrackingRouteEstimatorService {
       return { ...tracking, route: null };
     }
 
-    const cacheKey = this.cacheKey(
-      tracking.lastLatitude,
-      tracking.lastLongitude,
+    const journeyKey = this.journeyKey(
+      tracking.reservationId,
       destinationAddress,
     );
-    const cached = this.routeCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return { ...tracking, route: await cached.value };
+    const recent = this.recentRouteByJourney.get(journeyKey);
+    if (
+      recent &&
+      !this.shouldRecomputeRoute(
+        recent,
+        tracking.lastLatitude,
+        tracking.lastLongitude,
+      )
+    ) {
+      return { ...tracking, route: await recent.value };
     }
 
     const routePromise = this.estimateRoute(
@@ -47,12 +56,14 @@ export class TrackingRouteEstimatorService {
       tracking.lastLongitude,
       destinationAddress,
     );
-    this.routeCache.set(cacheKey, {
-      expiresAt: Date.now() + ROUTE_CACHE_TTL_MS,
+    this.recentRouteByJourney.set(journeyKey, {
+      at: Date.now(),
+      latitude: tracking.lastLatitude,
+      longitude: tracking.lastLongitude,
       value: routePromise,
     });
     const route = await routePromise;
-    this.pruneExpiredEntries();
+    this.pruneRecentRoutes();
     return { ...tracking, route };
   }
 
@@ -88,26 +99,58 @@ export class TrackingRouteEstimatorService {
     }
   }
 
-  private cacheKey(
-    latitude: number,
-    longitude: number,
+  private journeyKey(
+    reservationId: string,
     destinationAddress: string,
   ): string {
-    return [
-      latitude.toFixed(5),
-      longitude.toFixed(5),
-      destinationAddress.trim().toLocaleLowerCase('fr'),
-    ].join('|');
+    return `${reservationId}|${destinationAddress.trim().toLocaleLowerCase('fr')}`;
   }
 
-  private pruneExpiredEntries(): void {
-    if (this.routeCache.size < 100) return;
+  private shouldRecomputeRoute(
+    previous: { at: number; latitude: number; longitude: number },
+    latitude: number,
+    longitude: number,
+  ): boolean {
+    const elapsedMs = Date.now() - previous.at;
+    if (elapsedMs >= ROUTE_RECOMPUTE_MIN_INTERVAL_MS) return true;
+    return (
+      this.haversineDistanceMeters(
+        previous.latitude,
+        previous.longitude,
+        latitude,
+        longitude,
+      ) >= ROUTE_RECOMPUTE_MIN_DISTANCE_METERS
+    );
+  }
 
-    const now = Date.now();
-    this.routeCache.forEach((entry, key) => {
-      if (entry.expiresAt <= now) {
-        this.routeCache.delete(key);
-      }
+  private haversineDistanceMeters(
+    fromLatitude: number,
+    fromLongitude: number,
+    toLatitude: number,
+    toLongitude: number,
+  ): number {
+    const earthRadiusMeters = 6_371_000;
+    const latitudeDelta = ((toLatitude - fromLatitude) * Math.PI) / 180;
+    const longitudeDelta = ((toLongitude - fromLongitude) * Math.PI) / 180;
+    const fromLatitudeRadians = (fromLatitude * Math.PI) / 180;
+    const toLatitudeRadians = (toLatitude * Math.PI) / 180;
+    const haversine =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(fromLatitudeRadians) *
+        Math.cos(toLatitudeRadians) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return (
+      earthRadiusMeters *
+      2 *
+      Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+    );
+  }
+
+  private pruneRecentRoutes(): void {
+    if (this.recentRouteByJourney.size < 500) return;
+    const journeyCutoff = Date.now() - ROUTE_RECOMPUTE_MIN_INTERVAL_MS * 3;
+    this.recentRouteByJourney.forEach((entry, key) => {
+      if (entry.at < journeyCutoff) this.recentRouteByJourney.delete(key);
     });
   }
 }

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const retainVisualEvidence = process.env['E2E_CAPTURE'] === 'true';
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 120_000,
@@ -9,8 +11,8 @@ export default defineConfig({
   use: {
     baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:4200',
     trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    screenshot: retainVisualEvidence ? 'on' : 'only-on-failure',
+    video: retainVisualEvidence ? 'on' : 'retain-on-failure',
   },
   webServer: {
     command: 'npm.cmd start -- --host 127.0.0.1',

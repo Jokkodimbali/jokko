@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const clientIdentifier = process.env['E2E_CLIENT_IDENTIFIER'] ?? '+221772345678';
+const clientPassword = process.env['E2E_CLIENT_PASSWORD'] ?? 'client123';
+
 test.use({ viewport: { width: 320, height: 700 } });
 
 test('favoris et suivi client restent utilisables a 320 px', async ({ page }) => {
@@ -37,8 +40,8 @@ test('favoris et suivi client restent utilisables a 320 px', async ({ page }) =>
 async function login(page: Page): Promise<void> {
   await page.goto('/auth/login', { waitUntil: 'domcontentloaded' });
   const inputs = page.locator('input');
-  await inputs.nth(0).fill('+221772345678');
-  await inputs.nth(1).fill('client123');
+  await inputs.nth(0).fill(clientIdentifier);
+  await inputs.nth(1).fill(clientPassword);
   await page.locator('button[type="submit"], button:has-text("Se connecter")').first().click();
   await page.waitForURL('**/services', { timeout: 15_000 });
 }

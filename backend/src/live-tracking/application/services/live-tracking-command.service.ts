@@ -18,10 +18,7 @@ import {
   ProviderLocationUpdatedEvent,
   ProviderStartedTripEvent,
 } from '../../domain/events/tracking-domain.events';
-import {
-  ProviderArrivedEvent,
-  ServiceStartedEvent,
-} from '../../../reservations/domain/events/reservation-mission.events';
+import { ProviderArrivedEvent } from '../../../reservations/domain/events/reservation-mission.events';
 import {
   LIVE_TRACKING_REPOSITORY_PORT,
   type ReservationTrackingContext,
@@ -31,8 +28,6 @@ import {
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
 import { TrackingRouteEstimatorService } from './tracking-route-estimator.service';
 import { resolveTrackingDestinationAddress } from './tracking-parcel-destination.helper';
-
-const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 
 @Injectable()
 export class LiveTrackingCommandService {
@@ -74,6 +69,10 @@ export class LiveTrackingCommandService {
 
     this.assertLocationPair(dto);
     this.assertTelemetry(dto);
+    const recordedAt =
+      dto.latitude !== undefined && dto.longitude !== undefined
+        ? this.resolveRecordedAt(dto)
+        : new Date();
 
     const presenceEntity = ProfessionalPresenceEntity.reconstitute(
       (await this.liveTrackingRepository.findProfessionalPresence(
@@ -103,6 +102,7 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
+      recordedAt,
     });
 
     const tracking = await this.liveTrackingRepository.startOrResumeTracking({
@@ -120,12 +120,7 @@ export class LiveTrackingCommandService {
       }),
     );
 
-    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
-    enrichedTracking =
-      (await this.startReservationAutomaticallyIfArrived(
-        context,
-        enrichedTracking,
-      )) ?? enrichedTracking;
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
       enrichedTracking,
@@ -152,6 +147,15 @@ export class LiveTrackingCommandService {
     reservationId: string,
     dto: TrackingLocationCommand,
   ) {
+    return (await this.updateLocationWithAcceptance(user, reservationId, dto))
+      .tracking;
+  }
+
+  async updateLocationWithAcceptance(
+    user: AuthUser,
+    reservationId: string,
+    dto: TrackingLocationCommand,
+  ): Promise<{ tracking: ReservationTrackingView; accepted: boolean }> {
     const context =
       await this.liveTrackingRepository.findReservationContext(reservationId);
     if (!context) {
@@ -191,16 +195,17 @@ export class LiveTrackingCommandService {
         context,
         professional.id,
         dto,
+        recordedAt,
       );
       if (!resumed) {
         throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
       }
       this.publishTrackingUpdate(resumed, context, dto, recordedAt);
-      return resumed;
+      return { tracking: resumed, accepted: true };
     }
 
     if (!write.accepted) {
-      return write.tracking;
+      return write;
     }
 
     this.publishTrackingUpdate(write.tracking, context, dto, recordedAt);
@@ -209,13 +214,14 @@ export class LiveTrackingCommandService {
       write.tracking.presence,
     );
 
-    return write.tracking;
+    return write;
   }
 
   private async resumeParcelProviderTrackingFromLocation(
     context: ReservationTrackingContext,
     professionalId: string,
     dto: TrackingLocationCommand,
+    recordedAt: Date,
   ) {
     if (
       context.travelMode !== 'TRANSPORT_COLIS' ||
@@ -253,6 +259,7 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
+      recordedAt,
     });
 
     return this.liveTrackingRepository.startOrResumeTracking({
@@ -276,6 +283,10 @@ export class LiveTrackingCommandService {
 
     this.assertLocationPair(dto);
     this.assertTelemetry(dto);
+    const recordedAt =
+      dto.latitude !== undefined && dto.longitude !== undefined
+        ? this.resolveRecordedAt(dto)
+        : new Date();
 
     const session = ReservationTrackingSessionEntity.start({
       reservationId: context.reservationId,
@@ -288,18 +299,14 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? 'Position GPS du client',
+      recordedAt,
     });
 
     const tracking =
       await this.liveTrackingRepository.startOrResumeTravelerTracking({
         session: session.toView(),
       });
-    let enrichedTracking = await this.enrichTrackingRoute(tracking, context);
-    enrichedTracking =
-      (await this.startReservationAutomaticallyIfArrived(
-        context,
-        enrichedTracking,
-      )) ?? enrichedTracking;
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
 
     this.realtimeEvents.emit(
       'live-tracking.location.updated',
@@ -341,11 +348,11 @@ export class LiveTrackingCommandService {
     if (!write) {
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
     }
-    if (!write.accepted) return write.tracking;
+    if (!write.accepted) return write;
 
     this.publishTrackingUpdate(write.tracking, context, dto, recordedAt);
 
-    return write.tracking;
+    return write;
   }
 
   async syncProfessionalConnection(user: AuthUser, isOnline: boolean) {
@@ -397,6 +404,39 @@ export class LiveTrackingCommandService {
       userId: user.sub,
     });
     return presence;
+  }
+
+  async confirmArrival(
+    user: AuthUser,
+    reservationId: string,
+  ): Promise<ReservationTrackingView> {
+    const context =
+      await this.liveTrackingRepository.findReservationContext(reservationId);
+    if (!context) throw appHttpException('RESERVATIONS_NOT_FOUND');
+    if (context.travelMode === 'CLIENT_SE_DEPLACE') {
+      if (user.sub !== context.clientUserId)
+        throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+    } else {
+      const professional = await this.requireProfessionalProfile(user);
+      if (professional.id !== context.professionalId) {
+        throw appHttpException('RESERVATIONS_UNAUTHORIZED');
+      }
+    }
+    const tracking = await this.liveTrackingRepository.confirmArrival({
+      reservationId,
+      professionalId: context.professionalId,
+    });
+    if (!tracking)
+      throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
+    await this.eventBus.publier(
+      new ProviderArrivedEvent({
+        reservationId,
+        clientUserId: context.clientUserId,
+        professionalId: context.professionalId,
+      }),
+    );
+    this.realtimeEvents.emit('live-tracking.location.updated', tracking);
+    return tracking;
   }
 
   async finalizeReservationTracking(input: {
@@ -475,53 +515,6 @@ export class LiveTrackingCommandService {
     );
   }
 
-  private async startReservationAutomaticallyIfArrived(
-    context: ReservationTrackingContext,
-    tracking: ReservationTrackingView,
-  ): Promise<ReservationTrackingView | null> {
-    if (
-      context.travelMode === 'CLIENT_SE_DEPLACE' ||
-      context.travelMode === 'TRANSPORT_COLIS' ||
-      context.reservationStatus !== 'PAYEE_SEQUESTRE' ||
-      tracking.trackingStatus !== 'EN_ROUTE' ||
-      !tracking.route ||
-      tracking.route.distanceRemainingMeters > ARRIVAL_DISTANCE_THRESHOLD_METERS
-    ) {
-      return null;
-    }
-
-    const started =
-      await this.liveTrackingRepository.startReservationFromArrival({
-        reservationId: context.reservationId,
-        professionalId: context.professionalId,
-      });
-
-    if (!started) {
-      return null;
-    }
-
-    await this.eventBus.publier(
-      new ProviderArrivedEvent({
-        reservationId: context.reservationId,
-        clientUserId: context.clientUserId,
-        professionalId: context.professionalId,
-      }),
-    );
-    await this.eventBus.publier(
-      new ServiceStartedEvent({
-        reservationId: context.reservationId,
-        clientUserId: context.clientUserId,
-        professionalId: context.professionalId,
-      }),
-    );
-
-    this.realtimeEvents.emit(
-      'live-tracking.presence.updated',
-      started.presence,
-    );
-    return started;
-  }
-
   private assertTelemetry(dto: TrackingLocationCommand): void {
     if (
       dto.accuracyMeters !== undefined &&
@@ -583,10 +576,7 @@ export class LiveTrackingCommandService {
     ) {
       return;
     }
-    const resolved =
-      (await this.startReservationAutomaticallyIfArrived(context, enriched)) ??
-      enriched;
-    this.realtimeEvents.emit('live-tracking.location.updated', resolved);
+    this.realtimeEvents.emit('live-tracking.location.updated', enriched);
     await this.eventBus.publier(
       new ProviderLocationUpdatedEvent({
         reservationId: tracking.reservationId,

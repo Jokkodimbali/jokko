@@ -34,8 +34,15 @@ export class ReservationTrackingSessionEntity {
     headingDegrees?: number | null;
     speedKmh?: number | null;
     locationLabel?: string | null;
+    recordedAt?: Date;
   }): ReservationTrackingSessionEntity {
     const now = new Date();
+    const lastPositionAt = input.recordedAt ?? now;
+    const hasCoordinates =
+      input.latitude !== null &&
+      input.latitude !== undefined &&
+      input.longitude !== null &&
+      input.longitude !== undefined;
     return new ReservationTrackingSessionEntity({
       reservationId: input.reservationId,
       clientUserId: input.clientUserId,
@@ -50,10 +57,7 @@ export class ReservationTrackingSessionEntity {
       lastHeadingDegrees: input.headingDegrees ?? null,
       lastSpeedKmh: input.speedKmh ?? null,
       lastLocationLabel: input.locationLabel ?? null,
-      lastPositionAt:
-        input.latitude !== undefined && input.longitude !== undefined
-          ? now
-          : null,
+      lastPositionAt: hasCoordinates ? lastPositionAt : null,
       updatedAt: now,
     });
   }

@@ -7,11 +7,29 @@
   [class.call-overlay--video]="call.kind === 'VIDEO'"
   [class.call-overlay--ringing]="call.phase === 'INCOMING'"
   [class.call-overlay--incoming-video]="call.kind === 'VIDEO' && call.phase === 'INCOMING'"
-  [style.left.px]="!calls.isOverlayVisible() ? floatingPosition()?.x : null"
-  [style.top.px]="!calls.isOverlayVisible() ? floatingPosition()?.y : null"
-  [style.right]="!calls.isOverlayVisible() && floatingPosition() ? 'auto' : null"
-  [style.bottom]="!calls.isOverlayVisible() && floatingPosition() ? 'auto' : null"
-  (pointerdown)="!calls.isOverlayVisible() && startFloatingDrag($event)"
+  [class.call-overlay--incoming-voice]="call.kind === 'VOICE' && call.phase === 'INCOMING'"
+  [class.call-overlay--incoming-dragged]="call.phase === 'INCOMING' && !!floatingPosition()"
+  [style.left.px]="
+    !calls.isOverlayVisible() || call.phase === 'INCOMING'
+      ? floatingPosition()?.x
+      : null
+  "
+  [style.top.px]="
+    !calls.isOverlayVisible() || call.phase === 'INCOMING'
+      ? floatingPosition()?.y
+      : null
+  "
+  [style.right]="
+    (!calls.isOverlayVisible() || call.phase === 'INCOMING') && floatingPosition()
+      ? 'auto'
+      : null
+  "
+  [style.bottom]="
+    (!calls.isOverlayVisible() || call.phase === 'INCOMING') && floatingPosition()
+      ? 'auto'
+      : null
+  "
+  (pointerdown)="(!calls.isOverlayVisible() || call.phase === 'INCOMING') && startFloatingDrag($event)"
   (pointermove)="moveFloatingWindow($event)"
   (pointerup)="stopFloatingDrag($event)"
   (pointercancel)="stopFloatingDrag($event)"
@@ -23,6 +41,7 @@
     <span class="call-overlay__logo"><img src="/logojokko.png" alt="Jokko Dimbali" /></span>
     <div class="call-overlay__top-actions">
       <button
+        *ngIf="call.phase !== 'INCOMING'"
         type="button"
         aria-label="Ouvrir la discussion"
         (click)="openConversation(call.conversationId)"

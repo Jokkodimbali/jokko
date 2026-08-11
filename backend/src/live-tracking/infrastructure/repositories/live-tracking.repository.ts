@@ -378,13 +378,35 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         return null;
       }
 
-      if (
-        existing.dernierePositionLe &&
-        input.recordedAt <= existing.dernierePositionLe
-      ) {
-        return { record: existing, accepted: false };
-      }
       const now = input.recordedAt;
+
+      const claimed = await tx.sessionTrackingReservation.updateMany({
+        where: {
+          id: existing.id,
+          professionnelId: input.professionalId,
+          statut: 'EN_ROUTE',
+          OR: [
+            { dernierePositionLe: null },
+            { dernierePositionLe: { lt: now } },
+          ],
+        },
+        data: {
+          derniereLatitude: this.requiredDecimal(input.latitude),
+          derniereLongitude: this.requiredDecimal(input.longitude),
+          dernierePrecisionMetres: this.toDecimal(input.accuracyMeters),
+          derniereOrientationDegres: input.headingDegrees ?? null,
+          derniereVitesseKmh: this.toDecimal(input.speedKmh),
+          dernierLibelleLocalisation: input.locationLabel ?? null,
+          dernierePositionLe: now,
+        },
+      });
+      if (claimed.count !== 1) {
+        const latest = await tx.sessionTrackingReservation.findUniqueOrThrow({
+          where: { id: existing.id },
+          include: TRACKING_INCLUDE,
+        });
+        return { record: latest, accepted: false };
+      }
 
       await tx.presenceProfessionnel.upsert({
         where: { profilProfessionnelId: input.professionalId },
@@ -428,17 +450,8 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
       });
 
-      const saved = await tx.sessionTrackingReservation.update({
+      const saved = await tx.sessionTrackingReservation.findUniqueOrThrow({
         where: { id: existing.id },
-        data: {
-          derniereLatitude: this.requiredDecimal(input.latitude),
-          derniereLongitude: this.requiredDecimal(input.longitude),
-          dernierePrecisionMetres: this.toDecimal(input.accuracyMeters),
-          derniereOrientationDegres: input.headingDegrees ?? null,
-          derniereVitesseKmh: this.toDecimal(input.speedKmh),
-          dernierLibelleLocalisation: input.locationLabel ?? null,
-          dernierePositionLe: now,
-        },
         include: TRACKING_INCLUDE,
       });
       return { record: saved, accepted: true };
@@ -474,13 +487,34 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         return null;
       }
 
-      if (
-        existing.dernierePositionLe &&
-        input.recordedAt <= existing.dernierePositionLe
-      ) {
-        return { record: existing, accepted: false };
-      }
       const now = input.recordedAt;
+      const claimed = await tx.sessionTrackingReservation.updateMany({
+        where: {
+          id: existing.id,
+          professionnelId: input.professionalId,
+          statut: 'EN_ROUTE',
+          OR: [
+            { dernierePositionLe: null },
+            { dernierePositionLe: { lt: now } },
+          ],
+        },
+        data: {
+          derniereLatitude: this.requiredDecimal(input.latitude),
+          derniereLongitude: this.requiredDecimal(input.longitude),
+          dernierePrecisionMetres: this.toDecimal(input.accuracyMeters),
+          derniereOrientationDegres: input.headingDegrees ?? null,
+          derniereVitesseKmh: this.toDecimal(input.speedKmh),
+          dernierLibelleLocalisation: input.locationLabel ?? null,
+          dernierePositionLe: now,
+        },
+      });
+      if (claimed.count !== 1) {
+        const latest = await tx.sessionTrackingReservation.findUniqueOrThrow({
+          where: { id: existing.id },
+          include: TRACKING_INCLUDE,
+        });
+        return { record: latest, accepted: false };
+      }
       await tx.pointTrackingReservation.create({
         data: {
           sessionTrackingId: existing.id,
@@ -494,17 +528,8 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
         },
       });
 
-      const saved = await tx.sessionTrackingReservation.update({
+      const saved = await tx.sessionTrackingReservation.findUniqueOrThrow({
         where: { id: existing.id },
-        data: {
-          derniereLatitude: this.requiredDecimal(input.latitude),
-          derniereLongitude: this.requiredDecimal(input.longitude),
-          dernierePrecisionMetres: this.toDecimal(input.accuracyMeters),
-          derniereOrientationDegres: input.headingDegrees ?? null,
-          derniereVitesseKmh: this.toDecimal(input.speedKmh),
-          dernierLibelleLocalisation: input.locationLabel ?? null,
-          dernierePositionLe: now,
-        },
         include: TRACKING_INCLUDE,
       });
       return { record: saved, accepted: true };
@@ -583,6 +608,39 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       });
     });
 
+    return record ? this.mapTracking(record) : null;
+  }
+
+  async confirmArrival(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.sessionTrackingReservation.findUnique({
+        where: { reservationId: input.reservationId },
+        include: TRACKING_INCLUDE,
+      });
+      if (
+        !existing ||
+        existing.professionnelId !== input.professionalId ||
+        existing.statut !== 'EN_ROUTE' ||
+        existing.derniereLatitude === null ||
+        existing.derniereLongitude === null
+      ) {
+        return null;
+      }
+
+      const now = new Date();
+      await tx.presenceProfessionnel.updateMany({
+        where: { profilProfessionnelId: input.professionalId },
+        data: { statut: 'EN_LIGNE', dernierVueLe: now },
+      });
+      return tx.sessionTrackingReservation.update({
+        where: { id: existing.id },
+        data: { statut: 'TERMINEE', termineLe: now },
+        include: TRACKING_INCLUDE,
+      });
+    });
     return record ? this.mapTracking(record) : null;
   }
 

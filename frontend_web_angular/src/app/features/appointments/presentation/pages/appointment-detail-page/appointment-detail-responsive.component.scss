@@ -116,7 +116,7 @@
 @media (max-width: 620px) {
   .appointment-detail__route-layout--client .appointment-detail__live-map,
   .appointment-detail__route-layout--provider .appointment-detail__live-map {
-    margin-top: 120px;
+    margin-top: 152px;
   }
 
   .appointment-detail__cancelled-card {
@@ -202,7 +202,7 @@
   }
 
   .appointment-detail__navigation-guidance {
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr) 38px;
     max-width: calc(100% - 20px);
     min-height: 64px;
     top: 10px;
@@ -430,7 +430,7 @@
   .appointment-detail__navigation-guidance {
     border-radius: 12px;
     gap: 8px;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
     left: 8px;
     max-width: calc(100% - 74px);
     min-height: 52px;
@@ -448,6 +448,16 @@
 
   .appointment-detail__navigation-guidance > span lucide-icon {
     transform: scale(0.76);
+  }
+
+  .appointment-detail__navigation-audio {
+    border-radius: 9px;
+    height: 34px;
+    width: 34px;
+  }
+
+  .appointment-detail__navigation-audio lucide-icon {
+    transform: scale(0.82);
   }
 
   .appointment-detail__navigation-guidance strong {

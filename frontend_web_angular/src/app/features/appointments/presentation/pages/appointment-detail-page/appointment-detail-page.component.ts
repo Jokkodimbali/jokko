@@ -14,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, Subscription, catchError, finalize, merge, of, switchMap, timer } from 'rxjs';
+import { Observable, Subscription, catchError, finalize, from, merge, of, switchMap, timer } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -3252,8 +3252,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           }
 
           this.locationUpdateInFlight = true;
-          this.appointmentsService
-            .updateProviderTrackingLocation(appointmentId, {
+          const location = {
               latitude: position.latitude,
               longitude: position.longitude,
               recordedAt: new Date(position.recordedAt).toISOString(),
@@ -3261,7 +3260,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               headingDegrees: position.headingDegrees,
               speedKmh: position.speedKmh,
               locationLabel: this.trackedTravelerPositionLabel(),
-            })
+            };
+          from(this.trackingRealtime.publishLocation(appointmentId, location))
+            .pipe(
+              switchMap((tracking) =>
+                tracking
+                  ? of(tracking)
+                  : this.appointmentsService.updateProviderTrackingLocation(appointmentId, location),
+              ),
+            )
             .pipe(
               finalize(() => {
                 this.locationUpdateInFlight = false;
@@ -4038,7 +4045,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             return;
           }
 
-          this.routeOptions = [{ ...route, id: 'route-0' }];
+          this.routeOptions = routes.map((candidate, index) => ({
+            ...candidate,
+            id: `route-${index}`,
+          }));
           this.selectedRouteId.set('route-0');
           this.applySelectedRoute(this.routeOptions[0]);
           if (this.routeCoordinates.length < 2) {
@@ -4047,7 +4057,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
             return;
           }
 
-          this.routeAlternatives.set([]);
+          this.refreshRouteAlternatives();
           this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
           this.clearNavigationRetry();
           this.updateGoogleMaps();
@@ -4081,7 +4091,26 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private refreshRouteAlternatives(): void {
-    this.routeAlternatives.set([]);
+    if (this.routeOptions.length < 2) {
+      this.routeAlternatives.set([]);
+      return;
+    }
+
+    const selectedRouteId = this.selectedRouteId();
+    const fastestRouteId = this.routeOptions[0]?.id;
+    this.routeAlternatives.set(
+      this.routeOptions.map((route) => ({
+        id: route.id,
+        label: route.id === fastestRouteId ? 'Le plus rapide' : 'Alternative',
+        distanceLabel:
+          typeof route.distanceKm === 'number'
+            ? this.formatter.formatDistance(route.distanceKm)
+            : '--',
+        durationLabel:
+          typeof route.durationMinutes === 'number' ? `${route.durationMinutes} min` : '-- min',
+        isSelected: route.id === selectedRouteId,
+      })),
+    );
   }
 
   private clearNavigationRouteAfterArrival(): void {

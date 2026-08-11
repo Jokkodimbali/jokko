@@ -71,7 +71,7 @@ describe('TrackingRouteEstimatorService', () => {
     expect(result.route?.estimatedArrivalAt).toBeTruthy();
   });
 
-  it('reuses a recent estimate for the same rounded position', async () => {
+  it('reuses a recent estimate for a nearby position', async () => {
     const geocode = {
       execute: jest.fn().mockResolvedValue({
         latitude: 14.6937,
@@ -86,6 +86,28 @@ describe('TrackingRouteEstimatorService', () => {
     await service.enrich(tracking, 'Dakar Plateau');
     await service.enrich(
       { ...tracking, lastLatitude: 14.716704 },
+      'Dakar Plateau',
+    );
+
+    expect(geocode.execute).toHaveBeenCalledTimes(1);
+    expect(routes.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the latest route across polling and realtime coordinates below 40 metres', async () => {
+    const geocode = {
+      execute: jest.fn().mockResolvedValue({
+        latitude: 14.6937,
+        longitude: -17.4441,
+      }),
+    } as unknown as jest.Mocked<GeocodeAddressUseCase>;
+    const routes = {
+      execute: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<ComputeRoutesUseCase>;
+    const service = new TrackingRouteEstimatorService(geocode, routes);
+
+    await service.enrich(tracking, 'Dakar Plateau');
+    await service.enrich(
+      { ...tracking, lastLatitude: 14.71685 },
       'Dakar Plateau',
     );
 

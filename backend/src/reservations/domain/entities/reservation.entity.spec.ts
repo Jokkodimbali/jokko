@@ -144,6 +144,9 @@ describe('ReservationEntity', () => {
         clientRating: null,
         clientReview: null,
         clientReviewedAt: null,
+        actesPrescriptionMedicale: [],
+        vaccinsPrescriptionMedicale: [],
+        traitementsPrescriptionMedicale: [],
       }),
     ).toThrow(/invalides/i);
   });

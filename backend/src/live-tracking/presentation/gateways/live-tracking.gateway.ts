@@ -23,6 +23,11 @@ type AuthenticatedSocket = Socket & {
   };
 };
 
+type TrackingLocationAcknowledgement = {
+  accepted: boolean;
+  tracking?: Awaited<ReturnType<LiveTrackingFacade['updateLocation']>>;
+};
+
 @WebSocketGateway({
   namespace: '/socket',
   cors: buildSocketCorsOptionsFromProcessEnv(),
@@ -222,23 +227,25 @@ export class LiveTrackingGateway
     payload: TrackingLocationDto & {
       reservationId: string;
     },
-  ) {
+    @Ack() acknowledge: (response: TrackingLocationAcknowledgement) => void,
+  ): Promise<void> {
     const user = this.getSocketUser(client);
     if (!user || !this.isValidIdentifier(payload?.reservationId)) {
+      acknowledge({ accepted: false });
       client.disconnect();
       return;
     }
 
-    const tracking = await this.liveTrackingFacade.updateLocation(
-      user,
-      payload.reservationId,
-      payload,
-    );
-
-    return {
-      reservationId: tracking.reservationId,
-      accepted: true,
-    };
+    try {
+      const tracking = await this.liveTrackingFacade.updateLocation(
+        user,
+        payload.reservationId,
+        payload,
+      );
+      acknowledge({ accepted: true, tracking });
+    } catch {
+      acknowledge({ accepted: false });
+    }
   }
 
   @OnEvent('live-tracking.location.updated')

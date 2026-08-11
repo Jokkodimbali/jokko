@@ -74,6 +74,10 @@ export class LiveTrackingCommandService {
 
     this.assertLocationPair(dto);
     this.assertTelemetry(dto);
+    const recordedAt =
+      dto.latitude !== undefined && dto.longitude !== undefined
+        ? this.resolveRecordedAt(dto)
+        : new Date();
 
     const presenceEntity = ProfessionalPresenceEntity.reconstitute(
       (await this.liveTrackingRepository.findProfessionalPresence(
@@ -103,6 +107,7 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
+      recordedAt,
     });
 
     const tracking = await this.liveTrackingRepository.startOrResumeTracking({
@@ -191,6 +196,7 @@ export class LiveTrackingCommandService {
         context,
         professional.id,
         dto,
+        recordedAt,
       );
       if (!resumed) {
         throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');
@@ -216,6 +222,7 @@ export class LiveTrackingCommandService {
     context: ReservationTrackingContext,
     professionalId: string,
     dto: TrackingLocationCommand,
+    recordedAt: Date,
   ) {
     if (
       context.travelMode !== 'TRANSPORT_COLIS' ||
@@ -253,6 +260,7 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? null,
+      recordedAt,
     });
 
     return this.liveTrackingRepository.startOrResumeTracking({
@@ -276,6 +284,10 @@ export class LiveTrackingCommandService {
 
     this.assertLocationPair(dto);
     this.assertTelemetry(dto);
+    const recordedAt =
+      dto.latitude !== undefined && dto.longitude !== undefined
+        ? this.resolveRecordedAt(dto)
+        : new Date();
 
     const session = ReservationTrackingSessionEntity.start({
       reservationId: context.reservationId,
@@ -288,6 +300,7 @@ export class LiveTrackingCommandService {
       headingDegrees: dto.headingDegrees ?? null,
       speedKmh: dto.speedKmh ?? null,
       locationLabel: dto.locationLabel?.trim() ?? 'Position GPS du client',
+      recordedAt,
     });
 
     const tracking =

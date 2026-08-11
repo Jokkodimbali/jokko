@@ -17,6 +17,25 @@ export type TrackingMissionEvent = {
   tracking?: AppointmentTrackingView;
 };
 
+export type TrackingLocationUpdate = {
+  latitude: number;
+  longitude: number;
+  recordedAt?: string;
+  accuracyMeters?: number | null;
+  headingDegrees?: number | null;
+  speedKmh?: number | null;
+  locationLabel?: string | null;
+};
+
+type TrackingLocationAcknowledgement = {
+  accepted?: boolean;
+  tracking?: AppointmentTrackingView;
+};
+
+// The backend enriches the first position with a route estimate before acknowledging it.
+// Keep WebSocket as the primary transport instead of needlessly falling back to HTTP.
+const LOCATION_ACK_TIMEOUT_MS = 6_000;
+
 @Injectable({ providedIn: 'root' })
 export class TrackingRealtimeService {
   private readonly authSession = inject(AuthSessionService);
@@ -41,6 +60,32 @@ export class TrackingRealtimeService {
   stopWatching(reservationId: string): void {
     this.reservationIds.delete(reservationId);
     this.socket?.emit('tracking.unsubscribe', { reservationId });
+  }
+
+  publishLocation(
+    reservationId: string,
+    location: TrackingLocationUpdate,
+  ): Promise<AppointmentTrackingView | null> {
+    if (!this.socket?.connected) {
+      return Promise.resolve(null);
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (tracking: AppointmentTrackingView | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(tracking);
+      };
+      const timeoutId = setTimeout(() => finish(null), LOCATION_ACK_TIMEOUT_MS);
+      this.socket?.emit(
+        'tracking.location.update',
+        { reservationId, ...location },
+        (response?: TrackingLocationAcknowledgement) =>
+          finish(response?.accepted === true ? response.tracking ?? null : null),
+      );
+    });
   }
 
   disconnect(): void {

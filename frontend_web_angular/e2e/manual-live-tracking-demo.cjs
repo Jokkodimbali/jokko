@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const { io } = require('socket.io-client');
 
 const apiBaseUrl = process.env.LIVE_TRACKING_API_URL ?? 'http://127.0.0.1:3000/api/v1';
 const appBaseUrl = process.env.LIVE_TRACKING_APP_URL ?? 'http://127.0.0.1:4200';
@@ -7,6 +8,8 @@ const clientIdentifier = process.env.LIVE_TRACKING_CLIENT_IDENTIFIER;
 const clientPassword = process.env.LIVE_TRACKING_CLIENT_PASSWORD;
 const providerIdentifier = process.env.LIVE_TRACKING_PROVIDER_IDENTIFIER;
 const providerPassword = process.env.LIVE_TRACKING_PROVIDER_PASSWORD;
+const headless = process.env.LIVE_TRACKING_HEADLESS !== 'false';
+const openViewers = process.env.LIVE_TRACKING_OPEN_VIEWERS !== 'false';
 
 const missing = [
   ['LIVE_TRACKING_RESERVATION_ID', reservationId],
@@ -29,86 +32,132 @@ async function login(identifier, password) {
     body: JSON.stringify({ identifier, password }),
   });
   if (!response.ok) throw new Error(`Connexion API impossible (${response.status})`);
-  return (await response.json()).data.accessToken;
+  return (await response.json()).data;
 }
 
-async function openViewer(identifier, password, title) {
-  const browser = await chromium.launch({ headless: false });
+async function openViewer(browser, session, title) {
+  console.log(`Ouverture de ${title}...`);
   const context = await browser.newContext({
     viewport: { width: 1440, height: 980 },
+    recordVideo: { dir: 'test-results/manual-live-tracking' },
     permissions: ['geolocation'],
     geolocation: { latitude: 14.7244, longitude: -17.4725 },
   });
   const page = await context.newPage();
-  await page.goto(`${appBaseUrl}/auth/login`, { waitUntil: 'domcontentloaded' });
-  await page.getByLabel(/Telephone ou email/i).fill(identifier);
-  await page.getByLabel(/^Mot de passe/i).fill(password);
-  await page.getByRole('button', { name: /^Se connecter$/i }).click();
-  await pause(800);
-  await page.goto(`${appBaseUrl}/appointments/${reservationId}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1_500);
-  await page.evaluate((value) => {
-    document.title = value;
-  }, title);
-  return browser;
+  await page.addInitScript((auth) => {
+    localStorage.setItem('authStorageMode', 'local');
+    localStorage.setItem('accessToken', auth.accessToken);
+    localStorage.setItem('refreshToken', auth.refreshToken);
+    localStorage.setItem('currentUser', JSON.stringify(auth.user));
+  }, session);
+  void page
+    .goto(`${appBaseUrl}/appointments/${reservationId}`, { waitUntil: 'commit', timeout: 15_000 })
+    .then(() => page.evaluate((value) => { document.title = value; }, title))
+    .catch((error) => console.error(`${title}: ${error.message}`));
+  console.log(`${title} ouvert.`);
+  return { context, page };
 }
 
-async function publishPosition(accessToken, latitude, longitude, speedKmh, headingDegrees) {
-  const response = await fetch(
-    `${apiBaseUrl}/reservations/${reservationId}/live-tracking/location`,
-    {
-      method: 'PATCH',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        latitude,
-        longitude,
-        accuracyMeters: 6,
-        headingDegrees,
-        speedKmh,
-        locationLabel: 'Simulation longue vitesse vehicule',
-        recordedAt: new Date().toISOString(),
-      }),
-    },
-  );
-  if (!response.ok) throw new Error(`Position refusee (${response.status})`);
+async function getCurrentPosition(accessToken) {
+  const response = await fetch(`${apiBaseUrl}/reservations/${reservationId}/live-tracking`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error(`Suivi indisponible (${response.status})`);
+  return response.json();
+}
+
+async function connectPublisher(accessToken) {
+  const socket = io(`${new URL(apiBaseUrl).origin}/socket`, {
+    auth: { token: accessToken },
+    transports: ['websocket'],
+  });
+  await new Promise((resolve, reject) => {
+    socket.once('connect', resolve);
+    socket.once('connect_error', reject);
+  });
+  return socket;
+}
+
+function publishPosition(socket, latitude, longitude, speedKmh, headingDegrees) {
+  socket.emit('tracking.location.update', {
+    reservationId,
+    latitude,
+    longitude,
+    accuracyMeters: 6,
+    headingDegrees,
+    speedKmh,
+    locationLabel: 'Simulation GPS prestataire',
+    recordedAt: new Date().toISOString(),
+  });
 }
 
 async function main() {
-  const [clientToken, providerToken] = await Promise.all([
+  console.log('Connexion des comptes de demonstration...');
+  const [clientSession, providerSession] = await Promise.all([
     login(clientIdentifier, clientPassword),
     login(providerIdentifier, providerPassword),
   ]);
-  const [clientBrowser, providerBrowser] = await Promise.all([
-    openViewer(clientIdentifier, clientPassword, 'Jokko - Client qui se deplace'),
-    openViewer(providerIdentifier, providerPassword, 'Jokko - Prestataire qui suit'),
-  ]);
+  console.log('Sessions pretes. Ouverture des deux navigateurs...');
+  let browser = null;
+  let clientViewer = null;
+  let providerViewer = null;
+  if (openViewers) {
+    browser = await chromium.launch({ headless });
+    [clientViewer, providerViewer] = await Promise.all([
+      openViewer(browser, clientSession, 'Jokko - Client qui suit'),
+      openViewer(browser, providerSession, 'Jokko - Prestataire qui se deplace'),
+    ]);
+    await Promise.all([
+      clientViewer.page.locator('.appointment-detail__google-map').waitFor({ state: 'visible', timeout: 30_000 }),
+      providerViewer.page.locator('.appointment-detail__google-map').waitFor({ state: 'visible', timeout: 30_000 }),
+    ]);
+  }
 
-  console.log('Deux fenetres ouvertes. Simulation longue en cours; Ctrl+C pour arreter.');
-  let latitude = 14.7262;
-  let longitude = -17.4713;
-  const speedKmh = 85;
-  const sampleCount = 120;
+  console.log('Deux fenetres ouvertes. Marche lente puis vitesse vehicule en cours; Ctrl+C pour arreter.');
+  const tracking = await getCurrentPosition(providerSession.accessToken);
+  let latitude = tracking.data.lastLatitude;
+  let longitude = tracking.data.lastLongitude;
+  const publisher = await connectPublisher(providerSession.accessToken);
+  const scenarios = [
+    {
+      label: 'Marche lente',
+      speedKmh: 4.5,
+      sampleCount: 24,
+      intervalMs: 1_000,
+      latitudeStep: 0.00001,
+      longitudeStep: 0.000006,
+    },
+    {
+      label: 'Vehicule rapide',
+      speedKmh: 85,
+      sampleCount: 36,
+      intervalMs: 900,
+      latitudeStep: 0.00017,
+      longitudeStep: 0.00011,
+    },
+  ];
 
   try {
-    for (let index = 0; index < sampleCount; index += 1) {
-      // Environ 21 m toutes les 0,9 s: une vitesse routiere de 85 km/h.
-      latitude += 0.00017;
-      longitude += 0.00011;
-      await publishPosition(clientToken, latitude, longitude, speedKmh, 33);
-      if (index % 10 === 0) {
-        console.log(`Position ${index + 1}/${sampleCount} publiee`);
+    for (const scenario of scenarios) {
+      console.log(`${scenario.label} : ${scenario.sampleCount} positions a ${scenario.speedKmh} km/h.`);
+      for (let index = 0; index < scenario.sampleCount; index += 1) {
+        latitude += scenario.latitudeStep;
+        longitude += scenario.longitudeStep;
+        publishPosition(publisher, latitude, longitude, scenario.speedKmh, 33);
+        if (index % 8 === 0) {
+          console.log(`${scenario.label}: position ${index + 1}/${scenario.sampleCount} publiee`);
+        }
+        await pause(scenario.intervalMs);
       }
-      await pause(900);
     }
-    console.log('Simulation terminee: 120 positions, environ 2,5 km.');
+    console.log('Simulation terminee : marche lente puis environ 750 m en vehicule.');
   } finally {
-    // Les fenetres restent ouvertes pour inspection. Fermez-les manuellement.
-    void providerToken;
-    void clientBrowser;
-    void providerBrowser;
+    publisher?.disconnect();
+    if (headless && browser) await browser.close();
+    void clientSession;
+    void browser;
+    void clientViewer;
+    void providerViewer;
   }
 }
 

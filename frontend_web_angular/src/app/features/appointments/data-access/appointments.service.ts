@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import { ApiResponse } from '../../../core/http/api-response.models';
@@ -25,6 +25,7 @@ import {
   providedIn: 'root',
 })
 export class AppointmentsService {
+  private readonly geocodeCache = new Map<string, Observable<GoogleMapsGeocodeResult | null>>();
   private readonly http = inject(HttpClient);
   private readonly servicesService = inject(ServicesService);
   private readonly apiUrl = environment.apiUrl;
@@ -60,7 +61,10 @@ export class AppointmentsService {
                       specialty: service?.nom || 'Service non renseigne',
                       avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                       professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
-                      professionalAddressLabel: detail.profile.ville || null,
+                      professionalAddressLabel: this.firstNonEmpty(
+                        detail.profile.utilisateur.adresse,
+                        detail.profile.ville,
+                      ),
                       professionalLatitude: detail.profile.latitude ?? null,
                       professionalLongitude: detail.profile.longitude ?? null,
                       professionalRating: detail.profile.noteGlobale ?? null,
@@ -109,8 +113,8 @@ export class AppointmentsService {
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
                 professionalAddressLabel: this.firstNonEmpty(
-                  detail.profile.ville,
                   detail.profile.utilisateur.adresse,
+                  detail.profile.ville,
                 ),
                 professionalLatitude: detail.profile.latitude ?? null,
                 professionalLongitude: detail.profile.longitude ?? null,
@@ -144,11 +148,16 @@ export class AppointmentsService {
   }
 
   geocodeAddress(address: string): Observable<GoogleMapsGeocodeResult | null> {
-    return this.http
+    const key = address.trim().toLocaleLowerCase('fr-FR');
+    const cached = this.geocodeCache.get(key);
+    if (cached) return cached;
+    const request = this.http
       .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/geocode`, {
         params: { address },
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay({ bufferSize: 1, refCount: false }));
+    this.geocodeCache.set(key, request);
+    return request;
   }
 
   computeRoutes(input: {
@@ -273,6 +282,14 @@ export class AppointmentsService {
       .patch<
         ApiResponse<AppointmentTrackingView>
       >(`${this.apiUrl}/reservations/${reservationId}/live-tracking/location`, location)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  confirmTrackingArrival(reservationId: string): Observable<AppointmentTrackingView> {
+    return this.http
+      .patch<
+        ApiResponse<AppointmentTrackingView>
+      >(`${this.apiUrl}/reservations/${reservationId}/live-tracking/arrival`, {})
       .pipe(map(unwrapApiResponse));
   }
 

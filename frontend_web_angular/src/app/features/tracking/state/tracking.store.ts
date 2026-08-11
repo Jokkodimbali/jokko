@@ -25,8 +25,35 @@ export class TrackingStore {
   );
   readonly estimatedArrivalAt = computed(() => this.route()?.estimatedArrivalAt ?? null);
 
-  setTracking(tracking: AppointmentTrackingView): void {
+  setTracking(tracking: AppointmentTrackingView): boolean {
+    const current = this.trackingState();
+    if (!current) {
+      this.trackingState.set(tracking);
+      return true;
+    }
+
+    const currentTimestamp = this.positionTimestamp(current);
+    const incomingTimestamp = this.positionTimestamp(tracking);
+    if (
+      currentTimestamp !== null &&
+      incomingTimestamp !== null &&
+      incomingTimestamp < currentTimestamp
+    ) {
+      return false;
+    }
+
+    if (incomingTimestamp !== null && incomingTimestamp === currentTimestamp) {
+      this.trackingState.set({
+        ...current,
+        ...tracking,
+        presence: { ...current.presence, ...tracking.presence },
+        route: tracking.route ?? current.route,
+      });
+      return true;
+    }
+
     this.trackingState.set(tracking);
+    return true;
   }
 
   setConnectionState(state: TrackingConnectionState): void {
@@ -41,5 +68,13 @@ export class TrackingStore {
     this.trackingState.set(null);
     this.connectionStateValue.set('disconnected');
     this.missionEventValue.set(null);
+  }
+
+  private positionTimestamp(tracking: AppointmentTrackingView): number | null {
+    const value =
+      tracking.lastPositionAt ?? tracking.presence?.lastPositionAt ?? tracking.updatedAt ?? null;
+    if (!value) return null;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : null;
   }
 }

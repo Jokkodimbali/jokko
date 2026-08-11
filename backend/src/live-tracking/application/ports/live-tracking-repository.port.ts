@@ -101,6 +101,10 @@ export interface LiveTrackingRepositoryPort {
     locationLabel?: string | null;
     recordedAt: Date;
   }): Promise<TrackingLocationWriteResult | null>;
+  confirmArrival(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null>;
   startReservationFromArrival(input: {
     reservationId: string;
     professionalId: string;

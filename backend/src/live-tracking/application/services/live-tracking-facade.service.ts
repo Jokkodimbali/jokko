@@ -27,8 +27,24 @@ export class LiveTrackingFacade {
     return this.commandService.updateLocation(user, reservationId, dto);
   }
 
+  updateLocationWithAcceptance(
+    user: AuthUser,
+    reservationId: string,
+    dto: TrackingLocationCommand,
+  ) {
+    return this.commandService.updateLocationWithAcceptance(
+      user,
+      reservationId,
+      dto,
+    );
+  }
+
   syncProfessionalConnection(user: AuthUser, isOnline: boolean) {
     return this.commandService.syncProfessionalConnection(user, isOnline);
+  }
+
+  confirmArrival(user: AuthUser, reservationId: string) {
+    return this.commandService.confirmArrival(user, reservationId);
   }
 
   finalizeReservationTracking(input: {

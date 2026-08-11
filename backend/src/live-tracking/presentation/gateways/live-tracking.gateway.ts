@@ -237,12 +237,12 @@ export class LiveTrackingGateway
     }
 
     try {
-      const tracking = await this.liveTrackingFacade.updateLocation(
+      const result = await this.liveTrackingFacade.updateLocationWithAcceptance(
         user,
         payload.reservationId,
         payload,
       );
-      acknowledge({ accepted: true, tracking });
+      acknowledge({ accepted: result.accepted, tracking: result.tracking });
     } catch {
       acknowledge({ accepted: false });
     }

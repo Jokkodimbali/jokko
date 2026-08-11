@@ -141,6 +141,23 @@ export class LiveTrackingController {
     );
   }
 
+  @Patch('reservations/:reservationId/live-tracking/arrival')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Confirmer explicitement l'arrivee sans modifier la position GPS",
+  })
+  async confirmTrackingArrival(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.liveTrackingFacade.confirmArrival(
+      user,
+      reservationId,
+    );
+    return createApiResponse(result, 'Arrivee confirmee.');
+  }
+
   @Get('professionals/:professionalId/presence')
   @ApiOperation({
     summary: API_DOCS.liveTracking.getProfessionalPresenceSummary,

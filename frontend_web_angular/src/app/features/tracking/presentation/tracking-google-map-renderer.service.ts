@@ -105,12 +105,9 @@ const NAVIGATION_MIN_ZOOM = 18;
 const MAP_MAX_ZOOM = 21;
 const ROUTE_SNAP_MAX_DISTANCE_METERS = 80;
 const MARKER_STATIONARY_RADIUS_METERS = 4;
-const MARKER_MAX_ACCURACY_METERS = 100;
 const MARKER_DEFAULT_UPDATE_INTERVAL_MS = 1000;
 const MARKER_MIN_ANIMATION_DURATION_MS = 120;
 const MARKER_MAX_ANIMATION_DURATION_MS = 2500;
-const MARKER_MAX_PREDICTION_MS = 900;
-const MARKER_MAX_PREDICTION_METERS = 35;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
 const MANEUVER_MARKER_LIMIT = 48;
 const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
@@ -188,7 +185,6 @@ export class TrackingGoogleMapRendererService {
   private renderedRouteForIcons: TrackingMapRoute | null = null;
   private lastRenderedState: TrackingMapRenderState | null = null;
   private lastRenderedProviderPosition: GoogleMapsPoint | null = null;
-  private lastFilteredProviderPosition: GoogleMapsPoint | null = null;
   private readonly navigationCamera = new NavigationCameraEngine();
   private navigationCameraDecision: NavigationCameraDecision | null = null;
 
@@ -251,16 +247,9 @@ export class TrackingGoogleMapRendererService {
 
     if (this.routeMap) {
       this.showManeuverMarkers = state.showManeuverMarkers === true;
-      const filteredProvider = state.arrived
-        ? state.provider
-        : this.stabilizeProviderPosition(state.provider, state);
-      this.lastFilteredProviderPosition = filteredProvider;
-      // Le GPS filtre reste la source de verite. Quand il appartient au corridor
-      // de l'itineraire, le marqueur est projete sur la voie afin d'imiter une
-      // navigation, puis son animation RAF absorbe la correction sans saut.
-      // Hors corridor, on conserve le GPS : le recalcul d'itineraire peut alors
-      // suivre immediatement la nouvelle voie empruntee.
-      const displayedProvider = this.snapTravelerMarkerToRoute(filteredProvider, state);
+      // Le marqueur affiche toujours le GPS filtre. La route peut aider le
+      // heading, la camera et la navigation, mais ne modifie jamais la position.
+      const displayedProvider = state.provider;
       this.currentTravelerHeading = this.resolveHeading(displayedProvider, state);
       if (!this.topViewEnabled) {
         this.currentCameraHeading = this.currentTravelerHeading;
@@ -418,7 +407,6 @@ export class TrackingGoogleMapRendererService {
     this.clearRoutePolylines();
     this.lastBoundsKey = '';
     this.lastProviderPosition = null;
-    this.lastFilteredProviderPosition = null;
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
     this.renderedMarkerHeading = 0;
@@ -457,7 +445,6 @@ export class TrackingGoogleMapRendererService {
     this.navigationCamera.reset();
     this.navigationCameraDecision = null;
     this.lastRenderedProviderPosition = null;
-    this.lastFilteredProviderPosition = null;
     this.lastProviderPosition = null;
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
@@ -473,7 +460,7 @@ export class TrackingGoogleMapRendererService {
 
   private renderRoutes(routes: TrackingMapRoute[]): void {
     if (!this.google || !this.routeMap) return;
-    const visibleRoutes = routes.filter((route) => route.selected).slice(0, 1);
+    const visibleRoutes = routes.filter((route) => route.coordinates.length >= 2);
 
     while (this.routePolylines.length > visibleRoutes.length) {
       this.routePolylines.pop()?.setMap(null);
@@ -484,27 +471,30 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
-    visibleRoutes.forEach((route) => {
-      this.renderedRouteForIcons = route;
+    this.renderedRouteForIcons = visibleRoutes.find((route) => route.selected) ?? null;
+    visibleRoutes.forEach((route, index) => {
+      const selected = route.selected;
       const options = {
         map: this.routeMap,
         path: route.coordinates,
-        icons: this.routeManeuverIconSequences(route),
-        strokeColor: '#1eb980',
-        strokeOpacity: 0.96,
-        strokeWeight: this.routeStrokeWeight(),
-        zIndex: 20,
-        clickable: false,
+        icons: selected ? this.routeManeuverIconSequences(route) : [],
+        strokeColor: selected ? '#1eb980' : '#64748b',
+        strokeOpacity: selected ? 0.96 : 0.68,
+        strokeWeight: selected ? this.routeStrokeWeight() : Math.max(3, this.routeStrokeWeight() - 2),
+        zIndex: selected ? 20 : 10,
+        clickable: true,
       };
-      let polyline = this.routePolylines[0];
+      let polyline = this.routePolylines[index];
       if (!polyline) {
         polyline = new this.google!.maps.Polyline(options);
-        this.routePolylines[0] = polyline;
+        this.routePolylines[index] = polyline;
       } else {
         polyline.setOptions(options);
         polyline.setPath(route.coordinates);
         polyline.setMap(this.routeMap as GoogleMapsMapInstance);
       }
+      this.google!.maps.event?.clearInstanceListeners(polyline);
+      polyline.addListener('click', () => this.routeSelected?.(route.id));
     });
   }
 
@@ -988,34 +978,19 @@ export class TrackingGoogleMapRendererService {
       MARKER_MAX_ANIMATION_DURATION_MS,
       Math.max(MARKER_MIN_ANIMATION_DURATION_MS, updateInterval * 1.08),
     );
-    const predictionDuration =
-      (speedKmh ?? 0) >= 3 ? Math.min(MARKER_MAX_PREDICTION_MS, duration * 0.75) : 0;
-    const maximumPredictionRatio =
-      distance > 0
-        ? Math.min(predictionDuration / duration, MARKER_MAX_PREDICTION_METERS / distance)
-        : 0;
     const startedAt = receivedAt;
     const animate = (timestamp: number): void => {
       const elapsed = timestamp - startedAt;
       const progress = Math.min(1, elapsed / duration);
       // Smoothstep conserve une vitesse fluide, sans depassement du point GPS.
       const eased = progress * progress * (3 - 2 * progress);
-      const predictionProgress =
-        predictionDuration > 0
-          ? Math.min(1, Math.max(0, elapsed - duration) / predictionDuration)
-          : 0;
-      const predictionEase =
-        predictionProgress +
-        predictionProgress * predictionProgress -
-        predictionProgress * predictionProgress * predictionProgress;
-      const positionFactor = progress + maximumPredictionRatio * predictionEase;
       marker.position = {
-        lat: origin.lat + (destination.lat - origin.lat) * positionFactor,
-        lng: origin.lng + (destination.lng - origin.lng) * positionFactor,
+        lat: origin.lat + (destination.lat - origin.lat) * eased,
+        lng: origin.lng + (destination.lng - origin.lng) * eased,
       };
       this.renderedMarkerHeading = this.normalizeHeading(originHeading + headingDelta * eased);
       this.setMarkerHeading(marker, this.renderedMarkerHeading);
-      if (elapsed < duration + predictionDuration) {
+      if (elapsed < duration) {
         this.animationFrameId = requestAnimationFrame(animate);
       } else {
         this.animationFrameId = null;
@@ -1578,6 +1553,7 @@ export class TrackingGoogleMapRendererService {
     subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:uppercase;`;
 
     const pointer = document.createElement('span');
+    pointer.className = 'jokko-tracking-arrival-pointer';
     pointer.style.cssText = `background:#fff;border-bottom:1px solid rgba(15,23,42,.08);border-right:1px solid rgba(15,23,42,.08);box-shadow:${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowBlur / 2)}px rgba(15,23,42,.08);height:${size.pointer}px;margin-top:-${Math.round(size.pointer / 2)}px;transform:rotate(45deg);width:${size.pointer}px;`;
 
     body.append(title, subtitle);
@@ -1585,7 +1561,10 @@ export class TrackingGoogleMapRendererService {
     card.append(etaBox, body);
     const person = this.destinationPersonContent(marker, size);
     if (person) {
-      content.append(card, pointer, person);
+      // L'AdvancedMarker est ancre sur le bas de son contenu. L'avatar doit
+      // donc rester au-dessus de la carte : la pointe est ainsi le seul
+      // element au contact de la coordonnee de destination.
+      content.append(person, card, pointer);
     } else {
       content.append(card, pointer);
     }
@@ -1711,7 +1690,15 @@ export class TrackingGoogleMapRendererService {
     let candidateHeading: number | null = null;
     let alignedToRoute = false;
     const selectedRoute = state.routes.find((route) => route.selected);
-    if (moving && selectedRoute) {
+    const hasReliableGpsHeading =
+      moving &&
+      (state.speedKmh ?? 0) >= 8 &&
+      typeof state.headingDegrees === 'number' &&
+      Number.isFinite(state.headingDegrees);
+    if (hasReliableGpsHeading) {
+      candidateHeading = this.normalizeHeading(state.headingDegrees as number);
+    }
+    if (candidateHeading === null && moving && selectedRoute) {
       candidateHeading = this.headingAlongRoute(position, selectedRoute.coordinates);
       alignedToRoute = candidateHeading !== null;
     }
@@ -1743,68 +1730,6 @@ export class TrackingGoogleMapRendererService {
         ? 0.78
         : 0.62;
     return this.normalizeHeading(this.currentTravelerHeading + delta * smoothing);
-  }
-
-  private stabilizeProviderPosition(
-    position: GoogleMapsPoint,
-    state: TrackingMapRenderState,
-  ): GoogleMapsPoint {
-    const previous = this.lastFilteredProviderPosition;
-    if (!previous) return position;
-
-    const distance = this.distanceMeters(previous, position);
-    const accuracy =
-      typeof state.accuracyMeters === 'number' && Number.isFinite(state.accuracyMeters)
-        ? Math.max(1, state.accuracyMeters)
-        : 25;
-    const reportedSpeedKmh = state.speedKmh ?? 0;
-    const movementThreshold =
-      reportedSpeedKmh >= 3
-        ? Math.max(1.5, Math.min(3, accuracy * 0.18))
-        : Math.max(MARKER_STATIONARY_RADIUS_METERS, Math.min(12, accuracy * 0.5));
-    const moving = distance > movementThreshold;
-
-    if (!moving) return previous;
-    if (accuracy > MARKER_MAX_ACCURACY_METERS && distance < accuracy * 1.5) {
-      return previous;
-    }
-
-    const alpha =
-      reportedSpeedKmh >= 60
-        ? 0.97
-        : reportedSpeedKmh >= 30
-          ? 0.92
-          : reportedSpeedKmh >= 15
-            ? 0.82
-            : accuracy <= 10
-              ? 0.64
-              : accuracy <= 25
-                ? 0.48
-                : 0.32;
-    return {
-      lat: previous.lat + (position.lat - previous.lat) * alpha,
-      lng: previous.lng + (position.lng - previous.lng) * alpha,
-    };
-  }
-
-  private snapTravelerMarkerToRoute(
-    position: GoogleMapsPoint,
-    state: TrackingMapRenderState,
-  ): GoogleMapsPoint {
-    const selectedRoute = state.routes.find((route) => route.selected);
-    if (!selectedRoute || selectedRoute.coordinates.length < 2) return position;
-    const projection = this.projectPointToRoute(position, selectedRoute.coordinates);
-    if (!projection) return position;
-
-    const accuracy =
-      typeof state.accuracyMeters === 'number' && Number.isFinite(state.accuracyMeters)
-        ? Math.max(1, state.accuracyMeters)
-        : 12;
-    // Cette limite est volontairement beaucoup plus petite que le seuil de
-    // camera (80 m). Le marqueur ne doit jamais etre attire vers une voie
-    // parallele ou une bretelle : hors de ce corridor, le GPS reste visible.
-    const snapThresholdMeters = Math.max(10, Math.min(28, accuracy * 1.35));
-    return projection.distanceFromRouteMeters <= snapThresholdMeters ? projection.point : position;
   }
 
   private confirmStationaryHeading(headingDegrees: number | null): number {

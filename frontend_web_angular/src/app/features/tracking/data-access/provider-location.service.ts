@@ -98,6 +98,17 @@ export class ProviderLocationService {
             Number.isFinite(position.timestamp) && position.timestamp > 0
               ? position.timestamp
               : now;
+          // watchPosition peut republier une mesure mise en cache. Elle ne doit
+          // ni consommer une frame d'interpolation ni remplacer un point frais.
+          if (filteredPosition && recordedAt < filteredPosition.recordedAt) return;
+          if (
+            filteredPosition &&
+            recordedAt === filteredPosition.recordedAt &&
+            Math.abs(position.coords.latitude - filteredPosition.latitude) < 1e-9 &&
+            Math.abs(position.coords.longitude - filteredPosition.longitude) < 1e-9
+          ) {
+            return;
+          }
           const rawPosition: ProviderGpsPosition = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -132,7 +143,7 @@ export class ProviderLocationService {
           subscriber.next(orientedPosition);
         },
         (error) => subscriber.error(error),
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 },
       );
 
       return () => {

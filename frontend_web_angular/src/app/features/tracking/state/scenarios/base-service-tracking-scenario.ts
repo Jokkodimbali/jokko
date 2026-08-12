@@ -81,8 +81,8 @@ export abstract class BaseServiceTrackingScenario implements TrackingScenarioStr
 
   clientTrackingTitle(context: TrackingScenarioViewContext): string {
     if (context.appointmentCompleted) return 'Termine';
-    if (context.travelerArrived) return this.arrivedTitle();
     if (context.providerWorking) return this.workInProgressTitle();
+    if (context.travelerArrived) return this.arrivedTitle();
     if (context.providerOnTheWay) return this.onTheWayTitle();
     return this.idleClientTitle();
   }
@@ -91,11 +91,11 @@ export abstract class BaseServiceTrackingScenario implements TrackingScenarioStr
     if (context.appointmentCompleted) {
       return this.completedClientDescription();
     }
-    if (context.travelerArrived) {
-      return this.arrivedClientDescription(context);
-    }
     if (context.providerWorking) {
       return this.workingClientDescription(context);
+    }
+    if (context.travelerArrived) {
+      return this.arrivedClientDescription(context);
     }
     if (context.providerOnTheWay) {
       return this.onTheWayClientDescription(context);

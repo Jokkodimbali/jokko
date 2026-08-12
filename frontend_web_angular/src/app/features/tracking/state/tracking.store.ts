@@ -32,6 +32,19 @@ export class TrackingStore {
       return true;
     }
 
+    // Le demarrage d'une nouvelle session est une transition metier plus
+    // forte que l'ordre des echantillons GPS. Un ancien trajet TERMINEE peut
+    // avoir une derniere position plus recente et ne doit jamais masquer le
+    // nouvel etat EN_ROUTE affiche au client.
+    if (this.isNewRouteSession(current, tracking)) {
+      this.trackingState.set(tracking);
+      return true;
+    }
+
+    if (this.isTerminalUpdateFromOlderSession(current, tracking)) {
+      return false;
+    }
+
     const currentTimestamp = this.positionTimestamp(current);
     const incomingTimestamp = this.positionTimestamp(tracking);
     if (
@@ -76,5 +89,35 @@ export class TrackingStore {
     if (!value) return null;
     const timestamp = Date.parse(value);
     return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  private isNewRouteSession(
+    current: AppointmentTrackingView,
+    incoming: AppointmentTrackingView,
+  ): boolean {
+    if (incoming.trackingStatus !== 'EN_ROUTE') return false;
+
+    const currentStartedAt = Date.parse(current.startedAt ?? '');
+    const incomingStartedAt = Date.parse(incoming.startedAt ?? '');
+    if (!Number.isFinite(incomingStartedAt)) return false;
+    if (!Number.isFinite(currentStartedAt)) return true;
+    return incomingStartedAt > currentStartedAt;
+  }
+
+  private isTerminalUpdateFromOlderSession(
+    current: AppointmentTrackingView,
+    incoming: AppointmentTrackingView,
+  ): boolean {
+    if (current.trackingStatus !== 'EN_ROUTE' || incoming.trackingStatus !== 'TERMINEE') {
+      return false;
+    }
+
+    const currentStartedAt = Date.parse(current.startedAt ?? '');
+    const incomingStartedAt = Date.parse(incoming.startedAt ?? '');
+    return (
+      Number.isFinite(currentStartedAt) &&
+      Number.isFinite(incomingStartedAt) &&
+      incomingStartedAt < currentStartedAt
+    );
   }
 }

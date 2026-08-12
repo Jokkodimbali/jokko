@@ -207,6 +207,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeDeviationRecalculationBlockedUntilMs = 0;
   private routeDeviationConfirmations = 0;
   private routeCalculationStartedAtMs = 0;
+  private routeSessionStartedAtMs = 0;
+  private parcelDropoffTrackingPrepared = false;
+  private parcelDropoffRouteObserved = false;
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
@@ -465,7 +468,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       !this.isProviderWorking() &&
       (this.clientTravelsToProvider()
         ? this.hasTravelerArrivalConfirmation()
-        : this.isProviderOnTheWay() && this.hasTravelerArrivedAtDestination()),
+        : this.hasTravelerArrivedAtDestination()),
   );
   protected readonly isOperationalServiceDay = computed(() => {
     const appointment = this.appointment();
@@ -542,8 +545,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isParcelAwaitingPickupScan = computed(
     () =>
       this.isParcelDeliveryFlow() &&
-      this.isProviderOnTheWay() &&
       this.hasTravelerArrivedAtDestination() &&
+      !this.isProviderWorking() &&
       !this.isParcelPickupValidated(),
   );
   protected readonly isParcelAwaitingDropoffScan = computed(
@@ -602,6 +605,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.providerTravelsToClient() &&
       !this.isProviderOnTheWay() &&
       !this.isProviderWorking() &&
+      !this.hasTravelerArrivedAtDestination() &&
       this.canStartRouteToday()
     );
   });
@@ -613,7 +617,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.canStartRouteToday() &&
       this.isRouteActorViewer() &&
       !this.isProviderOnTheWay() &&
-      !this.isProviderWorking()
+      !this.isProviderWorking() &&
+      !this.hasTravelerArrivedAtDestination()
     );
   });
   protected readonly canShareTravelerLocation = computed(
@@ -628,8 +633,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly hasTravelerArrivedAtDestination = computed(() => {
     this.arrivalState.version();
-    if (!this.hasConfirmedRouteStart() && !this.isProviderWorking()) return false;
     if (this.isArrivalPinned()) return true;
+    if (this.routeActorArrivalConfirmed()) return true;
+    if (!this.hasConfirmedRouteStart() && !this.isProviderWorking()) return false;
     if (this.hasTravelerArrivalConfirmation()) return true;
     return false;
   });
@@ -651,7 +657,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return this.hasTravelerArrivedAtDestination();
     }
 
-    return this.canStartRouteToday() && this.isProviderOnTheWay();
+    return this.canStartRouteToday() && this.hasTravelerArrivedAtDestination();
   });
   protected readonly canTravelerMarkArrived = computed(() => {
     const appointment = this.appointment();
@@ -775,6 +781,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return this.parcelTrackingStepIndex();
     }
     if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
+    if (this.hasExplicitTravelerArrival()) return 1;
     if (this.isProviderOnTheWay() || this.hasConfirmedRouteStart()) return 1;
     return 0;
   });
@@ -795,6 +802,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return this.parcelTrackingStepIndex();
     }
     if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 2;
+    if (this.hasExplicitTravelerArrival()) return 1;
     if (this.isProviderOnTheWay() || this.hasConfirmedRouteStart()) return 1;
     return 0;
   });
@@ -1916,11 +1924,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return false;
     }
 
-    if (!this.isProviderOnTheWay() && !this.isProviderWorking()) {
-      return this.canMarkTravelerOnTheWay();
-    }
     if (this.isParcelAwaitingPickupScan() || this.isParcelAwaitingDropoffScan()) {
       return true;
+    }
+    if (!this.isProviderOnTheWay() && !this.isProviderWorking()) {
+      return this.canMarkTravelerOnTheWay();
     }
     if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
       return this.canProviderStartWork();
@@ -1939,6 +1947,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
       return;
     }
+
+    if (this.parcelDropoffTrackingPrepared) {
+      this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
+      this.updateGoogleMaps();
+      return;
+    }
+
+    this.parcelDropoffTrackingPrepared = true;
+    this.parcelDropoffRouteObserved = this.tracking()?.trackingStatus === 'EN_ROUTE';
 
     this.routeActorArrivalConfirmed.set(false);
     this.arrivalState.clear(appointment.id);
@@ -2431,16 +2448,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.appointment.update((current) =>
           this.mergeAppointment(current ?? appointment, updated),
         );
-        this.synchronizeLiveNavigationAfterStatusPaint(updated);
-        this.refreshAppointmentState(updated.id);
-        this.refreshTracking(updated.id);
         if (this.isParcelTransportAppointment(updated)) {
-          this.routeActorArrivalConfirmed.set(false);
-          this.arrivalState.clear(updated.id);
-          this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(updated));
-          this.stopProviderLocationSharing();
-          this.startProviderLocationSharing(updated.id);
+          this.beginParcelDropoffTracking(updated);
         } else {
+          this.synchronizeLiveNavigationAfterStatusPaint(updated);
+          this.refreshAppointmentState(updated.id);
+          this.refreshTracking(updated.id);
           this.stopProviderLocationSharing();
         }
         this.isUpdatingStatus.set(false);
@@ -2533,20 +2546,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.hydrateMedicalPrescriptionFromAppointment(appointment);
         this.selectedRating.set(appointment.clientRating ?? 0);
         this.reviewComment.set(appointment.clientReview ?? '');
-        this.isLoading.set(false);
-        // Une nouvelle instance de page peut encore partager l'etat d'arrivee
-        // du trajet vers l'expediteur. Le retrait valide ouvre un nouveau
-        // trajet et doit toujours effacer cet ancien point d'arrivee.
-        if (this.isParcelTransportAppointment(appointment) && this.isParcelPickupValidated()) {
-          this.prepareParcelDropoffNavigationAfterPickup(appointment);
-        }
-        this.synchronizeLiveNavigation(appointment);
-        if (appointment.status === 'TERMINEE') {
-          this.loadTerminalTrackingSnapshot(appointment.id);
-        } else if (!this.isTerminalStatus(appointment.status)) {
-          this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
-          window.setTimeout(() => void this.initializeGoogleMaps(), 0);
-        }
+        this.hydrateInitialTrackingBeforeReveal(appointment);
       },
       error: (error) => {
         const notFoundOrForbidden =
@@ -2559,6 +2559,71 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.isLoading.set(false);
       },
     });
+  }
+
+  private beginParcelDropoffTracking(appointment: AppointmentView): void {
+    const previousTracking = this.tracking();
+    const startedAt = new Date().toISOString();
+
+    this.routeActorArrivalConfirmed.set(false);
+    this.arrivalState.clear(appointment.id);
+    this.prepareParcelDropoffNavigationAfterPickup(appointment);
+
+    if (previousTracking) {
+      // Afficher sans interruption le vehicule au point de retrait pendant
+      // que le premier echantillon GPS reactive la session cote backend.
+      this.setTrackingSafely({
+        ...previousTracking,
+        trackingStatus: 'EN_ROUTE',
+        startedAt,
+        endedAt: null,
+        presence: {
+          ...previousTracking.presence,
+          status: 'EN_ROUTE',
+        },
+        route: null,
+      });
+    }
+
+    this.synchronizeLiveNavigationAfterStatusPaint(appointment);
+    this.refreshAppointmentState(appointment.id);
+    this.stopProviderLocationSharing();
+    this.startProviderLocationSharing(appointment.id);
+    this.updateGoogleMaps();
+  }
+
+  private hydrateInitialTrackingBeforeReveal(appointment: AppointmentView): void {
+    const reveal = (): void => {
+      this.isLoading.set(false);
+      // Une nouvelle instance de page peut encore partager l'etat d'arrivee
+      // du trajet vers l'expediteur. Le retrait valide ouvre un nouveau
+      // trajet et doit toujours effacer cet ancien point d'arrivee.
+      if (this.isParcelTransportAppointment(appointment) && this.isParcelPickupValidated()) {
+        this.prepareParcelDropoffNavigationAfterPickup(appointment);
+      }
+      this.synchronizeLiveNavigation(appointment);
+      if (appointment.status === 'TERMINEE') {
+        this.loadTerminalTrackingSnapshot(appointment.id);
+      } else if (!this.isTerminalStatus(appointment.status)) {
+        this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
+        window.setTimeout(() => void this.initializeGoogleMaps(), 0);
+      }
+    };
+
+    if (appointment.status !== 'PAYEE_SEQUESTRE' && appointment.status !== 'EN_COURS') {
+      reveal();
+      return;
+    }
+
+    // Ne jamais peindre l'ecran initial avant de connaitre l'etat reel du
+    // trajet. Le premier snapshot determine directement Trajet/Intervention.
+    this.appointmentsService
+      .getAppointmentTracking(appointment.id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((tracking) => {
+        if (tracking) this.setTrackingSafely(tracking);
+        reveal();
+      });
   }
 
   private safeReturnUrl(): string | null {
@@ -2833,7 +2898,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.renderArrivalOnMap(appointment, destination, null);
           this.refreshAppointmentAfterArrival(appointment.id);
           this.isUpdatingStatus.set(false);
-          this.feedback.success('Arrivee confirmee. Vous pouvez continuer la mission.');
+          this.feedback.success('Arrivee confirmee. Vous pouvez commencer la prestation.');
         },
         error: (error) => {
           if (error instanceof HttpErrorResponse && error.status === 409) {
@@ -2856,7 +2921,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    const trackedPosition = this.currentReservationTrackingPoint() ?? destination;
+    // A l'arrivee d'un colis, le vehicule et le marqueur de navigation sont
+    // places exactement sur le checkpoint courant, des deux cotes.
+    const trackedPosition = this.isParcelTransportAppointment(appointment)
+      ? destination
+      : (this.currentReservationTrackingPoint() ?? destination);
     this.mapRenderer.render({
       provider: trackedPosition,
       destination,
@@ -2961,11 +3030,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private normalizeTrackingAfterTripStart(
     tracking: AppointmentTrackingView,
   ): AppointmentTrackingView {
-    if (!this.clientTravelsToProvider()) return tracking;
+    const startedAtMs = Date.parse(tracking.startedAt ?? '');
+    this.routeSessionStartedAtMs = Number.isFinite(startedAtMs)
+      ? startedAtMs
+      : Date.now();
 
-    const label = 'Position GPS du client';
+    const label = this.clientTravelsToProvider()
+      ? 'Position GPS du client'
+      : tracking.lastLocationLabel;
     return {
       ...tracking,
+      trackingStatus: 'EN_ROUTE',
+      endedAt: null,
       lastLocationLabel: label,
       presence: {
         ...tracking.presence,
@@ -2995,13 +3071,47 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private trackingIndicatesArrival(tracking: AppointmentTrackingView | null | undefined): boolean {
-    return tracking?.trackingStatus === 'TERMINEE';
+    if (tracking?.trackingStatus !== 'TERMINEE') return false;
+    // Pendant la phase depot, le premier TERMINEE encore visible appartient
+    // au trajet vers l'expediteur. Il ne devient une arrivee destinataire
+    // qu'apres observation de la nouvelle session EN_ROUTE.
+    if (this.isParcelDropoffNavigationActive() && !this.parcelDropoffRouteObserved) {
+      return false;
+    }
+    if (this.routeSessionStartedAtMs === 0) return true;
+
+    const startedAtMs = Date.parse(tracking.startedAt ?? '');
+    const endedAtMs = Date.parse(tracking.endedAt ?? '');
+    return (
+      Number.isFinite(startedAtMs) &&
+      startedAtMs >= this.routeSessionStartedAtMs &&
+      Number.isFinite(endedAtMs) &&
+      endedAtMs >= startedAtMs
+    );
   }
 
   private trackingHasExplicitClientArrival(
     tracking: AppointmentTrackingView | null | undefined,
   ): boolean {
-    return tracking?.trackingStatus === 'TERMINEE';
+    if (tracking?.trackingStatus !== 'TERMINEE') return false;
+    if (this.routeSessionStartedAtMs === 0) return true;
+
+    const startedAtMs = Date.parse(tracking.startedAt ?? '');
+    const endedAtMs = Date.parse(tracking.endedAt ?? '');
+    return (
+      Number.isFinite(startedAtMs) &&
+      startedAtMs >= this.routeSessionStartedAtMs &&
+      Number.isFinite(endedAtMs) &&
+      endedAtMs >= startedAtMs
+    );
+  }
+
+  private hasExplicitTravelerArrival(): boolean {
+    return (
+      this.routeActorArrivalConfirmed() ||
+      this.isArrivalPinned() ||
+      this.trackingHasExplicitClientArrival(this.tracking())
+    );
   }
 
   private currentReservationTrackingPoint(): MapCoordinate | null {
@@ -3056,6 +3166,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     destination: MapCoordinate | null,
     tracking?: AppointmentTrackingView | null,
   ): MapCoordinate | null {
+    // Pour un colis, le checkpoint resolu est toujours la position d'arrivee
+    // de reference. Une derniere mesure GPS ou un ancien point epingle ne doit
+    // pas laisser le vehicule a quelques metres du lieu de scan.
+    if (this.isParcelDeliveryFlow() && destination) return destination;
     const pinned = this.pinnedArrivalPoint();
     if (pinned) return pinned;
     if (destination) return destination;
@@ -3083,6 +3197,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
+    this.registerActiveRouteSession(tracking);
     const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
     if (!this.trackingStore.setTracking(normalizedTracking)) return;
     const acceptedTracking = this.tracking();
@@ -3225,6 +3340,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.providerLocationSubscription = undefined;
     this.locationUpdateInFlight = false;
     this.pendingLocationUpdate.clear();
+  }
+
+  private registerActiveRouteSession(tracking: AppointmentTrackingView): void {
+    if (tracking.trackingStatus !== 'EN_ROUTE') return;
+
+    if (this.isParcelDropoffNavigationActive()) {
+      this.parcelDropoffRouteObserved = true;
+    }
+
+    const startedAtMs = Date.parse(tracking.startedAt ?? '');
+    if (!Number.isFinite(startedAtMs) || startedAtMs <= this.routeSessionStartedAtMs) return;
+
+    this.routeSessionStartedAtMs = startedAtMs;
+    this.routeActorArrivalConfirmed.set(false);
+    this.arrivalState.clear(tracking.reservationId);
   }
 
   private queueLocationUpdate(appointmentId: string, location: TrackingLocationUpdate): void {
@@ -3826,11 +3956,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected runParcelPrimaryAction(appointment: AppointmentView): void {
     if (!this.canUseParcelActionButton()) return;
 
-    if (!this.isProviderOnTheWay() && !this.isProviderWorking()) {
-      void this.markOnTheWay(appointment);
-      return;
-    }
-
     if (this.isParcelAwaitingPickupScan()) {
       this.openQrCodePage(appointment, 'expediteur', true);
       return;
@@ -3846,6 +3971,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     if (this.isParcelAwaitingDropoffScan()) {
       this.openQrCodePage(appointment, 'destinataire', true);
+      return;
+    }
+
+    if (!this.isProviderOnTheWay() && !this.isProviderWorking()) {
+      void this.markOnTheWay(appointment);
       return;
     }
 
@@ -3962,7 +4092,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private hasActiveNavigationState(): boolean {
-    return this.hasActiveTrackingNavigation();
+    // Apres validation du QR expediteur, la navigation vers le destinataire
+    // est deja active meme si le backend n'a pas encore publie le premier
+    // echantillon de la nouvelle session EN_ROUTE. Conserver la derniere
+    // position connue permet d'afficher immediatement vehicule, marqueurs et
+    // itineraire, puis le GPS courant prend naturellement le relais.
+    return this.hasActiveTrackingNavigation() || this.isParcelDropoffNavigationActive();
   }
 
   private destroyRouteMap(): void {
@@ -4122,7 +4257,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.lastResolvedDestinationAddress = coordinateKey;
       this.destinationCoordinates.set(preferredCoordinates);
       this.destinationStatus.set('ready');
-      this.updateGoogleMaps();
+      this.renderResolvedDestination();
       return;
     }
 
@@ -4149,7 +4284,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (explicitCoordinates) {
       this.destinationCoordinates.set(explicitCoordinates);
       this.destinationStatus.set('ready');
-      this.updateGoogleMaps();
+      this.renderResolvedDestination();
       return;
     }
 
@@ -4164,7 +4299,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           });
           this.destinationStatus.set('ready');
           this.clearNavigationRetry();
-          this.updateGoogleMaps();
+          this.renderResolvedDestination();
           return;
         }
         this.destinationStatus.set('unavailable');
@@ -4175,6 +4310,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.scheduleNavigationRetry();
       },
     });
+  }
+
+  private renderResolvedDestination(): void {
+    const destination = this.destinationCoordinates();
+    const latitude = this.trackingLatitude();
+    const longitude = this.trackingLongitude();
+
+    if (
+      this.isParcelDropoffNavigationActive() &&
+      destination &&
+      latitude !== null &&
+      longitude !== null &&
+      this.geo.isCoordinateInSenegal(latitude, longitude)
+    ) {
+      this.routeRequestBlockedUntilMs = 0;
+      this.routeCoordinatesKey = '';
+      this.loadRouteCoordinates([latitude, longitude], [destination.lat, destination.lng]);
+    }
+
+    window.setTimeout(() => {
+      void this.initializeGoogleMaps().then(() => this.updateGoogleMaps());
+    }, 0);
   }
 
   private scheduleNavigationRetry(): void {

@@ -256,6 +256,13 @@ export class TrackingGoogleMapRendererService {
       const displayedProvider = state.arrived
         ? state.provider
         : this.snapTravelerMarkerToSelectedRoute(state.provider, state);
+      this.routeMap.setOptions?.({
+        // Pendant le trajet, le zoom minimal protege la camera de navigation.
+        // Une fois arrive, rendre toute l'amplitude au geste utilisateur pour
+        // explorer la carte sans que la camera paraisse verrouillee.
+        minZoom: state.arrived ? TOP_VIEW_MIN_ZOOM : this.minimumZoom(),
+        gestureHandling: 'greedy',
+      });
       this.currentTravelerHeading = this.resolveHeading(state.provider, state);
       if (!this.topViewEnabled) {
         this.currentCameraHeading = this.currentTravelerHeading;

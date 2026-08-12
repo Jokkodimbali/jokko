@@ -661,7 +661,14 @@ export class ReservationCommandService extends ReservationAppService {
       requestUser,
       reservationId,
     );
-    if (tracking.trackingStatus !== 'EN_ROUTE') {
+    // Une arrivee explicite clot la session de trajet en TERMINEE avant le
+    // demarrage de la prestation. Accepter cet etat evite de refuser la
+    // transition « Sur place » -> EN_COURS. EN_ROUTE reste autorise pour les
+    // parcours historiques et le retrait des colis.
+    if (
+      tracking.trackingStatus !== 'EN_ROUTE' &&
+      tracking.trackingStatus !== 'TERMINEE'
+    ) {
       throw appHttpException('RESERVATIONS_ARRIVAL_REQUIRED');
     }
   }

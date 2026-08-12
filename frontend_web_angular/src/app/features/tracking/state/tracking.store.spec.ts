@@ -57,6 +57,38 @@ describe('TrackingStore', () => {
 
     expect(store.tracking()?.route?.encodedPolyline).toBe('route');
   });
+
+  it('accepts a newer EN_ROUTE session even when the previous arrival has a newer GPS timestamp', () => {
+    const store = new TrackingStore();
+    const previousArrival = trackingAt('2026-06-24T14:05:00.000Z', 14.72, null);
+    previousArrival.trackingStatus = 'TERMINEE';
+    previousArrival.startedAt = '2026-06-24T13:30:00.000Z';
+
+    const newTrip = trackingAt('2026-06-24T14:04:59.000Z', 14.73, null);
+    newTrip.trackingStatus = 'EN_ROUTE';
+    newTrip.startedAt = '2026-06-24T14:04:58.000Z';
+
+    expect(store.setTracking(previousArrival)).toBe(true);
+    expect(store.setTracking(newTrip)).toBe(true);
+    expect(store.tracking()?.trackingStatus).toBe('EN_ROUTE');
+    expect(store.tracking()?.lastLatitude).toBe(14.73);
+  });
+
+  it('rejects a late terminal event from the pickup route after dropoff navigation starts', () => {
+    const store = new TrackingStore();
+    const dropoffTrip = trackingAt('2026-06-24T14:05:00.000Z', 14.73, null);
+    dropoffTrip.trackingStatus = 'EN_ROUTE';
+    dropoffTrip.startedAt = '2026-06-24T14:05:00.000Z';
+
+    const latePickupArrival = trackingAt('2026-06-24T14:05:00.000Z', 14.72, null);
+    latePickupArrival.trackingStatus = 'TERMINEE';
+    latePickupArrival.startedAt = '2026-06-24T13:30:00.000Z';
+
+    expect(store.setTracking(dropoffTrip)).toBe(true);
+    expect(store.setTracking(latePickupArrival)).toBe(false);
+    expect(store.tracking()?.trackingStatus).toBe('EN_ROUTE');
+    expect(store.tracking()?.lastLatitude).toBe(14.73);
+  });
 });
 
 function trackingAt(

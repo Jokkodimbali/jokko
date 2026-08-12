@@ -268,11 +268,45 @@ describe('ProviderLocationService', () => {
     expect(recordedAt).toEqual([measuredAt]);
   });
 
+  it('ignores a cached GPS sample with the same measurement timestamp', () => {
+    let success: ((position: GeolocationPosition) => void) | undefined;
+    let requestedOptions: PositionOptions | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: vi.fn(
+          (
+            handler: (position: GeolocationPosition) => void,
+            _error: PositionErrorCallback,
+            options: PositionOptions,
+          ) => {
+            success = handler;
+            requestedOptions = options;
+            return 15;
+          },
+        ),
+        clearWatch: vi.fn(),
+      },
+    });
+    const service = new ProviderLocationService();
+    const received: ProviderCoordinates[] = [];
+    const subscription = service.watch(0).subscribe((position) => received.push(position));
+    const measuredAt = Date.now();
+
+    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
+    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
+    subscription.unsubscribe();
+
+    expect(received).toHaveLength(1);
+    expect(requestedOptions?.maximumAge).toBe(0);
+  });
+
   it.each([
     ['arret', 0, 0],
     ['marche', 4.5, 1.25],
     ['velo ou circulation lente', 20, 5.56],
     ['ville fluide', 50, 13.89],
+    ['voie rapide', 85, 23.61],
     ['autoroute', 130, 36.11],
     ['train rapide', 250, 69.44],
   ])('keeps coherent telemetry for %s at %d km/h', (_scenario, speedKmh, distanceMeters) => {

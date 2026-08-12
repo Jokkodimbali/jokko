@@ -86,6 +86,7 @@ export type TrackingMapRenderState = {
   destination: GoogleMapsPoint | null;
   routes: TrackingMapRoute[];
   showManeuverMarkers?: boolean;
+  routeCalculating?: boolean;
   destinationMarker: TrackingDestinationMarker;
   remainingLabel: string;
   statusLabel: string;
@@ -106,16 +107,16 @@ const MAP_MAX_ZOOM = 21;
 const ROUTE_SNAP_MAX_DISTANCE_METERS = 80;
 const MARKER_STATIONARY_RADIUS_METERS = 4;
 const MARKER_DEFAULT_UPDATE_INTERVAL_MS = 1000;
-const MARKER_MIN_ANIMATION_DURATION_MS = 120;
-const MARKER_MAX_ANIMATION_DURATION_MS = 2500;
+const MARKER_MOTION_MIN_DURATION_MS = 180;
+const MARKER_MOTION_MAX_DURATION_MS = 950;
+const CAMERA_MOTION_MIN_DURATION_MS = 220;
+const CAMERA_MOTION_MAX_DURATION_MS = 1_200;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
 const MANEUVER_MARKER_LIMIT = 48;
 const ROUTE_TURN_DOT_MIN_ANGLE_DEGREES = 14;
 const ROUTE_TURN_DOT_MIN_SEGMENT_METERS = 7;
-const ROUTE_STROKE_MIN_WEIGHT = 8.5;
-const ROUTE_STROKE_MAX_WEIGHT = 14;
-const CAMERA_MIN_ANIMATION_DURATION_MS = 220;
-const CAMERA_MAX_ANIMATION_DURATION_MS = 1_600;
+const ROUTE_STROKE_MIN_WEIGHT = 12;
+const ROUTE_STROKE_MAX_WEIGHT = 24;
 const CAMERA_DEFAULT_UPDATE_INTERVAL_MS = 1_000;
 const ROUTE_TURN_DOT_SYMBOL_PATH = 'M 0,-6 A 6,6 0 1,1 0,6 A 6,6 0 1,1 0,-6';
 
@@ -159,12 +160,15 @@ export class TrackingGoogleMapRendererService {
   private projectionOverlay?: GoogleMapsOverlayViewInstance;
   private providerMarker?: GoogleMapsAdvancedMarkerInstance;
   private destinationMarker?: GoogleMapsAdvancedMarkerInstance;
+  private routeOutlinePolylines: GoogleMapsPolylineInstance[] = [];
   private routePolylines: GoogleMapsPolylineInstance[] = [];
   private lastBoundsKey = '';
   private animationFrameId: number | null = null;
   private lastMarkerUpdateAt: number | null = null;
   private lastMarkerSourceAt: number | null = null;
   private renderedMarkerHeading = 0;
+  private renderedRouteProgressMeters: number | null = null;
+  private renderedRouteProgressKey = '';
   private cameraAnimationFrameId: number | null = null;
   private lastCameraUpdateAt: number | null = null;
   private lastCameraSourceAt: number | null = null;
@@ -247,10 +251,12 @@ export class TrackingGoogleMapRendererService {
 
     if (this.routeMap) {
       this.showManeuverMarkers = state.showManeuverMarkers === true;
-      // Le marqueur affiche toujours le GPS filtre. La route peut aider le
-      // heading, la camera et la navigation, mais ne modifie jamais la position.
-      const displayedProvider = state.provider;
-      this.currentTravelerHeading = this.resolveHeading(displayedProvider, state);
+      // Le GPS filtre reste la source de verite pour detecter une deviation.
+      // En mode navigation, le rendu reste strictement colle a la route choisie.
+      const displayedProvider = state.arrived
+        ? state.provider
+        : this.snapTravelerMarkerToSelectedRoute(state.provider, state);
+      this.currentTravelerHeading = this.resolveHeading(state.provider, state);
       if (!this.topViewEnabled) {
         this.currentCameraHeading = this.currentTravelerHeading;
       }
@@ -410,6 +416,8 @@ export class TrackingGoogleMapRendererService {
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
     this.renderedMarkerHeading = 0;
+    this.renderedRouteProgressMeters = null;
+    this.renderedRouteProgressKey = '';
     this.currentTravelerHeading = 0;
     this.pendingStationaryHeading = null;
     this.pendingStationaryHeadingConfirmations = 0;
@@ -449,6 +457,8 @@ export class TrackingGoogleMapRendererService {
     this.lastMarkerUpdateAt = null;
     this.lastMarkerSourceAt = null;
     this.renderedMarkerHeading = 0;
+    this.renderedRouteProgressMeters = null;
+    this.renderedRouteProgressKey = '';
     this.routeMap = undefined;
     this.routeMapElement = undefined;
     this.lastBoundsKey = '';
@@ -465,6 +475,9 @@ export class TrackingGoogleMapRendererService {
     while (this.routePolylines.length > visibleRoutes.length) {
       this.routePolylines.pop()?.setMap(null);
     }
+    while (this.routeOutlinePolylines.length > visibleRoutes.length) {
+      this.routeOutlinePolylines.pop()?.setMap(null);
+    }
 
     if (visibleRoutes.length === 0) {
       this.renderedRouteForIcons = null;
@@ -474,16 +487,36 @@ export class TrackingGoogleMapRendererService {
     this.renderedRouteForIcons = visibleRoutes.find((route) => route.selected) ?? null;
     visibleRoutes.forEach((route, index) => {
       const selected = route.selected;
+      const routeWeight = this.routeStrokeWeight();
+      const fillWeight = selected ? Math.max(12, routeWeight + 2) : Math.max(5, routeWeight - 3);
+      const outlineOptions = {
+        map: this.routeMap,
+        path: route.coordinates,
+        strokeColor: selected ? '#0d8f65' : this.alternativeRouteOutlineColor(index),
+        strokeOpacity: selected ? 0.98 : 0.42,
+        strokeWeight: fillWeight + (selected ? 5 : 3),
+        zIndex: selected ? 19 : 9,
+        clickable: true,
+      };
       const options = {
         map: this.routeMap,
         path: route.coordinates,
         icons: selected ? this.routeManeuverIconSequences(route) : [],
-        strokeColor: selected ? '#1eb980' : '#64748b',
-        strokeOpacity: selected ? 0.96 : 0.68,
-        strokeWeight: selected ? this.routeStrokeWeight() : Math.max(3, this.routeStrokeWeight() - 2),
+        strokeColor: selected ? '#1eb980' : this.alternativeRouteColor(index),
+        strokeOpacity: selected ? 1 : 0.62,
+        strokeWeight: fillWeight,
         zIndex: selected ? 20 : 10,
         clickable: true,
       };
+      let outline = this.routeOutlinePolylines[index];
+      if (!outline) {
+        outline = new this.google!.maps.Polyline(outlineOptions);
+        this.routeOutlinePolylines[index] = outline;
+      } else {
+        outline.setOptions(outlineOptions);
+        outline.setPath(route.coordinates);
+        outline.setMap(this.routeMap as GoogleMapsMapInstance);
+      }
       let polyline = this.routePolylines[index];
       if (!polyline) {
         polyline = new this.google!.maps.Polyline(options);
@@ -493,9 +526,21 @@ export class TrackingGoogleMapRendererService {
         polyline.setPath(route.coordinates);
         polyline.setMap(this.routeMap as GoogleMapsMapInstance);
       }
+      this.google!.maps.event?.clearInstanceListeners(outline);
+      outline.addListener('click', () => this.routeSelected?.(route.id));
       this.google!.maps.event?.clearInstanceListeners(polyline);
       polyline.addListener('click', () => this.routeSelected?.(route.id));
     });
+  }
+
+  private alternativeRouteColor(index: number): string {
+    const colors = ['#86dcb8', '#a3e5c8', '#72cfaa', '#b8ead5'];
+    return colors[Math.max(0, index - 1) % colors.length];
+  }
+
+  private alternativeRouteOutlineColor(index: number): string {
+    const colors = ['#5dbd94', '#78cda8', '#4eb689', '#8fd4b7'];
+    return colors[Math.max(0, index - 1) % colors.length];
   }
 
   private routesStartingAtProvider(
@@ -592,8 +637,14 @@ export class TrackingGoogleMapRendererService {
 
   private refreshRenderedRouteStyle(): void {
     if (!this.renderedRouteForIcons) return;
-    this.routePolylines[0]?.setOptions({
-      strokeWeight: this.routeStrokeWeight(),
+    const selectedIndex = this.lastRenderedState?.routes.findIndex((route) => route.selected) ?? -1;
+    if (selectedIndex < 0) return;
+    const fillWeight = Math.max(12, this.routeStrokeWeight() + 2);
+    this.routeOutlinePolylines[selectedIndex]?.setOptions({
+      strokeWeight: fillWeight + 5,
+    });
+    this.routePolylines[selectedIndex]?.setOptions({
+      strokeWeight: fillWeight,
       icons: this.routeManeuverIconSequences(this.renderedRouteForIcons),
     });
   }
@@ -607,6 +658,7 @@ export class TrackingGoogleMapRendererService {
       this.currentTravelerHeading,
       this.lastRenderedProviderPosition,
       this.lastRenderedState.travelerMarker,
+      this.lastRenderedState.routeCalculating === true,
     );
   }
 
@@ -857,10 +909,17 @@ export class TrackingGoogleMapRendererService {
         map,
         position,
         title: 'Prestataire en route',
-        content: this.providerMarkerContent(heading, position, state.travelerMarker),
+        content: this.providerMarkerContent(
+          heading,
+          position,
+          state.travelerMarker,
+          state.routeCalculating === true,
+        ),
         anchorLeft: '-50%',
         anchorTop: this.providerMarkerAnchorTop(state.travelerMarker),
-        zIndex: 30,
+        // Toujours au-dessus du corridor, de son contour et des points de
+        // manoeuvre : la route rejoint le bord du marqueur sans le traverser.
+        zIndex: 100,
       });
     }
 
@@ -869,6 +928,7 @@ export class TrackingGoogleMapRendererService {
       this.renderedMarkerHeading,
       position,
       state.travelerMarker,
+      state.routeCalculating === true,
     );
     if (state.arrived) {
       this.cancelAnimation();
@@ -878,7 +938,14 @@ export class TrackingGoogleMapRendererService {
       this.lastMarkerUpdateAt = this.animationClock();
       this.lastMarkerSourceAt = this.validTimestamp(state.positionTimestampMs);
     } else {
-      this.animateMarker(marker, position, heading, state.speedKmh, state.positionTimestampMs);
+      this.animateMarker(
+        marker,
+        position,
+        heading,
+        state.speedKmh,
+        state.positionTimestampMs,
+        state.routes.find((route) => route.selected) ?? null,
+      );
     }
     this.lastProviderPosition = position;
     return marker;
@@ -898,7 +965,10 @@ export class TrackingGoogleMapRendererService {
 
   private providerMarkerAnchorTop(travelerMarker: TrackingTravelerMarker): string {
     if (travelerMarker.kind === 'navigation') {
-      return `-${Math.round(this.navigationMarkerSize().shell / 2)}px`;
+      // L'AdvancedMarker ancre le conteneur complet (shell + marge), pas
+      // uniquement le cercle visible. -50% place donc le centre exact du
+      // cercle sur la coordonnee projetee, quel que soit le zoom.
+      return '-50%';
     }
 
     if (travelerMarker.kind === 'vehicle') {
@@ -939,6 +1009,7 @@ export class TrackingGoogleMapRendererService {
     destinationHeading: number,
     speedKmh: number | null | undefined,
     sourceTimestampMs: number | null | undefined,
+    selectedRoute: TrackingMapRoute | null,
   ): void {
     const current = this.markerPosition(marker);
     if (!current || typeof requestAnimationFrame === 'undefined') {
@@ -962,9 +1033,34 @@ export class TrackingGoogleMapRendererService {
           : receivedAt - this.lastMarkerUpdateAt;
     this.lastMarkerUpdateAt = receivedAt;
     if (sourceAt !== null) this.lastMarkerSourceAt = sourceAt;
-    const distance = this.distanceMeters(current, destination);
+    const routeCoordinates = selectedRoute?.coordinates ?? [];
+    const routeProgressKey = selectedRoute ? this.routeInterpolationKey(selectedRoute) : '';
+    const originProjection = this.projectPointToRoute(current, routeCoordinates);
+    const destinationProjection = this.projectPointToRoute(destination, routeCoordinates);
+    if (routeProgressKey !== this.renderedRouteProgressKey) {
+      this.renderedRouteProgressKey = routeProgressKey;
+      this.renderedRouteProgressMeters = originProjection?.distanceAlongRouteMeters ?? null;
+    }
+    const originProgress = this.monotonicRouteProgress(
+      originProjection?.distanceAlongRouteMeters ?? 0,
+      this.renderedRouteProgressMeters ?? 0,
+    );
+    const destinationProgress = this.monotonicRouteProgress(
+      originProgress,
+      destinationProjection?.distanceAlongRouteMeters ?? originProgress,
+    );
+    const routeMatchedDestination = this.pointAlongRouteAtDistance(
+      routeCoordinates,
+      destinationProgress,
+    );
+    const visualDestination = routeMatchedDestination ?? destination;
+    const distance = this.distanceMeters(current, visualDestination);
     const movementThreshold = (speedKmh ?? 0) >= 3 ? 0.5 : MARKER_STATIONARY_RADIUS_METERS;
     if (distance < movementThreshold) {
+      // Meme sans animation perceptible, on replace exactement le marqueur sur
+      // le trace afin qu'une ancienne frame ne puisse pas rester hors route.
+      marker.position = visualDestination;
+      this.renderedRouteProgressMeters = destinationProgress;
       this.setMarkerHeading(marker, destinationHeading);
       this.renderedMarkerHeading = destinationHeading;
       return;
@@ -974,21 +1070,25 @@ export class TrackingGoogleMapRendererService {
     const origin = current;
     const originHeading = this.renderedMarkerHeading;
     const headingDelta = ((destinationHeading - originHeading + 540) % 360) - 180;
-    const duration = Math.min(
-      MARKER_MAX_ANIMATION_DURATION_MS,
-      Math.max(MARKER_MIN_ANIMATION_DURATION_MS, updateInterval * 1.08),
-    );
+    const duration = this.markerMotionDuration(updateInterval);
     const startedAt = receivedAt;
     const animate = (timestamp: number): void => {
       const elapsed = timestamp - startedAt;
-      const progress = Math.min(1, elapsed / duration);
-      // Smoothstep conserve une vitesse fluide, sans depassement du point GPS.
-      const eased = progress * progress * (3 - 2 * progress);
-      marker.position = {
-        lat: origin.lat + (destination.lat - origin.lat) * eased,
-        lng: origin.lng + (destination.lng - origin.lng) * eased,
-      };
-      this.renderedMarkerHeading = this.normalizeHeading(originHeading + headingDelta * eased);
+      const progress = this.linearMotionProgress(elapsed, duration);
+      // La position avance lineairement en metres le long de la polyline. Sa
+      // vitesse ne retombe donc jamais a zero entre deux echantillons GPS et
+      // aucun virage n'est coupe par une interpolation latitude/longitude.
+      const routeProgress = originProgress + (destinationProgress - originProgress) * progress;
+      marker.position =
+        this.pointAlongRouteAtDistance(routeCoordinates, routeProgress) ?? {
+          lat: origin.lat + (visualDestination.lat - origin.lat) * progress,
+          lng: origin.lng + (visualDestination.lng - origin.lng) * progress,
+        };
+      this.renderedRouteProgressMeters = routeProgress;
+      const rotationProgress = 1 - Math.pow(1 - progress, 3);
+      this.renderedMarkerHeading = this.normalizeHeading(
+        originHeading + headingDelta * rotationProgress,
+      );
       this.setMarkerHeading(marker, this.renderedMarkerHeading);
       if (elapsed < duration) {
         this.animationFrameId = requestAnimationFrame(animate);
@@ -1010,6 +1110,29 @@ export class TrackingGoogleMapRendererService {
 
   private animationClock(): number {
     return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  }
+
+  private markerMotionDuration(updateIntervalMs: number): number {
+    return Math.min(
+      MARKER_MOTION_MAX_DURATION_MS,
+      Math.max(MARKER_MOTION_MIN_DURATION_MS, updateIntervalMs * 0.9),
+    );
+  }
+
+  private linearMotionProgress(elapsedMs: number, durationMs: number): number {
+    if (durationMs <= 0) return 1;
+    return Math.min(1, Math.max(0, elapsedMs / durationMs));
+  }
+
+  private monotonicRouteProgress(previousMeters: number, candidateMeters: number): number {
+    return Math.max(previousMeters, candidateMeters);
+  }
+
+  private cameraMotionDuration(updateIntervalMs: number): number {
+    return Math.min(
+      CAMERA_MOTION_MAX_DURATION_MS,
+      Math.max(CAMERA_MOTION_MIN_DURATION_MS, updateIntervalMs * 0.95),
+    );
   }
 
   private validTimestamp(value: number | null | undefined): number | null {
@@ -1185,10 +1308,7 @@ export class TrackingGoogleMapRendererService {
     const originTilt = this.renderedCameraTilt;
     const headingDelta = shortestAngleDelta(originHeading, targetHeading);
     const startedAt = performance.now();
-    const duration = Math.min(
-      CAMERA_MAX_ANIMATION_DURATION_MS,
-      Math.max(CAMERA_MIN_ANIMATION_DURATION_MS, updateInterval * 1.05),
-    );
+    const duration = this.cameraMotionDuration(updateInterval);
 
     const animate = (timestamp: number): void => {
       const progress = Math.min(1, (timestamp - startedAt) / duration);
@@ -1366,6 +1486,35 @@ export class TrackingGoogleMapRendererService {
     return nearestProjection;
   }
 
+  private snapTravelerMarkerToSelectedRoute(
+    position: GoogleMapsPoint,
+    state: TrackingMapRenderState,
+  ): GoogleMapsPoint {
+    const route = state.routes.find((candidate) => candidate.selected);
+    if (!route || route.coordinates.length < 2) return position;
+    return this.snapPointToRoute(position, route.coordinates);
+  }
+
+  private snapPointToRoute(
+    position: GoogleMapsPoint,
+    routeCoordinates: GoogleMapsPoint[],
+  ): GoogleMapsPoint {
+    if (routeCoordinates.length < 2) return position;
+    const projection = this.projectPointToRoute(position, routeCoordinates);
+    return projection?.point ?? position;
+  }
+
+  private pointAlongRouteAtDistance(
+    routeCoordinates: GoogleMapsPoint[],
+    distanceMeters: number,
+  ): GoogleMapsPoint | null {
+    return this.routePointAtDistance(routeCoordinates, Math.max(0, distanceMeters))?.point ?? null;
+  }
+
+  private routeInterpolationKey(route: TrackingMapRoute): string {
+    return `${route.id}:${this.routeCameraKey(route.coordinates)}`;
+  }
+
   private clearDestinationMarker(): void {
     if (this.destinationMarker) {
       this.destinationMarker.map = null;
@@ -1374,6 +1523,8 @@ export class TrackingGoogleMapRendererService {
   }
 
   private clearRoutePolylines(): void {
+    this.routeOutlinePolylines.forEach((polyline) => polyline.setMap(null));
+    this.routeOutlinePolylines = [];
     this.routePolylines.forEach((polyline) => polyline.setMap(null));
     this.routePolylines = [];
   }
@@ -1409,6 +1560,7 @@ export class TrackingGoogleMapRendererService {
     headingDegrees: number,
     position: GoogleMapsPoint,
     travelerMarker: TrackingTravelerMarker,
+    routeCalculating = false,
   ): HTMLElement {
     const content = document.createElement('div');
     content.className = 'jokko-tracking-taxi-marker';
@@ -1427,7 +1579,7 @@ export class TrackingGoogleMapRendererService {
         : travelerMarker.kind === 'vehicle'
           ? `align-items:center;background:transparent;border:0;display:flex;height:104px;justify-content:center;overflow:visible;transform:rotate(${markerHeading}deg);transform-origin:50% 55%;transition:transform 500ms ease;width:124px;`
           : 'align-items:center;background:#eff6ff;border:3px solid #2f80ff;border-radius:999px;box-shadow:0 10px 20px rgba(15,23,42,.28);display:flex;height:52px;justify-content:center;overflow:hidden;transform-origin:50% 50%;transition:transform 500ms ease;width:52px;';
-    traveler.appendChild(this.travelerMarkerVisual(travelerMarker));
+    traveler.appendChild(this.travelerMarkerVisual(travelerMarker, routeCalculating));
 
     const badge = this.travelerMarkerBadge(travelerMarker);
     if (badge) {
@@ -1449,28 +1601,39 @@ export class TrackingGoogleMapRendererService {
     return badge;
   }
 
-  private travelerMarkerVisual(marker: TrackingTravelerMarker): HTMLElement {
+  private travelerMarkerVisual(
+    marker: TrackingTravelerMarker,
+    routeCalculating = false,
+  ): HTMLElement {
     if (marker.kind === 'navigation') {
       const size = this.navigationMarkerSize();
       const shell = document.createElement('span');
       shell.setAttribute('aria-label', marker.name || 'Navigation');
-      shell.style.cssText = `align-items:center;background:rgba(255,255,255,.92);border-radius:999px;box-shadow:0 9px 18px rgba(15,23,42,.22);display:flex;height:${size.shell}px;justify-content:center;width:${size.shell}px;`;
+      if (routeCalculating) {
+        shell.className = 'jokko-tracking-navigation-dot';
+        shell.style.cssText = `align-items:center;background-color:rgba(134,82,33,0.22);border-radius:999px;display:flex;height:${size.shell}px;justify-content:center;width:${size.shell}px;`;
+        const dot = document.createElement('span');
+        dot.className = 'jokko-tracking-navigation-dot-core';
+        dot.setAttribute('aria-hidden', 'true');
+        dot.style.cssText = `background-color:#865221;border:3px solid #fff;border-radius:999px;box-shadow:0 2px 5px rgba(15,23,42,0.35);box-sizing:border-box;display:block;height:${size.icon}px;width:${size.icon}px;`;
+        shell.appendChild(dot);
+        return shell;
+      }
 
+      shell.className = 'jokko-tracking-navigation-arrow';
+      shell.style.cssText = `align-items:center;background-color:#fff;border:1px solid rgba(15,23,42,0.1);border-radius:999px;box-shadow:0 9px 18px rgba(15,23,42,0.22);box-sizing:border-box;display:flex;height:${size.shell}px;isolation:isolate;justify-content:center;overflow:hidden;width:${size.shell}px;`;
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 64 64');
       svg.setAttribute('width', String(size.icon));
       svg.setAttribute('height', String(size.icon));
       svg.setAttribute('aria-hidden', 'true');
-      svg.style.cssText =
-        'display:block;filter:drop-shadow(0 2px 2px rgba(15,23,42,.24));transform:translateY(-1px);transform-origin:50% 50%;';
-
+      svg.style.cssText = 'display:block;filter:drop-shadow(0 2px 2px rgba(15,23,42,.24));transform:translateY(-1px);transform-origin:50% 50%;';
       const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       arrow.setAttribute('d', 'M32 4 51 56 33.5 45.5 16 56 32 4Z');
       arrow.setAttribute('fill', '#1a73e8');
       arrow.setAttribute('stroke', '#ffffff');
       arrow.setAttribute('stroke-width', '2.2');
       arrow.setAttribute('stroke-linejoin', 'round');
-
       svg.appendChild(arrow);
       shell.appendChild(svg);
       return shell;
@@ -1506,7 +1669,7 @@ export class TrackingGoogleMapRendererService {
     return {
       container: shell + 10,
       shell,
-      icon: Math.round(shell * 0.72),
+      icon: Math.round(shell * 0.7),
     };
   }
 
@@ -1690,15 +1853,10 @@ export class TrackingGoogleMapRendererService {
     let candidateHeading: number | null = null;
     let alignedToRoute = false;
     const selectedRoute = state.routes.find((route) => route.selected);
-    const hasReliableGpsHeading =
-      moving &&
-      (state.speedKmh ?? 0) >= 8 &&
-      typeof state.headingDegrees === 'number' &&
-      Number.isFinite(state.headingDegrees);
-    if (hasReliableGpsHeading) {
-      candidateHeading = this.normalizeHeading(state.headingDegrees as number);
-    }
-    if (candidateHeading === null && moving && selectedRoute) {
+    // Tant que le marqueur est colle au trace, sa direction suit d'abord la
+    // tangente de la route. Le cap GPS reste un secours lorsque la geometrie
+    // de l'itineraire ne permet pas de calculer une orientation fiable.
+    if (moving && selectedRoute) {
       candidateHeading = this.headingAlongRoute(position, selectedRoute.coordinates);
       alignedToRoute = candidateHeading !== null;
     }

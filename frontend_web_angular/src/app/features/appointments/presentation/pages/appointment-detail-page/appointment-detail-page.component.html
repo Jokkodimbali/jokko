@@ -825,22 +825,6 @@
           </div>
         </div>
         <div
-          *ngIf="isRouteActorViewer() && routeAlternatives().length > 1"
-          class="appointment-detail__route-alternatives"
-          aria-label="Itineraires proposes"
-        >
-          <button
-            *ngFor="let route of routeAlternatives()"
-            type="button"
-            [class.appointment-detail__route-alternative--selected]="route.isSelected"
-            [attr.aria-pressed]="route.isSelected"
-            (click)="selectRouteAlternative(route.id)"
-          >
-            <strong>{{ route.durationLabel }}</strong>
-            <span>{{ route.label }} · {{ route.distanceLabel }}</span>
-          </button>
-        </div>
-        <div
           *ngIf="
             !isAppointmentCompleted() &&
             ((isParcelDeliveryFlow() && isProviderViewer() && shouldRenderTrackingMap()) ||

@@ -51,6 +51,7 @@ import {
   TrackingLocationUpdate,
   TrackingRealtimeService,
 } from '../../../../tracking/data-access/tracking-realtime.service';
+import { LatestPendingValue } from '../../../../tracking/data-access/latest-pending-value';
 import { TrackingGoogleMapRendererService } from '../../../../tracking/presentation/tracking-google-map-renderer.service';
 import { TrackingArrivalStateService } from '../../../../tracking/state/tracking-arrival-state.service';
 import { TrackingScenarioStateService } from '../../../../tracking/state/tracking-scenario-state.service';
@@ -89,7 +90,8 @@ const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const GPS_RECOVERY_DELAY_MS = 5_000;
-const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 5_000;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 1_500;
+const ROUTE_RECALCULATION_STALE_AFTER_MS = 1_200;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
   {
@@ -191,10 +193,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private providerLocationSubscription?: Subscription;
   private locationRecoveryTimeoutId?: number;
   private locationUpdateInFlight = false;
-  private pendingLocationUpdate: {
+  private readonly pendingLocationUpdate = new LatestPendingValue<{
     appointmentId: string;
     location: TrackingLocationUpdate;
-  } | null = null;
+  }>();
   private elapsedClockInterval?: number;
   private routeCoordinates: Array<[number, number]> = [];
   private routeOptions: AppointmentRouteOption[] = [];
@@ -204,6 +206,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeRequestBlockedUntilMs = 0;
   private routeDeviationRecalculationBlockedUntilMs = 0;
   private routeDeviationConfirmations = 0;
+  private routeCalculationStartedAtMs = 0;
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
@@ -3110,10 +3113,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.routeDurationMinutes.set(
         Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
       );
-      this.routeCoordinates = serverRoute.coordinates.map(
+      const serverCoordinates = serverRoute.coordinates.map(
         (coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number],
       );
-      if (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1) {
+      // Les snapshots serveur enrichissent distance/ETA, mais ne doivent pas
+      // supprimer les alternatives Google deja affichees et selectionnables.
+      if (this.routeOptions.length < 2) {
+        this.routeCoordinates = serverCoordinates;
+      }
+      if (
+        this.routeOptions.length < 2 &&
+        (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1)
+      ) {
         const currentRoute = this.routeService.mapTrackingRoute(serverRoute, this.routeCoordinates);
         this.routeOptions = [currentRoute];
         this.selectedRouteId.set(currentRoute.id);
@@ -3213,12 +3224,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.providerLocationSubscription?.unsubscribe();
     this.providerLocationSubscription = undefined;
     this.locationUpdateInFlight = false;
-    this.pendingLocationUpdate = null;
+    this.pendingLocationUpdate.clear();
   }
 
   private queueLocationUpdate(appointmentId: string, location: TrackingLocationUpdate): void {
     if (this.locationUpdateInFlight) {
-      this.pendingLocationUpdate = { appointmentId, location };
+      // Une seule mesure est en vol et seule la plus recente est conservee.
+      // A, puis B/C/D pendant l'envoi de A => D part des l'ACK de A.
+      this.pendingLocationUpdate.replace({ appointmentId, location });
       return;
     }
     this.sendLocationUpdate(appointmentId, location);
@@ -3243,8 +3256,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         }),
         finalize(() => {
           this.locationUpdateInFlight = false;
-          const pending = this.pendingLocationUpdate;
-          this.pendingLocationUpdate = null;
+          const pending = this.pendingLocationUpdate.take();
           if (pending && this.providerLocationSubscription) {
             this.sendLocationUpdate(pending.appointmentId, pending.location);
           }
@@ -3462,6 +3474,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       speedKmh: tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null,
       routes: this.serializedMapRoutes(),
       showManeuverMarkers: this.isRouteActorViewer(),
+      routeCalculating: this.routeStatus() === 'calculating',
       arrived: this.hasTravelerArrivedAtDestination(),
       travelerMarker: this.travelerMapMarker(),
     });
@@ -3687,9 +3700,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   ): boolean {
     if (
       this.routeCoordinates.length < 2 ||
-      this.routeStatus() === 'calculating' ||
       Date.now() < this.routeRequestBlockedUntilMs ||
       Date.now() < this.routeDeviationRecalculationBlockedUntilMs
+    ) {
+      return false;
+    }
+
+    if (
+      this.routeStatus() === 'calculating' &&
+      Date.now() - this.routeCalculationStartedAtMs < ROUTE_RECALCULATION_STALE_AFTER_MS
     ) {
       return false;
     }
@@ -3706,14 +3725,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const tracking = this.tracking();
     const accuracyMeters =
       tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? 35;
-    const dynamicDeviationThreshold = Math.max(18, Math.min(35, accuracyMeters * 1.4));
+    const dynamicDeviationThreshold = Math.max(12, Math.min(45, accuracyMeters * 0.9));
     if (deviationMeters <= dynamicDeviationThreshold) {
       this.routeDeviationConfirmations = 0;
       return false;
     }
 
+    const severeDeviation = deviationMeters >= Math.max(35, dynamicDeviationThreshold * 2);
+    const confirmationsRequired = severeDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
     this.routeDeviationConfirmations += 1;
-    if (this.routeDeviationConfirmations < 2) return false;
+    if (this.routeDeviationConfirmations < confirmationsRequired) return false;
     this.routeDeviationConfirmations = 0;
 
     this.routeDeviationRecalculationBlockedUntilMs =
@@ -3957,6 +3978,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const key = `${this.geo.routePointKey(provider)}|${this.geo.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
     this.routeCoordinatesKey = key;
+    this.routeCalculationStartedAtMs = Date.now();
     this.routeRequestedDestinationKey = this.geo.routePointKey(destinationPoint);
     if (!preserveCurrentRoute) {
       this.routeCoordinates = [];
@@ -3981,6 +4003,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .subscribe({
         next: (googleRoutes) => {
           if (this.routeCoordinatesKey !== key) return;
+          this.routeCalculationStartedAtMs = 0;
           const routes = this.routeService.mapGoogleRoutes(googleRoutes);
           const route = routes[0];
           if (
@@ -4023,6 +4046,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         },
         error: () => {
           if (this.routeCoordinatesKey !== key) return;
+          this.routeCalculationStartedAtMs = 0;
           if (!preserveCurrentRoute) {
             this.routeCoordinates = [];
             this.routeOptions = [];
@@ -4033,7 +4057,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           }
           this.routeCoordinatesKey = '';
           this.routeRequestedDestinationKey = '';
-          this.routeRequestBlockedUntilMs = Date.now() + 2_500;
+          this.routeRequestBlockedUntilMs = Date.now() + 1_500;
           this.routeStatus.set(
             preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
           );
@@ -4195,6 +4219,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeDestinationKey = '';
     this.routeRequestedDestinationKey = '';
     this.routeRequestBlockedUntilMs = 0;
+    this.routeCalculationStartedAtMs = 0;
     this.mapRenderer.resetRoute();
     this.routeDistanceKm.set(null);
     this.routeDurationMinutes.set(null);

@@ -1,0 +1,33 @@
+{
+  "name": "Jokko Dimbali",
+  "short_name": "Jokko",
+  "description": "Services, rendez-vous et suivi en temps reel.",
+  "theme_color": "#1eb980",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "start_url": "/",
+  "lang": "fr",
+  "categories": ["business", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

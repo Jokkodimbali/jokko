@@ -7,6 +7,7 @@ import {
   TrackingGoogleMapRendererService,
   TrackingMapRenderState,
 } from './tracking-google-map-renderer.service';
+import { shortestAngleDelta } from './navigation-camera.engine';
 
 const routeState: TrackingMapRenderState = {
   provider: { lat: 0, lng: 0 },
@@ -264,15 +265,23 @@ describe('TrackingGoogleMapRendererService marker position', () => {
     expect(heading).toBeCloseTo(84.6, 5);
   });
 
-  it('keeps marker interpolation below the real GPS interval and camera slightly softer', () => {
+  it('keeps prediction active for normal jitter then fades after 500 ms overdue', () => {
     const internals = renderer as unknown as {
-      markerMotionDuration: (updateIntervalMs: number) => number;
+      lastMarkerGpsReceivedAt: number;
+      markerExpectedGpsIntervalMs: number;
+      markerAccuracyMeters: number | null;
+      markerPredictionFactor: (timestamp: number) => number;
       cameraMotionDuration: (updateIntervalMs: number) => number;
     };
 
-    expect(internals.markerMotionDuration(1_000)).toBe(900);
-    expect(internals.markerMotionDuration(100)).toBe(180);
-    expect(internals.markerMotionDuration(2_000)).toBe(950);
+    internals.lastMarkerGpsReceivedAt = 0;
+    internals.markerExpectedGpsIntervalMs = 1_000;
+    internals.markerAccuracyMeters = 8;
+    expect(internals.markerPredictionFactor(1_000)).toBe(1);
+    expect(internals.markerPredictionFactor(1_250)).toBe(1);
+    expect(internals.markerPredictionFactor(1_375)).toBeCloseTo(0.5, 5);
+    expect(internals.markerPredictionFactor(1_500)).toBe(0);
+    expect(internals.markerPredictionFactor(2_000)).toBe(0);
     expect(internals.cameraMotionDuration(1_000)).toBe(950);
   });
 
@@ -321,7 +330,7 @@ describe('TrackingGoogleMapRendererService marker position', () => {
     expect(internals.monotonicRouteProgress(128, 132)).toBe(132);
   });
 
-  it('restarts a new GPS animation from the position currently displayed', () => {
+  it('keeps one RAF alive and updates its target during movement', () => {
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       frames.push(callback);
@@ -347,6 +356,7 @@ describe('TrackingGoogleMapRendererService marker position', () => {
       destination: GoogleMapsPoint,
       heading: number,
       speedKmh: number,
+      accuracyMeters: number,
       timestamp: number,
       routeArg: typeof route,
     ) => void).bind(renderer);
@@ -355,23 +365,158 @@ describe('TrackingGoogleMapRendererService marker position', () => {
       route: GoogleMapsPoint[],
     ) => { distanceAlongRouteMeters: number } | null).bind(renderer);
 
-    animateMarker(marker, { lat: 0, lng: 0.001 }, 90, 50, 1_000, route);
+    animateMarker(marker, { lat: 0, lng: 0.001 }, 90, 50, 8, 1_000, route);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(0);
     frames.shift()?.(450);
     const displayedBeforeUpdate = { ...(marker.position as GoogleMapsPoint) };
     const originProgress = projectPointToRoute(displayedBeforeUpdate, route.coordinates)
       ?.distanceAlongRouteMeters as number;
 
     clock = 1_000;
-    animateMarker(marker, { lat: 0, lng: 0.002 }, 90, 50, 2_000, route);
-    frames.pop()?.(1_450);
-    const halfwayProgress = projectPointToRoute(
+    animateMarker(marker, { lat: 0, lng: 0.002 }, 90, 50, 8, 2_000, route);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(900);
+    const progressAfterUpdate = projectPointToRoute(
       marker.position as GoogleMapsPoint,
       route.coordinates,
     )?.distanceAlongRouteMeters as number;
-    const targetProgress = projectPointToRoute({ lat: 0, lng: 0.002 }, route.coordinates)
-      ?.distanceAlongRouteMeters as number;
 
-    expect(halfwayProgress).toBeCloseTo((originProgress + targetProgress) / 2, 3);
+    expect(progressAfterUpdate).toBeGreaterThan(originProgress);
+    expect(frames).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it.each([50, 85, 130])('maintains positive continuous velocity at %i km/h', (speedKmh) => {
+    const internals = renderer as unknown as Record<string, unknown>;
+    internals['markerMotionMarker'] = {
+      position: { lat: 0, lng: 0 },
+      content: document.createElement('div'),
+    };
+    internals['markerRouteCoordinates'] = routeState.routes[0].coordinates;
+    internals['renderedRouteProgressMeters'] = 20;
+    internals['targetRouteProgressMeters'] = 60;
+    internals['currentMarkerVelocityMps'] = speedKmh / 3.6;
+    internals['targetMarkerVelocityMps'] = speedKmh / 3.6;
+    internals['lastMarkerFrameTimestamp'] = 0;
+    internals['lastMarkerGpsReceivedAt'] = 0;
+    internals['markerExpectedGpsIntervalMs'] = 1_000;
+    internals['markerTargetHeading'] = 90;
+    internals['markerAccuracyMeters'] = 8;
+    vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
+
+    (internals['runContinuousMarkerFrame'] as (timestamp: number) => void).call(renderer, 16);
+
+    expect(internals['currentMarkerVelocityMps'] as number).toBeGreaterThan(0);
+    expect(internals['renderedRouteProgressMeters'] as number).toBeGreaterThan(20);
+    vi.unstubAllGlobals();
+  });
+
+  it('never inserts a zero-speed frame for 900/1100/1250 ms GPS jitter', () => {
+    const internals = renderer as unknown as Record<string, unknown>;
+    internals['lastMarkerGpsReceivedAt'] = 0;
+    internals['markerExpectedGpsIntervalMs'] = 1_000;
+    internals['markerAccuracyMeters'] = 8;
+    const factor = (timestamp: number) =>
+      (internals['markerPredictionFactor'] as (value: number) => number).call(renderer, timestamp);
+
+    expect([900, 1_100, 1_250].map(factor).every((value) => value > 0)).toBe(true);
+  });
+
+  it('reduces prediction when GPS accuracy is poor', () => {
+    const internals = renderer as unknown as Record<string, unknown>;
+    internals['lastMarkerGpsReceivedAt'] = 0;
+    internals['markerExpectedGpsIntervalMs'] = 1_000;
+    internals['markerAccuracyMeters'] = 90;
+    const factor = (internals['markerPredictionFactor'] as (value: number) => number).call(
+      renderer,
+      1_100,
+    );
+
+    expect(factor).toBeCloseTo(0.5, 5);
+  });
+
+  it('rotates through the shortest path from 359 to 1 degrees', () => {
+    expect(shortestAngleDelta(359, 1)).toBe(2);
+  });
+
+  it('prefers route continuity over a nearby parallel segment', () => {
+    const internals = renderer as unknown as {
+      projectPointToRoute: (
+        point: GoogleMapsPoint,
+        route: GoogleMapsPoint[],
+        preferredProgress: number | null,
+        preferredSegment: number | null,
+      ) => { segmentIndex: number; distanceAlongRouteMeters: number } | null;
+    };
+    const closeParallelRoute = [
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 0.001 },
+      { lat: 0.00005, lng: 0.001 },
+      { lat: 0.00005, lng: 0 },
+    ];
+
+    const matched = internals.projectPointToRoute(
+      { lat: 0.00003, lng: 0.0008 },
+      closeParallelRoute,
+      80,
+      0,
+    );
+
+    expect(matched?.segmentIndex).toBe(0);
+    expect(matched?.distanceAlongRouteMeters).toBeGreaterThanOrEqual(80);
+  });
+
+  it('remaps the displayed position on a new polyline without resetting velocity', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const marker = {
+      position: { lat: 0, lng: 0.001 },
+      content: document.createElement('div'),
+    };
+    const internals = renderer as unknown as Record<string, unknown>;
+    internals['renderedRouteProgressKey'] = 'old-route';
+    internals['renderedRouteProgressMeters'] = 100;
+    internals['currentMarkerVelocityMps'] = 12;
+    const animateMarker = (internals['animateMarker'] as Function).bind(renderer);
+    const newRoute = {
+      id: 'new-route',
+      selected: true,
+      coordinates: [
+        { lat: 0, lng: 0 },
+        { lat: 0.00002, lng: 0.001 },
+        { lat: 0.00002, lng: 0.003 },
+      ],
+    };
+
+    animateMarker(marker, { lat: 0.00002, lng: 0.0015 }, 90, 50, 8, 2_000, newRoute);
+
+    expect(internals['currentMarkerVelocityMps']).toBe(12);
+    expect(internals['renderedRouteProgressKey']).not.toBe('old-route');
+    expect(frames).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps one continuous camera RAF while targets change', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const internals = renderer as unknown as Record<string, unknown>;
+    internals['routeMap'] = { moveCamera: vi.fn() };
+    internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
+    const follow = (internals['animateFollowCamera'] as Function).bind(renderer);
+
+    follow({ lat: 0, lng: 0.001 }, 359, 50, 1_000);
+    expect(frames).toHaveLength(1);
+    follow({ lat: 0, lng: 0.002 }, 1, 50, 2_100);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(16);
+    expect(frames).toHaveLength(1);
     vi.unstubAllGlobals();
   });
 

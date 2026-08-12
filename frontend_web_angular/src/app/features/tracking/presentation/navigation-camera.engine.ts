@@ -3,10 +3,11 @@ import { GoogleMapsPoint } from '../../../shared/maps/google-maps-loader.service
 export const NAVIGATION_CAMERA_CONFIG = {
   zoom: { near: 19.8, far: 18.15, speedCapKmh: 130, maneuverBoost: 0.42 },
   tilt: { low: 67, high: 60, speedCapKmh: 100, maneuverReduction: 5 },
-  lookAhead: { minMeters: 14, maxMeters: 180, speedCapKmh: 130, routeWeight: 0.42 },
+  lookAhead: { minMeters: 14, maxMeters: 180, speedCapKmh: 130, routeWeight: 0.56 },
   accuracy: { excellentMeters: 10, goodMeters: 25, degradedMeters: 50, poorMeters: 100 },
   speedSmoothing: 0.28,
   maneuver: { nearMeters: 35, approachMeters: 180 },
+  curvature: { fullAnticipationDegrees: 75, maxHeadingWeight: 0.82 },
 } as const;
 
 export type NavigationCameraInput = {
@@ -15,6 +16,9 @@ export type NavigationCameraInput = {
   speedKmh: number | null | undefined;
   accuracyMeters: number | null | undefined;
   routeTarget: GoogleMapsPoint | null;
+  routeBearingDegrees?: number | null;
+  futureRouteBearingDegrees?: number | null;
+  routeConfidence?: number | null;
   nextManeuverDistanceMeters?: number | null;
 };
 
@@ -23,6 +27,7 @@ export type NavigationCameraDecision = {
   zoom: number;
   tilt: number;
   lookAheadMeters: number;
+  headingDegrees: number;
   confidence: 'EXCELLENT' | 'GOOD' | 'DEGRADED' | 'POOR' | 'UNRELIABLE';
 };
 
@@ -48,6 +53,7 @@ export class NavigationCameraEngine {
         (NAVIGATION_CAMERA_CONFIG.lookAhead.maxMeters - NAVIGATION_CAMERA_CONFIG.lookAhead.minMeters) * speedProgress) *
       confidenceFactor;
     const maneuverProgress = maneuverProximity(input.nextManeuverDistanceMeters);
+    const headingDegrees = this.cameraHeading(input, speed, confidence);
     const target = this.targetFor(
       input.position,
       input.headingDegrees,
@@ -67,6 +73,7 @@ export class NavigationCameraEngine {
     );
     return {
       target,
+      headingDegrees,
       zoom: zoomBase + maneuverProgress * NAVIGATION_CAMERA_CONFIG.zoom.maneuverBoost,
       tilt: tiltBase - maneuverProgress * NAVIGATION_CAMERA_CONFIG.tilt.maneuverReduction,
       lookAheadMeters,
@@ -94,6 +101,39 @@ export class NavigationCameraEngine {
 
   reset(): void {
     this.smoothedSpeedKmh = null;
+  }
+
+  private cameraHeading(
+    input: NavigationCameraInput,
+    speedKmh: number,
+    confidence: NavigationCameraDecision['confidence'],
+  ): number {
+    const routeBearing = validHeading(input.routeBearingDegrees);
+    const futureBearing = validHeading(input.futureRouteBearingDegrees);
+    if (routeBearing === null || confidence === 'UNRELIABLE') {
+      return normalizeHeading(input.headingDegrees);
+    }
+    const routeConfidence = clamp(input.routeConfidence ?? 1, 0, 1);
+    const lowSpeedFactor = clamp(speedKmh / 20, 0, 1);
+    const routeWeight = (0.55 + lowSpeedFactor * 0.35) * routeConfidence;
+    let anticipatedRouteBearing = routeBearing;
+    if (futureBearing !== null) {
+      const turnDelta = shortestAngleDelta(routeBearing, futureBearing);
+      const curvatureProgress = smoothstep(
+        clamp(
+          Math.abs(turnDelta) / NAVIGATION_CAMERA_CONFIG.curvature.fullAnticipationDegrees,
+          0,
+          1,
+        ),
+      );
+      const anticipationWeight =
+        curvatureProgress * NAVIGATION_CAMERA_CONFIG.curvature.maxHeadingWeight;
+      anticipatedRouteBearing = normalizeHeading(routeBearing + turnDelta * anticipationWeight);
+    }
+    return normalizeHeading(
+      input.headingDegrees +
+        shortestAngleDelta(input.headingDegrees, anticipatedRouteBearing) * routeWeight,
+    );
   }
 
   private smoothSpeed(speedKmh: number | null | undefined): number {
@@ -128,12 +168,21 @@ export class NavigationCameraEngine {
     routeTarget: GoogleMapsPoint | null,
   ): GoogleMapsPoint {
     const targetPoint = routeTarget ?? pointAtBearing(position, headingDegrees, lookAheadMeters);
-    const routeWeight = NAVIGATION_CAMERA_CONFIG.lookAhead.routeWeight + maneuverProgress * 0.16;
+    const routeWeight =
+      NAVIGATION_CAMERA_CONFIG.lookAhead.routeWeight + maneuverProgress * 0.18;
     return {
       lat: position.lat + (targetPoint.lat - position.lat) * routeWeight,
       lng: position.lng + (targetPoint.lng - position.lng) * routeWeight,
     };
   }
+}
+
+function validHeading(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? normalizeHeading(value) : null;
+}
+
+function normalizeHeading(value: number): number {
+  return ((value % 360) + 360) % 360;
 }
 
 export function shortestAngleDelta(from: number, to: number): number {

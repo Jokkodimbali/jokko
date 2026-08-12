@@ -2,11 +2,13 @@ import {
   ApplicationConfig,
   LOCALE_ID,
   importProvidersFrom,
+  isDevMode,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { IMAGE_CONFIG, registerLocaleData } from '@angular/common';
+import { provideServiceWorker } from '@angular/service-worker';
 import localeFr from '@angular/common/locales/fr';
 
 import { routes } from './app.routes';
@@ -153,6 +155,10 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(withInterceptors([jwtInterceptor, httpCacheInterceptor])),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     importProvidersFrom(
       LucideAngularModule.pick({
         Activity,

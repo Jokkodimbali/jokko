@@ -3321,6 +3321,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               speedKmh: position.speedKmh,
               locationLabel: this.trackedTravelerPositionLabel(),
             };
+          this.renderLocalTrackingLocation(appointmentId, location);
           this.queueLocationUpdate(appointmentId, location);
         },
         error: (error: GeolocationPositionError | Error) => {
@@ -3365,6 +3366,45 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
     this.sendLocationUpdate(appointmentId, location);
+  }
+
+  private renderLocalTrackingLocation(
+    appointmentId: string,
+    location: TrackingLocationUpdate,
+  ): void {
+    const current = this.tracking();
+    if (!current || current.reservationId !== appointmentId) return;
+    const recordedAt = location.recordedAt ?? new Date().toISOString();
+
+    // Le telephone acteur pilote son rendu depuis le capteur local. L'ACK
+    // reseau ne sert qu'a synchroniser le serveur et les autres observateurs.
+    this.setTrackingSafely({
+      ...current,
+      trackingStatus: 'EN_ROUTE',
+      endedAt: null,
+      lastLatitude: location.latitude,
+      lastLongitude: location.longitude,
+      lastAccuracyMeters: location.accuracyMeters ?? null,
+      lastHeadingDegrees: location.headingDegrees ?? null,
+      lastSpeedKmh: location.speedKmh ?? null,
+      lastLocationLabel: location.locationLabel ?? current.lastLocationLabel,
+      lastPositionAt: recordedAt,
+      updatedAt: recordedAt,
+      presence: {
+        ...current.presence,
+        status: 'EN_ROUTE',
+        isOnline: true,
+        lastLatitude: location.latitude,
+        lastLongitude: location.longitude,
+        lastAccuracyMeters: location.accuracyMeters ?? null,
+        lastHeadingDegrees: location.headingDegrees ?? null,
+        lastSpeedKmh: location.speedKmh ?? null,
+        lastLocationLabel: location.locationLabel ?? current.presence.lastLocationLabel,
+        lastPositionAt: recordedAt,
+        lastSeenAt: recordedAt,
+        updatedAt: recordedAt,
+      },
+    });
   }
 
   private sendLocationUpdate(appointmentId: string, location: TrackingLocationUpdate): void {

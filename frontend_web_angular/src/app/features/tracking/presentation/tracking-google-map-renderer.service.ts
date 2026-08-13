@@ -114,6 +114,7 @@ const MARKER_BAD_ACCURACY_METERS = 45;
 const MARKER_VELOCITY_RESPONSE_PER_SECOND = 5.5;
 const MARKER_POSITION_CORRECTION_SECONDS = 0.8;
 const MARKER_MAX_FRAME_DELTA_SECONDS = 0.05;
+const MARKER_ROUTE_JOIN_DISTANCE_METERS = 0.75;
 const CAMERA_MOTION_MIN_DURATION_MS = 220;
 const CAMERA_MOTION_MAX_DURATION_MS = 1_200;
 const MANEUVER_MARKER_MIN_SPACING_METERS = 24;
@@ -182,6 +183,13 @@ export class TrackingGoogleMapRendererService {
   private lastMarkerGpsReceivedAt: number | null = null;
   private markerExpectedGpsIntervalMs = MARKER_DEFAULT_UPDATE_INTERVAL_MS;
   private markerRouteCoordinates: GoogleMapsPoint[] = [];
+  private markerFreeTarget: GoogleMapsPoint | null = null;
+  private pendingMarkerRoute: {
+    coordinates: GoogleMapsPoint[];
+    key: string;
+    progressMeters: number;
+    segmentIndex: number;
+  } | null = null;
   private markerTargetHeading = 0;
   private markerAccuracyMeters: number | null = null;
   private markerStationary = false;
@@ -1167,7 +1175,24 @@ export class TrackingGoogleMapRendererService {
       sameRouteReference ? this.renderedRouteProgressMeters : null,
       sameRouteReference ? this.matchedRouteSegmentIndex : null,
     );
-    if (routeProgressKey !== this.renderedRouteProgressKey) {
+    const mustJoinNewRouteSmoothly =
+      routeCoordinates.length >= 2 &&
+      routeProgressKey !== this.renderedRouteProgressKey &&
+      !!originProjection &&
+      originProjection.distanceFromRouteMeters > MARKER_ROUTE_JOIN_DISTANCE_METERS;
+    if (mustJoinNewRouteSmoothly && destinationProjection) {
+      this.pendingMarkerRoute = {
+        coordinates: routeCoordinates,
+        key: routeProgressKey,
+        progressMeters: destinationProjection.distanceAlongRouteMeters,
+        segmentIndex: destinationProjection.segmentIndex,
+      };
+      this.markerFreeTarget = destinationProjection.point;
+    } else {
+      this.pendingMarkerRoute = null;
+      this.markerFreeTarget = routeCoordinates.length >= 2 ? null : destination;
+    }
+    if (!mustJoinNewRouteSmoothly && routeProgressKey !== this.renderedRouteProgressKey) {
       this.renderedRouteProgressKey = routeProgressKey;
       // Un rerouting change le referentiel metrique. Remapper la position
       // actuellement affichee sur la nouvelle polyline sans annuler la boucle
@@ -1195,7 +1220,10 @@ export class TrackingGoogleMapRendererService {
       typeof speedKmh === 'number' && Number.isFinite(speedKmh) && speedKmh >= 0
         ? speedKmh / 3.6
         : updateInterval > 0
-          ? Math.max(0, destinationProgress - originProgress) / (updateInterval / 1_000)
+          ? (routeCoordinates.length >= 2
+              ? Math.max(0, destinationProgress - originProgress)
+              : movementMeters) /
+            (updateInterval / 1_000)
           : this.targetMarkerVelocityMps;
     const smoothedVelocity = holdStationaryPosition
       ? 0
@@ -1204,7 +1232,7 @@ export class TrackingGoogleMapRendererService {
         : measuredVelocityMps;
 
     this.markerMotionMarker = marker;
-    this.markerRouteCoordinates = routeCoordinates;
+    this.markerRouteCoordinates = mustJoinNewRouteSmoothly ? [] : routeCoordinates;
     this.targetRouteProgressMeters = destinationProgress;
     this.matchedRouteSegmentIndex = destinationProjection?.segmentIndex ?? this.matchedRouteSegmentIndex;
     this.mapMatchConfidence = destinationProjection
@@ -1249,7 +1277,7 @@ export class TrackingGoogleMapRendererService {
   private runContinuousMarkerFrame(timestamp: number): void {
     const marker = this.markerMotionMarker;
     const currentProgress = this.renderedRouteProgressMeters;
-    if (!marker || currentProgress === null || this.markerRouteCoordinates.length < 2) {
+    if (!marker) {
       this.animationFrameId = requestAnimationFrame((nextTimestamp) =>
         this.runContinuousMarkerFrame(nextTimestamp),
       );
@@ -1262,6 +1290,14 @@ export class TrackingGoogleMapRendererService {
       Math.max(0, (timestamp - previousTimestamp) / 1_000),
     );
     this.lastMarkerFrameTimestamp = timestamp;
+
+    if (this.markerRouteCoordinates.length < 2 || currentProgress === null) {
+      this.runFreeMarkerFrame(marker, deltaSeconds, timestamp);
+      this.animationFrameId = requestAnimationFrame((nextTimestamp) =>
+        this.runContinuousMarkerFrame(nextTimestamp),
+      );
+      return;
+    }
 
     const predictionFactor = this.markerPredictionFactor(timestamp);
     const targetProgress = this.targetRouteProgressMeters ?? currentProgress;
@@ -1303,6 +1339,63 @@ export class TrackingGoogleMapRendererService {
     this.animationFrameId = requestAnimationFrame((nextTimestamp) =>
       this.runContinuousMarkerFrame(nextTimestamp),
     );
+  }
+
+  private runFreeMarkerFrame(
+    marker: GoogleMapsAdvancedMarkerInstance,
+    deltaSeconds: number,
+    timestamp: number,
+  ): void {
+    const current = this.markerPosition(marker);
+    const target = this.markerFreeTarget;
+    if (!current || !target) return;
+
+    const remainingMeters = this.distanceMeters(current, target);
+    if (remainingMeters > 0.05) {
+      const predictionFactor = this.markerPredictionFactor(timestamp);
+      const correctionVelocity = remainingMeters / MARKER_POSITION_CORRECTION_SECONDS;
+      const desiredVelocity = Math.max(this.targetMarkerVelocityMps, correctionVelocity);
+      const maxUsefulVelocity = Math.max(3, this.targetMarkerVelocityMps * 2.5 + 6);
+      const velocityBlend = Math.min(1, deltaSeconds * MARKER_VELOCITY_RESPONSE_PER_SECOND);
+      this.currentMarkerVelocityMps +=
+        (Math.min(maxUsefulVelocity, desiredVelocity) * predictionFactor -
+          this.currentMarkerVelocityMps) *
+        velocityBlend;
+      const stepMeters = Math.min(remainingMeters, this.currentMarkerVelocityMps * deltaSeconds);
+      const ratio = remainingMeters > 0 ? stepMeters / remainingMeters : 1;
+      const nextPosition = {
+        lat: current.lat + (target.lat - current.lat) * ratio,
+        lng: current.lng + (target.lng - current.lng) * ratio,
+      };
+      marker.position = nextPosition;
+      this.lastRenderedProviderPosition = nextPosition;
+      if (!this.topViewEnabled) this.cameraTargetCenter = nextPosition;
+    }
+
+    const updated = this.markerPosition(marker);
+    if (
+      updated &&
+      this.pendingMarkerRoute &&
+      this.distanceMeters(updated, target) <= MARKER_ROUTE_JOIN_DISTANCE_METERS
+    ) {
+      const pending = this.pendingMarkerRoute;
+      this.markerRouteCoordinates = pending.coordinates;
+      this.renderedRouteProgressKey = pending.key;
+      this.renderedRouteProgressMeters = pending.progressMeters;
+      this.targetRouteProgressMeters = pending.progressMeters;
+      this.matchedRouteSegmentIndex = pending.segmentIndex;
+      this.markerFreeTarget = null;
+      this.pendingMarkerRoute = null;
+    }
+
+    const headingDelta = shortestAngleDelta(
+      this.renderedMarkerHeading,
+      this.markerTargetHeading,
+    );
+    this.renderedMarkerHeading = this.normalizeHeading(
+      this.renderedMarkerHeading + headingDelta * Math.min(1, deltaSeconds * 7),
+    );
+    this.setMarkerHeading(marker, this.renderedMarkerHeading);
   }
 
   private markerPredictionFactor(frameTimestamp: number): number {
@@ -1410,6 +1503,8 @@ export class TrackingGoogleMapRendererService {
     this.lastMarkerGpsReceivedAt = null;
     this.markerExpectedGpsIntervalMs = MARKER_DEFAULT_UPDATE_INTERVAL_MS;
     this.markerRouteCoordinates = [];
+    this.markerFreeTarget = null;
+    this.pendingMarkerRoute = null;
     this.markerTargetHeading = 0;
     this.markerAccuracyMeters = null;
     this.markerStationary = false;
@@ -2065,6 +2160,7 @@ export class TrackingGoogleMapRendererService {
     content.style.cssText = `align-items:center;display:flex;flex-direction:column;pointer-events:none;width:${size.cardWidth}px;`;
 
     const card = document.createElement('div');
+    card.className = 'jokko-tracking-arrival-card';
     card.style.cssText = `align-items:center;background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:${size.radius}px;box-shadow:0 ${size.shadowY}px ${size.shadowBlur}px rgba(15,23,42,.18);display:flex;gap:${size.gap}px;min-height:${size.cardMinHeight}px;padding:${size.paddingY}px ${size.paddingRight}px ${size.paddingY}px ${size.paddingLeft}px;width:100%;`;
 
     const etaBox = document.createElement('span');
@@ -2098,10 +2194,9 @@ export class TrackingGoogleMapRendererService {
     card.append(etaBox, body);
     const person = this.destinationPersonContent(marker, size);
     if (person) {
-      // L'AdvancedMarker est ancre sur le bas de son contenu. L'avatar doit
-      // donc rester au-dessus de la carte : la pointe est ainsi le seul
-      // element au contact de la coordonnee de destination.
-      content.append(person, card, pointer);
+      // Composition verticale identique a la reference : carte du lieu,
+      // avatar superpose sous la carte, puis badge du metier sous l'avatar.
+      content.append(card, person, pointer);
     } else {
       content.append(card, pointer);
     }
@@ -2116,10 +2211,16 @@ export class TrackingGoogleMapRendererService {
 
     const accentColor = marker.person.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const wrapper = document.createElement('span');
-    wrapper.style.cssText = `align-items:center;display:flex;flex-direction:column;margin-top:${Math.max(4, Math.round(6 * size.scale))}px;`;
+    wrapper.className = 'jokko-tracking-arrival-person';
+    wrapper.style.cssText = `align-items:center;display:flex;flex-direction:column;isolation:isolate;margin-top:-${Math.max(6, Math.round(9 * size.scale))}px;`;
+    wrapper.style.isolation = 'isolate';
+    wrapper.style.marginTop = `-${Math.max(6, Math.round(9 * size.scale))}px`;
 
     const avatar = document.createElement('span');
-    avatar.style.cssText = `align-items:center;background:#eff6ff;border:${Math.max(2, Math.round(3 * size.scale))}px solid ${accentColor};border-radius:999px;box-shadow:0 ${Math.round(8 * size.scale)}px ${Math.round(16 * size.scale)}px rgba(15,23,42,.24);display:flex;height:${size.destinationAvatar}px;justify-content:center;overflow:hidden;width:${size.destinationAvatar}px;`;
+    avatar.className = 'jokko-tracking-arrival-avatar';
+    avatar.style.cssText = `align-items:center;background:#eff6ff;border:${Math.max(2, Math.round(3 * size.scale))}px solid ${accentColor};border-radius:999px;box-shadow:0 ${Math.round(8 * size.scale)}px ${Math.round(16 * size.scale)}px rgba(15,23,42,.24);display:flex;height:${size.destinationAvatar}px;justify-content:center;overflow:hidden;position:relative;width:${size.destinationAvatar}px;z-index:1;`;
+    avatar.style.position = 'relative';
+    avatar.style.zIndex = '1';
 
     if (marker.person.imageUrl) {
       const image = document.createElement('img');
@@ -2136,8 +2237,12 @@ export class TrackingGoogleMapRendererService {
     }
 
     const badge = document.createElement('span');
+    badge.className = 'jokko-tracking-arrival-role';
     badge.textContent = marker.person.label;
-    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;text-overflow:ellipsis;white-space:nowrap;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;position:relative;text-overflow:ellipsis;white-space:nowrap;z-index:2;`;
+    badge.style.marginTop = `-${Math.round(4 * size.scale)}px`;
+    badge.style.position = 'relative';
+    badge.style.zIndex = '2';
 
     wrapper.append(avatar, badge);
     return wrapper;

@@ -134,7 +134,86 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       animate(marker, { lat: 0.00002, lng: 0.0015 }, 90, 50, 8, 2_000, newRoute);
 
       expect(internals['currentMarkerVelocityMps']).toBe(12);
-      expect(internals['renderedRouteProgressKey']).not.toBe('old');
+      expect(internals['renderedRouteProgressKey']).toBe('old');
+      expect(internals['pendingMarkerRoute']).not.toBeNull();
+      expect(internals['markerRouteCoordinates']).toEqual([]);
+    });
+
+    it('follows live GPS continuously while rerouting has no polyline yet', () => {
+      const frames: FrameRequestCallback[] = [];
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      const marker = {
+        position: { lat: 0, lng: 0 },
+        content: document.createElement('div'),
+      };
+      internals['renderedRouteProgressKey'] = 'obsolete-route';
+      internals['renderedRouteProgressMeters'] = 120;
+      internals['markerRouteCoordinates'] = STRAIGHT_ROUTE;
+      internals['currentMarkerVelocityMps'] = 10;
+      const animate = (internals['animateMarker'] as Function).bind(renderer);
+
+      animate(marker, { lat: 0.0002, lng: 0.0001 }, 20, 36, 8, 2_000, null);
+
+      expect(internals['markerRouteCoordinates']).toEqual([]);
+      expect(internals['renderedRouteProgressKey']).toBe('');
+      expect(internals['markerFreeTarget']).toEqual({ lat: 0.0002, lng: 0.0001 });
+      frames.shift()?.(0);
+      frames.shift()?.(50);
+      expect((marker.position as GoogleMapsPoint).lat).toBeGreaterThan(0);
+      expect((marker.position as GoogleMapsPoint).lng).toBeGreaterThan(0);
+    });
+
+    it('joins the recalculated route through bounded RAF frames without teleporting', () => {
+      const frames: FrameRequestCallback[] = [];
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      const displayed = { lat: 0.00015, lng: 0.0001 };
+      const marker = { position: displayed, content: document.createElement('div') };
+      internals['markerFreeTarget'] = displayed;
+      internals['renderedRouteProgressKey'] = '';
+      internals['renderedRouteProgressMeters'] = 0;
+      internals['currentMarkerVelocityMps'] = 9;
+      const rerouted = {
+        id: 'rerouted',
+        selected: true,
+        coordinates: [
+          { lat: 0.0002, lng: 0 },
+          { lat: 0.0002, lng: 0.002 },
+        ],
+      };
+
+      (internals['animateMarker'] as Function).call(
+        renderer,
+        marker,
+        { lat: 0.0002, lng: 0.0003 },
+        90,
+        36,
+        8,
+        3_000,
+        rerouted,
+      );
+
+      expect(marker.position).toEqual(displayed);
+      expect(internals['markerRouteCoordinates']).toEqual([]);
+      expect(internals['pendingMarkerRoute']).not.toBeNull();
+      expect(internals['currentMarkerVelocityMps']).toBe(9);
+
+      frames.shift()?.(0);
+      const before = { ...(marker.position as GoogleMapsPoint) };
+      frames.shift()?.(50);
+      const after = marker.position as GoogleMapsPoint;
+      const movedMeters = (internals['distanceMeters'] as Function).call(
+        renderer,
+        before,
+        after,
+      ) as number;
+      expect(movedMeters).toBeGreaterThan(0);
+      expect(movedMeters).toBeLessThan(2);
     });
   });
 
@@ -212,6 +291,54 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
   });
 
   describe('route-marker visual coherence', () => {
+    it('stacks the avatar below the intervention card and the role badge below the avatar', () => {
+      const content = (internals['destinationPersonContent'] as Function).call(
+        renderer,
+        {
+          ...BASE_STATE.destinationMarker,
+          person: {
+            imageUrl: null,
+            initials: 'MN',
+            name: 'Moustapha',
+            label: "Lieu d'intervention",
+            badgeAccent: 'blue',
+          },
+        },
+        {
+          scale: 1,
+          destinationAvatar: 44,
+          destinationBadgeFont: 13,
+        },
+      ) as HTMLElement;
+
+      const [avatar, badge] = Array.from(content.children) as HTMLElement[];
+      expect(badge.textContent).toBe("Lieu d'intervention");
+      expect(avatar.style.zIndex).toBe('1');
+      expect(badge.style.zIndex).toBe('2');
+      expect(Number.parseFloat(content.style.marginTop)).toBeLessThan(0);
+      expect(Number.parseFloat(badge.style.marginTop)).toBeLessThan(0);
+      expect(content.style.isolation).toBe('isolate');
+
+      const completeMarker = (internals['destinationMarkerContent'] as Function).call(
+        renderer,
+        {
+          ...BASE_STATE.destinationMarker,
+          person: {
+            imageUrl: null,
+            initials: 'MN',
+            name: 'Moustapha',
+            label: 'Plombier',
+            badgeAccent: 'blue',
+          },
+        },
+      ) as HTMLElement;
+      expect(Array.from(completeMarker.children).map((child) => child.className)).toEqual([
+        'jokko-tracking-arrival-card',
+        'jokko-tracking-arrival-person',
+        'jokko-tracking-arrival-pointer',
+      ]);
+    });
+
     it('starts the visible selected route at the marker actually rendered by RAF', () => {
       const target = { lat: 0, lng: 0.008 };
       const rendered = { lat: 0, lng: 0.004 };

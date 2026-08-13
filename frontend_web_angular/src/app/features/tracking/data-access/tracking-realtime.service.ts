@@ -37,6 +37,23 @@ export type TrackingLocationPublishResult = {
   tracking: AppointmentTrackingView | null;
 };
 
+export type TrackingRouteSelection = {
+  reservationId: string;
+  routeId: string;
+  coordinates: Array<{ lat: number; lng: number }>;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+  navigationSteps: Array<{
+    id: string;
+    instruction: string;
+    maneuver: string | null;
+    distanceMeters: number | null;
+    start: { lat: number; lng: number } | null;
+    end: { lat: number; lng: number } | null;
+  }>;
+  selectedAt: string;
+};
+
 // The backend enriches the first position with a route estimate before acknowledging it.
 // Keep WebSocket as the primary transport instead of needlessly falling back to HTTP.
 const LOCATION_ACK_TIMEOUT_MS = 6_000;
@@ -47,12 +64,15 @@ export class TrackingRealtimeService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly updates = new Subject<AppointmentTrackingView>();
   private readonly missionUpdates = new Subject<TrackingMissionEvent>();
+  private readonly routeSelections = new Subject<TrackingRouteSelection>();
   private readonly connectionState = new BehaviorSubject<TrackingConnectionState>('disconnected');
   private readonly reservationIds = new Set<string>();
+  private readonly pendingRouteSelections = new Map<string, TrackingRouteSelection>();
   private socket: Socket | null = null;
 
   readonly connectionState$ = this.connectionState.asObservable();
   readonly missionUpdated$ = this.missionUpdates.asObservable();
+  readonly routeSelected$ = this.routeSelections.asObservable();
 
   watchReservation(reservationId: string): Observable<AppointmentTrackingView> {
     this.reservationIds.add(reservationId);
@@ -105,10 +125,22 @@ export class TrackingRealtimeService {
     });
   }
 
+  publishRouteSelection(selection: TrackingRouteSelection): void {
+    this.connect();
+    if (this.socket?.connected) {
+      this.socket.emit('tracking.route.select', selection);
+      this.pendingRouteSelections.delete(selection.reservationId);
+    } else {
+      // Latest-only: a reconnect publishes only the most recent selection.
+      this.pendingRouteSelections.set(selection.reservationId, selection);
+    }
+  }
+
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;
     this.reservationIds.clear();
+    this.pendingRouteSelections.clear();
     this.connectionState.next('disconnected');
   }
 
@@ -136,6 +168,10 @@ export class TrackingRealtimeService {
     this.socket.on('connect', () => {
       this.connectionState.next('connected');
       this.reservationIds.forEach((reservationId) => this.subscribeToReservation(reservationId));
+      this.pendingRouteSelections.forEach((selection) =>
+        this.socket?.emit('tracking.route.select', selection),
+      );
+      this.pendingRouteSelections.clear();
     });
     this.socket.on('disconnect', () => {
       this.connectionState.next('disconnected');
@@ -153,6 +189,9 @@ export class TrackingRealtimeService {
       this.missionUpdates.next(event);
       this.subscribeToReservation(event.reservationId);
     });
+    this.socket.on('tracking.route.selected', (selection: TrackingRouteSelection) =>
+      this.routeSelections.next(selection),
+    );
   }
 
   private subscribeToReservation(reservationId: string): void {

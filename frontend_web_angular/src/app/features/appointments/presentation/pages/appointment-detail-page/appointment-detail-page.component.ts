@@ -90,7 +90,7 @@ const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const GPS_RECOVERY_DELAY_MS = 5_000;
-const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 1_500;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 1_000;
 const ROUTE_RECALCULATION_STALE_AFTER_MS = 1_200;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
@@ -188,6 +188,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly medicalPrescriptionService = inject(AppointmentMedicalPrescriptionService);
   private trackingSubscription?: Subscription;
   private missionSubscription?: Subscription;
+  private routeSelectionSubscription?: Subscription;
   private connectionSubscription?: Subscription;
   private appointmentStatePollingSubscription?: Subscription;
   private providerLocationSubscription?: Subscription;
@@ -2355,6 +2356,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.applySelectedRoute(route);
     this.refreshRouteAlternatives();
     this.updateGoogleMaps();
+    const reservationId = this.appointment()?.id;
+    if (reservationId) {
+      this.trackingRealtime.publishRouteSelection({
+        reservationId,
+        routeId: route.id,
+        coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
+        distanceKm: route.distanceKm,
+        durationMinutes: route.durationMinutes,
+        navigationSteps: route.navigationSteps,
+        selectedAt: new Date().toISOString(),
+      });
+    }
   }
 
   private async transitionOnTheWay(appointment: AppointmentView, silent: boolean): Promise<void> {
@@ -2634,6 +2647,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private startTrackingPolling(appointmentId: string): void {
     this.trackingSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
+    this.routeSelectionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
     this.appointmentStatePollingSubscription?.unsubscribe();
     const fallbackPolling$ = this.trackingRealtime.connectionState$.pipe(
@@ -2690,6 +2704,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
       this.refreshAppointmentState(appointmentId);
     });
+    this.routeSelectionSubscription = this.trackingRealtime.routeSelected$.subscribe((event) => {
+      if (event.reservationId !== appointmentId || this.isRouteActorViewer()) return;
+      const coordinates = event.coordinates.map(
+        ({ lat, lng }) => [lat, lng] as [number, number],
+      );
+      if (coordinates.length < 2) return;
+
+      this.routeOptions = [{
+        id: event.routeId,
+        coordinates,
+        distanceKm: event.distanceKm,
+        durationMinutes: event.durationMinutes,
+        navigationSteps: event.navigationSteps,
+      }];
+      this.selectedRouteId.set(event.routeId);
+      this.applySelectedRoute(this.routeOptions[0]);
+      this.routeStatus.set('ready');
+      this.updateGoogleMaps();
+    });
   }
 
   private synchronizeLiveNavigation(appointment: AppointmentView): void {
@@ -2724,10 +2757,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private stopLiveNavigation(appointmentId?: string, resetTracking = false): void {
     this.trackingSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
+    this.routeSelectionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
     this.appointmentStatePollingSubscription?.unsubscribe();
     this.trackingSubscription = undefined;
     this.missionSubscription = undefined;
+    this.routeSelectionSubscription = undefined;
     this.connectionSubscription = undefined;
     this.appointmentStatePollingSubscription = undefined;
     this.stopProviderLocationSharing();
@@ -3913,7 +3948,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     const severeDeviation = deviationMeters >= Math.max(35, dynamicDeviationThreshold * 2);
-    const confirmationsRequired = severeDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
+    const reliableDeviation = accuracyMeters <= 20;
+    const confirmationsRequired = severeDeviation || reliableDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
     this.routeDeviationConfirmations += 1;
     if (this.routeDeviationConfirmations < confirmationsRequired) return false;
     this.routeDeviationConfirmations = 0;
@@ -3924,7 +3960,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     // Une deviation confirmee invalide immediatement l'ancien corridor. Le
     // marqueur reste visible en mode recalcul pendant que la nouvelle route
     // est demandee, au lieu de laisser un trace devenu faux a l'ecran.
-    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], false);
+    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], false, true);
     return true;
   }
 
@@ -4163,6 +4199,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     provider: [number, number],
     destinationPoint: [number, number],
     preserveCurrentRoute = false,
+    fastReroute = false,
   ): void {
     const key = `${this.geo.routePointKey(provider)}|${this.geo.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
@@ -4188,7 +4225,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           latitude: destinationPoint[0],
           longitude: destinationPoint[1],
         },
-        alternatives: this.isRouteActorViewer(),
+        // Lors d'une deviation, la route principale doit arriver en priorite.
+        // Les alternatives sont recuperees ensuite sans bloquer le guidage.
+        alternatives: this.isRouteActorViewer() && !fastReroute,
       })
       .subscribe({
         next: (googleRoutes) => {
@@ -4233,6 +4272,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.clearNavigationRetry();
           this.updateGoogleMaps();
           this.announceNavigationInstruction();
+          if (fastReroute && this.isRouteActorViewer()) {
+            this.loadRouteAlternativesInBackground(provider, destinationPoint, key);
+          }
         },
         error: () => {
           if (this.routeCoordinatesKey !== key) return;
@@ -4253,6 +4295,35 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           );
           this.scheduleNavigationRetry();
         },
+      });
+  }
+
+  private loadRouteAlternativesInBackground(
+    provider: [number, number],
+    destinationPoint: [number, number],
+    requestKey: string,
+  ): void {
+    this.appointmentsService
+      .computeRoutes({
+        origin: { latitude: provider[0], longitude: provider[1] },
+        destination: { latitude: destinationPoint[0], longitude: destinationPoint[1] },
+        alternatives: true,
+      })
+      .subscribe({
+        next: (googleRoutes) => {
+          if (this.routeCoordinatesKey !== requestKey) return;
+          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
+          if (routes.length < 2) return;
+          this.routeOptions = routes.map((candidate, index) => ({
+            ...candidate,
+            id: `route-${index}`,
+          }));
+          this.selectedRouteId.set('route-0');
+          this.applySelectedRoute(this.routeOptions[0]);
+          this.refreshRouteAlternatives();
+          this.updateGoogleMaps();
+        },
+        error: () => undefined,
       });
   }
 

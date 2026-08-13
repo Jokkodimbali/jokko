@@ -28,6 +28,16 @@ type TrackingLocationAcknowledgement = {
   tracking?: Awaited<ReturnType<LiveTrackingFacade['updateLocation']>>;
 };
 
+type TrackingRouteSelection = {
+  reservationId: string;
+  routeId: string;
+  coordinates: Array<{ lat: number; lng: number }>;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+  navigationSteps: unknown[];
+  selectedAt: string;
+};
+
 @WebSocketGateway({
   namespace: '/socket',
   cors: buildSocketCorsOptionsFromProcessEnv(),
@@ -40,6 +50,7 @@ export class LiveTrackingGateway
 
   private readonly socketUsers = new Map<string, AuthUser>();
   private readonly userSockets = new Map<string, Set<string>>();
+  private readonly selectedRoutes = new Map<string, TrackingRouteSelection>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -135,6 +146,10 @@ export class LiveTrackingGateway
     );
     await client.join(this.buildReservationRoom(payload.reservationId));
     client.emit('tracking.snapshot', tracking);
+    const selectedRoute = this.selectedRoutes.get(payload.reservationId);
+    if (selectedRoute) {
+      client.emit('tracking.route.selected', selectedRoute);
+    }
 
     return {
       event: 'tracking.snapshot',
@@ -245,6 +260,30 @@ export class LiveTrackingGateway
       acknowledge({ accepted: result.accepted, tracking: result.tracking });
     } catch {
       acknowledge({ accepted: false });
+    }
+  }
+
+  @SubscribeMessage('tracking.route.select')
+  async handleRouteSelection(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: TrackingRouteSelection,
+  ): Promise<void> {
+    const user = this.getSocketUser(client);
+    if (!user || !this.isValidRouteSelection(payload)) return;
+
+    // getReservationTracking verifies that the emitter belongs to this
+    // reservation before anything is broadcast to the tracking room.
+    try {
+      await this.liveTrackingFacade.getReservationTracking(
+        user,
+        payload.reservationId,
+      );
+      this.selectedRoutes.set(payload.reservationId, payload);
+      client
+        .to(this.buildReservationRoom(payload.reservationId))
+        .emit('tracking.route.selected', payload);
+    } catch {
+      return;
     }
   }
 
@@ -377,5 +416,29 @@ export class LiveTrackingGateway
 
   private isValidIdentifier(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private isValidRouteSelection(
+    payload: TrackingRouteSelection | null | undefined,
+  ): boolean {
+    if (
+      !payload ||
+      !this.isValidIdentifier(payload.reservationId) ||
+      !this.isValidIdentifier(payload.routeId) ||
+      !Array.isArray(payload.coordinates) ||
+      payload.coordinates.length < 2 ||
+      payload.coordinates.length > 10_000
+    ) {
+      return false;
+    }
+    return payload.coordinates.every(
+      (point) =>
+        Number.isFinite(point?.lat) &&
+        Number.isFinite(point?.lng) &&
+        point.lat >= -90 &&
+        point.lat <= 90 &&
+        point.lng >= -180 &&
+        point.lng <= 180,
+    );
   }
 }

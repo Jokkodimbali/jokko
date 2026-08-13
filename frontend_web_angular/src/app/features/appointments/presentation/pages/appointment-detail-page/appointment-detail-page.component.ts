@@ -110,6 +110,8 @@ const ROUTE_RESPONSE_MAX_ORIGIN_AGE_MS = 8_000;
 const ROUTE_RESPONSE_MAX_ORIGIN_DRIFT_METERS = 80;
 const ROUTE_JOIN_CONFIRMATIONS_REQUIRED = 2;
 const ROUTE_JOIN_TIMEOUT_MS = 8_000;
+const ROUTE_JOIN_MIN_HEADING_SPEED_KMH = 5;
+const ROUTE_JOIN_MAX_HEADING_DIFFERENCE_DEGREES = 70;
 const ROUTE_RETRY_LIMIT = 3;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
@@ -233,6 +235,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeJoinLastPositionTimestampMs: number | null = null;
   private routeJoinLastProgressMeters: number | null = null;
   private routeJoinStartedAtMs = 0;
+  private routeJoinTimeoutId?: number;
+  private routeJoinGeneration = 0;
+  private componentDestroyed = false;
   private navigationRetryAttempts = 0;
   private lastOffRouteEvaluatedPositionTimestampMs: number | null = null;
   private routeCalculationStartedAtMs = 0;
@@ -1333,6 +1338,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   ngOnDestroy(): void {
+    this.componentDestroyed = true;
+    this.clearRouteJoiningTimer();
     window.removeEventListener('focus', this.refreshParcelCheckpoints);
     window.removeEventListener('storage', this.refreshParcelCheckpoints);
     this.stopLiveNavigation(this.appointment()?.id);
@@ -2818,6 +2825,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private stopLiveNavigation(appointmentId?: string, resetTracking = false): void {
+    this.clearRouteJoiningTimer();
     this.trackingSubscription?.unsubscribe();
     this.trackingLocationSubscription?.unsubscribe();
     this.trackingRouteMetadataSubscription?.unsubscribe();
@@ -2848,6 +2856,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private resetNavigationPresentation(): void {
+    this.clearRouteJoiningTimer();
     this.navigationService.cancelVoice();
     this.mapRenderer.destroyRouteMap();
     this.routeCoordinates = [];
@@ -4100,6 +4109,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.routeDeviationRecalculationBlockedUntilMs =
       Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
+    this.clearRouteJoiningTimer();
     this.routeMatchMode = 'REROUTING';
     // Conserver l'ancienne polyline et ses metriques comme contexte visuel,
     // mais le renderer suit desormais le GPS reel jusqu'a la nouvelle route.
@@ -4128,17 +4138,39 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? 35,
     );
     const corridorMeters = Math.min(45, Math.max(12, accuracyMeters * 1.25));
+    const rawHeading = tracking?.lastHeadingDegrees ?? tracking?.presence.lastHeadingDegrees ?? null;
+    const rawSpeedKmh = tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null;
+    const headingIsReliable =
+      typeof rawHeading === 'number' &&
+      Number.isFinite(rawHeading) &&
+      rawHeading >= 0 &&
+      rawHeading <= 360 &&
+      typeof rawSpeedKmh === 'number' &&
+      Number.isFinite(rawSpeedKmh) &&
+      rawSpeedKmh >= ROUTE_JOIN_MIN_HEADING_SPEED_KMH;
+    const headingCompatible =
+      !headingIsReliable ||
+      (projection !== null &&
+        this.shortestHeadingDifferenceDegrees(rawHeading, projection.segmentBearingDegrees) <=
+          ROUTE_JOIN_MAX_HEADING_DIFFERENCE_DEGREES);
     const progressCompatible =
       projection !== null &&
       (this.routeJoinLastProgressMeters === null ||
         projection.progressMeters + 15 >= this.routeJoinLastProgressMeters);
 
-    if (projection && projection.distanceMeters <= corridorMeters && progressCompatible) {
+    if (
+      projection &&
+      projection.distanceMeters <= corridorMeters &&
+      progressCompatible &&
+      headingCompatible
+    ) {
       this.routeJoinConfirmations += 1;
       this.routeJoinLastProgressMeters = projection.progressMeters;
       if (this.routeJoinConfirmations >= ROUTE_JOIN_CONFIRMATIONS_REQUIRED) {
         this.routeMatchMode = 'MATCHED';
+        this.navigationRetryAttempts = 0;
         this.resetRouteJoiningConfirmation();
+        this.clearRouteJoiningTimer();
         return false;
       }
     } else {
@@ -4146,21 +4178,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.routeJoinLastProgressMeters = null;
     }
 
-    if (Date.now() - this.routeJoinStartedAtMs >= ROUTE_JOIN_TIMEOUT_MS) {
-      this.routeMatchMode = 'REROUTING';
-      this.resetRouteJoiningConfirmation();
-      this.routeCoordinatesKey = '';
-      this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], true, true);
-      return true;
-    }
+    void destination;
     return false;
   }
 
   private projectPointOnCurrentRoute(
     point: MapCoordinate,
-  ): { distanceMeters: number; progressMeters: number } | null {
+  ): {
+    distanceMeters: number;
+    progressMeters: number;
+    segmentIndex: number;
+    segmentBearingDegrees: number;
+  } | null {
     if (this.routeCoordinates.length < 2) return null;
-    let best: { distanceMeters: number; progressMeters: number } | null = null;
+    let best: {
+      distanceMeters: number;
+      progressMeters: number;
+      segmentIndex: number;
+      segmentBearingDegrees: number;
+    } | null = null;
     let progressBeforeSegment = 0;
     for (let index = 1; index < this.routeCoordinates.length; index += 1) {
       const previous = this.routeCoordinates[index - 1];
@@ -4186,6 +4222,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       const candidate = {
         distanceMeters: Math.hypot(closestX, closestY),
         progressMeters: progressBeforeSegment + segmentMeters * ratio,
+        segmentIndex: index - 1,
+        segmentBearingDegrees: this.bearingDegrees(start, end),
       };
       if (!best || candidate.distanceMeters < best.distanceMeters) best = candidate;
       progressBeforeSegment += segmentMeters;
@@ -4198,6 +4236,49 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeJoinLastPositionTimestampMs = null;
     this.routeJoinLastProgressMeters = null;
     this.routeJoinStartedAtMs = 0;
+  }
+
+  private shortestHeadingDifferenceDegrees(heading: number, bearing: number): number {
+    return Math.abs(((heading - bearing + 540) % 360) - 180);
+  }
+
+  private bearingDegrees(start: MapCoordinate, end: MapCoordinate): number {
+    const startLatitude = (start.lat * Math.PI) / 180;
+    const endLatitude = (end.lat * Math.PI) / 180;
+    const longitudeDelta = ((end.lng - start.lng) * Math.PI) / 180;
+    const y = Math.sin(longitudeDelta) * Math.cos(endLatitude);
+    const x =
+      Math.cos(startLatitude) * Math.sin(endLatitude) -
+      Math.sin(startLatitude) * Math.cos(endLatitude) * Math.cos(longitudeDelta);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  private startRouteJoiningTimer(): void {
+    this.clearRouteJoiningTimer();
+    this.routeJoinStartedAtMs = Date.now();
+    const generation = ++this.routeJoinGeneration;
+    this.routeJoinTimeoutId = window.setTimeout(() => {
+      this.routeJoinTimeoutId = undefined;
+      if (
+        this.componentDestroyed ||
+        this.routeMatchMode !== 'JOINING_ROUTE' ||
+        generation !== this.routeJoinGeneration
+      ) return;
+      this.routeMatchMode = 'REROUTING';
+      this.resetRouteJoiningConfirmation();
+      this.routeCoordinatesKey = '';
+      this.routeRequestedDestinationKey = '';
+      this.routeCalculationStartedAtMs = 0;
+      this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+      this.scheduleNavigationRetry(0);
+    }, ROUTE_JOIN_TIMEOUT_MS);
+  }
+
+  private clearRouteJoiningTimer(): void {
+    this.routeJoinGeneration += 1;
+    if (this.routeJoinTimeoutId === undefined) return;
+    window.clearTimeout(this.routeJoinTimeoutId);
+    this.routeJoinTimeoutId = undefined;
   }
 
   private distanceFromCurrentRouteMeters(position: MapCoordinate): number {
@@ -4524,11 +4605,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeMatchMode = context.fastReroute ? 'JOINING_ROUTE' : 'MATCHED';
     if (context.fastReroute) {
       this.resetRouteJoiningConfirmation();
-      this.routeJoinStartedAtMs = Date.now();
+      this.startRouteJoiningTimer();
+    } else {
+      this.clearRouteJoiningTimer();
     }
     this.refreshRouteAlternatives();
     this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
-    this.clearNavigationRetry();
+    this.clearNavigationRetry(!context.fastReroute);
     this.updateGoogleMaps();
     this.announceNavigationInstruction();
   }
@@ -4537,6 +4620,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     context: { fastReroute: boolean },
     retryDelayMs: number,
   ): void {
+    this.clearRouteJoiningTimer();
     this.routeCoordinatesKey = '';
     this.routeRequestedDestinationKey = '';
     this.routeCalculationStartedAtMs = 0;
@@ -4586,6 +4670,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private clearNavigationRouteAfterArrival(): void {
+    this.clearRouteJoiningTimer();
     this.routeDistanceKm.set(0);
     this.routeDurationMinutes.set(0);
     this.routeCoordinates = [];
@@ -4734,14 +4819,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }, delayMs);
   }
 
-  private clearNavigationRetry(): void {
-    this.navigationRetryAttempts = 0;
+  private clearNavigationRetry(resetAttempts = true): void {
+    if (resetAttempts) this.navigationRetryAttempts = 0;
     if (this.navigationRetryTimeoutId === undefined) return;
     window.clearTimeout(this.navigationRetryTimeoutId);
     this.navigationRetryTimeoutId = undefined;
   }
 
   private clearResolvedDestination(): void {
+    this.clearRouteJoiningTimer();
     this.destinationCoordinates.set(null);
     this.destinationStatus.set('idle');
     this.routeStatus.set('idle');

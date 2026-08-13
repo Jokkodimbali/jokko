@@ -1,4 +1,4 @@
-import { Observable, Subject, Subscription, switchMap, timeout } from 'rxjs';
+import { Observable, Subject, Subscription, catchError, defaultIfEmpty, map, of, switchMap, timeout } from 'rxjs';
 
 export type RouteRecalculationRequest<TInput> = {
   generation: number;
@@ -27,19 +27,12 @@ export class RouteRecalculationController<TInput, TResult> {
     this.subscription = this.requests
       .pipe(
         switchMap((request) =>
-          new Observable<RouteRecalculationResult<TInput, TResult>>((subscriber) => {
-            const inner = this.execute(request.input)
-              .pipe(timeout({ first: this.timeoutMs }))
-              .subscribe({
-                next: (result) => subscriber.next({ request, result }),
-                error: (error: unknown) => {
-                  subscriber.next({ request, error });
-                  subscriber.complete();
-                },
-                complete: () => subscriber.complete(),
-              });
-            return () => inner.unsubscribe();
-          }),
+          this.execute(request.input).pipe(
+            timeout({ first: this.timeoutMs }),
+            map((result) => ({ request, result }) as RouteRecalculationResult<TInput, TResult>),
+            defaultIfEmpty({ request, error: new Error('EMPTY_ROUTE_RESULT') }),
+            catchError((error: unknown) => of({ request, error })),
+          ),
         ),
       )
       .subscribe((result) => {
@@ -49,10 +42,24 @@ export class RouteRecalculationController<TInput, TResult> {
   }
 
   request(input: TInput, origin: { lat: number; lng: number }, nowMs = Date.now()): number {
+    const request = this.reserve(input, origin, nowMs);
+    this.dispatch(request);
+    return request.generation;
+  }
+
+  reserve(
+    input: TInput,
+    origin: { lat: number; lng: number },
+    nowMs = Date.now(),
+  ): RouteRecalculationRequest<TInput> {
     this.start();
     const generation = ++this.generation;
-    this.requests.next({ generation, requestedAtMs: nowMs, origin, input });
-    return generation;
+    return { generation, requestedAtMs: nowMs, origin, input };
+  }
+
+  dispatch(request: RouteRecalculationRequest<TInput>): void {
+    if (request.generation !== this.generation) return;
+    this.requests.next(request);
   }
 
   currentGeneration(): number {

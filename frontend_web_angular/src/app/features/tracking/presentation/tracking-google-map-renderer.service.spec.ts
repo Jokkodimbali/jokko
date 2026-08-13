@@ -91,6 +91,32 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(displayed).toEqual(raw);
     });
 
+    it('keeps raw GPS and zero route confidence while JOINING_ROUTE', () => {
+      const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
+        point: GoogleMapsPoint,
+        state: TrackingMapRenderState,
+      ) => GoogleMapsPoint).bind(renderer);
+      const raw = { lat: 0.00008, lng: 0.004 };
+      internals['mapMatchConfidence'] = 1;
+
+      const displayed = snap(raw, { ...BASE_STATE, routeMatchMode: 'JOINING_ROUTE' });
+
+      expect(displayed).toEqual(raw);
+      expect(internals['mapMatchConfidence']).toBe(0);
+    });
+
+    it('derives confidence from raw lateral error instead of the projected point', () => {
+      const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
+        point: GoogleMapsPoint,
+        state: TrackingMapRenderState,
+      ) => GoogleMapsPoint).bind(renderer);
+
+      snap({ lat: 0.00008, lng: 0.004 }, BASE_STATE);
+
+      expect(internals['mapMatchConfidence']).toBeGreaterThan(0);
+      expect(internals['mapMatchConfidence']).toBeLessThan(1);
+    });
+
     it('keeps curved-route samples on an actual segment instead of cutting the corner', () => {
       const pointAt = (internals['pointAlongRouteAtDistance'] as (
         route: GoogleMapsPoint[],

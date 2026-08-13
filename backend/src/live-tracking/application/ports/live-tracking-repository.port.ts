@@ -52,6 +52,26 @@ export type TrackingLocationWriteResult = {
   accepted: boolean;
 };
 
+export type TrackingLocationRealtimePayload = {
+  reservationId: string;
+  clientUserId: string;
+  professionalId: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedKmh: number | null;
+  positionTimestamp: string;
+};
+
+export type TrackingRouteMetadataRealtimePayload = {
+  reservationId: string;
+  clientUserId: string;
+  professionalId: string;
+  positionTimestamp: string;
+  route: NonNullable<ReservationTrackingView['route']>;
+};
+
 export interface LiveTrackingRepositoryPort {
   findReservationContext(
     reservationId: string,

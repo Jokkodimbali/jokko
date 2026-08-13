@@ -44,6 +44,18 @@ describe('TrackingStore - ordering and session contracts', () => {
     expect(store.tracking()?.route?.encodedPolyline).toBe('route');
   });
 
+  it('ignores route metadata older than the current GPS position', () => {
+    const store = new TrackingStore();
+    const tracking = trackingAt('2026-08-13T10:00:02.000Z', 14.72, 'current');
+    store.setTracking(tracking);
+
+    expect(store.setRouteMetadata({
+      ...(tracking.route as NonNullable<AppointmentTrackingView['route']>),
+      encodedPolyline: 'obsolete',
+    }, '2026-08-13T10:00:01.000Z')).toBe(false);
+    expect(store.tracking()?.route?.encodedPolyline).toBe('current');
+  });
+
   it('accepts a newer EN_ROUTE session even if its first GPS timestamp is slightly older', () => {
     const store = new TrackingStore();
     const oldArrival = trackingAt('2026-08-13T10:05:00.000Z', 14.72, null);

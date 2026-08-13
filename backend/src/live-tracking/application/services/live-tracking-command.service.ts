@@ -121,10 +121,8 @@ export class LiveTrackingCommandService {
     );
 
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
-    this.realtimeEvents.emit(
-      'live-tracking.location.updated',
-      enrichedTracking,
-    );
+    this.publishLocationRealtime(enrichedTracking);
+    this.publishRouteMetadataRealtime(enrichedTracking);
     this.realtimeEvents.emit(
       'live-tracking.presence.updated',
       tracking.presence,
@@ -308,10 +306,8 @@ export class LiveTrackingCommandService {
       });
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
 
-    this.realtimeEvents.emit(
-      'live-tracking.location.updated',
-      enrichedTracking,
-    );
+    this.publishLocationRealtime(enrichedTracking);
+    this.publishRouteMetadataRealtime(enrichedTracking);
 
     return enrichedTracking;
   }
@@ -435,7 +431,7 @@ export class LiveTrackingCommandService {
         professionalId: context.professionalId,
       }),
     );
-    this.realtimeEvents.emit('live-tracking.location.updated', tracking);
+    this.publishLocationRealtime(tracking);
     return tracking;
   }
 
@@ -555,7 +551,7 @@ export class LiveTrackingCommandService {
     dto: TrackingLocationCommand,
     recordedAt: Date,
   ): void {
-    this.realtimeEvents.emit('live-tracking.location.updated', tracking);
+    this.publishLocationRealtime(tracking);
     void this.enrichAndPublishTrackingRoute(tracking, context, dto, recordedAt);
   }
 
@@ -576,7 +572,7 @@ export class LiveTrackingCommandService {
     ) {
       return;
     }
-    this.realtimeEvents.emit('live-tracking.route-metadata.updated', enriched);
+    this.publishRouteMetadataRealtime(enriched);
     await this.eventBus.publier(
       new ProviderLocationUpdatedEvent({
         reservationId: tracking.reservationId,
@@ -587,6 +583,39 @@ export class LiveTrackingCommandService {
         recordedAt: recordedAt.toISOString(),
       }),
     );
+  }
+
+  private publishLocationRealtime(tracking: ReservationTrackingView): void {
+    if (
+      tracking.lastLatitude === null ||
+      tracking.lastLongitude === null ||
+      !tracking.lastPositionAt
+    )
+      return;
+    this.realtimeEvents.emit('live-tracking.location.updated', {
+      reservationId: tracking.reservationId,
+      clientUserId: tracking.clientUserId,
+      professionalId: tracking.professionalId,
+      latitude: tracking.lastLatitude,
+      longitude: tracking.lastLongitude,
+      accuracyMeters: tracking.lastAccuracyMeters,
+      headingDegrees: tracking.lastHeadingDegrees,
+      speedKmh: tracking.lastSpeedKmh,
+      positionTimestamp: tracking.lastPositionAt.toISOString(),
+    });
+  }
+
+  private publishRouteMetadataRealtime(
+    tracking: ReservationTrackingView,
+  ): void {
+    if (!tracking.route) return;
+    this.realtimeEvents.emit('live-tracking.route-metadata.updated', {
+      reservationId: tracking.reservationId,
+      clientUserId: tracking.clientUserId,
+      professionalId: tracking.professionalId,
+      positionTimestamp: tracking.route.positionTimestamp,
+      route: tracking.route,
+    });
   }
 
   private isValidCoordinate(lat: number, lng: number): boolean {

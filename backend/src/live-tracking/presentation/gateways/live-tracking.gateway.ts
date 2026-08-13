@@ -291,7 +291,7 @@ export class LiveTrackingGateway
   handleTrackingRealtimeUpdate(payload: {
     reservationId: string;
     clientUserId: string;
-    presence: { professionalId: string };
+    professionalId: string;
   }): void {
     this.server
       .to(this.buildReservationRoom(payload.reservationId))
@@ -300,15 +300,15 @@ export class LiveTrackingGateway
       .to(this.buildUserRoom(payload.clientUserId))
       .emit('tracking.location.updated', payload);
     this.server
-      .to(this.buildProfessionalRoom(payload.presence.professionalId))
-      .emit('professional.presence.updated', payload.presence);
+      .to(this.buildProfessionalRoom(payload.professionalId))
+      .emit('tracking.location.updated', payload);
   }
 
   @OnEvent('live-tracking.route-metadata.updated')
   handleTrackingRouteMetadataUpdate(payload: {
     reservationId: string;
     clientUserId: string;
-    presence: { professionalId: string };
+    professionalId: string;
   }): void {
     this.server
       .to(this.buildReservationRoom(payload.reservationId))

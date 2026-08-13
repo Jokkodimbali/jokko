@@ -1090,7 +1090,9 @@ export class TrackingGoogleMapRendererService {
         state.speedKmh,
         state.accuracyMeters,
         state.positionTimestampMs,
-        state.routes.find((route) => route.selected) ?? null,
+        state.routeMatchMode === 'REROUTING' || state.routeMatchMode === 'JOINING_ROUTE'
+          ? null
+          : (state.routes.find((route) => route.selected) ?? null),
       );
       return createdMarker;
     }
@@ -1117,7 +1119,7 @@ export class TrackingGoogleMapRendererService {
         state.speedKmh,
         state.accuracyMeters,
         state.positionTimestampMs,
-        state.routeMatchMode === 'REROUTING'
+        state.routeMatchMode === 'REROUTING' || state.routeMatchMode === 'JOINING_ROUTE'
           ? null
           : (state.routes.find((route) => route.selected) ?? null),
       );
@@ -1287,9 +1289,9 @@ export class TrackingGoogleMapRendererService {
     this.markerRouteCoordinates = routeCoordinates;
     this.targetRouteProgressMeters = destinationProgress;
     this.matchedRouteSegmentIndex = destinationProjection?.segmentIndex ?? this.matchedRouteSegmentIndex;
-    this.mapMatchConfidence = destinationProjection
-      ? Math.max(0, 1 - destinationProjection.distanceFromRouteMeters / ROUTE_SNAP_MAX_DISTANCE_METERS)
-      : 0;
+    // La confiance a deja ete calculee dans snapTravelerMarkerToSelectedRoute
+    // depuis le GPS brut. `destination` peut etre le point projete utilise
+    // pour le rendu : le reprojeter ici donnerait artificiellement confiance 1.
     this.targetMarkerVelocityMps = smoothedVelocity;
     this.markerStationary = holdStationaryPosition;
     if (holdStationaryPosition) this.currentMarkerVelocityMps = 0;
@@ -1636,7 +1638,9 @@ export class TrackingGoogleMapRendererService {
       return;
     }
 
-    const selectedRouteCoordinates = this.lastRenderedState?.routeMatchMode === 'REROUTING'
+    const selectedRouteCoordinates =
+      this.lastRenderedState?.routeMatchMode === 'REROUTING' ||
+      this.lastRenderedState?.routeMatchMode === 'JOINING_ROUTE'
       ? []
       : (routes.find((route) => route.selected)?.coordinates ?? routes[0]?.coordinates ?? []);
     const routeCameraKey = this.routeCameraKey(selectedRouteCoordinates);
@@ -2068,7 +2072,10 @@ export class TrackingGoogleMapRendererService {
     position: GoogleMapsPoint,
     state: TrackingMapRenderState,
   ): GoogleMapsPoint {
-    if (state.routeMatchMode === 'REROUTING') return position;
+    if (state.routeMatchMode === 'REROUTING' || state.routeMatchMode === 'JOINING_ROUTE') {
+      this.mapMatchConfidence = 0;
+      return position;
+    }
     const route = state.routes.find((candidate) => candidate.selected);
     if (!route || route.coordinates.length < 2) return position;
     const projection = this.projectPointToRoute(
@@ -2467,7 +2474,8 @@ export class TrackingGoogleMapRendererService {
 
     let candidateHeading: number | null = null;
     let alignedToRoute = false;
-    const selectedRoute = state.routeMatchMode === 'REROUTING'
+    const selectedRoute =
+      state.routeMatchMode === 'REROUTING' || state.routeMatchMode === 'JOINING_ROUTE'
       ? undefined
       : state.routes.find((route) => route.selected);
     // Tant que le marqueur est colle au trace, sa direction suit d'abord la

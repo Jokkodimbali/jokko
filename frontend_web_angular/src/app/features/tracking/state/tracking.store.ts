@@ -69,6 +69,22 @@ export class TrackingStore {
     return true;
   }
 
+  setRouteMetadata(
+    route: NonNullable<AppointmentTrackingView['route']>,
+    positionTimestamp: string,
+  ): boolean {
+    const current = this.trackingState();
+    if (!current) return false;
+    const currentTimestamp = this.positionTimestamp(current);
+    const metadataTimestamp = Date.parse(positionTimestamp);
+    if (
+      !Number.isFinite(metadataTimestamp) ||
+      (currentTimestamp !== null && metadataTimestamp < currentTimestamp)
+    ) return false;
+    this.trackingState.set({ ...current, route });
+    return true;
+  }
+
   setConnectionState(state: TrackingConnectionState): void {
     this.connectionStateValue.set(state);
   }

@@ -2201,9 +2201,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       next: (proposal) => {
         this.applyIncomingProposal(proposal);
       },
-      error: () => {
-        this.stopProposalRefresh();
-      },
+      // A transient mobile/PWA network failure must not permanently disable
+      // realtime and polling while the negotiation is still open.
+      error: () => undefined,
     });
   }
 

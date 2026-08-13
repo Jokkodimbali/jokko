@@ -2875,6 +2875,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     this.professionalRealtimeFallbackSubscription = timer(2500, 2500).subscribe(() => {
       const section = this.activeSection();
+      if (section === 'negotiations') {
+        this.refreshNegotiations(true);
+      }
       if (
         section === 'patient-appointments' ||
         section === 'negotiations' ||

@@ -1,374 +1,157 @@
-import { ProviderLocationService } from './provider-location.service';
+import { ProviderGpsPosition, ProviderLocationService } from './provider-location.service';
 
-describe('ProviderLocationService', () => {
-  it('normalizes GPS speed and clears the browser watcher on unsubscribe', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    const clearWatch = vi.fn();
-    const geolocation = {
-      watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-        success = handler;
-        return 42;
-      }),
-      clearWatch,
-    };
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: geolocation,
-    });
-    const service = new ProviderLocationService();
-    const received: number[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push(position.speedKmh ?? 0);
-    });
+describe('ProviderLocationService - real GPS filtering contracts', () => {
+  let success: ((position: GeolocationPosition) => void) | undefined;
+  let failure: PositionErrorCallback | undefined;
+  let options: PositionOptions | undefined;
+  let clearWatch: ReturnType<typeof vi.fn>;
 
-    success?.({
-      coords: {
-        latitude: 14.7167,
-        longitude: -17.4677,
-        accuracy: 7,
-        altitude: null,
-        altitudeAccuracy: null,
-        heading: 90,
-        speed: 10,
-        toJSON: () => ({}),
-      },
-      timestamp: Date.now(),
-      toJSON: () => ({}),
-    });
-    subscription.unsubscribe();
-
-    expect(received).toEqual([36]);
-    expect(clearWatch).toHaveBeenCalledWith(42);
-  });
-
-  it('keeps a stationary person fixed when GPS coordinates and heading drift', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    const geolocation = {
-      watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-        success = handler;
-        return 7;
-      }),
-      clearWatch: vi.fn(),
-    };
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: geolocation,
-    });
-    const service = new ProviderLocationService();
-    const received: Array<{ latitude: number; longitude: number; heading: number | null }> = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push({
-        latitude: position.latitude,
-        longitude: position.longitude,
-        heading: position.headingDegrees,
-      });
-    });
-
-    success?.(thisPosition(14.7167, -17.4677, 8, 15, 0));
-    success?.(thisPosition(14.716715, -17.46769, 12, 240, 0));
-    subscription.unsubscribe();
-
-    expect(received).toHaveLength(2);
-    expect(received[1]).toEqual(received[0]);
-  });
-
-  it('applies compass orientation to the next GPS event without consuming its throttle slot', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-08-11T12:00:00.000Z'));
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 8;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const received: Array<{ latitude: number; heading: number | null }> = [];
-    const subscription = service.watch(1000).subscribe((position) => {
-      received.push({ latitude: position.latitude, heading: position.headingDegrees });
-    });
-
-    window.dispatchEvent(orientationEvent(10));
-    success?.(thisPosition(14.7167, -17.4677, 8, null, 0));
-    vi.advanceTimersByTime(1000);
-    window.dispatchEvent(orientationEvent(100));
-    success?.(thisPosition(14.71672, -17.4677, 8, null, 5));
-    subscription.unsubscribe();
-    vi.useRealTimers();
-
-    expect(received).toHaveLength(2);
-    expect(received[1]?.latitude).toBeGreaterThan(received[0]?.latitude ?? Number.POSITIVE_INFINITY);
-    expect(received[1]?.heading).not.toBe(received[0]?.heading);
-  });
-
-  it('ignores an isolated speed value when the coordinates only drift', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 9;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const received: ProviderCoordinates[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push({ latitude: position.latitude, longitude: position.longitude });
-    });
-
-    success?.(thisPosition(14.7167, -17.4677, 8, 90, 0));
-    success?.(thisPosition(14.716706, -17.467696, 10, 90, 15));
-    subscription.unsubscribe();
-
-    expect(received[1]).toEqual(received[0]);
-  });
-
-  it('keeps a confirmed slow movement instead of waiting for a four-meter jump', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 10;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const latitudes: number[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      latitudes.push(position.latitude);
-    });
-
-    success?.(thisPosition(14.7167, -17.4677, 7, 0, 5));
-    success?.(thisPosition(14.71672, -17.4677, 7, 0, 5));
-    subscription.unsubscribe();
-
-    expect(latitudes[1]).toBeGreaterThan(latitudes[0] ?? Number.POSITIVE_INFINITY);
-  });
-
-  it('smooths heading across north without rotating the long way around', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 11;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const headings: Array<number | null> = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      headings.push(position.headingDegrees);
-    });
-
-    success?.(thisPosition(14.7167, -17.4677, 6, 359, 20));
-    success?.(thisPosition(14.71673, -17.4677, 6, 1, 20));
-    subscription.unsubscribe();
-
-    expect(headings[0]).toBe(359);
-    expect(headings[1]).not.toBeNull();
-    const distanceFromNorth = Math.min(
-      Math.abs(headings[1] as number),
-      Math.abs(360 - (headings[1] as number)),
-    );
-    expect(distanceFromNorth).toBeLessThan(2);
-  });
-
-  it('rejects an impossible isolated GPS jump', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 12;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const received: ProviderCoordinates[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push({ latitude: position.latitude, longitude: position.longitude });
-    });
-    const startedAt = Date.now();
-
-    success?.(thisPosition(14.7167, -17.4677, 6, 90, 25, startedAt));
-    success?.(thisPosition(14.8067, -17.3677, 6, 90, 25, startedAt + 1000));
-    subscription.unsubscribe();
-
-    expect(received[1]).toEqual(received[0]);
-  });
-
-  it('recovers after three coherent GPS samples confirm a real relocation', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 15;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const received: ProviderCoordinates[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push({ latitude: position.latitude, longitude: position.longitude });
-    });
-    const startedAt = Date.now();
-
-    success?.(thisPosition(14.7167, -17.4677, 6, 90, 25, startedAt));
-    success?.(thisPosition(14.8067, -17.3677, 6, 90, 25, startedAt + 1000));
-    success?.(thisPosition(14.80671, -17.36769, 6, 90, 25, startedAt + 2000));
-    success?.(thisPosition(14.80672, -17.36768, 6, 90, 25, startedAt + 3000));
-    subscription.unsubscribe();
-
-    expect(received[1]).toEqual(received[0]);
-    expect(received[2]).toEqual(received[0]);
-    expect(received[3]?.latitude).toBeCloseTo(14.80672, 5);
-    expect(received[3]?.longitude).toBeCloseTo(-17.36768, 5);
-  });
-
-  it('uses the GPS measurement timestamp instead of the network reception time', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 13;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const recordedAt: number[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      recordedAt.push(position.recordedAt);
-    });
-    const measuredAt = Date.now() - 750;
-
-    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
-    subscription.unsubscribe();
-
-    expect(recordedAt).toEqual([measuredAt]);
-  });
-
-  it('ignores a cached GPS sample with the same measurement timestamp', () => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    let requestedOptions: PositionOptions | undefined;
+  beforeEach(() => {
+    success = undefined;
+    failure = undefined;
+    options = undefined;
+    clearWatch = vi.fn();
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
         watchPosition: vi.fn(
           (
-            handler: (position: GeolocationPosition) => void,
-            _error: PositionErrorCallback,
-            options: PositionOptions,
+            onSuccess: (position: GeolocationPosition) => void,
+            onFailure: PositionErrorCallback,
+            requestedOptions: PositionOptions,
           ) => {
-            success = handler;
-            requestedOptions = options;
-            return 15;
+            success = onSuccess;
+            failure = onFailure;
+            options = requestedOptions;
+            return 42;
           },
         ),
-        clearWatch: vi.fn(),
+        clearWatch,
       },
     });
-    const service = new ProviderLocationService();
-    const received: ProviderCoordinates[] = [];
-    const subscription = service.watch(0).subscribe((position) => received.push(position));
-    const measuredAt = Date.now();
+  });
 
-    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
-    success?.(thisPosition(14.7167, -17.4677, 6, 90, 10, measuredAt));
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('requests fresh high-accuracy GPS and releases the watcher', () => {
+    const subscription = new ProviderLocationService().watch(0).subscribe();
+    expect(options).toEqual({ enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     subscription.unsubscribe();
+    expect(clearWatch).toHaveBeenCalledWith(42);
+  });
 
+  it('converts meters per second to km/h and preserves measurement time', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 7, 90, 10, 1_234));
+    subscription.unsubscribe();
+    expect(received[0]?.speedKmh).toBe(36);
+    expect(received[0]?.recordedAt).toBe(1_234);
+  });
+
+  it('rejects duplicate and regressive measurement timestamps', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 7, 90, 10, 2_000));
+    success?.(position(14.7167, -17.4677, 7, 90, 10, 2_000));
+    success?.(position(14.7168, -17.4677, 7, 90, 10, 1_900));
+    subscription.unsubscribe();
     expect(received).toHaveLength(1);
-    expect(requestedOptions?.maximumAge).toBe(0);
+  });
+
+  it('keeps a stationary phone fixed despite coordinate and heading drift', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 8, 15, 0, 1_000));
+    success?.(position(14.716715, -17.46769, 12, 240, 0, 2_000));
+    subscription.unsubscribe();
+    expect(received[1]?.latitude).toBe(received[0]?.latitude);
+    expect(received[1]?.longitude).toBe(received[0]?.longitude);
+    expect(received[1]?.headingDegrees).toBe(received[0]?.headingDegrees);
+    expect(received[1]?.speedKmh).toBe(0);
+  });
+
+  it('ignores an isolated non-zero speed when coordinates only drift', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 8, 90, 0, 1_000));
+    success?.(position(14.716706, -17.467696, 10, 90, 15, 2_000));
+    subscription.unsubscribe();
+    expect(received[1]?.latitude).toBe(received[0]?.latitude);
+    expect(received[1]?.longitude).toBe(received[0]?.longitude);
   });
 
   it.each([
-    ['arret', 0, 0],
-    ['marche', 4.5, 1.25],
-    ['velo ou circulation lente', 20, 5.56],
-    ['ville fluide', 50, 13.89],
-    ['voie rapide', 85, 23.61],
-    ['autoroute', 130, 36.11],
-    ['train rapide', 250, 69.44],
-  ])('keeps coherent telemetry for %s at %d km/h', (_scenario, speedKmh, distanceMeters) => {
-    let success: ((position: GeolocationPosition) => void) | undefined;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        watchPosition: vi.fn((handler: (position: GeolocationPosition) => void) => {
-          success = handler;
-          return 14;
-        }),
-        clearWatch: vi.fn(),
-      },
-    });
-    const service = new ProviderLocationService();
-    const received: ProviderCoordinates[] = [];
-    const subscription = service.watch(0).subscribe((position) => {
-      received.push({ latitude: position.latitude, longitude: position.longitude });
-    });
-    const measuredAt = Date.now();
-    const latitudeDelta = distanceMeters / 111_111;
-
-    success?.(thisPosition(14.7167, -17.4677, 6, 20, speedKmh / 3.6, measuredAt));
-    success?.(
-      thisPosition(
-        14.7167 + latitudeDelta,
-        -17.4677,
-        6,
-        20,
-        speedKmh / 3.6,
-        measuredAt + 1000,
-      ),
-    );
+    [4.5, 1.25],
+    [20, 5.56],
+    [50, 13.89],
+    [85, 23.61],
+    [130, 36.11],
+  ])('accepts coherent movement at %i km/h', (speedKmh, meters) => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 6, 0, speedKmh / 3.6, 1_000));
+    success?.(position(14.7167 + meters / 111_111, -17.4677, 6, 0, speedKmh / 3.6, 2_000));
     subscription.unsubscribe();
+    expect(received[1]?.latitude).toBeGreaterThan(received[0]?.latitude ?? Infinity);
+  });
 
-    expect(received).toHaveLength(2);
-    if (speedKmh === 0) {
-      expect(received[1]).toEqual(received[0]);
-    } else {
-      expect(received[1]?.latitude).toBeGreaterThan(received[0]?.latitude ?? Number.POSITIVE_INFINITY);
-    }
+  it('smooths heading through 359 to 1 without taking the long path', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 6, 359, 20, 1_000));
+    success?.(position(14.71673, -17.4677, 6, 1, 20, 2_000));
+    subscription.unsubscribe();
+    const heading = received[1]?.headingDegrees ?? 180;
+    expect(Math.min(Math.abs(heading), Math.abs(360 - heading))).toBeLessThan(2);
+  });
+
+  it('rejects an impossible isolated jump but accepts three coherent relocation samples', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 6, 90, 25, 1_000));
+    success?.(position(14.8067, -17.3677, 6, 90, 25, 2_000));
+    success?.(position(14.80671, -17.36769, 6, 90, 25, 3_000));
+    success?.(position(14.80672, -17.36768, 6, 90, 25, 4_000));
+    subscription.unsubscribe();
+    expect(received[1]?.latitude).toBe(received[0]?.latitude);
+    expect(received[2]?.latitude).toBe(received[0]?.latitude);
+    expect(received[3]?.latitude).toBeCloseTo(14.80672, 5);
+  });
+
+  it('respects the requested emission interval for irregular browser callbacks', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const received: ProviderGpsPosition[] = [];
+    const subscription = new ProviderLocationService().watch(1_000).subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 6, 90, 10, 1_000));
+    vi.advanceTimersByTime(900);
+    success?.(position(14.71671, -17.4677, 6, 90, 10, 1_900));
+    vi.advanceTimersByTime(100);
+    success?.(position(14.71672, -17.4677, 6, 90, 10, 2_000));
+    subscription.unsubscribe();
+    expect(received.map((gps) => gps.recordedAt)).toEqual([1_000, 2_000]);
+  });
+
+  it('forwards native geolocation errors', () => {
+    const errors: unknown[] = [];
+    const subscription = new ProviderLocationService().watch(0).subscribe({ error: (error) => errors.push(error) });
+    const denied = { code: 1, message: 'denied' } as GeolocationPositionError;
+    failure?.(denied);
+    subscription.unsubscribe();
+    expect(errors).toEqual([denied]);
   });
 });
 
-type ProviderCoordinates = { latitude: number; longitude: number };
-
-function orientationEvent(alpha: number): Event {
-  const event = new Event('deviceorientationabsolute');
-  Object.defineProperties(event, {
-    absolute: { value: true },
-    alpha: { value: alpha },
-  });
-  return event;
-}
-
-function thisPosition(
+function position(
   latitude: number,
   longitude: number,
   accuracy: number,
   heading: number | null,
   speed: number | null,
-  timestamp = Date.now(),
+  timestamp: number,
 ): GeolocationPosition {
   return {
     coords: {

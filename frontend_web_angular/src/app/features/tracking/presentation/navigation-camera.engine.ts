@@ -33,6 +33,9 @@ export type NavigationCameraDecision = {
 
 export class NavigationCameraEngine {
   private smoothedSpeedKmh: number | null = null;
+  private smoothedHeadingDegrees: number | null = null;
+  private pendingLargeHeadingDegrees: number | null = null;
+  private pendingLargeHeadingConfirmations = 0;
 
   decide(input: NavigationCameraInput): NavigationCameraDecision {
     const speed = this.smoothSpeed(input.speedKmh);
@@ -101,6 +104,9 @@ export class NavigationCameraEngine {
 
   reset(): void {
     this.smoothedSpeedKmh = null;
+    this.smoothedHeadingDegrees = null;
+    this.pendingLargeHeadingDegrees = null;
+    this.pendingLargeHeadingConfirmations = 0;
   }
 
   private cameraHeading(
@@ -110,8 +116,8 @@ export class NavigationCameraEngine {
   ): number {
     const routeBearing = validHeading(input.routeBearingDegrees);
     const futureBearing = validHeading(input.futureRouteBearingDegrees);
-    if (routeBearing === null || confidence === 'UNRELIABLE') {
-      return normalizeHeading(input.headingDegrees);
+    if (routeBearing === null) {
+      return this.smoothHeading(input.headingDegrees, speedKmh);
     }
     const routeConfidence = clamp(input.routeConfidence ?? 1, 0, 1);
     const lowSpeedFactor = clamp(speedKmh / 20, 0, 1);
@@ -130,10 +136,54 @@ export class NavigationCameraEngine {
         curvatureProgress * NAVIGATION_CAMERA_CONFIG.curvature.maxHeadingWeight;
       anticipatedRouteBearing = normalizeHeading(routeBearing + turnDelta * anticipationWeight);
     }
-    return normalizeHeading(
-      input.headingDegrees +
-        shortestAngleDelta(input.headingDegrees, anticipatedRouteBearing) * routeWeight,
+    const routeIsReliableForDriving =
+      speedKmh >= 12 && routeConfidence >= 0.65;
+    const candidate = routeIsReliableForDriving
+      ? anticipatedRouteBearing
+      : confidence === 'UNRELIABLE'
+        ? input.headingDegrees
+        : input.headingDegrees +
+          shortestAngleDelta(input.headingDegrees, anticipatedRouteBearing) * routeWeight;
+    return this.smoothHeading(candidate, speedKmh);
+  }
+
+  private smoothHeading(candidateDegrees: number, speedKmh: number): number {
+    const candidate = normalizeHeading(candidateDegrees);
+    if (this.smoothedHeadingDegrees === null) {
+      this.smoothedHeadingDegrees = candidate;
+      return candidate;
+    }
+
+    const delta = shortestAngleDelta(this.smoothedHeadingDegrees, candidate);
+    if (Math.abs(delta) >= 48) {
+      if (
+        this.pendingLargeHeadingDegrees !== null &&
+        Math.abs(shortestAngleDelta(this.pendingLargeHeadingDegrees, candidate)) <= 18
+      ) {
+        this.pendingLargeHeadingConfirmations += 1;
+      } else {
+        this.pendingLargeHeadingDegrees = candidate;
+        this.pendingLargeHeadingConfirmations = 1;
+      }
+      if (this.pendingLargeHeadingConfirmations < 2) {
+        return this.smoothedHeadingDegrees;
+      }
+    } else {
+      this.pendingLargeHeadingDegrees = null;
+      this.pendingLargeHeadingConfirmations = 0;
+    }
+    // Une mise a jour GPS ne peut pas faire pivoter la camera de facon
+    // arbitraire. Les vrais virages restent anticipes par la route future,
+    // mais les inversions de cap GPS/segment sont fortement bornees.
+    const maxStepDegrees = speedKmh >= 20 ? 24 : 32;
+    const boundedDelta = clamp(delta, -maxStepDegrees, maxStepDegrees);
+    const response = speedKmh >= 20 ? 0.55 : 0.68;
+    this.smoothedHeadingDegrees = normalizeHeading(
+      this.smoothedHeadingDegrees + boundedDelta * response,
     );
+    this.pendingLargeHeadingDegrees = null;
+    this.pendingLargeHeadingConfirmations = 0;
+    return this.smoothedHeadingDegrees;
   }
 
   private smoothSpeed(speedKmh: number | null | undefined): number {

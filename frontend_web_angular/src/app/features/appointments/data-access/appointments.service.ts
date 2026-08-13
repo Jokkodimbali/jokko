@@ -163,6 +163,7 @@ export class AppointmentsService {
   computeRoutes(input: {
     origin: GoogleMapsCoordinate;
     destination: GoogleMapsCoordinate;
+    alternatives?: boolean;
   }): Observable<GoogleMapsRouteResult[]> {
     return this.http
       .post<ApiResponse<GoogleMapsRouteResult[]>>(`${this.apiUrl}/maps/routes`, input)

@@ -54,7 +54,9 @@ export type GoogleMapsOverlayViewInstance = {
 
 export type GoogleMapsMapInstance = {
   setCenter: (coordinate: GoogleMapsPoint) => void;
+  getCenter?: () => { lat: () => number; lng: () => number } | null | undefined;
   setZoom: (zoom: number) => void;
+  getZoom?: () => number | undefined;
   setMapTypeId: (type: 'roadmap' | 'satellite' | 'hybrid') => void;
   getHeading?: () => number;
   setHeading?: (heading: number) => void;

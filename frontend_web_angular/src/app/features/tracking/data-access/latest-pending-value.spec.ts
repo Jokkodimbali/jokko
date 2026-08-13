@@ -1,32 +1,44 @@
 import { LatestPendingValue } from './latest-pending-value';
 
-describe('LatestPendingValue', () => {
-  it('keeps only D while A is in flight and B, C, D arrive', () => {
-    const pending = new LatestPendingValue<string>();
-
-    pending.replace('B');
-    pending.replace('C');
-    pending.replace('D');
-
-    expect(pending.take()).toBe('D');
-    expect(pending.take()).toBeNull();
+describe('LatestPendingValue - latest-only network contract', () => {
+  it('is empty initially and after consumption', () => {
+    const queue = new LatestPendingValue<string>();
+    expect(queue.take()).toBeNull();
+    queue.replace('A');
+    expect(queue.take()).toBe('A');
+    expect(queue.take()).toBeNull();
   });
 
-  it.each([2_000, 6_000])('keeps only the latest sample during a %i ms ACK', (ackDelayMs) => {
-    vi.useFakeTimers();
-    const pending = new LatestPendingValue<string>();
-    let sentAfterAck: string | null = null;
+  it('keeps only D when B, C and D arrive while A is in flight', () => {
+    const queue = new LatestPendingValue<string>();
+    queue.replace('B');
+    queue.replace('C');
+    queue.replace('D');
+    expect(queue.take()).toBe('D');
+  });
 
-    window.setTimeout(() => {
-      sentAfterAck = pending.take();
-    }, ackDelayMs);
-    pending.replace('B');
-    pending.replace('C');
-    pending.replace('D');
-    vi.advanceTimersByTime(ackDelayMs);
+  it.each([2_000, 4_000, 6_000])(
+    'sends only the newest pending value after a %i ms ACK',
+    (ackDelayMs) => {
+      vi.useFakeTimers();
+      const queue = new LatestPendingValue<string>();
+      let next: string | null = null;
+      window.setTimeout(() => { next = queue.take(); }, ackDelayMs);
+      queue.replace('B');
+      queue.replace('C');
+      queue.replace('D');
+      vi.advanceTimersByTime(ackDelayMs);
+      expect(next).toBe('D');
+      expect(queue.take()).toBeNull();
+      vi.useRealTimers();
+    },
+  );
 
-    expect(sentAfterAck).toBe('D');
-    expect(pending.take()).toBeNull();
-    vi.useRealTimers();
+  it('preserves object identity for the exact latest GPS sample', () => {
+    const queue = new LatestPendingValue<{ recordedAt: number }>();
+    const latest = { recordedAt: 3 };
+    queue.replace({ recordedAt: 1 });
+    queue.replace(latest);
+    expect(queue.take()).toBe(latest);
   });
 });

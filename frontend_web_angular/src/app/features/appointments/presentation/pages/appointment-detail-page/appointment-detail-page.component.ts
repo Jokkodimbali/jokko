@@ -2347,6 +2347,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected selectRouteAlternative(routeId: string): void {
+    if (!this.isRouteActorViewer()) return;
     const route = this.routeOptions.find((option) => option.id === routeId);
     if (!route) return;
 
@@ -2934,6 +2935,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       statusLabel: `Arrive a destination de ${this.arrivalDestinationLabel(appointment)}`,
       headingDegrees,
       routes: [],
+      showAlternativeRoutes: this.isRouteActorViewer(),
       showManeuverMarkers: this.isRouteActorViewer(),
       arrived: true,
       travelerMarker: this.travelerMapMarker(),
@@ -3237,6 +3239,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.routeCoordinates = serverCoordinates;
       }
       if (
+        !this.isRouteActorViewer() &&
         this.routeOptions.length < 2 &&
         (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1)
       ) {
@@ -3244,7 +3247,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.routeOptions = [currentRoute];
         this.selectedRouteId.set(currentRoute.id);
       }
-      this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+      if (this.routeStatus() !== 'calculating') {
+        this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+      }
     }
     this.updateGoogleMaps();
     this.announceNavigationInstruction();
@@ -3618,12 +3623,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (destination && !arrived) {
       this.recalculateRouteIfOffCourse(trackedProvider, destination);
     }
+    const travelerNeedsGoogleRouteOptions =
+      this.isRouteActorViewer() && this.routeOptions.length === 0;
     if (
       destination &&
       (!this.isProviderWorking() || this.isParcelDropoffNavigationActive()) &&
       !this.hasTravelerArrivalConfirmation() &&
       !this.hasTravelerArrivedAtDestination() &&
-      this.routeCoordinates.length < 2 &&
+      (this.routeCoordinates.length < 2 || travelerNeedsGoogleRouteOptions) &&
       this.routeStatus() !== 'calculating' &&
       Date.now() >= this.routeRequestBlockedUntilMs
     ) {
@@ -3643,6 +3650,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       accuracyMeters: tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? null,
       speedKmh: tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null,
       routes: this.serializedMapRoutes(),
+      showAlternativeRoutes: this.isRouteActorViewer(),
       showManeuverMarkers: this.isRouteActorViewer(),
       routeCalculating: this.routeStatus() === 'calculating',
       arrived: this.hasTravelerArrivedAtDestination(),
@@ -3861,7 +3869,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       end: MapCoordinate | null;
     }>;
   }> {
-    return this.routeService.serializeMapRoutes(this.routeOptions, this.selectedRouteId());
+    const routes = this.isRouteActorViewer()
+      ? this.routeOptions
+      : this.routeOptions.filter((route) => route.id === this.selectedRouteId());
+    return this.routeService.serializeMapRoutes(routes, this.selectedRouteId());
   }
 
   private recalculateRouteIfOffCourse(
@@ -3910,7 +3921,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.routeDeviationRecalculationBlockedUntilMs =
       Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
     this.routeCoordinatesKey = '';
-    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], true);
+    // Une deviation confirmee invalide immediatement l'ancien corridor. Le
+    // marqueur reste visible en mode recalcul pendant que la nouvelle route
+    // est demandee, au lieu de laisser un trace devenu faux a l'ecran.
+    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], false);
     return true;
   }
 
@@ -4174,6 +4188,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           latitude: destinationPoint[0],
           longitude: destinationPoint[1],
         },
+        alternatives: this.isRouteActorViewer(),
       })
       .subscribe({
         next: (googleRoutes) => {
@@ -4250,6 +4265,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private refreshRouteAlternatives(): void {
+    if (!this.isRouteActorViewer()) {
+      this.routeAlternatives.set([]);
+      return;
+    }
     if (this.routeOptions.length < 2) {
       this.routeAlternatives.set([]);
       return;

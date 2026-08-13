@@ -32,6 +32,7 @@ export type ReservationTrackingView = ReservationTrackingSession & {
     distanceRemainingMeters: number;
     durationRemainingSeconds: number;
     estimatedArrivalAt: string;
+    positionTimestamp: string;
     encodedPolyline: string;
     coordinates: Array<{ latitude: number; longitude: number }>;
     navigationSteps?: Array<{
@@ -49,6 +50,26 @@ export type ReservationTrackingView = ReservationTrackingSession & {
 export type TrackingLocationWriteResult = {
   tracking: ReservationTrackingView;
   accepted: boolean;
+};
+
+export type TrackingLocationRealtimePayload = {
+  reservationId: string;
+  clientUserId: string;
+  professionalId: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedKmh: number | null;
+  positionTimestamp: string;
+};
+
+export type TrackingRouteMetadataRealtimePayload = {
+  reservationId: string;
+  clientUserId: string;
+  professionalId: string;
+  positionTimestamp: string;
+  route: NonNullable<ReservationTrackingView['route']>;
 };
 
 export interface LiveTrackingRepositoryPort {

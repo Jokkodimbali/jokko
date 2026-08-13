@@ -48,8 +48,10 @@ import {
 } from '../../components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import { ProviderLocationService } from '../../../../tracking/data-access/provider-location.service';
 import {
+  TrackingLocationEvent,
   TrackingLocationUpdate,
   TrackingRealtimeService,
+  TrackingRouteMetadataEvent,
 } from '../../../../tracking/data-access/tracking-realtime.service';
 import { LatestPendingValue } from '../../../../tracking/data-access/latest-pending-value';
 import { TrackingGoogleMapRendererService } from '../../../../tracking/presentation/tracking-google-map-renderer.service';
@@ -57,11 +59,22 @@ import { TrackingArrivalStateService } from '../../../../tracking/state/tracking
 import { TrackingScenarioStateService } from '../../../../tracking/state/tracking-scenario-state.service';
 import { TrackingScenarioViewContext } from '../../../../tracking/state/scenarios/tracking-scenario.types';
 import { TrackingStore } from '../../../../tracking/state/tracking.store';
+import {
+  RouteRecalculationController,
+  RouteRecalculationResult,
+} from './route-recalculation.controller';
+import { GoogleMapsRouteResult } from '../../../../../shared/maps/google-maps-loader.service';
 
 type MapCoordinate = { lat: number; lng: number };
 type TrackingStepView = AppointmentTrackingStep;
 type MedicalRecordKind = 'act' | 'vaccine' | 'treatment';
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
+type RouteMatchMode = 'MATCHED' | 'SUSPECTED_OFF_ROUTE' | 'REROUTING' | 'JOINING_ROUTE';
+type RouteRequestInput = {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+  alternatives?: boolean;
+};
 
 const COMMON_MEDICAL_ACTS = [
   'Consultation de medecine generale',
@@ -90,8 +103,16 @@ const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const GPS_RECOVERY_DELAY_MS = 5_000;
-const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 1_000;
-const ROUTE_RECALCULATION_STALE_AFTER_MS = 1_200;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 3_000;
+const ROUTE_RECALCULATION_STALE_AFTER_MS = 6_000;
+const ROUTE_REQUEST_TIMEOUT_MS = 4_500;
+const ROUTE_RESPONSE_MAX_ORIGIN_AGE_MS = 8_000;
+const ROUTE_RESPONSE_MAX_ORIGIN_DRIFT_METERS = 80;
+const ROUTE_JOIN_CONFIRMATIONS_REQUIRED = 2;
+const ROUTE_JOIN_TIMEOUT_MS = 8_000;
+const ROUTE_JOIN_MIN_HEADING_SPEED_KMH = 5;
+const ROUTE_JOIN_MAX_HEADING_DIFFERENCE_DEGREES = 70;
+const ROUTE_RETRY_LIMIT = 3;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
   {
@@ -187,6 +208,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly documentRenderer = inject(AppointmentDocumentRendererService);
   private readonly medicalPrescriptionService = inject(AppointmentMedicalPrescriptionService);
   private trackingSubscription?: Subscription;
+  private trackingLocationSubscription?: Subscription;
+  private trackingRouteMetadataSubscription?: Subscription;
   private missionSubscription?: Subscription;
   private routeSelectionSubscription?: Subscription;
   private connectionSubscription?: Subscription;
@@ -207,6 +230,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeRequestBlockedUntilMs = 0;
   private routeDeviationRecalculationBlockedUntilMs = 0;
   private routeDeviationConfirmations = 0;
+  private routeMatchMode: RouteMatchMode = 'MATCHED';
+  private routeJoinConfirmations = 0;
+  private routeJoinLastPositionTimestampMs: number | null = null;
+  private routeJoinLastProgressMeters: number | null = null;
+  private routeJoinStartedAtMs = 0;
+  private routeJoinTimeoutId?: number;
+  private routeJoinGeneration = 0;
+  private componentDestroyed = false;
+  private navigationRetryAttempts = 0;
+  private lastOffRouteEvaluatedPositionTimestampMs: number | null = null;
   private routeCalculationStartedAtMs = 0;
   private routeSessionStartedAtMs = 0;
   private parcelDropoffTrackingPrepared = false;
@@ -215,6 +248,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
   private navigationRetryTimeoutId?: number;
+  private readonly routeRecalculation = new RouteRecalculationController<
+    RouteRequestInput,
+    GoogleMapsRouteResult[]
+  >(
+    (input) => this.appointmentsService.computeRoutes(input),
+    (result) => this.applyRouteRecalculationResult(result),
+    ROUTE_REQUEST_TIMEOUT_MS,
+  );
+  private readonly routeRequestContext = new Map<
+    number,
+    {
+      provider: [number, number];
+      destination: [number, number];
+      key: string;
+      preserveCurrentRoute: boolean;
+      fastReroute: boolean;
+      requestedAtMs: number;
+    }
+  >();
   private medicalPrescriptionSaveVersion = 0;
   private medicalPrescriptionDraftDirty = false;
   private readonly refreshParcelCheckpoints = (): void => {
@@ -1286,6 +1338,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   ngOnDestroy(): void {
+    this.componentDestroyed = true;
+    this.clearRouteJoiningTimer();
     window.removeEventListener('focus', this.refreshParcelCheckpoints);
     window.removeEventListener('storage', this.refreshParcelCheckpoints);
     this.stopLiveNavigation(this.appointment()?.id);
@@ -1294,6 +1348,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       clearInterval(this.elapsedClockInterval);
     }
     this.clearNavigationRetry();
+    this.routeRecalculation.destroy();
     this.clearLocationRecovery();
     this.trackingStore.reset();
   }
@@ -2292,6 +2347,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected toggleMapPerspective(): void {
     if (!this.isRouteActorViewer()) return;
 
+    if (!this.isMapTopView() && this.mapRenderer.getCameraMode() === 'FREE') {
+      this.mapRenderer.recenterNavigationCamera();
+      window.setTimeout(() => this.updateGoogleMaps(), 60);
+      return;
+    }
+
     this.isMapTopView.update((enabled) => !enabled);
     this.persistMapPerspective();
     this.mapRenderer.setTopView(this.isMapTopView());
@@ -2646,6 +2707,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private startTrackingPolling(appointmentId: string): void {
     this.trackingSubscription?.unsubscribe();
+    this.trackingLocationSubscription?.unsubscribe();
+    this.trackingRouteMetadataSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
     this.routeSelectionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
@@ -2704,6 +2767,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
       this.refreshAppointmentState(appointmentId);
     });
+    this.trackingLocationSubscription = this.trackingRealtime.locationUpdated$.subscribe((event) => {
+      if (event.reservationId === appointmentId) this.applyRealtimeLocation(event);
+    });
+    this.trackingRouteMetadataSubscription =
+      this.trackingRealtime.routeMetadataUpdated$.subscribe((event) => {
+        if (event.reservationId === appointmentId) this.applyRealtimeRouteMetadata(event);
+      });
     this.routeSelectionSubscription = this.trackingRealtime.routeSelected$.subscribe((event) => {
       if (event.reservationId !== appointmentId || this.isRouteActorViewer()) return;
       const coordinates = event.coordinates.map(
@@ -2755,12 +2825,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private stopLiveNavigation(appointmentId?: string, resetTracking = false): void {
+    this.clearRouteJoiningTimer();
     this.trackingSubscription?.unsubscribe();
+    this.trackingLocationSubscription?.unsubscribe();
+    this.trackingRouteMetadataSubscription?.unsubscribe();
     this.missionSubscription?.unsubscribe();
     this.routeSelectionSubscription?.unsubscribe();
     this.connectionSubscription?.unsubscribe();
     this.appointmentStatePollingSubscription?.unsubscribe();
     this.trackingSubscription = undefined;
+    this.trackingLocationSubscription = undefined;
+    this.trackingRouteMetadataSubscription = undefined;
     this.missionSubscription = undefined;
     this.routeSelectionSubscription = undefined;
     this.connectionSubscription = undefined;
@@ -2781,6 +2856,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private resetNavigationPresentation(): void {
+    this.clearRouteJoiningTimer();
     this.navigationService.cancelVoice();
     this.mapRenderer.destroyRouteMap();
     this.routeCoordinates = [];
@@ -3233,6 +3309,55 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return routeDistance !== null && routeDistance * 1000 <= ARRIVAL_DISTANCE_THRESHOLD_METERS;
   }
 
+  private applyRealtimeLocation(event: TrackingLocationEvent): void {
+    const current = this.tracking();
+    if (!current) {
+      this.refreshTracking(event.reservationId);
+      return;
+    }
+    this.setTrackingSafely({
+      ...current,
+      lastLatitude: event.latitude,
+      lastLongitude: event.longitude,
+      lastAccuracyMeters: event.accuracyMeters,
+      lastHeadingDegrees: event.headingDegrees,
+      lastSpeedKmh: event.speedKmh,
+      lastPositionAt: event.positionTimestamp,
+      updatedAt: event.positionTimestamp,
+      presence: {
+        ...current.presence,
+        lastLatitude: event.latitude,
+        lastLongitude: event.longitude,
+        lastAccuracyMeters: event.accuracyMeters,
+        lastHeadingDegrees: event.headingDegrees,
+        lastSpeedKmh: event.speedKmh,
+        lastPositionAt: event.positionTimestamp,
+      },
+    });
+  }
+
+  private applyRealtimeRouteMetadata(event: TrackingRouteMetadataEvent): void {
+    if (!this.trackingStore.setRouteMetadata(event.route, event.positionTimestamp)) return;
+    this.routeDistanceKm.set(event.route.distanceRemainingMeters / 1000);
+    this.routeDurationMinutes.set(
+      Math.max(1, Math.round(event.route.durationRemainingSeconds / 60)),
+    );
+    // Les metriques ne repassent jamais dans setTrackingSafely : elles ne
+    // relancent donc ni filtrage GPS, ni matching, ni detection hors-route.
+    if (this.isRouteActorViewer()) return;
+    const serverCoordinates = event.route.coordinates.map(
+      ({ latitude, longitude }) => [latitude, longitude] as [number, number],
+    );
+    if (serverCoordinates.length > 1) {
+      this.routeCoordinates = serverCoordinates;
+      const currentRoute = this.routeService.mapTrackingRoute(event.route, serverCoordinates);
+      this.routeOptions = [currentRoute];
+      this.selectedRouteId.set(currentRoute.id);
+      this.routeStatus.set('ready');
+      this.updateGoogleMaps();
+    }
+  }
+
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
     this.registerActiveRouteSession(tracking);
     const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
@@ -3261,6 +3386,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     const serverRoute = acceptedTracking.route;
     if (serverRoute) {
+      const serverRoutePositionAt = serverRoute.positionTimestamp
+        ? Date.parse(serverRoute.positionTimestamp)
+        : Number.NaN;
+      const acceptedPositionAt = this.trackingPositionTimestampMs(acceptedTracking);
+      if (
+        Number.isFinite(serverRoutePositionAt) &&
+        acceptedPositionAt !== null &&
+        serverRoutePositionAt < acceptedPositionAt
+      ) {
+        this.updateGoogleMaps();
+        return;
+      }
       this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
       this.routeDurationMinutes.set(
         Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
@@ -3268,9 +3405,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       const serverCoordinates = serverRoute.coordinates.map(
         (coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number],
       );
-      // Les snapshots serveur enrichissent distance/ETA, mais ne doivent pas
-      // supprimer les alternatives Google deja affichees et selectionnables.
-      if (this.routeOptions.length < 2) {
+      // Pour l'acteur, la route Google locale est l'unique polyline de
+      // navigation. Le backend ne fournit ici que distance, duree et ETA.
+      if (!this.isRouteActorViewer() && this.routeOptions.length < 2) {
         this.routeCoordinates = serverCoordinates;
       }
       if (
@@ -3688,6 +3825,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       showAlternativeRoutes: this.isRouteActorViewer(),
       showManeuverMarkers: this.isRouteActorViewer(),
       routeCalculating: this.routeStatus() === 'calculating',
+      routeMatchMode: this.routeMatchMode,
       arrived: this.hasTravelerArrivedAtDestination(),
       travelerMarker: this.travelerMapMarker(),
     });
@@ -3914,6 +4052,19 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     trackedProvider: [number, number],
     destination: MapCoordinate,
   ): boolean {
+    const positionTimestampMs = this.trackingPositionTimestampMs(this.tracking());
+    if (
+      positionTimestampMs !== null &&
+      positionTimestampMs === this.lastOffRouteEvaluatedPositionTimestampMs
+    ) {
+      return false;
+    }
+    if (positionTimestampMs !== null) {
+      this.lastOffRouteEvaluatedPositionTimestampMs = positionTimestampMs;
+    }
+    if (this.routeMatchMode === 'JOINING_ROUTE') {
+      return this.confirmJoiningRoute(trackedProvider, positionTimestampMs, destination);
+    }
     if (
       this.routeCoordinates.length < 2 ||
       Date.now() < this.routeRequestBlockedUntilMs ||
@@ -3944,6 +4095,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const dynamicDeviationThreshold = Math.max(12, Math.min(45, accuracyMeters * 0.9));
     if (deviationMeters <= dynamicDeviationThreshold) {
       this.routeDeviationConfirmations = 0;
+      if (this.routeMatchMode === 'SUSPECTED_OFF_ROUTE') this.routeMatchMode = 'MATCHED';
       return false;
     }
 
@@ -3951,17 +4103,182 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const reliableDeviation = accuracyMeters <= 20;
     const confirmationsRequired = severeDeviation || reliableDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
     this.routeDeviationConfirmations += 1;
+    this.routeMatchMode = 'SUSPECTED_OFF_ROUTE';
     if (this.routeDeviationConfirmations < confirmationsRequired) return false;
     this.routeDeviationConfirmations = 0;
 
     this.routeDeviationRecalculationBlockedUntilMs =
       Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
-    this.routeCoordinatesKey = '';
-    // Une deviation confirmee invalide immediatement l'ancien corridor. Le
-    // marqueur reste visible en mode recalcul pendant que la nouvelle route
-    // est demandee, au lieu de laisser un trace devenu faux a l'ecran.
-    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], false, true);
+    this.clearRouteJoiningTimer();
+    this.routeMatchMode = 'REROUTING';
+    // Conserver l'ancienne polyline et ses metriques comme contexte visuel,
+    // mais le renderer suit desormais le GPS reel jusqu'a la nouvelle route.
+    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], true, true);
     return true;
+  }
+
+  private confirmJoiningRoute(
+    trackedProvider: [number, number],
+    positionTimestampMs: number | null,
+    destination: MapCoordinate,
+  ): boolean {
+    if (
+      positionTimestampMs === null ||
+      positionTimestampMs === this.routeJoinLastPositionTimestampMs
+    ) return false;
+
+    this.routeJoinLastPositionTimestampMs = positionTimestampMs;
+    const projection = this.projectPointOnCurrentRoute({
+      lat: trackedProvider[0],
+      lng: trackedProvider[1],
+    });
+    const tracking = this.tracking();
+    const accuracyMeters = Math.max(
+      5,
+      tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? 35,
+    );
+    const corridorMeters = Math.min(45, Math.max(12, accuracyMeters * 1.25));
+    const rawHeading = tracking?.lastHeadingDegrees ?? tracking?.presence.lastHeadingDegrees ?? null;
+    const rawSpeedKmh = tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null;
+    const headingIsReliable =
+      typeof rawHeading === 'number' &&
+      Number.isFinite(rawHeading) &&
+      rawHeading >= 0 &&
+      rawHeading <= 360 &&
+      typeof rawSpeedKmh === 'number' &&
+      Number.isFinite(rawSpeedKmh) &&
+      rawSpeedKmh >= ROUTE_JOIN_MIN_HEADING_SPEED_KMH;
+    const headingCompatible =
+      !headingIsReliable ||
+      (projection !== null &&
+        this.shortestHeadingDifferenceDegrees(rawHeading, projection.segmentBearingDegrees) <=
+          ROUTE_JOIN_MAX_HEADING_DIFFERENCE_DEGREES);
+    const progressCompatible =
+      projection !== null &&
+      (this.routeJoinLastProgressMeters === null ||
+        projection.progressMeters + 15 >= this.routeJoinLastProgressMeters);
+
+    if (
+      projection &&
+      projection.distanceMeters <= corridorMeters &&
+      progressCompatible &&
+      headingCompatible
+    ) {
+      this.routeJoinConfirmations += 1;
+      this.routeJoinLastProgressMeters = projection.progressMeters;
+      if (this.routeJoinConfirmations >= ROUTE_JOIN_CONFIRMATIONS_REQUIRED) {
+        this.routeMatchMode = 'MATCHED';
+        this.navigationRetryAttempts = 0;
+        this.resetRouteJoiningConfirmation();
+        this.clearRouteJoiningTimer();
+        return false;
+      }
+    } else {
+      this.routeJoinConfirmations = 0;
+      this.routeJoinLastProgressMeters = null;
+    }
+
+    void destination;
+    return false;
+  }
+
+  private projectPointOnCurrentRoute(
+    point: MapCoordinate,
+  ): {
+    distanceMeters: number;
+    progressMeters: number;
+    segmentIndex: number;
+    segmentBearingDegrees: number;
+  } | null {
+    if (this.routeCoordinates.length < 2) return null;
+    let best: {
+      distanceMeters: number;
+      progressMeters: number;
+      segmentIndex: number;
+      segmentBearingDegrees: number;
+    } | null = null;
+    let progressBeforeSegment = 0;
+    for (let index = 1; index < this.routeCoordinates.length; index += 1) {
+      const previous = this.routeCoordinates[index - 1];
+      const current = this.routeCoordinates[index];
+      const start = { lat: previous[0], lng: previous[1] };
+      const end = { lat: current[0], lng: current[1] };
+      const segmentMeters = this.geo.distanceMetersBetweenPoints(start, end);
+      if (segmentMeters <= 0) continue;
+      const metersPerLatitudeDegree = 110_540;
+      const metersPerLongitudeDegree = 111_320 * Math.cos((point.lat * Math.PI) / 180);
+      const startX = (start.lng - point.lng) * metersPerLongitudeDegree;
+      const startY = (start.lat - point.lat) * metersPerLatitudeDegree;
+      const endX = (end.lng - point.lng) * metersPerLongitudeDegree;
+      const endY = (end.lat - point.lat) * metersPerLatitudeDegree;
+      const segmentX = endX - startX;
+      const segmentY = endY - startY;
+      const denominator = segmentX * segmentX + segmentY * segmentY;
+      const ratio = denominator <= 0
+        ? 0
+        : Math.max(0, Math.min(1, -(startX * segmentX + startY * segmentY) / denominator));
+      const closestX = startX + segmentX * ratio;
+      const closestY = startY + segmentY * ratio;
+      const candidate = {
+        distanceMeters: Math.hypot(closestX, closestY),
+        progressMeters: progressBeforeSegment + segmentMeters * ratio,
+        segmentIndex: index - 1,
+        segmentBearingDegrees: this.bearingDegrees(start, end),
+      };
+      if (!best || candidate.distanceMeters < best.distanceMeters) best = candidate;
+      progressBeforeSegment += segmentMeters;
+    }
+    return best;
+  }
+
+  private resetRouteJoiningConfirmation(): void {
+    this.routeJoinConfirmations = 0;
+    this.routeJoinLastPositionTimestampMs = null;
+    this.routeJoinLastProgressMeters = null;
+    this.routeJoinStartedAtMs = 0;
+  }
+
+  private shortestHeadingDifferenceDegrees(heading: number, bearing: number): number {
+    return Math.abs(((heading - bearing + 540) % 360) - 180);
+  }
+
+  private bearingDegrees(start: MapCoordinate, end: MapCoordinate): number {
+    const startLatitude = (start.lat * Math.PI) / 180;
+    const endLatitude = (end.lat * Math.PI) / 180;
+    const longitudeDelta = ((end.lng - start.lng) * Math.PI) / 180;
+    const y = Math.sin(longitudeDelta) * Math.cos(endLatitude);
+    const x =
+      Math.cos(startLatitude) * Math.sin(endLatitude) -
+      Math.sin(startLatitude) * Math.cos(endLatitude) * Math.cos(longitudeDelta);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  private startRouteJoiningTimer(): void {
+    this.clearRouteJoiningTimer();
+    this.routeJoinStartedAtMs = Date.now();
+    const generation = ++this.routeJoinGeneration;
+    this.routeJoinTimeoutId = window.setTimeout(() => {
+      this.routeJoinTimeoutId = undefined;
+      if (
+        this.componentDestroyed ||
+        this.routeMatchMode !== 'JOINING_ROUTE' ||
+        generation !== this.routeJoinGeneration
+      ) return;
+      this.routeMatchMode = 'REROUTING';
+      this.resetRouteJoiningConfirmation();
+      this.routeCoordinatesKey = '';
+      this.routeRequestedDestinationKey = '';
+      this.routeCalculationStartedAtMs = 0;
+      this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+      this.scheduleNavigationRetry(0);
+    }, ROUTE_JOIN_TIMEOUT_MS);
+  }
+
+  private clearRouteJoiningTimer(): void {
+    this.routeJoinGeneration += 1;
+    if (this.routeJoinTimeoutId === undefined) return;
+    window.clearTimeout(this.routeJoinTimeoutId);
+    this.routeJoinTimeoutId = undefined;
   }
 
   private distanceFromCurrentRouteMeters(position: MapCoordinate): number {
@@ -4214,117 +4531,107 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.routeDurationMinutes.set(null);
     }
     this.routeStatus.set('calculating');
-
-    this.appointmentsService
-      .computeRoutes({
-        origin: {
-          latitude: provider[0],
-          longitude: provider[1],
-        },
-        destination: {
-          latitude: destinationPoint[0],
-          longitude: destinationPoint[1],
-        },
-        // Lors d'une deviation, la route principale doit arriver en priorite.
-        // Les alternatives sont recuperees ensuite sans bloquer le guidage.
-        alternatives: this.isRouteActorViewer() && !fastReroute,
-      })
-      .subscribe({
-        next: (googleRoutes) => {
-          if (this.routeCoordinatesKey !== key) return;
-          this.routeCalculationStartedAtMs = 0;
-          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
-          const route = routes[0];
-          if (
-            !route ||
-            !this.geo.isCoordinateInSenegal(provider[0], provider[1]) ||
-            !this.geo.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
-          ) {
-            if (!preserveCurrentRoute) {
-              this.routeCoordinates = [];
-              this.routeOptions = [];
-              this.routeAlternatives.set([]);
-              this.mapRenderer.resetRoute();
-            }
-            this.routeCoordinatesKey = '';
-            this.routeRequestedDestinationKey = '';
-            this.routeStatus.set(
-              preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-            );
-            return;
-          }
-
-          this.routeOptions = routes.map((candidate, index) => ({
-            ...candidate,
-            id: `route-${index}`,
-          }));
-          this.routeDestinationKey = this.geo.routePointKey(destinationPoint);
-          this.selectedRouteId.set('route-0');
-          this.applySelectedRoute(this.routeOptions[0]);
-          if (this.routeCoordinates.length < 2) {
-            this.mapRenderer.resetRoute();
-            this.routeStatus.set('unavailable');
-            return;
-          }
-
-          this.refreshRouteAlternatives();
-          this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
-          this.clearNavigationRetry();
-          this.updateGoogleMaps();
-          this.announceNavigationInstruction();
-          if (fastReroute && this.isRouteActorViewer()) {
-            this.loadRouteAlternativesInBackground(provider, destinationPoint, key);
-          }
-        },
-        error: () => {
-          if (this.routeCoordinatesKey !== key) return;
-          this.routeCalculationStartedAtMs = 0;
-          if (!preserveCurrentRoute) {
-            this.routeCoordinates = [];
-            this.routeOptions = [];
-            this.routeAlternatives.set([]);
-            this.mapRenderer.resetRoute();
-            this.routeDistanceKm.set(null);
-            this.routeDurationMinutes.set(null);
-          }
-          this.routeCoordinatesKey = '';
-          this.routeRequestedDestinationKey = '';
-          this.routeRequestBlockedUntilMs = Date.now() + 1_500;
-          this.routeStatus.set(
-            preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-          );
-          this.scheduleNavigationRetry();
-        },
-      });
+    const input: RouteRequestInput = {
+      origin: { latitude: provider[0], longitude: provider[1] },
+      destination: { latitude: destinationPoint[0], longitude: destinationPoint[1] },
+      alternatives: this.isRouteActorViewer() && !fastReroute,
+    };
+    const requestedAtMs = Date.now();
+    const request = this.routeRecalculation.reserve(
+      input,
+      { lat: provider[0], lng: provider[1] },
+      requestedAtMs,
+    );
+    this.routeRequestContext.clear();
+    this.routeRequestContext.set(request.generation, {
+      provider,
+      destination: destinationPoint,
+      key,
+      preserveCurrentRoute,
+      fastReroute,
+      requestedAtMs,
+    });
+    this.routeRecalculation.dispatch(request);
   }
 
-  private loadRouteAlternativesInBackground(
-    provider: [number, number],
-    destinationPoint: [number, number],
-    requestKey: string,
+  private applyRouteRecalculationResult(
+    outcome: RouteRecalculationResult<RouteRequestInput, GoogleMapsRouteResult[]>,
   ): void {
-    this.appointmentsService
-      .computeRoutes({
-        origin: { latitude: provider[0], longitude: provider[1] },
-        destination: { latitude: destinationPoint[0], longitude: destinationPoint[1] },
-        alternatives: true,
-      })
-      .subscribe({
-        next: (googleRoutes) => {
-          if (this.routeCoordinatesKey !== requestKey) return;
-          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
-          if (routes.length < 2) return;
-          this.routeOptions = routes.map((candidate, index) => ({
-            ...candidate,
-            id: `route-${index}`,
-          }));
-          this.selectedRouteId.set('route-0');
-          this.applySelectedRoute(this.routeOptions[0]);
-          this.refreshRouteAlternatives();
-          this.updateGoogleMaps();
-        },
-        error: () => undefined,
-      });
+    const context = this.routeRequestContext.get(outcome.request.generation);
+    if (!context || this.routeCoordinatesKey !== context.key) return;
+    this.routeCalculationStartedAtMs = 0;
+    const currentPosition = this.currentReservationTrackingPoint();
+    const responseAgeMs = Date.now() - context.requestedAtMs;
+    const originDriftMeters = currentPosition
+      ? this.geo.distanceMetersBetweenPoints(currentPosition, {
+          lat: context.provider[0],
+          lng: context.provider[1],
+        })
+      : 0;
+    if (
+      responseAgeMs > ROUTE_RESPONSE_MAX_ORIGIN_AGE_MS ||
+      originDriftMeters > ROUTE_RESPONSE_MAX_ORIGIN_DRIFT_METERS
+    ) {
+      this.finishFailedRouteRequest(context, 300);
+      return;
+    }
+    if ('error' in outcome) {
+      this.routeRequestBlockedUntilMs = Date.now() + 750;
+      this.finishFailedRouteRequest(context, 650);
+      return;
+    }
+
+    const routes = this.routeService.mapGoogleRoutes(outcome.result);
+    const route = routes[0];
+    if (
+      !route ||
+      !this.geo.isCoordinateInSenegal(context.provider[0], context.provider[1]) ||
+      !this.geo.isCoordinateInSenegal(context.destination[0], context.destination[1])
+    ) {
+      this.finishFailedRouteRequest(context, 650);
+      return;
+    }
+
+    const installedRoutes = routes.map((candidate, index) => ({
+      ...candidate,
+      id: `route-${index}`,
+    }));
+    // Installation atomique : route active, options et metriques changent
+    // ensemble. Le renderer remappe sa position visible sans redemarrer ses RAF.
+    this.routeOptions = installedRoutes;
+    this.routeDestinationKey = this.geo.routePointKey(context.destination);
+    this.selectedRouteId.set('route-0');
+    this.applySelectedRoute(installedRoutes[0]);
+    this.routeMatchMode = context.fastReroute ? 'JOINING_ROUTE' : 'MATCHED';
+    if (context.fastReroute) {
+      this.resetRouteJoiningConfirmation();
+      this.startRouteJoiningTimer();
+    } else {
+      this.clearRouteJoiningTimer();
+    }
+    this.refreshRouteAlternatives();
+    this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+    this.clearNavigationRetry(!context.fastReroute);
+    this.updateGoogleMaps();
+    this.announceNavigationInstruction();
+  }
+
+  private finishFailedRouteRequest(
+    context: { fastReroute: boolean },
+    retryDelayMs: number,
+  ): void {
+    this.clearRouteJoiningTimer();
+    this.routeCoordinatesKey = '';
+    this.routeRequestedDestinationKey = '';
+    this.routeCalculationStartedAtMs = 0;
+    const hasUsableRoute = this.routeCoordinates.length > 1;
+    this.routeStatus.set(hasUsableRoute ? 'ready' : 'unavailable');
+    this.routeMatchMode = context.fastReroute
+      ? 'REROUTING'
+      : hasUsableRoute
+        ? 'MATCHED'
+        : 'REROUTING';
+    this.scheduleNavigationRetry(retryDelayMs);
   }
 
   private applySelectedRoute(route: AppointmentRouteOption | undefined): void {
@@ -4363,6 +4670,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private clearNavigationRouteAfterArrival(): void {
+    this.clearRouteJoiningTimer();
     this.routeDistanceKm.set(0);
     this.routeDurationMinutes.set(0);
     this.routeCoordinates = [];
@@ -4464,8 +4772,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }, 0);
   }
 
-  private scheduleNavigationRetry(): void {
-    if (this.navigationRetryTimeoutId !== undefined) return;
+  private scheduleNavigationRetry(delayMs = 2_600): void {
+    if (
+      this.navigationRetryTimeoutId !== undefined ||
+      this.navigationRetryAttempts >= ROUTE_RETRY_LIMIT
+    ) return;
+    this.navigationRetryAttempts += 1;
 
     this.navigationRetryTimeoutId = window.setTimeout(() => {
       this.navigationRetryTimeoutId = undefined;
@@ -4485,17 +4797,37 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
 
       this.routeRequestBlockedUntilMs = 0;
-      this.updateGoogleMaps();
-    }, 2_600);
+      const destination = this.destinationCoordinates();
+      const latitude = this.trackingLatitude();
+      const longitude = this.trackingLongitude();
+      if (
+        destination &&
+        latitude !== null &&
+        longitude !== null &&
+        this.geo.isCoordinateInSenegal(latitude, longitude)
+      ) {
+        this.routeCoordinatesKey = '';
+        this.loadRouteCoordinates(
+          [latitude, longitude],
+          [destination.lat, destination.lng],
+          this.routeCoordinates.length > 1,
+          this.routeMatchMode === 'REROUTING' || this.routeMatchMode === 'JOINING_ROUTE',
+        );
+      } else {
+        this.updateGoogleMaps();
+      }
+    }, delayMs);
   }
 
-  private clearNavigationRetry(): void {
+  private clearNavigationRetry(resetAttempts = true): void {
+    if (resetAttempts) this.navigationRetryAttempts = 0;
     if (this.navigationRetryTimeoutId === undefined) return;
     window.clearTimeout(this.navigationRetryTimeoutId);
     this.navigationRetryTimeoutId = undefined;
   }
 
   private clearResolvedDestination(): void {
+    this.clearRouteJoiningTimer();
     this.destinationCoordinates.set(null);
     this.destinationStatus.set('idle');
     this.routeStatus.set('idle');

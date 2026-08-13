@@ -46,6 +46,9 @@ export type GoogleMapsOverlayViewInstance = {
   setMap: (map: GoogleMapsMapInstance | null) => void;
   getProjection: () => {
     fromLatLngToDivPixel: (point: GoogleMapsPoint) => GoogleMapsPixel | null;
+    fromDivPixelToLatLng: (
+      pixel: GoogleMapsPixel,
+    ) => GoogleMapsPoint | { lat: () => number; lng: () => number } | null;
   } | null;
   onAdd: () => void;
   draw: () => void;

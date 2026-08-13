@@ -1,9 +1,10 @@
 import { GoogleMapsPoint } from '../../../shared/maps/google-maps-loader.service';
 
 export const NAVIGATION_CAMERA_CONFIG = {
-  zoom: { near: 19.8, far: 18.15, speedCapKmh: 130, maneuverBoost: 0.42 },
-  tilt: { low: 67, high: 60, speedCapKmh: 100, maneuverReduction: 5 },
-  lookAhead: { minMeters: 14, maxMeters: 180, speedCapKmh: 130, routeWeight: 0.56 },
+  zoom: { near: 19.7, far: 17.6, speedCapKmh: 130, maneuverBoost: 0.2 },
+  tilt: { low: 67, high: 64, speedCapKmh: 100, maneuverReduction: 3 },
+  lookAhead: { minMeters: 14, maxMeters: 145, speedCapKmh: 130 },
+  viewport: { compactHeightPx: 560, compactLookAheadFactor: 0.82, tallLookAheadFactor: 1.08 },
   accuracy: { excellentMeters: 10, goodMeters: 25, degradedMeters: 50, poorMeters: 100 },
   speedSmoothing: 0.28,
   maneuver: { nearMeters: 35, approachMeters: 180 },
@@ -20,6 +21,8 @@ export type NavigationCameraInput = {
   futureRouteBearingDegrees?: number | null;
   routeConfidence?: number | null;
   nextManeuverDistanceMeters?: number | null;
+  viewportWidthPx?: number | null;
+  viewportHeightPx?: number | null;
 };
 
 export type NavigationCameraDecision = {
@@ -51,10 +54,14 @@ export class NavigationCameraEngine {
     const speedProgress = smoothstep(
       clamp(speed / NAVIGATION_CAMERA_CONFIG.lookAhead.speedCapKmh, 0, 1),
     );
+    const viewportFactor = this.viewportLookAheadFactor(
+      input.viewportWidthPx,
+      input.viewportHeightPx,
+    );
     const lookAheadMeters =
       (NAVIGATION_CAMERA_CONFIG.lookAhead.minMeters +
         (NAVIGATION_CAMERA_CONFIG.lookAhead.maxMeters - NAVIGATION_CAMERA_CONFIG.lookAhead.minMeters) * speedProgress) *
-      confidenceFactor;
+      confidenceFactor * viewportFactor;
     const maneuverProgress = maneuverProximity(input.nextManeuverDistanceMeters);
     const headingDegrees = this.cameraHeading(input, speed, confidence);
     const target = this.targetFor(
@@ -136,8 +143,13 @@ export class NavigationCameraEngine {
         curvatureProgress * NAVIGATION_CAMERA_CONFIG.curvature.maxHeadingWeight;
       anticipatedRouteBearing = normalizeHeading(routeBearing + turnDelta * anticipationWeight);
     }
-    const routeIsReliableForDriving =
-      speedKmh >= 12 && routeConfidence >= 0.65;
+    // En navigation, une route bien matchee reste la reference visuelle meme
+    // a faible vitesse. Le telephone peut etre tenu de travers alors que le
+    // vehicule est toujours aligne sur la chaussee.
+    // Une route fortement matchee reste la reference du cap jusque dans les
+    // ralentissements et au point de depart. Sinon le compas du telephone
+    // peut orienter la vue de travers avant les premiers metres du trajet.
+    const routeIsReliableForDriving = routeConfidence >= 0.75;
     const candidate = routeIsReliableForDriving
       ? anticipatedRouteBearing
       : confidence === 'UNRELIABLE'
@@ -145,6 +157,19 @@ export class NavigationCameraEngine {
         : input.headingDegrees +
           shortestAngleDelta(input.headingDegrees, anticipatedRouteBearing) * routeWeight;
     return this.smoothHeading(candidate, speedKmh);
+  }
+
+  private viewportLookAheadFactor(
+    widthPx: number | null | undefined,
+    heightPx: number | null | undefined,
+  ): number {
+    if (!widthPx || !heightPx || widthPx <= 0 || heightPx <= 0) return 1;
+    if (heightPx < NAVIGATION_CAMERA_CONFIG.viewport.compactHeightPx) {
+      return NAVIGATION_CAMERA_CONFIG.viewport.compactLookAheadFactor;
+    }
+    return heightPx / widthPx >= 1.65
+      ? NAVIGATION_CAMERA_CONFIG.viewport.tallLookAheadFactor
+      : 1;
   }
 
   private smoothHeading(candidateDegrees: number, speedKmh: number): number {
@@ -172,15 +197,11 @@ export class NavigationCameraEngine {
       this.pendingLargeHeadingDegrees = null;
       this.pendingLargeHeadingConfirmations = 0;
     }
-    // Une mise a jour GPS ne peut pas faire pivoter la camera de facon
-    // arbitraire. Les vrais virages restent anticipes par la route future,
-    // mais les inversions de cap GPS/segment sont fortement bornees.
-    const maxStepDegrees = speedKmh >= 20 ? 24 : 32;
-    const boundedDelta = clamp(delta, -maxStepDegrees, maxStepDegrees);
-    const response = speedKmh >= 20 ? 0.55 : 0.68;
-    this.smoothedHeadingDegrees = normalizeHeading(
-      this.smoothedHeadingDegrees + boundedDelta * response,
-    );
+    // Le moteur valide la cible mais ne lisse pas une seconde fois. Le RAF
+    // renderer est l'unique proprietaire de la convergence visuelle et de la
+    // vitesse angulaire. Une grande inversion isolee reste rejetee ci-dessus.
+    void speedKmh;
+    this.smoothedHeadingDegrees = candidate;
     this.pendingLargeHeadingDegrees = null;
     this.pendingLargeHeadingConfirmations = 0;
     return this.smoothedHeadingDegrees;
@@ -218,12 +239,10 @@ export class NavigationCameraEngine {
     routeTarget: GoogleMapsPoint | null,
   ): GoogleMapsPoint {
     const targetPoint = routeTarget ?? pointAtBearing(position, headingDegrees, lookAheadMeters);
-    const routeWeight =
-      NAVIGATION_CAMERA_CONFIG.lookAhead.routeWeight + maneuverProgress * 0.18;
-    return {
-      lat: position.lat + (targetPoint.lat - position.lat) * routeWeight,
-      lng: position.lng + (targetPoint.lng - position.lng) * routeWeight,
-    };
+    // La distance de look-ahead est deja calibree selon vitesse, viewport et
+    // confiance. La cible finale ne doit pas etre reduite une seconde fois.
+    void maneuverProgress;
+    return targetPoint;
   }
 }
 

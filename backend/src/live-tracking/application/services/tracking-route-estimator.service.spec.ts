@@ -114,4 +114,27 @@ describe('TrackingRouteEstimatorService', () => {
     expect(geocode.execute).toHaveBeenCalledTimes(1);
     expect(routes.execute).toHaveBeenCalledTimes(1);
   });
+
+  it('does not reuse a cached route from an older journey session', async () => {
+    const geocode = {
+      execute: jest
+        .fn()
+        .mockResolvedValue({ latitude: 14.6937, longitude: -17.4441 }),
+    } as unknown as jest.Mocked<GeocodeAddressUseCase>;
+    const routes = {
+      execute: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<ComputeRoutesUseCase>;
+    const service = new TrackingRouteEstimatorService(geocode, routes);
+
+    await service.enrich(tracking, 'Dakar Plateau');
+    await service.enrich(
+      {
+        ...tracking,
+        startedAt: new Date(tracking.startedAt!.getTime() + 60_000),
+      },
+      'Dakar Plateau',
+    );
+
+    expect(routes.execute).toHaveBeenCalledTimes(2);
+  });
 });

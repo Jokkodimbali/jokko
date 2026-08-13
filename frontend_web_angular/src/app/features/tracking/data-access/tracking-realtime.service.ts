@@ -37,6 +37,22 @@ export type TrackingLocationPublishResult = {
   tracking: AppointmentTrackingView | null;
 };
 
+export type TrackingLocationEvent = {
+  reservationId: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedKmh: number | null;
+  positionTimestamp: string;
+};
+
+export type TrackingRouteMetadataEvent = {
+  reservationId: string;
+  positionTimestamp: string;
+  route: NonNullable<AppointmentTrackingView['route']>;
+};
+
 export type TrackingRouteSelection = {
   reservationId: string;
   routeId: string;
@@ -63,6 +79,8 @@ export class TrackingRealtimeService {
   private readonly authSession = inject(AuthSessionService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly updates = new Subject<AppointmentTrackingView>();
+  private readonly locationUpdates = new Subject<TrackingLocationEvent>();
+  private readonly routeMetadataUpdates = new Subject<TrackingRouteMetadataEvent>();
   private readonly missionUpdates = new Subject<TrackingMissionEvent>();
   private readonly routeSelections = new Subject<TrackingRouteSelection>();
   private readonly connectionState = new BehaviorSubject<TrackingConnectionState>('disconnected');
@@ -73,6 +91,8 @@ export class TrackingRealtimeService {
   readonly connectionState$ = this.connectionState.asObservable();
   readonly missionUpdated$ = this.missionUpdates.asObservable();
   readonly routeSelected$ = this.routeSelections.asObservable();
+  readonly locationUpdated$ = this.locationUpdates.asObservable();
+  readonly routeMetadataUpdated$ = this.routeMetadataUpdates.asObservable();
 
   watchReservation(reservationId: string): Observable<AppointmentTrackingView> {
     this.reservationIds.add(reservationId);
@@ -182,8 +202,11 @@ export class TrackingRealtimeService {
     this.socket.on('tracking.snapshot', (tracking: AppointmentTrackingView) =>
       this.updates.next(tracking),
     );
-    this.socket.on('tracking.location.updated', (tracking: AppointmentTrackingView) =>
-      this.updates.next(tracking),
+    this.socket.on('tracking.location.updated', (location: TrackingLocationEvent) =>
+      this.locationUpdates.next(location),
+    );
+    this.socket.on('tracking.route-metadata.updated', (metadata: TrackingRouteMetadataEvent) =>
+      this.routeMetadataUpdates.next(metadata),
     );
     this.socket.on('tracking.mission.updated', (event: TrackingMissionEvent) => {
       this.missionUpdates.next(event);

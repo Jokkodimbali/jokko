@@ -57,6 +57,33 @@ describe('NavigationCameraEngine - navigation contracts', () => {
     expect(fast.tilt).toBeLessThan(slow.tilt);
   });
 
+  it('widens the driver-facing view at motorway speed', () => {
+    const decision = new NavigationCameraEngine().decide(input({ speedKmh: 130 }));
+
+    expect(decision.zoom).toBeLessThanOrEqual(17.8);
+    expect(decision.tilt).toBeGreaterThanOrEqual(64);
+    expect(decision.lookAheadMeters).toBeGreaterThanOrEqual(140);
+  });
+
+  it.each([20, 50, 85, 130])('progressively exposes more route at %i km/h', (speedKmh) => {
+    const decision = new NavigationCameraEngine().decide(input({ speedKmh }));
+
+    expect(decision.lookAheadMeters).toBeGreaterThan(14);
+    expect(decision.zoom).toBeGreaterThanOrEqual(17.6);
+    expect(decision.zoom).toBeLessThanOrEqual(19.7);
+  });
+
+  it('adapts look-ahead to compact and tall viewport ratios', () => {
+    const compact = new NavigationCameraEngine().decide(
+      input({ viewportWidthPx: 900, viewportHeightPx: 500 }),
+    );
+    const tall = new NavigationCameraEngine().decide(
+      input({ viewportWidthPx: 390, viewportHeightPx: 844 }),
+    );
+
+    expect(tall.lookAheadMeters).toBeGreaterThan(compact.lookAheadMeters);
+  });
+
   it('reduces look-ahead when accuracy is unreliable', () => {
     const accurate = new NavigationCameraEngine().decide(input({ accuracyMeters: 5 }));
     const unreliable = new NavigationCameraEngine().decide(input({ accuracyMeters: 140 }));
@@ -77,6 +104,23 @@ describe('NavigationCameraEngine - navigation contracts', () => {
 
     expect(decision.headingDegrees).toBeGreaterThan(0);
     expect(decision.headingDegrees).toBeLessThan(turn);
+  });
+
+  it('keeps successive roundabout bearings bounded without oscillation', () => {
+    const engine = new NavigationCameraEngine();
+    const headings = [0, 45, 90, 135, 180].map((futureRouteBearingDegrees) =>
+      engine.decide(
+        input({
+          speedKmh: 30,
+          headingDegrees: 0,
+          routeBearingDegrees: 0,
+          futureRouteBearingDegrees,
+        }),
+      ).headingDegrees,
+    );
+
+    expect(headings.every((heading) => heading >= 0 && heading <= 180)).toBe(true);
+    expect(headings.at(-1)).toBeGreaterThanOrEqual(headings[0] ?? 0);
   });
 
   it('adapts zoom and tilt progressively near a maneuver', () => {
@@ -100,6 +144,34 @@ describe('NavigationCameraEngine - navigation contracts', () => {
     expect(headings.every((heading) => Math.abs(shortestAngleDelta(heading, 90)) < 1)).toBe(true);
   });
 
+  it('keeps the driver view facing a confidently matched road at low speed', () => {
+    const decision = new NavigationCameraEngine().decide(
+      input({
+        headingDegrees: 210,
+        speedKmh: 5,
+        routeBearingDegrees: 90,
+        futureRouteBearingDegrees: 90,
+        routeConfidence: 0.95,
+      }),
+    );
+
+    expect(decision.headingDegrees).toBeCloseTo(90, 6);
+  });
+
+  it('faces the matched route immediately at departure before the vehicle moves', () => {
+    const decision = new NavigationCameraEngine().decide(
+      input({
+        headingDegrees: 210,
+        speedKmh: 0,
+        routeBearingDegrees: 90,
+        futureRouteBearingDegrees: 90,
+        routeConfidence: 0.95,
+      }),
+    );
+
+    expect(decision.headingDegrees).toBeCloseTo(90, 6);
+  });
+
   it('requires confirmation before accepting a large route-bearing inversion', () => {
     const engine = new NavigationCameraEngine();
     const initial = engine.decide(input({ speedKmh: 70 }));
@@ -115,7 +187,7 @@ describe('NavigationCameraEngine - navigation contracts', () => {
     expect(isolatedInversion.headingDegrees).toBe(initial.headingDegrees);
   });
 
-  it('accepts a confirmed real direction change progressively without overshoot', () => {
+  it('publishes a confirmed real direction target for the renderer RAF without overshoot', () => {
     const engine = new NavigationCameraEngine();
     const headings = [90, 180, 180, 180, 180].map((routeBearingDegrees) =>
       engine.decide(
@@ -129,8 +201,7 @@ describe('NavigationCameraEngine - navigation contracts', () => {
     );
 
     expect(headings[1]).toBe(headings[0]);
-    expect(headings.slice(2).every((heading) => heading >= 90 && heading <= 180)).toBe(true);
-    expect(headings.at(-1)).toBeGreaterThan(headings[1] ?? 180);
+    expect(headings.slice(2).every((heading) => heading === 180)).toBe(true);
   });
 
   it('keeps route priority while driving but compass priority at low confidence and speed', () => {

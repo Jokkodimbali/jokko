@@ -57,11 +57,22 @@ import { TrackingArrivalStateService } from '../../../../tracking/state/tracking
 import { TrackingScenarioStateService } from '../../../../tracking/state/tracking-scenario-state.service';
 import { TrackingScenarioViewContext } from '../../../../tracking/state/scenarios/tracking-scenario.types';
 import { TrackingStore } from '../../../../tracking/state/tracking.store';
+import {
+  RouteRecalculationController,
+  RouteRecalculationResult,
+} from './route-recalculation.controller';
+import { GoogleMapsRouteResult } from '../../../../../shared/maps/google-maps-loader.service';
 
 type MapCoordinate = { lat: number; lng: number };
 type TrackingStepView = AppointmentTrackingStep;
 type MedicalRecordKind = 'act' | 'vaccine' | 'treatment';
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
+type RouteMatchMode = 'MATCHED' | 'SUSPECTED_OFF_ROUTE' | 'REROUTING' | 'JOINING_ROUTE';
+type RouteRequestInput = {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+  alternatives?: boolean;
+};
 
 const COMMON_MEDICAL_ACTS = [
   'Consultation de medecine generale',
@@ -90,8 +101,11 @@ const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const GPS_RECOVERY_DELAY_MS = 5_000;
-const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 1_000;
-const ROUTE_RECALCULATION_STALE_AFTER_MS = 1_200;
+const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 3_000;
+const ROUTE_RECALCULATION_STALE_AFTER_MS = 6_000;
+const ROUTE_REQUEST_TIMEOUT_MS = 4_500;
+const ROUTE_RESPONSE_MAX_ORIGIN_AGE_MS = 8_000;
+const ROUTE_RESPONSE_MAX_ORIGIN_DRIFT_METERS = 80;
 const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
   {
@@ -207,6 +221,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeRequestBlockedUntilMs = 0;
   private routeDeviationRecalculationBlockedUntilMs = 0;
   private routeDeviationConfirmations = 0;
+  private routeMatchMode: RouteMatchMode = 'MATCHED';
+  private lastOffRouteEvaluatedPositionTimestampMs: number | null = null;
   private routeCalculationStartedAtMs = 0;
   private routeSessionStartedAtMs = 0;
   private parcelDropoffTrackingPrepared = false;
@@ -215,6 +231,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
   private navigationRetryTimeoutId?: number;
+  private readonly routeRecalculation = new RouteRecalculationController<
+    RouteRequestInput,
+    GoogleMapsRouteResult[]
+  >(
+    (input) => this.appointmentsService.computeRoutes(input),
+    (result) => this.applyRouteRecalculationResult(result),
+    ROUTE_REQUEST_TIMEOUT_MS,
+  );
+  private readonly routeRequestContext = new Map<
+    number,
+    {
+      provider: [number, number];
+      destination: [number, number];
+      key: string;
+      preserveCurrentRoute: boolean;
+      fastReroute: boolean;
+      requestedAtMs: number;
+    }
+  >();
   private medicalPrescriptionSaveVersion = 0;
   private medicalPrescriptionDraftDirty = false;
   private readonly refreshParcelCheckpoints = (): void => {
@@ -1294,6 +1329,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       clearInterval(this.elapsedClockInterval);
     }
     this.clearNavigationRetry();
+    this.routeRecalculation.destroy();
     this.clearLocationRecovery();
     this.trackingStore.reset();
   }
@@ -2292,6 +2328,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected toggleMapPerspective(): void {
     if (!this.isRouteActorViewer()) return;
 
+    if (!this.isMapTopView() && this.mapRenderer.getCameraMode() === 'FREE') {
+      this.mapRenderer.recenterNavigationCamera();
+      window.setTimeout(() => this.updateGoogleMaps(), 60);
+      return;
+    }
+
     this.isMapTopView.update((enabled) => !enabled);
     this.persistMapPerspective();
     this.mapRenderer.setTopView(this.isMapTopView());
@@ -3261,6 +3303,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     const serverRoute = acceptedTracking.route;
     if (serverRoute) {
+      const serverRoutePositionAt = serverRoute.positionTimestamp
+        ? Date.parse(serverRoute.positionTimestamp)
+        : Number.NaN;
+      const acceptedPositionAt = this.trackingPositionTimestampMs(acceptedTracking);
+      if (
+        Number.isFinite(serverRoutePositionAt) &&
+        acceptedPositionAt !== null &&
+        serverRoutePositionAt < acceptedPositionAt
+      ) {
+        this.updateGoogleMaps();
+        return;
+      }
       this.routeDistanceKm.set(serverRoute.distanceRemainingMeters / 1000);
       this.routeDurationMinutes.set(
         Math.max(1, Math.round(serverRoute.durationRemainingSeconds / 60)),
@@ -3268,9 +3322,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       const serverCoordinates = serverRoute.coordinates.map(
         (coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number],
       );
-      // Les snapshots serveur enrichissent distance/ETA, mais ne doivent pas
-      // supprimer les alternatives Google deja affichees et selectionnables.
-      if (this.routeOptions.length < 2) {
+      // Pour l'acteur, la route Google locale est l'unique polyline de
+      // navigation. Le backend ne fournit ici que distance, duree et ETA.
+      if (!this.isRouteActorViewer() && this.routeOptions.length < 2) {
         this.routeCoordinates = serverCoordinates;
       }
       if (
@@ -3688,6 +3742,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       showAlternativeRoutes: this.isRouteActorViewer(),
       showManeuverMarkers: this.isRouteActorViewer(),
       routeCalculating: this.routeStatus() === 'calculating',
+      routeMatchMode: this.routeMatchMode,
       arrived: this.hasTravelerArrivedAtDestination(),
       travelerMarker: this.travelerMapMarker(),
     });
@@ -3914,6 +3969,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     trackedProvider: [number, number],
     destination: MapCoordinate,
   ): boolean {
+    const positionTimestampMs = this.trackingPositionTimestampMs(this.tracking());
+    if (
+      positionTimestampMs !== null &&
+      positionTimestampMs === this.lastOffRouteEvaluatedPositionTimestampMs
+    ) {
+      return false;
+    }
+    if (positionTimestampMs !== null) {
+      this.lastOffRouteEvaluatedPositionTimestampMs = positionTimestampMs;
+    }
     if (
       this.routeCoordinates.length < 2 ||
       Date.now() < this.routeRequestBlockedUntilMs ||
@@ -3944,6 +4009,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const dynamicDeviationThreshold = Math.max(12, Math.min(45, accuracyMeters * 0.9));
     if (deviationMeters <= dynamicDeviationThreshold) {
       this.routeDeviationConfirmations = 0;
+      if (this.routeMatchMode === 'SUSPECTED_OFF_ROUTE') this.routeMatchMode = 'MATCHED';
       return false;
     }
 
@@ -3951,16 +4017,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const reliableDeviation = accuracyMeters <= 20;
     const confirmationsRequired = severeDeviation || reliableDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
     this.routeDeviationConfirmations += 1;
+    this.routeMatchMode = 'SUSPECTED_OFF_ROUTE';
     if (this.routeDeviationConfirmations < confirmationsRequired) return false;
     this.routeDeviationConfirmations = 0;
 
     this.routeDeviationRecalculationBlockedUntilMs =
       Date.now() + ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS;
-    this.routeCoordinatesKey = '';
-    // Une deviation confirmee invalide immediatement l'ancien corridor. Le
-    // marqueur reste visible en mode recalcul pendant que la nouvelle route
-    // est demandee, au lieu de laisser un trace devenu faux a l'ecran.
-    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], false, true);
+    this.routeMatchMode = 'REROUTING';
+    // Conserver l'ancienne polyline et ses metriques comme contexte visuel,
+    // mais le renderer suit desormais le GPS reel jusqu'a la nouvelle route.
+    this.loadRouteCoordinates(trackedProvider, [destination.lat, destination.lng], true, true);
     return true;
   }
 
@@ -4214,117 +4280,92 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.routeDurationMinutes.set(null);
     }
     this.routeStatus.set('calculating');
-
-    this.appointmentsService
-      .computeRoutes({
-        origin: {
-          latitude: provider[0],
-          longitude: provider[1],
-        },
-        destination: {
-          latitude: destinationPoint[0],
-          longitude: destinationPoint[1],
-        },
-        // Lors d'une deviation, la route principale doit arriver en priorite.
-        // Les alternatives sont recuperees ensuite sans bloquer le guidage.
-        alternatives: this.isRouteActorViewer() && !fastReroute,
-      })
-      .subscribe({
-        next: (googleRoutes) => {
-          if (this.routeCoordinatesKey !== key) return;
-          this.routeCalculationStartedAtMs = 0;
-          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
-          const route = routes[0];
-          if (
-            !route ||
-            !this.geo.isCoordinateInSenegal(provider[0], provider[1]) ||
-            !this.geo.isCoordinateInSenegal(destinationPoint[0], destinationPoint[1])
-          ) {
-            if (!preserveCurrentRoute) {
-              this.routeCoordinates = [];
-              this.routeOptions = [];
-              this.routeAlternatives.set([]);
-              this.mapRenderer.resetRoute();
-            }
-            this.routeCoordinatesKey = '';
-            this.routeRequestedDestinationKey = '';
-            this.routeStatus.set(
-              preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-            );
-            return;
-          }
-
-          this.routeOptions = routes.map((candidate, index) => ({
-            ...candidate,
-            id: `route-${index}`,
-          }));
-          this.routeDestinationKey = this.geo.routePointKey(destinationPoint);
-          this.selectedRouteId.set('route-0');
-          this.applySelectedRoute(this.routeOptions[0]);
-          if (this.routeCoordinates.length < 2) {
-            this.mapRenderer.resetRoute();
-            this.routeStatus.set('unavailable');
-            return;
-          }
-
-          this.refreshRouteAlternatives();
-          this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
-          this.clearNavigationRetry();
-          this.updateGoogleMaps();
-          this.announceNavigationInstruction();
-          if (fastReroute && this.isRouteActorViewer()) {
-            this.loadRouteAlternativesInBackground(provider, destinationPoint, key);
-          }
-        },
-        error: () => {
-          if (this.routeCoordinatesKey !== key) return;
-          this.routeCalculationStartedAtMs = 0;
-          if (!preserveCurrentRoute) {
-            this.routeCoordinates = [];
-            this.routeOptions = [];
-            this.routeAlternatives.set([]);
-            this.mapRenderer.resetRoute();
-            this.routeDistanceKm.set(null);
-            this.routeDurationMinutes.set(null);
-          }
-          this.routeCoordinatesKey = '';
-          this.routeRequestedDestinationKey = '';
-          this.routeRequestBlockedUntilMs = Date.now() + 1_500;
-          this.routeStatus.set(
-            preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
-          );
-          this.scheduleNavigationRetry();
-        },
-      });
+    const input: RouteRequestInput = {
+      origin: { latitude: provider[0], longitude: provider[1] },
+      destination: { latitude: destinationPoint[0], longitude: destinationPoint[1] },
+      alternatives: this.isRouteActorViewer() && !fastReroute,
+    };
+    const requestedAtMs = Date.now();
+    const generation = this.routeRecalculation.request(
+      input,
+      { lat: provider[0], lng: provider[1] },
+      requestedAtMs,
+    );
+    this.routeRequestContext.clear();
+    this.routeRequestContext.set(generation, {
+      provider,
+      destination: destinationPoint,
+      key,
+      preserveCurrentRoute,
+      fastReroute,
+      requestedAtMs,
+    });
   }
 
-  private loadRouteAlternativesInBackground(
-    provider: [number, number],
-    destinationPoint: [number, number],
-    requestKey: string,
+  private applyRouteRecalculationResult(
+    outcome: RouteRecalculationResult<RouteRequestInput, GoogleMapsRouteResult[]>,
   ): void {
-    this.appointmentsService
-      .computeRoutes({
-        origin: { latitude: provider[0], longitude: provider[1] },
-        destination: { latitude: destinationPoint[0], longitude: destinationPoint[1] },
-        alternatives: true,
-      })
-      .subscribe({
-        next: (googleRoutes) => {
-          if (this.routeCoordinatesKey !== requestKey) return;
-          const routes = this.routeService.mapGoogleRoutes(googleRoutes);
-          if (routes.length < 2) return;
-          this.routeOptions = routes.map((candidate, index) => ({
-            ...candidate,
-            id: `route-${index}`,
-          }));
-          this.selectedRouteId.set('route-0');
-          this.applySelectedRoute(this.routeOptions[0]);
-          this.refreshRouteAlternatives();
-          this.updateGoogleMaps();
-        },
-        error: () => undefined,
-      });
+    const context = this.routeRequestContext.get(outcome.request.generation);
+    if (!context || this.routeCoordinatesKey !== context.key) return;
+    this.routeCalculationStartedAtMs = 0;
+    const currentPosition = this.currentReservationTrackingPoint();
+    const responseAgeMs = Date.now() - context.requestedAtMs;
+    const originDriftMeters = currentPosition
+      ? this.geo.distanceMetersBetweenPoints(currentPosition, {
+          lat: context.provider[0],
+          lng: context.provider[1],
+        })
+      : 0;
+    if (
+      responseAgeMs > ROUTE_RESPONSE_MAX_ORIGIN_AGE_MS ||
+      originDriftMeters > ROUTE_RESPONSE_MAX_ORIGIN_DRIFT_METERS
+    ) {
+      this.routeCoordinatesKey = '';
+      this.routeRequestedDestinationKey = '';
+      this.scheduleNavigationRetry(300);
+      return;
+    }
+    if ('error' in outcome) {
+      this.routeCoordinatesKey = '';
+      this.routeRequestedDestinationKey = '';
+      this.routeRequestBlockedUntilMs = Date.now() + 750;
+      this.routeStatus.set(
+        context.preserveCurrentRoute && this.routeCoordinates.length > 1 ? 'ready' : 'unavailable',
+      );
+      this.scheduleNavigationRetry(650);
+      return;
+    }
+
+    const routes = this.routeService.mapGoogleRoutes(outcome.result);
+    const route = routes[0];
+    if (
+      !route ||
+      !this.geo.isCoordinateInSenegal(context.provider[0], context.provider[1]) ||
+      !this.geo.isCoordinateInSenegal(context.destination[0], context.destination[1])
+    ) {
+      this.routeCoordinatesKey = '';
+      this.routeRequestedDestinationKey = '';
+      this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+      return;
+    }
+
+    const installedRoutes = routes.map((candidate, index) => ({
+      ...candidate,
+      id: `route-${index}`,
+    }));
+    // Installation atomique : route active, options et metriques changent
+    // ensemble. Le renderer remappe sa position visible sans redemarrer ses RAF.
+    this.routeOptions = installedRoutes;
+    this.routeDestinationKey = this.geo.routePointKey(context.destination);
+    this.selectedRouteId.set('route-0');
+    this.applySelectedRoute(installedRoutes[0]);
+    this.routeMatchMode = context.fastReroute ? 'JOINING_ROUTE' : 'MATCHED';
+    this.refreshRouteAlternatives();
+    this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
+    this.clearNavigationRetry();
+    this.updateGoogleMaps();
+    this.routeMatchMode = 'MATCHED';
+    this.announceNavigationInstruction();
   }
 
   private applySelectedRoute(route: AppointmentRouteOption | undefined): void {
@@ -4464,7 +4505,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }, 0);
   }
 
-  private scheduleNavigationRetry(): void {
+  private scheduleNavigationRetry(delayMs = 2_600): void {
     if (this.navigationRetryTimeoutId !== undefined) return;
 
     this.navigationRetryTimeoutId = window.setTimeout(() => {
@@ -4486,7 +4527,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
       this.routeRequestBlockedUntilMs = 0;
       this.updateGoogleMaps();
-    }, 2_600);
+    }, delayMs);
   }
 
   private clearNavigationRetry(): void {

@@ -576,7 +576,7 @@ export class LiveTrackingCommandService {
     ) {
       return;
     }
-    this.realtimeEvents.emit('live-tracking.location.updated', enriched);
+    this.realtimeEvents.emit('live-tracking.route-metadata.updated', enriched);
     await this.eventBus.publier(
       new ProviderLocationUpdatedEvent({
         reservationId: tracking.reservationId,

@@ -185,6 +185,9 @@ export class TrackingRealtimeService {
     this.socket.on('tracking.location.updated', (tracking: AppointmentTrackingView) =>
       this.updates.next(tracking),
     );
+    this.socket.on('tracking.route-metadata.updated', (tracking: AppointmentTrackingView) =>
+      this.updates.next(tracking),
+    );
     this.socket.on('tracking.mission.updated', (event: TrackingMissionEvent) => {
       this.missionUpdates.next(event);
       this.subscribeToReservation(event.reservationId);

@@ -186,6 +186,7 @@ export interface AppointmentTrackingView {
     distanceRemainingMeters: number;
     durationRemainingSeconds: number;
     estimatedArrivalAt: string;
+    positionTimestamp?: string;
     encodedPolyline: string;
     coordinates: Array<{ latitude: number; longitude: number }>;
     navigationSteps?: Array<{

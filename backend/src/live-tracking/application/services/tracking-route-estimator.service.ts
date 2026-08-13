@@ -5,6 +5,7 @@ import type { ReservationTrackingView } from '../ports/live-tracking-repository.
 
 const ROUTE_RECOMPUTE_MIN_INTERVAL_MS = 4_000;
 const ROUTE_RECOMPUTE_MIN_DISTANCE_METERS = 40;
+const ROUTE_ESTIMATION_TIMEOUT_MS = 4_500;
 
 @Injectable()
 export class TrackingRouteEstimatorService {
@@ -37,6 +38,7 @@ export class TrackingRouteEstimatorService {
 
     const journeyKey = this.journeyKey(
       tracking.reservationId,
+      tracking.startedAt,
       destinationAddress,
     );
     const recent = this.recentRouteByJourney.get(journeyKey);
@@ -54,6 +56,7 @@ export class TrackingRouteEstimatorService {
     const routePromise = this.estimateRoute(
       tracking.lastLatitude,
       tracking.lastLongitude,
+      tracking.lastPositionAt,
       destinationAddress,
     );
     this.recentRouteByJourney.set(journeyKey, {
@@ -70,17 +73,20 @@ export class TrackingRouteEstimatorService {
   private async estimateRoute(
     latitude: number,
     longitude: number,
+    positionAt: Date | null,
     destinationAddress: string,
   ): Promise<ReservationTrackingView['route']> {
     try {
       const destination = await this.geocodeAddress.execute(destinationAddress);
       if (!destination) return null;
 
-      const routes = await this.computeRoutes.execute({
-        origin: { latitude, longitude },
-        destination,
-        alternatives: false,
-      });
+      const routes = await this.withTimeout(
+        this.computeRoutes.execute({
+          origin: { latitude, longitude },
+          destination,
+          alternatives: false,
+        }),
+      );
       const route = routes[0];
       if (!route) return null;
 
@@ -90,6 +96,7 @@ export class TrackingRouteEstimatorService {
         estimatedArrivalAt: new Date(
           Date.now() + route.durationSeconds * 1000,
         ).toISOString(),
+        positionTimestamp: (positionAt ?? new Date()).toISOString(),
         encodedPolyline: route.encodedPolyline,
         coordinates: route.coordinates,
         navigationSteps: route.navigationSteps,
@@ -101,9 +108,33 @@ export class TrackingRouteEstimatorService {
 
   private journeyKey(
     reservationId: string,
+    startedAt: Date | null,
     destinationAddress: string,
   ): string {
-    return `${reservationId}|${destinationAddress.trim().toLocaleLowerCase('fr')}`;
+    return `${reservationId}|${startedAt?.toISOString() ?? 'no-session'}|${destinationAddress.trim().toLocaleLowerCase('fr')}`;
+  }
+
+  private withTimeout<T>(operation: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(
+        () => reject(new Error('Route estimation timeout')),
+        ROUTE_ESTIMATION_TIMEOUT_MS,
+      );
+      operation.then(
+        (value) => {
+          clearTimeout(timeoutId);
+          resolve(value);
+        },
+        (error: unknown) => {
+          clearTimeout(timeoutId);
+          reject(
+            error instanceof Error
+              ? error
+              : new Error('Route estimation failed'),
+          );
+        },
+      );
+    });
   }
 
   private shouldRecomputeRoute(

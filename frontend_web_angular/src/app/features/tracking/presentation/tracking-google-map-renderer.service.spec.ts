@@ -66,6 +66,31 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(snapped.lng).toBeCloseTo(0.004, 8);
     });
 
+    it('refuses to snap raw GPS that is outside the adaptive route corridor', () => {
+      const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
+        point: GoogleMapsPoint,
+        state: TrackingMapRenderState,
+      ) => GoogleMapsPoint).bind(renderer);
+      const raw = { lat: 0.0005, lng: 0.004 };
+
+      const displayed = snap(raw, { ...BASE_STATE, accuracyMeters: 8, speedKmh: 30 });
+
+      expect(displayed).toEqual(raw);
+      expect(internals['mapMatchConfidence']).toBe(0);
+    });
+
+    it('follows raw GPS instead of the obsolete route while REROUTING', () => {
+      const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
+        point: GoogleMapsPoint,
+        state: TrackingMapRenderState,
+      ) => GoogleMapsPoint).bind(renderer);
+      const raw = { lat: 0.00008, lng: 0.004 };
+
+      const displayed = snap(raw, { ...BASE_STATE, routeMatchMode: 'REROUTING' });
+
+      expect(displayed).toEqual(raw);
+    });
+
     it('keeps curved-route samples on an actual segment instead of cutting the corner', () => {
       const pointAt = (internals['pointAlongRouteAtDistance'] as (
         route: GoogleMapsPoint[],
@@ -134,9 +159,9 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       animate(marker, { lat: 0.00002, lng: 0.0015 }, 90, 50, 8, 2_000, newRoute);
 
       expect(internals['currentMarkerVelocityMps']).toBe(12);
-      expect(internals['renderedRouteProgressKey']).toBe('old');
-      expect(internals['pendingMarkerRoute']).not.toBeNull();
-      expect(internals['markerRouteCoordinates']).toEqual([]);
+      expect(internals['renderedRouteProgressKey']).not.toBe('old');
+      expect(internals['markerRouteCoordinates']).toEqual(newRoute.coordinates);
+      expect(internals['markerFreeTarget']).toBeNull();
     });
 
     it('follows live GPS continuously while rerouting has no polyline yet', () => {
@@ -166,7 +191,7 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect((marker.position as GoogleMapsPoint).lng).toBeGreaterThan(0);
     });
 
-    it('joins the recalculated route through bounded RAF frames without teleporting', () => {
+    it('reattaches immediately to the recalculated route reference', () => {
       const frames: FrameRequestCallback[] = [];
       vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
         frames.push(callback);
@@ -199,8 +224,8 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       );
 
       expect(marker.position).toEqual(displayed);
-      expect(internals['markerRouteCoordinates']).toEqual([]);
-      expect(internals['pendingMarkerRoute']).not.toBeNull();
+      expect(internals['markerRouteCoordinates']).toEqual(rerouted.coordinates);
+      expect(internals['markerFreeTarget']).toBeNull();
       expect(internals['currentMarkerVelocityMps']).toBe(9);
 
       frames.shift()?.(0);
@@ -234,6 +259,17 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
         expect(hold(movement as number, speed as number | null, accuracy as number)).toBe(expected);
       },
     );
+
+    it('treats low iPhone speed noise as stationary without real displacement', () => {
+      const hold = internals['shouldHoldMarkerPosition'] as (
+        movementMeters: number,
+        speedKmh: number,
+        accuracyMeters: number,
+      ) => boolean;
+
+      expect(hold(2, 5, 8)).toBe(true);
+      expect(hold(15, 5, 8)).toBe(false);
+    });
 
     it('predicts normally, fades between 250 and 500 ms overdue, then stops', () => {
       internals['lastMarkerGpsReceivedAt'] = 0;
@@ -360,6 +396,28 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(anchors).toEqual([rendered]);
     });
 
+    it('keeps OVERVIEW bounds on the complete route while the visible route is trimmed', () => {
+      const rendered = { lat: 0, lng: 0.004 };
+      const fittedRoutes: TrackingMapRenderState['routes'][] = [];
+      internals['google'] = {};
+      internals['routeMap'] = { setOptions: () => undefined };
+      internals['topViewEnabled'] = true;
+      internals['upsertProviderMarker'] = () => ({ position: rendered });
+      internals['upsertDestinationMarker'] = () => undefined;
+      internals['renderRoutes'] = () => undefined;
+      internals['fitRoute'] = (
+        _provider: GoogleMapsPoint,
+        _destination: GoogleMapsPoint,
+        routes: TrackingMapRenderState['routes'],
+      ) => fittedRoutes.push(routes);
+      internals['refreshRenderedTravelerMarker'] = () => undefined;
+
+      renderer.render({ ...BASE_STATE, provider: rendered });
+
+      expect(fittedRoutes).toHaveLength(1);
+      expect(fittedRoutes[0]?.[0]?.coordinates).toEqual(STRAIGHT_ROUTE);
+    });
+
     it('erases the traveled route at exactly the marker metric progress', () => {
       const outlineSetPath = vi.fn();
       const routeSetPath = vi.fn();
@@ -473,13 +531,14 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(frames).toHaveLength(1);
     });
 
-    it('keeps one camera RAF when camera targets change', () => {
+    it('keeps one permanent camera RAF while navigation updates its target', () => {
       const frames: FrameRequestCallback[] = [];
       vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
         frames.push(callback);
         return frames.length;
       });
-      internals['routeMap'] = { moveCamera: vi.fn() };
+      const moveCamera = vi.fn();
+      internals['routeMap'] = { moveCamera };
       internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
       const follow = (internals['animateFollowCamera'] as Function).bind(renderer);
 
@@ -487,8 +546,79 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       follow({ lat: 0, lng: 0.002 }, 1, 50, 2_000);
 
       expect(frames).toHaveLength(1);
+      expect(moveCamera).toHaveBeenCalledTimes(1);
       frames.shift()?.(16);
+      expect(moveCamera).toHaveBeenCalledTimes(2);
       expect(frames).toHaveLength(1);
+    });
+
+    it('does not let the camera finish an old look-ahead after the vehicle stops', () => {
+      vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
+      internals['routeMap'] = { moveCamera: vi.fn() };
+      internals['markerStationary'] = true;
+      internals['cameraAnchoredToTraveler'] = true;
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0.001 };
+      internals['renderedCameraHeading'] = 90;
+      internals['renderedCameraZoom'] = 19;
+      internals['renderedCameraTilt'] = 63;
+
+      (internals['animateFollowCamera'] as Function).call(
+        renderer,
+        { lat: 0, lng: 0.01 },
+        180,
+        0,
+        2_000,
+      );
+
+      expect(internals['cameraTargetCenter']).toEqual({ lat: 0, lng: 0.001 });
+      expect(internals['cameraTargetHeading']).toBe(90);
+      expect(internals['cameraTargetZoom']).toBe(19);
+      expect(internals['cameraTargetTilt']).toBe(63);
+    });
+
+    it('anchors the first shared GPS position even when the traveler is stationary', () => {
+      const moveCamera = vi.fn();
+      internals['routeMap'] = { moveCamera };
+      internals['markerStationary'] = true;
+      internals['cameraAnchoredToTraveler'] = false;
+      internals['renderedCameraCenter'] = { lat: 14.7167, lng: -17.4677 };
+      const departure = { lat: 14.704, lng: -17.478 };
+
+      (internals['animateFollowCamera'] as Function).call(
+        renderer,
+        departure,
+        90,
+        0,
+        1_000,
+      );
+
+      expect(moveCamera).toHaveBeenCalledWith(expect.objectContaining({ center: departure }));
+      expect(internals['renderedCameraCenter']).toEqual(departure);
+      expect(internals['cameraAnchoredToTraveler']).toBe(true);
+    });
+
+    it('applies heading directly without starting a scrolling RAF', () => {
+      const frames: FrameRequestCallback[] = [];
+      const cancel = vi.fn();
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      vi.stubGlobal('cancelAnimationFrame', cancel);
+      internals['routeMap'] = {
+        setOptions: vi.fn(),
+        moveCamera: vi.fn(),
+        getCenter: () => ({ lat: () => 0, lng: () => 0 }),
+      };
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0 };
+
+      renderer.setHeading(90);
+      renderer.setHeading(135);
+
+      expect(cancel).not.toHaveBeenCalled();
+      expect(frames).toHaveLength(0);
+      expect(internals['cameraTargetHeading']).toBe(135);
     });
 
     it('preserves a user-selected zoom in navigation view', () => {
@@ -497,18 +627,191 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(zoom()).toBe(16.25);
     });
 
-    it('temporarily suspends automatic camera movement after a user gesture', () => {
+    it('drops the global bounds center before entering driver view', () => {
+      const moveCamera = vi.fn();
+      internals['topViewEnabled'] = true;
+      internals['renderedCameraCenter'] = { lat: 14.7, lng: -17.5 };
+      internals['cameraTargetCenter'] = { lat: 14.7, lng: -17.5 };
+      internals['routeMap'] = {
+        setOptions: vi.fn(),
+        setHeading: vi.fn(),
+        setTilt: vi.fn(),
+        moveCamera,
+      };
+
+      renderer.setTopView(false);
+
+      expect(internals['renderedCameraCenter']).toBeNull();
+      expect(internals['cameraTargetCenter']).toBeNull();
+      expect(moveCamera).not.toHaveBeenCalled();
+    });
+
+    it('does not confuse an automatic RAF zoom frame with a user zoom', () => {
+      internals['cameraTargetZoom'] = 20.4;
+      internals['renderedCameraZoom'] = 20.35;
+      const shouldCapture = (internals['shouldCaptureUserZoom'] as (zoom: number) => boolean).bind(
+        renderer,
+      );
+
+      expect(shouldCapture(20.4)).toBe(false);
+      expect(shouldCapture(20.35)).toBe(false);
+      expect(shouldCapture(18)).toBe(true);
+    });
+
+    it('aligns a stationary driver view with a confidently matched route', () => {
       vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
       internals['routeMap'] = { moveCamera: vi.fn() };
-      internals['cameraTargetCenter'] = { lat: 0, lng: 0.01 };
+      internals['markerStationary'] = true;
+      internals['cameraAnchoredToTraveler'] = true;
+      internals['mapMatchConfidence'] = 0.95;
       internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
-      internals['cameraFollowSuspendedUntil'] = 5_000;
-      internals['topViewEnabled'] = false;
+      internals['renderedCameraHeading'] = 0;
 
-      (internals['runContinuousCameraFrame'] as (timestamp: number) => void)(1_000);
+      (internals['animateFollowCamera'] as Function).call(
+        renderer,
+        { lat: 0, lng: 0.01 },
+        90,
+        0,
+        2_000,
+      );
 
+      expect(internals['cameraTargetCenter']).toEqual({ lat: 0, lng: 0 });
+      expect(internals['cameraTargetHeading']).toBe(90);
+    });
+
+    it('enters FREE after a gesture and ignores subsequent GPS camera targets', () => {
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0 };
+      internals['routeMap'] = { moveCamera: vi.fn() };
+
+      (internals['enterFreeCameraMode'] as Function).call(renderer);
+      (internals['animateFollowCamera'] as Function).call(
+        renderer,
+        { lat: 0, lng: 0.01 },
+        90,
+        50,
+        2_000,
+      );
+
+      expect(renderer.getCameraMode()).toBe('FREE');
+      expect(internals['cameraTargetCenter']).toEqual({ lat: 0, lng: 0 });
       expect((internals['routeMap'] as { moveCamera: ReturnType<typeof vi.fn> }).moveCamera)
         .not.toHaveBeenCalled();
+    });
+
+    it('transitions RECENTERING to FOLLOWING after converging without a jump', () => {
+      const frames: FrameRequestCallback[] = [];
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      internals['cameraMode'] = 'FREE';
+      internals['routeMap'] = { moveCamera: vi.fn() };
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0.001 };
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0.001 };
+      internals['renderedCameraHeading'] = 90;
+      internals['cameraTargetHeading'] = 90;
+      internals['cameraAnchoredToTraveler'] = true;
+
+      renderer.recenterNavigationCamera();
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0.001 };
+      internals['cameraAnchoredToTraveler'] = true;
+      (internals['ensureContinuousCameraLoop'] as Function).call(renderer);
+      frames.shift()?.(16);
+
+      expect(renderer.getCameraMode()).toBe('FOLLOWING');
+    });
+
+    it('exposes explicit OVERVIEW and ARRIVAL camera states', () => {
+      internals['routeMap'] = {
+        setOptions: vi.fn(),
+        setHeading: vi.fn(),
+        setTilt: vi.fn(),
+        moveCamera: vi.fn(),
+      };
+
+      renderer.setTopView(true);
+      expect(renderer.getCameraMode()).toBe('OVERVIEW');
+      (internals['updateCameraModeForRender'] as Function).call(renderer, true);
+      expect(renderer.getCameraMode()).toBe('ARRIVAL');
+    });
+
+    it('damps camera frames monotonically at irregular 16/33/48 ms cadence', () => {
+      const frames: FrameRequestCallback[] = [];
+      const centers: GoogleMapsPoint[] = [];
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      internals['routeMap'] = {
+        moveCamera: ({ center }: { center: GoogleMapsPoint }) => centers.push(center),
+      };
+      internals['cameraMode'] = 'FOLLOWING';
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0 };
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0.001 };
+      internals['renderedCameraHeading'] = 359;
+      internals['cameraTargetHeading'] = 1;
+      internals['cameraTargetSpeedKmh'] = 50;
+
+      (internals['ensureContinuousCameraLoop'] as Function).call(renderer);
+      for (const timestamp of [16, 49, 97]) frames.shift()?.(timestamp);
+
+      expect(centers.map((center) => center.lng)).toEqual(
+        [...centers.map((center) => center.lng)].sort((a, b) => a - b),
+      );
+      expect(centers.every((center) => center.lng <= 0.001)).toBe(true);
+      expect(internals['renderedCameraHeading']).toBeGreaterThan(359);
+    });
+
+    it('keeps the existing camera look-ahead while following free GPS during rerouting', () => {
+      const marker = { position: { lat: 0, lng: 0 }, content: document.createElement('div') };
+      internals['markerFreeTarget'] = { lat: 0, lng: 0.001 };
+      internals['cameraTargetCenter'] = { lat: 0.001, lng: 0 };
+      internals['targetMarkerVelocityMps'] = 15;
+      internals['currentMarkerVelocityMps'] = 15;
+      internals['lastMarkerGpsReceivedAt'] = 0;
+      internals['markerExpectedGpsIntervalMs'] = 1_000;
+      internals['markerStationary'] = false;
+      internals['topViewEnabled'] = false;
+
+      (internals['runFreeMarkerFrame'] as Function).call(renderer, marker, 0.05, 50);
+
+      const movedMarker = marker.position as GoogleMapsPoint;
+      const cameraTarget = internals['cameraTargetCenter'] as GoogleMapsPoint;
+      expect(movedMarker.lng).toBeGreaterThan(0);
+      expect(cameraTarget.lat).toBeCloseTo(0.001, 8);
+      expect(cameraTarget.lng).toBeCloseTo(movedMarker.lng, 8);
+    });
+
+    it('never advances the camera look-ahead while the vehicle is stationary', () => {
+      internals['topViewEnabled'] = false;
+      internals['markerStationary'] = true;
+      internals['renderedCameraCenter'] = { lat: 0, lng: 0.001 };
+      internals['cameraTargetCenter'] = { lat: 0, lng: 0.004 };
+      internals['navigationCameraDecision'] = { lookAheadMeters: 80 };
+      internals['markerRouteCoordinates'] = STRAIGHT_ROUTE;
+
+      (internals['synchronizeRouteAndCameraWithMarker'] as Function).call(
+        renderer,
+        { lat: 0, lng: 0.001 },
+        100,
+      );
+
+      expect(internals['cameraTargetCenter']).toEqual({ lat: 0, lng: 0.001 });
+    });
+
+    it('bounds a large camera recentering instead of crossing it in one frame', () => {
+      internals['cameraTargetSpeedKmh'] = 50;
+      const boundedStep = (internals['boundedCameraCenterStep'] as Function).call(
+        renderer,
+        { lat: 0, lng: 0 },
+        { lat: 0, lng: 0.01 },
+        1,
+        0.05,
+      ) as GoogleMapsPoint;
+
+      expect(boundedStep.lng).toBeGreaterThan(0);
+      expect(boundedStep.lng).toBeLessThan(0.001);
     });
   });
 });

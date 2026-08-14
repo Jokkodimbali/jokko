@@ -75,7 +75,10 @@ export class InlineFormValidationService implements OnDestroy {
   }
 
   private isInvalid(field: ValidatableField): boolean {
-    return !field.checkValidity() || field.classList.contains('ng-invalid');
+    // checkValidity() dispatches another `invalid` event. Because this service
+    // listens to that event at document level, calling it from the handler
+    // recursively re-enters validation until the browser stack overflows.
+    return !field.validity.valid || field.classList.contains('ng-invalid');
   }
 
   private displayError(field: ValidatableField): void {

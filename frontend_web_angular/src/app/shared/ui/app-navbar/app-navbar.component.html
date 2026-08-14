@@ -1,4 +1,7 @@
-<header class="app-navbar">
+<header
+  class="app-navbar"
+  [class.app-navbar--notification-featured]="!!featuredNotification()"
+>
   <!-- Brand Logo -->
   <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
     <img [src]="logo" alt="" />
@@ -86,13 +89,37 @@
           type="button"
           class="app-navbar__notification"
           [class.app-navbar__notification--open]="isNotificationsOpen()"
+          [class.app-navbar__notification--featured]="!!featuredNotification()"
           aria-label="Ouvrir les notifications"
           [attr.aria-expanded]="isNotificationsOpen()"
           aria-haspopup="menu"
-          (click)="toggleNotificationsMenu()"
+          (click)="activateNotificationButton()"
         >
-          <lucide-icon name="bell" size="22" [strokeWidth]="2.5"></lucide-icon>
-          <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
+          <ng-container *ngIf="featuredNotification() as notification; else desktopBellOnly">
+            <i class="app-navbar__notification-avatar">
+              <img
+                *ngIf="notificationAvatarUrl(notification) as avatar; else desktopNotificationIcon"
+                [src]="avatar"
+                alt=""
+              />
+              <ng-template #desktopNotificationIcon>
+                <strong>{{ notificationActorInitials(notification) }}</strong>
+              </ng-template>
+            </i>
+            <span class="app-navbar__notification-copy">
+              <small>{{ notificationTitle(notification) }}</small>
+              <strong>{{ notificationBody(notification) }}</strong>
+            </span>
+            <i class="app-navbar__notification-bell">
+              <lucide-icon name="bell" size="21" [strokeWidth]="2.5"></lucide-icon>
+            </i>
+          </ng-container>
+          <ng-template #desktopBellOnly>
+            <lucide-icon name="bell" size="22" [strokeWidth]="2.5"></lucide-icon>
+            <span *ngIf="unreadNotificationsCount() > 0" class="app-navbar__notification-badge">{{
+              notificationBadgeLabel()
+            }}</span>
+          </ng-template>
         </button>
 
         <section
@@ -286,13 +313,37 @@
     type="button"
     class="app-navbar__notification app-navbar__notification--mobile"
     [class.app-navbar__notification--open]="isNotificationsOpen()"
+    [class.app-navbar__notification--featured]="!!featuredNotification()"
     aria-label="Ouvrir les notifications"
     [attr.aria-expanded]="isNotificationsOpen()"
     aria-haspopup="menu"
-    (click)="openNotifications()"
+    (click)="activateNotificationButton()"
   >
-    <lucide-icon name="bell" size="21" [strokeWidth]="2.5"></lucide-icon>
-    <span *ngIf="unreadNotificationsCount() > 0">{{ notificationBadgeLabel() }}</span>
+    <ng-container *ngIf="featuredNotification() as notification; else mobileBellOnly">
+      <i class="app-navbar__notification-avatar">
+        <img
+          *ngIf="notificationAvatarUrl(notification) as avatar; else mobileNotificationIcon"
+          [src]="avatar"
+          alt=""
+        />
+        <ng-template #mobileNotificationIcon>
+          <strong>{{ notificationActorInitials(notification) }}</strong>
+        </ng-template>
+      </i>
+      <span class="app-navbar__notification-copy">
+        <small>{{ notificationTitle(notification) }}</small>
+        <strong>{{ notificationBody(notification) }}</strong>
+      </span>
+      <i class="app-navbar__notification-bell">
+        <lucide-icon name="bell" size="20" [strokeWidth]="2.5"></lucide-icon>
+      </i>
+    </ng-container>
+    <ng-template #mobileBellOnly>
+      <lucide-icon name="bell" size="21" [strokeWidth]="2.5"></lucide-icon>
+      <span *ngIf="unreadNotificationsCount() > 0" class="app-navbar__notification-badge">{{
+        notificationBadgeLabel()
+      }}</span>
+    </ng-template>
   </button>
 
   <section
@@ -399,15 +450,6 @@
         </div>
 
         <nav class="app-navbar__mobile-shortcuts" aria-label="Raccourcis du compte">
-          <a routerLink="/appointments" (click)="closeMobileNav()">
-            <i><lucide-icon name="calendar-days" size="23" [strokeWidth]="2.5"></lucide-icon></i>
-            <span>Rendez-vous</span>
-          </a>
-          <a routerLink="/messages" (click)="closeMobileNav()">
-            <i><lucide-icon name="message-circle" size="23" [strokeWidth]="2.5"></lucide-icon></i>
-            <span>Messages</span>
-            <b *ngIf="unreadMessagesCount() > 0">{{ messageBadgeLabel() }}</b>
-          </a>
           <a routerLink="/favorites" (click)="closeMobileNav()">
             <i><lucide-icon name="heart" size="23" [strokeWidth]="2.5"></lucide-icon></i>
             <span>Favoris</span>
@@ -415,18 +457,6 @@
           <a routerLink="/settings" (click)="closeMobileNav()">
             <i><lucide-icon name="settings" size="23" [strokeWidth]="2.5"></lucide-icon></i>
             <span>Param&egrave;tres</span>
-          </a>
-        </nav>
-
-        <nav class="app-navbar__mobile-card" aria-label="Navigation principale">
-          <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
-            <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span
-              ><strong>{{ item.label }}</strong
-              ><small>Ouvrir cette rubrique</small></span
-            >
-            <b *ngIf="navItemBadgeLabel(item)">{{ navItemBadgeLabel(item) }}</b>
-            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
           </a>
         </nav>
 
@@ -510,17 +540,43 @@
         <a routerLink="/auth/login" class="app-navbar__mobile-login" (click)="closeMobileNav()">
           Connexion
         </a>
-        <nav class="app-navbar__mobile-card">
-          <a *ngFor="let item of navItems()" [routerLink]="item.route" (click)="closeMobileNav()">
-            <i><lucide-icon [name]="item.icon" size="21" [strokeWidth]="2.4"></lucide-icon></i>
-            <span
-              ><strong>{{ item.label }}</strong
-              ><small>Découvrir Jokko</small></span
-            >
-            <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
-          </a>
-        </nav>
       </ng-template>
     </div>
   </aside>
+
+  <nav class="app-navbar__bottom-nav" aria-label="Navigation mobile principale">
+    <a
+      routerLink="/services"
+      [class.app-navbar__bottom-nav-item--active]="isActive('/services')"
+    >
+      <i><lucide-icon name="house" size="22" [strokeWidth]="2.3"></lucide-icon></i>
+      <span>Services</span>
+    </a>
+    <a
+      routerLink="/appointments"
+      [class.app-navbar__bottom-nav-item--active]="isActive('/appointments')"
+    >
+      <i><lucide-icon name="calendar-days" size="22" [strokeWidth]="2.3"></lucide-icon></i>
+      <span>RDV &amp; négociation</span>
+    </a>
+    <a
+      routerLink="/messages"
+      [class.app-navbar__bottom-nav-item--active]="isActive('/messages')"
+    >
+      <i>
+        <lucide-icon name="message-circle" size="22" [strokeWidth]="2.3"></lucide-icon>
+        <b *ngIf="unreadMessagesCount() > 0">{{ messageBadgeLabel() }}</b>
+      </i>
+      <span>Messages</span>
+    </a>
+    <a
+      [routerLink]="isAuthenticated() ? '/settings' : '/auth/login'"
+      [class.app-navbar__bottom-nav-item--active]="
+        isActive('/settings') || isActive('/auth/login')
+      "
+    >
+      <i><lucide-icon name="user-round" size="22" [strokeWidth]="2.3"></lucide-icon></i>
+      <span>{{ isAuthenticated() ? 'Paramètres' : 'Connexion' }}</span>
+    </a>
+  </nav>
 </header>

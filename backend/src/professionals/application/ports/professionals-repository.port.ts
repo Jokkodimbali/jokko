@@ -20,6 +20,7 @@ export type ProfessionalProfileView = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
+  urlBanniere: string | null;
   urlPieceIdentiteRecto: string | null;
   urlPieceIdentiteVerso: string | null;
   statutKyc: KycStatus;
@@ -104,6 +105,7 @@ export type CreateProfessionalProfileInput = {
   utilisateurId: string;
   biographie?: string | null;
   nomEntreprise?: string | null;
+  urlBanniere?: string | null;
   ville?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -119,6 +121,7 @@ export type UpdateProfessionalProfileInput = {
   utilisateurId: string;
   biographie?: string | null;
   nomEntreprise?: string | null;
+  urlBanniere?: string | null;
   ville?: string | null;
   latitude?: number | null;
   longitude?: number | null;

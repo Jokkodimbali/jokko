@@ -48,6 +48,7 @@ import {
 } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
+import { SENEGAL_CITIES } from '../../../../../shared/data/senegal-cities';
 import {
   ProviderCardComponent,
   ProviderCardView,
@@ -111,7 +112,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   showSearchSuggestions = signal<boolean>(false);
   showLocationMenu = signal<boolean>(false);
   suggestionProviders = signal<Professional[]>([]);
-  readonly cityOptions = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack'];
+  readonly cityOptions = SENEGAL_CITIES;
   protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions]);
   protected readonly locationValue = computed(() => this.selectedCity());
   protected readonly searchResultsNearLabel = computed(() =>
@@ -293,7 +294,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.loadCategories();
     this.loadFavorites();
-    this.loadHomeData();
+    this.loadDefaultProfessionals();
     this.catalogRealtimeSubscription = this.catalogRealtime
       .watchAccountStatuses()
       .subscribe((event) => this.applyCatalogAccountStatus(event));
@@ -444,8 +445,24 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   useCurrentLocation(): void {
+    this.locateCurrentClient(true);
+  }
+
+  private loadDefaultProfessionals(): void {
+    if (this.authSession.currentUser()?.role === 'CLIENT') {
+      this.locateCurrentClient(false);
+      return;
+    }
+
+    this.loadHomeData();
+  }
+
+  private locateCurrentClient(showFailureFeedback: boolean): void {
     if (!navigator.geolocation) {
-      this.feedback.error('La géolocalisation n’est pas prise en charge par ce navigateur.');
+      if (showFailureFeedback) {
+        this.feedback.error('La géolocalisation n’est pas prise en charge par ce navigateur.');
+      }
+      this.loadHomeData();
       return;
     }
 
@@ -465,11 +482,14 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       (error) => {
         this.isLocating.set(false);
-        const message =
-          error.code === error.PERMISSION_DENIED
-            ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
-            : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
-        this.feedback.error(message);
+        if (showFailureFeedback) {
+          const message =
+            error.code === error.PERMISSION_DENIED
+              ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
+              : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
+          this.feedback.error(message);
+        }
+        this.loadHomeData();
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
     );

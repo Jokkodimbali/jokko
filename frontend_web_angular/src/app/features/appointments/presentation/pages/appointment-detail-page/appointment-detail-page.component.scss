@@ -1157,6 +1157,47 @@
 }
 
 @media (max-width: 520px) {
+  .appointment-detail__modal {
+    align-items: flex-end;
+    box-sizing: border-box;
+    padding: 8px 8px 0;
+  }
+
+  .appointment-detail__modal-card,
+  .appointment-detail__review-card,
+  .appointment-detail__review-thanks {
+    border-radius: 16px 16px 0 0;
+    box-sizing: border-box;
+    max-height: calc(100dvh - 8px);
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  .appointment-detail__modal-card {
+    padding: 18px 16px max(18px, env(safe-area-inset-bottom));
+  }
+
+  .appointment-detail__modal-card h2 {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+
+  .appointment-detail__modal-card header button {
+    flex: 0 0 38px;
+  }
+
+  .appointment-detail__modal-card footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .appointment-detail__modal-card footer button {
+    width: 100%;
+  }
+
   .appointment-detail__review-card footer {
     grid-template-columns: 1fr;
   }
@@ -1166,6 +1207,10 @@
   .appointment-detail__review-card footer {
     padding-left: 18px;
     padding-right: 18px;
+  }
+
+  .appointment-detail__review-thanks {
+    padding: 32px 20px max(28px, env(safe-area-inset-bottom));
   }
 }
 

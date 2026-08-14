@@ -334,6 +334,7 @@ model ProfilProfessionnel {
   utilisateurId      String       @unique @map("user_id") @db.Uuid
   biographie         String?      @map("bio") @db.Text
   nomEntreprise      String?      @map("company_name") @db.VarChar(150)
+  urlBanniere        String?      @map("banner_url") @db.VarChar(2048)
   urlPieceIdentiteRecto   String?      @map("id_card_url_recto") @db.VarChar(500)
   urlPieceIdentiteVerso  String?      @map("id_card_url_verso") @db.VarChar(500)
   statutKyc          StatutKyc    @default(EN_ATTENTE) @map("kyc_status")

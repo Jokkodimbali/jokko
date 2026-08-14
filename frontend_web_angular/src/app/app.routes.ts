@@ -41,7 +41,7 @@ export const routes: Routes = [
   {
     path: 'medecine/espace',
     canActivate: [roleGuard],
-    data: { roles: ['MEDECIN', 'PRESTATAIRE'] },
+    data: { roles: ['MEDECIN'] },
     loadComponent: () =>
       import('./features/medicine/presentation/pages/doctor-space-page/doctor-space-page.component').then(
         (m) => m.DoctorSpacePageComponent,

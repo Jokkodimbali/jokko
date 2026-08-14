@@ -2654,11 +2654,20 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.doctorSpaceService
-      .getMyProfile()
+    const initialSection = this.activeSection();
+    const canLoadSectionWithoutProfile =
+      initialSection !== 'profile' && initialSection !== 'consultation';
+
+    forkJoin({
+      profile: this.doctorSpaceService
+        .getMyProfile()
+        .pipe(catchError(() => of(null as BackendProfessionalProfile | null))),
+      data: canLoadSectionWithoutProfile
+        ? this.sectionLoader.load(initialSection, null, this.isProviderSpace())
+        : of(null as DoctorSpaceSectionData | null),
+    })
       .pipe(
-        catchError(() => of(null as BackendProfessionalProfile | null)),
-        switchMap((profile) => {
+        switchMap(({ profile, data }) => {
           this.professionalProfile.set(profile);
           this.professionalProfileId.set(profile?.id ?? null);
           this.professionalName.set(profile?.utilisateur.nom ?? 'Mon espace professionnel');
@@ -2667,9 +2676,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             this.setActiveSection('profile');
           }
 
-          return profile
-            ? this.sectionLoader.load(this.activeSection(), profile, this.isProviderSpace())
-            : of({} as DoctorSpaceSectionData);
+          if (data || !profile) {
+            return of(data ?? ({} as DoctorSpaceSectionData));
+          }
+
+          return this.sectionLoader.load(this.activeSection(), profile, this.isProviderSpace());
         }),
         catchError((error) => {
           this.errorMessage.set(

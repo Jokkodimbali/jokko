@@ -12,6 +12,7 @@ import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-foot
 import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { ServicesService } from '../../../../services/data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -84,7 +85,9 @@ export class MedicineDoctorProfileComponent implements OnInit {
     this.navigationState.doctor || this.buildEmptyDoctor(this.routeProfileId);
   protected readonly detail = signal<ProviderProfileDetail | null>(null);
   protected readonly doctor = signal<DoctorProfile>(this.initialDoctor);
-  protected readonly coverUrl = '/boabab.png';
+  protected readonly coverUrl = computed(
+    () => publicAssetUrl(this.detail()?.profile.urlBanniere) ?? '/boabab.png',
+  );
   protected readonly doctorLocation = computed(() => {
     const profile = this.detail()?.profile;
     return (

@@ -97,6 +97,10 @@
   width: 48px;
 }
 
+.provider-profile__back span {
+  display: none;
+}
+
 .provider-profile__identity-card {
   align-items: center;
   background: #fff;
@@ -772,6 +776,10 @@
   transform: translateY(-1px);
 }
 
+.provider-profile__mobile-price-action {
+  display: none;
+}
+
 .provider-profile__contact,
 .provider-profile__hours {
   padding: 34px;
@@ -1117,5 +1125,213 @@
 
   .provider-profile__schedule-row > div {
     justify-content: flex-start;
+  }
+}
+
+/* Fiche prestataire compacte, inspiree de la disposition mobile de reference. */
+@media (max-width: 480px) {
+  .provider-profile {
+    background: #fff;
+  }
+
+  .provider-profile__shell {
+    margin: 52px 0 18px;
+    width: 100%;
+  }
+
+  .provider-profile__hero-card {
+    border-radius: 0;
+    box-shadow: none;
+    height: 150px;
+  }
+
+  .provider-profile__back {
+    border-radius: 8px;
+    gap: 5px;
+    height: 34px;
+    left: 4px;
+    padding: 0 10px;
+    top: -43px;
+    width: auto;
+  }
+
+  .provider-profile__back span {
+    display: inline;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .provider-profile__online {
+    font-size: 11px;
+    left: auto;
+    min-height: 30px;
+    padding: 0 10px;
+    right: 10px;
+    top: 10px;
+  }
+
+  .provider-profile__identity-card {
+    border-bottom: 1px solid #eee6df;
+    border-radius: 0;
+    box-shadow: none;
+    gap: 6px 9px;
+    grid-template-columns: 58px minmax(0, 1fr) 70px;
+    min-height: 0;
+    padding: 0 8px 8px;
+  }
+
+  .provider-profile__avatar-shell {
+    height: 58px;
+    margin-top: -22px;
+    width: 58px;
+  }
+
+  .provider-profile__avatar {
+    border-radius: 16px;
+    border-width: 3px;
+  }
+
+  .provider-profile__actions {
+    bottom: -42px;
+    gap: 5px;
+    right: 8px;
+    top: auto;
+  }
+
+  .provider-profile__actions button {
+    flex: 0 0 32px;
+    height: 32px;
+    width: 32px;
+  }
+
+  .provider-profile__name {
+    grid-column: 2;
+  }
+
+  .provider-profile__name h1 {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+
+  .provider-profile__name p,
+  .provider-profile__name small {
+    font-size: 9px;
+  }
+
+  .provider-profile__stats,
+  .provider-profile__stats--with-vehicle {
+    background: #fff;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    gap: 0;
+    grid-column: 1 / -1;
+    margin: 3px 0 0;
+    padding: 7px 0 0;
+  }
+
+  .provider-profile__stats div,
+  .provider-profile__stats div:first-child,
+  .provider-profile__stats div:nth-child(2),
+  .provider-profile__stats > div.provider-profile__movement-stat,
+  .provider-profile__stats > div.provider-profile__vehicle-stat {
+    background: #fff;
+    border: 0;
+    border-radius: 0;
+    min-height: 44px;
+    padding: 3px 7px !important;
+  }
+
+  .provider-profile__movement-stat {
+    flex: 1 1 42%;
+    justify-content: flex-start !important;
+    order: 1;
+  }
+
+  .provider-profile__service-stat {
+    flex: 0 0 23%;
+    order: 2;
+  }
+
+  .provider-profile__review-stat {
+    flex: 1 1 35%;
+    order: 3;
+  }
+
+  .provider-profile__vehicle-stat {
+    order: 4;
+  }
+
+  .provider-profile__stats .provider-profile__service-stat > span {
+    display: none;
+  }
+
+  .provider-profile__stats .provider-profile__service-stat strong {
+    font-size: 15px;
+  }
+
+  .provider-profile__stats .provider-profile__service-stat small,
+  .provider-profile__stats .provider-profile__review-stat .provider-profile__review-total {
+    font-size: 9px;
+  }
+
+  .provider-profile__mobile-price-action {
+    align-items: center;
+    background: #4f8b3d;
+    border-radius: 12px;
+    color: #fff;
+    display: flex;
+    font-size: 12px;
+    font-weight: 800;
+    gap: 7px;
+    justify-content: center;
+    margin: 9px 3px;
+    min-height: 42px;
+    text-decoration: none;
+  }
+
+  .provider-profile__layout {
+    gap: 12px;
+    margin-top: 0;
+  }
+
+  .provider-profile__main,
+  .provider-profile__side {
+    gap: 12px;
+  }
+
+  .provider-profile__card {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .provider-profile__about {
+    border-inline: 0;
+    padding: 20px 12px;
+  }
+
+  .provider-profile__about h2 {
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+
+  .provider-profile__about p {
+    font-size: 13px;
+    line-height: 1.55;
+    max-height: none;
+  }
+
+  .provider-profile__price-action--primary {
+    display: none;
+  }
+
+  .provider-profile__schedule-row {
+    align-items: center;
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  }
+
+  .provider-profile__schedule-row > div {
+    justify-content: flex-end;
   }
 }

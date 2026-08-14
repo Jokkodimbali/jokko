@@ -46,8 +46,8 @@ export class RegisterComponent implements OnInit {
   expertiseDraft = signal('');
   selectedCategoryIds = signal<string[]>([]);
   selectedSubCategoryIds = signal<string[]>([]);
-  categorySelectValue = signal('');
-  subCategorySelectValue = signal('');
+  categoryMenuOpen = signal(false);
+  subCategoryMenuOpen = signal(false);
   protected readonly messages = AUTH_UI_MESSAGES;
 
   registerForm = this.fb.nonNullable.group({
@@ -138,8 +138,8 @@ export class RegisterComponent implements OnInit {
     this.registerForm.controls.role.setValue(role);
     this.selectedCategoryIds.set([]);
     this.selectedSubCategoryIds.set([]);
-    this.categorySelectValue.set('');
-    this.subCategorySelectValue.set('');
+    this.categoryMenuOpen.set(false);
+    this.subCategoryMenuOpen.set(false);
     this.registerForm.controls.medicalSpecialty.setValue('');
     this.errorMessage.set(null);
   }
@@ -200,20 +200,27 @@ export class RegisterComponent implements OnInit {
     this.syncMedicalSpecialtyFromSelection();
   }
 
-  protected addSelectedCategory(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const categoryId = select.value;
-    const category = this.availableCategories().find((item) => item.id === categoryId);
-    if (category && !this.isCategorySelected(category.id)) {
-      this.toggleCategory(category);
-    }
-    this.categorySelectValue.set('');
-    select.value = '';
+  protected toggleCategoryMenu(): void {
+    this.categoryMenuOpen.update((open) => !open);
+    this.subCategoryMenuOpen.set(false);
   }
 
-  protected addSelectedSubCategory(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const subCategoryId = select.value;
+  protected toggleSubCategoryMenu(): void {
+    if (this.selectedCategories().length === 0) {
+      return;
+    }
+    this.subCategoryMenuOpen.update((open) => !open);
+    this.categoryMenuOpen.set(false);
+  }
+
+  protected addSelectedCategory(category: CategoryStructure): void {
+    if (!this.isCategorySelected(category.id)) {
+      this.toggleCategory(category);
+    }
+    this.categoryMenuOpen.set(false);
+  }
+
+  protected addSelectedSubCategory(subCategoryId: string): void {
     const category = this.selectedCategories().find((item) =>
       item.subCategories.some((subCategory) => subCategory.id === subCategoryId),
     );
@@ -221,8 +228,7 @@ export class RegisterComponent implements OnInit {
     if (category && subCategory && !this.isSubCategorySelected(subCategory.id)) {
       this.toggleSubCategory(category, subCategory);
     }
-    this.subCategorySelectValue.set('');
-    select.value = '';
+    this.subCategoryMenuOpen.set(false);
   }
 
   protected removeSelectedCategory(category: CategoryStructure): void {

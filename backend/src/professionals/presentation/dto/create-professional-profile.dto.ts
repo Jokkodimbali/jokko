@@ -42,6 +42,20 @@ export class CreateProfessionalProfileDto {
   companyName?: string | null;
 
   @ApiProperty({
+    description: 'URL de la banniere du profil professionnel.',
+    example: '/uploads/professionals/banner.webp',
+    required: false,
+    maxLength: 2048,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  bannerUrl?: string | null;
+
+  @ApiProperty({
     description: API_DOCS.professionals.cityField,
     example: 'Dakar',
     required: false,

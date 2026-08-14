@@ -12,6 +12,10 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
+import {
+  isDoctorAccount,
+  isProviderAccount,
+} from '../../../core/auth/professional-space-role.utils';
 import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
 import { SessionPresenceService } from '../../../core/presence/session-presence.service';
@@ -58,6 +62,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly presence = inject(SessionPresenceService);
   private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
+  private notificationsIntervalId: ReturnType<typeof setInterval> | null = null;
   private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly subscriptions = new Subscription();
@@ -73,6 +78,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected readonly unreadNotificationsCount = signal(0);
   protected readonly unreadMessagesCount = signal(0);
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
+  protected readonly featuredNotification = computed(
+    () => this.notificationPreview().find((notification) => !this.isRead(notification)) ?? null,
+  );
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
   protected readonly profileAvatarUrl = computed(() => {
@@ -97,30 +105,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     if (role === 'ADMIN') return 'Compte administrateur';
     return 'Compte client';
   });
-  protected readonly showDoctorSpace = computed(() => {
-    const user = this.currentUser();
-    if (!user || (user.role !== 'PRESTATAIRE' && user.role !== 'MEDECIN')) return false;
-
-    if (user.role === 'MEDECIN') return true;
-
-    const profile = user.professionalProfile;
-    if (!profile) return false;
-
-    const searchableText = [profile.nomEntreprise, ...(profile.categories || [])]
-      .filter(Boolean)
-      .join(' ')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-
-    return ['medecin', 'medecine', 'sante', 'docteur', 'doctor'].some((keyword) =>
-      searchableText.includes(keyword),
-    );
-  });
-  protected readonly showProviderSpace = computed(() => {
-    const user = this.currentUser();
-    return !!user && user.role === 'PRESTATAIRE' && !this.showDoctorSpace();
-  });
+  protected readonly showDoctorSpace = computed(() => isDoctorAccount(this.currentUser()));
+  protected readonly showProviderSpace = computed(() => isProviderAccount(this.currentUser()));
   protected readonly showAdminSpace = computed(() => this.currentUser()?.role === 'ADMIN');
   protected readonly showDisputeAccess = computed(() => {
     const role = this.currentUser()?.role;
@@ -311,6 +297,29 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.toggleNotificationsMenu();
   }
 
+  protected activateNotificationButton(): void {
+    const notification = this.featuredNotification();
+    notification ? this.openNotification(notification) : this.toggleNotificationsMenu();
+  }
+
+  protected notificationAvatarUrl(notification: UserNotificationView): string | null {
+    const metadata = notification.data || notification.donnees || {};
+    const avatar = [
+      metadata['avatarUrl'],
+      metadata['senderAvatarUrl'],
+      metadata['clientAvatarUrl'],
+      metadata['professionalAvatarUrl'],
+      metadata['providerAvatarUrl'],
+    ].find((value) => typeof value === 'string' && value.trim());
+    return typeof avatar === 'string' ? avatar.trim() : null;
+  }
+
+  protected notificationActorInitials(notification: UserNotificationView): string {
+    const metadata = notification.data || notification.donnees || {};
+    const actorName = metadata['actorName'];
+    return userInitials(typeof actorName === 'string' ? actorName : this.notificationTitle(notification), 'N');
+  }
+
   protected openNotification(notification: UserNotificationView): void {
     const target = this.resolveNotificationTarget(notification);
 
@@ -376,6 +385,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.loadNotificationPreview();
     this.loadUnreadMessagesCount();
     this.startUnreadMessagesRefresh();
+    this.startNotificationsRefresh();
     this.messagesRealtime.connect();
     this.subscriptions.add(
       this.messagesRealtime.messageCreated$.subscribe((message) => {
@@ -412,6 +422,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       clearInterval(this.unreadMessagesIntervalId);
       this.unreadMessagesIntervalId = null;
     }
+    if (this.notificationsIntervalId) {
+      clearInterval(this.notificationsIntervalId);
+      this.notificationsIntervalId = null;
+    }
     this.subscriptions.unsubscribe();
   }
 
@@ -430,19 +444,18 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       .subscribe((notifications) => this.unreadNotificationsCount.set(notifications.length));
   }
 
-  private loadNotificationPreview(): void {
-    this.isNotificationsLoading.set(true);
+  private loadNotificationPreview(showLoading: boolean = true): void {
+    if (showLoading) this.isNotificationsLoading.set(true);
     this.notificationsService
       .list({ limit: 6 })
       .pipe(
         catchError(() => of([])),
-        finalize(() => this.isNotificationsLoading.set(false)),
+        finalize(() => {
+          if (showLoading) this.isNotificationsLoading.set(false);
+        }),
       )
       .subscribe((notifications) => {
         this.notificationPreview.set(notifications);
-        this.unreadNotificationsCount.set(
-          notifications.filter((item) => !this.isRead(item)).length,
-        );
       });
   }
 
@@ -450,6 +463,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.unreadMessagesIntervalId = setInterval(() => {
       this.loadUnreadMessagesCount();
     }, 30000);
+  }
+
+  private startNotificationsRefresh(): void {
+    this.notificationsIntervalId = setInterval(() => {
+      this.loadUnreadNotificationsCount();
+      this.loadNotificationPreview(false);
+    }, 15000);
   }
 
   private loadUnreadMessagesCount(): void {

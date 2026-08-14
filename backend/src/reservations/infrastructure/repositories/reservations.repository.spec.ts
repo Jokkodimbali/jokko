@@ -2,9 +2,6 @@ import { $Enums } from '@prisma/client';
 import { ReservationsRepository } from './reservations.repository';
 
 type ReservationPrismaMock = {
-  paiement: {
-    findMany: jest.Mock;
-  };
   reservation: {
     findMany: jest.Mock;
     updateMany: jest.Mock;
@@ -15,12 +12,9 @@ describe('ReservationsRepository', () => {
   it('does not use the removed pending reservation status for no-show sync', async () => {
     const now = new Date('2026-06-11T12:00:00.000Z');
     const prisma: ReservationPrismaMock = {
-      paiement: {
-        findMany: jest.fn().mockResolvedValue([]),
-      },
       reservation: {
         findMany: jest.fn(),
-        updateMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     };
     const repository = new ReservationsRepository(prisma as never);
@@ -29,18 +23,15 @@ describe('ReservationsRepository', () => {
 
     expect(count).toBe(0);
     expect(prisma.reservation.findMany).not.toHaveBeenCalled();
-    expect(prisma.reservation.updateMany).not.toHaveBeenCalled();
+    expect(prisma.reservation.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('does not mark confirmed reservations as no-show automatically', async () => {
     const now = new Date('2026-06-11T10:30:00.000Z');
     const prisma: ReservationPrismaMock = {
-      paiement: {
-        findMany: jest.fn().mockResolvedValue([]),
-      },
       reservation: {
         findMany: jest.fn(),
-        updateMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     };
     const repository = new ReservationsRepository(prisma as never);
@@ -48,17 +39,12 @@ describe('ReservationsRepository', () => {
     const count = await repository.syncOverdueReservations(now);
 
     expect(count).toBe(0);
-    expect(prisma.reservation.updateMany).not.toHaveBeenCalled();
+    expect(prisma.reservation.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('syncs successful locked payments before checking no-show reservations', async () => {
     const now = new Date('2026-06-11T12:00:00.000Z');
     const prisma: ReservationPrismaMock = {
-      paiement: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue([{ reservationId: 'paid-booking' }]),
-      },
       reservation: {
         findMany: jest.fn().mockResolvedValue([]),
         updateMany: jest.fn().mockResolvedValueOnce({ count: 1 }),
@@ -69,25 +55,15 @@ describe('ReservationsRepository', () => {
     const count = await repository.syncOverdueReservations(now);
 
     expect(count).toBe(1);
-    expect(prisma.paiement.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          statut: $Enums.StatutPaiement.SUCCES,
-          escrowStatus: $Enums.EscrowStatus.LOCKED,
-          reservation: expect.objectContaining({
-            statut: {
-              in: [$Enums.StatutReservation.CONFIRMEE],
-            },
-          }),
-        }),
-      }),
-    );
     expect(prisma.reservation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          id: { in: ['paid-booking'] },
-          statut: {
-            in: [$Enums.StatutReservation.CONFIRMEE],
+          statut: $Enums.StatutReservation.CONFIRMEE,
+          paiement: {
+            is: {
+              statut: $Enums.StatutPaiement.SUCCES,
+              escrowStatus: $Enums.EscrowStatus.LOCKED,
+            },
           },
         }),
         data: expect.objectContaining({
@@ -101,9 +77,6 @@ describe('ReservationsRepository', () => {
   it('detects overlapping active reservations for the same professional', async () => {
     const existingReservationStart = new Date('2030-01-01T10:30:00.000Z');
     const prisma: ReservationPrismaMock = {
-      paiement: {
-        findMany: jest.fn(),
-      },
       reservation: {
         findMany: jest.fn().mockResolvedValue([
           {

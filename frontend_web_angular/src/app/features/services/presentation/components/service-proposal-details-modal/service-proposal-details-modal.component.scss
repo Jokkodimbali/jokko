@@ -560,12 +560,16 @@
 @media (max-width: 640px) {
   .details-modal {
     align-items: flex-end;
-    padding: 8px;
+    box-sizing: border-box;
+    padding: 8px 8px 0;
   }
   .details-modal__card,
   .details-modal__card--address {
+    box-sizing: border-box;
     border-radius: 16px 16px 0 0;
-    max-height: calc(100dvh - 12px);
+    max-height: calc(100dvh - 8px);
+    max-width: 100%;
+    min-width: 0;
     width: 100%;
   }
   .details-modal__card > header {
@@ -574,7 +578,25 @@
   }
   .details-modal__body {
     max-height: calc(100dvh - 104px);
+    min-width: 0;
+    overflow-x: hidden;
     padding: 16px;
+  }
+
+  .details-modal__service,
+  .details-modal__custom-service,
+  .details-modal__custom-creation,
+  .details-modal__custom-creation form,
+  .details-modal__parcel-contact,
+  .details-modal__map-panel {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .details-modal__service strong,
+  .details-modal__custom-service strong,
+  .details-modal__service-price {
+    overflow-wrap: anywhere;
   }
   .details-modal__body--address {
     gap: 14px;
@@ -606,7 +628,7 @@
 
 @media (max-width: 390px) {
   .details-modal {
-    padding-inline: 6px;
+    padding-inline: 0;
   }
   .details-modal__body {
     padding: 14px;

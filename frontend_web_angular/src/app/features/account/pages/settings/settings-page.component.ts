@@ -77,8 +77,6 @@ export class SettingsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly doctorSpaceService = inject(DoctorSpaceService);
 
-  protected readonly coverUrl = '/boabab.png';
-
   protected readonly currentUser = this.authSession.currentUser;
   protected readonly profile = signal<UserProfileDto | null>(null);
   protected readonly activeSection = signal<SettingsSection>('health');
@@ -87,6 +85,7 @@ export class SettingsPageComponent implements OnInit {
   protected readonly isSavingProfessionalAbout = signal(false);
   protected readonly isSavingAddress = signal(false);
   protected readonly isSavingAvatar = signal(false);
+  protected readonly isSavingBanner = signal(false);
   protected readonly isPortfolioSaving = signal(false);
   protected readonly isSavingPaymentMethod = signal(false);
   protected readonly isLoadingPayments = signal(false);
@@ -299,6 +298,9 @@ export class SettingsPageComponent implements OnInit {
   );
   protected readonly professionalProfile = computed(
     () => this.profile()?.profilProfessionnel ?? null,
+  );
+  protected readonly coverUrl = computed(
+    () => publicAssetUrl(this.professionalProfile()?.urlBanniere) ?? '/boabab.png',
   );
   protected readonly professionalProfileId = computed(() => this.professionalProfile()?.id ?? null);
   protected readonly professionalCompanyName = computed(
@@ -606,6 +608,44 @@ export class SettingsPageComponent implements OnInit {
         next: (profile) => this.applyUpdatedProfile(profile, 'Photo de profil modifiee.'),
         error: (error) => {
           const message = getHttpErrorMessage(error, "Impossible de modifier l'avatar.");
+          this.errorMessage.set(message);
+          this.feedback.error(message);
+        },
+      });
+  }
+
+  protected uploadProfessionalBanner(event: Event): void {
+    if (this.isSavingBanner() || !this.isProfessionalSettings()) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.feedback.error('Selectionnez une image valide.');
+      return;
+    }
+
+    this.isSavingBanner.set(true);
+    this.errorMessage.set(null);
+    this.doctorSpaceService
+      .uploadProfessionalAsset(file)
+      .pipe(
+        switchMap((uploaded) =>
+          this.doctorSpaceService.updateMyProfessionalProfile({
+            bannerUrl:
+              publicAssetUrl(uploaded.imageUrl || uploaded.fileUrl) ??
+              uploaded.imageUrl ??
+              uploaded.fileUrl,
+          }),
+        ),
+        switchMap(() => this.authService.myUserProfile()),
+        finalize(() => this.isSavingBanner.set(false)),
+      )
+      .subscribe({
+        next: (profile) => this.applyUpdatedProfile(profile, 'Banniere modifiee.'),
+        error: (error) => {
+          const message = getHttpErrorMessage(error, 'Impossible de modifier la banniere.');
           this.errorMessage.set(message);
           this.feedback.error(message);
         },

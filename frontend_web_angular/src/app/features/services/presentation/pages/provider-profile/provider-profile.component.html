@@ -20,6 +20,7 @@
       >
         <button type="button" class="provider-profile__back" aria-label="Retour" (click)="goBack()">
           <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
+          <span>Retour</span>
         </button>
 
         <app-presence-status
@@ -112,6 +113,15 @@
           </div>
         </div>
       </section>
+
+      <a
+        class="provider-profile__mobile-price-action"
+        [routerLink]="['/services', profileId, 'proposition']"
+        [queryParams]="serviceQueryParams()"
+      >
+        <lucide-icon [name]="priceActionIcon()" size="20" [strokeWidth]="2.4"></lucide-icon>
+        {{ priceActionLabel() }}
+      </a>
 
       <section class="provider-profile__layout">
         <div class="provider-profile__main">

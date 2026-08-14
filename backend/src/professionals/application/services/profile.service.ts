@@ -28,6 +28,7 @@ export class ProfileService extends ProfessionalAppService {
       biographie: Bio.create(command.bio)?.getValue() ?? null,
       nomEntreprise:
         CompanyName.create(command.companyName)?.getValue() ?? null,
+      urlBanniere: command.bannerUrl ?? null,
       ville: City.create(command.city)?.getValue() ?? null,
       typeVehicule: command.vehicleType,
       ...this.normalizeLocation(command),
@@ -65,6 +66,7 @@ export class ProfileService extends ProfessionalAppService {
         command.companyName === undefined
           ? undefined
           : (CompanyName.create(command.companyName)?.getValue() ?? null),
+      urlBanniere: command.bannerUrl,
       ville:
         command.city === undefined
           ? undefined

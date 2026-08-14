@@ -40,6 +40,7 @@ const PROFESSIONAL_SELECT = {
   utilisateurId: true,
   biographie: true,
   nomEntreprise: true,
+  urlBanniere: true,
   statutKyc: true,
   raisonRejetKyc: true,
   ville: true,
@@ -110,6 +111,7 @@ type RawProfessionalProfile = {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
+  urlBanniere: string | null;
   urlPieceIdentiteRecto?: string | null;
   urlPieceIdentiteVerso?: string | null;
   statutKyc: StatutKyc;
@@ -209,6 +211,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           utilisateurId: input.utilisateurId,
           biographie: input.biographie,
           nomEntreprise: input.nomEntreprise,
+          urlBanniere: input.urlBanniere,
           ville: input.ville,
           typeVehicule: input.typeVehicule,
         },
@@ -257,6 +260,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           ...(input.nomEntreprise !== undefined
             ? { nomEntreprise: input.nomEntreprise }
             : {}),
+          ...(input.urlBanniere !== undefined ? { urlBanniere: input.urlBanniere } : {}),
           ...(input.ville !== undefined ? { ville: input.ville } : {}),
           ...(input.typeVehicule !== undefined
             ? { typeVehicule: input.typeVehicule }
@@ -792,6 +796,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       utilisateurId: profile.utilisateurId,
       biographie: profile.biographie,
       nomEntreprise: profile.nomEntreprise,
+      urlBanniere: profile.urlBanniere,
       urlPieceIdentiteRecto: null,
       urlPieceIdentiteVerso: null,
       statutKyc: profile.statutKyc,

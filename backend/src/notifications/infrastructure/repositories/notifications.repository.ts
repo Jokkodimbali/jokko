@@ -110,7 +110,97 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
       skip: query.offset,
     });
 
-    return notifications.map((notification) => this.toView(notification));
+    const reservationIds = Array.from(
+      new Set(
+        notifications
+          .map((notification) => this.metadataString(notification.donnees, 'reservationId'))
+          .filter((value): value is string => !!value),
+      ),
+    );
+    const reservations =
+      reservationIds.length > 0
+        ? await this.prisma.reservation.findMany({
+            where: { id: { in: reservationIds } },
+            select: {
+              id: true,
+              clientId: true,
+              client: { select: { nom: true, urlAvatar: true } },
+              professionnel: {
+                select: {
+                  utilisateur: { select: { nom: true, urlAvatar: true } },
+                },
+              },
+            },
+          })
+        : [];
+    const reservationById = new Map(reservations.map((reservation) => [reservation.id, reservation]));
+
+    const negotiationIds = Array.from(
+      new Set(
+        notifications
+          .map((notification) => this.metadataString(notification.donnees, 'negotiationId'))
+          .filter((value): value is string => !!value),
+      ),
+    );
+    const negotiations =
+      negotiationIds.length > 0
+        ? await this.prisma.negotiation.findMany({
+            where: { id: { in: negotiationIds } },
+            select: {
+              id: true,
+              clientId: true,
+              client: { select: { nom: true, urlAvatar: true } },
+              professionnel: {
+                select: { utilisateur: { select: { nom: true, urlAvatar: true } } },
+              },
+            },
+          })
+        : [];
+    const negotiationById = new Map(
+      negotiations.map((negotiation) => [negotiation.id, negotiation]),
+    );
+
+    const senderIds = Array.from(
+      new Set(
+        notifications
+          .map((notification) => this.metadataString(notification.donnees, 'senderId'))
+          .filter((value): value is string => !!value),
+      ),
+    );
+    const senders =
+      senderIds.length > 0
+        ? await this.prisma.utilisateur.findMany({
+            where: { id: { in: senderIds } },
+            select: { id: true, nom: true, urlAvatar: true },
+          })
+        : [];
+    const senderById = new Map(senders.map((sender) => [sender.id, sender]));
+
+    return notifications.map((notification) => {
+      const reservationId = this.metadataString(notification.donnees, 'reservationId');
+      const reservation = reservationId ? reservationById.get(reservationId) : undefined;
+      const negotiationId = this.metadataString(notification.donnees, 'negotiationId');
+      const negotiation = negotiationId ? negotiationById.get(negotiationId) : undefined;
+      const senderId = this.metadataString(notification.donnees, 'senderId');
+      const sender = senderId ? senderById.get(senderId) : undefined;
+      const actor = reservation
+        ? notification.utilisateurId === reservation.clientId
+          ? reservation.professionnel.utilisateur
+          : reservation.client
+        : negotiation
+          ? notification.utilisateurId === negotiation.clientId
+            ? negotiation.professionnel.utilisateur
+            : negotiation.client
+          : sender;
+      if (!actor) return this.toView(notification);
+
+      const metadata = this.toMetadata(notification.donnees) ?? {};
+      return this.toView(notification, {
+        ...metadata,
+        actorName: actor.nom,
+        avatarUrl: actor.urlAvatar,
+      });
+    });
   }
 
   async markAsReadForUser(
@@ -150,14 +240,17 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     return data as Prisma.InputJsonObject;
   }
 
-  private toView(notification: PrismaNotification): NotificationView {
+  private toView(
+    notification: PrismaNotification,
+    data: NotificationMetadata | null = this.toMetadata(notification.donnees),
+  ): NotificationView {
     return {
       id: notification.id,
       userId: notification.utilisateurId,
       type: notification.type,
       title: notification.titre,
       body: notification.corps,
-      data: this.toMetadata(notification.donnees),
+      data,
       isRead: notification.estLue,
       createdAt: notification.creeLe,
     };
@@ -171,5 +264,11 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     }
 
     return data as NotificationMetadata;
+  }
+
+  private metadataString(data: Prisma.JsonValue | null, key: string): string | null {
+    const metadata = this.toMetadata(data);
+    const value = metadata?.[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
 }

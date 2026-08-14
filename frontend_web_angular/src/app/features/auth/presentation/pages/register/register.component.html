@@ -138,45 +138,77 @@
           </div>
 
           <div class="specialty-picker__fields" *ngIf="availableCategories().length > 0">
-            <label>
+            <div class="specialty-picker__field">
               <span>Categorie</span>
-              <select [value]="categorySelectValue()" (change)="addSelectedCategory($event)">
-                <option value="">Selectionner une categorie...</option>
-                <option
+              <button
+                class="specialty-picker__trigger"
+                type="button"
+                aria-haspopup="listbox"
+                [attr.aria-expanded]="categoryMenuOpen()"
+                (click)="toggleCategoryMenu()"
+              >
+                <span>Selectionner une categorie...</span>
+                <span aria-hidden="true">⌄</span>
+              </button>
+              <div
+                *ngIf="categoryMenuOpen()"
+                class="specialty-picker__menu"
+                role="listbox"
+                aria-label="Categories de services"
+              >
+                <button
                   *ngFor="let category of availableCategories()"
-                  [value]="category.id"
+                  type="button"
+                  role="option"
                   [disabled]="isCategorySelected(category.id)"
+                  [attr.aria-selected]="isCategorySelected(category.id)"
+                  (click)="addSelectedCategory(category)"
                 >
                   {{ category.nom }}
-                </option>
-              </select>
-            </label>
+                </button>
+              </div>
+            </div>
 
-            <label>
+            <div class="specialty-picker__field">
               <span>Sous-categorie</span>
-              <select
-                [value]="subCategorySelectValue()"
-                (change)="addSelectedSubCategory($event)"
+              <button
+                class="specialty-picker__trigger"
+                type="button"
+                aria-haspopup="listbox"
+                [attr.aria-expanded]="subCategoryMenuOpen()"
                 [disabled]="
                   selectedCategories().length === 0 ||
                   availableSubCategoriesForSelectedCategories().length === 0
                 "
+                (click)="toggleSubCategoryMenu()"
               >
-                <option value="">
+                <span>
                   {{
                     selectedCategories().length === 0
                       ? 'Selectionnez d abord une categorie...'
                       : 'Selectionner une sous-categorie...'
                   }}
-                </option>
-                <option
+                </span>
+                <span aria-hidden="true">⌄</span>
+              </button>
+              <div
+                *ngIf="subCategoryMenuOpen()"
+                class="specialty-picker__menu"
+                role="listbox"
+                aria-label="Sous-categories de services"
+              >
+                <button
                   *ngFor="let subCategory of availableSubCategoriesForSelectedCategories()"
-                  [value]="subCategory.id"
+                  type="button"
+                  role="option"
+                  [disabled]="isSubCategorySelected(subCategory.id)"
+                  [attr.aria-selected]="isSubCategorySelected(subCategory.id)"
+                  (click)="addSelectedSubCategory(subCategory.id)"
                 >
                   {{ subCategory.nom }}
-                </option>
-              </select>
-            </label>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="specialty-picker__selection" *ngIf="selectedCategories().length > 0">

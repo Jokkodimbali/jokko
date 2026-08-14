@@ -15,8 +15,7 @@ export class AppointmentDocumentRendererService {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${this.escapeHtml(title)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-    body{font-family:'DM Sans',Arial,Helvetica,sans-serif;color:#111827;margin:0;background:#f8fafc}
+    body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;background:#f8fafc}
     .sheet{background:#fff;margin:24px auto;max-width:820px;padding:42px;border:1px solid #e5e7eb}
     .top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #111827;padding-bottom:22px;margin-bottom:28px}
     h1{font-size:24px;margin:0 0 8px;text-transform:uppercase}

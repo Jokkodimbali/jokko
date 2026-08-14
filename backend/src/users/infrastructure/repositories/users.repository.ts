@@ -29,6 +29,7 @@ const USER_ME_SELECT = {
       id: true,
       biographie: true,
       nomEntreprise: true,
+      urlBanniere: true,
       statutKyc: true,
       ville: true,
       diplomesMedicaux: {
@@ -88,6 +89,7 @@ export class UsersRepository implements UsersRepositoryPort {
       id: string;
       biographie: string | null;
       nomEntreprise: string | null;
+      urlBanniere: string | null;
       statutKyc: string;
       ville: string | null;
       diplomesMedicaux: Array<{
@@ -128,6 +130,7 @@ export class UsersRepository implements UsersRepositoryPort {
             id: user.profilProfessionnel.id,
             biographie: user.profilProfessionnel.biographie,
             nomEntreprise: user.profilProfessionnel.nomEntreprise,
+            urlBanniere: user.profilProfessionnel.urlBanniere,
             statutKyc: user.profilProfessionnel.statutKyc,
             ville: user.profilProfessionnel.ville,
             diplomesMedicaux: user.profilProfessionnel.diplomesMedicaux,
@@ -414,6 +417,7 @@ export class UsersRepository implements UsersRepositoryPort {
             id: true,
             biographie: true,
             nomEntreprise: true,
+            urlBanniere: true,
             statutKyc: true,
             ville: true,
             diplomesMedicaux: {

@@ -112,6 +112,7 @@ export class DoctorSpaceService {
   createMyProfessionalProfile(data: {
     bio?: string | null;
     companyName?: string | null;
+    bannerUrl?: string | null;
     city?: string | null;
     latitude?: number | null;
     longitude?: number | null;
@@ -125,6 +126,7 @@ export class DoctorSpaceService {
   updateMyProfessionalProfile(data: {
     bio?: string | null;
     companyName?: string | null;
+    bannerUrl?: string | null;
     city?: string | null;
     latitude?: number | null;
     longitude?: number | null;

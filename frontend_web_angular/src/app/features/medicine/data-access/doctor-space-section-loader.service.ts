@@ -43,7 +43,7 @@ export class DoctorSpaceSectionLoaderService {
 
   load(
     section: DoctorSpaceSectionKey,
-    profile: BackendProfessionalProfile,
+    profile: BackendProfessionalProfile | null,
     isProviderSpace: boolean,
   ): Observable<DoctorSpaceSectionData> {
     switch (section) {
@@ -60,7 +60,7 @@ export class DoctorSpaceSectionLoaderService {
           services: this.safe(this.doctorSpaceService.listMyServices(), []),
           categories: this.safe(this.doctorSpaceService.listCategoryStructure(), []),
           portfolio:
-            profile.statutKyc === 'VERIFIE'
+            profile?.statutKyc === 'VERIFIE'
               ? this.safe(this.doctorSpaceService.listPortfolio(profile.id), [])
               : of([]),
         });

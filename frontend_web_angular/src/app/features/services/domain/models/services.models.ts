@@ -37,6 +37,7 @@ export interface Professional {
   location: string;
   latitude?: number | null;
   longitude?: number | null;
+  distanceKm?: number | null;
   status: string;
   rating: number;
   totalReviews: number;
@@ -65,6 +66,7 @@ export interface BackendProfessionalProfile {
   utilisateurId: string;
   biographie: string | null;
   nomEntreprise: string | null;
+  urlBanniere: string | null;
   statutKyc: 'EN_ATTENTE' | 'VERIFIE' | 'REJETE' | 'NON_SOUMIS';
   raisonRejetKyc: string | null;
   ville: string | null;

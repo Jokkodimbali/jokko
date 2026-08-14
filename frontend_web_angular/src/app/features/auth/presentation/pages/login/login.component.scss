@@ -481,39 +481,136 @@
 }
 
 @media (max-width: 540px) {
+  .login-page {
+    align-items: flex-start;
+    background: #fff;
+    min-height: 100dvh;
+    padding: 0;
+  }
+
   .login-card {
-    border-radius: 24px;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    max-width: none;
+    min-height: 100dvh;
+    width: 100%;
   }
 
   .login-card__visual {
-    min-height: 280px;
-    padding: 24px;
+    background: linear-gradient(to bottom, #fff 0 68px, #985c22 68px 100%);
+    border-radius: 0 0 22px 22px;
+    min-height: 196px;
+    padding: 0;
   }
 
   .login-card__back {
-    left: 20px;
-    top: 22px;
+    border: 1px solid #e7ded6;
+    box-shadow: none;
+    font-size: 11px;
+    gap: 6px;
+    left: 12px;
+    min-height: 34px;
+    padding: 0 12px;
+    top: 16px;
+    z-index: 3;
   }
 
   .login-card__logo {
-    height: 118px;
-    margin-top: 28px;
-    width: 118px;
+    display: none;
   }
 
   .login-card__network {
-    bottom: 16px;
-    width: calc(100% - 24px);
+    bottom: 0;
+    left: 8px;
+    max-height: 128px;
+    width: calc(100% - 16px);
+  }
+
+  .login-card__form-panel {
+    align-items: flex-start;
+    padding: 24px 18px 38px;
   }
 
   .login-form__header h1 {
     font-size: 27px;
-    margin-bottom: 28px;
+    margin-bottom: 26px;
+  }
+
+  .login-form__body {
+    gap: 17px;
+  }
+
+  .login-field > span {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .login-field input,
+  .login-identifier-input,
+  .login-field__password {
+    background: #f5f5f5;
+    border-color: #e4e4e4;
+    border-radius: 12px;
+    height: 44px;
+  }
+
+  .login-identifier-input input,
+  .login-field__password input {
+    background: transparent;
   }
 
   .login-form__options {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .login-form__options label,
+  .login-form__options a {
+    font-size: 11px;
+  }
+
+  .login-submit {
+    border-radius: 11px;
+    font-size: 14px;
+    height: 51px;
+  }
+
+  .login-divider {
+    margin: 24px 0 18px;
+  }
+
+  .login-social {
+    gap: 11px;
+  }
+
+  .login-social__google-button,
+  .login-social button {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: 11px;
+    height: 46px;
+  }
+
+  .login-form__switch {
+    font-size: 12px;
+    margin-top: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-page {
+    padding: 0;
+  }
+
+  .login-card__form-panel {
+    padding-inline: 14px;
+  }
+
+  .login-form__options label,
+  .login-form__options a {
+    font-size: 10px;
   }
 }

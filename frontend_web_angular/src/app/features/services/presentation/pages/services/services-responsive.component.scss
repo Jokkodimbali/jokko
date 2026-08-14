@@ -136,6 +136,46 @@
     grid-column: 1 !important;
   }
 
+  :host .service-filters {
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 1px 3px 5px;
+    scroll-padding-inline: 3px;
+  }
+
+  :host .service-filters__button {
+    border-width: 1px;
+    font-size: 10px;
+    gap: 5px;
+    line-height: 1;
+    min-height: 30px;
+    padding: 6px 10px;
+  }
+
+  :host .service-filters__button lucide-icon {
+    height: 13px;
+    width: 13px;
+  }
+
+  :host .service-filters__button--all {
+    box-shadow: 7px 0 12px rgb(255 255 255 / 82%);
+  }
+
+  :host .service-filters__button--active:not(.service-filters__button--all) {
+    left: auto;
+    position: static;
+  }
+
+  :host .service-filters__button--sub {
+    min-height: 28px;
+    padding-inline: 9px;
+  }
+
+  :host .service-filters__button--sub::before {
+    height: 4px;
+    width: 4px;
+  }
+
   :host .section-title-group h2 {
     font-size: clamp(22px, 6vw, 32px) !important;
     line-height: 1.15 !important;
@@ -206,6 +246,12 @@
 
   :host .service-section {
     padding-inline: 5px !important;
+  }
+
+  :host .service-filters__button {
+    font-size: 9px;
+    min-height: 28px;
+    padding: 5px 8px;
   }
 
   :host .provider-card__actions {

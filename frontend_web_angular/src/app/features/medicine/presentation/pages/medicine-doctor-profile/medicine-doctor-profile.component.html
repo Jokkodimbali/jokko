@@ -4,7 +4,7 @@
   </section>
 
   <div class="doctor-profile__shell">
-    <section class="doctor-profile__hero" [style.backgroundImage]="'url(' + coverUrl + ')'">
+    <section class="doctor-profile__hero" [style.backgroundImage]="'url(' + coverUrl() + ')'">
       <button type="button" class="doctor-profile__back" aria-label="Retour" (click)="goBack()">
         <lucide-icon name="arrow-left" size="23" [strokeWidth]="2.5"></lucide-icon>
       </button>

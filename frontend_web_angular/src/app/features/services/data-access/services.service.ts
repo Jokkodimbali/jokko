@@ -103,30 +103,41 @@ export class ServicesService {
     travelMode?: ServiceTravelMode,
     location?: ProfessionalSearchLocation,
   ): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
-    return forkJoin([
-      this.fetchProfessionals({
-        query,
-        page,
-        limit,
-        city,
-        categoryId,
-        subCategoryId,
-        travelMode,
-        location,
-        role: 'PRESTATAIRE',
-      }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
-      this.fetchProfessionals({
-        query,
-        page,
-        limit,
-        city,
-        categoryId,
-        subCategoryId,
-        travelMode,
-        location,
-        role: 'MEDECIN',
-      }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
-    ]).pipe(
+    const searchBothRoles = (searchLocation?: ProfessionalSearchLocation) =>
+      forkJoin([
+        this.fetchProfessionals({
+          query,
+          page,
+          limit,
+          city,
+          categoryId,
+          subCategoryId,
+          travelMode,
+          location: searchLocation,
+          role: 'PRESTATAIRE',
+        }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
+        this.fetchProfessionals({
+          query,
+          page,
+          limit,
+          city,
+          categoryId,
+          subCategoryId,
+          travelMode,
+          location: searchLocation,
+          role: 'MEDECIN',
+        }).pipe(catchError(() => of({ providers: [], meta: undefined }))),
+      ]);
+
+    return searchBothRoles(location).pipe(
+      switchMap((results) => {
+        const hasNearbyResult = results.some((result) => result.providers.length > 0);
+        if (!location || hasNearbyResult || (location.radiusKm ?? 25) >= 100) {
+          return of(results);
+        }
+
+        return searchBothRoles({ ...location, radiusKm: 100 });
+      }),
       map(([providersResult, doctorsResult]) => {
         const providers = this.mergeProfessionals(
           providersResult.providers,
@@ -135,6 +146,13 @@ export class ServicesService {
             profileType: 'MEDECIN' as const,
           })),
         );
+        if (location) {
+          providers.sort(
+            (current, next) =>
+              (current.distanceKm ?? Number.POSITIVE_INFINITY) -
+              (next.distanceKm ?? Number.POSITIVE_INFINITY),
+          );
+        }
         const total =
           (providersResult.meta?.total ?? providersResult.providers.length) +
           (doctorsResult.meta?.total ?? doctorsResult.providers.length);
@@ -439,6 +457,7 @@ export class ServicesService {
       location: this.formatLocation(data.city, data.distanceKm),
       latitude: data.latitude,
       longitude: data.longitude,
+      distanceKm: data.distanceKm,
       status: data.totalReviews > 0 ? `${data.rating}/5 (${data.totalReviews} avis)` : 'Nouveau',
       rating: data.rating,
       totalReviews: data.totalReviews,

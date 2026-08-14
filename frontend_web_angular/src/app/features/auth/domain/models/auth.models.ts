@@ -58,6 +58,7 @@ export interface UserProfessionalProfileDto {
   id: string;
   biographie?: string | null;
   nomEntreprise?: string | null;
+  urlBanniere?: string | null;
   statutKyc?: string | null;
   ville?: string | null;
   categories: string[];

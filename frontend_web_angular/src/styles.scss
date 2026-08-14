@@ -1,7 +1,9 @@
 @use './app/features/medicine/presentation/pages/doctor-space-page/styles/doctor-space-negotiations';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
 
 /* You can add global styles to this file, and also import other style files */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -50,6 +52,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
 }
 
 body {
@@ -126,7 +134,7 @@ textarea {
 
 /* ─── Design Tokens ──────────────────────────────────────────────── */
 :root {
-  --font-app: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-app: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --color-brand: #865221;
   --color-brand-alt: #8b551f;
   --color-brand-soft: #fff3e5;
@@ -2118,6 +2126,41 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .doctor-space__withdraw-panel {
+    box-sizing: border-box;
+    max-height: calc(100dvh - 16px);
+    max-width: calc(100vw - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    width: calc(100vw - 16px);
+  }
+
+  .doctor-space__motif-modal {
+    align-items: end;
+    box-sizing: border-box;
+    padding: 8px 8px 0;
+  }
+
+  .doctor-space__motif-modal-panel {
+    border-radius: 16px 16px 0 0;
+    box-sizing: border-box;
+    max-height: calc(100dvh - 8px);
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 20px 16px max(18px, env(safe-area-inset-bottom));
+    width: 100%;
+  }
+
+  .doctor-space__motif-modal-panel header h2 {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+
+  .doctor-space__motif-modal-actions button {
+    width: 100%;
+  }
+
   .doctor-space__content {
     padding: 18px 10px 36px;
   }

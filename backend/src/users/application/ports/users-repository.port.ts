@@ -21,6 +21,7 @@ export type UserMeView = {
     id: string;
     biographie: string | null;
     nomEntreprise: string | null;
+    urlBanniere: string | null;
     statutKyc: string;
     ville: string | null;
     categories: string[];

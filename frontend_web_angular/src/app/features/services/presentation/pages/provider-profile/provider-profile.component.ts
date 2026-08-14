@@ -19,6 +19,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { ServicesService } from '../../../data-access/services.service';
 import {
   BackendProfessionalAvailability,
@@ -138,7 +139,9 @@ export class ProviderProfileComponent implements OnInit {
     () => this.detail()?.profile.utilisateur.urlAvatar ?? null,
   );
   protected readonly initials = computed(() => userInitials(this.displayName()));
-  protected readonly coverUrl = computed(() => this.defaultCoverUrl);
+  protected readonly coverUrl = computed(
+    () => publicAssetUrl(this.detail()?.profile.urlBanniere) ?? this.defaultCoverUrl,
+  );
   protected readonly offeredServices = computed<OfferedServiceVisual[]>(() =>
     (this.detail()?.services ?? [])
       .filter((service) => service.estDisponible)

@@ -1,9 +1,12 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  EventEmitter,
   HostListener,
   OnDestroy,
   OnInit,
+  Input,
+  Output,
   computed,
   inject,
   signal,
@@ -53,6 +56,12 @@ interface AppInfoNavItem {
   styleUrl: './app-navbar.component.scss',
 })
 export class AppNavbarComponent implements OnInit, OnDestroy {
+  @Input() mobileLocationLabel = 'Votre position';
+  @Output() mobileLocationClick = new EventEmitter<void>();
+  protected readonly mobileTime = new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date());
   private readonly router = inject(Router);
   private readonly authSession = inject(AuthSessionService);
   private readonly authService = inject(AuthService);

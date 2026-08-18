@@ -93,8 +93,14 @@
 
 /* ─── Mobile (<768px) ───────────────────────────────────────────── */
 @media (max-width: 767px) {
+  :host .services-page,
+  :host .hero {
+    background: #fff;
+  }
+
   :host .hero {
     min-height: auto;
+    overflow: visible;
   }
 
   :host .hero-content {
@@ -103,19 +109,17 @@
     flex-direction: column;
     height: auto;
     min-height: auto;
-    padding: 20px 16px 24px;
+    padding: 30px 10px 14px;
   }
 
   :host .search-zone {
     align-items: center;
-    padding-top: 16px;
+    padding-top: 0;
     width: 100%;
   }
 
   :host .search-zone h1 {
-    font-size: clamp(24px, 7vw, 32px);
-    margin-bottom: 16px;
-    max-width: 100%;
+    display: none;
   }
 
   :host .hero-visual {

@@ -713,17 +713,15 @@
 
   .app-search-bar--service {
     border-radius: 22px;
-    grid-template-columns: 1fr 82px;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, 1fr) 42px;
+    grid-template-rows: 38px auto;
     max-width: 100%;
     min-height: 0;
     padding: 8px;
   }
 
   .app-search-bar--service .app-search-bar__location {
-    grid-column: 1 / -1;
-    height: 34px;
-    padding: 0 10px;
+    display: none;
   }
 
   .app-search-bar--service .app-search-bar__location::after {
@@ -731,6 +729,8 @@
   }
 
   .app-search-bar--service .app-search-bar__field {
+    grid-column: 1;
+    grid-row: 1;
     min-height: 38px;
     padding: 0 10px;
   }
@@ -739,12 +739,27 @@
     font-size: 13px;
   }
 
-  .app-search-bar__submit {
-    font-size: 12px;
+  .app-search-bar--service .app-search-bar__submit {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0;
     height: 34px;
+    justify-content: center;
+    padding: 0;
+    width: 34px;
+  }
+
+  .app-search-bar--service .app-search-bar__submit lucide-icon {
+    display: block;
+  }
+
+  .app-search-bar--service .app-search-bar__submit span {
+    display: none;
   }
 
   .app-search-bar__modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
     padding: 2px 8px 1px 0;
   }
 

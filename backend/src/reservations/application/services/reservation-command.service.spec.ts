@@ -69,6 +69,7 @@ describe('ReservationCommandService', () => {
       update: jest.fn((reservation: Reservation) =>
         Promise.resolve(reservation),
       ),
+      save: jest.fn((reservation: Reservation) => Promise.resolve(reservation)),
       hasPaymentForReservation: jest.fn().mockResolvedValue(false),
     };
     const professionalsRepository = {
@@ -148,6 +149,7 @@ describe('ReservationCommandService', () => {
       professionalsRepository,
       prisma,
       liveTrackingFacade,
+      reservationClientNotificationService,
     };
   };
 
@@ -165,6 +167,38 @@ describe('ReservationCommandService', () => {
     );
     expect(liveTrackingFacade.getReservationTracking).not.toHaveBeenCalled();
     expect(liveTrackingFacade.finalizeReservationTracking).not.toHaveBeenCalled();
+  });
+
+  it('notifies both the client and the professional when a reservation is created', async () => {
+    const {
+      service,
+      reservationClientNotificationService,
+    } = buildService();
+
+    await service.createReservation(clientUser, {
+      professionnelId: 'professional-id',
+      serviceId: 'service-id',
+      dateHeure: '2030-06-20T10:00:00.000Z',
+      adresseClient: 'Dakar Plateau',
+      dureeMinutes: 60,
+    });
+
+    expect(
+      reservationClientNotificationService.notifyReservationConfirmed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'client-id',
+        reservationId: expect.any(String),
+      }),
+    );
+    expect(
+      reservationClientNotificationService.notifyReservationCreatedForProfessional,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        professionalUserId: 'professional-user-id',
+        clientName: 'Client Jokko',
+      }),
+    );
   });
 
   it('rejects reservation conversion when requested details differ from accepted negotiation details', async () => {

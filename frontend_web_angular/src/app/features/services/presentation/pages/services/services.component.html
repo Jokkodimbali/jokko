@@ -1,6 +1,9 @@
 <main class="services-page">
   <section class="hero">
-    <app-navbar />
+    <app-navbar
+      [mobileLocationLabel]="locationValue()"
+      (mobileLocationClick)="toggleLocationMenu()"
+    />
 
     <div class="hero-content">
       <div class="search-zone">

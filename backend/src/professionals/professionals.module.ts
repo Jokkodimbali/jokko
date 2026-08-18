@@ -13,9 +13,16 @@ import { ServiceManagementService } from './application/services/service-managem
 import { PortfolioService } from './application/services/portfolio.service';
 import { AvailabilityService } from './application/services/availability.service';
 import { ProfessionalsFacade } from './application/services/professionals-facade.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, SearchModule, MediaModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    SearchModule,
+    MediaModule,
+    NotificationsModule,
+  ],
   controllers: [ProfessionalsController, AdminKycController],
   providers: [
     // Infrastructure

@@ -180,6 +180,16 @@ export class ReservationsFacade {
     );
   }
 
+  async confirmTeleconsultationCompleted(
+    requestUser: AuthUser,
+    reservationId: string,
+  ) {
+    return this.reservationCommandService.confirmTeleconsultationCompleted(
+      requestUser,
+      reservationId,
+    );
+  }
+
   async submitReview(
     requestUser: AuthUser,
     reservationId: string,

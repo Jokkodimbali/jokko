@@ -24,6 +24,46 @@ export interface MarkAllNotificationsReadView {
   updatedCount: number;
 }
 
+function notificationMetadataString(
+  notification: UserNotificationView,
+  key: string,
+): string | null {
+  const metadata = notification.data || notification.donnees || {};
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function notificationTimestamp(notification: UserNotificationView): number {
+  const value = notification.createdAt || notification.creeLe;
+  const timestamp = value ? Date.parse(value) : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+export function findFeaturedNotification(
+  notifications: UserNotificationView[],
+): UserNotificationView | null {
+  const activeOnTheWay = notifications.find((notification) => {
+    if (notification.type !== 'PRESTATAIRE_EN_ROUTE') return false;
+    const reservationId = notificationMetadataString(notification, 'reservationId');
+    if (!reservationId) return false;
+    const startedAt = notificationTimestamp(notification);
+    return !notifications.some((candidate) => {
+      const terminal =
+        candidate.type === 'RESERVATION_FINALISEE' ||
+        candidate.type === 'RESERVATION_ANNULEE';
+      return (
+        terminal &&
+        notificationMetadataString(candidate, 'reservationId') === reservationId &&
+        notificationTimestamp(candidate) >= startedAt
+      );
+    });
+  });
+  if (activeOnTheWay) return activeOnTheWay;
+  return (
+    notifications.find((notification) => !(notification.isRead ?? notification.estLue)) ?? null
+  );
+}
+
 @Injectable({
   providedIn: 'root',
 })

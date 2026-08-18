@@ -110,6 +110,21 @@ export class CallsService {
         throw new ConflictException("L'etat de l'appel a deja change.");
       }
     }
+    if (changed && status === 'ENDED' && call.status === 'RINGING' && user.sub === call.callerId) {
+      await this.notifications.createInAppNotification({
+        userId: call.recipientId,
+        type: 'APPEL_MANQUE',
+        title: 'Appel manque',
+        body: `${call.callerName} a tente de vous joindre.`,
+        data: {
+          callId: call.id,
+          conversationId: call.conversationId,
+          kind: call.kind,
+          senderId: call.callerId,
+          route: '/messages',
+        },
+      });
+    }
     return signal;
   }
 

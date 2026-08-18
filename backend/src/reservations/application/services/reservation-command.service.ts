@@ -48,6 +48,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
+  private static readonly TELECONSULTATION_COMPLETED_MARKER =
+    '---JOKKO_TELECONSULTATION_COMPLETED---';
   constructor(
     @Inject(RESERVATIONS_REPOSITORY_PORT)
     reservationsRepository: ReservationsRepositoryPort,
@@ -90,6 +92,15 @@ export class ReservationCommandService extends ReservationAppService {
       throw appHttpException('RESERVATIONS_SERVICE_PROFESSIONAL_MISMATCH');
     }
 
+    if (
+      command.typeConsultation === 'TELECONSULTATION' &&
+      !service.teleconsultationActive
+    ) {
+      throw new BadRequestException(
+        "Ce motif n'est pas disponible en teleconsultation.",
+      );
+    }
+
     const scheduledAt = this.parseDateOrThrow(command.dateHeure);
 
     try {
@@ -102,6 +113,7 @@ export class ReservationCommandService extends ReservationAppService {
         adresseClient: command.adresseClient,
         dureeMinutes: command.dureeMinutes,
         notes: trimString(command.notes) ?? null,
+        typeConsultation: command.typeConsultation ?? 'CONSULTATION',
         prixConvenu: service.prix,
       });
 
@@ -384,6 +396,7 @@ export class ReservationCommandService extends ReservationAppService {
       reservationId,
     );
     await this.assertProfessionalOwnsReservation(requestUser, reservation);
+    await this.assertTeleconsultationCompletedBeforePrescription(reservation);
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
@@ -409,6 +422,23 @@ export class ReservationCommandService extends ReservationAppService {
           professionalId: updated.professionnelId,
         }),
       );
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        updated.professionnelId,
+      );
+      const service = await this.getServiceOrThrow(updated.serviceId);
+      await this.reservationClientNotificationService.notifyReservationCompleted(
+        {
+          reservationId: updated.id,
+          clientId: updated.clientId,
+          serviceName: service.nom,
+          professionalName:
+            professional.nomEntreprise ||
+            professional.utilisateur.nom ||
+            'Le prestataire',
+          dateHeure: updated.dateHeure,
+          adresseClient: updated.adresseClient,
+        },
+      );
 
       return updated;
     } catch (error) {
@@ -428,6 +458,7 @@ export class ReservationCommandService extends ReservationAppService {
       reservationId,
     );
     await this.assertProfessionalOwnsReservation(requestUser, reservation);
+    await this.assertTeleconsultationCompletedBeforePrescription(reservation);
 
     const notes = this.mergeMedicalPrescriptionIntoNotes(
       reservation.notes,
@@ -438,6 +469,61 @@ export class ReservationCommandService extends ReservationAppService {
       notes,
       ...this.medicalPrescriptionColumns(command.prescription),
     });
+  }
+
+  async confirmTeleconsultationCompleted(
+    requestUser: AuthUser,
+    reservationId: string,
+  ) {
+    if (requestUser.role !== 'MEDECIN') {
+      throw new BadRequestException(
+        'Seul le medecin peut confirmer la fin de la teleconsultation.',
+      );
+    }
+    const reservation = await this.getAccessibleReservationOrThrow(
+      requestUser,
+      reservationId,
+    );
+    await this.assertProfessionalOwnsReservation(requestUser, reservation);
+
+    if (reservation.typeConsultation !== 'TELECONSULTATION') {
+      throw new BadRequestException(
+        "Cette reservation n'est pas une teleconsultation.",
+      );
+    }
+    if (reservation.statut !== 'EN_COURS') {
+      throw new BadRequestException(
+        'La teleconsultation doit etre en cours pour pouvoir la terminer.',
+      );
+    }
+
+    const completedVideoCall = await this.prisma.appel.findFirst({
+      where: {
+        conversation: { reservationId: reservation.id },
+        type: 'VIDEO',
+        statut: 'TERMINE',
+        accepteLe: { not: null },
+        sonneLe: { gte: reservation.misAJourLe },
+      },
+      orderBy: { termineLe: 'desc' },
+      select: { id: true },
+    });
+    if (!completedVideoCall) {
+      throw new BadRequestException(
+        "L'appel video doit avoir ete accepte et termine avant de confirmer la fin de la teleconsultation.",
+      );
+    }
+
+    const marker = ReservationCommandService.TELECONSULTATION_COMPLETED_MARKER;
+    const notes = reservation.notes?.includes(marker)
+      ? reservation.notes
+      : [reservation.notes?.trim(), marker].filter(Boolean).join('\n\n');
+    const updated = await this.reservationsRepository.update({
+      ...reservation,
+      notes,
+    });
+    await this.publishReservationChanged(updated, 'reservations.updated');
+    return updated;
   }
 
   private medicalPrescriptionColumns(
@@ -463,6 +549,22 @@ export class ReservationCommandService extends ReservationAppService {
         prescription.treatments,
       ),
     };
+  }
+
+  private async assertTeleconsultationCompletedBeforePrescription(
+    reservation: Reservation,
+  ): Promise<void> {
+    if (reservation.typeConsultation !== 'TELECONSULTATION') return;
+
+    if (
+      !reservation.notes?.includes(
+        ReservationCommandService.TELECONSULTATION_COMPLETED_MARKER,
+      )
+    ) {
+      throw new BadRequestException(
+        'La téléconsultation doit être acceptée et terminée avant la prescription.',
+      );
+    }
   }
 
   private mergeMedicalPrescriptionIntoNotes(
@@ -606,13 +708,20 @@ export class ReservationCommandService extends ReservationAppService {
       reservationId,
     );
     await this.assertProfessionalOwnsReservation(requestUser, reservation);
-    await this.assertTravelerArrivedBeforeStart(requestUser, reservationId);
+    const isTeleconsultation =
+      reservation.typeConsultation === 'TELECONSULTATION';
+    if (!isTeleconsultation) {
+      await this.assertTravelerArrivedBeforeStart(requestUser, reservationId);
+    }
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.startReservation();
       const updated = await this.reservationsRepository.update(entity.toView());
-      if (!this.isParcelTransportReservation(reservation.notes)) {
+      if (
+        !isTeleconsultation &&
+        !this.isParcelTransportReservation(reservation.notes)
+      ) {
         await this.liveTrackingFacade.finalizeReservationTracking({
           reservationId: updated.id,
           professionalId: updated.professionnelId,
@@ -620,13 +729,15 @@ export class ReservationCommandService extends ReservationAppService {
           nextPresenceStatus: 'EN_PRESTATION',
         });
       }
-      await this.eventBus.publier(
-        new ProviderArrivedEvent({
-          reservationId: updated.id,
-          clientUserId: updated.clientId,
-          professionalId: updated.professionnelId,
-        }),
-      );
+      if (!isTeleconsultation) {
+        await this.eventBus.publier(
+          new ProviderArrivedEvent({
+            reservationId: updated.id,
+            clientUserId: updated.clientId,
+            professionalId: updated.professionnelId,
+          }),
+        );
+      }
       await this.eventBus.publier(
         new ServiceStartedEvent({
           reservationId: updated.id,

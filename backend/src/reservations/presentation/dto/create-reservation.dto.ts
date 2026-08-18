@@ -3,6 +3,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsOptional,
+  IsIn,
   IsString,
   IsUUID,
   Max,
@@ -69,4 +70,13 @@ export class CreateReservationDto {
   @IsString()
   @MaxLength(1000, { message: VALIDATION_MESSAGES.RESERVATION_NOTES_MAX })
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Mode du rendez-vous medical.',
+    enum: ['CONSULTATION', 'TELECONSULTATION'],
+    default: 'CONSULTATION',
+  })
+  @IsOptional()
+  @IsIn(['CONSULTATION', 'TELECONSULTATION'])
+  typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
 }

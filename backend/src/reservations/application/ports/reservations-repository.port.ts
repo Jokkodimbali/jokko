@@ -133,4 +133,5 @@ export type ReservationDetailedView = Reservation & {
       } | null;
     }>;
   };
+  conversation: { id: string } | null;
 };

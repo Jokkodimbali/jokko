@@ -1,8 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { appHttpException } from '../../../core/http/app-http.exception';
+import { NotificationsService } from '../../../notifications/application/services/notifications.service';
+import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { KycIdCardUrl, KycIdCardUrlVerso } from '../../domain';
-import type { KycStatus } from '../ports/professionals-repository.port';
+import {
+  PROFESSIONALS_REPOSITORY_PORT,
+  type KycStatus,
+  type ProfessionalsRepositoryPort,
+} from '../ports/professionals-repository.port';
 import type {
   SubmitKycCommand,
   RejectKycCommand,
@@ -11,6 +17,13 @@ import { ProfessionalAppService } from './professional-app-service.base';
 
 @Injectable()
 export class KycService extends ProfessionalAppService {
+  constructor(
+    @Inject(PROFESSIONALS_REPOSITORY_PORT)
+    professionalsRepository: ProfessionalsRepositoryPort,
+    private readonly notificationsService: NotificationsService,
+  ) {
+    super(professionalsRepository);
+  }
   async listKycForAdmin(
     requestUser: AuthUser,
     query?: {
@@ -68,6 +81,13 @@ export class KycService extends ProfessionalAppService {
     if (result.status === 'profile_not_found') {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }
+    await this.notificationsService.createInAppNotification({
+      userId: result.profile.utilisateur.id,
+      type: NOTIFICATION_TYPES.KYC_APPROUVEE,
+      title: 'Profil professionnel valide',
+      body: 'Votre profil professionnel a ete approuve. Vous pouvez maintenant proposer vos services.',
+      data: { professionalId: result.profile.id, route: '/settings' },
+    });
     return result.profile;
   }
 
@@ -90,6 +110,13 @@ export class KycService extends ProfessionalAppService {
     if (result.status === 'profile_not_found') {
       throw appHttpException('PROFESSIONALS_PROFILE_NOT_FOUND');
     }
+    await this.notificationsService.createInAppNotification({
+      userId: result.profile.utilisateur.id,
+      type: NOTIFICATION_TYPES.KYC_REJETEE,
+      title: 'Profil professionnel a corriger',
+      body: `Votre verification a ete refusee. Motif : ${reason}`,
+      data: { professionalId: result.profile.id, reason, route: '/settings' },
+    });
     return result.profile;
   }
 }

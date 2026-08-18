@@ -46,6 +46,7 @@ import {
 } from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 
 type AppointmentFor = 'ME' | 'RELATIVE';
+type MedicalConsultationType = 'CONSULTATION' | 'TELECONSULTATION';
 const PROFESSIONAL_VEHICLE_BADGES: Record<
   ProfessionalVehicleType,
   { label: string; imageUrl: string }
@@ -145,6 +146,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly journeySteps = medicineAppointmentJourneySteps(1);
   protected readonly journeyProgress = appointmentJourneyProgress(1);
   protected readonly appointmentFor = signal<AppointmentFor>('ME');
+  protected readonly consultationType = signal<MedicalConsultationType>('CONSULTATION');
   protected readonly selectedServiceId = signal<string>('');
   protected readonly selectedDateIso = signal<string>('');
   protected readonly selectedDateTime = signal<string | null>(null);
@@ -189,6 +191,17 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   );
   protected readonly selectedService = computed(
     () => this.services().find((service) => service.id === this.selectedServiceId()) ?? null,
+  );
+  protected readonly teleconsultationServices = computed(() =>
+    this.services().filter((service) => service.teleconsultationActive === true),
+  );
+  protected readonly teleconsultationAvailable = computed(
+    () => this.teleconsultationServices().length > 0,
+  );
+  protected readonly bookableServices = computed(() =>
+    this.consultationType() === 'TELECONSULTATION'
+      ? this.teleconsultationServices()
+      : this.services(),
   );
   protected readonly doctorTravelsToPatient = computed(
     () => this.selectedService()?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE',
@@ -383,6 +396,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
   protected selectService(serviceId: string): void {
     this.selectedServiceId.set(serviceId);
+    if (!this.teleconsultationAvailable()) {
+      this.consultationType.set('CONSULTATION');
+    }
     this.selectedDateTime.set(null);
     this.fieldErrors.update((errors) => {
       const next = { ...errors };
@@ -639,6 +655,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
         adresseClient: patientDraft.adresseClient,
         dureeMinutes: this.serviceDurationMinutes(service),
         notes: patientDraft.notes,
+        typeConsultation: this.consultationType(),
       })
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
@@ -705,6 +722,22 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected selectConsultationType(type: MedicalConsultationType): void {
+    if (type === 'TELECONSULTATION' && !this.teleconsultationAvailable()) {
+      this.feedback.info("Ce motif n'est pas proposé en téléconsultation par ce médecin.");
+      return;
+    }
+    this.consultationType.set(type);
+    const selectedService = this.selectedService();
+    if (
+      type === 'TELECONSULTATION' &&
+      selectedService?.teleconsultationActive !== true
+    ) {
+      this.selectedServiceId.set('');
+      this.selectedDateTime.set(null);
+    }
+  }
+
   private ensureReservationConversation(reservationId: string): void {
     this.messagesService.createConversation({ reservationId }).subscribe({
       error: () => undefined,
@@ -768,15 +801,17 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
 
     if (this.appointmentFor() === 'ME') {
-      const address = this.patientTravelsToDoctor()
+      const address = this.consultationType() === 'TELECONSULTATION'
+        ? 'Téléconsultation en ligne'
+        : this.patientTravelsToDoctor()
         ? this.normalizeText(this.doctorInterventionAddress())
         : this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
 
-      if (!this.patientTravelsToDoctor() && address.length < 5) {
+      if (this.consultationType() !== 'TELECONSULTATION' && !this.patientTravelsToDoctor() && address.length < 5) {
         errors.selfAddress = 'Ajoutez une adresse complete avant de continuer.';
       }
 
-      if (this.patientTravelsToDoctor() && address.length < 5) {
+      if (this.consultationType() !== 'TELECONSULTATION' && this.patientTravelsToDoctor() && address.length < 5) {
         errors.selfAddress = 'Adresse du cabinet non renseignee par ce medecin.';
       }
 
@@ -926,7 +961,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
   private buildPatientDraft(): { adresseClient: string; notes: string } | null {
     if (this.appointmentFor() === 'ME') {
-      const address = this.patientTravelsToDoctor()
+      const address = this.consultationType() === 'TELECONSULTATION'
+        ? 'Téléconsultation en ligne'
+        : this.patientTravelsToDoctor()
         ? this.normalizeText(this.doctorInterventionAddress())
         : this.normalizeText(this.appointmentAddressOverride() || this.userAddress());
       const errors: Partial<Record<PatientFormField | 'selfAddress' | 'selfPhone', string>> = {};
@@ -965,11 +1002,13 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
     this.fieldErrors.set({});
     const patient = validation.patient;
-    const address = this.patientTravelsToDoctor()
+    const address = this.consultationType() === 'TELECONSULTATION'
+      ? 'Téléconsultation en ligne'
+      : this.patientTravelsToDoctor()
       ? this.normalizeText(this.doctorInterventionAddress())
       : patient.address;
 
-    if (address.length < 5) {
+    if (this.consultationType() !== 'TELECONSULTATION' && address.length < 5) {
       this.fieldErrors.set({ address: 'Adresse du cabinet non renseignee par ce medecin.' });
       return null;
     }
@@ -1014,7 +1053,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
       errors.relationship = 'Precisez le lien avec le patient.';
     }
 
-    if (this.doctorTravelsToPatient() && patient.address.length < 5) {
+    if (this.consultationType() !== 'TELECONSULTATION' && this.doctorTravelsToPatient() && patient.address.length < 5) {
       errors.address = 'Renseignez une adresse complete pour le rendez-vous.';
     }
 

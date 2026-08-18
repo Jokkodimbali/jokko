@@ -49,11 +49,17 @@ export class CallFacade {
   readonly isCameraEnabled = signal(true);
   readonly isSpeakerEnabled = signal(true);
   readonly isOverlayVisible = signal(true);
+  readonly isEmbeddedVideoSession = signal(false);
   readonly audioInputDevices = signal<MediaDeviceInfo[]>([]);
   readonly videoInputDevices = signal<MediaDeviceInfo[]>([]);
   readonly selectedAudioInputId = signal<string | null>(null);
   readonly selectedVideoInputId = signal<string | null>(null);
   readonly historyVersion = signal(0);
+  readonly lastEndedVideoCall = signal<{
+    callId: string;
+    conversationId: string;
+    endedAt: string;
+  } | null>(null);
   readonly networkState = signal<CallNetworkState>('CONNECTED');
   readonly audioPlaybackBlocked = signal(false);
   readonly mutedRemoteTrackIds = signal<ReadonlySet<string>>(new Set());
@@ -90,6 +96,17 @@ export class CallFacade {
             type === 'call.answered-elsewhere') &&
           this.matches(signal)
         ) {
+          if (
+            type === 'call.ended' &&
+            signal.kind === 'VIDEO' &&
+            this.callState()?.phase === 'ACTIVE'
+          ) {
+            this.lastEndedVideoCall.set({
+              callId: signal.callId,
+              conversationId: signal.conversationId,
+              endedAt: signal.occurredAt,
+            });
+          }
           void this.clear();
         }
       });
@@ -164,7 +181,14 @@ export class CallFacade {
     const call = this.callState();
     if (!call) return;
     try {
-      await this.realtime.emit('call.end', call);
+      const ended = await this.realtime.emit('call.end', call);
+      if (call.kind === 'VIDEO' && call.phase === 'ACTIVE') {
+        this.lastEndedVideoCall.set({
+          callId: call.callId,
+          conversationId: call.conversationId,
+          endedAt: ended.occurredAt,
+        });
+      }
       await this.clear();
     } catch (error) {
       this.feedback.error(getHttpErrorMessage(error, "La fin de l'appel n'a pas ete confirmee."));

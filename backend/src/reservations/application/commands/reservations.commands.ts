@@ -5,6 +5,7 @@ export type CreateReservationCommand = {
   adresseClient: string;
   dureeMinutes: number;
   notes?: string;
+  typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
 };
 
 export type CreateReservationFromNegotiationCommand = {

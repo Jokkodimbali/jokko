@@ -333,6 +333,18 @@ export class AppointmentsService {
       );
   }
 
+  confirmTeleconsultationCompleted(reservationId: string): Observable<AppointmentView> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/teleconsultation/complete`,
+        {},
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((reservation) => this.mapAppointment(reservation)),
+      );
+  }
+
   initiatePayment(
     reservationId: string,
     method: PaymentMethod,
@@ -528,6 +540,8 @@ export class AppointmentsService {
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       vehicleType: professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
       notes: reservation.notes,
+      consultationType: reservation.typeConsultation ?? 'CONSULTATION',
+      conversationId: reservation.conversation?.id ?? null,
       medicalPrescription: {
         acts: this.normalizePrescriptionItems(reservation.actesPrescriptionMedicale),
         vaccines: this.normalizePrescriptionItems(reservation.vaccinsPrescriptionMedicale),

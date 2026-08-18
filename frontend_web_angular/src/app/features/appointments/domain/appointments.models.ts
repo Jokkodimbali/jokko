@@ -13,6 +13,7 @@ export type AppointmentTravelMode =
   | 'TRANSPORT_COLIS';
 
 export type AppointmentVehicleType = 'MOTO_SCOOTER' | 'VOITURE' | 'CAMIONNETTE';
+export type MedicalConsultationType = 'CONSULTATION' | 'TELECONSULTATION';
 
 export interface BackendReservation {
   id: string;
@@ -24,6 +25,7 @@ export interface BackendReservation {
   dureeMinutes: number;
   statut: AppointmentStatus;
   notes: string | null;
+  typeConsultation?: MedicalConsultationType;
   actesPrescriptionMedicale?: string[] | null;
   vaccinsPrescriptionMedicale?: string[] | null;
   traitementsPrescriptionMedicale?: string[] | null;
@@ -93,6 +95,7 @@ export interface BackendReservation {
       } | null;
     }>;
   };
+  conversation?: { id: string } | null;
 }
 
 export interface AppointmentView {
@@ -131,6 +134,8 @@ export interface AppointmentView {
   travelMode: AppointmentTravelMode | null;
   vehicleType: AppointmentVehicleType | null;
   notes: string | null;
+  consultationType: MedicalConsultationType;
+  conversationId: string | null;
   medicalPrescription: MedicalPrescriptionPayload | null;
   agreedPrice: number | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';

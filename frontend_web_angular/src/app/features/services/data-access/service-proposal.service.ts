@@ -97,6 +97,7 @@ export interface CreateDirectReservationPayload {
   adresseClient: string;
   dureeMinutes: number;
   notes?: string;
+  typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
 }
 
 export interface CreateReservationFromNegotiationPayload {

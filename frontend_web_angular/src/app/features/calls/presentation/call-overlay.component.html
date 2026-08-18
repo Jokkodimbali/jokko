@@ -8,6 +8,9 @@
   [class.call-overlay--ringing]="call.phase === 'INCOMING'"
   [class.call-overlay--incoming-video]="call.kind === 'VIDEO' && call.phase === 'INCOMING'"
   [class.call-overlay--incoming-voice]="call.kind === 'VOICE' && call.phase === 'INCOMING'"
+  [class.call-overlay--embedded]="
+    calls.isEmbeddedVideoSession() && call.kind === 'VIDEO'
+  "
   [class.call-overlay--incoming-dragged]="call.phase === 'INCOMING' && !!floatingPosition()"
   [style.left.px]="
     !calls.isOverlayVisible() || call.phase === 'INCOMING'

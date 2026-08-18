@@ -322,6 +322,7 @@ export class DoctorSpaceService {
     durationMinutes: number;
     pauseMinutes?: number;
     isRequired: boolean;
+    teleconsultationEnabled?: boolean;
   }): Observable<BackendProfessionalDetailService> {
     return this.http
       .post<
@@ -342,6 +343,7 @@ export class DoctorSpaceService {
       durationMinutes?: number;
       pauseMinutes?: number;
       isRequired?: boolean;
+      teleconsultationEnabled?: boolean;
     },
   ): Observable<BackendProfessionalDetailService> {
     return this.http

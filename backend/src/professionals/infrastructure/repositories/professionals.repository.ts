@@ -86,6 +86,7 @@ const SERVICE_SELECT = {
   dureeMinutes: true,
   pauseMinutes: true,
   estObligatoire: true,
+  teleconsultationActive: true,
   estDisponible: true,
   creeLe: true,
 } as const;
@@ -178,6 +179,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     dureeMinutes: number;
     pauseMinutes: number;
     estObligatoire: boolean;
+    teleconsultationActive: boolean;
     estDisponible: boolean;
     creeLe: Date;
   }): ProfessionalServiceView {
@@ -195,6 +197,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
       dureeMinutes: service.dureeMinutes,
       pauseMinutes: service.pauseMinutes,
       estObligatoire: service.estObligatoire,
+      teleconsultationActive: service.teleconsultationActive,
       estDisponible: service.estDisponible,
       creeLe: service.creeLe,
     };
@@ -510,6 +513,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           dureeMinutes: input.durationMinutes,
           pauseMinutes: input.pauseMinutes,
           estObligatoire: input.isRequired,
+          teleconsultationActive: input.teleconsultationEnabled,
         },
         select: SERVICE_SELECT,
       });
@@ -545,6 +549,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           dureeMinutes: input.durationMinutes,
           pauseMinutes: input.pauseMinutes,
           estObligatoire: input.isRequired,
+          teleconsultationActive: input.teleconsultationEnabled,
         },
         select: SERVICE_SELECT,
       });

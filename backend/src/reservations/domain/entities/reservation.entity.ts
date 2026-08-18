@@ -38,6 +38,8 @@ export type ReservationPriceAdjustmentStatus =
   | 'ACCEPTE'
   | 'REFUSE';
 
+export type MedicalConsultationType = 'CONSULTATION' | 'TELECONSULTATION';
+
 export type Reservation = {
   id: string;
   clientId: string;
@@ -48,6 +50,7 @@ export type Reservation = {
   dureeMinutes: number;
   statut: ReservationStatus;
   notes: string | null;
+  typeConsultation?: MedicalConsultationType;
   actesPrescriptionMedicale: string[];
   vaccinsPrescriptionMedicale: string[];
   traitementsPrescriptionMedicale: string[];
@@ -75,6 +78,7 @@ export class ReservationEntity {
     private readonly _dureeMinutes: number,
     private _statut: ReservationStatus,
     private readonly _notes: string | null,
+    private readonly _typeConsultation: MedicalConsultationType,
     private _actesPrescriptionMedicale: string[],
     private _vaccinsPrescriptionMedicale: string[],
     private _traitementsPrescriptionMedicale: string[],
@@ -180,6 +184,7 @@ export class ReservationEntity {
     adresseClient: string;
     dureeMinutes: number;
     notes?: string | null;
+    typeConsultation?: MedicalConsultationType;
     prixConvenu?: number | null;
   }): ReservationEntity {
     this.assertRequiredInput(input.clientId, () =>
@@ -208,6 +213,7 @@ export class ReservationEntity {
       input.dureeMinutes,
       'CONFIRMEE',
       this.normalizeText(input.notes),
+      input.typeConsultation ?? 'CONSULTATION',
       [],
       [],
       [],
@@ -246,6 +252,7 @@ export class ReservationEntity {
       data.dureeMinutes,
       data.statut,
       data.notes,
+      data.typeConsultation ?? 'CONSULTATION',
       data.actesPrescriptionMedicale ?? [],
       data.vaccinsPrescriptionMedicale ?? [],
       data.traitementsPrescriptionMedicale ?? [],
@@ -448,6 +455,7 @@ export class ReservationEntity {
       dureeMinutes: this._dureeMinutes,
       statut: this._statut,
       notes: this._notes,
+      typeConsultation: this._typeConsultation,
       actesPrescriptionMedicale: [...this._actesPrescriptionMedicale],
       vaccinsPrescriptionMedicale: [...this._vaccinsPrescriptionMedicale],
       traitementsPrescriptionMedicale: [

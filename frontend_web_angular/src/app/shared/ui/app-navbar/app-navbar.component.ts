@@ -20,6 +20,7 @@ import { AppFeedbackService } from '../../../core/feedback/app-feedback.service'
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
 import { SessionPresenceService } from '../../../core/presence/session-presence.service';
 import {
+  findFeaturedNotification,
   NotificationsService,
   UserNotificationView,
 } from '../../../core/notifications/notifications.service';
@@ -78,8 +79,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected readonly unreadNotificationsCount = signal(0);
   protected readonly unreadMessagesCount = signal(0);
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
+  private readonly notificationHistory = signal<UserNotificationView[]>([]);
   protected readonly featuredNotification = computed(
-    () => this.notificationPreview().find((notification) => !this.isRead(notification)) ?? null,
+    () => findFeaturedNotification(this.notificationHistory()),
   );
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
@@ -371,10 +373,15 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected notificationTypeLabel(type: string): string {
     const normalized = (type || '').toLowerCase();
+    if (normalized.includes('ajustement')) return 'Ajustement du prix';
+    if (normalized.includes('en_route')) return 'Prestataire en route';
     if (normalized.includes('reservation')) return 'Reservation';
     if (normalized.includes('payment') || normalized.includes('paiement')) return 'Paiement';
     if (normalized.includes('message')) return 'Message';
     if (normalized.includes('kyc')) return 'Validation du profil';
+    if (normalized.includes('litige')) return 'Litige';
+    if (normalized.includes('appel')) return 'Appel';
+    if (normalized.includes('annonce')) return 'Information Jokko';
     return 'Notification';
   }
 
@@ -447,7 +454,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private loadNotificationPreview(showLoading: boolean = true): void {
     if (showLoading) this.isNotificationsLoading.set(true);
     this.notificationsService
-      .list({ limit: 6 })
+      .list({ limit: 100 })
       .pipe(
         catchError(() => of([])),
         finalize(() => {
@@ -455,7 +462,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         }),
       )
       .subscribe((notifications) => {
-        this.notificationPreview.set(notifications);
+        this.notificationHistory.set(notifications);
+        this.notificationPreview.set(notifications.slice(0, 6));
       });
   }
 
@@ -497,6 +505,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const conversationId = this.readMetadataString(metadata, 'conversationId');
     if (conversationId) return { commands: ['/messages'], queryParams: { conversationId } };
 
+    const disputeId = this.readMetadataString(metadata, 'disputeId');
+    if (disputeId) {
+      return this.currentUser()?.role === 'ADMIN'
+        ? { commands: ['/admin'], queryParams: { section: 'disputes', disputeId } }
+        : { commands: ['/litiges', disputeId] };
+    }
+
     const reservationId = this.readMetadataString(metadata, 'reservationId');
     if (reservationId) return { commands: ['/appointments', reservationId], reservationId };
 
@@ -506,6 +521,21 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
     const professionalId = this.readMetadataString(metadata, 'professionalId');
     if (professionalId) return { commands: ['/services', professionalId] };
+
+    const negotiationId = this.readMetadataString(metadata, 'negotiationId');
+    const serviceId = this.readMetadataString(metadata, 'serviceId');
+    if (negotiationId && serviceId) {
+      return {
+        commands: ['/services', serviceId, 'proposition'],
+        queryParams: {
+          negotiationId,
+          ...(this.currentUser()?.role === 'PRESTATAIRE' || this.currentUser()?.role === 'MEDECIN'
+            ? { mode: 'prestataire' }
+            : {}),
+        },
+      };
+    }
+    if (negotiationId) return { commands: ['/appointments'], queryParams: { negotiationId } };
 
     const type = (notification.type || '').toLowerCase();
     if (type.includes('message')) return { commands: ['/messages'] };
@@ -559,4 +589,5 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const value = metadata[key];
     return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
+
 }

@@ -141,10 +141,15 @@ export class NotificationsPageComponent implements OnInit {
 
   protected typeLabel(type: string): string {
     const normalized = (type || '').toLowerCase();
+    if (normalized.includes('ajustement')) return 'Ajustement du prix';
+    if (normalized.includes('en_route')) return 'Prestataire en route';
     if (normalized.includes('reservation')) return 'Reservation';
     if (normalized.includes('payment') || normalized.includes('paiement')) return 'Paiement';
     if (normalized.includes('message')) return 'Message';
     if (normalized.includes('kyc')) return 'Validation du profil';
+    if (normalized.includes('litige')) return 'Litige';
+    if (normalized.includes('appel')) return 'Appel';
+    if (normalized.includes('annonce')) return 'Information Jokko';
     return 'Notification';
   }
 
@@ -164,6 +169,13 @@ export class NotificationsPageComponent implements OnInit {
       return { commands: ['/messages'], queryParams: { conversationId } };
     }
 
+    const disputeId = this.readMetadataString(metadata, 'disputeId');
+    if (disputeId) {
+      return this.authSession.currentUser()?.role === 'ADMIN'
+        ? { commands: ['/admin'], queryParams: { section: 'disputes', disputeId } }
+        : { commands: ['/litiges', disputeId] };
+    }
+
     const reservationId = this.readMetadataString(metadata, 'reservationId');
     if (reservationId) {
       return { commands: ['/appointments', reservationId], reservationId };
@@ -177,6 +189,22 @@ export class NotificationsPageComponent implements OnInit {
     const professionalId = this.readMetadataString(metadata, 'professionalId');
     if (professionalId) {
       return { commands: ['/services', professionalId] };
+    }
+
+    const negotiationId = this.readMetadataString(metadata, 'negotiationId');
+    const serviceId = this.readMetadataString(metadata, 'serviceId');
+    if (negotiationId && serviceId) {
+      const role = this.authSession.currentUser()?.role;
+      return {
+        commands: ['/services', serviceId, 'proposition'],
+        queryParams: {
+          negotiationId,
+          ...(role === 'PRESTATAIRE' || role === 'MEDECIN' ? { mode: 'prestataire' } : {}),
+        },
+      };
+    }
+    if (negotiationId) {
+      return { commands: ['/appointments'], queryParams: { negotiationId } };
     }
 
     const type = (notification.type || '').toLowerCase();

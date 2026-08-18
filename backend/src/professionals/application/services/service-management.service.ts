@@ -42,6 +42,8 @@ export class ServiceManagementService extends ProfessionalAppService {
       durationMinutes: command.durationMinutes,
       pauseMinutes: command.pauseMinutes,
       isRequired: command.isRequired,
+      teleconsultationEnabled:
+        requestUser.role === 'MEDECIN' && command.teleconsultationEnabled === true,
     });
 
     if (result.status === 'profile_not_found') {
@@ -82,6 +84,10 @@ export class ServiceManagementService extends ProfessionalAppService {
       durationMinutes: command.durationMinutes,
       pauseMinutes: command.pauseMinutes,
       isRequired: command.isRequired,
+      teleconsultationEnabled:
+        requestUser.role === 'MEDECIN'
+          ? command.teleconsultationEnabled
+          : false,
     });
 
     if (result.status === 'profile_not_found') {

@@ -66,4 +66,5 @@ export interface SearchRepositoryPort {
   searchProfessionals(
     input: SearchProfessionalsInput,
   ): Promise<SearchProfessionalsResult>;
+  listAvailableCities(): Promise<string[]>;
 }

@@ -124,6 +124,34 @@ export class ReservationCommandService extends ReservationAppService {
         createdReservation,
         'reservations.created',
       );
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        createdReservation.professionnelId,
+      );
+      const detailedReservation =
+        await this.reservationsRepository.findDetailedById(
+          createdReservation.id,
+        );
+      await this.reservationClientNotificationService.notifyReservationConfirmed(
+        {
+          reservationId: createdReservation.id,
+          clientId: createdReservation.clientId,
+          serviceName: service.nom,
+          professionalName:
+            professional.nomEntreprise || professional.utilisateur.nom,
+          dateHeure: createdReservation.dateHeure,
+          adresseClient: createdReservation.adresseClient,
+        },
+      );
+      await this.reservationClientNotificationService.notifyReservationCreatedForProfessional(
+        {
+          reservationId: createdReservation.id,
+          professionalUserId: professional.utilisateur.id,
+          clientName: detailedReservation?.client.nom ?? 'Le client',
+          serviceName: service.nom,
+          dateHeure: createdReservation.dateHeure,
+          typeConsultation: createdReservation.typeConsultation,
+        },
+      );
 
       return createdReservation;
     } catch (error) {

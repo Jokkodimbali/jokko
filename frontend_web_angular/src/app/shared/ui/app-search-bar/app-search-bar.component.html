@@ -17,10 +17,7 @@
       [size]="isServiceVariant ? 17 : 22"
       [strokeWidth]="isServiceVariant ? 2.4 : 3"
     ></lucide-icon>
-    <span
-      ><strong>{{ locationTitle }}</strong
-      >{{ locationValue }}</span
-    >
+    <span><strong>{{ locationTitle }}</strong><em>{{ locationValue }}</em></span>
     <lucide-icon
       *ngIf="isServiceVariant"
       class="app-search-bar__chevron"

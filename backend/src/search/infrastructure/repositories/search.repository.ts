@@ -437,4 +437,36 @@ export class SearchRepository implements SearchRepositoryPort {
       limit,
     };
   }
+
+  async listAvailableCities(): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<
+      Array<{ city: string }>
+    >(Prisma.sql`
+      SELECT DISTINCT btrim(COALESCE(u.address, pp.city)) AS city
+      FROM professional_profiles pp
+      INNER JOIN users u ON u.id = pp.user_id
+      WHERE u.is_active = true
+        AND pp.kyc_status = 'VERIFIE'
+        AND btrim(COALESCE(u.address, pp.city, '')) <> ''
+        AND (
+          u.role = 'MEDECIN'
+          OR (
+            u.role = 'PRESTATAIRE'
+            AND (
+              EXISTS (
+                SELECT 1 FROM services s
+                WHERE s.professional_id = pp.id AND s.is_available = true
+              )
+              OR EXISTS (
+                SELECT 1 FROM professional_specialties ps
+                WHERE ps.professional_id = pp.id
+              )
+            )
+          )
+        )
+      ORDER BY city ASC
+    `);
+
+    return rows.map((row) => row.city);
+  }
 }

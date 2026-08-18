@@ -497,7 +497,10 @@
           *ngIf="isTeleconsultation() && isProviderWorking() && !teleconsultationCompleted()"
           class="appointment-detail__teleconsultation"
         >
-          <div class="appointment-detail__teleconsultation-stage">
+          <div
+            class="appointment-detail__teleconsultation-stage"
+            [class.appointment-detail__teleconsultation-stage--end-confirmation]="isTeleconsultationEndConfirmationOpen()"
+          >
             <span
               *ngFor="let track of teleconsultationRemoteVideoTracks()"
               class="appointment-detail__teleconsultation-remote-video"
@@ -573,19 +576,36 @@
                 type="button"
                 class="appointment-detail__teleconsultation-primary-control"
                 [attr.aria-label]="calls.call() ? 'Terminer la téléconsultation' : 'Démarrer la téléconsultation'"
-                [disabled]="!appointment.conversationId || (!isDoctorViewer() && !calls.call())"
+                [disabled]="isPreparingTeleconsultationCall() || (!isDoctorViewer() && !calls.call())"
                 (click)="toggleTeleconsultation(appointment)"
               >
                 <lucide-icon [name]="calls.call() ? 'phone-off' : isDoctorViewer() ? 'video' : 'phone'" size="20" />
               </button>
-              <button type="button" aria-label="Ouvrir les messages" (click)="openTeleconsultationMessages(appointment)">
-                <lucide-icon name="message-circle" size="18" />
-              </button>
-              <button type="button" aria-label="Qualité de la connexion" disabled>
-                <lucide-icon name="activity" size="18" />
-              </button>
               </ng-template>
             </div>
+
+            <section
+              *ngIf="isTeleconsultationEndConfirmationOpen()"
+              class="appointment-detail__teleconsultation-end-confirmation"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="teleconsultation-end-title"
+            >
+              <lucide-icon name="phone-off" size="24" />
+              <h3 id="teleconsultation-end-title">Terminer l'appel ?</h3>
+              <p>Voulez-vous continuer l'appel ou le terminer pour passer à la prescription ?</p>
+              <div>
+                <button type="button" (click)="continueTeleconsultationCall()">Continuer l'appel</button>
+                <button
+                  type="button"
+                  class="appointment-detail__teleconsultation-end-confirmation--confirm"
+                  [disabled]="isUpdatingStatus()"
+                  (click)="confirmTeleconsultationEndAndContinue(appointment)"
+                >
+                  Quitter et continuer
+                </button>
+              </div>
+            </section>
           </div>
 
           <aside class="appointment-detail__teleconsultation-summary">
@@ -853,7 +873,7 @@
             <ng-container *ngIf="isProviderWorking(); else clientConfirmedTrackingVisual">
               <div class="appointment-detail__client-tracking-work">
                 <span></span>
-                <h2>Intervention active</h2>
+                <h2>{{ isMedicalAppointment() ? 'Prescription des médicaments en cours' : 'Intervention active' }}</h2>
                 <p>{{ appointment.serviceName }}</p>
               </div>
             </ng-container>

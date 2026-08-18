@@ -16,6 +16,14 @@ import { SearchProfessionalsQueryDto } from '../dto/search-professionals-query.d
 export class SearchController {
   constructor(private readonly searchQueryService: SearchQueryService) {}
 
+  @Get('professionals/cities')
+  @ApiOperation({
+    summary: 'Liste les villes disposant de professionnels visibles.',
+  })
+  async listAvailableCities() {
+    return this.searchQueryService.listAvailableCities();
+  }
+
   @Get('professionals')
   @ApiOperation({
     summary: API_DOCS.search.professionalsSummary,

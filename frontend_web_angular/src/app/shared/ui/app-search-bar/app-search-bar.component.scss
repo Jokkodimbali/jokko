@@ -192,6 +192,14 @@
   font-weight: 900;
   line-height: 1.08;
   min-width: 0;
+  overflow: hidden;
+}
+
+.app-search-bar--service .app-search-bar__location em {
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-search-bar--service .app-search-bar__location strong {

@@ -155,7 +155,7 @@
           >
             <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
             <span>
-              <small>{{ notificationTypeLabel(notification.type) }}</small>
+              <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
               <strong>{{ notificationTitle(notification) }}</strong>
               <em>{{ notificationBody(notification) }}</em>
               <time *ngIf="notificationDate(notification)">{{
@@ -377,7 +377,7 @@
     >
       <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
       <span>
-        <small>{{ notificationTypeLabel(notification.type) }}</small>
+        <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
         <strong>{{ notificationTitle(notification) }}</strong>
         <em>{{ notificationBody(notification) }}</em>
         <time *ngIf="notificationDate(notification)">{{

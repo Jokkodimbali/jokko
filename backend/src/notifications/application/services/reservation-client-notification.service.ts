@@ -54,6 +54,23 @@ type ReservationProfessionalCancellationNotificationInput = {
   reason?: string | null;
 };
 
+type ReservationProfessionalCreatedNotificationInput = {
+  reservationId: string;
+  professionalUserId: string;
+  clientName: string;
+  serviceName: string;
+  dateHeure: Date;
+  typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
+};
+
+type ReservationArrivalNotificationInput = {
+  reservationId: string;
+  recipientUserId: string;
+  travellerName: string;
+  serviceName: string;
+  travellerRole: 'CLIENT' | 'PROFESSIONNEL';
+};
+
 type DispatchResult = {
   status: NotificationDispatchStatus;
   provider?: string;
@@ -181,6 +198,55 @@ export class ReservationClientNotificationService {
     input: ReservationCreatedNotificationInput,
   ): Promise<void> {
     await this.notifyGenericEvent(input, 'RESERVATION_CONFIRMEE', 'confirmee');
+  }
+
+  async notifyReservationCreatedForProfessional(
+    input: ReservationProfessionalCreatedNotificationInput,
+  ): Promise<void> {
+    const formattedDate = input.dateHeure.toLocaleString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+    const consultationLabel =
+      input.typeConsultation === 'TELECONSULTATION'
+        ? ' en teleconsultation'
+        : '';
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.professionalUserId,
+      type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
+      title: 'Nouvelle reservation confirmee',
+      body: `${input.clientName} a confirme une reservation${consultationLabel} pour ${input.serviceName}, prevue le ${formattedDate}.`,
+      data: {
+        reservationId: input.reservationId,
+        serviceName: input.serviceName,
+        clientName: input.clientName,
+        dateHeure: input.dateHeure.toISOString(),
+        typeConsultation: input.typeConsultation ?? 'CONSULTATION',
+      },
+    });
+  }
+
+  async notifyReservationArrival(
+    input: ReservationArrivalNotificationInput,
+  ): Promise<void> {
+    const travellerLabel =
+      input.travellerRole === 'CLIENT' ? 'Le client' : 'Votre prestataire';
+    await this.notificationsService.createInAppNotification({
+      userId: input.recipientUserId,
+      // This existing type is intentionally reused: the widget keeps a trip
+      // state visible after reading until the reservation is closed.
+      type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+      title: `${travellerLabel} est sur place`,
+      body: `${input.travellerName} est sur place pour la reservation ${input.serviceName}.`,
+      data: {
+        reservationId: input.reservationId,
+        serviceName: input.serviceName,
+        travellerRole: input.travellerRole,
+        tripStatus: 'SUR_PLACE',
+        persistentUntilTerminal: true,
+      },
+    });
   }
 
   async notifyReservationCancelled(

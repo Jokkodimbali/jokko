@@ -48,7 +48,6 @@ import {
 } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
-import { SENEGAL_CITIES } from '../../../../../shared/data/senegal-cities';
 import {
   ProviderCardComponent,
   ProviderCardView,
@@ -112,8 +111,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   showSearchSuggestions = signal<boolean>(false);
   showLocationMenu = signal<boolean>(false);
   suggestionProviders = signal<Professional[]>([]);
-  readonly cityOptions = SENEGAL_CITIES;
-  protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions]);
+  readonly cityOptions = signal<string[]>([]);
+  protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions()]);
   protected readonly locationValue = computed(() => this.selectedCity());
   protected readonly searchResultsNearLabel = computed(() =>
     this.currentSearchLocation()
@@ -252,16 +251,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     return this.visibleSubCategories(activeCategory?.subCategories ?? []);
   });
-  protected readonly isSearchOrFilterActive = computed(
-    () =>
-      this.searchTerm().trim().length > 0 ||
-      this.activeFilter() !== 'ALL' ||
-      this.activeTravelMode() !== 'ALL' ||
-      this.activeCategoryId() !== null ||
-      this.activeSubCategoryId() !== null ||
-      this.effectiveCityFilter() !== undefined ||
-      this.currentSearchLocation() !== null,
-  );
   protected readonly activeSubCategory = computed(() => {
     const subCategoryId = this.activeSubCategoryId();
     if (!subCategoryId) {
@@ -293,6 +282,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadCategories();
+    this.loadAvailableCities();
     this.loadFavorites();
     this.loadDefaultProfessionals();
     this.catalogRealtimeSubscription = this.catalogRealtime
@@ -450,6 +440,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private loadDefaultProfessionals(): void {
     if (this.authSession.currentUser()?.role === 'CLIENT') {
+      // Render the catalogue immediately; the nearby result replaces it once GPS is available.
+      this.loadHomeData();
       this.locateCurrentClient(false);
       return;
     }
@@ -473,7 +465,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.currentSearchLocation.set({
           latitude: coords.latitude,
           longitude: coords.longitude,
-          radiusKm: 25,
+          // One geographically ordered request is faster and avoids a second
+          // request when the closest professional is just outside 25 km.
+          radiusKm: 100,
         });
         this.selectedCity.set('Ma position actuelle');
         this.isLocating.set(false);
@@ -491,7 +485,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         this.loadHomeData();
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 },
     );
   }
 
@@ -898,6 +892,13 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       error: () => {
         this.categories.set([]);
       },
+    });
+  }
+
+  private loadAvailableCities(): void {
+    this.servicesService.getAvailableCities().subscribe({
+      next: (cities) => this.cityOptions.set([...new Set(cities.map((city) => city.trim()).filter(Boolean))]),
+      error: () => this.cityOptions.set([]),
     });
   }
 

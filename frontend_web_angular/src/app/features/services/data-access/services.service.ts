@@ -63,6 +63,14 @@ export class ServicesService {
     );
   }
 
+  getAvailableCities(): Observable<string[]> {
+    return this.cacheFor('professionals:available-cities', () =>
+      this.http
+        .get<ApiResponse<string[]>>(`${this.apiUrl}/search/professionals/cities`)
+        .pipe(map((response) => unwrapApiResponse(response))),
+    );
+  }
+
   getProfessionalsByCategory(
     categoryId: string,
     page: number = 1,
@@ -130,14 +138,6 @@ export class ServicesService {
       ]);
 
     return searchBothRoles(location).pipe(
-      switchMap((results) => {
-        const hasNearbyResult = results.some((result) => result.providers.length > 0);
-        if (!location || hasNearbyResult || (location.radiusKm ?? 25) >= 100) {
-          return of(results);
-        }
-
-        return searchBothRoles({ ...location, radiusKm: 100 });
-      }),
       map(([providersResult, doctorsResult]) => {
         const providers = this.mergeProfessionals(
           providersResult.providers,

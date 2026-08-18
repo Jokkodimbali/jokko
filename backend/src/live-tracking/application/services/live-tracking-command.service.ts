@@ -431,6 +431,20 @@ export class LiveTrackingCommandService {
         professionalId: context.professionalId,
       }),
     );
+    await this.reservationClientNotificationService.notifyReservationArrival({
+      reservationId: context.reservationId,
+      recipientUserId:
+        context.travelMode === 'CLIENT_SE_DEPLACE'
+          ? context.professionalUserId
+          : context.clientUserId,
+      travellerName:
+        context.travelMode === 'CLIENT_SE_DEPLACE'
+          ? 'Le client'
+          : context.professionalName,
+      serviceName: context.serviceName,
+      travellerRole:
+        context.travelMode === 'CLIENT_SE_DEPLACE' ? 'CLIENT' : 'PROFESSIONNEL',
+    });
     this.publishLocationRealtime(tracking);
     return tracking;
   }

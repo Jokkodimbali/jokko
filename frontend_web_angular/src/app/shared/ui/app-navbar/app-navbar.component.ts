@@ -338,13 +338,14 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
     this.notificationsService.markAsRead(notification.id).subscribe({
       next: (updated) => {
-        this.notificationPreview.update((items) =>
+        const markRead = (items: UserNotificationView[]) =>
           items.map((item) =>
             item.id === notification.id
               ? { ...item, ...updated, isRead: true, estLue: true }
               : item,
-          ),
-        );
+          );
+        this.notificationPreview.update(markRead);
+        this.notificationHistory.update(markRead);
         this.unreadNotificationsCount.update((count) => Math.max(0, count - 1));
         navigate();
       },
@@ -371,9 +372,14 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     return Boolean(notification.isRead ?? notification.estLue);
   }
 
-  protected notificationTypeLabel(type: string): string {
+  protected notificationTypeLabel(
+    type: string,
+    notification?: UserNotificationView,
+  ): string {
     const normalized = (type || '').toLowerCase();
+    const metadata = notification?.data || notification?.donnees || {};
     if (normalized.includes('ajustement')) return 'Ajustement du prix';
+    if (metadata['tripStatus'] === 'SUR_PLACE') return 'Sur place';
     if (normalized.includes('en_route')) return 'Prestataire en route';
     if (normalized.includes('reservation')) return 'Reservation';
     if (normalized.includes('payment') || normalized.includes('paiement')) return 'Paiement';

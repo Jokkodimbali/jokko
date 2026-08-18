@@ -283,6 +283,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private medicalPrescriptionDraftDirty = false;
   protected readonly teleconsultationCompleted = signal(false);
   protected readonly teleconsultationCallEnded = signal(false);
+  protected readonly isTeleconsultationEndConfirmationOpen = signal(false);
+  protected readonly isPreparingTeleconsultationCall = signal(false);
   private readonly teleconsultationRealtimeEndEffect = effect(() => {
     const endedCall = this.calls.lastEndedVideoCall();
     const appointment = this.appointment();
@@ -2530,7 +2532,29 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected startTeleconsultation(appointment: AppointmentView): void {
     if (!appointment.conversationId) {
-      this.feedback.error('La conversation sécurisée de ce rendez-vous est introuvable.');
+      if (this.isPreparingTeleconsultationCall()) return;
+      this.isPreparingTeleconsultationCall.set(true);
+      this.messagesService
+        .createConversation({
+          reservationId: appointment.id,
+          professionalProfileId: appointment.professionalId,
+        })
+        .subscribe({
+          next: (conversation) => {
+            const appointmentWithConversation = { ...appointment, conversationId: conversation.id };
+            this.appointment.update((current) =>
+              current?.id === appointment.id
+                ? { ...current, conversationId: conversation.id }
+                : current,
+            );
+            this.isPreparingTeleconsultationCall.set(false);
+            this.startTeleconsultation(appointmentWithConversation);
+          },
+          error: () => {
+            this.isPreparingTeleconsultationCall.set(false);
+            this.feedback.error("Impossible de préparer la conversation sécurisée pour l'appel.");
+          },
+        });
       return;
     }
     const counterpartName = this.isProviderViewer()
@@ -2549,6 +2573,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected toggleTeleconsultation(appointment: AppointmentView): void {
     if (this.calls.call()) {
+      if (this.isDoctorViewer() && this.calls.call()?.phase === 'ACTIVE') {
+        this.isTeleconsultationEndConfirmationOpen.set(true);
+        return;
+      }
       void this.endTeleconsultationCall();
       return;
     }
@@ -2565,6 +2593,29 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     await this.calls.end();
     if (wasAccepted && !this.calls.call() && this.isDoctorViewer()) {
       this.teleconsultationCallEnded.set(true);
+    }
+  }
+
+  protected continueTeleconsultationCall(): void {
+    this.isTeleconsultationEndConfirmationOpen.set(false);
+  }
+
+  protected confirmTeleconsultationEndAndContinue(appointment: AppointmentView): void {
+    if (this.isUpdatingStatus()) return;
+    this.isTeleconsultationEndConfirmationOpen.set(false);
+    void this.endTeleconsultationAndContinueToPrescription(appointment);
+  }
+
+  private async endTeleconsultationAndContinueToPrescription(
+    appointment: AppointmentView,
+  ): Promise<void> {
+    try {
+      await this.endTeleconsultationCall();
+      if (!this.calls.call() && this.teleconsultationCallEnded()) {
+        this.confirmTeleconsultationCompleted(appointment);
+      }
+    } catch {
+      this.feedback.error("Impossible de terminer l'appel pour le moment.");
     }
   }
 

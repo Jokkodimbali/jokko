@@ -113,6 +113,7 @@ describe('ReservationCommandService', () => {
     const reservationClientNotificationService = {
       notifyReservationCreated: jest.fn(),
       notifyReservationConfirmed: jest.fn(),
+      notifyReservationCreatedForProfessional: jest.fn(),
       notifyReservationCompleted: jest.fn(),
       notifyReservationCancelled: jest.fn(),
       notifyReservationCancelledForProfessional: jest.fn(),

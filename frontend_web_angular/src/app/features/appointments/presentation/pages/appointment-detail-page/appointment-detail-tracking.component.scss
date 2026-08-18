@@ -55,7 +55,8 @@
   box-shadow: none;
   grid-column: 1 / -1;
   height: auto;
-  margin: 112px auto 0;
+  /* Leave a clear lane for the reservation stepper above the teleconsultation. */
+  margin: 152px auto 32px;
   max-width: 1180px;
   min-height: 0;
   overflow: visible;
@@ -67,7 +68,20 @@
     > .appointment-detail__live-map,
   .appointment-detail__route-layout--teleconsultation.appointment-detail__route-layout--provider
     > .appointment-detail__live-map {
-    margin: 104px 12px 24px;
+    margin: 126px 12px 28px;
+    width: calc(100% - 24px);
+  }
+}
+
+/* The stepper is absolutely positioned on phones. Reserve its full height here
+   so the teleconsultation frame can never sit behind its labels or markers. */
+@media (max-width: 680px) {
+  .appointment-detail__route-layout--teleconsultation.appointment-detail__route-layout--client
+    > .appointment-detail__live-map,
+  .appointment-detail__route-layout--teleconsultation.appointment-detail__route-layout--provider
+    > .appointment-detail__live-map,
+  .appointment-detail__route-layout--teleconsultation > .appointment-detail__live-map {
+    margin: 184px 12px 32px !important;
     width: calc(100% - 24px);
   }
 }

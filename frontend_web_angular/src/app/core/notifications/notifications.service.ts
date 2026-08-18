@@ -43,7 +43,13 @@ export function findFeaturedNotification(
   notifications: UserNotificationView[],
 ): UserNotificationView | null {
   const activeOnTheWay = notifications.find((notification) => {
-    if (notification.type !== 'PRESTATAIRE_EN_ROUTE') return false;
+    const metadata = notification.data || notification.donnees || {};
+    if (
+      notification.type !== 'PRESTATAIRE_EN_ROUTE' &&
+      metadata['persistentUntilTerminal'] !== true
+    ) {
+      return false;
+    }
     const reservationId = notificationMetadataString(notification, 'reservationId');
     if (!reservationId) return false;
     const startedAt = notificationTimestamp(notification);

@@ -58,6 +58,24 @@ describe('findFeaturedNotification', () => {
     expect(findFeaturedNotification([terminal, onTheWay])).toBe(onTheWay);
   });
 
+  it('conserve aussi la notification sur place apres lecture', () => {
+    const arrived = {
+      ...notification(
+        'arrival-1',
+        'PRESTATAIRE_EN_ROUTE',
+        'reservation-1',
+        '2026-08-17T10:00:00Z',
+        true,
+      ),
+      data: {
+        reservationId: 'reservation-1',
+        tripStatus: 'SUR_PLACE',
+        persistentUntilTerminal: true,
+      },
+    };
+    expect(findFeaturedNotification([arrived])).toBe(arrived);
+  });
+
   it('affiche sinon la premiere notification non lue', () => {
     const unread = notification(
       'offer-1',

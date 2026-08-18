@@ -28,4 +28,8 @@ export class SearchQueryService {
 
     return this.searchRepository.searchProfessionals(input);
   }
+
+  async listAvailableCities(): Promise<string[]> {
+    return this.searchRepository.listAvailableCities();
+  }
 }

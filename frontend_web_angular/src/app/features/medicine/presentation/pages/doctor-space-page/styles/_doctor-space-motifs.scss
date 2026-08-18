@@ -357,6 +357,11 @@
   grid-template-columns: minmax(220px, 1.5fr) 86px minmax(140px, 0.8fr) minmax(130px, 0.75fr) 86px;
 }
 
+.doctor-space__motif-table--medical .doctor-space__motif-table-head,
+.doctor-space__motif-table--medical .doctor-space__motif-row {
+  grid-template-columns: minmax(210px, 1.4fr) 76px minmax(120px, 0.7fr) minmax(110px, 0.65fr) minmax(135px, 0.7fr) 86px;
+}
+
 .doctor-space__motif-table-head {
   background: #faf6f1;
   border-bottom: 1px solid #e8edf2;
@@ -502,6 +507,10 @@
     gap: 12px;
     grid-template-columns: 60px minmax(0, 1fr) auto;
     padding: 14px 18px;
+  }
+
+  .doctor-space__motif-table--medical .doctor-space__motif-row {
+    grid-template-columns: 60px minmax(0, 1fr) auto;
   }
 
   .doctor-space__motif-name {

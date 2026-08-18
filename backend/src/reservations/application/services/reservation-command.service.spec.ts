@@ -15,6 +15,11 @@ describe('ReservationCommandService', () => {
     role: 'PRESTATAIRE',
     phoneNumber: '+221773456789',
   };
+  const doctorUser: AuthUser = {
+    sub: 'professional-user-id',
+    role: 'MEDECIN',
+    phoneNumber: '+221773456789',
+  };
 
   const buildReservation = (
     overrides: Partial<Reservation> = {},
@@ -64,6 +69,7 @@ describe('ReservationCommandService', () => {
       update: jest.fn((reservation: Reservation) =>
         Promise.resolve(reservation),
       ),
+      save: jest.fn((reservation: Reservation) => Promise.resolve(reservation)),
       hasPaymentForReservation: jest.fn().mockResolvedValue(false),
     };
     const professionalsRepository = {
@@ -108,6 +114,8 @@ describe('ReservationCommandService', () => {
     const reservationClientNotificationService = {
       notifyReservationCreated: jest.fn(),
       notifyReservationConfirmed: jest.fn(),
+      notifyReservationCreatedForProfessional: jest.fn(),
+      notifyReservationCompleted: jest.fn(),
       notifyReservationCancelled: jest.fn(),
       notifyReservationCancelledForProfessional: jest.fn(),
       notifyPriceAdjustmentProposed: jest.fn(),
@@ -115,10 +123,14 @@ describe('ReservationCommandService', () => {
     const disputesFacade = {};
     const liveTrackingFacade = {
       finalizeReservationTracking: jest.fn(),
+      getReservationTracking: jest.fn().mockResolvedValue({ trackingStatus: 'TERMINEE' }),
     };
     const prisma = {
       paiement: {
         updateMany: jest.fn(),
+      },
+      appel: {
+        findFirst: jest.fn().mockResolvedValue(null),
       },
     };
 
@@ -136,8 +148,58 @@ describe('ReservationCommandService', () => {
       reservationsRepository,
       professionalsRepository,
       prisma,
+      liveTrackingFacade,
+      reservationClientNotificationService,
     };
   };
+
+  it('starts a teleconsultation without requiring GPS tracking or arrival', async () => {
+    const { service, reservationsRepository, liveTrackingFacade } = buildService({
+      reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
+      professionalId: 'professional-id',
+    });
+
+    const result = await service.startReservation(doctorUser, 'reservation-id');
+
+    expect(result.statut).toBe('EN_COURS');
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'EN_COURS' }),
+    );
+    expect(liveTrackingFacade.getReservationTracking).not.toHaveBeenCalled();
+    expect(liveTrackingFacade.finalizeReservationTracking).not.toHaveBeenCalled();
+  });
+
+  it('notifies both the client and the professional when a reservation is created', async () => {
+    const {
+      service,
+      reservationClientNotificationService,
+    } = buildService();
+
+    await service.createReservation(clientUser, {
+      professionnelId: 'professional-id',
+      serviceId: 'service-id',
+      dateHeure: '2030-06-20T10:00:00.000Z',
+      adresseClient: 'Dakar Plateau',
+      dureeMinutes: 60,
+    });
+
+    expect(
+      reservationClientNotificationService.notifyReservationConfirmed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'client-id',
+        reservationId: expect.any(String),
+      }),
+    );
+    expect(
+      reservationClientNotificationService.notifyReservationCreatedForProfessional,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        professionalUserId: 'professional-user-id',
+        clientName: 'Client Jokko',
+      }),
+    );
+  });
 
   it('rejects reservation conversion when requested details differ from accepted negotiation details', async () => {
     const { service } = buildService();
@@ -224,6 +286,90 @@ describe('ReservationCommandService', () => {
       }),
     );
     expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks a teleconsultation prescription until the doctor confirms its completion', async () => {
+    const { service, reservationsRepository, prisma } = buildService({
+      reservation: buildReservation({
+        statut: 'EN_COURS',
+        typeConsultation: 'TELECONSULTATION',
+      }),
+    });
+
+    await expect(
+      service.saveMedicalPrescription(doctorUser, 'reservation-id', {
+        prescription: { treatments: ['Traitement test'] },
+      }),
+    ).rejects.toThrow('La téléconsultation doit être acceptée et terminée');
+    expect(prisma.appel.findFirst).not.toHaveBeenCalled();
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects teleconsultation booking when the doctor disabled it for the selected motif', async () => {
+    const { service } = buildService();
+
+    await expect(
+      service.createReservation(clientUser, {
+        professionnelId: 'professional-id',
+        serviceId: 'service-id',
+        dateHeure: '2030-06-20T10:00:00.000Z',
+        adresseClient: 'Teleconsultation en ligne',
+        dureeMinutes: 30,
+        typeConsultation: 'TELECONSULTATION',
+      }),
+    ).rejects.toThrow("Ce motif n'est pas disponible en teleconsultation");
+  });
+
+  it('allows the prescription after the doctor confirmed the teleconsultation completion', async () => {
+    const { service, reservationsRepository } = buildService({
+      reservation: buildReservation({
+        statut: 'EN_COURS',
+        typeConsultation: 'TELECONSULTATION',
+        notes: '---JOKKO_TELECONSULTATION_COMPLETED---',
+      }),
+    });
+
+    await service.saveMedicalPrescription(doctorUser, 'reservation-id', {
+      prescription: { treatments: ['Traitement test'] },
+    });
+
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        traitementsPrescriptionMedicale: ['Traitement test'],
+      }),
+    );
+  });
+
+  it('requires an ended accepted video call before the doctor confirms completion', async () => {
+    const { service, reservationsRepository } = buildService({
+      reservation: buildReservation({
+        statut: 'EN_COURS',
+        typeConsultation: 'TELECONSULTATION',
+      }),
+    });
+
+    await expect(
+      service.confirmTeleconsultationCompleted(doctorUser, 'reservation-id'),
+    ).rejects.toThrow("L'appel video doit avoir ete accepte et termine");
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('persists the doctor confirmation after an ended accepted video call', async () => {
+    const { service, reservationsRepository, prisma } = buildService({
+      reservation: buildReservation({
+        statut: 'EN_COURS',
+        typeConsultation: 'TELECONSULTATION',
+      }),
+    });
+    prisma.appel.findFirst.mockResolvedValue({ id: 'video-call-id' });
+
+    await service.confirmTeleconsultationCompleted(doctorUser, 'reservation-id');
+
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notes: expect.stringContaining('---JOKKO_TELECONSULTATION_COMPLETED---'),
+      }),
+    );
   });
 
   it('lets the client cancel an unpaid confirmed reservation from the payment page', async () => {

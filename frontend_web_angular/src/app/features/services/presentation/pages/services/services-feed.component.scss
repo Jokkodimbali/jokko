@@ -7,10 +7,6 @@
   max-width: 100% !important;
 }
 
-:host .content-shell--focused {
-  grid-template-columns: minmax(0, 1fr) !important;
-}
-
 /* ─── Favorites sidebar ─────────────────────────────────────────── */
 :host .favorites {
   background-color: #955d24;
@@ -223,11 +219,6 @@
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-}
-
-:host .content-shell--focused .service-section,
-:host .content-shell--focused .service-section:first-of-type {
-  grid-column: 1 / -1;
 }
 
 :host .section-heading {

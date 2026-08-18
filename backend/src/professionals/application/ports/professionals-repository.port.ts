@@ -61,6 +61,7 @@ export type ProfessionalServiceView = {
   dureeMinutes: number;
   pauseMinutes: number;
   estObligatoire: boolean;
+  teleconsultationActive?: boolean;
   estDisponible: boolean;
   creeLe: Date;
 };
@@ -190,6 +191,7 @@ export type CreateServiceInput = {
   durationMinutes?: number;
   pauseMinutes?: number;
   isRequired?: boolean;
+  teleconsultationEnabled?: boolean;
 };
 
 export type UpdateServiceInput = {
@@ -204,6 +206,7 @@ export type UpdateServiceInput = {
   durationMinutes?: number;
   pauseMinutes?: number;
   isRequired?: boolean;
+  teleconsultationEnabled?: boolean;
 };
 
 export type CreateServiceResult =

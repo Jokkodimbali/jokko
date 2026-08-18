@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import {
   PAYMENTS_REPOSITORY_PORT,
   type PaymentsRepository,
@@ -13,6 +13,8 @@ import {
   WALLET_LEDGER_PORT,
   type WalletLedgerPort,
 } from '../ports/wallet-ledger.port';
+import { NotificationsService } from '../../../notifications/application/services/notifications.service';
+import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
 
 @Injectable()
 export class EscrowService {
@@ -23,6 +25,7 @@ export class EscrowService {
     private readonly domainEventDispatcher: DomainEventDispatcher,
     @Inject(WALLET_LEDGER_PORT)
     private readonly walletLedger: WalletLedgerPort,
+    @Optional() private readonly notificationsService?: NotificationsService,
   ) {}
 
   async releaseEscrow(paymentId: string): Promise<Payment> {
@@ -39,6 +42,25 @@ export class EscrowService {
     await this.walletLedger.creditReleasedEscrow(payment);
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();
+
+    if (this.notificationsService) {
+      await this.notificationsService.createManyInAppNotifications([
+        {
+          userId: payment.clientId,
+          type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
+          title: 'Paiement libere',
+          body: 'Le paiement securise de votre prestation a ete libere.',
+          data: { paymentId: payment.id, reservationId: payment.bookingId },
+        },
+        {
+          userId: payment.professionalId,
+          type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
+          title: 'Paiement recu',
+          body: 'Le paiement de la prestation a ete credite dans votre portefeuille.',
+          data: { paymentId: payment.id, reservationId: payment.bookingId },
+        },
+      ]);
+    }
 
     return payment;
   }

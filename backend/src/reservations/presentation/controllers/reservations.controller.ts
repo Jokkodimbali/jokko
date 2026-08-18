@@ -580,6 +580,20 @@ export class ReservationsController {
     return createApiResponse(result, 'Ordonnance medicale synchronisee.');
   }
 
+  @Patch(':reservationId/teleconsultation/complete')
+  @ApiOperation({ summary: 'Confirmer la fin de la teleconsultation' })
+  async confirmTeleconsultationCompleted(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result =
+      await this.reservationsFacade.confirmTeleconsultationCompleted(
+        user,
+        reservationId,
+      );
+    return createApiResponse(result, 'Teleconsultation terminee et confirmee.');
+  }
+
   @Patch(':reservationId/review')
   @ApiOperation({ summary: API_DOCS.reservations.submitReviewSummary })
   @ApiParam({

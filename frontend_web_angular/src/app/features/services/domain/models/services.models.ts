@@ -140,6 +140,7 @@ export interface BackendProfessionalDetailService {
   dureeMinutes?: number;
   pauseMinutes?: number;
   estObligatoire?: boolean;
+  teleconsultationActive?: boolean;
   estDisponible: boolean;
   creeLe: string;
 }

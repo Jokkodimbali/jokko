@@ -22,6 +22,7 @@ const RESERVATION_SELECT = {
   dureeMinutes: true,
   statut: true,
   notes: true,
+  typeConsultation: true,
   actesPrescriptionMedicale: true,
   vaccinsPrescriptionMedicale: true,
   traitementsPrescriptionMedicale: true,
@@ -119,6 +120,9 @@ const RESERVATION_DETAIL_SELECT = {
       },
     },
   },
+  conversation: {
+    select: { id: true },
+  },
 } as const;
 
 type ReservationRecord = {
@@ -131,6 +135,7 @@ type ReservationRecord = {
   dureeMinutes: number;
   statut: $Enums.StatutReservation;
   notes: string | null;
+  typeConsultation: $Enums.TypeConsultationMedicale;
   actesPrescriptionMedicale: string[];
   vaccinsPrescriptionMedicale: string[];
   traitementsPrescriptionMedicale: string[];
@@ -205,6 +210,7 @@ type ReservationDetailRecord = ReservationRecord & {
     messageCourant: string | null;
     propositions: Array<{ message: string | null }>;
   } | null;
+  conversation: { id: string } | null;
 };
 
 @Injectable()
@@ -341,6 +347,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
           actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
           vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
           traitementsPrescriptionMedicale:
@@ -406,6 +413,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
           actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
           vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
           traitementsPrescriptionMedicale:
@@ -460,6 +468,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           dureeMinutes: reservation.dureeMinutes,
           statut: reservation.statut,
           notes: reservation.notes,
+          typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
           actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
           vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
           traitementsPrescriptionMedicale:
@@ -741,6 +750,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       dureeMinutes: record.dureeMinutes,
       statut: record.statut as ReservationStatus,
       notes: record.notes,
+      typeConsultation: record.typeConsultation,
       actesPrescriptionMedicale: record.actesPrescriptionMedicale,
       vaccinsPrescriptionMedicale: record.vaccinsPrescriptionMedicale,
       traitementsPrescriptionMedicale: record.traitementsPrescriptionMedicale,
@@ -779,6 +789,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         ...record.professionnel,
         noteGlobale: record.professionnel.noteGlobale.toNumber(),
       },
+      conversation: record.conversation,
     };
   }
 

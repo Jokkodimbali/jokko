@@ -155,7 +155,7 @@
             </strong>
           </div>
 
-          <p class="appointment-detail__upcoming-address">
+          <p *ngIf="!isTeleconsultation()" class="appointment-detail__upcoming-address">
             <lucide-icon name="map-pin" size="15" [strokeWidth]="2.4"></lucide-icon>
             {{ appointment.addressLabel }}
           </p>
@@ -243,6 +243,7 @@
 
       <div class="appointment-detail__upcoming-layout">
         <article
+          *ngIf="!isTeleconsultation(); else upcomingTeleconsultationVisual"
           class="appointment-detail__upcoming-map"
           aria-label="Carte de la prestation a venir"
         >
@@ -268,6 +269,13 @@
             </span>
           </div>
         </article>
+        <ng-template #upcomingTeleconsultationVisual>
+          <article class="appointment-detail__upcoming-map appointment-detail__upcoming-map--online">
+            <lucide-icon name="video" size="54" [strokeWidth]="1.8"></lucide-icon>
+            <h2>Rendez-vous en ligne</h2>
+            <p>Le médecin lancera l’appel à l’heure prévue. Vous pourrez alors répondre.</p>
+          </article>
+        </ng-template>
 
         <ng-container
           *ngTemplateOutlet="
@@ -341,7 +349,7 @@
         </section>
 
         <section class="appointment-detail__cancelled-details">
-          <p>
+          <p *ngIf="!isTeleconsultation()">
             <lucide-icon name="calendar-days" size="17" [strokeWidth]="2.1"></lucide-icon>
             <span>Date</span>
             <strong>{{ cancelledDateLabel(appointment) }}</strong>
@@ -449,6 +457,9 @@
       "
       [class.appointment-detail__route-layout--client]="showClientRoutePanel()"
       [class.appointment-detail__route-layout--provider]="isProviderViewer()"
+      [class.appointment-detail__route-layout--teleconsultation]="
+        isTeleconsultation() && isProviderWorking() && !teleconsultationCompleted()
+      "
       [class.appointment-detail__route-layout--parcel-completed]="
         showClientRoutePanel() && isParcelDeliveryFlow() && isAppointmentCompleted()
       "
@@ -482,8 +493,158 @@
         class="appointment-detail__live-map"
         [class.appointment-detail__live-map--fullscreen]="isMapFullscreen()"
       >
+        <section
+          *ngIf="isTeleconsultation() && isProviderWorking() && !teleconsultationCompleted()"
+          class="appointment-detail__teleconsultation"
+        >
+          <div
+            class="appointment-detail__teleconsultation-stage"
+            [class.appointment-detail__teleconsultation-stage--end-confirmation]="isTeleconsultationEndConfirmationOpen()"
+          >
+            <span
+              *ngFor="let track of teleconsultationRemoteVideoTracks()"
+              class="appointment-detail__teleconsultation-remote-video"
+              [appCallMediaTrack]="track"
+              [callMediaMuted]="!calls.isSpeakerEnabled()"
+            ></span>
+            <img
+              *ngIf="teleconsultationRemoteVideoTracks().length === 0 && teleconsultationMainAvatar(appointment) as mainAvatar; else teleconsultationMainFallback"
+              class="appointment-detail__teleconsultation-main-avatar"
+              [src]="mainAvatar"
+              [alt]="teleconsultationMainName(appointment)"
+            />
+            <ng-template #teleconsultationMainFallback>
+              <span *ngIf="teleconsultationRemoteVideoTracks().length === 0" class="appointment-detail__teleconsultation-main-fallback">
+                {{ teleconsultationMainInitials(appointment) }}
+              </span>
+            </ng-template>
+
+            <span class="appointment-detail__teleconsultation-live">
+              <i></i>{{ calls.call() ? 'EN DIRECT' : 'PRÊT' }}
+            </span>
+            <span class="appointment-detail__teleconsultation-timer">
+              <lucide-icon name="clock" size="12" />
+              {{ teleconsultationDurationLabel() }}
+            </span>
+
+            <div class="appointment-detail__teleconsultation-identity">
+              <small>{{ teleconsultationMainRole() }}</small>
+              <strong>{{ teleconsultationMainName(appointment) }}</strong>
+            </div>
+
+            <div class="appointment-detail__teleconsultation-thumbnail">
+              <div
+                *ngIf="calls.localVideoTrack() && calls.isCameraEnabled(); else teleconsultationLocalIdentity"
+                class="appointment-detail__teleconsultation-local-video"
+                [appCallMediaTrack]="calls.localVideoTrack()"
+                [callMediaMuted]="true"
+              ></div>
+              <ng-template #teleconsultationLocalIdentity>
+              <img
+                *ngIf="teleconsultationLocalAvatar(appointment) as localAvatar; else teleconsultationLocalFallback"
+                [src]="localAvatar"
+                alt="Votre caméra"
+              />
+              <ng-template #teleconsultationLocalFallback>
+                <span>{{ teleconsultationLocalInitials(appointment) }}</span>
+              </ng-template>
+              </ng-template>
+            </div>
+
+            <div class="appointment-detail__teleconsultation-controls">
+              <ng-container *ngIf="calls.call()?.phase === 'INCOMING'; else teleconsultationActiveControls">
+                <button type="button" aria-label="Refuser l'appel" (click)="rejectTeleconsultationCall()">
+                  <lucide-icon name="phone-off" size="18" />
+                </button>
+                <button
+                  type="button"
+                  class="appointment-detail__teleconsultation-primary-control"
+                  aria-label="Répondre à l'appel vidéo"
+                  (click)="acceptTeleconsultationCall()"
+                >
+                  <lucide-icon name="video" size="20" />
+                </button>
+              </ng-container>
+              <ng-template #teleconsultationActiveControls>
+              <button type="button" aria-label="Microphone" [disabled]="!calls.call()" (click)="calls.toggleMute()">
+                <lucide-icon [name]="calls.isMuted() ? 'mic-off' : 'mic'" size="18" />
+              </button>
+              <button type="button" aria-label="Caméra" [disabled]="!calls.call()" (click)="calls.toggleCamera()">
+                <lucide-icon [name]="calls.isCameraEnabled() ? 'video' : 'video-off'" size="18" />
+              </button>
+              <button
+                type="button"
+                class="appointment-detail__teleconsultation-primary-control"
+                [attr.aria-label]="calls.call() ? 'Terminer la téléconsultation' : 'Démarrer la téléconsultation'"
+                [disabled]="isPreparingTeleconsultationCall() || (!isDoctorViewer() && !calls.call())"
+                (click)="toggleTeleconsultation(appointment)"
+              >
+                <lucide-icon [name]="calls.call() ? 'phone-off' : isDoctorViewer() ? 'video' : 'phone'" size="20" />
+              </button>
+              </ng-template>
+            </div>
+
+            <section
+              *ngIf="isTeleconsultationEndConfirmationOpen()"
+              class="appointment-detail__teleconsultation-end-confirmation"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="teleconsultation-end-title"
+            >
+              <lucide-icon name="phone-off" size="24" />
+              <h3 id="teleconsultation-end-title">Terminer l'appel ?</h3>
+              <p>Voulez-vous continuer l'appel ou le terminer pour passer à la prescription ?</p>
+              <div>
+                <button type="button" (click)="continueTeleconsultationCall()">Continuer l'appel</button>
+                <button
+                  type="button"
+                  class="appointment-detail__teleconsultation-end-confirmation--confirm"
+                  [disabled]="isUpdatingStatus()"
+                  (click)="confirmTeleconsultationEndAndContinue(appointment)"
+                >
+                  Quitter et continuer
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="appointment-detail__teleconsultation-summary">
+            <h2>Téléconsultation</h2>
+            <p>
+              Vous êtes en ligne avec {{ teleconsultationMainName(appointment) }}.<br />
+              La session est sécurisée et chiffrée de bout en bout.
+            </p>
+            <div class="appointment-detail__teleconsultation-doctor">
+              <img *ngIf="appointment.avatarUrl" [src]="appointment.avatarUrl" alt="" />
+              <span *ngIf="!appointment.avatarUrl">{{ avatarInitials(appointment) }}</span>
+              <div>
+                <strong>{{ appointment.doctorName }}</strong>
+                <small>{{ appointment.specialty }}</small>
+              </div>
+            </div>
+            <div class="appointment-detail__teleconsultation-security">
+              <small>SESSION SÉCURISÉE</small>
+              <ul>
+                <li><lucide-icon name="video" size="14" /> Vidéo chiffrée E2E</li>
+                <li><lucide-icon name="activity" size="14" /> {{ teleconsultationConnectionLabel() }}</li>
+                <li><lucide-icon name="file-text" size="14" /> Ordonnance générée après la consultation</li>
+              </ul>
+            </div>
+            <button
+              *ngIf="isDoctorViewer() && teleconsultationCallEnded()"
+              type="button"
+              class="appointment-detail__teleconsultation-finish"
+              [disabled]="isUpdatingStatus()"
+              (click)="confirmTeleconsultationCompleted(appointment)"
+            >
+              <lucide-icon name="circle-check" size="18" />
+              {{ isUpdatingStatus() ? 'Confirmation...' : 'Terminer la téléconsultation' }}
+            </button>
+          </aside>
+        </section>
+
         <div
-          *ngIf="showProviderConsoleVisual()"
+          *ngIf="showProviderConsoleVisual() && !(isTeleconsultation() && isProviderWorking() && !teleconsultationCompleted())"
           class="appointment-detail__provider-console-visual appointment-detail__provider-console-visual--visible"
         >
           <div
@@ -515,7 +676,7 @@
           <div [hidden]="isAppointmentCompleted()">
             <section
               *ngIf="isDoctorViewer()"
-              [hidden]="!isProviderWorking()"
+              [hidden]="!isProviderWorking() || !canOpenMedicalPrescription()"
               class="appointment-detail__medical-workbench"
             >
               <header class="appointment-detail__medical-head">
@@ -658,7 +819,11 @@
               <h2>{{ providerConsoleTitle() }}</h2>
               <small>{{ providerConsoleDescription() }}</small>
               <button
-                *ngIf="isProviderWorking() || isParcelTransportAppointment(appointment)"
+                *ngIf="
+                  isProviderWorking() ||
+                  isParcelTransportAppointment(appointment) ||
+                  isTeleconsultation()
+                "
                 type="button"
                 (click)="runProviderPrimaryAction(appointment)"
                 [disabled]="isUpdatingStatus() || !canUseProviderPrimaryAction()"
@@ -673,7 +838,10 @@
             </div>
           </div>
         </div>
-        <div *ngIf="showClientTrackingVisual()" class="appointment-detail__client-tracking-visual">
+        <div
+          *ngIf="showClientTrackingVisual() && !(isTeleconsultation() && isProviderWorking() && !teleconsultationCompleted())"
+          class="appointment-detail__client-tracking-visual"
+        >
           <ng-container *ngIf="isAppointmentCompleted(); else clientActiveTrackingVisual">
             <div class="appointment-detail__client-tracking-complete">
               <span>
@@ -705,7 +873,7 @@
             <ng-container *ngIf="isProviderWorking(); else clientConfirmedTrackingVisual">
               <div class="appointment-detail__client-tracking-work">
                 <span></span>
-                <h2>Intervention active</h2>
+                <h2>{{ isMedicalAppointment() ? 'Prescription des médicaments en cours' : 'Intervention active' }}</h2>
                 <p>{{ appointment.serviceName }}</p>
               </div>
             </ng-container>
@@ -718,7 +886,7 @@
               </p>
               <p *ngIf="!isProviderOnTheWay() && !clientTravelsToProvider()">Arrivee prevue</p>
               <h2>{{ appointment.timeLabel }}</h2>
-              <strong>
+              <strong *ngIf="!isTeleconsultation()">
                 <lucide-icon name="map-pin" size="18" [strokeWidth]="2.5"></lucide-icon>
                 {{ appointment.addressLabel }}
               </strong>
@@ -1080,7 +1248,7 @@
               </ng-template>
               <div>
                 <h2>{{ appointment.clientName }}</h2>
-                <p>{{ appointment.addressLabel }}</p>
+                <p *ngIf="!isTeleconsultation()">{{ appointment.addressLabel }}</p>
               </div>
             </div>
           </section>
@@ -1328,7 +1496,7 @@
               <em>{{
                 medicalPrescriptionPatientPhone(appointment) || 'Téléphone non renseigné'
               }}</em>
-              <em>{{ appointment.addressLabel }}</em>
+              <em *ngIf="!isTeleconsultation()">{{ appointment.addressLabel }}</em>
             </div>
           </section>
 

@@ -157,4 +157,13 @@ export class CreateProfessionalServiceDto {
   @IsOptional()
   @IsBoolean()
   isRequired?: boolean;
+
+  @ApiProperty({
+    description: 'Autorise la prise de rendez-vous en teleconsultation pour ce motif medical',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  teleconsultationEnabled?: boolean;
 }

@@ -185,7 +185,10 @@ describe('KycService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new KycService(mockRepository as never);
+    service = new KycService(
+      mockRepository as never,
+      { createInAppNotification: jest.fn() } as never,
+    );
   });
 
   describe('submitKyc', () => {
@@ -301,7 +304,10 @@ describe('ServiceManagementService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ServiceManagementService(mockRepository as never);
+    service = new ServiceManagementService(
+      mockRepository as never,
+      { emit: jest.fn() } as never,
+    );
   });
 
   describe('createService', () => {
@@ -361,6 +367,8 @@ describe('PortfolioService', () => {
     deletePortfolioItem: jest.fn(),
     listPortfolio: jest.fn(),
     findVerifiedById: jest.fn(),
+    findByUserId: jest.fn(),
+    createProfile: jest.fn(),
   };
 
   let service: PortfolioService;
@@ -415,13 +423,19 @@ describe('AvailabilityService', () => {
     disableAvailability: jest.fn(),
     listAvailabilities: jest.fn(),
     findVerifiedById: jest.fn(),
+    findByUserId: jest.fn(),
+    createProfile: jest.fn(),
   };
 
   let service: AvailabilityService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new AvailabilityService(mockRepository as never);
+    mockRepository.findByUserId.mockResolvedValue(createMockProfileView());
+    service = new AvailabilityService(
+      mockRepository as never,
+      { emit: jest.fn() } as never,
+    );
   });
 
   describe('createAvailability', () => {

@@ -40,6 +40,7 @@ export type CreateProfessionalServiceCommand = {
   durationMinutes?: number;
   pauseMinutes?: number;
   isRequired?: boolean;
+  teleconsultationEnabled?: boolean;
 };
 
 export type UpdateProfessionalServiceCommand = {
@@ -55,6 +56,7 @@ export type UpdateProfessionalServiceCommand = {
   durationMinutes?: number;
   pauseMinutes?: number;
   isRequired?: boolean;
+  teleconsultationEnabled?: boolean;
 };
 
 export type CreatePortfolioItemCommand = {

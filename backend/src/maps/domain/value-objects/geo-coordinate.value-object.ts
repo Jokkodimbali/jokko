@@ -3,13 +3,6 @@ export type GeoCoordinateValue = {
   longitude: number;
 };
 
-const SENEGAL_BOUNDS = {
-  minLatitude: 12,
-  maxLatitude: 17.2,
-  minLongitude: -18.7,
-  maxLongitude: -11,
-} as const;
-
 export class GeoCoordinate {
   private constructor(
     readonly latitude: number,
@@ -28,10 +21,10 @@ export class GeoCoordinate {
     return (
       Number.isFinite(value.latitude) &&
       Number.isFinite(value.longitude) &&
-      value.latitude >= SENEGAL_BOUNDS.minLatitude &&
-      value.latitude <= SENEGAL_BOUNDS.maxLatitude &&
-      value.longitude >= SENEGAL_BOUNDS.minLongitude &&
-      value.longitude <= SENEGAL_BOUNDS.maxLongitude
+      value.latitude >= -90 &&
+      value.latitude <= 90 &&
+      value.longitude >= -180 &&
+      value.longitude <= 180
     );
   }
 

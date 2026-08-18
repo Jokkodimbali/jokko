@@ -155,7 +155,7 @@
           >
             <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
             <span>
-              <small>{{ notificationTypeLabel(notification.type) }}</small>
+              <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
               <strong>{{ notificationTitle(notification) }}</strong>
               <em>{{ notificationBody(notification) }}</em>
               <time *ngIf="notificationDate(notification)">{{
@@ -308,6 +308,26 @@
     </ng-template>
   </div>
 
+  <div class="app-navbar__mobile-status" aria-hidden="true">
+    <strong>{{ mobileTime }}</strong>
+    <span>
+      <i class="app-navbar__mobile-signal"></i>
+      <lucide-icon name="wifi" size="16" [strokeWidth]="2.8"></lucide-icon>
+      <i class="app-navbar__mobile-battery"></i>
+    </span>
+  </div>
+
+  <button
+    type="button"
+    *ngIf="!featuredNotification()"
+    class="app-navbar__mobile-location"
+    aria-label="Choisir la localisation"
+    (click)="mobileLocationClick.emit()"
+  >
+    <span>{{ mobileLocationLabel }}</span>
+    <lucide-icon name="chevron-right" size="19" [strokeWidth]="2.7"></lucide-icon>
+  </button>
+
   <button
     *ngIf="isAuthenticated()"
     type="button"
@@ -377,7 +397,7 @@
     >
       <i><lucide-icon name="bell" size="17" [strokeWidth]="2.4"></lucide-icon></i>
       <span>
-        <small>{{ notificationTypeLabel(notification.type) }}</small>
+        <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
         <strong>{{ notificationTitle(notification) }}</strong>
         <em>{{ notificationBody(notification) }}</em>
         <time *ngIf="notificationDate(notification)">{{
@@ -386,20 +406,6 @@
       </span>
     </button>
   </section>
-
-  <!-- Hamburger Button (visible on mobile/tablet only) -->
-  <button
-    type="button"
-    class="app-navbar__hamburger"
-    [class.app-navbar__hamburger--open]="isMobileNavOpen()"
-    [attr.aria-expanded]="isMobileNavOpen()"
-    aria-label="Ouvrir le menu de navigation"
-    (click)="toggleMobileNav()"
-  >
-    <span class="app-navbar__hamburger-line"></span>
-    <span class="app-navbar__hamburger-line"></span>
-    <span class="app-navbar__hamburger-line"></span>
-  </button>
 
   <!-- Mobile Overlay -->
   <div
@@ -411,6 +417,7 @@
 
   <!-- Mobile / Tablet Navigation Drawer -->
   <aside
+    id="mobile-main-navigation"
     class="app-navbar__mobile-drawer"
     [class.app-navbar__mobile-drawer--open]="isMobileNavOpen()"
     role="dialog"
@@ -569,14 +576,16 @@
       </i>
       <span>Messages</span>
     </a>
-    <a
-      [routerLink]="isAuthenticated() ? '/settings' : '/auth/login'"
-      [class.app-navbar__bottom-nav-item--active]="
-        isActive('/settings') || isActive('/auth/login')
-      "
+    <button
+      type="button"
+      class="app-navbar__bottom-nav-menu"
+      [class.app-navbar__bottom-nav-item--active]="isMobileNavOpen()"
+      [attr.aria-expanded]="isMobileNavOpen()"
+      aria-controls="mobile-main-navigation"
+      (click)="toggleMobileNav()"
     >
-      <i><lucide-icon name="user-round" size="22" [strokeWidth]="2.3"></lucide-icon></i>
-      <span>{{ isAuthenticated() ? 'Paramètres' : 'Connexion' }}</span>
-    </a>
+      <i><lucide-icon name="menu" size="22" [strokeWidth]="2.3"></lucide-icon></i>
+      <span>Menu</span>
+    </button>
   </nav>
 </header>

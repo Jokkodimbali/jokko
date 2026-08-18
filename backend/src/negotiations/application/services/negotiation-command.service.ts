@@ -101,6 +101,18 @@ export class NegotiationCommandService extends NegotiationAppService {
       throw appHttpException('NEGOTIATIONS_ALREADY_ACTIVE');
     }
     await this.publishEvents(entity);
+    await this.notificationsService.createInAppNotification({
+      userId: professional.utilisateurId,
+      type: NOTIFICATION_TYPES.AJUSTEMENT_PRIX_PROPOSE,
+      title: 'Nouvelle offre recue',
+      body: `Un client propose ${command.proposedAmount.toLocaleString('fr-FR')} FCFA pour ${service.nom}.`,
+      data: {
+        negotiationId: created.id,
+        serviceId: command.serviceId,
+        proposedAmount: command.proposedAmount,
+        status: created.statut,
+      },
+    });
     return created;
   }
 
@@ -144,6 +156,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationOffer(updated, actor, 'COUNTER');
     return updated;
   }
 
@@ -173,7 +186,50 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
+    await this.notifyNegotiationOffer(updated, actor, 'ACCEPTED');
     return updated;
+  }
+
+  private async notifyNegotiationOffer(
+    negotiation: Awaited<ReturnType<NegotiationsRepositoryPort['update']>>,
+    actor: 'CLIENT' | 'PRESTATAIRE',
+    event: 'COUNTER' | 'ACCEPTED',
+  ): Promise<void> {
+    const recipientUserId =
+      actor === 'CLIENT'
+        ? negotiation.professionnel?.utilisateurId
+        : negotiation.clientId;
+    if (!recipientUserId) return;
+
+    const actorName =
+      actor === 'CLIENT'
+        ? negotiation.client?.nom || 'Le client'
+        : negotiation.professionnel?.nomEntreprise ||
+          negotiation.professionnel?.utilisateur.nom ||
+          'Le prestataire';
+    const serviceName = negotiation.service?.nom || 'la prestation';
+    const formattedAmount = Number(negotiation.montantCourant).toLocaleString(
+      'fr-FR',
+    );
+
+    await this.notificationsService.createInAppNotification({
+      userId: recipientUserId,
+      type:
+        event === 'ACCEPTED'
+          ? NOTIFICATION_TYPES.AJUSTEMENT_PRIX_ACCEPTE
+          : NOTIFICATION_TYPES.AJUSTEMENT_PRIX_PROPOSE,
+      title: event === 'ACCEPTED' ? 'Offre acceptee' : 'Nouvelle contre-offre',
+      body:
+        event === 'ACCEPTED'
+          ? `${actorName} a accepte l'offre de ${formattedAmount} FCFA pour ${serviceName}.`
+          : `${actorName} propose maintenant ${formattedAmount} FCFA pour ${serviceName}.`,
+      data: {
+        negotiationId: negotiation.id,
+        serviceId: negotiation.serviceId,
+        proposedAmount: Number(negotiation.montantCourant),
+        status: negotiation.statut,
+      },
+    });
   }
 
   private async assertNoPendingMaterialQuote(

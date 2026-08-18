@@ -477,16 +477,11 @@
 
 @media (max-width: 420px) {
   .provider-card__head {
-    grid-template-columns: 52px minmax(0, 1fr);
-  }
-
-  .provider-card__meta {
-    grid-column: 1 / -1;
-    justify-items: start;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
   }
 
   .provider-card__actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -527,6 +522,6 @@
 
 @media (max-width: 420px) {
   .provider-card__head {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 52px minmax(0, 1fr) auto;
   }
 }

@@ -122,6 +122,7 @@ type ConsultationMotif = {
   pauseMinutes: number;
   price: number;
   isRequired: boolean;
+  teleconsultationEnabled: boolean;
   travelMode: ServiceTravelMode;
 };
 
@@ -425,6 +426,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
+    teleconsultationEnabled: false,
   };
   protected readonly motifEditForm = {
     categoryId: '',
@@ -433,6 +435,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     durationMinutes: 15,
     price: 10000,
     isRequired: true,
+    teleconsultationEnabled: false,
     travelMode: 'PRESTATAIRE_SE_DEPLACE' as ServiceTravelMode,
   };
   protected readonly travelModeOptions: TravelModeOption[] = [
@@ -2492,6 +2495,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             durationMinutes,
             pauseMinutes: this.appointmentPause(),
             isRequired: this.motifForm.isRequired,
+            teleconsultationEnabled: !this.isProviderSpace() && this.motifForm.teleconsultationEnabled,
           }),
         ),
         finalize(() => {
@@ -2532,6 +2536,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.motifEditForm.durationMinutes = motif.durationMinutes;
     this.motifEditForm.price = motif.price;
     this.motifEditForm.isRequired = motif.isRequired;
+    this.motifEditForm.teleconsultationEnabled = motif.teleconsultationEnabled;
     this.motifEditForm.travelMode = motif.travelMode;
   }
 
@@ -2578,6 +2583,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             durationMinutes,
             pauseMinutes: this.appointmentPause(),
             isRequired: this.motifEditForm.isRequired,
+            teleconsultationEnabled:
+              !this.isProviderSpace() && this.motifEditForm.teleconsultationEnabled,
           }),
         ),
         finalize(() => {
@@ -2605,6 +2612,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.motifForm.durationMinutes = this.appointmentDuration();
     this.motifForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifForm.isRequired = true;
+    this.motifForm.teleconsultationEnabled = false;
     this.serviceImageFileName.set('');
     this.serviceImagePreview.set(null);
     this.serviceImageFile.set(null);
@@ -2617,6 +2625,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.motifEditForm.durationMinutes = this.appointmentDuration();
     this.motifEditForm.price = this.selectedTravelMode() === 'TRANSPORT_COLIS' ? 500 : 10000;
     this.motifEditForm.isRequired = true;
+    this.motifEditForm.teleconsultationEnabled = false;
     this.motifEditForm.travelMode = this.selectedTravelMode();
     this.serviceEditImageFileName.set('');
     this.serviceEditImagePreview.set(null);
@@ -3613,6 +3622,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         pauseMinutes: service.pauseMinutes ?? 0,
         price: Number(service.prix),
         isRequired: service.estObligatoire ?? false,
+        teleconsultationEnabled: service.teleconsultationActive ?? false,
         travelMode: this.normalizeTravelModeForSpace(
           service.modeDeplacement ?? 'PRESTATAIRE_SE_DEPLACE',
         ),

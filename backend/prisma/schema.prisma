@@ -54,6 +54,11 @@ enum StatutReservation {
   LITIGE
 }
 
+enum TypeConsultationMedicale {
+  CONSULTATION
+  TELECONSULTATION
+}
+
 enum StatutAjustementPrixReservation {
   AUCUN
   EN_ATTENTE_CLIENT
@@ -478,6 +483,7 @@ model Service {
   dureeMinutes          Int                 @default(15) @map("duration_minutes")
   pauseMinutes          Int                 @default(0) @map("pause_minutes")
   estObligatoire        Boolean             @default(false) @map("is_required")
+  teleconsultationActive Boolean            @default(false) @map("teleconsultation_enabled")
   estDisponible         Boolean             @default(true) @map("is_available")
   creeLe                DateTime            @default(now()) @map("created_at")
   misAJourLe            DateTime            @updatedAt @map("updated_at")
@@ -527,6 +533,7 @@ model Reservation {
   dureeMinutes      Int                @map("duration_minutes") @default(60)
   statut            StatutReservation  @default(CONFIRMEE)
   notes             String?            @map("notes") @db.Text
+  typeConsultation  TypeConsultationMedicale @default(CONSULTATION) @map("consultation_type")
   actesPrescriptionMedicale String[]    @default([]) @map("medical_prescription_acts")
   vaccinsPrescriptionMedicale String[]  @default([]) @map("medical_prescription_vaccines")
   traitementsPrescriptionMedicale String[] @default([]) @map("medical_prescription_treatments")

@@ -492,6 +492,21 @@
                 <span></span>
               </button>
             </div>
+            <div *ngIf="!isProviderSpace()" class="doctor-space__motif-required-card">
+              <div>
+                <strong>Téléconsultation</strong>
+                <span>Proposer ce motif en consultation vidéo au client</span>
+              </div>
+              <button
+                type="button"
+                class="doctor-space__motif-switch"
+                [class.doctor-space__motif-switch--active]="motifForm.teleconsultationEnabled"
+                (click)="motifForm.teleconsultationEnabled = !motifForm.teleconsultationEnabled"
+                aria-label="Activer ou désactiver la téléconsultation"
+              >
+                <span></span>
+              </button>
+            </div>
           </div>
           <div class="doctor-space__motif-form-actions">
             <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
@@ -528,6 +543,7 @@
         <div
           *ngIf="motifs().length > 0"
           class="doctor-space__motif-table"
+          [class.doctor-space__motif-table--medical]="!isProviderSpace()"
           role="table"
           aria-label="Motifs de consultation"
         >
@@ -536,6 +552,7 @@
             <span role="columnheader">Image</span>
             <span role="columnheader">Tarif</span>
             <span role="columnheader">Obligatoire</span>
+            <span *ngIf="!isProviderSpace()" role="columnheader">Téléconsultation</span>
             <span role="columnheader" aria-label="Actions"></span>
           </div>
 
@@ -573,6 +590,13 @@
               >
                 <span></span>
               </button>
+            </div>
+            <div *ngIf="!isProviderSpace()" class="doctor-space__motif-required-cell" role="cell">
+              <lucide-icon
+                [name]="motif.teleconsultationEnabled ? 'video' : 'video-off'"
+                size="18"
+                [attr.aria-label]="motif.teleconsultationEnabled ? 'Téléconsultation active' : 'Téléconsultation inactive'"
+              ></lucide-icon>
             </div>
             <div class="doctor-space__motif-actions" role="cell">
               <button
@@ -717,6 +741,21 @@
                   [class.doctor-space__motif-switch--active]="motifEditForm.isRequired"
                   (click)="motifEditForm.isRequired = !motifEditForm.isRequired"
                   aria-label="Changer le statut obligatoire"
+                >
+                  <span></span>
+                </button>
+              </div>
+              <div *ngIf="!isProviderSpace()" class="doctor-space__motif-required-card">
+                <div>
+                  <strong>Téléconsultation</strong>
+                  <span>Afficher l'option vidéo au client pour ce motif</span>
+                </div>
+                <button
+                  type="button"
+                  class="doctor-space__motif-switch"
+                  [class.doctor-space__motif-switch--active]="motifEditForm.teleconsultationEnabled"
+                  (click)="motifEditForm.teleconsultationEnabled = !motifEditForm.teleconsultationEnabled"
+                  aria-label="Activer ou désactiver la téléconsultation"
                 >
                   <span></span>
                 </button>

@@ -57,6 +57,30 @@
           </div>
 
           <section *ngIf="activeStep() === 'PERSONAL'" class="medicine-booking__panel">
+            <section class="medicine-booking__consultation-types" aria-label="Type de consultation">
+              <button
+                type="button"
+                [class.is-active]="consultationType() === 'CONSULTATION'"
+                (click)="selectConsultationType('CONSULTATION')"
+              >
+                <lucide-icon name="stethoscope" size="22" [strokeWidth]="2.3" />
+                <span><strong>Consultation</strong><small>Rendez-vous physique habituel</small></span>
+              </button>
+              <button
+                *ngIf="teleconsultationAvailable()"
+                type="button"
+                [class.is-active]="consultationType() === 'TELECONSULTATION'"
+                (click)="selectConsultationType('TELECONSULTATION')"
+              >
+                <lucide-icon name="video" size="22" [strokeWidth]="2.3" />
+                <span>
+                  <strong>Téléconsultation</strong>
+                  <small>
+                    Consultation vidéo · {{ teleconsultationServices().length }} motif(s) disponible(s)
+                  </small>
+                </span>
+              </button>
+            </section>
             <div class="medicine-booking__field-card medicine-booking__field-card--full">
               <span class="medicine-booking__field-icon">
                 <lucide-icon name="user-round" size="22" [strokeWidth]="2.3"></lucide-icon>
@@ -173,7 +197,7 @@
                 </p>
               </div>
 
-              <div class="medicine-booking__picker-stack">
+              <div *ngIf="consultationType() !== 'TELECONSULTATION'" class="medicine-booking__picker-stack">
                 <button
                   *ngIf="doctorTravelsToPatient(); else personalCabinetPicker"
                   type="button"
@@ -219,10 +243,10 @@
               </div>
             </section>
 
-            <p *ngIf="appointmentLocation()" class="medicine-booking__hint">
+            <p *ngIf="consultationType() !== 'TELECONSULTATION' && appointmentLocation()" class="medicine-booking__hint">
               Position exacte ajoutee : {{ locationSummary() }}
             </p>
-            <p *ngIf="patientTravelsToDoctor()" class="medicine-booking__hint">
+            <p *ngIf="consultationType() !== 'TELECONSULTATION' && patientTravelsToDoctor()" class="medicine-booking__hint">
               Cette adresse est celle renseignee par le medecin dans ses parametres.
             </p>
 
@@ -278,7 +302,7 @@
                   <strong>{{ selectedSlotLabel() }}</strong>
                 </button>
                 <button
-                  *ngIf="doctorTravelsToPatient()"
+                  *ngIf="consultationType() !== 'TELECONSULTATION' && doctorTravelsToPatient()"
                   type="button"
                   class="medicine-booking__detail-row"
                   (click)="openDetailsModal('address')"
@@ -287,7 +311,7 @@
                   <strong>{{ patientSummaryAddress() }}</strong>
                 </button>
                 <div
-                  *ngIf="patientTravelsToDoctor()"
+                  *ngIf="consultationType() !== 'TELECONSULTATION' && patientTravelsToDoctor()"
                   class="medicine-booking__detail-row medicine-booking__detail-row--static"
                 >
                   <span>Adresse</span>
@@ -421,7 +445,7 @@
       <app-service-proposal-details-modal
         *ngIf="activeDetailsModal() as modal"
         [mode]="modal"
-        [services]="services()"
+        [services]="bookableServices()"
         [selectedServiceId]="selectedServiceId()"
         [fallbackServiceName]="selectedService()?.nom || 'Consultation medicale'"
         [fallbackServicePrice]="selectedServicePrice()"

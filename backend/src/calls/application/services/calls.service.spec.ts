@@ -70,6 +70,35 @@ describe('CallsService security and idempotency', () => {
     );
   });
 
+  it('does not create an in-app notification for an incoming voice call', async () => {
+    messaging.getConversationForUser.mockResolvedValue({
+      clientUserId: user.sub,
+      professionalUserId: call.recipientId,
+    });
+    repository.create.mockResolvedValue('CREATED');
+
+    await service.initiate(user, call.conversationId, call.id, 'VOICE');
+
+    expect(notifications.createInAppNotification).not.toHaveBeenCalled();
+  });
+
+  it('keeps the incoming notification for a video call', async () => {
+    messaging.getConversationForUser.mockResolvedValue({
+      clientUserId: user.sub,
+      professionalUserId: call.recipientId,
+    });
+    repository.create.mockResolvedValue('CREATED');
+
+    await service.initiate(user, call.conversationId, call.id, 'VIDEO');
+
+    expect(notifications.createInAppNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'APPEL_ENTRANT',
+        data: expect.objectContaining({ kind: 'VIDEO' }),
+      }),
+    );
+  });
+
   it('rejects a call that belongs to another conversation', async () => {
     repository.findForParticipant.mockResolvedValue({
       ...call,

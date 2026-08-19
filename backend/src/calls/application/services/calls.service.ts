@@ -56,7 +56,9 @@ export class CallsService {
       throw new ConflictException('Un des participants est deja en appel.');
     }
     if (creation === 'IDEMPOTENT') return signal;
-    await this.notifications.createInAppNotification({
+    // L'appel vocal est déjà signalé en temps réel par l'overlay d'appel.
+    // Il ne doit pas créer une notification qui reste dans le widget.
+    if (kind === 'VIDEO') await this.notifications.createInAppNotification({
       userId: signal.recipientId,
       type: 'APPEL_ENTRANT',
       title: kind === 'VIDEO' ? 'Appel vidéo entrant' : 'Appel vocal entrant',

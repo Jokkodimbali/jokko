@@ -49,6 +49,7 @@ export interface UserDto {
   phoneNumber: string;
   name: string;
   email?: string;
+  address?: string | null;
   role: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | string;
   avatarUrl?: string | null;
   professionalProfile?: UserProfessionalProfileDto | null;

@@ -57,7 +57,13 @@
     </span>
   </button>
 
-  <button *ngIf="isServiceVariant" type="submit" class="app-search-bar__submit">
+  <button
+    *ngIf="isServiceVariant"
+    type="button"
+    class="app-search-bar__submit"
+    aria-label="Filtrer par ville ou position"
+    (click)="onServiceSubmitClick()"
+  >
     <lucide-icon name="sliders-horizontal" size="17" [strokeWidth]="2.5"></lucide-icon>
     <span>Chercher</span>
   </button>

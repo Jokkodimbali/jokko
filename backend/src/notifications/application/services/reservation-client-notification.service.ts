@@ -71,6 +71,14 @@ type ReservationArrivalNotificationInput = {
   travellerRole: 'CLIENT' | 'PROFESSIONNEL';
 };
 
+type ReservationTripStatusNotificationInput = {
+  reservationId: string;
+  recipientUserId: string;
+  serviceName: string;
+  travellerRole: 'CLIENT' | 'PROFESSIONNEL';
+  tripStatus: 'EN_ROUTE' | 'TERMINEE' | 'ANNULEE';
+};
+
 type DispatchResult = {
   status: NotificationDispatchStatus;
   provider?: string;
@@ -283,6 +291,50 @@ export class ReservationClientNotificationService {
     input: ReservationCreatedNotificationInput,
   ): Promise<void> {
     await this.notifyGenericEvent(input, 'RESERVATION_FINALISEE', 'finalisee');
+  }
+
+  async notifyTripStatus(
+    input: ReservationTripStatusNotificationInput,
+  ): Promise<void> {
+    const travellerIsProfessional = input.travellerRole === 'PROFESSIONNEL';
+    const copy =
+      input.tripStatus === 'EN_ROUTE'
+        ? travellerIsProfessional
+          ? {
+              type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+              title: 'Vous etes en route',
+              body: `Vous etes en route pour la reservation ${input.serviceName}.`,
+            }
+          : {
+              type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+              title: 'Le client est en route',
+              body: `Le client se rend a la reservation ${input.serviceName}.`,
+            }
+        : input.tripStatus === 'TERMINEE'
+          ? {
+              type: NOTIFICATION_TYPES.RESERVATION_FINALISEE,
+              title: 'Prestation terminee',
+              body: `La reservation ${input.serviceName} est terminee.`,
+            }
+          : {
+              type: NOTIFICATION_TYPES.RESERVATION_ANNULEE,
+              title: 'Reservation annulee',
+              body: `La reservation ${input.serviceName} a ete annulee.`,
+            };
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.recipientUserId,
+      type: copy.type,
+      title: copy.title,
+      body: copy.body,
+      data: {
+        reservationId: input.reservationId,
+        serviceName: input.serviceName,
+        travellerRole: input.travellerRole,
+        tripStatus: input.tripStatus,
+        persistentUntilTerminal: input.tripStatus === 'EN_ROUTE',
+      },
+    });
   }
 
   async notifyProfessionalOnTheWay(

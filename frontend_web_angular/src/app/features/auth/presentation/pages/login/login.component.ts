@@ -1,4 +1,4 @@
-import { Component, ElementRef, NgZone, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, NgZone, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -52,7 +52,7 @@ declare global {
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly authSession = inject(AuthSessionService);
@@ -69,6 +69,7 @@ export class LoginComponent {
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
   googleUnavailable = signal(true);
+  protected readonly fontsReady = signal(false);
   private readonly rememberedLoginIdentifier = this.authSession.getRememberedLoginIdentifier();
   protected readonly messages = AUTH_UI_MESSAGES;
   protected readonly googleClientId = environment.googleClientId;
@@ -82,6 +83,23 @@ export class LoginComponent {
     password: ['', AUTH_VALIDATORS.password],
     rememberMe: [this.authSession.isRememberMeEnabled()],
   });
+
+  ngOnInit(): void {
+    // Do not show the login with the browser fallback font first. On a hard
+    // refresh it could look bold for a moment before Inter replaced it.
+    if (!('fonts' in document)) {
+      this.fontsReady.set(true);
+      return;
+    }
+
+    void Promise.all([
+      document.fonts.load('400 16px Inter'),
+      document.fonts.load('500 16px Inter'),
+      document.fonts.load('600 16px Inter'),
+    ])
+      .catch(() => undefined)
+      .then(() => this.fontsReady.set(true));
+  }
 
   onSubmit(): void {
     this.normalizeIdentifierDisplayControl();

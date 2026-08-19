@@ -867,6 +867,93 @@
   }
 }
 
+/* The mobile service search is intentionally split in two visual rows: input, then modes. */
+@media (max-width: 767px) {
+  .app-search-bar--service,
+  .app-search-bar--service.app-search-bar--panel-open {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) 52px;
+    grid-template-rows: 50px auto;
+    padding: 0;
+  }
+
+  .app-search-bar--service .app-search-bar__field {
+    background: #fff;
+    border: 1px solid #e8cdb8;
+    border-radius: 999px;
+    min-height: 50px;
+    padding: 0 18px;
+  }
+
+  .app-search-bar--service .app-search-bar__field input {
+    font-size: 16px;
+  }
+
+  .app-search-bar--service .app-search-bar__submit {
+    border-radius: 50%;
+    height: 52px;
+    margin: 0;
+    width: 52px;
+  }
+
+  .app-search-bar--service .app-search-bar__modes {
+    background: transparent;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    gap: 8px;
+    overflow: visible;
+    padding: 0 7px;
+  }
+
+  .app-search-bar--service .app-search-bar__modes > span {
+    display: none;
+  }
+
+  .app-search-bar--service .app-search-bar__mode {
+    font-size: 11px;
+    height: 30px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-search-bar--service,
+  .app-search-bar--service.app-search-bar--panel-open {
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) 46px;
+    grid-template-rows: 46px auto;
+  }
+
+  .app-search-bar--service .app-search-bar__field {
+    min-height: 46px;
+    padding: 0 15px;
+  }
+
+  .app-search-bar--service .app-search-bar__field input {
+    font-size: 14px;
+  }
+
+  .app-search-bar--service .app-search-bar__submit {
+    height: 46px;
+    width: 46px;
+  }
+
+  .app-search-bar--service .app-search-bar__modes {
+    overflow-x: auto;
+    padding: 0;
+  }
+
+  .app-search-bar--service .app-search-bar__mode {
+    font-size: 10px;
+    height: 30px;
+    padding: 0 9px;
+  }
+}
+
 /* Tablet: 768px - 1023px */
 @media (min-width: 768px) and (max-width: 1023px) {
   .app-search-bar {

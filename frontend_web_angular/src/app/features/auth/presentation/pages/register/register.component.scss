@@ -834,6 +834,17 @@
   width: 100%;
 }
 
+.specialty-picker__chevron {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 7px;
+  margin-left: 10px;
+  transform: rotate(45deg) translateY(-2px);
+  width: 7px;
+}
+
 .specialty-picker__trigger > span:first-child {
   min-width: 0;
   overflow: hidden;

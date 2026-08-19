@@ -57,11 +57,9 @@ interface AppInfoNavItem {
 })
 export class AppNavbarComponent implements OnInit, OnDestroy {
   @Input() mobileLocationLabel = 'Votre position';
+  @Input() mobilePageTitle = '';
+  @Input() mobilePageSubtitle = '';
   @Output() mobileLocationClick = new EventEmitter<void>();
-  protected readonly mobileTime = new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date());
   private readonly router = inject(Router);
   private readonly authSession = inject(AuthSessionService);
   private readonly authService = inject(AuthService);
@@ -414,6 +412,14 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         if (message.senderId !== this.currentUser()?.id) {
           this.unreadMessagesCount.update((count) => count + 1);
         }
+      }),
+    );
+    this.subscriptions.add(
+      this.messagesRealtime.notificationCreated$.subscribe(() => {
+        // The socket only informs the intended authenticated user. Reloading
+        // enriches the notification with its sender avatar before rendering.
+        this.loadUnreadNotificationsCount();
+        this.loadNotificationPreview(false);
       }),
     );
 

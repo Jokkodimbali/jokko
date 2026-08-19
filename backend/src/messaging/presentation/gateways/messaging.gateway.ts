@@ -13,6 +13,7 @@ import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { MessagingFacade } from '../../application/services/messaging-facade.service';
 import type { ConversationMessageView } from '../../application/ports/messaging-repository.port';
+import type { NotificationView } from '../../../notifications/domain/entities/notification.entity';
 import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
 type AuthenticatedSocket = Socket & {
@@ -215,6 +216,13 @@ export class MessagingGateway implements OnGatewayConnection {
         .to(this.buildUserRoom(recipientUserId))
         .emit('dispute.mediation.message.created', payload.message);
     }
+  }
+
+  @OnEvent('notification.created')
+  handleNotificationCreated(payload: { notification: NotificationView }): void {
+    this.server
+      .to(this.buildUserRoom(payload.notification.userId))
+      .emit('notification.created', payload.notification);
   }
 
   private publishMessagesRead(

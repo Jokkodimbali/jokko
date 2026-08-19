@@ -148,7 +148,7 @@
                 (click)="toggleCategoryMenu()"
               >
                 <span>Selectionner une categorie...</span>
-                <span aria-hidden="true">⌄</span>
+                <span class="specialty-picker__chevron" aria-hidden="true"></span>
               </button>
               <div
                 *ngIf="categoryMenuOpen()"
@@ -189,7 +189,7 @@
                       : 'Selectionner une sous-categorie...'
                   }}
                 </span>
-                <span aria-hidden="true">⌄</span>
+                <span class="specialty-picker__chevron" aria-hidden="true"></span>
               </button>
               <div
                 *ngIf="subCategoryMenuOpen()"

@@ -186,10 +186,10 @@
   }
 
   :host .provider-row {
-    gap: 10px !important;
+    gap: 14px !important;
     grid-template-columns: minmax(0, 1fr) !important;
     overflow: visible !important;
-    padding: 0 !important;
+    padding: 0 14px !important;
   }
 
   :host .provider-card {
@@ -205,8 +205,10 @@
   }
 
   :host .provider-row app-provider-card {
-    margin-inline: 0;
-    max-width: none !important;
+    justify-self: center;
+    margin-inline: auto;
+    max-width: 360px !important;
+    width: 100%;
   }
 
   :host .provider-card__action {

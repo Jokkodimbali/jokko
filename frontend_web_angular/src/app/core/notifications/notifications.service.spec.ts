@@ -86,4 +86,21 @@ describe('findFeaturedNotification', () => {
     );
     expect(findFeaturedNotification([unread])).toBe(unread);
   });
+
+  it.each([
+    'RESERVATION_CONFIRMEE',
+    'PAIEMENT_CONFIRME',
+    'RESERVATION_ANNULEE',
+    'RESERVATION_FINALISEE',
+    'AJUSTEMENT_PRIX_REFUSE',
+  ])('met en avant %s tant que la notification n est pas lue', (type) => {
+    const unread = notification(
+      `notification-${type}`,
+      type,
+      'reservation-1',
+      '2026-08-18T10:00:00Z',
+      false,
+    );
+    expect(findFeaturedNotification([unread])).toBe(unread);
+  });
 });

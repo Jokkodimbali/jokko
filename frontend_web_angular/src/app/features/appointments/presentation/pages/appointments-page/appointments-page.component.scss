@@ -710,3 +710,242 @@
     font-size: 15px;
   }
 }
+
+/* Mobile only: compact appointment board, while preserving the desktop layout. */
+@media (max-width: 767px) {
+  .appointments-page {
+    background: #f7f7f6;
+  }
+
+  .appointments-page__nav {
+    border: 0;
+    min-height: var(--app-navbar-height, 96px);
+  }
+
+  .appointments-page__shell {
+    gap: 14px;
+    padding: 14px 10px calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .appointments-page__sidebar {
+    display: block;
+  }
+
+  .mini-calendar {
+    border-radius: 14px;
+    padding: 12px 10px 10px;
+  }
+
+  .mini-calendar__head {
+    margin-bottom: 12px;
+  }
+
+  .mini-calendar__head strong {
+    font-size: 15px;
+  }
+
+  .mini-calendar__head span {
+    display: none;
+  }
+
+  .mini-calendar__weekdays {
+    margin-bottom: 6px;
+  }
+
+  .mini-calendar__day {
+    font-size: 12px;
+    height: 28px;
+  }
+
+  .mini-calendar__selection {
+    display: none;
+  }
+
+  .appointments-toolbar {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    margin-bottom: 10px;
+  }
+
+  .appointments-tabs {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .appointments-tabs__button {
+    font-size: 11px;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0 8px;
+  }
+
+  .appointments-tabs__button span {
+    font-size: 10px;
+    height: 19px;
+    min-width: 19px;
+  }
+
+  .appointments-search {
+    border-radius: 13px;
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .appointments-search input {
+    font-size: 12px;
+  }
+
+  .appointments-view {
+    border-radius: 13px;
+    min-height: 42px;
+    padding: 0;
+  }
+
+  .appointments-view select,
+  .appointments-view lucide-icon:last-child {
+    display: none;
+  }
+
+  .appointments-view lucide-icon:first-child {
+    margin: auto;
+  }
+
+  .appointments-quick-filters {
+    gap: 7px;
+    margin-bottom: 14px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .appointments-quick-filters button {
+    border-radius: 11px;
+    font-size: 11px;
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
+  .appointments-list,
+  .appointment-group {
+    gap: 11px;
+  }
+
+  .appointment-group__head {
+    font-size: 9px;
+    gap: 7px;
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .appointment-group__head em {
+    display: block;
+  }
+
+  .appointment-group__head strong {
+    font-size: 9px;
+  }
+
+  .appointment-row {
+    align-items: start;
+    border-radius: 13px;
+    gap: 8px 9px;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    min-height: 0;
+    padding: 10px;
+    position: relative;
+  }
+
+  .appointment-row__avatar,
+  .appointment-row__avatar img,
+  .appointment-row__avatar > span {
+    height: 38px;
+    width: 38px;
+  }
+
+  .appointment-row__avatar i {
+    border-width: 2px;
+    height: 15px;
+    width: 15px;
+  }
+
+  .appointment-row__avatar i lucide-icon {
+    height: 9px;
+    width: 9px;
+  }
+
+  .appointment-row__titleline strong,
+  .appointment-row h3 {
+    font-size: 11px;
+  }
+
+  .appointment-row__titleline span {
+    font-size: 10px;
+  }
+
+  .appointment-row h3 {
+    margin: 3px 0 5px;
+  }
+
+  .appointment-row__meta {
+    font-size: 9px;
+    gap: 7px;
+  }
+
+  .appointment-row__meta lucide-icon {
+    height: 11px;
+    width: 11px;
+  }
+
+  .appointment-row__price {
+    font-size: 12px;
+    margin-top: 7px;
+  }
+
+  .appointment-row__side {
+    align-items: end;
+    gap: 7px;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: stretch;
+  }
+
+  .appointment-row__badge {
+    align-self: start;
+    font-size: 9px;
+    gap: 4px;
+    justify-self: end;
+    min-height: 20px;
+    padding: 0 7px;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+  }
+
+  .appointment-row__actions {
+    display: grid;
+    gap: 5px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .appointment-row__ghost,
+  .appointment-row__primary,
+  .appointment-row__cancel {
+    border-radius: 8px;
+    font-size: 9px;
+    gap: 3px;
+    min-height: 27px;
+    padding: 0 5px;
+    width: auto;
+  }
+
+  .appointment-row__ghost lucide-icon,
+  .appointment-row__primary lucide-icon {
+    height: 12px;
+    width: 12px;
+  }
+
+  .appointment-row__cancel {
+    grid-column: 1 / -1;
+  }
+}

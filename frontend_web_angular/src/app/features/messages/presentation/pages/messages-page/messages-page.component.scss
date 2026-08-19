@@ -1136,17 +1136,17 @@
 
 @media (max-width: 767px) {
   .messages-page__nav {
-    min-height: var(--app-navbar-height, 72px);
+    min-height: var(--app-navbar-height, 96px);
   }
 
   .messages-page__nav app-navbar {
-    --app-navbar-backdrop-height: var(--app-navbar-height, 72px);
+    --app-navbar-backdrop-height: var(--app-navbar-height, 96px);
   }
 
   .messages-page__workspace {
     display: block;
-    height: calc(100dvh - var(--app-navbar-height, 72px));
-    min-height: calc(100vh - var(--app-navbar-height, 72px));
+    height: calc(100dvh - var(--app-navbar-height, 96px) - 70px);
+    min-height: calc(100vh - var(--app-navbar-height, 96px) - 70px);
     overflow: hidden;
   }
 
@@ -1254,36 +1254,117 @@
   }
 
   .messages-page__reservation-row {
-    padding: 8px 0 0;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 5px 0 0;
     width: 100%;
   }
 
   .messages-page__reservation-card {
-    grid-template-columns: 52px minmax(0, 1fr);
-    padding: 12px;
-    width: min(100%, 520px);
+    align-items: center;
+    border-radius: 11px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07);
+    gap: 2px 6px;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    padding: 5px 6px;
+    width: min(calc(100% - 24px), 340px);
   }
 
   .messages-page__reservation-avatar,
   .messages-page__reservation-avatar img,
   .messages-page__reservation-avatar i {
-    height: 48px;
-    width: 48px;
+    height: 32px;
+    width: 32px;
   }
 
-  .messages-page__reservation-main header,
-  .messages-page__reservation-footer {
-    align-items: flex-start;
-    flex-direction: column;
+  .messages-page__reservation-avatar b {
+    border-width: 1px;
+    height: 13px;
+    width: 13px;
+  }
+
+  .messages-page__reservation-avatar b lucide-icon {
+    height: 8px;
+    width: 8px;
+  }
+
+  .messages-page__reservation-main {
+    gap: 0;
+    text-align: left;
+  }
+
+  .messages-page__reservation-main header {
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .messages-page__reservation-main p {
+    min-width: 0;
+  }
+
+  .messages-page__reservation-main p strong,
+  .messages-page__reservation-main h3 {
+    font-size: 10px;
+  }
+
+  .messages-page__reservation-main p strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .messages-page__reservation-main p span,
+  .messages-page__reservation-meta span {
+    font-size: 9px;
+  }
+
+  .messages-page__reservation-main p span,
+  .messages-page__reservation-meta {
+    display: none;
+  }
+
+  .messages-page__reservation-main h3 {
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .messages-page__reservation-main em {
+    font-size: 8px;
+    gap: 3px;
+    min-height: 16px;
+    padding: 0 5px;
+  }
+
+  .messages-page__reservation-main em lucide-icon {
+    height: 9px;
+    width: 9px;
   }
 
   .messages-page__reservation-footer {
-    gap: 12px;
+    align-items: flex-end;
+    gap: 2px;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+
+  .messages-page__reservation-footer strong {
+    font-size: 10px;
   }
 
   .messages-page__reservation-footer a {
-    justify-content: center;
-    width: 100%;
+    border-radius: 7px;
+    font-size: 0;
+    min-height: 20px;
+    padding: 0 6px;
+  }
+
+  .messages-page__reservation-footer a::after {
+    content: 'Voir';
+    font-size: 9px;
+    font-weight: 850;
   }
 
   .messages-page__preview {

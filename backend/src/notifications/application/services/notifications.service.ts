@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RoleUtilisateur } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import {
@@ -30,10 +31,12 @@ export class NotificationsService {
     @Inject(NOTIFICATION_RECIPIENT_REPOSITORY_PORT)
     private readonly recipientRepository: NotificationRecipientRepositoryPort,
     private readonly deliveryService: NotificationDeliveryService,
+    private readonly realtimeEvents: EventEmitter2,
   ) {}
 
   async createInAppNotification(input: CreateNotificationInput) {
     const notification = await this.notificationsRepository.create(input);
+    this.realtimeEvents.emit('notification.created', { notification });
     await this.deliveryService.sendPushForNotification(notification);
     return notification;
   }
@@ -46,6 +49,9 @@ export class NotificationsService {
     }
 
     const notifications = await this.notificationsRepository.createMany(inputs);
+    for (const notification of notifications) {
+      this.realtimeEvents.emit('notification.created', { notification });
+    }
     await Promise.all(
       notifications.map((notification) =>
         this.deliveryService.sendPushForNotification(notification),

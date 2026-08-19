@@ -12,6 +12,11 @@
   overflow: hidden;
   padding: 72px 24px;
   position: relative;
+  visibility: hidden;
+}
+
+.login-page--fonts-ready {
+  visibility: visible;
 }
 
 .login-card {

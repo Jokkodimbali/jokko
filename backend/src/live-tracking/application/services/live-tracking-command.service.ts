@@ -136,6 +136,13 @@ export class LiveTrackingCommandService {
       dateHeure: context.dateHeure,
       adresseClient: context.adresseClient,
     });
+    await this.reservationClientNotificationService.notifyTripStatus({
+      reservationId: context.reservationId,
+      recipientUserId: context.professionalUserId,
+      serviceName: context.serviceName,
+      travellerRole: 'PROFESSIONNEL',
+      tripStatus: 'EN_ROUTE',
+    });
 
     return enrichedTracking;
   }
@@ -308,6 +315,13 @@ export class LiveTrackingCommandService {
 
     this.publishLocationRealtime(enrichedTracking);
     this.publishRouteMetadataRealtime(enrichedTracking);
+    await this.reservationClientNotificationService.notifyTripStatus({
+      reservationId: context.reservationId,
+      recipientUserId: context.professionalUserId,
+      serviceName: context.serviceName,
+      travellerRole: 'CLIENT',
+      tripStatus: 'EN_ROUTE',
+    });
 
     return enrichedTracking;
   }

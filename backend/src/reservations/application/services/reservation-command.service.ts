@@ -228,6 +228,15 @@ export class ReservationCommandService extends ReservationAppService {
           },
         );
       }
+      if (requestUser.sub !== updated.clientId) {
+        await this.reservationClientNotificationService.notifyTripStatus({
+          reservationId: updated.id,
+          recipientUserId: professional.utilisateur.id,
+          serviceName: service.nom,
+          travellerRole: 'PROFESSIONNEL',
+          tripStatus: 'ANNULEE',
+        });
+      }
 
       return updated;
     } catch (error) {
@@ -467,6 +476,13 @@ export class ReservationCommandService extends ReservationAppService {
           adresseClient: updated.adresseClient,
         },
       );
+      await this.reservationClientNotificationService.notifyTripStatus({
+        reservationId: updated.id,
+        recipientUserId: professional.utilisateur.id,
+        serviceName: service.nom,
+        travellerRole: 'PROFESSIONNEL',
+        tripStatus: 'TERMINEE',
+      });
 
       return updated;
     } catch (error) {

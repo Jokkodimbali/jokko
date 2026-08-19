@@ -311,7 +311,7 @@
 
   <button
     type="button"
-    *ngIf="!featuredNotification() && !mobilePageTitle"
+    *ngIf="!featuredNotification() && !mobilePageTitle && !mobileLocationStatic"
     class="app-navbar__mobile-location"
     aria-label="Choisir la localisation"
     (click)="mobileLocationClick.emit()"
@@ -319,6 +319,13 @@
     <span>{{ mobileLocationLabel }}</span>
     <lucide-icon name="chevron-right" size="19" [strokeWidth]="2.7"></lucide-icon>
   </button>
+
+  <div
+    *ngIf="!featuredNotification() && !mobilePageTitle && mobileLocationStatic"
+    class="app-navbar__mobile-location app-navbar__mobile-location--static"
+  >
+    <span>{{ mobileLocationLabel }}</span>
+  </div>
 
   <div *ngIf="!featuredNotification() && mobilePageTitle" class="app-navbar__mobile-page-heading">
     <strong>{{ mobilePageTitle }}</strong>

@@ -125,6 +125,15 @@ export class AppSearchBarComponent {
     this.searchSubmit.emit(this.searchValue.trim());
   }
 
+  onServiceSubmitClick(): void {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      this.locationClick.emit();
+      return;
+    }
+
+    this.onSubmit();
+  }
+
   onFilterClick(): void {
     this.filterClick.emit();
   }

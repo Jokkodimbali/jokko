@@ -1,8 +1,8 @@
 <main class="services-page">
   <section class="hero">
     <app-navbar
-      [mobileLocationLabel]="locationValue()"
-      (mobileLocationClick)="toggleLocationMenu()"
+      [mobileLocationLabel]="mobileLocationLabel()"
+      [mobileLocationStatic]="true"
     />
 
     <div class="hero-content">
@@ -210,7 +210,7 @@
 
         <div class="section-heading">
           <div class="section-title-group">
-            <h2>{{ section.title }}</h2>
+            <h2>{{ currentSearchLocation() ? 'Prestataires à proximité' : section.title }}</h2>
             <p>{{ section.countLabel }}</p>
           </div>
         </div>

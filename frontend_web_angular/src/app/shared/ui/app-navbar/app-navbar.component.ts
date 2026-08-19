@@ -57,6 +57,7 @@ interface AppInfoNavItem {
 })
 export class AppNavbarComponent implements OnInit, OnDestroy {
   @Input() mobileLocationLabel = 'Votre position';
+  @Input() mobileLocationStatic = false;
   @Input() mobilePageTitle = '';
   @Input() mobilePageSubtitle = '';
   @Output() mobileLocationClick = new EventEmitter<void>();

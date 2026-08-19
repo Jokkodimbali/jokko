@@ -1529,6 +1529,11 @@
     white-space: nowrap;
   }
 
+  .app-navbar__mobile-location--static {
+    cursor: default;
+    max-width: calc(100% - 72px);
+  }
+
   .app-navbar__notification--mobile {
     bottom: 22px;
     margin: 0;

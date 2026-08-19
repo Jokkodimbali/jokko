@@ -107,6 +107,12 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   failedImageUrls = signal<Set<string>>(new Set());
   selectedCity = signal<string>('Toutes villes');
   currentSearchLocation = signal<ProfessionalSearchLocation | null>(null);
+  private readonly resolvedMobileLocationLabel = signal<string | null>(null);
+  protected readonly mobileLocationLabel = computed(() =>
+    this.compactMobileLocationLabel(this.authSession.currentUser()?.address ?? '') ??
+    this.resolvedMobileLocationLabel() ??
+    'Votre localisation',
+  );
   isLocating = signal<boolean>(false);
   showSearchSuggestions = signal<boolean>(false);
   showLocationMenu = signal<boolean>(false);
@@ -429,6 +435,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   selectSearchCity(city: string): void {
     this.currentSearchLocation.set(null);
     this.selectedCity.set(city);
+    this.resolvedMobileLocationLabel.set(
+      city === 'Toutes villes' ? 'Sénégal' : city === 'Ma position actuelle' ? 'Votre localisation' : `${city}, Sénégal`,
+    );
     this.showLocationMenu.set(false);
     this.loadProfessionals(1);
     this.loadSearchSuggestions();
@@ -470,9 +479,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
           radiusKm: 100,
         });
         this.selectedCity.set('Ma position actuelle');
+        this.resolvedMobileLocationLabel.set('Votre localisation');
         this.isLocating.set(false);
         this.loadProfessionals(1);
         this.loadSearchSuggestions();
+        this.resolveMobileLocationLabel(coords.latitude, coords.longitude);
       },
       (error) => {
         this.isLocating.set(false);
@@ -1338,6 +1349,28 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       .map((part) => part.trim())
       .filter(Boolean)
       .join(', ');
+  }
+
+  private resolveMobileLocationLabel(latitude: number, longitude: number): void {
+    this.googleMaps.reverseGeocode({ latitude, longitude }).subscribe({
+      next: (result) => {
+        const address = this.compactMobileLocationLabel(result?.formattedAddress ?? '');
+        if (address) {
+          this.resolvedMobileLocationLabel.set(address);
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  private compactMobileLocationLabel(address: string): string | null {
+    const parts = address
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return null;
+
+    return parts.slice(-3).join(', ');
   }
 
   private hasUsableCoordinate(provider: Professional): boolean {

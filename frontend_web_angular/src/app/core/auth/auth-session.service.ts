@@ -84,6 +84,7 @@ export class AuthSessionService {
       phoneNumber: profile.numeroTelephone,
       name: profile.nom,
       email: profile.email ?? undefined,
+      address: profile.adresse ?? null,
       role: profile.role,
       avatarUrl: publicAssetUrl(profile.urlAvatar),
       professionalProfile: profile.profilProfessionnel ?? null,

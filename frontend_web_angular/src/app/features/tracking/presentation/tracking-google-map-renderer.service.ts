@@ -2206,7 +2206,7 @@ export class TrackingGoogleMapRendererService {
     const accentColor = marker.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const badge = document.createElement('span');
     badge.textContent = label;
-    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 Inter,sans-serif;letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
     return badge;
   }
 
@@ -2286,7 +2286,7 @@ export class TrackingGoogleMapRendererService {
     const fallback = document.createElement('span');
     fallback.textContent = initials || 'JK';
     fallback.style.cssText =
-      'align-items:center;color:#0f172a;display:flex;font:900 14px/1 "DM Sans",sans-serif;height:100%;justify-content:center;width:100%;';
+      'align-items:center;color:#0f172a;display:flex;font:900 14px/1 Inter,sans-serif;height:100%;justify-content:center;width:100%;';
     return fallback;
   }
 
@@ -2308,22 +2308,22 @@ export class TrackingGoogleMapRendererService {
 
     const etaValue = document.createElement('strong');
     etaValue.textContent = eta.value;
-    etaValue.style.cssText = `font:900 ${size.etaValueFont}px/1 "DM Sans",sans-serif;letter-spacing:0;`;
+    etaValue.style.cssText = `font:900 ${size.etaValueFont}px/1 Inter,sans-serif;letter-spacing:0;`;
 
     const etaUnit = document.createElement('small');
     etaUnit.textContent = eta.unit;
-    etaUnit.style.cssText = `font:800 ${size.etaUnitFont}px/1.1 "DM Sans",sans-serif;letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
+    etaUnit.style.cssText = `font:800 ${size.etaUnitFont}px/1.1 Inter,sans-serif;letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
 
     const body = document.createElement('span');
     body.style.cssText = `display:flex;flex:1;flex-direction:column;gap:${size.bodyGap}px;min-width:0;white-space:nowrap;`;
 
     const title = document.createElement('strong');
     title.textContent = marker.title;
-    title.style.cssText = `color:#111827;font:900 ${size.titleFont}px/1.15 "DM Sans",sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;`;
+    title.style.cssText = `color:#111827;font:900 ${size.titleFont}px/1.15 Inter,sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;`;
 
     const subtitle = document.createElement('small');
     subtitle.textContent = marker.subtitle;
-    subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:uppercase;`;
+    subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 Inter,sans-serif;letter-spacing:0;text-transform:uppercase;`;
 
     const pointer = document.createElement('span');
     pointer.className = 'jokko-tracking-arrival-pointer';
@@ -2379,7 +2379,7 @@ export class TrackingGoogleMapRendererService {
     const badge = document.createElement('span');
     badge.className = 'jokko-tracking-arrival-role';
     badge.textContent = marker.person.label;
-    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 "DM Sans",sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;position:relative;text-overflow:ellipsis;white-space:nowrap;z-index:2;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 Inter,sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;position:relative;text-overflow:ellipsis;white-space:nowrap;z-index:2;`;
     badge.style.marginTop = `-${Math.round(4 * size.scale)}px`;
     badge.style.position = 'relative';
     badge.style.zIndex = '2';

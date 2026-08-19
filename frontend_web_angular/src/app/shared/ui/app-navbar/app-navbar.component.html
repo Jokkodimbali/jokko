@@ -1,6 +1,7 @@
 <header
   class="app-navbar"
   [class.app-navbar--notification-featured]="!!featuredNotification()"
+  [class.app-navbar--mobile-page-heading]="!!mobilePageTitle"
 >
   <!-- Brand Logo -->
   <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
@@ -308,18 +309,9 @@
     </ng-template>
   </div>
 
-  <div class="app-navbar__mobile-status" aria-hidden="true">
-    <strong>{{ mobileTime }}</strong>
-    <span>
-      <i class="app-navbar__mobile-signal"></i>
-      <lucide-icon name="wifi" size="16" [strokeWidth]="2.8"></lucide-icon>
-      <i class="app-navbar__mobile-battery"></i>
-    </span>
-  </div>
-
   <button
     type="button"
-    *ngIf="!featuredNotification()"
+    *ngIf="!featuredNotification() && !mobilePageTitle"
     class="app-navbar__mobile-location"
     aria-label="Choisir la localisation"
     (click)="mobileLocationClick.emit()"
@@ -327,6 +319,11 @@
     <span>{{ mobileLocationLabel }}</span>
     <lucide-icon name="chevron-right" size="19" [strokeWidth]="2.7"></lucide-icon>
   </button>
+
+  <div *ngIf="!featuredNotification() && mobilePageTitle" class="app-navbar__mobile-page-heading">
+    <strong>{{ mobilePageTitle }}</strong>
+    <small *ngIf="mobilePageSubtitle">{{ mobilePageSubtitle }}</small>
+  </div>
 
   <button
     *ngIf="isAuthenticated()"

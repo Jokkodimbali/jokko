@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../../environments/environment';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
+import type { UserNotificationView } from '../../../core/notifications/notifications.service';
 import { ConversationMessage } from '../domain/models/messages.models';
 
 export interface DisputeMediationRealtimeMessage {
@@ -25,6 +26,7 @@ export class MessagesRealtimeService {
   private readonly messageCreatedSubject = new Subject<ConversationMessage>();
   private readonly disputeMediationMessageCreatedSubject =
     new Subject<DisputeMediationRealtimeMessage>();
+  private readonly notificationCreatedSubject = new Subject<UserNotificationView>();
   private readonly joinedConversationIds = new Set<string>();
   private socket: Socket | null = null;
 
@@ -32,6 +34,8 @@ export class MessagesRealtimeService {
     this.messageCreatedSubject.asObservable();
   readonly disputeMediationMessageCreated$: Observable<DisputeMediationRealtimeMessage> =
     this.disputeMediationMessageCreatedSubject.asObservable();
+  readonly notificationCreated$: Observable<UserNotificationView> =
+    this.notificationCreatedSubject.asObservable();
 
   connect(): void {
     if (!isPlatformBrowser(this.platformId) || this.socket?.connected) {
@@ -69,6 +73,9 @@ export class MessagesRealtimeService {
         this.disputeMediationMessageCreatedSubject.next(message);
       },
     );
+    this.socket.on('notification.created', (notification: UserNotificationView) => {
+      this.notificationCreatedSubject.next(notification);
+    });
   }
 
   joinConversation(conversationId: string | null): void {

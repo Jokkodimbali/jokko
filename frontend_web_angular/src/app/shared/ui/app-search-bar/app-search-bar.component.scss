@@ -239,14 +239,26 @@
 }
 
 .app-search-bar__submit {
+  align-items: center;
   background: #8f531e;
   border: 0;
   border-radius: 15px;
   color: #fff;
+  display: inline-flex;
   font-size: 14px;
   font-weight: 900;
+  gap: 7px;
   height: 34px;
+  justify-content: center;
+  line-height: 1;
   margin: 1px 0 0;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.app-search-bar__submit lucide-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
 }
 
 .app-search-bar__modes {

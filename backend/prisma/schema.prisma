@@ -261,6 +261,19 @@ model Utilisateur {
   @@map("users")
 }
 
+model BanniereApplication {
+  id          String   @id @default(uuid()) @db.Uuid
+  imageUrl    String   @map("image_url") @db.Text
+  lien        String?  @map("redirect_url") @db.Text
+  ordre       Int      @default(0) @map("sort_order")
+  estActive   Boolean  @default(true) @map("is_active")
+  creeLe      DateTime @default(now()) @map("created_at")
+  misAJourLe  DateTime @updatedAt @map("updated_at")
+
+  @@index([estActive, ordre])
+  @@map("app_banners")
+}
+
 model FicheMedicaleClient {
   id                String   @id @default(uuid()) @db.Uuid
   utilisateurId     String   @unique @map("user_id") @db.Uuid

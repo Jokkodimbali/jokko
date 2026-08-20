@@ -657,6 +657,66 @@
   }
 }
 
+/* The 768px breakpoint is still a mobile layout on many phones in landscape. */
+@media (max-width: 860px) {
+  .appointments-toolbar {
+    gap: 10px;
+  }
+
+  .appointments-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .appointments-tabs__button {
+    font-size: 12px;
+    gap: 6px;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+
+  .appointments-tabs__button span {
+    flex: 0 0 auto;
+  }
+
+  .appointments-view {
+    gap: 7px;
+    justify-content: flex-start;
+    min-width: 0;
+    padding-inline: 13px;
+  }
+
+  .appointments-view select {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .appointments-quick-filters {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 20px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .appointments-quick-filters button {
+    font-size: 12px;
+    min-height: 42px;
+    min-width: 0;
+    overflow: hidden;
+    padding-inline: 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 520px) {
   .appointments-page__shell {
     padding: 14px 10px 44px;
@@ -729,11 +789,14 @@
 
   .appointments-page__sidebar {
     display: block;
+    margin-bottom: 2px;
   }
 
   .mini-calendar {
-    border-radius: 14px;
-    padding: 12px 10px 10px;
+    border-color: #e5ddd4;
+    border-radius: 16px;
+    box-shadow: 0 5px 18px rgba(57, 39, 22, 0.035);
+    padding: 14px 12px 12px;
   }
 
   .mini-calendar__head {
@@ -741,7 +804,9 @@
   }
 
   .mini-calendar__head strong {
-    font-size: 15px;
+    color: #2d2925;
+    font-size: 14px;
+    font-weight: 700;
   }
 
   .mini-calendar__head span {
@@ -749,12 +814,22 @@
   }
 
   .mini-calendar__weekdays {
+    color: #8f887f;
+    font-size: 10px;
     margin-bottom: 6px;
   }
 
   .mini-calendar__day {
-    font-size: 12px;
-    height: 28px;
+    font-size: 11px;
+    height: 30px;
+  }
+
+  .mini-calendar__day small {
+    font-size: 7px;
+    height: 12px;
+    min-width: 12px;
+    right: 0;
+    top: -1px;
   }
 
   .mini-calendar__selection {
@@ -762,22 +837,35 @@
   }
 
   .appointments-toolbar {
-    gap: 12px;
+    background: #fff;
+    border: 1px solid #e9e2da;
+    border-radius: 16px;
+    gap: 10px;
     grid-template-columns: minmax(0, 1fr);
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    padding: 8px;
   }
 
   .appointments-tabs {
+    background: #f7f4f0;
+    border-color: #dfc9b6;
+    border-radius: 13px;
     grid-column: auto;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 3px;
     width: 100%;
   }
 
   .appointments-tabs__button {
-    font-size: 11px;
-    gap: 5px;
-    min-height: 36px;
-    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+    gap: 4px;
+    line-height: 1.1;
+    min-height: 34px;
+    overflow: hidden;
+    padding: 0 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .appointments-tabs__button span {
@@ -787,9 +875,10 @@
   }
 
   .appointments-search {
-    border-radius: 13px;
+    border-color: #e1d8cf;
+    border-radius: 12px;
     grid-column: 1;
-    min-height: 42px;
+    min-height: 40px;
     padding: 0 12px;
   }
 

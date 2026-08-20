@@ -41,6 +41,38 @@
     </header>
 
     <ng-container *ngIf="dashboard() as data; else adminState">
+      <ng-container *ngIf="activeSection() === 'settings'; else nonSettingsContent">
+        <section class="app-settings">
+          <header class="app-settings__hero">
+            <div class="app-settings__hero-icon"><lucide-icon name="image-plus" size="26"></lucide-icon></div>
+            <div><p>CONTENU DE L'APPLICATION</p><h1>Bannières promotionnelles</h1><span>Créez une expérience éditoriale sur la page Services.</span></div>
+            <b>{{ appBanners().length }} / 5</b>
+          </header>
+
+          <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Les bannières défilent automatiquement. Un lien est ouvert lorsque l’utilisateur clique sur l’image.</span></div>
+
+          <div class="app-settings__list" *ngIf="appBanners().length; else noBanner">
+            <article class="app-banner-editor" *ngFor="let banner of appBanners(); let index = index">
+              <div class="app-banner-editor__preview">
+                <img *ngIf="banner.imageUrl; else imagePlaceholder" [src]="banner.imageUrl" [alt]="'Aperçu bannière ' + (index + 1)" />
+                <ng-template #imagePlaceholder><lucide-icon name="image-plus" size="28"></lucide-icon><span>Ajoutez une image</span></ng-template>
+              </div>
+              <div class="app-banner-editor__form">
+                <div class="app-banner-editor__title"><span>BANNIÈRE {{ index + 1 }}</span><button type="button" (click)="removeAppBanner(index)" aria-label="Supprimer la bannière"><lucide-icon name="trash-2" size="17"></lucide-icon></button></div>
+                <label class="app-banner-editor__upload app-banner-editor__upload--primary"><input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadAppBannerImage(index, $event)" /><lucide-icon name="upload-cloud" size="17"></lucide-icon>{{ banner.imageUrl ? 'Remplacer l’image' : 'Choisir une image' }}</label>
+                <label>Lien de redirection <small>Optionnel</small><input type="url" [value]="banner.redirectUrl" (input)="updateAppBanner(index, 'redirectUrl', $event)" placeholder="https://..." /></label>
+              </div>
+            </article>
+          </div>
+          <ng-template #noBanner><div class="app-settings__empty"><lucide-icon name="image-plus" size="32"></lucide-icon><strong>Aucune bannière configurée</strong><span>Ajoutez votre première bannière pour commencer.</span></div></ng-template>
+
+          <footer class="app-settings__actions">
+            <button type="button" class="app-settings__add" (click)="addAppBanner()" [disabled]="appBanners().length >= 5"><lucide-icon name="plus" size="18"></lucide-icon>Ajouter une bannière</button>
+            <button type="button" class="app-settings__save" (click)="saveAppBanners()" [disabled]="isAppBannersLoading()"><lucide-icon name="save" size="18"></lucide-icon>{{ isAppBannersLoading() ? 'Enregistrement...' : 'Enregistrer les modifications' }}</button>
+          </footer>
+        </section>
+      </ng-container>
+      <ng-template #nonSettingsContent>
       <ng-container *ngIf="activeSection() === 'validations'; else nonValidationContent">
         <app-admin-kyc-validation-panel
           [profiles]="kycProfiles()"
@@ -51,6 +83,7 @@
           (detailRequested)="loadKycDetail($event)"
         ></app-admin-kyc-validation-panel>
       </ng-container>
+      </ng-template>
 
       <ng-template #nonValidationContent>
         <ng-container *ngIf="activeSection() === 'doctors'; else nonMedicalContent">

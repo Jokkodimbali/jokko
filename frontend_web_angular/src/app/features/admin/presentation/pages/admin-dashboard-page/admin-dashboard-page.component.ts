@@ -57,7 +57,8 @@ type AdminSection =
   | 'users'
   | 'reservations'
   | 'payments'
-  | 'notifications';
+  | 'notifications'
+  | 'settings';
 
 @Component({
   selector: 'app-admin-dashboard-page',
@@ -124,6 +125,8 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly structureActionId = signal<string | null>(null);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
+  protected readonly appBanners = signal<Array<{ id: string; imageUrl: string; redirectUrl: string | null; isActive: boolean }>>([]);
+  protected readonly isAppBannersLoading = signal(false);
   protected readonly adminSearchQuery = signal('');
   protected readonly user = this.authSession.currentUser;
   protected readonly userInitials = computed(() => {
@@ -195,6 +198,7 @@ export class AdminDashboardPageComponent implements OnInit {
       badge: () => this.dashboard()?.reservations.inEscrow ?? 0,
     },
     { key: 'notifications', label: 'Notifications', icon: 'bell' },
+    { key: 'settings', label: 'Parametres application', icon: 'sliders-horizontal' },
     {
       key: 'traffic',
       label: 'Trafic & Analytics',
@@ -295,6 +299,52 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'structure' && !this.serviceStructureReport()) {
       this.loadServiceStructure();
     }
+    if (section === 'settings' && this.appBanners().length === 0) this.loadAppBanners();
+  }
+
+  protected loadAppBanners(): void {
+    this.isAppBannersLoading.set(true);
+    this.adminDashboardService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
+      this.appBanners.set(banners);
+      this.isAppBannersLoading.set(false);
+    });
+  }
+
+  protected addAppBanner(): void {
+    if (this.appBanners().length >= 5) return;
+    this.appBanners.update((items) => [...items, { id: crypto.randomUUID(), imageUrl: '', redirectUrl: null, isActive: true }]);
+  }
+
+  protected removeAppBanner(index: number): void { this.appBanners.update((items) => items.filter((_, itemIndex) => itemIndex !== index)); }
+
+  protected updateAppBanner(index: number, field: 'imageUrl' | 'redirectUrl', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value || null } : item));
+  }
+
+  protected uploadAppBannerImage(index: number, event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.isAppBannersLoading.set(true);
+    this.adminDashboardService.uploadServiceCategoryImage(file).pipe(catchError(() => {
+      this.feedback.error('Impossible d envoyer cette image.');
+      return of(null);
+    })).subscribe((result) => {
+      this.isAppBannersLoading.set(false);
+      if (!result) return;
+      this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrl: result.imageUrl } : item));
+      this.saveAppBanners();
+    });
+  }
+
+  protected saveAppBanners(): void {
+    const banners = this.appBanners();
+    if (banners.some((banner) => !banner.imageUrl)) { this.feedback.error('Chaque banniere doit avoir une image.'); return; }
+    this.isAppBannersLoading.set(true);
+    this.adminDashboardService.saveAppBanners(banners).pipe(catchError(() => { this.feedback.error('Impossible d enregistrer les bannieres.'); return of(null); })).subscribe((result) => {
+      this.isAppBannersLoading.set(false);
+      if (result !== null) this.feedback.success('Bannieres enregistrees.');
+    });
   }
 
   protected loadArchives(query = {}): void {

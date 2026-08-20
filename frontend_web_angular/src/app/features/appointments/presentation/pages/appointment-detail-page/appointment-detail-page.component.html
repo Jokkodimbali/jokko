@@ -873,7 +873,13 @@
             <ng-container *ngIf="isProviderWorking(); else clientConfirmedTrackingVisual">
               <div class="appointment-detail__client-tracking-work">
                 <span></span>
-                <h2>{{ isMedicalAppointment() ? 'Prescription des médicaments en cours' : 'Intervention active' }}</h2>
+                <h2>
+                  {{
+                    shouldShowPrescriptionInProgress()
+                      ? 'Prescription des médicaments en cours'
+                      : 'Intervention en cours'
+                  }}
+                </h2>
                 <p>{{ appointment.serviceName }}</p>
               </div>
             </ng-container>

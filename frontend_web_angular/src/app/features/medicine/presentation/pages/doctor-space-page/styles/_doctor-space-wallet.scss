@@ -373,3 +373,81 @@
     justify-self: start;
   }
 }
+
+@media (max-width: 480px) {
+  .doctor-space__wallet {
+    gap: 14px;
+  }
+
+  .doctor-space__wallet-escrow {
+    border-radius: 16px;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .doctor-space__wallet-escrow header {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .doctor-space__wallet-escrow header div {
+    font-size: 12px;
+    gap: 7px;
+  }
+
+  .doctor-space__wallet-escrow header strong {
+    font-size: 21px;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .doctor-space__wallet-escrow-item {
+    align-items: start;
+    border-radius: 13px;
+    column-gap: 10px;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    padding: 11px;
+    row-gap: 7px;
+  }
+
+  .doctor-space__wallet-escrow-icon {
+    height: 40px;
+    width: 40px;
+  }
+
+  .doctor-space__wallet-escrow-icon lucide-icon {
+    height: 19px;
+    width: 19px;
+  }
+
+  .doctor-space__wallet-escrow-main {
+    grid-column: 2;
+  }
+
+  .doctor-space__wallet-escrow-main strong {
+    font-size: 13px;
+  }
+
+  .doctor-space__wallet-escrow-main small,
+  .doctor-space__wallet-escrow-main span {
+    font-size: 10px;
+  }
+
+  .doctor-space__wallet-escrow-item em {
+    align-self: center;
+    font-size: 13px;
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .doctor-space__wallet-escrow-item button {
+    border-radius: 9px;
+    font-size: 10px;
+    grid-column: 2 / -1;
+    justify-self: stretch;
+    min-height: 34px;
+    padding-inline: 10px;
+    width: 100%;
+  }
+}

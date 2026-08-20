@@ -423,6 +423,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     return /\b(sante|medical|medecin|consultation|clinique|soin|patient)\b/.test(searchable);
   });
+  protected readonly shouldShowPrescriptionInProgress = computed(
+    () => this.isMedicalAppointment() && (this.isDoctorViewer() || this.isClientViewer()),
+  );
   protected readonly isTeleconsultation = computed(
     () => this.appointment()?.consultationType === 'TELECONSULTATION',
   );

@@ -217,7 +217,7 @@
 
         <div class="provider-row">
           <app-provider-card
-            *ngFor="let provider of section.providers; trackBy: trackByProviderId"
+            *ngFor="let provider of visibleNearbyProviders(); trackBy: trackByProviderId"
             [provider]="providerCardView(provider)"
             [isFavorite]="isProviderFavorite(provider.id)"
             (favoriteToggle)="toggleProviderFavorite(provider.id)"
@@ -227,13 +227,60 @@
         </div>
 
         <button
-          *ngIf="section.pagination?.hasNext"
+          *ngIf="section.providers.length > 4 || section.pagination?.hasNext"
           type="button"
           class="see-all"
-          (click)="onViewAll(section)"
+          (click)="showMoreNearby(section)"
         >
-          Voir plus de prestataires
+          Voir plus
         </button>
+      </section>
+
+      <a
+        *ngIf="activeBanner() as banner; else fallbackPromo"
+        class="services-promo services-promo--dynamic"
+        [href]="banner.redirectUrl || null"
+        [attr.target]="banner.redirectUrl ? '_blank' : null"
+        [attr.rel]="banner.redirectUrl ? 'noopener noreferrer' : null"
+        aria-label="Promotion Jokko"
+      >
+        <img [src]="banner.imageUrl" alt="Promotion Jokko" />
+      </a>
+      <ng-template #fallbackPromo>
+      <section *ngIf="sections().length > 0" class="services-promo" aria-label="Promotion Jokko">
+        <div class="services-promo__content">
+          <span>✦ Promo du jour</span>
+          <h2>Travaillez avec les meilleurs prestataires</h2>
+          <a routerLink="/services" (click)="selectCategory(null)">Réserver</a>
+        </div>
+        <img src="/imagehaut1.png" alt="Professionnel Jokko" />
+      </section>
+      </ng-template>
+
+      <section *ngIf="categorySections().length > 0" class="category-services" aria-label="Services par catégorie">
+        <section
+          *ngFor="let category of categorySections(); trackBy: trackById"
+          class="category-services__section"
+          [id]="category.id"
+        >
+          <div class="category-services__section-heading">
+            <div>
+              <h3>{{ category.title }}</h3>
+              <p>{{ category.countLabel }}</p>
+            </div>
+          </div>
+
+          <div class="provider-row">
+            <app-provider-card
+              *ngFor="let provider of category.providers; trackBy: trackByProviderId"
+              [provider]="providerCardView(provider)"
+              [isFavorite]="isProviderFavorite(provider.id)"
+              (favoriteToggle)="toggleProviderFavorite(provider.id)"
+              (primaryAction)="providerPrimaryAction(provider)"
+              (imageError)="handleImageError($event)"
+            ></app-provider-card>
+          </div>
+        </section>
       </section>
 
       <div class="load-more-sections" *ngIf="categoryPagination()?.hasNext">

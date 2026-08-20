@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { clearHttpResponseCache } from '../../../../../core/http/http-cache.interceptor';
@@ -22,7 +22,7 @@ import {
   FavoriteStatus,
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
-import { ProfessionalSearchLocation, ServicesService } from '../../../data-access/services.service';
+import { AppBanner, ProfessionalSearchLocation, ServicesService } from '../../../data-access/services.service';
 import {
   CatalogAccountStatusChangedEvent,
   CatalogProfileChangedEvent,
@@ -95,6 +95,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly heroIllustration = '/image%20haut.png';
 
   sections = signal<ServiceSection[]>([]);
+  protected readonly nearbyExpanded = signal(false);
   categoryPagination = signal<PaginationMeta | undefined>(undefined);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
@@ -165,6 +166,31 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         initials: this.providerInitials(provider.nom),
       })),
   );
+  protected readonly nearbyProviders = computed(() => this.sections()[0]?.providers ?? []);
+  protected readonly visibleNearbyProviders = computed(() =>
+    this.nearbyExpanded() ? this.nearbyProviders() : this.nearbyProviders().slice(0, 4),
+  );
+  protected readonly categorySections = computed(() => {
+    const groups = new Map<string, Professional[]>();
+
+    for (const provider of this.nearbyProviders()) {
+      const categoryName = provider.categoryName?.trim() || 'Autres services';
+      groups.set(categoryName, [...(groups.get(categoryName) ?? []), provider]);
+    }
+
+    return [...groups.entries()]
+      .map(([title, providers]) => ({
+        id: `category-${this.normalizeLabel(title)}`,
+        title,
+        providers,
+        countLabel: `${providers.length} ${providers.length > 1 ? 'prestataires' : 'prestataire'}`,
+      }))
+      .filter((section) => section.providers.length > 0)
+      .sort(
+        (left, right) =>
+          right.providers.length - left.providers.length || left.title.localeCompare(right.title, 'fr'),
+      );
+  });
   protected readonly filters: Array<{
     value: ProfessionalFilter;
     label: string;
@@ -285,12 +311,20 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private serviceFilterRefsChangesSubscription?: Subscription;
   private catalogRealtimeSubscription?: Subscription;
   private catalogProfileSubscription?: Subscription;
+  private bannerRotationTimer?: ReturnType<typeof setInterval>;
+  protected readonly appBanners = signal<AppBanner[]>([]);
+  protected readonly activeBannerIndex = signal(0);
+  protected readonly activeBanner = computed(() => this.appBanners()[this.activeBannerIndex()] ?? null);
 
   ngOnInit(): void {
     this.loadCategories();
     this.loadAvailableCities();
     this.loadFavorites();
     this.loadDefaultProfessionals();
+    this.servicesService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
+      this.appBanners.set(banners);
+      if (banners.length > 1) this.bannerRotationTimer = setInterval(() => this.activeBannerIndex.update((index) => (index + 1) % banners.length), 5000);
+    });
     this.catalogRealtimeSubscription = this.catalogRealtime
       .watchAccountStatuses()
       .subscribe((event) => this.applyCatalogAccountStatus(event));
@@ -307,6 +341,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.serviceFilterRefsChangesSubscription?.unsubscribe();
     this.catalogRealtimeSubscription?.unsubscribe();
     this.catalogProfileSubscription?.unsubscribe();
+    if (this.bannerRotationTimer) clearInterval(this.bannerRotationTimer);
   }
 
   ngAfterViewInit(): void {
@@ -666,6 +701,17 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadProfessionals(nextPage, section);
   }
 
+  protected showMoreNearby(section: ServiceSection): void {
+    if (!this.nearbyExpanded()) {
+      this.nearbyExpanded.set(true);
+      return;
+    }
+
+    if (section.pagination?.hasNext) {
+      this.onViewAll(section);
+    }
+  }
+
   loadHomeData(page: number = 1): void {
     if (page === 1) {
       this.searchTerm.set('');
@@ -695,6 +741,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    if (page === 1 && !appendToSection) {
+      this.nearbyExpanded.set(false);
+    }
     this.professionalsRequestSubscription?.unsubscribe();
     this.professionalsRequestSubscription = this.fetchProfessionals(query, page).subscribe({
       next: (result) => {
@@ -1329,6 +1378,10 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected trackBySectionId(_index: number, section: ServiceSection): string {
     return section.id;
+  }
+
+  protected trackById(_index: number, item: { id: string }): string {
+    return item.id;
   }
 
   protected trackByProviderId(_index: number, provider: Professional): string {

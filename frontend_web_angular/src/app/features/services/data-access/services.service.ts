@@ -28,6 +28,12 @@ export interface ProfessionalSearchLocation {
   radiusKm?: number;
 }
 
+export interface AppBanner {
+  id: string;
+  imageUrl: string;
+  redirectUrl: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -36,6 +42,14 @@ export class ServicesService {
   private readonly apiUrl = environment.apiUrl;
   private readonly cacheTtlMs = 45_000;
   private readonly cache = new Map<string, { expiresAt: number; value$: Observable<unknown> }>();
+
+  getAppBanners(): Observable<AppBanner[]> {
+    return this.cacheFor('app-banners', () =>
+      this.http
+        .get<ApiResponse<AppBanner[]>>(`${this.apiUrl}/public/app-banners`)
+        .pipe(map((response) => unwrapApiResponse(response))),
+    );
+  }
 
   getCategories(
     page: number = 1,

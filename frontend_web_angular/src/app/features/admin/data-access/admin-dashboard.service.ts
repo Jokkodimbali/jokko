@@ -30,6 +30,21 @@ export class AdminDashboardService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  getAppBanners(): Observable<Array<{ id: string; imageUrl: string; redirectUrl: string | null; isActive: boolean }>> {
+    return this.http.get<ApiResponse<Array<{ id: string; imageUrl: string; lien: string | null; estActive: boolean }>>>(`${environment.apiUrl}/admin/app-settings/banners`)
+      .pipe(map((response) => unwrapApiResponse(response).map((item) => ({ id: item.id, imageUrl: item.imageUrl, redirectUrl: item.lien, isActive: item.estActive }))));
+  }
+
+  saveAppBanners(banners: Array<{ imageUrl: string; redirectUrl: string | null; isActive: boolean }>): Observable<unknown> {
+    const payload = banners.map(({ imageUrl, redirectUrl, isActive }) => ({
+      imageUrl,
+      redirectUrl: redirectUrl || undefined,
+      isActive,
+    }));
+    return this.http.post<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/banners`, { banners: payload })
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   getArchives(query: AdminArchivesQuery = {}): Observable<AdminArchivesReport> {
     return this.http
       .get<ApiResponse<AdminArchivesReport>>(`${environment.apiUrl}/admin/archives`, {

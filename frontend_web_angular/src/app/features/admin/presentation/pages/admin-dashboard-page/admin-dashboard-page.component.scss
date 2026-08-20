@@ -217,6 +217,35 @@
   padding: 0 18px;
 }
 
+.app-settings { background:#fff; border:1px solid var(--admin-border); border-radius:24px; box-shadow:0 18px 45px rgba(75,43,17,.08); max-width:1080px; overflow:hidden; }
+.app-settings__hero { align-items:center; background:linear-gradient(125deg,#fff9f1,#f7ead9); display:flex; gap:16px; padding:28px 32px; }
+.app-settings__hero-icon { align-items:center; background:var(--admin-brand); border-radius:16px; color:#fff; display:flex; height:52px; justify-content:center; width:52px; }
+.app-settings__hero p { color:var(--admin-brand); font-size:11px; font-weight:900; letter-spacing:.12em; margin:0 0 5px; }
+.app-settings__hero h1 { color:#2f231c; font-size:25px; margin:0; }
+.app-settings__hero span { color:#7d6c60; font-size:13px; }
+.app-settings__hero b { background:#fff; border:1px solid #e9d5c0; border-radius:999px; color:var(--admin-brand-dark); font-size:13px; margin-left:auto; padding:9px 13px; }
+.app-settings__notice { align-items:center; background:#fffaf3; border-bottom:1px solid #f1e3d4; color:#6d5542; display:flex; font-size:13px; gap:10px; padding:14px 32px; }
+.app-settings__notice lucide-icon { color:#bd721e; flex:none; }
+.app-settings__list { display:grid; gap:16px; padding:24px 32px; }
+.app-banner-editor { border:1px solid #eadbce; border-radius:18px; display:grid; gap:20px; grid-template-columns:250px minmax(0,1fr); overflow:hidden; padding:14px; }
+.app-banner-editor__preview { align-items:center; background:#f5eee6; border-radius:12px; color:#9d806a; display:flex; flex-direction:column; font-size:12px; gap:8px; justify-content:center; min-height:150px; overflow:hidden; }
+.app-banner-editor__preview img { height:100%; object-fit:cover; width:100%; }
+.app-banner-editor__form { display:grid; gap:12px; }
+.app-banner-editor__title { align-items:center; color:#98765d; display:flex; font-size:11px; font-weight:900; letter-spacing:.1em; justify-content:space-between; }
+.app-banner-editor__title button { background:#fff3f0; border:0; border-radius:9px; color:#b54b3b; cursor:pointer; display:grid; padding:7px; place-items:center; }
+.app-banner-editor label { color:#5c4536; display:grid; font-size:12px; font-weight:800; gap:6px; }
+.app-banner-editor label small { color:#9b897b; font-weight:600; }
+.app-banner-editor input[type='url'] { background:#fffdfa; border:1px solid #e4d5c8; border-radius:10px; color:#392b22; font:inherit; min-height:40px; outline:none; padding:0 11px; }
+.app-banner-editor input[type='url']:focus { border-color:var(--admin-brand); box-shadow:0 0 0 3px rgba(145,90,34,.12); }
+.app-banner-editor__upload { align-items:center; background:#f8efe5; border-radius:10px; color:#80501f !important; cursor:pointer; display:flex !important; gap:7px; justify-content:center; min-height:38px; }
+.app-banner-editor__upload input { display:none; }
+.app-banner-editor__upload--primary { background:#fff8ef; border:1px dashed #c99a70; min-height:44px; }
+.app-settings__empty { align-items:center; color:#8a7768; display:flex; flex-direction:column; gap:8px; min-height:180px; justify-content:center; padding:24px; text-align:center; }
+.app-settings__empty lucide-icon { color:#b67b45; }.app-settings__empty strong { color:#45352a; }
+.app-settings__actions { align-items:center; border-top:1px solid #efe2d7; display:flex; gap:12px; justify-content:space-between; padding:18px 32px; }
+.app-settings__actions button { align-items:center; border-radius:11px; cursor:pointer; display:inline-flex; font:inherit; font-size:13px; font-weight:850; gap:8px; justify-content:center; min-height:42px; padding:0 15px; }
+.app-settings__add { background:#fff; border:1px solid #d9bfaa; color:#84501f; }.app-settings__save { background:var(--admin-brand); border:1px solid var(--admin-brand); color:#fff; }.app-settings__actions button:disabled { cursor:not-allowed; opacity:.55; }
+
 @media (max-width: 1100px) {
   .admin-sidebar {
     height: auto;
@@ -241,3 +270,5 @@
     top: auto;
   }
 }
+
+@media (max-width: 680px) { .app-settings__hero,.app-settings__notice,.app-settings__actions { padding-inline:18px; }.app-settings__hero { align-items:flex-start; }.app-settings__hero b { margin-left:0; }.app-settings__list { padding:16px; }.app-banner-editor { grid-template-columns:1fr; }.app-banner-editor__preview { min-height:130px; }.app-settings__actions { align-items:stretch; flex-direction:column; }.app-settings__actions button { width:100%; } }

@@ -22,7 +22,17 @@
       <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
     </header>
 
-    <p *ngIf="isLoading()" class="doctor-space__state">Chargement de l'espace professionnel...</p>
+    <section *ngIf="isLoading()" class="doctor-space__loading" role="status" aria-live="polite">
+      <p>
+        <span class="doctor-space__loading-spinner" aria-hidden="true"></span>
+        Chargement de l'espace professionnel...
+      </p>
+      <div class="doctor-space__loading-cards" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </section>
     <p *ngIf="errorMessage()" class="doctor-space__state doctor-space__state--error">
       {{ errorMessage() }}
     </p>
@@ -2169,6 +2179,7 @@
               (click)="openPatientMedicalDetail(row)"
               aria-label="Ouvrir le dossier"
             >
+              <span>Voir le dossier</span>
               <lucide-icon name="chevron-right" size="18" [strokeWidth]="2.4"></lucide-icon>
             </button>
           </article>

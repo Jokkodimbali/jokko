@@ -23,6 +23,27 @@ describe('findFeaturedNotification', () => {
     expect(findFeaturedNotification([onTheWay])).toBe(onTheWay);
   });
 
+  it('conserve la notification du client en route pour le professionnel apres lecture', () => {
+    const clientOnTheWay = {
+      ...notification(
+        'client-route-1',
+        'PRESTATAIRE_EN_ROUTE',
+        'reservation-1',
+        '2026-08-21T09:00:00Z',
+        true,
+      ),
+      title: 'Le client est en route',
+      data: {
+        reservationId: 'reservation-1',
+        travellerRole: 'CLIENT',
+        tripStatus: 'EN_ROUTE',
+        persistentUntilTerminal: true,
+      },
+    };
+
+    expect(findFeaturedNotification([clientOnTheWay])).toBe(clientOnTheWay);
+  });
+
   it.each(['RESERVATION_FINALISEE', 'RESERVATION_ANNULEE'])(
     'retire la mise en avant apres %s pour la meme reservation',
     (terminalType) => {

@@ -109,6 +109,8 @@ export const DOMAIN_MESSAGE_CATALOG = {
     'La reservation doit etre payee et en attente de demarrage pour activer le suivi en route.',
   LIVE_TRACKING_ACTIVE_SESSION_REQUIRED:
     'Aucune session de suivi en cours nest disponible pour cette reservation.',
+  LIVE_TRACKING_ANOTHER_TRIP_ACTIVE:
+    'Vous avez déjà un trajet en cours. Vous ne pouvez pas en démarrer un autre avant de l’avoir terminé ou annulé.',
   LIVE_TRACKING_INVALID_LOCATION:
     'Les coordonnees GPS du suivi sont invalides.',
   MESSAGING_MESSAGE_CONTENT_REQUIRED:

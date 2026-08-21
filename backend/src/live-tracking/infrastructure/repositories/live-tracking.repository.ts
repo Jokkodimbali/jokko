@@ -8,6 +8,7 @@ import type {
 } from '../../application/ports/live-tracking-repository.port';
 import type { ProfessionalPresence } from '../../domain/entities/professional-presence.entity';
 import type { ReservationTrackingSession } from '../../domain/entities/reservation-tracking-session.entity';
+import { LiveTrackingDomainError } from '../../domain/errors/live-tracking.domain-error';
 
 const TRACKING_INCLUDE = {
   professionnel: {
@@ -190,6 +191,23 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
     presence: ProfessionalPresence;
   }): Promise<ReservationTrackingView> {
     const saved = await this.prisma.$transaction(async (tx) => {
+      // One professional can only drive one active reservation at a time.
+      // The advisory lock also makes two simultaneous tabs/API requests safe.
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(hashtext(${input.session.professionalId}), 1)
+      `;
+      const otherActiveTrip = await tx.sessionTrackingReservation.findFirst({
+        where: {
+          professionnelId: input.session.professionalId,
+          statut: 'EN_ROUTE',
+          reservationId: { not: input.session.reservationId },
+        },
+        select: { id: true },
+      });
+      if (otherActiveTrip) {
+        throw LiveTrackingDomainError.anotherTripActive();
+      }
+
       await tx.presenceProfessionnel.upsert({
         where: { profilProfessionnelId: input.presence.professionalId },
         create: {

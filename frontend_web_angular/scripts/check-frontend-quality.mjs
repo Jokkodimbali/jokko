@@ -71,6 +71,9 @@ const allowedSensitivePatterns = new Map(
     ],
     'src/app/core/auth/auth-session.service.ts': ['localStorage', 'sessionStorage'],
     'src/app/core/storage/tab-session-storage.service.ts': ['sessionStorage'],
+    'src/app/core/notifications/featured-notification-cache.service.ts': [
+      'sessionStorage',
+    ],
   }),
 );
 

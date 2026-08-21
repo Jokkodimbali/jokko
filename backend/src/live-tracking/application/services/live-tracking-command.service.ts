@@ -322,6 +322,14 @@ export class LiveTrackingCommandService {
       travellerRole: 'CLIENT',
       tripStatus: 'EN_ROUTE',
     });
+    await this.reservationClientNotificationService.notifyTripStatus({
+      reservationId: context.reservationId,
+      recipientUserId: context.clientUserId,
+      serviceName: context.serviceName,
+      travellerRole: 'CLIENT',
+      recipientIsTraveller: true,
+      tripStatus: 'EN_ROUTE',
+    });
 
     return enrichedTracking;
   }

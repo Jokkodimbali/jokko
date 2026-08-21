@@ -69,7 +69,6 @@ type DestinationMarkerSize = {
   paddingLeft: number;
   paddingRight: number;
   paddingY: number;
-  pointer: number;
   radius: number;
   shadowBlur: number;
   shadowY: number;
@@ -2325,20 +2324,16 @@ export class TrackingGoogleMapRendererService {
     subtitle.textContent = marker.subtitle;
     subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 Inter,sans-serif;letter-spacing:0;text-transform:uppercase;`;
 
-    const pointer = document.createElement('span');
-    pointer.className = 'jokko-tracking-arrival-pointer';
-    pointer.style.cssText = `background:#fff;border-bottom:1px solid rgba(15,23,42,.08);border-right:1px solid rgba(15,23,42,.08);box-shadow:${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowY / 2)}px ${Math.round(size.shadowBlur / 2)}px rgba(15,23,42,.08);height:${size.pointer}px;margin-top:-${Math.round(size.pointer / 2)}px;transform:rotate(45deg);width:${size.pointer}px;`;
-
     body.append(title, subtitle);
     etaBox.append(etaValue, etaUnit);
     card.append(etaBox, body);
     const person = this.destinationPersonContent(marker, size);
     if (person) {
-      // Composition verticale identique a la reference : carte du lieu,
-      // avatar superpose sous la carte, puis badge du metier sous l'avatar.
-      content.append(card, person, pointer);
+      // Carte du lieu puis avatar et badge : aucun triangle decoratif ne
+      // doit apparaitre sous la personne.
+      content.append(card, person);
     } else {
-      content.append(card, pointer);
+      content.append(card);
     }
     return content;
   }
@@ -2418,7 +2413,6 @@ export class TrackingGoogleMapRendererService {
       paddingLeft: Math.round(8 * factor),
       paddingRight: Math.round(12 * factor),
       paddingY: Math.round(7 * factor),
-      pointer: Math.round(12 * factor),
       radius: Math.round(18 * factor),
       shadowBlur: Math.round(18 * factor),
       shadowY: Math.round(10 * factor),

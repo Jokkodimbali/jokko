@@ -19,6 +19,13 @@ export class LiveTrackingDomainError {
     );
   }
 
+  static anotherTripActive(): ConflictError {
+    return new ConflictError(
+      'LIVE_TRACKING_ANOTHER_TRIP_ACTIVE',
+      domainMessage('LIVE_TRACKING_ANOTHER_TRIP_ACTIVE'),
+    );
+  }
+
   static invalidLocation(): ValidationError {
     return new ValidationError(
       'LIVE_TRACKING_INVALID_LOCATION',

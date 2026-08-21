@@ -559,13 +559,97 @@
 
 @media (max-width: 480px) {
   .doctor-space__provider-history-row {
-    grid-template-columns: 1fr;
-    padding: 16px;
+    background: #fff;
+    border-color: #dfe9f3;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.055);
+    column-gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px;
+    row-gap: 11px;
   }
 
   .doctor-space__provider-history-row > span:nth-child(1) {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
+
+  .doctor-space__provider-history-row > span:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(4) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(5) {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .doctor-space__provider-history-row > span:nth-child(6) {
+    align-self: end;
+    grid-column: 2;
+    grid-row: 4;
+    justify-self: end;
+  }
+
+  .doctor-space__provider-history-row > .doctor-space__provider-history-client {
+    align-items: center;
+    display: inline-flex;
+    gap: 10px;
+  }
+
+  .doctor-space__provider-history-avatar {
+    height: 38px;
+    width: 38px;
+  }
+
+  .doctor-space__provider-history-client strong {
+    font-size: 13px;
+  }
+
+  .doctor-space__provider-history-row > span::before {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+
+  .doctor-space__provider-history-time strong,
+  .doctor-space__provider-history-amount {
+    font-size: 12px;
+  }
+
+  .doctor-space__provider-history-time small {
+    font-size: 10px;
+  }
+
+  .doctor-space__provider-history-row > .doctor-space__provider-history-location {
+    align-items: center;
+    display: inline-flex;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .doctor-space__provider-history-row > .doctor-space__provider-history-status {
+    font-size: 10px;
+    display: inline-flex;
+    gap: 5px;
+    min-height: 27px;
+    padding: 0 9px;
+  }
+
+  .doctor-space__provider-history-row > .doctor-space__provider-history-status::before {
+    content: none;
+    display: none;
+  }
+
 
   .doctor-space__provider-history-foot {
     padding-inline: 16px;

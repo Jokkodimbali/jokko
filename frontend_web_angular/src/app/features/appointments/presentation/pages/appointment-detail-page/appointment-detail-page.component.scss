@@ -750,6 +750,59 @@
   opacity: 0.55;
 }
 
+.appointment-detail__medicine-delivery {
+  background: #ffffff;
+  border: 1px solid #b97938;
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(91, 53, 19, 0.12);
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 18px 20px 10px;
+}
+
+.appointment-detail__medicine-delivery h3 {
+  color: #85501f;
+  font-family: var(--font-app);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.appointment-detail__medicine-delivery a {
+  align-items: center;
+  background: #955d24;
+  border-radius: 11px;
+  color: #ffffff;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 46px;
+  padding: 0 13px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.appointment-detail__medicine-delivery a span {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  padding: 6px 11px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-detail__medicine-delivery a:hover,
+.appointment-detail__medicine-delivery a:focus-visible {
+  background: #7e4b1e;
+  outline: 0;
+  transform: translateY(-1px);
+}
+
 .appointment-detail__modal {
   align-items: center;
   background: rgba(15, 23, 42, 0.58);

@@ -450,6 +450,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isAppointmentCompleted = computed(
     () => this.appointment()?.status === 'TERMINEE',
   );
+
+  protected shouldShowMedicineDelivery(appointment: AppointmentView): boolean {
+    return (
+      this.isClientViewer() &&
+      this.isMedicalAppointment() &&
+      appointment.status === 'TERMINEE'
+    );
+  }
+
+  protected pharmacySearchUrl(appointment: AppointmentView): string {
+    const location = appointment.addressLabel?.trim();
+    const query = location ? `pharmacie ${location}` : 'pharmacie près de moi';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
   protected readonly isAppointmentClosed = computed(() => {
     const status = this.appointment()?.status;
     return !!status && this.isClosedAppointmentStatus(status);
@@ -2798,11 +2813,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.feedback.success(`Statut mis a jour : ${this.trackedTravelerRoleLabel()} en route.`);
         }
       },
-      error: () => {
+      error: (error) => {
         this.isUpdatingStatus.set(false);
         if (!silent) {
           this.feedback.error(
-            "Impossible d'activer le suivi en route. Verifiez que la reservation est payee.",
+            getHttpErrorMessage(
+              error,
+              "Impossible d'activer le suivi en route. Verifiez que la reservation est payee.",
+            ),
           );
         }
       },

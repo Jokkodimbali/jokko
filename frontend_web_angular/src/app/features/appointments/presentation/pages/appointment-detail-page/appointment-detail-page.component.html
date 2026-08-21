@@ -1220,6 +1220,23 @@
           Signaler litige
         </button>
 
+        <section
+          *ngIf="shouldShowMedicineDelivery(appointment)"
+          class="appointment-detail__medicine-delivery"
+          aria-label="Livraison de médicaments"
+        >
+          <h3>Livraison de médicaments</h3>
+          <a
+            [href]="pharmacySearchUrl(appointment)"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <lucide-icon name="stethoscope" size="20" [strokeWidth]="2.4"></lucide-icon>
+            <span>Rechercher une pharmacie</span>
+            <lucide-icon name="arrow-right" size="15" [strokeWidth]="2.6"></lucide-icon>
+          </a>
+        </section>
+
         <div
           *ngIf="isParcelTransportAppointment(appointment)"
           class="appointment-detail__client-summary-qr"

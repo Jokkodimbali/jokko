@@ -76,6 +76,8 @@ type ReservationTripStatusNotificationInput = {
   recipientUserId: string;
   serviceName: string;
   travellerRole: 'CLIENT' | 'PROFESSIONNEL';
+  /** True when the notification is shown to the person who is travelling. */
+  recipientIsTraveller?: boolean;
   tripStatus: 'EN_ROUTE' | 'TERMINEE' | 'ANNULEE';
 };
 
@@ -296,10 +298,11 @@ export class ReservationClientNotificationService {
   async notifyTripStatus(
     input: ReservationTripStatusNotificationInput,
   ): Promise<void> {
-    const travellerIsProfessional = input.travellerRole === 'PROFESSIONNEL';
+    const recipientIsTraveller =
+      input.recipientIsTraveller ?? input.travellerRole === 'PROFESSIONNEL';
     const copy =
       input.tripStatus === 'EN_ROUTE'
-        ? travellerIsProfessional
+        ? recipientIsTraveller
           ? {
               type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
               title: 'Vous etes en route',

@@ -397,7 +397,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(Array.from(completeMarker.children).map((child) => child.className)).toEqual([
         'jokko-tracking-arrival-card',
         'jokko-tracking-arrival-person',
-        'jokko-tracking-arrival-pointer',
       ]);
     });
 

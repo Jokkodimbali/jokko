@@ -325,126 +325,138 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
   }
 
   async save(reservation: Reservation): Promise<Reservation> {
-    const created = await this.prisma.$transaction(async (tx) => {
-      await this.lockProfessionalSchedule(tx, reservation.professionnelId);
-      const hasConflict = await this.existsForTimeSlot(tx, {
-        professionalId: reservation.professionnelId,
-        dateHeure: reservation.dateHeure,
-        dureeMinutes: reservation.dureeMinutes,
-      });
-      if (hasConflict) {
-        throw ReservationDomainError.timeSlotUnavailable();
-      }
-
-      return tx.reservation.create({
-        data: {
-          id: reservation.id,
-          clientId: reservation.clientId,
-          professionnelId: reservation.professionnelId,
-          serviceId: reservation.serviceId,
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        await this.lockProfessionalSchedule(tx, reservation.professionnelId);
+        const hasConflict = await this.existsForTimeSlot(tx, {
+          professionalId: reservation.professionnelId,
           dateHeure: reservation.dateHeure,
-          adresseClient: reservation.adresseClient,
           dureeMinutes: reservation.dureeMinutes,
-          statut: reservation.statut,
-          notes: reservation.notes,
-          typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
-          actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
-          vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
-          traitementsPrescriptionMedicale:
-            reservation.traitementsPrescriptionMedicale,
-          prixConvenu: reservation.prixConvenu,
-          statutAjustementPrix: reservation.statutAjustementPrix,
-          prixAjustementPropose: reservation.prixAjustementPropose,
-          raisonAjustementPrix: reservation.raisonAjustementPrix,
-          demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
-          raisonAnnulation: reservation.raisonAnnulation,
-          clientRating: reservation.clientRating,
-          clientReview: reservation.clientReview,
-          clientReviewedAt: reservation.clientReviewedAt,
-          creeLe: reservation.creeLe,
-          misAJourLe: reservation.misAJourLe,
-        },
-        select: RESERVATION_SELECT,
-      });
-    });
+        });
+        if (hasConflict) {
+          throw ReservationDomainError.timeSlotUnavailable();
+        }
 
-    return this.mapToDomain(created);
+        return tx.reservation.create({
+          data: {
+            id: reservation.id,
+            clientId: reservation.clientId,
+            professionnelId: reservation.professionnelId,
+            serviceId: reservation.serviceId,
+            dateHeure: reservation.dateHeure,
+            adresseClient: reservation.adresseClient,
+            dureeMinutes: reservation.dureeMinutes,
+            statut: reservation.statut,
+            notes: reservation.notes,
+            typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
+            actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
+            vaccinsPrescriptionMedicale:
+              reservation.vaccinsPrescriptionMedicale,
+            traitementsPrescriptionMedicale:
+              reservation.traitementsPrescriptionMedicale,
+            prixConvenu: reservation.prixConvenu,
+            statutAjustementPrix: reservation.statutAjustementPrix,
+            prixAjustementPropose: reservation.prixAjustementPropose,
+            raisonAjustementPrix: reservation.raisonAjustementPrix,
+            demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
+            raisonAnnulation: reservation.raisonAnnulation,
+            clientRating: reservation.clientRating,
+            clientReview: reservation.clientReview,
+            clientReviewedAt: reservation.clientReviewedAt,
+            creeLe: reservation.creeLe,
+            misAJourLe: reservation.misAJourLe,
+          },
+          select: RESERVATION_SELECT,
+        });
+      });
+
+      return this.mapToDomain(created);
+    } catch (error) {
+      this.rethrowScheduleConflict(error);
+      throw error;
+    }
   }
 
   async saveFromNegotiation(
     reservation: Reservation,
     negotiationId: string,
   ): Promise<Reservation | null> {
-    const created = await this.prisma.$transaction(async (tx) => {
-      await this.lockProfessionalSchedule(tx, reservation.professionnelId);
-      const hasConflict = await this.existsForTimeSlot(tx, {
-        professionalId: reservation.professionnelId,
-        dateHeure: reservation.dateHeure,
-        dureeMinutes: reservation.dureeMinutes,
-      });
-      if (hasConflict) {
-        throw ReservationDomainError.timeSlotUnavailable();
-      }
-
-      const linkedNegotiation = await tx.negotiation.findUnique({
-        where: { id: negotiationId },
-        select: {
-          id: true,
-          statut: true,
-          reservationId: true,
-        },
-      });
-
-      if (
-        linkedNegotiation?.statut !== 'ACCEPTEE' ||
-        linkedNegotiation.reservationId
-      ) {
-        return null;
-      }
-
-      const createdReservation = await tx.reservation.create({
-        data: {
-          id: reservation.id,
-          clientId: reservation.clientId,
-          professionnelId: reservation.professionnelId,
-          serviceId: reservation.serviceId,
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        await this.lockProfessionalSchedule(tx, reservation.professionnelId);
+        const hasConflict = await this.existsForTimeSlot(tx, {
+          professionalId: reservation.professionnelId,
           dateHeure: reservation.dateHeure,
-          adresseClient: reservation.adresseClient,
           dureeMinutes: reservation.dureeMinutes,
-          statut: reservation.statut,
-          notes: reservation.notes,
-          typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
-          actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
-          vaccinsPrescriptionMedicale: reservation.vaccinsPrescriptionMedicale,
-          traitementsPrescriptionMedicale:
-            reservation.traitementsPrescriptionMedicale,
-          prixConvenu: reservation.prixConvenu,
-          statutAjustementPrix: reservation.statutAjustementPrix,
-          prixAjustementPropose: reservation.prixAjustementPropose,
-          raisonAjustementPrix: reservation.raisonAjustementPrix,
-          demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
-          raisonAnnulation: reservation.raisonAnnulation,
-          clientRating: reservation.clientRating,
-          clientReview: reservation.clientReview,
-          clientReviewedAt: reservation.clientReviewedAt,
-          creeLe: reservation.creeLe,
-          misAJourLe: reservation.misAJourLe,
-        },
-        select: RESERVATION_SELECT,
+        });
+        if (hasConflict) {
+          throw ReservationDomainError.timeSlotUnavailable();
+        }
+
+        const linkedNegotiation = await tx.negotiation.findUnique({
+          where: { id: negotiationId },
+          select: {
+            id: true,
+            statut: true,
+            reservationId: true,
+          },
+        });
+
+        if (
+          linkedNegotiation?.statut !== 'ACCEPTEE' ||
+          linkedNegotiation.reservationId
+        ) {
+          return null;
+        }
+
+        const createdReservation = await tx.reservation.create({
+          data: {
+            id: reservation.id,
+            clientId: reservation.clientId,
+            professionnelId: reservation.professionnelId,
+            serviceId: reservation.serviceId,
+            dateHeure: reservation.dateHeure,
+            adresseClient: reservation.adresseClient,
+            dureeMinutes: reservation.dureeMinutes,
+            statut: reservation.statut,
+            notes: reservation.notes,
+            typeConsultation: reservation.typeConsultation ?? 'CONSULTATION',
+            actesPrescriptionMedicale: reservation.actesPrescriptionMedicale,
+            vaccinsPrescriptionMedicale:
+              reservation.vaccinsPrescriptionMedicale,
+            traitementsPrescriptionMedicale:
+              reservation.traitementsPrescriptionMedicale,
+            prixConvenu: reservation.prixConvenu,
+            statutAjustementPrix: reservation.statutAjustementPrix,
+            prixAjustementPropose: reservation.prixAjustementPropose,
+            raisonAjustementPrix: reservation.raisonAjustementPrix,
+            demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
+            raisonAnnulation: reservation.raisonAnnulation,
+            clientRating: reservation.clientRating,
+            clientReview: reservation.clientReview,
+            clientReviewedAt: reservation.clientReviewedAt,
+            creeLe: reservation.creeLe,
+            misAJourLe: reservation.misAJourLe,
+          },
+          select: RESERVATION_SELECT,
+        });
+
+        await tx.negotiation.update({
+          where: { id: negotiationId },
+          data: {
+            statut: 'CONVERTIE_EN_RESERVATION',
+            reservationId: createdReservation.id,
+          },
+        });
+
+        return createdReservation;
       });
 
-      await tx.negotiation.update({
-        where: { id: negotiationId },
-        data: {
-          statut: 'CONVERTIE_EN_RESERVATION',
-          reservationId: createdReservation.id,
-        },
-      });
-
-      return createdReservation;
-    });
-
-    return created ? this.mapToDomain(created) : null;
+      return created ? this.mapToDomain(created) : null;
+    } catch (error) {
+      this.rethrowScheduleConflict(error);
+      throw error;
+    }
   }
 
   async update(reservation: Reservation): Promise<Reservation> {
@@ -902,5 +914,16 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       status === 'PAYEE_SEQUESTRE' ||
       status === 'EN_COURS'
     );
+  }
+
+  private rethrowScheduleConflict(error: unknown): void {
+    if (error instanceof ReservationDomainError) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('bookings_professional_schedule_no_overlap')) {
+      throw ReservationDomainError.timeSlotUnavailable();
+    }
   }
 }

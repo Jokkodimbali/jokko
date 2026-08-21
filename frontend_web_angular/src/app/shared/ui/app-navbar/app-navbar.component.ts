@@ -27,6 +27,7 @@ import {
   NotificationsService,
   UserNotificationView,
 } from '../../../core/notifications/notifications.service';
+import { FeaturedNotificationCacheService } from '../../../core/notifications/featured-notification-cache.service';
 import { AuthService } from '../../../features/auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages';
 import { AppointmentsService } from '../../../features/appointments/data-access/appointments.service';
@@ -66,6 +67,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly notificationsService = inject(NotificationsService);
+  private readonly featuredNotificationCache = inject(FeaturedNotificationCacheService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
@@ -286,6 +288,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.closeMobileNav();
 
     const refreshToken = this.authSession.getRefreshToken();
+    this.featuredNotificationCache.clear(this.currentUser()?.id);
     this.isLoggingOut.set(true);
     this.presence.disconnectAuthenticatedSession();
     this.messagesRealtime.disconnect();
@@ -354,6 +357,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
           );
         this.notificationPreview.update(markRead);
         this.notificationHistory.update(markRead);
+        this.syncFeaturedNotificationCache(this.notificationHistory());
         this.unreadNotificationsCount.update((count) => Math.max(0, count - 1));
         navigate();
       },
@@ -402,6 +406,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (!this.authSession.getAccessToken()) return;
 
+    this.restoreFeaturedNotification();
     this.loadUnreadNotificationsCount();
     this.loadNotificationPreview();
     this.loadUnreadMessagesCount();
@@ -484,9 +489,33 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         }),
       )
       .subscribe((notifications) => {
-        this.notificationHistory.set(notifications);
-        this.notificationPreview.set(notifications.slice(0, 6));
+        const history = this.mergeNotificationHistory(notifications);
+        this.notificationHistory.set(history);
+        this.notificationPreview.set(history.slice(0, 6));
+        this.syncFeaturedNotificationCache(history);
       });
+  }
+
+  private restoreFeaturedNotification(): void {
+    const cached = this.featuredNotificationCache.read(this.currentUser()?.id);
+    if (!cached) return;
+
+    this.notificationHistory.set([cached]);
+    this.notificationPreview.set([cached]);
+  }
+
+  private mergeNotificationHistory(
+    notifications: UserNotificationView[],
+  ): UserNotificationView[] {
+    const cached = this.featuredNotificationCache.read(this.currentUser()?.id);
+    if (!cached || notifications.some((notification) => notification.id === cached.id)) {
+      return notifications;
+    }
+    return [...notifications, cached];
+  }
+
+  private syncFeaturedNotificationCache(notifications: UserNotificationView[]): void {
+    this.featuredNotificationCache.sync(this.currentUser()?.id, notifications);
   }
 
   private startUnreadMessagesRefresh(): void {

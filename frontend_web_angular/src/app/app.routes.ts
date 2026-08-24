@@ -111,6 +111,54 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'pharmacy-orders/select',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-selection-page/pharmacy-selection-page.component').then(
+        (m) => m.PharmacySelectionPageComponent,
+      ),
+  },
+  {
+    path: 'pharmacy-orders',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-orders-inbox-page/pharmacy-orders-inbox-page.component').then(
+        (m) => m.PharmacyOrdersInboxPageComponent,
+      ),
+  },
+  {
+    path: 'pharmacy-orders/:id/payment',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-order-payment-page/pharmacy-order-payment-page.component').then(
+        (m) => m.PharmacyOrderPaymentPageComponent,
+      ),
+  },
+  {
+    path: 'pharmacy-orders/:id/delivery',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-order-delivery-page/pharmacy-order-delivery-page.component').then(
+        (m) => m.PharmacyOrderDeliveryPageComponent,
+      ),
+  },
+  {
+    path: 'pharmacy-orders/:id/delivery-offer',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-delivery-offer-page/pharmacy-delivery-offer-page.component').then(
+        (m) => m.PharmacyDeliveryOfferPageComponent,
+      ),
+  },
+  {
+    path: 'pharmacy-orders/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pharmacy-orders/presentation/pages/pharmacy-order-detail-page/pharmacy-order-detail-page.component').then(
+        (m) => m.PharmacyOrderDetailPageComponent,
+      ),
+  },
+  {
     path: 'litiges',
     canActivate: [authGuard],
     loadComponent: () =>

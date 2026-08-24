@@ -1,0 +1,108 @@
+<main class="pharmacy-payment">
+  <app-appointment-tracking-stepper
+    [steps]="steps"
+    [progress]="54.7"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Étapes de la commande en pharmacie"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <section *ngIf="loading()" class="pharmacy-payment__state">
+    <span class="pharmacy-payment__spinner"></span>
+    <p>Chargement du paiement...</p>
+  </section>
+
+  <p *ngIf="errorMessage()" class="pharmacy-payment__error" role="alert">
+    {{ errorMessage() }}
+  </p>
+
+  <section *ngIf="order() as current" class="pharmacy-payment__content">
+    <article class="payment-prescription">
+      <header>
+        <span class="payment-prescription__document">
+          <lucide-icon name="file-text" size="15"></lucide-icon>
+        </span>
+        <div>
+          <strong>Ordonnance médicale</strong>
+          <small>
+            Réf. {{ prescriptionReference(current) }} ·
+            {{ current.medicalReservation.scheduledAt | date: 'dd MMMM yyyy' }}
+          </small>
+        </div>
+        <em><lucide-icon name="check" size="11"></lucide-icon> Acceptée</em>
+      </header>
+
+      <section class="payment-prescription__prescriber">
+        <small>PRESCRIPTEUR</small>
+        <strong>
+          {{ current.medicalReservation.prescriber.name }} ·
+          {{ current.medicalReservation.prescriber.specialty }}
+        </strong>
+      </section>
+
+      <section class="payment-prescription__items">
+        <div *ngFor="let medicine of medicines(current)">
+          <span><lucide-icon name="pill" size="14"></lucide-icon></span>
+          <p>
+            <strong>{{ medicine }}</strong
+            ><small>Médicament prescrit</small>
+          </p>
+        </div>
+        <p *ngIf="medicines(current).length === 0" class="payment-prescription__empty">
+          Les détails de l’ordonnance sont disponibles auprès de la pharmacie.
+        </p>
+      </section>
+
+      <footer>
+        <span>Signature électronique vérifiée · Ordre des médecins du Sénégal</span>
+        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+      </footer>
+    </article>
+
+    <article class="pharmacy-payment__methods">
+      <h1>Paiement de la commande</h1>
+      <p>Choisissez votre moyen de paiement pour déclencher la préparation de vos médicaments.</p>
+
+      <div class="pharmacy-payment__options">
+        <button
+          *ngFor="let method of methods"
+          type="button"
+          [class.is-selected]="selectedMethod() === method.id"
+          (click)="selectedMethod.set(method.id)"
+        >
+          <img [src]="method.logo" [alt]="method.label" />
+          <span
+            ><strong>{{ method.label }}</strong
+            ><small>{{ method.subtitle }}</small></span
+          >
+          <i><lucide-icon name="check" size="12"></lucide-icon></i>
+        </button>
+      </div>
+
+      <div class="pharmacy-payment__total">
+        <span>Total à payer</span>
+        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+      </div>
+
+      <button
+        type="button"
+        class="pharmacy-payment__submit"
+        [disabled]="paying()"
+        (click)="pay(current)"
+      >
+        <span
+          *ngIf="paying()"
+          class="pharmacy-payment__spinner pharmacy-payment__spinner--button"
+        ></span>
+        {{ paying() ? 'Paiement en cours...' : 'Confirmer le paiement' }}
+        <lucide-icon *ngIf="!paying()" name="chevron-right" size="14"></lucide-icon>
+      </button>
+      <small class="pharmacy-payment__security">
+        <lucide-icon name="shield-check" size="13"></lucide-icon>
+        Paiement sécurisé · Commission Jokko : 0 FCFA
+      </small>
+    </article>
+  </section>
+</main>

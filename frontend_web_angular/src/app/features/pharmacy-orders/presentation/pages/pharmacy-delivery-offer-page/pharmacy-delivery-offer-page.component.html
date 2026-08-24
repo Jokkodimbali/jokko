@@ -1,0 +1,71 @@
+<main class="delivery-offer">
+  <button type="button" class="delivery-offer__back" (click)="goBack()">
+    <lucide-icon name="arrow-left" size="18"></lucide-icon>
+    Retour
+  </button>
+
+  <section *ngIf="loading()" class="delivery-offer__state">
+    <span class="delivery-offer__spinner"></span>
+    <p>Chargement de la livraison...</p>
+  </section>
+
+  <p *ngIf="errorMessage()" class="delivery-offer__error" role="alert">
+    {{ errorMessage() }}
+  </p>
+
+  <section *ngIf="offer() as current" class="delivery-offer__card">
+    <header>
+      <span><lucide-icon name="package" size="26"></lucide-icon></span>
+      <div>
+        <small>NOUVELLE COURSE</small>
+        <h1>Livraison de médicaments</h1>
+      </div>
+      <strong>{{ current.distanceKm | number: '1.1-1' }} km</strong>
+    </header>
+
+    <div class="delivery-offer__route">
+      <div>
+        <span class="delivery-offer__dot delivery-offer__dot--pickup"></span>
+        <p>
+          <small>RETRAIT</small><strong>{{ current.pharmacy.name }}</strong>
+        </p>
+      </div>
+      <i></i>
+      <div>
+        <span class="delivery-offer__dot"></span>
+        <p>
+          <small>DESTINATAIRE</small><strong>{{ current.client.nom }}</strong>
+        </p>
+      </div>
+    </div>
+
+    <div class="delivery-offer__pricing">
+      <p>
+        <small>DISTANCE DU TRAJET</small>
+        <strong>{{ current.deliveryDistanceKm | number: '1.1-1' }} km</strong>
+      </p>
+      <p>
+        <small>TARIF</small>
+        <strong>{{ current.pricePerKm | number: '1.0-0' }} FCFA/km</strong>
+      </p>
+      <p>
+        <small>MONTANT DE LA COURSE</small>
+        <strong>{{ current.deliveryAmount | number: '1.0-0' }} FCFA</strong>
+      </p>
+    </div>
+
+    <p class="delivery-offer__notice">
+      En acceptant, la course vous sera attribuée. Le suivi GPS sera disponible après le paiement
+      séparé des frais de livraison par le client.
+    </p>
+
+    <button type="button" [disabled]="accepting()" (click)="accept(current)">
+      <span
+        *ngIf="accepting()"
+        class="delivery-offer__spinner delivery-offer__spinner--button"
+      ></span>
+      {{ accepting() ? 'Attribution en cours...' : 'Accepter la livraison' }}
+      <lucide-icon *ngIf="!accepting()" name="chevron-right" size="17"></lucide-icon>
+    </button>
+  </section>
+</main>

@@ -54,6 +54,21 @@ enum StatutReservation {
   LITIGE
 }
 
+/// The optional medicine-order workflow that follows a completed medical reservation.
+/// It never reopens or changes the source medical reservation.
+enum StatutCommandePharmacie {
+  EN_ATTENTE_PHARMACIE
+  PARTIELLEMENT_DISPONIBLE
+  INDISPONIBLE
+  EN_ATTENTE_PAIEMENT
+  PAYEE_PHARMACIE
+  EN_ATTENTE_TRANSPORTEUR
+  TRANSPORTEUR_ASSIGNE
+  EN_LIVRAISON
+  LIVREE
+  ANNULEE
+}
+
 enum TypeConsultationMedicale {
   CONSULTATION
   TELECONSULTATION
@@ -102,6 +117,7 @@ enum StatutWebhookPaiement {
 
 enum TypeTransactionPortefeuille {
   CREDIT_ESCROW
+  CREDIT_PHARMACIE
   DEBIT_RETRAIT
   REMBOURSEMENT
   COMMISSION
@@ -134,6 +150,8 @@ enum TypeNotification {
   ANNONCE_ADMIN
   APPEL_ENTRANT
   APPEL_MANQUE
+  ORDONNANCE_RECUE
+  ORDONNANCE_MISE_A_JOUR
 }
 
 enum TypeAppel {
@@ -221,107 +239,109 @@ enum StatutDevisMateriel {
 }
 
 model Utilisateur {
-  id                String            @id @default(uuid()) @db.Uuid
-  numeroTelephone   String            @unique @map("phone_number") @db.VarChar(20)
-  nom               String            @map("name") @db.VarChar(100)
-  email             String?           @unique @db.VarChar(150)
-  adresse           String?           @map("address") @db.VarChar(255)
-  motDePasseHash    String?           @map("password_hash") @db.VarChar(255)
-  fournisseurOauth  String?           @map("oauth_provider") @db.VarChar(50)
-  identifiantOauth  String?           @map("oauth_id") @db.VarChar(200)
-  role              RoleUtilisateur   @default(CLIENT)
-  urlAvatar         String?           @map("avatar_url") @db.Text
-  jetonFcm          String?           @map("fcm_token") @db.VarChar(500)
-  estActif          Boolean           @default(true) @map("is_active")
-  creeLe            DateTime          @default(now()) @map("created_at")
-  misAJourLe        DateTime          @updatedAt @map("updated_at")
+  id               String          @id @default(uuid()) @db.Uuid
+  numeroTelephone  String          @unique @map("phone_number") @db.VarChar(20)
+  nom              String          @map("name") @db.VarChar(100)
+  email            String?         @unique @db.VarChar(150)
+  adresse          String?         @map("address") @db.VarChar(255)
+  motDePasseHash   String?         @map("password_hash") @db.VarChar(255)
+  fournisseurOauth String?         @map("oauth_provider") @db.VarChar(50)
+  identifiantOauth String?         @map("oauth_id") @db.VarChar(200)
+  role             RoleUtilisateur @default(CLIENT)
+  urlAvatar        String?         @map("avatar_url") @db.Text
+  jetonFcm         String?         @map("fcm_token") @db.VarChar(500)
+  estActif         Boolean         @default(true) @map("is_active")
+  creeLe           DateTime        @default(now()) @map("created_at")
+  misAJourLe       DateTime        @updatedAt @map("updated_at")
 
-  profilProfessionnel       ProfilProfessionnel?
-  reservationsClient        Reservation[]          @relation("ReservationsClient")
-  conversationsClient       Conversation[]         @relation("ConversationsClient")
-  conversationsPrestataire  Conversation[]         @relation("ConversationsPrestataire")
-  messagesEnvoyes           Message[]              @relation("MessagesEnvoyes")
-  notifications             Notification[]
-  devisMaterielCrees        DevisMaterielNegotiation[] @relation("MaterialQuoteCreator")
-  communicationsReservation CommunicationReservation[]
-  sessionsAuthentification  SessionAuthentification[]
-  favorisProfessionnels     FavoriProfessionnel[]
-  negotiationsClient        Negotiation[]          @relation("NegotiationsClient")
-  paiementsClient           Paiement[]             @relation("PaymentsClient")
-  moyensPaiementEnregistres MoyenPaiementEnregistre[]
-  ficheMedicaleClient       FicheMedicaleClient?
-  litigesSignales           Litige[]               @relation("ReportedDisputes")
-  litigesResolus            Litige[]               @relation("ResolvedDisputes")
-  preuvesLitigeUploadees    PreuveLitige[]         @relation("DisputeEvidenceUploaders")
-  messagesLitigeAdmin       MessageLitige[]        @relation("DisputeAdminMessages")
-  sessionsTrackingClient    SessionTrackingReservation[] @relation("TrackingSessionsClient")
-  appelsEmis                Appel[]                       @relation("CallsCaller")
-  appelsRecus               Appel[]                       @relation("CallsRecipient")
+  profilProfessionnel         ProfilProfessionnel?
+  reservationsClient          Reservation[]                @relation("ReservationsClient")
+  conversationsClient         Conversation[]               @relation("ConversationsClient")
+  conversationsPrestataire    Conversation[]               @relation("ConversationsPrestataire")
+  messagesEnvoyes             Message[]                    @relation("MessagesEnvoyes")
+  notifications               Notification[]
+  devisMaterielCrees          DevisMaterielNegotiation[]   @relation("MaterialQuoteCreator")
+  communicationsReservation   CommunicationReservation[]
+  sessionsAuthentification    SessionAuthentification[]
+  favorisProfessionnels       FavoriProfessionnel[]
+  negotiationsClient          Negotiation[]                @relation("NegotiationsClient")
+  paiementsClient             Paiement[]                   @relation("PaymentsClient")
+  moyensPaiementEnregistres   MoyenPaiementEnregistre[]
+  ficheMedicaleClient         FicheMedicaleClient?
+  litigesSignales             Litige[]                     @relation("ReportedDisputes")
+  litigesResolus              Litige[]                     @relation("ResolvedDisputes")
+  preuvesLitigeUploadees      PreuveLitige[]               @relation("DisputeEvidenceUploaders")
+  messagesLitigeAdmin         MessageLitige[]              @relation("DisputeAdminMessages")
+  sessionsTrackingClient      SessionTrackingReservation[] @relation("TrackingSessionsClient")
+  appelsEmis                  Appel[]                      @relation("CallsCaller")
+  appelsRecus                 Appel[]                      @relation("CallsRecipient")
+  commandesPharmacieClient    CommandePharmacie[]          @relation("PharmacyOrdersClient")
+  paiementsCommandesPharmacie PaiementCommandePharmacie[]  @relation("PharmacyOrderPaymentsClient")
 
   @@map("users")
 }
 
 model BanniereApplication {
-  id          String   @id @default(uuid()) @db.Uuid
-  imageUrl    String   @map("image_url") @db.Text
-  lien        String?  @map("redirect_url") @db.Text
-  ordre       Int      @default(0) @map("sort_order")
-  estActive   Boolean  @default(true) @map("is_active")
-  creeLe      DateTime @default(now()) @map("created_at")
-  misAJourLe  DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  imageUrl   String   @map("image_url") @db.Text
+  lien       String?  @map("redirect_url") @db.Text
+  ordre      Int      @default(0) @map("sort_order")
+  estActive  Boolean  @default(true) @map("is_active")
+  creeLe     DateTime @default(now()) @map("created_at")
+  misAJourLe DateTime @updatedAt @map("updated_at")
 
   @@index([estActive, ordre])
   @@map("app_banners")
 }
 
 model FicheMedicaleClient {
-  id                String   @id @default(uuid()) @db.Uuid
-  utilisateurId     String   @unique @map("user_id") @db.Uuid
-  groupeSanguin     String?  @map("blood_group") @db.VarChar(8)
-  rhesus            String?  @db.VarChar(20)
-  poidsKg           Decimal? @map("weight_kg") @db.Decimal(5, 2)
-  tailleCm          Int?     @map("height_cm") @db.SmallInt
-  medecinReferent   String?  @map("reference_doctor_name") @db.VarChar(120)
-  profession        String?  @db.VarChar(120)
-  allergies         String[] @default([])
-  antecedents       String[] @default([]) @map("medical_conditions")
-  creeLe            DateTime @default(now()) @map("created_at")
-  misAJourLe        DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  utilisateurId   String   @unique @map("user_id") @db.Uuid
+  groupeSanguin   String?  @map("blood_group") @db.VarChar(8)
+  rhesus          String?  @db.VarChar(20)
+  poidsKg         Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  tailleCm        Int?     @map("height_cm") @db.SmallInt
+  medecinReferent String?  @map("reference_doctor_name") @db.VarChar(120)
+  profession      String?  @db.VarChar(120)
+  allergies       String[] @default([])
+  antecedents     String[] @default([]) @map("medical_conditions")
+  creeLe          DateTime @default(now()) @map("created_at")
+  misAJourLe      DateTime @updatedAt @map("updated_at")
 
-  utilisateur       Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  traitements       TraitementMedicalClient[]
+  utilisateur Utilisateur               @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  traitements TraitementMedicalClient[]
 
   @@map("client_medical_profiles")
 }
 
 model TraitementMedicalClient {
-  id                String    @id @default(uuid()) @db.Uuid
-  ficheMedicaleId   String    @map("medical_profile_id") @db.Uuid
-  nom               String    @map("name") @db.VarChar(160)
-  dosage            String?   @db.VarChar(120)
-  frequence         String?   @map("frequency") @db.VarChar(120)
-  dateDebut         DateTime? @map("started_at") @db.Date
-  dateFin           DateTime? @map("ended_at") @db.Date
-  notes             String?   @db.Text
-  creeLe            DateTime  @default(now()) @map("created_at")
-  misAJourLe        DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  ficheMedicaleId String    @map("medical_profile_id") @db.Uuid
+  nom             String    @map("name") @db.VarChar(160)
+  dosage          String?   @db.VarChar(120)
+  frequence       String?   @map("frequency") @db.VarChar(120)
+  dateDebut       DateTime? @map("started_at") @db.Date
+  dateFin         DateTime? @map("ended_at") @db.Date
+  notes           String?   @db.Text
+  creeLe          DateTime  @default(now()) @map("created_at")
+  misAJourLe      DateTime  @updatedAt @map("updated_at")
 
-  ficheMedicale     FicheMedicaleClient @relation(fields: [ficheMedicaleId], references: [id], onDelete: Cascade)
+  ficheMedicale FicheMedicaleClient @relation(fields: [ficheMedicaleId], references: [id], onDelete: Cascade)
 
   @@index([ficheMedicaleId, creeLe])
   @@map("client_medical_treatments")
 }
 
 model SessionAuthentification {
-  id             String      @id @default(uuid()) @db.Uuid
-  utilisateurId  String      @map("user_id") @db.Uuid
-  hashJeton      String      @map("token_hash") @db.VarChar(255)
-  expireLe       DateTime    @map("expires_at")
-  revoqueLe      DateTime?   @map("revoked_at")
-  plateforme     String?     @map("platform") @db.VarChar(20)
-  userAgent      String?     @map("user_agent") @db.Text
-  creeLe         DateTime    @default(now()) @map("created_at")
-  misAJourLe     DateTime    @updatedAt @map("updated_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  utilisateurId String    @map("user_id") @db.Uuid
+  hashJeton     String    @map("token_hash") @db.VarChar(255)
+  expireLe      DateTime  @map("expires_at")
+  revoqueLe     DateTime? @map("revoked_at")
+  plateforme    String?   @map("platform") @db.VarChar(20)
+  userAgent     String?   @map("user_agent") @db.Text
+  creeLe        DateTime  @default(now()) @map("created_at")
+  misAJourLe    DateTime  @updatedAt @map("updated_at")
 
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
@@ -333,52 +353,55 @@ model SessionAuthentification {
 }
 
 model VerificationOtp {
-  id                String    @id @default(uuid()) @db.Uuid
-  numeroTelephone   String    @unique @map("phone_number") @db.VarChar(20)
-  hashCode          String    @map("code_hash") @db.VarChar(255)
-  expireLe          DateTime  @map("expires_at")
-  tentatives        Int       @default(0) @map("attempts")
-  dernierEnvoiLe    DateTime  @map("last_sent_at")
-  consommeLe        DateTime? @map("consumed_at")
-  creeLe            DateTime  @default(now()) @map("created_at")
-  misAJourLe        DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  numeroTelephone String    @unique @map("phone_number") @db.VarChar(20)
+  hashCode        String    @map("code_hash") @db.VarChar(255)
+  expireLe        DateTime  @map("expires_at")
+  tentatives      Int       @default(0) @map("attempts")
+  dernierEnvoiLe  DateTime  @map("last_sent_at")
+  consommeLe      DateTime? @map("consumed_at")
+  creeLe          DateTime  @default(now()) @map("created_at")
+  misAJourLe      DateTime  @updatedAt @map("updated_at")
 
   @@index([expireLe])
   @@map("otp_verifications")
 }
 
 model ProfilProfessionnel {
-  id                 String       @id @default(uuid()) @db.Uuid
-  utilisateurId      String       @unique @map("user_id") @db.Uuid
-  biographie         String?      @map("bio") @db.Text
-  nomEntreprise      String?      @map("company_name") @db.VarChar(150)
-  urlBanniere        String?      @map("banner_url") @db.VarChar(2048)
-  urlPieceIdentiteRecto   String?      @map("id_card_url_recto") @db.VarChar(500)
-  urlPieceIdentiteVerso  String?      @map("id_card_url_verso") @db.VarChar(500)
-  statutKyc          StatutKyc    @default(EN_ATTENTE) @map("kyc_status")
-  raisonRejetKyc     String?      @map("kyc_reject_reason") @db.Text
-  localisation       Unsupported("geography(Point, 4326)")?
-  ville              String?      @map("city") @db.VarChar(100)
-  typeVehicule       TypeVehiculeProfessionnel @default(VOITURE) @map("vehicle_type")
-  noteGlobale        Decimal      @default(0.0) @map("global_rating") @db.Decimal(2, 1)
-  nombreAvis         Int          @default(0) @map("total_reviews")
-  soldePortefeuille  Decimal      @default(0.00) @map("wallet_balance") @db.Decimal(12, 2)
-  creeLe             DateTime     @default(now()) @map("created_at")
+  id                    String                                 @id @default(uuid()) @db.Uuid
+  utilisateurId         String                                 @unique @map("user_id") @db.Uuid
+  biographie            String?                                @map("bio") @db.Text
+  nomEntreprise         String?                                @map("company_name") @db.VarChar(150)
+  urlBanniere           String?                                @map("banner_url") @db.VarChar(2048)
+  urlPieceIdentiteRecto String?                                @map("id_card_url_recto") @db.VarChar(500)
+  urlPieceIdentiteVerso String?                                @map("id_card_url_verso") @db.VarChar(500)
+  statutKyc             StatutKyc                              @default(EN_ATTENTE) @map("kyc_status")
+  raisonRejetKyc        String?                                @map("kyc_reject_reason") @db.Text
+  localisation          Unsupported("geography(Point, 4326)")?
+  ville                 String?                                @map("city") @db.VarChar(100)
+  estPharmacie          Boolean                                @default(false) @map("is_pharmacy")
+  typeVehicule          TypeVehiculeProfessionnel              @default(VOITURE) @map("vehicle_type")
+  noteGlobale           Decimal                                @default(0.0) @map("global_rating") @db.Decimal(2, 1)
+  nombreAvis            Int                                    @default(0) @map("total_reviews")
+  soldePortefeuille     Decimal                                @default(0.00) @map("wallet_balance") @db.Decimal(12, 2)
+  creeLe                DateTime                               @default(now()) @map("created_at")
 
-  utilisateur      Utilisateur      @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  services         Service[]
-  disponibilites   Disponibilite[]
-  elementsPortfolio ElementPortfolio[]
-  reservations     Reservation[]
-  negotiations     Negotiation[]                @relation("NegotiationsProfessional")
-  demandesRetrait  DemandeRetrait[]
-  transactionsPortefeuille TransactionPortefeuille[]
-  paiements        Paiement[]                  @relation("PaymentsProfessional")
-  presence         PresenceProfessionnel?
-  sessionsTracking SessionTrackingReservation[]
-  favoris          FavoriProfessionnel[]
-  diplomesMedicaux DiplomeMedical[]
-  specialites      SpecialiteProfessionnelle[]
+  utilisateur                 Utilisateur                  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  services                    Service[]
+  disponibilites              Disponibilite[]
+  elementsPortfolio           ElementPortfolio[]
+  reservations                Reservation[]
+  negotiations                Negotiation[]                @relation("NegotiationsProfessional")
+  demandesRetrait             DemandeRetrait[]
+  transactionsPortefeuille    TransactionPortefeuille[]
+  paiements                   Paiement[]                   @relation("PaymentsProfessional")
+  presence                    PresenceProfessionnel?
+  sessionsTracking            SessionTrackingReservation[]
+  favoris                     FavoriProfessionnel[]
+  diplomesMedicaux            DiplomeMedical[]
+  specialites                 SpecialiteProfessionnelle[]
+  commandesPharmacie          CommandePharmacie[]          @relation("PharmacyOrdersPharmacy")
+  paiementsCommandesPharmacie PaiementCommandePharmacie[]  @relation("PharmacyOrderPaymentsPharmacy")
 
   @@map("professional_profiles")
 }
@@ -390,9 +413,9 @@ model SpecialiteProfessionnelle {
   sousCategorieId       String?  @map("subcategory_id") @db.Uuid
   creeLe                DateTime @default(now()) @map("created_at")
 
-  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
-  categorie             Categorie           @relation(fields: [categorieId], references: [id], onDelete: Cascade)
-  sousCategorie         SousCategorieService? @relation(fields: [sousCategorieId], references: [id], onDelete: SetNull)
+  profilProfessionnel ProfilProfessionnel   @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  categorie           Categorie             @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  sousCategorie       SousCategorieService? @relation(fields: [sousCategorieId], references: [id], onDelete: SetNull)
 
   @@unique([profilProfessionnelId, categorieId, sousCategorieId])
   @@index([profilProfessionnelId])
@@ -415,7 +438,7 @@ model DiplomeMedical {
   creeLe                DateTime             @default(now()) @map("created_at")
   misAJourLe            DateTime             @updatedAt @map("updated_at")
 
-  profilProfessionnel   ProfilProfessionnel  @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
 
   @@index([profilProfessionnelId, statut])
   @@index([statut, creeLe])
@@ -428,8 +451,8 @@ model FavoriProfessionnel {
   profilProfessionnelId String   @map("professional_id") @db.Uuid
   creeLe                DateTime @default(now()) @map("created_at")
 
-  utilisateur           Utilisateur          @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  profilProfessionnel   ProfilProfessionnel  @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  utilisateur         Utilisateur         @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, profilProfessionnelId])
   @@index([utilisateurId, creeLe])
@@ -438,15 +461,15 @@ model FavoriProfessionnel {
 }
 
 model Categorie {
-  id         String     @id @default(uuid()) @db.Uuid
-  nom        String     @map("name") @unique @db.VarChar(100)
-  urlIcone   String?    @map("icon_url") @db.VarChar(500)
-  ordreTri   Int        @default(0) @map("sort_order") @db.SmallInt
+  id             String  @id @default(uuid()) @db.Uuid
+  nom            String  @unique @map("name") @db.VarChar(100)
+  urlIcone       String? @map("icon_url") @db.VarChar(500)
+  ordreTri       Int     @default(0) @map("sort_order") @db.SmallInt
   tauxCommission Decimal @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
-  estActive  Boolean    @default(true) @map("is_active")
+  estActive      Boolean @default(true) @map("is_active")
 
-  services        Service[]
-  sousCategories  CategorieSousCategorie[]
+  services                    Service[]
+  sousCategories              CategorieSousCategorie[]
   specialitesProfessionnelles SpecialiteProfessionnelle[]
 
   @@map("categories")
@@ -454,14 +477,14 @@ model Categorie {
 
 model SousCategorieService {
   id          String   @id @default(uuid()) @db.Uuid
-  nom         String   @map("name") @unique @db.VarChar(120)
+  nom         String   @unique @map("name") @db.VarChar(120)
   description String?  @db.Text
   ordreTri    Int      @default(0) @map("sort_order") @db.SmallInt
   estActive   Boolean  @default(true) @map("is_active")
   creeLe      DateTime @default(now()) @map("created_at")
   misAJourLe  DateTime @updatedAt @map("updated_at")
 
-  categories  CategorieSousCategorie[]
+  categories                  CategorieSousCategorie[]
   specialitesProfessionnelles SpecialiteProfessionnelle[]
 
   @@map("service_subcategories")
@@ -474,8 +497,8 @@ model CategorieSousCategorie {
   ordreTri        Int      @default(0) @map("sort_order") @db.SmallInt
   creeLe          DateTime @default(now()) @map("created_at")
 
-  categorie       Categorie             @relation(fields: [categorieId], references: [id], onDelete: Cascade)
-  sousCategorie   SousCategorieService  @relation(fields: [sousCategorieId], references: [id], onDelete: Cascade)
+  categorie     Categorie            @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  sousCategorie SousCategorieService @relation(fields: [sousCategorieId], references: [id], onDelete: Cascade)
 
   @@unique([categorieId, sousCategorieId])
   @@unique([sousCategorieId])
@@ -484,94 +507,96 @@ model CategorieSousCategorie {
 }
 
 model Service {
-  id                    String              @id @default(uuid()) @db.Uuid
-  profilProfessionnelId String              @map("professional_id") @db.Uuid
-  categorieId           String              @map("category_id") @db.Uuid
-  nom                   String              @map("name") @db.VarChar(200)
-  description           String              @db.Text
-  urlImage              String?             @map("image_url") @db.VarChar(500)
-  prix                  Decimal             @map("price") @db.Decimal(10, 2)
-  typePrix              TypePrix            @map("price_type")
-  modeDeplacement       ModeDeplacementService @default(PRESTATAIRE_SE_DEPLACE) @map("travel_mode")
-  dureeMinutes          Int                 @default(15) @map("duration_minutes")
-  pauseMinutes          Int                 @default(0) @map("pause_minutes")
-  estObligatoire        Boolean             @default(false) @map("is_required")
-  teleconsultationActive Boolean            @default(false) @map("teleconsultation_enabled")
-  estDisponible         Boolean             @default(true) @map("is_available")
-  creeLe                DateTime            @default(now()) @map("created_at")
-  misAJourLe            DateTime            @updatedAt @map("updated_at")
+  id                     String                 @id @default(uuid()) @db.Uuid
+  profilProfessionnelId  String                 @map("professional_id") @db.Uuid
+  categorieId            String                 @map("category_id") @db.Uuid
+  nom                    String                 @map("name") @db.VarChar(200)
+  description            String                 @db.Text
+  urlImage               String?                @map("image_url") @db.VarChar(500)
+  prix                   Decimal                @map("price") @db.Decimal(10, 2)
+  typePrix               TypePrix               @map("price_type")
+  modeDeplacement        ModeDeplacementService @default(PRESTATAIRE_SE_DEPLACE) @map("travel_mode")
+  dureeMinutes           Int                    @default(15) @map("duration_minutes")
+  pauseMinutes           Int                    @default(0) @map("pause_minutes")
+  estObligatoire         Boolean                @default(false) @map("is_required")
+  teleconsultationActive Boolean                @default(false) @map("teleconsultation_enabled")
+  estDisponible          Boolean                @default(true) @map("is_available")
+  creeLe                 DateTime               @default(now()) @map("created_at")
+  misAJourLe             DateTime               @updatedAt @map("updated_at")
 
-  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
-  categorie             Categorie           @relation(fields: [categorieId], references: [id])
-  reservations          Reservation[]
-  negotiations          Negotiation[]
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  categorie           Categorie           @relation(fields: [categorieId], references: [id])
+  reservations        Reservation[]
+  negotiations        Negotiation[]
 
   @@unique([id, profilProfessionnelId])
   @@map("services")
 }
 
 model Disponibilite {
-  id                    String              @id @default(uuid()) @db.Uuid
-  profilProfessionnelId String              @map("professional_id") @db.Uuid
-  jourSemaine           Int                 @map("day_of_week") @db.SmallInt
-  heureDebut            DateTime            @map("start_time") @db.Time
-  heureFin              DateTime            @map("end_time") @db.Time
-  estActive             Boolean             @default(true) @map("is_active")
+  id                    String   @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String   @map("professional_id") @db.Uuid
+  jourSemaine           Int      @map("day_of_week") @db.SmallInt
+  heureDebut            DateTime @map("start_time") @db.Time
+  heureFin              DateTime @map("end_time") @db.Time
+  estActive             Boolean  @default(true) @map("is_active")
 
-  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
 
   @@map("availabilities")
 }
 
 model ElementPortfolio {
-  id                    String              @id @default(uuid()) @db.Uuid
-  profilProfessionnelId String              @map("professional_id") @db.Uuid
-  titre                 String              @map("title") @db.VarChar(200)
-  description           String?             @db.Text
-  urlImage              String              @map("image_url") @db.VarChar(500)
-  creeLe                DateTime            @default(now()) @map("created_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String   @map("professional_id") @db.Uuid
+  titre                 String   @map("title") @db.VarChar(200)
+  description           String?  @db.Text
+  urlImage              String   @map("image_url") @db.VarChar(500)
+  creeLe                DateTime @default(now()) @map("created_at")
 
-  profilProfessionnel   ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
 
   @@map("portfolio_items")
 }
 
 model Reservation {
-  id                String             @id @default(uuid()) @db.Uuid
-  clientId          String             @map("client_id") @db.Uuid
-  professionnelId   String             @map("professional_id") @db.Uuid
-  serviceId         String             @map("service_id") @db.Uuid
-  dateHeure         DateTime           @map("date_time")
-  adresseClient     String             @map("client_address") @db.VarChar(255)
-  dureeMinutes      Int                @map("duration_minutes") @default(60)
-  statut            StatutReservation  @default(CONFIRMEE)
-  notes             String?            @map("notes") @db.Text
-  typeConsultation  TypeConsultationMedicale @default(CONSULTATION) @map("consultation_type")
-  actesPrescriptionMedicale String[]    @default([]) @map("medical_prescription_acts")
-  vaccinsPrescriptionMedicale String[]  @default([]) @map("medical_prescription_vaccines")
-  traitementsPrescriptionMedicale String[] @default([]) @map("medical_prescription_treatments")
-  prixConvenu       Decimal?           @map("agreed_price") @db.Decimal(10, 2)
-  statutAjustementPrix StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")
-  prixAjustementPropose Decimal?       @map("proposed_adjusted_price") @db.Decimal(10, 2)
-  raisonAjustementPrix String?         @map("price_adjustment_reason") @db.Text
-  demandeAjustementPrixLe DateTime?    @map("price_adjustment_requested_at")
-  raisonAnnulation  String?            @map("cancel_reason") @db.Text
-  clientRating      Int?               @map("client_rating") @db.SmallInt
-  clientReview      String?            @map("client_review") @db.Text
-  clientReviewedAt  DateTime?          @map("client_reviewed_at")
-  creeLe            DateTime           @default(now()) @map("created_at")
-  misAJourLe        DateTime           @default(now()) @map("updated_at")
+  id                              String                          @id @default(uuid()) @db.Uuid
+  clientId                        String                          @map("client_id") @db.Uuid
+  professionnelId                 String                          @map("professional_id") @db.Uuid
+  serviceId                       String                          @map("service_id") @db.Uuid
+  dateHeure                       DateTime                        @map("date_time")
+  adresseClient                   String                          @map("client_address") @db.VarChar(255)
+  dureeMinutes                    Int                             @default(60) @map("duration_minutes")
+  statut                          StatutReservation               @default(CONFIRMEE)
+  notes                           String?                         @map("notes") @db.Text
+  typeConsultation                TypeConsultationMedicale        @default(CONSULTATION) @map("consultation_type")
+  actesPrescriptionMedicale       String[]                        @default([]) @map("medical_prescription_acts")
+  vaccinsPrescriptionMedicale     String[]                        @default([]) @map("medical_prescription_vaccines")
+  traitementsPrescriptionMedicale String[]                        @default([]) @map("medical_prescription_treatments")
+  prixConvenu                     Decimal?                        @map("agreed_price") @db.Decimal(10, 2)
+  statutAjustementPrix            StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")
+  prixAjustementPropose           Decimal?                        @map("proposed_adjusted_price") @db.Decimal(10, 2)
+  raisonAjustementPrix            String?                         @map("price_adjustment_reason") @db.Text
+  demandeAjustementPrixLe         DateTime?                       @map("price_adjustment_requested_at")
+  raisonAnnulation                String?                         @map("cancel_reason") @db.Text
+  clientRating                    Int?                            @map("client_rating") @db.SmallInt
+  clientReview                    String?                         @map("client_review") @db.Text
+  clientReviewedAt                DateTime?                       @map("client_reviewed_at")
+  creeLe                          DateTime                        @default(now()) @map("created_at")
+  misAJourLe                      DateTime                        @default(now()) @map("updated_at")
 
-  client            Utilisateur        @relation("ReservationsClient", fields: [clientId], references: [id])
-  professionnel     ProfilProfessionnel @relation(fields: [professionnelId], references: [id])
-  service           Service            @relation(fields: [serviceId], references: [id])
-  paiement          Paiement?
-  conversation      Conversation?
-  communications    CommunicationReservation[]
-  negotiation       Negotiation?
-  litige            Litige?
-  trackingSession   SessionTrackingReservation?
-  devisMateriel     DevisMaterielNegotiation[]
+  client                     Utilisateur                 @relation("ReservationsClient", fields: [clientId], references: [id])
+  professionnel              ProfilProfessionnel         @relation(fields: [professionnelId], references: [id])
+  service                    Service                     @relation(fields: [serviceId], references: [id])
+  paiement                   Paiement?
+  conversation               Conversation?
+  communications             CommunicationReservation[]
+  negotiation                Negotiation?
+  litige                     Litige?
+  trackingSession            SessionTrackingReservation?
+  devisMateriel              DevisMaterielNegotiation[]
+  commandesPharmacieSource   CommandePharmacie[]         @relation("PharmacyOrdersSourceReservation")
+  commandePharmacieLivraison CommandePharmacie?          @relation("PharmacyOrderDeliveryReservation")
 
   @@unique([id, clientId, professionnelId])
   @@index([clientId, dateHeure])
@@ -582,31 +607,87 @@ model Reservation {
   @@map("bookings")
 }
 
-model Negotiation {
-  id                 String             @id @default(uuid()) @db.Uuid
-  clientId           String             @map("client_id") @db.Uuid
-  professionnelId    String             @map("professional_id") @db.Uuid
-  serviceId          String             @map("service_id") @db.Uuid
-  statut             StatutNegotiation  @default(EN_ATTENTE_PRESTATAIRE)
-  montantInitial     Decimal            @map("initial_amount") @db.Decimal(10, 2)
-  montantCourant     Decimal            @map("current_amount") @db.Decimal(10, 2)
-  montantAccepte     Decimal?           @map("accepted_amount") @db.Decimal(10, 2)
-  dernierProposePar  RoleNegociateur    @map("last_proposed_by")
-  messageCourant     String?            @map("current_message") @db.Text
-  dateHeureProposee  DateTime?          @map("proposed_datetime")
-  adresseClientProposee String?         @map("proposed_client_address") @db.VarChar(180)
-  dureeMinutesProposee Int?             @map("proposed_duration_minutes")
-  raisonCloture      String?            @map("close_reason") @db.Text
-  reservationId      String?            @unique @map("booking_id") @db.Uuid
-  creeLe             DateTime           @default(now()) @map("created_at")
-  misAJourLe         DateTime           @updatedAt @map("updated_at")
+/// Optional post-consultation medicine order. The medical booking remains terminal.
+/// A transport booking may later be linked once a carrier accepts the delivery.
+model CommandePharmacie {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  reservationMedicaleId  String                  @map("medical_booking_id") @db.Uuid
+  reservationLivraisonId String?                 @unique @map("delivery_booking_id") @db.Uuid
+  clientId               String                  @map("client_id") @db.Uuid
+  pharmacieId            String                  @map("pharmacy_id") @db.Uuid
+  statut                 StatutCommandePharmacie @default(EN_ATTENTE_PHARMACIE)
+  montantMedicaments     Decimal?                @map("medicine_amount") @db.Decimal(12, 2)
+  notePharmacie          String?                 @map("pharmacy_note") @db.Text
+  indisponibilites       String[]                @default([])
+  valideePharmacieLe     DateTime?               @map("validated_by_pharmacy_at")
+  payeePharmacieLe       DateTime?               @map("paid_to_pharmacy_at")
+  creeLe                 DateTime                @default(now()) @map("created_at")
+  misAJourLe             DateTime                @updatedAt @map("updated_at")
 
-  client             Utilisateur        @relation("NegotiationsClient", fields: [clientId], references: [id], onDelete: Cascade)
-  professionnel      ProfilProfessionnel @relation("NegotiationsProfessional", fields: [professionnelId], references: [id], onDelete: Cascade)
-  service            Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  reservation        Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  propositions       PropositionNegotiation[]
-  devisMateriel      DevisMaterielNegotiation[]
+  reservationMedicale  Reservation                @relation("PharmacyOrdersSourceReservation", fields: [reservationMedicaleId], references: [id], onDelete: Restrict)
+  reservationLivraison Reservation?               @relation("PharmacyOrderDeliveryReservation", fields: [reservationLivraisonId], references: [id], onDelete: SetNull)
+  client               Utilisateur                @relation("PharmacyOrdersClient", fields: [clientId], references: [id], onDelete: Cascade)
+  pharmacie            ProfilProfessionnel        @relation("PharmacyOrdersPharmacy", fields: [pharmacieId], references: [id], onDelete: Restrict)
+  paiement             PaiementCommandePharmacie?
+
+  @@index([clientId, statut, creeLe])
+  @@index([pharmacieId, statut, creeLe])
+  @@index([reservationMedicaleId, creeLe])
+  @@map("pharmacy_orders")
+}
+
+model PaiementCommandePharmacie {
+  id                   String          @id @default(uuid()) @db.Uuid
+  commandePharmacieId  String          @unique @map("pharmacy_order_id") @db.Uuid
+  clientId             String          @map("client_id") @db.Uuid
+  pharmacieId          String          @map("pharmacy_id") @db.Uuid
+  montant              Decimal         @map("amount") @db.Decimal(12, 2)
+  methode              MethodePaiement @map("method")
+  statut               StatutPaiement  @default(EN_ATTENTE)
+  cleIdempotence       String          @unique @map("idempotency_key") @db.VarChar(160)
+  referenceTransaction String          @unique @map("transaction_ref") @db.VarChar(200)
+  referenceFournisseur String?         @unique @map("gateway_ref") @db.VarChar(200)
+  urlPaiement          String?         @map("payment_url") @db.Text
+  erreur               String?         @db.Text
+  traiteLe             DateTime?       @map("processed_at")
+  creeLe               DateTime        @default(now()) @map("created_at")
+  misAJourLe           DateTime        @updatedAt @map("updated_at")
+
+  commandePharmacie CommandePharmacie   @relation(fields: [commandePharmacieId], references: [id], onDelete: Restrict)
+  client            Utilisateur         @relation("PharmacyOrderPaymentsClient", fields: [clientId], references: [id], onDelete: Restrict)
+  pharmacie         ProfilProfessionnel @relation("PharmacyOrderPaymentsPharmacy", fields: [pharmacieId], references: [id], onDelete: Restrict)
+
+  @@index([clientId, creeLe])
+  @@index([pharmacieId, creeLe])
+  @@index([statut, creeLe])
+  @@map("pharmacy_order_payments")
+}
+
+model Negotiation {
+  id                    String            @id @default(uuid()) @db.Uuid
+  clientId              String            @map("client_id") @db.Uuid
+  professionnelId       String            @map("professional_id") @db.Uuid
+  serviceId             String            @map("service_id") @db.Uuid
+  statut                StatutNegotiation @default(EN_ATTENTE_PRESTATAIRE)
+  montantInitial        Decimal           @map("initial_amount") @db.Decimal(10, 2)
+  montantCourant        Decimal           @map("current_amount") @db.Decimal(10, 2)
+  montantAccepte        Decimal?          @map("accepted_amount") @db.Decimal(10, 2)
+  dernierProposePar     RoleNegociateur   @map("last_proposed_by")
+  messageCourant        String?           @map("current_message") @db.Text
+  dateHeureProposee     DateTime?         @map("proposed_datetime")
+  adresseClientProposee String?           @map("proposed_client_address") @db.VarChar(180)
+  dureeMinutesProposee  Int?              @map("proposed_duration_minutes")
+  raisonCloture         String?           @map("close_reason") @db.Text
+  reservationId         String?           @unique @map("booking_id") @db.Uuid
+  creeLe                DateTime          @default(now()) @map("created_at")
+  misAJourLe            DateTime          @updatedAt @map("updated_at")
+
+  client        Utilisateur                @relation("NegotiationsClient", fields: [clientId], references: [id], onDelete: Cascade)
+  professionnel ProfilProfessionnel        @relation("NegotiationsProfessional", fields: [professionnelId], references: [id], onDelete: Cascade)
+  service       Service                    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  reservation   Reservation?               @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  propositions  PropositionNegotiation[]
+  devisMateriel DevisMaterielNegotiation[]
 
   @@index([clientId, statut, creeLe])
   @@index([professionnelId, statut, creeLe])
@@ -615,39 +696,39 @@ model Negotiation {
 }
 
 model PropositionNegotiation {
-  id                String            @id @default(uuid()) @db.Uuid
-  negotiationId     String            @map("negotiation_id") @db.Uuid
-  proposePar        RoleNegociateur   @map("proposed_by")
-  montant           Decimal           @db.Decimal(10, 2)
-  message           String?           @db.Text
-  creeLe            DateTime          @default(now()) @map("created_at")
+  id            String          @id @default(uuid()) @db.Uuid
+  negotiationId String          @map("negotiation_id") @db.Uuid
+  proposePar    RoleNegociateur @map("proposed_by")
+  montant       Decimal         @db.Decimal(10, 2)
+  message       String?         @db.Text
+  creeLe        DateTime        @default(now()) @map("created_at")
 
-  negotiation       Negotiation       @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
 
   @@index([negotiationId, creeLe])
   @@map("negotiation_offers")
 }
 
 model DevisMaterielNegotiation {
-  id                  String             @id @default(uuid()) @db.Uuid
-  negotiationId       String             @map("negotiation_id") @db.Uuid
-  reservationId       String?            @map("booking_id") @db.Uuid
-  creeParId           String             @map("created_by_user_id") @db.Uuid
-  creePar             RoleNegociateur    @map("created_by")
-  designation         String             @db.VarChar(180)
-  prixUnitaire        Decimal            @map("unit_price") @db.Decimal(10, 2)
-  quantite            Int                @default(1)
+  id                  String              @id @default(uuid()) @db.Uuid
+  negotiationId       String              @map("negotiation_id") @db.Uuid
+  reservationId       String?             @map("booking_id") @db.Uuid
+  creeParId           String              @map("created_by_user_id") @db.Uuid
+  creePar             RoleNegociateur     @map("created_by")
+  designation         String              @db.VarChar(180)
+  prixUnitaire        Decimal             @map("unit_price") @db.Decimal(10, 2)
+  quantite            Int                 @default(1)
   statut              StatutDevisMateriel @default(EN_ATTENTE)
-  valideClientLe      DateTime?          @map("client_validated_at")
-  validePrestataireLe DateTime?          @map("professional_validated_at")
-  refusePar           RoleNegociateur?   @map("rejected_by")
-  pdfUrl              String?            @map("pdf_url") @db.VarChar(500)
-  creeLe              DateTime           @default(now()) @map("created_at")
-  misAJourLe          DateTime           @updatedAt @map("updated_at")
+  valideClientLe      DateTime?           @map("client_validated_at")
+  validePrestataireLe DateTime?           @map("professional_validated_at")
+  refusePar           RoleNegociateur?    @map("rejected_by")
+  pdfUrl              String?             @map("pdf_url") @db.VarChar(500)
+  creeLe              DateTime            @default(now()) @map("created_at")
+  misAJourLe          DateTime            @updatedAt @map("updated_at")
 
-  negotiation         Negotiation        @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
-  reservation         Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  createur            Utilisateur        @relation("MaterialQuoteCreator", fields: [creeParId], references: [id], onDelete: Cascade)
+  negotiation Negotiation  @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  createur    Utilisateur  @relation("MaterialQuoteCreator", fields: [creeParId], references: [id], onDelete: Cascade)
 
   @@index([negotiationId, statut])
   @@index([reservationId])
@@ -656,24 +737,24 @@ model DevisMaterielNegotiation {
 }
 
 model CommunicationReservation {
-  id                   String              @id @default(uuid()) @db.Uuid
-  reservationId        String              @map("booking_id") @db.Uuid
-  utilisateurId        String              @map("user_id") @db.Uuid
-  canal                CanalCommunication  @map("channel")
-  destinataire         String              @map("recipient") @db.VarChar(255)
-  sujet                String?             @map("subject") @db.VarChar(255)
-  contenu              String              @map("content") @db.Text
-  fournisseur          String?             @map("provider") @db.VarChar(100)
-  identifiantFournisseur String?           @map("provider_message_id") @db.VarChar(255)
-  statut               StatutCommunication @default(EN_ATTENTE) @map("status")
-  erreur               String?             @map("error") @db.Text
-  metadata             Json?               @map("metadata")
-  envoyeLe             DateTime?           @map("sent_at")
-  creeLe               DateTime            @default(now()) @map("created_at")
-  misAJourLe           DateTime            @updatedAt @map("updated_at")
+  id                     String              @id @default(uuid()) @db.Uuid
+  reservationId          String              @map("booking_id") @db.Uuid
+  utilisateurId          String              @map("user_id") @db.Uuid
+  canal                  CanalCommunication  @map("channel")
+  destinataire           String              @map("recipient") @db.VarChar(255)
+  sujet                  String?             @map("subject") @db.VarChar(255)
+  contenu                String              @map("content") @db.Text
+  fournisseur            String?             @map("provider") @db.VarChar(100)
+  identifiantFournisseur String?             @map("provider_message_id") @db.VarChar(255)
+  statut                 StatutCommunication @default(EN_ATTENTE) @map("status")
+  erreur                 String?             @map("error") @db.Text
+  metadata               Json?               @map("metadata")
+  envoyeLe               DateTime?           @map("sent_at")
+  creeLe                 DateTime            @default(now()) @map("created_at")
+  misAJourLe             DateTime            @updatedAt @map("updated_at")
 
-  reservation          Reservation         @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  utilisateur          Utilisateur         @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
   @@index([reservationId, canal])
   @@index([utilisateurId, creeLe])
@@ -702,11 +783,11 @@ model Paiement {
   creeLe               DateTime        @default(now()) @map("created_at")
   misAJourLe           DateTime        @updatedAt @map("updated_at")
 
-  reservation          Reservation     @relation(fields: [reservationId], references: [id])
-  client               Utilisateur     @relation("PaymentsClient", fields: [clientId], references: [id])
-  professionnel        ProfilProfessionnel @relation("PaymentsProfessional", fields: [professionalId], references: [id])
+  reservation              Reservation               @relation(fields: [reservationId], references: [id])
+  client                   Utilisateur               @relation("PaymentsClient", fields: [clientId], references: [id])
+  professionnel            ProfilProfessionnel       @relation("PaymentsProfessional", fields: [professionalId], references: [id])
   transactionsPortefeuille TransactionPortefeuille[]
-  litige               Litige?
+  litige                   Litige?
 
   @@index([clientId, creeLe])
   @@index([professionalId, creeLe])
@@ -718,17 +799,17 @@ model Paiement {
 }
 
 model MoyenPaiementEnregistre {
-  id             String   @id @default(uuid()) @db.Uuid
-  utilisateurId  String   @map("user_id") @db.Uuid
-  type           String   @db.VarChar(20)
-  libelle        String?  @map("label") @db.VarChar(80)
-  valeurMasquee  String   @map("masked_value") @db.VarChar(80)
-  titulaire      String?  @map("holder_name") @db.VarChar(100)
-  moisExpiration Int?     @map("expiry_month")
-  anneeExpiration Int?    @map("expiry_year")
-  estDefaut      Boolean  @default(false) @map("is_default")
-  creeLe         DateTime @default(now()) @map("created_at")
-  misAJourLe     DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  utilisateurId   String   @map("user_id") @db.Uuid
+  type            String   @db.VarChar(20)
+  libelle         String?  @map("label") @db.VarChar(80)
+  valeurMasquee   String   @map("masked_value") @db.VarChar(80)
+  titulaire       String?  @map("holder_name") @db.VarChar(100)
+  moisExpiration  Int?     @map("expiry_month")
+  anneeExpiration Int?     @map("expiry_year")
+  estDefaut       Boolean  @default(false) @map("is_default")
+  creeLe          DateTime @default(now()) @map("created_at")
+  misAJourLe      DateTime @updatedAt @map("updated_at")
 
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
@@ -737,32 +818,32 @@ model MoyenPaiementEnregistre {
 }
 
 model Litige {
-  id                       String                      @id @default(uuid()) @db.Uuid
-  reservationId            String                      @unique @map("booking_id") @db.Uuid
-  paiementId               String?                     @unique @map("payment_id") @db.Uuid
-  reporterUserId           String                      @map("reporter_user_id") @db.Uuid
-  resolvedByAdminUserId    String?                     @map("resolved_by_admin_user_id") @db.Uuid
-  statut                   StatutLitige                @default(OUVERT) @map("status")
-  priorite                 PrioriteLitige              @default(MOYENNE) @map("priority")
-  raison                   String                      @db.Text
-  notesInternes            String?                     @map("internal_notes") @db.Text
-  decisionResolution       DecisionResolutionLitige?   @map("resolution_decision")
-  pourcentageRemboursementClient Int?                  @map("client_refund_percentage")
-  montantRembourseClient   Decimal?                    @map("client_refund_amount") @db.Decimal(12, 2)
-  montantPrestataire       Decimal?                    @map("professional_payout_amount") @db.Decimal(12, 2)
-  ouvertLe                 DateTime                    @default(now()) @map("opened_at")
-  prisEnChargeLe           DateTime?                   @map("review_started_at")
-  resoluLe                 DateTime?                   @map("resolved_at")
-  rejeteLe                 DateTime?                   @map("rejected_at")
-  creeLe                   DateTime                    @default(now()) @map("created_at")
-  misAJourLe               DateTime                    @updatedAt @map("updated_at")
+  id                             String                    @id @default(uuid()) @db.Uuid
+  reservationId                  String                    @unique @map("booking_id") @db.Uuid
+  paiementId                     String?                   @unique @map("payment_id") @db.Uuid
+  reporterUserId                 String                    @map("reporter_user_id") @db.Uuid
+  resolvedByAdminUserId          String?                   @map("resolved_by_admin_user_id") @db.Uuid
+  statut                         StatutLitige              @default(OUVERT) @map("status")
+  priorite                       PrioriteLitige            @default(MOYENNE) @map("priority")
+  raison                         String                    @db.Text
+  notesInternes                  String?                   @map("internal_notes") @db.Text
+  decisionResolution             DecisionResolutionLitige? @map("resolution_decision")
+  pourcentageRemboursementClient Int?                      @map("client_refund_percentage")
+  montantRembourseClient         Decimal?                  @map("client_refund_amount") @db.Decimal(12, 2)
+  montantPrestataire             Decimal?                  @map("professional_payout_amount") @db.Decimal(12, 2)
+  ouvertLe                       DateTime                  @default(now()) @map("opened_at")
+  prisEnChargeLe                 DateTime?                 @map("review_started_at")
+  resoluLe                       DateTime?                 @map("resolved_at")
+  rejeteLe                       DateTime?                 @map("rejected_at")
+  creeLe                         DateTime                  @default(now()) @map("created_at")
+  misAJourLe                     DateTime                  @updatedAt @map("updated_at")
 
-  reservation              Reservation                 @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  paiement                 Paiement?                   @relation(fields: [paiementId], references: [id], onDelete: SetNull)
-  reporter                 Utilisateur                 @relation("ReportedDisputes", fields: [reporterUserId], references: [id], onDelete: Cascade)
-  resolvedByAdmin          Utilisateur?                @relation("ResolvedDisputes", fields: [resolvedByAdminUserId], references: [id], onDelete: SetNull)
-  messagesMediation        MessageLitige[]
-  preuves                  PreuveLitige[]
+  reservation       Reservation     @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  paiement          Paiement?       @relation(fields: [paiementId], references: [id], onDelete: SetNull)
+  reporter          Utilisateur     @relation("ReportedDisputes", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  resolvedByAdmin   Utilisateur?    @relation("ResolvedDisputes", fields: [resolvedByAdminUserId], references: [id], onDelete: SetNull)
+  messagesMediation MessageLitige[]
+  preuves           PreuveLitige[]
 
   @@index([statut, priorite, ouvertLe])
   @@index([reporterUserId, ouvertLe])
@@ -771,17 +852,17 @@ model Litige {
 }
 
 model PreuveLitige {
-  id                  String      @id @default(uuid()) @db.Uuid
-  litigeId            String      @map("dispute_id") @db.Uuid
-  uploaderUserId      String      @map("uploader_user_id") @db.Uuid
-  nomFichierOriginal  String      @map("original_file_name") @db.VarChar(255)
-  typeMime            String      @map("mime_type") @db.VarChar(100)
-  tailleOctets        Int         @map("size_bytes")
-  urlFichier          String      @map("file_url") @db.VarChar(500)
-  creeLe              DateTime    @default(now()) @map("created_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  litigeId           String   @map("dispute_id") @db.Uuid
+  uploaderUserId     String   @map("uploader_user_id") @db.Uuid
+  nomFichierOriginal String   @map("original_file_name") @db.VarChar(255)
+  typeMime           String   @map("mime_type") @db.VarChar(100)
+  tailleOctets       Int      @map("size_bytes")
+  urlFichier         String   @map("file_url") @db.VarChar(500)
+  creeLe             DateTime @default(now()) @map("created_at")
 
-  litige              Litige      @relation(fields: [litigeId], references: [id], onDelete: Cascade)
-  uploader            Utilisateur @relation("DisputeEvidenceUploaders", fields: [uploaderUserId], references: [id], onDelete: Cascade)
+  litige   Litige      @relation(fields: [litigeId], references: [id], onDelete: Cascade)
+  uploader Utilisateur @relation("DisputeEvidenceUploaders", fields: [uploaderUserId], references: [id], onDelete: Cascade)
 
   @@index([litigeId, creeLe])
   @@index([uploaderUserId, creeLe])
@@ -796,8 +877,8 @@ model MessageLitige {
   contenu           String                    @map("content") @db.Text
   creeLe            DateTime                  @default(now()) @map("created_at")
 
-  litige            Litige                    @relation(fields: [litigeId], references: [id], onDelete: Cascade)
-  expediteurAdmin   Utilisateur               @relation("DisputeAdminMessages", fields: [expediteurAdminId], references: [id], onDelete: Cascade)
+  litige          Litige      @relation(fields: [litigeId], references: [id], onDelete: Cascade)
+  expediteurAdmin Utilisateur @relation("DisputeAdminMessages", fields: [expediteurAdminId], references: [id], onDelete: Cascade)
 
   @@index([litigeId, creeLe])
   @@index([expediteurAdminId, creeLe])
@@ -805,20 +886,20 @@ model MessageLitige {
 }
 
 model PresenceProfessionnel {
-  id                         String                       @id @default(uuid()) @db.Uuid
-  profilProfessionnelId      String                       @unique @map("professional_id") @db.Uuid
-  estEnLigne                 Boolean                      @default(false) @map("is_online")
-  statut                     StatutPresenceProfessionnel  @default(HORS_LIGNE) @map("status")
-  derniereLatitude           Decimal?                     @map("last_latitude") @db.Decimal(10, 7)
-  derniereLongitude          Decimal?                     @map("last_longitude") @db.Decimal(10, 7)
-  dernierePrecisionMetres    Decimal?                     @map("last_accuracy_meters") @db.Decimal(8, 2)
-  derniereOrientationDegres  Int?                         @map("last_heading_degrees") @db.SmallInt
-  derniereVitesseKmh         Decimal?                     @map("last_speed_kmh") @db.Decimal(8, 2)
-  dernierLibelleLocalisation String?                      @map("last_location_label") @db.VarChar(255)
-  dernierePositionLe         DateTime?                    @map("last_position_at")
-  dernierVueLe               DateTime?                    @map("last_seen_at")
-  creeLe                     DateTime                     @default(now()) @map("created_at")
-  misAJourLe                 DateTime                     @updatedAt @map("updated_at")
+  id                         String                      @id @default(uuid()) @db.Uuid
+  profilProfessionnelId      String                      @unique @map("professional_id") @db.Uuid
+  estEnLigne                 Boolean                     @default(false) @map("is_online")
+  statut                     StatutPresenceProfessionnel @default(HORS_LIGNE) @map("status")
+  derniereLatitude           Decimal?                    @map("last_latitude") @db.Decimal(10, 7)
+  derniereLongitude          Decimal?                    @map("last_longitude") @db.Decimal(10, 7)
+  dernierePrecisionMetres    Decimal?                    @map("last_accuracy_meters") @db.Decimal(8, 2)
+  derniereOrientationDegres  Int?                        @map("last_heading_degrees") @db.SmallInt
+  derniereVitesseKmh         Decimal?                    @map("last_speed_kmh") @db.Decimal(8, 2)
+  dernierLibelleLocalisation String?                     @map("last_location_label") @db.VarChar(255)
+  dernierePositionLe         DateTime?                   @map("last_position_at")
+  dernierVueLe               DateTime?                   @map("last_seen_at")
+  creeLe                     DateTime                    @default(now()) @map("created_at")
+  misAJourLe                 DateTime                    @updatedAt @map("updated_at")
 
   profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id], onDelete: Cascade)
 
@@ -845,9 +926,9 @@ model SessionTrackingReservation {
   creeLe                     DateTime                         @default(now()) @map("created_at")
   misAJourLe                 DateTime                         @updatedAt @map("updated_at")
 
-  reservation   Reservation          @relation(fields: [reservationId, clientId, professionnelId], references: [id, clientId, professionnelId], onDelete: Cascade)
-  client        Utilisateur          @relation("TrackingSessionsClient", fields: [clientId], references: [id], onDelete: Cascade)
-  professionnel ProfilProfessionnel  @relation(fields: [professionnelId], references: [id], onDelete: Cascade)
+  reservation   Reservation                @relation(fields: [reservationId, clientId, professionnelId], references: [id, clientId, professionnelId], onDelete: Cascade)
+  client        Utilisateur                @relation("TrackingSessionsClient", fields: [clientId], references: [id], onDelete: Cascade)
+  professionnel ProfilProfessionnel        @relation(fields: [professionnelId], references: [id], onDelete: Cascade)
   points        PointTrackingReservation[]
 
   @@unique([reservationId, clientId, professionnelId])
@@ -857,15 +938,15 @@ model SessionTrackingReservation {
 }
 
 model PointTrackingReservation {
-  id                  String                     @id @default(uuid()) @db.Uuid
-  sessionTrackingId   String                     @map("tracking_session_id") @db.Uuid
-  latitude            Decimal                    @db.Decimal(10, 7)
-  longitude           Decimal                    @db.Decimal(10, 7)
-  precisionMetres     Decimal?                   @map("accuracy_meters") @db.Decimal(8, 2)
-  orientationDegres   Int?                       @map("heading_degrees") @db.SmallInt
-  vitesseKmh          Decimal?                   @map("speed_kmh") @db.Decimal(8, 2)
-  libelleLocalisation String?                    @map("location_label") @db.VarChar(255)
-  enregistreLe        DateTime                   @default(now()) @map("recorded_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  sessionTrackingId   String   @map("tracking_session_id") @db.Uuid
+  latitude            Decimal  @db.Decimal(10, 7)
+  longitude           Decimal  @db.Decimal(10, 7)
+  precisionMetres     Decimal? @map("accuracy_meters") @db.Decimal(8, 2)
+  orientationDegres   Int?     @map("heading_degrees") @db.SmallInt
+  vitesseKmh          Decimal? @map("speed_kmh") @db.Decimal(8, 2)
+  libelleLocalisation String?  @map("location_label") @db.VarChar(255)
+  enregistreLe        DateTime @default(now()) @map("recorded_at")
 
   sessionTracking SessionTrackingReservation @relation(fields: [sessionTrackingId], references: [id], onDelete: Cascade)
 
@@ -874,15 +955,15 @@ model PointTrackingReservation {
 }
 
 model CleIdempotence {
-  id             String            @id @default(uuid()) @db.Uuid
-  cle            String            @unique @map("key") @db.VarChar(160)
-  portee         String            @map("scope") @db.VarChar(100)
-  hashRequete    String            @map("request_hash") @db.VarChar(128)
-  statut         StatutIdempotence @default(EN_COURS) @map("status")
-  reponse        Json?             @map("response")
-  expireLe       DateTime          @map("expires_at")
-  creeLe         DateTime          @default(now()) @map("created_at")
-  misAJourLe     DateTime          @updatedAt @map("updated_at")
+  id          String            @id @default(uuid()) @db.Uuid
+  cle         String            @unique @map("key") @db.VarChar(160)
+  portee      String            @map("scope") @db.VarChar(100)
+  hashRequete String            @map("request_hash") @db.VarChar(128)
+  statut      StatutIdempotence @default(EN_COURS) @map("status")
+  reponse     Json?             @map("response")
+  expireLe    DateTime          @map("expires_at")
+  creeLe      DateTime          @default(now()) @map("created_at")
+  misAJourLe  DateTime          @updatedAt @map("updated_at")
 
   @@index([portee, expireLe])
   @@index([statut, expireLe])
@@ -890,17 +971,17 @@ model CleIdempotence {
 }
 
 model EvenementWebhookPaiement {
-  id                    String               @id @default(uuid()) @db.Uuid
-  cleEvenement          String               @unique @map("event_key") @db.VarChar(220)
-  fournisseur           String               @map("provider") @db.VarChar(80)
-  referenceFournisseur  String               @map("provider_ref") @db.VarChar(200)
-  statutProvider        String               @map("provider_status") @db.VarChar(80)
-  signatureValide       Boolean              @default(false) @map("signature_valid")
-  payload               Json                 @map("payload")
-  statut                StatutWebhookPaiement @default(RECU) @map("status")
-  erreur                String?              @map("error") @db.Text
-  recuLe                DateTime             @default(now()) @map("received_at")
-  traiteLe              DateTime?            @map("processed_at")
+  id                   String                @id @default(uuid()) @db.Uuid
+  cleEvenement         String                @unique @map("event_key") @db.VarChar(220)
+  fournisseur          String                @map("provider") @db.VarChar(80)
+  referenceFournisseur String                @map("provider_ref") @db.VarChar(200)
+  statutProvider       String                @map("provider_status") @db.VarChar(80)
+  signatureValide      Boolean               @default(false) @map("signature_valid")
+  payload              Json                  @map("payload")
+  statut               StatutWebhookPaiement @default(RECU) @map("status")
+  erreur               String?               @map("error") @db.Text
+  recuLe               DateTime              @default(now()) @map("received_at")
+  traiteLe             DateTime?             @map("processed_at")
 
   @@index([referenceFournisseur])
   @@index([statut, recuLe])
@@ -908,18 +989,18 @@ model EvenementWebhookPaiement {
 }
 
 model TransactionPortefeuille {
-  id                    String                     @id @default(uuid()) @db.Uuid
-  profilProfessionnelId String                     @map("professional_id") @db.Uuid
-  paiementId            String?                    @map("payment_id") @db.Uuid
+  id                    String                      @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String                      @map("professional_id") @db.Uuid
+  paiementId            String?                     @map("payment_id") @db.Uuid
   type                  TypeTransactionPortefeuille
-  montant               Decimal                    @map("amount") @db.Decimal(12, 2)
-  soldeApres            Decimal                    @map("balance_after") @db.Decimal(12, 2)
-  description           String                     @db.Text
-  reference             String                     @unique @db.VarChar(220)
-  creeLe                DateTime                   @default(now()) @map("created_at")
+  montant               Decimal                     @map("amount") @db.Decimal(12, 2)
+  soldeApres            Decimal                     @map("balance_after") @db.Decimal(12, 2)
+  description           String                      @db.Text
+  reference             String                      @unique @db.VarChar(220)
+  creeLe                DateTime                    @default(now()) @map("created_at")
 
-  profilProfessionnel   ProfilProfessionnel        @relation(fields: [profilProfessionnelId], references: [id])
-  paiement              Paiement?                  @relation(fields: [paiementId], references: [id])
+  profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id])
+  paiement            Paiement?           @relation(fields: [paiementId], references: [id])
 
   @@index([profilProfessionnelId, creeLe])
   @@index([paiementId])
@@ -927,18 +1008,18 @@ model TransactionPortefeuille {
 }
 
 model Conversation {
-  id                String         @id @default(uuid()) @db.Uuid
-  clientId          String         @map("client_id") @db.Uuid
-  prestataireId     String         @map("professional_id") @db.Uuid
-  reservationId     String?        @unique @map("booking_id") @db.Uuid
-  dernierMessageLe  DateTime?      @map("last_message_at")
-  creeLe            DateTime       @default(now()) @map("created_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  clientId         String    @map("client_id") @db.Uuid
+  prestataireId    String    @map("professional_id") @db.Uuid
+  reservationId    String?   @unique @map("booking_id") @db.Uuid
+  dernierMessageLe DateTime? @map("last_message_at")
+  creeLe           DateTime  @default(now()) @map("created_at")
 
-  client            Utilisateur    @relation("ConversationsClient", fields: [clientId], references: [id])
-  prestataire       Utilisateur    @relation("ConversationsPrestataire", fields: [prestataireId], references: [id])
-  reservation       Reservation?   @relation(fields: [reservationId], references: [id])
-  messages          Message[]
-  appels            Appel[]
+  client      Utilisateur  @relation("ConversationsClient", fields: [clientId], references: [id])
+  prestataire Utilisateur  @relation("ConversationsPrestataire", fields: [prestataireId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  messages    Message[]
+  appels      Appel[]
 
   @@unique([clientId, prestataireId], map: "conversations_client_professional_unique")
   @@index([dernierMessageLe])
@@ -946,22 +1027,22 @@ model Conversation {
 }
 
 model Appel {
-  id                String       @id @db.Uuid
-  conversationId    String       @map("conversation_id") @db.Uuid
-  appelantId        String       @map("caller_id") @db.Uuid
-  destinataireId    String       @map("recipient_id") @db.Uuid
-  type              TypeAppel
-  statut            StatutAppel  @default(SONNE)
-  sonneLe            DateTime     @default(now()) @map("ringing_at")
-  accepteLe          DateTime?    @map("accepted_at")
-  termineLe          DateTime?    @map("ended_at")
-  expireLe           DateTime     @map("expires_at")
-  creeLe             DateTime     @default(now()) @map("created_at")
-  misAJourLe         DateTime     @updatedAt @map("updated_at")
+  id             String      @id @db.Uuid
+  conversationId String      @map("conversation_id") @db.Uuid
+  appelantId     String      @map("caller_id") @db.Uuid
+  destinataireId String      @map("recipient_id") @db.Uuid
+  type           TypeAppel
+  statut         StatutAppel @default(SONNE)
+  sonneLe        DateTime    @default(now()) @map("ringing_at")
+  accepteLe      DateTime?   @map("accepted_at")
+  termineLe      DateTime?   @map("ended_at")
+  expireLe       DateTime    @map("expires_at")
+  creeLe         DateTime    @default(now()) @map("created_at")
+  misAJourLe     DateTime    @updatedAt @map("updated_at")
 
-  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  appelant           Utilisateur  @relation("CallsCaller", fields: [appelantId], references: [id], onDelete: Cascade)
-  destinataire       Utilisateur  @relation("CallsRecipient", fields: [destinataireId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  appelant     Utilisateur  @relation("CallsCaller", fields: [appelantId], references: [id], onDelete: Cascade)
+  destinataire Utilisateur  @relation("CallsRecipient", fields: [destinataireId], references: [id], onDelete: Cascade)
 
   @@index([appelantId, creeLe])
   @@index([destinataireId, creeLe])
@@ -970,16 +1051,16 @@ model Appel {
 }
 
 model Message {
-  id                String         @id @default(uuid()) @db.Uuid
-  conversationId    String         @map("conversation_id") @db.Uuid
-  expediteurId      String         @map("sender_id") @db.Uuid
-  contenu           String?        @map("content") @db.Text
-  urlMedia          String?        @map("media_url") @db.VarChar(500)
-  estLu             Boolean        @default(false) @map("is_read")
-  creeLe            DateTime       @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  expediteurId   String   @map("sender_id") @db.Uuid
+  contenu        String?  @map("content") @db.Text
+  urlMedia       String?  @map("media_url") @db.VarChar(500)
+  estLu          Boolean  @default(false) @map("is_read")
+  creeLe         DateTime @default(now()) @map("created_at")
 
-  conversation      Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  expediteur        Utilisateur    @relation("MessagesEnvoyes", fields: [expediteurId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  expediteur   Utilisateur  @relation("MessagesEnvoyes", fields: [expediteurId], references: [id])
 
   @@index([conversationId, creeLe])
   @@index([expediteurId, creeLe])
@@ -987,16 +1068,16 @@ model Message {
 }
 
 model Notification {
-  id                String            @id @default(uuid()) @db.Uuid
-  utilisateurId     String            @map("user_id") @db.Uuid
-  type              TypeNotification
-  titre             String            @map("title") @db.VarChar(200)
-  corps             String            @map("body") @db.Text
-  donnees           Json?             @map("data")
-  estLue            Boolean           @default(false) @map("is_read")
-  creeLe            DateTime          @default(now()) @map("created_at")
+  id            String           @id @default(uuid()) @db.Uuid
+  utilisateurId String           @map("user_id") @db.Uuid
+  type          TypeNotification
+  titre         String           @map("title") @db.VarChar(200)
+  corps         String           @map("body") @db.Text
+  donnees       Json?            @map("data")
+  estLue        Boolean          @default(false) @map("is_read")
+  creeLe        DateTime         @default(now()) @map("created_at")
 
-  utilisateur       Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
   @@index([utilisateurId, creeLe])
   @@index([utilisateurId, estLue, creeLe])
@@ -1010,15 +1091,15 @@ enum StatutEvenement {
 }
 
 model EvenementOutbox {
-  id              String           @id @default(uuid()) @db.Uuid
-  typeEvenement   String           @map("event_type") @db.VarChar(100)
-  payload         Json             @map("payload")
-  correlationId   String?          @map("correlation_id") @db.Uuid
-  statut          StatutEvenement  @default(EN_ATTENTE) @map("status")
-  creeLe          DateTime         @default(now()) @map("created_at")
-  traiteLe        DateTime?        @map("processed_at") @db.Timestamp
-  nbTentatives    Int              @default(0) @map("attempts")
-  erreur          String?           @map("error") @db.Text
+  id            String          @id @default(uuid()) @db.Uuid
+  typeEvenement String          @map("event_type") @db.VarChar(100)
+  payload       Json            @map("payload")
+  correlationId String?         @map("correlation_id") @db.Uuid
+  statut        StatutEvenement @default(EN_ATTENTE) @map("status")
+  creeLe        DateTime        @default(now()) @map("created_at")
+  traiteLe      DateTime?       @map("processed_at") @db.Timestamp
+  nbTentatives  Int             @default(0) @map("attempts")
+  erreur        String?         @map("error") @db.Text
 
   @@index([statut, creeLe])
   @@index([typeEvenement, statut, creeLe])
@@ -1044,19 +1125,19 @@ enum TypeActionAudit {
 }
 
 model JournalAudit {
-  id                 String          @id @default(uuid()) @db.Uuid
-  utilisateurId      String?         @map("user_id") @db.Uuid
-  nomUtilisateur     String?         @map("user_name") @db.VarChar(100)
-  typeAction         TypeActionAudit @map("action_type")
-  description        String          @map("description") @db.Text
-  entiteType         String?         @map("entity_type") @db.VarChar(50)
-  entiteId           String?         @map("entity_id") @db.Uuid
-  adresseIp          String?         @map("ip_address") @db.VarChar(45)
-  userAgent          String?         @map("user_agent") @db.Text
-  latitude           Decimal?        @db.Decimal(10, 7)
-  longitude          Decimal?        @db.Decimal(10, 7)
-  localisationTexte  String?         @map("location_label") @db.VarChar(255)
-  creeLe             DateTime        @default(now()) @map("created_at")
+  id                String          @id @default(uuid()) @db.Uuid
+  utilisateurId     String?         @map("user_id") @db.Uuid
+  nomUtilisateur    String?         @map("user_name") @db.VarChar(100)
+  typeAction        TypeActionAudit @map("action_type")
+  description       String          @map("description") @db.Text
+  entiteType        String?         @map("entity_type") @db.VarChar(50)
+  entiteId          String?         @map("entity_id") @db.Uuid
+  adresseIp         String?         @map("ip_address") @db.VarChar(45)
+  userAgent         String?         @map("user_agent") @db.Text
+  latitude          Decimal?        @db.Decimal(10, 7)
+  longitude         Decimal?        @db.Decimal(10, 7)
+  localisationTexte String?         @map("location_label") @db.VarChar(255)
+  creeLe            DateTime        @default(now()) @map("created_at")
 
   @@index([utilisateurId, creeLe])
   @@index([typeAction, creeLe])
@@ -1064,14 +1145,14 @@ model JournalAudit {
 }
 
 model DemandeRetrait {
-  id                  String          @id @default(uuid()) @db.Uuid
-  profilProfessionnelId String        @map("professional_id") @db.Uuid
-  montant             Decimal         @map("amount") @db.Decimal(12, 2)
-  methode             MethodePaiement @map("method")
-  statut              StatutRetrait   @default(EN_ATTENTE)
-  referenceFournisseur String?        @map("provider_ref") @db.VarChar(200)
-  demandeLe           DateTime        @default(now()) @map("requested_at")
-  traiteLe            DateTime?       @map("processed_at")
+  id                    String          @id @default(uuid()) @db.Uuid
+  profilProfessionnelId String          @map("professional_id") @db.Uuid
+  montant               Decimal         @map("amount") @db.Decimal(12, 2)
+  methode               MethodePaiement @map("method")
+  statut                StatutRetrait   @default(EN_ATTENTE)
+  referenceFournisseur  String?         @map("provider_ref") @db.VarChar(200)
+  demandeLe             DateTime        @default(now()) @map("requested_at")
+  traiteLe              DateTime?       @map("processed_at")
 
   profilProfessionnel ProfilProfessionnel @relation(fields: [profilProfessionnelId], references: [id])
 

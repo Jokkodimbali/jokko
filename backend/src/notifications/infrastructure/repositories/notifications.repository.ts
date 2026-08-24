@@ -34,6 +34,8 @@ const PRISMA_NOTIFICATION_TYPE_BY_DOMAIN: Record<
   ANNONCE_ADMIN: TypeNotification.ANNONCE_ADMIN,
   APPEL_ENTRANT: TypeNotification.APPEL_ENTRANT,
   APPEL_MANQUE: TypeNotification.APPEL_MANQUE,
+  ORDONNANCE_RECUE: TypeNotification.ORDONNANCE_RECUE,
+  ORDONNANCE_MISE_A_JOUR: TypeNotification.ORDONNANCE_MISE_A_JOUR,
 };
 
 type PrismaNotification = {
@@ -113,7 +115,9 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     const reservationIds = Array.from(
       new Set(
         notifications
-          .map((notification) => this.metadataString(notification.donnees, 'reservationId'))
+          .map((notification) =>
+            this.metadataString(notification.donnees, 'reservationId'),
+          )
           .filter((value): value is string => !!value),
       ),
     );
@@ -133,12 +137,16 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
             },
           })
         : [];
-    const reservationById = new Map(reservations.map((reservation) => [reservation.id, reservation]));
+    const reservationById = new Map(
+      reservations.map((reservation) => [reservation.id, reservation]),
+    );
 
     const negotiationIds = Array.from(
       new Set(
         notifications
-          .map((notification) => this.metadataString(notification.donnees, 'negotiationId'))
+          .map((notification) =>
+            this.metadataString(notification.donnees, 'negotiationId'),
+          )
           .filter((value): value is string => !!value),
       ),
     );
@@ -151,7 +159,9 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
               clientId: true,
               client: { select: { nom: true, urlAvatar: true } },
               professionnel: {
-                select: { utilisateur: { select: { nom: true, urlAvatar: true } } },
+                select: {
+                  utilisateur: { select: { nom: true, urlAvatar: true } },
+                },
               },
             },
           })
@@ -163,7 +173,9 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     const senderIds = Array.from(
       new Set(
         notifications
-          .map((notification) => this.metadataString(notification.donnees, 'senderId'))
+          .map((notification) =>
+            this.metadataString(notification.donnees, 'senderId'),
+          )
           .filter((value): value is string => !!value),
       ),
     );
@@ -177,10 +189,20 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     const senderById = new Map(senders.map((sender) => [sender.id, sender]));
 
     return notifications.map((notification) => {
-      const reservationId = this.metadataString(notification.donnees, 'reservationId');
-      const reservation = reservationId ? reservationById.get(reservationId) : undefined;
-      const negotiationId = this.metadataString(notification.donnees, 'negotiationId');
-      const negotiation = negotiationId ? negotiationById.get(negotiationId) : undefined;
+      const reservationId = this.metadataString(
+        notification.donnees,
+        'reservationId',
+      );
+      const reservation = reservationId
+        ? reservationById.get(reservationId)
+        : undefined;
+      const negotiationId = this.metadataString(
+        notification.donnees,
+        'negotiationId',
+      );
+      const negotiation = negotiationId
+        ? negotiationById.get(negotiationId)
+        : undefined;
       const senderId = this.metadataString(notification.donnees, 'senderId');
       const sender = senderId ? senderById.get(senderId) : undefined;
       const actor = reservation
@@ -266,7 +288,10 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     return data as NotificationMetadata;
   }
 
-  private metadataString(data: Prisma.JsonValue | null, key: string): string | null {
+  private metadataString(
+    data: Prisma.JsonValue | null,
+    key: string,
+  ): string | null {
     const metadata = this.toMetadata(data);
     const value = metadata?.[key];
     return typeof value === 'string' && value.trim() ? value.trim() : null;

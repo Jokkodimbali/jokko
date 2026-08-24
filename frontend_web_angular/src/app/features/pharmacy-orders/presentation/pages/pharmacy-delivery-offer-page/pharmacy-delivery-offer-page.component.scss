@@ -1,0 +1,234 @@
+:host {
+  display: block;
+}
+
+.delivery-offer {
+  margin: 0 auto;
+  max-width: 760px;
+  min-height: 100vh;
+  padding: 34px 24px 80px;
+}
+
+.delivery-offer__back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #4f5968;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.delivery-offer__card {
+  background: #fff;
+  border: 1px solid #e2e4e7;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(31, 41, 55, 0.1);
+  overflow: hidden;
+  padding: 28px;
+}
+
+.delivery-offer__card header {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.delivery-offer__card header > span {
+  align-items: center;
+  background: #f5e9dd;
+  border-radius: 12px;
+  color: #965b23;
+  display: flex;
+  flex: 0 0 52px;
+  height: 52px;
+  justify-content: center;
+}
+
+.delivery-offer__card header div {
+  flex: 1;
+}
+
+.delivery-offer__card header small,
+.delivery-offer__route small {
+  color: #9a6027;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+
+.delivery-offer__card h1 {
+  color: #172131;
+  font-size: clamp(24px, 4vw, 32px);
+  margin: 4px 0 0;
+}
+
+.delivery-offer__card header > strong {
+  background: #f7f1eb;
+  border-radius: 999px;
+  color: #86501f;
+  font-size: 12px;
+  padding: 8px 11px;
+  white-space: nowrap;
+}
+
+.delivery-offer__route {
+  background: #faf9f7;
+  border: 1px solid #ece8e3;
+  border-radius: 12px;
+  margin-top: 26px;
+  padding: 20px;
+}
+
+.delivery-offer__route > div {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+
+.delivery-offer__route p {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.delivery-offer__route strong {
+  color: #273243;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.delivery-offer__route i {
+  border-left: 2px dashed #c99d74;
+  display: block;
+  height: 28px;
+  margin-left: 6px;
+}
+
+.delivery-offer__dot {
+  background: #fff;
+  border: 3px solid #273243;
+  border-radius: 50%;
+  flex: 0 0 14px;
+  height: 14px;
+  margin-top: 3px;
+}
+
+.delivery-offer__dot--pickup {
+  border-color: #9a6027;
+}
+
+.delivery-offer__notice {
+  color: #747d8a;
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 20px 0;
+}
+
+.delivery-offer__pricing {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 14px;
+}
+
+.delivery-offer__pricing p {
+  background: #fbf7f2;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 12px;
+}
+
+.delivery-offer__pricing small {
+  color: #8a7868;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.delivery-offer__pricing strong {
+  color: #8f561f;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.delivery-offer__card > button {
+  align-items: center;
+  background: #965b23;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 50px;
+  width: 100%;
+}
+
+.delivery-offer__card > button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.delivery-offer__state {
+  align-items: center;
+  color: #737c89;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 90px;
+}
+
+.delivery-offer__spinner {
+  animation: offer-spin 800ms linear infinite;
+  border: 3px solid #eadfd5;
+  border-radius: 50%;
+  border-top-color: #965b23;
+  display: inline-block;
+  height: 30px;
+  width: 30px;
+}
+
+.delivery-offer__spinner--button {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  height: 16px;
+  width: 16px;
+}
+
+.delivery-offer__error {
+  color: #b42318;
+  margin: 40px auto;
+  text-align: center;
+}
+
+@keyframes offer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .delivery-offer {
+    padding: 20px 16px 72px;
+  }
+
+  .delivery-offer__card {
+    padding: 20px;
+  }
+
+  .delivery-offer__card header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .delivery-offer__pricing {
+    grid-template-columns: 1fr;
+  }
+}

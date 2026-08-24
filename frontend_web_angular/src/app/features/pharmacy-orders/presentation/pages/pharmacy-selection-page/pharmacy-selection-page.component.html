@@ -1,0 +1,64 @@
+<main class="pharmacy-selection">
+  <app-appointment-tracking-stepper
+    [steps]="steps"
+    [progress]="0"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Étapes de la commande en pharmacie"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <div class="pharmacy-selection__content">
+    <div #map class="pharmacy-selection__map" aria-label="Carte des pharmacies à proximité"></div>
+
+    <section class="pharmacy-selection__panel" aria-labelledby="pharmacy-selection-title">
+      <header>
+        <h1 id="pharmacy-selection-title">Pharmacies à<br />proximité</h1>
+        <p>Sélectionnez la pharmacie qui recevra votre ordonnance et préparera votre commande.</p>
+      </header>
+
+      <p *ngIf="loading()" class="pharmacy-selection__status">Recherche des pharmacies...</p>
+      <p *ngIf="!loading() && pharmacies().length === 0 && !error()" class="pharmacy-selection__status">
+        Aucune pharmacie disponible à proximité.
+      </p>
+
+      <div class="pharmacy-selection__list" *ngIf="pharmacies().length > 0">
+        <button
+          *ngFor="let pharmacy of pharmacies()"
+          type="button"
+          class="pharmacy-selection__item"
+          [class.is-selected]="selected()?.id === pharmacy.id"
+          [attr.aria-pressed]="selected()?.id === pharmacy.id"
+          (click)="choose(pharmacy)"
+        >
+          <span class="pharmacy-selection__item-copy">
+            <strong>{{ pharmacy.name }}</strong>
+            <small>
+              <span *ngIf="pharmacy.totalReviews > 0" class="pharmacy-selection__rating">
+                ★ {{ pharmacy.rating | number: '1.1-1' }} ({{ pharmacy.totalReviews }})
+              </span>
+              {{ pharmacy.address || pharmacy.city || 'Adresse à confirmer' }}
+            </small>
+          </span>
+          <span class="pharmacy-selection__distance">~{{ pharmacy.distanceKm | number: '1.0-1' }} km</span>
+          <lucide-icon name="chevron-right" size="15" [strokeWidth]="2"></lucide-icon>
+        </button>
+      </div>
+
+      <p *ngIf="error()" class="pharmacy-selection__error" role="alert">{{ error() }}</p>
+
+      <button
+        class="pharmacy-selection__send"
+        type="button"
+        [disabled]="!selected() || sending()"
+        (click)="send()"
+      >
+        <ng-container *ngIf="selected() as pharmacy; else noSelection">
+          {{ sending() ? 'Envoi en cours...' : 'Envoyer mon ordonnance à ' + pharmacy.name }}
+        </ng-container>
+        <ng-template #noSelection>Sélectionnez une pharmacie</ng-template>
+      </button>
+    </section>
+  </div>
+</main>

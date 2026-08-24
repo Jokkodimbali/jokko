@@ -13,6 +13,7 @@ import { EscrowService } from './application/services/escrow.service';
 import { WithdrawalService } from './application/services/withdrawal.service';
 import { WalletQueryService } from './application/services/wallet-query.service';
 import { SavedPaymentMethodsService } from './application/services/saved-payment-methods.service';
+import { PharmacyOrderPaymentService } from './application/services/pharmacy-order-payment.service';
 import { PaymentsRepositoryImpl } from './infrastructure/repositories/payments.repository';
 import { WithdrawalsRepositoryImpl } from './infrastructure/repositories/withdrawals.repository';
 import { PaymentWorkflowRepository } from './infrastructure/repositories/payment-workflow.repository';
@@ -83,6 +84,7 @@ import { CategoriesModule } from '../categories/categories.module';
     WithdrawalService,
     WalletQueryService,
     SavedPaymentMethodsService,
+    PharmacyOrderPaymentService,
     MockPaymentGatewayAdapter,
     WavePaymentGatewayAdapter,
     OrangeMoneyPaymentGatewayAdapter,
@@ -148,6 +150,6 @@ import { CategoriesModule } from '../categories/categories.module';
       useClass: WalletLedgerRepository,
     },
   ],
-  exports: [PaymentsFacade],
+  exports: [PaymentsFacade, PharmacyOrderPaymentService],
 })
 export class PaymentsModule {}

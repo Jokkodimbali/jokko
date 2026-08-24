@@ -20,7 +20,7 @@ export type DoctorSpaceSection =
   styleUrl: './doctor-space-sidebar.component.scss',
 })
 export class DoctorSpaceSidebarComponent {
-  @Input({ required: true }) activeSection: DoctorSpaceSection = 'availability';
+  @Input({ required: true }) activeSection: DoctorSpaceSection | 'pharmacy' = 'availability';
   @Input({ required: true }) ariaLabel = 'Navigation de l espace professionnel';
   @Input() showConsultationSection = true;
   @Input() serviceSectionLabel = 'Services';
@@ -28,7 +28,9 @@ export class DoctorSpaceSidebarComponent {
   @Input() appointmentHistorySectionLabel = 'Historique medical';
   @Input() showNegotiationsSection = false;
   @Input() showPatientAppointmentsSection = false;
+  @Input() showPharmacySection = false;
 
   @Output() readonly backRequested = new EventEmitter<void>();
   @Output() readonly sectionSelected = new EventEmitter<DoctorSpaceSection>();
+  @Output() readonly pharmacyRequested = new EventEmitter<void>();
 }

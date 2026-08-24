@@ -60,6 +60,7 @@ export class AppointmentTrackingStepperComponent {
   @Input() progress = 0;
   @Input() ariaLabel = 'Suivi de la reservation';
   @Input() providerMode = false;
+  @Input() pharmacyMode = false;
   @Input() showBack = true;
   @Input() backOnly = false;
   @Input() embedded = false;

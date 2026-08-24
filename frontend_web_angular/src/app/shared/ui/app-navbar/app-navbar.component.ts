@@ -90,8 +90,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected readonly unreadMessagesCount = signal(0);
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
   private readonly notificationHistory = signal<UserNotificationView[]>([]);
-  protected readonly featuredNotification = computed(
-    () => findFeaturedNotification(this.notificationHistory()),
+  protected readonly featuredNotification = computed(() =>
+    findFeaturedNotification(this.notificationHistory()),
   );
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
@@ -330,7 +330,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected notificationActorInitials(notification: UserNotificationView): string {
     const metadata = notification.data || notification.donnees || {};
     const actorName = metadata['actorName'];
-    return userInitials(typeof actorName === 'string' ? actorName : this.notificationTitle(notification), 'N');
+    return userInitials(
+      typeof actorName === 'string' ? actorName : this.notificationTitle(notification),
+      'N',
+    );
   }
 
   protected openNotification(notification: UserNotificationView): void {
@@ -384,10 +387,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     return Boolean(notification.isRead ?? notification.estLue);
   }
 
-  protected notificationTypeLabel(
-    type: string,
-    notification?: UserNotificationView,
-  ): string {
+  protected notificationTypeLabel(type: string, notification?: UserNotificationView): string {
     const normalized = (type || '').toLowerCase();
     const metadata = notification?.data || notification?.donnees || {};
     if (normalized.includes('ajustement')) return 'Ajustement du prix';
@@ -398,6 +398,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     if (normalized.includes('message')) return 'Message';
     if (normalized.includes('kyc')) return 'Validation du profil';
     if (normalized.includes('litige')) return 'Litige';
+    if (normalized.includes('ordonnance')) return 'Ordonnance';
     if (normalized.includes('appel')) return 'Appel';
     if (normalized.includes('annonce')) return 'Information Jokko';
     return 'Notification';
@@ -504,9 +505,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     this.notificationPreview.set([cached]);
   }
 
-  private mergeNotificationHistory(
-    notifications: UserNotificationView[],
-  ): UserNotificationView[] {
+  private mergeNotificationHistory(notifications: UserNotificationView[]): UserNotificationView[] {
     const cached = this.featuredNotificationCache.read(this.currentUser()?.id);
     if (!cached || notifications.some((notification) => notification.id === cached.id)) {
       return notifications;
@@ -640,5 +639,4 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const value = metadata[key];
     return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
-
 }

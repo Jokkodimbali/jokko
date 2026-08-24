@@ -42,6 +42,7 @@ import {
   BackendReservation,
 } from '../../../../appointments/domain/appointments.models';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
+import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
 import {
   DoctorSpaceService,
   PatientMedicalProfile,
@@ -351,6 +352,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly proposalService = inject(ServiceProposalService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
+  private readonly pharmacyOrdersService = inject(PharmacyOrdersService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
@@ -362,6 +364,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly loadedSections = new Set<DoctorSpaceSection>();
 
   protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
+  protected readonly showPharmacySpace = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -715,8 +718,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly pauseProgress = computed(() =>
     this.progressPercent(this.appointmentPause(), 0, 60),
   );
-  protected readonly appointmentStepMinutes = computed(
-    () => this.appointmentDuration() + this.appointmentPause(),
+  protected readonly appointmentStepMinutes = computed(() =>
+    Math.max(5, this.appointmentDuration() + this.appointmentPause()),
   );
   protected readonly weeklyAppointmentCapacity = computed(() =>
     this.days().reduce((total, day) => total + this.dayAppointmentCapacity(day), 0),
@@ -1240,6 +1243,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.activeSection.set(this.resolveSectionFromRoute());
+    this.loadPharmacyAccess();
     this.loadSchedule();
   }
 
@@ -1255,6 +1259,22 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.backNavigation.back(this.route.snapshot.queryParamMap.get('returnUrl'), '/services', {
       preferReturnUrl: true,
     });
+  }
+
+  protected openPharmacySpace(): void {
+    if (!this.showPharmacySpace()) return;
+    void this.router.navigate(['/pharmacy-orders']);
+  }
+
+  private loadPharmacyAccess(): void {
+    if (!this.isProviderSpace()) {
+      this.showPharmacySpace.set(false);
+      return;
+    }
+    this.pharmacyOrdersService
+      .getAccess()
+      .pipe(catchError(() => of({ isPharmacy: false })))
+      .subscribe((access) => this.showPharmacySpace.set(access.isPharmacy));
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {
@@ -2495,7 +2515,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             durationMinutes,
             pauseMinutes: this.appointmentPause(),
             isRequired: this.motifForm.isRequired,
-            teleconsultationEnabled: !this.isProviderSpace() && this.motifForm.teleconsultationEnabled,
+            teleconsultationEnabled:
+              !this.isProviderSpace() && this.motifForm.teleconsultationEnabled,
           }),
         ),
         finalize(() => {

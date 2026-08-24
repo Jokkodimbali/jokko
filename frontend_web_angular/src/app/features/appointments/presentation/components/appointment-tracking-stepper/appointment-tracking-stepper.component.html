@@ -1,10 +1,11 @@
 <section
   class="appointment-tracking-stepper"
   [class.appointment-tracking-stepper--provider]="providerMode"
+  [class.appointment-tracking-stepper--pharmacy]="pharmacyMode"
   [class.appointment-tracking-stepper--back-only]="backOnly"
   [attr.aria-label]="ariaLabel"
 >
-  <button type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
+  <button *ngIf="showBack" type="button" class="appointment-tracking-stepper__back" (click)="back.emit()">
     <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
     Retour
   </button>

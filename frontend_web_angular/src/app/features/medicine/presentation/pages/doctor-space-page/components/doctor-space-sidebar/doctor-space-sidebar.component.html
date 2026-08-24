@@ -16,6 +16,16 @@
 
   <nav [attr.aria-label]="ariaLabel">
     <button
+      *ngIf="showPharmacySection"
+      type="button"
+      class="doctor-space-sidebar__nav-item--pharmacy"
+      [class.doctor-space-sidebar__nav-item--active]="activeSection === 'pharmacy'"
+      (click)="pharmacyRequested.emit()"
+    >
+      <lucide-icon name="pill" size="34" [strokeWidth]="2.1"></lucide-icon>
+      <span>Espace pharmacie</span>
+    </button>
+    <button
       *ngIf="showNegotiationsSection"
       type="button"
       [class.doctor-space-sidebar__nav-item--active]="activeSection === 'negotiations'"

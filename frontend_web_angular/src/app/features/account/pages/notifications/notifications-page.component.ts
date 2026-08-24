@@ -148,6 +148,7 @@ export class NotificationsPageComponent implements OnInit {
     if (normalized.includes('message')) return 'Message';
     if (normalized.includes('kyc')) return 'Validation du profil';
     if (normalized.includes('litige')) return 'Litige';
+    if (normalized.includes('ordonnance')) return 'Ordonnance';
     if (normalized.includes('appel')) return 'Appel';
     if (normalized.includes('annonce')) return 'Information Jokko';
     return 'Notification';

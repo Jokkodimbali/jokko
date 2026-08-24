@@ -175,6 +175,69 @@
   cursor: pointer;
 }
 
+.appointment-tracking-stepper--pharmacy {
+  min-height: 88px;
+  padding: 0;
+
+  .appointment-tracking-stepper__rail {
+    grid-template-columns: repeat(var(--step-count, 4), minmax(110px, 1fr));
+    margin-inline: 112px;
+    max-width: 920px;
+  }
+
+  .appointment-tracking-stepper__step {
+    color: #8e99aa;
+    gap: 8px;
+  }
+
+  .appointment-tracking-stepper__step:not(:last-child)::after,
+  .appointment-tracking-stepper__step:nth-last-child(2)::after {
+    background: #dce1e7;
+    left: calc(50% + 38px);
+    top: 20px;
+    width: calc(100% - 76px);
+  }
+
+  .appointment-tracking-stepper__step.is-done::after,
+  .appointment-tracking-stepper__step.is-active::after {
+    background: #955d24;
+  }
+
+  .appointment-tracking-stepper__step span,
+  .appointment-tracking-stepper__step.is-active span,
+  .appointment-tracking-stepper__step:last-child span {
+    background: #f2f4f7;
+    border: 0;
+    color: #96a0b0;
+    font-size: 16px;
+    height: 40px;
+    margin-top: 0;
+    width: 40px;
+  }
+
+  .appointment-tracking-stepper__step.is-done span,
+  .appointment-tracking-stepper__step.is-active span {
+    background: #955d24;
+    color: #ffffff;
+  }
+
+  .appointment-tracking-stepper__step.is-active:not(:first-child) span {
+    background: #ffffff;
+    border: 1.5px solid #955d24;
+    color: #955d24;
+  }
+
+  .appointment-tracking-stepper__step strong {
+    color: #8e99aa;
+    font-size: 14px;
+  }
+
+  .appointment-tracking-stepper__step.is-done strong,
+  .appointment-tracking-stepper__step.is-active strong {
+    color: #864d17;
+  }
+}
+
 @media (max-width: 920px) {
   .appointment-tracking-stepper {
     justify-content: flex-start;
@@ -265,5 +328,33 @@
     letter-spacing: 0.03em;
     line-height: 1.2;
     max-width: 100%;
+  }
+
+  .appointment-tracking-stepper--pharmacy {
+    min-height: 96px;
+
+    .appointment-tracking-stepper__rail {
+      grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
+      margin-inline: 0;
+      padding-top: 50px;
+    }
+
+    .appointment-tracking-stepper__step span,
+    .appointment-tracking-stepper__step.is-active span,
+    .appointment-tracking-stepper__step:last-child span {
+      height: 34px;
+      width: 34px;
+    }
+
+    .appointment-tracking-stepper__step:not(:last-child)::after,
+    .appointment-tracking-stepper__step:nth-last-child(2)::after {
+      left: calc(50% + 30px);
+      top: 16px;
+      width: calc(100% - 60px);
+    }
+
+    .appointment-tracking-stepper__step strong {
+      font-size: clamp(9px, 2.8vw, 12px);
+    }
   }
 }

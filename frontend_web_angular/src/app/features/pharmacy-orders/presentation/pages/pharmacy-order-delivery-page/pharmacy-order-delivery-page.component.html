@@ -1,0 +1,68 @@
+<main class="pharmacy-delivery">
+  <app-appointment-tracking-stepper
+    [steps]="steps"
+    [progress]="82"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Étapes de la commande en pharmacie"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <section *ngIf="loading()" class="pharmacy-delivery__state" aria-live="polite">
+    <span class="pharmacy-delivery__spinner" aria-hidden="true"></span>
+    <p>Préparation du suivi de livraison...</p>
+  </section>
+
+  <p *ngIf="errorMessage()" class="pharmacy-delivery__error" role="alert">
+    {{ errorMessage() }}
+  </p>
+
+  <section *ngIf="order() as current" class="pharmacy-delivery__content">
+    <article class="pharmacy-delivery__map" aria-label="Zone de suivi du livreur">
+      <div class="pharmacy-delivery__route" aria-hidden="true">
+        <span class="pharmacy-delivery__point pharmacy-delivery__point--pharmacy">
+          <lucide-icon name="package" size="22"></lucide-icon>
+        </span>
+        <i></i>
+        <span class="pharmacy-delivery__courier">
+          <lucide-icon name="navigation" size="24"></lucide-icon>
+        </span>
+        <i></i>
+        <span class="pharmacy-delivery__point pharmacy-delivery__point--client">
+          <lucide-icon name="map-pin" size="22"></lucide-icon>
+        </span>
+      </div>
+      <div class="pharmacy-delivery__addresses">
+        <p>
+          <small>RETRAIT</small><strong>{{ current.pharmacy.name }}</strong>
+        </p>
+        <p>
+          <small>LIVRAISON</small><strong>{{ current.client.nom }}</strong>
+        </p>
+      </div>
+    </article>
+
+    <article class="pharmacy-delivery__panel">
+      <span class="pharmacy-delivery__eyebrow">ÉTAPE LIVRAISON</span>
+      <h1>Livraison de la commande</h1>
+      <p>
+        Votre paiement est validé. Nous recherchons un livreur pour récupérer vos médicaments à la
+        pharmacie.
+      </p>
+
+      <div class="pharmacy-delivery__waiting">
+        <span class="pharmacy-delivery__spinner" aria-hidden="true"></span>
+        <div>
+          <strong>Recherche d’un livreur en cours</strong>
+          <small>Le suivi du trajet s’ouvrira automatiquement dès son affectation.</small>
+        </div>
+      </div>
+
+      <div class="pharmacy-delivery__amount" *ngIf="current.medicineAmount !== null">
+        <span>Commande payée</span>
+        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+      </div>
+    </article>
+  </section>
+</main>

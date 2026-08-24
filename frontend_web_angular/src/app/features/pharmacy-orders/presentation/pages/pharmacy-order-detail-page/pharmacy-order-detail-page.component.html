@@ -1,0 +1,303 @@
+<main class="pharmacy-order">
+  <app-appointment-tracking-stepper
+    [steps]="steps()"
+    [progress]="progress()"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Étapes de la commande en pharmacie"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <section *ngIf="isLoading()" class="pharmacy-order__loading" aria-live="polite">
+    <span class="pharmacy-order__spinner" aria-hidden="true"></span>
+    <p>Chargement de votre commande...</p>
+  </section>
+
+  <p *ngIf="errorMessage()" class="pharmacy-order__error" role="alert">{{ errorMessage() }}</p>
+
+  <ng-container *ngIf="order() as current">
+    <section *ngIf="isPharmacyViewer()" class="pharmacy-review">
+      <header class="pharmacy-review__heading">
+        <span>ESPACE PHARMACIE</span>
+        <h1>Ordonnance de {{ current.client.nom }}</h1>
+        <p>Reçue le {{ current.createdAt | date: 'dd MMMM yyyy à HH:mm' }}</p>
+      </header>
+
+      <div class="pharmacy-review__layout">
+        <article class="pharmacy-review__prescription">
+          <header>
+            <div>
+              <span>Ordonnance médicale</span>
+              <small>Réf. {{ prescriptionReference(current) }}</small>
+            </div>
+            <strong>{{ medicines(current).length }} élément(s)</strong>
+          </header>
+
+          <div class="pharmacy-review__patient">
+            <small>PATIENT</small>
+            <strong>{{ current.client.nom }}</strong>
+          </div>
+
+          <div class="pharmacy-review__items">
+            <div *ngFor="let medicine of medicines(current); let index = index">
+              <span>{{ index + 1 }}</span>
+              <p>
+                <strong>{{ medicine }}</strong
+                ><small>Prescription médicale</small>
+              </p>
+            </div>
+            <p *ngIf="medicines(current).length === 0" class="prescription-card__empty">
+              Aucun médicament n’a été renseigné dans cette ordonnance.
+            </p>
+          </div>
+
+          <footer>
+            <span>Prescrit par</span>
+            <strong>{{ current.medicalReservation.prescriber.name }}</strong>
+          </footer>
+        </article>
+
+        <form
+          *ngIf="current.status === 'EN_ATTENTE_PHARMACIE'; else processedOrder"
+          class="pharmacy-review__form"
+          (ngSubmit)="submitDecision(current)"
+        >
+          <div class="pharmacy-review__form-heading">
+            <span class="pharmacy-review__status-dot"></span>
+            <div>
+              <strong>Ordonnance à vérifier</strong
+              ><small>Votre réponse sera envoyée au patient</small>
+            </div>
+          </div>
+
+          <fieldset>
+            <legend>Votre décision</legend>
+            <label [class.is-selected]="decisionStatus === 'EN_ATTENTE_PAIEMENT'">
+              <input
+                type="radio"
+                name="decision"
+                value="EN_ATTENTE_PAIEMENT"
+                [(ngModel)]="decisionStatus"
+              />
+              <span
+                ><strong>Tout est disponible</strong
+                ><small>La commande peut être payée</small></span
+              >
+            </label>
+            <label [class.is-selected]="decisionStatus === 'PARTIELLEMENT_DISPONIBLE'">
+              <input
+                type="radio"
+                name="decision"
+                value="PARTIELLEMENT_DISPONIBLE"
+                [(ngModel)]="decisionStatus"
+              />
+              <span
+                ><strong>Disponibilité partielle</strong
+                ><small>Certains médicaments manquent</small></span
+              >
+            </label>
+            <label [class.is-selected]="decisionStatus === 'INDISPONIBLE'">
+              <input
+                type="radio"
+                name="decision"
+                value="INDISPONIBLE"
+                [(ngModel)]="decisionStatus"
+              />
+              <span
+                ><strong>Indisponible</strong
+                ><small>La commande ne peut pas être préparée</small></span
+              >
+            </label>
+          </fieldset>
+
+          <label *ngIf="decisionStatus === 'EN_ATTENTE_PAIEMENT'" class="pharmacy-review__field">
+            <span>Prix total des médicaments <b>*</b></span>
+            <div class="pharmacy-review__amount">
+              <input
+                type="number"
+                name="medicineAmount"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                placeholder="Ex. 12 500"
+                [(ngModel)]="medicineAmount"
+                required
+              />
+              <strong>FCFA</strong>
+            </div>
+            <small>Prix fixe, sans négociation et sans commission Jokko.</small>
+          </label>
+
+          <label *ngIf="decisionStatus !== 'EN_ATTENTE_PAIEMENT'" class="pharmacy-review__field">
+            <span>Médicaments indisponibles</span>
+            <textarea
+              name="unavailableItems"
+              rows="3"
+              maxlength="1000"
+              placeholder="Un médicament par ligne"
+              [(ngModel)]="unavailableItemsText"
+            ></textarea>
+          </label>
+
+          <label class="pharmacy-review__field">
+            <span>Note au patient <em>Facultatif</em></span>
+            <textarea
+              name="pharmacyNote"
+              rows="3"
+              maxlength="1000"
+              placeholder="Ajoutez une précision utile..."
+              [(ngModel)]="pharmacyNote"
+            ></textarea>
+          </label>
+
+          <p *ngIf="decisionError()" class="pharmacy-review__form-error" role="alert">
+            {{ decisionError() }}
+          </p>
+          <button type="submit" [disabled]="isSubmitting()">
+            <span
+              *ngIf="isSubmitting()"
+              class="pharmacy-order__spinner pharmacy-order__spinner--button"
+              aria-hidden="true"
+            ></span>
+            {{ isSubmitting() ? 'Envoi en cours...' : 'Confirmer ma réponse' }}
+          </button>
+        </form>
+
+        <ng-template #processedOrder>
+          <article class="pharmacy-review__processed">
+            <lucide-icon name="circle-check" size="46"></lucide-icon>
+            <span>RÉPONSE ENVOYÉE</span>
+            <h2>{{ statusLabel(current.status) }}</h2>
+            <p>Le patient a été notifié automatiquement de votre décision.</p>
+            <strong *ngIf="current.medicineAmount !== null">
+              {{ current.medicineAmount | number: '1.0-0' }} FCFA
+            </strong>
+            <small *ngIf="current.pharmacyNote">{{ current.pharmacyNote }}</small>
+          </article>
+        </ng-template>
+      </div>
+    </section>
+
+    <section
+      *ngIf="current.status === 'EN_ATTENTE_PHARMACIE' && !isPharmacyViewer()"
+      class="pharmacy-order__waiting"
+      aria-live="polite"
+    >
+      <span
+        class="pharmacy-order__spinner pharmacy-order__spinner--large"
+        aria-hidden="true"
+      ></span>
+      <h1>En attente de la validation de l’ordonnance par la pharmacie</h1>
+      <p>
+        {{ current.pharmacy.name }} vérifie la disponibilité de vos médicaments. Cette page se
+        mettra à jour automatiquement dès que la pharmacie aura répondu.
+      </p>
+      <span class="pharmacy-order__waiting-badge">Ordonnance envoyée</span>
+    </section>
+
+    <section
+      *ngIf="isAccepted(current.status) && !isPharmacyViewer()"
+      class="pharmacy-order__accepted"
+    >
+      <article class="prescription-card">
+        <header class="prescription-card__header">
+          <div>
+            <span>Ordonnance médicale</span>
+            <small>
+              Réf. {{ prescriptionReference(current) }} ·
+              {{ current.medicalReservation.scheduledAt | date: 'dd MMMM yyyy' }}
+            </small>
+          </div>
+          <strong><lucide-icon name="circle-check" size="14"></lucide-icon> Acceptée</strong>
+        </header>
+
+        <div class="prescription-card__prescriber">
+          <small>PRESCRIPTEUR</small>
+          <strong>{{ current.medicalReservation.prescriber.name }}</strong>
+          <span>{{ current.medicalReservation.prescriber.specialty }}</span>
+        </div>
+
+        <div class="prescription-card__medicines">
+          <div *ngFor="let medicine of medicines(current)">
+            <span class="prescription-card__pill">
+              <lucide-icon name="pill" size="15"></lucide-icon>
+            </span>
+            <p>
+              <strong>{{ medicine }}</strong
+              ><small>Médicament prescrit</small>
+            </p>
+          </div>
+          <p *ngIf="medicines(current).length === 0" class="prescription-card__empty">
+            Les détails de l’ordonnance sont disponibles auprès de la pharmacie.
+          </p>
+        </div>
+
+        <footer>
+          <span>Signature électronique vérifiée · Ordre des médecins du Sénégal</span>
+          <strong *ngIf="current.medicineAmount !== null">
+            {{ current.medicineAmount | number: '1.0-0' }} FCFA
+          </strong>
+        </footer>
+      </article>
+
+      <article class="accepted-panel">
+        <h1>Commande acceptée</h1>
+        <p>
+          {{ current.pharmacy.name }} a accepté votre commande. Vérifiez le détail puis réglez pour
+          déclencher la préparation.
+        </p>
+
+        <div class="accepted-panel__doctor">
+          <span class="accepted-panel__avatar">
+            <img
+              *ngIf="current.medicalReservation.prescriber.avatarUrl; else initialsTemplate"
+              [src]="current.medicalReservation.prescriber.avatarUrl"
+              [alt]="current.medicalReservation.prescriber.name"
+            />
+            <ng-template #initialsTemplate>
+              {{ initials(current.medicalReservation.prescriber.name) }}
+            </ng-template>
+          </span>
+          <p>
+            <strong>{{ current.medicalReservation.prescriber.name }}</strong>
+            <span>{{ current.medicalReservation.prescriber.specialty }}</span>
+          </p>
+          <small
+            *ngIf="current.medicalReservation.prescriber.totalReviews > 0"
+            class="accepted-panel__rating"
+          >
+            ★ {{ current.medicalReservation.prescriber.rating | number: '1.1-1' }}
+          </small>
+        </div>
+
+        <button type="button" class="accepted-panel__pay" (click)="proceedToPayment(current)">
+          Procéder au paiement <lucide-icon name="chevron-right" size="16"></lucide-icon>
+        </button>
+      </article>
+    </section>
+
+    <section
+      *ngIf="
+        !isPharmacyViewer() &&
+        (current.status === 'PARTIELLEMENT_DISPONIBLE' || current.status === 'INDISPONIBLE')
+      "
+      class="pharmacy-order__unavailable"
+    >
+      <lucide-icon name="circle-alert" size="34"></lucide-icon>
+      <h1>
+        {{
+          current.status === 'INDISPONIBLE'
+            ? 'Médicaments indisponibles'
+            : 'Ordonnance partiellement disponible'
+        }}
+      </h1>
+      <p>
+        {{ current.pharmacyNote || 'La pharmacie a terminé la vérification de votre ordonnance.' }}
+      </p>
+      <p *ngIf="current.unavailableItems.length">
+        <strong>Indisponibles :</strong> {{ current.unavailableItems.join(', ') }}
+      </p>
+    </section>
+  </ng-container>
+</main>

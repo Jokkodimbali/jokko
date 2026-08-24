@@ -1,0 +1,164 @@
+:host { display: block; }
+
+.pharmacy-selection {
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 1270px;
+  min-height: calc(100vh - 72px);
+  padding: 20px 24px 72px;
+}
+
+.pharmacy-selection__content {
+  align-items: stretch;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(640px, 798px) 376px;
+  margin: 12px auto 0;
+  max-width: 1222px;
+  width: 100%;
+}
+
+.pharmacy-selection__map {
+  background: #eef2f5;
+  border: 1px solid #e3e7eb;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(31, 39, 51, 0.18);
+  height: min(700px, calc(100vh - 190px));
+  min-height: 580px;
+  overflow: hidden;
+}
+
+.pharmacy-selection__panel { align-self: center; min-width: 0; }
+.pharmacy-selection__panel header { margin-bottom: 15px; }
+
+.pharmacy-selection__panel h1 {
+  color: #131a27;
+  font-family: var(--font-app);
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.94;
+  margin: 0 0 12px;
+}
+
+.pharmacy-selection__panel header p {
+  color: #7f8794;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 390px;
+}
+
+.pharmacy-selection__list { display: grid; gap: 8px; }
+
+.pharmacy-selection__item {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+  color: #1b2431;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 54px;
+  padding: 10px 13px;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  width: 100%;
+}
+
+.pharmacy-selection__item:hover { border-color: #c7a37d; }
+
+.pharmacy-selection__item.is-selected {
+  background: #fffaf4;
+  border-color: #a86527;
+  box-shadow: 0 3px 10px rgba(149, 93, 36, 0.08);
+}
+
+.pharmacy-selection__item-copy { display: grid; gap: 4px; min-width: 0; }
+
+.pharmacy-selection__item-copy strong,
+.pharmacy-selection__item-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pharmacy-selection__item-copy strong { font-size: 12px; }
+.pharmacy-selection__item-copy small { color: #87909d; font-size: 10px; }
+
+.pharmacy-selection__rating {
+  color: #b87416;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.pharmacy-selection__distance {
+  background: #f5f6f8;
+  border-radius: 999px;
+  color: #747d8b;
+  font-size: 10px;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.pharmacy-selection__item lucide-icon { color: #9ca4af; }
+
+.pharmacy-selection__send {
+  background: #995d20;
+  border: 0;
+  border-radius: 11px;
+  box-shadow: 0 3px 7px rgba(85, 50, 17, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 16px;
+  min-height: 46px;
+  padding: 12px 18px;
+  width: 100%;
+}
+
+.pharmacy-selection__send:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.pharmacy-selection__status,
+.pharmacy-selection__error {
+  border-radius: 12px;
+  font-size: 12px;
+  margin: 12px 0;
+  padding: 14px;
+}
+
+.pharmacy-selection__status { background: #f5f7f9; color: #687281; }
+.pharmacy-selection__error { background: #fff2f1; color: #a13d35; }
+
+@media (min-width: 921px) and (max-width: 1280px) {
+  .pharmacy-selection__content {
+    gap: 32px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+@media (max-width: 920px) {
+  .pharmacy-selection { padding-inline: 18px; }
+  .pharmacy-selection__content { gap: 24px; grid-template-columns: 1fr; }
+  .pharmacy-selection__map {
+    height: auto;
+    min-height: clamp(500px, 68dvh, 620px);
+  }
+  .pharmacy-selection__panel { width: 100%; }
+  .pharmacy-selection__panel h1 br { display: none; }
+}
+
+@media (max-width: 560px) {
+  .pharmacy-selection { min-height: auto; padding: 14px 12px 44px; }
+  .pharmacy-selection__content { margin-top: 8px; }
+  .pharmacy-selection__map {
+    border-radius: 18px;
+    min-height: clamp(460px, 64dvh, 560px);
+  }
+  .pharmacy-selection__panel h1 { font-size: 28px; line-height: 1; }
+}

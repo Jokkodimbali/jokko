@@ -1,0 +1,225 @@
+:host {
+  display: block;
+}
+
+.pharmacy-delivery {
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100vh;
+  padding: 12px 28px 80px;
+}
+
+.pharmacy-delivery app-appointment-tracking-stepper {
+  display: block;
+  margin-bottom: 28px;
+}
+
+.pharmacy-delivery__content {
+  align-items: center;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(460px, 560px) minmax(360px, 450px);
+  justify-content: center;
+  margin: 24px auto 0;
+  max-width: 1038px;
+}
+
+.pharmacy-delivery__map {
+  background:
+    radial-gradient(circle at 25% 30%, rgba(151, 91, 34, 0.13), transparent 22%),
+    linear-gradient(135deg, #f8f3ed 0%, #eef2ef 100%);
+  border: 1px solid #e1e3e5;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(27, 36, 49, 0.1);
+  min-height: 430px;
+  padding: 54px 38px 34px;
+}
+
+.pharmacy-delivery__route {
+  align-items: center;
+  display: flex;
+  min-height: 245px;
+}
+
+.pharmacy-delivery__route i {
+  border-top: 3px dashed #b8895d;
+  flex: 1;
+}
+
+.pharmacy-delivery__point,
+.pharmacy-delivery__courier {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  flex: 0 0 54px;
+  height: 54px;
+  justify-content: center;
+}
+
+.pharmacy-delivery__point {
+  background: #fff;
+  border: 2px solid #975b22;
+  color: #975b22;
+}
+
+.pharmacy-delivery__courier {
+  background: #975b22;
+  box-shadow: 0 8px 18px rgba(151, 91, 34, 0.3);
+  color: #fff;
+}
+
+.pharmacy-delivery__addresses {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pharmacy-delivery__addresses p {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  max-width: 45%;
+}
+
+.pharmacy-delivery__addresses p:last-child {
+  text-align: right;
+}
+
+.pharmacy-delivery__addresses small,
+.pharmacy-delivery__eyebrow {
+  color: #975b22;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+
+.pharmacy-delivery__addresses strong {
+  color: #202b3b;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.pharmacy-delivery__panel h1 {
+  color: #172131;
+  font-size: clamp(30px, 3.25vw, 38px);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  margin: 10px 0 13px;
+  white-space: nowrap;
+}
+
+.pharmacy-delivery__panel > p {
+  color: #777f8e;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+
+.pharmacy-delivery__waiting {
+  align-items: center;
+  background: #fffaf5;
+  border: 1px solid #ead7c5;
+  border-radius: 10px;
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}
+
+.pharmacy-delivery__waiting div {
+  display: flex;
+  flex-direction: column;
+}
+
+.pharmacy-delivery__waiting strong {
+  color: #293444;
+  font-size: 13px;
+}
+
+.pharmacy-delivery__waiting small {
+  color: #818996;
+  font-size: 10px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.pharmacy-delivery__amount {
+  align-items: center;
+  border-top: 1px solid #e6e8ea;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 18px;
+}
+
+.pharmacy-delivery__amount span {
+  color: #727b88;
+  font-size: 12px;
+}
+
+.pharmacy-delivery__amount strong {
+  color: #975b22;
+  font-size: 19px;
+}
+
+.pharmacy-delivery__state {
+  align-items: center;
+  color: #7c8490;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 80px;
+}
+
+.pharmacy-delivery__spinner {
+  animation: delivery-spin 800ms linear infinite;
+  border: 3px solid #eadfd5;
+  border-radius: 50%;
+  border-top-color: #955b22;
+  flex: 0 0 30px;
+  height: 30px;
+  width: 30px;
+}
+
+.pharmacy-delivery__error {
+  color: #b42318;
+  margin: 28px auto;
+  max-width: 650px;
+  text-align: center;
+}
+
+@keyframes delivery-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1060px) {
+  .pharmacy-delivery {
+    padding: 14px 16px 96px;
+  }
+
+  .pharmacy-delivery__content {
+    gap: 30px;
+    grid-template-columns: 1fr;
+    margin-top: 20px;
+    max-width: 560px;
+  }
+
+  .pharmacy-delivery__panel {
+    order: -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .pharmacy-delivery__map {
+    min-height: 330px;
+    padding: 34px 18px 24px;
+  }
+
+  .pharmacy-delivery__route {
+    min-height: 190px;
+  }
+
+  .pharmacy-delivery__panel h1 {
+    font-size: 22px;
+  }
+}

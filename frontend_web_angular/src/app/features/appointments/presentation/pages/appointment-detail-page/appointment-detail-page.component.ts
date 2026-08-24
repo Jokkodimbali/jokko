@@ -13,7 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RemoteTrack } from 'livekit-client';
 import { EMPTY, Observable, Subscription, catchError, distinctUntilChanged, finalize, from, merge, of, switchMap, timer } from 'rxjs';
@@ -161,6 +161,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     LucideAngularModule,
     AppStarRatingComponent,
     AppPresenceDotComponent,

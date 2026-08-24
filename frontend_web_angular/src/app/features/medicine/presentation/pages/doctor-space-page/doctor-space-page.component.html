@@ -8,8 +8,10 @@
     [appointmentHistorySectionLabel]="appointmentHistorySectionLabel()"
     [showNegotiationsSection]="isProviderSpace()"
     [showPatientAppointmentsSection]="!isProviderSpace()"
+    [showPharmacySection]="showPharmacySpace()"
     (backRequested)="goBack()"
     (sectionSelected)="selectSection($event)"
+    (pharmacyRequested)="openPharmacySpace()"
   ></app-doctor-space-sidebar>
 
   <section class="doctor-space__content">
@@ -605,7 +607,11 @@
               <lucide-icon
                 [name]="motif.teleconsultationEnabled ? 'video' : 'video-off'"
                 size="18"
-                [attr.aria-label]="motif.teleconsultationEnabled ? 'Téléconsultation active' : 'Téléconsultation inactive'"
+                [attr.aria-label]="
+                  motif.teleconsultationEnabled
+                    ? 'Téléconsultation active'
+                    : 'Téléconsultation inactive'
+                "
               ></lucide-icon>
             </div>
             <div class="doctor-space__motif-actions" role="cell">
@@ -764,7 +770,9 @@
                   type="button"
                   class="doctor-space__motif-switch"
                   [class.doctor-space__motif-switch--active]="motifEditForm.teleconsultationEnabled"
-                  (click)="motifEditForm.teleconsultationEnabled = !motifEditForm.teleconsultationEnabled"
+                  (click)="
+                    motifEditForm.teleconsultationEnabled = !motifEditForm.teleconsultationEnabled
+                  "
                   aria-label="Activer ou désactiver la téléconsultation"
                 >
                   <span></span>

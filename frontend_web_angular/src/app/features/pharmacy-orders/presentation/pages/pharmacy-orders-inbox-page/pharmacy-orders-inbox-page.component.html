@@ -1,0 +1,98 @@
+<main class="pharmacy-space">
+  <app-doctor-space-sidebar
+    activeSection="pharmacy"
+    ariaLabel="Espace prestataire"
+    [showConsultationSection]="true"
+    serviceSectionLabel="Mes services"
+    agendaSectionLabel="Gestion RDV"
+    appointmentHistorySectionLabel="Historique des RDV"
+    [showNegotiationsSection]="true"
+    [showPatientAppointmentsSection]="false"
+    [showPharmacySection]="true"
+    (backRequested)="leaveProfessionalSpace()"
+    (sectionSelected)="openProviderSection($event)"
+  ></app-doctor-space-sidebar>
+
+  <section class="pharmacy-inbox">
+    <header class="pharmacy-inbox__header">
+      <div>
+        <span>ESPACE PHARMACIE</span>
+        <h1>Ordonnances reçues</h1>
+        <p>Vérifiez les prescriptions envoyées par les patients et répondez rapidement.</p>
+      </div>
+      <button type="button" (click)="load()" [disabled]="loading()">
+        <lucide-icon name="refresh-cw" size="16"></lucide-icon>
+        Actualiser
+      </button>
+    </header>
+
+    <nav class="pharmacy-inbox__tabs" aria-label="Filtres des ordonnances">
+      <button
+        type="button"
+        [class.is-active]="activeFilter() === 'pending'"
+        (click)="activeFilter.set('pending')"
+      >
+        À traiter <span>{{ pendingCount() }}</span>
+      </button>
+      <button
+        type="button"
+        [class.is-active]="activeFilter() === 'processed'"
+        (click)="activeFilter.set('processed')"
+      >
+        Historique
+      </button>
+    </nav>
+
+    <section *ngIf="loading()" class="pharmacy-inbox__state">
+      <span class="pharmacy-inbox__spinner"></span>
+      <p>Chargement des ordonnances...</p>
+    </section>
+
+    <section *ngIf="errorMessage()" class="pharmacy-inbox__state pharmacy-inbox__state--error">
+      <lucide-icon name="circle-alert" size="28"></lucide-icon>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="load()">Réessayer</button>
+    </section>
+
+    <section
+      *ngIf="!loading() && !errorMessage() && visibleOrders().length === 0"
+      class="pharmacy-inbox__state"
+    >
+      <lucide-icon name="clipboard-check" size="34"></lucide-icon>
+      <h2>
+        {{ activeFilter() === 'pending' ? 'Aucune ordonnance à traiter' : 'Aucun historique' }}
+      </h2>
+      <p>Les nouvelles ordonnances apparaîtront ici dès leur réception.</p>
+    </section>
+
+    <section *ngIf="!loading() && visibleOrders().length > 0" class="pharmacy-inbox__list">
+      <a
+        *ngFor="let order of visibleOrders()"
+        [routerLink]="['/pharmacy-orders', order.id]"
+        [queryParams]="{ returnUrl: '/pharmacy-orders' }"
+        class="pharmacy-inbox__card"
+      >
+        <span class="pharmacy-inbox__icon"
+          ><lucide-icon name="file-heart" size="22"></lucide-icon
+        ></span>
+        <div class="pharmacy-inbox__copy">
+          <span
+            class="pharmacy-inbox__status"
+            [class.pharmacy-inbox__status--pending]="order.status === 'EN_ATTENTE_PHARMACIE'"
+          >
+            {{ statusLabel(order.status) }}
+          </span>
+          <h2>{{ order.client.nom }}</h2>
+          <p>
+            {{ medicines(order).length }} médicament(s) ·
+            {{ order.createdAt | date: 'dd MMM yyyy, HH:mm' }}
+          </p>
+        </div>
+        <strong *ngIf="order.medicineAmount !== null">
+          {{ order.medicineAmount | number: '1.0-0' }} FCFA
+        </strong>
+        <lucide-icon name="chevron-right" size="18"></lucide-icon>
+      </a>
+    </section>
+  </section>
+</main>

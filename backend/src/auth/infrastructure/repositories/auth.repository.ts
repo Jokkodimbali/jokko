@@ -447,6 +447,18 @@ export class AuthRepository implements AuthRepositoryPort {
       ]),
     );
 
+    if (
+      data.role === RoleUtilisateur.PRESTATAIRE &&
+      selectedSubCategoryNames.some((subCategory) =>
+        this.isPharmacySubCategoryName(subCategory.nom),
+      )
+    ) {
+      await tx.profilProfessionnel.update({
+        where: { id: data.professionalProfileId },
+        data: { estPharmacie: true },
+      });
+    }
+
     await tx.service.createMany({
       data: categories.map((category) => {
         const specialtyNames = (subCategoriesByCategory.get(category.id) ?? [])
@@ -475,6 +487,15 @@ export class AuthRepository implements AuthRepositoryPort {
     return Array.from(
       new Set((ids ?? []).map((id) => id.trim()).filter(Boolean)),
     );
+  }
+
+  private isPharmacySubCategoryName(name: string): boolean {
+    const normalized = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+    return /\bpharmaci(?:en|e)\b/.test(normalized);
   }
 
   private isMedicalCategoryName(name: string): boolean {

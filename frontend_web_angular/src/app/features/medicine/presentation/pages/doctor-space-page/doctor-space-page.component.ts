@@ -1664,6 +1664,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return negotiation.adresseClientProposee || negotiation.client?.adresse || 'Lieu a confirmer';
   }
 
+  protected isTeleconsultationReservation(reservation: BackendReservation): boolean {
+    return reservation.typeConsultation === 'TELECONSULTATION';
+  }
+
+  protected reservationLocationLabel(reservation: BackendReservation): string {
+    return this.isTeleconsultationReservation(reservation)
+      ? 'Téléconsultation vidéo'
+      : reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignée';
+  }
+
   protected negotiationPhoneHref(negotiation: NegotiationView): string | null {
     const reservation = this.timelineReservationFor(negotiation);
     if (reservation) return this.negotiationReservationPhoneHref(reservation);
@@ -3232,8 +3242,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           })
             .format(scheduledAt)
             .replace('.', ''),
-          locationLabel:
-            reservation.adresseClient || reservation.client?.adresse || 'Lieu non renseigne',
+          locationLabel: this.reservationLocationLabel(reservation),
           amount: this.agendaReservationPrice(reservation),
           status: reservation.statut,
           statusLabel: this.providerHistoryStatusLabel(reservation.statut),
@@ -3422,8 +3431,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       avatarUrl: reservation.client?.urlAvatar ?? null,
       initials: this.initialsForName(patientName),
       serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
-      locationLabel:
-        reservation.adresseClient || reservation.client?.adresse || 'Adresse non renseignee',
+      locationLabel: this.reservationLocationLabel(reservation),
       timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
       dayLabel: scheduledAt.getDate().toString().padStart(2, '0'),
       monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'short' })

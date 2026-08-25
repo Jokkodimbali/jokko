@@ -1498,8 +1498,8 @@
                   <dd>{{ agendaReservationPrice(reservation) | number: '1.0-0' }} FCFA</dd>
                 </div>
                 <div class="doctor-space__agenda-detail-grid-full">
-                  <dt>Adresse</dt>
-                  <dd>{{ reservation.adresseClient || 'Adresse non renseignee' }}</dd>
+                  <dt>{{ isTeleconsultationReservation(reservation) ? 'Mode' : 'Adresse' }}</dt>
+                  <dd>{{ reservationLocationLabel(reservation) }}</dd>
                 </div>
                 <div class="doctor-space__agenda-detail-grid-full" *ngIf="reservation.notes">
                   <dt>Notes</dt>

@@ -1162,6 +1162,15 @@
   margin: 0 0 10px;
 }
 
+.appointment-detail__client-tracking-work
+  .appointment-detail__client-tracking-work-title--teleconsultation {
+  font-size: clamp(14px, 4.2vw, 24px);
+  letter-spacing: -0.02em;
+  max-width: 100%;
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+
 .appointment-detail__client-tracking-work p,
 .appointment-detail__client-tracking-complete p {
   color: #818895;
@@ -1546,7 +1555,9 @@
   height: 40px;
   justify-content: center;
   padding: 0;
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
   width: 40px;
 }
 

@@ -73,7 +73,12 @@
             </div>
             <div>
               <dt>
-                <lucide-icon name="map-pin" size="17" [strokeWidth]="2.2"></lucide-icon> Adresse
+                <lucide-icon
+                  [name]="isTeleconsultation() ? 'video' : 'map-pin'"
+                  size="17"
+                  [strokeWidth]="2.2"
+                ></lucide-icon>
+                {{ isTeleconsultation() ? 'Mode' : 'Adresse' }}
               </dt>
               <dd>{{ appointment.addressLabel }}</dd>
             </div>

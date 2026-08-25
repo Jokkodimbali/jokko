@@ -16,7 +16,19 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RemoteTrack } from 'livekit-client';
-import { EMPTY, Observable, Subscription, catchError, distinctUntilChanged, finalize, from, merge, of, switchMap, timer } from 'rxjs';
+import {
+  EMPTY,
+  Observable,
+  Subscription,
+  catchError,
+  distinctUntilChanged,
+  finalize,
+  from,
+  merge,
+  of,
+  switchMap,
+  timer,
+} from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -316,7 +328,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
   protected readonly isUpdatingStatus = signal(false);
-  protected readonly locationSharingState = signal<'active' | 'recovering' | 'unavailable'>('active');
+  protected readonly locationSharingState = signal<'active' | 'recovering' | 'unavailable'>(
+    'active',
+  );
   protected readonly nowMs = signal(Date.now());
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isRescheduleModalOpen = signal(false);
@@ -454,9 +468,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected shouldShowMedicineDelivery(appointment: AppointmentView): boolean {
     return (
-      this.isClientViewer() &&
-      this.isMedicalAppointment() &&
-      appointment.status === 'TERMINEE'
+      this.isClientViewer() && this.isMedicalAppointment() && appointment.status === 'TERMINEE'
     );
   }
 
@@ -892,8 +904,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 1;
       return 0;
     }
-    if (this.isAppointmentCompleted())
-      return this.isParcelDeliveryFlow() ? 4 : 3;
+    if (this.isAppointmentCompleted()) return this.isParcelDeliveryFlow() ? 4 : 3;
     if (this.isParcelDeliveryFlow()) {
       return this.parcelTrackingStepIndex();
     }
@@ -903,15 +914,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return 0;
   });
   protected readonly trackingStepProgress = computed(() =>
-    Math.round(
-      (this.trackingCurrentStepIndex() /
-        (this.isParcelDeliveryFlow() ? 4 : 3)) *
-        100,
-    ),
+    Math.round((this.trackingCurrentStepIndex() / (this.isParcelDeliveryFlow() ? 4 : 3)) * 100),
   );
   protected readonly trackingTimelineSteps = computed<TrackingStepView[]>(() => {
     const activeIndex = this.trackingCurrentStepIndex();
-    const baseSteps = this.activeTrackingScenario().clientTimelineSteps(this.trackingScenarioContext());
+    const baseSteps = this.activeTrackingScenario().clientTimelineSteps(
+      this.trackingScenarioContext(),
+    );
     const steps = this.isTeleconsultation()
       ? [
           { label: 'Confirmé', description: 'Rendez-vous vidéo planifié', icon: 'calendar-days' },
@@ -932,8 +941,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isProviderWorking() || this.appointment()?.status === 'EN_COURS') return 1;
       return 0;
     }
-    if (this.isAppointmentCompleted())
-      return this.isParcelDeliveryFlow() ? 4 : 3;
+    if (this.isAppointmentCompleted()) return this.isParcelDeliveryFlow() ? 4 : 3;
     if (this.isParcelDeliveryFlow()) {
       return this.parcelTrackingStepIndex();
     }
@@ -944,8 +952,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly providerTrackingStepProgress = computed(() =>
     Math.round(
-      (this.providerTrackingCurrentStepIndex() /
-        (this.isParcelDeliveryFlow() ? 4 : 3)) * 100,
+      (this.providerTrackingCurrentStepIndex() / (this.isParcelDeliveryFlow() ? 4 : 3)) * 100,
     ),
   );
   protected readonly providerTrackingTimelineSteps = computed<TrackingStepView[]>(() => {
@@ -967,7 +974,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }));
   });
   protected readonly providerConsoleEyebrow = computed(() => {
+    if (this.isTeleconsultation() && this.isAppointmentCompleted()) {
+      return 'Téléconsultation terminée';
+    }
     if (this.isAppointmentCompleted()) return 'Mission cloturee';
+    if (this.isTeleconsultation()) return 'Téléconsultation programmée';
     if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan())
       return "Arrive chez l'expediteur";
     if (this.isParcelDeliveryFlow() && this.isParcelAwaitingDropoffScan())
@@ -979,6 +990,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly providerConsoleTitle = computed(() => {
     const appointment = this.appointment();
+    if (this.isTeleconsultation() && this.isAppointmentCompleted()) {
+      return 'Consultation terminée';
+    }
     if (this.isAppointmentCompleted()) return 'Mission terminee';
     if (this.isParcelDeliveryFlow() && this.isParcelAwaitingPickupScan())
       return "Sur place chez l'expediteur";
@@ -990,8 +1004,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return appointment?.timeLabel ?? '--h--';
   });
   protected readonly providerConsoleDescription = computed(() => {
+    if (this.isTeleconsultation() && this.isAppointmentCompleted()) {
+      return 'La téléconsultation est terminée. Le dossier médical et les documents du patient restent accessibles.';
+    }
     if (this.isAppointmentCompleted()) {
       return `${this.finalPriceLabel()} a ete declenche. Le client recevra sa facture PDF immediatement.`;
+    }
+    if (this.isTeleconsultation()) {
+      return this.isProviderWorking()
+        ? 'La téléconsultation est en cours avec le patient.'
+        : "Ouvrez la téléconsultation à l'heure du rendez-vous pour rejoindre le patient en vidéo.";
     }
     if (this.isParcelDeliveryFlow()) {
       if (this.isParcelAwaitingPickupScan()) {
@@ -1038,7 +1060,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly providerPrimaryActionLabel = computed(() => {
     if (this.isAppointmentCompleted()) return 'Voir le recapitulatif';
     if (this.isTeleconsultation()) {
-      return this.isProviderWorking() ? 'Clôturer la téléconsultation' : 'Ouvrir la téléconsultation';
+      return this.isProviderWorking()
+        ? 'Clôturer la téléconsultation'
+        : 'Ouvrir la téléconsultation';
     }
     if (this.isParcelDeliveryFlow()) {
       if (this.isParcelAwaitingPickupScan()) return 'Scanner le QR retrait';
@@ -1129,12 +1153,26 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     providerRole: this.providerRoleLabel(),
     travelerName: this.trackedTravelerName(),
   }));
-  protected readonly clientTrackingTitle = computed(() =>
-    this.activeTrackingScenario().clientTrackingTitle(this.trackingScenarioContext()),
-  );
-  protected readonly clientTrackingDescription = computed(() =>
-    this.activeTrackingScenario().clientTrackingDescription(this.trackingScenarioContext()),
-  );
+  protected readonly clientTrackingTitle = computed(() => {
+    if (this.isTeleconsultation()) {
+      if (this.isAppointmentCompleted()) return 'Téléconsultation terminée';
+      if (this.isProviderWorking()) return 'Téléconsultation en cours';
+      return 'Téléconsultation programmée';
+    }
+    return this.activeTrackingScenario().clientTrackingTitle(this.trackingScenarioContext());
+  });
+  protected readonly clientTrackingDescription = computed(() => {
+    if (this.isTeleconsultation()) {
+      if (this.isAppointmentCompleted()) {
+        return 'Votre téléconsultation est terminée. Vous pouvez consulter vos documents médicaux.';
+      }
+      if (this.isProviderWorking()) {
+        return 'La consultation vidéo sécurisée avec votre médecin est en cours.';
+      }
+      return "Rejoignez la consultation vidéo à l'heure du rendez-vous. Aucun déplacement n'est nécessaire.";
+    }
+    return this.activeTrackingScenario().clientTrackingDescription(this.trackingScenarioContext());
+  });
   protected readonly routeRemainingBadgeLabel = computed(() => {
     if (this.hasTravelerArrivedAtDestination()) return 'Sur place';
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
@@ -2661,10 +2699,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       error: (error) => {
         this.isUpdatingStatus.set(false);
         this.feedback.error(
-          getHttpErrorMessage(
-            error,
-            "Impossible de confirmer la fin de la téléconsultation.",
-          ),
+          getHttpErrorMessage(error, 'Impossible de confirmer la fin de la téléconsultation.'),
         );
       },
     });
@@ -2672,7 +2707,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected openTeleconsultationMessages(appointment: AppointmentView): void {
     void this.router.navigate(['/messages'], {
-      queryParams: appointment.conversationId ? { conversationId: appointment.conversationId } : undefined,
+      queryParams: appointment.conversationId
+        ? { conversationId: appointment.conversationId }
+        : undefined,
     });
   }
 
@@ -2696,11 +2733,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected teleconsultationMainInitials(appointment: AppointmentView): string {
-    return this.isProviderViewer() ? this.clientInitials(appointment) : this.avatarInitials(appointment);
+    return this.isProviderViewer()
+      ? this.clientInitials(appointment)
+      : this.avatarInitials(appointment);
   }
 
   protected teleconsultationLocalInitials(appointment: AppointmentView): string {
-    return this.isProviderViewer() ? this.avatarInitials(appointment) : this.clientInitials(appointment);
+    return this.isProviderViewer()
+      ? this.avatarInitials(appointment)
+      : this.clientInitials(appointment);
   }
 
   protected teleconsultationMainRole(): string {
@@ -2709,15 +2750,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected teleconsultationRemoteVideoTracks(): RemoteTrack[] {
     const muted = this.calls.mutedRemoteTrackIds();
-    return this.calls.remoteTrack().filter(
-      (track) => track.kind === 'video' && !track.isMuted && (!track.sid || !muted.has(track.sid)),
-    );
+    return this.calls
+      .remoteTrack()
+      .filter(
+        (track) =>
+          track.kind === 'video' && !track.isMuted && (!track.sid || !muted.has(track.sid)),
+      );
   }
 
   protected teleconsultationConnectionLabel(): string {
     switch (this.calls.networkState()) {
       case 'CONNECTED':
-        return this.calls.call()?.phase === 'ACTIVE' ? 'Connexion stable · HD' : 'Prêt à se connecter';
+        return this.calls.call()?.phase === 'ACTIVE'
+          ? 'Connexion stable · HD'
+          : 'Prêt à se connecter';
       case 'SIGNAL_RECONNECTING':
       case 'RECONNECTING':
         return 'Reconnexion en cours…';
@@ -2739,9 +2785,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const sessionStartedAt = Date.parse(appointment.updatedAt);
 
     this.teleconsultationStatusSubscription = timer(0, 2500)
-      .pipe(
-        switchMap(() => this.callsApi.listHistory().pipe(catchError(() => of([])))),
-      )
+      .pipe(switchMap(() => this.callsApi.listHistory().pipe(catchError(() => of([])))))
       .subscribe((history) => {
         this.teleconsultationCallEnded.set(
           history.some(
@@ -3098,27 +3142,30 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
       this.refreshAppointmentState(appointmentId);
     });
-    this.trackingLocationSubscription = this.trackingRealtime.locationUpdated$.subscribe((event) => {
-      if (event.reservationId === appointmentId) this.applyRealtimeLocation(event);
-    });
-    this.trackingRouteMetadataSubscription =
-      this.trackingRealtime.routeMetadataUpdated$.subscribe((event) => {
+    this.trackingLocationSubscription = this.trackingRealtime.locationUpdated$.subscribe(
+      (event) => {
+        if (event.reservationId === appointmentId) this.applyRealtimeLocation(event);
+      },
+    );
+    this.trackingRouteMetadataSubscription = this.trackingRealtime.routeMetadataUpdated$.subscribe(
+      (event) => {
         if (event.reservationId === appointmentId) this.applyRealtimeRouteMetadata(event);
-      });
+      },
+    );
     this.routeSelectionSubscription = this.trackingRealtime.routeSelected$.subscribe((event) => {
       if (event.reservationId !== appointmentId || this.isRouteActorViewer()) return;
-      const coordinates = event.coordinates.map(
-        ({ lat, lng }) => [lat, lng] as [number, number],
-      );
+      const coordinates = event.coordinates.map(({ lat, lng }) => [lat, lng] as [number, number]);
       if (coordinates.length < 2) return;
 
-      this.routeOptions = [{
-        id: event.routeId,
-        coordinates,
-        distanceKm: event.distanceKm,
-        durationMinutes: event.durationMinutes,
-        navigationSteps: event.navigationSteps,
-      }];
+      this.routeOptions = [
+        {
+          id: event.routeId,
+          coordinates,
+          distanceKm: event.distanceKm,
+          durationMinutes: event.durationMinutes,
+          navigationSteps: event.navigationSteps,
+        },
+      ];
       this.selectedRouteId.set(event.routeId);
       this.applySelectedRoute(this.routeOptions[0]);
       this.routeStatus.set('ready');
@@ -3260,20 +3307,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.clearNavigationRouteAfterArrival();
     this.renderArrivalOnMap(appointment, destination, this.reliableTrackingHeading());
 
-    this.appointmentsService
-      .confirmTrackingArrival(appointment.id)
-      .subscribe({
-        next: (tracking) => {
-          this.setTrackingSafely(tracking);
-          this.stopProviderLocationSharing();
-          this.refreshAppointmentAfterArrival(appointment.id);
-          this.feedback.success('Arrivee confirmee. Le medecin peut commencer la prestation.');
-        },
-        error: () => {
-          this.isUpdatingStatus.set(false);
-          this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
-        },
-      });
+    this.appointmentsService.confirmTrackingArrival(appointment.id).subscribe({
+      next: (tracking) => {
+        this.setTrackingSafely(tracking);
+        this.stopProviderLocationSharing();
+        this.refreshAppointmentAfterArrival(appointment.id);
+        this.feedback.success('Arrivee confirmee. Le medecin peut commencer la prestation.');
+      },
+      error: () => {
+        this.isUpdatingStatus.set(false);
+        this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
+      },
+    });
   }
 
   private providerArrivalDestination(appointment: AppointmentView): MapCoordinate | null {
@@ -3331,27 +3376,25 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     appointment: AppointmentView,
     destination: MapCoordinate,
   ): void {
-    this.appointmentsService
-      .confirmTrackingArrival(appointment.id)
-      .subscribe({
-        next: (tracking) => {
-          this.setTrackingSafely(tracking);
-          this.pinArrival(destination);
-          this.clearNavigationRouteAfterArrival();
-          this.renderArrivalOnMap(appointment, destination, null);
-          this.refreshAppointmentAfterArrival(appointment.id);
-          this.isUpdatingStatus.set(false);
-          this.feedback.success('Arrivee confirmee. Vous pouvez commencer la prestation.');
-        },
-        error: (error) => {
-          if (error instanceof HttpErrorResponse && error.status === 409) {
-            this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
-            return;
-          }
-          this.isUpdatingStatus.set(false);
-          this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
-        },
-      });
+    this.appointmentsService.confirmTrackingArrival(appointment.id).subscribe({
+      next: (tracking) => {
+        this.setTrackingSafely(tracking);
+        this.pinArrival(destination);
+        this.clearNavigationRouteAfterArrival();
+        this.renderArrivalOnMap(appointment, destination, null);
+        this.refreshAppointmentAfterArrival(appointment.id);
+        this.isUpdatingStatus.set(false);
+        this.feedback.success('Arrivee confirmee. Vous pouvez commencer la prestation.');
+      },
+      error: (error) => {
+        if (error instanceof HttpErrorResponse && error.status === 409) {
+          this.acceptLocalTravelerArrivalAfterTrackingConflict(appointment);
+          return;
+        }
+        this.isUpdatingStatus.set(false);
+        this.feedback.error("Impossible de confirmer l'arrivee pour le moment.");
+      },
+    });
   }
 
   private renderArrivalOnMap(
@@ -3482,9 +3525,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     tracking: AppointmentTrackingView,
   ): AppointmentTrackingView {
     const startedAtMs = Date.parse(tracking.startedAt ?? '');
-    this.routeSessionStartedAtMs = Number.isFinite(startedAtMs)
-      ? startedAtMs
-      : Date.now();
+    this.routeSessionStartedAtMs = Number.isFinite(startedAtMs) ? startedAtMs : Date.now();
 
     const label = this.clientTravelsToProvider()
       ? 'Position GPS du client'
@@ -3828,14 +3869,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           }
 
           const location = {
-              latitude: position.latitude,
-              longitude: position.longitude,
-              recordedAt: new Date(position.recordedAt).toISOString(),
-              accuracyMeters: position.accuracyMeters,
-              headingDegrees: position.headingDegrees,
-              speedKmh: position.speedKmh,
-              locationLabel: this.trackedTravelerPositionLabel(),
-            };
+            latitude: position.latitude,
+            longitude: position.longitude,
+            recordedAt: new Date(position.recordedAt).toISOString(),
+            accuracyMeters: position.accuracyMeters,
+            headingDegrees: position.headingDegrees,
+            speedKmh: position.speedKmh,
+            locationLabel: this.trackedTravelerPositionLabel(),
+          };
           this.renderLocalTrackingLocation(appointmentId, location);
           this.queueLocationUpdate(appointmentId, location);
         },
@@ -4439,7 +4480,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     const severeDeviation = deviationMeters >= Math.max(35, dynamicDeviationThreshold * 2);
     const reliableDeviation = accuracyMeters <= 20;
-    const confirmationsRequired = severeDeviation || reliableDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
+    const confirmationsRequired =
+      severeDeviation || reliableDeviation ? 1 : accuracyMeters > 35 ? 3 : 2;
     this.routeDeviationConfirmations += 1;
     this.routeMatchMode = 'SUSPECTED_OFF_ROUTE';
     if (this.routeDeviationConfirmations < confirmationsRequired) return false;
@@ -4463,7 +4505,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (
       positionTimestampMs === null ||
       positionTimestampMs === this.routeJoinLastPositionTimestampMs
-    ) return false;
+    )
+      return false;
 
     this.routeJoinLastPositionTimestampMs = positionTimestampMs;
     const projection = this.projectPointOnCurrentRoute({
@@ -4476,7 +4519,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       tracking?.lastAccuracyMeters ?? tracking?.presence.lastAccuracyMeters ?? 35,
     );
     const corridorMeters = Math.min(45, Math.max(12, accuracyMeters * 1.25));
-    const rawHeading = tracking?.lastHeadingDegrees ?? tracking?.presence.lastHeadingDegrees ?? null;
+    const rawHeading =
+      tracking?.lastHeadingDegrees ?? tracking?.presence.lastHeadingDegrees ?? null;
     const rawSpeedKmh = tracking?.lastSpeedKmh ?? tracking?.presence.lastSpeedKmh ?? null;
     const headingIsReliable =
       typeof rawHeading === 'number' &&
@@ -4520,9 +4564,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return false;
   }
 
-  private projectPointOnCurrentRoute(
-    point: MapCoordinate,
-  ): {
+  private projectPointOnCurrentRoute(point: MapCoordinate): {
     distanceMeters: number;
     progressMeters: number;
     segmentIndex: number;
@@ -4552,9 +4594,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       const segmentX = endX - startX;
       const segmentY = endY - startY;
       const denominator = segmentX * segmentX + segmentY * segmentY;
-      const ratio = denominator <= 0
-        ? 0
-        : Math.max(0, Math.min(1, -(startX * segmentX + startY * segmentY) / denominator));
+      const ratio =
+        denominator <= 0
+          ? 0
+          : Math.max(0, Math.min(1, -(startX * segmentX + startY * segmentY) / denominator));
       const closestX = startX + segmentX * ratio;
       const closestY = startY + segmentY * ratio;
       const candidate = {
@@ -4588,7 +4631,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const x =
       Math.cos(startLatitude) * Math.sin(endLatitude) -
       Math.sin(startLatitude) * Math.cos(endLatitude) * Math.cos(longitudeDelta);
-    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   }
 
   private startRouteJoiningTimer(): void {
@@ -4601,7 +4644,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.componentDestroyed ||
         this.routeMatchMode !== 'JOINING_ROUTE' ||
         generation !== this.routeJoinGeneration
-      ) return;
+      )
+        return;
       this.routeMatchMode = 'REROUTING';
       this.resetRouteJoiningConfirmation();
       this.routeCoordinatesKey = '';
@@ -4963,10 +5007,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.announceNavigationInstruction();
   }
 
-  private finishFailedRouteRequest(
-    context: { fastReroute: boolean },
-    retryDelayMs: number,
-  ): void {
+  private finishFailedRouteRequest(context: { fastReroute: boolean }, retryDelayMs: number): void {
     this.clearRouteJoiningTimer();
     this.routeCoordinatesKey = '';
     this.routeRequestedDestinationKey = '';
@@ -5123,7 +5164,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (
       this.navigationRetryTimeoutId !== undefined ||
       this.navigationRetryAttempts >= ROUTE_RETRY_LIMIT
-    ) return;
+    )
+      return;
     this.navigationRetryAttempts += 1;
 
     this.navigationRetryTimeoutId = window.setTimeout(() => {

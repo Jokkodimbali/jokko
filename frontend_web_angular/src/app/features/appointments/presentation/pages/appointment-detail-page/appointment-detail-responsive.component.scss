@@ -99,6 +99,24 @@
   }
 }
 
+.appointment-detail__client-summary-status
+  .appointment-detail__client-summary-title--teleconsultation {
+  font-size: clamp(18px, 2.1vw, 24px);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+@media (max-width: 620px) {
+  .appointment-detail__client-summary-status
+    .appointment-detail__client-summary-title--teleconsultation {
+    font-size: clamp(17px, 5.4vw, 21px);
+  }
+}
+
 @media (min-width: 921px) and (max-width: 1280px) {
   .appointment-detail__route-layout--client,
   .appointment-detail__route-layout--provider {

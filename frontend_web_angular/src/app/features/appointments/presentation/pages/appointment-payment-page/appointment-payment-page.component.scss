@@ -18,9 +18,8 @@
 .appointment-payment--confirmed {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-x: hidden;
   padding-bottom: 0;
 }
 
@@ -94,10 +93,10 @@
   align-items: center;
   background: #ffffff;
   display: grid;
-  justify-items: center;
   flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
+  justify-items: center;
+  min-width: 0;
+  overflow-x: hidden;
   padding: clamp(8px, 1.8vh, 18px) 16px;
 }
 
@@ -108,13 +107,19 @@
   box-sizing: border-box;
   box-shadow: 0 20px 52px rgba(15, 23, 42, 0.16);
   display: grid;
-  height: min(620px, calc(100dvh - 120px));
   justify-items: center;
   max-width: 560px;
-  max-height: 100%;
-  min-height: 0;
+  min-height: min(620px, calc(100dvh - 120px));
+  min-width: 0;
   padding: clamp(28px, 4vh, 42px) 38px clamp(24px, 3.5vh, 36px);
   width: min(100%, 560px);
+}
+
+.appointment-payment__confirmed-card > *,
+.appointment-payment__confirmed-summary > header > div,
+.appointment-payment__confirmed-summary footer > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .appointment-payment__confirmed-icon {
@@ -206,6 +211,7 @@
   font-weight: 950;
   line-height: 1.15;
   margin-top: 6px;
+  overflow-wrap: anywhere;
 }
 
 .appointment-payment__confirmed-summary > header div:last-child strong {
@@ -309,7 +315,9 @@
   font-size: 12px;
   font-weight: 750;
   gap: 7px;
+  max-width: 100%;
   min-height: 30px;
+  overflow-wrap: anywhere;
   padding: 0 12px;
 }
 
@@ -1219,7 +1227,6 @@
 
   .appointment-payment__confirmed-card {
     border-radius: 24px;
-    height: min(620px, calc(100dvh - 104px));
     min-height: 0;
     padding: 14px 18px 12px;
     width: 100%;

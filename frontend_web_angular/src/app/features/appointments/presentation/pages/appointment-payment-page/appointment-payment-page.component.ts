@@ -88,6 +88,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.isPaymentConfirmed() ? 3 : 2,
   );
   protected readonly isMedicinePaymentFlow = computed(() => this.isMedicineFlow());
+  protected readonly isTeleconsultation = computed(
+    () => this.appointment()?.consultationType === 'TELECONSULTATION',
+  );
   protected readonly journeySteps = computed(() =>
     this.isMedicinePaymentFlow()
       ? medicineAppointmentJourneySteps(this.journeyCurrentStep())
@@ -105,6 +108,13 @@ export class AppointmentPaymentPageComponent implements OnInit {
   );
   protected readonly confirmedHeadingDescription = computed(() => {
     const appointment = this.appointment();
+    if (this.isTeleconsultation()) {
+      if (this.isProfessionalViewer()) {
+        const clientName = appointment?.clientName || 'Le patient';
+        return `La téléconsultation de ${clientName} est confirmée. Rejoignez la session vidéo à l'heure du rendez-vous.`;
+      }
+      return "Votre téléconsultation est confirmée. Vous pourrez rejoindre le médecin en vidéo à l'heure du rendez-vous.";
+    }
     if (this.isProfessionalViewer()) {
       const clientName = appointment?.clientName || 'Le client';
       return `La reservation de ${clientName} est confirmee. Vous pouvez maintenant preparer la prestation.`;
@@ -244,6 +254,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
   }
 
   protected confirmedCounterpartSubtitle(appointment: AppointmentView): string {
+    if (appointment.consultationType === 'TELECONSULTATION') {
+      return 'Consultation médicale en vidéo';
+    }
     return this.isProfessionalViewer()
       ? appointment.addressLabel
       : this.confirmedProviderSubtitle(appointment);

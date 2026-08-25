@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { asapScheduler, finalize, observeOn } from 'rxjs';
+import { asapScheduler, finalize, interval, observeOn } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
+import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 import {
   DoctorSpaceSection,
   DoctorSpaceSidebarComponent,
@@ -25,6 +27,9 @@ export class PharmacyOrdersInboxPageComponent implements OnInit {
   private readonly ordersService = inject(PharmacyOrdersService);
   private readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
+  private refreshInFlight = false;
 
   protected readonly orders = signal<PharmacyOrderView[]>([]);
   protected readonly loading = signal(true);
@@ -47,6 +52,16 @@ export class PharmacyOrdersInboxPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.messagesRealtime.connect();
+    this.messagesRealtime.notificationCreated$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((notification) => {
+        const metadata = notification.data || notification.donnees || {};
+        if (typeof metadata['pharmacyOrderId'] === 'string') this.load(true);
+      });
+    interval(15_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.load(true));
   }
 
   protected openProviderSection(section: DoctorSpaceSection): void {
@@ -57,21 +72,34 @@ export class PharmacyOrdersInboxPageComponent implements OnInit {
     void this.router.navigate(['/services']);
   }
 
-  protected load(): void {
-    this.loading.set(true);
-    this.errorMessage.set(null);
+  protected load(silent = false): void {
+    if (this.refreshInFlight) return;
+    this.refreshInFlight = true;
+    if (!silent) {
+      this.loading.set(true);
+      this.errorMessage.set(null);
+    }
     this.ordersService
       .list()
       .pipe(
         observeOn(asapScheduler),
-        finalize(() => this.loading.set(false)),
+        finalize(() => {
+          this.refreshInFlight = false;
+          if (!silent) this.loading.set(false);
+        }),
       )
       .subscribe({
-        next: (orders) => this.orders.set(orders),
-        error: (error) =>
-          this.errorMessage.set(
-            getHttpErrorMessage(error, 'Impossible de charger les ordonnances reçues.'),
-          ),
+        next: (orders) => {
+          this.orders.set(orders);
+          this.errorMessage.set(null);
+        },
+        error: (error) => {
+          if (!silent) {
+            this.errorMessage.set(
+              getHttpErrorMessage(error, 'Impossible de charger les ordonnances reçues.'),
+            );
+          }
+        },
       });
   }
 

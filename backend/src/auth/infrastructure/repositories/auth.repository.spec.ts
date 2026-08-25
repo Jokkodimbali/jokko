@@ -9,6 +9,7 @@ describe('AuthRepository professional specialties', () => {
       },
       profilProfessionnel: {
         create: jest.fn().mockResolvedValue({ id: 'profile-id' }),
+        update: jest.fn().mockResolvedValue({ id: 'profile-id' }),
       },
       categorie: {
         findMany: jest.fn().mockResolvedValue([
@@ -97,5 +98,44 @@ describe('AuthRepository professional specialties', () => {
         }),
       ],
     });
+  });
+
+  it('marks a provider profile as a pharmacy when Pharmacien is selected', async () => {
+    const { repository, tx } = createRepository();
+    tx.sousCategorieService.findMany.mockResolvedValue([
+      { id: 'subcategory-id', nom: 'Pharmacien' },
+    ]);
+
+    await repository.createClientWithPassword({
+      phoneNumber: '+221771234569',
+      name: 'Pharmacie Test',
+      email: 'pharmacie@test.sn',
+      passwordHash: 'hash',
+      role: RoleUtilisateur.PRESTATAIRE,
+      adresse: 'Dakar',
+      categoryIds: ['category-id'],
+      subCategoryIds: ['subcategory-id'],
+    });
+
+    expect(tx.profilProfessionnel.update).toHaveBeenCalledWith({
+      where: { id: 'profile-id' },
+      data: { estPharmacie: true },
+    });
+  });
+
+  it('does not mark an ordinary health provider as a pharmacy', async () => {
+    const { repository, tx } = createRepository();
+
+    await repository.createClientWithPassword({
+      phoneNumber: '+221771234570',
+      name: 'Prestataire Sante',
+      passwordHash: 'hash',
+      role: RoleUtilisateur.PRESTATAIRE,
+      adresse: 'Dakar',
+      categoryIds: ['category-id'],
+      subCategoryIds: ['subcategory-id'],
+    });
+
+    expect(tx.profilProfessionnel.update).not.toHaveBeenCalled();
   });
 });

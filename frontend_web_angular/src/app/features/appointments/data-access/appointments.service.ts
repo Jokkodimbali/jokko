@@ -335,10 +335,9 @@ export class AppointmentsService {
 
   confirmTeleconsultationCompleted(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .patch<ApiResponse<BackendReservation>>(
-        `${this.apiUrl}/reservations/${reservationId}/teleconsultation/complete`,
-        {},
-      )
+      .patch<
+        ApiResponse<BackendReservation>
+      >(`${this.apiUrl}/reservations/${reservationId}/teleconsultation/complete`, {})
       .pipe(
         map(unwrapApiResponse),
         map((reservation) => this.mapAppointment(reservation)),
@@ -489,6 +488,11 @@ export class AppointmentsService {
       professional.avatarUrl,
       reservation.professionnel?.utilisateur.urlAvatar,
     );
+    const consultationType = reservation.typeConsultation ?? 'CONSULTATION';
+    const locationLabel =
+      consultationType === 'TELECONSULTATION'
+        ? 'Téléconsultation vidéo'
+        : reservation.adresseClient || 'Adresse non renseignée';
 
     return {
       id: reservation.id,
@@ -505,7 +509,7 @@ export class AppointmentsService {
       shortDateLabel: this.formatShortDate(date),
       fullDateLabel: this.formatFullDate(date),
       timeLabel: this.formatTime(date),
-      locationLabel: reservation.adresseClient || 'Adresse non renseignee',
+      locationLabel,
       doctorName: professionalName || 'Prestataire non renseigne',
       specialty: professional.specialty || serviceName || 'Service non renseigne',
       avatarUrl: publicAssetUrl(avatarUrl) || '',
@@ -540,7 +544,7 @@ export class AppointmentsService {
       travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
       vehicleType: professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
       notes: reservation.notes,
-      consultationType: reservation.typeConsultation ?? 'CONSULTATION',
+      consultationType,
       conversationId: reservation.conversation?.id ?? null,
       medicalPrescription: {
         acts: this.normalizePrescriptionItems(reservation.actesPrescriptionMedicale),
@@ -556,7 +560,7 @@ export class AppointmentsService {
       clientReview: reservation.clientReview,
       clientReviewedAt: reservation.clientReviewedAt,
       confirmationLabel: this.confirmationLabel(status),
-      addressLabel: reservation.adresseClient || 'Adresse non renseignee',
+      addressLabel: locationLabel,
     };
   }
 

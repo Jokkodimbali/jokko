@@ -15,7 +15,7 @@ export class CallAudioService {
 
   constructor() {
     if (!isPlatformBrowser(this.platformId)) return;
-    const unlock = () => void this.audioContext().resume();
+    const unlock = () => void this.audioContext()?.resume().catch(() => undefined);
     this.document.addEventListener('pointerdown', unlock, { once: true, passive: true });
     this.document.addEventListener('keydown', unlock, { once: true, passive: true });
     this.destroyRef.onDestroy(() => {
@@ -55,6 +55,7 @@ export class CallAudioService {
 
   private async playPattern(tone: CallTone): Promise<void> {
     const context = this.audioContext();
+    if (!context) return;
     await context.resume().catch(() => undefined);
     if (context.state !== 'running') return;
 
@@ -104,8 +105,19 @@ export class CallAudioService {
     }
   }
 
-  private audioContext(): AudioContext {
-    this.context ??= new AudioContext();
+  private audioContext(): AudioContext | null {
+    if (this.context) return this.context;
+
+    const audioWindow = this.document.defaultView as
+      | (Window & {
+          AudioContext?: typeof AudioContext;
+          webkitAudioContext?: typeof AudioContext;
+        })
+      | null;
+    const AudioContextConstructor = audioWindow?.AudioContext ?? audioWindow?.webkitAudioContext;
+    if (!AudioContextConstructor) return null;
+
+    this.context = new AudioContextConstructor();
     return this.context;
   }
 }

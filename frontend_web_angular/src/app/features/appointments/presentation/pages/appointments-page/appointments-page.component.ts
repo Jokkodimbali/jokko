@@ -4,7 +4,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, forkJoin } from 'rxjs';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import {
   isNegotiationInProgressStatus,
   negotiationStatusIcon,
@@ -70,7 +69,7 @@ interface CalendarDay {
 @Component({
   selector: 'app-appointments-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppFooterComponent, AppNavbarComponent, LucideAngularModule],
+  imports: [CommonModule, RouterLink, AppFooterComponent, LucideAngularModule],
   templateUrl: './appointments-page.component.html',
   styleUrl: './appointments-page.component.scss',
 })

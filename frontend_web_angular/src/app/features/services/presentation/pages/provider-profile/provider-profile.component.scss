@@ -15,7 +15,7 @@
 
 .provider-profile__shell {
   margin: 10px auto 72px;
-  width: min(calc(100% - 16px), 1430px);
+  width: min(100%, 1430px);
 }
 
 .provider-profile__state {
@@ -68,6 +68,7 @@
 
 .provider-profile__hero-card::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.12));
+  border-radius: inherit;
   content: '';
   inset: 0;
   pointer-events: none;

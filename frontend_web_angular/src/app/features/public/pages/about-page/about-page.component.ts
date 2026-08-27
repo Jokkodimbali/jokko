@@ -3,12 +3,11 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 
 @Component({
   selector: 'app-about-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent, AppFooterComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppFooterComponent],
   templateUrl: './about-page.component.html',
   styleUrl: './about-page.component.scss',
 })

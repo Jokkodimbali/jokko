@@ -108,8 +108,8 @@
               </ng-template>
             </i>
             <span class="app-navbar__notification-copy">
-              <small>{{ notificationTitle(notification) }}</small>
-              <strong>{{ notificationBody(notification) }}</strong>
+              <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
+              <strong>{{ notificationTitle(notification) }}</strong>
             </span>
             <i class="app-navbar__notification-bell">
               <lucide-icon name="bell" size="21" [strokeWidth]="2.5"></lucide-icon>
@@ -158,7 +158,6 @@
             <span>
               <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
               <strong>{{ notificationTitle(notification) }}</strong>
-              <em>{{ notificationBody(notification) }}</em>
               <time *ngIf="notificationDate(notification)">{{
                 notificationDate(notification) | date: 'd MMM, HH:mm'
               }}</time>
@@ -355,8 +354,8 @@
         </ng-template>
       </i>
       <span class="app-navbar__notification-copy">
-        <small>{{ notificationTitle(notification) }}</small>
-        <strong>{{ notificationBody(notification) }}</strong>
+        <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
+        <strong>{{ notificationTitle(notification) }}</strong>
       </span>
       <i class="app-navbar__notification-bell">
         <lucide-icon name="bell" size="20" [strokeWidth]="2.5"></lucide-icon>
@@ -403,7 +402,6 @@
       <span>
         <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
         <strong>{{ notificationTitle(notification) }}</strong>
-        <em>{{ notificationBody(notification) }}</em>
         <time *ngIf="notificationDate(notification)">{{
           notificationDate(notification) | date: 'd MMM, HH:mm'
         }}</time>

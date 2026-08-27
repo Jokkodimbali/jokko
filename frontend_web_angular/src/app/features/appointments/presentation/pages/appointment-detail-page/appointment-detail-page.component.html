@@ -509,18 +509,6 @@
               isTeleconsultationEndConfirmationOpen()
             "
           >
-            <button
-              type="button"
-              class="appointment-detail__teleconsultation-fullscreen"
-              [attr.aria-label]="
-                isMapFullscreen() ? 'Quitter le plein écran' : 'Afficher la vidéo en plein écran'
-              "
-              [attr.aria-pressed]="isMapFullscreen()"
-              (click)="toggleMapFullscreen()"
-            >
-              <lucide-icon [name]="isMapFullscreen() ? 'minimize-2' : 'maximize-2'" size="20" />
-            </button>
-
             <div class="appointment-detail__teleconsultation-viewport">
               <span
                 *ngFor="let track of teleconsultationRemoteVideoTracks()"
@@ -592,18 +580,21 @@
               >
                 <button
                   type="button"
+                  class="appointment-detail__teleconsultation-incoming-control appointment-detail__teleconsultation-incoming-control--reject"
                   aria-label="Refuser l'appel"
                   (click)="rejectTeleconsultationCall()"
                 >
                   <lucide-icon name="phone-off" size="18" />
+                  <span>Raccrocher</span>
                 </button>
                 <button
                   type="button"
-                  class="appointment-detail__teleconsultation-primary-control"
-                  aria-label="Répondre à l'appel vidéo"
+                  class="appointment-detail__teleconsultation-incoming-control appointment-detail__teleconsultation-incoming-control--accept"
+                  aria-label="Accepter l'appel vidéo"
                   (click)="acceptTeleconsultationCall()"
                 >
                   <lucide-icon name="video" size="20" />
+                  <span>Accepter</span>
                 </button>
               </ng-container>
               <ng-template #teleconsultationActiveControls>
@@ -634,8 +625,9 @@
                 <button
                   type="button"
                   class="appointment-detail__teleconsultation-primary-control"
+                  [class.appointment-detail__teleconsultation-primary-control--start]="!calls.call()"
                   [attr.aria-label]="
-                    calls.call() ? 'Terminer la téléconsultation' : 'Démarrer la téléconsultation'
+                    calls.call() ? 'Terminer la téléconsultation' : 'Appeler'
                   "
                   [disabled]="
                     isPreparingTeleconsultationCall() || (!isDoctorViewer() && !calls.call())
@@ -646,6 +638,7 @@
                     [name]="calls.call() ? 'phone-off' : isDoctorViewer() ? 'video' : 'phone'"
                     size="20"
                   />
+                  <span *ngIf="!calls.call()">Appeler</span>
                 </button>
               </ng-template>
             </div>
@@ -690,6 +683,15 @@
                 <small>{{ appointment.specialty }}</small>
               </div>
             </div>
+            <button
+              type="button"
+              class="appointment-detail__teleconsultation-message"
+              aria-label="Ouvrir les messages"
+              (click)="openTeleconsultationMessages(appointment)"
+            >
+              <lucide-icon name="message-circle" size="17" />
+              Message
+            </button>
             <div class="appointment-detail__teleconsultation-security">
               <small>SESSION SÉCURISÉE</small>
               <ul>

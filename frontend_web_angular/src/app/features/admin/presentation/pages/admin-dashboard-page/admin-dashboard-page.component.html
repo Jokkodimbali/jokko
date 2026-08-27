@@ -49,16 +49,20 @@
             <b>{{ appBanners().length }} / 5</b>
           </header>
 
-          <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Les bannières défilent automatiquement. Un lien est ouvert lorsque l’utilisateur clique sur l’image.</span></div>
+          <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Format obligatoire recommandé : <strong>936 × 220 px</strong> (ratio 4,25:1), en JPG, PNG ou WebP, 2 Mo maximum. Les bannières sont responsives, défilent automatiquement et peuvent ouvrir un lien. Gardez les textes et éléments importants au centre de l’image.</span></div>
 
           <div class="app-settings__list" *ngIf="appBanners().length; else noBanner">
             <article class="app-banner-editor" *ngFor="let banner of appBanners(); let index = index">
               <div class="app-banner-editor__preview">
-                <img *ngIf="banner.imageUrl; else imagePlaceholder" [src]="banner.imageUrl" [alt]="'Aperçu bannière ' + (index + 1)" />
+                <img *ngIf="banner.imageUrl; else imagePlaceholder" [src]="banner.imageUrl" [alt]="'Aperçu bannière ' + (index + 1)" (load)="recordAppBannerImageDimensions(index, $event)" />
                 <ng-template #imagePlaceholder><lucide-icon name="image-plus" size="28"></lucide-icon><span>Ajoutez une image</span></ng-template>
               </div>
               <div class="app-banner-editor__form">
                 <div class="app-banner-editor__title"><span>BANNIÈRE {{ index + 1 }}</span><button type="button" (click)="removeAppBanner(index)" aria-label="Supprimer la bannière"><lucide-icon name="trash-2" size="17"></lucide-icon></button></div>
+                <div class="app-banner-editor__format" [class.app-banner-editor__format--valid]="isAppBannerFormatConform(banner)" [class.app-banner-editor__format--warning]="banner.imageWidth && !isAppBannerFormatConform(banner)">
+                  <lucide-icon [name]="isAppBannerFormatConform(banner) ? 'circle-check' : 'triangle-alert'" size="17"></lucide-icon>
+                  <span>{{ appBannerFormatMessage(banner) }}</span>
+                </div>
                 <label class="app-banner-editor__upload app-banner-editor__upload--primary"><input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadAppBannerImage(index, $event)" /><lucide-icon name="upload-cloud" size="17"></lucide-icon>{{ banner.imageUrl ? 'Remplacer l’image' : 'Choisir une image' }}</label>
                 <label>Lien de redirection <small>Optionnel</small><input type="url" [value]="banner.redirectUrl" (input)="updateAppBanner(index, 'redirectUrl', $event)" placeholder="https://..." /></label>
               </div>

@@ -60,6 +60,21 @@ type AdminSection =
   | 'notifications'
   | 'settings';
 
+interface EditableAppBanner {
+  id: string;
+  imageUrl: string;
+  redirectUrl: string | null;
+  isActive: boolean;
+  imageWidth: number | null;
+  imageHeight: number | null;
+}
+
+const APP_BANNER_WIDTH = 936;
+const APP_BANNER_HEIGHT = 220;
+const APP_BANNER_RATIO = APP_BANNER_WIDTH / APP_BANNER_HEIGHT;
+const APP_BANNER_MAX_FILE_SIZE = 2 * 1024 * 1024;
+const APP_BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
@@ -125,7 +140,7 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly structureActionId = signal<string | null>(null);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
-  protected readonly appBanners = signal<Array<{ id: string; imageUrl: string; redirectUrl: string | null; isActive: boolean }>>([]);
+  protected readonly appBanners = signal<EditableAppBanner[]>([]);
   protected readonly isAppBannersLoading = signal(false);
   protected readonly adminSearchQuery = signal('');
   protected readonly user = this.authSession.currentUser;
@@ -305,14 +320,26 @@ export class AdminDashboardPageComponent implements OnInit {
   protected loadAppBanners(): void {
     this.isAppBannersLoading.set(true);
     this.adminDashboardService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
-      this.appBanners.set(banners);
+      this.appBanners.set(
+        banners.map((banner) => ({ ...banner, imageWidth: null, imageHeight: null })),
+      );
       this.isAppBannersLoading.set(false);
     });
   }
 
   protected addAppBanner(): void {
     if (this.appBanners().length >= 5) return;
-    this.appBanners.update((items) => [...items, { id: crypto.randomUUID(), imageUrl: '', redirectUrl: null, isActive: true }]);
+    this.appBanners.update((items) => [
+      ...items,
+      {
+        id: crypto.randomUUID(),
+        imageUrl: '',
+        redirectUrl: null,
+        isActive: true,
+        imageWidth: null,
+        imageHeight: null,
+      },
+    ]);
   }
 
   protected removeAppBanner(index: number): void { this.appBanners.update((items) => items.filter((_, itemIndex) => itemIndex !== index)); }
@@ -322,19 +349,67 @@ export class AdminDashboardPageComponent implements OnInit {
     this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value || null } : item));
   }
 
-  protected uploadAppBannerImage(index: number, event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
+  protected async uploadAppBannerImage(index: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
+    if (!APP_BANNER_ALLOWED_TYPES.has(file.type)) {
+      this.feedback.error('Utilisez une image JPG, PNG ou WebP pour la bannière.');
+      input.value = '';
+      return;
+    }
+    if (file.size > APP_BANNER_MAX_FILE_SIZE) {
+      this.feedback.error('L image de bannière ne doit pas dépasser 2 Mo.');
+      input.value = '';
+      return;
+    }
+
+    const dimensions = await this.readImageDimensions(file).catch(() => null);
+    if (!dimensions) {
+      this.feedback.error('Impossible de lire les dimensions de cette image.');
+      input.value = '';
+      return;
+    }
+
+    this.setAppBannerDimensions(index, dimensions.width, dimensions.height);
+    if (!this.hasRecommendedBannerFormat(dimensions.width, dimensions.height)) {
+      this.feedback.info(
+        `Image ${dimensions.width} × ${dimensions.height} px : utilisez 936 × 220 px pour éviter de couper du texte.`,
+      );
+    }
+
     this.isAppBannersLoading.set(true);
-    this.adminDashboardService.uploadServiceCategoryImage(file).pipe(catchError(() => {
+    this.adminDashboardService.uploadAppBannerImage(file).pipe(catchError(() => {
       this.feedback.error('Impossible d envoyer cette image.');
       return of(null);
     })).subscribe((result) => {
       this.isAppBannersLoading.set(false);
+      input.value = '';
       if (!result) return;
       this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrl: result.imageUrl } : item));
-      this.saveAppBanners();
     });
+  }
+
+  protected recordAppBannerImageDimensions(index: number, event: Event): void {
+    const image = event.target as HTMLImageElement;
+    this.setAppBannerDimensions(index, image.naturalWidth, image.naturalHeight);
+  }
+
+  protected isAppBannerFormatConform(banner: EditableAppBanner): boolean {
+    return this.hasRecommendedBannerFormat(banner.imageWidth, banner.imageHeight);
+  }
+
+  protected appBannerFormatMessage(banner: EditableAppBanner): string {
+    const { imageWidth: width, imageHeight: height } = banner;
+    if (!width || !height) return 'Format attendu : 936 × 220 px (ratio 4,25:1).';
+    if (this.hasRecommendedBannerFormat(width, height)) {
+      return 'Format conforme : 936 × 220 px.';
+    }
+    const ratioMatches = Math.abs(width / height - APP_BANNER_RATIO) / APP_BANNER_RATIO <= 0.005;
+    if (ratioMatches) {
+      return `Dimensions détectées : ${width} × ${height} px. Le ratio est correct, mais 936 × 220 px est recommandé.`;
+    }
+    return `Dimensions détectées : ${width} × ${height} px. Ratio non conforme : l image sera recadrée. Utilisez 936 × 220 px et gardez le texte important au centre.`;
   }
 
   protected saveAppBanners(): void {
@@ -344,6 +419,35 @@ export class AdminDashboardPageComponent implements OnInit {
     this.adminDashboardService.saveAppBanners(banners).pipe(catchError(() => { this.feedback.error('Impossible d enregistrer les bannieres.'); return of(null); })).subscribe((result) => {
       this.isAppBannersLoading.set(false);
       if (result !== null) this.feedback.success('Bannieres enregistrees.');
+    });
+  }
+
+  private hasRecommendedBannerFormat(width: number | null, height: number | null): boolean {
+    return width === APP_BANNER_WIDTH && height === APP_BANNER_HEIGHT;
+  }
+
+  private setAppBannerDimensions(index: number, width: number, height: number): void {
+    if (width <= 0 || height <= 0) return;
+    this.appBanners.update((items) =>
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, imageWidth: width, imageHeight: height } : item,
+      ),
+    );
+  }
+
+  private readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Image illisible'));
+      };
+      image.src = objectUrl;
     });
   }
 

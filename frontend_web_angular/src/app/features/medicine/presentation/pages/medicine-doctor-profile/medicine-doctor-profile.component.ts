@@ -9,7 +9,6 @@ import { SessionPresenceService } from '../../../../../core/presence/session-pre
 import { FavoritesService } from '../../../../../core/favorites/favorites.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
@@ -61,7 +60,6 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     CommonModule,
     RouterLink,
     AppFooterComponent,
-    AppNavbarComponent,
     AppPresenceStatusComponent,
     LucideAngularModule,
   ],

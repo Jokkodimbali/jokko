@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { FeaturedNotificationCacheService } from './featured-notification-cache.service';
 
 describe('FeaturedNotificationCacheService', () => {
+  it('memorise la fermeture temporaire sans supprimer la notification', () => {
+    const cache = new FeaturedNotificationCacheService();
+
+    expect(cache.isTransientDismissed('notification-terminee')).toBe(false);
+    cache.dismissTransient('notification-terminee');
+    expect(cache.isTransientDismissed('notification-terminee')).toBe(true);
+  });
+
   it('restores an active trip notification after the navbar is recreated', () => {
     const cache = new FeaturedNotificationCacheService();
     const notification = {

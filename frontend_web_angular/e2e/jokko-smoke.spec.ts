@@ -106,7 +106,11 @@ function collectPageErrors(page: Page) {
     const url = request.url();
     const failure = request.failure()?.errorText ?? 'request failed';
 
-    if (failure === 'net::ERR_ABORTED') {
+    if (
+      failure === 'net::ERR_ABORTED' ||
+      failure === 'NS_BINDING_ABORTED' ||
+      failure === 'Load request cancelled'
+    ) {
       return;
     }
 

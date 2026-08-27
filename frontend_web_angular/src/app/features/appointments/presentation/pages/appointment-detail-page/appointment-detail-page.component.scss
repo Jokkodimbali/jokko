@@ -1667,6 +1667,35 @@
 }
 
 .appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-incoming-control {
+  gap: 7px;
+  padding: 0 15px;
+  width: auto;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-incoming-control--reject {
+  background: #e63731;
+  color: #fff;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-incoming-control--accept {
+  background: #239447;
+  color: #fff;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-incoming-control--reject:hover {
+  background: #c92d28;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-incoming-control--accept:hover {
+  background: #1b7738;
+}
+
+.appointment-detail__teleconsultation-controls
   .appointment-detail__teleconsultation-primary-control {
   background: #e63731;
   border-radius: 999px;
@@ -1675,6 +1704,21 @@
   opacity: 1;
   order: 3;
   width: 56px;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-primary-control--start {
+  background: #239447;
+  border-color: #239447;
+  gap: 7px;
+  padding: 0 16px;
+  width: auto;
+}
+
+.appointment-detail__teleconsultation-controls
+  .appointment-detail__teleconsultation-primary-control--start:hover:not(:disabled) {
+  background: #1b7738;
+  border-color: #1b7738;
 }
 
 .appointment-detail__live-map--fullscreen .appointment-detail__teleconsultation {
@@ -1717,6 +1761,24 @@
   font-size: 14px;
   line-height: 1.65;
   margin: 0;
+}
+.appointment-detail__teleconsultation-message {
+  align-items: center;
+  background: #9b6429;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  gap: 7px;
+  margin: 16px auto 0;
+  padding: 11px 18px;
+}
+.appointment-detail__teleconsultation-message:hover {
+  background: #7f4f20;
 }
 .appointment-detail__teleconsultation-doctor {
   align-items: center;
@@ -1794,7 +1856,7 @@
 }
 .appointment-detail__teleconsultation li lucide-icon {
   align-items: center;
-  background: #090909;
+  background: #9b6429;
   border-radius: 5px;
   color: #fff;
   display: flex;

@@ -13,5 +13,15 @@
   <strong class="app-feedback__copy">{{ message.text }}</strong>
 </div>
 
+@if (showNavbar()) {
+  @defer (on immediate) {
+    <app-navbar
+      [mobileLocationLabel]="navbarPresentation.mobileLocationLabel()"
+      [mobileLocationStatic]="navbarMobileLocationStatic()"
+      [mobilePageTitle]="navbarMobilePageTitle()"
+      [mobilePageSubtitle]="navbarMobilePageSubtitle()"
+    />
+  }
+}
 <router-outlet></router-outlet>
 <app-call-overlay />

@@ -35,5 +35,23 @@ export default defineConfig({
         channel: 'chrome',
       },
     },
+    {
+      name: 'safari-desktop',
+      use: {
+        ...devices['Desktop Safari'],
+      },
+    },
+    {
+      name: 'mobile-safari',
+      use: {
+        ...devices['iPhone 15'],
+      },
+    },
+    {
+      name: 'firefox-desktop',
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    },
   ],
 });

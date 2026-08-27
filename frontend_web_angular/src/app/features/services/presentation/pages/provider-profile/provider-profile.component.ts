@@ -14,7 +14,6 @@ import {
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
@@ -70,7 +69,6 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
   imports: [
     CommonModule,
     AppFooterComponent,
-    AppNavbarComponent,
     AppStarRatingComponent,
     AppPresenceStatusComponent,
     ProviderTravelBadgeComponent,

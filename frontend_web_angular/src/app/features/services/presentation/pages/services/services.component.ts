@@ -6,6 +6,7 @@ import {
   QueryList,
   ViewChildren,
   computed,
+  effect,
   inject,
   signal,
   OnDestroy,
@@ -38,7 +39,7 @@ import {
 } from '../../../domain/models/services.models';
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../../shared/ui/app-navbar/app-navbar.component';
+import { AppNavbarPresentationService } from '../../../../../shared/ui/app-navbar/app-navbar-presentation.service';
 import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import {
@@ -55,6 +56,7 @@ import {
 
 type ProfessionalFilter = 'ALL' | 'MEDECIN' | 'PRESTATAIRE';
 type TravelModeFilter = 'ALL' | ServiceTravelMode;
+const APP_BANNER_ROTATION_MS = 5_000;
 const SERVICE_CARD_COVER_URL =
   'https://res.cloudinary.com/dobuolool/image/upload/v1784219907/jokko/app-assets/service-card-cover.png';
 
@@ -65,7 +67,6 @@ const SERVICE_CARD_COVER_URL =
     CommonModule,
     RouterLink,
     AppFooterComponent,
-    AppNavbarComponent,
     AppScrollHintComponent,
     AppPresenceDotComponent,
     AppSearchBarComponent,
@@ -91,6 +92,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
   private readonly catalogRealtime = inject(CatalogRealtimeService);
+  private readonly navbarPresentation = inject(AppNavbarPresentationService);
 
   protected readonly heroIllustration = '/image%20haut.png';
 
@@ -314,7 +316,25 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private bannerRotationTimer?: ReturnType<typeof setInterval>;
   protected readonly appBanners = signal<AppBanner[]>([]);
   protected readonly activeBannerIndex = signal(0);
-  protected readonly activeBanner = computed(() => this.appBanners()[this.activeBannerIndex()] ?? null);
+
+  constructor() {
+    effect(() => this.navbarPresentation.setMobileLocationLabel(this.mobileLocationLabel()));
+  }
+
+  protected showBanner(index: number, restartRotation = true): void {
+    const bannerCount = this.appBanners().length;
+    if (bannerCount === 0) return;
+    this.activeBannerIndex.set((index + bannerCount) % bannerCount);
+    if (restartRotation) this.startBannerRotation();
+  }
+
+  protected showPreviousBanner(): void {
+    this.showBanner(this.activeBannerIndex() - 1);
+  }
+
+  protected showNextBanner(): void {
+    this.showBanner(this.activeBannerIndex() + 1);
+  }
 
   ngOnInit(): void {
     this.loadCategories();
@@ -323,7 +343,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadDefaultProfessionals();
     this.servicesService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
       this.appBanners.set(banners);
-      if (banners.length > 1) this.bannerRotationTimer = setInterval(() => this.activeBannerIndex.update((index) => (index + 1) % banners.length), 5000);
+      this.activeBannerIndex.set(0);
+      this.startBannerRotation();
     });
     this.catalogRealtimeSubscription = this.catalogRealtime
       .watchAccountStatuses()
@@ -341,7 +362,22 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.serviceFilterRefsChangesSubscription?.unsubscribe();
     this.catalogRealtimeSubscription?.unsubscribe();
     this.catalogProfileSubscription?.unsubscribe();
-    if (this.bannerRotationTimer) clearInterval(this.bannerRotationTimer);
+    this.stopBannerRotation();
+  }
+
+  private startBannerRotation(): void {
+    this.stopBannerRotation();
+    if (this.appBanners().length <= 1) return;
+    this.bannerRotationTimer = setInterval(
+      () => this.showBanner(this.activeBannerIndex() + 1, false),
+      APP_BANNER_ROTATION_MS,
+    );
+  }
+
+  private stopBannerRotation(): void {
+    if (!this.bannerRotationTimer) return;
+    clearInterval(this.bannerRotationTimer);
+    this.bannerRotationTimer = undefined;
   }
 
   ngAfterViewInit(): void {

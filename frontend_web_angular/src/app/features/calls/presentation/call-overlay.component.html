@@ -176,13 +176,15 @@
       <button
         class="call-overlay__control call-overlay__control--reject"
         type="button"
+        aria-label="Raccrocher"
         (click)="calls.reject()"
       >
-        <span><lucide-icon name="phone-off" /></span><small>Refuser</small>
+        <span><lucide-icon name="phone-off" /></span><small>Raccrocher</small>
       </button>
       <button
         class="call-overlay__control call-overlay__control--accept"
         type="button"
+        aria-label="Accepter"
         (click)="calls.accept()"
       >
         <span><lucide-icon [name]="call.kind === 'VIDEO' ? 'video' : 'phone'" /></span

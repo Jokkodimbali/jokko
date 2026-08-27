@@ -177,4 +177,15 @@ export class AdminDashboardService {
       >(`${environment.apiUrl}/admin/service-structure/images`, formData)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
+
+  uploadAppBannerImage(file: File): Observable<{ imageUrl: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+    return this.http
+      .post<ApiResponse<{ imageUrl: string }>>(
+        `${environment.apiUrl}/admin/app-settings/banners/image`,
+        formData,
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
 }

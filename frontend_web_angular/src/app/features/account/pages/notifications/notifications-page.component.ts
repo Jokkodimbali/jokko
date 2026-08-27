@@ -11,13 +11,12 @@ import {
 import { AppFeedbackService } from '../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../core/http/api-response.utils';
 import { AppFooterComponent } from '../../../../shared/ui/app-footer/app-footer.component';
-import { AppNavbarComponent } from '../../../../shared/ui/app-navbar/app-navbar.component';
 import { AppointmentsService } from '../../../appointments/data-access/appointments.service';
 
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, AppNavbarComponent, AppFooterComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, AppFooterComponent],
   templateUrl: './notifications-page.component.html',
   styleUrl: './notifications-page.component.scss',
 })

@@ -49,6 +49,8 @@ interface AppInfoNavItem {
   fragment?: string;
 }
 
+const TERMINAL_NOTIFICATION_DISPLAY_MS = 5_000;
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
@@ -76,6 +78,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private notificationsIntervalId: ReturnType<typeof setInterval> | null = null;
   private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private terminalNotificationHideTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly subscriptions = new Subscription();
 
   protected readonly logo = '/logojokko.png';
@@ -90,9 +93,18 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected readonly unreadMessagesCount = signal(0);
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
   private readonly notificationHistory = signal<UserNotificationView[]>([]);
-  protected readonly featuredNotification = computed(() =>
-    findFeaturedNotification(this.notificationHistory()),
-  );
+  private readonly dismissedTerminalNotificationIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly featuredNotification = computed(() => {
+    const notification = findFeaturedNotification(this.notificationHistory());
+    if (
+      notification?.type === 'RESERVATION_FINALISEE' &&
+      (this.dismissedTerminalNotificationIds().has(notification.id) ||
+        this.featuredNotificationCache.isTransientDismissed(notification.id))
+    ) {
+      return null;
+    }
+    return notification;
+  });
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
   protected readonly profileAvatarUrl = computed(() => {
@@ -375,10 +387,6 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     );
   }
 
-  protected notificationBody(notification: UserNotificationView): string {
-    return notification.body || notification.corps || 'Notification recue sur votre compte Jokko.';
-  }
-
   protected notificationDate(notification: UserNotificationView): string | null {
     return notification.createdAt || notification.creeLe || null;
   }
@@ -453,6 +461,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearInfoMenuCloseTimer();
     this.clearNotificationsCloseTimer();
+    if (this.terminalNotificationHideTimer) {
+      clearTimeout(this.terminalNotificationHideTimer);
+      this.terminalNotificationHideTimer = null;
+    }
     if (this.unreadMessagesIntervalId) {
       clearInterval(this.unreadMessagesIntervalId);
       this.unreadMessagesIntervalId = null;
@@ -494,7 +506,27 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         this.notificationHistory.set(history);
         this.notificationPreview.set(history.slice(0, 6));
         this.syncFeaturedNotificationCache(history);
+        this.scheduleTerminalNotificationDismissal(history);
       });
+  }
+
+  private scheduleTerminalNotificationDismissal(notifications: UserNotificationView[]): void {
+    const notification = findFeaturedNotification(notifications);
+    if (
+      notification?.type !== 'RESERVATION_FINALISEE' ||
+      this.featuredNotificationCache.isTransientDismissed(notification.id)
+    ) {
+      return;
+    }
+
+    if (this.terminalNotificationHideTimer) {
+      clearTimeout(this.terminalNotificationHideTimer);
+    }
+    this.terminalNotificationHideTimer = setTimeout(() => {
+      this.featuredNotificationCache.dismissTransient(notification.id);
+      this.dismissedTerminalNotificationIds.update((ids) => new Set(ids).add(notification.id));
+      this.terminalNotificationHideTimer = null;
+    }, TERMINAL_NOTIFICATION_DISPLAY_MS);
   }
 
   private restoreFeaturedNotification(): void {

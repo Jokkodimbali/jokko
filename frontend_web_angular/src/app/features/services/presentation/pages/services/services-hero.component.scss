@@ -1,21 +1,18 @@
 :host .hero {
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
-  min-height: clamp(355px, 28vw, 440px);
+  min-height: clamp(230px, 19vw, 290px);
   overflow: visible;
   position: relative;
   z-index: 30;
 }
 
-:host .hero app-navbar {
-  --app-navbar-backdrop-height: clamp(355px, 28vw, 440px);
-}
-
 :host .hero-content {
+  box-sizing: border-box;
   display: flex;
-  height: clamp(355px, 28vw, 440px);
+  height: clamp(230px, 19vw, 290px);
   max-width: 100%;
-  min-height: 233px;
+  min-height: 230px;
   overflow: visible;
   padding: 0 0 0 29px;
   position: relative;
@@ -26,9 +23,11 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding-top: 76px;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 24px 0 22px;
   position: relative;
-  width: min(660px, 100%);
+  width: min(660px, 54vw);
   z-index: 2;
 }
 
@@ -51,27 +50,31 @@
 :host .hero-visual {
   bottom: 0;
   display: block;
-  max-height: min(78%, 360px);
+  height: calc(100% - 12px);
+  max-height: 100%;
+  max-width: calc(100% - min(660px, 54vw) - 18px);
   object-fit: contain;
+  object-position: right bottom;
   position: absolute;
   right: 0;
-  width: clamp(520px, 58vw, 920px);
+  width: auto;
   z-index: 1;
 }
 
 /* ─── Tablet (768px – 1023px) ──────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1023px) {
   :host .hero {
-    min-height: 340px;
+    min-height: 265px;
   }
 
   :host .hero-content {
-    height: 340px;
+    height: 265px;
+    min-height: 265px;
     padding: 0 20px;
   }
 
   :host .search-zone {
-    padding-top: 60px;
+    padding: 28px 0 20px;
     width: 100%;
   }
 
@@ -83,6 +86,8 @@
 
   :host .hero-visual {
     bottom: 0;
+    height: auto;
+    max-width: 92vw;
     max-height: 190px;
     opacity: 0.52;
     right: 50%;

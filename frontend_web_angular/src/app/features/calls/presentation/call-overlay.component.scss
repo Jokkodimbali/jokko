@@ -723,8 +723,10 @@
   background: #6b5a48;
 }
 .call-overlay__control--accept > span {
+  width: 142px;
   color: #fff;
   background: var(--call-green);
+  border-radius: 38px;
 }
 .call-overlay__control--reject {
   margin-left: auto;

@@ -1,10 +1,5 @@
 <main class="services-page">
   <section class="hero">
-    <app-navbar
-      [mobileLocationLabel]="mobileLocationLabel()"
-      [mobileLocationStatic]="true"
-    />
-
     <div class="hero-content">
       <div class="search-zone">
         <h1>Tous les services au S&eacute;n&eacute;gal</h1>
@@ -236,16 +231,41 @@
         </button>
       </section>
 
-      <a
-        *ngIf="activeBanner() as banner; else fallbackPromo"
+      <div
+        *ngIf="appBanners().length > 0; else fallbackPromo"
         class="services-promo services-promo--dynamic"
-        [href]="banner.redirectUrl || null"
-        [attr.target]="banner.redirectUrl ? '_blank' : null"
-        [attr.rel]="banner.redirectUrl ? 'noopener noreferrer' : null"
         aria-label="Promotion Jokko"
+        aria-roledescription="carrousel"
       >
-        <img [src]="banner.imageUrl" alt="Promotion Jokko" />
-      </a>
+        <a
+          *ngFor="let banner of appBanners(); let index = index"
+          class="services-promo__image-link"
+          [class.services-promo__image-link--active]="index === activeBannerIndex()"
+          [attr.href]="banner.redirectUrl || null"
+          [attr.target]="banner.redirectUrl ? '_blank' : null"
+          [attr.rel]="banner.redirectUrl ? 'noopener noreferrer' : null"
+          [attr.aria-hidden]="index === activeBannerIndex() ? null : 'true'"
+          [attr.tabindex]="banner.redirectUrl && index === activeBannerIndex() ? 0 : -1"
+          [attr.aria-label]="'Ouvrir la promotion ' + (index + 1)"
+        ><img [src]="banner.imageUrl" [alt]="'Promotion Jokko ' + (index + 1)" [attr.loading]="index === 0 ? 'eager' : 'lazy'" /></a>
+        <button *ngIf="appBanners().length > 1" type="button" class="services-promo__control services-promo__control--previous" (click)="showPreviousBanner()" aria-label="Image précédente">
+          <lucide-icon name="chevron-left" size="22"></lucide-icon>
+        </button>
+        <button *ngIf="appBanners().length > 1" type="button" class="services-promo__control services-promo__control--next" (click)="showNextBanner()" aria-label="Image suivante">
+          <lucide-icon name="chevron-right" size="22"></lucide-icon>
+        </button>
+        <div *ngIf="appBanners().length > 1" class="services-promo__indicators" aria-label="Position dans les promotions">
+          <button
+            *ngFor="let appBanner of appBanners(); let index = index"
+            type="button"
+            class="services-promo__indicator"
+            [class.services-promo__indicator--active]="index === activeBannerIndex()"
+            [attr.aria-label]="'Afficher l’image ' + (index + 1)"
+            [attr.aria-current]="index === activeBannerIndex() ? 'true' : null"
+            (click)="showBanner(index)"
+          ></button>
+        </div>
+      </div>
       <ng-template #fallbackPromo>
       <section *ngIf="sections().length > 0" class="services-promo" aria-label="Promotion Jokko">
         <div class="services-promo__content">

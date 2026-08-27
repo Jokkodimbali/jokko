@@ -7,6 +7,16 @@ import {
 /** Preserves the active trip notification while a page-level navbar is recreated. */
 @Injectable({ providedIn: 'root' })
 export class FeaturedNotificationCacheService {
+  private readonly dismissedTransientNotificationIds = new Set<string>();
+
+  isTransientDismissed(notificationId: string): boolean {
+    return this.dismissedTransientNotificationIds.has(notificationId);
+  }
+
+  dismissTransient(notificationId: string): void {
+    this.dismissedTransientNotificationIds.add(notificationId);
+  }
+
   read(userId: string | null | undefined): UserNotificationView | null {
     if (!userId) return null;
     try {

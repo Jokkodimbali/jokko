@@ -617,6 +617,7 @@ model CommandePharmacie {
   pharmacieId            String                  @map("pharmacy_id") @db.Uuid
   statut                 StatutCommandePharmacie @default(EN_ATTENTE_PHARMACIE)
   montantMedicaments     Decimal?                @map("medicine_amount") @db.Decimal(12, 2)
+  detailsMedicaments     Json                    @default("[]") @map("medicine_items")
   notePharmacie          String?                 @map("pharmacy_note") @db.Text
   indisponibilites       String[]                @default([])
   valideePharmacieLe     DateTime?               @map("validated_by_pharmacy_at")

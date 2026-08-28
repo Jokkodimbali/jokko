@@ -78,7 +78,8 @@
                 type="radio"
                 name="decision"
                 value="EN_ATTENTE_PAIEMENT"
-                [(ngModel)]="decisionStatus"
+                [ngModel]="decisionStatus"
+                (ngModelChange)="onDecisionStatusChange($event)"
               />
               <span
                 ><strong>Tout est disponible</strong
@@ -90,7 +91,8 @@
                 type="radio"
                 name="decision"
                 value="PARTIELLEMENT_DISPONIBLE"
-                [(ngModel)]="decisionStatus"
+                [ngModel]="decisionStatus"
+                (ngModelChange)="onDecisionStatusChange($event)"
               />
               <span
                 ><strong>Disponibilité partielle</strong
@@ -102,7 +104,8 @@
                 type="radio"
                 name="decision"
                 value="INDISPONIBLE"
-                [(ngModel)]="decisionStatus"
+                [ngModel]="decisionStatus"
+                (ngModelChange)="onDecisionStatusChange($event)"
               />
               <span
                 ><strong>Indisponible</strong
@@ -111,34 +114,59 @@
             </label>
           </fieldset>
 
-          <label *ngIf="decisionStatus === 'EN_ATTENTE_PAIEMENT'" class="pharmacy-review__field">
-            <span>Prix total des médicaments <b>*</b></span>
-            <div class="pharmacy-review__amount">
-              <input
-                type="number"
-                name="medicineAmount"
-                min="1"
-                step="1"
-                inputmode="numeric"
-                placeholder="Ex. 12 500"
-                [(ngModel)]="medicineAmount"
-                required
-              />
-              <strong>FCFA</strong>
-            </div>
-            <small>Prix fixe, sans négociation et sans commission Jokko.</small>
-          </label>
+          <section class="pharmacy-review__medicine-editor" aria-labelledby="medicine-editor-title">
+            <header>
+              <div>
+                <strong id="medicine-editor-title">Disponibilité et prix</strong>
+                <small>Vérifiez chaque médicament séparément</small>
+              </div>
+              <strong>{{ medicineTotal() | number: '1.0-0' }} FCFA</strong>
+            </header>
 
-          <label *ngIf="decisionStatus !== 'EN_ATTENTE_PAIEMENT'" class="pharmacy-review__field">
-            <span>Médicaments indisponibles</span>
-            <textarea
-              name="unavailableItems"
-              rows="3"
-              maxlength="1000"
-              placeholder="Un médicament par ligne"
-              [(ngModel)]="unavailableItemsText"
-            ></textarea>
-          </label>
+            <article
+              *ngFor="let item of medicineItems; let index = index"
+              [class.is-unavailable]="!item.isAvailable"
+            >
+              <div class="pharmacy-review__medicine-name">
+                <span>{{ index + 1 }}</span>
+                <strong>{{ item.name }}</strong>
+              </div>
+
+              <label class="pharmacy-review__availability">
+                <input
+                  type="checkbox"
+                  [name]="'availability-' + index"
+                  [ngModel]="item.isAvailable"
+                  [disabled]="decisionStatus !== 'PARTIELLEMENT_DISPONIBLE'"
+                  (ngModelChange)="setMedicineAvailability(item, $event)"
+                />
+                <span>{{ item.isAvailable ? 'Disponible' : 'Indisponible' }}</span>
+              </label>
+
+              <label *ngIf="item.isAvailable" class="pharmacy-review__item-price">
+                <span>Prix</span>
+                <div>
+                  <input
+                    type="number"
+                    [name]="'price-' + index"
+                    min="1"
+                    max="100000000"
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="0"
+                    [(ngModel)]="item.price"
+                    required
+                  />
+                  <strong>FCFA</strong>
+                </div>
+              </label>
+
+              <p *ngIf="!item.isAvailable">
+                <lucide-icon name="circle-x" size="15"></lucide-icon>
+                Non disponible dans cette pharmacie
+              </p>
+            </article>
+          </section>
 
           <label class="pharmacy-review__field">
             <span>Note au patient <em>Facultatif</em></span>
@@ -209,7 +237,15 @@
               {{ current.medicalReservation.scheduledAt | date: 'dd MMMM yyyy' }}
             </small>
           </div>
-          <strong><lucide-icon name="circle-check" size="14"></lucide-icon> Acceptée</strong>
+          <strong>
+            <lucide-icon
+              [name]="
+                current.status === 'PARTIELLEMENT_DISPONIBLE' ? 'circle-alert' : 'circle-check'
+              "
+              size="14"
+            ></lucide-icon>
+            {{ current.status === 'PARTIELLEMENT_DISPONIBLE' ? 'Partielle' : 'Acceptée' }}
+          </strong>
         </header>
 
         <div class="prescription-card__prescriber">
@@ -219,16 +255,28 @@
         </div>
 
         <div class="prescription-card__medicines">
-          <div *ngFor="let medicine of medicines(current)">
+          <div
+            *ngFor="let item of medicineItemsForDisplay(current)"
+            [class.is-unavailable]="!item.isAvailable"
+          >
             <span class="prescription-card__pill">
-              <lucide-icon name="pill" size="15"></lucide-icon>
+              <lucide-icon [name]="item.isAvailable ? 'pill' : 'circle-x'" size="15"></lucide-icon>
             </span>
             <p>
-              <strong>{{ medicine }}</strong
-              ><small>Médicament prescrit</small>
+              <strong>{{ item.name }}</strong>
+              <small>{{ item.isAvailable ? 'Disponible' : 'Indisponible' }}</small>
             </p>
+            <strong
+              *ngIf="item.isAvailable && item.price !== null"
+              class="prescription-card__price"
+            >
+              {{ item.price | number: '1.0-0' }} FCFA
+            </strong>
+            <em *ngIf="!item.isAvailable" class="prescription-card__unavailable-label">
+              Indisponible
+            </em>
           </div>
-          <p *ngIf="medicines(current).length === 0" class="prescription-card__empty">
+          <p *ngIf="medicineItemsForDisplay(current).length === 0" class="prescription-card__empty">
             Les détails de l’ordonnance sont disponibles auprès de la pharmacie.
           </p>
         </div>
@@ -242,10 +290,16 @@
       </article>
 
       <article class="accepted-panel">
-        <h1>Commande acceptée</h1>
+        <h1>
+          {{
+            current.status === 'PARTIELLEMENT_DISPONIBLE'
+              ? 'Disponibilité partielle'
+              : 'Commande acceptée'
+          }}
+        </h1>
         <p>
-          {{ current.pharmacy.name }} a accepté votre commande. Vérifiez le détail puis réglez pour
-          déclencher la préparation.
+          {{ current.pharmacy.name }} a terminé la vérification. Consultez les médicaments
+          disponibles et leurs prix avant de régler la commande.
         </p>
 
         <div class="accepted-panel__doctor">
@@ -278,10 +332,7 @@
     </section>
 
     <section
-      *ngIf="
-        !isPharmacyViewer() &&
-        (current.status === 'PARTIELLEMENT_DISPONIBLE' || current.status === 'INDISPONIBLE')
-      "
+      *ngIf="!isPharmacyViewer() && current.status === 'INDISPONIBLE'"
       class="pharmacy-order__unavailable"
     >
       <lucide-icon name="circle-alert" size="34"></lucide-icon>

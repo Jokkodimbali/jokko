@@ -114,6 +114,17 @@
   padding: 14px 0;
 }
 
+.payment-prescription__items > div.is-unavailable {
+  background: #fff8f7;
+  margin-inline: -22px;
+  padding-inline: 22px;
+}
+
+.payment-prescription__items > div.is-unavailable > span {
+  background: #feeceb;
+  color: #b42318;
+}
+
 .payment-prescription__items > div > span {
   align-items: center;
   background: #edf5ff;
@@ -140,6 +151,24 @@
   color: #9299a4;
   font-size: 9px;
   margin-top: 3px;
+}
+
+.payment-prescription__price {
+  color: #237a45;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.payment-prescription__unavailable {
+  background: #feeceb;
+  border-radius: 999px;
+  color: #b42318;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  margin-left: auto;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
 .payment-prescription__empty {
@@ -349,5 +378,17 @@
 
   .pharmacy-payment__methods {
     order: -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-prescription__items > div {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .payment-prescription__price,
+  .payment-prescription__unavailable {
+    margin-left: 47px;
   }
 }

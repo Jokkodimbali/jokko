@@ -11,6 +11,7 @@ export type PharmacyOrderView = {
   medicineAmount: number | null;
   pharmacyNote: string | null;
   unavailableItems: string[];
+  medicineItems: PharmacyOrderMedicineItem[];
   validatedAt: string | null;
   paidAt: string | null;
   payment: {
@@ -45,6 +46,13 @@ export type PharmacyOrderView = {
   createdAt: string;
 };
 
+export type PharmacyOrderMedicineItem = {
+  position: number;
+  name: string;
+  isAvailable: boolean;
+  price: number | null;
+};
+
 export type NearbyPharmacyView = {
   id: string;
   name: string;
@@ -59,9 +67,13 @@ export type NearbyPharmacyView = {
 
 export type PharmacyOrderDecision = {
   status: 'EN_ATTENTE_PAIEMENT' | 'PARTIELLEMENT_DISPONIBLE' | 'INDISPONIBLE';
-  medicineAmount?: number;
   pharmacyNote?: string;
-  unavailableItems?: string[];
+  medicineItems: Array<{
+    position: number;
+    name: string;
+    isAvailable: boolean;
+    price?: number;
+  }>;
 };
 
 export type PharmacyOrderPaymentView = {

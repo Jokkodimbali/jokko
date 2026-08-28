@@ -68,6 +68,7 @@ describe('PharmacyOrdersService', () => {
         medicineAmount: null,
         pharmacyNote: null,
         unavailableItems: [],
+        medicineItems: [],
         validatedAt: null,
         medicalReservation: {
           id: input.medicalReservationId,
@@ -101,8 +102,8 @@ describe('PharmacyOrdersService', () => {
     const orderId = '55555555-5555-4555-8555-555555555555';
     const decision = {
       status: 'EN_ATTENTE_PAIEMENT' as const,
-      medicineAmount: 12500,
       pharmacyNote: 'Commande disponible.',
+      medicineItems: [{ position: 0, name: 'Paracétamol', isAvailable: true, price: 12500 }],
     };
 
     service.validate(orderId, decision).subscribe();

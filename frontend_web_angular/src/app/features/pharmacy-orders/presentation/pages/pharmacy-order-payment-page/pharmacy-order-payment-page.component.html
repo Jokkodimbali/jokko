@@ -31,7 +31,13 @@
             {{ current.medicalReservation.scheduledAt | date: 'dd MMMM yyyy' }}
           </small>
         </div>
-        <em><lucide-icon name="check" size="11"></lucide-icon> Acceptée</em>
+        <em>
+          <lucide-icon
+            [name]="current.status === 'PARTIELLEMENT_DISPONIBLE' ? 'circle-alert' : 'check'"
+            size="11"
+          ></lucide-icon>
+          {{ current.status === 'PARTIELLEMENT_DISPONIBLE' ? 'Partielle' : 'Acceptée' }}
+        </em>
       </header>
 
       <section class="payment-prescription__prescriber">
@@ -43,14 +49,23 @@
       </section>
 
       <section class="payment-prescription__items">
-        <div *ngFor="let medicine of medicines(current)">
-          <span><lucide-icon name="pill" size="14"></lucide-icon></span>
+        <div *ngFor="let item of medicineItems(current)" [class.is-unavailable]="!item.isAvailable">
+          <span>
+            <lucide-icon [name]="item.isAvailable ? 'pill' : 'circle-x'" size="14"></lucide-icon>
+          </span>
           <p>
-            <strong>{{ medicine }}</strong
-            ><small>Médicament prescrit</small>
+            <strong>{{ item.name }}</strong>
+            <small>{{ item.isAvailable ? 'Disponible' : 'Indisponible' }}</small>
           </p>
+          <strong
+            *ngIf="item.isAvailable && item.price !== null"
+            class="payment-prescription__price"
+          >
+            {{ item.price | number: '1.0-0' }} FCFA
+          </strong>
+          <em *ngIf="!item.isAvailable" class="payment-prescription__unavailable"> Non facturé </em>
         </div>
-        <p *ngIf="medicines(current).length === 0" class="payment-prescription__empty">
+        <p *ngIf="medicineItems(current).length === 0" class="payment-prescription__empty">
           Les détails de l’ordonnance sont disponibles auprès de la pharmacie.
         </p>
       </section>

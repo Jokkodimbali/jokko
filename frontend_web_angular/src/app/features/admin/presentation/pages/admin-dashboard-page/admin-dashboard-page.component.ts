@@ -344,9 +344,20 @@ export class AdminDashboardPageComponent implements OnInit {
 
   protected removeAppBanner(index: number): void { this.appBanners.update((items) => items.filter((_, itemIndex) => itemIndex !== index)); }
 
+  protected trackAppBannerById(_index: number, banner: EditableAppBanner): string {
+    return banner.id;
+  }
+
   protected updateAppBanner(index: number, field: 'imageUrl' | 'redirectUrl', event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value || null } : item));
+    this.appBanners.update((items) => {
+      const current = items[index];
+      const nextValue = value || null;
+      if (!current || current[field] === nextValue) return items;
+      return items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: nextValue } : item,
+      );
+    });
   }
 
   protected async uploadAppBannerImage(index: number, event: Event): Promise<void> {
@@ -428,11 +439,15 @@ export class AdminDashboardPageComponent implements OnInit {
 
   private setAppBannerDimensions(index: number, width: number, height: number): void {
     if (width <= 0 || height <= 0) return;
-    this.appBanners.update((items) =>
-      items.map((item, itemIndex) =>
+    this.appBanners.update((items) => {
+      const current = items[index];
+      if (!current || (current.imageWidth === width && current.imageHeight === height)) {
+        return items;
+      }
+      return items.map((item, itemIndex) =>
         itemIndex === index ? { ...item, imageWidth: width, imageHeight: height } : item,
-      ),
-    );
+      );
+    });
   }
 
   private readImageDimensions(file: File): Promise<{ width: number; height: number }> {

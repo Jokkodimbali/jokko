@@ -15,9 +15,9 @@
   display: flex;
   flex-direction: column;
   grid-column: 1;
-  margin: 21px 0 12px 19px;
+  margin: 100px 0 12px 19px;
   grid-row: 1;
-  height: 411px;
+  height: 500px;
   padding: 24px 17px 22px !important;
   width: 283px;
 }
@@ -250,15 +250,15 @@
   flex-wrap: nowrap;
   gap: 10px;
   justify-content: flex-start;
-  margin: 0 auto 22px;
-  max-width: 100%;
+  margin: 0 0 22px -340px;
+  max-width: none;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   padding: 2px 2px 6px;
   scrollbar-width: none;
   touch-action: pan-x;
-  width: 100%;
+  width: calc(100% + 340px);
   -ms-overflow-style: none;
 }
 
@@ -478,6 +478,11 @@
 :host .services-promo {
   background: var(--color-white, #fff);
   grid-column: 1 / -1;
+}
+
+:host .service-section > .services-promo {
+  margin-bottom: 30px;
+  margin-top: 0;
 }
 
 :host .services-promo {

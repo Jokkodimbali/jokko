@@ -436,7 +436,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .map((value) => this.normalizeTextForMatch(value))
       .join(' ');
 
-    return /\b(sante|medical|medecin|consultation|clinique|soin|patient)\b/.test(searchable);
+    return /\b(sante|medical|medecin|consultation|teleconsultation|clinique|pharmacie|ordonnance|prescription)\b/.test(
+      searchable,
+    );
   });
   protected readonly shouldShowPrescriptionInProgress = computed(
     () => this.isMedicalAppointment() && (this.isDoctorViewer() || this.isClientViewer()),

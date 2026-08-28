@@ -78,6 +78,13 @@ type PharmacyOrderRecord = Prisma.CommandePharmacieGetPayload<{
   include: typeof ORDER_INCLUDE;
 }>;
 
+type PharmacyMedicineItem = {
+  position: number;
+  name: string;
+  isAvailable: boolean;
+  price: number | null;
+};
+
 @Injectable()
 export class PharmacyOrdersService {
   constructor(
@@ -407,51 +414,95 @@ export class PharmacyOrdersService {
       throw new ForbiddenException(
         'Seule la pharmacie selectionnee peut valider cette commande.',
       );
-    if (
-      dto.status === 'EN_ATTENTE_PAIEMENT' &&
-      (!Number.isFinite(dto.medicineAmount) || (dto.medicineAmount ?? 0) <= 0)
-    ) {
-      throw new BadRequestException(
-        'Le prix fixe des medicaments est requis avant paiement.',
-      );
-    }
-    const unavailableItems = [
-      ...new Set(
-        (dto.unavailableItems ?? []).map((item) => item.trim()).filter(Boolean),
-      ),
-    ];
-    if (
-      dto.status === 'PARTIELLEMENT_DISPONIBLE' &&
-      unavailableItems.length === 0
-    ) {
-      throw new BadRequestException(
-        'Indiquez au moins un medicament indisponible.',
-      );
-    }
-    if (
-      dto.status === 'INDISPONIBLE' &&
-      !dto.pharmacyNote?.trim() &&
-      unavailableItems.length === 0
-    ) {
-      throw new BadRequestException(
-        'Precisez la raison ou les medicaments indisponibles.',
-      );
-    }
-    if (
-      dto.status !== 'EN_ATTENTE_PAIEMENT' &&
-      dto.medicineAmount !== undefined
-    ) {
-      throw new BadRequestException(
-        "Le montant est autorise uniquement lorsque l'ordonnance est acceptee.",
-      );
-    }
     const order = await this.prisma.commandePharmacie.findFirst({
       where: { id: orderId, pharmacieId: pharmacy.id },
+      select: {
+        id: true,
+        pharmacieId: true,
+        statut: true,
+        reservationMedicale: {
+          select: {
+            actesPrescriptionMedicale: true,
+            vaccinsPrescriptionMedicale: true,
+            traitementsPrescriptionMedicale: true,
+          },
+        },
+      },
     });
     if (!order) throw new NotFoundException('Commande pharmacie introuvable.');
     if (order.statut !== StatutCommandePharmacie.EN_ATTENTE_PHARMACIE) {
       throw new BadRequestException('Cette commande a deja ete traitee.');
     }
+
+    const prescribedMedicines = [
+      ...order.reservationMedicale.actesPrescriptionMedicale,
+      ...order.reservationMedicale.vaccinsPrescriptionMedicale,
+      ...order.reservationMedicale.traitementsPrescriptionMedicale,
+    ]
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const medicineItems = (dto.medicineItems ?? [])
+      .map((item) => ({
+        position: item.position,
+        name: item.name.trim(),
+        isAvailable: item.isAvailable,
+        price: item.isAvailable ? Math.round(Number(item.price)) : null,
+      }))
+      .sort((left, right) => left.position - right.position);
+
+    if (medicineItems.length !== prescribedMedicines.length) {
+      throw new BadRequestException(
+        'Renseignez la disponibilite de chaque medicament prescrit.',
+      );
+    }
+    medicineItems.forEach((item, position) => {
+      if (
+        item.position !== position ||
+        item.name !== prescribedMedicines[position]
+      ) {
+        throw new BadRequestException(
+          "La liste des medicaments ne correspond pas a l'ordonnance.",
+        );
+      }
+      if (
+        item.isAvailable &&
+        (!Number.isFinite(item.price) ||
+          (item.price ?? 0) <= 0 ||
+          (item.price ?? 0) > 100_000_000)
+      ) {
+        throw new BadRequestException(
+          `Renseignez le prix du medicament disponible : ${item.name}.`,
+        );
+      }
+    });
+
+    const availableItems = medicineItems.filter((item) => item.isAvailable);
+    const unavailableItems = medicineItems
+      .filter((item) => !item.isAvailable)
+      .map((item) => item.name);
+    if (dto.status === 'EN_ATTENTE_PAIEMENT' && unavailableItems.length > 0) {
+      throw new BadRequestException(
+        'Tous les medicaments doivent etre disponibles pour accepter toute la commande.',
+      );
+    }
+    if (
+      dto.status === 'PARTIELLEMENT_DISPONIBLE' &&
+      (availableItems.length === 0 || unavailableItems.length === 0)
+    ) {
+      throw new BadRequestException(
+        'Une disponibilite partielle doit contenir au moins un medicament disponible et un indisponible.',
+      );
+    }
+    if (dto.status === 'INDISPONIBLE' && availableItems.length > 0) {
+      throw new BadRequestException(
+        'Aucun medicament ne peut etre marque disponible pour une commande indisponible.',
+      );
+    }
+
+    const medicineAmount = availableItems.reduce(
+      (total, item) => total + (item.price ?? 0),
+      0,
+    );
     const updateResult = await this.prisma.commandePharmacie.updateMany({
       where: {
         id: order.id,
@@ -460,8 +511,8 @@ export class PharmacyOrdersService {
       },
       data: {
         statut: dto.status,
-        montantMedicaments:
-          dto.status === 'EN_ATTENTE_PAIEMENT' ? dto.medicineAmount : null,
+        montantMedicaments: medicineAmount > 0 ? medicineAmount : null,
+        detailsMedicaments: medicineItems as Prisma.InputJsonValue,
         notePharmacie: dto.pharmacyNote?.trim() || null,
         indisponibilites: unavailableItems,
         valideePharmacieLe: new Date(),
@@ -627,12 +678,13 @@ export class PharmacyOrdersService {
       return `${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom} a valide votre ordonnance. Prix fixe : ${Number(order.montantMedicaments).toLocaleString('fr-FR')} FCFA.`;
     }
     if (order.statut === StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE) {
-      return `${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom} peut fournir une partie des medicaments prescrits.`;
+      return `${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom} peut fournir une partie des medicaments prescrits pour ${Number(order.montantMedicaments).toLocaleString('fr-FR')} FCFA.`;
     }
     return `${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom} ne peut pas fournir les medicaments demandes pour le moment.`;
   }
 
   private toView(order: PharmacyOrderRecord) {
+    const medicineItems = this.parseMedicineItems(order.detailsMedicaments);
     return {
       id: order.id,
       status: order.statut,
@@ -642,6 +694,7 @@ export class PharmacyOrdersService {
           : Number(order.montantMedicaments),
       pharmacyNote: order.notePharmacie,
       unavailableItems: order.indisponibilites,
+      medicineItems,
       validatedAt: order.valideePharmacieLe,
       paidAt: order.payeePharmacieLe,
       payment: order.paiement
@@ -694,5 +747,28 @@ export class PharmacyOrdersService {
       },
       createdAt: order.creeLe,
     };
+  }
+
+  private parseMedicineItems(value: Prisma.JsonValue): PharmacyMedicineItem[] {
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((entry, fallbackPosition) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry))
+        return [];
+      const item = entry as Record<string, Prisma.JsonValue>;
+      const name = typeof item['name'] === 'string' ? item['name'].trim() : '';
+      if (!name) return [];
+      const price = Number(item['price']);
+      return [
+        {
+          position:
+            typeof item['position'] === 'number'
+              ? item['position']
+              : fallbackPosition,
+          name,
+          isAvailable: item['isAvailable'] === true,
+          price: Number.isFinite(price) && price > 0 ? price : null,
+        },
+      ];
+    });
   }
 }

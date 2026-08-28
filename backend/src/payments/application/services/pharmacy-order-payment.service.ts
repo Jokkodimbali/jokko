@@ -78,7 +78,8 @@ export class PharmacyOrderPaymentService {
     });
     if (!order) throw new NotFoundException('Commande pharmacie introuvable.');
     if (
-      order.statut !== StatutCommandePharmacie.EN_ATTENTE_PAIEMENT ||
+      (order.statut !== StatutCommandePharmacie.EN_ATTENTE_PAIEMENT &&
+        order.statut !== StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE) ||
       order.montantMedicaments === null
     ) {
       throw new BadRequestException(
@@ -250,7 +251,12 @@ export class PharmacyOrderPaymentService {
       const orderClaimed = await tx.commandePharmacie.updateMany({
         where: {
           id: payment.commandePharmacieId,
-          statut: StatutCommandePharmacie.EN_ATTENTE_PAIEMENT,
+          statut: {
+            in: [
+              StatutCommandePharmacie.EN_ATTENTE_PAIEMENT,
+              StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE,
+            ],
+          },
         },
         data: {
           statut: StatutCommandePharmacie.EN_ATTENTE_TRANSPORTEUR,

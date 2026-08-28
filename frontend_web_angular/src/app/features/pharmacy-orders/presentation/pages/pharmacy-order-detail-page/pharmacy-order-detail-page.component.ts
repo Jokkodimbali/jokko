@@ -15,6 +15,7 @@ import {
   AppointmentTrackingStepperComponent,
 } from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import {
+  PharmacyOrderMedicineItem,
   PharmacyOrderView,
   PharmacyOrderDecision,
   PharmacyOrdersService,
@@ -25,7 +26,10 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, AppointmentTrackingStepperComponent],
   templateUrl: './pharmacy-order-detail-page.component.html',
-  styleUrl: './pharmacy-order-detail-page.component.scss',
+  styleUrls: [
+    './pharmacy-order-detail-page.component.scss',
+    './_pharmacy-medicine-availability.scss',
+  ],
 })
 export class PharmacyOrderDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -42,9 +46,8 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   protected readonly isSubmitting = signal(false);
   protected readonly decisionError = signal<string | null>(null);
   protected decisionStatus: PharmacyOrderDecision['status'] = 'EN_ATTENTE_PAIEMENT';
-  protected medicineAmount: number | null = null;
   protected pharmacyNote = '';
-  protected unavailableItemsText = '';
+  protected medicineItems: PharmacyOrderMedicineItem[] = [];
   protected readonly isPharmacyViewer = computed(
     () => this.authSession.currentUser()?.id === this.order()?.pharmacy.userId,
   );
@@ -88,6 +91,7 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
         finalize(() => this.isLoading.set(false)),
       )
       .subscribe((order) => {
+        this.initializeMedicineItems(order);
         this.order.set(order);
         this.errorMessage.set(null);
         this.isLoading.set(false);
@@ -128,6 +132,17 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
     ].filter(Boolean);
   }
 
+  protected medicineItemsForDisplay(order: PharmacyOrderView): PharmacyOrderMedicineItem[] {
+    if (order.medicineItems.length > 0) return order.medicineItems;
+    const unavailable = new Set(order.unavailableItems.map((name) => name.trim().toLowerCase()));
+    return this.medicines(order).map((name, position) => ({
+      position,
+      name,
+      isAvailable: !unavailable.has(name.trim().toLowerCase()),
+      price: null,
+    }));
+  }
+
   protected initials(name: string): string {
     return userInitials(name);
   }
@@ -137,43 +152,73 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   }
 
   protected isAccepted(status: string): boolean {
-    return status === 'EN_ATTENTE_PAIEMENT';
+    return status === 'EN_ATTENTE_PAIEMENT' || status === 'PARTIELLEMENT_DISPONIBLE';
+  }
+
+  protected onDecisionStatusChange(status: PharmacyOrderDecision['status']): void {
+    this.decisionStatus = status;
+    if (status === 'EN_ATTENTE_PAIEMENT') {
+      this.medicineItems.forEach((item) => (item.isAvailable = true));
+      return;
+    }
+    if (status === 'INDISPONIBLE') {
+      this.medicineItems.forEach((item) => {
+        item.isAvailable = false;
+        item.price = null;
+      });
+      return;
+    }
+    if (this.medicineItems.length > 1 && this.medicineItems.every((item) => item.isAvailable)) {
+      const lastItem = this.medicineItems[this.medicineItems.length - 1];
+      lastItem.isAvailable = false;
+      lastItem.price = null;
+    }
+  }
+
+  protected setMedicineAvailability(item: PharmacyOrderMedicineItem, available: boolean): void {
+    item.isAvailable = available;
+    if (!available) item.price = null;
+  }
+
+  protected medicineTotal(): number {
+    return this.medicineItems.reduce(
+      (total, item) => total + (item.isAvailable ? Number(item.price) || 0 : 0),
+      0,
+    );
   }
 
   protected submitDecision(order: PharmacyOrderView): void {
     if (order.status !== 'EN_ATTENTE_PHARMACIE' || this.isSubmitting()) return;
 
-    const unavailableItems = this.unavailableItemsText
-      .split(/[\n,;]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (
-      this.decisionStatus === 'EN_ATTENTE_PAIEMENT' &&
-      (!Number.isFinite(this.medicineAmount) || (this.medicineAmount ?? 0) <= 0)
-    ) {
-      this.decisionError.set('Renseignez un prix total supérieur à 0 FCFA.');
-      return;
-    }
-    if (this.decisionStatus === 'PARTIELLEMENT_DISPONIBLE' && unavailableItems.length === 0) {
-      this.decisionError.set('Indiquez au moins un médicament indisponible.');
+    const availableItems = this.medicineItems.filter((item) => item.isAvailable);
+    const unavailableItems = this.medicineItems.filter((item) => !item.isAvailable);
+    if (availableItems.some((item) => !Number.isFinite(item.price) || (item.price ?? 0) <= 0)) {
+      this.decisionError.set('Renseignez le prix de chaque médicament disponible.');
       return;
     }
     if (
-      this.decisionStatus === 'INDISPONIBLE' &&
-      unavailableItems.length === 0 &&
-      !this.pharmacyNote.trim()
+      this.decisionStatus === 'PARTIELLEMENT_DISPONIBLE' &&
+      (availableItems.length === 0 || unavailableItems.length === 0)
     ) {
-      this.decisionError.set('Précisez la raison ou les médicaments indisponibles.');
+      this.decisionError.set(
+        'Marquez au moins un médicament disponible et un médicament indisponible.',
+      );
+      return;
+    }
+    if (this.decisionStatus === 'INDISPONIBLE' && !this.pharmacyNote.trim()) {
+      this.decisionError.set("Précisez pourquoi l'ordonnance est indisponible.");
       return;
     }
 
     const decision: PharmacyOrderDecision = {
       status: this.decisionStatus,
       pharmacyNote: this.pharmacyNote.trim() || undefined,
-      unavailableItems: unavailableItems.length ? unavailableItems : undefined,
-      ...(this.decisionStatus === 'EN_ATTENTE_PAIEMENT'
-        ? { medicineAmount: Number(this.medicineAmount) }
-        : {}),
+      medicineItems: this.medicineItems.map((item) => ({
+        position: item.position,
+        name: item.name,
+        isAvailable: item.isAvailable,
+        ...(item.isAvailable ? { price: Number(item.price) } : {}),
+      })),
     };
     this.isSubmitting.set(true);
     this.decisionError.set(null);
@@ -211,7 +256,7 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   }
 
   protected proceedToPayment(order: PharmacyOrderView): void {
-    if (order.status !== 'EN_ATTENTE_PAIEMENT') return;
+    if (!this.isAccepted(order.status) || order.medicineAmount === null) return;
     void this.router.navigate(['/pharmacy-orders', order.id, 'payment']);
   }
 
@@ -224,5 +269,19 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
       return 4;
     }
     return 2;
+  }
+
+  private initializeMedicineItems(order: PharmacyOrderView): void {
+    if (order.medicineItems.length > 0) {
+      this.medicineItems = order.medicineItems.map((item) => ({ ...item }));
+      return;
+    }
+    if (this.medicineItems.length > 0) return;
+    this.medicineItems = this.medicines(order).map((name, position) => ({
+      position,
+      name,
+      isAvailable: true,
+      price: null,
+    }));
   }
 }

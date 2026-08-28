@@ -5,7 +5,11 @@ export type CreatePharmacyOrderCommand = {
 
 export type ValidatePharmacyOrderCommand = {
   status: 'EN_ATTENTE_PAIEMENT' | 'PARTIELLEMENT_DISPONIBLE' | 'INDISPONIBLE';
-  medicineAmount?: number;
   pharmacyNote?: string;
-  unavailableItems?: string[];
+  medicineItems?: Array<{
+    position: number;
+    name: string;
+    isAvailable: boolean;
+    price?: number;
+  }>;
 };

@@ -392,9 +392,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected notificationTitle(notification: UserNotificationView): string {
-    return (
-      notification.title || notification.titre || this.notificationTypeLabel(notification.type)
-    );
+    const title =
+      notification.title || notification.titre || this.notificationTypeLabel(notification.type);
+    const actorName = this.notificationActorName(notification);
+    if (!actorName || title.toLocaleLowerCase().includes(actorName.toLocaleLowerCase())) {
+      return title;
+    }
+    return `${actorName} : ${title}`;
   }
 
   protected notificationDate(notification: UserNotificationView): string | null {

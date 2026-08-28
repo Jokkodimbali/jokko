@@ -10,6 +10,7 @@ import {
   AppointmentTrackingStepperComponent,
 } from '../../../../appointments/presentation/components/appointment-tracking-stepper/appointment-tracking-stepper.component';
 import {
+  PharmacyOrderMedicineItem,
   PharmacyOrderView,
   PharmacyOrdersService,
 } from '../../../data-access/pharmacy-orders.service';
@@ -87,7 +88,10 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
             });
             return;
           }
-          if (order.status !== 'EN_ATTENTE_PAIEMENT' || order.medicineAmount === null) {
+          if (
+            !['EN_ATTENTE_PAIEMENT', 'PARTIELLEMENT_DISPONIBLE'].includes(order.status) ||
+            order.medicineAmount === null
+          ) {
             this.errorMessage.set("Cette commande n'est pas disponible pour le paiement.");
             return;
           }
@@ -144,6 +148,17 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
       ...order.medicalReservation.prescription.vaccines,
       ...order.medicalReservation.prescription.treatments,
     ].filter(Boolean);
+  }
+
+  protected medicineItems(order: PharmacyOrderView): PharmacyOrderMedicineItem[] {
+    if (order.medicineItems.length > 0) return order.medicineItems;
+    const unavailable = new Set(order.unavailableItems.map((name) => name.trim().toLowerCase()));
+    return this.medicines(order).map((name, position) => ({
+      position,
+      name,
+      isAvailable: !unavailable.has(name.trim().toLowerCase()),
+      price: null,
+    }));
   }
 
   protected prescriptionReference(order: PharmacyOrderView): string {

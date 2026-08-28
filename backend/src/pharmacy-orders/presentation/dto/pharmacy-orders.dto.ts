@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
+  IsInt,
   IsIn,
   IsNumber,
   IsOptional,
@@ -12,6 +14,30 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { ValidateNested } from 'class-validator';
+
+export class PharmacyOrderMedicineItemDto {
+  @ApiProperty({ minimum: 0 })
+  @IsInt()
+  @Min(0)
+  position!: number;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(300)
+  name!: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  isAvailable!: boolean;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100_000_000)
+  price?: number;
+}
 
 export class CreatePharmacyOrderDto {
   @ApiProperty({ format: 'uuid' })
@@ -72,22 +98,16 @@ export class ValidatePharmacyOrderDto {
   @IsIn(['EN_ATTENTE_PAIEMENT', 'PARTIELLEMENT_DISPONIBLE', 'INDISPONIBLE'])
   status!: 'EN_ATTENTE_PAIEMENT' | 'PARTIELLEMENT_DISPONIBLE' | 'INDISPONIBLE';
 
-  @ApiPropertyOptional({ minimum: 0 })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  medicineAmount?: number;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   pharmacyNote?: string;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({ type: [PharmacyOrderMedicineItemDto] })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  @MaxLength(180, { each: true })
-  unavailableItems?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => PharmacyOrderMedicineItemDto)
+  medicineItems?: PharmacyOrderMedicineItemDto[];
 }

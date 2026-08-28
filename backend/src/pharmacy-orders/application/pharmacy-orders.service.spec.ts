@@ -22,6 +22,7 @@ describe('PharmacyOrdersService', () => {
     id: '55555555-5555-4555-8555-555555555555',
     statut: StatutCommandePharmacie.EN_ATTENTE_PHARMACIE,
     montantMedicaments: null,
+    detailsMedicaments: [],
     notePharmacie: null,
     indisponibilites: [],
     valideePharmacieLe: null,
@@ -234,7 +235,10 @@ describe('PharmacyOrdersService', () => {
 
     await service.validate(pharmacyUser, baseOrder.id, {
       status: 'EN_ATTENTE_PAIEMENT',
-      medicineAmount: 12500,
+      medicineItems: [
+        { position: 0, name: 'Consultation', isAvailable: true, price: 5000 },
+        { position: 1, name: 'Paracetamol', isAvailable: true, price: 7500 },
+      ],
     });
 
     expect(notifications.createInAppNotification).toHaveBeenCalledWith(
@@ -265,7 +269,10 @@ describe('PharmacyOrdersService', () => {
     await expect(
       service.validate(pharmacyUser, baseOrder.id, {
         status: 'EN_ATTENTE_PAIEMENT',
-        medicineAmount: 12500,
+        medicineItems: [
+          { position: 0, name: 'Consultation', isAvailable: true, price: 5000 },
+          { position: 1, name: 'Paracetamol', isAvailable: true, price: 7500 },
+        ],
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.commandePharmacie.updateMany).not.toHaveBeenCalled();
@@ -277,14 +284,59 @@ describe('PharmacyOrdersService', () => {
       estPharmacie: true,
       statutKyc: StatutKyc.VERIFIE,
     });
+    prisma.commandePharmacie.findFirst.mockResolvedValue(baseOrder);
 
     await expect(
       service.validate(pharmacyUser, baseOrder.id, {
         status: 'PARTIELLEMENT_DISPONIBLE',
-        unavailableItems: [],
+        medicineItems: [
+          { position: 0, name: 'Consultation', isAvailable: true, price: 5000 },
+          { position: 1, name: 'Paracetamol', isAvailable: true, price: 7500 },
+        ],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.commandePharmacie.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('stores each medicine state and totals only available medicines for a partial response', async () => {
+    const medicineItems = [
+      { position: 0, name: 'Consultation', isAvailable: true, price: 5000 },
+      { position: 1, name: 'Paracetamol', isAvailable: false, price: null },
+    ];
+    const validatedOrder = {
+      ...baseOrder,
+      statut: StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE,
+      montantMedicaments: 5000,
+      detailsMedicaments: medicineItems,
+      indisponibilites: ['Paracetamol'],
+      valideePharmacieLe: new Date(),
+    };
+    prisma.profilProfessionnel.findUnique.mockResolvedValue({
+      id: pharmacyId,
+      estPharmacie: true,
+      statutKyc: StatutKyc.VERIFIE,
+    });
+    prisma.commandePharmacie.findFirst
+      .mockResolvedValueOnce(baseOrder)
+      .mockResolvedValueOnce(validatedOrder);
+    prisma.commandePharmacie.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.validate(pharmacyUser, baseOrder.id, {
+      status: 'PARTIELLEMENT_DISPONIBLE',
+      medicineItems,
+    });
+
+    expect(prisma.commandePharmacie.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          montantMedicaments: 5000,
+          indisponibilites: ['Paracetamol'],
+          detailsMedicaments: medicineItems,
+        }),
+      }),
+    );
+    expect(result.medicineAmount).toBe(5000);
+    expect(result.medicineItems).toEqual(medicineItems);
   });
 
   it('prevents two concurrent decisions for the same order', async () => {
@@ -299,7 +351,10 @@ describe('PharmacyOrdersService', () => {
     await expect(
       service.validate(pharmacyUser, baseOrder.id, {
         status: 'EN_ATTENTE_PAIEMENT',
-        medicineAmount: 12500,
+        medicineItems: [
+          { position: 0, name: 'Consultation', isAvailable: true, price: 5000 },
+          { position: 1, name: 'Paracetamol', isAvailable: true, price: 7500 },
+        ],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(notifications.createInAppNotification).not.toHaveBeenCalled();

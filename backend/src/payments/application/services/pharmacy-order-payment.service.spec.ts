@@ -118,6 +118,39 @@ describe('PharmacyOrderPaymentService', () => {
     );
   });
 
+  it('allows payment for the priced medicines of a partially available order', async () => {
+    prisma.commandePharmacie.findFirst.mockResolvedValue({
+      ...order,
+      statut: StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE,
+      montantMedicaments: 5000,
+    });
+    prisma.paiementCommandePharmacie.create.mockResolvedValue({
+      ...payment,
+      montant: 5000,
+      referenceFournisseur: null,
+      urlPaiement: null,
+    });
+    gateway.initiatePayment.mockResolvedValue({
+      success: true,
+      gatewayReference: payment.referenceFournisseur,
+      paymentUrl: payment.urlPaiement,
+    });
+    prisma.paiementCommandePharmacie.update.mockResolvedValue({
+      ...payment,
+      montant: 5000,
+    });
+
+    const result = await service.initiate(client, orderId, {
+      method: 'WAVE',
+      idempotencyKey: 'payment-key',
+    });
+
+    expect(gateway.initiatePayment).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 5000 }),
+    );
+    expect(result.amount).toBe(5000);
+  });
+
   it('rejects payment before pharmacy acceptance', async () => {
     prisma.commandePharmacie.findFirst.mockResolvedValue({
       ...order,
@@ -181,6 +214,14 @@ describe('PharmacyOrderPaymentService', () => {
     expect(handled).toBe(true);
     expect(prisma.commandePharmacie.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: expect.objectContaining({
+          statut: {
+            in: [
+              StatutCommandePharmacie.EN_ATTENTE_PAIEMENT,
+              StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE,
+            ],
+          },
+        }),
         data: expect.objectContaining({
           statut: StatutCommandePharmacie.EN_ATTENTE_TRANSPORTEUR,
         }),

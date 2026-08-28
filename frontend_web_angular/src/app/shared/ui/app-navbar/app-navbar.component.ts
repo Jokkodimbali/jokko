@@ -340,12 +340,22 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected notificationActorInitials(notification: UserNotificationView): string {
-    const metadata = notification.data || notification.donnees || {};
-    const actorName = metadata['actorName'];
     return userInitials(
-      typeof actorName === 'string' ? actorName : this.notificationTitle(notification),
+      this.notificationActorName(notification) || this.notificationTitle(notification),
       'N',
     );
+  }
+
+  protected notificationActorName(notification: UserNotificationView): string | null {
+    const metadata = notification.data || notification.donnees || {};
+    const actorName = [
+      metadata['actorName'],
+      metadata['senderName'],
+      metadata['clientName'],
+      metadata['professionalName'],
+      metadata['providerName'],
+    ].find((value) => typeof value === 'string' && value.trim());
+    return typeof actorName === 'string' ? actorName.trim() : null;
   }
 
   protected openNotification(notification: UserNotificationView): void {

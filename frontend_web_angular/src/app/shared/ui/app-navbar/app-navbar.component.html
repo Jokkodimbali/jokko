@@ -108,7 +108,10 @@
               </ng-template>
             </i>
             <span class="app-navbar__notification-copy">
-              <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
+              <small>
+                {{ notificationTypeLabel(notification.type, notification) }}
+                <ng-container *ngIf="notificationActorName(notification) as actorName"> · {{ actorName }}</ng-container>
+              </small>
               <strong>{{ notificationTitle(notification) }}</strong>
             </span>
             <i class="app-navbar__notification-bell">
@@ -158,6 +161,7 @@
             <span>
               <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
               <strong>{{ notificationTitle(notification) }}</strong>
+              <em *ngIf="notificationActorName(notification) as actorName">{{ actorName }}</em>
               <time *ngIf="notificationDate(notification)">{{
                 notificationDate(notification) | date: 'd MMM, HH:mm'
               }}</time>
@@ -354,7 +358,10 @@
         </ng-template>
       </i>
       <span class="app-navbar__notification-copy">
-        <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
+        <small>
+          {{ notificationTypeLabel(notification.type, notification) }}
+          <ng-container *ngIf="notificationActorName(notification) as actorName"> · {{ actorName }}</ng-container>
+        </small>
         <strong>{{ notificationTitle(notification) }}</strong>
       </span>
       <i class="app-navbar__notification-bell">
@@ -402,6 +409,7 @@
       <span>
         <small>{{ notificationTypeLabel(notification.type, notification) }}</small>
         <strong>{{ notificationTitle(notification) }}</strong>
+        <em *ngIf="notificationActorName(notification) as actorName">{{ actorName }}</em>
         <time *ngIf="notificationDate(notification)">{{
           notificationDate(notification) | date: 'd MMM, HH:mm'
         }}</time>

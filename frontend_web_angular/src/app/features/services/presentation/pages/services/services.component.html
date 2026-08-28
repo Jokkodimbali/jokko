@@ -203,6 +203,8 @@
           </ng-container>
         </div>
 
+        <ng-container *ngTemplateOutlet="promoContent"></ng-container>
+
         <div class="section-heading">
           <div class="section-title-group">
             <h2>{{ currentSearchLocation() ? 'Prestataires à proximité' : section.title }}</h2>
@@ -231,6 +233,7 @@
         </button>
       </section>
 
+      <ng-template #promoContent>
       <div
         *ngIf="appBanners().length > 0; else fallbackPromo"
         class="services-promo services-promo--dynamic"
@@ -275,6 +278,7 @@
         </div>
         <img src="/imagehaut1.png" alt="Professionnel Jokko" />
       </section>
+      </ng-template>
       </ng-template>
 
       <section *ngIf="categorySections().length > 0" class="category-services" aria-label="Services par catégorie">

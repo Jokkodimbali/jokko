@@ -45,23 +45,26 @@
 
     <article class="pharmacy-delivery__panel">
       <span class="pharmacy-delivery__eyebrow">ÉTAPE LIVRAISON</span>
-      <h1>Livraison de la commande</h1>
+      <h1>Livraison de vos médicaments</h1>
       <p>
-        Votre paiement est validé. Nous recherchons un livreur pour récupérer vos médicaments à la
-        pharmacie.
+        Votre paiement, frais de livraison inclus, est validé. Nous prévenons les livreurs de colis
+        situés autour de {{ current.pharmacy.name }}.
       </p>
 
       <div class="pharmacy-delivery__waiting">
         <span class="pharmacy-delivery__spinner" aria-hidden="true"></span>
         <div>
-          <strong>Recherche d’un livreur en cours</strong>
-          <small>Le suivi du trajet s’ouvrira automatiquement dès son affectation.</small>
+          <strong>Recherche d’un livreur de médicaments</strong>
+          <small>
+            Dès qu’un livreur accepte, vous suivrez son trajet vers la pharmacie puis jusqu’à votre
+            adresse.
+          </small>
         </div>
       </div>
 
       <div class="pharmacy-delivery__amount" *ngIf="current.medicineAmount !== null">
-        <span>Commande payée</span>
-        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+        <span>Total payé, livraison incluse</span>
+        <strong>{{ current.totalAmount | number: '1.0-0' }} FCFA</strong>
       </div>
     </article>
   </section>

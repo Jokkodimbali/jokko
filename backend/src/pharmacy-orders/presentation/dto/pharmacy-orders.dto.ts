@@ -70,6 +70,12 @@ export class InitiatePharmacyOrderPaymentDto {
   callbackUrl?: string;
 }
 
+export class ConfigurePharmacyDeliveryDto {
+  @ApiProperty()
+  @IsBoolean()
+  deliveryRequested!: boolean;
+}
+
 export class ListNearbyPharmaciesDto {
   @Type(() => Number)
   @IsNumber()

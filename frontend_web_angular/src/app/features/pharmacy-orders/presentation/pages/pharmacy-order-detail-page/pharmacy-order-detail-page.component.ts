@@ -97,6 +97,7 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
         this.isLoading.set(false);
         if (
           !this.isPharmacyViewer() &&
+          order.deliveryRequested &&
           [
             'PAYEE_PHARMACIE',
             'EN_ATTENTE_TRANSPORTEUR',
@@ -155,8 +156,19 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
     return status === 'EN_ATTENTE_PAIEMENT' || status === 'PARTIELLEMENT_DISPONIBLE';
   }
 
+  protected canPay(order: PharmacyOrderView): boolean {
+    return this.isAccepted(order.status) && (order.medicineAmount ?? 0) > 0;
+  }
+
   protected onDecisionStatusChange(status: PharmacyOrderDecision['status']): void {
+    if (status === 'PARTIELLEMENT_DISPONIBLE' && this.medicineItems.length < 2) {
+      this.decisionStatus = 'EN_ATTENTE_PAIEMENT';
+      this.medicineItems.forEach((item) => (item.isAvailable = true));
+      this.decisionError.set(null);
+      return;
+    }
     this.decisionStatus = status;
+    this.decisionError.set(null);
     if (status === 'EN_ATTENTE_PAIEMENT') {
       this.medicineItems.forEach((item) => (item.isAvailable = true));
       return;
@@ -192,26 +204,23 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
 
     const availableItems = this.medicineItems.filter((item) => item.isAvailable);
     const unavailableItems = this.medicineItems.filter((item) => !item.isAvailable);
+    const normalizedStatus: PharmacyOrderDecision['status'] =
+      availableItems.length === this.medicineItems.length
+        ? 'EN_ATTENTE_PAIEMENT'
+        : availableItems.length === 0
+          ? 'INDISPONIBLE'
+          : 'PARTIELLEMENT_DISPONIBLE';
     if (availableItems.some((item) => !Number.isFinite(item.price) || (item.price ?? 0) <= 0)) {
       this.decisionError.set('Renseignez le prix de chaque médicament disponible.');
       return;
     }
-    if (
-      this.decisionStatus === 'PARTIELLEMENT_DISPONIBLE' &&
-      (availableItems.length === 0 || unavailableItems.length === 0)
-    ) {
-      this.decisionError.set(
-        'Marquez au moins un médicament disponible et un médicament indisponible.',
-      );
-      return;
-    }
-    if (this.decisionStatus === 'INDISPONIBLE' && !this.pharmacyNote.trim()) {
+    if (normalizedStatus === 'INDISPONIBLE' && !this.pharmacyNote.trim()) {
       this.decisionError.set("Précisez pourquoi l'ordonnance est indisponible.");
       return;
     }
 
     const decision: PharmacyOrderDecision = {
-      status: this.decisionStatus,
+      status: normalizedStatus,
       pharmacyNote: this.pharmacyNote.trim() || undefined,
       medicineItems: this.medicineItems.map((item) => ({
         position: item.position,
@@ -256,12 +265,12 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   }
 
   protected proceedToPayment(order: PharmacyOrderView): void {
-    if (!this.isAccepted(order.status) || order.medicineAmount === null) return;
+    if (!this.canPay(order)) return;
     void this.router.navigate(['/pharmacy-orders', order.id, 'payment']);
   }
 
   private currentStep(status?: string): 1 | 2 | 3 | 4 {
-    if (status === 'PAYEE_PHARMACIE') return 4;
+    if (status === 'PAYEE_PHARMACIE') return this.order()?.deliveryRequested ? 4 : 3;
     if (
       status &&
       ['EN_ATTENTE_TRANSPORTEUR', 'TRANSPORTEUR_ASSIGNE', 'EN_LIVRAISON', 'LIVREE'].includes(status)

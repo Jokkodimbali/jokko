@@ -9,6 +9,11 @@ export type PharmacyOrderView = {
   id: string;
   status: string;
   medicineAmount: number | null;
+  deliveryRequested: boolean;
+  deliveryAmount: number | null;
+  deliveryDistanceKm: number | null;
+  deliveryAddress: string | null;
+  totalAmount: number;
   pharmacyNote: string | null;
   unavailableItems: string[];
   medicineItems: PharmacyOrderMedicineItem[];
@@ -124,16 +129,29 @@ export class PharmacyOrdersService {
       .pipe(map(unwrapApiResponse));
   }
 
+  configureDelivery(orderId: string, deliveryRequested: boolean): Observable<PharmacyOrderView> {
+    return this.http
+      .patch<
+        ApiResponse<PharmacyOrderView>
+      >(`${this.apiUrl}/${orderId}/delivery-option`, { deliveryRequested })
+      .pipe(map(unwrapApiResponse));
+  }
+
   initiatePayment(
     orderId: string,
     method: 'WAVE' | 'ORANGE_MONEY' | 'CARD',
+    deliveryRequested = false,
   ): Observable<PharmacyOrderPaymentView> {
     return this.http
       .post<ApiResponse<PharmacyOrderPaymentView>>(
         `${this.apiUrl}/${orderId}/payment`,
         {
           method,
-          successUrl: this.absoluteUrl(`/pharmacy-orders/${orderId}/delivery`),
+          successUrl: this.absoluteUrl(
+            deliveryRequested
+              ? `/pharmacy-orders/${orderId}/delivery`
+              : `/pharmacy-orders/${orderId}`,
+          ),
           cancelUrl: this.absoluteUrl(`/pharmacy-orders/${orderId}/payment`),
         },
         {

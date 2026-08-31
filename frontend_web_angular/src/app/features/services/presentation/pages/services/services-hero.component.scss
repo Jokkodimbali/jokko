@@ -1,7 +1,7 @@
 :host .hero {
   background: var(--color-brand, #865221);
   color: var(--color-white, #fff);
-  min-height: clamp(230px, 19vw, 290px);
+  min-height: clamp(250px, 19vw, 310px);
   overflow: visible;
   position: relative;
   z-index: 30;
@@ -10,9 +10,9 @@
 :host .hero-content {
   box-sizing: border-box;
   display: flex;
-  height: clamp(230px, 19vw, 290px);
+  height: clamp(250px, 19vw, 310px);
   max-width: 100%;
-  min-height: 230px;
+  min-height: 250px;
   overflow: visible;
   padding: 0 0 0 29px;
   position: relative;

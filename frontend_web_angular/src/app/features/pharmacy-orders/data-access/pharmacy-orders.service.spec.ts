@@ -122,8 +122,32 @@ describe('PharmacyOrdersService', () => {
     const request = http.expectOne(`${environment.apiUrl}/pharmacy-orders/${orderId}/payment`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body.method).toBe('WAVE');
-    expect(request.request.body.successUrl).toContain(`/pharmacy-orders/${orderId}/delivery`);
+    expect(request.request.body.successUrl).toContain(`/pharmacy-orders/${orderId}`);
+    expect(request.request.body.successUrl).not.toContain(`/pharmacy-orders/${orderId}/delivery`);
     expect(request.request.headers.get('Idempotency-Key')).toBe(`pharmacy-payment-${orderId}-WAVE`);
+    request.flush({ success: true, data: {} });
+  });
+
+  it('stores the optional delivery choice before payment', () => {
+    const orderId = '55555555-5555-4555-8555-555555555555';
+
+    service.configureDelivery(orderId, true).subscribe();
+
+    const request = http.expectOne(
+      `${environment.apiUrl}/pharmacy-orders/${orderId}/delivery-option`,
+    );
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ deliveryRequested: true });
+    request.flush({ success: true, data: { id: orderId, deliveryRequested: true } });
+  });
+
+  it('uses the delivery return URL only when delivery was selected', () => {
+    const orderId = '55555555-5555-4555-8555-555555555555';
+
+    service.initiatePayment(orderId, 'WAVE', true).subscribe();
+
+    const request = http.expectOne(`${environment.apiUrl}/pharmacy-orders/${orderId}/payment`);
+    expect(request.request.body.successUrl).toContain(`/pharmacy-orders/${orderId}/delivery`);
     request.flush({ success: true, data: {} });
   });
 

@@ -22,6 +22,10 @@ describe('PharmacyOrdersService', () => {
     id: '55555555-5555-4555-8555-555555555555',
     statut: StatutCommandePharmacie.EN_ATTENTE_PHARMACIE,
     montantMedicaments: null,
+    livraisonDemandee: false,
+    montantLivraison: null,
+    distanceLivraisonKm: null,
+    adresseLivraison: null,
     detailsMedicaments: [],
     notePharmacie: null,
     indisponibilites: [],
@@ -30,6 +34,7 @@ describe('PharmacyOrdersService', () => {
     reservationMedicale: {
       id: reservationId,
       dateHeure: new Date('2026-08-21T10:00:00.000Z'),
+      adresseClient: 'Dakar Plateau',
       actesPrescriptionMedicale: ['Consultation'],
       vaccinsPrescriptionMedicale: [],
       traitementsPrescriptionMedicale: ['Paracetamol'],
@@ -55,8 +60,15 @@ describe('PharmacyOrdersService', () => {
     pharmacie: {
       id: pharmacyId,
       nomEntreprise: 'Pharmacie Jokko',
-      utilisateur: { id: pharmacyUser.sub, nom: 'Pharmacien Jokko' },
+      ville: 'Dakar',
+      utilisateur: {
+        id: pharmacyUser.sub,
+        nom: 'Pharmacien Jokko',
+        adresse: 'Mermoz',
+      },
     },
+    paiement: null,
+    reservationLivraison: null,
   };
   const prisma = {
     $queryRaw: jest.fn(),
@@ -158,6 +170,95 @@ describe('PharmacyOrdersService', () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.commandePharmacie.create).not.toHaveBeenCalled();
+  });
+
+  it('stores a delivery quote only when the client requests delivery before payment', async () => {
+    const payableOrder = {
+      ...baseOrder,
+      statut: StatutCommandePharmacie.EN_ATTENTE_PAIEMENT,
+      montantMedicaments: 5000,
+    };
+    prisma.commandePharmacie.findFirst.mockResolvedValue(payableOrder);
+    geocodeAddress.execute
+      .mockResolvedValueOnce({ latitude: 14.72, longitude: -17.46 })
+      .mockResolvedValueOnce({ latitude: 14.67, longitude: -17.43 });
+    computeRoutes.execute.mockResolvedValue([{ distanceMeters: 6000 }]);
+    prisma.commandePharmacie.update.mockResolvedValue({
+      ...payableOrder,
+      livraisonDemandee: true,
+      montantLivraison: 3000,
+      distanceLivraisonKm: 6,
+      adresseLivraison: 'Dakar Plateau',
+    });
+
+    const result = await service.configureDelivery(patient, baseOrder.id, true);
+
+    expect(prisma.commandePharmacie.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          livraisonDemandee: true,
+          montantLivraison: 3000,
+          distanceLivraisonKm: 6,
+          adresseLivraison: 'Dakar Plateau',
+        }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        deliveryRequested: true,
+        deliveryAmount: 3000,
+        totalAmount: 8000,
+      }),
+    );
+  });
+
+  it('returns the prepaid delivery offer to an eligible nearby courier', async () => {
+    prisma.$queryRaw.mockResolvedValue([
+      {
+        professionalId: '66666666-6666-4666-8666-666666666666',
+        serviceId: '77777777-7777-4777-8777-777777777777',
+        durationMinutes: 30,
+        distanceKm: 2.4,
+        pricePerKm: 500,
+        commissionRate: 10,
+      },
+    ]);
+    prisma.commandePharmacie.findFirst.mockResolvedValue({
+      ...baseOrder,
+      statut: StatutCommandePharmacie.EN_ATTENTE_TRANSPORTEUR,
+      montantMedicaments: 5000,
+      livraisonDemandee: true,
+      montantLivraison: 3000,
+      distanceLivraisonKm: 6,
+      adresseLivraison: 'Dakar Plateau',
+    });
+
+    const result = await service.getDeliveryOffer(
+      {
+        sub: '88888888-8888-4888-8888-888888888888',
+        role: 'PRESTATAIRE',
+      } as AuthUser,
+      baseOrder.id,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        deliveryRequested: true,
+        deliveryAmount: 3000,
+        deliveryDistanceKm: 6,
+        distanceKm: 2.4,
+        pricePerKm: 500,
+      }),
+    );
+    const query = prisma.$queryRaw.mock.calls[0][0] as {
+      strings: readonly string[];
+    };
+    expect(query.strings.join(' ')).toContain(
+      'INNER JOIN categories category ON category.id = service.category_id',
+    );
+    expect(query.strings.join(' ')).toContain(
+      'category.commission_rate::float8 AS "commissionRate"',
+    );
   });
 
   it('returns nearby verified pharmacies with numeric distances', async () => {
@@ -337,6 +438,15 @@ describe('PharmacyOrdersService', () => {
     );
     expect(result.medicineAmount).toBe(5000);
     expect(result.medicineItems).toEqual(medicineItems);
+    expect(notifications.createInAppNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: validatedOrder.client.id,
+        data: expect.objectContaining({
+          pharmacyOrderId: validatedOrder.id,
+          route: `/pharmacy-orders/${validatedOrder.id}/payment`,
+        }),
+      }),
+    );
   });
 
   it('prevents two concurrent decisions for the same order', async () => {

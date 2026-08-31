@@ -194,3 +194,97 @@
     margin-left: 47px;
   }
 }
+.accepted-panel__partial-summary {
+  align-items: flex-start;
+  background: #fff8ed;
+  border: 1px solid #edcfaa;
+  border-radius: 10px;
+  color: #975b22;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.accepted-panel__partial-summary lucide-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.accepted-panel__partial-summary p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.accepted-panel__partial-summary strong,
+.accepted-panel__partial-summary span {
+  display: block;
+}
+
+.accepted-panel__partial-summary strong {
+  color: #754216;
+  font-size: 13px;
+}
+
+.accepted-panel__partial-summary span {
+  color: #85694e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pharmacy-order__pickup-ready {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e5e9;
+  border-radius: 18px;
+  box-shadow: 0 12px 34px rgb(24 34 48 / 8%);
+  display: flex;
+  flex-direction: column;
+  margin: 42px auto 0;
+  max-width: 680px;
+  padding: 42px;
+  text-align: center;
+}
+
+.pharmacy-order__pickup-ready > lucide-icon,
+.pharmacy-order__pickup-ready > span {
+  color: #287a50;
+}
+
+.pharmacy-order__pickup-ready > span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  margin-top: 14px;
+}
+
+.pharmacy-order__pickup-ready h1 {
+  color: #1b2636;
+  font-size: clamp(24px, 3vw, 36px);
+  margin: 10px 0;
+}
+
+.pharmacy-order__pickup-ready > p {
+  color: #747e8d;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 540px;
+}
+
+.pharmacy-order__pickup-ready > div {
+  background: #f7f8fa;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  margin-top: 24px;
+  min-width: min(100%, 280px);
+  padding: 14px 18px;
+}
+
+.pharmacy-order__pickup-ready small {
+  color: #858e9a;
+}
+
+.pharmacy-order__pickup-ready strong {
+  color: #975b22;
+  font-size: 20px;
+}

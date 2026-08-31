@@ -43,7 +43,8 @@ export class ServiceManagementService extends ProfessionalAppService {
       pauseMinutes: command.pauseMinutes,
       isRequired: command.isRequired,
       teleconsultationEnabled:
-        requestUser.role === 'MEDECIN' && command.teleconsultationEnabled === true,
+        requestUser.role === 'MEDECIN' &&
+        command.teleconsultationEnabled === true,
     });
 
     if (result.status === 'profile_not_found') {

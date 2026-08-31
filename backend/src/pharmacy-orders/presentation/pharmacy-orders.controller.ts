@@ -22,6 +22,7 @@ import {
   ListNearbyPharmaciesDto,
   ValidatePharmacyOrderDto,
   InitiatePharmacyOrderPaymentDto,
+  ConfigurePharmacyDeliveryDto,
 } from './dto/pharmacy-orders.dto';
 import { PharmacyOrderPaymentService } from '../../payments/application/services/pharmacy-order-payment.service';
 
@@ -92,6 +93,20 @@ export class PharmacyOrdersController {
     return createApiResponse(
       await this.orders.validate(user, id, dto),
       'Commande pharmacie mise a jour.',
+    );
+  }
+
+  @Patch(':id/delivery-option')
+  async configureDelivery(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ConfigurePharmacyDeliveryDto,
+  ) {
+    return createApiResponse(
+      await this.orders.configureDelivery(user, id, dto.deliveryRequested),
+      dto.deliveryRequested
+        ? 'Livraison ajoutee.'
+        : 'Retrait en pharmacie selectionne.',
     );
   }
 

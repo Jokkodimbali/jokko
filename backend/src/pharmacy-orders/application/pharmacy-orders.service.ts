@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  EscrowStatus,
+  MethodePaiement,
   Prisma,
+  StatutPaiement,
   StatutCommandePharmacie,
   StatutKyc,
   StatutReservation,
@@ -84,6 +87,8 @@ type PharmacyMedicineItem = {
   isAvailable: boolean;
   price: number | null;
 };
+
+const PHARMACY_DELIVERY_PRICE_PER_KM = 500;
 
 @Injectable()
 export class PharmacyOrdersService {
@@ -258,18 +263,21 @@ export class PharmacyOrdersService {
     if (!order) {
       throw new NotFoundException('Cette livraison a deja ete attribuee.');
     }
-    const deliveryPricing = await this.calculateDeliveryPricing({
-      pickupAddress: this.pharmacyAddress(order),
-      dropoffAddress:
-        order.client.adresse || order.reservationMedicale.adresseClient,
-      pricePerKm: courier.pricePerKm,
-    });
+    if (
+      !order.livraisonDemandee ||
+      order.montantLivraison === null ||
+      order.distanceLivraisonKm === null
+    ) {
+      throw new NotFoundException(
+        'Cette commande ne demande pas de livraison.',
+      );
+    }
     return {
       ...this.toView(order),
       distanceKm: courier.distanceKm,
-      deliveryDistanceKm: deliveryPricing.distanceKm,
-      deliveryAmount: deliveryPricing.amount,
-      pricePerKm: courier.pricePerKm,
+      deliveryDistanceKm: Number(order.distanceLivraisonKm),
+      deliveryAmount: Number(order.montantLivraison),
+      pricePerKm: PHARMACY_DELIVERY_PRICE_PER_KM,
     };
   }
 
@@ -293,15 +301,24 @@ export class PharmacyOrdersService {
         'Cette livraison vient deja d etre acceptee par un autre livreur.',
       );
     }
+    if (
+      !orderForPricing.livraisonDemandee ||
+      orderForPricing.montantLivraison === null ||
+      orderForPricing.distanceLivraisonKm === null ||
+      !orderForPricing.adresseLivraison
+    ) {
+      throw new BadRequestException(
+        "Cette commande n'a pas demande de livraison.",
+      );
+    }
     const pickupAddress = this.pharmacyAddress(orderForPricing);
-    const dropoffAddress =
-      orderForPricing.client.adresse ||
-      orderForPricing.reservationMedicale.adresseClient;
-    const deliveryPricing = await this.calculateDeliveryPricing({
-      pickupAddress,
-      dropoffAddress,
-      pricePerKm: courier.pricePerKm,
-    });
+    const dropoffAddress = orderForPricing.adresseLivraison;
+    const deliveryAmount = Number(orderForPricing.montantLivraison);
+    const deliveryDistanceKm = Number(orderForPricing.distanceLivraisonKm);
+    const commissionAmount = Math.round(
+      (deliveryAmount * courier.commissionRate) / 100,
+    );
+    const courierNetAmount = deliveryAmount - commissionAmount;
     const reservationId = randomUUID();
     const accepted = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.commandePharmacie.updateMany({
@@ -338,19 +355,34 @@ export class PharmacyOrdersService {
           dateHeure: new Date(),
           adresseClient: dropoffAddress,
           dureeMinutes: courier.durationMinutes,
-          statut: StatutReservation.CONFIRMEE,
-          prixConvenu: deliveryPricing.amount,
+          statut: StatutReservation.PAYEE_SEQUESTRE,
+          prixConvenu: deliveryAmount,
           notes: [
             'Type de livraison: Medicaments',
             `Expediteur: ${pharmacyName}`,
             `Depart colis: ${pickupAddress}`,
             `Destinataire: Client`,
             `Arrivee destinataire: ${dropoffAddress}`,
-            `Distance estimee: ${deliveryPricing.distanceKm.toFixed(1)} km`,
-            `Tarif kilometrique: ${courier.pricePerKm} FCFA`,
-            `Prix calcule: ${deliveryPricing.amount} FCFA`,
-            'Note livraison: Paiement de livraison separe',
+            `Distance estimee: ${deliveryDistanceKm.toFixed(1)} km`,
+            `Tarif kilometrique: ${PHARMACY_DELIVERY_PRICE_PER_KM} FCFA`,
+            `Prix calcule: ${deliveryAmount} FCFA`,
+            'Note livraison: Frais deja inclus dans le paiement de la commande pharmacie',
           ].join('. '),
+        },
+      });
+      await tx.paiement.create({
+        data: {
+          reservationId,
+          clientId: order.clientId,
+          professionalId: courier.professionalId,
+          montant: deliveryAmount,
+          montantCommission: commissionAmount,
+          montantNet: courierNetAmount,
+          methode: orderForPricing.paiement?.methode ?? MethodePaiement.WAVE,
+          statut: StatutPaiement.SUCCES,
+          escrowStatus: EscrowStatus.LOCKED,
+          referenceTransaction: `PHARMACY-DELIVERY-${orderId}`,
+          processedAt: new Date(),
         },
       });
       await tx.commandePharmacie.update({
@@ -374,19 +406,19 @@ export class PharmacyOrdersService {
       this.notifications.createInAppNotification({
         userId: order.client.id,
         type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-        title: 'Livreur affecte : paiement de la livraison',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} a accepte la livraison. Frais : ${deliveryPricing.amount.toLocaleString('fr-FR')} FCFA.`,
+        title: 'Livreur affecte a vos medicaments',
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} a accepte la livraison. Les frais de ${deliveryAmount.toLocaleString('fr-FR')} FCFA sont deja payes.`,
         data: {
           pharmacyOrderId: order.id,
           reservationId,
-          route: `/appointments/${reservationId}/payment`,
+          route: `/appointments/${reservationId}`,
         },
       }),
       this.notifications.createInAppNotification({
         userId: order.pharmacie.utilisateur.id,
         type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
         title: 'Livreur affecte',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepte la course. Le depart suivra le paiement de la livraison.`,
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepte la course et peut recuperer les medicaments.`,
         data: {
           pharmacyOrderId: order.id,
           reservationId,
@@ -395,6 +427,74 @@ export class PharmacyOrdersService {
       }),
     ]);
     return this.toView(order);
+  }
+
+  async configureDelivery(
+    requestUser: AuthUser,
+    orderId: string,
+    deliveryRequested: boolean,
+  ) {
+    if (requestUser.role !== 'CLIENT') {
+      throw new ForbiddenException(
+        'Seul le patient peut choisir la livraison.',
+      );
+    }
+    const order = await this.prisma.commandePharmacie.findFirst({
+      where: { id: orderId, clientId: requestUser.sub },
+      include: ORDER_INCLUDE,
+    });
+    if (!order) throw new NotFoundException('Commande pharmacie introuvable.');
+    if (
+      order.statut !== StatutCommandePharmacie.EN_ATTENTE_PAIEMENT &&
+      order.statut !== StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE
+    ) {
+      throw new BadRequestException(
+        "Le choix de livraison n'est plus modifiable.",
+      );
+    }
+    if (order.paiement && order.paiement.statut !== StatutPaiement.ECHEC) {
+      throw new BadRequestException(
+        "Le choix de livraison n'est plus modifiable apres l'initialisation du paiement.",
+      );
+    }
+
+    let deliveryData: {
+      livraisonDemandee: boolean;
+      montantLivraison: number | null;
+      distanceLivraisonKm: number | null;
+      adresseLivraison: string | null;
+    } = {
+      livraisonDemandee: false,
+      montantLivraison: null,
+      distanceLivraisonKm: null,
+      adresseLivraison: null,
+    };
+    if (deliveryRequested) {
+      const deliveryAddress =
+        order.client.adresse || order.reservationMedicale.adresseClient;
+      if (!deliveryAddress) {
+        throw new BadRequestException(
+          'Ajoutez une adresse client avant de demander la livraison.',
+        );
+      }
+      const quote = await this.calculateDeliveryPricing({
+        pickupAddress: this.pharmacyAddress(order),
+        dropoffAddress: deliveryAddress,
+        pricePerKm: PHARMACY_DELIVERY_PRICE_PER_KM,
+      });
+      deliveryData = {
+        livraisonDemandee: true,
+        montantLivraison: quote.amount,
+        distanceLivraisonKm: quote.distanceKm,
+        adresseLivraison: deliveryAddress,
+      };
+    }
+    const updated = await this.prisma.commandePharmacie.update({
+      where: { id: order.id },
+      data: deliveryData,
+      include: ORDER_INCLUDE,
+    });
+    return this.toView(updated);
   }
 
   async validate(
@@ -536,7 +636,11 @@ export class PharmacyOrdersService {
       data: {
         pharmacyOrderId: updated.id,
         medicalReservationId: updated.reservationMedicale.id,
-        route: `/pharmacy-orders/${updated.id}`,
+        route:
+          updated.statut === StatutCommandePharmacie.EN_ATTENTE_PAIEMENT ||
+          updated.statut === StatutCommandePharmacie.PARTIELLEMENT_DISPONIBLE
+            ? `/pharmacy-orders/${updated.id}/payment`
+            : `/pharmacy-orders/${updated.id}`,
       },
     });
     return this.toView(updated);
@@ -561,11 +665,13 @@ export class PharmacyOrdersService {
         durationMinutes: number;
         distanceKm: number;
         pricePerKm: number;
+        commissionRate: number;
       }>
     >(Prisma.sql`
       SELECT p.id AS "professionalId", service.id AS "serviceId",
         service.duration_minutes AS "durationMinutes",
         service.price::float8 AS "pricePerKm",
+        category.commission_rate::float8 AS "commissionRate",
         ST_Distance(
           COALESCE(
             CASE
@@ -583,6 +689,7 @@ export class PharmacyOrdersService {
       INNER JOIN professional_profiles p ON p.user_id = ${userId}::uuid
       INNER JOIN users u ON u.id = p.user_id
       INNER JOIN services service ON service.professional_id = p.id
+      INNER JOIN categories category ON category.id = service.category_id
       LEFT JOIN professional_presence presence ON presence.professional_id = p.id
       WHERE orders.id = ${orderId}::uuid
         AND orders.statut = 'EN_ATTENTE_TRANSPORTEUR'
@@ -692,6 +799,17 @@ export class PharmacyOrdersService {
         order.montantMedicaments === null
           ? null
           : Number(order.montantMedicaments),
+      deliveryRequested: order.livraisonDemandee,
+      deliveryAmount:
+        order.montantLivraison === null ? null : Number(order.montantLivraison),
+      deliveryDistanceKm:
+        order.distanceLivraisonKm === null
+          ? null
+          : Number(order.distanceLivraisonKm),
+      deliveryAddress: order.adresseLivraison,
+      totalAmount:
+        Number(order.montantMedicaments ?? 0) +
+        Number(order.montantLivraison ?? 0),
       pharmacyNote: order.notePharmacie,
       unavailableItems: order.indisponibilites,
       medicineItems,

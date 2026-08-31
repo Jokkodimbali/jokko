@@ -395,6 +395,33 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const title =
       notification.title || notification.titre || this.notificationTypeLabel(notification.type);
     const actorName = this.notificationActorName(notification);
+    const metadata = notification.data || notification.donnees || {};
+    const serviceName =
+      typeof metadata['serviceName'] === 'string' ? metadata['serviceName'].trim() : '';
+    const serviceContext = serviceName ? ` pour « ${serviceName} »` : '';
+    const normalizedTitle = title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase();
+
+    if (normalizedTitle.includes('nouvelle reservation confirmee')) {
+      return `${actorName || 'Un client'} a confirmé une nouvelle réservation${serviceContext}.`;
+    }
+    if (normalizedTitle.includes('prestation terminee')) {
+      return `La prestation${serviceContext} est terminée. Consultez son récapitulatif.`;
+    }
+    if (normalizedTitle.includes('vous etes en route')) {
+      return `Votre trajet${serviceContext} a commencé. Le client peut suivre votre déplacement.`;
+    }
+    if (normalizedTitle.includes('le client est en route')) {
+      return `${actorName || 'Le client'} est en route vers le rendez-vous${serviceContext}.`;
+    }
+    if (normalizedTitle.includes('prestataire en route')) {
+      return `${actorName || 'Votre prestataire'} est en route vers votre rendez-vous${serviceContext}.`;
+    }
+    if (normalizedTitle.includes('reservation annulee')) {
+      return `${actorName || 'Le client'} a annulé la réservation${serviceContext}.`;
+    }
     if (!actorName || title.toLocaleLowerCase().includes(actorName.toLocaleLowerCase())) {
       return title;
     }

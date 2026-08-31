@@ -263,7 +263,9 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           ...(input.nomEntreprise !== undefined
             ? { nomEntreprise: input.nomEntreprise }
             : {}),
-          ...(input.urlBanniere !== undefined ? { urlBanniere: input.urlBanniere } : {}),
+          ...(input.urlBanniere !== undefined
+            ? { urlBanniere: input.urlBanniere }
+            : {}),
           ...(input.ville !== undefined ? { ville: input.ville } : {}),
           ...(input.typeVehicule !== undefined
             ? { typeVehicule: input.typeVehicule }

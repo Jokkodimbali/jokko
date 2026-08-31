@@ -59,7 +59,7 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
     `Jokko: votre reservation ${serviceName} avec ${professionalName} du ${formattedDate} a ete ${eventType}.`,
-  onTheWayTitle: 'Prestataire en route',
+  onTheWayTitle: 'Votre prestataire est en route vers votre rendez-vous.',
   onTheWayEmailSubject: 'Votre prestataire est en route',
   onTheWayBody: ({
     serviceName,

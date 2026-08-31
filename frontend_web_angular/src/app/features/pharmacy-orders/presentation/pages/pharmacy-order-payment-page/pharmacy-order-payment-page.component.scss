@@ -215,6 +215,76 @@
   margin: 0 0 23px;
 }
 
+.pharmacy-payment__delivery-option {
+  margin-bottom: 16px;
+}
+
+.pharmacy-payment__delivery-option > label {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e1e3e6;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 11px;
+  padding: 13px;
+}
+
+.pharmacy-payment__delivery-option > label.is-selected {
+  background: #fbf6f1;
+  border-color: #9d632c;
+}
+
+.pharmacy-payment__delivery-option input {
+  accent-color: #955b22;
+  height: 18px;
+  width: 18px;
+}
+
+.pharmacy-payment__delivery-icon {
+  align-items: center;
+  background: #f1e5d8;
+  border-radius: 8px;
+  color: #955b22;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.pharmacy-payment__delivery-option label > span:nth-of-type(2) {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+}
+
+.pharmacy-payment__delivery-option strong {
+  color: #263142;
+  font-size: 12px;
+}
+
+.pharmacy-payment__delivery-option small,
+.pharmacy-payment__delivery-option > p {
+  color: #7d8693;
+  font-size: 9px;
+}
+
+.pharmacy-payment__delivery-option em {
+  color: #955b22;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pharmacy-payment__delivery-option > p {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  line-height: 1.4;
+  margin: 7px 4px 0;
+}
+
 .pharmacy-payment__options {
   display: grid;
   gap: 10px;
@@ -287,7 +357,14 @@
 
 .pharmacy-payment__total span {
   color: #737b87;
+  display: grid;
   font-size: 12px;
+  gap: 2px;
+}
+
+.pharmacy-payment__total span small {
+  color: #9198a2;
+  font-size: 9px;
 }
 
 .pharmacy-payment__total strong {

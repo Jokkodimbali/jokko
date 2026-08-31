@@ -124,7 +124,9 @@ describe('ReservationCommandService', () => {
     const disputesFacade = {};
     const liveTrackingFacade = {
       finalizeReservationTracking: jest.fn(),
-      getReservationTracking: jest.fn().mockResolvedValue({ trackingStatus: 'TERMINEE' }),
+      getReservationTracking: jest
+        .fn()
+        .mockResolvedValue({ trackingStatus: 'TERMINEE' }),
     };
     const prisma = {
       paiement: {
@@ -155,10 +157,11 @@ describe('ReservationCommandService', () => {
   };
 
   it('starts a teleconsultation without requiring GPS tracking or arrival', async () => {
-    const { service, reservationsRepository, liveTrackingFacade } = buildService({
-      reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
-      professionalId: 'professional-id',
-    });
+    const { service, reservationsRepository, liveTrackingFacade } =
+      buildService({
+        reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
+        professionalId: 'professional-id',
+      });
 
     const result = await service.startReservation(doctorUser, 'reservation-id');
 
@@ -167,14 +170,13 @@ describe('ReservationCommandService', () => {
       expect.objectContaining({ statut: 'EN_COURS' }),
     );
     expect(liveTrackingFacade.getReservationTracking).not.toHaveBeenCalled();
-    expect(liveTrackingFacade.finalizeReservationTracking).not.toHaveBeenCalled();
+    expect(
+      liveTrackingFacade.finalizeReservationTracking,
+    ).not.toHaveBeenCalled();
   });
 
   it('notifies both the client and the professional when a reservation is created', async () => {
-    const {
-      service,
-      reservationClientNotificationService,
-    } = buildService();
+    const { service, reservationClientNotificationService } = buildService();
 
     await service.createReservation(clientUser, {
       professionnelId: 'professional-id',
@@ -364,11 +366,16 @@ describe('ReservationCommandService', () => {
     });
     prisma.appel.findFirst.mockResolvedValue({ id: 'video-call-id' });
 
-    await service.confirmTeleconsultationCompleted(doctorUser, 'reservation-id');
+    await service.confirmTeleconsultationCompleted(
+      doctorUser,
+      'reservation-id',
+    );
 
     expect(reservationsRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        notes: expect.stringContaining('---JOKKO_TELECONSULTATION_COMPLETED---'),
+        notes: expect.stringContaining(
+          '---JOKKO_TELECONSULTATION_COMPLETED---',
+        ),
       }),
     );
   });

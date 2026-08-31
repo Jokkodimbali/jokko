@@ -104,12 +104,21 @@ export class PharmacyOrderPaymentService {
       });
     }
 
+    const totalAmount =
+      Number(order.montantMedicaments) +
+      (order.livraisonDemandee ? Number(order.montantLivraison ?? 0) : 0);
+    if (order.livraisonDemandee && Number(order.montantLivraison ?? 0) <= 0) {
+      throw new BadRequestException(
+        'Le devis de livraison doit etre calcule avant le paiement.',
+      );
+    }
+
     const payment = await this.prisma.paiementCommandePharmacie.create({
       data: {
         commandePharmacieId: order.id,
         clientId: order.clientId,
         pharmacieId: order.pharmacieId,
-        montant: order.montantMedicaments,
+        montant: totalAmount,
         methode: this.toPrismaMethod(input.method),
         cleIdempotence: idempotencyKey,
         referenceTransaction: `PHA-${randomUUID()}`,
@@ -117,9 +126,9 @@ export class PharmacyOrderPaymentService {
     });
 
     const gatewayResult = await this.gateway.initiatePayment({
-      amount: Number(order.montantMedicaments),
+      amount: totalAmount,
       currency: 'XOF',
-      description: `Medicaments - ${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom}`,
+      description: `${order.livraisonDemandee ? 'Medicaments et livraison' : 'Medicaments'} - ${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom}`,
       customerName: order.client.nom,
       customerEmail: order.client.email ?? undefined,
       customerPhone: order.client.numeroTelephone,
@@ -259,7 +268,9 @@ export class PharmacyOrderPaymentService {
           },
         },
         data: {
-          statut: StatutCommandePharmacie.EN_ATTENTE_TRANSPORTEUR,
+          statut: payment.commandePharmacie.livraisonDemandee
+            ? StatutCommandePharmacie.EN_ATTENTE_TRANSPORTEUR
+            : StatutCommandePharmacie.PAYEE_PHARMACIE,
           payeePharmacieLe: new Date(),
         },
       });
@@ -270,14 +281,18 @@ export class PharmacyOrderPaymentService {
       }
       const pharmacy = await tx.profilProfessionnel.update({
         where: { id: payment.pharmacieId },
-        data: { soldePortefeuille: { increment: payment.montant } },
+        data: {
+          soldePortefeuille: {
+            increment: payment.commandePharmacie.montantMedicaments!,
+          },
+        },
         select: { soldePortefeuille: true },
       });
       await tx.transactionPortefeuille.create({
         data: {
           profilProfessionnelId: payment.pharmacieId,
           type: TypeTransactionPortefeuille.CREDIT_PHARMACIE,
-          montant: payment.montant,
+          montant: payment.commandePharmacie.montantMedicaments!,
           soldeApres: pharmacy.soldePortefeuille,
           description: `Paiement medicaments commande ${payment.commandePharmacieId}`,
           reference: `PHARMACY-PAYMENT-${payment.id}`,
@@ -293,24 +308,30 @@ export class PharmacyOrderPaymentService {
         userId: payment.clientId,
         type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
         title: 'Paiement des medicaments confirme',
-        body: 'Votre paiement a ete confirme. La pharmacie prepare votre commande.',
+        body: payment.commandePharmacie.livraisonDemandee
+          ? 'Votre paiement incluant la livraison est confirme. Nous recherchons maintenant un livreur de colis.'
+          : 'Votre paiement est confirme. Vos medicaments seront a retirer directement a la pharmacie.',
         data: {
           pharmacyOrderId: payment.commandePharmacieId,
-          route: `/pharmacy-orders/${payment.commandePharmacieId}`,
+          route: payment.commandePharmacie.livraisonDemandee
+            ? `/pharmacy-orders/${payment.commandePharmacieId}/delivery`
+            : `/pharmacy-orders/${payment.commandePharmacieId}`,
         },
       }),
       this.notifications.createInAppNotification({
         userId: payment.pharmacie.utilisateur.id,
         type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
         title: 'Paiement pharmacie recu',
-        body: `Le paiement de ${Number(payment.montant).toLocaleString('fr-FR')} FCFA est confirme.`,
+        body: `Le paiement des medicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirme.`,
         data: {
           pharmacyOrderId: payment.commandePharmacieId,
           route: `/pharmacy-orders/${payment.commandePharmacieId}`,
         },
       }),
     ]);
-    await this.notifyNearbyCouriers(payment.commandePharmacieId);
+    if (payment.commandePharmacie.livraisonDemandee) {
+      await this.notifyNearbyCouriers(payment.commandePharmacieId);
+    }
     return this.toView(completed);
   }
 
@@ -338,6 +359,7 @@ export class PharmacyOrderPaymentService {
       INNER JOIN services service ON service.professional_id = p.id
       LEFT JOIN professional_presence presence ON presence.professional_id = p.id
       WHERE orders.id = ${orderId}::uuid
+        AND orders.delivery_requested = true
         AND pharmacy.localisation IS NOT NULL
         AND p.kyc_status = 'VERIFIE'
         AND u.is_active = true

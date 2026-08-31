@@ -116,7 +116,9 @@ describe('LiveTrackingCommandService realtime payload contracts', () => {
     };
     const service = new LiveTrackingCommandService(
       repository as never,
-      { findByUserId: jest.fn().mockResolvedValue({ id: 'professional' }) } as never,
+      {
+        findByUserId: jest.fn().mockResolvedValue({ id: 'professional' }),
+      } as never,
       {} as never,
       { emit: jest.fn() } as never,
       {} as never,

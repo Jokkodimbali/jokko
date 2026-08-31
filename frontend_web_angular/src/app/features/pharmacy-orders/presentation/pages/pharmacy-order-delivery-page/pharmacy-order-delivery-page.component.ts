@@ -60,11 +60,7 @@ export class PharmacyOrderDeliveryPageComponent implements OnInit {
           this.order.set(order);
           const delivery = order.deliveryReservation;
           if (delivery?.id) {
-            const target =
-              delivery.status === 'CONFIRMEE'
-                ? ['/appointments', delivery.id, 'payment']
-                : ['/appointments', delivery.id];
-            void this.router.navigate(target, {
+            void this.router.navigate(['/appointments', delivery.id], {
               queryParams: { pharmacyOrderId: order.id },
               replaceUrl: true,
             });

@@ -92,11 +92,18 @@
                 name="decision"
                 value="PARTIELLEMENT_DISPONIBLE"
                 [ngModel]="decisionStatus"
+                [disabled]="medicineItems.length < 2"
                 (ngModelChange)="onDecisionStatusChange($event)"
               />
               <span
                 ><strong>Disponibilité partielle</strong
-                ><small>Certains médicaments manquent</small></span
+                ><small>
+                  {{
+                    medicineItems.length < 2
+                      ? 'Disponible pour une ordonnance avec plusieurs médicaments'
+                      : 'Certains médicaments manquent'
+                  }}
+                </small></span
               >
             </label>
             <label [class.is-selected]="decisionStatus === 'INDISPONIBLE'">
@@ -208,6 +215,25 @@
     </section>
 
     <section
+      *ngIf="
+        !isPharmacyViewer() && current.status === 'PAYEE_PHARMACIE' && !current.deliveryRequested
+      "
+      class="pharmacy-order__pickup-ready"
+    >
+      <lucide-icon name="circle-check" size="38"></lucide-icon>
+      <span>PAIEMENT CONFIRMÉ</span>
+      <h1>Retrait de vos médicaments en pharmacie</h1>
+      <p>
+        La livraison n’a pas été demandée. {{ current.pharmacy.name }} prépare votre commande pour
+        un retrait direct sur place.
+      </p>
+      <div>
+        <small>Montant des médicaments payé</small>
+        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+      </div>
+    </section>
+
+    <section
       *ngIf="current.status === 'EN_ATTENTE_PHARMACIE' && !isPharmacyViewer()"
       class="pharmacy-order__waiting"
       aria-live="polite"
@@ -302,6 +328,17 @@
           disponibles et leurs prix avant de régler la commande.
         </p>
 
+        <div
+          *ngIf="current.status === 'PARTIELLEMENT_DISPONIBLE'"
+          class="accepted-panel__partial-summary"
+        >
+          <lucide-icon name="circle-alert" size="18"></lucide-icon>
+          <p>
+            <strong>Vous payez uniquement les médicaments disponibles.</strong>
+            <span>Les produits indisponibles ne sont pas facturés.</span>
+          </p>
+        </div>
+
         <div class="accepted-panel__doctor">
           <span class="accepted-panel__avatar">
             <img
@@ -325,8 +362,17 @@
           </small>
         </div>
 
-        <button type="button" class="accepted-panel__pay" (click)="proceedToPayment(current)">
-          Procéder au paiement <lucide-icon name="chevron-right" size="16"></lucide-icon>
+        <button
+          type="button"
+          class="accepted-panel__pay"
+          [disabled]="!canPay(current)"
+          (click)="proceedToPayment(current)"
+        >
+          <span *ngIf="canPay(current); else unavailablePaymentLabel">
+            Payer {{ current.medicineAmount | number: '1.0-0' }} FCFA
+          </span>
+          <ng-template #unavailablePaymentLabel>Paiement indisponible</ng-template>
+          <lucide-icon name="chevron-right" size="16"></lucide-icon>
         </button>
       </article>
     </section>
@@ -336,13 +382,7 @@
       class="pharmacy-order__unavailable"
     >
       <lucide-icon name="circle-alert" size="34"></lucide-icon>
-      <h1>
-        {{
-          current.status === 'INDISPONIBLE'
-            ? 'Médicaments indisponibles'
-            : 'Ordonnance partiellement disponible'
-        }}
-      </h1>
+      <h1>Médicaments indisponibles</h1>
       <p>
         {{ current.pharmacyNote || 'La pharmacie a terminé la vérification de votre ordonnance.' }}
       </p>

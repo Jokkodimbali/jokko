@@ -33,6 +33,7 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
   protected readonly order = signal<PharmacyOrderView | null>(null);
   protected readonly loading = signal(true);
   protected readonly paying = signal(false);
+  protected readonly updatingDelivery = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
   protected readonly steps: AppointmentTrackingStep[] = [
@@ -83,7 +84,10 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
               'LIVREE',
             ].includes(order.status)
           ) {
-            void this.router.navigate(['/pharmacy-orders', order.id, 'delivery'], {
+            const target = order.deliveryRequested
+              ? ['/pharmacy-orders', order.id, 'delivery']
+              : ['/pharmacy-orders', order.id];
+            void this.router.navigate(target, {
               replaceUrl: true,
             });
             return;
@@ -110,36 +114,56 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
   }
 
   protected pay(order: PharmacyOrderView): void {
-    if (this.paying()) return;
+    if (this.paying() || this.updatingDelivery()) return;
     this.paying.set(true);
     this.errorMessage.set(null);
-    this.orders.initiatePayment(order.id, this.selectedMethod()).subscribe({
-      next: (payment) => {
-        if (payment.status === 'SUCCES') {
-          void this.openDelivery(order.id);
-          return;
-        }
-        if (this.isHttpUrl(payment.paymentUrl)) {
-          window.location.assign(payment.paymentUrl!);
-          return;
-        }
+    this.orders
+      .initiatePayment(order.id, this.selectedMethod(), order.deliveryRequested)
+      .subscribe({
+        next: (payment) => {
+          if (payment.status === 'SUCCES') {
+            void this.openAfterPayment(order);
+            return;
+          }
+          if (this.isHttpUrl(payment.paymentUrl)) {
+            window.location.assign(payment.paymentUrl!);
+            return;
+          }
 
-        this.orders
-          .confirmMockPayment(order.id)
-          .pipe(finalize(() => this.paying.set(false)))
-          .subscribe({
-            next: () => void this.openDelivery(order.id),
-            error: (error) =>
-              this.errorMessage.set(
-                getHttpErrorMessage(error, 'Impossible de confirmer le paiement de test.'),
-              ),
-          });
-      },
-      error: (error) => {
-        this.errorMessage.set(getHttpErrorMessage(error, "Impossible d'initialiser le paiement."));
-        this.paying.set(false);
-      },
-    });
+          this.orders
+            .confirmMockPayment(order.id)
+            .pipe(finalize(() => this.paying.set(false)))
+            .subscribe({
+              next: () => void this.openAfterPayment(order),
+              error: (error) =>
+                this.errorMessage.set(
+                  getHttpErrorMessage(error, 'Impossible de confirmer le paiement de test.'),
+                ),
+            });
+        },
+        error: (error) => {
+          this.errorMessage.set(
+            getHttpErrorMessage(error, "Impossible d'initialiser le paiement."),
+          );
+          this.paying.set(false);
+        },
+      });
+  }
+
+  protected toggleDelivery(order: PharmacyOrderView, requested: boolean): void {
+    if (this.updatingDelivery() || this.paying()) return;
+    this.updatingDelivery.set(true);
+    this.errorMessage.set(null);
+    this.orders
+      .configureDelivery(order.id, requested)
+      .pipe(finalize(() => this.updatingDelivery.set(false)))
+      .subscribe({
+        next: (updated) => this.order.set(updated),
+        error: (error) =>
+          this.errorMessage.set(
+            getHttpErrorMessage(error, 'Impossible de mettre à jour le choix de livraison.'),
+          ),
+      });
   }
 
   protected medicines(order: PharmacyOrderView): string[] {
@@ -175,8 +199,11 @@ export class PharmacyOrderPaymentPageComponent implements OnInit {
     }
   }
 
-  private openDelivery(orderId: string): Promise<boolean> {
-    return this.router.navigate(['/pharmacy-orders', orderId, 'delivery'], {
+  private openAfterPayment(order: PharmacyOrderView): Promise<boolean> {
+    const target = order.deliveryRequested
+      ? ['/pharmacy-orders', order.id, 'delivery']
+      : ['/pharmacy-orders', order.id];
+    return this.router.navigate(target, {
       replaceUrl: true,
     });
   }

@@ -80,6 +80,38 @@
       <h1>Paiement de la commande</h1>
       <p>Choisissez votre moyen de paiement pour déclencher la préparation de vos médicaments.</p>
 
+      <section class="pharmacy-payment__delivery-option">
+        <label [class.is-selected]="current.deliveryRequested">
+          <input
+            type="checkbox"
+            [checked]="current.deliveryRequested"
+            [disabled]="updatingDelivery() || paying()"
+            (change)="toggleDelivery(current, $any($event.target).checked)"
+          />
+          <span class="pharmacy-payment__delivery-icon">
+            <lucide-icon name="truck" size="21"></lucide-icon>
+          </span>
+          <span>
+            <strong>Se faire livrer</strong>
+            <small>
+              {{
+                current.deliveryRequested
+                  ? 'Livraison à votre adresse incluse dans ce paiement'
+                  : 'Facultatif · vous pouvez aussi retirer vos médicaments à la pharmacie'
+              }}
+            </small>
+          </span>
+          <em *ngIf="updatingDelivery()">Calcul...</em>
+          <em *ngIf="!updatingDelivery() && current.deliveryAmount !== null">
+            {{ current.deliveryAmount | number: '1.0-0' }} FCFA
+          </em>
+        </label>
+        <p *ngIf="current.deliveryRequested && current.deliveryDistanceKm !== null">
+          <lucide-icon name="map-pin" size="14"></lucide-icon>
+          {{ current.deliveryAddress }} · {{ current.deliveryDistanceKm | number: '1.1-1' }} km
+        </p>
+      </section>
+
       <div class="pharmacy-payment__options">
         <button
           *ngFor="let method of methods"
@@ -97,14 +129,20 @@
       </div>
 
       <div class="pharmacy-payment__total">
-        <span>Total à payer</span>
-        <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
+        <span>
+          <small>Médicaments : {{ current.medicineAmount | number: '1.0-0' }} FCFA</small>
+          <small *ngIf="current.deliveryRequested">
+            Livraison : {{ current.deliveryAmount | number: '1.0-0' }} FCFA
+          </small>
+          Total à payer
+        </span>
+        <strong>{{ current.totalAmount | number: '1.0-0' }} FCFA</strong>
       </div>
 
       <button
         type="button"
         class="pharmacy-payment__submit"
-        [disabled]="paying()"
+        [disabled]="paying() || updatingDelivery()"
         (click)="pay(current)"
       >
         <span

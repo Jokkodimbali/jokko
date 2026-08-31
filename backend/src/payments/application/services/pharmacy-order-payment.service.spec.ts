@@ -52,6 +52,8 @@ describe('PharmacyOrderPaymentService', () => {
     pharmacieId: pharmacyId,
     statut: StatutCommandePharmacie.EN_ATTENTE_PAIEMENT,
     montantMedicaments: 12500,
+    livraisonDemandee: false,
+    montantLivraison: null,
     paiement: null,
     client: {
       nom: 'Patient Jokko',
@@ -151,6 +153,42 @@ describe('PharmacyOrderPaymentService', () => {
     expect(result.amount).toBe(5000);
   });
 
+  it('includes delivery in the single payment when the client requested it', async () => {
+    prisma.commandePharmacie.findFirst.mockResolvedValue({
+      ...order,
+      livraisonDemandee: true,
+      montantLivraison: 2500,
+    });
+    prisma.paiementCommandePharmacie.create.mockResolvedValue({
+      ...payment,
+      montant: 15000,
+      referenceFournisseur: null,
+      urlPaiement: null,
+    });
+    gateway.initiatePayment.mockResolvedValue({
+      success: true,
+      gatewayReference: payment.referenceFournisseur,
+      paymentUrl: payment.urlPaiement,
+    });
+    prisma.paiementCommandePharmacie.update.mockResolvedValue({
+      ...payment,
+      montant: 15000,
+    });
+
+    const result = await service.initiate(client, orderId, {
+      method: 'WAVE',
+      idempotencyKey: 'payment-key',
+    });
+
+    expect(gateway.initiatePayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 15000,
+        description: expect.stringContaining('livraison'),
+      }),
+    );
+    expect(result.amount).toBe(15000);
+  });
+
   it('rejects payment before pharmacy acceptance', async () => {
     prisma.commandePharmacie.findFirst.mockResolvedValue({
       ...order,
@@ -177,7 +215,13 @@ describe('PharmacyOrderPaymentService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('confirms once, pays the order and credits the pharmacy wallet', async () => {
+  it('confirms once, credits only the medicines and notifies couriers when delivery is requested', async () => {
+    const deliveryOrder = {
+      ...order,
+      livraisonDemandee: true,
+      montantLivraison: 2500,
+    };
+    const deliveryPayment = { ...payment, montant: 15000 };
     prisma.$queryRaw.mockResolvedValueOnce([
       {
         userId: '66666666-6666-4666-8666-666666666666',
@@ -185,10 +229,10 @@ describe('PharmacyOrderPaymentService', () => {
       },
     ]);
     prisma.paiementCommandePharmacie.findFirst
-      .mockResolvedValueOnce(payment)
+      .mockResolvedValueOnce(deliveryPayment)
       .mockResolvedValueOnce({
-        ...payment,
-        commandePharmacie: order,
+        ...deliveryPayment,
+        commandePharmacie: deliveryOrder,
         pharmacie: {
           id: pharmacyId,
           nomEntreprise: 'Pharmacie Jokko',
@@ -207,7 +251,7 @@ describe('PharmacyOrderPaymentService', () => {
     });
 
     const handled = await service.processGatewayStatus(
-      payment.referenceFournisseur,
+      deliveryPayment.referenceFournisseur,
       'completed',
     );
 
@@ -244,5 +288,43 @@ describe('PharmacyOrderPaymentService', () => {
         }),
       }),
     );
+  });
+
+  it('keeps pickup at the pharmacy and does not notify couriers without delivery', async () => {
+    prisma.paiementCommandePharmacie.findFirst
+      .mockResolvedValueOnce(payment)
+      .mockResolvedValueOnce({
+        ...payment,
+        commandePharmacie: order,
+        pharmacie: {
+          id: pharmacyId,
+          nomEntreprise: 'Pharmacie Jokko',
+          utilisateur: { id: pharmacyUserId, nom: 'Pharmacien Jokko' },
+        },
+      });
+    prisma.paiementCommandePharmacie.updateMany.mockResolvedValue({ count: 1 });
+    prisma.commandePharmacie.updateMany.mockResolvedValue({ count: 1 });
+    prisma.profilProfessionnel.update.mockResolvedValue({
+      soldePortefeuille: 12500,
+    });
+    prisma.paiementCommandePharmacie.findUniqueOrThrow.mockResolvedValue({
+      ...payment,
+      statut: StatutPaiement.SUCCES,
+    });
+
+    await service.processGatewayStatus(
+      payment.referenceFournisseur,
+      'completed',
+    );
+
+    expect(prisma.commandePharmacie.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          statut: StatutCommandePharmacie.PAYEE_PHARMACIE,
+        }),
+      }),
+    );
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    expect(notifications.createInAppNotification).toHaveBeenCalledTimes(2);
   });
 });

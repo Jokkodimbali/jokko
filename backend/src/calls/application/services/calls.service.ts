@@ -58,13 +58,14 @@ export class CallsService {
     if (creation === 'IDEMPOTENT') return signal;
     // L'appel vocal est déjà signalé en temps réel par l'overlay d'appel.
     // Il ne doit pas créer une notification qui reste dans le widget.
-    if (kind === 'VIDEO') await this.notifications.createInAppNotification({
-      userId: signal.recipientId,
-      type: 'APPEL_ENTRANT',
-      title: kind === 'VIDEO' ? 'Appel vidéo entrant' : 'Appel vocal entrant',
-      body: `${signal.callerName} vous appelle.`,
-      data: { callId, conversationId, kind, route: '/messages' },
-    });
+    if (kind === 'VIDEO')
+      await this.notifications.createInAppNotification({
+        userId: signal.recipientId,
+        type: 'APPEL_ENTRANT',
+        title: kind === 'VIDEO' ? 'Appel vidéo entrant' : 'Appel vocal entrant',
+        body: `${signal.callerName} vous appelle.`,
+        data: { callId, conversationId, kind, route: '/messages' },
+      });
     return signal;
   }
 
@@ -112,7 +113,12 @@ export class CallsService {
         throw new ConflictException("L'etat de l'appel a deja change.");
       }
     }
-    if (changed && status === 'ENDED' && call.status === 'RINGING' && user.sub === call.callerId) {
+    if (
+      changed &&
+      status === 'ENDED' &&
+      call.status === 'RINGING' &&
+      user.sub === call.callerId
+    ) {
       await this.notifications.createInAppNotification({
         userId: call.recipientId,
         type: 'APPEL_MANQUE',

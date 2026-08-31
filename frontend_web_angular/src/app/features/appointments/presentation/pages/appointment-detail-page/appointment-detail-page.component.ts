@@ -628,6 +628,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isParcelDeliveryFlow = computed(() =>
     this.activeTrackingScenario().isParcelDelivery(),
   );
+  protected readonly isMedicineDelivery = computed(() => {
+    const appointment = this.appointment();
+    return (
+      !!appointment &&
+      this.isParcelTransportAppointment(appointment) &&
+      /Type de livraison\s*:\s*Medicaments/i.test(appointment.notes ?? '')
+    );
+  });
   protected readonly isParcelPickupValidated = computed(() => {
     this.parcelCheckpointVersion();
     const appointment = this.appointment();
@@ -1019,18 +1027,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     if (this.isParcelDeliveryFlow()) {
       if (this.isParcelAwaitingPickupScan()) {
-        return "Vous etes chez l'expediteur. La camera va scanner le QR retrait pour confirmer la prise en charge.";
+        return this.isMedicineDelivery()
+          ? 'Vous êtes à la pharmacie. Scannez le QR de retrait pour confirmer la prise en charge des médicaments.'
+          : "Vous etes chez l'expediteur. La camera va scanner le QR retrait pour confirmer la prise en charge.";
       }
       if (this.isParcelAwaitingDropoffScan()) {
-        return 'Vous etes chez le destinataire. La camera va scanner le QR depot pour confirmer la livraison.';
+        return this.isMedicineDelivery()
+          ? 'Vous êtes chez le client. Scannez le QR de dépôt pour confirmer la remise des médicaments.'
+          : 'Vous etes chez le destinataire. La camera va scanner le QR depot pour confirmer la livraison.';
       }
       if (this.isParcelDropoffNavigationActive()) {
-        return 'Vous etes en route vers le destinataire. Confirmez votre arrivee une fois sur place.';
+        return this.isMedicineDelivery()
+          ? 'Vous transportez les médicaments vers le client. Confirmez votre arrivée une fois à son adresse.'
+          : 'Vous etes en route vers le destinataire. Confirmez votre arrivee une fois sur place.';
       }
       if (this.isProviderOnTheWay()) {
-        return "Vous etes en route vers l'expediteur pour recuperer le colis.";
+        return this.isMedicineDelivery()
+          ? 'Vous êtes en route vers la pharmacie pour récupérer les médicaments du client.'
+          : "Vous etes en route vers l'expediteur pour recuperer le colis.";
       }
-      return 'Demarrez la livraison pour partager votre position et rejoindre le point de retrait.';
+      return this.isMedicineDelivery()
+        ? 'Démarrez la livraison pour partager votre position et rejoindre la pharmacie.'
+        : 'Demarrez la livraison pour partager votre position et rejoindre le point de retrait.';
     }
     if (this.isProviderWorking()) {
       return this.appointment()?.serviceName ?? 'Intervention en cours';
@@ -1069,7 +1087,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (this.isParcelDeliveryFlow()) {
       if (this.isParcelAwaitingPickupScan()) return 'Scanner le QR retrait';
       if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
-        return 'Partir livrer le colis';
+        return this.isMedicineDelivery()
+          ? 'Livrer les médicaments au client'
+          : 'Partir livrer le colis';
       }
       if (this.isParcelAwaitingDropoffScan()) return 'Scanner le QR depot';
       if (this.isParcelDropoffValidated()) return 'Livraison terminee';
@@ -1161,6 +1181,13 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isProviderWorking()) return 'Téléconsultation en cours';
       return 'Téléconsultation programmée';
     }
+    if (this.isMedicineDelivery()) {
+      if (this.isAppointmentCompleted()) return 'Médicaments livrés';
+      if (this.isParcelDropoffNavigationActive()) return 'Vos médicaments arrivent';
+      if (this.isParcelPickupValidated()) return 'Médicaments récupérés à la pharmacie';
+      if (this.isProviderOnTheWay()) return 'Le livreur rejoint la pharmacie';
+      return 'Livraison de médicaments confirmée';
+    }
     return this.activeTrackingScenario().clientTrackingTitle(this.trackingScenarioContext());
   });
   protected readonly clientTrackingDescription = computed(() => {
@@ -1172,6 +1199,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         return 'La consultation vidéo sécurisée avec votre médecin est en cours.';
       }
       return "Rejoignez la consultation vidéo à l'heure du rendez-vous. Aucun déplacement n'est nécessaire.";
+    }
+    if (this.isMedicineDelivery()) {
+      if (this.isAppointmentCompleted()) {
+        return 'La remise de vos médicaments est confirmée. Vous pouvez consulter le récapitulatif de livraison.';
+      }
+      if (this.isParcelDropoffNavigationActive()) {
+        return 'Le livreur a récupéré vos médicaments et se dirige maintenant vers votre adresse.';
+      }
+      if (this.isParcelPickupValidated()) {
+        return 'La pharmacie a remis vos médicaments au livreur. Le trajet vers votre adresse va commencer.';
+      }
+      if (this.isProviderOnTheWay()) {
+        return 'Le livreur est en route vers la pharmacie pour récupérer votre commande.';
+      }
+      return 'Le livreur est affecté. Son trajet vers la pharmacie apparaîtra ici dès son départ.';
     }
     return this.activeTrackingScenario().clientTrackingDescription(this.trackingScenarioContext());
   });

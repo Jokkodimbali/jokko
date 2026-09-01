@@ -394,8 +394,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected notificationTitle(notification: UserNotificationView): string {
     const title =
       notification.title || notification.titre || this.notificationTypeLabel(notification.type);
-    const actorName = this.notificationActorName(notification);
     const metadata = notification.data || notification.donnees || {};
+    const actorName = this.notificationActorName(notification) || 'Jokko';
     const serviceName =
       typeof metadata['serviceName'] === 'string' ? metadata['serviceName'].trim() : '';
     const serviceContext = serviceName ? ` pour « ${serviceName} »` : '';
@@ -404,28 +404,32 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLocaleLowerCase();
 
-    if (normalizedTitle.includes('nouvelle reservation confirmee')) {
-      return `${actorName || 'Un client'} a confirmé une nouvelle réservation${serviceContext}.`;
+    if (normalizedTitle.includes('nouvelle reservation') && normalizedTitle.includes('confirm')) {
+      return `${actorName} - Nouvelle réservation confirmée${serviceContext}.`;
     }
     if (normalizedTitle.includes('prestation terminee')) {
-      return `La prestation${serviceContext} est terminée. Consultez son récapitulatif.`;
+      return `${actorName} - Prestation terminée${serviceContext}.`;
     }
     if (normalizedTitle.includes('vous etes en route')) {
-      return `Votre trajet${serviceContext} a commencé. Le client peut suivre votre déplacement.`;
+      return `${actorName} - Trajet démarré${serviceContext}.`;
     }
     if (normalizedTitle.includes('le client est en route')) {
-      return `${actorName || 'Le client'} est en route vers le rendez-vous${serviceContext}.`;
+      return `${actorName} - En route vers le rendez-vous${serviceContext}.`;
     }
     if (normalizedTitle.includes('prestataire en route')) {
-      return `${actorName || 'Votre prestataire'} est en route vers votre rendez-vous${serviceContext}.`;
+      return `${actorName} - En route vers votre rendez-vous${serviceContext}.`;
     }
     if (normalizedTitle.includes('reservation annulee')) {
-      return `${actorName || 'Le client'} a annulé la réservation${serviceContext}.`;
+      return `${actorName} - Réservation annulée${serviceContext}.`;
     }
-    if (!actorName || title.toLocaleLowerCase().includes(actorName.toLocaleLowerCase())) {
-      return title;
-    }
-    return `${actorName} : ${title}`;
+
+    const actorAtStart = new RegExp(
+      `^${actorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?:[:\-–—]\\s*)?`,
+      'i',
+    );
+    const titleWithoutRepeatedActor = title.replace(actorAtStart, '').trim();
+    const motif = titleWithoutRepeatedActor || title;
+    return `${actorName} - ${motif.charAt(0).toLocaleUpperCase()}${motif.slice(1)}`;
   }
 
   protected notificationDate(notification: UserNotificationView): string | null {

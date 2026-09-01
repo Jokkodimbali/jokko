@@ -120,6 +120,28 @@ describe('PharmacyOrderPaymentService', () => {
     );
   });
 
+  it('reuses the active payment when the client retries with another idempotency key', async () => {
+    prisma.commandePharmacie.findFirst.mockResolvedValue({
+      ...order,
+      paiement: payment,
+    });
+
+    const result = await service.initiate(client, orderId, {
+      method: 'ORANGE_MONEY',
+      idempotencyKey: 'another-payment-key',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: paymentId,
+        status: 'EN_ATTENTE',
+        paymentUrl: payment.urlPaiement,
+      }),
+    );
+    expect(prisma.paiementCommandePharmacie.create).not.toHaveBeenCalled();
+    expect(gateway.initiatePayment).not.toHaveBeenCalled();
+  });
+
   it('allows payment for the priced medicines of a partially available order', async () => {
     prisma.commandePharmacie.findFirst.mockResolvedValue({
       ...order,

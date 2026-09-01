@@ -379,19 +379,19 @@
 
 .app-navbar__notifications {
   background: #fff;
-  border: 1px solid rgba(134, 82, 33, 0.16);
-  border-radius: 12px;
-  box-shadow: 0 24px 60px rgba(22, 12, 4, 0.25);
+  border: 1px solid rgba(79, 53, 32, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(31, 20, 11, 0.18);
   color: #171412;
   display: grid;
-  gap: 8px;
-  max-height: min(520px, calc(100vh - 190px));
+  gap: 4px;
+  max-height: min(600px, calc(100vh - 130px));
   overflow-y: auto;
-  padding: 14px;
+  padding: 10px;
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  width: min(390px, calc(100vw - 32px));
+  width: min(430px, calc(100vw - 24px));
   z-index: 125;
 }
 
@@ -401,10 +401,15 @@
 
 .app-navbar__notifications header {
   align-items: center;
-  border-bottom: 1px solid #f0e1d3;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #eee5dd;
   display: flex;
   justify-content: space-between;
-  padding: 0 0 10px;
+  margin: -10px -10px 4px;
+  padding: 16px 18px 13px;
+  position: sticky;
+  top: -10px;
+  z-index: 2;
 }
 
 .app-navbar__notifications header div {
@@ -413,23 +418,31 @@
 }
 
 .app-navbar__notifications header strong {
-  color: #24150a;
-  font-size: 15px;
-  font-weight: 950;
+  color: #201a16;
+  font-size: 17px;
+  font-weight: 850;
 }
 
 .app-navbar__notifications header small,
 .app-navbar__notifications-state {
-  color: #806b5e;
+  color: #74675e;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .app-navbar__notifications header a {
   color: #865221;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 800;
+  padding: 7px 9px;
   text-decoration: none;
+}
+
+.app-navbar__notifications header a:hover,
+.app-navbar__notifications header a:focus-visible {
+  background: #f8efe7;
+  border-radius: 8px;
+  outline: none;
 }
 
 .app-navbar__notifications-state {
@@ -439,54 +452,76 @@
 }
 
 .app-navbar__notification-item {
-  align-items: flex-start;
+  align-items: center;
   background: #fff;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 13px;
   color: inherit;
   cursor: pointer;
   display: grid;
   font: inherit;
-  gap: 10px;
-  grid-template-columns: 34px minmax(0, 1fr);
-  padding: 10px;
+  gap: 12px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  min-height: 74px;
+  padding: 11px 12px;
+  position: relative;
   text-align: left;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
   width: 100%;
 }
 
 .app-navbar__notification-item:hover,
 .app-navbar__notification-item:focus-visible {
-  background: #fff8f1;
-  border-color: #ead7c4;
+  background: #faf7f4;
+  border-color: #e7d9cd;
+  transform: translateY(-1px);
   outline: none;
 }
 
 .app-navbar__notification-item--unread {
-  background: #fffaf5;
+  background: #fff9f3;
+  border-color: rgba(149, 91, 36, 0.16);
+}
+
+.app-navbar__notification-item--unread::after {
+  background: #a86627;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  content: '';
+  height: 9px;
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  width: 9px;
 }
 
 .app-navbar__notification-item i {
   align-items: center;
   background: #f5eadf;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #865221;
   display: inline-flex;
-  height: 34px;
+  height: 40px;
   justify-content: center;
-  width: 34px;
+  width: 40px;
 }
 
 .app-navbar__notification-item span {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .app-navbar__notification-item small {
-  color: #865221;
-  font-size: 10px;
+  color: #8a5728;
+  font-size: 9px;
   font-style: normal;
-  font-weight: 950;
+  font-weight: 800;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
 }
 
@@ -497,10 +532,14 @@
 }
 
 .app-navbar__notification-item strong {
-  color: #1b1714;
+  color: #211b17;
+  display: -webkit-box;
   font-size: 13px;
-  font-weight: 950;
-  white-space: nowrap;
+  font-weight: 750;
+  line-height: 1.35;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .app-navbar__notification-item em {
@@ -514,9 +553,9 @@
 }
 
 .app-navbar__notification-item time {
-  color: #9d8777;
-  font-size: 11px;
-  font-weight: 800;
+  color: #8a7d73;
+  font-size: 10px;
+  font-weight: 650;
 }
 
 .app-navbar__login {
@@ -1679,7 +1718,6 @@
     height: 36px;
     width: 36px;
   }
-
 }
 
 @media (max-width: 420px) {
@@ -1853,7 +1891,8 @@
     width: calc(100vw - 150px);
   }
 
-  .app-navbar--notification-featured .app-navbar__notification--mobile.app-navbar__notification--featured {
+  .app-navbar--notification-featured
+    .app-navbar__notification--mobile.app-navbar__notification--featured {
     margin-right: 6px;
     max-width: none;
     width: 100%;

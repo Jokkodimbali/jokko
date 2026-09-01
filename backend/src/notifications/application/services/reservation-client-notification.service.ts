@@ -225,7 +225,7 @@ export class ReservationClientNotificationService {
     await this.notificationsService.createInAppNotification({
       userId: input.professionalUserId,
       type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-      title: `${input.clientName} a confirmé une nouvelle réservation pour « ${input.serviceName} ».`,
+      title: `${input.clientName} - Nouvelle réservation confirmée pour « ${input.serviceName} ».`,
       body: `${input.clientName} a confirme une reservation${consultationLabel} pour ${input.serviceName}, prevue le ${formattedDate}.`,
       data: {
         reservationId: input.reservationId,
@@ -240,18 +240,17 @@ export class ReservationClientNotificationService {
   async notifyReservationArrival(
     input: ReservationArrivalNotificationInput,
   ): Promise<void> {
-    const travellerLabel =
-      input.travellerRole === 'CLIENT' ? 'Le client' : 'Votre prestataire';
     await this.notificationsService.createInAppNotification({
       userId: input.recipientUserId,
       // This existing type is intentionally reused: the widget keeps a trip
       // state visible after reading until the reservation is closed.
       type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-      title: `${travellerLabel} est sur place`,
+      title: `${input.travellerName} - Arrivé sur place pour « ${input.serviceName} ».`,
       body: `${input.travellerName} est sur place pour la reservation ${input.serviceName}.`,
       data: {
         reservationId: input.reservationId,
         serviceName: input.serviceName,
+        actorName: input.travellerName,
         travellerRole: input.travellerRole,
         tripStatus: 'SUR_PLACE',
         persistentUntilTerminal: true,
@@ -277,7 +276,7 @@ export class ReservationClientNotificationService {
     await this.notificationsService.createInAppNotification({
       userId: input.professionalUserId,
       type: NOTIFICATION_TYPES.RESERVATION_ANNULEE,
-      title: `${input.clientName} a annulé la réservation pour « ${input.serviceName} ».`,
+      title: `${input.clientName} - Réservation annulée pour « ${input.serviceName} ».`,
       body: `${input.clientName} a annule la reservation pour ${input.serviceName} prevue le ${formattedDate}.${reason ? ` Motif : ${reason}` : ''}`,
       data: {
         reservationId: input.reservationId,
@@ -305,23 +304,23 @@ export class ReservationClientNotificationService {
         ? recipientIsTraveller
           ? {
               type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-              title: `Votre trajet pour « ${input.serviceName} » a commencé. Le client peut suivre votre déplacement.`,
+              title: `Prestataire - Trajet démarré pour « ${input.serviceName} ».`,
               body: `Vous etes en route pour la reservation ${input.serviceName}.`,
             }
           : {
               type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-              title: `Le client est en route vers le rendez-vous pour « ${input.serviceName} ».`,
+              title: `Client - En route vers le rendez-vous pour « ${input.serviceName} ».`,
               body: `Le client se rend a la reservation ${input.serviceName}.`,
             }
         : input.tripStatus === 'TERMINEE'
           ? {
               type: NOTIFICATION_TYPES.RESERVATION_FINALISEE,
-              title: `La prestation « ${input.serviceName} » est terminée. Consultez son récapitulatif.`,
+              title: `Jokko - Prestation terminée pour « ${input.serviceName} ».`,
               body: `La reservation ${input.serviceName} est terminee.`,
             }
           : {
               type: NOTIFICATION_TYPES.RESERVATION_ANNULEE,
-              title: `La réservation pour « ${input.serviceName} » a été annulée.`,
+              title: `Jokko - Réservation annulée pour « ${input.serviceName} ».`,
               body: `La reservation ${input.serviceName} a ete annulee.`,
             };
 
@@ -333,6 +332,12 @@ export class ReservationClientNotificationService {
       data: {
         reservationId: input.reservationId,
         serviceName: input.serviceName,
+        actorName:
+          input.tripStatus === 'EN_ROUTE'
+            ? recipientIsTraveller
+              ? 'Prestataire'
+              : 'Client'
+            : 'Jokko',
         travellerRole: input.travellerRole,
         tripStatus: input.tripStatus,
         persistentUntilTerminal: input.tripStatus === 'EN_ROUTE',
@@ -352,7 +357,7 @@ export class ReservationClientNotificationService {
       dateStyle: 'full',
       timeStyle: 'short',
     });
-    const title = `${input.professionalName} est en route vers votre rendez-vous pour « ${input.serviceName} ».`;
+    const title = `${input.professionalName} - En route vers votre rendez-vous pour « ${input.serviceName} ».`;
     const body = RESERVATION_NOTIFICATION_MESSAGES.onTheWayBody({
       serviceName: input.serviceName,
       professionalName: input.professionalName,

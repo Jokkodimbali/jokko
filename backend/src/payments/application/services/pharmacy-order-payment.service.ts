@@ -88,14 +88,6 @@ export class PharmacyOrderPaymentService {
     }
 
     if (order.paiement) {
-      if (
-        order.paiement.statut !== StatutPaiement.ECHEC &&
-        order.paiement.cleIdempotence !== idempotencyKey
-      ) {
-        throw new ConflictException(
-          'Un paiement a deja ete initialise pour cette commande.',
-        );
-      }
       if (order.paiement.statut !== StatutPaiement.ECHEC) {
         return this.toView(order.paiement);
       }
@@ -171,7 +163,6 @@ export class PharmacyOrderPaymentService {
 
   async confirmMock(requestUser: AuthUser, orderId: string) {
     if (
-      this.config.get<string>('NODE_ENV') === 'production' ||
       (this.config.get<string>('PAYMENT_GATEWAY_MODE') ?? 'mock') !== 'mock'
     ) {
       throw new ForbiddenException(

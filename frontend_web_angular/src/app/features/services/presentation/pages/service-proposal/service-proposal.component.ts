@@ -2508,7 +2508,16 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           this.scheduleAvailabilityCheck();
         }
       },
-      error: () => {
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          this.servicesService.clearCache();
+          this.clearClientReservationDraft();
+          this.feedback.info(
+            "Ce prestataire n'est plus disponible. Choisissez un autre prestataire.",
+          );
+          void this.router.navigate(['/services'], { replaceUrl: true });
+          return;
+        }
         this.errorMessage.set('Impossible de charger les informations du rendez-vous.');
         this.isLoading.set(false);
       },

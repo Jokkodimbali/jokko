@@ -386,8 +386,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         this.unreadNotificationsCount.update((count) => Math.max(0, count - 1));
         navigate();
       },
-      error: (error) =>
-        this.feedback.error(getHttpErrorMessage(error, 'Impossible d ouvrir cette notification.')),
+      error: (error) => {
+        this.feedback.error(
+          getHttpErrorMessage(error, "La notification n'a pas pu etre marquee comme lue."),
+        );
+        navigate();
+      },
     });
   }
 
@@ -642,18 +646,21 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const reservationId = this.readMetadataString(metadata, 'reservationId');
     if (reservationId) return { commands: ['/appointments', reservationId], reservationId };
 
+    const materialOrderId = this.readMetadataString(metadata, 'materialOrderId');
+    if (materialOrderId) return { commands: ['/material-orders', materialOrderId] };
+
+    const pharmacyOrderId = this.readMetadataString(metadata, 'pharmacyOrderId');
+    if (pharmacyOrderId) return { commands: ['/pharmacy-orders', pharmacyOrderId] };
+
     const paymentId = this.readMetadataString(metadata, 'paymentId');
     if (paymentId)
       return { commands: ['/settings'], queryParams: { section: 'account', paymentId } };
 
-    const professionalId = this.readMetadataString(metadata, 'professionalId');
-    if (professionalId) return { commands: ['/services', professionalId] };
-
     const negotiationId = this.readMetadataString(metadata, 'negotiationId');
-    const serviceId = this.readMetadataString(metadata, 'serviceId');
-    if (negotiationId && serviceId) {
+    const professionalId = this.readMetadataString(metadata, 'professionalId');
+    if (negotiationId && professionalId) {
       return {
-        commands: ['/services', serviceId, 'proposition'],
+        commands: ['/services', professionalId, 'proposition'],
         queryParams: {
           negotiationId,
           ...(this.currentUser()?.role === 'PRESTATAIRE' || this.currentUser()?.role === 'MEDECIN'
@@ -669,6 +676,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     if (type.includes('payment') || type.includes('paiement'))
       return { commands: ['/settings'], queryParams: { section: 'account' } };
     if (type.includes('kyc') || type.includes('profil')) return { commands: ['/settings'] };
+
+    if (professionalId) return { commands: ['/services', professionalId] };
     return { commands: ['/notifications'] };
   }
 

@@ -60,6 +60,7 @@ Le backend implemente deja les domaines suivants :
 - sante applicative
 
 ## Architecture generale
+
 Le backend suit une organisation modulaire et une separation forte des responsabilites entre :
 
 - `presentation`
@@ -76,6 +77,7 @@ Cette approche permet de garder :
 - une documentation plus fiable
 
 ## Flux metier deja couverts
+
 Le backend n'est pas un socle vide. Il couvre deja des flux inter-modules coherents et verifies, notamment :
 
 - auth -> profil -> professionnel
@@ -88,6 +90,7 @@ Le backend n'est pas un socle vide. Il couvre deja des flux inter-modules cohere
 - reservation/paiement -> litige -> administration
 
 ## Documentation de reference
+
 La documentation structurante du projet backend est centralisee dans `backend/docs/`.
 
 Documents principaux :
@@ -134,6 +137,7 @@ npm.cmd run test:e2e -- --runInBand
 ```
 
 ## Standards de qualite du projet
+
 Le projet poursuit un niveau d'exigence eleve sur :
 
 - SOLID
@@ -149,6 +153,7 @@ Le projet poursuit un niveau d'exigence eleve sur :
 Le backend cherche a rester defendable pour une vraie mise en production, pas seulement a "fonctionner en local".
 
 ## Docker et exploitation
+
 Le backend dispose deja :
 
 - d'un `Dockerfile`
@@ -161,6 +166,7 @@ Les details d'exploitation sont documentes ici :
 - [backend/docs/docker-README.md](backend/docs/docker-README.md)
 
 ## Etat actuel du projet
+
 Le coeur backend principal est deja en place. Les prochaines briques majeures encore attendues cote backend sont :
 
 - upload media reel

@@ -535,6 +535,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       this.providerProposalFinalized()?.reservationId ??
       null,
   );
+  protected readonly canSourceConfirmedMaterials = computed(
+    () =>
+      !this.isProviderProposalMode &&
+      Boolean(this.confirmedReservationId()) &&
+      this.materialQuoteEntries().some((entry) => entry.status === 'VALIDE'),
+  );
   protected readonly confirmedReservationServiceLabel = computed(
     () =>
       this.reservationBuilder.extractRequestedServiceName(this.confirmedReservationProposal()) ||
@@ -2204,6 +2210,17 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       // A transient mobile/PWA network failure must not permanently disable
       // realtime and polling while the negotiation is still open.
       error: () => undefined,
+    });
+  }
+
+  protected openHardwareStoreSelection(): void {
+    const reservationId = this.confirmedReservationId();
+    if (!reservationId) return;
+    void this.router.navigate(['/material-orders/select'], {
+      queryParams: {
+        reservationId,
+        returnUrl: `/appointments/${reservationId}`,
+      },
     });
   }
 

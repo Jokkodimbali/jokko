@@ -83,13 +83,11 @@ describe('PharmacyOrdersService', () => {
     },
   };
   const notifications = { createInAppNotification: jest.fn() };
-  const geocodeAddress = { execute: jest.fn() };
-  const computeRoutes = { execute: jest.fn() };
+  const deliveryPricing = { quote: jest.fn() };
   const service = new PharmacyOrdersService(
     prisma as never,
     notifications as never,
-    geocodeAddress as never,
-    computeRoutes as never,
+    deliveryPricing as never,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -179,10 +177,7 @@ describe('PharmacyOrdersService', () => {
       montantMedicaments: 5000,
     };
     prisma.commandePharmacie.findFirst.mockResolvedValue(payableOrder);
-    geocodeAddress.execute
-      .mockResolvedValueOnce({ latitude: 14.72, longitude: -17.46 })
-      .mockResolvedValueOnce({ latitude: 14.67, longitude: -17.43 });
-    computeRoutes.execute.mockResolvedValue([{ distanceMeters: 6000 }]);
+    deliveryPricing.quote.mockResolvedValue({ distanceKm: 6, amount: 3000 });
     prisma.commandePharmacie.update.mockResolvedValue({
       ...payableOrder,
       livraisonDemandee: true,

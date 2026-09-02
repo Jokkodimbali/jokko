@@ -1,0 +1,55 @@
+<main class="hardware-selection">
+  <app-appointment-tracking-stepper
+    [steps]="steps"
+    [progress]="0"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Etapes de la commande de materiel"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <header class="hardware-selection__heading">
+    <span>Avant le debut de la prestation</span>
+    <h1>Trouvez le materiel necessaire</h1>
+    <p>Choisissez une quincaillerie proche. Elle verifiera chaque article et indiquera son prix.</p>
+  </header>
+
+  <div class="hardware-selection__layout">
+    <div #map class="hardware-selection__map" aria-label="Carte des quincailleries proches"></div>
+
+    <section class="hardware-selection__panel" aria-label="Quincailleries disponibles">
+      <p *ngIf="loading()" class="hardware-selection__state">Recherche en cours...</p>
+      <p *ngIf="!loading() && stores().length === 0" class="hardware-selection__state">
+        Aucune quincaillerie verifiee a proximite.
+      </p>
+
+      <button
+        *ngFor="let store of stores()"
+        type="button"
+        class="hardware-selection__store"
+        [class.is-selected]="selected()?.id === store.id"
+        [attr.aria-pressed]="selected()?.id === store.id"
+        (click)="choose(store)"
+      >
+        <span>
+          <strong>{{ store.name }}</strong>
+          <small>{{ store.address || store.city || 'Adresse a confirmer' }}</small>
+        </span>
+        <em>~{{ store.distanceKm | number: '1.0-1' }} km</em>
+      </button>
+
+      <p *ngIf="error()" class="hardware-selection__error" role="alert">{{ error() }}</p>
+
+      <button
+        type="button"
+        class="hardware-selection__submit"
+        [disabled]="!selected() || sending()"
+        (click)="send()"
+      >
+        {{ sending() ? 'Envoi en cours...' : 'Demander la disponibilite' }}
+        <lucide-icon name="arrow-right" size="17"></lucide-icon>
+      </button>
+    </section>
+  </div>
+</main>

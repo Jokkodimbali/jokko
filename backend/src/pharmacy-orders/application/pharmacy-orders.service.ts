@@ -18,8 +18,7 @@ import type { AuthUser } from '../../auth/security/auth-user.type';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NOTIFICATION_TYPES } from '../../notifications/domain/entities/notification.entity';
 import { NotificationsService } from '../../notifications/application/services/notifications.service';
-import { GeocodeAddressUseCase } from '../../geolocation/application/use-cases/geocode-address.use-case';
-import { ComputeRoutesUseCase } from '../../routing/application/use-cases/compute-routes.use-case';
+import { DeliveryPricingService } from '../../maps/application/delivery-pricing.service';
 import type {
   CreatePharmacyOrderCommand,
   ValidatePharmacyOrderCommand,
@@ -95,8 +94,7 @@ export class PharmacyOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    private readonly geocodeAddress: GeocodeAddressUseCase,
-    private readonly computeRoutes: ComputeRoutesUseCase,
+    private readonly deliveryPricing: DeliveryPricingService,
   ) {}
 
   async getAccess(requestUser: AuthUser) {
@@ -477,10 +475,12 @@ export class PharmacyOrdersService {
           'Ajoutez une adresse client avant de demander la livraison.',
         );
       }
-      const quote = await this.calculateDeliveryPricing({
+      const quote = await this.deliveryPricing.quote({
         pickupAddress: this.pharmacyAddress(order),
         dropoffAddress: deliveryAddress,
         pricePerKm: PHARMACY_DELIVERY_PRICE_PER_KM,
+        locationErrorLabel:
+          'Impossible de localiser la pharmacie ou le client pour calculer la livraison.',
       });
       deliveryData = {
         livraisonDemandee: true,
@@ -733,40 +733,6 @@ export class PharmacyOrdersService {
       order.pharmacie.nomEntreprise ||
       order.pharmacie.utilisateur.nom
     );
-  }
-
-  private async calculateDeliveryPricing(input: {
-    pickupAddress: string;
-    dropoffAddress: string;
-    pricePerKm: number;
-  }): Promise<{ distanceKm: number; amount: number }> {
-    const [pickup, dropoff] = await Promise.all([
-      this.geocodeAddress.execute(input.pickupAddress),
-      this.geocodeAddress.execute(input.dropoffAddress),
-    ]);
-    if (!pickup || !dropoff) {
-      throw new BadRequestException(
-        'Impossible de localiser la pharmacie ou le client pour calculer la livraison.',
-      );
-    }
-    const routes = await this.computeRoutes.execute({
-      origin: pickup,
-      destination: dropoff,
-      alternatives: false,
-    });
-    const distanceMeters = routes.find(
-      (route) => Number(route.distanceMeters) > 0,
-    )?.distanceMeters;
-    if (!distanceMeters) {
-      throw new BadRequestException(
-        'Impossible de calculer la distance de livraison.',
-      );
-    }
-    const distanceKm = distanceMeters / 1000;
-    return {
-      distanceKm,
-      amount: Math.max(500, Math.round(distanceKm * input.pricePerKm)),
-    };
   }
 
   private clientNotificationTitle(status: StatutCommandePharmacie): string {

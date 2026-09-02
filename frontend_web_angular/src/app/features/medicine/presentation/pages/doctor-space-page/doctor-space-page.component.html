@@ -9,9 +9,11 @@
     [showNegotiationsSection]="isProviderSpace()"
     [showPatientAppointmentsSection]="!isProviderSpace()"
     [showPharmacySection]="showPharmacySpace()"
+    [showHardwareStoreSection]="showHardwareStoreSpace()"
     (backRequested)="goBack()"
     (sectionSelected)="selectSection($event)"
     (pharmacyRequested)="openPharmacySpace()"
+    (hardwareStoreRequested)="openHardwareStoreSpace()"
   ></app-doctor-space-sidebar>
 
   <section class="doctor-space__content">

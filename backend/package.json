@@ -31,6 +31,7 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "node -r ts-node/register prisma/seed.ts",
+    "prisma:seed:hardware-stores": "node -r ts-node/register prisma/seed-demo-hardware-stores.ts",
     "prisma:studio": "prisma studio",
     "prisma:repair:historical": "node -r ts-node/register prisma/repair-historical-data.ts",
     "docker:build": "docker build -t jokko-backend .",

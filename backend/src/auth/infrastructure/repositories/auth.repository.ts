@@ -447,15 +447,22 @@ export class AuthRepository implements AuthRepositoryPort {
       ]),
     );
 
+    const isPharmacy = selectedSubCategoryNames.some((subCategory) =>
+      this.isPharmacySubCategoryName(subCategory.nom),
+    );
+    const isHardwareStore = selectedSubCategoryNames.some((subCategory) =>
+      this.isHardwareStoreSubCategoryName(subCategory.nom),
+    );
     if (
       data.role === RoleUtilisateur.PRESTATAIRE &&
-      selectedSubCategoryNames.some((subCategory) =>
-        this.isPharmacySubCategoryName(subCategory.nom),
-      )
+      (isPharmacy || isHardwareStore)
     ) {
       await tx.profilProfessionnel.update({
         where: { id: data.professionalProfileId },
-        data: { estPharmacie: true },
+        data: {
+          estPharmacie: isPharmacy,
+          estQuincaillerie: isHardwareStore,
+        },
       });
     }
 
@@ -496,6 +503,15 @@ export class AuthRepository implements AuthRepositoryPort {
       .toLowerCase()
       .trim();
     return /\bpharmaci(?:en|e)\b/.test(normalized);
+  }
+
+  private isHardwareStoreSubCategoryName(name: string): boolean {
+    const normalized = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+    return /\bquincailler(?:ie|ier)?\b/.test(normalized);
   }
 
   private isMedicalCategoryName(name: string): boolean {

@@ -1737,6 +1737,16 @@
         Voir le rendez-vous
       </button>
 
+      <button
+        *ngIf="canSourceConfirmedMaterials()"
+        type="button"
+        class="service-proposal__confirmed-primary service-proposal__confirmed-primary--materials"
+        (click)="openHardwareStoreSelection()"
+      >
+        <lucide-icon name="package-search" size="18" [strokeWidth]="2.4"></lucide-icon>
+        Verifier le materiel en quincaillerie
+      </button>
+
       <p class="service-proposal__confirmed-note">Un recapitulatif a ete envoye par SMS et email</p>
     </article>
   </ng-template>

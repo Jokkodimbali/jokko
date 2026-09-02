@@ -38,6 +38,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { ReservationsRealtimeService } from '../../../data-access/reservations-realtime.service';
 import {
@@ -179,6 +180,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
     CallMediaTrackDirective,
+    MaterialOrderEntryComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [

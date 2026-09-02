@@ -31,6 +31,7 @@ import {
 import { DisputesFacade } from '../../../disputes/application/services/disputes-facade.service';
 import { WalletQueryService } from './wallet-query.service';
 import { PharmacyOrderPaymentService } from './pharmacy-order-payment.service';
+import { MaterialOrderPaymentService } from './material-order-payment.service';
 
 export interface PaymentFilters {
   status?: string;
@@ -68,6 +69,7 @@ export class PaymentsFacade {
     private readonly disputesFacade: DisputesFacade,
     private readonly walletQueryService: WalletQueryService,
     private readonly pharmacyOrderPayments: PharmacyOrderPaymentService,
+    private readonly materialOrderPayments: MaterialOrderPaymentService,
   ) {}
 
   async initiatePaymentForReservation(
@@ -119,6 +121,14 @@ export class PaymentsFacade {
   async processGatewayWebhook(gatewayReference: string, status: string) {
     if (
       await this.pharmacyOrderPayments.processGatewayStatus(
+        gatewayReference,
+        status,
+      )
+    ) {
+      return;
+    }
+    if (
+      await this.materialOrderPayments.processGatewayStatus(
         gatewayReference,
         status,
       )

@@ -1,4 +1,9 @@
 # Jokko
++221780000201 — Quincaillerie Mermoz
++221780000202 — Quincaillerie Liberté 6
++221780000203 — Quincaillerie du Point E
++221780000204 — Quincaillerie Ouakam
+Mot de passe commun : quincaillerie123
 
 Jokko est une plateforme de services qui relie des clients et des prestataires verifies autour d'un cycle metier complet : recherche, reservation, negociation, discussion, paiement avec escrow, suivi temps reel, avis et gouvernance admin.
 

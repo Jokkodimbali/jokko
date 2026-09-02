@@ -117,7 +117,10 @@ export class NotificationsPageComponent implements OnInit {
         this.navigateToTarget(target);
       },
       error: (error) => {
-        this.feedback.error(getHttpErrorMessage(error, 'Impossible d ouvrir cette notification.'));
+        this.feedback.error(
+          getHttpErrorMessage(error, "La notification n'a pas pu etre marquee comme lue."),
+        );
+        this.navigateToTarget(target);
       },
     });
   }
@@ -181,22 +184,27 @@ export class NotificationsPageComponent implements OnInit {
       return { commands: ['/appointments', reservationId], reservationId };
     }
 
+    const materialOrderId = this.readMetadataString(metadata, 'materialOrderId');
+    if (materialOrderId) {
+      return { commands: ['/material-orders', materialOrderId] };
+    }
+
+    const pharmacyOrderId = this.readMetadataString(metadata, 'pharmacyOrderId');
+    if (pharmacyOrderId) {
+      return { commands: ['/pharmacy-orders', pharmacyOrderId] };
+    }
+
     const paymentId = this.readMetadataString(metadata, 'paymentId');
     if (paymentId) {
       return { commands: ['/settings'], queryParams: { section: 'account', paymentId } };
     }
 
-    const professionalId = this.readMetadataString(metadata, 'professionalId');
-    if (professionalId) {
-      return { commands: ['/services', professionalId] };
-    }
-
     const negotiationId = this.readMetadataString(metadata, 'negotiationId');
-    const serviceId = this.readMetadataString(metadata, 'serviceId');
-    if (negotiationId && serviceId) {
+    const professionalId = this.readMetadataString(metadata, 'professionalId');
+    if (negotiationId && professionalId) {
       const role = this.authSession.currentUser()?.role;
       return {
-        commands: ['/services', serviceId, 'proposition'],
+        commands: ['/services', professionalId, 'proposition'],
         queryParams: {
           negotiationId,
           ...(role === 'PRESTATAIRE' || role === 'MEDECIN' ? { mode: 'prestataire' } : {}),
@@ -212,6 +220,10 @@ export class NotificationsPageComponent implements OnInit {
     if (type.includes('payment') || type.includes('paiement'))
       return { commands: ['/settings'], queryParams: { section: 'account' } };
     if (type.includes('kyc') || type.includes('profil')) return { commands: ['/settings'] };
+
+    if (professionalId) {
+      return { commands: ['/services', professionalId] };
+    }
     return { commands: ['/notifications'] };
   }
 

@@ -131,6 +131,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
               client: { select: { nom: true, urlAvatar: true } },
               professionnel: {
                 select: {
+                  id: true,
                   utilisateur: { select: { nom: true, urlAvatar: true } },
                 },
               },
@@ -160,6 +161,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
               client: { select: { nom: true, urlAvatar: true } },
               professionnel: {
                 select: {
+                  id: true,
                   utilisateur: { select: { nom: true, urlAvatar: true } },
                 },
               },
@@ -219,6 +221,9 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
       const metadata = this.toMetadata(notification.donnees) ?? {};
       return this.toView(notification, {
         ...metadata,
+        ...(negotiation
+          ? { professionalId: negotiation.professionnel.id }
+          : {}),
         actorName: actor.nom,
         avatarUrl: actor.urlAvatar,
       });

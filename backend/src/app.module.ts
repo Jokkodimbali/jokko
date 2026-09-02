@@ -21,6 +21,7 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { MapsModule } from './maps/maps.module';
 import { CallsModule } from './calls/calls.module';
 import { PharmacyOrdersModule } from './pharmacy-orders/pharmacy-orders.module';
+import { MaterialOrdersModule } from './material-orders/material-orders.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PharmacyOrdersModule } from './pharmacy-orders/pharmacy-orders.module';
     PaymentsModule,
     CallsModule,
     PharmacyOrdersModule,
+    MaterialOrdersModule,
   ],
 })
 export class AppModule implements NestModule {

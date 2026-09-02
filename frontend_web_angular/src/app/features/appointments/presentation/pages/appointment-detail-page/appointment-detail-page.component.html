@@ -625,10 +625,10 @@
                 <button
                   type="button"
                   class="appointment-detail__teleconsultation-primary-control"
-                  [class.appointment-detail__teleconsultation-primary-control--start]="!calls.call()"
-                  [attr.aria-label]="
-                    calls.call() ? 'Terminer la téléconsultation' : 'Appeler'
+                  [class.appointment-detail__teleconsultation-primary-control--start]="
+                    !calls.call()
                   "
+                  [attr.aria-label]="calls.call() ? 'Terminer la téléconsultation' : 'Appeler'"
                   [disabled]="
                     isPreparingTeleconsultationCall() || (!isDoctorViewer() && !calls.call())
                   "
@@ -1343,6 +1343,12 @@
             <lucide-icon name="arrow-right" size="15" [strokeWidth]="2.6"></lucide-icon>
           </a>
         </section>
+
+        <app-material-order-entry
+          *ngIf="isClientViewer()"
+          [reservationId]="appointment.id"
+          [returnUrl]="'/appointments/' + appointment.id"
+        ></app-material-order-entry>
 
         <div
           *ngIf="isParcelTransportAppointment(appointment)"

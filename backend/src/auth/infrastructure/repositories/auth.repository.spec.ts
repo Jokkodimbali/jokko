@@ -119,7 +119,30 @@ describe('AuthRepository professional specialties', () => {
 
     expect(tx.profilProfessionnel.update).toHaveBeenCalledWith({
       where: { id: 'profile-id' },
-      data: { estPharmacie: true },
+      data: { estPharmacie: true, estQuincaillerie: false },
+    });
+  });
+
+  it('marks a provider profile as a hardware store when Quincaillerie is selected', async () => {
+    const { repository, tx } = createRepository();
+    tx.sousCategorieService.findMany.mockResolvedValue([
+      { id: 'subcategory-id', nom: 'Quincaillerie' },
+    ]);
+
+    await repository.createClientWithPassword({
+      phoneNumber: '+221771234568',
+      name: 'Quincaillerie Test',
+      email: 'quincaillerie@test.sn',
+      passwordHash: 'hash',
+      role: RoleUtilisateur.PRESTATAIRE,
+      adresse: 'Dakar',
+      categoryIds: ['category-id'],
+      subCategoryIds: ['subcategory-id'],
+    });
+
+    expect(tx.profilProfessionnel.update).toHaveBeenCalledWith({
+      where: { id: 'profile-id' },
+      data: { estPharmacie: false, estQuincaillerie: true },
     });
   });
 

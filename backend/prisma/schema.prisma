@@ -69,6 +69,20 @@ enum StatutCommandePharmacie {
   ANNULEE
 }
 
+/// Optional material-sourcing workflow that must be resolved before work starts.
+enum StatutCommandeMateriel {
+  EN_ATTENTE_QUINCAILLERIE
+  PARTIELLEMENT_DISPONIBLE
+  INDISPONIBLE
+  EN_ATTENTE_PAIEMENT
+  PAYEE_QUINCAILLERIE
+  EN_ATTENTE_TRANSPORTEUR
+  TRANSPORTEUR_ASSIGNE
+  EN_LIVRAISON
+  LIVREE
+  ANNULEE
+}
+
 enum TypeConsultationMedicale {
   CONSULTATION
   TELECONSULTATION
@@ -118,6 +132,7 @@ enum StatutWebhookPaiement {
 enum TypeTransactionPortefeuille {
   CREDIT_ESCROW
   CREDIT_PHARMACIE
+  CREDIT_QUINCAILLERIE
   DEBIT_RETRAIT
   REMBOURSEMENT
   COMMISSION
@@ -277,6 +292,8 @@ model Utilisateur {
   appelsRecus                 Appel[]                      @relation("CallsRecipient")
   commandesPharmacieClient    CommandePharmacie[]          @relation("PharmacyOrdersClient")
   paiementsCommandesPharmacie PaiementCommandePharmacie[]  @relation("PharmacyOrderPaymentsClient")
+  commandesMaterielClient     CommandeMateriel[]           @relation("MaterialOrdersClient")
+  paiementsCommandesMateriel  PaiementCommandeMateriel[]   @relation("MaterialOrderPaymentsClient")
 
   @@map("users")
 }
@@ -380,6 +397,7 @@ model ProfilProfessionnel {
   localisation          Unsupported("geography(Point, 4326)")?
   ville                 String?                                @map("city") @db.VarChar(100)
   estPharmacie          Boolean                                @default(false) @map("is_pharmacy")
+  estQuincaillerie      Boolean                                @default(false) @map("is_hardware_store")
   typeVehicule          TypeVehiculeProfessionnel              @default(VOITURE) @map("vehicle_type")
   noteGlobale           Decimal                                @default(0.0) @map("global_rating") @db.Decimal(2, 1)
   nombreAvis            Int                                    @default(0) @map("total_reviews")
@@ -402,6 +420,8 @@ model ProfilProfessionnel {
   specialites                 SpecialiteProfessionnelle[]
   commandesPharmacie          CommandePharmacie[]          @relation("PharmacyOrdersPharmacy")
   paiementsCommandesPharmacie PaiementCommandePharmacie[]  @relation("PharmacyOrderPaymentsPharmacy")
+  commandesMateriel           CommandeMateriel[]           @relation("MaterialOrdersHardwareStore")
+  paiementsCommandesMateriel  PaiementCommandeMateriel[]   @relation("MaterialOrderPaymentsHardwareStore")
 
   @@map("professional_profiles")
 }
@@ -597,6 +617,8 @@ model Reservation {
   devisMateriel              DevisMaterielNegotiation[]
   commandesPharmacieSource   CommandePharmacie[]         @relation("PharmacyOrdersSourceReservation")
   commandePharmacieLivraison CommandePharmacie?          @relation("PharmacyOrderDeliveryReservation")
+  commandesMaterielSource    CommandeMateriel[]          @relation("MaterialOrdersSourceReservation")
+  commandeMaterielLivraison  CommandeMateriel?           @relation("MaterialOrderDeliveryReservation")
 
   @@unique([id, clientId, professionnelId])
   @@index([clientId, dateHeure])
@@ -666,6 +688,69 @@ model PaiementCommandePharmacie {
   @@index([pharmacieId, creeLe])
   @@index([statut, creeLe])
   @@map("pharmacy_order_payments")
+}
+
+/// Material availability request sent to a nearby verified hardware store.
+/// Items are a snapshot of the validated material quote so later quote edits
+/// cannot silently change an order already accepted or paid.
+model CommandeMateriel {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  reservationSourceId    String                 @map("source_booking_id") @db.Uuid
+  reservationLivraisonId String?                @unique @map("delivery_booking_id") @db.Uuid
+  clientId               String                 @map("client_id") @db.Uuid
+  quincaillerieId        String                 @map("hardware_store_id") @db.Uuid
+  statut                 StatutCommandeMateriel @default(EN_ATTENTE_QUINCAILLERIE)
+  montantMateriel        Decimal?               @map("material_amount") @db.Decimal(12, 2)
+  livraisonDemandee      Boolean                @default(false) @map("delivery_requested")
+  montantLivraison       Decimal?               @map("delivery_amount") @db.Decimal(12, 2)
+  distanceLivraisonKm    Decimal?               @map("delivery_distance_km") @db.Decimal(8, 2)
+  adresseLivraison       String?                @map("delivery_address") @db.Text
+  detailsMateriel        Json                   @default("[]") @map("material_items")
+  noteQuincaillerie      String?                @map("hardware_store_note") @db.Text
+  indisponibilites       String[]               @default([])
+  valideeLe              DateTime?              @map("validated_at")
+  payeeLe                DateTime?              @map("paid_at")
+  creeLe                 DateTime               @default(now()) @map("created_at")
+  misAJourLe             DateTime               @updatedAt @map("updated_at")
+
+  reservationSource    Reservation               @relation("MaterialOrdersSourceReservation", fields: [reservationSourceId], references: [id], onDelete: Restrict)
+  reservationLivraison Reservation?              @relation("MaterialOrderDeliveryReservation", fields: [reservationLivraisonId], references: [id], onDelete: SetNull)
+  client               Utilisateur               @relation("MaterialOrdersClient", fields: [clientId], references: [id], onDelete: Cascade)
+  quincaillerie        ProfilProfessionnel       @relation("MaterialOrdersHardwareStore", fields: [quincaillerieId], references: [id], onDelete: Restrict)
+  paiement             PaiementCommandeMateriel?
+
+  @@unique([reservationSourceId, quincaillerieId])
+  @@index([clientId, statut, creeLe])
+  @@index([quincaillerieId, statut, creeLe])
+  @@index([reservationSourceId, creeLe])
+  @@map("material_orders")
+}
+
+model PaiementCommandeMateriel {
+  id                   String          @id @default(uuid()) @db.Uuid
+  commandeMaterielId   String          @unique @map("material_order_id") @db.Uuid
+  clientId             String          @map("client_id") @db.Uuid
+  quincaillerieId      String          @map("hardware_store_id") @db.Uuid
+  montant              Decimal         @map("amount") @db.Decimal(12, 2)
+  methode              MethodePaiement @map("method")
+  statut               StatutPaiement  @default(EN_ATTENTE)
+  cleIdempotence       String          @unique @map("idempotency_key") @db.VarChar(160)
+  referenceTransaction String          @unique @map("transaction_ref") @db.VarChar(200)
+  referenceFournisseur String?         @unique @map("gateway_ref") @db.VarChar(200)
+  urlPaiement          String?         @map("payment_url") @db.Text
+  erreur               String?         @db.Text
+  traiteLe             DateTime?       @map("processed_at")
+  creeLe               DateTime        @default(now()) @map("created_at")
+  misAJourLe           DateTime        @updatedAt @map("updated_at")
+
+  commandeMateriel CommandeMateriel    @relation(fields: [commandeMaterielId], references: [id], onDelete: Restrict)
+  client           Utilisateur         @relation("MaterialOrderPaymentsClient", fields: [clientId], references: [id], onDelete: Restrict)
+  quincaillerie    ProfilProfessionnel @relation("MaterialOrderPaymentsHardwareStore", fields: [quincaillerieId], references: [id], onDelete: Restrict)
+
+  @@index([clientId, creeLe])
+  @@index([quincaillerieId, creeLe])
+  @@index([statut, creeLe])
+  @@map("material_order_payments")
 }
 
 model Negotiation {

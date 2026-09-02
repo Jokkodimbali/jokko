@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Quincaillerie">
+  <rect width="64" height="64" rx="14" fill="#995d20"/>
+  <path d="M11 27h42v25H11z" fill="#fff8ee"/>
+  <path d="M8 23 14 11h36l6 12v5H8z" fill="#f5c77c"/>
+  <path d="M8 23h48v5a6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0z" fill="#fff"/>
+  <path d="M17 36h13v16H17z" fill="#d89542"/>
+  <path d="M35 35h13v10H35z" fill="#dceaf0" stroke="#995d20" stroke-width="2"/>
+  <path d="m37 18 4-4 9 9-4 4-3-3-8 8-3-3 8-8z" fill="#995d20"/>
+</svg>

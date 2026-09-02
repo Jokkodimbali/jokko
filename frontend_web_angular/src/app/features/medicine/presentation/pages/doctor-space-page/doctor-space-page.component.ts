@@ -43,6 +43,7 @@ import {
 } from '../../../../appointments/domain/appointments.models';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
 import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
+import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import {
   DoctorSpaceService,
   PatientMedicalProfile,
@@ -353,6 +354,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly pharmacyOrdersService = inject(PharmacyOrdersService);
+  private readonly materialOrdersService = inject(MaterialOrdersService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
@@ -365,6 +367,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
   protected readonly showPharmacySpace = signal(false);
+  protected readonly showHardwareStoreSpace = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -1244,6 +1247,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.activeSection.set(this.resolveSectionFromRoute());
     this.loadPharmacyAccess();
+    this.loadHardwareStoreAccess();
     this.loadSchedule();
   }
 
@@ -1266,6 +1270,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/pharmacy-orders']);
   }
 
+  protected openHardwareStoreSpace(): void {
+    if (!this.showHardwareStoreSpace()) return;
+    void this.router.navigate(['/material-orders']);
+  }
+
   private loadPharmacyAccess(): void {
     if (!this.isProviderSpace()) {
       this.showPharmacySpace.set(false);
@@ -1275,6 +1284,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .getAccess()
       .pipe(catchError(() => of({ isPharmacy: false })))
       .subscribe((access) => this.showPharmacySpace.set(access.isPharmacy));
+  }
+
+  private loadHardwareStoreAccess(): void {
+    if (!this.isProviderSpace()) {
+      this.showHardwareStoreSpace.set(false);
+      return;
+    }
+    this.materialOrdersService
+      .getAccess()
+      .pipe(catchError(() => of({ isHardwareStore: false })))
+      .subscribe((access) => this.showHardwareStoreSpace.set(access.isHardwareStore));
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {

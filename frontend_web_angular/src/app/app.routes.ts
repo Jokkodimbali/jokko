@@ -119,6 +119,46 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'material-orders/select',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/material-orders/presentation/pages/hardware-store-selection-page/hardware-store-selection-page.component').then(
+        (m) => m.HardwareStoreSelectionPageComponent,
+      ),
+  },
+  {
+    path: 'material-orders',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/material-orders/presentation/pages/material-orders-inbox-page/material-orders-inbox-page.component').then(
+        (m) => m.MaterialOrdersInboxPageComponent,
+      ),
+  },
+  {
+    path: 'material-orders/:id/payment',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/material-orders/presentation/pages/material-order-payment-page/material-order-payment-page.component').then(
+        (m) => m.MaterialOrderPaymentPageComponent,
+      ),
+  },
+  {
+    path: 'material-orders/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/material-orders/presentation/pages/material-order-detail-page/material-order-detail-page.component').then(
+        (m) => m.MaterialOrderDetailPageComponent,
+      ),
+  },
+  {
+    path: 'material-orders/:id/delivery-offer',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/material-orders/presentation/pages/material-order-detail-page/material-order-detail-page.component').then(
+        (m) => m.MaterialOrderDetailPageComponent,
+      ),
+  },
+  {
     path: 'pharmacy-orders',
     canActivate: [authGuard],
     loadComponent: () =>

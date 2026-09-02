@@ -29,8 +29,10 @@ export class DoctorSpaceSidebarComponent {
   @Input() showNegotiationsSection = false;
   @Input() showPatientAppointmentsSection = false;
   @Input() showPharmacySection = false;
+  @Input() showHardwareStoreSection = false;
 
   @Output() readonly backRequested = new EventEmitter<void>();
   @Output() readonly sectionSelected = new EventEmitter<DoctorSpaceSection>();
   @Output() readonly pharmacyRequested = new EventEmitter<void>();
+  @Output() readonly hardwareStoreRequested = new EventEmitter<void>();
 }

@@ -220,9 +220,18 @@ export class MessagingGateway implements OnGatewayConnection {
 
   @OnEvent('notification.created')
   handleNotificationCreated(payload: { notification: NotificationView }): void {
-    this.server
-      .to(this.buildUserRoom(payload.notification.userId))
-      .emit('notification.created', payload.notification);
+    const room = this.server.to(
+      this.buildUserRoom(payload.notification.userId),
+    );
+    room.emit('notification.created', payload.notification);
+
+    const materialOrderId = payload.notification.data?.['materialOrderId'];
+    if (typeof materialOrderId === 'string' && materialOrderId.trim()) {
+      room.emit('material-order.updated', {
+        materialOrderId,
+        occurredAt: payload.notification.createdAt,
+      });
+    }
   }
 
   private publishMessagesRead(

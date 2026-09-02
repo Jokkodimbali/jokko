@@ -1,0 +1,149 @@
+<main class="material-order">
+  <app-appointment-tracking-stepper
+    [steps]="steps()"
+    [progress]="progress()"
+    [showBack]="true"
+    [embedded]="true"
+    [pharmacyMode]="true"
+    ariaLabel="Etapes de la commande de materiel"
+    (back)="goBack()"
+  ></app-appointment-tracking-stepper>
+
+  <p *ngIf="loading()" class="material-order__message">Chargement de la demande...</p>
+  <p *ngIf="error()" class="material-order__error" role="alert">{{ error() }}</p>
+
+  <ng-container *ngIf="order() as current">
+    <header class="material-order__heading">
+      <span>Materiel avant prestation</span>
+      <h1>
+        {{
+          courierOfferMode
+            ? 'Livraison de materiel disponible'
+            : isHardwareStore()
+              ? 'Verifier la demande'
+              : 'Disponibilite du materiel'
+        }}
+      </h1>
+      <p>
+        {{ current.hardwareStore.name }} · {{ current.reservation.service.nom }} ·
+        {{ current.reservation.scheduledAt | date: 'dd MMMM yyyy, HH:mm' }}
+      </p>
+      <strong>{{ statusLabel(current.status) }}</strong>
+    </header>
+
+    <div class="material-order__layout">
+      <section class="material-order__card">
+        <header>
+          <div>
+            <small>Liste validee avec le prestataire</small>
+            <h2>Articles demandes</h2>
+          </div>
+          <span>{{ editableItems().length }} article(s)</span>
+        </header>
+
+        <article
+          *ngFor="let item of editableItems(); trackBy: trackItemByPosition"
+          class="material-order__item"
+        >
+          <div class="material-order__item-copy">
+            <strong>{{ item.name }}</strong>
+            <small>Quantite : {{ item.quantity }}</small>
+          </div>
+
+          <div *ngIf="canValidate(); else itemResult" class="material-order__availability">
+            <button
+              type="button"
+              [class.is-active]="item.isAvailable"
+              (click)="setAvailability(item.position, true)"
+            >
+              Disponible
+            </button>
+            <button
+              type="button"
+              [class.is-active]="!item.isAvailable"
+              (click)="setAvailability(item.position, false)"
+            >
+              Indisponible
+            </button>
+            <label *ngIf="item.isAvailable">
+              <span>Prix unitaire FCFA</span>
+              <input
+                type="number"
+                min="1"
+                [ngModel]="item.unitPrice"
+                (ngModelChange)="updatePrice(item.position, $event)"
+              />
+            </label>
+          </div>
+
+          <ng-template #itemResult>
+            <div class="material-order__result" [class.is-unavailable]="!item.isAvailable">
+              <strong>{{ item.isAvailable ? 'Disponible' : 'Indisponible' }}</strong>
+              <span *ngIf="item.isAvailable">
+                {{ item.unitPrice! * item.quantity | number: '1.0-0' }} FCFA
+              </span>
+            </div>
+          </ng-template>
+        </article>
+
+        <label *ngIf="canValidate()" class="material-order__note">
+          <span>Note pour le client (facultatif)</span>
+          <textarea
+            rows="3"
+            maxlength="1000"
+            [ngModel]="note()"
+            (ngModelChange)="note.set($event)"
+          ></textarea>
+        </label>
+
+        <footer *ngIf="canValidate()">
+          <span>Total disponible</span>
+          <strong>{{ availableAmount() | number: '1.0-0' }} FCFA</strong>
+          <button type="button" [disabled]="submitting()" (click)="submitAvailability()">
+            {{ submitting() ? 'Validation...' : 'Envoyer la disponibilite au client' }}
+          </button>
+        </footer>
+      </section>
+
+      <aside class="material-order__summary">
+        <h2>Recapitulatif</h2>
+        <div>
+          <span>Materiel disponible</span>
+          <strong>{{ current.materialAmount || 0 | number: '1.0-0' }} FCFA</strong>
+        </div>
+        <div *ngIf="current.deliveryRequested">
+          <span>Livraison ({{ current.deliveryDistanceKm | number: '1.0-1' }} km)</span>
+          <strong>{{ current.deliveryAmount || 0 | number: '1.0-0' }} FCFA</strong>
+        </div>
+        <div class="material-order__total">
+          <span>Total</span>
+          <strong>{{ current.totalAmount | number: '1.0-0' }} FCFA</strong>
+        </div>
+
+        <ng-container
+          *ngIf="
+            !isHardwareStore() &&
+            (current.status === 'EN_ATTENTE_PAIEMENT' ||
+              current.status === 'PARTIELLEMENT_DISPONIBLE')
+          "
+        >
+          <button type="button" class="material-order__pay" (click)="openPayment(current.id)">
+            Procéder au paiement
+          </button>
+        </ng-container>
+
+        <a [routerLink]="['/appointments', current.reservation.id]">Voir la prestation</a>
+
+        <button
+          *ngIf="courierOfferMode && current.status === 'EN_ATTENTE_TRANSPORTEUR'"
+          type="button"
+          class="material-order__pay"
+          [disabled]="acceptingDelivery()"
+          (click)="acceptDelivery()"
+        >
+          {{ acceptingDelivery() ? 'Attribution en cours...' : 'Accepter cette livraison' }}
+        </button>
+      </aside>
+    </div>
+  </ng-container>
+</main>

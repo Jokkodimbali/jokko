@@ -26,6 +26,15 @@
       <span>Espace pharmacie</span>
     </button>
     <button
+      *ngIf="showHardwareStoreSection"
+      type="button"
+      class="doctor-space-sidebar__nav-item--pharmacy doctor-space-sidebar__nav-item--hardware"
+      (click)="hardwareStoreRequested.emit()"
+    >
+      <lucide-icon name="package-search" size="20" [strokeWidth]="2.2"></lucide-icon>
+      <span>Demandes materiel</span>
+    </button>
+    <button
       *ngIf="showNegotiationsSection"
       type="button"
       [class.doctor-space-sidebar__nav-item--active]="activeSection === 'negotiations'"

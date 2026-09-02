@@ -1,0 +1,32 @@
+<section
+  *ngIf="eligibility() as state"
+  class="material-entry"
+  [hidden]="!state.eligible && !state.existingOrder"
+  aria-label="Approvisionnement du materiel"
+>
+  <header>
+    <span><lucide-icon name="package-search" size="20"></lucide-icon></span>
+    <div>
+      <h3>Materiel de la prestation</h3>
+      <p>
+        {{ state.materialCount }} article(s) valide(s) avec votre prestataire avant le rendez-vous.
+      </p>
+    </div>
+  </header>
+
+  <a
+    *ngIf="!state.existingOrder; else existingOrderLink"
+    [routerLink]="['/material-orders/select']"
+    [queryParams]="{ reservationId, returnUrl }"
+  >
+    <span>Rechercher une quincaillerie</span>
+    <lucide-icon name="arrow-right" size="16"></lucide-icon>
+  </a>
+
+  <ng-template #existingOrderLink>
+    <a [routerLink]="['/material-orders', state.existingOrder!.id]">
+      <span>Voir la disponibilite et ma commande</span>
+      <lucide-icon name="arrow-right" size="16"></lucide-icon>
+    </a>
+  </ng-template>
+</section>

@@ -769,6 +769,11 @@
   color: #fff;
 }
 
+.provider-profile__price-action--negotiable {
+  background: #4f8b3d;
+  border-color: #4f8b3d;
+}
+
 .provider-profile__price-action--message {
   background: #fff;
   border: 1px solid #e4d5c7;
@@ -1292,6 +1297,10 @@
     margin: 9px 3px;
     min-height: 42px;
     text-decoration: none;
+  }
+
+  .provider-profile__mobile-price-action--negotiable {
+    background: #4f8b3d;
   }
 
   .provider-profile__layout {

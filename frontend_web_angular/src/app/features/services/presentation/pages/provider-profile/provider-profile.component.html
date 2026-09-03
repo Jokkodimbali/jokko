@@ -112,6 +112,7 @@
 
       <a
         class="provider-profile__mobile-price-action"
+        [class.provider-profile__mobile-price-action--negotiable]="!isFixedPriceService()"
         [routerLink]="['/services', profileId, 'proposition']"
         [queryParams]="serviceQueryParams()"
       >
@@ -259,6 +260,7 @@
           <article class="provider-profile__card provider-profile__price">
             <a
               class="provider-profile__price-action provider-profile__price-action--primary"
+              [class.provider-profile__price-action--negotiable]="!isFixedPriceService()"
               type="button"
               [routerLink]="['/services', profileId, 'proposition']"
               [queryParams]="serviceQueryParams()"

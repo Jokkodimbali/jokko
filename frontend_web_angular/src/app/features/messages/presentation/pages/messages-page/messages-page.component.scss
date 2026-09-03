@@ -7,6 +7,8 @@
   color: #141414;
   font-family: var(--font-app, system-ui, sans-serif);
   min-height: 100vh;
+  overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
 .messages-page__nav {
@@ -25,9 +27,10 @@
   border-top: 1px solid #e3e1de;
   display: grid;
   grid-template-columns: 324px minmax(0, 1fr);
-  height: calc(100vh - var(--app-navbar-height, 104px));
+  height: calc(100dvh - var(--app-navbar-height, 104px));
   min-height: 580px;
   overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
 .messages-page__sidebar {

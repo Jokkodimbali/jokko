@@ -34,7 +34,7 @@ export type MaterialOrderView = {
     address: string;
     service: { id: string; nom: string };
     provider: { id: string; name: string };
-  };
+  } | null;
   client: { id: string; nom: string; adresse: string | null };
   hardwareStore: { id: string; userId: string; name: string };
   createdAt: string;

@@ -29,10 +29,11 @@
       *ngIf="showHardwareStoreSection"
       type="button"
       class="doctor-space-sidebar__nav-item--pharmacy doctor-space-sidebar__nav-item--hardware"
+      [class.doctor-space-sidebar__nav-item--active]="activeSection === 'hardware'"
       (click)="hardwareStoreRequested.emit()"
     >
       <lucide-icon name="package-search" size="20" [strokeWidth]="2.2"></lucide-icon>
-      <span>Demandes materiel</span>
+      <span>Demandes de mat&eacute;riel</span>
     </button>
     <button
       *ngIf="showNegotiationsSection"

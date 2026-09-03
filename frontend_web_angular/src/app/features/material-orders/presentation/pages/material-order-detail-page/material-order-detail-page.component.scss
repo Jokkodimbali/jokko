@@ -2,6 +2,23 @@
   display: block;
 }
 
+.material-order-space--hardware {
+  background: #fbf6ed;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.material-order-space--hardware .material-order {
+  grid-column: 2;
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 34px;
+  width: 100%;
+}
+
 .material-order {
   --accent: #955b22;
   --accent-soft: #fbf4ec;
@@ -594,6 +611,15 @@
 }
 
 @media (max-width: 880px) {
+  .material-order-space--hardware {
+    display: block;
+  }
+
+  .material-order-space--hardware .material-order {
+    min-height: calc(100vh - 120px);
+    padding-bottom: 96px;
+  }
+
   .material-order__hero {
     align-items: flex-start;
     flex-direction: column;

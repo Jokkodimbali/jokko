@@ -261,7 +261,6 @@ export class MaterialOrdersService {
       body: `${order.client.nom} vous demande de verifier les fournitures necessaires avant sa prestation.`,
       data: {
         materialOrderId: order.id,
-        reservationId: order.reservationSource.id,
         route: `/material-orders/${order.id}`,
       },
     });
@@ -285,7 +284,11 @@ export class MaterialOrdersService {
       include: ORDER_INCLUDE,
       orderBy: { creeLe: 'desc' },
     });
-    return orders.map((order) => this.toView(order));
+    return orders.map((order) =>
+      this.toView(order, {
+        hideReservationDetails: order.quincaillerieId === professional?.id,
+      }),
+    );
   }
 
   async get(requestUser: AuthUser, orderId: string) {
@@ -304,7 +307,9 @@ export class MaterialOrdersService {
       include: ORDER_INCLUDE,
     });
     if (!order) throw new NotFoundException('Commande materiel introuvable.');
-    return this.toView(order);
+    return this.toView(order, {
+      hideReservationDetails: order.quincaillerieId === professional?.id,
+    });
   }
 
   async getDeliveryOffer(requestUser: AuthUser, orderId: string) {
@@ -445,7 +450,6 @@ export class MaterialOrdersService {
         body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepte la course et viendra retirer la commande.`,
         data: {
           materialOrderId: order.id,
-          reservationId,
           route: `/material-orders/${order.id}`,
         },
       }),
@@ -555,7 +559,7 @@ export class MaterialOrdersService {
         route: `/material-orders/${updated.id}`,
       },
     });
-    return this.toView(updated);
+    return this.toView(updated, { hideReservationDetails: true });
   }
 
   async configureDelivery(
@@ -723,7 +727,10 @@ export class MaterialOrdersService {
     );
   }
 
-  private toView(order: MaterialOrderRecord) {
+  private toView(
+    order: MaterialOrderRecord,
+    options: { hideReservationDetails?: boolean } = {},
+  ) {
     return {
       id: order.id,
       status: order.statut,
@@ -768,17 +775,19 @@ export class MaterialOrdersService {
             },
           }
         : null,
-      reservation: {
-        id: order.reservationSource.id,
-        scheduledAt: order.reservationSource.dateHeure,
-        status: order.reservationSource.statut,
-        address: order.reservationSource.adresseClient,
-        service: order.reservationSource.service,
-        provider: {
-          id: order.reservationSource.professionnel.id,
-          name: order.reservationSource.professionnel.utilisateur.nom,
-        },
-      },
+      reservation: options.hideReservationDetails
+        ? null
+        : {
+            id: order.reservationSource.id,
+            scheduledAt: order.reservationSource.dateHeure,
+            status: order.reservationSource.statut,
+            address: order.reservationSource.adresseClient,
+            service: order.reservationSource.service,
+            provider: {
+              id: order.reservationSource.professionnel.id,
+              name: order.reservationSource.professionnel.utilisateur.nom,
+            },
+          },
       client: order.client,
       hardwareStore: {
         id: order.quincaillerie.id,

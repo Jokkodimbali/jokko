@@ -20,7 +20,8 @@ export type DoctorSpaceSection =
   styleUrl: './doctor-space-sidebar.component.scss',
 })
 export class DoctorSpaceSidebarComponent {
-  @Input({ required: true }) activeSection: DoctorSpaceSection | 'pharmacy' = 'availability';
+  @Input({ required: true }) activeSection: DoctorSpaceSection | 'pharmacy' | 'hardware' =
+    'availability';
   @Input({ required: true }) ariaLabel = 'Navigation de l espace professionnel';
   @Input() showConsultationSection = true;
   @Input() serviceSectionLabel = 'Services';

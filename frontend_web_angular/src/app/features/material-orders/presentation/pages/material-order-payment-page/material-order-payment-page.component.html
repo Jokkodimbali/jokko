@@ -28,7 +28,7 @@
           <strong>Liste de matériel</strong>
           <small>
             Réf. {{ current.id.slice(0, 8).toUpperCase() }} ·
-            {{ current.reservation.scheduledAt | date: 'dd MMMM yyyy' }}
+            {{ current.reservation?.scheduledAt | date: 'dd MMMM yyyy' }}
           </small>
         </div>
         <em>
@@ -42,7 +42,7 @@
 
       <section class="payment-prescription__prescriber">
         <small>QUINCAILLERIE</small>
-        <strong>{{ current.hardwareStore.name }} · {{ current.reservation.service.nom }}</strong>
+        <strong>{{ current.hardwareStore.name }} · {{ current.reservation?.service?.nom }}</strong>
       </section>
 
       <section class="payment-prescription__items">

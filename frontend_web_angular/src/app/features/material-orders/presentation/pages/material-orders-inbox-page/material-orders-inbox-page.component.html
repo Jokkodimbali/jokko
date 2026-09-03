@@ -1,31 +1,48 @@
-<main class="material-inbox">
-  <header>
-    <span>Espace quincaillerie</span>
-    <h1>Demandes de materiel</h1>
-    <p>Verifiez les articles demandes avant le debut des prestations.</p>
-  </header>
+<main class="material-inbox-space">
+  <app-doctor-space-sidebar
+    activeSection="hardware"
+    ariaLabel="Espace prestataire"
+    [showConsultationSection]="true"
+    serviceSectionLabel="Mes services"
+    agendaSectionLabel="Gestion RDV"
+    appointmentHistorySectionLabel="Historique des RDV"
+    [showNegotiationsSection]="true"
+    [showPatientAppointmentsSection]="false"
+    [showHardwareStoreSection]="true"
+    (backRequested)="leaveProfessionalSpace()"
+    (sectionSelected)="openProviderSection($event)"
+    (hardwareStoreRequested)="stayInHardwareSpace()"
+  ></app-doctor-space-sidebar>
 
-  <p *ngIf="loading()" class="material-inbox__state">Chargement...</p>
-  <p *ngIf="error()" class="material-inbox__error" role="alert">{{ error() }}</p>
-  <p *ngIf="!loading() && orders().length === 0" class="material-inbox__state">
-    Aucune demande de materiel pour le moment.
-  </p>
+  <section class="material-inbox">
+    <header>
+      <span>Espace quincaillerie</span>
+      <h1>Demandes de materiel</h1>
+      <p>Verifiez les articles demandes avant le debut des prestations.</p>
+    </header>
 
-  <section class="material-inbox__grid">
-    <a *ngFor="let order of orders()" [routerLink]="['/material-orders', order.id]">
-      <header>
-        <span><lucide-icon name="package-search" size="20"></lucide-icon></span>
-        <small>{{ order.createdAt | date: 'dd MMM, HH:mm' }}</small>
-      </header>
-      <h2>{{ order.client.nom }} - {{ order.reservation.service.nom }}</h2>
-      <p>
-        {{ order.items.length }} article(s) · Prestation le
-        {{ order.reservation.scheduledAt | date: 'dd/MM/yyyy HH:mm' }}
-      </p>
-      <footer>
-        <strong>{{ statusLabel(order.status) }}</strong>
-        <lucide-icon name="arrow-right" size="17"></lucide-icon>
-      </footer>
-    </a>
+    <p *ngIf="loading()" class="material-inbox__state">Chargement...</p>
+    <p *ngIf="error()" class="material-inbox__error" role="alert">{{ error() }}</p>
+    <p *ngIf="!loading() && orders().length === 0" class="material-inbox__state">
+      Aucune demande de materiel pour le moment.
+    </p>
+
+    <section class="material-inbox__grid">
+      <a *ngFor="let order of orders()" [routerLink]="['/material-orders', order.id]">
+        <header>
+          <span><lucide-icon name="package-search" size="20"></lucide-icon></span>
+          <small>{{ order.createdAt | date: 'dd MMM, HH:mm' }}</small>
+        </header>
+        <h2>{{ order.client.nom }}</h2>
+        <p>
+          {{ order.items.length }} article(s) &middot; Demande re&ccedil;ue le
+          {{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        <footer>
+          <strong>{{ statusLabel(order.status) }}</strong>
+          <lucide-icon name="arrow-right" size="17"></lucide-icon>
+        </footer>
+      </a>
+    </section>
   </section>
 </main>

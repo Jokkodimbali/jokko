@@ -1,272 +1,294 @@
-<main class="material-order">
-  <app-appointment-tracking-stepper
-    [steps]="steps()"
-    [progress]="progress()"
-    [showBack]="true"
-    [embedded]="true"
-    [pharmacyMode]="true"
-    ariaLabel="Étapes de la commande de matériel"
-    (back)="goBack()"
-  ></app-appointment-tracking-stepper>
+<main class="material-order-space" [class.material-order-space--hardware]="showHardwareSidebar()">
+  <app-doctor-space-sidebar
+    *ngIf="showHardwareSidebar()"
+    activeSection="hardware"
+    ariaLabel="Espace prestataire"
+    [showConsultationSection]="true"
+    serviceSectionLabel="Mes services"
+    agendaSectionLabel="Gestion RDV"
+    appointmentHistorySectionLabel="Historique des RDV"
+    [showNegotiationsSection]="true"
+    [showPatientAppointmentsSection]="false"
+    [showHardwareStoreSection]="true"
+    (backRequested)="leaveProfessionalSpace()"
+    (sectionSelected)="openProviderSection($event)"
+    (hardwareStoreRequested)="openHardwareRequests()"
+  ></app-doctor-space-sidebar>
 
-  <section *ngIf="loading()" class="material-order__state" aria-live="polite">
-    <span class="material-order__spinner" aria-hidden="true"></span>
-    <div>
-      <strong>Chargement de la demande</strong>
-      <small>Nous préparons les informations du matériel.</small>
-    </div>
-  </section>
-  <p *ngIf="error()" class="material-order__error" role="alert">{{ error() }}</p>
+  <section class="material-order">
+    <app-appointment-tracking-stepper
+      *ngIf="!isHardwareStore()"
+      [steps]="steps()"
+      [progress]="progress()"
+      [showBack]="true"
+      [embedded]="true"
+      [pharmacyMode]="true"
+      ariaLabel="Étapes de la commande de matériel"
+      (back)="goBack()"
+    ></app-appointment-tracking-stepper>
 
-  <ng-container *ngIf="order() as current">
-    <header class="material-order__hero">
+    <section *ngIf="loading()" class="material-order__state" aria-live="polite">
+      <span class="material-order__spinner" aria-hidden="true"></span>
       <div>
-        <span class="material-order__eyebrow">
-          <lucide-icon name="package-search" size="15"></lucide-icon>
-          Matériel avant prestation
-        </span>
-        <h1>
-          {{
-            courierOfferMode
-              ? 'Livraison de matériel disponible'
-              : isHardwareStore()
-                ? 'Vérifier la demande'
-                : 'Disponibilité du matériel'
-          }}
-        </h1>
-        <p>
-          {{
-            isHardwareStore()
-              ? 'Indiquez précisément les articles disponibles et leur prix. Le client recevra votre réponse en temps réel.'
-              : 'Consultez la réponse de la quincaillerie et poursuivez votre commande en toute transparence.'
-          }}
-        </p>
-      </div>
-      <span
-        class="material-order__status"
-        [class.is-waiting]="current.status === 'EN_ATTENTE_QUINCAILLERIE'"
-        [class.is-danger]="current.status === 'INDISPONIBLE'"
-      >
-        <i aria-hidden="true"></i>
-        {{ statusLabel(current.status) }}
-      </span>
-    </header>
-
-    <section class="material-order__meta" aria-label="Informations de la demande">
-      <div>
-        <span><lucide-icon name="building-2" size="17"></lucide-icon></span>
-        <p>
-          <small>Quincaillerie</small><strong>{{ current.hardwareStore.name }}</strong>
-        </p>
-      </div>
-      <div>
-        <span><lucide-icon name="wrench" size="17"></lucide-icon></span>
-        <p>
-          <small>Prestation</small><strong>{{ current.reservation.service.nom }}</strong>
-        </p>
-      </div>
-      <div>
-        <span><lucide-icon name="calendar-days" size="17"></lucide-icon></span>
-        <p>
-          <small>Date prévue</small>
-          <strong>{{ current.reservation.scheduledAt | date: 'dd MMM yyyy · HH:mm' }}</strong>
-        </p>
+        <strong>Chargement de la demande</strong>
+        <small>Nous préparons les informations du matériel.</small>
       </div>
     </section>
+    <p *ngIf="error()" class="material-order__error" role="alert">{{ error() }}</p>
 
-    <div class="material-order__layout">
-      <article class="material-sheet">
-        <header class="material-sheet__header">
-          <div class="material-sheet__title">
-            <span><lucide-icon name="clipboard-check" size="20"></lucide-icon></span>
-            <div>
-              <small>LISTE VALIDÉE AVEC LE PRESTATAIRE</small>
-              <h2>Articles demandés</h2>
-            </div>
-          </div>
-          <strong>{{ editableItems().length }} article(s)</strong>
-        </header>
-
-        <section class="material-sheet__items">
-          <article
-            *ngFor="let item of editableItems(); let index = index; trackBy: trackItemByPosition"
-            class="material-item"
-            [class.is-available]="item.isAvailable"
-            [class.is-unavailable]="!item.isAvailable && !canValidate()"
-          >
-            <div class="material-item__identity">
-              <span>{{ index + 1 }}</span>
-              <p>
-                <strong>{{ item.name }}</strong>
-                <small>Quantité demandée : {{ item.quantity }}</small>
-              </p>
-            </div>
-
-            <div *ngIf="canValidate(); else itemResult" class="material-item__editor">
-              <div class="material-item__choice" aria-label="Disponibilité de l'article">
-                <button
-                  type="button"
-                  [class.is-active]="item.isAvailable"
-                  (click)="setAvailability(item.position, true)"
-                >
-                  <lucide-icon name="circle-check" size="15"></lucide-icon>
-                  Disponible
-                </button>
-                <button
-                  type="button"
-                  [class.is-active]="!item.isAvailable"
-                  (click)="setAvailability(item.position, false)"
-                >
-                  <lucide-icon name="circle-x" size="15"></lucide-icon>
-                  Indisponible
-                </button>
-              </div>
-              <label *ngIf="item.isAvailable" class="material-item__price">
-                <span>Prix unitaire</span>
-                <div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100000000"
-                    step="1"
-                    inputmode="numeric"
-                    placeholder="0"
-                    [ngModel]="item.unitPrice"
-                    (ngModelChange)="updatePrice(item.position, $event)"
-                  />
-                  <strong>FCFA</strong>
-                </div>
-              </label>
-            </div>
-
-            <ng-template #itemResult>
-              <div class="material-item__result">
-                <span [class.is-unavailable]="!item.isAvailable">
-                  <lucide-icon
-                    [name]="item.isAvailable ? 'circle-check' : 'circle-x'"
-                    size="15"
-                  ></lucide-icon>
-                  {{ item.isAvailable ? 'Disponible' : 'Indisponible' }}
-                </span>
-                <strong *ngIf="item.isAvailable">
-                  {{ item.unitPrice! * item.quantity | number: '1.0-0' }} FCFA
-                </strong>
-                <small *ngIf="item.isAvailable">
-                  {{ item.unitPrice | number: '1.0-0' }} FCFA × {{ item.quantity }}
-                </small>
-              </div>
-            </ng-template>
-          </article>
-        </section>
-
-        <label *ngIf="canValidate()" class="material-sheet__note">
-          <span>Note pour le client <em>Facultatif</em></span>
-          <textarea
-            rows="3"
-            maxlength="1000"
-            placeholder="Ajoutez une précision utile sur la disponibilité ou le retrait..."
-            [ngModel]="note()"
-            (ngModelChange)="note.set($event)"
-          ></textarea>
-          <small>{{ note().length }}/1000</small>
-        </label>
-
-        <footer class="material-sheet__footer">
-          <lucide-icon name="shield-check" size="15"></lucide-icon>
-          <span>Les prix renseignés seront présentés au client avant tout paiement.</span>
-        </footer>
-      </article>
-
-      <aside class="material-summary">
-        <header>
-          <span><lucide-icon name="receipt" size="19"></lucide-icon></span>
-          <div>
-            <small>SYNTHÈSE</small>
-            <h2>Récapitulatif</h2>
-          </div>
-        </header>
-
-        <section class="material-summary__customer">
-          <span><lucide-icon name="user-round" size="18"></lucide-icon></span>
+    <ng-container *ngIf="order() as current">
+      <header class="material-order__hero">
+        <div>
+          <span class="material-order__eyebrow">
+            <lucide-icon name="package-search" size="15"></lucide-icon>
+            Matériel avant prestation
+          </span>
+          <h1>
+            {{
+              courierOfferMode
+                ? 'Livraison de matériel disponible'
+                : isHardwareStore()
+                  ? 'Vérifier la demande'
+                  : 'Disponibilité du matériel'
+            }}
+          </h1>
           <p>
-            <small>Client</small><strong>{{ current.client.nom }}</strong>
+            {{
+              isHardwareStore()
+                ? 'Indiquez précisément les articles disponibles et leur prix. Le client recevra votre réponse en temps réel.'
+                : 'Consultez la réponse de la quincaillerie et poursuivez votre commande en toute transparence.'
+            }}
           </p>
-        </section>
-
-        <section class="material-summary__amounts">
-          <div>
-            <span>Matériel disponible</span>
-            <strong>
-              {{
-                (canValidate() ? availableAmount() : current.materialAmount || 0) | number: '1.0-0'
-              }}
-              FCFA
-            </strong>
-          </div>
-          <div *ngIf="current.deliveryRequested">
-            <span>Livraison · {{ current.deliveryDistanceKm | number: '1.0-1' }} km</span>
-            <strong>{{ current.deliveryAmount || 0 | number: '1.0-0' }} FCFA</strong>
-          </div>
-          <div class="material-summary__total">
-            <span>{{ canValidate() ? 'Total proposé' : 'Total' }}</span>
-            <strong>
-              {{ (canValidate() ? availableAmount() : current.totalAmount) | number: '1.0-0' }} FCFA
-            </strong>
-          </div>
-        </section>
-
-        <section *ngIf="current.note" class="material-summary__note">
-          <small>NOTE DE LA QUINCAILLERIE</small>
-          <p>{{ current.note }}</p>
-        </section>
-
-        <p *ngIf="canValidate()" class="material-summary__realtime">
-          <lucide-icon name="zap" size="16"></lucide-icon>
-          Le client recevra votre réponse instantanément.
-        </p>
-
-        <button
-          *ngIf="canValidate()"
-          type="button"
-          class="material-summary__primary"
-          [disabled]="submitting()"
-          (click)="submitAvailability()"
+        </div>
+        <span
+          class="material-order__status"
+          [class.is-waiting]="current.status === 'EN_ATTENTE_QUINCAILLERIE'"
+          [class.is-danger]="current.status === 'INDISPONIBLE'"
         >
-          {{ submitting() ? 'Envoi en cours...' : 'Envoyer la disponibilité' }}
-          <lucide-icon *ngIf="!submitting()" name="arrow-right" size="17"></lucide-icon>
-        </button>
+          <i aria-hidden="true"></i>
+          {{ statusLabel(current.status) }}
+        </span>
+      </header>
 
-        <button
-          *ngIf="
-            !isHardwareStore() &&
-            (current.status === 'EN_ATTENTE_PAIEMENT' ||
-              current.status === 'PARTIELLEMENT_DISPONIBLE')
-          "
-          type="button"
-          class="material-summary__primary"
-          (click)="openPayment(current.id)"
-        >
-          Procéder au paiement
-          <lucide-icon name="arrow-right" size="17"></lucide-icon>
-        </button>
+      <section class="material-order__meta" aria-label="Informations de la demande">
+        <div>
+          <span><lucide-icon name="building-2" size="17"></lucide-icon></span>
+          <p>
+            <small>Quincaillerie</small><strong>{{ current.hardwareStore.name }}</strong>
+          </p>
+        </div>
+        <div *ngIf="!isHardwareStore()">
+          <span><lucide-icon name="wrench" size="17"></lucide-icon></span>
+          <p>
+            <small>Prestation</small><strong>{{ current.reservation?.service?.nom }}</strong>
+          </p>
+        </div>
+        <div *ngIf="!isHardwareStore()">
+          <span><lucide-icon name="calendar-days" size="17"></lucide-icon></span>
+          <p>
+            <small>Date prévue</small>
+            <strong>{{ current.reservation?.scheduledAt | date: 'dd MMM yyyy · HH:mm' }}</strong>
+          </p>
+        </div>
+      </section>
 
-        <button
-          *ngIf="courierOfferMode && current.status === 'EN_ATTENTE_TRANSPORTEUR'"
-          type="button"
-          class="material-summary__primary"
-          [disabled]="acceptingDelivery()"
-          (click)="acceptDelivery()"
-        >
-          {{ acceptingDelivery() ? 'Attribution en cours...' : 'Accepter cette livraison' }}
-        </button>
+      <div class="material-order__layout">
+        <article class="material-sheet">
+          <header class="material-sheet__header">
+            <div class="material-sheet__title">
+              <span><lucide-icon name="clipboard-check" size="20"></lucide-icon></span>
+              <div>
+                <small>LISTE VALIDÉE AVEC LE PRESTATAIRE</small>
+                <h2>Articles demandés</h2>
+              </div>
+            </div>
+            <strong>{{ editableItems().length }} article(s)</strong>
+          </header>
 
-        <a
-          class="material-summary__secondary"
-          [routerLink]="['/appointments', current.reservation.id]"
-        >
-          Voir la prestation
-        </a>
-      </aside>
-    </div>
-  </ng-container>
+          <section class="material-sheet__items">
+            <article
+              *ngFor="let item of editableItems(); let index = index; trackBy: trackItemByPosition"
+              class="material-item"
+              [class.is-available]="item.isAvailable"
+              [class.is-unavailable]="!item.isAvailable && !canValidate()"
+            >
+              <div class="material-item__identity">
+                <span>{{ index + 1 }}</span>
+                <p>
+                  <strong>{{ item.name }}</strong>
+                  <small>Quantité demandée : {{ item.quantity }}</small>
+                </p>
+              </div>
+
+              <div *ngIf="canValidate(); else itemResult" class="material-item__editor">
+                <div class="material-item__choice" aria-label="Disponibilité de l'article">
+                  <button
+                    type="button"
+                    [class.is-active]="item.isAvailable"
+                    (click)="setAvailability(item.position, true)"
+                  >
+                    <lucide-icon name="circle-check" size="15"></lucide-icon>
+                    Disponible
+                  </button>
+                  <button
+                    type="button"
+                    [class.is-active]="!item.isAvailable"
+                    (click)="setAvailability(item.position, false)"
+                  >
+                    <lucide-icon name="circle-x" size="15"></lucide-icon>
+                    Indisponible
+                  </button>
+                </div>
+                <label *ngIf="item.isAvailable" class="material-item__price">
+                  <span>Prix unitaire</span>
+                  <div>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100000000"
+                      step="1"
+                      inputmode="numeric"
+                      placeholder="0"
+                      [ngModel]="item.unitPrice"
+                      (ngModelChange)="updatePrice(item.position, $event)"
+                    />
+                    <strong>FCFA</strong>
+                  </div>
+                </label>
+              </div>
+
+              <ng-template #itemResult>
+                <div class="material-item__result">
+                  <span [class.is-unavailable]="!item.isAvailable">
+                    <lucide-icon
+                      [name]="item.isAvailable ? 'circle-check' : 'circle-x'"
+                      size="15"
+                    ></lucide-icon>
+                    {{ item.isAvailable ? 'Disponible' : 'Indisponible' }}
+                  </span>
+                  <strong *ngIf="item.isAvailable">
+                    {{ item.unitPrice! * item.quantity | number: '1.0-0' }} FCFA
+                  </strong>
+                  <small *ngIf="item.isAvailable">
+                    {{ item.unitPrice | number: '1.0-0' }} FCFA × {{ item.quantity }}
+                  </small>
+                </div>
+              </ng-template>
+            </article>
+          </section>
+
+          <label *ngIf="canValidate()" class="material-sheet__note">
+            <span>Note pour le client <em>Facultatif</em></span>
+            <textarea
+              rows="3"
+              maxlength="1000"
+              placeholder="Ajoutez une précision utile sur la disponibilité ou le retrait..."
+              [ngModel]="note()"
+              (ngModelChange)="note.set($event)"
+            ></textarea>
+            <small>{{ note().length }}/1000</small>
+          </label>
+
+          <footer class="material-sheet__footer">
+            <lucide-icon name="shield-check" size="15"></lucide-icon>
+            <span>Les prix renseignés seront présentés au client avant tout paiement.</span>
+          </footer>
+        </article>
+
+        <aside class="material-summary">
+          <header>
+            <span><lucide-icon name="receipt" size="19"></lucide-icon></span>
+            <div>
+              <small>SYNTHÈSE</small>
+              <h2>Récapitulatif</h2>
+            </div>
+          </header>
+
+          <section class="material-summary__customer">
+            <span><lucide-icon name="user-round" size="18"></lucide-icon></span>
+            <p>
+              <small>Client</small><strong>{{ current.client.nom }}</strong>
+            </p>
+          </section>
+
+          <section class="material-summary__amounts">
+            <div>
+              <span>Matériel disponible</span>
+              <strong>
+                {{
+                  (canValidate() ? availableAmount() : current.materialAmount || 0)
+                    | number: '1.0-0'
+                }}
+                FCFA
+              </strong>
+            </div>
+            <div *ngIf="current.deliveryRequested">
+              <span>Livraison · {{ current.deliveryDistanceKm | number: '1.0-1' }} km</span>
+              <strong>{{ current.deliveryAmount || 0 | number: '1.0-0' }} FCFA</strong>
+            </div>
+            <div class="material-summary__total">
+              <span>{{ canValidate() ? 'Total proposé' : 'Total' }}</span>
+              <strong>
+                {{ (canValidate() ? availableAmount() : current.totalAmount) | number: '1.0-0' }}
+                FCFA
+              </strong>
+            </div>
+          </section>
+
+          <section *ngIf="current.note" class="material-summary__note">
+            <small>NOTE DE LA QUINCAILLERIE</small>
+            <p>{{ current.note }}</p>
+          </section>
+
+          <p *ngIf="canValidate()" class="material-summary__realtime">
+            <lucide-icon name="zap" size="16"></lucide-icon>
+            Le client recevra votre réponse instantanément.
+          </p>
+
+          <button
+            *ngIf="canValidate()"
+            type="button"
+            class="material-summary__primary"
+            [disabled]="submitting()"
+            (click)="submitAvailability()"
+          >
+            {{ submitting() ? 'Envoi en cours...' : 'Envoyer la disponibilité' }}
+            <lucide-icon *ngIf="!submitting()" name="arrow-right" size="17"></lucide-icon>
+          </button>
+
+          <button
+            *ngIf="
+              !isHardwareStore() &&
+              (current.status === 'EN_ATTENTE_PAIEMENT' ||
+                current.status === 'PARTIELLEMENT_DISPONIBLE')
+            "
+            type="button"
+            class="material-summary__primary"
+            (click)="openPayment(current.id)"
+          >
+            Procéder au paiement
+            <lucide-icon name="arrow-right" size="17"></lucide-icon>
+          </button>
+
+          <button
+            *ngIf="courierOfferMode && current.status === 'EN_ATTENTE_TRANSPORTEUR'"
+            type="button"
+            class="material-summary__primary"
+            [disabled]="acceptingDelivery()"
+            (click)="acceptDelivery()"
+          >
+            {{ acceptingDelivery() ? 'Attribution en cours...' : 'Accepter cette livraison' }}
+          </button>
+
+          <a
+            *ngIf="!isHardwareStore()"
+            class="material-summary__secondary"
+            [routerLink]="['/appointments', current.reservation?.id]"
+          >
+            Voir la prestation
+          </a>
+        </aside>
+      </div>
+    </ng-container>
+  </section>
 </main>

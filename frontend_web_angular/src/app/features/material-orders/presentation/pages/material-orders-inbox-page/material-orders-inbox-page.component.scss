@@ -1,11 +1,23 @@
 :host {
   display: block;
 }
+
+.material-inbox-space {
+  background: #fbf6ed;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100vh;
+  width: 100%;
+}
+
 .material-inbox {
-  margin: 0 auto;
-  max-width: 1120px;
-  min-height: calc(100dvh - 72px);
+  grid-column: 2;
+  margin: 0;
+  max-width: 100%;
+  min-height: 100vh;
+  min-width: 0;
   padding: 34px 24px 64px;
+  width: 100%;
 }
 .material-inbox > header span {
   color: #95602a;
@@ -81,6 +93,17 @@
   background: #fff0ee;
   color: #a13c32;
 }
+@media (max-width: 860px) {
+  .material-inbox-space {
+    display: block;
+  }
+
+  .material-inbox {
+    min-height: calc(100vh - 120px);
+    padding-bottom: 96px;
+  }
+}
+
 @media (max-width: 700px) {
   .material-inbox__grid {
     grid-template-columns: 1fr;

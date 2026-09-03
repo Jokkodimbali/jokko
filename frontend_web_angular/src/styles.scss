@@ -64,6 +64,17 @@ body {
   min-width: 320px;
 }
 
+body:has(.messages-page) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html:has(.messages-page),
+app-root:has(.messages-page) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 button,
 input,
 textarea,

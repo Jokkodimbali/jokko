@@ -1,0 +1,45 @@
+<section class="pickup-qr" aria-labelledby="pickup-qr-title">
+  <header>
+    <span><lucide-icon name="qr-code" size="20" [strokeWidth]="2.4"></lucide-icon></span>
+    <div>
+      <small>RETRAIT DES {{ itemLabel | uppercase }}</small>
+      <h3 id="pickup-qr-title">{{ pickupTitle }}</h3>
+    </div>
+  </header>
+
+  <div class="pickup-qr__image">
+    <span
+      *ngIf="!imageUrl() && !hasError()"
+      class="pickup-qr__loader"
+      aria-label="Génération du QR code"
+    ></span>
+    <img
+      *ngIf="imageUrl() as source"
+      [src]="source"
+      [alt]="'QR code de retrait des ' + itemLabel"
+    />
+    <p *ngIf="hasError()" role="alert">Impossible de générer le QR code. Actualisez la page.</p>
+  </div>
+
+  <div class="pickup-qr__manual-code">
+    <small>CODE DE RETRAIT</small>
+    <strong>{{ manualCode() }}</strong>
+    <span>À saisir par le livreur si le scan ne fonctionne pas</span>
+  </div>
+
+  <button
+    type="button"
+    class="pickup-qr__download"
+    [disabled]="!imageUrl()"
+    (click)="downloadQrCode()"
+  >
+    <lucide-icon name="download" size="15"></lucide-icon>
+    Télécharger le QR code
+  </button>
+
+  <p>Le livreur doit scanner ce QR à son arrivée avant le retrait des {{ itemLabel }}.</p>
+  <strong
+    ><lucide-icon name="shield-check" size="16"></lucide-icon> QR sécurisé pour cette
+    livraison</strong
+  >
+</section>

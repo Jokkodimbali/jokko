@@ -18,6 +18,7 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView } from '../../../domain/appointments.models';
+import { buildParcelQrUrl } from './parcel-qr-token.util';
 
 type QrMode = 'expediteur' | 'destinataire';
 type ParcelCheckpoint = 'RETRAIT' | 'DEPOT';
@@ -189,8 +190,14 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   protected readonly qrCodeValue = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return this.qrPayload();
+    if (typeof window === 'undefined') return this.qrPayload();
 
-    return this.qrPayload();
+    return buildParcelQrUrl({
+      reservationId: appointment.id,
+      serviceId: appointment.serviceId,
+      checkpoint: this.checkpoint(),
+      origin: window.location.origin,
+    });
   });
   protected readonly isDeliveryPersonView = computed(() => {
     const role = this.authSession.currentUser()?.role;

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
@@ -10,10 +10,18 @@ import { SessionPresenceService } from './core/presence/session-presence.service
 import { CallOverlayComponent } from './features/calls/presentation/call-overlay.component';
 import { AppNavbarComponent } from './shared/ui/app-navbar/app-navbar.component';
 import { AppNavbarPresentationService } from './shared/ui/app-navbar/app-navbar-presentation.service';
+import { AuthSessionService } from './core/auth/auth-session.service';
+import { MessagesRealtimeService } from './features/messages/data-access/messages-realtime.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, LucideAngularModule, CallOverlayComponent, AppNavbarComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    LucideAngularModule,
+    CallOverlayComponent,
+    AppNavbarComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -21,6 +29,8 @@ export class App {
   private readonly feedback = inject(AppFeedbackService);
   private readonly inlineFormValidation = inject(InlineFormValidationService);
   private readonly sessionPresence = inject(SessionPresenceService);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly router = inject(Router);
   protected readonly navbarPresentation = inject(AppNavbarPresentationService);
 
@@ -53,6 +63,14 @@ export class App {
 
   constructor() {
     this.inlineFormValidation.install();
+    effect(() => {
+      this.authSession.authVersion();
+      if (this.authSession.getAccessToken()) {
+        this.messagesRealtime.connect();
+      } else {
+        this.messagesRealtime.disconnect();
+      }
+    });
   }
 
   private isNavbarRoute(url: string): boolean {

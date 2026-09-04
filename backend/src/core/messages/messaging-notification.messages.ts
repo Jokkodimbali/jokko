@@ -9,10 +9,10 @@ function buildPreview(content: string | null, mediaUrl: string | null): string {
   }
 
   if (mediaUrl) {
-    return 'Vous avez recu un media.';
+    return 'Vous avez reçu un média.';
   }
 
-  return 'Vous avez recu un nouveau message.';
+  return 'Vous avez reçu un nouveau message.';
 }
 
 export const MESSAGING_NOTIFICATION_MESSAGES = {

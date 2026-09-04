@@ -22,6 +22,12 @@ export type MaterialOrderView = {
   deliveryDistanceKm: number | null;
   deliveryAddress: string | null;
   totalAmount: number;
+  deliveryReservation: {
+    id: string;
+    serviceId: string;
+    status: string;
+    courier: { professionalId: string; name: string; avatarUrl: string | null };
+  } | null;
   note: string | null;
   unavailableItems: string[];
   items: MaterialOrderItem[];

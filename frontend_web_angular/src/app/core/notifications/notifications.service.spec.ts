@@ -108,6 +108,42 @@ describe('findFeaturedNotification', () => {
     expect(findFeaturedNotification([unread])).toBe(unread);
   });
 
+  it("conserve l'offre de livraison en mise en avant meme apres lecture", () => {
+    const offer: UserNotificationView = {
+      id: 'delivery-offer-1',
+      type: 'NOUVELLE_RESERVATION',
+      createdAt: '2026-09-04T10:00:00Z',
+      isRead: true,
+      data: { pharmacyOrderId: 'order-1', persistentDeliveryOffer: true },
+    };
+
+    expect(findFeaturedNotification([offer])).toBe(offer);
+  });
+
+  it("retire l'offre permanente des qu'elle est acceptee", () => {
+    const offer: UserNotificationView = {
+      id: 'delivery-offer-1',
+      type: 'NOUVELLE_RESERVATION',
+      createdAt: '2026-09-04T10:00:00Z',
+      isRead: false,
+      data: { pharmacyOrderId: 'order-1', persistentDeliveryOffer: true },
+    };
+    const accepted: UserNotificationView = {
+      id: 'delivery-accepted-1',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      createdAt: '2026-09-04T10:05:00Z',
+      isRead: true,
+      data: {
+        pharmacyOrderId: 'order-1',
+        reservationId: 'reservation-1',
+        deliveryOfferResolved: true,
+        persistentUntilTerminal: true,
+      },
+    };
+
+    expect(findFeaturedNotification([accepted, offer])).toBe(accepted);
+  });
+
   it.each([
     'RESERVATION_CONFIRMEE',
     'PAIEMENT_CONFIRME',

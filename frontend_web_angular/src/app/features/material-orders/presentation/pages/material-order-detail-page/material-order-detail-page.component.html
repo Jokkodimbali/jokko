@@ -240,6 +240,14 @@
             <p>{{ current.note }}</p>
           </section>
 
+          <app-parcel-pickup-qr-card
+            *ngIf="isHardwareStore() && current.deliveryRequested && current.deliveryReservation"
+            [reservationId]="current.deliveryReservation.id"
+            [serviceId]="current.deliveryReservation.serviceId"
+            itemLabel="matériaux"
+            pickupTitle="QR à présenter au livreur"
+          ></app-parcel-pickup-qr-card>
+
           <p *ngIf="canValidate()" class="material-summary__realtime">
             <lucide-icon name="zap" size="16"></lucide-icon>
             Le client recevra votre réponse instantanément.
@@ -279,6 +287,29 @@
           >
             {{ acceptingDelivery() ? 'Attribution en cours...' : 'Accepter cette livraison' }}
           </button>
+
+          <button
+            *ngIf="isClientViewer() && current.deliveryReservation"
+            type="button"
+            class="material-summary__primary"
+            (click)="trackDelivery(current.deliveryReservation.id)"
+          >
+            Suivre la livraison
+            <lucide-icon name="map-pin" size="17"></lucide-icon>
+          </button>
+
+          <p
+            *ngIf="
+              isClientViewer() &&
+              current.deliveryRequested &&
+              !current.deliveryReservation &&
+              current.status === 'EN_ATTENTE_TRANSPORTEUR'
+            "
+            class="material-summary__realtime"
+          >
+            <lucide-icon name="truck" size="16"></lucide-icon>
+            Nous recherchons un livreur près de la quincaillerie.
+          </p>
 
           <a
             *ngIf="!isHardwareStore()"

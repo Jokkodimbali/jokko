@@ -104,7 +104,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     await this.notificationsService.createInAppNotification({
       userId: professional.utilisateurId,
       type: NOTIFICATION_TYPES.AJUSTEMENT_PRIX_PROPOSE,
-      title: 'Nouvelle offre recue',
+      title: 'Nouvelle offre reçue',
       body: `Un client propose ${command.proposedAmount.toLocaleString('fr-FR')} FCFA pour ${service.nom}.`,
       data: {
         negotiationId: created.id,
@@ -218,10 +218,10 @@ export class NegotiationCommandService extends NegotiationAppService {
         event === 'ACCEPTED'
           ? NOTIFICATION_TYPES.AJUSTEMENT_PRIX_ACCEPTE
           : NOTIFICATION_TYPES.AJUSTEMENT_PRIX_PROPOSE,
-      title: event === 'ACCEPTED' ? 'Offre acceptee' : 'Nouvelle contre-offre',
+      title: event === 'ACCEPTED' ? 'Offre acceptée' : 'Nouvelle contre-offre',
       body:
         event === 'ACCEPTED'
-          ? `${actorName} a accepte l'offre de ${formattedAmount} FCFA pour ${serviceName}.`
+          ? `${actorName} a accepté l’offre de ${formattedAmount} FCFA pour ${serviceName}.`
           : `${actorName} propose maintenant ${formattedAmount} FCFA pour ${serviceName}.`,
       data: {
         negotiationId: negotiation.id,

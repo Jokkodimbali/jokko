@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
-import {
-  findFeaturedNotification,
-  UserNotificationView,
-} from './notifications.service';
+import { findFeaturedNotification, UserNotificationView } from './notifications.service';
 
 /** Preserves the active trip notification while a page-level navbar is recreated. */
 @Injectable({ providedIn: 'root' })
@@ -62,7 +59,9 @@ export class FeaturedNotificationCacheService {
     const featured = findFeaturedNotification(notifications);
     if (!featured) return null;
     const metadata = featured.data || featured.donnees || {};
-    return featured.type === 'PRESTATAIRE_EN_ROUTE' || metadata['persistentUntilTerminal'] === true
+    return featured.type === 'PRESTATAIRE_EN_ROUTE' ||
+      metadata['persistentUntilTerminal'] === true ||
+      metadata['persistentDeliveryOffer'] === true
       ? featured
       : null;
   }

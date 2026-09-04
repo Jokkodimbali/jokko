@@ -196,7 +196,7 @@
             Annuler et se faire rembourser
           </button>
           <button
-            *ngIf="isParcelTransportAppointment(appointment)"
+            *ngIf="isParcelTransportAppointment(appointment) && !isMedicineDelivery()"
             type="button"
             class="appointment-detail__upcoming-qr"
             (click)="openQrCodePage(appointment, 'expediteur')"
@@ -1351,7 +1351,7 @@
         ></app-material-order-entry>
 
         <div
-          *ngIf="isParcelTransportAppointment(appointment)"
+          *ngIf="isParcelTransportAppointment(appointment) && !isMedicineDelivery()"
           class="appointment-detail__client-summary-qr"
         >
           <button type="button" (click)="openQrCodePage(appointment, 'expediteur')">

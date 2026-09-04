@@ -20,11 +20,18 @@ import {
   PharmacyOrderDecision,
   PharmacyOrdersService,
 } from '../../../data-access/pharmacy-orders.service';
+import { ParcelPickupQrCardComponent } from '../../../../appointments/presentation/components/parcel-pickup-qr-card/parcel-pickup-qr-card.component';
 
 @Component({
   selector: 'app-pharmacy-order-detail-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, AppointmentTrackingStepperComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    AppointmentTrackingStepperComponent,
+    ParcelPickupQrCardComponent,
+  ],
   templateUrl: './pharmacy-order-detail-page.component.html',
   styleUrls: [
     './pharmacy-order-detail-page.component.scss',

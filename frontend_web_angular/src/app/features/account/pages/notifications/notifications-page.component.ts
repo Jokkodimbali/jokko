@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import {
+  formatNotificationTitle,
   NotificationsService,
   UserNotificationView,
 } from '../../../../core/notifications/notifications.service';
@@ -126,7 +127,7 @@ export class NotificationsPageComponent implements OnInit {
   }
 
   protected title(notification: UserNotificationView): string {
-    return notification.title || notification.titre || this.typeLabel(notification.type);
+    return formatNotificationTitle(notification, this.typeLabel(notification.type));
   }
 
   protected body(notification: UserNotificationView): string {

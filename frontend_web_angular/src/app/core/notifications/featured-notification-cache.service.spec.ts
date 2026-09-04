@@ -46,4 +46,19 @@ describe('FeaturedNotificationCacheService', () => {
 
     expect(cache.read('user-1')).toBeNull();
   });
+
+  it('restores a persistent pharmacy delivery offer after navbar recreation', () => {
+    const cache = new FeaturedNotificationCacheService();
+    const offer = {
+      id: 'delivery-offer-1',
+      type: 'NOUVELLE_RESERVATION',
+      createdAt: '2026-09-04T10:00:00Z',
+      isRead: true,
+      data: { pharmacyOrderId: 'order-1', persistentDeliveryOffer: true },
+    };
+
+    cache.sync('courier-1', [offer]);
+
+    expect(cache.read('courier-1')).toEqual(offer);
+  });
 });

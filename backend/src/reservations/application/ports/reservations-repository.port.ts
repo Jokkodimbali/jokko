@@ -13,6 +13,14 @@ export interface ReservationsRepositoryPort {
   ): Promise<ReservationDetailedView[]>;
   findById(id: string): Promise<Reservation | null>;
   findDetailedById(id: string): Promise<ReservationDetailedView | null>;
+  isPharmacyPickupOwner?(
+    reservationId: string,
+    userId: string,
+  ): Promise<boolean>;
+  isHardwareStorePickupOwner?(
+    reservationId: string,
+    userId: string,
+  ): Promise<boolean>;
   findByClient(clientId: string): Promise<Reservation[]>;
   findByClientAndDateRange(
     clientId: string,

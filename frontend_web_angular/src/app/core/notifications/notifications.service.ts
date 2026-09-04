@@ -39,6 +39,63 @@ function notificationTimestamp(notification: UserNotificationView): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+export function notificationActorName(notification: UserNotificationView): string | null {
+  const metadata = notification.data || notification.donnees || {};
+  const actorName = [
+    metadata['actorName'],
+    metadata['senderName'],
+    metadata['clientName'],
+    metadata['professionalName'],
+    metadata['providerName'],
+  ].find((value) => typeof value === 'string' && value.trim());
+  return typeof actorName === 'string' ? actorName.trim() : null;
+}
+
+export function formatNotificationTitle(
+  notification: UserNotificationView,
+  fallbackTitle = 'Notification',
+): string {
+  const title = (notification.title || notification.titre || fallbackTitle)
+    .trim()
+    .replace(/[.!]+$/, '');
+  const metadata = notification.data || notification.donnees || {};
+  const actorName = notificationActorName(notification) || 'Jokko';
+  const serviceName =
+    typeof metadata['serviceName'] === 'string' ? metadata['serviceName'].trim() : '';
+  const serviceContext = serviceName ? ` pour « ${serviceName} »` : '';
+  const normalizedTitle = title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase();
+
+  if (normalizedTitle.includes('nouvelle reservation') && normalizedTitle.includes('confirm')) {
+    return `${actorName} - Nouvelle réservation confirmée${serviceContext}`;
+  }
+  if (normalizedTitle.includes('prestation terminee')) {
+    return `${actorName} - Prestation terminée${serviceContext}`;
+  }
+  if (normalizedTitle.includes('vous etes en route')) {
+    return `${actorName} - Trajet démarré${serviceContext}`;
+  }
+  if (normalizedTitle.includes('le client est en route')) {
+    return `${actorName} - En route vers le rendez-vous${serviceContext}`;
+  }
+  if (normalizedTitle.includes('prestataire en route')) {
+    return `${actorName} - En route vers votre rendez-vous${serviceContext}`;
+  }
+  if (normalizedTitle.includes('reservation annulee')) {
+    return `${actorName} - Réservation annulée${serviceContext}`;
+  }
+
+  const actorAtStart = new RegExp(
+    `^${actorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?:[:\\-â€“â€”]\\s*)?`,
+    'i',
+  );
+  const titleWithoutRepeatedActor = title.replace(actorAtStart, '').trim();
+  const motif = titleWithoutRepeatedActor || title;
+  return `${actorName} - ${motif.charAt(0).toLocaleUpperCase()}${motif.slice(1)}`;
+}
+
 export function findFeaturedNotification(
   notifications: UserNotificationView[],
 ): UserNotificationView | null {
@@ -55,8 +112,7 @@ export function findFeaturedNotification(
     const startedAt = notificationTimestamp(notification);
     return !notifications.some((candidate) => {
       const terminal =
-        candidate.type === 'RESERVATION_FINALISEE' ||
-        candidate.type === 'RESERVATION_ANNULEE';
+        candidate.type === 'RESERVATION_FINALISEE' || candidate.type === 'RESERVATION_ANNULEE';
       return (
         terminal &&
         notificationMetadataString(candidate, 'reservationId') === reservationId &&
@@ -65,8 +121,39 @@ export function findFeaturedNotification(
     });
   });
   if (activeOnTheWay) return activeOnTheWay;
+
+  const activeDeliveryOffer = notifications.find((notification) => {
+    const metadata = notification.data || notification.donnees || {};
+    if (metadata['persistentDeliveryOffer'] !== true) return false;
+    const pharmacyOrderId = notificationMetadataString(notification, 'pharmacyOrderId');
+    if (!pharmacyOrderId) return false;
+    const createdAt = notificationTimestamp(notification);
+    return !notifications.some((candidate) => {
+      const candidateMetadata = candidate.data || candidate.donnees || {};
+      return (
+        candidateMetadata['deliveryOfferResolved'] === true &&
+        notificationMetadataString(candidate, 'pharmacyOrderId') === pharmacyOrderId &&
+        notificationTimestamp(candidate) >= createdAt
+      );
+    });
+  });
+  if (activeDeliveryOffer) return activeDeliveryOffer;
+
   return (
-    notifications.find((notification) => !(notification.isRead ?? notification.estLue)) ?? null
+    notifications.find((notification) => {
+      const metadata = notification.data || notification.donnees || {};
+      const isResolvedDeliveryOffer =
+        metadata['persistentDeliveryOffer'] === true &&
+        notifications.some((candidate) => {
+          const candidateMetadata = candidate.data || candidate.donnees || {};
+          return (
+            candidateMetadata['deliveryOfferResolved'] === true &&
+            notificationMetadataString(candidate, 'pharmacyOrderId') ===
+              notificationMetadataString(notification, 'pharmacyOrderId')
+          );
+        });
+      return !isResolvedDeliveryOffer && !(notification.isRead ?? notification.estLue);
+    }) ?? null
   );
 }
 

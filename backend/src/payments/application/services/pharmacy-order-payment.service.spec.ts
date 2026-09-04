@@ -303,7 +303,7 @@ describe('PharmacyOrderPaymentService', () => {
     expect(notifications.createInAppNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: '66666666-6666-4666-8666-666666666666',
-        title: 'Livraison de medicaments disponible',
+        title: 'Livraison de médicaments disponible',
         data: expect.objectContaining({
           pharmacyOrderId: orderId,
           route: `/pharmacy-orders/${orderId}/delivery-offer`,

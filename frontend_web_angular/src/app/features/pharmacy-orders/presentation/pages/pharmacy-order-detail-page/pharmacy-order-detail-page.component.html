@@ -209,6 +209,13 @@
               {{ current.medicineAmount | number: '1.0-0' }} FCFA
             </strong>
             <small *ngIf="current.pharmacyNote">{{ current.pharmacyNote }}</small>
+            <app-parcel-pickup-qr-card
+              *ngIf="current.deliveryRequested && current.deliveryReservation"
+              [reservationId]="current.deliveryReservation.id"
+              [serviceId]="current.deliveryReservation.serviceId"
+              itemLabel="médicaments"
+              pickupTitle="QR à présenter au livreur"
+            ></app-parcel-pickup-qr-card>
           </article>
         </ng-template>
       </div>

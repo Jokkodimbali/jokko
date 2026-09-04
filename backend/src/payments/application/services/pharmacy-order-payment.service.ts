@@ -298,7 +298,7 @@ export class PharmacyOrderPaymentService {
       this.notifications.createInAppNotification({
         userId: payment.clientId,
         type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
-        title: 'Paiement des medicaments confirme',
+        title: 'Paiement des médicaments confirmé',
         body: payment.commandePharmacie.livraisonDemandee
           ? 'Votre paiement incluant la livraison est confirme. Nous recherchons maintenant un livreur de colis.'
           : 'Votre paiement est confirme. Vos medicaments seront a retirer directement a la pharmacie.',
@@ -312,8 +312,8 @@ export class PharmacyOrderPaymentService {
       this.notifications.createInAppNotification({
         userId: payment.pharmacie.utilisateur.id,
         type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
-        title: 'Paiement pharmacie recu',
-        body: `Le paiement des medicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirme.`,
+        title: 'Paiement pharmacie reçu',
+        body: `Le paiement des médicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirmé.`,
         data: {
           pharmacyOrderId: payment.commandePharmacieId,
           route: `/pharmacy-orders/${payment.commandePharmacieId}`,
@@ -387,11 +387,12 @@ export class PharmacyOrderPaymentService {
         this.notifications.createInAppNotification({
           userId: courier.userId,
           type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-          title: 'Livraison de medicaments disponible',
-          body: `Une livraison est disponible a ${Number(courier.distanceKm).toFixed(1)} km. Acceptez-la pour recuperer la commande en pharmacie.`,
+          title: 'Livraison de médicaments disponible',
+          body: `Une livraison est disponible à ${Number(courier.distanceKm).toFixed(1)} km. Acceptez-la pour récupérer la commande en pharmacie.`,
           data: {
             pharmacyOrderId: orderId,
             distanceKm: Number(courier.distanceKm),
+            persistentDeliveryOffer: true,
             route: `/pharmacy-orders/${orderId}/delivery-offer`,
           },
         }),

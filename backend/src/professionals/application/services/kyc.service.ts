@@ -84,8 +84,8 @@ export class KycService extends ProfessionalAppService {
     await this.notificationsService.createInAppNotification({
       userId: result.profile.utilisateur.id,
       type: NOTIFICATION_TYPES.KYC_APPROUVEE,
-      title: 'Profil professionnel valide',
-      body: 'Votre profil professionnel a ete approuve. Vous pouvez maintenant proposer vos services.',
+      title: 'Profil professionnel validé',
+      body: 'Votre profil professionnel a été approuvé. Vous pouvez désormais proposer vos services.',
       data: { professionalId: result.profile.id, route: '/settings' },
     });
     return result.profile;
@@ -113,8 +113,8 @@ export class KycService extends ProfessionalAppService {
     await this.notificationsService.createInAppNotification({
       userId: result.profile.utilisateur.id,
       type: NOTIFICATION_TYPES.KYC_REJETEE,
-      title: 'Profil professionnel a corriger',
-      body: `Votre verification a ete refusee. Motif : ${reason}`,
+      title: 'Profil professionnel à corriger',
+      body: `Votre vérification a été refusée. Motif : ${reason}`,
       data: { professionalId: result.profile.id, reason, route: '/settings' },
     });
     return result.profile;

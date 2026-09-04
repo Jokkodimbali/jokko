@@ -65,6 +65,7 @@ const ORDER_INCLUDE = {
   reservationLivraison: {
     select: {
       id: true,
+      serviceId: true,
       statut: true,
       professionnel: {
         select: {
@@ -157,8 +158,8 @@ export class PharmacyOrdersService {
     await this.notifications.createInAppNotification({
       userId: order.pharmacie.utilisateur.id,
       type: NOTIFICATION_TYPES.ORDONNANCE_RECUE,
-      title: 'Nouvelle ordonnance a verifier',
-      body: `${order.client.nom} vous a envoye une ordonnance apres sa consultation.`,
+      title: 'Nouvelle ordonnance à vérifier',
+      body: `${order.client.nom} vous a envoyé une ordonnance après sa consultation.`,
       data: {
         pharmacyOrderId: order.id,
         medicalReservationId: order.reservationMedicale.id,
@@ -404,8 +405,8 @@ export class PharmacyOrdersService {
       this.notifications.createInAppNotification({
         userId: order.client.id,
         type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-        title: 'Livreur affecte a vos medicaments',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} a accepte la livraison. Les frais de ${deliveryAmount.toLocaleString('fr-FR')} FCFA sont deja payes.`,
+        title: 'Livreur affecté à vos médicaments',
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} a accepté la livraison. Les frais de ${deliveryAmount.toLocaleString('fr-FR')} FCFA sont déjà réglés.`,
         data: {
           pharmacyOrderId: order.id,
           reservationId,
@@ -415,12 +416,25 @@ export class PharmacyOrdersService {
       this.notifications.createInAppNotification({
         userId: order.pharmacie.utilisateur.id,
         type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-        title: 'Livreur affecte',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepte la course et peut recuperer les medicaments.`,
+        title: 'Livreur affecté',
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepté la course et peut récupérer les médicaments.`,
         data: {
           pharmacyOrderId: order.id,
           reservationId,
           route: `/pharmacy-orders/${order.id}`,
+        },
+      }),
+      this.notifications.createInAppNotification({
+        userId: requestUser.sub,
+        type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+        title: 'Livraison de médicaments acceptée',
+        body: `Rendez-vous à ${order.pharmacie.nomEntreprise || order.pharmacie.utilisateur.nom} pour récupérer les médicaments.`,
+        data: {
+          pharmacyOrderId: order.id,
+          reservationId,
+          deliveryOfferResolved: true,
+          persistentUntilTerminal: true,
+          route: `/appointments/${reservationId}`,
         },
       }),
     ]);
@@ -795,6 +809,7 @@ export class PharmacyOrdersService {
       deliveryReservation: order.reservationLivraison
         ? {
             id: order.reservationLivraison.id,
+            serviceId: order.reservationLivraison.serviceId,
             status: order.reservationLivraison.statut,
             courier: {
               professionalId: order.reservationLivraison.professionnel.id,

@@ -41,7 +41,19 @@ export class ReservationQueryService extends ReservationAppService {
   async getReservationById(requestUser: AuthUser, reservationId: string) {
     await this.syncOverdueReservations();
 
-    await this.getAccessibleReservationOrThrow(requestUser, reservationId);
+    const isPickupOwner =
+      requestUser.role === 'PRESTATAIRE' &&
+      ((await this.reservationsRepository.isPharmacyPickupOwner?.(
+        reservationId,
+        requestUser.sub,
+      )) ||
+        (await this.reservationsRepository.isHardwareStorePickupOwner?.(
+          reservationId,
+          requestUser.sub,
+        )));
+    if (!isPickupOwner) {
+      await this.getAccessibleReservationOrThrow(requestUser, reservationId);
+    }
     const reservation =
       await this.reservationsRepository.findDetailedById(reservationId);
     if (!reservation) {

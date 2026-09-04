@@ -554,10 +554,7 @@
   </aside>
 
   <nav class="app-navbar__bottom-nav" aria-label="Navigation mobile principale">
-    <a
-      routerLink="/services"
-      [class.app-navbar__bottom-nav-item--active]="isActive('/services')"
-    >
+    <a routerLink="/services" [class.app-navbar__bottom-nav-item--active]="isActive('/services')">
       <i><lucide-icon name="house" size="22" [strokeWidth]="2.3"></lucide-icon></i>
       <span>Services</span>
     </a>
@@ -568,10 +565,7 @@
       <i><lucide-icon name="calendar-days" size="22" [strokeWidth]="2.3"></lucide-icon></i>
       <span>RDV &amp; négociation</span>
     </a>
-    <a
-      routerLink="/messages"
-      [class.app-navbar__bottom-nav-item--active]="isActive('/messages')"
-    >
+    <a routerLink="/messages" [class.app-navbar__bottom-nav-item--active]="isActive('/messages')">
       <i>
         <lucide-icon name="message-circle" size="22" [strokeWidth]="2.3"></lucide-icon>
         <b *ngIf="unreadMessagesCount() > 0">{{ messageBadgeLabel() }}</b>

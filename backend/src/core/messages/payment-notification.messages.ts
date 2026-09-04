@@ -1,23 +1,23 @@
 export const PAYMENT_NOTIFICATION_MESSAGES = {
-  CLIENT_ESCROW_CONFIRMED_TITLE: 'Paiement confirme',
+  CLIENT_ESCROW_CONFIRMED_TITLE: 'Paiement confirmé',
   CLIENT_ESCROW_CONFIRMED_BODY:
-    'Votre paiement a ete confirme et les fonds sont securises par Jokko.',
+    'Votre paiement a été confirmé et les fonds sont sécurisés par Jokko.',
   CLIENT_ESCROW_CONFIRMED_EMAIL_SUBJECT: 'Confirmation de votre paiement Jokko',
   CLIENT_ESCROW_CONFIRMED_SMS_BODY: (serviceName: string) =>
-    `Jokko: votre paiement pour "${serviceName}" a ete confirme et securise.`,
-  PROFESSIONAL_ESCROW_CONFIRMED_TITLE: 'Paiement client confirme',
+    `Jokko : votre paiement pour « ${serviceName} » a été confirmé et sécurisé.`,
+  PROFESSIONAL_ESCROW_CONFIRMED_TITLE: 'Paiement client confirmé',
   PROFESSIONAL_ESCROW_CONFIRMED_BODY: (serviceName: string) =>
-    `Le paiement de la reservation ${serviceName} est securise.`,
+    `Le paiement de la réservation ${serviceName} est sécurisé.`,
   PROFESSIONAL_ESCROW_CONFIRMED_EMAIL_SUBJECT:
-    'Paiement client confirme sur Jokko',
+    'Paiement client confirmé sur Jokko',
   PROFESSIONAL_ESCROW_CONFIRMED_SMS_BODY: (serviceName: string) =>
-    `Jokko: le paiement client pour "${serviceName}" est securise.`,
+    `Jokko : le paiement client pour « ${serviceName} » est sécurisé.`,
   SEED_CLIENT_ESCROW_CONFIRMED_BODY:
-    'Votre paiement demo a ete confirme et les fonds sont securises par Jokko.',
+    'Votre paiement de démonstration a été confirmé et les fonds sont sécurisés par Jokko.',
   SEED_PROFESSIONAL_ESCROW_CONFIRMED_BODY:
-    'Un paiement client demo est securise en escrow.',
+    'Un paiement client de démonstration est sécurisé en séquestre.',
   WALLET_ESCROW_RELEASED_DESCRIPTION:
-    'Fonds escrow liberes vers le portefeuille professionnel.',
+    'Fonds libérés vers le portefeuille professionnel.',
   WALLET_WITHDRAWAL_DEBIT_DESCRIPTION:
-    'Retrait professionnel debite du portefeuille.',
+    'Retrait professionnel débité du portefeuille.',
 } as const;

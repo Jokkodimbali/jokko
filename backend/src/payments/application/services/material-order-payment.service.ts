@@ -279,7 +279,7 @@ export class MaterialOrderPaymentService {
       this.notifications.createInAppNotification({
         userId: payment.clientId,
         type: NOTIFICATION_TYPES.PAIEMENT_CONFIRME,
-        title: 'Paiement du materiel confirme',
+        title: 'Paiement du matériel confirmé',
         body: payment.commandeMateriel.livraisonDemandee
           ? 'Le paiement incluant la livraison est confirme. Nous recherchons maintenant un livreur.'
           : 'Le paiement est confirme. Votre materiel sera a retirer en quincaillerie.',
@@ -291,8 +291,8 @@ export class MaterialOrderPaymentService {
       this.notifications.createInAppNotification({
         userId: payment.quincaillerie.utilisateur.id,
         type: NOTIFICATION_TYPES.PAIEMENT_CONFIRME,
-        title: 'Paiement materiel recu',
-        body: `Le paiement de ${Number(payment.commandeMateriel.montantMateriel).toLocaleString('fr-FR')} FCFA est confirme.`,
+        title: 'Paiement matériel reçu',
+        body: `Le paiement de ${Number(payment.commandeMateriel.montantMateriel).toLocaleString('fr-FR')} FCFA est confirmé.`,
         data: {
           materialOrderId: payment.commandeMaterielId,
           route: `/material-orders/${payment.commandeMaterielId}`,
@@ -365,8 +365,8 @@ export class MaterialOrderPaymentService {
         this.notifications.createInAppNotification({
           userId: courier.userId,
           type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-          title: 'Livraison de materiel disponible',
-          body: `Une livraison est disponible a ${Number(courier.distanceKm).toFixed(1)} km. Acceptez-la pour recuperer le materiel en quincaillerie.`,
+          title: 'Livraison de matériel disponible',
+          body: `Une livraison est disponible à ${Number(courier.distanceKm).toFixed(1)} km. Acceptez-la pour récupérer le matériel en quincaillerie.`,
           data: {
             materialOrderId: orderId,
             route: `/material-orders/${orderId}/delivery-offer`,

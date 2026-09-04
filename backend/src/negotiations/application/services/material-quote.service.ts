@@ -80,8 +80,8 @@ export class MaterialQuoteService {
     await this.notifyQuoteChanged({
       negotiation,
       actor,
-      title: 'Nouveau devis materiel',
-      body: `${this.actorLabel(actor)} a ajoute ${quote.designation} au devis materiel.`,
+      title: 'Nouveau devis matériel',
+      body: `${this.actorLabel(actor)} a ajouté ${quote.designation} au devis matériel.`,
     });
 
     return this.toView(quote);
@@ -116,8 +116,8 @@ export class MaterialQuoteService {
     await this.notifyQuoteChanged({
       negotiation,
       actor,
-      title: 'Devis materiel valide',
-      body: `${this.actorLabel(actor)} a valide ${quote.designation}.`,
+      title: 'Devis matériel validé',
+      body: `${this.actorLabel(actor)} a validé ${quote.designation}.`,
     });
 
     return this.toView(quote);
@@ -151,8 +151,8 @@ export class MaterialQuoteService {
     await this.notifyQuoteChanged({
       negotiation,
       actor,
-      title: 'Devis materiel refuse',
-      body: `${this.actorLabel(actor)} a refuse ${quote.designation}.`,
+      title: 'Devis matériel refusé',
+      body: `${this.actorLabel(actor)} a refusé ${quote.designation}.`,
     });
 
     return this.toView(quote);
@@ -251,15 +251,15 @@ export class MaterialQuoteService {
       {
         userId: negotiation.clientId,
         type: TypeNotification.AJUSTEMENT_PRIX_ACCEPTE,
-        title: 'Devis materiel finalise',
-        body: 'Le devis materiel valide est disponible dans la discussion.',
+        title: 'Devis matériel finalisé',
+        body: 'Le devis matériel validé est disponible dans la discussion.',
         data: { negotiationId, reservationId, pdfUrl },
       },
       {
         userId: negotiation.professionnel.utilisateurId,
         type: TypeNotification.AJUSTEMENT_PRIX_ACCEPTE,
-        title: 'Devis materiel finalise',
-        body: 'Le devis materiel valide est disponible dans la discussion.',
+        title: 'Devis matériel finalisé',
+        body: 'Le devis matériel validé est disponible dans la discussion.',
         data: { negotiationId, reservationId, pdfUrl },
       },
     ]);

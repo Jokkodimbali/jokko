@@ -23,8 +23,8 @@ type ReservationPriceAdjustmentTemplateInput = {
 };
 
 export const RESERVATION_NOTIFICATION_MESSAGES = {
-  createdTitle: 'Reservation enregistree',
-  createdEmailSubject: 'Confirmation de votre reservation Jokko',
+  createdTitle: 'Réservation enregistrée',
+  createdEmailSubject: 'Confirmation de votre réservation Jokko',
   createdPushBody: ({
     clientName,
     serviceName,
@@ -32,7 +32,7 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     formattedDate,
     address,
   }: ReservationClientNotificationTemplateInput) =>
-    `Bonjour ${clientName}, votre reservation pour "${serviceName}" avec ${professionalName} est enregistree dans le systeme pour le ${formattedDate}. Lieu: ${address}.`,
+    `Bonjour ${clientName}, votre réservation pour « ${serviceName} » avec ${professionalName} est enregistrée pour le ${formattedDate}. Lieu : ${address}.`,
   createdSmsBody: ({
     serviceName,
     professionalName,
@@ -41,41 +41,41 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     ReservationClientNotificationTemplateInput,
     'clientName' | 'address'
   >) =>
-    `Jokko: votre reservation "${serviceName}" avec ${professionalName} est enregistree pour le ${formattedDate}.`,
-  genericEventTitle: (eventType: string) => `Reservation ${eventType}`,
+    `Jokko : votre réservation « ${serviceName} » avec ${professionalName} est enregistrée pour le ${formattedDate}.`,
+  genericEventTitle: (eventType: string) => `Réservation ${eventType}`,
   genericEventEmailSubject: (eventType: string) =>
-    `Mise a jour de votre reservation Jokko: ${eventType}`,
+    `Mise à jour de votre réservation Jokko : ${eventType}`,
   genericEventBody: ({
     serviceName,
     professionalName,
     formattedDate,
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
-    `Votre reservation pour ${serviceName} avec ${professionalName} le ${formattedDate} a ete ${eventType}.`,
+    `Votre réservation pour ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
   genericEventSmsBody: ({
     serviceName,
     professionalName,
     formattedDate,
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
-    `Jokko: votre reservation ${serviceName} avec ${professionalName} du ${formattedDate} a ete ${eventType}.`,
-  onTheWayTitle: 'Votre prestataire est en route vers votre rendez-vous.',
+    `Jokko : votre réservation ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
+  onTheWayTitle: 'Votre prestataire est en route vers votre rendez-vous',
   onTheWayEmailSubject: 'Votre prestataire est en route',
   onTheWayBody: ({
     serviceName,
     professionalName,
     formattedDate,
   }: Omit<ReservationGenericNotificationTemplateInput, 'eventType'>) =>
-    `Votre prestataire ${professionalName} est en route pour la reservation ${serviceName} prevue le ${formattedDate}.`,
+    `Votre prestataire ${professionalName} est en route pour la réservation ${serviceName}, prévue le ${formattedDate}.`,
   onTheWaySmsBody: ({
     serviceName,
     professionalName,
     formattedDate,
   }: Omit<ReservationGenericNotificationTemplateInput, 'eventType'>) =>
-    `Jokko: ${professionalName} est en route pour votre reservation ${serviceName} du ${formattedDate}.`,
-  priceAdjustmentProposedTitle: 'Demande d ajustement de prix',
+    `Jokko : ${professionalName} est en route pour votre réservation ${serviceName} du ${formattedDate}.`,
+  priceAdjustmentProposedTitle: 'Demande d’ajustement de prix',
   priceAdjustmentProposedEmailSubject:
-    'Mise a jour du prix de votre reservation Jokko',
+    'Mise à jour du prix de votre réservation Jokko',
   priceAdjustmentProposedBody: ({
     serviceName,
     professionalName,
@@ -84,7 +84,7 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     proposedPrice,
     reason,
   }: ReservationPriceAdjustmentTemplateInput) =>
-    `Le prestataire ${professionalName} propose un ajustement du prix de votre reservation ${serviceName} prevue le ${formattedDate}. Ancien prix: ${currentPrice ?? 0} FCFA. Nouveau prix propose: ${proposedPrice} FCFA.${reason ? ` Motif: ${reason}.` : ''}`,
+    `Le prestataire ${professionalName} propose un ajustement pour ${serviceName}, prévue le ${formattedDate}. Ancien prix : ${currentPrice ?? 0} FCFA. Nouveau prix proposé : ${proposedPrice} FCFA.${reason ? ` Motif : ${reason}.` : ''}`,
   priceAdjustmentProposedSmsBody: ({
     serviceName,
     professionalName,
@@ -93,8 +93,8 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     ReservationPriceAdjustmentTemplateInput,
     'serviceName' | 'professionalName' | 'proposedPrice'
   >) =>
-    `Jokko: ${professionalName} propose un nouveau prix de ${proposedPrice} FCFA pour ${serviceName}.`,
-  priceAdjustmentAcceptedTitle: 'Ajustement de prix accepte',
+    `Jokko : ${professionalName} propose un nouveau prix de ${proposedPrice} FCFA pour ${serviceName}.`,
+  priceAdjustmentAcceptedTitle: 'Ajustement de prix accepté',
   priceAdjustmentAcceptedBody: ({
     serviceName,
     proposedPrice,
@@ -102,8 +102,8 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     ReservationPriceAdjustmentTemplateInput,
     'serviceName' | 'proposedPrice'
   >) =>
-    `Votre ajustement de prix pour ${serviceName} a ete accepte. Nouveau montant: ${proposedPrice} FCFA.`,
-  priceAdjustmentRejectedTitle: 'Ajustement de prix refuse',
+    `Votre ajustement de prix pour ${serviceName} a été accepté. Nouveau montant : ${proposedPrice} FCFA.`,
+  priceAdjustmentRejectedTitle: 'Ajustement de prix refusé',
   priceAdjustmentRejectedBody: ({
     serviceName,
     proposedPrice,
@@ -111,5 +111,5 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     ReservationPriceAdjustmentTemplateInput,
     'serviceName' | 'proposedPrice'
   >) =>
-    `Votre ajustement de prix pour ${serviceName} a ete refuse. Montant propose: ${proposedPrice} FCFA.`,
+    `Votre ajustement de prix pour ${serviceName} a été refusé. Montant proposé : ${proposedPrice} FCFA.`,
 } as const;

@@ -22,6 +22,7 @@ import {
   DoctorSpaceSection,
   DoctorSpaceSidebarComponent,
 } from '../../../../medicine/presentation/pages/doctor-space-page/components/doctor-space-sidebar/doctor-space-sidebar.component';
+import { ParcelPickupQrCardComponent } from '../../../../appointments/presentation/components/parcel-pickup-qr-card/parcel-pickup-qr-card.component';
 
 @Component({
   selector: 'app-material-order-detail-page',
@@ -33,6 +34,7 @@ import {
     LucideAngularModule,
     AppointmentTrackingStepperComponent,
     DoctorSpaceSidebarComponent,
+    ParcelPickupQrCardComponent,
   ],
   templateUrl: './material-order-detail-page.component.html',
   styleUrl: './material-order-detail-page.component.scss',
@@ -52,11 +54,15 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly acceptingDelivery = signal(false);
+  private deliveryAcceptedByCurrentCourier = false;
   protected readonly courierOfferMode =
     this.route.snapshot.routeConfig?.path?.endsWith('delivery-offer') === true;
   protected readonly error = signal<string | null>(null);
   protected readonly isHardwareStore = computed(
     () => this.order()?.hardwareStore.userId === this.auth.currentUser()?.id,
+  );
+  protected readonly isClientViewer = computed(
+    () => this.order()?.client.id === this.auth.currentUser()?.id,
   );
   protected readonly showHardwareSidebar = computed(
     () =>
@@ -105,7 +111,9 @@ export class MaterialOrderDetailPageComponent implements OnInit {
     this.realtime.orderChanged$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((changedOrderId) => {
-        if (changedOrderId === orderId) this.loadOrder(orderId, false);
+        if (changedOrderId === orderId && !this.deliveryAcceptedByCurrentCourier) {
+          this.loadOrder(orderId, false);
+        }
       });
     this.loadOrder(orderId, true);
   }
@@ -118,13 +126,39 @@ export class MaterialOrderDetailPageComponent implements OnInit {
     void this.router.navigate(['/material-orders', orderId, 'payment']);
   }
 
+  protected trackDelivery(reservationId: string): void {
+    void this.router.navigate(['/appointments', reservationId]);
+  }
+
   private loadOrder(orderId: string, showLoader: boolean): void {
     if (showLoader) this.loading.set(true);
     const request = this.courierOfferMode
       ? this.orders.getDeliveryOffer(orderId)
       : this.orders.get(orderId);
     request.pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (order) => this.hydrate(order),
+      next: (order) => {
+        if (
+          this.courierOfferMode &&
+          order.status !== 'EN_ATTENTE_TRANSPORTEUR' &&
+          order.deliveryReservation
+        ) {
+          void this.router.navigate(['/appointments', order.deliveryReservation.id], {
+            replaceUrl: true,
+          });
+          return;
+        }
+        this.hydrate(order);
+        if (
+          this.isClientViewer() &&
+          order.deliveryRequested &&
+          order.deliveryReservation &&
+          ['TRANSPORTEUR_ASSIGNE', 'EN_LIVRAISON'].includes(order.status)
+        ) {
+          void this.router.navigate(['/appointments', order.deliveryReservation.id], {
+            replaceUrl: true,
+          });
+        }
+      },
       error: () => this.error.set('Impossible de charger cette commande materiel.'),
     });
   }
@@ -199,15 +233,25 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   protected acceptDelivery(): void {
     const order = this.order();
     if (!order || this.acceptingDelivery()) return;
+    this.deliveryAcceptedByCurrentCourier = true;
     this.acceptingDelivery.set(true);
     this.error.set(null);
     this.orders
       .acceptDelivery(order.id)
       .pipe(finalize(() => this.acceptingDelivery.set(false)))
       .subscribe({
-        next: (updated) => this.hydrate(updated),
-        error: (error: { error?: { message?: string } }) =>
-          this.error.set(error.error?.message ?? "Impossible d'accepter cette livraison."),
+        next: (updated) => {
+          const reservationId = updated.deliveryReservation?.id;
+          if (!reservationId) {
+            this.error.set('La réservation de livraison est introuvable.');
+            return;
+          }
+          void this.router.navigate(['/appointments', reservationId], { replaceUrl: true });
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.deliveryAcceptedByCurrentCourier = false;
+          this.error.set(error.error?.message ?? "Impossible d'accepter cette livraison.");
+        },
       });
   }
 

@@ -254,6 +254,36 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
     return reservation ? this.mapToDetailedView(reservation) : null;
   }
 
+  async isPharmacyPickupOwner(
+    reservationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const order = await this.prisma.commandePharmacie.findFirst({
+      where: {
+        reservationLivraisonId: reservationId,
+        pharmacie: { utilisateurId: userId },
+      },
+      select: { id: true },
+    });
+
+    return order !== null;
+  }
+
+  async isHardwareStorePickupOwner(
+    reservationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const order = await this.prisma.commandeMateriel.findFirst({
+      where: {
+        reservationLivraisonId: reservationId,
+        quincaillerie: { utilisateurId: userId },
+      },
+      select: { id: true },
+    });
+
+    return order !== null;
+  }
+
   async findByClient(clientId: string): Promise<Reservation[]> {
     const reservations = await this.prisma.reservation.findMany({
       where: { clientId },

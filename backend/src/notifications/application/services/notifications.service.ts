@@ -20,6 +20,55 @@ export type ListMyNotificationsCommand = {
   offset?: number;
 };
 
+const NOTIFICATION_TEXT_REPLACEMENTS: ReadonlyArray<readonly [RegExp, string]> =
+  [
+    [/\bReservation\b/g, 'Réservation'],
+    [/\bréservation\b/g, 'réservation'],
+    [/\bMateriel\b/g, 'Matériel'],
+    [/\bmateriel\b/g, 'matériel'],
+    [/\bMedicaments\b/g, 'Médicaments'],
+    [/\bmedicaments\b/g, 'médicaments'],
+    [/\bconfirme\b/g, 'confirmé'],
+    [/\bconfirmee\b/g, 'confirmée'],
+    [/\bconfirmees\b/g, 'confirmées'],
+    [/\brecue\b/g, 'reçue'],
+    [/\brecu\b/g, 'reçu'],
+    [/\baffecte\b/g, 'affecté'],
+    [/\baffectee\b/g, 'affectée'],
+    [/\bvalide\b/g, 'validé'],
+    [/\bvalidee\b/g, 'validée'],
+    [/\brefuse\b/g, 'refusé'],
+    [/\brefusee\b/g, 'refusée'],
+    [/\bfinalise\b/g, 'finalisé'],
+    [/\bfinalisee\b/g, 'finalisée'],
+    [/\bterminee\b/g, 'terminée'],
+    [/\bannulee\b/g, 'annulée'],
+    [/\btraite\b/g, 'traité'],
+    [/\brejete\b/g, 'rejeté'],
+    [/\bsecurise\b/g, 'sécurisé'],
+    [/\bverifie\b/g, 'vérifié'],
+    [/\bverifier\b/g, 'vérifier'],
+    [/\brecuperer\b/g, 'récupérer'],
+    [/\brecuperera\b/g, 'récupérera'],
+    [/\benvoye\b/g, 'envoyé'],
+    [/\bajoute\b/g, 'ajouté'],
+    [/\bapres\b/g, 'après'],
+    [/\bprevue\b/g, 'prévue'],
+    [/\bdeja\b/g, 'déjà'],
+    [/\ba ete\b/g, 'a été'],
+    [/\ba accepte\b/g, 'a accepté'],
+    [/\ba annule\b/g, 'a annulé'],
+    [/\ba valide\b/g, 'a validé'],
+    [/\ba refuse\b/g, 'a refusé'],
+    [/\ba ajoute\b/g, 'a ajouté'],
+    [/\ba corriger\b/g, 'à corriger'],
+    [/\ba votre\b/g, 'à votre'],
+    [/\ba vos\b/g, 'à vos'],
+    [/\ba la\b/g, 'à la'],
+    [/\ba l\u2019/g, 'à l’'],
+    [/\ba l'/g, "à l'"],
+  ];
+
 @Injectable()
 export class NotificationsService {
   private readonly defaultLimit = 20;
@@ -35,7 +84,9 @@ export class NotificationsService {
   ) {}
 
   async createInAppNotification(input: CreateNotificationInput) {
-    const notification = await this.notificationsRepository.create(input);
+    const notification = await this.notificationsRepository.create(
+      this.normalizeNotificationInput(input),
+    );
     this.realtimeEvents.emit('notification.created', { notification });
     await this.deliveryService.sendPushForNotification(notification);
     return notification;
@@ -48,7 +99,9 @@ export class NotificationsService {
       return;
     }
 
-    const notifications = await this.notificationsRepository.createMany(inputs);
+    const notifications = await this.notificationsRepository.createMany(
+      inputs.map((input) => this.normalizeNotificationInput(input)),
+    );
     for (const notification of notifications) {
       this.realtimeEvents.emit('notification.created', { notification });
     }
@@ -135,5 +188,24 @@ export class NotificationsService {
     }
 
     return offset;
+  }
+
+  private normalizeNotificationInput(
+    input: CreateNotificationInput,
+  ): CreateNotificationInput {
+    return {
+      ...input,
+      title: this.normalizeNotificationText(input.title, true),
+      body: this.normalizeNotificationText(input.body, false),
+    };
+  }
+
+  private normalizeNotificationText(text: string, isTitle: boolean): string {
+    const normalized = NOTIFICATION_TEXT_REPLACEMENTS.reduce(
+      (value, [expression, replacement]) =>
+        value.replace(expression, replacement),
+      text.trim().replace(/\s+/g, ' '),
+    );
+    return isTitle ? normalized.replace(/[.!]+$/, '') : normalized;
   }
 }

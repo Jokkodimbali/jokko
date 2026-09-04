@@ -24,6 +24,8 @@ import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
 import { SessionPresenceService } from '../../../core/presence/session-presence.service';
 import {
   findFeaturedNotification,
+  formatNotificationTitle,
+  notificationActorName,
   NotificationsService,
   UserNotificationView,
 } from '../../../core/notifications/notifications.service';
@@ -347,15 +349,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected notificationActorName(notification: UserNotificationView): string | null {
-    const metadata = notification.data || notification.donnees || {};
-    const actorName = [
-      metadata['actorName'],
-      metadata['senderName'],
-      metadata['clientName'],
-      metadata['professionalName'],
-      metadata['providerName'],
-    ].find((value) => typeof value === 'string' && value.trim());
-    return typeof actorName === 'string' ? actorName.trim() : null;
+    return notificationActorName(notification);
   }
 
   protected openNotification(notification: UserNotificationView): void {
@@ -396,8 +390,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected notificationTitle(notification: UserNotificationView): string {
-    const title =
-      notification.title || notification.titre || this.notificationTypeLabel(notification.type);
+    const title = (
+      notification.title ||
+      notification.titre ||
+      this.notificationTypeLabel(notification.type)
+    )
+      .trim()
+      .replace(/[.!]+$/, '');
     const metadata = notification.data || notification.donnees || {};
     const actorName = this.notificationActorName(notification) || 'Jokko';
     const serviceName =

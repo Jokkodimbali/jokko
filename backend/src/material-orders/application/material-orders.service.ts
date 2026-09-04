@@ -53,6 +53,7 @@ const ORDER_INCLUDE = {
   reservationLivraison: {
     select: {
       id: true,
+      serviceId: true,
       statut: true,
       professionnel: {
         select: {
@@ -257,8 +258,8 @@ export class MaterialOrdersService {
     await this.notifications.createInAppNotification({
       userId: order.quincaillerie.utilisateur.id,
       type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-      title: 'Nouvelle demande de materiel',
-      body: `${order.client.nom} vous demande de verifier les fournitures necessaires avant sa prestation.`,
+      title: 'Nouvelle demande de matériel',
+      body: `${order.client.nom} vous demande de vérifier les fournitures nécessaires avant sa prestation.`,
       data: {
         materialOrderId: order.id,
         route: `/material-orders/${order.id}`,
@@ -313,6 +314,23 @@ export class MaterialOrdersService {
   }
 
   async getDeliveryOffer(requestUser: AuthUser, orderId: string) {
+    const assignedOrder = await this.prisma.commandeMateriel.findFirst({
+      where: {
+        id: orderId,
+        reservationLivraison: {
+          professionnel: { utilisateurId: requestUser.sub },
+        },
+      },
+      include: ORDER_INCLUDE,
+    });
+    if (assignedOrder) {
+      return {
+        ...this.toView(assignedOrder),
+        courierDistanceKm: 0,
+        pricePerKm: MATERIAL_DELIVERY_PRICE_PER_KM,
+      };
+    }
+
     const courier = await this.findEligibleCourier(requestUser.sub, orderId);
     if (!courier) {
       throw new ForbiddenException(
@@ -435,8 +453,8 @@ export class MaterialOrdersService {
       this.notifications.createInAppNotification({
         userId: order.client.id,
         type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-        title: 'Livreur affecte a votre materiel',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} recuperera la commande en quincaillerie puis la livrera a votre adresse.`,
+        title: 'Livreur affecté à votre matériel',
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Votre livreur'} récupérera la commande en quincaillerie, puis la livrera à votre adresse.`,
         data: {
           materialOrderId: order.id,
           reservationId,
@@ -446,8 +464,8 @@ export class MaterialOrdersService {
       this.notifications.createInAppNotification({
         userId: order.quincaillerie.utilisateur.id,
         type: NOTIFICATION_TYPES.NOUVELLE_RESERVATION,
-        title: 'Livreur affecte au materiel',
-        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepte la course et viendra retirer la commande.`,
+        title: 'Livreur affecté au matériel',
+        body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepté la course et viendra retirer la commande.`,
         data: {
           materialOrderId: order.id,
           route: `/material-orders/${order.id}`,
@@ -766,6 +784,7 @@ export class MaterialOrdersService {
       deliveryReservation: order.reservationLivraison
         ? {
             id: order.reservationLivraison.id,
+            serviceId: order.reservationLivraison.serviceId,
             status: order.reservationLivraison.statut,
             courier: {
               professionalId: order.reservationLivraison.professionnel.id,

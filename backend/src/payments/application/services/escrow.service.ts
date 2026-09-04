@@ -48,15 +48,15 @@ export class EscrowService {
         {
           userId: payment.clientId,
           type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
-          title: 'Paiement libere',
-          body: 'Le paiement securise de votre prestation a ete libere.',
+          title: 'Paiement libéré',
+          body: 'Le paiement sécurisé de votre prestation a été libéré.',
           data: { paymentId: payment.id, reservationId: payment.bookingId },
         },
         {
           userId: payment.professionalId,
           type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
-          title: 'Paiement recu',
-          body: 'Le paiement de la prestation a ete credite dans votre portefeuille.',
+          title: 'Paiement reçu',
+          body: 'Le paiement de la prestation a été crédité dans votre portefeuille.',
           data: { paymentId: payment.id, reservationId: payment.bookingId },
         },
       ]);

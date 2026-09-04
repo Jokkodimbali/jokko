@@ -27,6 +27,7 @@ export type PharmacyOrderView = {
   } | null;
   deliveryReservation: {
     id: string;
+    serviceId: string;
     status: string;
     courier: {
       professionalId: string;

@@ -4282,6 +4282,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       };
     }
 
+    if (this.isParcelTransportAppointment(appointment) && this.isClientViewer()) {
+      return {
+        kind: 'avatar',
+        imageUrl: appointment.avatarUrl || null,
+        initials: userInitials(appointment.doctorName, 'LV'),
+        name: appointment.doctorName || 'Livreur Jokko',
+        roleLabel: 'Livreur',
+        badgeAccent: 'blue',
+      };
+    }
+
     if (this.isRouteActorViewer()) {
       return {
         kind: 'navigation',
@@ -4374,6 +4385,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       name: string;
       label: string;
       badgeAccent: 'blue' | 'red';
+      icon?: 'pharmacy' | 'hardware';
     } | null;
   } {
     const appointment = this.appointment();
@@ -4392,9 +4404,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     name: string;
     label: string;
     badgeAccent: 'blue' | 'red';
+    icon?: 'pharmacy' | 'hardware';
   } | null {
     if (this.isParcelTransportAppointment(appointment)) {
-      return null;
+      if (!this.isClientViewer() || this.isParcelPickupValidated()) {
+        return null;
+      }
+
+      const pharmacyPickup = this.isMedicineDelivery();
+      return {
+        imageUrl: null,
+        initials: pharmacyPickup ? 'PH' : 'QC',
+        name: pharmacyPickup ? 'Pharmacie' : 'Quincaillerie',
+        label: pharmacyPickup ? 'Pharmacie' : 'Quincaillerie',
+        badgeAccent: 'blue',
+        icon: pharmacyPickup ? 'pharmacy' : 'hardware',
+      };
     }
 
     if (appointment.travelMode === 'CLIENT_SE_DEPLACE') {

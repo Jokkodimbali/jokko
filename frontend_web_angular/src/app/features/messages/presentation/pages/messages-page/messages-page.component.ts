@@ -498,7 +498,6 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     if (this.reservationRealtimeScope) {
       this.reservationsRealtime.stopWatching(this.reservationRealtimeScope);
     }
-    this.messagesRealtime.disconnect();
     this.revokePendingAttachmentPreview();
   }
 

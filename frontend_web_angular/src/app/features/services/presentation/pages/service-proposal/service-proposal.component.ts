@@ -7,6 +7,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, catchError, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -183,6 +184,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly authService = inject(AuthService);
   private readonly messagesService = inject(MessagesService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly geolocation = inject(SenegalGeolocationService);
   private readonly authSession = inject(AuthSessionService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
@@ -1813,6 +1815,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
+        if (!this.geolocation.isInSenegal(position.coords.latitude, position.coords.longitude)) {
+          return;
+        }
         if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
           bestPosition = position;
         }

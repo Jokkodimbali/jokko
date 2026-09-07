@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { finalize } from 'rxjs';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import {
   AppointmentTrackingStep,
   AppointmentTrackingStepperComponent,
@@ -32,6 +33,7 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
+  private readonly geolocation = inject(SenegalGeolocationService);
 
   protected readonly steps: AppointmentTrackingStep[] = [
     { label: 'Quincaillerie', icon: 'circle', state: 'active' },
@@ -45,21 +47,18 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   protected readonly loading = signal(true);
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
-  private readonly position = { latitude: 14.7167, longitude: -17.4677 };
+  private position: { latitude: number; longitude: number } | null = null;
   private readonly markerElements = new Map<string, HTMLButtonElement>();
 
   ngAfterViewInit(): void {
     void this.maps.load().catch(() => undefined);
-    if (!navigator.geolocation) return this.load();
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        this.position.latitude = position.coords.latitude;
-        this.position.longitude = position.coords.longitude;
-        this.load();
-      },
-      () => this.load(),
-      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 1_500 },
-    );
+    void this.geolocation.getCurrentPosition().then((position) => {
+      this.position = position;
+      this.load();
+    }).catch(() => {
+      this.loading.set(false);
+      this.error.set('Impossible de récupérer une position GPS située au Sénégal.');
+    });
   }
 
   protected choose(store: NearbyHardwareStore): void {
@@ -96,6 +95,7 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   }
 
   private load(): void {
+    if (!this.position) return;
     this.orders
       .listNearby(this.position)
       .pipe(finalize(() => this.loading.set(false)))
@@ -111,7 +111,7 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
 
   private async renderMap(stores: NearbyHardwareStore[]): Promise<void> {
     const element = this.mapElement?.nativeElement;
-    if (!element) return;
+    if (!element || !this.position) return;
     try {
       const google = await this.maps.load();
       const map = new google.maps.Map(element, {

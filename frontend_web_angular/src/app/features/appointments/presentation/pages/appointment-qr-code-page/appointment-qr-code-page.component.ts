@@ -15,6 +15,7 @@ import jsQR from 'jsqr';
 import { LucideAngularModule } from 'lucide-angular';
 import QRCode from 'qrcode';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView } from '../../../domain/appointments.models';
@@ -68,6 +69,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly geolocation = inject(SenegalGeolocationService);
   private cameraVideo?: HTMLVideoElement;
   private cameraStream?: MediaStream;
   private cameraScanIntervalId?: number;
@@ -848,33 +850,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     headingDegrees: number | null;
     speedKmh: number | null;
   }> {
-    if (!navigator.geolocation) {
-      return Promise.reject(new Error('Geolocation unavailable'));
-    }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (!this.isValidCoordinate(position.coords.latitude, position.coords.longitude)) {
-            reject(new Error('Invalid geolocation coordinates'));
-            return;
-          }
-
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracyMeters: this.sanitizeOptionalNumber(position.coords.accuracy, 0, 10000),
-            headingDegrees: this.sanitizeOptionalNumber(position.coords.heading, 0, 360),
-            speedKmh:
-              typeof position.coords.speed === 'number'
-                ? this.sanitizeOptionalNumber(Math.round(position.coords.speed * 3.6), 0, 300)
-                : null,
-          });
-        },
-        reject,
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 12000 },
-      );
-    });
+    return this.geolocation.getCurrentPosition(45_000);
   }
 
   private sanitizeOptionalNumber(

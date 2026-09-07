@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { SenegalGeolocationService } from '../../../core/location/senegal-geolocation.service';
 
 const STATIONARY_SPEED_KMH = 3;
 const MIN_MOVEMENT_METERS = 4;
@@ -23,6 +24,8 @@ export type ProviderGpsPosition = {
 
 @Injectable({ providedIn: 'root' })
 export class ProviderLocationService {
+  private readonly geolocation = inject(SenegalGeolocationService);
+
   async requestOrientationPermission(): Promise<void> {
     if (typeof window === 'undefined' || typeof DeviceOrientationEvent === 'undefined') return;
     const orientationEvent = DeviceOrientationEvent as typeof DeviceOrientationEvent & {
@@ -91,6 +94,9 @@ export class ProviderLocationService {
       window.addEventListener('deviceorientation', handleOrientation, true);
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
+          if (!this.geolocation.isInSenegal(position.coords.latitude, position.coords.longitude)) {
+            return;
+          }
           const now = Date.now();
           if (now - lastGpsEmissionAt < intervalMilliseconds) return;
           lastGpsEmissionAt = now;

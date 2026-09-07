@@ -132,6 +132,8 @@ type ReservationRecord = {
   serviceId: string;
   dateHeure: Date;
   adresseClient: string;
+  clientLatitude?: Prisma.Decimal | null;
+  clientLongitude?: Prisma.Decimal | null;
   dureeMinutes: number;
   statut: $Enums.StatutReservation;
   notes: string | null;
@@ -375,6 +377,8 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
             serviceId: reservation.serviceId,
             dateHeure: reservation.dateHeure,
             adresseClient: reservation.adresseClient,
+            clientLatitude: reservation.clientLatitude,
+            clientLongitude: reservation.clientLongitude,
             dureeMinutes: reservation.dureeMinutes,
             statut: reservation.statut,
             notes: reservation.notes,
@@ -447,6 +451,8 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
             serviceId: reservation.serviceId,
             dateHeure: reservation.dateHeure,
             adresseClient: reservation.adresseClient,
+            clientLatitude: reservation.clientLatitude,
+            clientLongitude: reservation.clientLongitude,
             dureeMinutes: reservation.dureeMinutes,
             statut: reservation.statut,
             notes: reservation.notes,
@@ -789,6 +795,8 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       serviceId: record.serviceId,
       dateHeure: record.dateHeure,
       adresseClient: record.adresseClient,
+      clientLatitude: record.clientLatitude?.toNumber() ?? null,
+      clientLongitude: record.clientLongitude?.toNumber() ?? null,
       dureeMinutes: record.dureeMinutes,
       statut: record.statut as ReservationStatus,
       notes: record.notes,

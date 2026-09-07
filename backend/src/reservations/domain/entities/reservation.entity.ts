@@ -47,6 +47,8 @@ export type Reservation = {
   serviceId: string;
   dateHeure: Date;
   adresseClient: string;
+  readonly clientLatitude: number | null;
+  readonly clientLongitude: number | null;
   dureeMinutes: number;
   statut: ReservationStatus;
   notes: string | null;
@@ -75,6 +77,8 @@ export class ReservationEntity {
     private readonly _serviceId: string,
     private _dateHeure: Date,
     private readonly _adresseClient: string,
+    private readonly _clientLatitude: number | null,
+    private readonly _clientLongitude: number | null,
     private readonly _dureeMinutes: number,
     private _statut: ReservationStatus,
     private readonly _notes: string | null,
@@ -182,6 +186,8 @@ export class ReservationEntity {
     serviceId: string;
     dateHeure: Date;
     adresseClient: string;
+    clientLatitude?: number | null;
+    clientLongitude?: number | null;
     dureeMinutes: number;
     notes?: string | null;
     typeConsultation?: MedicalConsultationType;
@@ -210,6 +216,8 @@ export class ReservationEntity {
       input.serviceId,
       new Date(input.dateHeure),
       input.adresseClient.trim(),
+      input.clientLatitude ?? null,
+      input.clientLongitude ?? null,
       input.dureeMinutes,
       'CONFIRMEE',
       this.normalizeText(input.notes),
@@ -249,6 +257,8 @@ export class ReservationEntity {
       data.serviceId,
       new Date(data.dateHeure),
       data.adresseClient,
+      data.clientLatitude,
+      data.clientLongitude,
       data.dureeMinutes,
       data.statut,
       data.notes,
@@ -452,6 +462,8 @@ export class ReservationEntity {
       serviceId: this._serviceId,
       dateHeure: new Date(this._dateHeure),
       adresseClient: this._adresseClient,
+      clientLatitude: this._clientLatitude,
+      clientLongitude: this._clientLongitude,
       dureeMinutes: this._dureeMinutes,
       statut: this._statut,
       notes: this._notes,

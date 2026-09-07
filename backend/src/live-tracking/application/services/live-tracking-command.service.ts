@@ -570,6 +570,12 @@ export class LiveTrackingCommandService {
     ) {
       throw LiveTrackingDomainError.invalidLocation();
     }
+    if (
+      dto.locationLabel !== undefined &&
+      (typeof dto.locationLabel !== 'string' || dto.locationLabel.length > 255)
+    ) {
+      throw LiveTrackingDomainError.invalidLocation();
+    }
   }
 
   private resolveRecordedAt(dto: TrackingLocationCommand): Date {
@@ -658,10 +664,10 @@ export class LiveTrackingCommandService {
     return (
       Number.isFinite(lat) &&
       Number.isFinite(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180
+      lat >= 12.0 &&
+      lat <= 17.2 &&
+      lng >= -18.7 &&
+      lng <= -11.0
     );
   }
 }

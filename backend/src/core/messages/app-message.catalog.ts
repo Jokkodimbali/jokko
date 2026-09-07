@@ -57,6 +57,16 @@ export const APP_MESSAGES_BY_MODULE = {
       message:
         'Aucun compte lie a Google. Inscrivez-vous via OTP puis liez Google.',
     },
+    AUTH_APPLE_NOT_CONFIGURED: {
+      code: 'AUTH_APPLE_NOT_CONFIGURED',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED,
+      message: "La connexion Apple n'est pas configuree.",
+    },
+    AUTH_APPLE_ACCOUNT_INVALID: {
+      code: 'AUTH_APPLE_ACCOUNT_INVALID',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED,
+      message: 'Le compte Apple est invalide.',
+    },
     AUTH_LOGOUT_SUCCESS: {
       code: 'AUTH_LOGOUT_SUCCESS',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.OK,

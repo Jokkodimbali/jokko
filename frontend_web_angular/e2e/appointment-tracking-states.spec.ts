@@ -140,7 +140,7 @@ test.describe('Appointment tracking lifecycle', () => {
     }, destination);
   });
 
-  test('client-travels client can start route when browser GPS is outside Senegal by using departure address', async ({
+  test('client-travels waits for a precise Senegal GPS sample after an incorrect network position', async ({
     page,
     request,
   }) => {
@@ -150,6 +150,23 @@ test.describe('Appointment tracking lifecycle', () => {
     });
 
     await page.getByRole('button', { name: /^Partager ma position$/i }).click();
+    await page.evaluate(() => {
+      const emit = (
+        window as typeof window & { __jokkoEmitGeolocation?: (position: GeolocationPosition) => void }
+      ).__jokkoEmitGeolocation;
+      emit?.({
+        coords: {
+          latitude: 14.7167,
+          longitude: -17.4677,
+          accuracy: 8,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition);
+    });
 
     await expect(page.locator('.appointment-detail__google-map')).toBeVisible();
     await expect(page.locator('.appointment-detail__navigation-guidance')).toBeVisible();

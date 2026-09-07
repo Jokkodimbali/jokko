@@ -39,6 +39,7 @@ export class AuthRepository implements AuthRepositoryPort {
         email: true,
         urlAvatar: true,
         identifiantOauth: true,
+        identifiantApple: true,
         estActif: true,
       },
     });
@@ -58,6 +59,24 @@ export class AuthRepository implements AuthRepositoryPort {
         email: true,
         urlAvatar: true,
         identifiantOauth: true,
+        identifiantApple: true,
+        estActif: true,
+      },
+    });
+  }
+
+  findByAppleIdentity(appleSub: string) {
+    return this.prisma.utilisateur.findUnique({
+      where: { identifiantApple: appleSub },
+      select: {
+        id: true,
+        numeroTelephone: true,
+        nom: true,
+        role: true,
+        email: true,
+        urlAvatar: true,
+        identifiantOauth: true,
+        identifiantApple: true,
         estActif: true,
       },
     });
@@ -186,6 +205,7 @@ export class AuthRepository implements AuthRepositoryPort {
           email: true,
           urlAvatar: true,
           identifiantOauth: true,
+          identifiantApple: true,
           estActif: true,
         },
       });
@@ -196,6 +216,43 @@ export class AuthRepository implements AuthRepositoryPort {
       ) {
         return null;
       }
+      throw error;
+    }
+  }
+
+  async createAppleClient(data: {
+    email: string;
+    name: string;
+    appleSub: string;
+  }) {
+    try {
+      return await this.prisma.utilisateur.create({
+        data: {
+          numeroTelephone: this.oauthPhoneNumber('apple', data.appleSub),
+          nom: data.name,
+          email: data.email,
+          role: RoleUtilisateur.CLIENT,
+          identifiantApple: data.appleSub,
+          estActif: true,
+        },
+        select: {
+          id: true,
+          numeroTelephone: true,
+          nom: true,
+          role: true,
+          email: true,
+          urlAvatar: true,
+          identifiantOauth: true,
+          identifiantApple: true,
+          estActif: true,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+        return null;
       throw error;
     }
   }
@@ -303,9 +360,20 @@ export class AuthRepository implements AuthRepositoryPort {
     });
   }
 
+  linkAppleIdentity(userId: string, appleSub: string) {
+    return this.prisma.utilisateur.update({
+      where: { id: userId },
+      data: { identifiantApple: appleSub },
+    });
+  }
+
   private googlePhoneNumber(googleSub: string): string {
-    const digest = createHash('sha256').update(googleSub).digest('hex');
-    return `google-${digest.slice(0, 12)}`;
+    return this.oauthPhoneNumber('google', googleSub);
+  }
+
+  private oauthPhoneNumber(provider: string, subject: string): string {
+    const digest = createHash('sha256').update(subject).digest('hex');
+    return `${provider}-${digest.slice(0, 12)}`;
   }
 
   private extractCity(address: string): string | undefined {

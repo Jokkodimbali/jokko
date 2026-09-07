@@ -95,6 +95,8 @@ export interface CreateDirectReservationPayload {
   serviceId: string;
   dateHeure: string;
   adresseClient: string;
+  clientLatitude?: number | null;
+  clientLongitude?: number | null;
   dureeMinutes: number;
   notes?: string;
   typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
@@ -104,6 +106,8 @@ export interface CreateReservationFromNegotiationPayload {
   negotiationId: string;
   dateHeure: string;
   adresseClient: string;
+  clientLatitude?: number | null;
+  clientLongitude?: number | null;
   dureeMinutes: number;
   notes?: string;
 }

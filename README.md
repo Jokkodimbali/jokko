@@ -123,6 +123,28 @@ npm.cmd run start:dev
 - Swagger : `http://localhost:3000/api/docs`
 - Sante : `http://localhost:3000/api/v1/sante`
 
+### Connexion avec Apple
+
+La connexion Apple Web utilise un `Services ID` Apple et une URL HTTPS. Dans
+Apple Developer, activez `Sign in with Apple` pour l'App ID, creez le Services
+ID du site, puis enregistrez le domaine et la Return URL exacte.
+
+Renseignez ensuite :
+
+- `APPLE_CLIENT_ID` dans l'environnement du backend avec la valeur du Services ID
+- `appleClientId` dans les environnements Angular avec la meme valeur
+- `appleRedirectUri` dans les environnements Angular avec la Return URL HTTPS
+
+Enfin, appliquez la migration Prisma avant le deploiement :
+
+```bash
+cd backend
+npm.cmd run prisma:migrate:deploy
+```
+
+Apple n'accepte pas `http://localhost` comme Return URL Web. Pour un test local,
+utilisez un domaine HTTPS de developpement enregistre chez Apple.
+
 ### Verification minimale
 
 ```bash

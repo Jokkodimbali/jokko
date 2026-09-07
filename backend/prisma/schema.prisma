@@ -262,6 +262,7 @@ model Utilisateur {
   motDePasseHash   String?         @map("password_hash") @db.VarChar(255)
   fournisseurOauth String?         @map("oauth_provider") @db.VarChar(50)
   identifiantOauth String?         @map("oauth_id") @db.VarChar(200)
+  identifiantApple String?         @unique @map("apple_oauth_id") @db.VarChar(200)
   role             RoleUtilisateur @default(CLIENT)
   urlAvatar        String?         @map("avatar_url") @db.Text
   jetonFcm         String?         @map("fcm_token") @db.VarChar(500)
@@ -586,6 +587,8 @@ model Reservation {
   serviceId                       String                          @map("service_id") @db.Uuid
   dateHeure                       DateTime                        @map("date_time")
   adresseClient                   String                          @map("client_address") @db.VarChar(255)
+  clientLatitude                  Decimal?                        @map("client_latitude") @db.Decimal(10, 7)
+  clientLongitude                 Decimal?                        @map("client_longitude") @db.Decimal(10, 7)
   dureeMinutes                    Int                             @default(60) @map("duration_minutes")
   statut                          StatutReservation               @default(CONFIRMEE)
   notes                           String?                         @map("notes") @db.Text

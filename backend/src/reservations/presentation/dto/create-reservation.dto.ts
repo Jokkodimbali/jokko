@@ -6,6 +6,7 @@ import {
   IsIn,
   IsString,
   IsUUID,
+  IsNumber,
   Max,
   MaxLength,
   Min,
@@ -50,6 +51,26 @@ export class CreateReservationDto {
   })
   @MaxLength(255, { message: VALIDATION_MESSAGES.RESERVATION_ADDRESS_MAX })
   adresseClient!: string;
+
+  @ApiPropertyOptional({
+    description: 'Latitude GPS du lieu d intervention.',
+    example: 14.716677,
+  })
+  @IsOptional()
+  @IsNumber({}, { message: VALIDATION_MESSAGES.SEARCH_LATITUDE_INVALID })
+  @Min(-90, { message: VALIDATION_MESSAGES.SEARCH_LATITUDE_INVALID })
+  @Max(90, { message: VALIDATION_MESSAGES.SEARCH_LATITUDE_INVALID })
+  clientLatitude?: number;
+
+  @ApiPropertyOptional({
+    description: 'Longitude GPS du lieu d intervention.',
+    example: -17.467686,
+  })
+  @IsOptional()
+  @IsNumber({}, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
+  @Min(-180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
+  @Max(180, { message: VALIDATION_MESSAGES.SEARCH_LONGITUDE_INVALID })
+  clientLongitude?: number;
 
   @ApiProperty({
     description: API_DOCS.reservations.durationField,

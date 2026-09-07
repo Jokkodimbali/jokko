@@ -9,6 +9,7 @@ import { Subscription, firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
@@ -135,6 +136,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly messagesService = inject(MessagesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
+  private readonly geolocation = inject(SenegalGeolocationService);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
 
   protected readonly isLoading = signal(true);
@@ -587,6 +589,9 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
+        if (!this.geolocation.isInSenegal(position.coords.latitude, position.coords.longitude)) {
+          return;
+        }
         const currentAccuracy = this.normalizeAccuracy(position.coords.accuracy);
         const bestAccuracy = bestPosition
           ? this.normalizeAccuracy(bestPosition.coords.accuracy)

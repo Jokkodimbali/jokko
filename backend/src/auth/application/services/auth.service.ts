@@ -4,6 +4,7 @@ import { PhoneNumberValidator } from '../../domain/validators/phone-number.valid
 import { PasswordHashService } from './password-hash.service';
 import { RefreshSessionService } from './refresh-session.service';
 import { GoogleAuthService } from './google-auth.service';
+import { AppleAuthService } from './apple-auth.service';
 import { AuthMapper } from '../mappers/auth.mapper';
 import { normalizeEmail } from '../../../shared/utils/string.utils';
 import {
@@ -36,6 +37,7 @@ export class AuthService {
     private readonly passwordHashService: PasswordHashService,
     private readonly refreshSessionService: RefreshSessionService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly appleAuthService: AppleAuthService,
   ) {}
 
   async sendOtp(phoneNumber: string) {
@@ -233,6 +235,40 @@ export class AuthService {
     const { accessToken, refreshToken } =
       await this.issueTokensAndPersistSession(user, context);
 
+    return {
+      accessToken,
+      refreshToken,
+      user: AuthMapper.toApiUserWithEmail(user),
+    };
+  }
+
+  async loginWithApple(
+    idToken: string,
+    name: string | undefined,
+    context: AuthSessionContext = {},
+  ) {
+    const applePayload = await this.appleAuthService.verifyIdToken(idToken);
+    const email = applePayload.email.toLowerCase();
+
+    let user = await this.authRepository.findByAppleIdentity(applePayload.sub);
+    user ??= await this.authRepository.findByEmail(email);
+    if (!user) {
+      user = await this.authRepository.createAppleClient({
+        email,
+        name: name?.trim() || email.split('@')[0],
+        appleSub: applePayload.sub,
+      });
+    }
+
+    if (!user) throw appHttpException('SYSTEM_INTERNAL_SERVER_ERROR');
+    this.assertActiveUser(user);
+
+    if (user.identifiantApple !== applePayload.sub) {
+      await this.authRepository.linkAppleIdentity(user.id, applePayload.sub);
+    }
+
+    const { accessToken, refreshToken } =
+      await this.issueTokensAndPersistSession(user, context);
     return {
       accessToken,
       refreshToken,

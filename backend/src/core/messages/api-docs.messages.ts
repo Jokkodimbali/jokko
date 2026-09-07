@@ -28,6 +28,9 @@ export const API_DOCS = {
     googleLoginSummary: 'Se connecter avec un jeton Google OAuth',
     googleLoginSuccess: 'Connexion Google effectuee avec succes',
     googleLoginFailure: 'Compte Google invalide ou non lie au systeme',
+    appleLoginSummary: 'Se connecter avec un jeton Apple',
+    appleLoginSuccess: 'Connexion Apple effectuee avec succes',
+    appleLoginFailure: 'Compte Apple invalide',
     refreshSummary: "Renouveler un jeton d'acces a partir du refresh token",
     refreshSuccess: 'Jeton d acces renouvelle avec succes',
     logoutSummary: 'Se deconnecter et revoquer la session de rafraichissement',
@@ -39,6 +42,8 @@ export const API_DOCS = {
     passwordRangeField: 'Mot de passe (8-64 caracteres)',
     otpCodeField: 'Code OTP a 6 chiffres',
     googleIdTokenField: 'Jeton Google ID fourni par le SDK Google',
+    appleIdTokenField: 'Jeton identite fourni par Sign in with Apple',
+    appleNameField: 'Nom fourni par Apple lors de la premiere connexion',
   },
   users: {
     tag: 'Utilisateurs',

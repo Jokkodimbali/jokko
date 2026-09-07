@@ -16,6 +16,7 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable, Subscription, catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { clearHttpResponseCache } from '../../../../../core/http/http-cache.interceptor';
 import {
@@ -88,6 +89,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly senegalGeolocation = inject(SenegalGeolocationService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
@@ -540,8 +542,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.isLocating.set(true);
     this.showLocationMenu.set(false);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
+    this.senegalGeolocation
+      .getCurrentPosition()
+      .then((coords) => {
         this.currentSearchLocation.set({
           latitude: coords.latitude,
           longitude: coords.longitude,
@@ -555,20 +558,22 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loadProfessionals(1);
         this.loadSearchSuggestions();
         this.resolveMobileLocationLabel(coords.latitude, coords.longitude);
-      },
-      (error) => {
+      })
+      .catch((error: unknown) => {
         this.isLocating.set(false);
+        this.currentSearchLocation.set(null);
         if (showFailureFeedback) {
-          const message =
-            error.code === error.PERMISSION_DENIED
+          const message = error instanceof Error ? error.message : '';
+          this.feedback.error(
+            message.includes('permission denied')
               ? 'Autorisez l’accès à votre position pour afficher les prestataires réellement proches.'
-              : 'Votre position n’a pas pu être déterminée. Réessayez dans un endroit avec un meilleur signal GPS.';
-          this.feedback.error(message);
+              : message.includes('outside Senegal')
+                ? 'Aucune position GPS située au Sénégal n’a été reçue. Vérifiez le GPS de l’appareil puis réessayez.'
+                : 'Votre position n’a pas pu être déterminée. Vérifiez que la localisation de l’appareil est activée, puis réessayez.',
+          );
         }
         this.loadHomeData();
-      },
-      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 },
-    );
+      });
   }
 
   selectTravelMode(mode: string): void {

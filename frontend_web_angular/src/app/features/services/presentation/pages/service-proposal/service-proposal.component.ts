@@ -1721,7 +1721,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     }
 
     this.address.set(suggestion.label);
-    this.appointmentAddressCoordinate.set(null);
+    this.appointmentAddressCoordinate.set(
+      suggestion.latitude === null || suggestion.longitude === null
+        ? null
+        : this.parcelService.normalizeCoordinate({
+            latitude: Number(suggestion.latitude),
+            longitude: Number(suggestion.longitude),
+          }),
+    );
     this.clearClientDetailsErrors('address');
     this.addressSuggestions.set([]);
     this.isAddressSuggestionsOpen.set(false);
@@ -1971,6 +1978,8 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
         serviceId: draft.service.id,
         dateHeure: draft.dateHeure,
         adresseClient: draft.adresseClient,
+        clientLatitude: this.appointmentAddressCoordinate()?.latitude ?? null,
+        clientLongitude: this.appointmentAddressCoordinate()?.longitude ?? null,
         dureeMinutes: draft.dureeMinutes,
         notes: this.reservationBuilder.joinLimitedNotes([
           `Montant affiche: ${this.formatAmount(draft.amount)} FCFA.`,
@@ -3305,11 +3314,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const adresseClient =
       proposal.adresseClientProposee?.trim() || this.resolveAppointmentAddress('').trim();
     const dureeMinutes = Number(proposal.dureeMinutesProposee ?? this.durationMinutes());
+    const clientCoordinate = this.appointmentAddressCoordinate();
 
     return this.reservationBuilder.buildAcceptedNegotiationReservationPayload({
       proposal,
       dateHeure,
       adresseClient,
+      clientLatitude: clientCoordinate?.latitude ?? null,
+      clientLongitude: clientCoordinate?.longitude ?? null,
       dureeMinutes,
     });
   }

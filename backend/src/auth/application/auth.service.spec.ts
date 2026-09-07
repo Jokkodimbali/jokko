@@ -13,6 +13,9 @@ describe('AuthService', () => {
     findWithPasswordByEmail: jest.fn(),
     findPublicProfileById: jest.fn(),
     linkGoogleIdentity: jest.fn(),
+    findByAppleIdentity: jest.fn(),
+    createAppleClient: jest.fn(),
+    linkAppleIdentity: jest.fn(),
   };
   const otpService = {
     create: jest.fn(),
@@ -39,6 +42,9 @@ describe('AuthService', () => {
   const googleAuthService = {
     verifyIdToken: jest.fn(),
   };
+  const appleAuthService = {
+    verifyIdToken: jest.fn(),
+  };
 
   let service: AuthService;
 
@@ -52,6 +58,7 @@ describe('AuthService', () => {
       passwordHashService as never,
       refreshSessionService as never,
       googleAuthService as never,
+      appleAuthService as never,
     );
   });
 
@@ -203,5 +210,43 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('new-access');
     expect(result.refreshToken).toBe('new-refresh');
     expect(refreshSessionService.rotate).toHaveBeenCalled();
+  });
+
+  it('loginWithApple should create and authenticate a new Apple client', async () => {
+    appleAuthService.verifyIdToken.mockResolvedValue({
+      sub: 'apple-subject',
+      email: 'awa@privaterelay.appleid.com',
+    });
+    authRepository.findByAppleIdentity.mockResolvedValue(null);
+    authRepository.findByEmail.mockResolvedValue(null);
+    authRepository.createAppleClient.mockResolvedValue({
+      id: 'u-apple',
+      numeroTelephone: 'apple-generated',
+      nom: 'Awa Ndiaye',
+      role: RoleUtilisateur.CLIENT,
+      email: 'awa@privaterelay.appleid.com',
+      identifiantOauth: null,
+      identifiantApple: 'apple-subject',
+      urlAvatar: null,
+      estActif: true,
+    });
+    jwtTokenService.issueTokens.mockResolvedValue({
+      accessToken: 'apple-access',
+      refreshToken: 'apple-refresh',
+    });
+    jwtTokenService.getRefreshTokenExpiryDate.mockReturnValue(new Date());
+
+    const result = await service.loginWithApple(
+      'apple-id-token',
+      'Awa Ndiaye',
+    );
+
+    expect(authRepository.createAppleClient).toHaveBeenCalledWith({
+      email: 'awa@privaterelay.appleid.com',
+      name: 'Awa Ndiaye',
+      appleSub: 'apple-subject',
+    });
+    expect(result.accessToken).toBe('apple-access');
+    expect(refreshSessionService.persist).toHaveBeenCalled();
   });
 });

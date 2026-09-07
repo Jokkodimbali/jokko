@@ -8,6 +8,7 @@ import { JwtTokenService } from './application/services/jwt-token.service';
 import { PasswordHashService } from './application/services/password-hash.service';
 import { RefreshSessionService } from './application/services/refresh-session.service';
 import { GoogleAuthService } from './application/services/google-auth.service';
+import { AppleAuthService } from './application/services/apple-auth.service';
 import { OtpService } from './application/services/otp.service';
 import { JwtAuthGuard } from './security/jwt-auth.guard';
 import { AuthRepository } from './infrastructure/repositories/auth.repository';
@@ -34,6 +35,7 @@ import { OTP_REPOSITORY_PORT } from './application/ports/otp-repository.port';
     PasswordHashService,
     RefreshSessionService,
     GoogleAuthService,
+    AppleAuthService,
     OtpService,
     JwtAuthGuard,
     AuthRepository,

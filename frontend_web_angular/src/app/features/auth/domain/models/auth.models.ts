@@ -34,6 +34,11 @@ export interface GoogleLoginRequestDto {
   idToken: string;
 }
 
+export interface AppleLoginRequestDto {
+  idToken: string;
+  name?: string;
+}
+
 export interface SendOtpResponseDto {
   expiresInSeconds: number;
 }

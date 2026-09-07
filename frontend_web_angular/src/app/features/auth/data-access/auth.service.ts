@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { map, Observable, switchMap } from 'rxjs';
 import {
   GoogleLoginRequestDto,
+  AppleLoginRequestDto,
   LoginRequestDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
@@ -179,6 +180,14 @@ export class AuthService {
   googleLogin(data: GoogleLoginRequestDto): Observable<AuthResponseDto> {
     return this.http
       .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/google/login`, data, {
+        withCredentials: true,
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
+  appleLogin(data: AppleLoginRequestDto): Observable<AuthResponseDto> {
+    return this.http
+      .post<ApiResponse<AuthResponseDto>>(`${this.apiUrl}/apple/login`, data, {
         withCredentials: true,
       })
       .pipe(map(unwrapApiResponse));

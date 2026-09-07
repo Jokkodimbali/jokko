@@ -22,6 +22,8 @@ export interface BackendReservation {
   serviceId: string;
   dateHeure: string;
   adresseClient: string;
+  clientLatitude?: number | null;
+  clientLongitude?: number | null;
   dureeMinutes: number;
   statut: AppointmentStatus;
   notes: string | null;
@@ -114,6 +116,8 @@ export interface AppointmentView {
   fullDateLabel: string;
   timeLabel: string;
   locationLabel: string;
+  clientLatitude: number | null;
+  clientLongitude: number | null;
   doctorName: string;
   specialty: string;
   avatarUrl: string;

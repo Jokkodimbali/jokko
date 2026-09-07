@@ -70,6 +70,7 @@ export class ReservationCommandService extends ReservationAppService {
     requestUser: AuthUser,
     command: CreateReservationCommand,
   ) {
+    this.assertClientCoordinates(command.clientLatitude, command.clientLongitude);
     this.assertClientRole(requestUser.role);
 
     if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
@@ -111,6 +112,8 @@ export class ReservationCommandService extends ReservationAppService {
         serviceId: command.serviceId,
         dateHeure: scheduledAt,
         adresseClient: command.adresseClient,
+        clientLatitude: command.clientLatitude ?? null,
+        clientLongitude: command.clientLongitude ?? null,
         dureeMinutes: command.dureeMinutes,
         notes: trimString(command.notes) ?? null,
         typeConsultation: command.typeConsultation ?? 'CONSULTATION',
@@ -160,10 +163,33 @@ export class ReservationCommandService extends ReservationAppService {
     }
   }
 
+  private assertClientCoordinates(
+    latitude?: number | null,
+    longitude?: number | null,
+  ): void {
+    const hasLatitude = typeof latitude === 'number';
+    const hasLongitude = typeof longitude === 'number';
+    if (hasLatitude !== hasLongitude) {
+      throw appHttpException('SEARCH_COORDINATES_PAIR_REQUIRED');
+    }
+    if (!hasLatitude || latitude === null || latitude === undefined || longitude === null || longitude === undefined) return;
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < 12.0 ||
+      latitude > 17.2 ||
+      longitude < -18.7 ||
+      longitude > -11.0
+    ) {
+      throw appHttpException('MAPS_COORDINATES_INVALID');
+    }
+  }
+
   createReservationFromNegotiation(
     requestUser: AuthUser,
     command: CreateReservationFromNegotiationCommand,
   ) {
+    this.assertClientCoordinates(command.clientLatitude, command.clientLongitude);
     this.assertClientRole(requestUser.role);
     return this.createReservationFromAcceptedNegotiation(requestUser, command);
   }
@@ -926,6 +952,8 @@ export class ReservationCommandService extends ReservationAppService {
         serviceId: negotiation.serviceId,
         dateHeure: scheduledAt,
         adresseClient: details.adresseClient,
+        clientLatitude: command.clientLatitude ?? null,
+        clientLongitude: command.clientLongitude ?? null,
         dureeMinutes: details.dureeMinutes,
         notes: trimString(command.notes) ?? null,
         prixConvenu: negotiation.montantAccepte ?? negotiation.montantCourant,

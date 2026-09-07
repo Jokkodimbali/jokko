@@ -162,22 +162,24 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const geoFilter = hasGeo
       ? Prisma.sql`
-          AND pp.localisation IS NOT NULL
           AND (
-            6371.0 * acos(
-              least(
-                1.0,
-                greatest(
-                  -1.0,
-                  cos(radians(${input.latitude}))
-                  * cos(radians(ST_Y(pp.localisation::geometry)))
-                  * cos(radians(ST_X(pp.localisation::geometry)) - radians(${input.longitude}))
-                  + sin(radians(${input.latitude}))
-                  * sin(radians(ST_Y(pp.localisation::geometry)))
+            pp.localisation IS NULL
+            OR (
+              6371.0 * acos(
+                least(
+                  1.0,
+                  greatest(
+                    -1.0,
+                    cos(radians(${input.latitude}))
+                    * cos(radians(ST_Y(pp.localisation::geometry)))
+                    * cos(radians(ST_X(pp.localisation::geometry)) - radians(${input.longitude}))
+                    + sin(radians(${input.latitude}))
+                    * sin(radians(ST_Y(pp.localisation::geometry)))
+                  )
                 )
-              )
+              ) <= ${radiusKm}
             )
-          ) <= ${radiusKm}
+          )
         `
       : Prisma.empty;
 

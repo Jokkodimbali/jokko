@@ -42,6 +42,21 @@ declare global {
         };
       };
     };
+    AppleID?: {
+      auth: {
+        init: (config: {
+          clientId: string;
+          scope: string;
+          redirectURI: string;
+          state: string;
+          usePopup: boolean;
+        }) => void;
+        signIn: () => Promise<{
+          authorization?: { id_token?: string };
+          user?: { name?: { firstName?: string; lastName?: string } };
+        }>;
+      };
+    };
   }
 }
 
@@ -66,6 +81,7 @@ export class LoginComponent implements OnInit {
 
   isLoading = signal(false);
   isGoogleLoading = signal(false);
+  isAppleLoading = signal(false);
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
   googleUnavailable = signal(true);
@@ -73,6 +89,7 @@ export class LoginComponent implements OnInit {
   private readonly rememberedLoginIdentifier = this.authSession.getRememberedLoginIdentifier();
   protected readonly messages = AUTH_UI_MESSAGES;
   protected readonly googleClientId = environment.googleClientId;
+  protected readonly appleClientId = environment.appleClientId;
   protected readonly senegalDialCode = SENEGAL_PHONE_DIAL_CODE;
 
   loginForm = this.fb.nonNullable.group({
@@ -182,6 +199,68 @@ export class LoginComponent implements OnInit {
 
     this.googleUnavailable.set(false);
     this.initializeGoogleSignIn();
+  }
+
+  protected startAppleSignIn(): void {
+    if (!this.appleClientId || !environment.appleRedirectUri) {
+      this.errorMessage.set(
+        'Connexion Apple indisponible : configurez le Services ID et la Return URL Apple.',
+      );
+      return;
+    }
+
+    if (window.location.protocol !== 'https:') {
+      this.errorMessage.set(
+        'Connexion Apple disponible uniquement depuis une URL HTTPS autorisee.',
+      );
+      return;
+    }
+
+    this.isAppleLoading.set(true);
+    this.errorMessage.set(null);
+    this.loadAppleScript()
+      .then(async () => {
+        if (!window.AppleID) throw new Error('Apple SDK unavailable');
+        window.AppleID.auth.init({
+          clientId: this.appleClientId,
+          scope: 'name email',
+          redirectURI: environment.appleRedirectUri,
+          state: crypto.randomUUID(),
+          usePopup: true,
+        });
+        const response = await window.AppleID.auth.signIn();
+        const idToken = response.authorization?.id_token;
+        if (!idToken) throw new Error('Apple identity token missing');
+        const fullName = [response.user?.name?.firstName, response.user?.name?.lastName]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        this.completeAppleSignIn(idToken, fullName || undefined);
+      })
+      .catch(() => {
+        this.ngZone.run(() => {
+          this.isAppleLoading.set(false);
+          this.errorMessage.set('Connexion Apple annulee ou impossible. Veuillez reessayer.');
+        });
+      });
+  }
+
+  private completeAppleSignIn(idToken: string, name?: string): void {
+    this.authService
+      .appleLogin({ idToken, name })
+      .pipe(finalize(() => this.ngZone.run(() => this.isAppleLoading.set(false))))
+      .subscribe({
+        next: (response) =>
+          this.ngZone.run(() => {
+            this.authSession.saveAuthResponse(response);
+            this.feedback.success(AUTH_UI_MESSAGES.loginSuccess);
+            this.navigateAfterLogin();
+          }),
+        error: (error: unknown) =>
+          this.ngZone.run(() => {
+            this.errorMessage.set(getHttpErrorMessage(error, 'Connexion Apple impossible.'));
+          }),
+      });
   }
 
   private initializeGoogleSignIn(): void {
@@ -295,6 +374,30 @@ export class LoginComponent implements OnInit {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject();
+      document.head.appendChild(script);
+    });
+  }
+
+  private loadAppleScript(): Promise<void> {
+    if (window.AppleID?.auth) return Promise.resolve();
+
+    const source =
+      'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/fr_FR/appleid.auth.js';
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${source}"]`);
+    if (existing) {
+      return new Promise((resolve, reject) => {
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(), { once: true });
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = source;
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();

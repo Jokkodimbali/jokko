@@ -31,6 +31,7 @@ import {
 } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
@@ -217,6 +218,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly senegalGeolocation = inject(SenegalGeolocationService);
   private readonly trackingRealtime = inject(TrackingRealtimeService);
   private readonly providerLocation = inject(ProviderLocationService);
   private readonly trackingStore = inject(TrackingStore);
@@ -2144,16 +2146,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private currentRouteDestinationCoordinates(): MapCoordinate | null {
     const appointment = this.appointment();
-    if (
-      !appointment ||
-      this.isParcelTransportAppointment(appointment) ||
-      !this.clientTravelsToProvider()
-    ) {
+    if (!appointment || this.isParcelTransportAppointment(appointment)) {
       return null;
     }
 
-    const latitude = appointment.professionalLatitude;
-    const longitude = appointment.professionalLongitude;
+    const latitude = this.clientTravelsToProvider()
+      ? appointment.professionalLatitude
+      : appointment.clientLatitude;
+    const longitude = this.clientTravelsToProvider()
+      ? appointment.professionalLongitude
+      : appointment.clientLongitude;
     if (
       typeof latitude !== 'number' ||
       typeof longitude !== 'number' ||
@@ -5447,7 +5449,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.medicalTreatments.set(prescription.treatments);
   }
 
-  private resolveCurrentLocation(fallbackLabel: string): Promise<{
+  private resolveCurrentLocation(locationLabel: string): Promise<{
     latitude: number;
     longitude: number;
     accuracyMeters?: number | null;
@@ -5455,59 +5457,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     speedKmh?: number | null;
     locationLabel?: string | null;
   }> {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      return Promise.reject(new Error('Geolocation unavailable'));
-    }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (
-            !Number.isFinite(position.coords.latitude) ||
-            !Number.isFinite(position.coords.longitude)
-          ) {
-            reject(new Error('Invalid geolocation coordinates'));
-            return;
-          }
-
-          if (
-            !this.geo.isCoordinateInSenegal(position.coords.latitude, position.coords.longitude)
-          ) {
-            reject(new Error('Geolocation outside Senegal'));
-            return;
-          }
-
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracyMeters: position.coords.accuracy,
-            headingDegrees:
-              typeof position.coords.heading === 'number' ? position.coords.heading : null,
-            speedKmh:
-              typeof position.coords.speed === 'number' ? position.coords.speed * 3.6 : null,
-            locationLabel: fallbackLabel,
-          });
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            reject(new Error('Geolocation permission denied'));
-            return;
-          }
-
-          if (error.code === error.POSITION_UNAVAILABLE) {
-            reject(new Error('Geolocation unavailable'));
-            return;
-          }
-
-          if (error.code === error.TIMEOUT) {
-            reject(new Error('Geolocation timeout'));
-            return;
-          }
-
-          reject(new Error('Geolocation unavailable'));
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-      );
-    });
+    return this.senegalGeolocation.getCurrentPosition(45_000).then((position) => ({
+      ...position,
+      locationLabel,
+    }));
   }
 }

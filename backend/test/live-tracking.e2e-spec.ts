@@ -468,9 +468,9 @@ describe('LiveTrackingModule (e2e)', () => {
 
       const liveUpdatePromise = waitForSocketEvent<{
         reservationId: string;
-        trackingStatus: string;
-        lastLatitude: number;
-        lastLongitude: number;
+        latitude: number;
+        longitude: number;
+        positionTimestamp: string;
       }>(clientSocket, 'tracking.location.updated');
 
       professionalSocket.emit('tracking.location.update', {
@@ -485,9 +485,9 @@ describe('LiveTrackingModule (e2e)', () => {
 
       const liveUpdate = await liveUpdatePromise;
       expect(liveUpdate.reservationId).toBe(reservationId);
-      expect(liveUpdate.trackingStatus).toBe('EN_ROUTE');
-      expect(liveUpdate.lastLatitude).toBeCloseTo(14.720001, 6);
-      expect(liveUpdate.lastLongitude).toBeCloseTo(-17.470001, 6);
+      expect(liveUpdate.latitude).toBeCloseTo(14.720001, 6);
+      expect(liveUpdate.longitude).toBeCloseTo(-17.470001, 6);
+      expect(liveUpdate.positionTimestamp).toEqual(expect.any(String));
 
       const point = await prisma.pointTrackingReservation.findFirst({
         where: {

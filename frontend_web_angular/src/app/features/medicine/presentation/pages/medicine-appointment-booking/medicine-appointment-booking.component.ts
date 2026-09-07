@@ -647,12 +647,15 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting.set(true);
+    const location = this.appointmentLocation();
     this.proposalService
       .createDirectReservation({
         professionnelId: detail.profile.id,
         serviceId: service.id,
         dateHeure,
         adresseClient: patientDraft.adresseClient,
+        clientLatitude: location?.latitude ?? null,
+        clientLongitude: location?.longitude ?? null,
         dureeMinutes: this.serviceDurationMinutes(service),
         notes: patientDraft.notes,
         typeConsultation: this.consultationType(),

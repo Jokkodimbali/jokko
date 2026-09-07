@@ -152,6 +152,13 @@ export class ServicesService {
       ]);
 
     return searchBothRoles(location).pipe(
+      switchMap((results) => {
+        const hasGeolocatedResult = results.some((result) => result.providers.length > 0);
+        // La position sert d'abord a classer les profils proches. Si aucun
+        // profil n'est geolocalise dans le rayon, conserver le catalogue au
+        // lieu d'afficher artificiellement zero prestataire.
+        return location && !hasGeolocatedResult ? searchBothRoles(undefined) : of(results);
+      }),
       map(([providersResult, doctorsResult]) => {
         const providers = this.mergeProfessionals(
           providersResult.providers,

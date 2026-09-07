@@ -18,6 +18,7 @@ export type AuthUserForGoogle = AuthUserSummary & {
   email: string | null;
   urlAvatar: string | null;
   identifiantOauth: string | null;
+  identifiantApple: string | null;
 };
 
 export type AuthPublicProfile = {
@@ -41,6 +42,7 @@ export interface AuthRepositoryPort {
   findById(userId: string): Promise<AuthUserSummary | null>;
   findByEmail(email: string): Promise<AuthUserForGoogle | null>;
   findByGoogleIdentity(googleSub: string): Promise<AuthUserForGoogle | null>;
+  findByAppleIdentity(appleSub: string): Promise<AuthUserForGoogle | null>;
   findWithPasswordByPhoneNumber(
     phoneNumber: string,
   ): Promise<AuthUserWithPassword | null>;
@@ -66,6 +68,11 @@ export interface AuthRepositoryPort {
     name: string;
     googleSub: string;
     avatarUrl?: string | null;
+  }): Promise<AuthUserForGoogle | null>;
+  createAppleClient(data: {
+    email: string;
+    name: string;
+    appleSub: string;
   }): Promise<AuthUserForGoogle | null>;
   findPublicProfileById(userId: string): Promise<AuthPublicProfile | null>;
   createRefreshSession(
@@ -93,4 +100,5 @@ export interface AuthRepositoryPort {
     },
   ): Promise<unknown>;
   linkGoogleIdentity(userId: string, googleSub: string): Promise<unknown>;
+  linkAppleIdentity(userId: string, appleSub: string): Promise<unknown>;
 }

@@ -3,6 +3,8 @@ export type CreateReservationCommand = {
   serviceId: string;
   dateHeure: string;
   adresseClient: string;
+  clientLatitude?: number;
+  clientLongitude?: number;
   dureeMinutes: number;
   notes?: string;
   typeConsultation?: 'CONSULTATION' | 'TELECONSULTATION';
@@ -12,6 +14,8 @@ export type CreateReservationFromNegotiationCommand = {
   negotiationId: string;
   dateHeure: string;
   adresseClient: string;
+  clientLatitude?: number;
+  clientLongitude?: number;
   dureeMinutes: number;
   notes?: string;
 };

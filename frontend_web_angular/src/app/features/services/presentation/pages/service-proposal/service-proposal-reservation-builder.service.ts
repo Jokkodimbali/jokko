@@ -87,6 +87,8 @@ export class ServiceProposalReservationBuilderService {
     proposal: NegotiationView;
     dateHeure: string | null;
     adresseClient: string;
+    clientLatitude?: number | null;
+    clientLongitude?: number | null;
     dureeMinutes: number;
   }): CreateReservationFromNegotiationPayload | null {
     if (
@@ -104,6 +106,8 @@ export class ServiceProposalReservationBuilderService {
       negotiationId: input.proposal.id,
       dateHeure: input.dateHeure,
       adresseClient: input.adresseClient,
+      clientLatitude: input.clientLatitude ?? null,
+      clientLongitude: input.clientLongitude ?? null,
       dureeMinutes: input.dureeMinutes,
     };
   }

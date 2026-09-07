@@ -25,6 +25,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto/logout.dto';
 import { GoogleLoginDto } from '../dto/google-login.dto';
+import { AppleLoginDto } from '../dto/apple-login.dto';
 import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 import {
@@ -199,6 +200,42 @@ export class AuthController {
     return createApiResponse(
       this.persistAuthCookies(response, result),
       API_DOCS.auth.googleLoginSuccess,
+    );
+  }
+
+  @Post('apple/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: API_DOCS.auth.appleLoginSummary })
+  @ApiStandardSuccessResponse({
+    status: 200,
+    description: API_DOCS.auth.appleLoginSuccess,
+    messageExample: API_DOCS.auth.appleLoginSuccess,
+    dataSchema: {
+      type: 'object',
+      example: SWAGGER_RESPONSE_EXAMPLES.auth.tokenPairData,
+    },
+  })
+  @ApiStandardErrorResponse({
+    status: 401,
+    description: API_DOCS.auth.appleLoginFailure,
+    errorCode: 'AUTH_APPLE_ACCOUNT_INVALID',
+    messageExample: API_DOCS.auth.appleLoginFailure,
+  })
+  async loginWithApple(
+    @Body() dto: AppleLoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.loginWithApple(
+      dto.idToken,
+      dto.name,
+      {
+        userAgent: this.readUserAgent(request),
+      },
+    );
+    return createApiResponse(
+      this.persistAuthCookies(response, result),
+      API_DOCS.auth.appleLoginSuccess,
     );
   }
 

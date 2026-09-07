@@ -510,6 +510,8 @@ export class AppointmentsService {
       fullDateLabel: this.formatFullDate(date),
       timeLabel: this.formatTime(date),
       locationLabel,
+      clientLatitude: reservation.clientLatitude ?? null,
+      clientLongitude: reservation.clientLongitude ?? null,
       doctorName: professionalName || 'Prestataire non renseigne',
       specialty: professional.specialty || serviceName || 'Service non renseigne',
       avatarUrl: publicAssetUrl(avatarUrl) || '',

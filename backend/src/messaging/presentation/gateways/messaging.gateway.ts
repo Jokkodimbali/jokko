@@ -218,6 +218,13 @@ export class MessagingGateway implements OnGatewayConnection {
     }
   }
 
+  @OnEvent('delivery-offer.resolved')
+  handleDeliveryOfferResolved(payload: { userId: string; orderId?: string; notificationId?: string }): void {
+    this.server.to(this.buildUserRoom(payload.userId)).emit('delivery-offer.resolved', {
+      orderId: payload.orderId, notificationId: payload.notificationId,
+    });
+  }
+
   @OnEvent('notification.created')
   handleNotificationCreated(payload: { notification: NotificationView }): void {
     const room = this.server.to(

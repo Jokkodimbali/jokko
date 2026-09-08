@@ -237,6 +237,41 @@ export class ReservationClientNotificationService {
     });
   }
 
+  async notifyReservationStarted(input: {
+    reservationId: string;
+    clientId: string;
+    professionalUserId: string;
+    professionalName: string;
+    serviceName: string;
+  }): Promise<void> {
+    const client = await this.usersRepository.findMeById(input.clientId);
+    for (const recipient of [
+      {
+        id: input.clientId,
+        actorName: input.professionalName,
+        title: `La prestation de ${input.professionalName} est en cours`,
+      },
+      {
+        id: input.professionalUserId,
+        actorName: client?.nom ?? 'Client',
+        title: 'La prestation est en cours',
+      },
+    ]) {
+      await this.notificationsService.createInAppNotification({
+        userId: recipient.id,
+        type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+        title: recipient.title,
+        body: input.serviceName,
+        data: {
+          reservationId: input.reservationId,
+          serviceName: input.serviceName,
+          actorName: recipient.actorName,
+          reservationStatus: 'EN_COURS',
+        },
+      });
+    }
+  }
+
   async notifyReservationArrival(
     input: ReservationArrivalNotificationInput,
   ): Promise<void> {

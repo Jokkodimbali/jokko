@@ -24,6 +24,9 @@ export type ListUserNotificationsQuery = {
 };
 
 export interface NotificationsRepositoryPort {
+  listDeliveryOffers(userId: string): Promise<DeliveryOfferView[]>;
+  declineDeliveryOffer(userId: string, notificationId: string): Promise<boolean>;
+  resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string): Promise<string[]>;
   create(input: CreateNotificationInput): Promise<NotificationView>;
   createMany(inputs: CreateNotificationInput[]): Promise<NotificationView[]>;
   listByUser(query: ListUserNotificationsQuery): Promise<NotificationView[]>;
@@ -33,3 +36,16 @@ export interface NotificationsRepositoryPort {
   ): Promise<NotificationView | null>;
   markAllAsReadForUser(userId: string): Promise<number>;
 }
+
+export type DeliveryOfferView = {
+  id: string;
+  orderId: string;
+  kind: 'PHARMACY' | 'MATERIAL';
+  storeName: string;
+  avatarUrl: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distanceKm: number | null;
+  createdAt: Date;
+};

@@ -397,6 +397,7 @@ export class PharmacyOrdersService {
       );
     }
 
+    await this.notifications.resolveDeliveryOffers('pharmacyOrderId', orderId);
     const order = await this.prisma.commandePharmacie.findUniqueOrThrow({
       where: { id: orderId },
       include: ORDER_INCLUDE,

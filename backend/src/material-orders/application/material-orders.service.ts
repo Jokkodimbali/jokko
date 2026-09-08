@@ -445,6 +445,7 @@ export class MaterialOrdersService {
         'Cette livraison vient d etre acceptee par un autre livreur.',
       );
     }
+    await this.notifications.resolveDeliveryOffers('materialOrderId', orderId);
     const order = await this.prisma.commandeMateriel.findUniqueOrThrow({
       where: { id: orderId },
       include: ORDER_INCLUDE,

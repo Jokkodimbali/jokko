@@ -44,118 +44,135 @@ export function notificationActorName(notification: UserNotificationView): strin
   const actorName = [
     metadata['actorName'],
     metadata['senderName'],
+    metadata['callerName'],
     metadata['clientName'],
     metadata['professionalName'],
     metadata['providerName'],
   ].find((value) => typeof value === 'string' && value.trim());
-  return typeof actorName === 'string' ? actorName.trim() : null;
+  if (typeof actorName === 'string') return actorName.trim();
+  // Older call notifications stored the caller only in their message.
+  if (/APPEL/i.test(notification.type)) {
+    return (notification.body || notification.corps || '').match(
+      /^(.+?) (?:a tent[ée] de vous joindre|vous appelle)[.!]?$/i,
+    )?.[1]?.trim() || null;
+  }
+  return null;
 }
 
 export function formatNotificationTitle(
   notification: UserNotificationView,
   fallbackTitle = 'Notification',
 ): string {
-  const title = (notification.title || notification.titre || fallbackTitle)
-    .trim()
-    .replace(/[.!]+$/, '');
+  const title = (notification.title || notification.titre || fallbackTitle).trim().replace(/[.!]+$/, '');
+  const actor = notificationActorName(notification);
+  const type = notification.type.toUpperCase();
   const metadata = notification.data || notification.donnees || {};
-  const actorName = notificationActorName(notification) || 'Jokko';
-  const serviceName =
-    typeof metadata['serviceName'] === 'string' ? metadata['serviceName'].trim() : '';
-  const serviceContext = serviceName ? ` pour « ${serviceName} »` : '';
-  const normalizedTitle = title
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase();
+  const from = actor ? ` de ${actor}` : '';
+  const withPerson = actor ? ` avec ${actor}` : '';
+  const by = actor ? ` par ${actor}` : '';
+  if (type === 'APPEL_MANQUE') return `Appel manqué${from}`;
+  if (type === 'APPEL_ENTRANT') return `Appel entrant${from}`;
+  if (type.includes('MESSAGE')) return `Nouveau message${from}`;
+  if (isOngoingNotification(notification)) return `La prestation est en cours${withPerson}`;
+  if (metadata['tripStatus'] === 'SUR_PLACE') return actor ? `${actor} est sur place` : 'Arrivé sur place';
+  const labels: Record<string, string> = {
+    NOUVELLE_RESERVATION: 'Réservation confirmée',
+    RESERVATION_CONFIRMEE: 'Réservation confirmée',
+    RESERVATION_ANNULEE: 'Réservation annulée',
+    RESERVATION_FINALISEE: 'La prestation est terminée',
+  };
+  if (labels[type]) return `${labels[type]}${withPerson}`;
+  const events: Record<string, string> = {
+    AJUSTEMENT_PRIX_PROPOSE: 'Ajustement de prix proposé',
+    AJUSTEMENT_PRIX_ACCEPTE: 'Ajustement de prix accepté',
+    AJUSTEMENT_PRIX_REFUSE: 'Ajustement de prix refusé',
+    PAIEMENT_CONFIRME: 'Paiement confirmé',
+    LITIGE_OUVERT: 'Litige ouvert',
+    LITIGE_RESOLU: 'Litige résolu',
+  };
+  if (events[type]) return `${events[type]}${type.startsWith('LITIGE') ? withPerson : by}`;
+  if (type === 'ORDONNANCE_RECUE') return `Ordonnance reçue${from}`;
+  if (type === 'ORDONNANCE_MISE_A_JOUR') return `Ordonnance mise à jour${by}`;
+  // Older notifications put the person's name before a dash.
+  if (actor) {
+    for (const separator of [' - ', ' — ', ' – ']) {
+      if (title.startsWith(`${actor}${separator}`)) {
+        const wording = title.slice(actor.length + separator.length).trim();
+        return `${wording}${withPerson}`;
+      }
+    }
+  }
+  // Preserve hyphens within names and words; only replace separator dashes.
+  const wording = title.replace(/\s+[—–-]\s+/g, ' concernant ');
+  return actor && !wording.toLocaleLowerCase().includes(actor.toLocaleLowerCase())
+    ? `${wording}${withPerson}` : wording;
+}
 
-  if (normalizedTitle.includes('nouvelle reservation') && normalizedTitle.includes('confirm')) {
-    return `${actorName} - Nouvelle réservation confirmée${serviceContext}`;
+export function notificationAvatarUrl(notification: UserNotificationView): string | null {
+  const metadata = notification.data || notification.donnees || {};
+  for (const key of ['avatarUrl', 'senderAvatarUrl', 'callerAvatarUrl', 'clientAvatarUrl', 'professionalAvatarUrl', 'providerAvatarUrl']) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
   }
-  if (normalizedTitle.includes('prestation terminee')) {
-    return `${actorName} - Prestation terminée${serviceContext}`;
-  }
-  if (normalizedTitle.includes('vous etes en route')) {
-    return `${actorName} - Trajet démarré${serviceContext}`;
-  }
-  if (normalizedTitle.includes('le client est en route')) {
-    return `${actorName} - En route vers le rendez-vous${serviceContext}`;
-  }
-  if (normalizedTitle.includes('prestataire en route')) {
-    return `${actorName} - En route vers votre rendez-vous${serviceContext}`;
-  }
-  if (normalizedTitle.includes('reservation annulee')) {
-    return `${actorName} - Réservation annulée${serviceContext}`;
-  }
+  return null;
+}
 
-  const actorAtStart = new RegExp(
-    `^${actorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?:[:\\-â€“â€”]\\s*)?`,
-    'i',
-  );
-  const titleWithoutRepeatedActor = title.replace(actorAtStart, '').trim();
-  const motif = titleWithoutRepeatedActor || title;
-  return `${actorName} - ${motif.charAt(0).toLocaleUpperCase()}${motif.slice(1)}`;
+export function notificationSubtitle(notification: UserNotificationView): string {
+  const body = notification.body || notification.corps || '';
+  if (/MESSAGE|ANNONCE/i.test(notification.type)) return body;
+  return notificationMetadataString(notification, 'serviceName') || body;
+}
+
+export function sortNotificationsNewestFirst(notifications: UserNotificationView[]): UserNotificationView[] {
+  return [...notifications].sort((a, b) => notificationTimestamp(b) - notificationTimestamp(a));
+}
+
+export function isOngoingNotification(notification: UserNotificationView): boolean {
+  const metadata = notification.data || notification.donnees || {};
+  return metadata['reservationStatus'] === 'EN_COURS' ||
+    metadata['tripStatus'] === 'EN_COURS' || notification.type === 'PRESTATION_EN_COURS';
 }
 
 export function findFeaturedNotification(
   notifications: UserNotificationView[],
+  dismissed: (id: string) => boolean = () => false,
 ): UserNotificationView | null {
-  const activeOnTheWay = notifications.find((notification) => {
-    const metadata = notification.data || notification.donnees || {};
-    if (
-      notification.type !== 'PRESTATAIRE_EN_ROUTE' &&
-      metadata['persistentUntilTerminal'] !== true
-    ) {
-      return false;
-    }
+  const sorted = sortNotificationsNewestFirst(notifications);
+  const latest = sorted[0];
+  if (latest && !isOngoingNotification(latest) && !dismissed(latest.id) && !(latest.isRead ?? latest.estLue)) return latest;
+  return sorted.find((notification) => {
+    if (!isOngoingNotification(notification)) return false;
     const reservationId = notificationMetadataString(notification, 'reservationId');
-    if (!reservationId) return false;
-    const startedAt = notificationTimestamp(notification);
-    return !notifications.some((candidate) => {
-      const terminal =
-        candidate.type === 'RESERVATION_FINALISEE' || candidate.type === 'RESERVATION_ANNULEE';
-      return (
-        terminal &&
-        notificationMetadataString(candidate, 'reservationId') === reservationId &&
-        notificationTimestamp(candidate) >= startedAt
-      );
-    });
-  });
-  if (activeOnTheWay) return activeOnTheWay;
-
-  const activeDeliveryOffer = notifications.find((notification) => {
-    const metadata = notification.data || notification.donnees || {};
-    if (metadata['persistentDeliveryOffer'] !== true) return false;
-    const pharmacyOrderId = notificationMetadataString(notification, 'pharmacyOrderId');
-    if (!pharmacyOrderId) return false;
-    const createdAt = notificationTimestamp(notification);
-    return !notifications.some((candidate) => {
-      const candidateMetadata = candidate.data || candidate.donnees || {};
-      return (
-        candidateMetadata['deliveryOfferResolved'] === true &&
-        notificationMetadataString(candidate, 'pharmacyOrderId') === pharmacyOrderId &&
-        notificationTimestamp(candidate) >= createdAt
-      );
-    });
-  });
-  if (activeDeliveryOffer) return activeDeliveryOffer;
-
-  return (
-    notifications.find((notification) => {
-      const metadata = notification.data || notification.donnees || {};
-      const isResolvedDeliveryOffer =
-        metadata['persistentDeliveryOffer'] === true &&
-        notifications.some((candidate) => {
-          const candidateMetadata = candidate.data || candidate.donnees || {};
-          return (
-            candidateMetadata['deliveryOfferResolved'] === true &&
-            notificationMetadataString(candidate, 'pharmacyOrderId') ===
-              notificationMetadataString(notification, 'pharmacyOrderId')
-          );
-        });
-      return !isResolvedDeliveryOffer && !(notification.isRead ?? notification.estLue);
-    }) ?? null
-  );
+    return !!reservationId && !sorted.some((candidate) =>
+      ['RESERVATION_FINALISEE', 'RESERVATION_ANNULEE'].includes(candidate.type) &&
+      notificationMetadataString(candidate, 'reservationId') === reservationId &&
+      notificationTimestamp(candidate) >= notificationTimestamp(notification),
+    );
+  }) ?? null;
 }
+
+export function notificationIcon(notification: UserNotificationView): string {
+    const metadata = notification.data || notification.donnees || {};
+    const type = notification.type.toUpperCase();
+    const title = (notification.title || notification.titre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    if (/APPEL.*MANQUE/.test(type)) return 'phone-missed';
+    if (/APPEL/.test(type)) return 'phone-incoming';
+    if (isOngoingNotification(notification)) return 'hourglass';
+    if (metadata['tripStatus'] === 'SUR_PLACE') return 'pin';
+    if (/AJUSTEMENT/.test(type)) return /REFUS|REJET/.test(type + title) ? 'circle-x' : /ACCEPT/.test(type + title) ? 'circle-check' : 'banknote';
+    if (/MESSAGE/.test(type)) return 'message-circle';
+    if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE/.test(type)) return 'wallet-cards';
+    if (/PAYMENT|PAIEMENT/.test(type)) return 'hand-coins';
+    if (/LITIGE/.test(type)) return /RESOLU/.test(type + title) ? 'handshake' : 'scale';
+    if (/KYC|PROFIL/.test(type)) return /REFUS|REJET/.test(type + title) ? 'frown' : 'party-popper';
+    if (/ORDONNANCE/.test(type)) return 'siren';
+    if (/ANNONCE/.test(type)) return 'rss';
+    if (/EN_ROUTE/.test(type)) return 'route';
+    if (/ANNULEE/.test(type)) return 'calendar-x';
+    if (/FINALISEE/.test(type)) return 'check';
+    if (/RESERVATION/.test(type)) return 'calendar-check';
+    return 'bell';
+  }
 
 @Injectable({
   providedIn: 'root',
@@ -174,7 +191,7 @@ export class NotificationsService {
 
     return this.http
       .get<ApiResponse<UserNotificationView[]>>(this.apiUrl, { params })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(sortNotificationsNewestFirst));
   }
 
   markAllAsRead(): Observable<MarkAllNotificationsReadView> {

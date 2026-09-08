@@ -1,11 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { finalize, forkJoin } from 'rxjs';
+import { EMPTY, Subject, catchError, finalize, forkJoin, merge, switchMap, timer } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MessagesRealtimeService } from '../../../messages/data-access/messages-realtime.service';
+import { userInitials } from '../../../../shared/utils/user-initials';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import {
   formatNotificationTitle,
+  notificationIcon,
+  notificationAvatarUrl,
+  notificationActorName,
   NotificationsService,
   UserNotificationView,
 } from '../../../../core/notifications/notifications.service';
@@ -28,6 +34,27 @@ export class NotificationsPageComponent implements OnInit {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
 
+  private readonly realtime = inject(MessagesRealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly refresh = new Subject<void>();
+  private readonly failedAvatars = signal<ReadonlySet<string>>(new Set());
+  protected readonly icon = notificationIcon;
+  protected readonly actorName = notificationActorName;
+
+  protected avatarUrl(notification: UserNotificationView): string | null {
+    const avatar = notificationAvatarUrl(notification);
+    return avatar && !this.failedAvatars().has(avatar) ? avatar : null;
+  }
+
+  protected hideAvatar(notification: UserNotificationView): void {
+    const avatar = this.avatarUrl(notification);
+    if (avatar) this.failedAvatars.update((urls) => new Set(urls).add(avatar));
+  }
+
+  protected initials(notification: UserNotificationView): string {
+    return userInitials(notificationActorName(notification), 'N');
+  }
+
   protected readonly notifications = signal<UserNotificationView[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
@@ -38,23 +65,27 @@ export class NotificationsPageComponent implements OnInit {
   protected readonly readCount = computed(() => this.notifications().length - this.unreadCount());
 
   ngOnInit(): void {
-    this.loadNotifications();
+    this.isLoading.set(true);
+    this.realtime.connect();
+    merge(timer(0, 15_000), this.realtime.notificationCreated$, this.refresh)
+      .pipe(
+        switchMap(() => this.notificationsService.list({ limit: 100 }).pipe(
+          catchError((error) => {
+            this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de charger vos notifications.'));
+            return EMPTY;
+          }),
+          finalize(() => this.isLoading.set(false)),
+        )),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((notifications) => {
+        this.errorMessage.set(null);
+        this.notifications.set(notifications);
+      });
   }
 
   protected loadNotifications(): void {
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-    this.notificationsService
-      .list()
-      .pipe(finalize(() => this.isLoading.set(false)))
-      .subscribe({
-        next: (notifications) => this.notifications.set(notifications),
-        error: (error) => {
-          this.errorMessage.set(
-            getHttpErrorMessage(error, 'Impossible de charger vos notifications.'),
-          );
-        },
-      });
+    this.refresh.next();
   }
 
   protected markAllAsRead(): void {
@@ -85,7 +116,9 @@ export class NotificationsPageComponent implements OnInit {
         this.notifications.update((items) =>
           items.map((item) =>
             item.id === notification.id
-              ? { ...item, ...updated, isRead: true, estLue: true }
+              ? { ...item, ...updated,
+                  data: { ...(item.data || item.donnees || {}), ...(updated.data || updated.donnees || {}) },
+                  isRead: true, estLue: true }
               : item,
           ),
         );
@@ -111,7 +144,9 @@ export class NotificationsPageComponent implements OnInit {
         this.notifications.update((items) =>
           items.map((item) =>
             item.id === notification.id
-              ? { ...item, ...updated, isRead: true, estLue: true }
+              ? { ...item, ...updated,
+                  data: { ...(item.data || item.donnees || {}), ...(updated.data || updated.donnees || {}) },
+                  isRead: true, estLue: true }
               : item,
           ),
         );

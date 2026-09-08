@@ -53,12 +53,19 @@
         (keydown.enter)="openNotification(notification)"
         (keydown.space)="openNotification(notification)"
       >
-        <i>
-          <lucide-icon name="bell" size="20" [strokeWidth]="2.4"></lucide-icon>
+        <i class="notifications-page__avatar" aria-hidden="true">
+          <img *ngIf="avatarUrl(notification) as avatar; else avatarFallback"
+            [src]="avatar" alt="" referrerpolicy="no-referrer" (error)="hideAvatar(notification)" />
+          <ng-template #avatarFallback>
+            <b *ngIf="actorName(notification); else eventFallback">{{ initials(notification) }}</b>
+            <ng-template #eventFallback>
+              <lucide-icon [name]="icon(notification)" size="22" [strokeWidth]="2.2"></lucide-icon>
+            </ng-template>
+          </ng-template>
         </i>
         <div>
           <span>{{ typeLabel(notification.type) }}</span>
-          <h3>{{ title(notification) }}</h3>
+          <h3><lucide-icon [name]="icon(notification)" size="18" aria-hidden="true"></lucide-icon><span>{{ title(notification) }}</span></h3>
           <p>{{ body(notification) }}</p>
           <time *ngIf="date(notification)">{{
             date(notification) | date: 'd MMM yyyy, HH:mm'

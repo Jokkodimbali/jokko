@@ -113,6 +113,7 @@ describe('ReservationCommandService', () => {
     };
     const reservationClientNotificationService = {
       notifyReservationCreated: jest.fn(),
+      notifyReservationStarted: jest.fn().mockResolvedValue(undefined),
       notifyReservationConfirmed: jest.fn(),
       notifyReservationCreatedForProfessional: jest.fn(),
       notifyReservationCompleted: jest.fn(),
@@ -157,7 +158,11 @@ describe('ReservationCommandService', () => {
   };
 
   it('starts a teleconsultation without requiring GPS tracking or arrival', async () => {
-    const { service, reservationsRepository, liveTrackingFacade } =
+    const {
+      service,
+      reservationsRepository,
+      liveTrackingFacade,
+      reservationClientNotificationService,
       buildService({
         reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
         professionalId: 'professional-id',
@@ -166,6 +171,9 @@ describe('ReservationCommandService', () => {
     const result = await service.startReservation(doctorUser, 'reservation-id');
 
     expect(result.statut).toBe('EN_COURS');
+    expect(reservationClientNotificationService.notifyReservationStarted).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationId: 'reservation-id', clientId: 'client-id', professionalUserId: 'professional-user-id' }),
+    );
     expect(reservationsRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({ statut: 'EN_COURS' }),
     );

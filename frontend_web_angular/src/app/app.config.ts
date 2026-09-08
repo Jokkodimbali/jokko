@@ -15,6 +15,14 @@ import { routes } from './app.routes';
 import { httpCacheInterceptor } from './core/http/http-cache.interceptor';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import {
+  Hourglass,
+  Pin,
+  HandCoins,
+  Frown,
+  PartyPopper,
+  Siren,
+  Rss,
+  CalendarX,
   Activity,
   ArrowDown,
   ArrowDownLeft,
@@ -110,6 +118,8 @@ import {
   PersonStanding,
   Phone,
   PhoneCall,
+  PhoneMissed,
+  PhoneIncoming,
   PhoneOff,
   Pill,
   Plus,
@@ -169,6 +179,14 @@ export const appConfig: ApplicationConfig = {
     }),
     importProvidersFrom(
       LucideAngularModule.pick({
+        Hourglass,
+        Pin,
+        HandCoins,
+        Frown,
+        PartyPopper,
+        Siren,
+        Rss,
+        CalendarX,
         Activity,
         ArrowDown,
         ArrowDownLeft,
@@ -264,6 +282,8 @@ export const appConfig: ApplicationConfig = {
         PersonStanding,
         Phone,
         PhoneCall,
+        PhoneMissed,
+        PhoneIncoming,
         PhoneOff,
         Pill,
         Plus,

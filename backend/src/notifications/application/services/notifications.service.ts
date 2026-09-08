@@ -83,6 +83,24 @@ export class NotificationsService {
     private readonly realtimeEvents: EventEmitter2,
   ) {}
 
+  listDeliveryOffers(userId: string) {
+    return this.notificationsRepository.listDeliveryOffers(userId);
+  }
+
+  async declineDeliveryOffer(userId: string, notificationId: string) {
+    if (!await this.notificationsRepository.declineDeliveryOffer(userId, notificationId)) {
+      throw appHttpException('NOTIFICATIONS_NOT_FOUND');
+    }
+    this.realtimeEvents.emit('delivery-offer.resolved', { userId, notificationId });
+  }
+
+  async resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string) {
+    const recipients = await this.notificationsRepository.resolveDeliveryOffers(orderKey, orderId);
+    for (const userId of recipients) {
+      this.realtimeEvents.emit('delivery-offer.resolved', { userId, orderId });
+    }
+  }
+
   async createInAppNotification(input: CreateNotificationInput) {
     const notification = await this.notificationsRepository.create(
       this.normalizeNotificationInput(input),

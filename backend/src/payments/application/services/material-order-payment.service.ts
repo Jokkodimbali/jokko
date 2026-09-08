@@ -368,6 +368,8 @@ export class MaterialOrderPaymentService {
           title: 'Livraison de matériel disponible',
           body: `Une livraison est disponible à ${Number(courier.distanceKm).toFixed(1)} km. Acceptez-la pour récupérer le matériel en quincaillerie.`,
           data: {
+            persistentDeliveryOffer: true,
+            distanceKm: Number(courier.distanceKm),
             materialOrderId: orderId,
             route: `/material-orders/${orderId}/delivery-offer`,
           },

@@ -8,12 +8,14 @@ import {
   Input,
   Output,
   computed,
+  effect,
+  untracked,
   inject,
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
+import { EMPTY, Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import {
   isDoctorAccount,
@@ -25,10 +27,15 @@ import { SessionPresenceService } from '../../../core/presence/session-presence.
 import {
   findFeaturedNotification,
   formatNotificationTitle,
+  notificationIcon,
+  notificationAvatarUrl,
+  notificationSubtitle,
+  sortNotificationsNewestFirst,
   notificationActorName,
   NotificationsService,
   UserNotificationView,
 } from '../../../core/notifications/notifications.service';
+import { NotificationDisplay } from '../../../core/notifications/notification-display';
 import { FeaturedNotificationCacheService } from '../../../core/notifications/featured-notification-cache.service';
 import { AuthService } from '../../../features/auth/data-access/auth.service';
 import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages';
@@ -51,7 +58,7 @@ interface AppInfoNavItem {
   fragment?: string;
 }
 
-const TERMINAL_NOTIFICATION_DISPLAY_MS = 5_000;
+
 
 @Component({
   selector: 'app-navbar',
@@ -80,7 +87,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private notificationsIntervalId: ReturnType<typeof setInterval> | null = null;
   private infoMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationsCloseTimer: ReturnType<typeof setTimeout> | null = null;
-  private terminalNotificationHideTimer: ReturnType<typeof setTimeout> | null = null;
+  private notificationPreviewRequest: Subscription | null = null;
   private readonly subscriptions = new Subscription();
 
   protected readonly logo = '/logojokko.png';
@@ -96,16 +103,20 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   protected readonly notificationPreview = signal<UserNotificationView[]>([]);
   private readonly notificationHistory = signal<UserNotificationView[]>([]);
   private readonly dismissedTerminalNotificationIds = signal<ReadonlySet<string>>(new Set());
-  protected readonly featuredNotification = computed(() => {
-    const notification = findFeaturedNotification(this.notificationHistory());
-    if (
-      notification?.type === 'RESERVATION_FINALISEE' &&
-      (this.dismissedTerminalNotificationIds().has(notification.id) ||
-        this.featuredNotificationCache.isTransientDismissed(notification.id))
-    ) {
-      return null;
-    }
-    return notification;
+  private readonly nextFeaturedNotification = computed(() => {
+    const dismissed = this.dismissedTerminalNotificationIds();
+    return findFeaturedNotification(this.notificationHistory(), (id) =>
+      dismissed.has(id) || this.featuredNotificationCache.isTransientDismissed(id));
+  });
+  private readonly notificationDisplay = new NotificationDisplay((id) => {
+    this.featuredNotificationCache.dismissTransient(id);
+    this.dismissedTerminalNotificationIds.update((ids) => new Set(ids).add(id));
+  });
+  protected readonly featuredNotification = this.notificationDisplay.notification;
+  protected readonly notificationAnimationPhase = this.notificationDisplay.phase;
+  private readonly syncNotificationDisplay = effect(() => {
+    const notification = this.nextFeaturedNotification();
+    untracked(() => this.notificationDisplay.update(notification));
   });
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
@@ -329,16 +340,16 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     notification ? this.openNotification(notification) : this.toggleNotificationsMenu();
   }
 
+  private readonly failedNotificationAvatars = signal<ReadonlySet<string>>(new Set());
+
+  protected hideNotificationAvatar(notification: UserNotificationView): void {
+    const avatar = this.notificationAvatarUrl(notification);
+    if (avatar) this.failedNotificationAvatars.update((urls) => new Set(urls).add(avatar));
+  }
+
   protected notificationAvatarUrl(notification: UserNotificationView): string | null {
-    const metadata = notification.data || notification.donnees || {};
-    const avatar = [
-      metadata['avatarUrl'],
-      metadata['senderAvatarUrl'],
-      metadata['clientAvatarUrl'],
-      metadata['professionalAvatarUrl'],
-      metadata['providerAvatarUrl'],
-    ].find((value) => typeof value === 'string' && value.trim());
-    return typeof avatar === 'string' ? avatar.trim() : null;
+    const avatar = notificationAvatarUrl(notification);
+    return avatar && !this.failedNotificationAvatars().has(avatar) ? avatar : null;
   }
 
   protected notificationActorInitials(notification: UserNotificationView): string {
@@ -371,7 +382,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         const markRead = (items: UserNotificationView[]) =>
           items.map((item) =>
             item.id === notification.id
-              ? { ...item, ...updated, isRead: true, estLue: true }
+              ? { ...item, ...updated,
+                  data: { ...(item.data || item.donnees || {}), ...(updated.data || updated.donnees || {}) },
+                  isRead: true, estLue: true }
               : item,
           );
         this.notificationPreview.update(markRead);
@@ -389,51 +402,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected notificationTitle(notification: UserNotificationView): string {
-    const title = (
-      notification.title ||
-      notification.titre ||
-      this.notificationTypeLabel(notification.type)
-    )
-      .trim()
-      .replace(/[.!]+$/, '');
-    const metadata = notification.data || notification.donnees || {};
-    const actorName = this.notificationActorName(notification) || 'Jokko';
-    const serviceName =
-      typeof metadata['serviceName'] === 'string' ? metadata['serviceName'].trim() : '';
-    const serviceContext = serviceName ? ` pour « ${serviceName} »` : '';
-    const normalizedTitle = title
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLocaleLowerCase();
+  protected readonly notificationTitle = formatNotificationTitle;
+  protected readonly notificationSubtitle = notificationSubtitle;
 
-    if (normalizedTitle.includes('nouvelle reservation') && normalizedTitle.includes('confirm')) {
-      return `${actorName} - Nouvelle réservation confirmée${serviceContext}.`;
-    }
-    if (normalizedTitle.includes('prestation terminee')) {
-      return `${actorName} - Prestation terminée${serviceContext}.`;
-    }
-    if (normalizedTitle.includes('vous etes en route')) {
-      return `${actorName} - Trajet démarré${serviceContext}.`;
-    }
-    if (normalizedTitle.includes('le client est en route')) {
-      return `${actorName} - En route vers le rendez-vous${serviceContext}.`;
-    }
-    if (normalizedTitle.includes('prestataire en route')) {
-      return `${actorName} - En route vers votre rendez-vous${serviceContext}.`;
-    }
-    if (normalizedTitle.includes('reservation annulee')) {
-      return `${actorName} - Réservation annulée${serviceContext}.`;
-    }
-
-    const actorAtStart = new RegExp(
-      `^${actorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?:[:\-–—]\\s*)?`,
-      'i',
-    );
-    const titleWithoutRepeatedActor = title.replace(actorAtStart, '').trim();
-    const motif = titleWithoutRepeatedActor || title;
-    return `${actorName} - ${motif.charAt(0).toLocaleUpperCase()}${motif.slice(1)}`;
-  }
+  protected readonly notificationIcon = notificationIcon;
 
   protected notificationDate(notification: UserNotificationView): string | null {
     return notification.createdAt || notification.creeLe || null;
@@ -507,12 +479,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.notificationPreviewRequest?.unsubscribe();
     this.clearInfoMenuCloseTimer();
     this.clearNotificationsCloseTimer();
-    if (this.terminalNotificationHideTimer) {
-      clearTimeout(this.terminalNotificationHideTimer);
-      this.terminalNotificationHideTimer = null;
-    }
+    this.notificationDisplay.destroy();
     if (this.unreadMessagesIntervalId) {
       clearInterval(this.unreadMessagesIntervalId);
       this.unreadMessagesIntervalId = null;
@@ -540,41 +510,22 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   private loadNotificationPreview(showLoading: boolean = true): void {
+    this.notificationPreviewRequest?.unsubscribe();
     if (showLoading) this.isNotificationsLoading.set(true);
-    this.notificationsService
+    this.notificationPreviewRequest = this.notificationsService
       .list({ limit: 100 })
       .pipe(
-        catchError(() => of([])),
+        catchError(() => EMPTY),
         finalize(() => {
           if (showLoading) this.isNotificationsLoading.set(false);
         }),
       )
       .subscribe((notifications) => {
-        const history = this.mergeNotificationHistory(notifications);
+        const history = sortNotificationsNewestFirst(this.mergeNotificationHistory(notifications));
         this.notificationHistory.set(history);
         this.notificationPreview.set(history.slice(0, 6));
         this.syncFeaturedNotificationCache(history);
-        this.scheduleTerminalNotificationDismissal(history);
       });
-  }
-
-  private scheduleTerminalNotificationDismissal(notifications: UserNotificationView[]): void {
-    const notification = findFeaturedNotification(notifications);
-    if (
-      notification?.type !== 'RESERVATION_FINALISEE' ||
-      this.featuredNotificationCache.isTransientDismissed(notification.id)
-    ) {
-      return;
-    }
-
-    if (this.terminalNotificationHideTimer) {
-      clearTimeout(this.terminalNotificationHideTimer);
-    }
-    this.terminalNotificationHideTimer = setTimeout(() => {
-      this.featuredNotificationCache.dismissTransient(notification.id);
-      this.dismissedTerminalNotificationIds.update((ids) => new Set(ids).add(notification.id));
-      this.terminalNotificationHideTimer = null;
-    }, TERMINAL_NOTIFICATION_DISPLAY_MS);
   }
 
   private restoreFeaturedNotification(): void {

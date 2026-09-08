@@ -8,6 +8,7 @@ import {
 } from '../../domain/entities/notification.entity';
 import {
   type CreateNotificationInput,
+  type DeliveryOfferView,
   type ListUserNotificationsQuery,
   type NotificationsRepositoryPort,
 } from '../../application/ports/notifications-repository.port';
@@ -97,6 +98,59 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     });
 
     return result.count;
+  }
+
+  async listDeliveryOffers(userId: string): Promise<DeliveryOfferView[]> {
+    // Query the order's current state, so disconnected clients cannot restore a claimed offer.
+    return this.prisma.$queryRaw<DeliveryOfferView[]>(Prisma.sql`
+      SELECT n.id, COALESCE(po.id, mo.id)::text AS "orderId",
+        CASE WHEN po.id IS NOT NULL THEN 'PHARMACY' ELSE 'MATERIAL' END AS kind,
+        COALESCE(store.company_name, merchant.name) AS "storeName",
+        merchant.avatar_url AS "avatarUrl", COALESCE(merchant.address, store.city) AS address,
+        ST_Y(store.localisation::geometry) AS latitude,
+        ST_X(store.localisation::geometry) AS longitude,
+        ST_Distance(COALESCE(
+          CASE WHEN presence.last_position_at >= NOW() - INTERVAL '15 minutes'
+            AND presence.last_latitude IS NOT NULL AND presence.last_longitude IS NOT NULL
+            THEN ST_SetSRID(ST_MakePoint(presence.last_longitude::float8, presence.last_latitude::float8), 4326)::geography END,
+          courier.localisation), store.localisation) / 1000 AS "distanceKm",
+        n.created_at AS "createdAt"
+      FROM notifications n
+      LEFT JOIN pharmacy_orders po ON po.id::text = n.data->>'pharmacyOrderId'
+      LEFT JOIN material_orders mo ON mo.id::text = n.data->>'materialOrderId'
+      JOIN professional_profiles store ON store.id = COALESCE(po.pharmacy_id, mo.hardware_store_id)
+      JOIN users merchant ON merchant.id = store.user_id
+      JOIN professional_profiles courier ON courier.user_id = n.user_id
+      LEFT JOIN professional_presence presence ON presence.professional_id = courier.id
+      WHERE n.user_id = ${userId}::uuid
+        AND (n.data->>'persistentDeliveryOffer' = 'true' OR n.data->>'route' LIKE '%/delivery-offer')
+        AND COALESCE(n.data->>'deliveryOfferDeclined', 'false') <> 'true'
+        AND COALESCE(n.data->>'deliveryOfferResolved', 'false') <> 'true'
+        AND ((po.status::text = 'EN_ATTENTE_TRANSPORTEUR' AND po.delivery_requested = true AND po.delivery_reservation_id IS NULL)
+          OR (mo.status::text = 'EN_ATTENTE_TRANSPORTEUR' AND mo.delivery_requested = true AND mo.delivery_reservation_id IS NULL))
+      ORDER BY n.created_at DESC, n.id DESC LIMIT 50
+    `);
+  }
+
+  async declineDeliveryOffer(userId: string, notificationId: string): Promise<boolean> {
+    const count = await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE notifications SET data = COALESCE(data, '{}'::jsonb) || '{"deliveryOfferDeclined":true}'::jsonb,
+        is_read = true
+      WHERE id::text = ${notificationId} AND user_id = ${userId}::uuid
+        AND (data->>'persistentDeliveryOffer' = 'true' OR data->>'route' LIKE '%/delivery-offer')
+    `);
+    return count > 0;
+  }
+
+  async resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ userId: string }>>(Prisma.sql`
+      UPDATE notifications SET data = COALESCE(data, '{}'::jsonb) || '{"deliveryOfferResolved":true}'::jsonb,
+        is_read = true
+      WHERE data->>${orderKey} = ${orderId}
+        AND (data->>'persistentDeliveryOffer' = 'true' OR data->>'route' LIKE '%/delivery-offer')
+      RETURNING user_id AS "userId"
+    `);
+    return [...new Set(rows.map(row => row.userId))];
   }
 
   async listByUser(

@@ -70,7 +70,10 @@ export class ReservationCommandService extends ReservationAppService {
     requestUser: AuthUser,
     command: CreateReservationCommand,
   ) {
-    this.assertClientCoordinates(command.clientLatitude, command.clientLongitude);
+    this.assertClientCoordinates(
+      command.clientLatitude,
+      command.clientLongitude,
+    );
     this.assertClientRole(requestUser.role);
 
     if (requestUser.role === 'PRESTATAIRE' || requestUser.role === 'MEDECIN') {
@@ -172,7 +175,14 @@ export class ReservationCommandService extends ReservationAppService {
     if (hasLatitude !== hasLongitude) {
       throw appHttpException('SEARCH_COORDINATES_PAIR_REQUIRED');
     }
-    if (!hasLatitude || latitude === null || latitude === undefined || longitude === null || longitude === undefined) return;
+    if (
+      !hasLatitude ||
+      latitude === null ||
+      latitude === undefined ||
+      longitude === null ||
+      longitude === undefined
+    )
+      return;
     if (
       !Number.isFinite(latitude) ||
       !Number.isFinite(longitude) ||
@@ -189,7 +199,10 @@ export class ReservationCommandService extends ReservationAppService {
     requestUser: AuthUser,
     command: CreateReservationFromNegotiationCommand,
   ) {
-    this.assertClientCoordinates(command.clientLatitude, command.clientLongitude);
+    this.assertClientCoordinates(
+      command.clientLatitude,
+      command.clientLongitude,
+    );
     this.assertClientRole(requestUser.role);
     return this.createReservationFromAcceptedNegotiation(requestUser, command);
   }
@@ -815,6 +828,17 @@ export class ReservationCommandService extends ReservationAppService {
           professionalId: updated.professionnelId,
         }),
       );
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        updated.professionnelId,
+      );
+      const service = await this.getServiceOrThrow(updated.serviceId);
+      await this.reservationClientNotificationService.notifyReservationStarted({
+        reservationId: updated.id,
+        clientId: updated.clientId,
+        professionalUserId: professional.utilisateur.id,
+        professionalName: professional.utilisateur.nom,
+        serviceName: service.nom,
+      });
       return updated;
     } catch (error) {
       this.handleDomainError(error);

@@ -39,6 +39,18 @@ import { UpdateFcmTokenDto } from '../dto/update-fcm-token.dto';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  @Get('delivery-offers')
+  async deliveryOffers(@CurrentUser() user: AuthUser) {
+    return createApiResponse(await this.notificationsService.listDeliveryOffers(user.sub));
+  }
+
+  @Post(':id/delivery-offer/decline')
+  @HttpCode(HttpStatus.OK)
+  async declineDeliveryOffer(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.notificationsService.declineDeliveryOffer(user.sub, id);
+    return createApiResponse(null);
+  }
+
   @Get()
   @ApiOperation({ summary: API_DOCS.notifications.listSummary })
   @ApiQuery({

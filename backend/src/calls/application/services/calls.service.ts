@@ -64,7 +64,7 @@ export class CallsService {
         type: 'APPEL_ENTRANT',
         title: kind === 'VIDEO' ? 'Appel vidéo entrant' : 'Appel vocal entrant',
         body: `${signal.callerName} vous appelle.`,
-        data: { callId, conversationId, kind, route: '/messages' },
+        data: { callId, conversationId, kind, senderId: signal.callerId, actorName: signal.callerName, callerAvatarUrl: signal.callerAvatarUrl, route: '/messages' },
       });
     return signal;
   }

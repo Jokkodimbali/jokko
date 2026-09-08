@@ -10,11 +10,11 @@ describe('FeaturedNotificationCacheService', () => {
     expect(cache.isTransientDismissed('notification-terminee')).toBe(true);
   });
 
-  it('restores an active trip notification after the navbar is recreated', () => {
+  it('restores an ongoing service notification after the navbar is recreated', () => {
     const cache = new FeaturedNotificationCacheService();
     const notification = {
       id: 'route-1',
-      type: 'PRESTATAIRE_EN_ROUTE',
+      type: 'PRESTATION_EN_COURS',
       title: 'Le client est en route',
       createdAt: '2026-08-21T10:00:00.000Z',
       isRead: true,
@@ -30,7 +30,7 @@ describe('FeaturedNotificationCacheService', () => {
     const cache = new FeaturedNotificationCacheService();
     const onTheWay = {
       id: 'route-1',
-      type: 'PRESTATAIRE_EN_ROUTE',
+      type: 'PRESTATION_EN_COURS',
       createdAt: '2026-08-21T10:00:00.000Z',
       data: { reservationId: 'reservation-1', persistentUntilTerminal: true },
     };
@@ -47,7 +47,7 @@ describe('FeaturedNotificationCacheService', () => {
     expect(cache.read('user-1')).toBeNull();
   });
 
-  it('restores a persistent pharmacy delivery offer after navbar recreation', () => {
+  it('does not persist pharmacy delivery offers', () => {
     const cache = new FeaturedNotificationCacheService();
     const offer = {
       id: 'delivery-offer-1',
@@ -59,6 +59,6 @@ describe('FeaturedNotificationCacheService', () => {
 
     cache.sync('courier-1', [offer]);
 
-    expect(cache.read('courier-1')).toEqual(offer);
+    expect(cache.read('courier-1')).toBeNull();
   });
 });

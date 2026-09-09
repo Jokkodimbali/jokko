@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -50,22 +51,22 @@
   align-items: center;
   color: var(--accent);
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 7px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 .material-order__hero h1 {
   color: var(--ink);
-  font-size: clamp(30px, 4vw, 46px);
+  font-size: delivery-type.$title;
   letter-spacing: -0.045em;
   line-height: 1.05;
   margin: 10px 0 11px;
 }
 .material-order__hero p {
   color: var(--muted);
-  font-size: 14px;
+  font-size: delivery-type.$body;
   line-height: 1.65;
   margin: 0;
   max-width: 670px;
@@ -79,8 +80,8 @@
   color: #24794a;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 7px;
   padding: 9px 13px;
 }
@@ -144,15 +145,15 @@
 .material-order__meta small,
 .material-summary__customer small {
   color: #9299a4;
-  font-size: 9px;
-  font-weight: 750;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .material-order__meta strong,
 .material-summary__customer strong {
   color: #293446;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -208,21 +209,21 @@
 .material-sheet__header small,
 .material-summary > header small {
   color: #9a8068;
-  font-size: 8px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.09em;
 }
 .material-sheet h2,
 .material-summary h2 {
   color: var(--ink);
-  font-size: 18px;
+  font-size: delivery-type.$section;
   margin: 0;
 }
 .material-sheet__header > strong {
   background: #f5f2ee;
   border-radius: 999px;
   color: #74502e;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   padding: 7px 10px;
 }
 
@@ -258,8 +259,8 @@
   color: var(--accent);
   display: flex;
   flex: 0 0 34px;
-  font-size: 11px;
-  font-weight: 900;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   height: 34px;
   justify-content: center;
 }
@@ -271,12 +272,12 @@
 }
 .material-item__identity strong {
   color: #263244;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   overflow-wrap: anywhere;
 }
 .material-item__identity small {
   color: #8a929e;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
 }
 .material-item__editor {
   display: grid;
@@ -299,8 +300,8 @@
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 6px;
   justify-content: center;
   min-height: 34px;
@@ -327,8 +328,8 @@
 }
 .material-item__price > span {
   color: #737c89;
-  font-size: 10px;
-  font-weight: 750;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
 }
 .material-item__price > div {
   align-items: stretch;
@@ -349,8 +350,8 @@
   border: 0;
   color: #202b3b;
   font: inherit;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   min-width: 0;
   outline: 0;
   padding: 9px 10px;
@@ -362,7 +363,7 @@
   background: #f4f5f6;
   color: #697280;
   display: flex;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   padding: 0 10px;
 }
 .material-item__result {
@@ -376,8 +377,8 @@
   border-radius: 999px;
   color: #277b4b;
   display: inline-flex;
-  font-size: 10px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 5px;
   padding: 6px 9px;
 }
@@ -387,11 +388,11 @@
 }
 .material-item__result > strong {
   color: #263244;
-  font-size: 14px;
+  font-size: delivery-type.$body;
 }
 .material-item__result > small {
   color: #9097a2;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
 }
 
 .material-sheet__note {
@@ -402,12 +403,12 @@
 }
 .material-sheet__note > span {
   color: #5f6876;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
 }
 .material-sheet__note em {
   color: #a1a7b0;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   font-style: normal;
   font-weight: 600;
   margin-left: 5px;
@@ -417,7 +418,7 @@
   border-radius: 10px;
   box-sizing: border-box;
   font: inherit;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   outline: 0;
   padding: 11px 12px 20px;
@@ -431,7 +432,7 @@
 .material-sheet__note > small {
   bottom: 29px;
   color: #a0a6af;
-  font-size: 8px;
+  font-size: delivery-type.$caption;
   position: absolute;
   right: 32px;
 }
@@ -440,7 +441,7 @@
   background: #fafbfc;
   color: #8a929e;
   display: flex;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   gap: 7px;
   padding: 13px 22px;
 }
@@ -479,11 +480,11 @@
 }
 .material-summary__amounts span {
   color: #78818e;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
 }
 .material-summary__amounts strong {
   color: #313c4c;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   text-align: right;
   white-space: nowrap;
 }
@@ -494,11 +495,11 @@
 }
 .material-summary__total span {
   color: #253142;
-  font-weight: 800;
+  font-weight: 700;
 }
 .material-summary__total strong {
   color: var(--accent);
-  font-size: 18px;
+  font-size: delivery-type.$section;
 }
 .material-summary__note {
   background: #fff8ed;
@@ -508,13 +509,13 @@
 }
 .material-summary__note small {
   color: #a66a2c;
-  font-size: 8px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.07em;
 }
 .material-summary__note p {
   color: #73583f;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   margin: 5px 0 0;
 }
@@ -524,7 +525,7 @@
   border-radius: 10px;
   color: #397255;
   display: flex;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   gap: 7px;
   line-height: 1.45;
   margin: 0;
@@ -540,8 +541,8 @@
   border-radius: 10px;
   display: flex;
   font: inherit;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   justify-content: center;
   min-height: 46px;
   text-decoration: none;
@@ -647,10 +648,10 @@
     margin-bottom: 22px;
   }
   .material-order__hero h1 {
-    font-size: 30px;
+    font-size: delivery-type.$title;
   }
   .material-order__hero p {
-    font-size: 12px;
+    font-size: delivery-type.$caption;
   }
   .material-sheet__header {
     align-items: flex-start;
@@ -696,3 +697,5 @@
     display: none;
   }
 }
+
+@include delivery-type.page;

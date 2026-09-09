@@ -1,3 +1,4 @@
+import { reservationServiceNameFromNotes } from '../domain/reservation-service-name';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap } from 'rxjs';
@@ -58,7 +59,7 @@ export class AppointmentsService {
                         detail.profile.nomEntreprise ||
                         detail.profile.utilisateur.nom ||
                         'Prestataire non renseigne',
-                      specialty: service?.nom || 'Service non renseigne',
+                      specialty: detail.profile.subCategoryNames?.find((name) => name.trim()),
                       avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                       professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
                       professionalAddressLabel: this.firstNonEmpty(
@@ -109,7 +110,7 @@ export class AppointmentsService {
                   reservation.professionnel?.utilisateur.nom ||
                   reservation.professionnel?.nomEntreprise ||
                   '',
-                specialty: service?.nom || 'Service non renseigne',
+                specialty: detail.profile.subCategoryNames?.find((name) => name.trim()),
                 avatarUrl: detail.profile.utilisateur.urlAvatar || '',
                 professionalPhone: detail.profile.utilisateur.numeroTelephone || null,
                 professionalAddressLabel: this.firstNonEmpty(
@@ -480,7 +481,7 @@ export class AppointmentsService {
       reservation.professionnel?.utilisateur.nom,
     );
     const serviceName = this.firstNonEmpty(
-      this.requestedServiceNameFromNotes(reservation.notes),
+      reservationServiceNameFromNotes(reservation.notes),
       professional.serviceName,
       reservation.service?.nom,
     );
@@ -513,7 +514,11 @@ export class AppointmentsService {
       clientLatitude: reservation.clientLatitude ?? null,
       clientLongitude: reservation.clientLongitude ?? null,
       doctorName: professionalName || 'Prestataire non renseigne',
-      specialty: professional.specialty || serviceName || 'Service non renseigne',
+      specialty: this.firstNonEmpty(
+        this.validProfessionalSubCategoryName(professional.professionalSubCategoryName, reservation),
+        this.professionalSubCategoryName(reservation),
+        this.validProfessionalSubCategoryName(professional.specialty, reservation),
+      ) || 'Spécialité non renseignée',
       avatarUrl: publicAssetUrl(avatarUrl) || '',
       professionalPhone:
         professional.professionalPhone ??
@@ -572,11 +577,6 @@ export class AppointmentsService {
     return status === 'EN_ATTENTE' ? 'CONFIRMEE' : status;
   }
 
-  private requestedServiceNameFromNotes(notes: string | null | undefined): string | null {
-    const match = notes?.match(/(?:^|\s)Motif reserve:\s*(.+?)\.\s*(?:Reservation creee|$)/i);
-    return match?.[1]?.trim().replace(/\s+/g, ' ') || null;
-  }
-
   private isDone(status: AppointmentView['status']): boolean {
     return status === 'TERMINEE' || status === 'ANNULEE' || status === 'NO_SHOW';
   }
@@ -613,7 +613,7 @@ export class AppointmentsService {
         reservation.professionnel.nomEntreprise ||
         reservation.professionnel.utilisateur.nom ||
         'Prestataire non renseigne',
-      specialty: reservation.service.nom,
+      specialty: this.professionalSubCategoryName(reservation) ?? undefined,
       avatarUrl: reservation.professionnel.utilisateur.urlAvatar || '',
       professionalPhone: reservation.professionnel.utilisateur.numeroTelephone || null,
       professionalAddressLabel: reservation.professionnel.ville || null,

@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 .pharmacy-review__medicine-editor {
   border: 1px solid #e4e6e9;
   border-radius: 12px;
@@ -20,18 +21,18 @@
 
 .pharmacy-review__medicine-editor > header strong {
   color: #263244;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__medicine-editor > header > strong {
   color: #955b22;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   white-space: nowrap;
 }
 
 .pharmacy-review__medicine-editor > header small {
   color: #8d949f;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__medicine-editor > article {
@@ -61,14 +62,14 @@
   color: #955b22;
   display: flex;
   flex: 0 0 25px;
-  font-size: 10px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   height: 25px;
   justify-content: center;
 }
 
 .pharmacy-review__medicine-name strong {
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   overflow-wrap: anywhere;
 }
 
@@ -77,8 +78,8 @@
   color: #308950;
   cursor: pointer;
   display: flex;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 6px;
 }
 
@@ -102,7 +103,7 @@
 
 .pharmacy-review__item-price > span {
   color: #7d8591;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__item-price > div {
@@ -116,7 +117,7 @@
 .pharmacy-review__item-price input {
   border: 0;
   font: inherit;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   min-height: 34px;
   outline: 0;
   padding: 7px 9px;
@@ -126,7 +127,7 @@
 .pharmacy-review__item-price strong {
   background: #f5f6f7;
   color: #596273;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   padding: 12px 9px;
 }
 
@@ -134,7 +135,7 @@
   align-items: center;
   color: #b42318;
   display: flex;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   gap: 6px;
   grid-column: 1 / -1;
   margin: 0;
@@ -153,7 +154,7 @@
 
 .prescription-card__price {
   color: #237a45;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   margin-left: auto;
   white-space: nowrap;
 }
@@ -162,9 +163,9 @@
   background: #feeceb;
   border-radius: 999px;
   color: #b42318;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   margin-left: auto;
   padding: 5px 8px;
   white-space: nowrap;
@@ -223,12 +224,12 @@
 
 .accepted-panel__partial-summary strong {
   color: #754216;
-  font-size: 13px;
+  font-size: delivery-type.$body;
 }
 
 .accepted-panel__partial-summary span {
   color: #85694e;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.4;
 }
 .pharmacy-order__pickup-ready {
@@ -251,15 +252,15 @@
 }
 
 .pharmacy-order__pickup-ready > span {
-  font-size: 11px;
-  font-weight: 900;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.11em;
   margin-top: 14px;
 }
 
 .pharmacy-order__pickup-ready h1 {
   color: #1b2636;
-  font-size: clamp(24px, 3vw, 36px);
+  font-size: delivery-type.$title;
   margin: 10px 0;
 }
 

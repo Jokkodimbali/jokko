@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
   grid-column: 1 / -1;
@@ -43,7 +44,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   gap: 8px;
   left: 10px;
@@ -122,7 +123,7 @@
   border-radius: 50%;
   color: #955d24;
   display: inline-flex;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   font-weight: 600;
   height: 40px;
   justify-content: center;
@@ -137,7 +138,7 @@
 
 .appointment-tracking-stepper__step strong {
   color: #955d24;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   font-family: var(--font-app);
   font-weight: 500;
   letter-spacing: 0;
@@ -155,7 +156,7 @@
   background: #955d24;
   border: 1.5px solid #955d24;
   color: #ffffff;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   height: 40px;
   margin-top: 4px;
   width: 40px;
@@ -209,7 +210,7 @@
     background: #f2f4f7;
     border: 0;
     color: #96a0b0;
-    font-size: 16px;
+    font-size: delivery-type.$emphasis;
     height: 40px;
     margin-top: 0;
     width: 40px;
@@ -229,7 +230,7 @@
 
   .appointment-tracking-stepper__step strong {
     color: #8e99aa;
-    font-size: 14px;
+    font-size: delivery-type.$body;
   }
 
   .appointment-tracking-stepper__step.is-done strong,
@@ -301,7 +302,7 @@
 
   .appointment-tracking-stepper__step span,
   .appointment-tracking-stepper__step.is-active span {
-    font-size: 11px;
+    font-size: delivery-type.$caption;
     height: 34px;
     margin-top: 0;
     width: 34px;

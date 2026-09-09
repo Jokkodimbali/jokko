@@ -1931,7 +1931,9 @@
   font-weight: 600;
   line-height: 16px;
 }
-.app-navbar__notification-heading lucide-icon { flex: 0 0 14px; }
+.app-navbar__notification-heading lucide-icon {
+  flex: 0 0 14px;
+}
 .app-navbar__notification-heading span {
   min-width: 0;
   overflow: hidden;
@@ -1949,37 +1951,76 @@
   width: 44px;
   height: 44px;
 }
-.app-navbar__notification-item > span { min-width: 0; }
+.app-navbar__notification-item > span {
+  min-width: 0;
+}
 .app-navbar__notification-item .app-navbar__notification-heading {
   display: flex;
   gap: 5px;
   color: #865221;
 }
 @media (min-width: 1024px) {
-  .app-navbar { grid-template-columns: 136px minmax(0, 1fr) minmax(0, 40%); gap: 10px; padding-right: 20px; }
-  .app-navbar__actions { min-width: 0; justify-content: flex-end; }
-  .app-navbar__notification-menu { min-width: 0; flex: 1 1 340px; display: flex; justify-content: flex-end; }
-  .app-navbar__notification.app-navbar__notification--featured { width: 100%; max-width: 400px; }
-  .app-navbar__profile { min-width: 0; max-width: 150px; flex: 0 1 150px; }
-  .app-navbar__profile strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .app-navbar__nav-item { padding-inline: 7px; }
+  .app-navbar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    padding-right: 20px;
+  }
+  .app-navbar__nav {
+    justify-content: center;
+    min-width: 0;
+  }
+  .app-navbar__actions {
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .app-navbar__notification-menu {
+    flex: 0 0 48px;
+    width: 48px;
+    position: relative;
+  }
+  .app-navbar__notification.app-navbar__notification--featured {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: min(360px, calc(100vw - 300px));
+    max-width: none;
+    z-index: 2;
+  }
+  .app-navbar__profile {
+    max-width: 270px;
+    flex: 0 1 auto;
+  }
+  .app-navbar__nav-item {
+    padding-inline: 7px;
+  }
 }
 @media (min-width: 768px) and (max-width: 1023px) {
-  .app-navbar__notification--mobile.app-navbar__notification--featured { width: min(400px, 65vw); max-width: 100%; }
+  .app-navbar__notification--mobile.app-navbar__notification--featured {
+    width: min(400px, 65vw);
+    max-width: 100%;
+  }
 }
 @media (max-width: 767px) {
-  .app-navbar--notification-featured .app-navbar__notification--mobile.app-navbar__notification--featured {
-    width: auto; max-width: none; left: 10px; right: 10px; height: 58px; bottom: 16px;
+  .app-navbar--notification-featured
+    .app-navbar__notification--mobile.app-navbar__notification--featured {
+    width: auto;
+    max-width: none;
+    left: 10px;
+    right: 10px;
+    height: 58px;
+    bottom: 16px;
   }
-  .app-navbar--notification-featured .app-navbar__notification-copy small { font-size: 12px; }
-  .app-navbar--notification-featured .app-navbar__notification-copy strong { font-size: 12px; }
+  .app-navbar--notification-featured .app-navbar__notification-copy small {
+    font-size: 12px;
+  }
+  .app-navbar--notification-featured .app-navbar__notification-copy strong {
+    font-size: 12px;
+  }
   .app-navbar--notification-featured .app-navbar__notification-avatar,
-  .app-navbar--notification-featured .app-navbar__notification-bell { width: 40px; height: 40px; }
-}
-
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .app-navbar--notification-featured .app-navbar__nav-item > span { display: none; }
-  .app-navbar--notification-featured .app-navbar__nav { min-width: 0; gap: 5px; }
+  .app-navbar--notification-featured .app-navbar__notification-bell {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 .app-navbar__notification-item .app-navbar__notification-item-avatar {
@@ -2009,16 +2050,39 @@
   animation: notification-dismiss 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes notification-reveal {
-  from { opacity: 0; clip-path: inset(0 0 0 85% round 999px); transform: translateX(8px); }
-  to { opacity: 1; clip-path: inset(0 0 0 0 round 999px); transform: translateX(0); }
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 0 85% round 999px);
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 999px);
+    transform: translateX(0);
+  }
 }
 @keyframes notification-dismiss {
-  from { opacity: 1; clip-path: inset(0 0 0 0 round 999px); transform: translateX(0); }
-  to { opacity: 0; clip-path: inset(0 0 0 85% round 999px); transform: translateX(8px); }
+  from {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 999px);
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    clip-path: inset(0 0 0 85% round 999px);
+    transform: translateX(8px);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-navbar__notification.app-navbar__notification--featured.app-navbar__notification--entering,
   .app-navbar__notification.app-navbar__notification--featured.app-navbar__notification--leaving {
     animation: none;
   }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .app-navbar__nav { gap: 4px; }
+  .app-navbar__nav-item { gap: 5px; padding-inline: 5px; font-size: 12px; }
+  .app-navbar__profile { padding: 5px 10px 5px 5px; }
+  .app-navbar__notification { padding: 0; width: 52px; }
 }

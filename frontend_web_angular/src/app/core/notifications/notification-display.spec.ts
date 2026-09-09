@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationDisplay, NOTIFICATION_DISPLAY_MS, NOTIFICATION_TRANSITION_MS } from './notification-display';
+import {
+  AnimatedNotificationDisplay,
+  NotificationDisplay,
+  NOTIFICATION_DISPLAY_MS,
+  NOTIFICATION_TRANSITION_MS,
+} from './notification-display';
 
 const message = { id: 'message', type: 'NOUVEAU_MESSAGE' };
 describe('animated notifications', () => {
@@ -58,4 +63,46 @@ describe('animated notifications', () => {
     vi.advanceTimersByTime(60_000);
     expect(dismiss).not.toHaveBeenCalled();
   });
+});
+
+describe('persistent delivery animation', () => {
+  it('keeps the offer mounted during resolution and retains the latest queued offer', () => {
+    vi.useFakeTimers();
+    const display = new AnimatedNotificationDisplay<{ id: string }>(
+      () => {},
+      () => true,
+    );
+    try {
+      display.update({ id: 'first' });
+      vi.advanceTimersByTime(60_000);
+      expect(display.notification()?.id).toBe('first');
+      display.update(null);
+      expect(display.phase()).toBe('leaving');
+      expect(display.notification()?.id).toBe('first');
+      display.update({ id: 'next' });
+      vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+      expect(display.notification()?.id).toBe('next');
+      expect(display.phase()).toBe('entering');
+    } finally {
+      display.destroy();
+      vi.useRealTimers();
+    }
+  });
+});
+
+
+it('does not expire an arrival notification after fifteen seconds', () => {
+  vi.useFakeTimers();
+  const dismiss = vi.fn();
+  const display = new NotificationDisplay(dismiss);
+  try {
+    display.update({ id: 'arrival', type: 'PRESTATAIRE_EN_ROUTE', data: { tripStatus: 'SUR_PLACE', reservationId: 'r1' } });
+    vi.advanceTimersByTime(120_000);
+    expect(display.notification()?.id).toBe('arrival');
+    expect(dismiss).not.toHaveBeenCalled();
+    display.update(null);
+    expect(display.phase()).toBe('leaving');
+    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    expect(display.notification()).toBeNull();
+  } finally { display.destroy(); vi.useRealTimers(); }
 });

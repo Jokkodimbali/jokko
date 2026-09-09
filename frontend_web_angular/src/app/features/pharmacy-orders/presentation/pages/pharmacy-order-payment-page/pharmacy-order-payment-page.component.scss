@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -60,12 +61,12 @@
 }
 
 .payment-prescription > header strong {
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
 }
 
 .payment-prescription > header small {
   color: #8b929d;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -75,9 +76,9 @@
   border-radius: 999px;
   color: #308950;
   display: flex;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   gap: 3px;
   padding: 6px 9px;
 }
@@ -91,13 +92,13 @@
 
 .payment-prescription__prescriber small {
   color: #9197a2;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.08em;
 }
 
 .payment-prescription__prescriber strong {
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   margin-top: 6px;
 }
 
@@ -144,12 +145,12 @@
 }
 
 .payment-prescription__items strong {
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .payment-prescription__items small {
   color: #9299a4;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -163,9 +164,9 @@
   background: #feeceb;
   border-radius: 999px;
   color: #b42318;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   margin-left: auto;
   padding: 5px 8px;
   white-space: nowrap;
@@ -173,7 +174,7 @@
 
 .payment-prescription__empty {
   color: #858d98;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   padding: 22px 0;
 }
@@ -190,18 +191,18 @@
 
 .payment-prescription footer span {
   color: #9299a3;
-  font-size: 8px;
+  font-size: delivery-type.$caption;
 }
 
 .payment-prescription footer strong {
   color: #253041;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   white-space: nowrap;
 }
 
 .pharmacy-payment__methods h1 {
   color: #172131;
-  font-size: clamp(22px, 3.25vw, 38px);
+  font-size: delivery-type.$title;
   letter-spacing: -0.035em;
   line-height: 1.08;
   margin: 0 0 12px;
@@ -210,7 +211,7 @@
 
 .pharmacy-payment__methods > p {
   color: #7b8390;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   line-height: 1.55;
   margin: 0 0 23px;
 }
@@ -260,20 +261,20 @@
 
 .pharmacy-payment__delivery-option strong {
   color: #263142;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-payment__delivery-option small,
 .pharmacy-payment__delivery-option > p {
   color: #7d8693;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-payment__delivery-option em {
   color: #955b22;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -322,12 +323,12 @@
 
 .pharmacy-payment__options strong {
   color: #263142;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-payment__options small {
   color: #8a929d;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 2px;
 }
 
@@ -358,13 +359,13 @@
 .pharmacy-payment__total span {
   color: #737b87;
   display: grid;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   gap: 2px;
 }
 
 .pharmacy-payment__total span small {
   color: #9198a2;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-payment__total strong {
@@ -380,8 +381,8 @@
   color: #fff;
   cursor: pointer;
   display: flex;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 7px;
   justify-content: center;
   min-height: 48px;
@@ -397,7 +398,7 @@
   align-items: center;
   color: #858d98;
   display: flex;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   gap: 5px;
   justify-content: center;
   margin-top: 9px;
@@ -469,3 +470,5 @@
     margin-left: 47px;
   }
 }
+
+@include delivery-type.page;

@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -17,7 +18,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-weight: 750;
+  font-weight: 700;
   gap: 8px;
   padding: 8px 0;
 }
@@ -28,13 +29,13 @@
 }
 .hardware-selection__heading span {
   color: #996126;
-  font-size: 12px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   text-transform: uppercase;
 }
 .hardware-selection__heading h1 {
   color: #151b27;
-  font-size: clamp(30px, 4vw, 46px);
+  font-size: delivery-type.$title;
   margin: 8px 0;
 }
 .hardware-selection__heading p {
@@ -104,7 +105,7 @@
   background: #f5f2ee;
   border-radius: 99px;
   color: #7b4a20;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-style: normal;
   padding: 6px 9px;
   white-space: nowrap;
@@ -119,7 +120,7 @@
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   justify-content: center;
   margin-top: 6px;
   min-height: 50px;
@@ -150,7 +151,7 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  font-family: Inter, Arial, sans-serif;
+  font-family: var(--font-app);
   margin: 0;
   overflow: visible;
   padding: 0;
@@ -195,8 +196,8 @@
   border-radius: 999px;
   box-shadow: 0 2px 5px rgba(16, 24, 40, 0.2);
   color: #fff;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   line-height: 1.15;
   margin-top: -4px;
   max-width: 170px;
@@ -221,10 +222,12 @@
     padding: 16px 12px 40px;
   }
   .hardware-selection__heading h1 {
-    font-size: 30px;
+    font-size: delivery-type.$title;
   }
   .hardware-selection__map {
     border-radius: 17px;
     min-height: 440px;
   }
 }
+
+@include delivery-type.page;

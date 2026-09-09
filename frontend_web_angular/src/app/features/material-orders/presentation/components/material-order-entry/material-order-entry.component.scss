@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -29,12 +30,12 @@
 }
 .material-entry h3 {
   color: #292018;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   margin: 0 0 4px;
 }
 .material-entry p {
   color: #786d62;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.45;
   margin: 0;
 }
@@ -44,8 +45,8 @@
   border-radius: 10px;
   color: #fff;
   display: flex;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   justify-content: space-between;
   min-height: 44px;
   padding: 0 14px;
@@ -56,3 +57,5 @@
     padding: 13px;
   }
 }
+
+@include delivery-type.page;

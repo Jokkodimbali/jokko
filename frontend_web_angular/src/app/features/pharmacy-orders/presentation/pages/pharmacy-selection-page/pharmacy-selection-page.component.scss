@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host { display: block; }
 
 .pharmacy-selection {
@@ -34,8 +35,8 @@
 .pharmacy-selection__panel h1 {
   color: #131a27;
   font-family: var(--font-app);
-  font-size: clamp(28px, 3vw, 38px);
-  font-weight: 800;
+  font-size: delivery-type.$title;
+  font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 0.94;
   margin: 0 0 12px;
@@ -43,7 +44,7 @@
 
 .pharmacy-selection__panel header p {
   color: #7f8794;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.45;
   margin: 0;
   max-width: 390px;
@@ -86,8 +87,8 @@
   white-space: nowrap;
 }
 
-.pharmacy-selection__item-copy strong { font-size: 12px; }
-.pharmacy-selection__item-copy small { color: #87909d; font-size: 10px; }
+.pharmacy-selection__item-copy strong { font-size: delivery-type.$caption; }
+.pharmacy-selection__item-copy small { color: #87909d; font-size: delivery-type.$caption; }
 
 .pharmacy-selection__rating {
   color: #b87416;
@@ -99,7 +100,7 @@
   background: #f5f6f8;
   border-radius: 999px;
   color: #747d8b;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   padding: 6px 9px;
   white-space: nowrap;
 }
@@ -114,7 +115,7 @@
   color: #ffffff;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 700;
   margin-top: 16px;
   min-height: 46px;
@@ -127,7 +128,7 @@
 .pharmacy-selection__status,
 .pharmacy-selection__error {
   border-radius: 12px;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   margin: 12px 0;
   padding: 14px;
 }
@@ -160,5 +161,7 @@
     border-radius: 18px;
     min-height: clamp(460px, 64dvh, 560px);
   }
-  .pharmacy-selection__panel h1 { font-size: 28px; line-height: 1; }
+  .pharmacy-selection__panel h1 { font-size: delivery-type.$title; line-height: 1; }
 }
+
+@include delivery-type.page;

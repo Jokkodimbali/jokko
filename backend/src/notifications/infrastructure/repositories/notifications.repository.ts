@@ -126,13 +126,16 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
         AND (n.data->>'persistentDeliveryOffer' = 'true' OR n.data->>'route' LIKE '%/delivery-offer')
         AND COALESCE(n.data->>'deliveryOfferDeclined', 'false') <> 'true'
         AND COALESCE(n.data->>'deliveryOfferResolved', 'false') <> 'true'
-        AND ((po.status::text = 'EN_ATTENTE_TRANSPORTEUR' AND po.delivery_requested = true AND po.delivery_reservation_id IS NULL)
-          OR (mo.status::text = 'EN_ATTENTE_TRANSPORTEUR' AND mo.delivery_requested = true AND mo.delivery_reservation_id IS NULL))
+        AND ((po.statut::text = 'EN_ATTENTE_TRANSPORTEUR' AND po.delivery_requested = true AND po.delivery_booking_id IS NULL)
+          OR (mo.statut::text = 'EN_ATTENTE_TRANSPORTEUR' AND mo.delivery_requested = true AND mo.delivery_booking_id IS NULL))
       ORDER BY n.created_at DESC, n.id DESC LIMIT 50
     `);
   }
 
-  async declineDeliveryOffer(userId: string, notificationId: string): Promise<boolean> {
+  async declineDeliveryOffer(
+    userId: string,
+    notificationId: string,
+  ): Promise<boolean> {
     const count = await this.prisma.$executeRaw(Prisma.sql`
       UPDATE notifications SET data = COALESCE(data, '{}'::jsonb) || '{"deliveryOfferDeclined":true}'::jsonb,
         is_read = true
@@ -142,15 +145,20 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     return count > 0;
   }
 
-  async resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<Array<{ userId: string }>>(Prisma.sql`
+  async resolveDeliveryOffers(
+    orderKey: 'pharmacyOrderId' | 'materialOrderId',
+    orderId: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<
+      Array<{ userId: string }>
+    >(Prisma.sql`
       UPDATE notifications SET data = COALESCE(data, '{}'::jsonb) || '{"deliveryOfferResolved":true}'::jsonb,
         is_read = true
       WHERE data->>${orderKey} = ${orderId}
         AND (data->>'persistentDeliveryOffer' = 'true' OR data->>'route' LIKE '%/delivery-offer')
       RETURNING user_id AS "userId"
     `);
-    return [...new Set(rows.map(row => row.userId))];
+    return [...new Set(rows.map((row) => row.userId))];
   }
 
   async listByUser(

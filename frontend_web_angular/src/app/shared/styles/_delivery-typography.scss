@@ -1,0 +1,16 @@
+// Shared type scale for ordering, delivery and parcel components.
+$caption: 12px;
+$body: 14px;
+$emphasis: 16px;
+$section: 18px;
+$title: clamp(28px, 3vw, 38px);
+
+@mixin page {
+  :host {
+    font-family: var(--font-app);
+    font-size: $body;
+    line-height: 1.5;
+  }
+  button, input, select, textarea { font-family: inherit; }
+  h1, h2, h3, p, label { overflow-wrap: anywhere; }
+}

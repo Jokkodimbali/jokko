@@ -1,3 +1,4 @@
+import { DeliveryOfferCardComponent } from './features/delivery-offers/delivery-offer-card.component';
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
@@ -20,6 +21,7 @@ import { MessagesRealtimeService } from './features/messages/data-access/message
     RouterOutlet,
     LucideAngularModule,
     CallOverlayComponent,
+    DeliveryOfferCardComponent,
     AppNavbarComponent,
   ],
   templateUrl: './app.html',

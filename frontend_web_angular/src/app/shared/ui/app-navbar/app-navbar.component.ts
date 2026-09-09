@@ -1,3 +1,4 @@
+import { NotificationAnchorDirective, NotificationAnchorService } from '../notification-anchor.directive';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -58,12 +59,10 @@ interface AppInfoNavItem {
   fragment?: string;
 }
 
-
-
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink, LucideAngularModule, NotificationAnchorDirective],
   templateUrl: './app-navbar.component.html',
   styleUrl: './app-navbar.component.scss',
 })
@@ -77,6 +76,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly authSession = inject(AuthSessionService);
   private readonly authService = inject(AuthService);
   private readonly feedback = inject(AppFeedbackService);
+  protected readonly deliveryNotificationVisible = inject(NotificationAnchorService).occupied;
   private readonly notificationsService = inject(NotificationsService);
   private readonly featuredNotificationCache = inject(FeaturedNotificationCacheService);
   private readonly appointmentsService = inject(AppointmentsService);
@@ -105,8 +105,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly dismissedTerminalNotificationIds = signal<ReadonlySet<string>>(new Set());
   private readonly nextFeaturedNotification = computed(() => {
     const dismissed = this.dismissedTerminalNotificationIds();
-    return findFeaturedNotification(this.notificationHistory(), (id) =>
-      dismissed.has(id) || this.featuredNotificationCache.isTransientDismissed(id));
+    return findFeaturedNotification(
+      this.notificationHistory(),
+      (id) => dismissed.has(id) || this.featuredNotificationCache.isTransientDismissed(id),
+    );
   });
   private readonly notificationDisplay = new NotificationDisplay((id) => {
     this.featuredNotificationCache.dismissTransient(id);
@@ -382,9 +384,16 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         const markRead = (items: UserNotificationView[]) =>
           items.map((item) =>
             item.id === notification.id
-              ? { ...item, ...updated,
-                  data: { ...(item.data || item.donnees || {}), ...(updated.data || updated.donnees || {}) },
-                  isRead: true, estLue: true }
+              ? {
+                  ...item,
+                  ...updated,
+                  data: {
+                    ...(item.data || item.donnees || {}),
+                    ...(updated.data || updated.donnees || {}),
+                  },
+                  isRead: true,
+                  estLue: true,
+                }
               : item,
           );
         this.notificationPreview.update(markRead);

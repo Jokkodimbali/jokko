@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
   margin-top: 14px;
@@ -34,13 +35,13 @@
 }
 .pickup-qr small {
   color: #965c23;
-  font-size: 10px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.08em;
 }
 .pickup-qr h3 {
   color: #172433;
-  font-size: 16px;
+  font-size: delivery-type.$emphasis;
   margin: 2px 0 0;
 }
 .pickup-qr__image {
@@ -64,7 +65,7 @@
 .pickup-qr__image p,
 .pickup-qr > p {
   color: #526273;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   margin: 0;
 }
@@ -88,7 +89,7 @@
 }
 .pickup-qr__manual-code span {
   color: #667085;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
 }
 
 .pickup-qr__download {
@@ -100,8 +101,8 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 7px;
   justify-content: center;
   margin: 0 0 11px;
@@ -120,7 +121,7 @@
   align-items: center;
   color: #14713c;
   display: inline-flex;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   gap: 6px;
   margin-top: 9px;
 }
@@ -148,3 +149,5 @@
     width: min(180px, 58vw);
   }
 }
+
+@include delivery-type.page;

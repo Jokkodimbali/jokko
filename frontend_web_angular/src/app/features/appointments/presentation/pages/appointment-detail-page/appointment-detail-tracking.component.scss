@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 .appointment-detail__route-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 334px;
@@ -122,7 +123,7 @@
   border-radius: 999px;
   color: #11803c;
   display: inline-flex;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 850;
   gap: 8px;
   min-height: 28px;
@@ -201,7 +202,7 @@
 
 .appointment-detail__work-info p {
   color: #8b95a5;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 650;
   margin: 0;
 }
@@ -218,7 +219,7 @@
   border-radius: 7px;
   color: #05070b;
   display: grid;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   gap: 10px;
   min-height: 57px;
@@ -229,7 +230,7 @@
   align-items: center;
   color: #929daa;
   display: inline-flex;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   font-weight: 900;
   gap: 7px;
 }
@@ -378,7 +379,7 @@
 
 .appointment-detail__provider-console-ready p {
   color: #9da4b3;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0.32em;
   margin: 0 0 18px;
@@ -398,7 +399,7 @@
 .appointment-detail__provider-console-done p {
   color: #7f8793;
   display: block;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 500;
   line-height: 1.5;
   margin-top: 20px;
@@ -416,7 +417,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 950;
   gap: 10px;
   justify-content: center;
@@ -497,7 +498,7 @@
   align-items: center;
   color: #98a2b3;
   display: inline-flex;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   gap: 8px;
   letter-spacing: 0.13em;
@@ -523,7 +524,7 @@
 
 .appointment-detail__medical-head p {
   color: #667085;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   font-weight: 650;
   line-height: 1.5;
   margin: 0;
@@ -537,7 +538,7 @@
   color: #865221;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 950;
   gap: 8px;
   padding: 9px 13px;
@@ -575,7 +576,7 @@
 
 .appointment-detail__medical-card-head h3 {
   color: #111827;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 950;
   margin: 0;
 }
@@ -583,7 +584,7 @@
 .appointment-detail__medical-card-head small {
   color: #98a2b3;
   display: block;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 750;
   margin-top: 2px;
 }
@@ -600,7 +601,7 @@
   border-radius: 12px;
   color: #111827;
   font: inherit;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   min-height: 42px;
   min-width: 0;
@@ -637,7 +638,7 @@
   border-radius: 999px;
   color: #865221;
   cursor: pointer;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 850;
   padding: 7px 10px;
   text-align: left;
@@ -658,7 +659,7 @@
   border-radius: 12px;
   color: #111827;
   display: grid;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 800;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) 32px;
@@ -699,7 +700,7 @@
   border-radius: 13px;
   cursor: pointer;
   display: inline-flex;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   gap: 8px;
   justify-content: center;
@@ -806,7 +807,7 @@
 .appointment-detail__prescription-top span {
   color: #728096;
   display: block;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   line-height: 1.45;
   margin: 0;
@@ -815,7 +816,7 @@
 .appointment-detail__prescription-top strong {
   color: #9aa5b5;
   display: block;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -829,7 +830,7 @@
 .appointment-detail__prescription-patient small,
 .appointment-detail__prescription-section h4 {
   color: #9b6429;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -872,7 +873,7 @@
 
 .appointment-detail__prescription-patient strong {
   color: #111827;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 950;
   margin-top: 7px;
 }
@@ -881,7 +882,7 @@
 .appointment-detail__prescription-patient em {
   color: #728096;
   display: block;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-style: normal;
   font-weight: 700;
   line-height: 1.4;
@@ -917,7 +918,7 @@
   border-radius: 13px;
   color: #445066;
   display: grid;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   gap: 16px;
   grid-template-columns: 30px minmax(0, 1fr);
@@ -967,7 +968,7 @@
 .appointment-detail__prescription-section li em {
   color: #7d8796;
   display: block;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-style: normal;
   font-weight: 700;
   margin-top: 4px;
@@ -978,7 +979,7 @@
   border: 1px solid #e3edf6;
   border-radius: 13px;
   color: #8b95a5;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   margin: 0;
   padding: 14px 18px;
@@ -999,7 +1000,7 @@
 .appointment-detail__prescription-sheet footer p,
 .appointment-detail__prescription-sheet footer small {
   color: #98a2b3;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 700;
   line-height: 1.5;
   margin: 0 0 8px;
@@ -1011,7 +1012,7 @@
   border-radius: 8px;
   color: #c7cfd9;
   display: flex;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 900;
   height: 52px;
   justify-content: center;
@@ -1037,7 +1038,7 @@
 .appointment-detail__prescription-sheet footer b {
   color: #9b6429;
   display: block;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
 }
 
@@ -1093,7 +1094,7 @@
 
 .appointment-detail__client-tracking-confirmed p {
   color: #9da4b3;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0.24em;
   margin: 0 0 12px;
@@ -1113,7 +1114,7 @@
   align-items: center;
   color: #666f7b;
   display: inline-flex;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 850;
   gap: 8px;
   margin-top: 34px;
@@ -1133,7 +1134,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   font-weight: 600;
   gap: 9px;
   justify-content: center;
@@ -1174,7 +1175,7 @@
 .appointment-detail__client-tracking-work p,
 .appointment-detail__client-tracking-complete p {
   color: #818895;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 500;
   line-height: 1.5;
   margin: 0;
@@ -1254,7 +1255,7 @@
   border-radius: 999px;
   color: #955d24;
   display: inline-flex;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 850;
   gap: 8px;
   min-height: 30px;
@@ -1270,7 +1271,7 @@
 
 .appointment-detail__route-status em {
   color: #111827;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-style: normal;
   font-weight: 800;
 }
@@ -1293,7 +1294,7 @@
 
 .appointment-detail__route-status strong {
   color: #111827;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 900;
 }
 
@@ -1306,7 +1307,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-weight: 750;
   gap: 7px;
   min-height: 34px;
@@ -1355,7 +1356,7 @@
 
 .appointment-detail__client-route-status-card small {
   color: #b39b88;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0.04em;
 }
@@ -1370,7 +1371,7 @@
 
 .appointment-detail__client-route-status-card p {
   color: #7f8793;
-  font-size: 14px;
+  font-size: delivery-type.$body;
   font-weight: 700;
   line-height: 1.45;
   margin: 0;
@@ -1383,7 +1384,7 @@
   border-radius: 50%;
   color: #0aa768;
   display: inline-flex;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   font-weight: 900;
   height: 40px;
   justify-content: center;
@@ -1414,7 +1415,7 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
   color: #111827;
   display: inline-flex;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   font-style: normal;
   font-weight: 850;
   gap: 8px;
@@ -1455,7 +1456,7 @@
   border-radius: 999px;
   color: #ffffff;
   display: inline-flex;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   gap: 7px;
   left: 8px;
@@ -1483,7 +1484,7 @@
   box-shadow: 0 8px 24px rgba(30, 45, 62, 0.16);
   color: #955d24;
   display: inline-flex;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 850;
   gap: 7px;
   padding: 8px 11px;
@@ -1572,14 +1573,14 @@
 
 .appointment-detail__navigation-guidance small {
   color: rgba(255, 255, 255, 0.78);
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   text-transform: uppercase;
 }
 
 .appointment-detail__navigation-guidance strong {
   display: block;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   font-weight: 950;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -1597,7 +1598,7 @@
 }
 
 .appointment-detail__navigation-up-next span {
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -1605,7 +1606,7 @@
 
 .appointment-detail__navigation-up-next b {
   color: #ffffff;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   font-weight: 950;
   line-height: 1;
   white-space: nowrap;

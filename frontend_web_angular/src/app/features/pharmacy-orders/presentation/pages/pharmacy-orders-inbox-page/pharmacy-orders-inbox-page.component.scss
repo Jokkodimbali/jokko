@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -29,14 +30,14 @@
 
 .pharmacy-inbox__header > div > span {
   color: #955b22;
-  font-size: 11px;
-  font-weight: 900;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 
 .pharmacy-inbox__header h1 {
   color: #182233;
-  font-size: clamp(31px, 4vw, 45px);
+  font-size: delivery-type.$title;
   letter-spacing: -0.04em;
   margin: 7px 0;
 }
@@ -55,7 +56,7 @@
   color: #89531f;
   cursor: pointer;
   display: flex;
-  font-weight: 800;
+  font-weight: 700;
   gap: 7px;
   padding: 11px 14px;
 }
@@ -73,8 +74,8 @@
   border-bottom: 3px solid transparent;
   color: #7f8792;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: delivery-type.$body;
+  font-weight: 700;
   padding: 12px 2px;
 }
 
@@ -135,20 +136,20 @@
 
 .pharmacy-inbox__copy h2 {
   color: #222d3d;
-  font-size: 15px;
+  font-size: delivery-type.$emphasis;
   margin: 5px 0 3px;
 }
 
 .pharmacy-inbox__copy p {
   color: #858d98;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   margin: 0;
 }
 
 .pharmacy-inbox__status {
   color: #4f8b5c;
-  font-size: 9px;
-  font-weight: 900;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -159,7 +160,7 @@
 
 .pharmacy-inbox__card > strong {
   color: #293444;
-  font-size: 13px;
+  font-size: delivery-type.$body;
 }
 
 .pharmacy-inbox__state {
@@ -227,3 +228,5 @@
     padding: 28px 16px 96px;
   }
 }
+
+@include delivery-type.page;

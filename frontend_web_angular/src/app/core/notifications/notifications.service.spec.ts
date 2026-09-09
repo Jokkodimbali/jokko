@@ -67,3 +67,23 @@ describe('shared notification presentation', () => {
     expect(findFeaturedNotification(items, id => id === latest.id)).toBeNull();
   });
 });
+
+
+describe('arrival persistence', () => {
+  const arrived: UserNotificationView = {
+    id: 'arrival', type: 'PRESTATAIRE_EN_ROUTE', isRead: true,
+    createdAt: '2026-09-08T09:00:00Z',
+    data: { reservationId: 'r1', tripStatus: 'SUR_PLACE', actorName: 'Mamadou' },
+  };
+  it('keeps the arrival visible without changing its wording or icon', () => {
+    expect(findFeaturedNotification([arrived], () => true)).toBe(arrived);
+    expect(formatNotificationTitle(arrived)).toBe('Mamadou est sur place');
+    expect(notificationIcon(arrived)).toBe('pin');
+  });
+  it('replaces arrival with active work and clears both when the service finishes', () => {
+    expect(findFeaturedNotification([arrived, ongoing])).toBe(ongoing);
+    const end = { id: 'end', type: 'RESERVATION_FINALISEE', isRead: true,
+      createdAt: '2026-09-08T11:00:00Z', data: { reservationId: 'r1' } };
+    expect(findFeaturedNotification([arrived, ongoing, end])).toBeNull();
+  });
+});

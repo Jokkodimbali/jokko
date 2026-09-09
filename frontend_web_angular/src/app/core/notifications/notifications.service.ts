@@ -133,15 +133,25 @@ export function isOngoingNotification(notification: UserNotificationView): boole
     metadata['tripStatus'] === 'EN_COURS' || notification.type === 'PRESTATION_EN_COURS';
 }
 
+/** Arrival and active work remain visible until the reservation is resolved. */
+export function isPersistentServiceNotification(notification: UserNotificationView): boolean {
+  const metadata = notification.data || notification.donnees || {};
+  return isOngoingNotification(notification) || metadata['tripStatus'] === 'SUR_PLACE';
+}
+
 export function findFeaturedNotification(
   notifications: UserNotificationView[],
   dismissed: (id: string) => boolean = () => false,
 ): UserNotificationView | null {
-  const sorted = sortNotificationsNewestFirst(notifications);
+  const sorted = sortNotificationsNewestFirst(notifications).filter(notification => {
+    const data = notification.data || notification.donnees || {};
+    return data['persistentDeliveryOffer'] !== true &&
+      !(typeof data['route'] === 'string' && data['route'].endsWith('/delivery-offer'));
+  });
   const latest = sorted[0];
-  if (latest && !isOngoingNotification(latest) && !dismissed(latest.id) && !(latest.isRead ?? latest.estLue)) return latest;
+  if (latest && !isPersistentServiceNotification(latest) && !dismissed(latest.id) && !(latest.isRead ?? latest.estLue)) return latest;
   return sorted.find((notification) => {
-    if (!isOngoingNotification(notification)) return false;
+    if (!isPersistentServiceNotification(notification)) return false;
     const reservationId = notificationMetadataString(notification, 'reservationId');
     return !!reservationId && !sorted.some((candidate) =>
       ['RESERVATION_FINALISEE', 'RESERVATION_ANNULEE'].includes(candidate.type) &&

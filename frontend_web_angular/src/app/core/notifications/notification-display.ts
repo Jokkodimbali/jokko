@@ -1,20 +1,23 @@
 import { signal } from '@angular/core';
-import { isOngoingNotification, UserNotificationView } from './notifications.service';
+import { isPersistentServiceNotification, UserNotificationView } from './notifications.service';
 
 export const NOTIFICATION_DISPLAY_MS = 15_000;
 export const NOTIFICATION_TRANSITION_MS = 350;
 
 /** Retains the rendered notification until its exit animation finishes. */
-export class NotificationDisplay {
-  readonly notification = signal<UserNotificationView | null>(null);
+export class AnimatedNotificationDisplay<T extends { id: string }> {
+  readonly notification = signal<T | null>(null);
   readonly phase = signal<'entering' | 'visible' | 'leaving'>('visible');
-  private pending: UserNotificationView | null = null;
+  private pending: T | null = null;
   private transitionTimer: ReturnType<typeof setTimeout> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly dismiss: (id: string) => void) {}
+  constructor(
+    private readonly dismiss: (id: string) => void,
+    private readonly isPersistent: (notification: T) => boolean,
+  ) {}
 
-  update(notification: UserNotificationView | null): void {
+  update(notification: T | null): void {
     this.pending = notification;
     if (this.phase() === 'leaving') return;
     const current = this.notification();
@@ -44,7 +47,7 @@ export class NotificationDisplay {
     this.transitionTimer = setTimeout(() => {
       this.transitionTimer = null;
       this.phase.set('visible');
-      if (!isOngoingNotification(notification)) {
+      if (!this.isPersistent(notification)) {
         this.expiryTimer = setTimeout(() => {
           this.expiryTimer = null;
           this.pending = null;
@@ -62,5 +65,11 @@ export class NotificationDisplay {
       this.transitionTimer = null;
       this.showPending();
     }, NOTIFICATION_TRANSITION_MS);
+  }
+}
+
+export class NotificationDisplay extends AnimatedNotificationDisplay<UserNotificationView> {
+  constructor(dismiss: (id: string) => void) {
+    super(dismiss, isPersistentServiceNotification);
   }
 }

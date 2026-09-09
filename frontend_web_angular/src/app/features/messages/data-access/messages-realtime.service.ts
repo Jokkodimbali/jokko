@@ -27,6 +27,11 @@ export class MessagesRealtimeService {
   private readonly disputeMediationMessageCreatedSubject =
     new Subject<DisputeMediationRealtimeMessage>();
   private readonly notificationCreatedSubject = new Subject<UserNotificationView>();
+  private readonly deliveryOfferResolvedSubject = new Subject<{
+    orderId?: string;
+    notificationId?: string;
+  }>();
+  readonly deliveryOfferResolved$ = this.deliveryOfferResolvedSubject.asObservable();
   private readonly joinedConversationIds = new Set<string>();
   private socket: Socket | null = null;
 
@@ -72,6 +77,11 @@ export class MessagesRealtimeService {
       (message: DisputeMediationRealtimeMessage) => {
         this.disputeMediationMessageCreatedSubject.next(message);
       },
+    );
+    this.socket.on(
+      'delivery-offer.resolved',
+      (event: { orderId?: string; notificationId?: string }) =>
+        this.deliveryOfferResolvedSubject.next(event),
     );
     this.socket.on('notification.created', (notification: UserNotificationView) => {
       this.notificationCreatedSubject.next(notification);

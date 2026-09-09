@@ -1,3 +1,4 @@
+import { MERCHANT_MAP_IMAGES } from '../../../../../shared/maps/merchant-map-assets';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -159,7 +160,7 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
     const icon = document.createElement('span');
     icon.className = 'hardware-map-marker__icon';
     const image = document.createElement('img');
-    image.src = '/hardware-store-map-marker.svg';
+    image.src = MERCHANT_MAP_IMAGES.MATERIAL;
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     icon.append(image);

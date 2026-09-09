@@ -1,0 +1,71 @@
+<section
+  *ngIf="offer() as current"
+  class="delivery-card"
+  [class.delivery-card--leaving]="leaving()" [class.delivery-card--entering]="entering()"
+  aria-label="Proposition de livraison"
+  aria-live="polite"
+>
+  <header>
+    <div class="delivery-card__avatar" aria-hidden="true">
+      <img
+        *ngIf="current.avatarUrl && failedAvatar() !== current.avatarUrl; else avatarInitials"
+        [src]="current.avatarUrl"
+        alt=""
+        referrerpolicy="no-referrer"
+        (error)="failedAvatar.set(current.avatarUrl)"
+      />
+      <ng-template #avatarInitials>{{ initials() }}</ng-template>
+    </div>
+    <div class="delivery-card__heading">
+      <h2>Livraison disponible<br />près de vous</h2>
+      <p [title]="current.storeName">{{ current.storeName }}</p>
+      <small [title]="current.address || ''">{{
+        current.address || (current.kind === 'PHARMACY' ? 'Pharmacie' : 'Quincaillerie')
+      }}</small>
+    </div>
+    <span class="delivery-card__bell" aria-hidden="true"
+      ><lucide-icon name="bell" size="19"></lucide-icon
+    ></span>
+  </header>
+  <div class="delivery-card__map">
+    <app-location-map [latitude]="current.latitude" [longitude]="current.longitude" [label]="current.storeName" [avatarUrl]="mapImages[current.kind]" [address]="current.address || ''" />
+  </div>
+  <div class="delivery-card__distance">
+    <strong
+      >{{ distance()
+      }}<ng-container *ngIf="minutes() as estimate"> · {{ estimate }} min</ng-container></strong
+    ><small>Prise en charge proche<span *ngIf="minutes()"> · temps estimé</span></small>
+  </div>
+  <p *ngIf="deliveries.unavailable()" class="delivery-card__notice">
+    Connexion interrompue. Vérification de la disponibilité…
+  </p>
+  <p *ngIf="error()" class="delivery-card__error" role="alert">{{ error() }}</p>
+  <button
+    *ngIf="sound.blocked()"
+    type="button"
+    class="delivery-card__sound"
+    (click)="sound.enable()"
+  >
+    Activer la sonnerie
+  </button>
+  <footer>
+    <button
+      type="button"
+      class="delivery-card__accept"
+      [disabled]="busy() || leaving()"
+      (click)="accept(current)"
+    >
+      {{ busy() ? 'Patientez…' : 'Accepter' }}</button
+    ><button
+      type="button"
+      class="delivery-card__decline"
+      [disabled]="busy() || leaving()"
+      (click)="decline(current)"
+    >
+      Refuser
+    </button>
+  </footer>
+  <small *ngIf="deliveries.offers().length > 1" class="delivery-card__queue"
+    >{{ deliveries.offers().length - 1 }} autre(s) livraison(s) disponible(s)</small
+  >
+</section>

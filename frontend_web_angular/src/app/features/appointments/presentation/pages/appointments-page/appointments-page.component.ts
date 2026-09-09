@@ -561,9 +561,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
   protected scheduleItemTitle(item: ScheduleItem): string {
     if (item.kind === 'appointment') {
-      if (item.appointment.status === 'ANNULEE') {
-        return 'Prix propose';
-      }
       return item.appointment.serviceName;
     }
     if (item.negotiation.statut === 'REFUSEE' || item.negotiation.statut === 'ANNULEE') {

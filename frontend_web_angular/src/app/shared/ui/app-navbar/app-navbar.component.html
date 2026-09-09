@@ -90,6 +90,10 @@
       >
         <button
           type="button"
+          [style.visibility]="deliveryNotificationVisible() ? 'hidden' : null"
+          [attr.tabindex]="deliveryNotificationVisible() ? -1 : null"
+          [attr.aria-hidden]="deliveryNotificationVisible() ? true : null"
+          appNotificationAnchor
           class="app-navbar__notification"
           [class.app-navbar__notification--open]="isNotificationsOpen()"
           [class.app-navbar__notification--featured]="!!featuredNotification()"
@@ -355,6 +359,10 @@
   <button
     *ngIf="isAuthenticated()"
     type="button"
+    [style.visibility]="deliveryNotificationVisible() ? 'hidden' : null"
+    [attr.tabindex]="deliveryNotificationVisible() ? -1 : null"
+    [attr.aria-hidden]="deliveryNotificationVisible() ? true : null"
+    appNotificationAnchor
     class="app-navbar__notification app-navbar__notification--mobile"
     [class.app-navbar__notification--open]="isNotificationsOpen()"
     [class.app-navbar__notification--featured]="!!featuredNotification()"

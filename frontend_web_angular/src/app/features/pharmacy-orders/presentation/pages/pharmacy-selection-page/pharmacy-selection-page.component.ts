@@ -1,3 +1,4 @@
+import { MERCHANT_MAP_IMAGES } from '../../../../../shared/maps/merchant-map-assets';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -152,7 +153,7 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
       'cursor:pointer',
       'display:flex',
       'flex-direction:column',
-      'font-family:Inter,Arial,sans-serif',
+      'font-family:var(--font-app)',
       'margin:0',
       'overflow:visible',
       'padding:0',
@@ -178,7 +179,7 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
       'z-index:2',
     ].join(';');
     const image = document.createElement('img');
-    image.src = '/pharmacy-map-marker.jpg';
+    image.src = MERCHANT_MAP_IMAGES.PHARMACY;
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     image.style.cssText = [
@@ -198,8 +199,8 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
       'border-radius:999px',
       'box-shadow:0 2px 5px rgba(16,24,40,.2)',
       'color:#ffffff',
-      'font-size:10px',
-      'font-weight:800',
+      'font-size:12px',
+      'font-weight:600',
       'line-height:1.15',
       'margin-top:-4px',
       'max-width:150px',

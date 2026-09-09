@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 @use 'pharmacy-review-heading';
 
 :host {
@@ -61,7 +62,7 @@
 .pharmacy-order__waiting h1,
 .pharmacy-order__unavailable h1 {
   color: #1a2433;
-  font-size: clamp(25px, 3vw, 35px);
+  font-size: delivery-type.$title;
   line-height: 1.15;
   margin: 24px 0 12px;
 }
@@ -78,8 +79,8 @@
   background: #f8eee4;
   border-radius: 999px;
   color: #8c521d;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: delivery-type.$body;
+  font-weight: 700;
   margin-top: 24px;
   padding: 8px 14px;
 }
@@ -109,8 +110,8 @@
   color: #955b22;
   display: flex;
   flex: 0 0 31px;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   height: 31px;
   justify-content: center;
 }
@@ -123,12 +124,12 @@
 
 .pharmacy-review__items strong {
   color: #263142;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__items small {
   color: #9299a4;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -143,12 +144,12 @@
 
 .pharmacy-review__prescription footer span {
   color: #8d949e;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__prescription footer strong {
   color: #273243;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__form {
@@ -180,12 +181,12 @@
 
 .pharmacy-review__form-heading strong {
   color: #212c3c;
-  font-size: 14px;
+  font-size: delivery-type.$body;
 }
 
 .pharmacy-review__form-heading small {
   color: #89909b;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -200,8 +201,8 @@
 .pharmacy-review__form legend,
 .pharmacy-review__field > span {
   color: #3a4453;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
@@ -229,12 +230,12 @@
 
 .pharmacy-review__form fieldset strong {
   color: #293444;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-review__form fieldset small {
   color: #8c939e;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 2px;
 }
 
@@ -251,7 +252,7 @@
 .pharmacy-review__field em {
   color: #979da6;
   float: right;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   font-style: normal;
   font-weight: 500;
 }
@@ -262,7 +263,7 @@
   border-radius: 8px;
   color: #263142;
   font: inherit;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   outline: none;
   padding: 11px 12px;
   resize: vertical;
@@ -296,13 +297,13 @@
 .pharmacy-review__amount strong {
   border-left: 1px solid #e1e3e6;
   color: #6f7783;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   padding: 12px;
 }
 
 .pharmacy-review__field > small {
   color: #8d949f;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 6px;
 }
 
@@ -314,8 +315,8 @@
   color: #fff;
   cursor: pointer;
   display: flex;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   gap: 8px;
   justify-content: center;
   min-height: 44px;
@@ -329,7 +330,7 @@
 
 .pharmacy-review__form-error {
   color: #b42318;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   margin: 0 0 12px;
 }
 
@@ -351,8 +352,8 @@
 }
 
 .pharmacy-review__processed > span {
-  font-size: 9px;
-  font-weight: 900;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.12em;
   margin-top: 15px;
 }
@@ -366,7 +367,7 @@
 .pharmacy-review__processed p,
 .pharmacy-review__processed small {
   color: #7d8591;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   margin: 0;
 }
@@ -411,14 +412,14 @@
 
 .prescription-card__header span {
   color: #222d3d;
-  font-size: 15px;
-  font-weight: 850;
+  font-size: delivery-type.$emphasis;
+  font-weight: 700;
 }
 
 .prescription-card__header small,
 .prescription-card__prescriber small {
   color: #8b929e;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   letter-spacing: 0.08em;
   margin-top: 5px;
 }
@@ -429,7 +430,7 @@
   border-radius: 999px;
   color: #308950;
   display: inline-flex;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   gap: 5px;
   padding: 6px 9px;
 }
@@ -440,13 +441,13 @@
 }
 
 .prescription-card__prescriber strong {
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   margin-top: 6px;
 }
 
 .prescription-card__prescriber span {
   color: #818896;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -486,18 +487,18 @@
 }
 
 .prescription-card__medicines strong {
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .prescription-card__medicines small {
   color: #9298a2;
-  font-size: 9px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
 .prescription-card__empty {
   color: #7a8290;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
   line-height: 1.5;
   padding: 28px 0;
 }
@@ -508,19 +509,19 @@
   border-top: 1px solid #e5e7e9;
   color: #858c98;
   display: flex;
-  font-size: 8px;
+  font-size: delivery-type.$caption;
   justify-content: space-between;
   padding: 14px 22px;
 }
 
 .prescription-card footer strong {
   color: #253044;
-  font-size: 14px;
+  font-size: delivery-type.$body;
 }
 
 .accepted-panel h1 {
   color: #172131;
-  font-size: clamp(34px, 3.4vw, 40px);
+  font-size: delivery-type.$title;
   letter-spacing: -0.035em;
   line-height: 1.08;
   margin: 0 0 13px;
@@ -529,7 +530,7 @@
 
 .accepted-panel > p {
   color: #777f8e;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   line-height: 1.55;
   margin: 0 0 20px;
   max-width: 430px;
@@ -553,8 +554,8 @@
   color: #8a5422;
   display: flex;
   flex: 0 0 48px;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: delivery-type.$body;
+  font-weight: 700;
   height: 48px;
   justify-content: center;
   overflow: hidden;
@@ -572,13 +573,13 @@
 
 .accepted-panel__doctor strong {
   color: #1f2938;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .accepted-panel__doctor span,
 .accepted-panel__doctor small {
   color: #888f9b;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   margin-top: 3px;
 }
 
@@ -598,8 +599,8 @@
   border-radius: 8px;
   color: #fff;
   display: flex;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   justify-content: center;
   cursor: pointer;
   min-height: 48px;
@@ -676,4 +677,17 @@
   .prescription-card {
     width: 100%;
   }
+}
+
+@include delivery-type.page;
+
+@media (max-width: 480px) {
+  .prescription-card__header { flex-wrap: wrap; gap: 12px; }
+  .prescription-card__header > strong { flex-shrink: 0; white-space: nowrap; }
+  .prescription-card__medicines > div { display: grid; grid-template-columns: 34px minmax(0, 1fr); }
+  .prescription-card__medicines p { min-width: 0; }
+  .prescription-card__price,
+  .prescription-card__unavailable-label { grid-column: 2; margin-left: 0; }
+  .prescription-card footer { flex-wrap: wrap; gap: 8px; }
+  .prescription-card footer > strong { white-space: nowrap; }
 }

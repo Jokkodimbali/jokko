@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -87,20 +88,20 @@
 .pharmacy-delivery__addresses small,
 .pharmacy-delivery__eyebrow {
   color: #975b22;
-  font-size: 10px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   letter-spacing: 0.1em;
 }
 
 .pharmacy-delivery__addresses strong {
   color: #202b3b;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   margin-top: 5px;
 }
 
 .pharmacy-delivery__panel h1 {
   color: #172131;
-  font-size: clamp(30px, 3.25vw, 38px);
+  font-size: delivery-type.$title;
   letter-spacing: -0.035em;
   line-height: 1.08;
   margin: 10px 0 13px;
@@ -109,7 +110,7 @@
 
 .pharmacy-delivery__panel > p {
   color: #777f8e;
-  font-size: 13px;
+  font-size: delivery-type.$body;
   line-height: 1.6;
   margin: 0 0 22px;
 }
@@ -131,12 +132,12 @@
 
 .pharmacy-delivery__waiting strong {
   color: #293444;
-  font-size: 13px;
+  font-size: delivery-type.$body;
 }
 
 .pharmacy-delivery__waiting small {
   color: #818996;
-  font-size: 10px;
+  font-size: delivery-type.$caption;
   line-height: 1.45;
   margin-top: 4px;
 }
@@ -152,7 +153,7 @@
 
 .pharmacy-delivery__amount span {
   color: #727b88;
-  font-size: 12px;
+  font-size: delivery-type.$caption;
 }
 
 .pharmacy-delivery__amount strong {
@@ -220,6 +221,8 @@
   }
 
   .pharmacy-delivery__panel h1 {
-    font-size: 22px;
+    font-size: delivery-type.$title;
   }
 }
+
+@include delivery-type.page;

@@ -1,3 +1,4 @@
+@use '../../../../../shared/styles/delivery-typography' as delivery-type;
 :host {
   display: block;
 }
@@ -21,13 +22,13 @@
 }
 .material-inbox > header span {
   color: #95602a;
-  font-size: 12px;
-  font-weight: 850;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
   text-transform: uppercase;
 }
 .material-inbox > header h1 {
   color: #171d29;
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: delivery-type.$title;
   margin: 7px 0;
 }
 .material-inbox > header p {
@@ -66,7 +67,7 @@
 }
 .material-inbox__grid h2 {
   color: #1b2230;
-  font-size: 17px;
+  font-size: delivery-type.$section;
   margin: 0;
 }
 .material-inbox__grid p,
@@ -78,7 +79,7 @@
   background: #fff2e2;
   border-radius: 99px;
   color: #86511e;
-  font-size: 11px;
+  font-size: delivery-type.$caption;
   padding: 7px 10px;
 }
 .material-inbox__state,
@@ -114,3 +115,5 @@
     padding: 20px 12px 44px;
   }
 }
+
+@include delivery-type.page;

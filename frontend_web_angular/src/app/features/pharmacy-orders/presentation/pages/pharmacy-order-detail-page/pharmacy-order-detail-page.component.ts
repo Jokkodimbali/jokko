@@ -1,10 +1,11 @@
+import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { EMPTY, catchError, exhaustMap, finalize, takeWhile, timer } from 'rxjs';
+import { EMPTY, catchError, filter, switchMap, finalize, merge, timer } from 'rxjs';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
@@ -39,6 +40,7 @@ import { ParcelPickupQrCardComponent } from '../../../../appointments/presentati
   ],
 })
 export class PharmacyOrderDetailPageComponent implements OnInit {
+  private readonly realtime = inject(MessagesRealtimeService);
   private readonly route = inject(ActivatedRoute);
   private readonly orders = inject(PharmacyOrdersService);
   private readonly destroyRef = inject(DestroyRef);
@@ -78,9 +80,16 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
       return;
     }
 
-    timer(0, 4_000)
+    this.realtime.connect();
+    merge(timer(0, 4_000), this.realtime.connected$, this.realtime.pharmacyOrderChanged$.pipe(filter(id => id === orderId)), this.realtime.notificationCreated$.pipe(
+      filter(notification => {
+        const data = notification.data || notification.donnees || {};
+        return data['pharmacyOrderId'] === orderId ||
+          (!!this.order()?.deliveryReservation && data['reservationId'] === this.order()?.deliveryReservation?.id);
+      }),
+    ))
       .pipe(
-        exhaustMap(() =>
+        switchMap(() =>
           this.orders.get(orderId).pipe(
             catchError((error) => {
               if (!this.order()) {
@@ -93,12 +102,11 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
             }),
           ),
         ),
-        takeWhile((order) => order.status === 'EN_ATTENTE_PHARMACIE', true),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false)),
       )
       .subscribe((order) => {
-        this.initializeMedicineItems(order);
+        if (!this.order() || !this.isPharmacyViewer() || order.status !== 'EN_ATTENTE_PHARMACIE') this.initializeMedicineItems(order);
         this.order.set(order);
         this.errorMessage.set(null);
         this.isLoading.set(false);

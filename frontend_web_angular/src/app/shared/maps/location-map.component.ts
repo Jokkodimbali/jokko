@@ -1,3 +1,4 @@
+import { MerchantMapKind, applyMerchantAvatarStyle } from './merchant-map-assets';
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { userInitials } from '../utils/user-initials';
 import { GoogleMapsAdvancedMarkerInstance, GoogleMapsLoaderService, GoogleMapsMapInstance, GoogleMapsRuntime } from './google-maps-loader.service';
@@ -14,7 +15,7 @@ import { GoogleMapsAdvancedMarkerInstance, GoogleMapsLoaderService, GoogleMapsMa
     </div></div>
     @if (unavailable()) { <p>{{ address || 'Localisation indisponible' }}</p> }`,
   styles: [`:host { display: block; height: 100%; position: relative; } .map { height: 100%; width: 100%; }
-    .merchant-marker { width: 38px; height: 38px; display: grid; place-items: center; border: 2px solid #20a05a; border-radius: 50%; background: white; color: #865221; box-shadow: 0 3px 10px #38200b66; font: 600 12px var(--font-app); }
+    .merchant-marker { width: 38px; height: 38px; display: grid; place-items: center; border: 2px solid currentColor; border-radius: 50%; background: white; color: #865221; box-shadow: 0 3px 10px #38200b66; font: 600 12px var(--font-app); }
     .merchant-marker img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
     p { position: absolute; inset: 0; display: grid; place-content: center; margin: 0; padding: 12px; text-align: center; font-size: 12px; background: #eef1ed; overflow-wrap: anywhere; }`],
 })
@@ -22,6 +23,7 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() latitude: number | null = null;
   @Input() longitude: number | null = null;
   @Input() label = '';
+  @Input() merchantKind: MerchantMapKind | null = null;
   @Input() avatarUrl: string | null = null;
   protected readonly failedAvatar = signal<string | null>(null);
   protected readonly initials = userInitials;
@@ -46,6 +48,7 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
     this.map = null;
   }
   private async render(): Promise<void> {
+    if (this.merchantKind) applyMerchantAvatarStyle(this.markerContent.nativeElement, this.merchantKind);
     if (this.latitude == null || this.longitude == null || !Number.isFinite(this.latitude) || !Number.isFinite(this.longitude) || Math.abs(this.latitude) > 90 || Math.abs(this.longitude) > 180) {
       this.unavailable.set(true);
       if (this.marker) this.marker.map = null;

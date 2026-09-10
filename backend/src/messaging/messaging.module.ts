@@ -1,3 +1,4 @@
+import { DeliveryOrderEventsService } from './application/services/delivery-order-events.service';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
@@ -32,6 +33,7 @@ import { MessagingGateway } from './presentation/gateways/messaging.gateway';
   ],
   controllers: [ConversationsController],
   providers: [
+    DeliveryOrderEventsService,
     MessagingRepository,
     {
       provide: MESSAGING_REPOSITORY_PORT,

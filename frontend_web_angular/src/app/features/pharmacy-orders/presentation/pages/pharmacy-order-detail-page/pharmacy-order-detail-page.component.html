@@ -213,6 +213,7 @@
               *ngIf="current.deliveryRequested && current.deliveryReservation"
               [reservationId]="current.deliveryReservation.id"
               [serviceId]="current.deliveryReservation.serviceId"
+              [reservationStatus]="current.deliveryReservation.status"
               itemLabel="médicaments"
               pickupTitle="QR à présenter au livreur"
             ></app-parcel-pickup-qr-card>

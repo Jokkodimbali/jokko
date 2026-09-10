@@ -3,6 +3,7 @@ import { isPersistentServiceNotification, UserNotificationView } from './notific
 
 export const NOTIFICATION_DISPLAY_MS = 15_000;
 export const NOTIFICATION_TRANSITION_MS = 350;
+export const NAVBAR_NOTIFICATION_TRANSITION_MS = 600;
 
 /** Retains the rendered notification until its exit animation finishes. */
 export class AnimatedNotificationDisplay<T extends { id: string }> {
@@ -15,6 +16,7 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
   constructor(
     private readonly dismiss: (id: string) => void,
     private readonly isPersistent: (notification: T) => boolean,
+    private readonly transitionMs = NOTIFICATION_TRANSITION_MS,
   ) {}
 
   update(notification: T | null): void {
@@ -55,7 +57,7 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
           this.dismiss(notification.id);
         }, NOTIFICATION_DISPLAY_MS);
       }
-    }, NOTIFICATION_TRANSITION_MS);
+    }, this.transitionMs);
   }
 
   private leave(): void {
@@ -64,12 +66,12 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
     this.transitionTimer = setTimeout(() => {
       this.transitionTimer = null;
       this.showPending();
-    }, NOTIFICATION_TRANSITION_MS);
+    }, this.transitionMs);
   }
 }
 
 export class NotificationDisplay extends AnimatedNotificationDisplay<UserNotificationView> {
   constructor(dismiss: (id: string) => void) {
-    super(dismiss, isPersistentServiceNotification);
+    super(dismiss, isPersistentServiceNotification, NAVBAR_NOTIFICATION_TRANSITION_MS);
   }
 }

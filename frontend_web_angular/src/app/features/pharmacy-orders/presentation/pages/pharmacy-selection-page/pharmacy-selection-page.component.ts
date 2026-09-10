@@ -1,4 +1,4 @@
-import { MERCHANT_MAP_IMAGES } from '../../../../../shared/maps/merchant-map-assets';
+import { MERCHANT_MAP_IMAGES, applyMerchantAvatarStyle } from '../../../../../shared/maps/merchant-map-assets';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -165,8 +165,7 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
     icon.dataset['markerIcon'] = 'true';
     icon.style.cssText = [
       'align-items:center',
-      'background:#ffffff',
-      'border:2px solid #20a05a',
+            'border:2px solid',
       'border-radius:50%',
       'box-shadow:0 2px 7px rgba(16,24,40,.24)',
       'box-sizing:border-box',
@@ -178,6 +177,7 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
       'width:38px',
       'z-index:2',
     ].join(';');
+    applyMerchantAvatarStyle(icon, 'PHARMACY');
     const image = document.createElement('img');
     image.src = MERCHANT_MAP_IMAGES.PHARMACY;
     image.alt = '';

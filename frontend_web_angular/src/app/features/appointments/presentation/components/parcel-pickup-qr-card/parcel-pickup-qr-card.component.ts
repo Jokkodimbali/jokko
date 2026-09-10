@@ -15,6 +15,13 @@ import {
   styleUrl: './parcel-pickup-qr-card.component.scss',
 })
 export class ParcelPickupQrCardComponent implements OnChanges {
+  @Input() reservationStatus: string | null = null;
+  protected get isAvailable(): boolean {
+    if (['TERMINEE', 'ANNULEE', 'NO_SHOW'].includes(this.reservationStatus || '')) return false;
+    return this.checkpoint !== 'RETRAIT' || this.reservationStatus !== 'EN_COURS';
+  }
+  @Input() checkpoint: 'RETRAIT' | 'DEPOT' = 'RETRAIT';
+  protected get checkpointLabel(): string { return this.checkpoint === 'DEPOT' ? 'remise' : 'retrait'; }
   @Input({ required: true }) reservationId = '';
   @Input({ required: true }) serviceId = '';
   @Input({ required: true }) itemLabel = '';
@@ -34,7 +41,7 @@ export class ParcelPickupQrCardComponent implements OnChanges {
 
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `jokko-retrait-${this.manualCode() || 'colis'}.png`;
+    link.download = `jokko-${this.checkpointLabel}-${this.manualCode() || 'colis'}.png`;
     link.click();
   }
 
@@ -48,7 +55,7 @@ export class ParcelPickupQrCardComponent implements OnChanges {
       const value = buildParcelQrUrl({
         reservationId: this.reservationId,
         serviceId: this.serviceId,
-        checkpoint: 'RETRAIT',
+        checkpoint: this.checkpoint,
         origin: window.location.origin,
       });
       this.imageUrl.set(

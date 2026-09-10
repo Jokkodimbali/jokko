@@ -28,7 +28,7 @@
     ></span>
   </header>
   <div class="delivery-card__map">
-    <app-location-map [latitude]="current.latitude" [longitude]="current.longitude" [label]="current.storeName" [avatarUrl]="mapImages[current.kind]" [address]="current.address || ''" />
+    <app-location-map [latitude]="current.latitude" [longitude]="current.longitude" [label]="current.storeName" [avatarUrl]="mapImages[current.kind]" [merchantKind]="current.kind" [address]="current.address || ''" />
   </div>
   <div class="delivery-card__distance">
     <strong

@@ -244,6 +244,7 @@
             *ngIf="isHardwareStore() && current.deliveryRequested && current.deliveryReservation"
             [reservationId]="current.deliveryReservation.id"
             [serviceId]="current.deliveryReservation.serviceId"
+              [reservationStatus]="current.deliveryReservation.status"
             itemLabel="matériaux"
             pickupTitle="QR à présenter au livreur"
           ></app-parcel-pickup-qr-card>

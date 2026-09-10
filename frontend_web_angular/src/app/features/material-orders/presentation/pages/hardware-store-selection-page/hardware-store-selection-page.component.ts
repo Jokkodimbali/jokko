@@ -1,4 +1,4 @@
-import { MERCHANT_MAP_IMAGES } from '../../../../../shared/maps/merchant-map-assets';
+import { MERCHANT_MAP_IMAGES, applyMerchantAvatarStyle } from '../../../../../shared/maps/merchant-map-assets';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -159,6 +159,7 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
 
     const icon = document.createElement('span');
     icon.className = 'hardware-map-marker__icon';
+    applyMerchantAvatarStyle(icon, 'MATERIAL');
     const image = document.createElement('img');
     image.src = MERCHANT_MAP_IMAGES.MATERIAL;
     image.alt = '';

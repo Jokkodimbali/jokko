@@ -218,6 +218,13 @@ export class MessagingGateway implements OnGatewayConnection {
     }
   }
 
+  @OnEvent('delivery-order.updated')
+  handleDeliveryOrderUpdated(event: { kind: 'PHARMACY' | 'MATERIAL'; orderId: string; userId: string }): void {
+    const room = this.server.to(this.buildUserRoom(event.userId));
+    if (event.kind === 'PHARMACY') room.emit('pharmacy-order.updated', { pharmacyOrderId: event.orderId });
+    else room.emit('material-order.updated', { materialOrderId: event.orderId });
+  }
+
   @OnEvent('delivery-offer.resolved')
   handleDeliveryOfferResolved(payload: { userId: string; orderId?: string; notificationId?: string }): void {
     this.server.to(this.buildUserRoom(payload.userId)).emit('delivery-offer.resolved', {

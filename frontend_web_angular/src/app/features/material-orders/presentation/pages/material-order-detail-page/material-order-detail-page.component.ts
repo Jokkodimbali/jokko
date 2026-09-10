@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
@@ -45,6 +45,7 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   private readonly auth = inject(AuthSessionService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
+  private orderRequest: Subscription | null = null;
   private readonly realtime = inject(MaterialOrdersRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -107,7 +108,11 @@ export class MaterialOrderDetailPageComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    this.destroyRef.onDestroy(() => this.orderRequest?.unsubscribe());
     this.realtime.connect();
+    this.realtime.connected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.deliveryAcceptedByCurrentCourier) this.loadOrder(orderId, false);
+    });
     this.realtime.orderChanged$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((changedOrderId) => {
@@ -135,7 +140,8 @@ export class MaterialOrderDetailPageComponent implements OnInit {
     const request = this.courierOfferMode
       ? this.orders.getDeliveryOffer(orderId)
       : this.orders.get(orderId);
-    request.pipe(finalize(() => this.loading.set(false))).subscribe({
+    this.orderRequest?.unsubscribe();
+    this.orderRequest = request.pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (order) => {
         if (
           this.courierOfferMode &&
@@ -270,7 +276,9 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   }
 
   private hydrate(order: MaterialOrderView): void {
+    const preserveDraft = this.order()?.id === order.id && this.canValidate() && order.status === 'EN_ATTENTE_QUINCAILLERIE';
     this.order.set(order);
+    if (preserveDraft) return;
     this.editableItems.set(order.items.map((item) => ({ ...item })));
     this.note.set(order.note ?? '');
   }

@@ -164,6 +164,8 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     component['routeRecalculation'] = { destroy: vi.fn() };
     component['clearLocationRecovery'] = vi.fn();
     component['trackingStore'] = { reset: vi.fn() };
+    component['reservationsRealtime'] = { stopWatching: vi.fn() };
+    component['isProviderViewer'] = () => false;
 
     component['ngOnDestroy']();
 

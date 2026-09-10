@@ -565,3 +565,14 @@
     width: 36px;
   }
 }
+
+// One title scale for all parcel stages, based on the available summary width.
+.appointment-detail__client-summary-status--delivery { container-type: inline-size; }
+.appointment-detail__client-summary-status.appointment-detail__client-summary-status--delivery h2 {
+  font-size: clamp(14px, 5cqi, 20px);
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}

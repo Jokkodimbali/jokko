@@ -86,13 +86,14 @@
 }
 
 .pharmacy-order__accepted {
-  align-items: center;
+  align-items: start;
+  --accepted-card-radius: 20px;
   display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(460px, 560px) minmax(360px, 450px);
+  gap: clamp(40px, 7vw, 120px);
+  grid-template-columns: minmax(0, 500px) minmax(0, 405px);
   justify-content: center;
   margin: 24px auto 0;
-  max-width: 1038px;
+  max-width: 1100px;
 }
 
 .pharmacy-review__items > div {
@@ -388,15 +389,17 @@
 .prescription-card {
   background: #fff;
   border: 1px solid #d8dbe0;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+  border-radius: var(--accepted-card-radius, 20px);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.12);
   color: #152033;
   min-height: 430px;
   overflow: hidden;
 }
 
 .prescription-card__header {
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   border-bottom: 1px solid #e3e5e8;
   display: flex;
   justify-content: space-between;
@@ -420,7 +423,7 @@
 .prescription-card__prescriber small {
   color: #8b929e;
   font-size: delivery-type.$caption;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   margin-top: 5px;
 }
 
@@ -432,7 +435,10 @@
   display: inline-flex;
   font-size: delivery-type.$caption;
   gap: 5px;
-  padding: 6px 9px;
+  padding: 5px 12px;
+  border: 1px solid #bbf7d0;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .prescription-card__prescriber {
@@ -470,9 +476,9 @@
 
 .prescription-card__pill {
   align-items: center;
-  background: #f7ede3;
-  border-radius: 50%;
-  color: #9a6027;
+  background: #eff6ff;
+  border-radius: 12px;
+  color: #3b82f6;
   display: flex;
   flex: 0 0 34px;
   height: 34px;
@@ -487,7 +493,7 @@
 }
 
 .prescription-card__medicines strong {
-  font-size: delivery-type.$caption;
+  font-size: delivery-type.$body;
 }
 
 .prescription-card__medicines small {
@@ -505,7 +511,7 @@
 
 .prescription-card footer {
   align-items: center;
-  background: #f7f8f9;
+  background: #fff;
   border-top: 1px solid #e5e7e9;
   color: #858c98;
   display: flex;
@@ -521,11 +527,13 @@
 
 .accepted-panel h1 {
   color: #172131;
+  font-weight: 700;
   font-size: delivery-type.$title;
   letter-spacing: -0.035em;
   line-height: 1.08;
   margin: 0 0 13px;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 340px;
 }
 
 .accepted-panel > p {
@@ -540,7 +548,10 @@
   align-items: center;
   background: #fff;
   border: 1px solid #e5e6e8;
-  border-radius: 8px;
+  border-radius: var(--accepted-card-radius, 20px);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.12);
+  min-height: 96px;
+  box-sizing: border-box;
   display: flex;
   gap: 13px;
   margin-bottom: 14px;
@@ -569,11 +580,13 @@
 
 .accepted-panel__doctor p {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .accepted-panel__doctor strong {
   color: #1f2938;
-  font-size: delivery-type.$caption;
+  font-size: delivery-type.$body;
 }
 
 .accepted-panel__doctor span,
@@ -596,14 +609,17 @@
   align-items: center;
   background: #975b22;
   border: 0;
-  border-radius: 8px;
+  border-radius: 18px;
+  gap: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 2px rgba(134, 82, 33, 0.16);
   color: #fff;
   display: flex;
-  font-size: delivery-type.$caption;
+  font-size: delivery-type.$body;
   font-weight: 700;
   justify-content: center;
   cursor: pointer;
-  min-height: 48px;
+  min-height: 56px;
   width: 100%;
 }
 

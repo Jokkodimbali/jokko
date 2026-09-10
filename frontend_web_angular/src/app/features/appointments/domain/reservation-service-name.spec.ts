@@ -3,8 +3,8 @@ import { reservationServiceNameFromNotes } from './reservation-service-name';
 
 describe('delivery service reason', () => {
   it.each([
-    ['Type de livraison: Medicaments. Expediteur: Pharmacie', 'Livraison de médicament'],
-    ['Type de livraison: Médicaments. Expediteur: Pharmacie', 'Livraison de médicament'],
+    ['Type de livraison: Medicaments. Expediteur: Pharmacie', 'Livraison de médicaments'],
+    ['Type de livraison: Médicaments. Expediteur: Pharmacie', 'Livraison de médicaments'],
     ['Type de livraison: Materiel de prestation. Expediteur: Boutique', 'Livraison de matériel'],
     ['Type de livraison: Matériel. Expediteur: Boutique', 'Livraison de matériel'],
     ['Type de livraison: Colis. Expediteur: Boutique', null],

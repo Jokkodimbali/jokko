@@ -320,18 +320,22 @@
               </div>
             </section>
 
-            <section class="medicine-booking__fixed-price">
-              <div>
-                <small
-                  >Prix du RDV medical<br />{{
-                    selectedService()?.nom || 'Premiere consultation'
-                  }}</small
-                >
-                <strong>{{ priceLabel() }}</strong>
-              </div>
+            <section class="medicine-booking__fixed-price" aria-label="Prix fixe du rendez-vous médical">
+              <header class="medicine-booking__price-heading">
+                <div>
+                  <h2>Prix du RDV médical</h2>
+                  <p>{{ selectedService()?.nom || 'Première consultation' }}</p>
+                </div>
+                <span class="medicine-booking__price-badge">Prix fixe</span>
+              </header>
+              <p class="medicine-booking__price-amount">
+                <strong>{{ selectedServicePrice().toLocaleString('fr-FR') }}</strong>
+                <span>FCFA</span>
+              </p>
+              <p class="medicine-booking__price-note">Paiement sécurisé · Remboursable</p>
             </section>
 
-            <footer class="medicine-booking__actions medicine-booking__actions--split">
+            <footer class="medicine-booking__actions medicine-booking__actions--split medicine-booking__price-actions">
               <button
                 type="button"
                 class="medicine-booking__secondary"
@@ -345,8 +349,8 @@
                 class="medicine-booking__primary"
                 (click)="confirmAppointment()"
               >
-                <lucide-icon name="check" size="21" [strokeWidth]="2.8"></lucide-icon>
-                {{ isSubmitting() ? 'Confirmation...' : 'Finaliser la reservation' }}
+                <lucide-icon name="circle-check" size="18" [strokeWidth]="2.4"></lucide-icon>
+                {{ isSubmitting() ? 'Confirmation...' : 'Finaliser la réservation' }}
                 <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.8"></lucide-icon>
               </button>
             </footer>

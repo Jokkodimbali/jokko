@@ -1,3 +1,4 @@
+import { MERCHANT_MAP_IMAGES, MERCHANT_MAP_STYLE, applyMerchantAvatarStyle } from '../../../shared/maps/merchant-map-assets';
 import { Injectable, inject } from '@angular/core';
 import {
   GoogleMapsAdvancedMarkerInstance,
@@ -102,7 +103,7 @@ const NAVIGATION_CAMERA_TILT = NAVIGATION_CAMERA_CONFIG.tilt.low;
 const NAVIGATION_CAMERA_ZOOM = NAVIGATION_CAMERA_CONFIG.zoom.near;
 const TOP_VIEW_CAMERA_TILT = 0;
 const TOP_VIEW_CAMERA_ZOOM = 17.4;
-const TOP_VIEW_ROUTE_PADDING = { top: 92, right: 56, bottom: 128, left: 56 };
+const TOP_VIEW_ROUTE_PADDING = { top: 160, right: 136, bottom: 128, left: 136 };
 const TOP_VIEW_MIN_ZOOM = 3;
 const NAVIGATION_MIN_ZOOM = 15;
 const MAP_MAX_ZOOM = 21;
@@ -1585,7 +1586,7 @@ export class TrackingGoogleMapRendererService {
         const bounds = new this.google!.maps.LatLngBounds();
         bounds.extend(provider);
         bounds.extend(destination);
-        this.routeMap?.fitBounds(bounds, TOP_VIEW_ROUTE_PADDING);
+        this.routeMap?.fitBounds(bounds, this.overviewPadding());
         this.routeMap?.setHeading?.(0);
         this.routeMap?.setTilt?.(0);
       });
@@ -1647,7 +1648,7 @@ export class TrackingGoogleMapRendererService {
         bounds.extend(provider);
         bounds.extend(destination);
         selectedRouteCoordinates.forEach((coordinate) => bounds.extend(coordinate));
-        this.routeMap?.fitBounds(bounds, TOP_VIEW_ROUTE_PADDING);
+        this.routeMap?.fitBounds(bounds, this.overviewPadding());
         this.routeMap?.setHeading?.(0);
         this.routeMap?.setTilt?.(TOP_VIEW_CAMERA_TILT);
       });
@@ -2206,7 +2207,7 @@ export class TrackingGoogleMapRendererService {
     const accentColor = marker.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const badge = document.createElement('span');
     badge.textContent = label;
-    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 Inter,sans-serif;letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:10px;color:#fff;font:900 13px/1 var(--font-app);letter-spacing:0;margin-top:-4px;max-width:116px;overflow:hidden;padding:6px 9px;text-overflow:ellipsis;white-space:nowrap;`;
     return badge;
   }
 
@@ -2287,7 +2288,7 @@ export class TrackingGoogleMapRendererService {
     const fallback = document.createElement('span');
     fallback.textContent = initials || 'JK';
     fallback.style.cssText =
-      'align-items:center;color:#0f172a;display:flex;font:900 14px/1 Inter,sans-serif;height:100%;justify-content:center;width:100%;';
+      'align-items:center;color:#0f172a;display:flex;font:900 14px/1 var(--font-app);height:100%;justify-content:center;width:100%;';
     return fallback;
   }
 
@@ -2309,22 +2310,22 @@ export class TrackingGoogleMapRendererService {
 
     const etaValue = document.createElement('strong');
     etaValue.textContent = eta.value;
-    etaValue.style.cssText = `font:900 ${size.etaValueFont}px/1 Inter,sans-serif;letter-spacing:0;`;
+    etaValue.style.cssText = `font:900 ${size.etaValueFont}px/1 var(--font-app);letter-spacing:0;`;
 
     const etaUnit = document.createElement('small');
     etaUnit.textContent = eta.unit;
-    etaUnit.style.cssText = `font:800 ${size.etaUnitFont}px/1.1 Inter,sans-serif;letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
+    etaUnit.style.cssText = `font:800 ${size.etaUnitFont}px/1.1 var(--font-app);letter-spacing:0;margin-top:${size.etaUnitMargin}px;opacity:.86;`;
 
     const body = document.createElement('span');
-    body.style.cssText = `display:flex;flex:1;flex-direction:column;gap:${size.bodyGap}px;min-width:0;white-space:nowrap;`;
+    body.style.cssText = `display:flex;flex:1;flex-direction:column;gap:${size.bodyGap}px;min-width:0;white-space:normal;`;
 
     const title = document.createElement('strong');
     title.textContent = marker.title;
-    title.style.cssText = `color:#111827;font:900 ${size.titleFont}px/1.15 Inter,sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;`;
+    title.style.cssText = `color:#111827;font:900 ${size.titleFont}px/1.15 var(--font-app);letter-spacing:0;white-space:normal;overflow-wrap:anywhere;`;
 
     const subtitle = document.createElement('small');
     subtitle.textContent = marker.subtitle;
-    subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 Inter,sans-serif;letter-spacing:0;text-transform:uppercase;`;
+    subtitle.style.cssText = `color:#64748b;font:700 ${size.subtitleFont}px/1 var(--font-app);letter-spacing:0;text-transform:uppercase;`;
 
     body.append(title, subtitle);
     etaBox.append(etaValue, etaUnit);
@@ -2346,7 +2347,8 @@ export class TrackingGoogleMapRendererService {
   ): HTMLElement | null {
     if (!marker.person) return null;
 
-    const accentColor = marker.person.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
+    const merchantKind = marker.person.icon === 'pharmacy' ? 'PHARMACY' : marker.person.icon === 'hardware' ? 'MATERIAL' : null;
+    const accentColor = merchantKind ? MERCHANT_MAP_STYLE[merchantKind].color : marker.person.badgeAccent === 'red' ? '#ff3b30' : '#2f80ff';
     const wrapper = document.createElement('span');
     wrapper.className = 'jokko-tracking-arrival-person';
     wrapper.style.cssText = `align-items:center;display:flex;flex-direction:column;isolation:isolate;margin-top:-${Math.max(6, Math.round(9 * size.scale))}px;`;
@@ -2359,6 +2361,7 @@ export class TrackingGoogleMapRendererService {
     avatar.style.position = 'relative';
     avatar.style.zIndex = '1';
 
+    if (merchantKind) applyMerchantAvatarStyle(avatar, merchantKind);
     if (marker.person.icon) {
       avatar.appendChild(this.destinationPlaceIcon(marker.person.icon, accentColor));
     } else if (marker.person.imageUrl) {
@@ -2378,53 +2381,39 @@ export class TrackingGoogleMapRendererService {
     const badge = document.createElement('span');
     badge.className = 'jokko-tracking-arrival-role';
     badge.textContent = marker.person.label;
-    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 Inter,sans-serif;letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;position:relative;text-overflow:ellipsis;white-space:nowrap;z-index:2;`;
+    badge.style.cssText = `background:${accentColor};border:2px solid rgba(255,255,255,.92);border-radius:${Math.round(9 * size.scale)}px;color:#fff;font:900 ${size.destinationBadgeFont}px/1 var(--font-app);letter-spacing:0;margin-top:-${Math.round(4 * size.scale)}px;max-width:${Math.round(118 * size.scale)}px;overflow:hidden;padding:${Math.round(6 * size.scale)}px ${Math.round(9 * size.scale)}px;position:relative;text-overflow:ellipsis;white-space:nowrap;z-index:2;`;
     badge.style.marginTop = `-${Math.round(4 * size.scale)}px`;
     badge.style.position = 'relative';
     badge.style.zIndex = '2';
 
+    if (marker.person.icon) {
+      badge.style.maxWidth = `${size.cardWidth}px`;
+      badge.style.whiteSpace = 'normal';
+      badge.style.overflowWrap = 'anywhere';
+      badge.style.textAlign = 'center';
+      badge.style.lineHeight = '1.3';
+    }
     wrapper.append(avatar, badge);
     return wrapper;
   }
 
-  private destinationPlaceIcon(icon: 'pharmacy' | 'hardware', color: string): SVGSVGElement {
-    const namespace = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(namespace, 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.style.cssText = 'display:block;height:62%;width:62%;';
+  private destinationPlaceIcon(icon: 'pharmacy' | 'hardware', _color: string): HTMLImageElement {
+    const image = document.createElement('img');
+    image.src = MERCHANT_MAP_IMAGES[icon === 'pharmacy' ? 'PHARMACY' : 'MATERIAL'];
+    image.alt = icon === 'pharmacy' ? 'Pharmacie' : 'Quincaillerie';
+    image.style.cssText = 'display:block;height:100%;width:100%;object-fit:contain;background:white;';
+    return image;
+  }
 
-    if (icon === 'pharmacy') {
-      const vertical = document.createElementNS(namespace, 'rect');
-      vertical.setAttribute('x', '9');
-      vertical.setAttribute('y', '3');
-      vertical.setAttribute('width', '6');
-      vertical.setAttribute('height', '18');
-      vertical.setAttribute('rx', '1.5');
-      vertical.setAttribute('fill', color);
-      const horizontal = document.createElementNS(namespace, 'rect');
-      horizontal.setAttribute('x', '3');
-      horizontal.setAttribute('y', '9');
-      horizontal.setAttribute('width', '18');
-      horizontal.setAttribute('height', '6');
-      horizontal.setAttribute('rx', '1.5');
-      horizontal.setAttribute('fill', color);
-      svg.append(vertical, horizontal);
-      return svg;
-    }
-
-    const wrench = document.createElementNS(namespace, 'path');
-    wrench.setAttribute(
-      'd',
-      'M14.8 4.2a5.3 5.3 0 0 0-6.1 6.9L3.4 16.4a2.1 2.1 0 0 0 3 3l5.3-5.3a5.3 5.3 0 0 0 6.9-6.1l-3.2 3.2-2.8-.7-.7-2.8 3-3a5.2 5.2 0 0 0-.1-.5Z',
-    );
-    wrench.setAttribute('fill', 'none');
-    wrench.setAttribute('stroke', color);
-    wrench.setAttribute('stroke-linecap', 'round');
-    wrench.setAttribute('stroke-linejoin', 'round');
-    wrench.setAttribute('stroke-width', '2.1');
-    svg.appendChild(wrench);
-    return svg;
+  private overviewPadding(): Record<string, number> {
+    const width = this.routeMapElement?.clientWidth || 400;
+    const height = this.routeMapElement?.clientHeight || 500;
+    return {
+      top: Math.min(TOP_VIEW_ROUTE_PADDING.top, Math.round(height * 0.35)),
+      bottom: Math.min(TOP_VIEW_ROUTE_PADDING.bottom, Math.round(height * 0.25)),
+      left: Math.min(TOP_VIEW_ROUTE_PADDING.left, Math.round(width * 0.4)),
+      right: Math.min(TOP_VIEW_ROUTE_PADDING.right, Math.round(width * 0.4)),
+    };
   }
 
   private destinationMarkerSize(): DestinationMarkerSize {

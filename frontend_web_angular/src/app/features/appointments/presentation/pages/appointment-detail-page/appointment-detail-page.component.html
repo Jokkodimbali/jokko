@@ -196,7 +196,7 @@
             Annuler et se faire rembourser
           </button>
           <button
-            *ngIf="isParcelTransportAppointment(appointment) && !isMedicineDelivery()"
+            *ngIf="isClientViewer() && isParcelTransportAppointment(appointment) && !isMedicineDelivery() && !isParcelPickupValidated()"
             type="button"
             class="appointment-detail__upcoming-qr"
             (click)="openQrCodePage(appointment, 'expediteur')"
@@ -1245,7 +1245,7 @@
       </article>
 
       <aside *ngIf="showClientRoutePanel()" class="appointment-detail__client-summary-panel">
-        <section class="appointment-detail__client-summary-status">
+        <section class="appointment-detail__client-summary-status" [class.appointment-detail__client-summary-status--delivery]="isParcelDeliveryFlow()">
           <h2
             [class.appointment-detail__client-summary-title--teleconsultation]="
               isTeleconsultation()
@@ -1270,7 +1270,7 @@
           <div>
             <h3>{{ appointment.doctorName }}</h3>
             <p>
-              {{ appointment.specialty || appointment.serviceName }} ·
+              {{ isParcelDeliveryFlow() ? appointment.serviceName : (appointment.specialty || appointment.serviceName) }} ·
               <app-star-rating [value]="appointment.professionalRating" size="small" />
               {{ providerRatingLabel(appointment) }}
             </p>
@@ -1351,7 +1351,17 @@
         ></app-material-order-entry>
 
         <div
-          *ngIf="isParcelTransportAppointment(appointment) && !isMedicineDelivery()"
+          *ngIf="isClientViewer() && isParcelDeliveryFlow() && isParcelPickupValidated() && !isParcelDropoffValidated()"
+          class="appointment-detail__client-summary-qr"
+        >
+          <button type="button" (click)="openQrCodePage(appointment, 'destinataire')">
+            <lucide-icon name="qr-code" size="16" [strokeWidth]="2.4"></lucide-icon>
+            Afficher le QR code
+          </button>
+          <p>Présentez ce QR code au livreur à son arrivée pour confirmer la remise.</p>
+        </div>
+        <div
+          *ngIf="isClientViewer() && isParcelTransportAppointment(appointment) && !isMedicineDelivery() && !isParcelPickupValidated()"
           class="appointment-detail__client-summary-qr"
         >
           <button type="button" (click)="openQrCodePage(appointment, 'expediteur')">

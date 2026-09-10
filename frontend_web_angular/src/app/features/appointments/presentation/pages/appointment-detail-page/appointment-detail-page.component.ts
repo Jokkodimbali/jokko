@@ -3159,9 +3159,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.setTrackingSafely(tracking);
       }
     });
-    this.connectionSubscription = this.trackingRealtime.connectionState$.subscribe((state) =>
-      this.trackingStore.setConnectionState(state),
-    );
+    this.connectionSubscription = this.trackingRealtime.connectionState$.subscribe((state) => {
+      this.trackingStore.setConnectionState(state);
+      if (state === 'connected') this.refreshAppointmentState(appointmentId);
+    });
     this.appointmentStatePollingSubscription = timer(
       APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS,
       APPOINTMENT_STATE_FALLBACK_INTERVAL_MS,
@@ -3493,6 +3494,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private applyRefreshedAppointment(appointment: AppointmentView): void {
     const current = this.appointment();
+    if (current && current.id !== appointment.id) return;
+    if (current?.updatedAt && appointment.updatedAt &&
+        Date.parse(appointment.updatedAt) < Date.parse(current.updatedAt)) return;
     const previousStatus = current?.status;
     const nextAppointment = current ? this.mergeAppointment(current, appointment) : appointment;
     this.appointment.set(nextAppointment);
@@ -4284,6 +4288,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       };
     }
 
+    if (this.isParcelDeliveryFlow() && appointment.vehicleType) {
+      const vehicle = PARCEL_VEHICLE_MARKERS[appointment.vehicleType];
+      return {
+        kind: 'vehicle',
+        imageUrl: vehicle.imageUrl,
+        initials: vehicle.label.slice(0, 2).toUpperCase(),
+        name: vehicle.label,
+        roleLabel: vehicle.label,
+      };
+    }
+
     if (this.isParcelTransportAppointment(appointment) && this.isClientViewer()) {
       return {
         kind: 'avatar',
@@ -4305,16 +4320,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       };
     }
 
-    if (appointment.travelMode === 'TRANSPORT_COLIS' && appointment.vehicleType) {
-      const vehicle = PARCEL_VEHICLE_MARKERS[appointment.vehicleType];
-      return {
-        kind: 'vehicle',
-        imageUrl: vehicle.imageUrl,
-        initials: vehicle.label.slice(0, 2).toUpperCase(),
-        name: vehicle.label,
-        roleLabel: vehicle.label,
-      };
-    }
 
     if (this.clientTravelsToProvider()) {
       return {
@@ -4414,11 +4419,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
 
       const pharmacyPickup = this.isMedicineDelivery();
+      const storeName = this.parseParcelContact(appointment.notes, 'Expediteur').name || (pharmacyPickup ? 'Pharmacie' : 'Quincaillerie');
       return {
         imageUrl: null,
         initials: pharmacyPickup ? 'PH' : 'QC',
-        name: pharmacyPickup ? 'Pharmacie' : 'Quincaillerie',
-        label: pharmacyPickup ? 'Pharmacie' : 'Quincaillerie',
+        name: storeName,
+        label: storeName,
         badgeAccent: 'blue',
         icon: pharmacyPickup ? 'pharmacy' : 'hardware',
       };

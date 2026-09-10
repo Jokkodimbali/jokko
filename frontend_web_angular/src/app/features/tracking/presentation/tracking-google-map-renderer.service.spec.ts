@@ -353,6 +353,25 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
   });
 
   describe('route-marker visual coherence', () => {
+    it('wraps the full pickup title instead of truncating it', () => {
+      const content = (internals['destinationMarkerContent'] as Function).call(renderer, {
+        ...BASE_STATE.destinationMarker, title: 'Destination de retrait', subtitle: '2 km',
+      }) as HTMLElement;
+      const title = [...content.querySelectorAll('strong')].find(node => node.textContent === 'Destination de retrait')!;
+      expect(title.style.whiteSpace).toBe('normal');
+      expect(title.style.textOverflow).not.toBe('ellipsis');
+    });
+    it.each([['pharmacy', '/pharmacy-map-marker.jpg'], ['hardware', '/hardware-store-map-marker.svg']])('reuses the search marker for %s', (kind, source) => {
+      const marker = (internals['destinationPlaceIcon'] as Function).call(renderer, kind, '#fff') as HTMLImageElement;
+      expect(marker.getAttribute('src')).toBe(source);
+    });
+    it('keeps a usable viewport on a narrow map while reserving marker margins', () => {
+      internals['routeMapElement'] = { clientWidth: 320, clientHeight: 300 };
+      const padding = (internals['overviewPadding'] as Function).call(renderer);
+      expect(padding.left).toBeGreaterThan(100);
+      expect(padding.left + padding.right).toBeLessThan(320);
+      expect(padding.top + padding.bottom).toBeLessThan(300);
+    });
     it('stacks the avatar below the intervention card and the role badge below the avatar', () => {
       const content = (internals['destinationPersonContent'] as Function).call(
         renderer,

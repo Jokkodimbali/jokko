@@ -4,6 +4,7 @@ import {
   NotificationDisplay,
   NOTIFICATION_DISPLAY_MS,
   NOTIFICATION_TRANSITION_MS,
+  NAVBAR_NOTIFICATION_TRANSITION_MS,
 } from './notification-display';
 
 const message = { id: 'message', type: 'NOUVEAU_MESSAGE' };
@@ -16,7 +17,7 @@ describe('animated notifications', () => {
     const display = new NotificationDisplay(dismiss);
     display.update(message);
     expect(display.phase()).toBe('entering');
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     expect(display.phase()).toBe('visible');
     vi.advanceTimersByTime(NOTIFICATION_DISPLAY_MS - 1);
     expect(dismiss).not.toHaveBeenCalled();
@@ -25,18 +26,18 @@ describe('animated notifications', () => {
     expect(dismiss).toHaveBeenCalledWith(message.id);
     expect(display.phase()).toBe('leaving');
     expect(display.notification()).toEqual(message);
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     expect(display.notification()).toBeNull();
   });
 
   it('animates replacement and shows only the latest arrival during exit', () => {
     const display = new NotificationDisplay(vi.fn());
     display.update(message);
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     display.update({ ...message, id: 'second' });
     display.update({ ...message, id: 'latest' });
     expect(display.notification()?.id).toBe('message');
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     expect(display.notification()?.id).toBe('latest');
     expect(display.phase()).toBe('entering');
     display.destroy();
@@ -51,7 +52,7 @@ describe('animated notifications', () => {
     expect(display.notification()?.id).toBe('ongoing');
     display.update(null);
     expect(display.phase()).toBe('leaving');
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     expect(display.notification()).toBeNull();
   });
 
@@ -102,7 +103,7 @@ it('does not expire an arrival notification after fifteen seconds', () => {
     expect(dismiss).not.toHaveBeenCalled();
     display.update(null);
     expect(display.phase()).toBe('leaving');
-    vi.advanceTimersByTime(NOTIFICATION_TRANSITION_MS);
+    vi.advanceTimersByTime(NAVBAR_NOTIFICATION_TRANSITION_MS);
     expect(display.notification()).toBeNull();
   } finally { display.destroy(); vi.useRealTimers(); }
 });

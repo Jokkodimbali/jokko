@@ -4,7 +4,7 @@ export function reservationServiceNameFromNotes(notes: string | null | undefined
   if (requested?.[1]?.trim()) return requested[1].trim().replace(/\s+/g, ' ');
   const normalized = (notes ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const type = normalized.match(/(?:^|\.\s*|\n)Type de livraison\s*:\s*([^.]*)/i)?.[1]?.trim();
-  if (/^medicaments?$/i.test(type ?? '')) return 'Livraison de médicament';
+  if (/^medicaments?$/i.test(type ?? '')) return 'Livraison de médicaments';
   if (/^materiel(?: de prestation)?$/i.test(type ?? '')) return 'Livraison de matériel';
   return null;
 }

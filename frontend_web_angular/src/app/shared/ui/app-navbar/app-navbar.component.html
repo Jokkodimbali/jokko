@@ -1,6 +1,7 @@
 <header
   class="app-navbar"
   [class.app-navbar--notification-featured]="!!featuredNotification()"
+  [class.app-navbar--notification-expanded]="!!featuredNotification() && notificationAnimationPhase() !== 'leaving'"
   [class.app-navbar--mobile-page-heading]="!!mobilePageTitle"
 >
   <!-- Brand Logo -->

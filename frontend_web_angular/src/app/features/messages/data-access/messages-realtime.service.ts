@@ -23,6 +23,10 @@ export interface DisputeMediationRealtimeMessage {
 export class MessagesRealtimeService {
   private readonly authSession = inject(AuthSessionService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly pharmacyOrderChanged = new Subject<string>();
+  readonly pharmacyOrderChanged$ = this.pharmacyOrderChanged.asObservable();
+  private readonly connectedSubject = new Subject<void>();
+  readonly connected$ = this.connectedSubject.asObservable();
   private readonly messageCreatedSubject = new Subject<ConversationMessage>();
   private readonly disputeMediationMessageCreatedSubject =
     new Subject<DisputeMediationRealtimeMessage>();
@@ -43,7 +47,7 @@ export class MessagesRealtimeService {
     this.notificationCreatedSubject.asObservable();
 
   connect(): void {
-    if (!isPlatformBrowser(this.platformId) || this.socket?.connected) {
+    if (!isPlatformBrowser(this.platformId) || this.socket) {
       return;
     }
 
@@ -56,13 +60,19 @@ export class MessagesRealtimeService {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 5000,
     });
 
+    this.socket.io.on('reconnect_attempt', () => {
+      const currentToken = this.authSession.getAccessToken();
+      if (!currentToken) { this.disconnect(); return; }
+      if (this.socket) this.socket.auth = { token: currentToken };
+    });
     this.socket.on('connect', () => {
+      this.connectedSubject.next();
       for (const conversationId of this.joinedConversationIds) {
         this.socket?.emit('conversation.join', { conversationId });
       }
@@ -83,6 +93,9 @@ export class MessagesRealtimeService {
       (event: { orderId?: string; notificationId?: string }) =>
         this.deliveryOfferResolvedSubject.next(event),
     );
+    this.socket.on('pharmacy-order.updated', (event: { pharmacyOrderId?: string }) => {
+      if (event?.pharmacyOrderId) this.pharmacyOrderChanged.next(event.pharmacyOrderId);
+    });
     this.socket.on('notification.created', (notification: UserNotificationView) => {
       this.notificationCreatedSubject.next(notification);
     });

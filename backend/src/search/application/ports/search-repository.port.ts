@@ -1,6 +1,7 @@
 export const SEARCH_REPOSITORY_PORT = Symbol('SEARCH_REPOSITORY_PORT');
 
 export type SearchProfessionalsInput = {
+  excludeStores?: boolean;
   city?: string;
   categoryId?: string;
   subCategoryId?: string;

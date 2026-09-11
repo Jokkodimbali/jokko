@@ -224,6 +224,9 @@
 .app-settings__hero h1 { color:#2f231c; font-size:25px; margin:0; }
 .app-settings__hero span { color:#7d6c60; font-size:13px; }
 .app-settings__hero b { background:#fff; border:1px solid #e9d5c0; border-radius:999px; color:var(--admin-brand-dark); font-size:13px; margin-left:auto; padding:9px 13px; }
+.app-settings__switcher { background:#fbf4ee; border-bottom:1px solid #f0e4d8; display:flex; gap:8px; padding:18px 32px 0; }
+.app-settings__switcher button { background:transparent; border:1px solid transparent; border-bottom:none; border-radius:12px 12px 0 0; color:#826a5d; cursor:pointer; font:inherit; font-size:13px; font-weight:800; padding:12px 16px; }
+.app-settings__switcher-button--active { background:#fff; border-color:#ead9c8 !important; color:#2f231c !important; box-shadow:0 -2px 0 rgba(145,90,34,.12); }
 .app-settings__notice { align-items:center; background:#fffaf3; border-bottom:1px solid #f1e3d4; color:#6d5542; display:flex; font-size:13px; gap:10px; padding:14px 32px; }
 .app-settings__notice lucide-icon { color:#bd721e; flex:none; }
 .app-settings__list { display:grid; gap:16px; padding:24px 32px; }
@@ -248,6 +251,18 @@
 .app-settings__empty { align-items:center; color:#8a7768; display:flex; flex-direction:column; gap:8px; min-height:180px; justify-content:center; padding:24px; text-align:center; }
 .app-settings__empty lucide-icon { color:#b67b45; }.app-settings__empty strong { color:#45352a; }
 .app-settings__actions { align-items:center; border-top:1px solid #efe2d7; display:flex; gap:12px; justify-content:space-between; padding:18px 32px; }
+.delivery-pricing-settings { border-top:1px solid #efe2d7; padding:28px 32px; }
+.delivery-pricing-settings > header { align-items:center; display:flex; gap:13px; }
+.delivery-pricing-settings > header > span { align-items:center; background:#f7ead9; border-radius:13px; color:var(--admin-brand); display:flex; height:42px; justify-content:center; width:42px; }
+.delivery-pricing-settings h2 { color:#2f231c; font-size:18px; margin:0; }
+.delivery-pricing-settings p, .delivery-pricing-settings footer span { color:#7d6c60; font-size:13px; margin:3px 0 0; }
+.delivery-pricing-settings__fields { display:grid; gap:14px; grid-template-columns:repeat(3, minmax(0, 1fr)); margin-top:20px; }
+.delivery-pricing-settings__fields label { color:#45352a; display:grid; font-size:13px; font-weight:800; gap:5px; }
+.delivery-pricing-settings__fields small { color:#8a7768; font-size:11px; font-weight:600; }
+.delivery-pricing-settings__fields input { border:1px solid #dcc6b1; border-radius:11px; color:#2f231c; font:inherit; font-weight:700; min-height:42px; padding:0 11px; }
+.delivery-pricing-settings footer { align-items:center; display:flex; gap:12px; justify-content:space-between; margin-top:18px; }
+.delivery-pricing-settings footer button { align-items:center; background:var(--admin-brand); border:1px solid var(--admin-brand); border-radius:11px; color:#fff; cursor:pointer; display:inline-flex; font:inherit; font-size:13px; font-weight:850; gap:7px; min-height:42px; padding:0 15px; }
+.delivery-pricing-settings footer button:disabled { cursor:not-allowed; opacity:.55; }
 .app-settings__actions button { align-items:center; border-radius:11px; cursor:pointer; display:inline-flex; font:inherit; font-size:13px; font-weight:850; gap:8px; justify-content:center; min-height:42px; padding:0 15px; }
 .app-settings__add { background:#fff; border:1px solid #d9bfaa; color:#84501f; }.app-settings__save { background:var(--admin-brand); border:1px solid var(--admin-brand); color:#fff; }.app-settings__actions button:disabled { cursor:not-allowed; opacity:.55; }
 
@@ -276,4 +291,4 @@
   }
 }
 
-@media (max-width: 680px) { .app-settings__hero,.app-settings__notice,.app-settings__actions { padding-inline:18px; }.app-settings__hero { align-items:flex-start; }.app-settings__hero b { margin-left:0; }.app-settings__list { padding:16px; }.app-banner-editor { grid-template-columns:1fr; }.app-banner-editor__preview { min-height:0; }.app-settings__actions { align-items:stretch; flex-direction:column; }.app-settings__actions button { width:100%; } }
+@media (max-width: 680px) { .app-settings__hero,.app-settings__notice,.app-settings__actions,.delivery-pricing-settings { padding-inline:18px; }.app-settings__hero { align-items:flex-start; }.app-settings__hero b { margin-left:0; }.app-settings__list { padding:16px; }.app-banner-editor { grid-template-columns:1fr; }.app-banner-editor__preview { min-height:0; }.app-settings__actions,.delivery-pricing-settings footer { align-items:stretch; flex-direction:column; }.app-settings__actions button,.delivery-pricing-settings footer button { width:100%; }.delivery-pricing-settings__fields { grid-template-columns:1fr; } }

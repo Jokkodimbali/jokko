@@ -35,6 +35,16 @@ export class AdminDashboardService {
       .pipe(map((response) => unwrapApiResponse(response).map((item) => ({ id: item.id, imageUrl: item.imageUrl, redirectUrl: item.lien, isActive: item.estActive }))));
   }
 
+  getDeliveryPricing(): Observable<{ pricePerKm: number; courierCommissionRate: number }> {
+    return this.http.get<ApiResponse<{ pricePerKm: number; courierCommissionRate: number }>>(`${environment.apiUrl}/admin/app-settings/delivery-pricing`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  saveDeliveryPricing(input: { pricePerKm: number; courierCommissionRate: number }): Observable<unknown> {
+    return this.http.put<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/delivery-pricing`, input)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   saveAppBanners(banners: Array<{ imageUrl: string; redirectUrl: string | null; isActive: boolean }>): Observable<unknown> {
     const payload = banners.map(({ imageUrl, redirectUrl, isActive }) => ({
       imageUrl,

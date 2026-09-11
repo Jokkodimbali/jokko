@@ -15,6 +15,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../auth/security/auth-user.type';
 import { DeliveryPricingService } from '../../maps/application/delivery-pricing.service';
+import { DeliveryPricingSettingsService } from '../../maps/application/delivery-pricing-settings.service';
 import { NotificationsService } from '../../notifications/application/services/notifications.service';
 import { NOTIFICATION_TYPES } from '../../notifications/domain/entities/notification.entity';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -22,8 +23,6 @@ import type {
   CreateMaterialOrderCommand,
   ValidateMaterialOrderCommand,
 } from './material-orders.commands';
-
-const MATERIAL_DELIVERY_PRICE_PER_KM = 500;
 
 const ORDER_INCLUDE = {
   reservationSource: {
@@ -83,6 +82,7 @@ export class MaterialOrdersService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly deliveryPricing: DeliveryPricingService,
+    private readonly pricingSettings: DeliveryPricingSettingsService,
   ) {}
 
   async getAccess(requestUser: AuthUser) {
@@ -314,6 +314,7 @@ export class MaterialOrdersService {
   }
 
   async getDeliveryOffer(requestUser: AuthUser, orderId: string) {
+    const pricing = await this.pricingSettings.get();
     const assignedOrder = await this.prisma.commandeMateriel.findFirst({
       where: {
         id: orderId,
@@ -327,7 +328,7 @@ export class MaterialOrdersService {
       return {
         ...this.toView(assignedOrder),
         courierDistanceKm: 0,
-        pricePerKm: MATERIAL_DELIVERY_PRICE_PER_KM,
+        pricePerKm: pricing.pricePerKm,
       };
     }
 
@@ -350,11 +351,12 @@ export class MaterialOrdersService {
     return {
       ...this.toView(order),
       courierDistanceKm: Number(courier.distanceKm),
-      pricePerKm: MATERIAL_DELIVERY_PRICE_PER_KM,
+      pricePerKm: pricing.pricePerKm,
     };
   }
 
   async acceptDelivery(requestUser: AuthUser, orderId: string) {
+    const pricing = await this.pricingSettings.get();
     const courier = await this.findEligibleCourier(requestUser.sub, orderId);
     if (!courier) {
       throw new ForbiddenException(
@@ -382,7 +384,7 @@ export class MaterialOrdersService {
     const deliveryAmount = Number(orderForPricing.montantLivraison);
     const deliveryDistanceKm = Number(orderForPricing.distanceLivraisonKm);
     const commissionAmount = Math.round(
-      (deliveryAmount * courier.commissionRate) / 100,
+      (deliveryAmount * pricing.courierCommissionRate) / 100,
     );
     const reservationId = randomUUID();
     const accepted = await this.prisma.$transaction(async (tx) => {
@@ -414,6 +416,7 @@ export class MaterialOrdersService {
             `Destinataire: ${orderForPricing.client.nom}`,
             `Arrivee destinataire: ${orderForPricing.adresseLivraison}`,
             `Distance estimee: ${deliveryDistanceKm.toFixed(1)} km`,
+            `Tarif kilometrique: ${pricing.pricePerKm} FCFA`,
             `Prix calcule: ${deliveryAmount} FCFA`,
             'Frais deja inclus dans le paiement de la commande materiel',
           ].join('. '),
@@ -611,6 +614,7 @@ export class MaterialOrdersService {
       adresseLivraison: null as string | null,
     };
     if (deliveryRequested) {
+      const pricing = await this.pricingSettings.get();
       const deliveryAddress =
         order.client.adresse || order.reservationSource.adresseClient;
       if (!deliveryAddress) {
@@ -621,7 +625,7 @@ export class MaterialOrdersService {
       const quote = await this.deliveryPricing.quote({
         pickupAddress: this.storeAddress(order),
         dropoffAddress: deliveryAddress,
-        pricePerKm: MATERIAL_DELIVERY_PRICE_PER_KM,
+        pricePerKm: pricing.pricePerKm,
         locationErrorLabel:
           'Impossible de localiser la quincaillerie ou le client.',
       });

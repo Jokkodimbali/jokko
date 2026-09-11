@@ -12,7 +12,8 @@
   <!-- Desktop Navigation -->
   <nav class="app-navbar__nav" aria-label="Navigation principale">
     <a
-      *ngFor="let item of navItems()"
+      *ngFor="let item of navItems(); let index = index"
+      [style.--nav-motion-index]="index"
       class="app-navbar__nav-item"
       [class.app-navbar__nav-item--active]="isActive(item.route)"
       [routerLink]="item.route"
@@ -26,6 +27,7 @@
     </a>
     <div
       class="app-navbar__info-menu"
+      [style.--nav-motion-index]="navItems().length"
       (mouseenter)="openInfoMenu()"
       (mouseleave)="scheduleCloseInfoMenu()"
     >

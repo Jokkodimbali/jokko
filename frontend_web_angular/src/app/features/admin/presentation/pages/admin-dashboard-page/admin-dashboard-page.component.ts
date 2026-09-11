@@ -60,6 +60,8 @@ type AdminSection =
   | 'notifications'
   | 'settings';
 
+type SettingsSubPage = 'banners' | 'pricing';
+
 interface EditableAppBanner {
   id: string;
   imageUrl: string;
@@ -67,6 +69,11 @@ interface EditableAppBanner {
   isActive: boolean;
   imageWidth: number | null;
   imageHeight: number | null;
+}
+
+interface DeliveryPricingSettings {
+  pricePerKm: number;
+  courierCommissionRate: number;
 }
 
 const APP_BANNER_WIDTH = 936;
@@ -140,8 +147,11 @@ export class AdminDashboardPageComponent implements OnInit {
   protected readonly structureActionId = signal<string | null>(null);
   protected readonly kycActionId = signal<string | null>(null);
   protected readonly activeSection = signal<AdminSection>('overview');
+  protected readonly settingsSubPage = signal<SettingsSubPage>('banners');
   protected readonly appBanners = signal<EditableAppBanner[]>([]);
   protected readonly isAppBannersLoading = signal(false);
+  protected readonly deliveryPricing = signal<DeliveryPricingSettings>({ pricePerKm: 500, courierCommissionRate: 10 });
+  protected readonly isDeliveryPricingLoading = signal(false);
   protected readonly adminSearchQuery = signal('');
   protected readonly user = this.authSession.currentUser;
   protected readonly userInitials = computed(() => {
@@ -271,6 +281,9 @@ export class AdminDashboardPageComponent implements OnInit {
 
   protected selectSection(section: AdminSection): void {
     this.activeSection.set(section);
+    if (section === 'settings') {
+      this.settingsSubPage.set('banners');
+    }
     this.adminSearchQuery.set('');
     if (section !== 'providers') {
       this.selectedProviderId.set(null);
@@ -278,6 +291,10 @@ export class AdminDashboardPageComponent implements OnInit {
     }
     this.updateAdminUrl({ section, providerId: null });
     this.loadSectionData(section);
+  }
+
+  protected selectSettingsSubPage(page: SettingsSubPage): void {
+    this.settingsSubPage.set(page);
   }
 
   protected updateAdminSearch(event: Event): void {
@@ -314,7 +331,36 @@ export class AdminDashboardPageComponent implements OnInit {
     if (section === 'structure' && !this.serviceStructureReport()) {
       this.loadServiceStructure();
     }
-    if (section === 'settings' && this.appBanners().length === 0) this.loadAppBanners();
+    if (section === 'settings') {
+      if (this.appBanners().length === 0) this.loadAppBanners();
+      this.loadDeliveryPricing();
+    }
+  }
+
+  protected loadDeliveryPricing(): void {
+    this.isDeliveryPricingLoading.set(true);
+    this.adminDashboardService.getDeliveryPricing().pipe(catchError(() => of(null))).subscribe((pricing) => {
+      if (pricing) this.deliveryPricing.set(pricing);
+      this.isDeliveryPricingLoading.set(false);
+    });
+  }
+
+  protected updateDeliveryPricing(field: keyof DeliveryPricingSettings, event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (Number.isFinite(value)) this.deliveryPricing.update((current) => ({ ...current, [field]: value }));
+  }
+
+  protected saveDeliveryPricing(): void {
+    const pricing = this.deliveryPricing();
+    if (pricing.pricePerKm < 0 || pricing.courierCommissionRate < 0 || pricing.courierCommissionRate > 100) {
+      this.feedback.error('Saisissez des tarifs positifs et une commission comprise entre 0 et 100 %.');
+      return;
+    }
+    this.isDeliveryPricingLoading.set(true);
+    this.adminDashboardService.saveDeliveryPricing(pricing).pipe(catchError(() => of(null))).subscribe((result) => {
+      this.isDeliveryPricingLoading.set(false);
+      if (result !== null) this.feedback.success('Tarification des livraisons enregistrée.');
+    });
   }
 
   protected loadAppBanners(): void {

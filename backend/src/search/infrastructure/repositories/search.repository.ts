@@ -216,6 +216,7 @@ export class SearchRepository implements SearchRepositoryPort {
       INNER JOIN users u ON u.id = pp.user_id
       WHERE u.is_active = true
         ${visibilityFilter}
+        ${input.excludeStores ? Prisma.sql`AND pp.is_pharmacy = false AND pp.is_hardware_store = false` : Prisma.empty}
         ${cityFilter}
         ${categoryFilter}
         ${subCategoryFilter}

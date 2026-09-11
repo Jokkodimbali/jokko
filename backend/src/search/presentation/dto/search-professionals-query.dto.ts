@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsInt,
+  IsBoolean,
   IsNumber,
   IsIn,
   IsOptional,
@@ -15,6 +16,17 @@ import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class SearchProfessionalsQueryDto {
+  @ApiPropertyOptional({
+    description: 'Exclure les pharmacies et quincailleries du catalogue.',
+    type: Boolean,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsOptional()
+  @IsBoolean()
+  excludeStores?: boolean;
+
   @ApiPropertyOptional({
     description: API_DOCS.search.cityField,
     example: 'Dakar',

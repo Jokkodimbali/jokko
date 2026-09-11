@@ -17,6 +17,7 @@
 
 .pharmacy-payment__content {
   align-items: center;
+  --payment-card-radius: 20px;
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(460px, 560px) minmax(360px, 450px);
@@ -28,8 +29,8 @@
 .payment-prescription {
   background: #fff;
   border: 1px solid #dfe2e6;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+  border-radius: var(--payment-card-radius);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.12);
   color: #152033;
   overflow: hidden;
 }
@@ -45,7 +46,7 @@
 .payment-prescription__document {
   align-items: center;
   background: #f6e9dc;
-  border-radius: 7px;
+  border-radius: 12px;
   color: #955b22;
   display: flex;
   flex: 0 0 38px;
@@ -73,6 +74,7 @@
 .payment-prescription > header em {
   align-items: center;
   background: #e8f8ee;
+  border: 1px solid #bbf7d0;
   border-radius: 999px;
   color: #308950;
   display: flex;
@@ -203,6 +205,7 @@
 .pharmacy-payment__methods h1 {
   color: #172131;
   font-size: delivery-type.$title;
+  font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.08;
   margin: 0 0 12px;
@@ -224,7 +227,8 @@
   align-items: center;
   background: #fff;
   border: 1px solid #e1e3e6;
-  border-radius: 10px;
+  border-radius: var(--payment-card-radius);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
   cursor: pointer;
   display: flex;
   gap: 11px;
@@ -245,7 +249,7 @@
 .pharmacy-payment__delivery-icon {
   align-items: center;
   background: #f1e5d8;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #955b22;
   display: flex;
   height: 38px;
@@ -295,7 +299,8 @@
   align-items: center;
   background: #fff;
   border: 1px solid #e1e3e6;
-  border-radius: 8px;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
   cursor: pointer;
   display: flex;
   gap: 13px;
@@ -377,7 +382,8 @@
   align-items: center;
   background: #9a5c21;
   border: 0;
-  border-radius: 8px;
+  border-radius: 18px;
+  box-shadow: 0 2px 2px rgba(134, 82, 33, 0.16);
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -392,16 +398,6 @@
 .pharmacy-payment__submit:disabled {
   cursor: wait;
   opacity: 0.72;
-}
-
-.pharmacy-payment__security {
-  align-items: center;
-  color: #858d98;
-  display: flex;
-  font-size: delivery-type.$caption;
-  gap: 5px;
-  justify-content: center;
-  margin-top: 9px;
 }
 
 .pharmacy-payment__state {

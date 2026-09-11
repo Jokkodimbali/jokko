@@ -243,6 +243,7 @@ export class ServicesService {
     role?: 'PRESTATAIRE' | 'MEDECIN';
   }): Observable<{ providers: Professional[]; meta?: PaginationMeta }> {
     const params: Record<string, string> = {
+      excludeStores: 'true',
       page: page.toString(),
       limit: limit.toString(),
     };

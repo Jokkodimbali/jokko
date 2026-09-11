@@ -44,6 +44,7 @@ describe('pharmacy delivery claim', () => {
       prisma as never,
       notifications as never,
       {} as never,
+      { get: jest.fn().mockResolvedValue({ pricePerKm: 500, courierCommissionRate: 10 }) } as never,
     );
     jest.spyOn(service as any, 'findEligibleCourier').mockResolvedValue({
       professionalId: 'courier-profile',

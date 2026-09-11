@@ -19,6 +19,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NOTIFICATION_TYPES } from '../../notifications/domain/entities/notification.entity';
 import { NotificationsService } from '../../notifications/application/services/notifications.service';
 import { DeliveryPricingService } from '../../maps/application/delivery-pricing.service';
+import { DeliveryPricingSettingsService } from '../../maps/application/delivery-pricing-settings.service';
 import type {
   CreatePharmacyOrderCommand,
   ValidatePharmacyOrderCommand,
@@ -88,14 +89,13 @@ type PharmacyMedicineItem = {
   price: number | null;
 };
 
-const PHARMACY_DELIVERY_PRICE_PER_KM = 500;
-
 @Injectable()
 export class PharmacyOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly deliveryPricing: DeliveryPricingService,
+    private readonly pricingSettings: DeliveryPricingSettingsService,
   ) {}
 
   async getAccess(requestUser: AuthUser) {
@@ -246,6 +246,7 @@ export class PharmacyOrdersService {
   }
 
   async getDeliveryOffer(requestUser: AuthUser, orderId: string) {
+    const pricing = await this.pricingSettings.get();
     const courier = await this.findEligibleCourier(requestUser.sub, orderId);
     if (!courier) {
       throw new ForbiddenException(
@@ -276,11 +277,12 @@ export class PharmacyOrdersService {
       distanceKm: courier.distanceKm,
       deliveryDistanceKm: Number(order.distanceLivraisonKm),
       deliveryAmount: Number(order.montantLivraison),
-      pricePerKm: PHARMACY_DELIVERY_PRICE_PER_KM,
+      pricePerKm: pricing.pricePerKm,
     };
   }
 
   async acceptDelivery(requestUser: AuthUser, orderId: string) {
+    const pricing = await this.pricingSettings.get();
     const courier = await this.findEligibleCourier(requestUser.sub, orderId);
     if (!courier) {
       throw new ForbiddenException(
@@ -315,7 +317,7 @@ export class PharmacyOrdersService {
     const deliveryAmount = Number(orderForPricing.montantLivraison);
     const deliveryDistanceKm = Number(orderForPricing.distanceLivraisonKm);
     const commissionAmount = Math.round(
-      (deliveryAmount * courier.commissionRate) / 100,
+      (deliveryAmount * pricing.courierCommissionRate) / 100,
     );
     const courierNetAmount = deliveryAmount - commissionAmount;
     const reservationId = randomUUID();
@@ -363,7 +365,7 @@ export class PharmacyOrdersService {
             `Destinataire: Client`,
             `Arrivee destinataire: ${dropoffAddress}`,
             `Distance estimee: ${deliveryDistanceKm.toFixed(1)} km`,
-            `Tarif kilometrique: ${PHARMACY_DELIVERY_PRICE_PER_KM} FCFA`,
+            `Tarif kilometrique: ${pricing.pricePerKm} FCFA`,
             `Prix calcule: ${deliveryAmount} FCFA`,
             'Note livraison: Frais deja inclus dans le paiement de la commande pharmacie',
           ].join('. '),
@@ -490,10 +492,11 @@ export class PharmacyOrdersService {
           'Ajoutez une adresse client avant de demander la livraison.',
         );
       }
+      const pricing = await this.pricingSettings.get();
       const quote = await this.deliveryPricing.quote({
         pickupAddress: this.pharmacyAddress(order),
         dropoffAddress: deliveryAddress,
-        pricePerKm: PHARMACY_DELIVERY_PRICE_PER_KM,
+        pricePerKm: pricing.pricePerKm,
         locationErrorLabel:
           'Impossible de localiser la pharmacie ou le client pour calculer la livraison.',
       });

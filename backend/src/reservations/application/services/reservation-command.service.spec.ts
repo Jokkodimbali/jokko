@@ -163,16 +163,22 @@ describe('ReservationCommandService', () => {
       reservationsRepository,
       liveTrackingFacade,
       reservationClientNotificationService,
-      buildService({
-        reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
-        professionalId: 'professional-id',
-      });
+    } = buildService({
+      reservation: buildReservation({ typeConsultation: 'TELECONSULTATION' }),
+      professionalId: 'professional-id',
+    });
 
     const result = await service.startReservation(doctorUser, 'reservation-id');
 
     expect(result.statut).toBe('EN_COURS');
-    expect(reservationClientNotificationService.notifyReservationStarted).toHaveBeenCalledWith(
-      expect.objectContaining({ reservationId: 'reservation-id', clientId: 'client-id', professionalUserId: 'professional-user-id' }),
+    expect(
+      reservationClientNotificationService.notifyReservationStarted,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reservationId: 'reservation-id',
+        clientId: 'client-id',
+        professionalUserId: 'professional-user-id',
+      }),
     );
     expect(reservationsRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({ statut: 'EN_COURS' }),

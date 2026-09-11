@@ -1187,7 +1187,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     if (this.isMedicineDelivery()) {
       if (this.isAppointmentCompleted()) return 'Médicaments livrés';
+      if (this.isParcelAwaitingDropoffScan()) return 'Le livreur est arrivé à votre adresse';
       if (this.isParcelDropoffNavigationActive()) return 'Vos médicaments arrivent';
+      if (this.isParcelAwaitingPickupScan()) return 'Le livreur est arrivé à la pharmacie';
       if (this.isParcelPickupValidated()) return 'Médicaments récupérés à la pharmacie';
       if (this.isProviderOnTheWay()) return 'Le livreur rejoint la pharmacie';
       return 'Livraison de médicaments confirmée';
@@ -1208,8 +1210,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isAppointmentCompleted()) {
         return 'La remise de vos médicaments est confirmée. Vous pouvez consulter le récapitulatif de livraison.';
       }
+      if (this.isParcelAwaitingDropoffScan()) {
+        return 'Le livreur est arrivé à votre adresse. Présentez votre QR code pour confirmer la remise de vos médicaments.';
+      }
       if (this.isParcelDropoffNavigationActive()) {
         return 'Le livreur a récupéré vos médicaments et se dirige maintenant vers votre adresse.';
+      }
+      if (this.isParcelAwaitingPickupScan()) {
+        return 'Le livreur est arrivé à la pharmacie. La remise de votre commande sera confirmée avant le départ.';
       }
       if (this.isParcelPickupValidated()) {
         return 'La pharmacie a remis vos médicaments au livreur. Le trajet vers votre adresse va commencer.';

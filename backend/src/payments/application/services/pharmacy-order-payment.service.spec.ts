@@ -302,6 +302,20 @@ describe('PharmacyOrderPaymentService', () => {
     expect(notifications.createInAppNotification).toHaveBeenCalledTimes(3);
     expect(notifications.createInAppNotification).toHaveBeenCalledWith(
       expect.objectContaining({
+        userId: pharmacyUserId,
+        type: 'PAIEMENT_CONFIRME',
+        title: 'Paiement reçu avec succès',
+        body: expect.stringContaining(
+          'Nous attendons maintenant qu’un livreur accepte la course',
+        ),
+        data: expect.objectContaining({
+          pharmacyOrderId: orderId,
+          deliverySearchInProgress: true,
+        }),
+      }),
+    );
+    expect(notifications.createInAppNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
         userId: '66666666-6666-4666-8666-666666666666',
         title: 'Livraison de médicaments disponible',
         data: expect.objectContaining({

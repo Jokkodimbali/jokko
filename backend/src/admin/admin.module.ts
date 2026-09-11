@@ -19,9 +19,11 @@ import { AdminProvidersController } from './presentation/controllers/admin-provi
 import { AdminRegionsController } from './presentation/controllers/admin-regions.controller';
 import { AdminRevenueController } from './presentation/controllers/admin-revenue.controller';
 import { AdminServiceStructureController } from './presentation/controllers/admin-service-structure.controller';
+import { AdminDeliveryPricingController } from './presentation/controllers/admin-delivery-pricing.controller';
+import { MapsModule } from '../maps/maps.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, MediaModule],
+  imports: [PrismaModule, AuthModule, MediaModule, MapsModule],
   controllers: [
     AppBannersController,
     AdminArchivesController,
@@ -31,6 +33,7 @@ import { AdminServiceStructureController } from './presentation/controllers/admi
     AdminRegionsController,
     AdminRevenueController,
     AdminServiceStructureController,
+    AdminDeliveryPricingController,
   ],
   providers: [
     AdminArchivesService,

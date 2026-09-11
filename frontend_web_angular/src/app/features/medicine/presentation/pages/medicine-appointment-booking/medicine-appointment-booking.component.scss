@@ -23,6 +23,11 @@
   width: min(calc(100% - 40px), 1160px);
 }
 
+.medicine-booking__shell > app-appointment-tracking-stepper {
+  display: block;
+  margin-bottom: 38px;
+}
+
 .medicine-booking__layout {
   align-items: start;
   display: grid;
@@ -1168,6 +1173,10 @@
 @media (max-width: 720px) {
   .medicine-booking__shell {
     width: min(calc(100% - 18px), 640px);
+  }
+
+  .medicine-booking__shell > app-appointment-tracking-stepper {
+    margin-bottom: 28px;
   }
 
   .medicine-booking__card-head {

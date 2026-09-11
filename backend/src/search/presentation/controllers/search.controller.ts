@@ -115,6 +115,7 @@ export class SearchController {
   })
   async searchProfessionals(@Query() query: SearchProfessionalsQueryDto) {
     const result = await this.searchQueryService.searchProfessionals({
+      excludeStores: query.excludeStores,
       city: query.city,
       categoryId: query.categoryId,
       subCategoryId: query.subCategoryId,

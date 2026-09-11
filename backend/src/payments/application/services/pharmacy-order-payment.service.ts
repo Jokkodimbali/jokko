@@ -297,7 +297,7 @@ export class PharmacyOrderPaymentService {
     await Promise.all([
       this.notifications.createInAppNotification({
         userId: payment.clientId,
-        type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
+        type: NOTIFICATION_TYPES.PAIEMENT_CONFIRME,
         title: 'Paiement des médicaments confirmé',
         body: payment.commandePharmacie.livraisonDemandee
           ? 'Votre paiement incluant la livraison est confirme. Nous recherchons maintenant un livreur de colis.'
@@ -311,11 +311,14 @@ export class PharmacyOrderPaymentService {
       }),
       this.notifications.createInAppNotification({
         userId: payment.pharmacie.utilisateur.id,
-        type: NOTIFICATION_TYPES.ORDONNANCE_MISE_A_JOUR,
-        title: 'Paiement pharmacie reçu',
-        body: `Le paiement des médicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirmé.`,
+        type: NOTIFICATION_TYPES.PAIEMENT_CONFIRME,
+        title: 'Paiement reçu avec succès',
+        body: payment.commandePharmacie.livraisonDemandee
+          ? `Le paiement des médicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA a été reçu. Nous attendons maintenant qu’un livreur accepte la course pour récupérer la commande.`
+          : `Le paiement des médicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirmé.`,
         data: {
           pharmacyOrderId: payment.commandePharmacieId,
+          deliverySearchInProgress: payment.commandePharmacie.livraisonDemandee,
           route: `/pharmacy-orders/${payment.commandePharmacieId}`,
         },
       }),

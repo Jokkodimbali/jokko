@@ -45,36 +45,68 @@
         <section class="app-settings">
           <header class="app-settings__hero">
             <div class="app-settings__hero-icon"><lucide-icon name="image-plus" size="26"></lucide-icon></div>
-            <div><p>CONTENU DE L'APPLICATION</p><h1>Bannières promotionnelles</h1><span>Créez une expérience éditoriale sur la page Services.</span></div>
-            <b>{{ appBanners().length }} / 5</b>
+            <div><p>PARAMÈTRES DE L'APPLICATION</p><h1>Gestion du contenu</h1><span>Gérez les éléments visuels et la tarification de livraison.</span></div>
           </header>
 
-          <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Dimensions obligatoires : <strong>936 × 220 px</strong> (ratio 4,25:1). Formats recommandés : JPG ou PNG, 2 Mo maximum (WebP reste accepté). Les bannières sont responsives et défilent automatiquement. Gardez les textes et éléments importants au centre de l’image.</span></div>
+          <nav class="app-settings__switcher" aria-label="Sous-sections des paramètres">
+            <button
+              type="button"
+              [class.app-settings__switcher-button--active]="settingsSubPage() === 'banners'"
+              (click)="selectSettingsSubPage('banners')"
+            >
+              Bannières
+            </button>
+            <button
+              type="button"
+              [class.app-settings__switcher-button--active]="settingsSubPage() === 'pricing'"
+              (click)="selectSettingsSubPage('pricing')"
+            >
+              Tarification
+            </button>
+          </nav>
 
-          <div class="app-settings__list" *ngIf="appBanners().length; else noBanner">
-            <article class="app-banner-editor" *ngFor="let banner of appBanners(); let index = index; trackBy: trackAppBannerById">
-              <div class="app-banner-editor__preview">
-                <img *ngIf="banner.imageUrl; else imagePlaceholder" [src]="banner.imageUrl" [alt]="'Aperçu bannière ' + (index + 1)" (load)="recordAppBannerImageDimensions(index, $event)" />
-                <ng-template #imagePlaceholder><lucide-icon name="image-plus" size="28"></lucide-icon><span>Ajoutez une image</span></ng-template>
-              </div>
-              <div class="app-banner-editor__form">
-                <div class="app-banner-editor__title"><span>BANNIÈRE {{ index + 1 }}</span><button type="button" (click)="removeAppBanner(index)" aria-label="Supprimer la bannière"><lucide-icon name="trash-2" size="17"></lucide-icon></button></div>
-                <div class="app-banner-editor__format" [class.app-banner-editor__format--valid]="isAppBannerFormatConform(banner)" [class.app-banner-editor__format--warning]="banner.imageWidth && !isAppBannerFormatConform(banner)">
-                  <lucide-icon [name]="isAppBannerFormatConform(banner) ? 'circle-check' : 'triangle-alert'" size="17"></lucide-icon>
-                  <span>{{ appBannerFormatMessage(banner) }}</span>
+          <ng-container *ngIf="settingsSubPage() === 'banners'; else pricingPage">
+            <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Dimensions obligatoires : <strong>936 × 220 px</strong> (ratio 4,25:1). Formats recommandés : JPG ou PNG, 2 Mo maximum (WebP reste accepté). Les bannières sont responsives et défilent automatiquement. Gardez les textes et éléments importants au centre de l’image.</span></div>
+
+            <div class="app-settings__list" *ngIf="appBanners().length; else noBanner">
+              <article class="app-banner-editor" *ngFor="let banner of appBanners(); let index = index; trackBy: trackAppBannerById">
+                <div class="app-banner-editor__preview">
+                  <img *ngIf="banner.imageUrl; else imagePlaceholder" [src]="banner.imageUrl" [alt]="'Aperçu bannière ' + (index + 1)" (load)="recordAppBannerImageDimensions(index, $event)" />
+                  <ng-template #imagePlaceholder><lucide-icon name="image-plus" size="28"></lucide-icon><span>Ajoutez une image</span></ng-template>
                 </div>
-                <input class="app-banner-editor__file-input" type="file" [id]="'app-banner-image-' + banner.id" accept="image/png,image/jpeg,image/webp" (change)="uploadAppBannerImage(index, $event)" />
-                <label class="app-banner-editor__upload app-banner-editor__upload--primary" [for]="'app-banner-image-' + banner.id"><lucide-icon name="upload-cloud" size="17"></lucide-icon>{{ banner.imageUrl ? 'Remplacer l’image' : 'Choisir une image' }}</label>
-                <label>Lien de redirection <small>Optionnel</small><input type="url" [value]="banner.redirectUrl" (input)="updateAppBanner(index, 'redirectUrl', $event)" placeholder="https://..." /></label>
-              </div>
-            </article>
-          </div>
-          <ng-template #noBanner><div class="app-settings__empty"><lucide-icon name="image-plus" size="32"></lucide-icon><strong>Aucune bannière configurée</strong><span>Ajoutez votre première bannière pour commencer.</span></div></ng-template>
+                <div class="app-banner-editor__form">
+                  <div class="app-banner-editor__title"><span>BANNIÈRE {{ index + 1 }}</span><button type="button" (click)="removeAppBanner(index)" aria-label="Supprimer la bannière"><lucide-icon name="trash-2" size="17"></lucide-icon></button></div>
+                  <div class="app-banner-editor__format" [class.app-banner-editor__format--valid]="isAppBannerFormatConform(banner)" [class.app-banner-editor__format--warning]="banner.imageWidth && !isAppBannerFormatConform(banner)">
+                    <lucide-icon [name]="isAppBannerFormatConform(banner) ? 'circle-check' : 'triangle-alert'" size="17"></lucide-icon>
+                    <span>{{ appBannerFormatMessage(banner) }}</span>
+                  </div>
+                  <input class="app-banner-editor__file-input" type="file" [id]="'app-banner-image-' + banner.id" accept="image/png,image/jpeg,image/webp" (change)="uploadAppBannerImage(index, $event)" />
+                  <label class="app-banner-editor__upload app-banner-editor__upload--primary" [for]="'app-banner-image-' + banner.id"><lucide-icon name="upload-cloud" size="17"></lucide-icon>{{ banner.imageUrl ? 'Remplacer l’image' : 'Choisir une image' }}</label>
+                  <label>Lien de redirection <small>Optionnel</small><input type="url" [value]="banner.redirectUrl" (input)="updateAppBanner(index, 'redirectUrl', $event)" placeholder="https://..." /></label>
+                </div>
+              </article>
+            </div>
+            <ng-template #noBanner><div class="app-settings__empty"><lucide-icon name="image-plus" size="32"></lucide-icon><strong>Aucune bannière configurée</strong><span>Ajoutez votre première bannière pour commencer.</span></div></ng-template>
 
-          <footer class="app-settings__actions">
-            <button type="button" class="app-settings__add" (click)="addAppBanner()" [disabled]="appBanners().length >= 5"><lucide-icon name="plus" size="18"></lucide-icon>Ajouter une bannière</button>
-            <button type="button" class="app-settings__save" (click)="saveAppBanners()" [disabled]="isAppBannersLoading()"><lucide-icon name="save" size="18"></lucide-icon>{{ isAppBannersLoading() ? 'Enregistrement...' : 'Enregistrer les modifications' }}</button>
-          </footer>
+            <footer class="app-settings__actions">
+              <button type="button" class="app-settings__add" (click)="addAppBanner()" [disabled]="appBanners().length >= 5"><lucide-icon name="plus" size="18"></lucide-icon>Ajouter une bannière</button>
+              <button type="button" class="app-settings__save" (click)="saveAppBanners()" [disabled]="isAppBannersLoading()"><lucide-icon name="save" size="18"></lucide-icon>{{ isAppBannersLoading() ? 'Enregistrement...' : 'Enregistrer les modifications' }}</button>
+            </footer>
+          </ng-container>
+
+          <ng-template #pricingPage>
+            <section class="delivery-pricing-settings" aria-labelledby="delivery-pricing-title">
+              <header>
+                <span><lucide-icon name="truck" size="21"></lucide-icon></span>
+                <div><p>PARAMÈTRES DE LIVRAISON</p><h2 id="delivery-pricing-title">Tarification et commission Jokko</h2><span>Un tarif unique s’applique aux livraisons de médicaments et de matériel.</span></div>
+              </header>
+              <div class="delivery-pricing-settings__fields">
+                <label>Tarif unique <small>FCFA par kilomètre, pour toutes les livraisons</small><input type="number" min="0" step="1" [value]="deliveryPricing().pricePerKm" (input)="updateDeliveryPricing('pricePerKm', $event)" /></label>
+                <label>Commission Jokko <small>Pourcentage prélevé sur la part du livreur</small><input type="number" min="0" max="100" step="0.01" [value]="deliveryPricing().courierCommissionRate" (input)="updateDeliveryPricing('courierCommissionRate', $event)" /></label>
+              </div>
+              <footer><span>Les commandes déjà payées conservent leur montant.</span><button type="button" (click)="saveDeliveryPricing()" [disabled]="isDeliveryPricingLoading()"><lucide-icon name="save" size="17"></lucide-icon>{{ isDeliveryPricingLoading() ? 'Enregistrement...' : 'Enregistrer la tarification' }}</button></footer>
+            </section>
+          </ng-template>
         </section>
       </ng-container>
       <ng-template #nonSettingsContent>

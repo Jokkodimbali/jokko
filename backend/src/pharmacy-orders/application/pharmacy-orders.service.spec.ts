@@ -84,10 +84,12 @@ describe('PharmacyOrdersService', () => {
   };
   const notifications = { createInAppNotification: jest.fn() };
   const deliveryPricing = { quote: jest.fn() };
+  const pricingSettings = { get: jest.fn().mockResolvedValue({ pricePerKm: 500, courierCommissionRate: 10 }) };
   const service = new PharmacyOrdersService(
     prisma as never,
     notifications as never,
     deliveryPricing as never,
+    pricingSettings as never,
   );
 
   beforeEach(() => jest.clearAllMocks());

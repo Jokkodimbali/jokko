@@ -43,6 +43,7 @@ type ReservationProfessionalPriceAdjustmentNotificationInput = {
   professionalUserId: string;
   serviceName: string;
   proposedPrice: number;
+  reason?: string | null;
 };
 
 type ReservationProfessionalCancellationNotificationInput = {
@@ -704,6 +705,7 @@ export class ReservationClientNotificationService {
         reservationId: input.reservationId,
         serviceName: input.serviceName,
         proposedPrice: input.proposedPrice,
+        reason: input.reason ?? null,
       },
     });
   }

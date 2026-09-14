@@ -413,6 +413,7 @@ export class PharmacyOrdersService {
         data: {
           pharmacyOrderId: order.id,
           reservationId,
+          serviceName: 'Livraison de médicaments',
           route: `/appointments/${reservationId}`,
         },
       }),
@@ -424,6 +425,7 @@ export class PharmacyOrdersService {
         data: {
           pharmacyOrderId: order.id,
           reservationId,
+          serviceName: 'Livraison de médicaments',
           route: `/pharmacy-orders/${order.id}`,
         },
       }),
@@ -435,6 +437,7 @@ export class PharmacyOrdersService {
         data: {
           pharmacyOrderId: order.id,
           reservationId,
+          serviceName: 'Livraison de médicaments',
           deliveryOfferResolved: true,
           persistentUntilTerminal: true,
           route: `/appointments/${reservationId}`,

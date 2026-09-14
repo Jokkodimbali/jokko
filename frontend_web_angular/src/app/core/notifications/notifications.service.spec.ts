@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findFeaturedNotification, formatNotificationTitle, notificationIcon, notificationAvatarUrl, sortNotificationsNewestFirst, UserNotificationView } from './notifications.service';
+import { findFeaturedNotification, formatNotificationTitle, notificationIcon, notificationAvatarUrl, notificationSubtitle, sortNotificationsNewestFirst, UserNotificationView } from './notifications.service';
 
 const ongoing: UserNotificationView = {
   id: 'ongoing', type: 'PRESTATAIRE_EN_ROUTE', isRead: true,
@@ -55,6 +55,17 @@ describe('shared notification presentation', () => {
   });
   it('supports legacy avatar metadata', () => {
     expect(notificationAvatarUrl({ id: 'n', type: 'APPEL_MANQUE', donnees: { callerAvatarUrl: ' /avatar.png ' } })).toBe('/avatar.png');
+  });
+  it('uses a service motive or short instruction as the second line', () => {
+    expect(notificationSubtitle({ id: 'n', type: 'RESERVATION_CONFIRMEE', body: 'Votre reservation est confirmee.', data: { serviceName: 'Consultation générale' } })).toBe('Consultation générale');
+    expect(notificationSubtitle({ id: 'n', type: 'APPEL_MANQUE', body: 'Mamadou a tente de vous joindre.' })).toBe('Consultez vos appels');
+    expect(notificationSubtitle({ id: 'n', type: 'AUTRE', body: 'Un texte long historique.' })).toBe('Voir la notification');
+  });
+  it('keeps the service motive out of the first line', () => {
+    expect(formatNotificationTitle({
+      id: 'n', type: 'PRESTATAIRE_EN_ROUTE', title: 'Livraison de médicaments acceptée',
+      data: { serviceName: 'Livraison de médicaments', deliveryOfferResolved: true },
+    })).toBe('Livraison acceptée');
   });
   it('sorts both date formats without mutating the input, with invalid dates last', () => {
     const old = { id: 'old', type: 'NOUVEAU_MESSAGE', createdAt: '2026-09-08T10:00:00Z' };

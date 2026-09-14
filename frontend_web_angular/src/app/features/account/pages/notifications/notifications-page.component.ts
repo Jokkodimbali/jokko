@@ -12,6 +12,7 @@ import {
   notificationIcon,
   notificationAvatarUrl,
   notificationActorName,
+  notificationSubtitle,
   NotificationsService,
   UserNotificationView,
 } from '../../../../core/notifications/notifications.service';
@@ -166,7 +167,7 @@ export class NotificationsPageComponent implements OnInit {
   }
 
   protected body(notification: UserNotificationView): string {
-    return notification.body || notification.corps || 'Notification recue sur votre compte Jokko.';
+    return notificationSubtitle(notification);
   }
 
   protected date(notification: UserNotificationView): string | null {

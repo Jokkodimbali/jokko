@@ -509,6 +509,16 @@
 .appointment-detail__route-sidebar .appointment-detail__upcoming-provider h2 {
   font-size: 14px;
   line-height: 1.1;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.appointment-detail__route-sidebar .appointment-detail__upcoming-provider h2::-webkit-scrollbar,
+.appointment-detail__route-sidebar .appointment-detail__upcoming-address::-webkit-scrollbar {
+  display: none;
 }
 
 .appointment-detail__route-sidebar .appointment-detail__upcoming-provider p {
@@ -558,6 +568,11 @@
   font-size: 11px;
   line-height: 1.25;
   margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  white-space: nowrap;
 }
 
 .appointment-detail__route-sidebar .appointment-detail__upcoming-obligation {

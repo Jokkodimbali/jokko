@@ -14,6 +14,7 @@ export type ReservationTrackingContext = {
   professionalId: string;
   professionalUserId: string;
   professionalName: string;
+  clientName: string;
   serviceName: string;
   dateHeure: Date;
   adresseClient: string;
@@ -127,6 +128,10 @@ export interface LiveTrackingRepositoryPort {
     professionalId: string;
   }): Promise<ReservationTrackingView | null>;
   startReservationFromArrival(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null>;
+  resumeParcelTrackingAfterPickup(input: {
     reservationId: string;
     professionalId: string;
   }): Promise<ReservationTrackingView | null>;

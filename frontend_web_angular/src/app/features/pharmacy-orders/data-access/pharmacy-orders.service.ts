@@ -112,6 +112,12 @@ export class PharmacyOrdersService {
       .pipe(map(unwrapApiResponse));
   }
 
+  getByDeliveryReservation(reservationId: string): Observable<PharmacyOrderView> {
+    return this.http
+      .get<ApiResponse<PharmacyOrderView>>(`${this.apiUrl}/delivery-reservation/${reservationId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
   list(): Observable<PharmacyOrderView[]> {
     return this.http
       .get<ApiResponse<PharmacyOrderView[]>>(this.apiUrl)

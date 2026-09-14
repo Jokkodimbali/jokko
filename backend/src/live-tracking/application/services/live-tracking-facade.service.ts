@@ -47,6 +47,13 @@ export class LiveTrackingFacade {
     return this.commandService.confirmArrival(user, reservationId);
   }
 
+  resumeParcelTrackingAfterPickup(input: {
+    reservationId: string;
+    professionalId: string;
+  }) {
+    return this.commandService.resumeParcelTrackingAfterPickup(input);
+  }
+
   finalizeReservationTracking(input: {
     reservationId: string;
     professionalId: string;

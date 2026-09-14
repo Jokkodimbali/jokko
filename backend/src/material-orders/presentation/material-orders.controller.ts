@@ -70,6 +70,14 @@ export class MaterialOrdersController {
     return createApiResponse(await this.orders.list(user));
   }
 
+  @Get('delivery-reservation/:reservationId')
+  async getByDeliveryReservation(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    return createApiResponse(await this.orders.getByDeliveryReservation(user, reservationId));
+  }
+
   @Get(':id')
   async get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return createApiResponse(await this.orders.get(user, id));

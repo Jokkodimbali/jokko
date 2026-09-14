@@ -386,6 +386,30 @@
   padding: 10px 12px;
 }
 
+.pharmacy-order__download {
+  align-items: center;
+  background: linear-gradient(135deg, #a5682b, #824912);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgb(130 73 18 / 20%);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: delivery-type.$caption;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 20px;
+  min-height: 46px;
+  padding: 10px 16px;
+}
+
+.pharmacy-order__download:hover {
+  box-shadow: 0 11px 25px rgb(130 73 18 / 27%);
+  transform: translateY(-1px);
+}
+
 .prescription-card {
   background: #fff;
   border: 1px solid #d8dbe0;

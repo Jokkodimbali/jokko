@@ -141,6 +141,8 @@ export class LiveTrackingCommandService {
       recipientUserId: context.professionalUserId,
       serviceName: context.serviceName,
       travellerRole: 'PROFESSIONNEL',
+      travellerName: context.professionalName,
+      targetName: context.clientName,
       tripStatus: 'EN_ROUTE',
     });
 
@@ -320,6 +322,8 @@ export class LiveTrackingCommandService {
       recipientUserId: context.professionalUserId,
       serviceName: context.serviceName,
       travellerRole: 'CLIENT',
+      travellerName: context.clientName,
+      targetName: context.professionalName,
       tripStatus: 'EN_ROUTE',
     });
     await this.reservationClientNotificationService.notifyTripStatus({
@@ -327,6 +331,8 @@ export class LiveTrackingCommandService {
       recipientUserId: context.clientUserId,
       serviceName: context.serviceName,
       travellerRole: 'CLIENT',
+      travellerName: context.clientName,
+      targetName: context.professionalName,
       recipientIsTraveller: true,
       tripStatus: 'EN_ROUTE',
     });
@@ -469,6 +475,31 @@ export class LiveTrackingCommandService {
     });
     this.publishLocationRealtime(tracking);
     return tracking;
+  }
+
+  async resumeParcelTrackingAfterPickup(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null> {
+    const context = await this.liveTrackingRepository.findReservationContext(
+      input.reservationId,
+    );
+    if (
+      !context ||
+      context.travelMode !== 'TRANSPORT_COLIS' ||
+      context.professionalId !== input.professionalId
+    ) {
+      return null;
+    }
+
+    const tracking =
+      await this.liveTrackingRepository.resumeParcelTrackingAfterPickup(input);
+    if (!tracking) return null;
+
+    const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    this.publishLocationRealtime(enrichedTracking);
+    this.publishRouteMetadataRealtime(enrichedTracking);
+    return enrichedTracking;
   }
 
   async finalizeReservationTracking(input: {

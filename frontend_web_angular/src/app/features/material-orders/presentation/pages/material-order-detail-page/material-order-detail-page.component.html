@@ -299,6 +299,16 @@
             <lucide-icon name="map-pin" size="17"></lucide-icon>
           </button>
 
+          <button
+            *ngIf="current.deliveryRequested && current.status === 'LIVREE'"
+            type="button"
+            class="material-summary__primary"
+            (click)="downloadCompletedOrder(current)"
+          >
+            Télécharger le reçu de livraison
+            <lucide-icon name="download" size="17"></lucide-icon>
+          </button>
+
           <p
             *ngIf="
               isClientViewer() &&

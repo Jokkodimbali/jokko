@@ -801,15 +801,24 @@ export class ReservationCommandService extends ReservationAppService {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.startReservation();
       const updated = await this.reservationsRepository.update(entity.toView());
-      if (
-        !isTeleconsultation &&
-        !this.isParcelTransportReservation(reservation.notes)
-      ) {
+      const isParcelTransport = this.isParcelTransportReservation(
+        reservation.notes,
+      );
+      if (!isTeleconsultation && !isParcelTransport) {
         await this.liveTrackingFacade.finalizeReservationTracking({
           reservationId: updated.id,
           professionalId: updated.professionnelId,
           trackingStatus: 'TERMINEE',
           nextPresenceStatus: 'EN_PRESTATION',
+        });
+      }
+      if (!isTeleconsultation && isParcelTransport) {
+        // Le retrait ouvre un second trajet : reprendre immediatement la
+        // session au point de retrait rend la carte coherente avant le
+        // prochain echantillon GPS du livreur.
+        await this.liveTrackingFacade.resumeParcelTrackingAfterPickup({
+          reservationId: updated.id,
+          professionalId: updated.professionnelId,
         });
       }
       if (!isTeleconsultation) {

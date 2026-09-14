@@ -1,7 +1,7 @@
 <header
   class="app-navbar"
   [class.app-navbar--notification-featured]="!!featuredNotification()"
-  [class.app-navbar--notification-expanded]="!!featuredNotification() && notificationAnimationPhase() !== 'leaving'"
+  [class.app-navbar--notification-expanded]="deliveryNotificationVisible() || (!!featuredNotification() && notificationAnimationPhase() !== 'leaving')"
   [class.app-navbar--mobile-page-heading]="!!mobilePageTitle"
 >
   <!-- Brand Logo -->
@@ -100,6 +100,7 @@
           class="app-navbar__notification"
           [class.app-navbar__notification--open]="isNotificationsOpen()"
           [class.app-navbar__notification--featured]="!!featuredNotification()"
+          [class.app-navbar__notification--incoming-call]="featuredNotification()?.type === 'APPEL_ENTRANT'"
           [class.app-navbar__notification--entering]="!!featuredNotification() && notificationAnimationPhase() === 'entering'"
           [class.app-navbar__notification--leaving]="!!featuredNotification() && notificationAnimationPhase() === 'leaving'"
           aria-label="Ouvrir les notifications"

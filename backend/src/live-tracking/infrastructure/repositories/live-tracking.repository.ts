@@ -62,6 +62,11 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
             },
           },
         },
+        client: {
+          select: {
+            nom: true,
+          },
+        },
       },
     });
 
@@ -75,6 +80,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       professionalId: reservation.professionnelId,
       professionalUserId: reservation.professionnel.utilisateur.id,
       professionalName: reservation.professionnel.utilisateur.nom,
+      clientName: reservation.client.nom,
       serviceName: reservation.service.nom,
       travelMode: reservation.service.modeDeplacement,
       dateHeure: reservation.dateHeure,
@@ -622,6 +628,62 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
           statut: 'TERMINEE',
           termineLe: now,
         },
+        include: TRACKING_INCLUDE,
+      });
+    });
+
+    return record ? this.mapTracking(record) : null;
+  }
+
+  async resumeParcelTrackingAfterPickup(input: {
+    reservationId: string;
+    professionalId: string;
+  }): Promise<ReservationTrackingView | null> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: input.reservationId },
+        select: { professionnelId: true, statut: true },
+      });
+      if (
+        !reservation ||
+        reservation.professionnelId !== input.professionalId ||
+        reservation.statut !== 'EN_COURS'
+      ) {
+        return null;
+      }
+
+      const existing = await tx.sessionTrackingReservation.findUnique({
+        where: { reservationId: input.reservationId },
+        include: TRACKING_INCLUDE,
+      });
+      if (
+        !existing ||
+        existing.professionnelId !== input.professionalId ||
+        existing.derniereLatitude === null ||
+        existing.derniereLongitude === null
+      ) {
+        return null;
+      }
+
+      const now = new Date();
+      await tx.presenceProfessionnel.upsert({
+        where: { profilProfessionnelId: input.professionalId },
+        create: {
+          profilProfessionnelId: input.professionalId,
+          estEnLigne: true,
+          statut: 'EN_ROUTE',
+          dernierVueLe: now,
+        },
+        update: {
+          estEnLigne: true,
+          statut: 'EN_ROUTE',
+          dernierVueLe: now,
+        },
+      });
+
+      return tx.sessionTrackingReservation.update({
+        where: { id: existing.id },
+        data: { statut: 'EN_ROUTE', demarreLe: now, termineLe: null },
         include: TRACKING_INCLUDE,
       });
     });

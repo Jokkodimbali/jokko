@@ -732,18 +732,24 @@
             <span>
               <lucide-icon name="check" size="34" [strokeWidth]="3"></lucide-icon>
             </span>
-            <h2>Mission terminee</h2>
+            <h2>Mission terminée</h2>
             <p>{{ providerConsoleDescription() }}</p>
             <button
-              *ngIf="!isMedicalAppointment()"
+              *ngIf="!isMedicalAppointment() || isMedicineDelivery() || isMaterialDelivery()"
               type="button"
               (click)="downloadInvoice(appointment)"
             >
               <lucide-icon name="receipt" size="17" [strokeWidth]="2.5"></lucide-icon>
-              Recapitulatif mission
+              {{
+                isMedicineDelivery()
+                  ? "Télécharger l'ordonnance et le reçu"
+                  : isMaterialDelivery()
+                    ? 'Télécharger le reçu de livraison matériel'
+                    : 'Récapitulatif mission'
+              }}
             </button>
             <button
-              *ngIf="isMedicalAppointment()"
+              *ngIf="isMedicalAppointment() && !isMedicineDelivery() && !isMaterialDelivery()"
               type="button"
               (click)="downloadMedicalPrescription(appointment)"
             >
@@ -941,16 +947,22 @@
               <button
                 type="button"
                 (click)="
-                  isMedicalAppointment()
+                  isMedicineDelivery() || isMaterialDelivery()
+                    ? downloadDeliveryOrderReceipt(appointment)
+                    : isMedicalAppointment()
                     ? downloadMedicalPrescription(appointment)
                     : downloadInvoice(appointment)
                 "
               >
                 <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
                 {{
-                  isMedicalAppointment()
-                    ? "Telecharger l'ordonnance medicale"
-                    : 'Telecharger la facture PDF'
+                  isMedicineDelivery()
+                    ? "Télécharger l'ordonnance et le reçu"
+                    : isMaterialDelivery()
+                      ? 'Télécharger le reçu de livraison matériel'
+                      : isMedicalAppointment()
+                        ? "Telecharger l'ordonnance medicale"
+                        : 'Telecharger la facture PDF'
                 }}
               </button>
             </div>

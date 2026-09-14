@@ -807,11 +807,12 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     event?.preventDefault();
     event?.stopPropagation();
 
-    this.messagesService.downloadMedia(mediaUrl).subscribe({
-      next: (blob) => {
-        const objectUrl = URL.createObjectURL(blob);
-        this.triggerDownload(objectUrl, this.mediaFileName(mediaUrl));
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    this.messagesService.resolveMediaDownloadTarget(mediaUrl).subscribe({
+      next: (target) => {
+        this.triggerDownload(target.url, target.fileName);
+        if (target.revokeAfterUse) {
+          setTimeout(() => URL.revokeObjectURL(target.url), 60_000);
+        }
       },
       error: () => {
         this.feedback.error('Impossible de telecharger cette piece jointe pour le moment.');

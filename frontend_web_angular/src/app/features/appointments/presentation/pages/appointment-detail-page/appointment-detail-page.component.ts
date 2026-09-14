@@ -39,7 +39,10 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
+import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
+import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { ReservationsRealtimeService } from '../../../data-access/reservations-realtime.service';
 import {
@@ -215,6 +218,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly messagesService = inject(MessagesService);
+  private readonly pharmacyOrders = inject(PharmacyOrdersService);
+  private readonly materialOrders = inject(MaterialOrdersService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly authSession = inject(AuthSessionService);
@@ -231,6 +236,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly routeService = inject(AppointmentRouteService);
   private readonly documentBuilder = inject(AppointmentDocumentBuilderService);
   private readonly documentRenderer = inject(AppointmentDocumentRendererService);
+  private readonly orderCompletionDocument = inject(OrderCompletionDocumentService);
   private readonly medicalPrescriptionService = inject(AppointmentMedicalPrescriptionService);
   protected readonly calls = inject(CallFacade);
   private readonly callsApi = inject(CallsApiService);
@@ -634,10 +640,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   );
   protected readonly isMedicineDelivery = computed(() => {
     const appointment = this.appointment();
+    const notes = appointment?.notes
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
     return (
       !!appointment &&
       this.isParcelTransportAppointment(appointment) &&
-      /Type de livraison\s*:\s*Medicaments/i.test(appointment.notes ?? '')
+      /Type de livraison\s*:\s*Medicaments/i.test(notes ?? '')
+    );
+  });
+  protected readonly isMaterialDelivery = computed(() => {
+    const appointment = this.appointment();
+    const notes = appointment?.notes
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return (
+      !!appointment &&
+      this.isParcelTransportAppointment(appointment) &&
+      /Type de livraison\s*:\s*Materiel(?: de prestation)?/i.test(notes ?? '')
     );
   });
   protected readonly isParcelPickupValidated = computed(() => {
@@ -765,14 +785,14 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       ? this.routeActorArrivalConfirmed() ||
         this.isArrivalPinned() ||
         this.trackingHasExplicitClientArrival(this.tracking())
-      : this.hasConfirmedRouteStart() && this.trackingIndicatesArrival(this.tracking()),
+      : this.trackingIndicatesArrival(this.tracking()),
   );
   protected readonly hasTravelerArrivedAtDestination = computed(() => {
     this.arrivalState.version();
     if (this.isArrivalPinned()) return true;
     if (this.routeActorArrivalConfirmed()) return true;
-    if (!this.hasConfirmedRouteStart() && !this.isProviderWorking()) return false;
     if (this.hasTravelerArrivalConfirmation()) return true;
+    if (!this.hasConfirmedRouteStart() && !this.isProviderWorking()) return false;
     return false;
   });
   protected readonly canProviderStartWork = computed(() => {
@@ -1033,25 +1053,35 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isParcelAwaitingPickupScan()) {
         return this.isMedicineDelivery()
           ? 'Vous êtes à la pharmacie. Scannez le QR de retrait pour confirmer la prise en charge des médicaments.'
+          : this.isMaterialDelivery()
+            ? 'Vous êtes à la quincaillerie. Scannez le QR de retrait pour confirmer la prise en charge du matériel.'
           : "Vous etes chez l'expediteur. La camera va scanner le QR retrait pour confirmer la prise en charge.";
       }
       if (this.isParcelAwaitingDropoffScan()) {
         return this.isMedicineDelivery()
           ? 'Vous êtes chez le client. Scannez le QR de dépôt pour confirmer la remise des médicaments.'
+          : this.isMaterialDelivery()
+            ? 'Vous êtes chez le client. Scannez le QR de dépôt pour confirmer la remise du matériel.'
           : 'Vous etes chez le destinataire. La camera va scanner le QR depot pour confirmer la livraison.';
       }
       if (this.isParcelDropoffNavigationActive()) {
         return this.isMedicineDelivery()
           ? 'Vous transportez les médicaments vers le client. Confirmez votre arrivée une fois à son adresse.'
+          : this.isMaterialDelivery()
+            ? 'Vous transportez le matériel vers le client. Confirmez votre arrivée une fois à son adresse.'
           : 'Vous etes en route vers le destinataire. Confirmez votre arrivee une fois sur place.';
       }
       if (this.isProviderOnTheWay()) {
         return this.isMedicineDelivery()
           ? 'Vous êtes en route vers la pharmacie pour récupérer les médicaments du client.'
+          : this.isMaterialDelivery()
+            ? 'Vous êtes en route vers la quincaillerie pour récupérer le matériel du client.'
           : "Vous etes en route vers l'expediteur pour recuperer le colis.";
       }
       return this.isMedicineDelivery()
         ? 'Démarrez la livraison pour partager votre position et rejoindre la pharmacie.'
+        : this.isMaterialDelivery()
+          ? 'Démarrez la livraison pour partager votre position et rejoindre la quincaillerie.'
         : 'Demarrez la livraison pour partager votre position et rejoindre le point de retrait.';
     }
     if (this.isProviderWorking()) {
@@ -1093,6 +1123,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
         return this.isMedicineDelivery()
           ? 'Livrer les médicaments au client'
+          : this.isMaterialDelivery()
+            ? 'Livrer le matériel au client'
           : 'Partir livrer le colis';
       }
       if (this.isParcelAwaitingDropoffScan()) return 'Scanner le QR depot';
@@ -1185,14 +1217,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       if (this.isProviderWorking()) return 'Téléconsultation en cours';
       return 'Téléconsultation programmée';
     }
-    if (this.isMedicineDelivery()) {
-      if (this.isAppointmentCompleted()) return 'Médicaments livrés';
+    if (this.isMedicineDelivery() || this.isMaterialDelivery()) {
+      const isMedicine = this.isMedicineDelivery();
+      if (this.isAppointmentCompleted()) return isMedicine ? 'Médicaments livrés' : 'Matériel livré';
       if (this.isParcelAwaitingDropoffScan()) return 'Le livreur est arrivé à votre adresse';
-      if (this.isParcelDropoffNavigationActive()) return 'Vos médicaments arrivent';
-      if (this.isParcelAwaitingPickupScan()) return 'Le livreur est arrivé à la pharmacie';
-      if (this.isParcelPickupValidated()) return 'Médicaments récupérés à la pharmacie';
-      if (this.isProviderOnTheWay()) return 'Le livreur rejoint la pharmacie';
-      return 'Livraison de médicaments confirmée';
+      if (this.isParcelDropoffNavigationActive()) return isMedicine ? 'Vos médicaments arrivent' : 'Votre matériel arrive';
+      if (this.isParcelAwaitingPickupScan()) return isMedicine ? 'Le livreur est arrivé à la pharmacie' : 'Le livreur est arrivé à la quincaillerie';
+      if (this.isParcelPickupValidated()) return isMedicine ? 'Médicaments récupérés à la pharmacie' : 'Matériel récupéré à la quincaillerie';
+      if (this.isProviderOnTheWay()) return isMedicine ? 'Le livreur rejoint la pharmacie' : 'Le livreur rejoint la quincaillerie';
+      return isMedicine ? 'Livraison de médicaments confirmée' : 'Livraison de matériel confirmée';
     }
     return this.activeTrackingScenario().clientTrackingTitle(this.trackingScenarioContext());
   });
@@ -1206,26 +1239,41 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       }
       return "Rejoignez la consultation vidéo à l'heure du rendez-vous. Aucun déplacement n'est nécessaire.";
     }
-    if (this.isMedicineDelivery()) {
+    if (this.isMedicineDelivery() || this.isMaterialDelivery()) {
+      const isMedicine = this.isMedicineDelivery();
       if (this.isAppointmentCompleted()) {
-        return 'La remise de vos médicaments est confirmée. Vous pouvez consulter le récapitulatif de livraison.';
+        return isMedicine
+          ? 'La remise de vos médicaments est confirmée. Vous pouvez consulter le récapitulatif de livraison.'
+          : 'La remise de votre matériel est confirmée. Vous pouvez consulter le récapitulatif de livraison.';
       }
       if (this.isParcelAwaitingDropoffScan()) {
-        return 'Le livreur est arrivé à votre adresse. Présentez votre QR code pour confirmer la remise de vos médicaments.';
+        return isMedicine
+          ? 'Le livreur est arrivé à votre adresse. Présentez votre QR code pour confirmer la remise de vos médicaments.'
+          : 'Le livreur est arrivé à votre adresse. Présentez votre QR code pour confirmer la remise de votre matériel.';
       }
       if (this.isParcelDropoffNavigationActive()) {
-        return 'Le livreur a récupéré vos médicaments et se dirige maintenant vers votre adresse.';
+        return isMedicine
+          ? 'Le livreur a récupéré vos médicaments et se dirige maintenant vers votre adresse.'
+          : 'Le livreur a récupéré votre matériel et se dirige maintenant vers votre adresse.';
       }
       if (this.isParcelAwaitingPickupScan()) {
-        return 'Le livreur est arrivé à la pharmacie. La remise de votre commande sera confirmée avant le départ.';
+        return isMedicine
+          ? 'Le livreur est arrivé à la pharmacie. La remise de votre commande sera confirmée avant le départ.'
+          : 'Le livreur est arrivé à la quincaillerie. La remise de votre matériel sera confirmée avant le départ.';
       }
       if (this.isParcelPickupValidated()) {
-        return 'La pharmacie a remis vos médicaments au livreur. Le trajet vers votre adresse va commencer.';
+        return isMedicine
+          ? 'La pharmacie a remis vos médicaments au livreur. Le trajet vers votre adresse va commencer.'
+          : 'La quincaillerie a remis votre matériel au livreur. Le trajet vers votre adresse va commencer.';
       }
       if (this.isProviderOnTheWay()) {
-        return 'Le livreur est en route vers la pharmacie pour récupérer votre commande.';
+        return isMedicine
+          ? 'Le livreur est en route vers la pharmacie pour récupérer votre commande.'
+          : 'Le livreur est en route vers la quincaillerie pour récupérer votre matériel.';
       }
-      return 'Le livreur est affecté. Son trajet vers la pharmacie apparaîtra ici dès son départ.';
+      return isMedicine
+        ? 'Le livreur est affecté. Son trajet vers la pharmacie apparaîtra ici dès son départ.'
+        : 'Le livreur est affecté. Son trajet vers la quincaillerie apparaîtra ici dès son départ.';
     }
     return this.activeTrackingScenario().clientTrackingDescription(this.trackingScenarioContext());
   });
@@ -1834,8 +1882,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       `recu-medical-jokko-${appointment.id.slice(0, 8)}.pdf`,
       'Recu medical Jokko',
       this.buildMedicalReceiptHtml(appointment),
+      'Recu medical genere.',
     );
-    this.feedback.success('Recu medical genere.');
   }
 
   protected downloadMedicalPrescription(appointment: AppointmentView): void {
@@ -1891,17 +1939,79 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       `ordonnance-jokko-${appointment.id.slice(0, 8)}.pdf`,
       'Ordonnance medicale Jokko',
       this.buildMedicalPrescriptionHtml(appointment, prescription),
+      'Ordonnance medicale generee.',
     );
-    this.feedback.success('Ordonnance medicale generee.');
   }
 
   protected downloadInvoice(appointment: AppointmentView): void {
+    if (
+      this.isAppointmentCompleted() &&
+      (this.isMedicineDelivery() || this.isMaterialDelivery())
+    ) {
+      this.downloadDeliveryOrderReceipt(appointment);
+      return;
+    }
+
     this.downloadHtmlDocument(
       `${this.invoiceNumberLabel().replace(/\s+/g, '-').toLowerCase()}.pdf`,
       'Facture mission Jokko',
       this.buildMissionInvoiceHtml(appointment),
+      'Facture mission generee.',
     );
-    this.feedback.success('Facture mission generee.');
+  }
+
+  protected downloadDeliveryOrderReceipt(appointment: AppointmentView): void {
+    if (this.isMedicineDelivery()) {
+      this.pharmacyOrders.getByDeliveryReservation(appointment.id).subscribe({
+        next: (order) => {
+          void this.orderCompletionDocument
+            .download({
+              kind: 'MEDICAMENTS',
+              orderId: order.id,
+              merchantName: order.pharmacy.name,
+              clientName: order.client.nom,
+              items: order.medicineItems
+                .filter((item) => item.isAvailable && item.price !== null)
+                .map((item) => ({ name: item.name, unitPrice: item.price ?? 0 })),
+              deliveryRequested: order.deliveryRequested,
+              deliveryAmount: order.deliveryAmount,
+              totalAmount: order.totalAmount,
+            })
+            .then((downloaded) => {
+              if (downloaded) this.feedback.success('Ordonnance et reçu de livraison générés.');
+            });
+        },
+        error: () => this.feedback.error('Impossible de charger le reçu détaillé de cette livraison.'),
+      });
+      return;
+    }
+
+    if (!this.isMaterialDelivery()) return;
+    this.materialOrders.getByDeliveryReservation(appointment.id).subscribe({
+      next: (order) => {
+        void this.orderCompletionDocument
+          .download({
+            kind: 'MATERIEL',
+            orderId: order.id,
+            merchantName: order.hardwareStore.name,
+            clientName: order.client.nom,
+            items: order.items
+              .filter((item) => item.isAvailable && item.unitPrice !== null)
+              .map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice ?? 0,
+              })),
+            deliveryRequested: order.deliveryRequested,
+            deliveryAmount: order.deliveryAmount,
+            totalAmount: order.totalAmount,
+          })
+          .then((downloaded) => {
+            if (downloaded) this.feedback.success('Reçu de livraison généré.');
+          });
+      },
+      error: () => this.feedback.error('Impossible de charger le reçu détaillé de cette livraison.'),
+    });
   }
 
   protected syncAppointmentToCalendar(appointment: AppointmentView): void {
@@ -1933,8 +2043,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const link = document.createElement('a');
     link.href = url;
     link.download = `rendez-vous-jokko-${appointment.id.slice(0, 8)}.ics`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
     this.feedback.success('Fichier calendrier genere.');
   }
 
@@ -2176,11 +2289,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected parcelActionButtonLabel(): string {
-    if (this.isParcelAwaitingPickupScan()) return "Scanner chez l'expediteur";
-    if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
-      return 'Partir livrer le colis';
+    if (this.isParcelAwaitingPickupScan()) {
+      return this.isMaterialDelivery() ? 'Scanner à la quincaillerie' : "Scanner chez l'expediteur";
     }
-    if (this.isParcelAwaitingDropoffScan()) return 'Scanner chez le destinataire';
+    if (this.isParcelPickupValidated() && !this.isProviderWorking()) {
+      return this.isMaterialDelivery() ? 'Livrer le matériel' : 'Partir livrer le colis';
+    }
+    if (this.isParcelAwaitingDropoffScan()) {
+      return this.isMaterialDelivery() ? 'Scanner le matériel livré' : 'Scanner chez le destinataire';
+    }
     if (this.isParcelDropoffValidated()) return 'Livraison terminee';
     if (this.isParcelDropoffNavigationActive() || this.isProviderOnTheWay()) return 'Sur place';
     return 'Commencer la livraison';
@@ -4128,8 +4245,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.currentMedicalTreatment.set('');
   }
 
-  private downloadHtmlDocument(fileName: string, title: string, body: string): void {
-    this.documentRenderer.downloadHtmlDocument(fileName, title, body);
+  private downloadHtmlDocument(
+    fileName: string,
+    title: string,
+    body: string,
+    successMessage: string,
+  ): void {
+    void this.documentRenderer
+      .downloadHtmlDocument(fileName, title, body)
+      .then((downloaded) => {
+        if (downloaded) this.feedback.success(successMessage);
+      });
   }
 
   private buildMissionInvoiceHtml(appointment: AppointmentView): string {

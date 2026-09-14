@@ -58,6 +58,10 @@ export class PharmacyOrderDeliveryPageComponent implements OnInit {
           this.loading.set(false);
           this.errorMessage.set(null);
           this.order.set(order);
+          if (order.status === 'LIVREE') {
+            void this.router.navigate(['/pharmacy-orders', order.id], { replaceUrl: true });
+            return;
+          }
           const delivery = order.deliveryReservation;
           if (delivery?.id) {
             void this.router.navigate(['/appointments', delivery.id], {

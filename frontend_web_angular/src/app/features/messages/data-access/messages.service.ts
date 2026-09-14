@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, switchMap } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
@@ -78,15 +78,13 @@ export class MessagesService {
     const resolvedUrl = this.resolveMediaUrl(mediaUrl);
 
     if (this.isCloudinaryUrl(resolvedUrl)) {
-      return this.getSignedCloudinaryDownloadUrl(mediaUrl).pipe(
-        map(({ url }) => url),
-        // The interceptor skips non-API URLs, so the signed Cloudinary request is sent without credentials.
-        switchMap((signedUrl) =>
-          this.http.get(signedUrl, {
-            responseType: 'blob',
-          }),
-        ),
-      );
+      return this.http.get(`${this.apiUrl}/media/download`, {
+        params: {
+          mediaUrl,
+          fileName: this.mediaFileName(mediaUrl),
+        },
+        responseType: 'blob',
+      });
     }
 
     return this.http.get(resolvedUrl, {
@@ -98,11 +96,11 @@ export class MessagesService {
     const resolvedUrl = this.resolveMediaUrl(mediaUrl);
 
     if (this.isCloudinaryUrl(resolvedUrl)) {
-      return this.getSignedCloudinaryDownloadUrl(mediaUrl).pipe(
-        map(({ url, fileName }) => ({
-          url,
-          fileName,
-          revokeAfterUse: false,
+      return this.downloadMedia(mediaUrl).pipe(
+        map((blob) => ({
+          url: URL.createObjectURL(blob),
+          fileName: this.mediaFileName(mediaUrl),
+          revokeAfterUse: true,
         })),
       );
     }
@@ -114,19 +112,6 @@ export class MessagesService {
         revokeAfterUse: true,
       })),
     );
-  }
-
-  private getSignedCloudinaryDownloadUrl(
-    mediaUrl: string,
-  ): Observable<{ url: string; fileName: string }> {
-    return this.http
-      .get<ApiResponse<{ url: string; fileName: string }>>(`${this.apiUrl}/media/download-url`, {
-        params: {
-          mediaUrl,
-          fileName: this.mediaFileName(mediaUrl),
-        },
-      })
-      .pipe(map(unwrapApiResponse));
   }
 
   private resolveMediaUrl(mediaUrl: string): string {

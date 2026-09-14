@@ -109,7 +109,10 @@ export class NegotiationCommandService extends NegotiationAppService {
       data: {
         negotiationId: created.id,
         serviceId: command.serviceId,
+        previousAmount: Number(service.prix),
         proposedAmount: command.proposedAmount,
+        priceDirection:
+          command.proposedAmount < Number(service.prix) ? 'DOWN' : 'UP',
         status: created.statut,
       },
     });
@@ -125,6 +128,7 @@ export class NegotiationCommandService extends NegotiationAppService {
       requestUser,
       negotiationId,
     );
+    const previousAmount = entity.montantCourant;
 
     try {
       if (actor === 'PRESTATAIRE') {
@@ -156,7 +160,12 @@ export class NegotiationCommandService extends NegotiationAppService {
     );
     entity.clearPendingOffer();
     await this.publishEvents(entity);
-    await this.notifyNegotiationOffer(updated, actor, 'COUNTER');
+    await this.notifyNegotiationOffer(
+      updated,
+      actor,
+      'COUNTER',
+      previousAmount,
+    );
     return updated;
   }
 
@@ -194,6 +203,7 @@ export class NegotiationCommandService extends NegotiationAppService {
     negotiation: Awaited<ReturnType<NegotiationsRepositoryPort['update']>>,
     actor: 'CLIENT' | 'PRESTATAIRE',
     event: 'COUNTER' | 'ACCEPTED',
+    previousAmount?: number,
   ): Promise<void> {
     const recipientUserId =
       actor === 'CLIENT'
@@ -226,6 +236,15 @@ export class NegotiationCommandService extends NegotiationAppService {
       data: {
         negotiationId: negotiation.id,
         serviceId: negotiation.serviceId,
+        ...(event === 'COUNTER' && previousAmount !== undefined
+          ? {
+              previousAmount,
+              priceDirection:
+                Number(negotiation.montantCourant) < previousAmount
+                  ? 'DOWN'
+                  : 'UP',
+            }
+          : {}),
         proposedAmount: Number(negotiation.montantCourant),
         status: negotiation.statut,
       },

@@ -22,6 +22,7 @@ import {
   PharmacyOrdersService,
 } from '../../../data-access/pharmacy-orders.service';
 import { ParcelPickupQrCardComponent } from '../../../../appointments/presentation/components/parcel-pickup-qr-card/parcel-pickup-qr-card.component';
+import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
 
 @Component({
   selector: 'app-pharmacy-order-detail-page',
@@ -48,6 +49,7 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
+  private readonly completionDocument = inject(OrderCompletionDocumentService);
 
   protected readonly order = signal<PharmacyOrderView | null>(null);
   protected readonly isLoading = signal(true);
@@ -118,7 +120,6 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
             'EN_ATTENTE_TRANSPORTEUR',
             'TRANSPORTEUR_ASSIGNE',
             'EN_LIVRAISON',
-            'LIVREE',
           ].includes(order.status)
         ) {
           void this.router.navigate(['/pharmacy-orders', order.id, 'delivery'], {
@@ -282,6 +283,19 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   protected proceedToPayment(order: PharmacyOrderView): void {
     if (!this.canPay(order)) return;
     void this.router.navigate(['/pharmacy-orders', order.id, 'payment']);
+  }
+
+  protected downloadCompletedOrder(order: PharmacyOrderView): void {
+    if (!order.deliveryRequested || order.status !== 'LIVREE') return;
+    void this.completionDocument.download({
+      kind: 'MEDICAMENTS', orderId: order.id, merchantName: order.pharmacy.name,
+      clientName: order.client.nom,
+      items: order.medicineItems.filter((item) => item.isAvailable && item.price !== null)
+        .map((item) => ({ name: item.name, unitPrice: item.price! })),
+      deliveryRequested: true, deliveryAmount: order.deliveryAmount, totalAmount: order.totalAmount,
+    }).then((downloaded) => {
+      if (downloaded) this.feedback.success('Ordonnance et reçu de livraison téléchargés.');
+    });
   }
 
   private currentStep(status?: string): 1 | 2 | 3 | 4 {

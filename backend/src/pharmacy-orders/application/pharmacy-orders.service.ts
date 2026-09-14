@@ -180,6 +180,11 @@ export class PharmacyOrdersService {
             OR: [
               { clientId: requestUser.sub },
               { pharmacieId: professional.id },
+              {
+                reservationLivraison: {
+                  is: { professionnelId: professional.id },
+                },
+              },
             ],
           }
         : { clientId: requestUser.sub },
@@ -242,6 +247,43 @@ export class PharmacyOrdersService {
       include: ORDER_INCLUDE,
     });
     if (!order) throw new NotFoundException('Commande pharmacie introuvable.');
+    return this.toView(order);
+  }
+
+  async getByDeliveryReservation(requestUser: AuthUser, reservationId: string) {
+    const professional = await this.prisma.profilProfessionnel.findUnique({
+      where: { utilisateurId: requestUser.sub },
+      select: { id: true },
+    });
+    const delivery = await this.prisma.reservation.findFirst({
+      where: {
+        id: reservationId,
+        OR: [
+          { clientId: requestUser.sub },
+          ...(professional ? [{ professionnelId: professional.id }] : []),
+        ],
+      },
+      select: { clientId: true, adresseClient: true },
+    });
+    if (!delivery) throw new NotFoundException('Livraison introuvable.');
+
+    const order = await this.prisma.commandePharmacie.findFirst({
+      where: {
+        OR: [
+          { reservationLivraisonId: reservationId },
+          {
+            reservationLivraisonId: null,
+            clientId: delivery.clientId,
+            livraisonDemandee: true,
+            adresseLivraison: delivery.adresseClient,
+          },
+        ],
+      },
+      include: ORDER_INCLUDE,
+      orderBy: { misAJourLe: 'desc' },
+    });
+    if (!order)
+      throw new NotFoundException('Commande de cette livraison introuvable.');
     return this.toView(order);
   }
 
@@ -779,9 +821,17 @@ export class PharmacyOrdersService {
 
   private toView(order: PharmacyOrderRecord) {
     const medicineItems = this.parseMedicineItems(order.detailsMedicaments);
+    // Les livraisons terminées avant l'ajout du statut LIVREE conservent
+    // parfois TRANSPORTEUR_ASSIGNE. La réservation de transport reste la
+    // source de vérité et rend le reçu détaillé immédiatement accessible.
+    const status =
+      order.livraisonDemandee &&
+      order.reservationLivraison?.statut === 'TERMINEE'
+        ? StatutCommandePharmacie.LIVREE
+        : order.statut;
     return {
       id: order.id,
-      status: order.statut,
+      status,
       medicineAmount:
         order.montantMedicaments === null
           ? null

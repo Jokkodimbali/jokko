@@ -18,6 +18,7 @@ describe('NegotiationCommandService notifications', () => {
     nom: 'Reparation voiture',
     estDisponible: true,
     typePrix: 'NEGOCIABLE',
+    prix: 15000,
   };
   const professionalView = {
     id: 'profile-1',
@@ -119,6 +120,8 @@ describe('NegotiationCommandService notifications', () => {
           negotiationId: created.id,
           serviceId: 'service-1',
           proposedAmount: 12500,
+          previousAmount: 15000,
+          priceDirection: 'DOWN',
         }),
       }),
     );
@@ -139,6 +142,9 @@ describe('NegotiationCommandService notifications', () => {
         data: expect.objectContaining({
           negotiationId: 'negotiation-1',
           serviceId: 'service-1',
+          previousAmount: 15000,
+          proposedAmount: 17500,
+          priceDirection: 'UP',
         }),
       }),
     );
@@ -155,7 +161,11 @@ describe('NegotiationCommandService notifications', () => {
       expect.objectContaining({
         userId: 'provider-user',
         type: 'AJUSTEMENT_PRIX_PROPOSE',
-        data: expect.objectContaining({ proposedAmount: 14500 }),
+        data: expect.objectContaining({
+          previousAmount: 15000,
+          proposedAmount: 14500,
+          priceDirection: 'DOWN',
+        }),
       }),
     );
   });
@@ -169,7 +179,7 @@ describe('NegotiationCommandService notifications', () => {
       expect.objectContaining({
         userId: 'provider-user',
         type: 'AJUSTEMENT_PRIX_ACCEPTE',
-        title: 'Offre acceptee',
+        title: 'Offre acceptée',
         data: expect.objectContaining({
           negotiationId: 'negotiation-1',
           serviceId: 'service-1',

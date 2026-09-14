@@ -279,6 +279,11 @@ export class MaterialOrdersService {
             OR: [
               { clientId: requestUser.sub },
               { quincaillerieId: professional.id },
+              {
+                reservationLivraison: {
+                  is: { professionnelId: professional.id },
+                },
+              },
             ],
           }
         : { clientId: requestUser.sub },
@@ -308,6 +313,45 @@ export class MaterialOrdersService {
       include: ORDER_INCLUDE,
     });
     if (!order) throw new NotFoundException('Commande materiel introuvable.');
+    return this.toView(order, {
+      hideReservationDetails: order.quincaillerieId === professional?.id,
+    });
+  }
+
+  async getByDeliveryReservation(requestUser: AuthUser, reservationId: string) {
+    const professional = await this.prisma.profilProfessionnel.findUnique({
+      where: { utilisateurId: requestUser.sub },
+      select: { id: true },
+    });
+    const delivery = await this.prisma.reservation.findFirst({
+      where: {
+        id: reservationId,
+        OR: [
+          { clientId: requestUser.sub },
+          ...(professional ? [{ professionnelId: professional.id }] : []),
+        ],
+      },
+      select: { clientId: true, adresseClient: true },
+    });
+    if (!delivery) throw new NotFoundException('Livraison introuvable.');
+
+    const order = await this.prisma.commandeMateriel.findFirst({
+      where: {
+        OR: [
+          { reservationLivraisonId: reservationId },
+          {
+            reservationLivraisonId: null,
+            clientId: delivery.clientId,
+            livraisonDemandee: true,
+            adresseLivraison: delivery.adresseClient,
+          },
+        ],
+      },
+      include: ORDER_INCLUDE,
+      orderBy: { misAJourLe: 'desc' },
+    });
+    if (!order)
+      throw new NotFoundException('Commande de cette livraison introuvable.');
     return this.toView(order, {
       hideReservationDetails: order.quincaillerieId === professional?.id,
     });
@@ -756,9 +800,17 @@ export class MaterialOrdersService {
     order: MaterialOrderRecord,
     options: { hideReservationDetails?: boolean } = {},
   ) {
+    // Rétrocompatibilité : une réservation de livraison déjà terminée doit
+    // ouvrir le reçu détaillé, même si l'ancienne commande n'a pas encore
+    // été enregistrée avec le statut LIVREE.
+    const status =
+      order.livraisonDemandee &&
+      order.reservationLivraison?.statut === 'TERMINEE'
+        ? StatutCommandeMateriel.LIVREE
+        : order.statut;
     return {
       id: order.id,
-      status: order.statut,
+      status,
       materialAmount:
         order.montantMateriel === null ? null : Number(order.montantMateriel),
       deliveryRequested: order.livraisonDemandee,

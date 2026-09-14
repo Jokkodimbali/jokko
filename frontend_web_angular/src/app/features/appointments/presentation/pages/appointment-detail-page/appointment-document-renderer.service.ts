@@ -7,7 +7,7 @@ import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.se
 export class AppointmentDocumentRendererService {
   private readonly feedback = inject(AppFeedbackService);
 
-  downloadHtmlDocument(fileName: string, title: string, body: string): void {
+  async downloadHtmlDocument(fileName: string, title: string, body: string): Promise<boolean> {
     const html = `<!doctype html>
 <html lang="fr">
 <head>
@@ -21,6 +21,7 @@ export class AppointmentDocumentRendererService {
     h1{font-size:24px;margin:0 0 8px;text-transform:uppercase}
     h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#865221;border-bottom:1px solid #eadccd;padding-bottom:8px;margin:28px 0 14px}
     p{margin:4px 0;line-height:1.5}.muted{color:#667085}.box{background:#f9fafb;border:1px solid #eef0f3;border-radius:12px;padding:16px}
+    .order-completion-document{letter-spacing:.012em;line-height:1.55;word-spacing:.08em}.order-completion-document h1,.order-completion-document h2{letter-spacing:.06em;word-spacing:normal}.order-completion-document td,.order-completion-document th{letter-spacing:.008em;line-height:1.45;word-spacing:.06em}.order-completion-document .right{font-variant-numeric:tabular-nums;white-space:nowrap}.order-completion-document .invoice-total{word-spacing:.1em}.order-completion-document .footer-note{line-height:1.6}
     table{border-collapse:collapse;width:100%;font-size:13px;table-layout:fixed}th{text-align:left;color:#667085;border-bottom:1px solid #e5e7eb;padding:10px 8px}td{border-bottom:1px solid #f0f2f4;padding:10px 8px;vertical-align:top}.document-text,td{overflow-wrap:anywhere;word-break:break-word}.right{text-align:right}.total{font-size:18px;font-weight:800;color:#865221}
     .brand{display:inline-flex;align-items:center;gap:10px;color:#865221;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.pill{display:inline-block;border-radius:999px;background:#ecfdf3;color:#067647;font-size:12px;font-weight:800;padding:6px 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.invoice-total{background:#111827;color:#fff;border-radius:14px;padding:18px 22px;text-align:right}.invoice-total .total{color:#fff;font-size:24px}.footer-note{border-top:1px solid #e5e7eb;margin-top:28px;padding-top:18px;font-size:12px;color:#667085}
     ol,ul{padding-left:22px}li{margin:8px 0;line-height:1.45}.signature{display:flex;justify-content:space-between;gap:24px;margin-top:54px}.stamp{border:1px solid #eadccd;border-radius:12px;background:#fff8f1;color:#865221;padding:18px 24px;text-align:center;font-weight:800}
@@ -43,10 +44,10 @@ export class AppointmentDocumentRendererService {
 <body class="${body.includes('mission-invoice') || body.includes('medical-prescription') ? 'invoice-document' : ''}"><main class="sheet${body.includes('mission-invoice') || body.includes('medical-prescription') ? ' invoice-sheet' : ''}${body.includes('medical-prescription') ? ' prescription-sheet' : ''}">${body}</main></body>
 </html>`;
     const pdfFileName = fileName.replace(/\.html?$/i, '.pdf');
-    void this.renderDesignedDocumentAsPdf(html, pdfFileName);
+    return this.renderDesignedDocumentAsPdf(html, pdfFileName);
   }
 
-  private async renderDesignedDocumentAsPdf(html: string, fileName: string): Promise<void> {
+  private async renderDesignedDocumentAsPdf(html: string, fileName: string): Promise<boolean> {
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
     frame.style.position = 'fixed';
@@ -65,9 +66,9 @@ export class AppointmentDocumentRendererService {
       frameDocument.write(html);
       frameDocument.close();
       frameDocument.documentElement.style.setProperty('--font-app', getComputedStyle(document.body).fontFamily);
-      // Reuse the locally loaded application fonts in the PDF's isolated document.
-      document.fonts.forEach((face) => frameDocument.fonts.add(face));
-      await frameDocument.fonts?.ready;
+      // Firefox rejects adding a FontFace owned by a stylesheet to another document.
+      // The inherited family name still lets the isolated document use its available fallback.
+      await document.fonts?.ready;
 
       const host = frameDocument.body;
       const captureScale = Math.max(3, Math.min(4, (window.devicePixelRatio || 1) * 2));
@@ -90,12 +91,26 @@ export class AppointmentDocumentRendererService {
         compress: true,
       });
       this.addCanvasPagesToPdf(pdf, canvas, protectedRanges);
-      pdf.save(fileName);
+      this.triggerPdfDownload(pdf.output('blob'), fileName);
+      return true;
     } catch {
       this.feedback.error('Impossible de generer le PDF pour le moment.');
+      return false;
     } finally {
       frame.remove();
     }
+  }
+
+  private triggerPdfDownload(pdf: Blob, fileName: string): void {
+    const url = URL.createObjectURL(pdf);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   private addCanvasPagesToPdf(

@@ -27,6 +27,34 @@ describe('notification display lifecycle', () => {
     expect(findFeaturedNotification([ongoing, message])).toBe(message);
     expect(findFeaturedNotification([ongoing, message], id => id === 'message')).toBe(ongoing);
   });
+  it('shows the most recent active service when several are permanent', () => {
+    const latestOngoing = {
+      id: 'ongoing-latest',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      isRead: true,
+      createdAt: '2026-09-08T12:00:00Z',
+      data: { reservationId: 'r2', reservationStatus: 'EN_COURS' },
+    };
+
+    expect(findFeaturedNotification([ongoing, latestOngoing], () => true)).toBe(latestOngoing);
+  });
+  it('keeps the previous active service when the latest one is completed', () => {
+    const latestOngoing = {
+      id: 'ongoing-latest',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      isRead: true,
+      createdAt: '2026-09-08T12:00:00Z',
+      data: { reservationId: 'r2', reservationStatus: 'EN_COURS' },
+    };
+    const completed = {
+      id: 'completed-latest',
+      type: 'RESERVATION_FINALISEE',
+      createdAt: '2026-09-08T13:00:00Z',
+      data: { reservationId: 'r2' },
+    };
+
+    expect(findFeaturedNotification([ongoing, latestOngoing, completed], () => true)).toBe(ongoing);
+  });
 });
 
 
@@ -43,6 +71,23 @@ describe('shared notification presentation', () => {
     const notification = { id: 'n', type, data: { actorName: 'Mamadou Dia' } };
     expect(formatNotificationTitle(notification)).toBe(title);
     expect(notificationIcon(notification)).toBe(icon);
+  });
+  it('uses the downward arrow when a proposed price is lower', () => {
+    expect(notificationIcon({
+      id: 'down',
+      type: 'AJUSTEMENT_PRIX_PROPOSE',
+      data: { previousAmount: 15000, proposedAmount: 12000 },
+    })).toBe('move-down');
+  });
+  it('uses the upward arrow when a proposed price is higher', () => {
+    expect(notificationIcon({
+      id: 'up',
+      type: 'AJUSTEMENT_PRIX_PROPOSE',
+      data: { previousAmount: 12000, proposedAmount: 15000 },
+    })).toBe('move-up');
+  });
+  it('does not invent an upward direction when historical prices are missing', () => {
+    expect(notificationIcon({ id: 'legacy', type: 'AJUSTEMENT_PRIX_PROPOSE' })).toBe('banknote');
   });
   it('recovers the name in older missed-call messages', () => {
     expect(formatNotificationTitle({ id: 'n', type: 'APPEL_MANQUE', corps: 'Mamadou Dia a tente de vous joindre.' })).toBe('Appel manqué de Mamadou Dia');

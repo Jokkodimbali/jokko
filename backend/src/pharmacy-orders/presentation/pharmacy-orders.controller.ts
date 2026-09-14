@@ -63,6 +63,14 @@ export class PharmacyOrdersController {
     return createApiResponse(await this.orders.getAccess(user));
   }
 
+  @Get('delivery-reservation/:reservationId')
+  async getByDeliveryReservation(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    return createApiResponse(await this.orders.getByDeliveryReservation(user, reservationId));
+  }
+
   @Get(':id')
   async get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return createApiResponse(await this.orders.get(user, id));

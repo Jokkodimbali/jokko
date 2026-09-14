@@ -23,6 +23,8 @@ import {
   DoctorSpaceSidebarComponent,
 } from '../../../../medicine/presentation/pages/doctor-space-page/components/doctor-space-sidebar/doctor-space-sidebar.component';
 import { ParcelPickupQrCardComponent } from '../../../../appointments/presentation/components/parcel-pickup-qr-card/parcel-pickup-qr-card.component';
+import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
+import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
 
 @Component({
   selector: 'app-material-order-detail-page',
@@ -48,6 +50,8 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   private orderRequest: Subscription | null = null;
   private readonly realtime = inject(MaterialOrdersRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly completionDocument = inject(OrderCompletionDocumentService);
+  private readonly feedback = inject(AppFeedbackService);
 
   protected readonly order = signal<MaterialOrderView | null>(null);
   protected readonly editableItems = signal<MaterialOrderItem[]>([]);
@@ -273,6 +277,19 @@ export class MaterialOrderDetailPageComponent implements OnInit {
       LIVREE: 'Materiel livre',
     };
     return labels[status] ?? status;
+  }
+
+  protected downloadCompletedOrder(order: MaterialOrderView): void {
+    if (!order.deliveryRequested || order.status !== 'LIVREE') return;
+    void this.completionDocument.download({
+      kind: 'MATERIEL', orderId: order.id, merchantName: order.hardwareStore.name,
+      clientName: order.client.nom,
+      items: order.items.filter((item) => item.isAvailable && item.unitPrice !== null)
+        .map((item) => ({ name: item.name, quantity: item.quantity, unitPrice: item.unitPrice! })),
+      deliveryRequested: true, deliveryAmount: order.deliveryAmount, totalAmount: order.totalAmount,
+    }).then((downloaded) => {
+      if (downloaded) this.feedback.success('Reçu de livraison téléchargé.');
+    });
   }
 
   private hydrate(order: MaterialOrderView): void {

@@ -7,10 +7,12 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -189,6 +191,45 @@ export class ConversationsController {
     })();
 
     return createApiResponse(download);
+  }
+
+  @Get('media/download')
+  @ApiOperation({ summary: 'Telecharger un media de conversation' })
+  async downloadConversationMedia(
+    @Query('mediaUrl') mediaUrl: string | undefined,
+    @Query('fileName') fileName: string | undefined,
+    @Res() response: Response,
+  ): Promise<void> {
+    if (!mediaUrl) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    let download: { url: string; fileName: string };
+    try {
+      download = this.cloudinaryMedia.createPrivateDownloadUrl(
+        mediaUrl,
+        fileName,
+      );
+    } catch {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const remote = await fetch(download.url);
+    if (!remote.ok) {
+      throw appHttpException('VALIDATION_REQUEST_INVALID');
+    }
+
+    const safeFileName = download.fileName.replace(/[\r\n"]/g, '_');
+    response.setHeader(
+      'Content-Type',
+      remote.headers.get('content-type') || 'application/octet-stream',
+    );
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(safeFileName)}`,
+    );
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.send(Buffer.from(await remote.arrayBuffer()));
   }
 
   @Get(':conversationId/messages')

@@ -76,25 +76,31 @@ export function formatNotificationTitle(
   if (isOngoingNotification(notification)) return `La prestation est en cours${withPerson}`;
   if (metadata['tripStatus'] === 'SUR_PLACE') return actor ? `${actor} est sur place` : 'Arrivé sur place';
   if (type === 'PRESTATAIRE_EN_ROUTE') {
+    if (metadata['recipientIsTraveller'] === true && metadata['tripStatus'] === 'EN_ROUTE') {
+      const targetName = typeof metadata['targetName'] === 'string' && metadata['targetName'].trim()
+        ? metadata['targetName'].trim()
+        : 'votre destination';
+      return `Vous êtes en route vers ${targetName}`;
+    }
     if (metadata['deliveryOfferResolved'] === true) return 'Livraison acceptée';
     return actor ? `${actor} est en route` : 'Livreur en route';
   }
-  const labels: Record<string, string> = {
-    NOUVELLE_RESERVATION: 'Réservation confirmée',
-    RESERVATION_CONFIRMEE: 'Réservation confirmée',
-    RESERVATION_ANNULEE: 'Réservation annulée',
-    RESERVATION_FINALISEE: 'La prestation est terminée',
+  const notificationLabels: Record<string, string> = {
+    NOUVELLE_RESERVATION: actor ? `Nouvelle réservation de ${actor}` : 'Nouvelle réservation',
+    RESERVATION_CONFIRMEE: `Réservation confirmée${withPerson}`,
+    RESERVATION_ANNULEE: `Réservation annulée${withPerson}`,
+    RESERVATION_FINALISEE: `Prestation terminée${withPerson}`,
+    AJUSTEMENT_PRIX_PROPOSE: `Ajustement de prix proposé${by}`,
+    AJUSTEMENT_PRIX_ACCEPTE: `Ajustement de prix accepté${by}`,
+    AJUSTEMENT_PRIX_REFUSE: `Ajustement de prix refusé${by}`,
+    PAIEMENT_CONFIRME: `Paiement confirmé${by}`,
+    PAIEMENT_LIBERE: `Paiement libéré${by}`,
+    KYC_APPROUVEE: 'Vérification approuvée',
+    KYC_REJETEE: 'Vérification à compléter',
+    LITIGE_OUVERT: `Litige ouvert${withPerson}`,
+    LITIGE_RESOLU: `Litige résolu${withPerson}`,
   };
-  if (labels[type]) return `${labels[type]}${withPerson}`;
-  const events: Record<string, string> = {
-    AJUSTEMENT_PRIX_PROPOSE: 'Ajustement de prix proposé',
-    AJUSTEMENT_PRIX_ACCEPTE: 'Ajustement de prix accepté',
-    AJUSTEMENT_PRIX_REFUSE: 'Ajustement de prix refusé',
-    PAIEMENT_CONFIRME: 'Paiement confirmé',
-    LITIGE_OUVERT: 'Litige ouvert',
-    LITIGE_RESOLU: 'Litige résolu',
-  };
-  if (events[type]) return `${events[type]}${type.startsWith('LITIGE') ? withPerson : by}`;
+  if (notificationLabels[type]) return notificationLabels[type];
   if (type === 'ORDONNANCE_RECUE') return `Ordonnance reçue${from}`;
   if (type === 'ORDONNANCE_MISE_A_JOUR') return `Ordonnance mise à jour${by}`;
   // Older notifications put the person's name before a dash.
@@ -154,8 +160,17 @@ export function sortNotificationsNewestFirst(notifications: UserNotificationView
 
 export function isOngoingNotification(notification: UserNotificationView): boolean {
   const metadata = notification.data || notification.donnees || {};
-  return metadata['reservationStatus'] === 'EN_COURS' ||
-    metadata['tripStatus'] === 'EN_COURS' || notification.type === 'PRESTATION_EN_COURS';
+  const reservationStatus = String(metadata['reservationStatus'] ?? '').toUpperCase();
+  const tripStatus = String(metadata['tripStatus'] ?? '').toUpperCase();
+  const notificationText = [notification.title, notification.body, notification.corps]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLocaleLowerCase('fr-FR');
+
+  return reservationStatus === 'EN_COURS' ||
+    tripStatus === 'EN_COURS' ||
+    notification.type === 'PRESTATION_EN_COURS' ||
+    /\bprestation\b.*\ben cours\b/.test(notificationText);
 }
 
 /** Arrival and active work remain visible until the reservation is resolved. */
@@ -187,14 +202,24 @@ export function findFeaturedNotification(
 }
 
 export function notificationIcon(notification: UserNotificationView): string {
-    const metadata = notification.data || notification.donnees || {};
+    const metadata = {
+      ...(notification.donnees ?? {}),
+      ...(notification.data ?? {}),
+    };
     const type = notification.type.toUpperCase();
     const title = (notification.title || notification.titre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     if (/APPEL.*MANQUE/.test(type)) return 'phone-missed';
     if (/APPEL/.test(type)) return 'phone-incoming';
     if (isOngoingNotification(notification)) return 'hourglass';
     if (metadata['tripStatus'] === 'SUR_PLACE') return 'pin';
-    if (/AJUSTEMENT/.test(type)) return /REFUS|REJET/.test(type + title) ? 'circle-x' : /ACCEPT/.test(type + title) ? 'circle-check' : 'banknote';
+    if (/AJUSTEMENT/.test(type)) {
+      if (/REFUS|REJET/.test(type + title)) return 'circle-x';
+      if (/ACCEPT/.test(type + title)) return 'circle-check';
+      const direction = priceAdjustmentDirection(metadata, notification.body || notification.corps || '');
+      if (direction === 'DOWN') return 'move-down';
+      if (direction === 'UP') return 'move-up';
+      return 'banknote';
+    }
     if (/MESSAGE/.test(type)) return 'message-circle';
     if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE/.test(type)) return 'wallet-cards';
     if (/PAYMENT|PAIEMENT/.test(type)) return 'hand-coins';
@@ -208,6 +233,73 @@ export function notificationIcon(notification: UserNotificationView): string {
     if (/RESERVATION/.test(type)) return 'calendar-check';
     return 'bell';
   }
+
+function priceAdjustmentDirection(
+  metadata: Record<string, unknown>,
+  body: string,
+): 'UP' | 'DOWN' | null {
+  const explicit = String(metadata['priceDirection'] ?? metadata['adjustmentDirection'] ?? '').toUpperCase();
+  if (['UP', 'INCREASE', 'AUGMENTATION', 'HAUSSE'].includes(explicit)) return 'UP';
+  if (['DOWN', 'DECREASE', 'DIMINUTION', 'BAISSE'].includes(explicit)) return 'DOWN';
+
+  const current = notificationAmount(
+    metadata['currentPrice'] ??
+      metadata['currentAmount'] ??
+      metadata['oldPrice'] ??
+      metadata['oldAmount'] ??
+    metadata['previousPrice'] ??
+    metadata['previousAmount'] ??
+      metadata['initialPrice'] ??
+      metadata['initialAmount'] ??
+      metadata['referencePrice'] ??
+      metadata['referenceAmount'] ??
+      metadata['basePrice'] ??
+      metadata['baseAmount'] ??
+      metadata['prixActuel'] ??
+      metadata['montantActuel'] ??
+      metadata['montantCourant'] ??
+      metadata['prixConvenu'] ??
+      metadata['prixInitial'],
+  );
+  const proposed = notificationAmount(
+    metadata['proposedPrice'] ??
+      metadata['proposedAmount'] ??
+      metadata['newPrice'] ??
+      metadata['newAmount'] ??
+      metadata['nouveauPrix'] ??
+      metadata['nouveauMontant'] ??
+      metadata['montantPropose'] ??
+      metadata['prixAjustementPropose'],
+  );
+  if (Number.isFinite(current) && Number.isFinite(proposed) && current !== proposed) {
+    return proposed > current ? 'UP' : 'DOWN';
+  }
+
+  const normalizedBody = body.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const legacyCurrent = notificationAmount(
+    normalizedBody.match(/(?:ancien|precedent)\s*(?:prix|montant)\s*:\s*([\d\s.,]+)/i)?.[1],
+  );
+  const legacyProposed = notificationAmount(
+    normalizedBody.match(/(?:nouveau\s*)?(?:prix|montant)\s*(?:propose)?\s*:\s*([\d\s.,]+)/i)?.[1],
+  );
+  if (
+    Number.isFinite(legacyCurrent) &&
+    Number.isFinite(legacyProposed) &&
+    legacyCurrent !== legacyProposed
+  ) {
+    return legacyProposed > legacyCurrent ? 'UP' : 'DOWN';
+  }
+  if (/augmentation|hausse|augmente/.test(normalizedBody)) return 'UP';
+  if (/diminution|baisse|diminue/.test(normalizedBody)) return 'DOWN';
+  return null;
+}
+
+function notificationAmount(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return Number.NaN;
+  const normalized = value.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  return normalized ? Number(normalized) : Number.NaN;
+}
 
 @Injectable({
   providedIn: 'root',

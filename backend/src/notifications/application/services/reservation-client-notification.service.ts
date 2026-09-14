@@ -76,6 +76,8 @@ type ReservationTripStatusNotificationInput = {
   recipientUserId: string;
   serviceName: string;
   travellerRole: 'CLIENT' | 'PROFESSIONNEL';
+  travellerName?: string;
+  targetName?: string;
   /** True when the notification is shown to the person who is travelling. */
   recipientIsTraveller?: boolean;
   tripStatus: 'EN_ROUTE' | 'TERMINEE' | 'ANNULEE';
@@ -334,18 +336,28 @@ export class ReservationClientNotificationService {
   ): Promise<void> {
     const recipientIsTraveller =
       input.recipientIsTraveller ?? input.travellerRole === 'PROFESSIONNEL';
+    const travellerName =
+      input.travellerName?.trim() ||
+      (input.travellerRole === 'PROFESSIONNEL'
+        ? 'Le prestataire'
+        : 'Le client');
+    const targetName =
+      input.targetName?.trim() ||
+      (input.travellerRole === 'PROFESSIONNEL'
+        ? 'le client'
+        : 'le prestataire');
     const copy =
       input.tripStatus === 'EN_ROUTE'
         ? recipientIsTraveller
           ? {
               type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-              title: `Prestataire - Trajet démarré pour « ${input.serviceName} ».`,
-              body: `Vous etes en route pour la reservation ${input.serviceName}.`,
+              title: `Vous êtes en route vers ${targetName}.`,
+              body: `Trajet démarré pour ${input.serviceName}.`,
             }
           : {
               type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
-              title: `Client - En route vers le rendez-vous pour « ${input.serviceName} ».`,
-              body: `Le client se rend a la reservation ${input.serviceName}.`,
+              title: `${travellerName} est en route vers vous.`,
+              body: `Trajet démarré pour ${input.serviceName}.`,
             }
         : input.tripStatus === 'TERMINEE'
           ? {
@@ -367,12 +379,9 @@ export class ReservationClientNotificationService {
       data: {
         reservationId: input.reservationId,
         serviceName: input.serviceName,
-        actorName:
-          input.tripStatus === 'EN_ROUTE'
-            ? recipientIsTraveller
-              ? 'Prestataire'
-              : 'Client'
-            : 'Jokko',
+        actorName: input.tripStatus === 'EN_ROUTE' ? travellerName : 'Jokko',
+        targetName,
+        recipientIsTraveller,
         travellerRole: input.travellerRole,
         tripStatus: input.tripStatus,
         persistentUntilTerminal: input.tripStatus === 'EN_ROUTE',
@@ -492,6 +501,13 @@ export class ReservationClientNotificationService {
       adresseClient: input.adresseClient,
       currentPrice: input.currentPrice,
       proposedPrice: input.proposedPrice,
+      priceDirection:
+        input.currentPrice === null ||
+        input.currentPrice === input.proposedPrice
+          ? null
+          : input.proposedPrice > input.currentPrice
+            ? 'UP'
+            : 'DOWN',
       reason: input.reason ?? null,
     };
 

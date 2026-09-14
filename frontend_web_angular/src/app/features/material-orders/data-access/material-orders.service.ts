@@ -127,6 +127,12 @@ export class MaterialOrdersService {
       .pipe(map(unwrapApiResponse));
   }
 
+  getByDeliveryReservation(reservationId: string): Observable<MaterialOrderView> {
+    return this.http
+      .get<ApiResponse<MaterialOrderView>>(`${this.apiUrl}/delivery-reservation/${reservationId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
   getAccess(): Observable<{ isHardwareStore: boolean }> {
     return this.http
       .get<ApiResponse<{ isHardwareStore: boolean }>>(`${this.apiUrl}/access`)

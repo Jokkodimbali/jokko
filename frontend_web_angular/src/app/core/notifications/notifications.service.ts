@@ -75,6 +75,10 @@ export function formatNotificationTitle(
   if (type.includes('MESSAGE')) return `Nouveau message${from}`;
   if (isOngoingNotification(notification)) return `La prestation est en cours${withPerson}`;
   if (metadata['tripStatus'] === 'SUR_PLACE') return actor ? `${actor} est sur place` : 'Arrivé sur place';
+  if (type === 'PRESTATAIRE_EN_ROUTE') {
+    if (metadata['deliveryOfferResolved'] === true) return 'Livraison acceptée';
+    return actor ? `${actor} est en route` : 'Livreur en route';
+  }
   const labels: Record<string, string> = {
     NOUVELLE_RESERVATION: 'Réservation confirmée',
     RESERVATION_CONFIRMEE: 'Réservation confirmée',
@@ -103,7 +107,11 @@ export function formatNotificationTitle(
     }
   }
   // Preserve hyphens within names and words; only replace separator dashes.
-  const wording = title.replace(/\s+[—–-]\s+/g, ' concernant ');
+  const serviceName = notificationMetadataString(notification, 'serviceName');
+  const titleWithoutServiceName = serviceName
+    ? title.replaceAll(serviceName, '').replace(/\s+(?:pour|de|du|des|d')\s*$/i, '').trim()
+    : title;
+  const wording = titleWithoutServiceName.replace(/\s+[—–-]\s+/g, ' concernant ');
   return actor && !wording.toLocaleLowerCase().includes(actor.toLocaleLowerCase())
     ? `${wording}${withPerson}` : wording;
 }
@@ -118,9 +126,26 @@ export function notificationAvatarUrl(notification: UserNotificationView): strin
 }
 
 export function notificationSubtitle(notification: UserNotificationView): string {
-  const body = notification.body || notification.corps || '';
-  if (/MESSAGE|ANNONCE/i.test(notification.type)) return body;
-  return notificationMetadataString(notification, 'serviceName') || body;
+  const serviceName = notificationMetadataString(notification, 'serviceName');
+  if (serviceName) return serviceName;
+
+  const metadata = notification.data || notification.donnees || {};
+  if (typeof metadata['pharmacyOrderId'] === 'string') return 'Livraison de médicaments';
+  if (typeof metadata['materialOrderId'] === 'string') return 'Livraison de matériel';
+
+  const type = notification.type.toUpperCase();
+  if (/APPEL/.test(type)) return 'Consultez vos appels';
+  if (/MESSAGE/.test(type)) return 'Ouvrez la conversation';
+  if (/ANNONCE/.test(type)) return 'Voir l’annonce';
+  if (/AJUSTEMENT/.test(type)) return 'Voir la proposition';
+  if (/PAIEMENT|PAYMENT|WALLET|PORTEFEUILLE/.test(type)) return 'Voir le paiement';
+  if (/ORDONNANCE/.test(type)) return 'Voir l’ordonnance';
+  if (/LITIGE/.test(type)) return 'Voir le dossier';
+  if (/KYC|PROFIL/.test(type)) return 'Voir votre profil';
+  if (/RESERVATION|PRESTATAIRE_EN_ROUTE|PRESTATION_EN_COURS/.test(type)) {
+    return 'Voir la réservation';
+  }
+  return 'Voir la notification';
 }
 
 export function sortNotificationsNewestFirst(notifications: UserNotificationView[]): UserNotificationView[] {

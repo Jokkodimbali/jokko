@@ -3,7 +3,7 @@ import { isPersistentServiceNotification, UserNotificationView } from './notific
 
 export const NOTIFICATION_DISPLAY_MS = 15_000;
 export const NOTIFICATION_TRANSITION_MS = 350;
-export const NAVBAR_NOTIFICATION_TRANSITION_MS = 600;
+export const NAVBAR_NOTIFICATION_TRANSITION_MS = 3000;
 
 /** Retains the rendered notification until its exit animation finishes. */
 export class AnimatedNotificationDisplay<T extends { id: string }> {

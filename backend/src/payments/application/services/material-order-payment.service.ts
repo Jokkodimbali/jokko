@@ -371,6 +371,7 @@ export class MaterialOrderPaymentService {
             persistentDeliveryOffer: true,
             distanceKm: Number(courier.distanceKm),
             materialOrderId: orderId,
+            serviceName: 'Livraison de matériel',
             route: `/material-orders/${orderId}/delivery-offer`,
           },
         }),

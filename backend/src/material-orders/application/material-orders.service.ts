@@ -462,6 +462,7 @@ export class MaterialOrdersService {
         data: {
           materialOrderId: order.id,
           reservationId,
+          serviceName: 'Livraison de matériel',
           route: `/appointments/${reservationId}`,
         },
       }),
@@ -472,6 +473,7 @@ export class MaterialOrdersService {
         body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepté la course et viendra retirer la commande.`,
         data: {
           materialOrderId: order.id,
+          serviceName: 'Livraison de matériel',
           route: `/material-orders/${order.id}`,
         },
       }),

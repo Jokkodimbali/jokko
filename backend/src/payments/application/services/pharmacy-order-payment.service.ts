@@ -395,6 +395,7 @@ export class PharmacyOrderPaymentService {
           data: {
             pharmacyOrderId: orderId,
             distanceKm: Number(courier.distanceKm),
+            serviceName: 'Livraison de médicaments',
             persistentDeliveryOffer: true,
             route: `/pharmacy-orders/${orderId}/delivery-offer`,
           },

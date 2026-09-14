@@ -256,7 +256,7 @@
 .delivery-pricing-settings > header > span { align-items:center; background:#f7ead9; border-radius:13px; color:var(--admin-brand); display:flex; height:42px; justify-content:center; width:42px; }
 .delivery-pricing-settings h2 { color:#2f231c; font-size:18px; margin:0; }
 .delivery-pricing-settings p, .delivery-pricing-settings footer span { color:#7d6c60; font-size:13px; margin:3px 0 0; }
-.delivery-pricing-settings__fields { display:grid; gap:14px; grid-template-columns:repeat(3, minmax(0, 1fr)); margin-top:20px; }
+.delivery-pricing-settings__fields { display:grid; gap:14px; grid-template-columns:repeat(2, minmax(0, 1fr)); margin-top:20px; }
 .delivery-pricing-settings__fields label { color:#45352a; display:grid; font-size:13px; font-weight:800; gap:5px; }
 .delivery-pricing-settings__fields small { color:#8a7768; font-size:11px; font-weight:600; }
 .delivery-pricing-settings__fields input { border:1px solid #dcc6b1; border-radius:11px; color:#2f231c; font:inherit; font-weight:700; min-height:42px; padding:0 11px; }

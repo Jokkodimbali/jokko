@@ -408,6 +408,7 @@ export class ReservationCommandService extends ReservationAppService {
           professionalUserId: professional.utilisateur.id,
           serviceName: service.nom,
           proposedPrice: updated.prixConvenu ?? 0,
+          reason: reservation.raisonAjustementPrix,
         },
       );
 
@@ -451,6 +452,7 @@ export class ReservationCommandService extends ReservationAppService {
           professionalUserId: professional.utilisateur.id,
           serviceName: service.nom,
           proposedPrice,
+          reason: reservation.raisonAjustementPrix,
         },
       );
 

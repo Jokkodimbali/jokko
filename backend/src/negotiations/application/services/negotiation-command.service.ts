@@ -109,8 +109,10 @@ export class NegotiationCommandService extends NegotiationAppService {
       data: {
         negotiationId: created.id,
         serviceId: command.serviceId,
+        serviceName: service.nom,
         previousAmount: Number(service.prix),
         proposedAmount: command.proposedAmount,
+        reason: command.message?.trim() || null,
         priceDirection:
           command.proposedAmount < Number(service.prix) ? 'DOWN' : 'UP',
         status: created.statut,
@@ -236,6 +238,7 @@ export class NegotiationCommandService extends NegotiationAppService {
       data: {
         negotiationId: negotiation.id,
         serviceId: negotiation.serviceId,
+        serviceName,
         ...(event === 'COUNTER' && previousAmount !== undefined
           ? {
               previousAmount,
@@ -246,6 +249,7 @@ export class NegotiationCommandService extends NegotiationAppService {
             }
           : {}),
         proposedAmount: Number(negotiation.montantCourant),
+        reason: negotiation.messageCourant?.trim() || null,
         status: negotiation.statut,
       },
     });

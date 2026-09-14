@@ -106,6 +106,18 @@ describe('shared notification presentation', () => {
     expect(notificationSubtitle({ id: 'n', type: 'APPEL_MANQUE', body: 'Mamadou a tente de vous joindre.' })).toBe('Consultez vos appels');
     expect(notificationSubtitle({ id: 'n', type: 'AUTRE', body: 'Un texte long historique.' })).toBe('Voir la notification');
   });
+  it('shows the reservation motive on the second line of a price adjustment', () => {
+    expect(notificationSubtitle({
+      id: 'adjustment',
+      type: 'AJUSTEMENT_PRIX_PROPOSE',
+      body: 'Le prestataire propose un nouveau prix.',
+      data: {
+        serviceName: 'Consultation générale',
+        proposedPrice: 18000,
+        reason: 'Intervention plus longue que prévu',
+      },
+    })).toBe('Consultation générale');
+  });
   it('keeps the service motive out of the first line', () => {
     expect(formatNotificationTitle({
       id: 'n', type: 'PRESTATAIRE_EN_ROUTE', title: 'Livraison de médicaments acceptée',

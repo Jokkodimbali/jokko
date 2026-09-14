@@ -221,6 +221,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
               id: true,
               clientId: true,
               client: { select: { nom: true, urlAvatar: true } },
+              service: { select: { nom: true } },
               professionnel: {
                 select: {
                   id: true,
@@ -284,7 +285,10 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
       return this.toView(notification, {
         ...metadata,
         ...(negotiation
-          ? { professionalId: negotiation.professionnel.id }
+          ? {
+              professionalId: negotiation.professionnel.id,
+              serviceName: negotiation.service.nom,
+            }
           : {}),
         actorName: actor.nom,
         avatarUrl: actor.urlAvatar,

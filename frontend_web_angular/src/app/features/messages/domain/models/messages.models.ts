@@ -1,4 +1,5 @@
 export interface ConversationCounterpart {
+  isAdmin?: boolean;
   userId: string;
   professionalProfileId: string | null;
   name: string;
@@ -32,12 +33,14 @@ export interface Conversation {
 export interface ConversationMessage {
   id: string;
   conversationId: string;
+  disputeId?: string | null;
   senderId: string;
   content: string | null;
   mediaUrl: string | null;
   isRead: boolean;
   createdAt: string;
   sender: {
+    isAdmin?: boolean;
     id: string;
     name: string;
     avatarUrl: string | null;

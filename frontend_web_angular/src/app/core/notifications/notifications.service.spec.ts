@@ -17,10 +17,29 @@ describe('notification display lifecycle', () => {
     expect(findFeaturedNotification([ongoing, { ...terminal, data: { reservationId: 'r2' } }])).toBe(ongoing);
   });
   it.each(['MESSAGE_RECU', 'PRESTATAIRE_EN_ROUTE', 'NOUVELLE_RESERVATION', 'RESERVATION_FINALISEE'])('dismisses %s without marking it read', (type) => {
-    const notification = { id: 'transient', type, isRead: false, data: { persistentUntilTerminal: true } };
+    const notification = { id: 'transient', type, isRead: false };
     expect(findFeaturedNotification([notification])).toBe(notification);
     expect(findFeaturedNotification([notification], () => true)).toBeNull();
     expect(notification.isRead).toBe(false);
+  });
+  it('keeps a notification marked persistent until its reservation reaches a terminal state', () => {
+    const enRoute: UserNotificationView = {
+      id: 'en-route',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      isRead: false,
+      createdAt: '2026-09-08T10:00:00Z',
+      data: { reservationId: 'r1', tripStatus: 'EN_ROUTE', persistentUntilTerminal: true },
+    };
+    const completed: UserNotificationView = {
+      id: 'completed',
+      type: 'RESERVATION_FINALISEE',
+      isRead: true,
+      createdAt: '2026-09-08T11:00:00Z',
+      data: { reservationId: 'r1' },
+    };
+
+    expect(findFeaturedNotification([enRoute], () => true)).toBe(enRoute);
+    expect(findFeaturedNotification([enRoute, completed])).toBeNull();
   });
   it('shows a newer message then restores the ongoing service', () => {
     const message = { id: 'message', type: 'MESSAGE_RECU', createdAt: '2026-09-08T11:00:00Z' };
@@ -123,6 +142,44 @@ describe('shared notification presentation', () => {
       id: 'n', type: 'PRESTATAIRE_EN_ROUTE', title: 'Livraison de médicaments acceptée',
       data: { serviceName: 'Livraison de médicaments', deliveryOfferResolved: true },
     })).toBe('Livraison acceptée');
+  });
+  it('tells a travelling client the professional destination', () => {
+    expect(formatNotificationTitle({
+      id: 'client-on-route',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      data: {
+        recipientIsTraveller: true,
+        travellerRole: 'CLIENT',
+        tripStatus: 'EN_ROUTE',
+        targetName: 'Dr. Ndiaye',
+      },
+    })).toBe('Vous êtes en route vers Dr. Ndiaye');
+  });
+  it('labels wallet withdrawals and uses the wallet icon', () => {
+    const withdrawal = {
+      id: 'withdrawal',
+      type: 'RETRAIT_EFFECTUE',
+      data: { amount: 10000, walletDebit: true },
+    };
+    expect(formatNotificationTitle(withdrawal)).toBe('Votre wallet est débité de - 10 000 FCFA');
+    expect(notificationIcon(withdrawal)).toBe('wallet-cards');
+    expect(notificationSubtitle(withdrawal)).toBe('');
+  });
+  it('shows a wallet credit amount and the reservation motive', () => {
+    const credit = {
+      id: 'credit',
+      type: 'PAIEMENT_LIBERE',
+      data: { amount: 10000, walletCredit: true, serviceName: "Réparation fuite d'eau" },
+    };
+    expect(formatNotificationTitle(credit)).toBe('Votre wallet est crédité de + 10 000 FCFA');
+    expect(notificationSubtitle(credit)).toBe("Réparation fuite d'eau");
+  });
+  it('always shows the reservation motive below a resolved dispute', () => {
+    expect(notificationSubtitle({
+      id: 'resolved-dispute',
+      type: 'LITIGE_RESOLU',
+      data: { serviceName: "Réparation fuite d'eau" },
+    })).toBe("Réparation fuite d'eau");
   });
   it('sorts both date formats without mutating the input, with invalid dates last', () => {
     const old = { id: 'old', type: 'NOUVEAU_MESSAGE', createdAt: '2026-09-08T10:00:00Z' };

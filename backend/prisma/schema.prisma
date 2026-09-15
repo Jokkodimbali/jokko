@@ -146,6 +146,12 @@ enum EscrowStatus {
   REFUNDED
 }
 
+enum StatutRemboursementPaiement {
+  EN_COURS
+  TERMINE
+  ECHEC
+}
+
 enum TypeNotification {
   NOUVELLE_RESERVATION
   RESERVATION_CONFIRMEE
@@ -156,6 +162,7 @@ enum TypeNotification {
   AJUSTEMENT_PRIX_REFUSE
   PRESTATAIRE_EN_ROUTE
   PAIEMENT_LIBERE
+  RETRAIT_EFFECTUE
   NOUVEAU_MESSAGE
   KYC_APPROUVEE
   KYC_REJETEE
@@ -880,6 +887,7 @@ model Paiement {
   client                   Utilisateur               @relation("PaymentsClient", fields: [clientId], references: [id])
   professionnel            ProfilProfessionnel       @relation("PaymentsProfessional", fields: [professionalId], references: [id])
   transactionsPortefeuille TransactionPortefeuille[]
+  remboursements           RemboursementPaiement[]
   litige                   Litige?
 
   @@index([clientId, creeLe])
@@ -889,6 +897,25 @@ model Paiement {
   @@index([referenceFournisseur])
   @@index([gatewayReference])
   @@map("payments")
+}
+
+model RemboursementPaiement {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  paiementId         String                      @map("payment_id") @db.Uuid
+  litigeId           String                      @unique @map("dispute_id") @db.Uuid
+  montant            Decimal                     @map("amount") @db.Decimal(12, 2)
+  motif              String                      @map("reason") @db.Text
+  cleIdempotence     String                      @unique @map("idempotency_key") @db.VarChar(200)
+  statut             StatutRemboursementPaiement @default(EN_COURS)
+  referenceFournisseur String?                   @map("provider_ref") @db.VarChar(200)
+  erreur             String?                     @map("error") @db.Text
+  creeLe             DateTime                    @default(now()) @map("created_at")
+  termineLe          DateTime?                   @map("completed_at")
+
+  paiement Paiement @relation(fields: [paiementId], references: [id], onDelete: Cascade)
+
+  @@index([paiementId, statut])
+  @@map("payment_refunds")
 }
 
 model MoyenPaiementEnregistre {
@@ -1147,6 +1174,7 @@ model Message {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @map("conversation_id") @db.Uuid
   expediteurId   String   @map("sender_id") @db.Uuid
+  litigeId       String?  @map("dispute_id") @db.Uuid
   contenu        String?  @map("content") @db.Text
   urlMedia       String?  @map("media_url") @db.VarChar(500)
   estLu          Boolean  @default(false) @map("is_read")
@@ -1157,6 +1185,7 @@ model Message {
 
   @@index([conversationId, creeLe])
   @@index([expediteurId, creeLe])
+  @@index([litigeId, creeLe])
   @@map("messages")
 }
 

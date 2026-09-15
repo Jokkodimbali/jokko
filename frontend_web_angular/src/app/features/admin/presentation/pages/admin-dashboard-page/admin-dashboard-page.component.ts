@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { catchError, of } from 'rxjs';
+import { Subscription, catchError, of } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import {
@@ -42,6 +42,7 @@ import { AdminReservationsPanelComponent } from '../../components/admin-reservat
 import { AdminPaymentsPanelComponent } from '../../components/admin-payments-panel/admin-payments-panel.component';
 import { AdminNotificationsPanelComponent } from '../../components/admin-notifications-panel/admin-notifications-panel.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
+import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 
 type AdminSection =
   | 'overview'
@@ -107,16 +108,18 @@ const APP_BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
   templateUrl: './admin-dashboard-page.component.html',
   styleUrl: './admin-dashboard-page.component.scss',
 })
-export class AdminDashboardPageComponent implements OnInit {
+export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   private readonly adminDashboardService = inject(AdminDashboardService);
   private readonly adminDisputesService = inject(AdminDisputesService);
   private readonly adminKycService = inject(AdminKycService);
   private readonly adminMedicalCredentialsService = inject(AdminMedicalCredentialsService);
   private readonly adminProvidersService = inject(AdminProvidersService);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly subscriptions = new Subscription();
 
   protected readonly dashboard = signal<AdminDashboard | null>(null);
   protected readonly archivesReport = signal<AdminArchivesReport | null>(null);
@@ -260,6 +263,24 @@ export class AdminDashboardPageComponent implements OnInit {
     this.restoreSectionFromUrl();
 
     this.loadAdminDashboard();
+    this.messagesRealtime.connect();
+    this.subscriptions.add(
+      this.messagesRealtime.messageCreated$.subscribe((message) => {
+        // The administrator already sees their own send locally. Refresh only
+        // when a client, provider or doctor replies.
+        if (
+          message.senderId !== this.authSession.currentUser()?.id &&
+          this.activeSection() === 'disputes'
+        ) {
+          if (message.disputeId) this.loadDisputeDetail(message.disputeId);
+          else this.refreshDisputesSilently();
+        }
+      }),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   protected loadAdminDashboard(): void {
@@ -697,6 +718,15 @@ export class AdminDashboardPageComponent implements OnInit {
       });
   }
 
+  private refreshDisputesSilently(): void {
+    this.adminDisputesService
+      .listOpen()
+      .pipe(catchError(() => of(null)))
+      .subscribe((disputes) => {
+        if (disputes) this.disputeCases.set(disputes);
+      });
+  }
+
   protected handleDisputeAction(payload: {
     disputeId: string;
     action:
@@ -721,7 +751,7 @@ export class AdminDashboardPageComponent implements OnInit {
           return of(null);
         }),
       )
-      .subscribe((updated) => this.afterDisputeMutation(updated));
+      .subscribe((updated) => this.afterDisputeMutation(updated, payload.action));
   }
 
   private buildDisputeActionRequest(payload: {
@@ -786,7 +816,10 @@ export class AdminDashboardPageComponent implements OnInit {
       });
   }
 
-  protected afterDisputeMutation(updated: AdminDisputeCase | unknown | null): void {
+  protected afterDisputeMutation(
+    updated: AdminDisputeCase | unknown | null,
+    action?: string,
+  ): void {
     this.kycActionId.set(null);
     if (updated && this.isAdminDisputeCase(updated)) {
       this.feedback.success('Litige mis a jour avec succes.');
@@ -794,6 +827,9 @@ export class AdminDashboardPageComponent implements OnInit {
         this.disputeCases().map((dispute) => (dispute.id === updated.id ? updated : dispute)),
       );
     }
+    const isMessageAction = action?.startsWith('message-');
+    if (isMessageAction) return;
+
     this.loadDisputes();
     this.adminDashboardService
       .getDashboard()

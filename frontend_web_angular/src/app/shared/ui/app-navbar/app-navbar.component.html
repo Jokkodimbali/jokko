@@ -121,7 +121,7 @@
                 <strong>{{ notificationActorInitials(notification) }}</strong>
               </ng-template>
             </i>
-            <span class="app-navbar__notification-copy">
+            <span class="app-navbar__notification-copy" appNotificationFitText>
               <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
                 <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
                 <span>{{ notificationTitle(notification) }}</span>
@@ -390,7 +390,7 @@
           <strong>{{ notificationActorInitials(notification) }}</strong>
         </ng-template>
       </i>
-      <span class="app-navbar__notification-copy">
+      <span class="app-navbar__notification-copy" appNotificationFitText>
         <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
                 <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
                 <span>{{ notificationTitle(notification) }}</span>

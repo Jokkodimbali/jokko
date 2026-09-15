@@ -153,7 +153,7 @@ export class DisputesRepository implements DisputesRepositoryPort {
       include: DISPUTE_INCLUDE,
     });
 
-    return dispute ? this.mapToAdminItem(dispute) : null;
+    return dispute ? (await this.withSupportMessages([this.mapToAdminItem(dispute)]))[0] : null;
   }
 
   async findByReservationId(
@@ -164,7 +164,7 @@ export class DisputesRepository implements DisputesRepositoryPort {
       include: DISPUTE_INCLUDE,
     });
 
-    return dispute ? this.mapToAdminItem(dispute) : null;
+    return dispute ? (await this.withSupportMessages([this.mapToAdminItem(dispute)]))[0] : null;
   }
 
   async createOrGetOpenForReservation(input: {
@@ -277,9 +277,10 @@ export class DisputesRepository implements DisputesRepositoryPort {
     });
 
     const hasMore = disputes.length > filters.limit;
-    const items = disputes
+    const mappedItems = disputes
       .slice(0, filters.limit)
       .map((item) => this.mapToAdminItem(item));
+    const items = await this.withSupportMessages(mappedItems);
     const last = items.at(-1);
 
     return {
@@ -289,6 +290,45 @@ export class DisputesRepository implements DisputesRepositoryPort {
           ? this.encodeCursor({ openedAt: last.ouvertLe, id: last.id })
           : null,
     };
+  }
+
+  private async withSupportMessages(
+    disputes: DisputeAdminListItem[],
+  ): Promise<DisputeAdminListItem[]> {
+    if (disputes.length === 0) return disputes;
+    const messages = await this.prisma.message.findMany({
+      where: { litigeId: { in: disputes.map((dispute) => dispute.id) } },
+      select: {
+        id: true, litigeId: true, expediteurId: true, contenu: true,
+        urlMedia: true, creeLe: true,
+        expediteur: { select: { id: true, nom: true, role: true } },
+      },
+      orderBy: { creeLe: 'asc' },
+    });
+    const byDispute = new Map<string, typeof messages>();
+    for (const message of messages) {
+      if (!message.litigeId) continue;
+      const items = byDispute.get(message.litigeId) ?? [];
+      items.push(message);
+      byDispute.set(message.litigeId, items);
+    }
+    return disputes.map((dispute) => ({
+      ...dispute,
+      reservation: {
+        ...dispute.reservation,
+        messages: [
+          ...dispute.reservation.messages,
+          ...(byDispute.get(dispute.id) ?? []).map((message) => ({
+            id: message.id,
+            expediteurId: message.expediteurId,
+            contenu: message.contenu,
+            urlMedia: message.urlMedia,
+            creeLe: message.creeLe,
+            expediteur: message.expediteur,
+          })),
+        ].sort((left, right) => left.creeLe.getTime() - right.creeLe.getTime()),
+      },
+    }));
   }
 
   async markInReview(

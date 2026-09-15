@@ -398,7 +398,13 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     // Un compte professionnel peut egalement reserver un service comme client.
     // Le droit d'ouvrir une nouvelle negociation depend donc de sa place dans
     // cette conversation, pas du role principal affiche sur son compte.
-    if (!conversation || !this.isConversationClient(conversation)) return false;
+    if (
+      !conversation ||
+      conversation.counterpart.isAdmin ||
+      !this.isConversationClient(conversation)
+    ) {
+      return false;
+    }
     if (this.conversationReservationCard()) return false;
     const reservationId = this.currentVisibleReservationId();
     if (!reservationId) return true;
@@ -2171,7 +2177,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   }
 
   private cacheConversationMessages(conversationId: string, messages: ConversationMessage[]): void {
-    this.messagesByConversation.set(conversationId, this.sortMessages(messages));
+    const merged = new Map(
+      (this.messagesByConversation.get(conversationId) ?? []).map((message) => [message.id, message]),
+    );
+    messages.forEach((message) => merged.set(message.id, message));
+    this.messagesByConversation.set(conversationId, this.sortMessages([...merged.values()]));
   }
 
   private mergeMessage(

@@ -86,6 +86,16 @@ export class MessagesRealtimeService {
       'dispute.mediation.message.created',
       (message: DisputeMediationRealtimeMessage) => {
         this.disputeMediationMessageCreatedSubject.next(message);
+        this.messageCreatedSubject.next({
+          id: message.id,
+          conversationId: message.conversationId,
+          senderId: message.authorId,
+          content: message.content,
+          mediaUrl: null,
+          isRead: false,
+          createdAt: new Date(message.createdAt).toISOString(),
+          sender: { id: message.authorId, name: message.authorName, avatarUrl: null },
+        });
       },
     );
     this.socket.on(

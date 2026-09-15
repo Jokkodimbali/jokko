@@ -7,6 +7,8 @@ export function publicAssetUrl(url: string | null | undefined): string | null {
   const value = url?.trim();
   if (!value) return null;
   if (value.startsWith('data:') || value.startsWith('blob:')) return value;
+  // This logo belongs to the Angular public directory, not the API server.
+  if (value === '/logojokko.png') return value;
 
   const localMatch = value.match(LOCAL_HTTP_ASSET_PATTERN);
   const localPath = localMatch?.[4];

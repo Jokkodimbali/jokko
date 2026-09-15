@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -27,6 +28,7 @@ export class DisputeCommandService {
     @Inject(DOMAINE_EVENT_BUS)
     private readonly eventBus: DomaineEventBusPort,
     private readonly notificationsService: NotificationsService,
+    private readonly realtimeEvents: EventEmitter2,
   ) {}
 
   async openForReservation(input: {
@@ -162,6 +164,10 @@ export class DisputeCommandService {
       input.clientRefundPercentage,
     );
     const entity = DisputeEntity.reconstitute(current);
+    const clientRefundAmount = this.calculateClientRefundAmount(
+      current.payment?.montant ?? 0,
+      normalizedPercentage,
+    );
     entity.resolve({
       adminUserId: requestUser.sub,
       decision: input.decision,
@@ -171,6 +177,17 @@ export class DisputeCommandService {
       notes: input.notes,
     });
 
+    // The external refund is completed first. If the provider refuses it, the
+    // dispute stays open and no professional credit can be issued.
+    if (current.paiementId && clientRefundAmount > 0) {
+      await this.realtimeEvents.emitAsync('disputes.refund.requested', {
+        disputeId: current.id,
+        paymentId: current.paiementId,
+        amount: clientRefundAmount,
+        reason: input.notes.trim(),
+      });
+    }
+
     const resolved = await this.disputesRepository.resolve({
       dispute: entity.toView(),
       decision: input.decision,
@@ -178,6 +195,14 @@ export class DisputeCommandService {
     });
 
     await this.notifyPartiesAfterResolution(resolved.dispute);
+    await this.notifyProfessionalWalletCredit({
+      professionalUserId: resolved.dispute.professional.userId,
+      paymentId: resolved.dispute.paiementId,
+      reservationId: resolved.dispute.reservationId,
+      amount: resolved.professionalPayoutAmount,
+      source: 'resolution du litige',
+      serviceName: resolved.dispute.reservation.service.nom,
+    });
     await this.eventBus.publier({
       nom: 'disputes.resolved',
       dateOccurrence: new Date(),
@@ -213,6 +238,14 @@ export class DisputeCommandService {
 
     const rejected = await this.disputesRepository.reject(entity.toView());
     await this.notifyPartiesAfterRejection(rejected);
+    await this.notifyProfessionalWalletCredit({
+      professionalUserId: rejected.professional.userId,
+      paymentId: rejected.paiementId,
+      reservationId: rejected.reservationId,
+      amount: rejected.payment?.montantNet ?? 0,
+      source: 'rejet du litige',
+      serviceName: rejected.reservation.service.nom,
+    });
     await this.eventBus.publier({
       nom: 'disputes.rejected',
       dateOccurrence: new Date(),
@@ -334,6 +367,10 @@ export class DisputeCommandService {
     return hasPayment ? 'HAUTE' : 'MOYENNE';
   }
 
+  private calculateClientRefundAmount(grossAmount: number, percentage: number): number {
+    return Math.round(grossAmount * (percentage / 100) * 100) / 100;
+  }
+
   private normalizeRefundPercentage(
     decision: DisputeResolutionDecision,
     percentage?: number,
@@ -384,6 +421,7 @@ export class DisputeCommandService {
     reservationId: string;
     client: { id: string };
     professional: { userId: string };
+    reservation: { service: { nom: string } };
     decisionResolution: DisputeResolutionDecision | null;
   }): Promise<void> {
     const decision =
@@ -403,6 +441,7 @@ export class DisputeCommandService {
           disputeId: input.id,
           reservationId: input.reservationId,
           decision: input.decisionResolution,
+          serviceName: input.reservation.service.nom,
         },
       },
       {
@@ -414,9 +453,36 @@ export class DisputeCommandService {
           disputeId: input.id,
           reservationId: input.reservationId,
           decision: input.decisionResolution,
+          serviceName: input.reservation.service.nom,
         },
       },
     ]);
+  }
+
+  private async notifyProfessionalWalletCredit(input: {
+    professionalUserId: string;
+    paymentId: string | null;
+    reservationId: string;
+    amount: number;
+    source: string;
+    serviceName: string;
+  }): Promise<void> {
+    if (!input.paymentId || input.amount <= 0) return;
+
+    await this.notificationsService.createInAppNotification({
+      userId: input.professionalUserId,
+      type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
+      title: 'Paiement reçu',
+      body: `${input.amount.toLocaleString('fr-FR')} FCFA ont été crédités dans votre portefeuille après ${input.source}.`,
+      data: {
+        paymentId: input.paymentId,
+        reservationId: input.reservationId,
+        amount: input.amount,
+        walletCredit: true,
+        source: 'dispute',
+        serviceName: input.serviceName,
+      },
+    });
   }
 
   private async notifyPartiesAfterRejection(input: {
@@ -424,6 +490,7 @@ export class DisputeCommandService {
     reservationId: string;
     client: { id: string };
     professional: { userId: string };
+    reservation: { service: { nom: string } };
   }): Promise<void> {
     await this.notificationsService.createManyInAppNotifications([
       {
@@ -435,6 +502,7 @@ export class DisputeCommandService {
           disputeId: input.id,
           reservationId: input.reservationId,
           rejected: true,
+          serviceName: input.reservation.service.nom,
         },
       },
       {
@@ -446,6 +514,7 @@ export class DisputeCommandService {
           disputeId: input.id,
           reservationId: input.reservationId,
           rejected: true,
+          serviceName: input.reservation.service.nom,
         },
       },
     ]);

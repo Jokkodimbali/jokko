@@ -124,6 +124,7 @@ const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
 const APPOINTMENT_STATE_FALLBACK_INTERVAL_MS = 2500;
+const PAYMENT_STATUS_REFRESH_INTERVAL_MS = 2500;
 const LIVE_LOCATION_UPDATE_INTERVAL_MS = 1000;
 const GPS_RECOVERY_DELAY_MS = 5_000;
 const ROUTE_DEVIATION_RECALCULATION_COOLDOWN_MS = 3_000;
@@ -247,6 +248,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeSelectionSubscription?: Subscription;
   private connectionSubscription?: Subscription;
   private appointmentStatePollingSubscription?: Subscription;
+  private paymentStatusRefreshSubscription?: Subscription;
   private teleconsultationStatusSubscription?: Subscription;
   private reservationRealtimeSubscription?: Subscription;
   private providerLocationSubscription?: Subscription;
@@ -1574,7 +1576,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.loadAppointment(appointmentId);
-    const reservationScope = this.isProviderViewer() ? 'PRESTATAIRE' : 'CLIENT';
+    const reservationScope = ['PRESTATAIRE', 'MEDECIN'].includes(
+      this.currentUser()?.role ?? '',
+    )
+      ? 'PRESTATAIRE'
+      : 'CLIENT';
     this.reservationRealtimeSubscription = this.reservationsRealtime
       .watchMyReservations(reservationScope)
       .subscribe((event) => {
@@ -1605,6 +1611,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.clearLocationRecovery();
     this.teleconsultationStatusSubscription?.unsubscribe();
     this.reservationRealtimeSubscription?.unsubscribe();
+    this.paymentStatusRefreshSubscription?.unsubscribe();
     this.reservationsRealtime.stopWatching(this.isProviderViewer() ? 'PRESTATAIRE' : 'CLIENT');
     (this.calls as CallFacade | undefined)?.isEmbeddedVideoSession.set(false);
     this.trackingStore.reset();
@@ -3165,6 +3172,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.appointmentsService.getAppointmentById(appointmentId).subscribe({
       next: (appointment) => {
         this.appointment.set(appointment);
+        this.startPaymentStatusRefresh(appointmentId);
         this.watchTeleconsultationCompletion(appointment);
         this.hydrateMedicalPrescriptionFromAppointment(appointment);
         this.selectedRating.set(appointment.clientRating ?? 0);
@@ -3454,6 +3462,33 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       });
   }
 
+  /**
+   * The reservation socket normally updates the provider instantly when the
+   * client pays. This short-lived fallback keeps the action available if the
+   * socket reconnects at that precise moment.
+   */
+  private startPaymentStatusRefresh(appointmentId: string): void {
+    if (!this.isProviderViewer()) return;
+
+    this.paymentStatusRefreshSubscription?.unsubscribe();
+    this.paymentStatusRefreshSubscription = timer(0, PAYMENT_STATUS_REFRESH_INTERVAL_MS)
+      .pipe(
+        switchMap(() => {
+          const appointment = this.appointment();
+          if (appointment?.status && appointment.status !== 'CONFIRMEE') {
+            this.paymentStatusRefreshSubscription?.unsubscribe();
+            return of(null);
+          }
+          return this.appointmentsService
+            .getAppointmentById(appointmentId)
+            .pipe(catchError(() => of(null)));
+        }),
+      )
+      .subscribe((appointment) => {
+        if (appointment) this.applyRefreshedAppointment(appointment);
+      });
+  }
+
   private confirmClientArrival(appointment: AppointmentView): void {
     const currentPosition = this.currentReservationTrackingPoint();
     if (!currentPosition) {
@@ -3625,6 +3660,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     const previousStatus = current?.status;
     const nextAppointment = current ? this.mergeAppointment(current, appointment) : appointment;
     this.appointment.set(nextAppointment);
+    if (nextAppointment.status !== 'CONFIRMEE') {
+      this.paymentStatusRefreshSubscription?.unsubscribe();
+      this.paymentStatusRefreshSubscription = undefined;
+    }
     if (
       nextAppointment.consultationType === 'TELECONSULTATION' &&
       nextAppointment.notes?.includes('---JOKKO_TELECONSULTATION_COMPLETED---')

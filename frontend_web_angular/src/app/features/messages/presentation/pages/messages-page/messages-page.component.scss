@@ -530,6 +530,15 @@
   align-items: flex-end;
 }
 
+.messages-page__verified {
+  align-items: center;
+  color: #1684ed;
+  display: inline-flex;
+  justify-content: center;
+  margin-left: 3px;
+  vertical-align: -3px;
+}
+
 .messages-page__bubble-stack time {
   align-self: center;
   background: #eeeeec;

@@ -209,14 +209,14 @@ export class NotificationsPageComponent implements OnInit {
       return { commands: ['/messages'], queryParams: { conversationId } };
     }
 
+    const reservationId = this.readMetadataString(metadata, 'reservationId');
     const disputeId = this.readMetadataString(metadata, 'disputeId');
     if (disputeId) {
       return this.authSession.currentUser()?.role === 'ADMIN'
         ? { commands: ['/admin'], queryParams: { section: 'disputes', disputeId } }
-        : { commands: ['/litiges', disputeId] };
+        : { commands: ['/litiges'], ...(reservationId ? { queryParams: { reservationId } } : {}) };
     }
 
-    const reservationId = this.readMetadataString(metadata, 'reservationId');
     if (reservationId) {
       return { commands: ['/appointments', reservationId], reservationId };
     }

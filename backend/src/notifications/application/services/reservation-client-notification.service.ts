@@ -135,6 +135,11 @@ export class ReservationClientNotificationService {
       professionalName: input.professionalName,
       dateHeure: input.dateHeure.toISOString(),
       adresseClient: input.adresseClient,
+      actorName: input.professionalName,
+      travellerRole: 'PROFESSIONNEL',
+      recipientIsTraveller: false,
+      tripStatus: 'EN_ROUTE',
+      persistentUntilTerminal: true,
     };
 
     await this.notificationsService.createInAppNotification({

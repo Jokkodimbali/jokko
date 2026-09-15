@@ -6,6 +6,7 @@ import type {
 export const MESSAGING_REPOSITORY_PORT = Symbol('MESSAGING_REPOSITORY_PORT');
 
 export type ConversationCounterpartView = {
+  isAdmin?: boolean;
   userId: string;
   professionalProfileId: string | null;
   name: string;
@@ -39,12 +40,14 @@ export type ConversationView = {
 export type ConversationMessageView = {
   id: string;
   conversationId: string;
+  disputeId?: string | null;
   senderId: string;
   content: string | null;
   mediaUrl: string | null;
   isRead: boolean;
   createdAt: Date;
   sender: {
+    isAdmin?: boolean;
     id: string;
     name: string;
     avatarUrl: string | null;
@@ -69,6 +72,7 @@ export type CreateConversationMessageInput = {
   recipientUserId: string;
   content: string | null;
   mediaUrl: string | null;
+  disputeId?: string | null;
   notification: {
     type: 'NOUVEAU_MESSAGE';
     title: string;
@@ -106,10 +110,12 @@ export interface MessagingRepositoryPort {
     currentUserId: string,
   ): Promise<CreateConversationResult>;
   listMessages(params: {
+    currentUserId: string;
     conversationId: string;
     limit: number;
     offset: number;
   }): Promise<ConversationMessageView[]>;
+  findLatestDisputeIdInConversation(conversationId: string): Promise<string | null>;
   markMessagesAsRead(
     conversationId: string,
     currentUserId: string,

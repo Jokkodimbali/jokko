@@ -97,6 +97,7 @@ export class MessagingQueryService extends MessagingAppService {
       );
 
     const messages = await this.messagingRepository.listMessages({
+      currentUserId: requestUser.sub,
       conversationId,
       limit: this.normalizeLimit(query.limit),
       offset: this.normalizeOffset(query.offset),

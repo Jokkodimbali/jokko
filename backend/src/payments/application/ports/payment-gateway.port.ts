@@ -32,6 +32,7 @@ export interface PaymentGateway {
     gatewayReference: string;
     amount: number;
     reason: string;
+    idempotencyKey?: string;
   }): Promise<PaymentGatewayResponse>;
 
   getSupportedMethods(): PaymentMethod[];

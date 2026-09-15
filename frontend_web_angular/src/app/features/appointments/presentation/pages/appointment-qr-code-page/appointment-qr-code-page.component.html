@@ -166,18 +166,6 @@
         <p>{{ sideNotice() }}</p>
       </div>
 
-      <div class="parcel-qr__steps">
-        <div *ngFor="let step of steps(); trackBy: trackByIndex" class="parcel-qr__step">
-          <span>
-            <lucide-icon [name]="step.icon" size="17" [strokeWidth]="2.2"></lucide-icon>
-          </span>
-          <div>
-            <small>{{ step.title }}</small>
-            <p>{{ step.text }}</p>
-          </div>
-        </div>
-      </div>
-
       <p class="parcel-qr__warning">
         Ce QR code est valable uniquement pour ces colis. Ne le partagez pas avec des tiers.
       </p>

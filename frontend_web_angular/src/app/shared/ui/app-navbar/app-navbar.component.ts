@@ -1,3 +1,4 @@
+import { NotificationFitTextDirective } from '../notification-fit-text.directive';
 import { NotificationAnchorDirective, NotificationAnchorService } from '../notification-anchor.directive';
 import { CommonModule } from '@angular/common';
 import {
@@ -62,7 +63,7 @@ interface AppInfoNavItem {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, NotificationAnchorDirective],
+  imports: [CommonModule, RouterLink, LucideAngularModule, NotificationAnchorDirective, NotificationFitTextDirective],
   templateUrl: './app-navbar.component.html',
   styleUrl: './app-navbar.component.scss',
 })
@@ -429,7 +430,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const metadata = notification?.data || notification?.donnees || {};
     if (normalized.includes('ajustement')) return 'Ajustement du prix';
     if (metadata['tripStatus'] === 'SUR_PLACE') return 'Sur place';
-    if (normalized.includes('en_route')) return 'Prestataire en route';
+    if (normalized.includes('en_route')) {
+      if (metadata['recipientIsTraveller'] === true) return 'Trajet en cours';
+      return metadata['travellerRole'] === 'CLIENT' ? 'Client en route' : 'Prestataire en route';
+    }
     if (normalized.includes('reservation')) return 'Reservation';
     if (normalized.includes('payment') || normalized.includes('paiement')) return 'Paiement';
     if (normalized.includes('message')) return 'Message';
@@ -595,14 +599,14 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const conversationId = this.readMetadataString(metadata, 'conversationId');
     if (conversationId) return { commands: ['/messages'], queryParams: { conversationId } };
 
+    const reservationId = this.readMetadataString(metadata, 'reservationId');
     const disputeId = this.readMetadataString(metadata, 'disputeId');
     if (disputeId) {
       return this.currentUser()?.role === 'ADMIN'
         ? { commands: ['/admin'], queryParams: { section: 'disputes', disputeId } }
-        : { commands: ['/litiges', disputeId] };
+        : { commands: ['/litiges'], ...(reservationId ? { queryParams: { reservationId } } : {}) };
     }
 
-    const reservationId = this.readMetadataString(metadata, 'reservationId');
     if (reservationId) return { commands: ['/appointments', reservationId], reservationId };
 
     const materialOrderId = this.readMetadataString(metadata, 'materialOrderId');

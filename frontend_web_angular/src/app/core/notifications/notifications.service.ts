@@ -85,6 +85,16 @@ export function formatNotificationTitle(
     if (metadata['deliveryOfferResolved'] === true) return 'Livraison acceptée';
     return actor ? `${actor} est en route` : 'Livreur en route';
   }
+  const amount = metadata['amount'];
+  if (typeof amount === 'number' && Number.isFinite(amount)) {
+    const formattedAmount = amount.toLocaleString('fr-FR');
+    if (metadata['walletCredit'] === true) {
+      return `Votre wallet est crédité de + ${formattedAmount} FCFA`;
+    }
+    if (metadata['walletDebit'] === true) {
+      return `Votre wallet est débité de - ${formattedAmount} FCFA`;
+    }
+  }
   const notificationLabels: Record<string, string> = {
     NOUVELLE_RESERVATION: actor ? `Nouvelle réservation de ${actor}` : 'Nouvelle réservation',
     RESERVATION_CONFIRMEE: `Réservation confirmée${withPerson}`,
@@ -95,6 +105,7 @@ export function formatNotificationTitle(
     AJUSTEMENT_PRIX_REFUSE: `Ajustement de prix refusé${by}`,
     PAIEMENT_CONFIRME: `Paiement confirmé${by}`,
     PAIEMENT_LIBERE: `Paiement libéré${by}`,
+    RETRAIT_EFFECTUE: 'Retrait effectué',
     KYC_APPROUVEE: 'Vérification approuvée',
     KYC_REJETEE: 'Vérification à compléter',
     LITIGE_OUVERT: `Litige ouvert${withPerson}`,
@@ -136,6 +147,7 @@ export function notificationSubtitle(notification: UserNotificationView): string
   if (serviceName) return serviceName;
 
   const metadata = notification.data || notification.donnees || {};
+  if (metadata['walletDebit'] === true) return '';
   if (typeof metadata['pharmacyOrderId'] === 'string') return 'Livraison de médicaments';
   if (typeof metadata['materialOrderId'] === 'string') return 'Livraison de matériel';
 
@@ -176,7 +188,11 @@ export function isOngoingNotification(notification: UserNotificationView): boole
 /** Arrival and active work remain visible until the reservation is resolved. */
 export function isPersistentServiceNotification(notification: UserNotificationView): boolean {
   const metadata = notification.data || notification.donnees || {};
-  return isOngoingNotification(notification) || metadata['tripStatus'] === 'SUR_PLACE';
+  return isOngoingNotification(notification) ||
+    metadata['tripStatus'] === 'SUR_PLACE' ||
+    (metadata['persistentUntilTerminal'] === true &&
+      typeof metadata['reservationId'] === 'string' &&
+      metadata['reservationId'].trim().length > 0);
 }
 
 export function findFeaturedNotification(
@@ -221,7 +237,7 @@ export function notificationIcon(notification: UserNotificationView): string {
       return 'banknote';
     }
     if (/MESSAGE/.test(type)) return 'message-circle';
-    if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE/.test(type)) return 'wallet-cards';
+    if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE|RETRAIT/.test(type)) return 'wallet-cards';
     if (/PAYMENT|PAIEMENT/.test(type)) return 'hand-coins';
     if (/LITIGE/.test(type)) return /RESOLU/.test(type + title) ? 'handshake' : 'scale';
     if (/KYC|PROFIL/.test(type)) return /REFUS|REJET/.test(type + title) ? 'frown' : 'party-popper';

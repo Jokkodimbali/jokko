@@ -2196,9 +2196,9 @@
   align-items: center;
   box-sizing: border-box;
   gap: 10px;
-  height: auto;
-  min-height: 62px;
-  padding: 8px 12px;
+  height: 52px;
+  min-height: 52px;
+  padding: 4px 5px;
   width: fit-content;
 }
 
@@ -2271,8 +2271,8 @@
 }
 
 .app-navbar__notification.app-navbar__notification--featured {
-  height: auto;
-  min-height: 62px;
+  height: 52px;
+  min-height: 52px;
 }
 
 .app-navbar--notification-featured .app-navbar__notification-bell {
@@ -2313,7 +2313,7 @@
     flex: 0 1 auto;
     min-width: 0;
     width: max-content;
-    height: 62px;
+    height: 52px;
   }
 
   .app-navbar--notification-featured .app-navbar__notification.app-navbar__notification--featured {

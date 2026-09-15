@@ -56,6 +56,20 @@ describe('animated notifications', () => {
     expect(display.notification()).toBeNull();
   });
 
+  it('does not expire a notification marked persistent until the reservation ends', () => {
+    const dismiss = vi.fn();
+    const display = new NotificationDisplay(dismiss);
+    display.update({
+      id: 'en-route',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      data: { reservationId: 'r1', tripStatus: 'EN_ROUTE', persistentUntilTerminal: true },
+    });
+    vi.advanceTimersByTime(120_000);
+    expect(display.notification()?.id).toBe('en-route');
+    expect(dismiss).not.toHaveBeenCalled();
+    display.destroy();
+  });
+
   it('cleans up timers when the navbar is destroyed', () => {
     const dismiss = vi.fn();
     const display = new NotificationDisplay(dismiss);

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import {
   PAYMENTS_REPOSITORY_PORT,
   type PaymentsRepository,
@@ -15,6 +15,7 @@ import {
 } from '../ports/wallet-ledger.port';
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
 import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class EscrowService {
@@ -25,7 +26,8 @@ export class EscrowService {
     private readonly domainEventDispatcher: DomainEventDispatcher,
     @Inject(WALLET_LEDGER_PORT)
     private readonly walletLedger: WalletLedgerPort,
-    @Optional() private readonly notificationsService?: NotificationsService,
+    private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async releaseEscrow(paymentId: string): Promise<Payment> {
@@ -38,29 +40,48 @@ export class EscrowService {
       throw PaymentDomainError.escrowAlreadyReleased();
     }
 
+    const professional =
+      await this.prisma.profilProfessionnel.findUniqueOrThrow({
+        where: { id: payment.professionalId },
+        select: { utilisateurId: true },
+      });
+
     payment.releaseEscrow();
     await this.walletLedger.creditReleasedEscrow(payment);
     this.domainEventDispatcher.publishMany([...payment.getDomainEvents()]);
     payment.clearDomainEvents();
 
-    if (this.notificationsService) {
-      await this.notificationsService.createManyInAppNotifications([
-        {
-          userId: payment.clientId,
-          type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
-          title: 'Paiement libéré',
-          body: 'Le paiement sécurisé de votre prestation a été libéré.',
-          data: { paymentId: payment.id, reservationId: payment.bookingId },
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: payment.bookingId },
+      select: { service: { select: { nom: true } } },
+    });
+    const serviceName = reservation?.service.nom;
+    await this.notificationsService.createManyInAppNotifications([
+      {
+        userId: payment.clientId,
+        type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
+        title: 'Paiement libéré',
+        body: 'Le paiement sécurisé de votre prestation a été libéré.',
+        data: {
+          paymentId: payment.id,
+          reservationId: payment.bookingId,
+          serviceName,
         },
-        {
-          userId: payment.professionalId,
-          type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
-          title: 'Paiement reçu',
-          body: 'Le paiement de la prestation a été crédité dans votre portefeuille.',
-          data: { paymentId: payment.id, reservationId: payment.bookingId },
+      },
+      {
+        userId: professional.utilisateurId,
+        type: NOTIFICATION_TYPES.PAIEMENT_LIBERE,
+        title: 'Paiement reçu',
+        body: 'Le paiement de la prestation a été crédité dans votre portefeuille.',
+        data: {
+          paymentId: payment.id,
+          reservationId: payment.bookingId,
+          amount: payment.netAmount.getValue(),
+          walletCredit: true,
+          serviceName,
         },
-      ]);
-    }
+      },
+    ]);
 
     return payment;
   }

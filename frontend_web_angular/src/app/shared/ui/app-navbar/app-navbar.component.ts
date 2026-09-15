@@ -430,7 +430,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const metadata = notification?.data || notification?.donnees || {};
     if (normalized.includes('ajustement')) return 'Ajustement du prix';
     if (metadata['tripStatus'] === 'SUR_PLACE') return 'Sur place';
-    if (normalized.includes('en_route')) return 'Prestataire en route';
+    if (normalized.includes('en_route')) {
+      if (metadata['recipientIsTraveller'] === true) return 'Trajet en cours';
+      return metadata['travellerRole'] === 'CLIENT' ? 'Client en route' : 'Prestataire en route';
+    }
     if (normalized.includes('reservation')) return 'Reservation';
     if (normalized.includes('payment') || normalized.includes('paiement')) return 'Paiement';
     if (normalized.includes('message')) return 'Message';

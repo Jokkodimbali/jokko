@@ -12,6 +12,29 @@ import { MessagesRealtimeService } from '../../../messages/data-access/messages-
 describe('notification page live updates', () => {
   afterEach(() => { TestBed.resetTestingModule(); vi.useRealTimers(); });
 
+  it.each([
+    ['CLIENT', 'reservation-1', { commands: ['/litiges'], queryParams: { reservationId: 'reservation-1' } }],
+    ['PRESTATAIRE', undefined, { commands: ['/litiges'] }],
+    ['ADMIN', 'reservation-1', { commands: ['/admin'], queryParams: { section: 'disputes', disputeId: 'dispute-1' } }],
+  ])('routes dispute notifications for %s without treating a dispute ID as a reservation ID', (role, reservationId, expected) => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: NotificationsService, useValue: {} },
+      { provide: MessagesRealtimeService, useValue: {} },
+      { provide: AuthSessionService, useValue: { currentUser: () => ({ role }) } },
+      { provide: AppFeedbackService, useValue: {} },
+      { provide: AppointmentsService, useValue: {} },
+      { provide: Router, useValue: {} },
+    ] });
+    const component = TestBed.runInInjectionContext(() => new NotificationsPageComponent());
+    const resolver = component as unknown as {
+      resolveNotificationTarget(notification: UserNotificationView): unknown;
+    };
+    expect(resolver.resolveNotificationTarget({
+      id: 'notification-1', type: 'LITIGE_OUVERT',
+      data: { disputeId: 'dispute-1', ...(reservationId ? { reservationId } : {}) },
+    })).toEqual(expected);
+  });
+
   it('cancels stale requests, refreshes on socket events and cleans up on destruction', () => {
     vi.useFakeTimers();
     const events = new Subject<UserNotificationView>();

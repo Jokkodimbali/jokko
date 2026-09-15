@@ -24,6 +24,7 @@ type PrismaConversationRecord = {
   prestataire: {
     id: string;
     nom: string;
+    role?: string;
     urlAvatar: string | null;
     profilProfessionnel: {
       id: string;
@@ -45,6 +46,7 @@ type PrismaConversationRecord = {
 type PrismaMessageRecord = {
   id: string;
   conversationId: string;
+  litigeId: string | null;
   expediteurId: string;
   contenu: string | null;
   urlMedia: string | null;
@@ -53,6 +55,7 @@ type PrismaMessageRecord = {
   expediteur: {
     id: string;
     nom: string;
+    role?: string;
     urlAvatar: string | null;
   };
 };
@@ -317,19 +320,29 @@ export class MessagingRepository implements MessagingRepositoryPort {
   }
 
   async listMessages(params: {
+    currentUserId: string;
     conversationId: string;
     limit: number;
     offset: number;
   }): Promise<ConversationMessageView[]> {
     const messages = await this.prisma.message.findMany({
       where: { conversationId: params.conversationId },
-      orderBy: { creeLe: 'desc' },
+      orderBy: [{ creeLe: 'desc' }, { id: 'desc' }],
       take: params.limit,
       skip: params.offset,
       select: this.buildMessageSelect(),
     });
 
     return messages.reverse().map((message) => this.mapMessage(message));
+  }
+
+  async findLatestDisputeIdInConversation(conversationId: string): Promise<string | null> {
+    const message = await this.prisma.message.findFirst({
+      where: { conversationId, litigeId: { not: null } },
+      orderBy: [{ creeLe: 'desc' }, { id: 'desc' }],
+      select: { litigeId: true },
+    });
+    return message?.litigeId ?? null;
   }
 
   async markMessagesAsRead(
@@ -360,6 +373,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
           expediteurId: input.senderId,
           contenu: input.content,
           urlMedia: input.mediaUrl,
+          litigeId: input.disputeId ?? null,
         },
         select: this.buildMessageSelect(),
       });
@@ -441,6 +455,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
         select: {
           id: true,
           nom: true,
+          role: true,
           urlAvatar: true,
           profilProfessionnel: {
             select: {
@@ -484,6 +499,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
     return {
       id: true,
       conversationId: true,
+      litigeId: true,
       expediteurId: true,
       contenu: true,
       urlMedia: true,
@@ -493,6 +509,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
         select: {
           id: true,
           nom: true,
+          role: true,
           urlAvatar: true,
         },
       },
@@ -509,8 +526,15 @@ export class MessagingRepository implements MessagingRepositoryPort {
           userId: conversation.prestataire.id,
           professionalProfileId:
             conversation.prestataire.profilProfessionnel?.id ?? null,
-          name: conversation.prestataire.nom,
-          avatarUrl: conversation.prestataire.urlAvatar,
+          isAdmin: conversation.prestataire.role === 'ADMIN',
+          name:
+            conversation.prestataire.role === 'ADMIN'
+              ? 'Service client'
+              : conversation.prestataire.nom,
+          avatarUrl:
+            conversation.prestataire.role === 'ADMIN'
+              ? '/logojokko.png'
+              : conversation.prestataire.urlAvatar,
           subCategoryNames: [
             ...new Set(
               (conversation.prestataire.profilProfessionnel?.specialites ?? [])
@@ -562,6 +586,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
     return {
       id: message.id,
       conversationId: message.conversationId,
+      disputeId: message.litigeId,
       senderId: message.expediteurId,
       content: message.contenu,
       mediaUrl: message.urlMedia,
@@ -569,8 +594,15 @@ export class MessagingRepository implements MessagingRepositoryPort {
       createdAt: message.creeLe,
       sender: {
         id: message.expediteur.id,
-        name: message.expediteur.nom,
-        avatarUrl: message.expediteur.urlAvatar,
+        isAdmin: message.expediteur.role === 'ADMIN',
+        name:
+          message.expediteur.role === 'ADMIN'
+            ? 'Service client'
+            : message.expediteur.nom,
+        avatarUrl:
+          message.expediteur.role === 'ADMIN'
+            ? '/logojokko.png'
+            : message.expediteur.urlAvatar,
       },
     };
   }

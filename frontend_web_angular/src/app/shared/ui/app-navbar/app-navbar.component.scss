@@ -2279,3 +2279,58 @@
   width: 42px;
   height: 42px;
 }
+
+/* Use the available width before fitting complete, single-line text rows. */
+.app-navbar__notification--featured .app-navbar__notification-copy {
+  flex: 1 1 auto;
+  max-width: none;
+  width: var(--notification-text-width, max-content);
+}
+
+.app-navbar__notification--featured .app-navbar__notification-copy :is(strong, small) {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Center tabs in the space left by the notification's actual content width. */
+@media (min-width: 1024px) {
+  .app-navbar--notification-featured {
+    grid-template-columns: auto minmax(max-content, 1fr) minmax(0, max-content);
+  }
+
+  .app-navbar--notification-featured .app-navbar__actions {
+    width: auto;
+    max-width: none;
+  }
+
+  .app-navbar--notification-featured .app-navbar__profile {
+    flex: 0 1 auto;
+    min-width: 76px;
+    max-width: 160px;
+  }
+
+  .app-navbar--notification-featured .app-navbar__notification-menu {
+    flex: 0 1 auto;
+    min-width: 0;
+    width: max-content;
+    height: 62px;
+  }
+
+  .app-navbar--notification-featured .app-navbar__notification.app-navbar__notification--featured {
+    position: relative;
+    inset: auto;
+    translate: none;
+    width: max-content;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1023px) {
+  .app-navbar--notification-featured .app-navbar__notification--mobile.app-navbar__notification--featured {
+    left: auto;
+    right: 10px;
+    width: max-content;
+    max-width: calc(100vw - 20px);
+    margin-inline: 0;
+  }
+}

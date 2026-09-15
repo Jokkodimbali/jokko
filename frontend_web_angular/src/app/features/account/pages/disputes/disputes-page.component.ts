@@ -331,16 +331,18 @@ export class DisputesPageComponent implements OnInit {
 
   private restoreSelectedDispute(appointments: AppointmentView[]): void {
     const requestedId = this.route.snapshot.queryParamMap.get('reservationId');
-    const selected =
-      appointments.find(
-        (appointment) => appointment.id === requestedId && appointment.status === 'LITIGE',
-      ) ??
-      appointments.find((appointment) => appointment.status === 'LITIGE') ??
-      null;
+    const selected = requestedId
+      ? appointments.find((appointment) => appointment.id === requestedId)
+      : appointments.find((appointment) => appointment.status === 'LITIGE');
 
-    if (!selected) return;
+    if (!selected) {
+      this.selectedReservationId.set(null);
+      this.selectedDispute.set(null);
+      if (requestedId) this.errorMessage.set('La reservation de ce litige est introuvable.');
+      return;
+    }
     this.selectedReservationId.set(selected.id);
-    this.activeFilter.set('disputed');
+    this.activeFilter.set(selected.status === 'LITIGE' ? 'disputed' : 'all');
     this.loadDispute(selected.id);
   }
 

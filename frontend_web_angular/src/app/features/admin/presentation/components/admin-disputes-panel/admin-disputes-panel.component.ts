@@ -1,4 +1,6 @@
 import { CommonModule } from '@angular/common';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { interval, map } from 'rxjs';
 import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { AdminDisputeCase, AdminDisputeMessage } from '../../../data-access/admin.models';
@@ -48,6 +50,10 @@ export class AdminDisputesPanelComponent implements OnChanges {
     clientRefundPercentage?: number;
   }>();
   @Output() detailRequested = new EventEmitter<string>();
+
+  private readonly now = toSignal(interval(30_000).pipe(map(() => Date.now())), {
+    initialValue: Date.now(),
+  });
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly resolutionNote = signal('');
@@ -215,7 +221,7 @@ export class AdminDisputesPanelComponent implements OnChanges {
   }
 
   protected relativeTime(date: string | Date): string {
-    const diffMs = Date.now() - new Date(date).getTime();
+    const diffMs = this.now() - new Date(date).getTime();
     const minutes = Math.max(1, Math.round(diffMs / 60_000));
     if (minutes < 60) return `Il y a ${minutes} min`;
     const hours = Math.round(minutes / 60);

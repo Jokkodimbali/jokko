@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
@@ -65,6 +66,7 @@ export class MessagingCommandService extends MessagingAppService {
     @Inject(NEGOTIATIONS_REPOSITORY_PORT)
     private readonly negotiationsRepository: NegotiationsRepositoryPort,
     private readonly notificationDeliveryService: NotificationDeliveryService,
+    private readonly realtimeEvents: EventEmitter2,
   ) {
     super(
       messagingRepository,
@@ -276,6 +278,9 @@ export class MessagingCommandService extends MessagingAppService {
         ? conversation.professionalUserId
         : conversation.clientUserId;
     const senderName = await this.resolveSenderName(requestUser.sub);
+    const disputeId = await this.messagingRepository.findLatestDisputeIdInConversation(
+      conversationId,
+    );
 
     const createdMessage = await this.messagingRepository.createMessage({
       conversationId: message.conversationId,
@@ -283,6 +288,7 @@ export class MessagingCommandService extends MessagingAppService {
       recipientUserId,
       content: message.content,
       mediaUrl: message.mediaUrl,
+      disputeId,
       notification: {
         type: 'NOUVEAU_MESSAGE',
         title: MESSAGING_NOTIFICATION_MESSAGES.newMessageTitle,
@@ -301,6 +307,9 @@ export class MessagingCommandService extends MessagingAppService {
     await this.notificationDeliveryService.sendPushForNotification(
       createdMessage.notification,
     );
+    this.realtimeEvents.emit('notification.created', {
+      notification: createdMessage.notification,
+    });
 
     return {
       message: createdMessage.message,

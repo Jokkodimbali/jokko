@@ -15,6 +15,7 @@ import { WalletQueryService } from './application/services/wallet-query.service'
 import { SavedPaymentMethodsService } from './application/services/saved-payment-methods.service';
 import { PharmacyOrderPaymentService } from './application/services/pharmacy-order-payment.service';
 import { MaterialOrderPaymentService } from './application/services/material-order-payment.service';
+import { DisputeRefundService } from './application/services/dispute-refund.service';
 import { PaymentsRepositoryImpl } from './infrastructure/repositories/payments.repository';
 import { WithdrawalsRepositoryImpl } from './infrastructure/repositories/withdrawals.repository';
 import { PaymentWorkflowRepository } from './infrastructure/repositories/payment-workflow.repository';
@@ -87,6 +88,7 @@ import { CategoriesModule } from '../categories/categories.module';
     SavedPaymentMethodsService,
     PharmacyOrderPaymentService,
     MaterialOrderPaymentService,
+    DisputeRefundService,
     MockPaymentGatewayAdapter,
     WavePaymentGatewayAdapter,
     OrangeMoneyPaymentGatewayAdapter,
@@ -156,6 +158,7 @@ import { CategoriesModule } from '../categories/categories.module';
     PaymentsFacade,
     PharmacyOrderPaymentService,
     MaterialOrderPaymentService,
+    DisputeRefundService,
   ],
 })
 export class PaymentsModule {}

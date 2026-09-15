@@ -86,7 +86,17 @@
             />
           </span>
           <span class="messages-page__conversation-copy">
-            <strong>{{ conversation.counterpart.name }}</strong>
+            <strong>
+              {{ conversation.counterpart.name }}
+              <lucide-icon
+                *ngIf="conversation.counterpart.isAdmin"
+                class="messages-page__verified"
+                aria-label="Compte officiel vérifié"
+                name="badge-check"
+                size="17"
+                [strokeWidth]="2.5"
+              ></lucide-icon>
+            </strong>
             <small>{{ conversationPreview(conversation) }}</small>
           </span>
           <span class="messages-page__conversation-meta">
@@ -152,7 +162,17 @@
             />
           </span>
           <span class="messages-page__chat-title">
-            <strong>{{ conversation.counterpart.name }}</strong>
+            <strong>
+              {{ conversation.counterpart.name }}
+              <lucide-icon
+                *ngIf="conversation.counterpart.isAdmin"
+                class="messages-page__verified"
+                aria-label="Compte officiel vérifié"
+                name="badge-check"
+                size="17"
+                [strokeWidth]="2.5"
+              ></lucide-icon>
+            </strong>
             <small *ngIf="conversation.counterpart.subCategoryNames?.length">
               {{ conversation.counterpart.subCategoryNames?.join(' · ') }}
             </small>
@@ -176,6 +196,7 @@
 
         <span class="messages-page__chat-actions">
           <button
+            *ngIf="!conversation.counterpart.isAdmin"
             type="button"
             aria-label="Appel vocal"
             [disabled]="calls.isBusy()"
@@ -191,6 +212,7 @@
             <lucide-icon name="phone" size="18" [strokeWidth]="2"></lucide-icon>
           </button>
           <button
+            *ngIf="!conversation.counterpart.isAdmin"
             type="button"
             aria-label="Appel vidéo"
             [disabled]="calls.isBusy()"
@@ -242,7 +264,10 @@
           [class.messages-page__bubble-row--own]="isOwnMessage(message)"
         >
           <span class="messages-page__bubble-stack">
-            <time>{{ formatDate(message.createdAt) }}</time>
+            <small *ngIf="message.sender.isAdmin">
+              Service client
+            </small>
+            <time *ngIf="!message.sender.isAdmin">{{ formatDate(message.createdAt) }}</time>
             <p class="messages-page__bubble" *ngIf="message.content">{{ message.content }}</p>
             <ng-container *ngIf="message.mediaUrl as mediaUrl">
               <span

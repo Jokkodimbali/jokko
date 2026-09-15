@@ -84,33 +84,37 @@ export class DisputeMediationMessageService {
         },
       });
 
-      const conversationId = await this.resolveConversationId(tx, {
-        reservationId: dispute.reservation.id,
-        clientId: dispute.reservation.clientId,
-        professionalUserId: dispute.reservation.professionnel.utilisateurId,
-        existingConversationId: dispute.reservation.conversation?.id ?? null,
-      });
-
-      let conversationMessage: {
-        id: string;
-        conversationId: string;
-        senderId: string;
-        content: string | null;
-        mediaUrl: string | null;
-        isRead: boolean;
-        createdAt: Date;
-        sender: {
+      const deliveries: Array<{
+        recipientId: string;
+        message: {
           id: string;
-          name: string;
-          avatarUrl: string | null;
+          conversationId: string;
+          senderId: string;
+          content: string | null;
+          mediaUrl: string | null;
+          isRead: boolean;
+          createdAt: Date;
+          sender: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+            isAdmin: boolean;
+          };
         };
-      } | null = null;
+      }> = [];
 
-      if (input.recipient === 'TOUS') {
+      for (const recipientId of recipients) {
+        const conversationId = await this.resolveConversationId(
+          tx,
+          recipientId,
+          admin.sub,
+        );
         const message = await tx.message.create({
           data: {
+            ...(input.recipient !== 'TOUS' ? { id: created.id } : {}),
             conversationId,
             expediteurId: admin.sub,
+            litigeId: dispute.id,
             contenu: content,
             urlMedia: null,
             creeLe: createdAt,
@@ -133,7 +137,7 @@ export class DisputeMediationMessageService {
           },
         });
 
-        conversationMessage = {
+        const conversationMessage = {
           id: message.id,
           conversationId: message.conversationId,
           senderId: message.expediteurId,
@@ -143,8 +147,9 @@ export class DisputeMediationMessageService {
           createdAt: message.creeLe,
           sender: {
             id: message.expediteur.id,
-            name: message.expediteur.nom,
-            avatarUrl: message.expediteur.urlAvatar,
+            name: 'Service client',
+            avatarUrl: '/logojokko.png',
+            isAdmin: true,
           },
         };
 
@@ -152,42 +157,34 @@ export class DisputeMediationMessageService {
           where: { id: conversationId },
           data: { dernierMessageLe: createdAt },
         });
+        deliveries.push({ recipientId, message: conversationMessage });
+
+        await tx.notification.createMany({
+          data: [
+            {
+              utilisateurId: recipientId,
+              type: TypeNotification.ANNONCE_ADMIN,
+              titre: 'Service client',
+              corps: content,
+              donnees: {
+                disputeId: dispute.id,
+                reservationId: dispute.reservation.id,
+                conversationId,
+                serviceName: dispute.reservation.service.nom,
+                recipient: input.recipient,
+              } satisfies Prisma.InputJsonValue,
+            },
+          ],
+        });
       }
 
-      await tx.notification.createMany({
-        data: recipients.map((recipientId) => ({
-          utilisateurId: recipientId,
-          type: TypeNotification.ANNONCE_ADMIN,
-          titre: 'Message de mediation',
-          corps: content,
-          donnees: {
-            disputeId: dispute.id,
-            serviceName: dispute.reservation.service.nom,
-            recipient: input.recipient,
-          } satisfies Prisma.InputJsonValue,
-        })),
-      });
-
-      return { message: created, conversationId, conversationMessage };
+      return { message: created, deliveries };
     });
 
-    if (result.conversationMessage) {
+    for (const delivery of result.deliveries) {
       this.realtimeEvents.emit('conversation.message.created', {
-        message: result.conversationMessage,
-        recipientUserIds: recipients,
-      });
-    } else {
-      this.realtimeEvents.emit('dispute.mediation.message.created', {
-        message: {
-          id: result.message.id,
-          conversationId: result.conversationId,
-          authorId: result.message.expediteurAdmin.id,
-          authorName: result.message.expediteurAdmin.nom,
-          recipient: result.message.destinataire,
-          content: result.message.contenu,
-          createdAt: result.message.creeLe,
-        },
-        recipientUserIds: recipients,
+        message: delivery.message,
+        recipientUserIds: [delivery.recipientId, admin.sub],
       });
     }
 
@@ -205,23 +202,19 @@ export class DisputeMediationMessageService {
 
   private async resolveConversationId(
     tx: Prisma.TransactionClient,
-    input: {
-      reservationId: string;
-      clientId: string;
-      professionalUserId: string;
-      existingConversationId: string | null;
-    },
+    recipientId: string,
+    adminId: string,
   ): Promise<string> {
-    if (input.existingConversationId) {
-      return input.existingConversationId;
-    }
-
     const conversation = await tx.conversation.upsert({
-      where: { reservationId: input.reservationId },
+      where: {
+        clientId_prestataireId: {
+          clientId: recipientId,
+          prestataireId: adminId,
+        },
+      },
       create: {
-        reservationId: input.reservationId,
-        clientId: input.clientId,
-        prestataireId: input.professionalUserId,
+        clientId: recipientId,
+        prestataireId: adminId,
       },
       update: {},
       select: { id: true },

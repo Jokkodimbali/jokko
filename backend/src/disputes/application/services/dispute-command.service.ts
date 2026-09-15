@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -27,6 +28,7 @@ export class DisputeCommandService {
     @Inject(DOMAINE_EVENT_BUS)
     private readonly eventBus: DomaineEventBusPort,
     private readonly notificationsService: NotificationsService,
+    private readonly realtimeEvents: EventEmitter2,
   ) {}
 
   async openForReservation(input: {
@@ -162,6 +164,10 @@ export class DisputeCommandService {
       input.clientRefundPercentage,
     );
     const entity = DisputeEntity.reconstitute(current);
+    const clientRefundAmount = this.calculateClientRefundAmount(
+      current.payment?.montant ?? 0,
+      normalizedPercentage,
+    );
     entity.resolve({
       adminUserId: requestUser.sub,
       decision: input.decision,
@@ -170,6 +176,17 @@ export class DisputeCommandService {
       professionalPayoutAmount: 0,
       notes: input.notes,
     });
+
+    // The external refund is completed first. If the provider refuses it, the
+    // dispute stays open and no professional credit can be issued.
+    if (current.paiementId && clientRefundAmount > 0) {
+      await this.realtimeEvents.emitAsync('disputes.refund.requested', {
+        disputeId: current.id,
+        paymentId: current.paiementId,
+        amount: clientRefundAmount,
+        reason: input.notes.trim(),
+      });
+    }
 
     const resolved = await this.disputesRepository.resolve({
       dispute: entity.toView(),
@@ -332,6 +349,10 @@ export class DisputeCommandService {
 
   private resolvePriority(hasPayment: boolean): DisputePriority {
     return hasPayment ? 'HAUTE' : 'MOYENNE';
+  }
+
+  private calculateClientRefundAmount(grossAmount: number, percentage: number): number {
+    return Math.round(grossAmount * (percentage / 100) * 100) / 100;
   }
 
   private normalizeRefundPercentage(

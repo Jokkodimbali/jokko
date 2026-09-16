@@ -310,6 +310,9 @@ describe('PharmacyOrderPaymentService', () => {
         ),
         data: expect.objectContaining({
           pharmacyOrderId: orderId,
+          amount: 12500,
+          walletCredit: true,
+          serviceName: 'Livraison de médicaments',
           deliverySearchInProgress: true,
         }),
       }),

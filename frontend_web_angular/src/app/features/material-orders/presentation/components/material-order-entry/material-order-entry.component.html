@@ -25,7 +25,7 @@
 
   <ng-template #existingOrderLink>
     <a [routerLink]="['/material-orders', state.existingOrder!.id]">
-      <span>Voir la disponibilite et ma commande</span>
+      <span>{{ label(state.existingOrder!.status) }}</span>
       <lucide-icon name="arrow-right" size="16"></lucide-icon>
     </a>
   </ng-template>

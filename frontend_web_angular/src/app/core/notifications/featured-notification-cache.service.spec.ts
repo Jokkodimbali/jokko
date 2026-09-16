@@ -26,6 +26,22 @@ describe('FeaturedNotificationCacheService', () => {
     expect(cache.read('user-1')).toEqual(notification);
   });
 
+  it('keeps a permanent notification after it is opened and marked as read', () => {
+    const cache = new FeaturedNotificationCacheService();
+    const notification = {
+      id: 'route-after-click',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      createdAt: '2026-09-16T15:00:00.000Z',
+      isRead: false,
+      data: { reservationId: 'reservation-1', persistentUntilTerminal: true },
+    };
+
+    cache.sync('user-1', [notification]);
+    cache.sync('user-1', [{ ...notification, isRead: true }]);
+
+    expect(cache.read('user-1')).toEqual({ ...notification, isRead: true });
+  });
+
   it('clears the cache when the same reservation is completed', () => {
     const cache = new FeaturedNotificationCacheService();
     const onTheWay = {

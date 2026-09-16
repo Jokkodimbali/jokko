@@ -508,6 +508,7 @@ export class MaterialOrdersService {
           materialOrderId: order.id,
           reservationId,
           serviceName: 'Livraison de matériel',
+          persistentUntilTerminal: true,
           route: `/appointments/${reservationId}`,
         },
       }),
@@ -518,8 +519,24 @@ export class MaterialOrdersService {
         body: `${order.reservationLivraison?.professionnel.utilisateur.nom ?? 'Un livreur'} a accepté la course et viendra retirer la commande.`,
         data: {
           materialOrderId: order.id,
+          reservationId,
           serviceName: 'Livraison de matériel',
+          persistentUntilTerminal: true,
           route: `/material-orders/${order.id}`,
+        },
+      }),
+      this.notifications.createInAppNotification({
+        userId: requestUser.sub,
+        type: NOTIFICATION_TYPES.PRESTATAIRE_EN_ROUTE,
+        title: 'Livraison de matériel acceptée',
+        body: `Rendez-vous à ${order.quincaillerie.nomEntreprise || order.quincaillerie.utilisateur.nom} pour récupérer le matériel.`,
+        data: {
+          materialOrderId: order.id,
+          reservationId,
+          serviceName: 'Livraison de matériel',
+          deliveryOfferResolved: true,
+          persistentUntilTerminal: true,
+          route: `/appointments/${reservationId}`,
         },
       }),
     ]);

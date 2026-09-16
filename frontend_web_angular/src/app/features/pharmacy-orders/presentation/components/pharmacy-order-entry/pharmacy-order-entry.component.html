@@ -1,0 +1,10 @@
+<section class="pharmacy-entry" aria-label="Commande de médicaments">
+  <h3>Livraison de médicaments</h3>
+  <a
+    [routerLink]="order() ? ['/pharmacy-orders', order()!.id] : ['/pharmacy-orders/select']"
+    [queryParams]="order() ? null : { reservationId, returnUrl }"
+  >
+    <span>{{ label(order()) }}</span>
+    <lucide-icon [name]="icon(order())" size="18" [strokeWidth]="2.5"></lucide-icon>
+  </a>
+</section>

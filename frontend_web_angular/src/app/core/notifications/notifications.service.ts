@@ -213,8 +213,14 @@ export function isOngoingNotification(notification: UserNotificationView): boole
 /** Arrival and active work remain visible until the reservation is resolved. */
 export function isPersistentServiceNotification(notification: UserNotificationView): boolean {
   const metadata = notification.data || notification.donnees || {};
+  const reservationStatus = String(metadata['reservationStatus'] ?? '').toUpperCase();
+  const tripStatus = String(metadata['tripStatus'] ?? '').toUpperCase();
+  if (['TERMINEE', 'ANNULEE'].includes(reservationStatus) ||
+      ['TERMINEE', 'ANNULEE'].includes(tripStatus)) {
+    return false;
+  }
   return isOngoingNotification(notification) ||
-    metadata['tripStatus'] === 'SUR_PLACE' ||
+    tripStatus === 'SUR_PLACE' ||
     (metadata['persistentUntilTerminal'] === true &&
       typeof metadata['reservationId'] === 'string' &&
       metadata['reservationId'].trim().length > 0);

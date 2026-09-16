@@ -191,6 +191,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
             select: {
               id: true,
               clientId: true,
+              statut: true,
               client: { select: { nom: true, urlAvatar: true } },
               professionnel: {
                 select: {
@@ -291,6 +292,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
               serviceName: negotiation.service.nom,
             }
           : {}),
+        ...(reservation ? { reservationStatus: reservation.statut } : {}),
         actorName: actor.nom,
         avatarUrl: actor.urlAvatar,
       });

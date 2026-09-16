@@ -318,6 +318,11 @@ export class PharmacyOrderPaymentService {
           : `Le paiement des médicaments de ${Number(payment.commandePharmacie.montantMedicaments).toLocaleString('fr-FR')} FCFA est confirmé.`,
         data: {
           pharmacyOrderId: payment.commandePharmacieId,
+          amount: Number(payment.commandePharmacie.montantMedicaments),
+          walletCredit: true,
+          serviceName: payment.commandePharmacie.livraisonDemandee
+            ? 'Livraison de médicaments'
+            : 'Commande de médicaments',
           deliverySearchInProgress: payment.commandePharmacie.livraisonDemandee,
           route: `/pharmacy-orders/${payment.commandePharmacieId}`,
         },

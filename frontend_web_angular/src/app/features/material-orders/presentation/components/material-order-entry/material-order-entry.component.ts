@@ -29,4 +29,19 @@ export class MaterialOrderEntryComponent implements OnChanges {
       .pipe(catchError(() => of({ eligible: false, materialCount: 0, existingOrder: null })))
       .subscribe((eligibility) => this.eligibility.set(eligibility));
   }
+
+  protected label(status: string | undefined): string {
+    switch (status) {
+      case 'EN_ATTENTE_QUINCAILLERIE': return 'Matériel en cours de vérification';
+      case 'EN_ATTENTE_PAIEMENT':
+      case 'PARTIELLEMENT_DISPONIBLE': return 'Voir le matériel et payer';
+      case 'EN_ATTENTE_TRANSPORTEUR': return 'Recherche d’un livreur en cours';
+      case 'TRANSPORTEUR_ASSIGNE':
+      case 'EN_LIVRAISON': return 'Suivre la livraison de matériel';
+      case 'LIVREE': return 'Voir la livraison terminée';
+      case 'INDISPONIBLE': return 'Voir le matériel indisponible';
+      case 'ANNULEE': return 'Voir la commande annulée';
+      default: return 'Voir ma commande de matériel';
+    }
+  }
 }

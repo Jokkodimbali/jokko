@@ -41,7 +41,8 @@ export class App {
   protected readonly isOpeningSupport = signal(false);
   protected readonly showSupportButton = computed(() => {
     const role = this.authSession.currentUser()?.role;
-    return role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN';
+    const isMessagesPage = this.normalizedPath(this.currentUrl()) === '/messages';
+    return !isMessagesPage && (role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN');
   });
 
   private readonly currentUrl = toSignal(

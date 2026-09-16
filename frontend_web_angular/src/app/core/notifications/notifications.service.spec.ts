@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findFeaturedNotification, formatNotificationTitle, notificationIcon, notificationAvatarUrl, notificationSubtitle, sortNotificationsNewestFirst, UserNotificationView } from './notifications.service';
+import { findFeaturedNotification, formatNotificationTitle, isPersistentServiceNotification, notificationIcon, notificationAvatarUrl, notificationSubtitle, sortNotificationsNewestFirst, UserNotificationView } from './notifications.service';
 
 const ongoing: UserNotificationView = {
   id: 'ongoing', type: 'PRESTATAIRE_EN_ROUTE', isRead: true,
@@ -40,6 +40,13 @@ describe('notification display lifecycle', () => {
 
     expect(findFeaturedNotification([enRoute], () => true)).toBe(enRoute);
     expect(findFeaturedNotification([enRoute, completed])).toBeNull();
+  });
+  it.each(['TERMINEE', 'ANNULEE'])('stops a delivery notification when its reservation is %s', (reservationStatus) => {
+    expect(isPersistentServiceNotification({
+      id: 'delivery',
+      type: 'PRESTATAIRE_EN_ROUTE',
+      data: { reservationId: 'r1', persistentUntilTerminal: true, reservationStatus },
+    })).toBe(false);
   });
   it('shows a newer message then restores the ongoing service', () => {
     const message = { id: 'message', type: 'MESSAGE_RECU', createdAt: '2026-09-08T11:00:00Z' };

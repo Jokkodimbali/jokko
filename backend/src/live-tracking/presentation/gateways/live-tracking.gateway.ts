@@ -316,6 +316,12 @@ export class LiveTrackingGateway
     this.server
       .to(this.buildUserRoom(payload.clientUserId))
       .emit('tracking.route-metadata.updated', payload);
+    // Après le scan de retrait, le livreur quitte le trajet vers
+    // l'expéditeur pour celui vers le destinataire. Il doit recevoir la
+    // même route recalculée que le client, sans attendre le prochain GPS.
+    this.server
+      .to(this.buildProfessionalRoom(payload.professionalId))
+      .emit('tracking.route-metadata.updated', payload);
   }
 
   @OnEvent('live-tracking.presence.updated')

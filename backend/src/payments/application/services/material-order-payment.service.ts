@@ -285,6 +285,11 @@ export class MaterialOrderPaymentService {
           : 'Le paiement est confirme. Votre materiel sera a retirer en quincaillerie.',
         data: {
           materialOrderId: payment.commandeMaterielId,
+          amount: Number(payment.commandeMateriel.montantMateriel),
+          walletCredit: true,
+          serviceName: payment.commandeMateriel.livraisonDemandee
+            ? 'Livraison de matériel'
+            : 'Commande de matériel',
           route: `/material-orders/${payment.commandeMaterielId}`,
         },
       }),

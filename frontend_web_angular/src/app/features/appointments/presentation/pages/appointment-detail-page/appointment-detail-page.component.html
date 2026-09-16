@@ -1337,24 +1337,11 @@
           Signaler litige
         </button>
 
-        <section
+        <app-pharmacy-order-entry
           *ngIf="shouldShowMedicineDelivery(appointment)"
-          class="appointment-detail__medicine-delivery"
-          aria-label="Livraison de médicaments"
-        >
-          <h3>Livraison de médicaments</h3>
-          <a
-            [routerLink]="['/pharmacy-orders/select']"
-            [queryParams]="{
-              reservationId: appointment.id,
-              returnUrl: '/appointments/' + appointment.id,
-            }"
-          >
-            <lucide-icon name="stethoscope" size="20" [strokeWidth]="2.4"></lucide-icon>
-            <span>Rechercher une pharmacie</span>
-            <lucide-icon name="arrow-right" size="15" [strokeWidth]="2.6"></lucide-icon>
-          </a>
-        </section>
+          [reservationId]="appointment.id"
+          [returnUrl]="'/appointments/' + appointment.id"
+        ></app-pharmacy-order-entry>
 
         <app-material-order-entry
           *ngIf="isClientViewer()"

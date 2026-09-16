@@ -41,7 +41,6 @@ import {
 import { SERVICES_UI_MESSAGES } from '../../../domain/services-ui.messages';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppNavbarPresentationService } from '../../../../../shared/ui/app-navbar/app-navbar-presentation.service';
-import { AppScrollHintComponent } from '../../../../../shared/ui/app-scroll-hint/app-scroll-hint.component';
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import {
   AppSearchBarComponent,
@@ -68,7 +67,6 @@ const SERVICE_CARD_COVER_URL =
     CommonModule,
     RouterLink,
     AppFooterComponent,
-    AppScrollHintComponent,
     AppPresenceDotComponent,
     AppSearchBarComponent,
     ProviderCardComponent,

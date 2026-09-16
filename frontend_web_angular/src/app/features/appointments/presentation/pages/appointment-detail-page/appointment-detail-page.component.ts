@@ -13,7 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RemoteTrack } from 'livekit-client';
 import {
@@ -41,6 +41,7 @@ import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils
 import { MessagesService } from '../../../../messages/data-access/messages.service';
 import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
+import { PharmacyOrderEntryComponent } from '../../../../pharmacy-orders/presentation/components/pharmacy-order-entry/pharmacy-order-entry.component';
 import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
 import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
@@ -179,13 +180,13 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     LucideAngularModule,
     AppStarRatingComponent,
     AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
     CallMediaTrackDirective,
     MaterialOrderEntryComponent,
+    PharmacyOrderEntryComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [

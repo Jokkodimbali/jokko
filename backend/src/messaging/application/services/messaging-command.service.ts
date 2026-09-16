@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
+import { RoleUtilisateur } from '@prisma/client';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { MESSAGING_NOTIFICATION_MESSAGES } from '../../../core/messages/messaging-notification.messages';
@@ -33,6 +34,7 @@ import {
   type MessagingRepositoryPort,
 } from '../ports/messaging-repository.port';
 import { MessagingAppService } from './messaging-app-service.base';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 export type SentConversationMessage = {
   message: {
@@ -67,6 +69,7 @@ export class MessagingCommandService extends MessagingAppService {
     private readonly negotiationsRepository: NegotiationsRepositoryPort,
     private readonly notificationDeliveryService: NotificationDeliveryService,
     private readonly realtimeEvents: EventEmitter2,
+    private readonly prisma: PrismaService,
   ) {
     super(
       messagingRepository,
@@ -80,21 +83,23 @@ export class MessagingCommandService extends MessagingAppService {
     requestUser: AuthUser,
     command: CreateConversationCommand,
   ) {
-    const participantContext = command.reservationId
-      ? await this.resolveReservationConversationContext(
-          requestUser,
-          command.reservationId,
-        )
-      : command.negotiationId
-        ? await this.resolveNegotiationConversationContext(
+    const participantContext = command.support
+      ? await this.resolveSupportConversationContext(requestUser)
+      : command.reservationId
+        ? await this.resolveReservationConversationContext(
             requestUser,
-            command.negotiationId,
+            command.reservationId,
           )
-        : await this.resolveDirectConversationContext(
-            requestUser,
-            command.professionalProfileId,
-            command.professionalUserId,
-          );
+        : command.negotiationId
+          ? await this.resolveNegotiationConversationContext(
+              requestUser,
+              command.negotiationId,
+            )
+          : await this.resolveDirectConversationContext(
+              requestUser,
+              command.professionalProfileId,
+              command.professionalUserId,
+            );
 
     const existing = participantContext.reservationId
       ? await this.messagingRepository.findConversationByReservationId(
@@ -128,6 +133,32 @@ export class MessagingCommandService extends MessagingAppService {
     );
 
     return result.conversation;
+  }
+
+  private async resolveSupportConversationContext(
+    requestUser: AuthUser,
+  ): Promise<{
+    clientUserId: string;
+    professionalUserId: string;
+    reservationId: string | null;
+  }> {
+    if (!['CLIENT', 'PRESTATAIRE', 'MEDECIN'].includes(requestUser.role)) {
+      throw appHttpException('MESSAGING_UNAUTHORIZED');
+    }
+
+    const supportAgent = await this.prisma.utilisateur.findFirst({
+      where: { role: RoleUtilisateur.ADMIN, estActif: true },
+      orderBy: { creeLe: 'asc' },
+      select: { id: true },
+    });
+    if (!supportAgent)
+      throw appHttpException('MESSAGING_PROFESSIONAL_NOT_FOUND');
+
+    return {
+      clientUserId: requestUser.sub,
+      professionalUserId: supportAgent.id,
+      reservationId: null,
+    };
   }
 
   private async resolveDirectConversationContext(
@@ -278,9 +309,10 @@ export class MessagingCommandService extends MessagingAppService {
         ? conversation.professionalUserId
         : conversation.clientUserId;
     const senderName = await this.resolveSenderName(requestUser.sub);
-    const disputeId = await this.messagingRepository.findLatestDisputeIdInConversation(
-      conversationId,
-    );
+    const disputeId =
+      await this.messagingRepository.findLatestDisputeIdInConversation(
+        conversationId,
+      );
 
     const createdMessage = await this.messagingRepository.createMessage({
       conversationId: message.conversationId,

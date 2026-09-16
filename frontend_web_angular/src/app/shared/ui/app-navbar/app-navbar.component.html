@@ -124,7 +124,9 @@
             <span class="app-navbar__notification-copy" appNotificationFitText>
               <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
                 <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
-                <span>{{ notificationTitle(notification) }}</span>
+                @if (notificationWalletAmount(notification); as amount) {
+                  <span>{{ notificationWalletTitlePrefix(notification) }} <b class="app-navbar__notification-wallet-amount" [class.app-navbar__notification-wallet-amount--credit]="notificationWalletAmountTone(notification) === 'credit'" [class.app-navbar__notification-wallet-amount--debit]="notificationWalletAmountTone(notification) === 'debit'">{{ amount }}</b></span>
+                } @else { <span>{{ notificationTitle(notification) }}</span> }
               </strong>
               <small [title]="notificationSubtitle(notification)">{{ notificationSubtitle(notification) }}</small>
             </span>
@@ -184,7 +186,9 @@
             <span>
               <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
                 <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
-                <span>{{ notificationTitle(notification) }}</span>
+                @if (notificationWalletAmount(notification); as amount) {
+                  <span>{{ notificationWalletTitlePrefix(notification) }} <b class="app-navbar__notification-wallet-amount" [class.app-navbar__notification-wallet-amount--credit]="notificationWalletAmountTone(notification) === 'credit'" [class.app-navbar__notification-wallet-amount--debit]="notificationWalletAmountTone(notification) === 'debit'">{{ amount }}</b></span>
+                } @else { <span>{{ notificationTitle(notification) }}</span> }
               </strong>
               <small [title]="notificationSubtitle(notification)">{{ notificationSubtitle(notification) }}</small>
               <time *ngIf="notificationDate(notification)">{{
@@ -392,8 +396,10 @@
       </i>
       <span class="app-navbar__notification-copy" appNotificationFitText>
         <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
-                <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
-                <span>{{ notificationTitle(notification) }}</span>
+          <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
+          @if (notificationWalletAmount(notification); as amount) {
+            <span>{{ notificationWalletTitlePrefix(notification) }} <b class="app-navbar__notification-wallet-amount" [class.app-navbar__notification-wallet-amount--credit]="notificationWalletAmountTone(notification) === 'credit'" [class.app-navbar__notification-wallet-amount--debit]="notificationWalletAmountTone(notification) === 'debit'">{{ amount }}</b></span>
+          } @else { <span>{{ notificationTitle(notification) }}</span> }
               </strong>
               <small [title]="notificationSubtitle(notification)">{{ notificationSubtitle(notification) }}</small>
       </span>
@@ -450,8 +456,10 @@
             </i>
       <span>
         <strong class="app-navbar__notification-heading" [title]="notificationTitle(notification)">
-                <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
-                <span>{{ notificationTitle(notification) }}</span>
+          <lucide-icon [name]="notificationIcon(notification)" size="14" aria-hidden="true"></lucide-icon>
+          @if (notificationWalletAmount(notification); as amount) {
+            <span>{{ notificationWalletTitlePrefix(notification) }} <b class="app-navbar__notification-wallet-amount" [class.app-navbar__notification-wallet-amount--credit]="notificationWalletAmountTone(notification) === 'credit'" [class.app-navbar__notification-wallet-amount--debit]="notificationWalletAmountTone(notification) === 'debit'">{{ amount }}</b></span>
+          } @else { <span>{{ notificationTitle(notification) }}</span> }
               </strong>
               <small [title]="notificationSubtitle(notification)">{{ notificationSubtitle(notification) }}</small>
         <time *ngIf="notificationDate(notification)">{{

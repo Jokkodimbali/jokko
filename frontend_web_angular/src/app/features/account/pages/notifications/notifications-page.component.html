@@ -65,7 +65,12 @@
         </i>
         <div>
           <span>{{ typeLabel(notification.type) }}</span>
-          <h3><lucide-icon [name]="icon(notification)" size="18" aria-hidden="true"></lucide-icon><span>{{ title(notification) }}</span></h3>
+          <h3>
+            <lucide-icon [name]="icon(notification)" size="18" aria-hidden="true"></lucide-icon>
+            @if (walletAmount(notification); as amount) {
+              <span>{{ walletTitlePrefix(notification) }} <b class="notifications-page__wallet-amount" [class.notifications-page__wallet-amount--credit]="walletAmountTone(notification) === 'credit'" [class.notifications-page__wallet-amount--debit]="walletAmountTone(notification) === 'debit'">{{ amount }}</b></span>
+            } @else { <span>{{ title(notification) }}</span> }
+          </h3>
           <p>{{ body(notification) }}</p>
           <time *ngIf="date(notification)">{{
             date(notification) | date: 'd MMM yyyy, HH:mm'

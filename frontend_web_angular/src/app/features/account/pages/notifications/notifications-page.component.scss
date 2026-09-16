@@ -202,6 +202,14 @@
   margin: 4px 0 6px;
 }
 
+.notifications-page__wallet-amount--credit {
+  color: #16803c;
+}
+
+.notifications-page__wallet-amount--debit {
+  color: #c92a2a;
+}
+
 .notifications-page__item p,
 .notifications-page__empty p {
   color: #695e56;

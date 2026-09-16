@@ -32,6 +32,9 @@ import {
   notificationIcon,
   notificationAvatarUrl,
   notificationSubtitle,
+  notificationWalletAmountTone,
+  notificationWalletAmount,
+  notificationWalletTitlePrefix,
   sortNotificationsNewestFirst,
   notificationActorName,
   NotificationsService,
@@ -413,6 +416,9 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   protected readonly notificationTitle = formatNotificationTitle;
+  protected readonly notificationWalletAmountTone = notificationWalletAmountTone;
+  protected readonly notificationWalletAmount = notificationWalletAmount;
+  protected readonly notificationWalletTitlePrefix = notificationWalletTitlePrefix;
   protected readonly notificationSubtitle = notificationSubtitle;
 
   protected readonly notificationIcon = notificationIcon;

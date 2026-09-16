@@ -604,13 +604,13 @@
   border-radius: 50%;
   color: #ffffff;
   display: inline-flex;
-  flex: 0 0 42px;
+  flex: 0 0 var(--app-navbar-profile-circle-size, 42px);
   font-size: 15px;
   font-weight: 800;
-  height: 42px;
+  height: var(--app-navbar-profile-circle-size, 42px);
   justify-content: center;
   overflow: hidden;
-  width: 42px;
+  width: var(--app-navbar-profile-circle-size, 42px);
 }
 
 .app-navbar__profile strong {
@@ -1938,6 +1938,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.app-navbar__notification-wallet-amount--credit {
+  color: #16803c;
+}
+.app-navbar__notification-wallet-amount--debit {
+  color: #c92a2a;
+}
 .app-navbar__notification-copy small {
   color: #27211d;
   font-size: 12px;
@@ -2186,9 +2192,10 @@
 
 /* Keep the delivery bell identical to the idle notification control. */
 .app-navbar--notification-featured .app-navbar__notification-avatar,
-.app-navbar--notification-featured .app-navbar__notification-bell {
-  width: 42px;
-  height: 42px;
+.app-navbar--notification-featured .app-navbar__notification--featured .app-navbar__notification-bell {
+  flex: 0 0 var(--app-navbar-profile-circle-size, 42px);
+  width: var(--app-navbar-profile-circle-size, 42px);
+  height: var(--app-navbar-profile-circle-size, 42px);
 }
 
 /* The active notification must keep every word readable without crowding the navbar. */
@@ -2276,14 +2283,21 @@
 }
 
 .app-navbar--notification-featured .app-navbar__notification-bell {
-  width: 42px;
-  height: 42px;
+  box-sizing: border-box;
+  flex: 0 0 var(--app-navbar-profile-circle-size, 42px) !important;
+  height: var(--app-navbar-profile-circle-size, 42px) !important;
+  max-height: var(--app-navbar-profile-circle-size, 42px) !important;
+  max-width: var(--app-navbar-profile-circle-size, 42px) !important;
+  min-height: var(--app-navbar-profile-circle-size, 42px) !important;
+  min-width: var(--app-navbar-profile-circle-size, 42px) !important;
+  width: var(--app-navbar-profile-circle-size, 42px) !important;
 }
 
 /* Use the available width before fitting complete, single-line text rows. */
 .app-navbar__notification--featured .app-navbar__notification-copy {
   flex: 1 1 auto;
   max-width: none;
+  padding-inline: 5px;
   width: var(--notification-text-width, max-content);
 }
 
@@ -2304,9 +2318,9 @@
   }
 
   .app-navbar--notification-featured .app-navbar__profile {
-    flex: 0 1 auto;
-    min-width: 76px;
-    max-width: 160px;
+    flex: 0 0 auto;
+    max-width: min(270px, calc(100vw - 118px));
+    width: auto;
   }
 
   .app-navbar--notification-featured .app-navbar__notification-menu {

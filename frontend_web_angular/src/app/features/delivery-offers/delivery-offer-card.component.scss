@@ -28,7 +28,7 @@
 }
 header {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 30px;
+  grid-template-columns: 36px minmax(0, 1fr) 42px;
   align-items: center;
   gap: 8px;
   padding: 0 2px 12px;
@@ -77,8 +77,11 @@ h2 {
 .delivery-card__bell {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
   border-radius: 50%;
   background: #865221;
   color: white;

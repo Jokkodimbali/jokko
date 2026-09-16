@@ -1243,14 +1243,14 @@
               [strokeWidth]="2.6"
             ></lucide-icon>
           </button>
-          <strong *ngIf="!isParcelDeliveryFlow()">
+          <strong>
             <lucide-icon name="clock-3" size="16" [strokeWidth]="2.4"></lucide-icon>
             {{ hasActiveTrackingNavigation() ? routeEtaLabel() : 'Pret' }}
           </strong>
-          <em *ngIf="!isParcelDeliveryFlow() && hasActiveTrackingNavigation()">
+          <em *ngIf="hasActiveTrackingNavigation()">
             {{ routeRemainingBadgeLabel() }}
           </em>
-          <em *ngIf="!isParcelDeliveryFlow()">
+          <em>
             <i></i> {{ hasActiveTrackingNavigation() ? 'GPS actif' : 'GPS en attente' }}
           </em>
         </div>

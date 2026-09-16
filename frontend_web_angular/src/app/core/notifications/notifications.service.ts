@@ -166,6 +166,31 @@ export function notificationSubtitle(notification: UserNotificationView): string
   return 'Voir la notification';
 }
 
+/** Color semantic for wallet movements shown in notification lists and the navbar. */
+export function notificationWalletAmountTone(
+  notification: UserNotificationView,
+): 'credit' | 'debit' | null {
+  const metadata = notification.data || notification.donnees || {};
+  if (metadata['walletCredit'] === true) return 'credit';
+  if (metadata['walletDebit'] === true) return 'debit';
+  return null;
+}
+
+export function notificationWalletAmount(notification: UserNotificationView): string | null {
+  const metadata = notification.data || notification.donnees || {};
+  const amount = metadata['amount'];
+  const tone = notificationWalletAmountTone(notification);
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || !tone) return null;
+  return `${tone === 'credit' ? '+' : '-'} ${amount.toLocaleString('fr-FR')} FCFA`;
+}
+
+export function notificationWalletTitlePrefix(notification: UserNotificationView): string | null {
+  const tone = notificationWalletAmountTone(notification);
+  if (tone === 'credit') return 'Votre wallet est crédité de';
+  if (tone === 'debit') return 'Votre wallet est débité de';
+  return null;
+}
+
 export function sortNotificationsNewestFirst(notifications: UserNotificationView[]): UserNotificationView[] {
   return [...notifications].sort((a, b) => notificationTimestamp(b) - notificationTimestamp(a));
 }

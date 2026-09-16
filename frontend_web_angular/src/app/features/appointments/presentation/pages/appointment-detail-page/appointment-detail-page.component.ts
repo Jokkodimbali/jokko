@@ -482,7 +482,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected shouldShowMedicineDelivery(appointment: AppointmentView): boolean {
     return (
-      this.isClientViewer() && this.isMedicalAppointment() && appointment.status === 'TERMINEE'
+      this.isClientViewer() &&
+      this.isMedicalAppointment() &&
+      !this.isParcelTransportAppointment(appointment) &&
+      appointment.status === 'TERMINEE'
     );
   }
 
@@ -3239,6 +3242,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.resolveDestinationCoordinates(this.currentRouteDestinationAddress(appointment));
         window.setTimeout(() => void this.initializeGoogleMaps(), 0);
       }
+
+      if (this.consumeParcelPickupRouteRefresh(appointment)) {
+        // Le dernier snapshot peut encore contenir la polyline du trajet vers
+        // l'expediteur. Une seconde lecture apres le retour du QR garantit que
+        // la carte repart de la position courante vers le destinataire.
+        window.setTimeout(() => {
+          const current = this.appointment();
+          if (!current || current.id !== appointment.id || !this.isParcelPickupValidated()) {
+            return;
+          }
+
+          this.parcelDropoffTrackingPrepared = false;
+          this.prepareParcelDropoffNavigationAfterPickup(current);
+          this.refreshAppointmentState(current.id);
+          this.refreshTracking(current.id);
+        }, 250);
+      }
     };
 
     if (appointment.status !== 'PAYEE_SEQUESTRE' && appointment.status !== 'EN_COURS') {
@@ -3259,6 +3279,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private safeReturnUrl(): string | null {
     return safeInternalUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
+  }
+
+  private consumeParcelPickupRouteRefresh(appointment: AppointmentView): boolean {
+    if (
+      !this.isParcelTransportAppointment(appointment) ||
+      typeof globalThis.sessionStorage === 'undefined'
+    ) {
+      return false;
+    }
+
+    const key = `jokko:parcel:${appointment.id}:refresh-dropoff-route`;
+    if (globalThis.sessionStorage.getItem(key) !== 'pending') return false;
+    globalThis.sessionStorage.removeItem(key);
+    return true;
   }
 
   private startTrackingPolling(appointmentId: string): void {
@@ -4588,6 +4622,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   } | null {
     if (this.isParcelTransportAppointment(appointment)) {
       if (!this.isClientViewer() || this.isParcelPickupValidated()) {
+        return null;
+      }
+
+      // A simple parcel has an individual sender, not a merchant.  Only
+      // medicine and material deliveries display the pharmacy/store marker.
+      if (!this.isMedicineDelivery() && !this.isMaterialDelivery()) {
         return null;
       }
 

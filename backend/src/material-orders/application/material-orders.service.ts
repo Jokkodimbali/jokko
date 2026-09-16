@@ -245,6 +245,7 @@ export class MaterialOrdersService {
         reservationSourceId: reservation.id,
         clientId: requestUser.sub,
         quincaillerieId: store.id,
+        statut: StatutCommandeMateriel.EN_ATTENTE_QUINCAILLERIE,
         detailsMateriel: reservation.devisMateriel.map((item, position) => ({
           position,
           name: item.designation,

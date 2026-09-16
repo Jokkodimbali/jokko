@@ -110,7 +110,11 @@
               *ngFor="let item of editableItems(); let index = index; trackBy: trackItemByPosition"
               class="material-item"
               [class.is-available]="item.isAvailable"
-              [class.is-unavailable]="!item.isAvailable && !canValidate()"
+              [class.is-unavailable]="
+                !item.isAvailable &&
+                !canValidate() &&
+                current.status !== 'EN_ATTENTE_QUINCAILLERIE'
+              "
             >
               <div class="material-item__identity">
                 <span>{{ index + 1 }}</span>
@@ -159,12 +163,28 @@
 
               <ng-template #itemResult>
                 <div class="material-item__result">
-                  <span [class.is-unavailable]="!item.isAvailable">
+                  <span
+                    [class.is-unavailable]="
+                      !item.isAvailable && current.status !== 'EN_ATTENTE_QUINCAILLERIE'
+                    "
+                  >
                     <lucide-icon
-                      [name]="item.isAvailable ? 'circle-check' : 'circle-x'"
+                      [name]="
+                        current.status === 'EN_ATTENTE_QUINCAILLERIE'
+                          ? 'clock-3'
+                          : item.isAvailable
+                            ? 'circle-check'
+                            : 'circle-x'
+                      "
                       size="15"
                     ></lucide-icon>
-                    {{ item.isAvailable ? 'Disponible' : 'Indisponible' }}
+                    {{
+                      current.status === 'EN_ATTENTE_QUINCAILLERIE'
+                        ? 'En attente de vérification'
+                        : item.isAvailable
+                          ? 'Disponible'
+                          : 'Indisponible'
+                    }}
                   </span>
                   <strong *ngIf="item.isAvailable">
                     {{ item.unitPrice! * item.quantity | number: '1.0-0' }} FCFA

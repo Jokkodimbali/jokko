@@ -1,4 +1,5 @@
 export type CreateConversationCommand = {
+  support?: boolean;
   reservationId?: string;
   negotiationId?: string;
   professionalProfileId?: string;

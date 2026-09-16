@@ -31,6 +31,7 @@ export class MessagesService {
   }
 
   createConversation(payload: {
+    support?: boolean;
     reservationId?: string;
     negotiationId?: string;
     professionalProfileId?: string;

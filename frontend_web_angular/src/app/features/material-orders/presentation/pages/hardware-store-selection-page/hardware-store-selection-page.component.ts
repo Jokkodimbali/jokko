@@ -52,6 +52,28 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   private readonly markerElements = new Map<string, HTMLButtonElement>();
 
   ngAfterViewInit(): void {
+    const reservationId = this.route.snapshot.queryParamMap.get('reservationId');
+    if (reservationId) {
+      this.orders.getEligibility(reservationId).subscribe({
+        next: (eligibility) => {
+          if (eligibility.existingOrder) {
+            void this.router.navigate(['/material-orders', eligibility.existingOrder.id], {
+              queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') },
+              replaceUrl: true,
+            });
+            return;
+          }
+          this.startSelection();
+        },
+        error: () => this.startSelection(),
+      });
+      return;
+    }
+
+    this.startSelection();
+  }
+
+  private startSelection(): void {
     void this.maps.load().catch(() => undefined);
     void this.geolocation.getCurrentPosition().then((position) => {
       this.position = position;

@@ -48,6 +48,31 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
   private position: { latitude: number; longitude: number } | null = null;
 
   ngAfterViewInit(): void {
+    const reservationId = this.route.snapshot.queryParamMap.get('reservationId');
+    if (reservationId) {
+      this.orders.list().subscribe({
+        next: (orders) => {
+          const existingOrder = orders.find(
+            (order) => order.medicalReservation.id === reservationId,
+          );
+          if (existingOrder) {
+            void this.router.navigate(['/pharmacy-orders', existingOrder.id], {
+              queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') },
+              replaceUrl: true,
+            });
+            return;
+          }
+          this.startSelection();
+        },
+        error: () => this.startSelection(),
+      });
+      return;
+    }
+
+    this.startSelection();
+  }
+
+  private startSelection(): void {
     // Start downloading Google Maps while the browser resolves the user's position.
     void this.maps.load().catch(() => undefined);
     void this.geolocation.getCurrentPosition().then((position) => {

@@ -803,6 +803,10 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       next: (updated) => {
         this.appointment.set(updated);
         if (this.checkpoint() === 'RETRAIT') {
+          // La page de suivi est rouverte juste apres le scan. Conserver ce
+          // marqueur transitoire lui permet d'ignorer l'ancien itineraire vers
+          // l'expediteur et de reconstruire celui du destinataire.
+          this.markPickupReturnForRouteRefresh(updated.id);
           this.activateDropoffTrackingAfterPickup(updated, message);
           return;
         }
@@ -851,6 +855,14 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     speedKmh: number | null;
   }> {
     return this.geolocation.getCurrentPosition(45_000);
+  }
+
+  private markPickupReturnForRouteRefresh(reservationId: string): void {
+    if (typeof globalThis.sessionStorage === 'undefined') return;
+    globalThis.sessionStorage.setItem(
+      `jokko:parcel:${reservationId}:refresh-dropoff-route`,
+      'pending',
+    );
   }
 
   private sanitizeOptionalNumber(

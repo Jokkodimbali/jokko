@@ -13,6 +13,9 @@ import {
   notificationAvatarUrl,
   notificationActorName,
   notificationSubtitle,
+  notificationWalletAmountTone,
+  notificationWalletAmount,
+  notificationWalletTitlePrefix,
   NotificationsService,
   UserNotificationView,
 } from '../../../../core/notifications/notifications.service';
@@ -41,6 +44,9 @@ export class NotificationsPageComponent implements OnInit {
   private readonly failedAvatars = signal<ReadonlySet<string>>(new Set());
   protected readonly icon = notificationIcon;
   protected readonly actorName = notificationActorName;
+  protected readonly walletAmountTone = notificationWalletAmountTone;
+  protected readonly walletAmount = notificationWalletAmount;
+  protected readonly walletTitlePrefix = notificationWalletTitlePrefix;
 
   protected avatarUrl(notification: UserNotificationView): string | null {
     const avatar = notificationAvatarUrl(notification);

@@ -1,9 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsBoolean, IsOptional, IsUUID } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/app-messages';
 import { API_DOCS } from '../../../core/messages/api-docs.messages';
 
 export class CreateConversationDto {
+  @IsOptional()
+  @IsBoolean()
+  support?: boolean;
+
   @ApiProperty({
     description: API_DOCS.messaging.reservationIdField,
     format: 'uuid',

@@ -27,3 +27,15 @@
 <app-call-overlay />
 
 <app-delivery-offer-card />
+
+<button
+  *ngIf="showSupportButton()"
+  type="button"
+  class="app-support-button"
+  [disabled]="isOpeningSupport()"
+  (click)="openSupportConversation()"
+  aria-label="Écrire au service client"
+>
+  <lucide-icon name="message-circle" size="22" [strokeWidth]="2.5"></lucide-icon>
+  <span>{{ isOpeningSupport() ? 'Ouverture…' : 'Service client' }}</span>
+</button>

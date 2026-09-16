@@ -1,6 +1,6 @@
 import { DeliveryOfferCardComponent } from './features/delivery-offers/delivery-offer-card.component';
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
@@ -13,6 +13,8 @@ import { AppNavbarComponent } from './shared/ui/app-navbar/app-navbar.component'
 import { AppNavbarPresentationService } from './shared/ui/app-navbar/app-navbar-presentation.service';
 import { AuthSessionService } from './core/auth/auth-session.service';
 import { MessagesRealtimeService } from './features/messages/data-access/messages-realtime.service';
+import { MessagesService } from './features/messages/data-access/messages.service';
+import { getHttpErrorMessage } from './core/http/api-response.utils';
 
 @Component({
   selector: 'app-root',
@@ -33,8 +35,14 @@ export class App {
   private readonly sessionPresence = inject(SessionPresenceService);
   private readonly authSession = inject(AuthSessionService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly messagesService = inject(MessagesService);
   private readonly router = inject(Router);
   protected readonly navbarPresentation = inject(AppNavbarPresentationService);
+  protected readonly isOpeningSupport = signal(false);
+  protected readonly showSupportButton = computed(() => {
+    const role = this.authSession.currentUser()?.role;
+    return role === 'CLIENT' || role === 'PRESTATAIRE' || role === 'MEDECIN';
+  });
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -95,5 +103,24 @@ export class App {
 
   private normalizedPath(url: string): string {
     return (url.split(/[?#]/, 1)[0] || '/').replace(/\/$/, '') || '/';
+  }
+
+  protected openSupportConversation(): void {
+    if (this.isOpeningSupport()) return;
+    this.isOpeningSupport.set(true);
+    this.messagesService.createConversation({ support: true }).subscribe({
+      next: (conversation) => {
+        this.isOpeningSupport.set(false);
+        void this.router.navigate(['/messages'], {
+          queryParams: { conversationId: conversation.id },
+        });
+      },
+      error: (error) => {
+        this.isOpeningSupport.set(false);
+        this.feedback.error(
+          getHttpErrorMessage(error, 'Impossible d’ouvrir la discussion avec le service client.'),
+        );
+      },
+    });
   }
 }

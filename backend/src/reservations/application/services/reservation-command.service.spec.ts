@@ -35,7 +35,13 @@ describe('ReservationCommandService', () => {
     notes: null,
     prixConvenu: 12000,
     statutAjustementPrix: 'AUCUN',
-    prixAjustementPropose: null,
+    _prixAjustementPropose: null,
+    get prixAjustementPropose() {
+      return this._prixAjustementPropose;
+    },
+    set prixAjustementPropose(value) {
+      this._prixAjustementPropose = value;
+    },
     raisonAjustementPrix: null,
     demandeAjustementPrixLe: null,
     raisonAnnulation: null,
@@ -70,6 +76,9 @@ describe('ReservationCommandService', () => {
         Promise.resolve(reservation),
       ),
       save: jest.fn((reservation: Reservation) => Promise.resolve(reservation)),
+      saveFromNegotiation: jest.fn((reservation: Reservation) =>
+        Promise.resolve(reservation),
+      ),
       hasPaymentForReservation: jest.fn().mockResolvedValue(false),
     };
     const professionalsRepository = {
@@ -130,6 +139,9 @@ describe('ReservationCommandService', () => {
         .mockResolvedValue({ trackingStatus: 'TERMINEE' }),
     };
     const prisma = {
+      devisMaterielNegotiation: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       paiement: {
         updateMany: jest.fn(),
       },
@@ -151,6 +163,7 @@ describe('ReservationCommandService', () => {
       ),
       reservationsRepository,
       professionalsRepository,
+      negotiationsFacade,
       prisma,
       liveTrackingFacade,
       reservationClientNotificationService,
@@ -235,6 +248,57 @@ describe('ReservationCommandService', () => {
         errorCode: 'RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH',
       });
     }
+  });
+
+  it('uses the new future slot when the accepted negotiation slot has expired', async () => {
+    const { service, negotiationsFacade, reservationsRepository } =
+      buildService();
+    const negotiation =
+      await negotiationsFacade.getAcceptedNegotiationForReservation();
+    negotiationsFacade.getAcceptedNegotiationForReservation.mockResolvedValue({
+      ...negotiation,
+      dateHeureProposee: new Date(Date.now() - 60_000),
+    });
+    const newSlot = new Date(Date.now() + 3_600_000).toISOString();
+
+    const reservation = await service.createReservationFromNegotiation(
+      clientUser,
+      {
+        negotiationId: 'negotiation-id',
+        dateHeure: newSlot,
+        adresseClient: 'Dakar Plateau',
+        dureeMinutes: 60,
+      },
+    );
+
+    expect(reservation.dateHeure).toEqual(new Date(newSlot));
+    expect(reservationsRepository.saveFromNegotiation).toHaveBeenCalledWith(
+      expect.objectContaining({ dateHeure: new Date(newSlot) }),
+      'negotiation-id',
+    );
+  });
+
+  it('still rejects a past replacement slot for an expired negotiation', async () => {
+    const { service, negotiationsFacade, reservationsRepository } =
+      buildService();
+    const negotiation =
+      await negotiationsFacade.getAcceptedNegotiationForReservation();
+    negotiationsFacade.getAcceptedNegotiationForReservation.mockResolvedValue({
+      ...negotiation,
+      dateHeureProposee: new Date(Date.now() - 120_000),
+    });
+
+    await expect(
+      service.createReservationFromNegotiation(clientUser, {
+        negotiationId: 'negotiation-id',
+        dateHeure: new Date(Date.now() - 60_000).toISOString(),
+        adresseClient: 'Dakar Plateau',
+        dureeMinutes: 60,
+      }),
+    ).rejects.toMatchObject({
+      code: 'RESERVATION_PAST_DATETIME',
+    });
+    expect(reservationsRepository.saveFromNegotiation).not.toHaveBeenCalled();
   });
 
   it('rejects paid transition when the requester is not the reservation client', async () => {

@@ -900,7 +900,9 @@
               [hidden]="isDoctorViewer() && isProviderWorking()"
             >
               <p>{{ providerConsoleEyebrow() }}</p>
-              <h2>{{ providerConsoleTitle() }}</h2>
+              <h2 [class.appointment-detail__provider-console-timer]="isProviderWorking()">
+                {{ providerConsoleTitle() }}
+              </h2>
               <small>{{ providerConsoleDescription() }}</small>
               <button
                 *ngIf="
@@ -1039,7 +1041,7 @@
           "
         >
           <lucide-icon name="map-pin" size="40" [strokeWidth]="2.4"></lucide-icon>
-          <strong>
+                <strong class="appointment-detail__medical-work-timer">
             {{
               !hasActiveTrackingNavigation()
                 ? 'Pret a demarrer'

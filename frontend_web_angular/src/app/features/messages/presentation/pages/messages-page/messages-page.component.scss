@@ -247,7 +247,8 @@
   color: #8b8d90;
 }
 
-.messages-page__favorite {
+.messages-page__favorite,
+.messages-page__pin {
   align-items: center;
   background: transparent;
   border: 0;
@@ -264,13 +265,24 @@
 }
 
 .messages-page__favorite:hover,
-.messages-page__favorite:focus-visible {
+.messages-page__favorite:focus-visible,
+.messages-page__pin:hover,
+.messages-page__pin:focus-visible {
   color: #9a501e;
   transform: scale(1.13);
 }
 
 .messages-page__favorite--active {
-  color: #9a501e;
+  color: #f5b400;
+}
+
+.messages-page__favorite--active ::ng-deep svg {
+  fill: #f5b400;
+  stroke: #f5b400;
+}
+
+.messages-page__pin--active {
+  color: #2d78c4;
 }
 
 .messages-page__unread-badge {

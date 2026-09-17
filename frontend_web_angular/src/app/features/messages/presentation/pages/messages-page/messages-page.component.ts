@@ -99,6 +99,11 @@ interface ConversationReservationCard {
 
 type ConversationFilter = 'ALL' | 'UNREAD' | 'FAVORITES';
 
+type ConversationPreferences = {
+  favoriteIds: string[];
+  pinnedIds: string[];
+};
+
 @Component({
   selector: 'app-messages-page',
   standalone: true,
@@ -155,6 +160,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   protected readonly draft = signal('');
   protected readonly conversationFilter = signal<ConversationFilter>('ALL');
   protected readonly favoriteConversationIds = signal<Set<string>>(new Set());
+  protected readonly pinnedConversationIds = signal<Set<string>>(new Set());
   protected readonly isLoadingConversations = signal(true);
   protected readonly isLoadingMessages = signal(false);
   protected readonly isSending = signal(false);
@@ -319,7 +325,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     const query = this.search().trim().toLowerCase();
     const filter = this.conversationFilter();
 
-    return this.conversations().filter((conversation) => {
+    const conversations = this.conversations().filter((conversation) => {
       const lastMessage = conversation.lastMessage?.content ?? '';
       const matchesSearch =
         !query ||
@@ -340,6 +346,8 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
       return true;
     });
+
+    return this.sortConversations(conversations);
   });
 
   protected readonly visibleProposal = computed<PendingProposal | null>(() => {
@@ -455,6 +463,7 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.completionClockId = setInterval(() => this.completionClock.set(Date.now()), 1000);
     this.readPendingProposalFromQuery();
+    this.restoreConversationPreferences();
     this.restoreLastSelectedConversation();
     this.startRealtimeMessaging();
     this.startReservationRealtime();
@@ -634,10 +643,29 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       }
       return next;
     });
+    this.persistConversationPreferences();
   }
 
   protected isFavoriteConversation(conversationId: string): boolean {
     return this.favoriteConversationIds().has(conversationId);
+  }
+
+  protected toggleConversationPin(event: Event, conversationId: string): void {
+    event.stopPropagation();
+    this.pinnedConversationIds.update((ids) => {
+      const next = new Set(ids);
+      if (next.has(conversationId)) {
+        next.delete(conversationId);
+      } else {
+        next.add(conversationId);
+      }
+      return next;
+    });
+    this.persistConversationPreferences();
+  }
+
+  protected isPinnedConversation(conversationId: string): boolean {
+    return this.pinnedConversationIds().has(conversationId);
   }
 
   protected updateDraft(value: string): void {
@@ -2202,10 +2230,53 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
 
   private sortConversations(conversations: Conversation[]): Conversation[] {
     return [...conversations].sort((first, second) => {
+      const firstPinned = this.pinnedConversationIds().has(first.id);
+      const secondPinned = this.pinnedConversationIds().has(second.id);
+      if (firstPinned !== secondPinned) return firstPinned ? -1 : 1;
+
+      const firstFavorite = this.favoriteConversationIds().has(first.id);
+      const secondFavorite = this.favoriteConversationIds().has(second.id);
+      if (firstFavorite !== secondFavorite) return firstFavorite ? -1 : 1;
+
       const firstTime = new Date(first.lastMessageAt || first.createdAt).getTime();
       const secondTime = new Date(second.lastMessageAt || second.createdAt).getTime();
       return secondTime - firstTime;
     });
+  }
+
+  private restoreConversationPreferences(): void {
+    const key = this.conversationPreferencesStorageKey();
+    if (!key || typeof globalThis.localStorage === 'undefined') return;
+
+    try {
+      const stored = JSON.parse(globalThis.localStorage.getItem(key) ?? '{}') as Partial<ConversationPreferences>;
+      this.favoriteConversationIds.set(new Set(this.readConversationPreferenceIds(stored.favoriteIds)));
+      this.pinnedConversationIds.set(new Set(this.readConversationPreferenceIds(stored.pinnedIds)));
+    } catch {
+      this.favoriteConversationIds.set(new Set());
+      this.pinnedConversationIds.set(new Set());
+    }
+  }
+
+  private persistConversationPreferences(): void {
+    const key = this.conversationPreferencesStorageKey();
+    if (!key || typeof globalThis.localStorage === 'undefined') return;
+
+    const preferences: ConversationPreferences = {
+      favoriteIds: [...this.favoriteConversationIds()],
+      pinnedIds: [...this.pinnedConversationIds()],
+    };
+    globalThis.localStorage.setItem(key, JSON.stringify(preferences));
+  }
+
+  private conversationPreferencesStorageKey(): string | null {
+    const userId = this.currentUser()?.id?.trim();
+    return userId ? `jokko:messages:${userId}:preferences` : null;
+  }
+
+  private readConversationPreferenceIds(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((id): id is string => typeof id === 'string' && this.normalizeUuid(id) !== null);
   }
 
   private scrollThreadToBottom(): void {

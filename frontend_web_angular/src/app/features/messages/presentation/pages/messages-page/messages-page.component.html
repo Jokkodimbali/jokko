@@ -105,7 +105,24 @@
               {{ formatUnreadCount(conversation.unreadCount) }}
             </span>
             <button
-              *ngIf="conversation.unreadCount === 0"
+              type="button"
+              class="messages-page__pin"
+              [class.messages-page__pin--active]="isPinnedConversation(conversation.id)"
+              [attr.aria-label]="
+                isPinnedConversation(conversation.id)
+                  ? 'Désépingler la discussion'
+                  : 'Épingler la discussion'
+              "
+              (click)="toggleConversationPin($event, conversation.id)"
+            >
+              <lucide-icon
+                name="pin"
+                size="16"
+                [strokeWidth]="2.2"
+                [attr.fill]="isPinnedConversation(conversation.id) ? 'currentColor' : 'none'"
+              ></lucide-icon>
+            </button>
+            <button
               type="button"
               class="messages-page__favorite"
               [class.messages-page__favorite--active]="isFavoriteConversation(conversation.id)"

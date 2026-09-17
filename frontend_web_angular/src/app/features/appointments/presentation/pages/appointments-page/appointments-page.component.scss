@@ -11,6 +11,8 @@
   color: var(--appointment-ink);
   font-family: var(--font-app);
   font-weight: 400;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
@@ -24,12 +26,18 @@
 .appointments-page__shell {
   align-items: start;
   display: grid;
+  flex: 1 0 auto;
   gap: 34px;
   grid-template-columns: 260px minmax(0, 1fr);
   margin: 0;
   max-width: none;
-  padding: 28px 34px 76px;
+  padding: 28px 34px;
   width: 100%;
+}
+
+.appointments-page > app-footer {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .appointments-page__sidebar {
@@ -616,7 +624,7 @@
 
 @media (max-width: 820px) {
   .appointments-page__shell {
-    padding: 18px 14px 56px;
+    padding: 18px 14px;
   }
 
   .appointments-page__sidebar,
@@ -719,7 +727,7 @@
 
 @media (max-width: 520px) {
   .appointments-page__shell {
-    padding: 14px 10px 44px;
+    padding: 14px 10px;
   }
 
   .mini-calendar {
@@ -784,7 +792,12 @@
 
   .appointments-page__shell {
     gap: 14px;
-    padding: 14px 10px calc(86px + env(safe-area-inset-bottom));
+    padding: 14px 10px 18px;
+  }
+
+  .appointments-page > app-footer {
+    background: #2a1a10;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
 
   .appointments-page__sidebar {

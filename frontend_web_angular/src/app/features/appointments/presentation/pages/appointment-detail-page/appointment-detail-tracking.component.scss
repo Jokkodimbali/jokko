@@ -395,6 +395,23 @@
   margin: 0;
 }
 
+// Le temps evolue chaque seconde : des chiffres tabulaires et une largeur
+// reservee evitent que le dernier chiffre fasse bouger ou descendre le texte.
+.appointment-detail__provider-console-ready h2.appointment-detail__provider-console-timer,
+.appointment-detail__medical-work-timer {
+  font-feature-settings: 'tnum' 1;
+  font-kerning: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.appointment-detail__provider-console-ready h2.appointment-detail__provider-console-timer {
+  display: block;
+  line-height: 1;
+  min-width: 8ch;
+  text-align: center;
+}
+
 .appointment-detail__provider-console-ready small,
 .appointment-detail__provider-console-done p {
   color: #7f8793;

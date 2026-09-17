@@ -34,6 +34,12 @@ export abstract class ReservationAppService {
     }
   }
 
+  protected assertDoctorRole(role: AuthUser['role']): void {
+    if (role !== 'MEDECIN') {
+      throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');
+    }
+  }
+
   protected assertAdminRole(role: AuthUser['role']): void {
     if (role !== 'ADMIN') {
       throw appHttpException('RESERVATIONS_FORBIDDEN_ROLE');

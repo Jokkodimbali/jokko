@@ -357,6 +357,40 @@ describe('ReservationCommandService', () => {
     );
   });
 
+  it('prevents a provider from creating a medical prescription', async () => {
+    const { service, reservationsRepository } = buildService({
+      reservation: buildReservation({ statut: 'EN_COURS' }),
+    });
+
+    await expect(
+      service.saveMedicalPrescription(professionalUser, 'reservation-id', {
+        prescription: { treatments: ['Traitement test'] },
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        errorCode: 'RESERVATIONS_FORBIDDEN_ROLE',
+      }),
+    });
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('prevents a provider from completing a reservation with a prescription', async () => {
+    const { service, reservationsRepository } = buildService({
+      reservation: buildReservation({ statut: 'EN_COURS' }),
+    });
+
+    await expect(
+      service.completeReservation(professionalUser, 'reservation-id', {
+        prescription: { treatments: ['Traitement test'] },
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        errorCode: 'RESERVATIONS_FORBIDDEN_ROLE',
+      }),
+    });
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
   it('requires an ended accepted video call before the doctor confirms completion', async () => {
     const { service, reservationsRepository } = buildService({
       reservation: buildReservation({

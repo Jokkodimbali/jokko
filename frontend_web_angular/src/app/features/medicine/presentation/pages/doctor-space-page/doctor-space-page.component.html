@@ -116,12 +116,18 @@
         <article class="doctor-space__params-card">
           <header>
             <lucide-icon name="clock-3" size="18" [strokeWidth]="2.2"></lucide-icon>
-            <span>Param&egrave;tres des rendez-vous</span>
+            <span>{{ isProviderSpace() ? 'Paramètres des prestations' : 'Paramètres des rendez-vous' }}</span>
           </header>
-          <p>Dur&eacute;e standard et temps tampon entre deux consultations</p>
+          <p>
+            {{
+              isProviderSpace()
+                ? 'Durée indicative et temps de pause entre deux prestations'
+                : 'Durée standard et temps tampon entre deux consultations'
+            }}
+          </p>
 
           <label>
-            <span>Dur&eacute;e d'un rendez-vous</span>
+            <span>{{ isProviderSpace() ? "Durée d'une prestation" : "Durée d'un rendez-vous" }}</span>
             <output>{{ appointmentDuration() }} min</output>
             <input
               type="range"
@@ -136,7 +142,7 @@
           </label>
 
           <label>
-            <span>Pause entre rendez-vous</span>
+            <span>{{ isProviderSpace() ? 'Pause entre prestations' : 'Pause entre rendez-vous' }}</span>
             <output>{{ appointmentPause() }} min</output>
             <input
               type="range"
@@ -559,7 +565,7 @@
           class="doctor-space__motif-table"
           [class.doctor-space__motif-table--medical]="!isProviderSpace()"
           role="table"
-          aria-label="Motifs de consultation"
+          [attr.aria-label]="isProviderSpace() ? 'Services proposés' : 'Motifs de consultation'"
         >
           <div class="doctor-space__motif-table-head" role="row">
             <span role="columnheader">Motif</span>
@@ -2231,10 +2237,10 @@
           </small>
           <dl>
             <div>
-              <dt>Consultation</dt>
+              <dt>{{ isProviderSpace() ? 'Prestations' : 'Consultations' }}</dt>
               <dd>{{ walletConsultationCount() }}</dd>
             </div>
-            <div>
+            <div *ngIf="!isProviderSpace()">
               <dt>T&eacute;l&eacute;consultation</dt>
               <dd>{{ walletTeleconsultationCount() }}</dd>
             </div>

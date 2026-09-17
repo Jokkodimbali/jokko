@@ -87,6 +87,7 @@ const RESERVATION_DETAIL_SELECT = {
         select: {
           id: true,
           nom: true,
+          role: true,
           numeroTelephone: true,
           urlAvatar: true,
         },
@@ -193,6 +194,7 @@ type ReservationDetailRecord = ReservationRecord & {
     utilisateur: {
       id: string;
       nom: string;
+      role: $Enums.RoleUtilisateur;
       numeroTelephone: string;
       urlAvatar: string | null;
     };

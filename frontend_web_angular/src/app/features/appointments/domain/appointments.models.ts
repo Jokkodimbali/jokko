@@ -82,6 +82,7 @@ export interface BackendReservation {
     utilisateur: {
       id: string;
       nom: string;
+      role?: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN';
       numeroTelephone: string;
       urlAvatar: string | null;
     };
@@ -105,6 +106,7 @@ export interface AppointmentView {
   clientId: string;
   professionalId: string;
   professionalUserId: string | null;
+  professionalRole: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | null;
   serviceId: string;
   status: AppointmentStatus;
   updatedAt: string;

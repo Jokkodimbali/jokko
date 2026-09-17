@@ -32,6 +32,56 @@ describe('LiveTrackingGateway route synchronization', () => {
     expect(to).toHaveBeenNthCalledWith(2, 'user:client-1');
     expect(to).toHaveBeenNthCalledWith(3, 'tracking:professional:courier-1');
     expect(emit).toHaveBeenCalledTimes(3);
-    expect(emit).toHaveBeenNthCalledWith(3, 'tracking.route-metadata.updated', payload);
+    expect(emit).toHaveBeenNthCalledWith(
+      3,
+      'tracking.route-metadata.updated',
+      payload,
+    );
+  });
+
+  it('sends an arrival snapshot to the reservation, client and professional', async () => {
+    const emit = jest.fn();
+    const to = jest.fn().mockReturnValue({ emit });
+    const tracking = {
+      reservationId: 'reservation-1',
+      clientUserId: 'client-1',
+      professionalId: 'professional-1',
+      trackingStatus: 'TERMINEE',
+    };
+    const gateway = new LiveTrackingGateway(
+      {} as never,
+      {} as never,
+      {
+        getReservationTracking: jest.fn().mockResolvedValue(tracking),
+      } as never,
+      {} as never,
+    );
+    gateway.server = { to } as never;
+
+    await gateway.handleMissionStatusUpdated({
+      nom: 'tracking.provider.arrived',
+      payload: {
+        reservationId: 'reservation-1',
+        clientUserId: 'client-1',
+        professionalId: 'professional-1',
+      },
+      dateOccurrence: new Date('2026-09-17T10:00:00.000Z'),
+    });
+
+    expect(to).toHaveBeenNthCalledWith(1, 'tracking:reservation:reservation-1');
+    expect(to).toHaveBeenNthCalledWith(2, 'user:client-1');
+    expect(to).toHaveBeenNthCalledWith(
+      3,
+      'tracking:professional:professional-1',
+    );
+    expect(emit).toHaveBeenCalledTimes(3);
+    expect(emit).toHaveBeenNthCalledWith(
+      3,
+      'tracking.mission.updated',
+      expect.objectContaining({
+        type: 'tracking.provider.arrived',
+        tracking,
+      }),
+    );
   });
 });

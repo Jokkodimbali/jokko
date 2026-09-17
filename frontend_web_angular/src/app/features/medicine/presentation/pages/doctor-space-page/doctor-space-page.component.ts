@@ -580,9 +580,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.isProviderSpace() ? 'Mes services' : 'Services / motifs',
   );
   protected readonly appointmentHistorySectionLabel = computed(() =>
-    this.isProviderSpace() ? 'Historique des RDV' : 'Historique medical',
+    this.isProviderSpace() ? 'Historique des prestations' : 'Historique medical',
   );
-  protected readonly agendaSectionLabel = computed(() => 'Gestion RDV');
+  protected readonly agendaSectionLabel = computed(() =>
+    this.isProviderSpace() ? 'Gestion des prestations' : 'Gestion RDV',
+  );
   protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
   protected readonly kycStatusLabel = computed(() => {
     const status = this.professionalProfile()?.statutKyc;
@@ -1210,13 +1212,13 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'consultation':
         return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
       case 'negotiations':
-        return 'RDV et Negociation clients';
+        return this.isProviderSpace() ? 'Demandes et négociations clients' : 'RDV et Negociation clients';
       case 'patient-appointments':
         return 'RDV patients';
       case 'agenda':
         return this.agendaSectionLabel();
       case 'medical-history':
-        return this.isProviderSpace() ? 'Historique des rendez-vous' : 'Historique medical';
+        return this.isProviderSpace() ? 'Historique des prestations' : 'Historique medical';
       case 'wallet':
         return 'WALLET';
     }
@@ -1228,7 +1230,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'availability':
         return "Vos modifications s'appliquent immediatement a l'agenda des rendez-vous";
       case 'consultation':
-        return 'Definissez les motifs du patient. Les motifs obligatoires devront etre coches a la prise de rendez-vous';
+        return this.isProviderSpace()
+          ? 'Définissez vos services, leurs tarifs et leurs conditions de réalisation.'
+          : 'Definissez les motifs du patient. Les motifs obligatoires devront etre coches a la prise de rendez-vous';
       case 'negotiations':
         return '';
       case 'patient-appointments':
@@ -1237,7 +1241,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         return '';
       case 'medical-history':
         return this.isProviderSpace()
-          ? `${this.providerHistoryTotalCount()} rendez-vous - ${this.providerHistoryMonthLabel()}`
+          ? `${this.providerHistoryTotalCount()} prestations - ${this.providerHistoryMonthLabel()}`
           : 'Consultez les informations medicales liees aux rendez-vous et aux patients.';
       case 'wallet':
         return 'Suivez vos revenus et retirez vos gains via Wave, Orange Money ou virement bancaire.';

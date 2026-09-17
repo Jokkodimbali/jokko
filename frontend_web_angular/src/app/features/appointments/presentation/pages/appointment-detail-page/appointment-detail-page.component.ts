@@ -437,6 +437,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly isMedicalAppointment = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return false;
+    if (this.isParcelTransportAppointment(appointment)) return false;
+    if (appointment.professionalRole) return appointment.professionalRole === 'MEDECIN';
     if (this.isDoctorViewer()) return true;
 
     const searchable = [

@@ -500,6 +500,7 @@ export class AppointmentsService {
       clientId: reservation.clientId,
       professionalId: reservation.professionnelId,
       professionalUserId: reservation.professionnel?.utilisateur.id ?? null,
+      professionalRole: reservation.professionnel?.utilisateur.role ?? null,
       serviceId: reservation.serviceId,
       status,
       updatedAt: reservation.misAJourLe,

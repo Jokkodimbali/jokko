@@ -469,6 +469,9 @@ export class ReservationCommandService extends ReservationAppService {
     command: CompleteReservationCommand = {},
   ) {
     this.assertProfessionalRole(requestUser.role);
+    if (command.prescription) {
+      this.assertDoctorRole(requestUser.role);
+    }
     const reservation = await this.getAccessibleReservationOrThrow(
       requestUser,
       reservationId,
@@ -537,7 +540,7 @@ export class ReservationCommandService extends ReservationAppService {
     reservationId: string,
     command: CompleteReservationCommand = {},
   ) {
-    this.assertProfessionalRole(requestUser.role);
+    this.assertDoctorRole(requestUser.role);
     const reservation = await this.getAccessibleReservationOrThrow(
       requestUser,
       reservationId,

@@ -735,7 +735,7 @@
             <h2>Mission terminée</h2>
             <p>{{ providerConsoleDescription() }}</p>
             <button
-              *ngIf="!isMedicalAppointment() || isMedicineDelivery() || isMaterialDelivery()"
+              *ngIf="isParcelTransportAppointment(appointment) || !isMedicalAppointment()"
               type="button"
               (click)="downloadInvoice(appointment)"
             >
@@ -749,7 +749,7 @@
               }}
             </button>
             <button
-              *ngIf="isMedicalAppointment() && !isMedicineDelivery() && !isMaterialDelivery()"
+              *ngIf="isMedicalAppointment() && !isParcelTransportAppointment(appointment)"
               type="button"
               (click)="downloadMedicalPrescription(appointment)"
             >
@@ -949,7 +949,7 @@
                 (click)="
                   isMedicineDelivery() || isMaterialDelivery()
                     ? downloadDeliveryOrderReceipt(appointment)
-                    : isMedicalAppointment()
+                    : isMedicalAppointment() && !isParcelTransportAppointment(appointment)
                     ? downloadMedicalPrescription(appointment)
                     : downloadInvoice(appointment)
                 "
@@ -960,7 +960,7 @@
                     ? "Télécharger l'ordonnance et le reçu"
                     : isMaterialDelivery()
                       ? 'Télécharger le reçu de livraison matériel'
-                      : isMedicalAppointment()
+                      : isMedicalAppointment() && !isParcelTransportAppointment(appointment)
                         ? "Telecharger l'ordonnance medicale"
                         : 'Telecharger la facture PDF'
                 }}

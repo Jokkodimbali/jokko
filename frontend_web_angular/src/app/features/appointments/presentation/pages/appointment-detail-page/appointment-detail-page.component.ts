@@ -282,6 +282,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private routeSessionStartedAtMs = 0;
   private parcelDropoffTrackingPrepared = false;
   private parcelDropoffRouteObserved = false;
+  private parcelDropoffRouteSessionKey = '';
   private trackingMapElement?: HTMLElement;
   private lastResolvedDestinationAddress = '';
   private locationSharingBlockedUntilMs = 0;
@@ -3998,6 +3999,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (!acceptedTracking) return;
     this.syncAppointmentStatusFromTracking(acceptedTracking);
     const appointment = this.appointment();
+    if (appointment) {
+      this.refreshParcelDropoffRouteForNewTrackingSession(appointment, acceptedTracking);
+    }
     if (appointment && !this.shouldRunLiveNavigation(appointment)) {
       this.stopLiveNavigation(appointment.id, false);
       return;
@@ -4065,6 +4069,35 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     ) {
       this.startProviderLocationSharing(appointment.id);
     }
+  }
+
+  /**
+   * Le scan de retrait ouvre une nouvelle session EN_ROUTE. Le premier
+   * échantillon GPS peut arriver avant le rafraîchissement de la réservation :
+   * identifier la session plutôt que l'échantillon garantit que le livreur
+   * abandonne immédiatement la route vers l'expéditeur pour celle du
+   * destinataire, quel que soit le type de colis.
+   */
+  private refreshParcelDropoffRouteForNewTrackingSession(
+    appointment: AppointmentView,
+    tracking: AppointmentTrackingView,
+  ): void {
+    if (
+      !this.isParcelTransportAppointment(appointment) ||
+      !this.isParcelPickupValidated() ||
+      tracking.trackingStatus !== 'EN_ROUTE'
+    ) {
+      return;
+    }
+
+    const startedAt = tracking.startedAt ?? tracking.updatedAt;
+    if (!startedAt) return;
+
+    const sessionKey = `${appointment.id}:${startedAt}`;
+    if (this.parcelDropoffRouteSessionKey === sessionKey) return;
+    this.parcelDropoffRouteSessionKey = sessionKey;
+    this.parcelDropoffTrackingPrepared = false;
+    this.prepareParcelDropoffNavigationAfterPickup(appointment);
   }
 
   private syncAppointmentStatusFromTracking(tracking: AppointmentTrackingView): void {

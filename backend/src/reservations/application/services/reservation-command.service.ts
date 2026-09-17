@@ -1046,10 +1046,13 @@ export class ReservationCommandService extends ReservationAppService {
       : null;
     const requestedDate = this.parseDateOrThrow(command.dateHeure);
 
-    if (
-      negotiatedDate &&
+    const negotiatedDateIsFuture =
+      negotiatedDate !== null &&
       !Number.isNaN(negotiatedDate.getTime()) &&
-      negotiatedDate.getTime() > Date.now() &&
+      negotiatedDate.getTime() > Date.now();
+
+    if (
+      negotiatedDateIsFuture &&
       negotiatedDate.getTime() !== requestedDate.getTime()
     ) {
       throw appHttpException('RESERVATIONS_NEGOTIATION_DETAILS_MISMATCH');
@@ -1073,10 +1076,9 @@ export class ReservationCommandService extends ReservationAppService {
     }
 
     return {
-      dateHeure:
-        negotiatedDate && !Number.isNaN(negotiatedDate.getTime())
-          ? negotiatedDate.toISOString()
-          : command.dateHeure,
+      dateHeure: negotiatedDateIsFuture
+        ? negotiatedDate.toISOString()
+        : command.dateHeure,
       adresseClient:
         negotiatedAddress ?? requestedAddress ?? command.adresseClient,
       dureeMinutes: negotiation.dureeMinutesProposee ?? command.dureeMinutes,

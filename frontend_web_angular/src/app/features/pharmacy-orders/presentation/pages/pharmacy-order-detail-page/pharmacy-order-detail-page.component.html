@@ -272,15 +272,31 @@
       class="pharmacy-order__waiting"
       aria-live="polite"
     >
-      <span
-        class="pharmacy-order__spinner pharmacy-order__spinner--large"
-        aria-hidden="true"
-      ></span>
-      <h1>En attente de la validation de l’ordonnance par la pharmacie</h1>
+      <span class="pharmacy-order__waiting-illustration" aria-hidden="true">
+        <i class="pharmacy-order__waiting-orbit pharmacy-order__waiting-orbit--outer"></i>
+        <i class="pharmacy-order__waiting-orbit pharmacy-order__waiting-orbit--inner"></i>
+        <b><lucide-icon name="file-text" size="25" [strokeWidth]="2.2"></lucide-icon></b>
+      </span>
+      <span class="pharmacy-order__waiting-kicker">Vérification en cours</span>
+      <h1>La pharmacie examine votre ordonnance</h1>
       <p>
         {{ current.pharmacy.name }} vérifie la disponibilité de vos médicaments. Cette page se
-        mettra à jour automatiquement dès que la pharmacie aura répondu.
+        mettra à jour automatiquement.
       </p>
+      <ol class="pharmacy-order__waiting-steps" aria-label="Avancement de l’ordonnance">
+        <li class="is-complete">
+          <span><lucide-icon name="check" size="16" [strokeWidth]="2.6"></lucide-icon></span>
+          <small>Reçue</small>
+        </li>
+        <li class="is-active">
+          <span><lucide-icon name="pill" size="16" [strokeWidth]="2.2"></lucide-icon></span>
+          <small>Vérification</small>
+        </li>
+        <li>
+          <span><lucide-icon name="shield-check" size="15" [strokeWidth]="2.1"></lucide-icon></span>
+          <small>Validation</small>
+        </li>
+      </ol>
       <span class="pharmacy-order__waiting-badge">Ordonnance envoyée</span>
     </section>
 

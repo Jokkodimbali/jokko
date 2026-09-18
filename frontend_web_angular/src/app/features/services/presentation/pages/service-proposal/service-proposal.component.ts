@@ -471,15 +471,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const price = this.parcelPricePerKm();
     return price > 0 ? `${this.formatAmount(price)} FCFA/km` : '';
   });
-  protected readonly parcelPriceBasisLabel = computed(() => {
-    if (!this.isParcelDeliveryService()) return '';
-    if (this.isParcelPriceLoading()) return 'Calcul du prix selon la distance...';
-    if (this.parcelDistanceLabel() && this.parcelPricePerKmLabel()) {
-      return `${this.parcelDistanceLabel()} x ${this.parcelPricePerKmLabel()}`;
-    }
-    return this.parcelPriceError() || 'Renseignez depart et arrivee pour calculer le prix.';
-  });
-  protected readonly materialQuoteTotalLabel = computed(() => {
+              protected readonly materialQuoteTotalLabel = computed(() => {
     const total = this.materialQuoteEntries()
       .filter((item) => item.status !== 'REFUSE')
       .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);

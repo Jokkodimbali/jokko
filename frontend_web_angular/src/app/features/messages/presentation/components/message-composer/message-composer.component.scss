@@ -31,6 +31,16 @@
   padding: 0 28px;
 }
 
+.message-composer__amount--medical {
+  background: #2f80ed;
+  box-shadow: 0 8px 18px rgba(47, 128, 237, 0.28);
+}
+
+.message-composer__amount--medical:hover,
+.message-composer__amount--medical:focus-visible {
+  background: #196fd8;
+}
+
 .message-composer__field,
 .message-composer__voice-panel {
   background: #ffffff;

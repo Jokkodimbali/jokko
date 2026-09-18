@@ -1,5 +1,6 @@
 export interface ConversationCounterpart {
   isAdmin?: boolean;
+  isDoctor?: boolean;
   userId: string;
   professionalProfileId: string | null;
   name: string;

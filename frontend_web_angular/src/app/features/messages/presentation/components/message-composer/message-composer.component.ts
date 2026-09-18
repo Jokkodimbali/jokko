@@ -22,6 +22,9 @@ export class MessageComposerComponent {
   @Input() isDisabled = false;
   @Input() hasPendingAttachment = false;
   @Input() canShowNegotiationButton = false;
+  @Input() conversationActionLabel = 'Négocier le prix';
+  @Input() conversationActionIcon = 'banknote';
+  @Input() isMedicalConversationAction = false;
   @Input() voiceRecordingSeconds = 0;
   @Input() voiceLevel = 0;
 

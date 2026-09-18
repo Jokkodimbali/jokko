@@ -336,7 +336,9 @@ export class MessagingRepository implements MessagingRepositoryPort {
     return messages.reverse().map((message) => this.mapMessage(message));
   }
 
-  async findLatestDisputeIdInConversation(conversationId: string): Promise<string | null> {
+  async findLatestDisputeIdInConversation(
+    conversationId: string,
+  ): Promise<string | null> {
     const message = await this.prisma.message.findFirst({
       where: { conversationId, litigeId: { not: null } },
       orderBy: [{ creeLe: 'desc' }, { id: 'desc' }],
@@ -527,6 +529,7 @@ export class MessagingRepository implements MessagingRepositoryPort {
           professionalProfileId:
             conversation.prestataire.profilProfessionnel?.id ?? null,
           isAdmin: conversation.prestataire.role === 'ADMIN',
+          isDoctor: conversation.prestataire.role === 'MEDECIN',
           name:
             conversation.prestataire.role === 'ADMIN'
               ? 'Service client'

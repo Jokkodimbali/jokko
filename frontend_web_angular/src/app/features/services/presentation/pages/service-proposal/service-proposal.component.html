@@ -1356,7 +1356,9 @@
                   <p>
                     <small>Prix equitable du service</small
                     ><strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
-                    <em *ngIf="isParcelDeliveryService()">{{ parcelPriceBasisLabel() }}</em>
+                    <em *ngIf="isParcelDeliveryService()">
+                      Distance estimée : {{ parcelDistanceLabel() || '--' }}
+                    </em>
                   </p>
                 </div>
               </section>

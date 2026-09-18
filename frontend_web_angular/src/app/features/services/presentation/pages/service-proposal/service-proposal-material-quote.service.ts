@@ -42,9 +42,9 @@ export class ServiceProposalMaterialQuoteService {
       unitPrice: params.unitPrice,
       quantity: params.quantity,
       author: params.author,
-      status: 'EN_ATTENTE',
+      status: 'VALIDE',
       clientValidatedAt: null,
-      providerValidatedAt: null,
+      providerValidatedAt: new Date().toISOString(),
       rejectedBy: null,
       pdfUrl: null,
     };
@@ -84,11 +84,11 @@ export class ServiceProposalMaterialQuoteService {
 
   statusLabel(entry: MaterialQuoteEntry, isProviderProposalMode: boolean): string {
     if (entry.status === 'EN_ATTENTE') {
-      return isProviderProposalMode ? 'EN ATTENTE CLIENT' : 'EN ATTENTE';
+      return 'AJOUTÉ';
     }
     if (entry.status === 'REFUSE') {
       return 'REFUSE';
     }
-    return this.isValidatedByViewer(entry, isProviderProposalMode) ? 'VALIDE PAR VOUS' : 'VALIDE';
+    return isProviderProposalMode ? 'AJOUTÉ' : 'REÇU';
   }
 }

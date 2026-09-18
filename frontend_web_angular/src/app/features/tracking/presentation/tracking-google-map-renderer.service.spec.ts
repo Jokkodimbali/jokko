@@ -54,6 +54,24 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
   });
 
   describe('road matching and metric progression', () => {
+    it('creates a visible camera frame when the arrival markers share the same point', () => {
+      const points: GoogleMapsPoint[] = [];
+      const extendArrivalBounds = (internals['extendArrivalBounds'] as (
+        bounds: { extend(point: GoogleMapsPoint): unknown },
+        provider: GoogleMapsPoint,
+        destination: GoogleMapsPoint,
+      ) => void).bind(renderer);
+      const arrival = { lat: 14.7167, lng: -17.4677 };
+
+      extendArrivalBounds({ extend: (point) => points.push(point) }, arrival, arrival);
+
+      expect(points).toHaveLength(4);
+      expect(points[0]).toEqual(arrival);
+      expect(points[1]).toEqual(arrival);
+      expect(points[2]?.lat).toBeLessThan(arrival.lat);
+      expect(points[3]?.lat).toBeGreaterThan(arrival.lat);
+    });
+
     it('snaps lateral GPS error exactly onto the selected route', () => {
       const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
         point: GoogleMapsPoint,

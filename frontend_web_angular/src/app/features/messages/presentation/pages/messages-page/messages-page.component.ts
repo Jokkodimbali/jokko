@@ -425,6 +425,18 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
     );
   });
 
+  protected readonly isDoctorConversation = computed(() =>
+    Boolean(this.selectedConversation()?.counterpart.isDoctor),
+  );
+
+  protected readonly conversationActionLabel = computed(() =>
+    this.isDoctorConversation() ? 'Prendre un rendez-vous' : 'Négocier le prix',
+  );
+
+  protected readonly conversationActionIcon = computed(() =>
+    this.isDoctorConversation() ? 'calendar-days' : 'banknote',
+  );
+
   protected readonly filteredMessages = computed(() => {
     const query = this.threadSearch().trim().toLocaleLowerCase('fr');
     if (!query) {
@@ -615,7 +627,14 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.router.navigate(['/services', professionalProfileId, 'proposition'], {
+    if (conversation.counterpart.isDoctor) {
+      void this.router.navigate(['/medecine', professionalProfileId, 'rendez-vous'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
+    }
+
+    void this.router.navigate(['/services', professionalProfileId, 'proposition'], {
       queryParams: { returnUrl: this.router.url },
     });
   }

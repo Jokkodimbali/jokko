@@ -20,6 +20,7 @@ import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
+import { MaterialQuoteSummaryCardComponent } from '../../../../../shared/ui/material-quote-summary-card/material-quote-summary-card.component';
 import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
@@ -161,6 +162,7 @@ interface AcceptedReservationConfirmation {
     AppPresenceStatusComponent,
     AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
+    MaterialQuoteSummaryCardComponent,
     ServiceProposalDetailsModalComponent,
   ],
   templateUrl: './service-proposal.component.html',
@@ -247,6 +249,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private proposalRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private proposalRealtimeSubscription: Subscription | null = null;
   private reservationRealtimeSubscription: Subscription | null = null;
+  private reservationCreationNegotiationId: string | null = null;
   private linkedReservationRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private watchedReservationId: string | null = null;
   private parcelPriceRequestId = 0;
@@ -468,19 +471,18 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     const price = this.parcelPricePerKm();
     return price > 0 ? `${this.formatAmount(price)} FCFA/km` : '';
   });
-  protected readonly parcelPriceBasisLabel = computed(() => {
-    if (!this.isParcelDeliveryService()) return '';
-    if (this.isParcelPriceLoading()) return 'Calcul du prix selon la distance...';
-    if (this.parcelDistanceLabel() && this.parcelPricePerKmLabel()) {
-      return `${this.parcelDistanceLabel()} x ${this.parcelPricePerKmLabel()}`;
-    }
-    return this.parcelPriceError() || 'Renseignez depart et arrivee pour calculer le prix.';
-  });
-  protected readonly materialQuoteTotalLabel = computed(() => {
+              protected readonly materialQuoteTotalLabel = computed(() => {
     const total = this.materialQuoteEntries()
       .filter((item) => item.status !== 'REFUSE')
       .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     return `${this.formatAmount(total)} FCFA`;
+  });
+  protected readonly materialQuoteVisibleCount = computed(
+    () => this.materialQuoteEntries().filter((entry) => entry.status !== 'REFUSE').length,
+  );
+  protected readonly materialQuoteCountLabel = computed(() => {
+    const count = this.materialQuoteVisibleCount();
+    return `${count} ${count > 1 ? 'articles' : 'article'}`;
   });
   protected readonly materialQuoteAuthorLabel = computed(
     () => `${this.displayName().toUpperCase()} PROPOSE :`,
@@ -490,9 +492,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     () => this.isProviderProposalMode && this.canShowMaterialQuotePanel(),
   );
   protected readonly hasBlockingMaterialQuote = computed(() => {
-    if (!this.canShowMaterialQuotePanel()) return false;
-    const entries = this.materialQuoteEntries();
-    return entries.some((entry) => entry.status === 'EN_ATTENTE');
+    return false;
   });
   protected readonly durationMinutes = computed(() =>
     this.serviceDurationMinutes(this.currentService()),
@@ -541,7 +541,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
     () =>
       !this.isProviderProposalMode &&
       Boolean(this.confirmedReservationId()) &&
-      this.materialQuoteEntries().some((entry) => entry.status === 'VALIDE'),
+      this.materialQuoteEntries().some((entry) => entry.status !== 'REFUSE'),
   );
   protected readonly confirmedReservationServiceLabel = computed(
     () =>
@@ -957,16 +957,11 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
       return;
     }
     const designation = this.materialQuoteDraft.designation.trim();
-    const unitPrice = Math.trunc(Number(this.materialQuoteDraft.unitPrice ?? 0));
+    const unitPrice = 0;
     const quantity = Math.max(1, Math.trunc(Number(this.materialQuoteDraft.quantity)));
 
     if (!designation) {
       this.feedback.info('Renseignez le nom du materiel.');
-      return;
-    }
-
-    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-      this.feedback.info('Renseignez le prix unitaire du materiel.');
       return;
     }
 
@@ -1036,7 +1031,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   protected canShowMaterialQuoteDecision(entry: MaterialQuoteEntry): boolean {
-    return this.canCurrentUserRespondToMaterialQuote() && entry.status === 'EN_ATTENTE';
+    return false;
   }
 
   protected materialQuoteEntryAuthorLabel(entry: MaterialQuoteEntry): string {
@@ -2119,9 +2114,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   }
 
   private createReservationFromAcceptedNegotiation(proposal: NegotiationView): void {
+    if (this.reservationCreationNegotiationId === proposal.id) return;
+    this.reservationCreationNegotiationId = proposal.id;
     const reservationPayload = this.buildAcceptedNegotiationReservationPayload(proposal);
 
     if (!reservationPayload) {
+      this.reservationCreationNegotiationId = null;
       this.isRespondingToCounterOffer.set(false);
       this.feedback.error('Date ou adresse manquante pour creer la reservation.');
       return;
@@ -2155,8 +2153,32 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           });
         },
         error: (error) => {
-          this.isRespondingToCounterOffer.set(false);
-          this.handleProposalError(error);
+          this.proposalService.getPriceProposal(proposal.id).subscribe({
+            next: (latestProposal) => {
+              if (latestProposal.reservationId) {
+                this.stopProposalRefresh();
+                void this.router.navigate(
+                  ['/appointments', latestProposal.reservationId, 'payment'],
+                  {
+                    queryParams: {
+                      returnUrl: '/appointments',
+                      providerName: this.displayName(),
+                    },
+                    replaceUrl: true,
+                  },
+                );
+                return;
+              }
+              this.reservationCreationNegotiationId = null;
+              this.isRespondingToCounterOffer.set(false);
+              this.handleProposalError(error);
+            },
+            error: () => {
+              this.reservationCreationNegotiationId = null;
+              this.isRespondingToCounterOffer.set(false);
+              this.handleProposalError(error);
+            },
+          });
         },
       });
   }
@@ -2229,7 +2251,12 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected openHardwareStoreSelection(): void {
     const reservationId = this.confirmedReservationId();
-    if (!reservationId) return;
+    if (!reservationId) {
+      this.feedback.info(
+        'Confirmez d’abord la réservation pour choisir une quincaillerie et organiser la livraison.',
+      );
+      return;
+    }
     void this.router.navigate(['/material-orders/select'], {
       queryParams: {
         reservationId,

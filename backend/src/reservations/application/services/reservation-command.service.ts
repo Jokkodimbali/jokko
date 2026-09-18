@@ -956,6 +956,20 @@ export class ReservationCommandService extends ReservationAppService {
     requestUser: AuthUser,
     command: CreateReservationFromNegotiationCommand,
   ) {
+    const existingConversion = await this.prisma.negotiation.findUnique({
+      where: { id: command.negotiationId },
+      select: { clientId: true, reservationId: true },
+    });
+    if (!existingConversion) {
+      throw appHttpException('NEGOTIATIONS_NOT_FOUND');
+    }
+    if (existingConversion.clientId !== requestUser.sub) {
+      throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+    }
+    if (existingConversion.reservationId) {
+      return this.getReservationOrThrow(existingConversion.reservationId);
+    }
+
     const negotiation =
       await this.negotiationsFacade.getAcceptedNegotiationForReservation(
         requestUser,
@@ -968,19 +982,13 @@ export class ReservationCommandService extends ReservationAppService {
       command,
     );
     const scheduledAt = this.parseDateOrThrow(details.dateHeure);
-    const pendingMaterialQuote =
-      await this.prisma.devisMaterielNegotiation.findFirst({
-        where: {
-          negotiationId: negotiation.id,
-          statut: StatutDevisMateriel.EN_ATTENTE,
-        },
-        select: { id: true },
-      });
-    if (pendingMaterialQuote) {
-      throw new BadRequestException(
-        'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',
-      );
-    }
+    await this.prisma.devisMaterielNegotiation.updateMany({
+      where: {
+        negotiationId: negotiation.id,
+        statut: StatutDevisMateriel.EN_ATTENTE,
+      },
+      data: { statut: StatutDevisMateriel.VALIDE },
+    });
 
     try {
       const reservation = ReservationEntity.create({
@@ -1003,6 +1011,13 @@ export class ReservationCommandService extends ReservationAppService {
           negotiation.id,
         );
       if (!createdReservation) {
+        const completedConversion = await this.prisma.negotiation.findUnique({
+          where: { id: negotiation.id },
+          select: { reservationId: true },
+        });
+        if (completedConversion?.reservationId) {
+          return this.getReservationOrThrow(completedConversion.reservationId);
+        }
         throw appHttpException('NEGOTIATIONS_ALREADY_CONVERTED');
       }
 

@@ -179,6 +179,12 @@
                 </div>
               </dl>
             </article>
+
+            <app-material-quote-summary-card
+              *ngIf="materialQuotes().length > 0"
+              [items]="materialQuotes()"
+              (deliveryRequested)="openMaterialDelivery()"
+            ></app-material-quote-summary-card>
           </section>
 
           <section class="appointment-payment__payment-panel" aria-label="Choix du paiement">

@@ -121,6 +121,7 @@ export class LiveTrackingCommandService {
     );
 
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    const notificationServiceName = this.notificationServiceName(context);
     this.publishLocationRealtime(enrichedTracking);
     this.publishRouteMetadataRealtime(enrichedTracking);
     this.realtimeEvents.emit(
@@ -131,7 +132,7 @@ export class LiveTrackingCommandService {
     await this.reservationClientNotificationService.notifyProfessionalOnTheWay({
       reservationId: context.reservationId,
       clientId: context.clientUserId,
-      serviceName: context.serviceName,
+      serviceName: notificationServiceName,
       professionalName: context.professionalName,
       dateHeure: context.dateHeure,
       adresseClient: context.adresseClient,
@@ -139,7 +140,7 @@ export class LiveTrackingCommandService {
     await this.reservationClientNotificationService.notifyTripStatus({
       reservationId: context.reservationId,
       recipientUserId: context.professionalUserId,
-      serviceName: context.serviceName,
+      serviceName: notificationServiceName,
       travellerRole: 'PROFESSIONNEL',
       travellerName: context.professionalName,
       targetName: context.clientName,
@@ -314,13 +315,14 @@ export class LiveTrackingCommandService {
         session: session.toView(),
       });
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
+    const notificationServiceName = this.notificationServiceName(context);
 
     this.publishLocationRealtime(enrichedTracking);
     this.publishRouteMetadataRealtime(enrichedTracking);
     await this.reservationClientNotificationService.notifyTripStatus({
       reservationId: context.reservationId,
       recipientUserId: context.professionalUserId,
-      serviceName: context.serviceName,
+      serviceName: notificationServiceName,
       travellerRole: 'CLIENT',
       travellerName: context.clientName,
       targetName: context.professionalName,
@@ -329,7 +331,7 @@ export class LiveTrackingCommandService {
     await this.reservationClientNotificationService.notifyTripStatus({
       reservationId: context.reservationId,
       recipientUserId: context.clientUserId,
-      serviceName: context.serviceName,
+      serviceName: notificationServiceName,
       travellerRole: 'CLIENT',
       travellerName: context.clientName,
       targetName: context.professionalName,
@@ -469,12 +471,33 @@ export class LiveTrackingCommandService {
         context.travelMode === 'CLIENT_SE_DEPLACE'
           ? 'Le client'
           : context.professionalName,
-      serviceName: context.serviceName,
+      serviceName: this.notificationServiceName(context),
       travellerRole:
         context.travelMode === 'CLIENT_SE_DEPLACE' ? 'CLIENT' : 'PROFESSIONNEL',
     });
     this.publishLocationRealtime(tracking);
     return tracking;
+  }
+
+  private notificationServiceName(context: ReservationTrackingContext): string {
+    const deliveryType = context.reservationNotes
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .match(/(?:^|\.\s*|\n)Type de livraison\s*:\s*([^.]*)/i)?.[1]
+      ?.trim()
+      .toLocaleLowerCase('fr');
+
+    if (deliveryType === 'medicaments' || deliveryType === 'medicament') {
+      return 'Livraison de médicaments';
+    }
+    if (
+      deliveryType === 'materiel' ||
+      deliveryType === 'materiel de prestation'
+    ) {
+      return 'Livraison de matériel';
+    }
+
+    return context.serviceName;
   }
 
   async resumeParcelTrackingAfterPickup(input: {

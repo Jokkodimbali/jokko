@@ -1578,14 +1578,22 @@ export class TrackingGoogleMapRendererService {
     if (!this.google || !this.routeMap) return;
     if (this.cameraMode === 'FREE') return;
     if (this.cameraMode === 'ARRIVAL' && destination) {
-      const key = `arrival:${provider.lat.toFixed(6)}:${provider.lng.toFixed(6)}:${destination.lat.toFixed(6)}:${destination.lng.toFixed(6)}`;
+      const mapWidth = this.routeMapElement?.clientWidth ?? 0;
+      const mapHeight = this.routeMapElement?.clientHeight ?? 0;
+      const key = [
+        'arrival',
+        provider.lat.toFixed(6),
+        provider.lng.toFixed(6),
+        destination.lat.toFixed(6),
+        destination.lng.toFixed(6),
+        `${mapWidth}x${mapHeight}`,
+      ].join(':');
       if (key === this.lastBoundsKey) return;
       this.lastBoundsKey = key;
       this.cancelCameraAnimation();
       this.withCameraUpdate(() => {
         const bounds = new this.google!.maps.LatLngBounds();
-        bounds.extend(provider);
-        bounds.extend(destination);
+        this.extendArrivalBounds(bounds, provider, destination);
         this.routeMap?.fitBounds(bounds, this.overviewPadding());
         this.routeMap?.setHeading?.(0);
         this.routeMap?.setTilt?.(0);
@@ -2414,6 +2422,36 @@ export class TrackingGoogleMapRendererService {
       left: Math.min(TOP_VIEW_ROUTE_PADDING.left, Math.round(width * 0.4)),
       right: Math.min(TOP_VIEW_ROUTE_PADDING.right, Math.round(width * 0.4)),
     };
+  }
+
+  /**
+   * At an arrival checkpoint, the traveler and destination are often exactly
+   * at the same coordinates. Google Maps then receives a zero-size bounds and
+   * may zoom/pan unpredictably, leaving the large avatar markers outside of
+   * the viewport. A small geographic frame keeps both arrival markers visible
+   * for every delivery flow while preserving their real positions.
+   */
+  private extendArrivalBounds(
+    bounds: { extend(point: GoogleMapsPoint): unknown },
+    provider: GoogleMapsPoint,
+    destination: GoogleMapsPoint,
+  ): void {
+    bounds.extend(provider);
+    bounds.extend(destination);
+
+    if (this.distanceMeters(provider, destination) >= 120) return;
+
+    const center = {
+      lat: (provider.lat + destination.lat) / 2,
+      lng: (provider.lng + destination.lng) / 2,
+    };
+    // About 55m on each side: enough room for the custom cards and avatars,
+    // without moving the camera away from the people who are on site.
+    const latitudeOffset = 55 / 111_320;
+    const longitudeOffset =
+      55 / (111_320 * Math.max(0.2, Math.cos((center.lat * Math.PI) / 180)));
+    bounds.extend({ lat: center.lat - latitudeOffset, lng: center.lng - longitudeOffset });
+    bounds.extend({ lat: center.lat + latitudeOffset, lng: center.lng + longitudeOffset });
   }
 
   private destinationMarkerSize(): DestinationMarkerSize {

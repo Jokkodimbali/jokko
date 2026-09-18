@@ -1,0 +1,51 @@
+<section
+  class="material-quote-card"
+  [class.material-quote-card--attention]="attentionActive"
+  aria-label="Matériel à acheter"
+>
+  <header>
+    <div class="material-quote-card__heading">
+      <h2>Matériel à acheter</h2>
+      <span *ngIf="attentionActive" class="material-quote-card__new" aria-live="polite">
+        Nouveau
+      </span>
+    </div>
+    <span class="material-quote-card__count">
+      <lucide-icon name="package" size="14" [strokeWidth]="2.2"></lucide-icon>
+      {{ countLabel }}
+    </span>
+  </header>
+
+  <button
+    type="button"
+    class="material-quote-card__toggle"
+    [attr.aria-expanded]="expanded"
+    (click)="expanded = !expanded"
+  >
+    <span>Voir la liste ({{ countLabel }})</span>
+    <lucide-icon
+      name="chevron-right"
+      size="15"
+      [strokeWidth]="2.5"
+      [class.material-quote-card__chevron--open]="expanded"
+    ></lucide-icon>
+  </button>
+
+  <div *ngIf="expanded" class="material-quote-card__items">
+    <div *ngFor="let item of visibleItems" class="material-quote-card__item">
+      <span><lucide-icon name="package" size="15" [strokeWidth]="2.2"></lucide-icon></span>
+      <strong>{{ item.designation }}</strong>
+      <small>x{{ item.quantity }}</small>
+    </div>
+  </div>
+
+  <button
+    *ngIf="showDeliveryAction && visibleItems.length > 0"
+    type="button"
+    class="material-quote-card__delivery"
+    (click)="deliveryRequested.emit()"
+  >
+    <lucide-icon name="truck" size="16" [strokeWidth]="2.4"></lucide-icon>
+    Me faire livrer ce matériel
+  </button>
+</section>

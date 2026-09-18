@@ -826,11 +826,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private activateDropoffTrackingAfterPickup(appointment: AppointmentView, message: string): void {
-    // Le statut EN_COURS suffit pour ouvrir immediatement la carte vers le
-    // destinataire. La position precise est publiee en arriere-plan et la page
-    // de suivi la complete aussi avec son flux GPS temps reel.
+    // Le retour vers la carte ne doit pas arriver avant la publication du
+    // premier point de la nouvelle session. Sinon la page de suivi peut lire
+    // l'ancienne route vers la pharmacie/quincaillerie au lieu de celle du
+    // destinataire, selon le délai réseau.
     this.validationMessage.set(`${message} Trajet vers le destinataire active.`);
-    this.scheduleAutoReturnAfterScan(0);
 
     this.resolveCurrentLocationForTracking()
       .then((location) => {
@@ -840,11 +840,15 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
             locationLabel: 'Livreur en route vers le destinataire',
           })
           .subscribe({
-            next: () => undefined,
-            error: () => undefined,
+            next: () => this.scheduleAutoReturnAfterScan(0),
+            // La session est déjà relancée par le scan côté serveur. En cas
+            // de refus de géolocalisation ou de perte réseau, retourner tout
+            // de même vers la carte qui reconstruira l'itinéraire avec le
+            // dernier point connu.
+            error: () => this.scheduleAutoReturnAfterScan(0),
           });
       })
-      .catch(() => undefined);
+      .catch(() => this.scheduleAutoReturnAfterScan(0));
   }
 
   private resolveCurrentLocationForTracking(): Promise<{

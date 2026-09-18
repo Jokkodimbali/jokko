@@ -226,7 +226,6 @@
                 </div>
               </section>
 
-              <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
             </section>
           </ng-container>
 
@@ -252,7 +251,6 @@
                   <div class="service-proposal__waiting-spinner" aria-hidden="true"></div>
                 </section>
 
-                <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
               </section>
             </ng-container>
           </ng-template>
@@ -404,7 +402,6 @@
                     </button>
                   </div>
 
-                  <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                 </div>
               </div>
             </section>
@@ -484,6 +481,8 @@
                 </p>
               </div>
             </section>
+
+            <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
 
             <button type="button" class="service-proposal__message" (click)="messageClient()">
               <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
@@ -1008,8 +1007,6 @@
                     </div>
                   </section>
 
-                  <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
-
                   <div class="service-proposal__booking-actions">
                     <button
                       type="button"
@@ -1123,7 +1120,6 @@
                       </button>
                     </section>
 
-                    <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                   </ng-container>
 
                   <ng-template #providerCounterOfferPanel>
@@ -1235,7 +1231,6 @@
                         </button>
                       </div>
 
-                      <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
                     </div>
                   </ng-template>
                 </div>
@@ -1361,10 +1356,14 @@
                   <p>
                     <small>Prix equitable du service</small
                     ><strong>{{ providerSummaryAmountLabel() }} FCFA</strong>
-                    <em *ngIf="isParcelDeliveryService()">{{ parcelPriceBasisLabel() }}</em>
+                    <em *ngIf="isParcelDeliveryService()">
+                      Distance estimée : {{ parcelDistanceLabel() || '--' }}
+                    </em>
                   </p>
                 </div>
               </section>
+
+              <ng-container *ngTemplateOutlet="materialQuotePanel"></ng-container>
 
               <button type="button" class="service-proposal__message" (click)="messageProvider()">
                 <lucide-icon name="message-circle" size="17" [strokeWidth]="2.4"></lucide-icon>
@@ -1445,80 +1444,75 @@
   </ng-template>
 
   <ng-template #materialQuotePanel>
+    <app-material-quote-summary-card
+      *ngIf="!isProviderProposalMode && canShowMaterialQuotePanel()"
+      [items]="materialQuoteEntries()"
+      (deliveryRequested)="openHardwareStoreSelection()"
+    ></app-material-quote-summary-card>
+
     <section
-      *ngIf="canShowMaterialQuotePanel()"
+      *ngIf="isProviderProposalMode && canShowMaterialQuotePanel()"
       class="service-proposal__materials-card"
+      [class.service-proposal__materials-card--provider]="isProviderProposalMode"
       aria-label="Materiel que le prestataire doit acheter"
     >
       <header class="service-proposal__materials-head">
-        <span class="service-proposal__materials-icon">
-          <lucide-icon name="package" size="22" [strokeWidth]="2.4"></lucide-icon>
-        </span>
-        <div>
-          <h2>MATERIEL QUE LE PRESTATAIRE DOIT ACHETER</h2>
-          <strong>Total : {{ materialQuoteTotalLabel() }}</strong>
+        <div class="service-proposal__materials-title">
+          <h2>
+            {{ isProviderProposalMode ? 'Matériel à acheter par le client' : 'Matériel à acheter' }}
+          </h2>
+          <span class="service-proposal__materials-count">
+            <lucide-icon name="package" size="13" [strokeWidth]="2.2"></lucide-icon>
+            {{ materialQuoteCountLabel() }}
+          </span>
         </div>
-        <button
-          *ngIf="canCurrentUserCreateMaterialQuote()"
-          type="button"
-          class="service-proposal__materials-add"
-          (click)="requestMaterialQuoteItem()"
-        >
-          <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
-          Ajouter
-        </button>
-        <button
-          type="button"
-          class="service-proposal__materials-toggle"
-          [attr.aria-expanded]="materialQuoteExpanded()"
-          aria-label="Afficher ou masquer le devis materiel"
-          (click)="toggleMaterialQuote()"
-        >
+      </header>
+
+      <button
+        type="button"
+        class="service-proposal__materials-toggle"
+        [attr.aria-expanded]="materialQuoteExpanded()"
+        aria-label="Afficher ou masquer la liste du materiel"
+        (click)="toggleMaterialQuote()"
+      >
+        <span>Voir la liste ({{ materialQuoteCountLabel() }})</span>
+        <span class="service-proposal__materials-toggle-icon" aria-hidden="true">
           <lucide-icon
-            name="chevron-down"
-            size="16"
+            name="chevron-right"
+            size="15"
             [strokeWidth]="2.6"
             [class.service-proposal__materials-chevron--open]="materialQuoteExpanded()"
           ></lucide-icon>
-        </button>
-      </header>
+        </span>
+      </button>
 
-      <div *ngIf="materialQuoteExpanded()" class="service-proposal__materials-body">
+      <div
+        *ngIf="materialQuoteExpanded()"
+        class="service-proposal__materials-body"
+      >
         <form
           *ngIf="isMaterialQuoteFormOpen() && canCurrentUserCreateMaterialQuote()"
           class="service-proposal__materials-form"
           (ngSubmit)="validateMaterialQuoteDraft()"
         >
           <header>
-            <h3>NOUVEAU MATERIEL ( AJOUTE PAR VOUS )</h3>
+            <h3>DEVIS MATÉRIEL</h3>
             <span class="service-proposal__materials-role">{{
               materialQuoteDraftAuthorLabel()
             }}</span>
           </header>
 
-          <label class="service-proposal__materials-designation">
-            <span>DESIGNATION</span>
-            <input
-              type="text"
-              name="materialDesignation"
-              [(ngModel)]="materialQuoteDraft.designation"
-              placeholder="Ex. : Inox flexible, mamelon, articulations..."
-            />
-          </label>
-
           <div class="service-proposal__materials-form-grid">
-            <label>
-              <span>PRIX UNITAIRE (FCFA)</span>
+            <label class="service-proposal__materials-designation">
+              <span>NOM DU MATÉRIEL</span>
               <input
-                type="number"
-                name="materialUnitPrice"
-                min="0"
-                step="100"
-                [(ngModel)]="materialQuoteDraft.unitPrice"
-                placeholder="Ex : 1500"
+                type="text"
+                name="materialDesignation"
+                [(ngModel)]="materialQuoteDraft.designation"
+                placeholder="Ex. : Inox flexible"
               />
             </label>
-            <label>
+            <label class="service-proposal__materials-quantity-field">
               <span>QUANTITE</span>
               <div class="service-proposal__materials-quantity">
                 <button type="button" (click)="decreaseMaterialQuoteQuantity()">-</button>
@@ -1545,7 +1539,11 @@
           <p>Nous synchronisons les articles ajoutes par le prestataire.</p>
         </div>
 
-        <div *ngFor="let entry of materialQuoteEntries()" class="service-proposal__materials-entry">
+        <div
+          *ngFor="let entry of materialQuoteEntries()"
+          class="service-proposal__materials-entry"
+          [class.service-proposal__materials-entry--provider]="isProviderProposalMode"
+        >
           <span class="service-proposal__materials-thumb">
             <lucide-icon name="package" size="20" [strokeWidth]="2.4"></lucide-icon>
           </span>
@@ -1556,7 +1554,7 @@
             </header>
             <div class="service-proposal__materials-entry-badges">
               <span class="service-proposal__materials-role">
-                {{ materialQuoteEntryAuthorLabel(entry) }}
+                {{ isProviderProposalMode ? 'AJOUTÉ PAR VOUS' : 'PRESTATAIRE' }}
               </span>
               <ng-container
                 *ngIf="canShowMaterialQuoteDecision(entry); else materialValidatedBadge"
@@ -1595,10 +1593,6 @@
                 </span>
               </ng-template>
             </div>
-            <p>
-              {{ materialQuoteEntryTotalLabel(entry) }}
-              ({{ materialQuoteEntryUnitLabel(entry) }})
-            </p>
           </div>
           <button
             *ngIf="canShowMaterialQuoteDecision(entry)"
@@ -1615,13 +1609,30 @@
           *ngIf="!isMaterialQuotesLoading() && materialQuoteEntries().length === 0"
           class="service-proposal__materials-empty"
         >
-          <strong>Aucune fourniture supplementaire</strong>
-          <p>
-            Si des fournitures ou pieces sont requises, le prestataire peut les ajouter ici avant
-            validation du client.
-          </p>
+          <lucide-icon name="package" size="24" [strokeWidth]="1.7"></lucide-icon>
+          <p>Aucun article ajouté pour l'instant.</p>
         </div>
+
+        <button
+          *ngIf="canCurrentUserCreateMaterialQuote() && !isMaterialQuoteFormOpen()"
+          type="button"
+          class="service-proposal__materials-add service-proposal__materials-add--wide"
+          (click)="requestMaterialQuoteItem()"
+        >
+          <lucide-icon name="plus" size="14" [strokeWidth]="3"></lucide-icon>
+          Ajouter un article
+        </button>
       </div>
+
+      <button
+        *ngIf="!isProviderProposalMode && materialQuoteVisibleCount() > 0"
+        type="button"
+        class="service-proposal__materials-delivery"
+        (click)="openHardwareStoreSelection()"
+      >
+        <lucide-icon name="truck" size="15" [strokeWidth]="2.4"></lucide-icon>
+        Me faire livrer ce matériel
+      </button>
     </section>
   </ng-template>
 
@@ -1744,7 +1755,7 @@
         (click)="openHardwareStoreSelection()"
       >
         <lucide-icon name="package-search" size="18" [strokeWidth]="2.4"></lucide-icon>
-        Verifier le materiel en quincaillerie
+        Me faire livrer ce matériel
       </button>
 
       <p class="service-proposal__confirmed-note">Un recapitulatif a ete envoye par SMS et email</p>

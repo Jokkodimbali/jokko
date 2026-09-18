@@ -304,6 +304,14 @@ export class ServiceProposalService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
+  listReservationMaterialQuotes(reservationId: string): Observable<MaterialQuoteView[]> {
+    return this.http
+      .get<
+        ApiResponse<MaterialQuoteView[]>
+      >(`${this.apiUrl}/negotiations/reservations/${reservationId}/material-quotes`)
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
   createMaterialQuote(
     negotiationId: string,
     payload: CreateMaterialQuotePayload,

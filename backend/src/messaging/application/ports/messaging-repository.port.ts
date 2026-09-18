@@ -7,6 +7,7 @@ export const MESSAGING_REPOSITORY_PORT = Symbol('MESSAGING_REPOSITORY_PORT');
 
 export type ConversationCounterpartView = {
   isAdmin?: boolean;
+  isDoctor?: boolean;
   userId: string;
   professionalProfileId: string | null;
   name: string;

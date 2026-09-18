@@ -51,12 +51,8 @@
 }
 
 .pharmacy-order__waiting {
-  background: #fff;
-  border: 1px solid #eee4da;
-  border-radius: 22px;
-  box-shadow: 0 18px 45px rgba(68, 45, 25, 0.08);
-  min-height: 320px;
-  padding: 42px;
+  min-height: 430px;
+  padding: 28px 28px 40px;
 }
 
 .pharmacy-order__waiting h1,
@@ -76,13 +72,163 @@
 }
 
 .pharmacy-order__waiting-badge {
-  background: #f8eee4;
+  align-items: center;
+  background: #fff2e3;
   border-radius: 999px;
   color: #8c521d;
-  font-size: delivery-type.$body;
+  display: inline-flex;
+  font-size: 12px;
   font-weight: 700;
-  margin-top: 24px;
-  padding: 8px 14px;
+  margin-top: 0;
+  padding: 8px 15px;
+}
+
+.pharmacy-order__waiting-badge::before {
+  background: #a5682d;
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  margin-right: 7px;
+  width: 6px;
+}
+
+.pharmacy-order__waiting-illustration {
+  display: grid;
+  height: 128px;
+  margin: 0 auto 17px;
+  place-items: center;
+  position: relative;
+  width: 128px;
+}
+
+.pharmacy-order__waiting-orbit {
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  inset: 0;
+  position: absolute;
+}
+
+.pharmacy-order__waiting-orbit::after {
+  background: #a5682d;
+  border: 2px solid #fffaf5;
+  border-radius: 50%;
+  content: '';
+  height: 9px;
+  position: absolute;
+  width: 9px;
+}
+
+.pharmacy-order__waiting-orbit--inner {
+  animation: pharmacy-waiting-orbit-reverse 4.6s linear infinite;
+  border-bottom-color: rgba(164, 104, 42, 0.28);
+  border-right-color: rgba(164, 104, 42, 0.28);
+  inset: 13px;
+}
+
+.pharmacy-order__waiting-orbit--inner::after {
+  right: 8px;
+  top: 3px;
+}
+
+.pharmacy-order__waiting-orbit--outer {
+  animation: pharmacy-waiting-orbit 6s linear infinite;
+  border-left-color: rgba(164, 104, 42, 0.3);
+  border-top-color: rgba(164, 104, 42, 0.3);
+}
+
+.pharmacy-order__waiting-orbit--outer::after {
+  bottom: 13px;
+  left: 5px;
+}
+
+.pharmacy-order__waiting-illustration b {
+  align-items: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 8px 22px rgba(124, 78, 34, 0.16);
+  color: #a5682d;
+  display: flex;
+  height: 70px;
+  justify-content: center;
+  width: 70px;
+}
+
+.pharmacy-order__waiting-kicker {
+  color: #9b693c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.pharmacy-order__waiting h1 {
+  font-size: clamp(28px, 3vw, 36px);
+  margin: 0 0 14px;
+  max-width: 620px;
+}
+
+.pharmacy-order__waiting p { max-width: 575px; }
+
+.pharmacy-order__waiting-steps {
+  display: flex;
+  gap: clamp(28px, 6vw, 76px);
+  justify-content: center;
+  list-style: none;
+  margin: 28px 0 21px;
+  padding: 0;
+}
+
+.pharmacy-order__waiting-steps li {
+  align-items: center;
+  color: #a5adbb;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 7px;
+  min-width: 70px;
+}
+
+.pharmacy-order__waiting-steps li > span {
+  align-items: center;
+  background: #f3f5f8;
+  border: 1px solid #e3e7ed;
+  border-radius: 50%;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.pharmacy-order__waiting-steps .is-complete,
+.pharmacy-order__waiting-steps .is-active { color: #273243; }
+
+.pharmacy-order__waiting-steps .is-complete > span {
+  background: #ddf7e9;
+  border-color: #b8eacb;
+  color: #29965d;
+}
+
+.pharmacy-order__waiting-steps .is-active > span {
+  animation: pharmacy-waiting-pulse 1.8s ease-in-out infinite;
+  background: #fff2e4;
+  border-color: #f1d2b3;
+  color: #a5682d;
+}
+
+@keyframes pharmacy-waiting-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+
+@keyframes pharmacy-waiting-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pharmacy-waiting-orbit-reverse {
+  to { transform: rotate(-360deg); }
 }
 
 .pharmacy-order__accepted {
@@ -706,6 +852,21 @@
   .pharmacy-order__waiting,
   .pharmacy-order__unavailable {
     padding: 30px 20px;
+  }
+
+  .pharmacy-order__waiting-illustration {
+    height: 108px;
+    width: 108px;
+  }
+
+  .pharmacy-order__waiting-steps {
+    gap: 14px;
+    width: 100%;
+  }
+
+  .pharmacy-order__waiting-steps li {
+    font-size: 11px;
+    min-width: 0;
   }
 
   .pharmacy-order__accepted {

@@ -282,7 +282,16 @@
 }
 
 .messages-page__pin--active {
-  color: #2d78c4;
+  color: #9a501e;
+}
+
+.messages-page__pin--active lucide-icon {
+  color: #9a501e;
+}
+
+.messages-page__pin--active ::ng-deep svg {
+  fill: #9a501e;
+  stroke: #9a501e;
 }
 
 .messages-page__unread-badge {

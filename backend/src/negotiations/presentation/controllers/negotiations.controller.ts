@@ -150,6 +150,18 @@ export class NegotiationsController {
     return createApiResponse(result);
   }
 
+  @Get('reservations/:reservationId/material-quotes')
+  async listReservationMaterialQuotes(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const result = await this.materialQuoteService.listForReservation(
+      user,
+      reservationId,
+    );
+    return createApiResponse(result);
+  }
+
   @Get(':negotiationId/material-quotes')
   async listMaterialQuotes(
     @CurrentUser() user: AuthUser,

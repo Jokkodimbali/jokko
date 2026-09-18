@@ -18,9 +18,9 @@ export class CreateMaterialQuoteDto implements CreateMaterialQuoteInput {
   @MaxLength(180, { message: VALIDATION_MESSAGES.NEGOTIATION_MESSAGE_MAX })
   designation!: string;
 
-  @ApiProperty({ example: 8500 })
+  @ApiProperty({ example: 0 })
   @IsNumber({}, { message: VALIDATION_MESSAGES.NEGOTIATION_AMOUNT_INVALID })
-  @Min(1, { message: VALIDATION_MESSAGES.NEGOTIATION_AMOUNT_MIN })
+  @Min(0, { message: VALIDATION_MESSAGES.NEGOTIATION_AMOUNT_MIN })
   @Max(100000000, { message: VALIDATION_MESSAGES.NEGOTIATION_AMOUNT_MAX })
   unitPrice!: number;
 

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
+import { MaterialQuoteSummaryCardComponent } from '../../../../../shared/ui/material-quote-summary-card/material-quote-summary-card.component';
 import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
@@ -17,6 +18,10 @@ import { BackNavigationService } from '../../../../../core/navigation/back-navig
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import {
+  MaterialQuoteView,
+  ServiceProposalService,
+} from '../../../../services/data-access/service-proposal.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView, PaymentMethod } from '../../../domain/appointments.models';
 
@@ -34,6 +39,7 @@ interface PaymentOption {
     CommonModule,
     LucideAngularModule,
     AppStarRatingComponent,
+    MaterialQuoteSummaryCardComponent,
     AppointmentTrackingStepperComponent,
   ],
   templateUrl: './appointment-payment-page.component.html',
@@ -45,6 +51,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
+  private readonly serviceProposalService = inject(ServiceProposalService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly authSession = inject(AuthSessionService);
 
@@ -54,6 +61,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly isPaying = signal(false);
   protected readonly isCancelling = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly materialQuotes = signal<MaterialQuoteView[]>([]);
   protected readonly isProfessionalViewer = computed(() => {
     const role = this.authSession.currentUser()?.role;
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
@@ -650,6 +658,22 @@ export class AppointmentPaymentPageComponent implements OnInit {
       error: () => {
         this.errorMessage.set('Impossible de charger le rendez-vous a payer.');
         this.isLoading.set(false);
+      },
+    });
+
+    this.serviceProposalService.listReservationMaterialQuotes(reservationId).subscribe({
+      next: (quotes) => this.materialQuotes.set(quotes),
+      error: () => this.materialQuotes.set([]),
+    });
+  }
+
+  protected openMaterialDelivery(): void {
+    const reservationId = this.appointment()?.id;
+    if (!reservationId) return;
+    void this.router.navigate(['/material-orders/select'], {
+      queryParams: {
+        reservationId,
+        returnUrl: `/appointments/${reservationId}/payment`,
       },
     });
   }

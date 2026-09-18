@@ -29,6 +29,11 @@
     grid-template-columns: minmax(0, 560px);
   }
 
+  .service-proposal__side-stack {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
   .service-proposal__summary {
     order: -1;
   }

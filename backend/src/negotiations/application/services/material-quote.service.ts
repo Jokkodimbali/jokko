@@ -50,6 +50,35 @@ export class MaterialQuoteService {
     return quotes.map((quote) => this.toView(quote));
   }
 
+  async listForReservation(requestUser: AuthUser, reservationId: string) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        clientId: true,
+        professionnel: { select: { utilisateurId: true } },
+      },
+    });
+    if (!reservation) {
+      throw appHttpException('RESERVATIONS_NOT_FOUND');
+    }
+    if (
+      reservation.clientId !== requestUser.sub &&
+      reservation.professionnel.utilisateurId !== requestUser.sub
+    ) {
+      throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+    }
+
+    const quotes = await this.prisma.devisMaterielNegotiation.findMany({
+      where: {
+        statut: { not: StatutDevisMateriel.REFUSE },
+        OR: [{ reservationId }, { negotiation: { reservationId } }],
+      },
+      orderBy: { creeLe: 'asc' },
+      select: MATERIAL_QUOTE_SELECT,
+    });
+    return quotes.map((quote) => this.toView(quote));
+  }
+
   async createForNegotiation(
     requestUser: AuthUser,
     negotiationId: string,
@@ -73,6 +102,8 @@ export class MaterialQuoteService {
         designation: dto.designation.trim(),
         prixUnitaire: Math.trunc(Number(dto.unitPrice)),
         quantite: Math.max(1, Math.trunc(Number(dto.quantity))),
+        statut: StatutDevisMateriel.VALIDE,
+        validePrestataireLe: new Date(),
       },
       select: MATERIAL_QUOTE_SELECT,
     });
@@ -174,6 +205,10 @@ export class MaterialQuoteService {
       throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
     }
 
+    await this.prisma.devisMaterielNegotiation.updateMany({
+      where: { negotiationId, statut: StatutDevisMateriel.EN_ATTENTE },
+      data: { statut: StatutDevisMateriel.VALIDE },
+    });
     const quotes = await this.prisma.devisMaterielNegotiation.findMany({
       where: { negotiationId },
       orderBy: { creeLe: 'asc' },
@@ -181,11 +216,6 @@ export class MaterialQuoteService {
     });
     if (quotes.length === 0) {
       return { ready: true, quoteCount: 0, pdfUrl: null };
-    }
-    if (quotes.some((quote) => quote.statut === 'EN_ATTENTE')) {
-      throw new BadRequestException(
-        'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',
-      );
     }
     const validQuotes = quotes.filter((quote) => quote.statut === 'VALIDE');
     if (validQuotes.length === 0) {

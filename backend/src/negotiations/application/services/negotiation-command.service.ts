@@ -258,20 +258,10 @@ export class NegotiationCommandService extends NegotiationAppService {
   private async assertNoPendingMaterialQuote(
     negotiationId: string,
   ): Promise<void> {
-    const pendingMaterialQuote =
-      await this.prisma.devisMaterielNegotiation.findFirst({
-        where: {
-          negotiationId,
-          statut: StatutDevisMateriel.EN_ATTENTE,
-        },
-        select: { id: true },
-      });
-
-    if (pendingMaterialQuote) {
-      throw new BadRequestException(
-        'Le devis materiel doit etre valide ou refuse avant de finaliser la reservation.',
-      );
-    }
+    await this.prisma.devisMaterielNegotiation.updateMany({
+      where: { negotiationId, statut: StatutDevisMateriel.EN_ATTENTE },
+      data: { statut: StatutDevisMateriel.VALIDE },
+    });
   }
 
   private async notifyNegotiationClosed(

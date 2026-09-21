@@ -2,7 +2,13 @@
   <section class="hero">
     <div class="hero-content">
       <div class="search-zone">
-        <h1>Tous les services au S&eacute;n&eacute;gal</h1>
+        <h1>
+          Trouvez le bon <strong>prestataire</strong><br />
+          pr&egrave;s de chez vous.
+        </h1>
+        <p class="search-zone__subtitle">
+          Des professionnels qualifi&eacute;s et v&eacute;rifi&eacute;s, disponibles pr&egrave;s de chez vous.
+        </p>
 
         <app-search-bar
           class="search-bar"
@@ -36,14 +42,9 @@
         />
       </div>
 
-      <img
-        class="hero-visual"
-        [src]="heroIllustration"
-        alt="Prestataires Jokko Dimbali"
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-      />
+      <div class="hero-banner">
+        <ng-container *ngTemplateOutlet="promoContent"></ng-container>
+      </div>
 
     </div>
   </section>
@@ -52,7 +53,7 @@
     <aside class="favorites" aria-label="Vos favoris">
       <div class="favorites-header">
         <span class="favorites-header__icon" aria-hidden="true">
-          <lucide-icon name="heart" size="20" [strokeWidth]="2"></lucide-icon>
+          <lucide-icon name="heart" size="24" [strokeWidth]="2"></lucide-icon>
         </span>
         <div class="favorites-header__text">
           <h2>Vos favoris</h2>
@@ -202,8 +203,6 @@
           </ng-container>
         </div>
 
-        <ng-container *ngTemplateOutlet="promoContent"></ng-container>
-
         <div class="section-heading">
           <div class="section-title-group">
             <h2>{{ currentSearchLocation() ? 'Prestataires à proximité' : section.title }}</h2>
@@ -295,11 +294,9 @@
             aria-label="Promotion Jokko"
           >
             <div class="services-promo__content">
-              <span>✦ Promo du jour</span>
-              <h2>Travaillez avec les meilleurs prestataires</h2>
-              <a routerLink="/services" (click)="selectCategory(null)">Réserver</a>
+              <h2>Tous les services au S&eacute;n&eacute;gal</h2>
             </div>
-            <img src="/imagehaut1.png" alt="Professionnel Jokko" />
+            <img src="/image%20haut.png" alt="Clients et prestataires Jokko" />
           </section>
         </ng-template>
       </ng-template>

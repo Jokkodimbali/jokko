@@ -594,7 +594,10 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected scheduleItemAmountLabel(item: ScheduleItem): string {
     const amount =
       item.kind === 'appointment'
-        ? (item.appointment.agreedPrice ?? item.appointment.servicePrice)
+        ? (item.appointment.agreedPrice ??
+          (item.appointment.travelMode === 'TRANSPORT_COLIS'
+            ? null
+            : item.appointment.servicePrice))
         : (this.negotiationFinalPrice(item.negotiation) ??
           Number(item.negotiation.montantCourant || item.negotiation.montantInitial));
     return amount ? `${this.formatAmount(amount)} FCFA` : 'Montant a confirmer';

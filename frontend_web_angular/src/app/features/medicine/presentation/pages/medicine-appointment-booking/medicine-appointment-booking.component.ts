@@ -197,13 +197,16 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   protected readonly teleconsultationServices = computed(() =>
     this.services().filter((service) => service.teleconsultationActive === true),
   );
+  protected readonly consultationServices = computed(() =>
+    this.services().filter((service) => service.teleconsultationActive !== true),
+  );
   protected readonly teleconsultationAvailable = computed(
     () => this.teleconsultationServices().length > 0,
   );
   protected readonly bookableServices = computed(() =>
     this.consultationType() === 'TELECONSULTATION'
       ? this.teleconsultationServices()
-      : this.services(),
+      : this.consultationServices(),
   );
   protected readonly doctorTravelsToPatient = computed(
     () => this.selectedService()?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE',
@@ -737,10 +740,12 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     }
     this.consultationType.set(type);
     const selectedService = this.selectedService();
-    if (
-      type === 'TELECONSULTATION' &&
-      selectedService?.teleconsultationActive !== true
-    ) {
+    const selectedServiceIsCompatible =
+      selectedService &&
+      (type === 'TELECONSULTATION'
+        ? selectedService.teleconsultationActive === true
+        : selectedService.teleconsultationActive !== true);
+    if (!selectedServiceIsCompatible) {
       this.selectedServiceId.set('');
       this.selectedDateTime.set(null);
     }

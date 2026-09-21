@@ -1,9 +1,6 @@
 :host .content-shell {
-  --services-column-gap: clamp(14px, 1.4vw, 20px);
-  --services-center-shift: clamp(132px, 11.7vw, 171px);
-  --services-feature-offset: 98px;
-  --services-sidebar-width: clamp(250px, 22vw, 322px);
-  --services-feature-height: clamp(280px, 22vw, 350px);
+  --services-column-gap: clamp(24px, 2.2vw, 36px);
+  --services-sidebar-width: clamp(270px, 19vw, 316px);
   background: var(--color-white, #fff);
   background-color: var(--color-white, #fff);
   column-gap: var(--services-column-gap);
@@ -14,27 +11,28 @@
 
 /* ─── Favorites sidebar ─────────────────────────────────────────── */
 :host .favorites {
+  align-self: start;
   background-color: #955d24;
   border-radius: 28px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   grid-column: 1;
-  margin: var(--services-feature-offset) 19px 12px;
+  margin: 98px 18px 24px;
   grid-row: 1;
-  height: var(--services-feature-height);
+  height: clamp(460px, 33.5vw, 620px);
   overflow: hidden;
-  padding: 18px 13px 16px !important;
+  padding: 24px 18px 20px !important;
   position: relative;
-  width: calc(100% - 38px);
+  width: calc(100% - 36px);
   z-index: 2;
 }
 
 :host .favorites-header {
   align-items: flex-start;
   display: flex;
-  gap: 11px;
-  margin-bottom: 17px;
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 :host .favorites-header__icon {
@@ -46,9 +44,9 @@
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
-  height: 36px;
+  height: 48px;
   justify-content: center;
-  width: 36px;
+  width: 48px;
 }
 
 :host .favorites-header__icon lucide-icon {
@@ -57,30 +55,30 @@
 
 :host .favorites-header__text h2 {
   color: #fff !important;
-  font-size: 16px !important;
+  font-size: 20px !important;
   font-weight: 800 !important;
   line-height: 1.15 !important;
-  margin: 3px 0 0 !important;
+  margin: 4px 0 0 !important;
   text-align: left !important;
 }
 
 :host .favorites-header__text span {
   color: rgba(255, 255, 255, 0.92);
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   margin-top: 2px;
 }
 
 :host .favorite-list {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
-  max-height: 200px;
+  max-height: none;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 0;
-  flex-grow: 0;
-  flex-shrink: 0;
 }
 
 :host .favorite-row {
@@ -91,8 +89,8 @@
   display: flex !important;
   gap: 8px !important;
   margin: 0 !important;
-  min-height: 54px;
-  padding: 6px 8px;
+  min-height: 68px;
+  padding: 8px 10px;
   text-decoration: none;
   transition: background 0.18s ease;
 }
@@ -109,10 +107,10 @@
 :host .favorite-row img {
   border-radius: 50% !important;
   display: block;
-  height: 39px !important;
+  height: 48px !important;
   object-fit: cover;
   object-position: center top;
-  width: 39px !important;
+  width: 48px !important;
 }
 
 :host .favorite-avatar__initials {
@@ -123,9 +121,9 @@
   display: inline-flex;
   font-size: 12px;
   font-weight: 900;
-  height: 39px;
+  height: 48px;
   justify-content: center;
-  width: 39px;
+  width: 48px;
 }
 
 :host .favorite-avatar__dot {
@@ -142,7 +140,7 @@
 
 :host .favorite-row strong {
   color: #fff;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,7 +149,7 @@
 
 :host .favorite-row small {
   color: rgba(255, 255, 255, 0.72);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -168,12 +166,12 @@
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 850;
   justify-content: center;
   line-height: 1.2;
   margin-top: auto;
-  min-height: 32px;
+  min-height: 42px;
   padding: 7px 10px;
   text-align: center;
   text-decoration: none;
@@ -348,25 +346,11 @@
   border-radius: 50%;
   content: '';
   height: 6px;
-  width: 6px;
+  width: 36px;
 }
 
 :host .service-filters__button--sub.service-filters__button--active::before {
   background: #fff;
-}
-
-@media (min-width: 1024px) {
-  :host .service-section--nearby > .services-promo {
-    aspect-ratio: auto;
-    height: var(--services-feature-height);
-  }
-
-  :host .service-section--nearby > .section-heading,
-  :host .service-section--nearby > .provider-row {
-    left: calc(-1 * var(--services-center-shift));
-    position: relative;
-    width: 100%;
-  }
 }
 
 /* ─── See all / Load more ───────────────────────────────────────── */

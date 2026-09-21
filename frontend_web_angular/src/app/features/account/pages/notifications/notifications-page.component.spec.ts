@@ -35,6 +35,34 @@ describe('notification page live updates', () => {
     })).toEqual(expected);
   });
 
+  it.each([
+    ['PRESTATAIRE', '/prestataire/espace'],
+    ['MEDECIN', '/medecine/espace'],
+  ])('routes a wallet credit for %s to the wallet section', (role, walletSpace) => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: NotificationsService, useValue: {} },
+      { provide: MessagesRealtimeService, useValue: {} },
+      { provide: AuthSessionService, useValue: { currentUser: () => ({ role }) } },
+      { provide: AppFeedbackService, useValue: {} },
+      { provide: AppointmentsService, useValue: {} },
+      { provide: Router, useValue: {} },
+    ] });
+    const component = TestBed.runInInjectionContext(() => new NotificationsPageComponent());
+    const resolver = component as unknown as {
+      resolveNotificationTarget(notification: UserNotificationView): unknown;
+    };
+
+    expect(resolver.resolveNotificationTarget({
+      id: 'wallet-credit',
+      type: 'PAIEMENT_LIBERE',
+      data: {
+        walletCredit: true,
+        reservationId: 'reservation-1',
+        paymentId: 'payment-1',
+      },
+    })).toEqual({ commands: [walletSpace], queryParams: { section: 'wallet' } });
+  });
+
   it('cancels stale requests, refreshes on socket events and cleans up on destruction', () => {
     vi.useFakeTimers();
     const events = new Subject<UserNotificationView>();

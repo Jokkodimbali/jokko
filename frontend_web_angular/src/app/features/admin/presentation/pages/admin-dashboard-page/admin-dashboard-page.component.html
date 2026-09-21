@@ -66,7 +66,7 @@
           </nav>
 
           <ng-container *ngIf="settingsSubPage() === 'banners'; else pricingPage">
-            <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Dimensions obligatoires : <strong>936 × 220 px</strong> (ratio 4,25:1). Formats recommandés : JPG ou PNG, 2 Mo maximum (WebP reste accepté). Les bannières sont responsives et défilent automatiquement. Gardez les textes et éléments importants au centre de l’image.</span></div>
+            <div class="app-settings__notice"><lucide-icon name="sparkles" size="18"></lucide-icon><span>Dimensions obligatoires : <strong>950 × 500 px</strong> (ratio 1,9:1). Formats recommandés : JPG ou PNG, 2 Mo maximum (WebP reste accepté). Les bannières sont responsives et défilent automatiquement. Gardez les textes et éléments importants au centre de l’image.</span></div>
 
             <div class="app-settings__list" *ngIf="appBanners().length; else noBanner">
               <article class="app-banner-editor" *ngFor="let banner of appBanners(); let index = index; trackBy: trackAppBannerById">

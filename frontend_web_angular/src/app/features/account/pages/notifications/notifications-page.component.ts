@@ -9,6 +9,7 @@ import { userInitials } from '../../../../shared/utils/user-initials';
 import { AuthSessionService } from '../../../../core/auth/auth-session.service';
 import {
   formatNotificationTitle,
+  isWalletNotification,
   notificationIcon,
   notificationAvatarUrl,
   notificationActorName,
@@ -205,6 +206,12 @@ export class NotificationsPageComponent implements OnInit {
     reservationId?: string;
   } {
     const metadata = notification.data || notification.donnees || {};
+    if (isWalletNotification(notification)) {
+      const walletSpace = this.authSession.currentUser()?.role === 'MEDECIN'
+        ? '/medecine/espace'
+        : '/prestataire/espace';
+      return { commands: [walletSpace], queryParams: { section: 'wallet' } };
+    }
     const explicitRoute = this.readMetadataString(metadata, 'route');
     if (explicitRoute?.startsWith('/')) {
       return { commands: [explicitRoute] };

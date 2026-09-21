@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import {
   PAYMENTS_REPOSITORY_PORT,
   type PaymentsRepository,
@@ -16,6 +17,7 @@ import {
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
 import { NOTIFICATION_TYPES } from '../../../notifications/domain/entities/notification.entity';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { ServiceCompletedEvent } from '../../../reservations/domain/events/reservation-mission.events';
 
 @Injectable()
 export class EscrowService {
@@ -29,6 +31,23 @@ export class EscrowService {
     private readonly notificationsService: NotificationsService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @OnEvent('tracking.service.completed')
+  async releaseCompletedReservationEscrow(
+    event: ServiceCompletedEvent,
+  ): Promise<void> {
+    const payment = await this.paymentsRepository.findByBookingId(
+      event.payload.reservationId,
+    );
+
+    // A completion event can be replayed. The escrow state makes this safe and
+    // ensures the wallet notification is emitted only after the real credit.
+    if (!payment?.canReleaseEscrow()) {
+      return;
+    }
+
+    await this.releaseEscrow(payment.id);
+  }
 
   async releaseEscrow(paymentId: string): Promise<Payment> {
     const payment = await this.paymentsRepository.findById(paymentId);

@@ -490,6 +490,12 @@ export class AppointmentsService {
       reservation.professionnel?.utilisateur.urlAvatar,
     );
     const consultationType = reservation.typeConsultation ?? 'CONSULTATION';
+    const travelMode = professional.travelMode ?? reservation.service?.modeDeplacement ?? null;
+    const agreedPrice =
+      this.toPositiveAmount(reservation.prixConvenu) ??
+      (travelMode === 'TRANSPORT_COLIS'
+        ? this.legacyParcelDeliveryAmount(reservation.notes)
+        : null);
     const locationLabel =
       consultationType === 'TELECONSULTATION'
         ? 'Téléconsultation vidéo'
@@ -548,8 +554,12 @@ export class AppointmentsService {
           professional.professionalSubCategoryName ?? this.professionalSubCategoryName(reservation),
           reservation,
         ) ?? null,
-      servicePrice: professional.servicePrice ?? reservation.service?.prix ?? null,
-      travelMode: professional.travelMode ?? reservation.service?.modeDeplacement ?? null,
+      // The parcel service price is a per-kilometre setting. It is not a reservation total.
+      servicePrice:
+        travelMode === 'TRANSPORT_COLIS'
+          ? null
+          : (professional.servicePrice ?? reservation.service?.prix ?? null),
+      travelMode,
       vehicleType: professional.vehicleType ?? reservation.professionnel?.typeVehicule ?? null,
       notes: reservation.notes,
       consultationType,
@@ -559,7 +569,7 @@ export class AppointmentsService {
         vaccines: this.normalizePrescriptionItems(reservation.vaccinsPrescriptionMedicale),
         treatments: this.normalizePrescriptionItems(reservation.traitementsPrescriptionMedicale),
       },
-      agreedPrice: reservation.prixConvenu,
+      agreedPrice,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
       proposedAdjustedPrice: reservation.prixAjustementPropose,
       priceAdjustmentReason: reservation.raisonAjustementPrix,
@@ -662,6 +672,17 @@ export class AppointmentsService {
     return (
       values.map((value) => value?.trim()).find((value): value is string => Boolean(value)) ?? null
     );
+  }
+
+  private toPositiveAmount(value: number | null | undefined): number | null {
+    const amount = Number(value);
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
+  }
+
+  private legacyParcelDeliveryAmount(notes: string | null): number | null {
+    const value = notes?.match(/Prix\s+calcul(?:e|é)\s*[:=-]\s*([\d\s.,]+)/i)?.[1] ?? '';
+    const amount = Number(value.replace(/[^\d]/g, ''));
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
   }
 
   private normalizePrescriptionItems(value: unknown): string[] {

@@ -15,7 +15,10 @@ describe('EscrowService release notifications', () => {
     });
     payment.markAsSuccess('gateway-ref');
     payment.clearDomainEvents();
-    const repository = { findById: jest.fn().mockResolvedValue(payment) };
+    const repository = {
+      findById: jest.fn().mockResolvedValue(payment),
+      findByBookingId: jest.fn().mockResolvedValue(payment),
+    };
     const dispatcher = { publishMany: jest.fn() };
     const ledger = {
       creditReleasedEscrow: jest.fn().mockResolvedValue(undefined),
@@ -85,5 +88,30 @@ describe('EscrowService release notifications', () => {
     expect(payment.isEscrowLocked()).toBe(true);
     expect(ledger.creditReleasedEscrow).not.toHaveBeenCalled();
     expect(notifications.createManyInAppNotifications).not.toHaveBeenCalled();
+  });
+
+  it('releases and notifies the wallet as soon as the prestation is completed', async () => {
+    const { service, payment, ledger, notifications } = setup();
+
+    await service.releaseCompletedReservationEscrow({
+      nom: 'tracking.service.completed',
+      payload: {
+        reservationId: payment.bookingId,
+        clientUserId: payment.clientId,
+        professionalId: payment.professionalId,
+      },
+      dateOccurrence: new Date(),
+    });
+
+    expect(payment.isEscrowReleased()).toBe(true);
+    expect(ledger.creditReleasedEscrow).toHaveBeenCalledWith(payment);
+    expect(notifications.createManyInAppNotifications).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 'professional-user-id',
+          data: expect.objectContaining({ walletCredit: true }),
+        }),
+      ]),
+    );
   });
 });

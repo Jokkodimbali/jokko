@@ -164,6 +164,7 @@ describe('ReservationCommandService', () => {
       reservationsRepository,
       professionalsRepository,
       negotiationsFacade,
+      eventBus,
       prisma,
       liveTrackingFacade,
       reservationClientNotificationService,
@@ -401,6 +402,32 @@ describe('ReservationCommandService', () => {
     ).rejects.toThrow("Ce motif n'est pas disponible en teleconsultation");
   });
 
+  it('rejects a physical consultation for a teleconsultation-only motif', async () => {
+    const { service, professionalsRepository } = buildService();
+    professionalsRepository.getServiceById.mockResolvedValueOnce({
+      id: 'service-id',
+      profilProfessionnelId: 'professional-id',
+      nom: 'Téléconsultation de suivi',
+      prix: 15000,
+      estDisponible: true,
+      typePrix: 'FIXE',
+      teleconsultationActive: true,
+    });
+
+    await expect(
+      service.createReservation(clientUser, {
+        professionnelId: 'professional-id',
+        serviceId: 'service-id',
+        dateHeure: '2030-06-20T10:00:00.000Z',
+        adresseClient: 'Dakar Plateau',
+        clientLatitude: 14.7167,
+        clientLongitude: -17.4677,
+        dureeMinutes: 30,
+        typeConsultation: 'CONSULTATION',
+      }),
+    ).rejects.toThrow('Ce motif est réservé à la téléconsultation');
+  });
+
   it('allows the prescription after the doctor confirmed the teleconsultation completion', async () => {
     const { service, reservationsRepository } = buildService({
       reservation: buildReservation({
@@ -538,7 +565,12 @@ describe('ReservationCommandService', () => {
   });
 
   it('lets the owning professional complete a started reservation', async () => {
-    const { service, reservationsRepository } = buildService({
+    const {
+      service,
+      reservationsRepository,
+      reservationClientNotificationService,
+      eventBus,
+    } = buildService({
       reservation: buildReservation({
         clientId: 'client-id',
         professionnelId: 'professional-id',
@@ -556,5 +588,8 @@ describe('ReservationCommandService', () => {
     expect(reservationsRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({ statut: 'TERMINEE' }),
     );
+    expect(
+      reservationClientNotificationService.notifyReservationCompleted.mock.invocationCallOrder[0],
+    ).toBeLessThan(eventBus.publier.mock.invocationCallOrder[0]);
   });
 });

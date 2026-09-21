@@ -104,6 +104,14 @@ export class ReservationCommandService extends ReservationAppService {
         "Ce motif n'est pas disponible en teleconsultation.",
       );
     }
+    if (
+      command.typeConsultation !== 'TELECONSULTATION' &&
+      service.teleconsultationActive
+    ) {
+      throw new BadRequestException(
+        'Ce motif est réservé à la téléconsultation.',
+      );
+    }
 
     const scheduledAt = this.parseDateOrThrow(command.dateHeure);
 
@@ -496,13 +504,6 @@ export class ReservationCommandService extends ReservationAppService {
         trackingStatus: 'TERMINEE',
         nextPresenceStatus: 'EN_LIGNE',
       });
-      await this.eventBus.publier(
-        new ServiceCompletedEvent({
-          reservationId: updated.id,
-          clientUserId: updated.clientId,
-          professionalId: updated.professionnelId,
-        }),
-      );
       const professional = await this.getVerifiedProfessionalOrThrow(
         updated.professionnelId,
       );
@@ -527,6 +528,13 @@ export class ReservationCommandService extends ReservationAppService {
         travellerRole: 'PROFESSIONNEL',
         tripStatus: 'TERMINEE',
       });
+      await this.eventBus.publier(
+        new ServiceCompletedEvent({
+          reservationId: updated.id,
+          clientUserId: updated.clientId,
+          professionalId: updated.professionnelId,
+        }),
+      );
 
       return updated;
     } catch (error) {

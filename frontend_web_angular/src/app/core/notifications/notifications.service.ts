@@ -147,6 +147,7 @@ export function notificationSubtitle(notification: UserNotificationView): string
   if (serviceName) return serviceName;
 
   const metadata = notification.data || notification.donnees || {};
+  if (isWalletNotification(notification)) return 'Voir le wallet';
   if (metadata['walletDebit'] === true) return '';
   if (typeof metadata['pharmacyOrderId'] === 'string') return 'Livraison de médicaments';
   if (typeof metadata['materialOrderId'] === 'string') return 'Livraison de matériel';
@@ -189,6 +190,12 @@ export function notificationWalletTitlePrefix(notification: UserNotificationView
   if (tone === 'credit') return 'Votre wallet est crédité de';
   if (tone === 'debit') return 'Votre wallet est débité de';
   return null;
+}
+
+export function isWalletNotification(notification: UserNotificationView): boolean {
+  const metadata = notification.data || notification.donnees || {};
+  if (metadata['walletCredit'] === true || metadata['walletDebit'] === true) return true;
+  return /WALLET|PORTEFEUILLE|PAIEMENT_LIBERE|RETRAIT/.test(notification.type.toUpperCase());
 }
 
 export function sortNotificationsNewestFirst(notifications: UserNotificationView[]): UserNotificationView[] {

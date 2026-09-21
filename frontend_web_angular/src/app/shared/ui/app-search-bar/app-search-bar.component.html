@@ -6,29 +6,30 @@
   [attr.aria-label]="ariaLabel"
   (submit)="$event.preventDefault(); onSubmit()"
 >
-  <button
-    type="button"
-    class="app-search-bar__location"
-    [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
-    (click)="onLocationClick()"
-  >
-    <lucide-icon
-      name="map-pin"
-      [size]="isServiceVariant ? 17 : 22"
-      [strokeWidth]="isServiceVariant ? 2.4 : 3"
-    ></lucide-icon>
-    <span><strong>{{ locationTitle }}</strong><em>{{ locationValue }}</em></span>
-    <lucide-icon
-      *ngIf="isServiceVariant"
-      class="app-search-bar__chevron"
-      [class.app-search-bar__chevron--open]="showLocationMenu"
-      name="chevron-down"
-      size="14"
-      [strokeWidth]="2.3"
-    ></lucide-icon>
-  </button>
+  <div class="app-search-bar__main">
+    <button
+      type="button"
+      class="app-search-bar__location"
+      [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
+      (click)="onLocationClick()"
+    >
+      <lucide-icon
+        name="map-pin"
+        [size]="isServiceVariant ? 17 : 22"
+        [strokeWidth]="isServiceVariant ? 2.4 : 3"
+      ></lucide-icon>
+      <span><strong>{{ locationTitle }}</strong><em>{{ locationValue }}</em></span>
+      <lucide-icon
+        *ngIf="isServiceVariant"
+        class="app-search-bar__chevron"
+        [class.app-search-bar__chevron--open]="showLocationMenu"
+        name="chevron-down"
+        size="14"
+        [strokeWidth]="2.3"
+      ></lucide-icon>
+    </button>
 
-  <label class="app-search-bar__field">
+    <label class="app-search-bar__field">
     <lucide-icon
       name="search"
       [size]="isServiceVariant ? 18 : 35"
@@ -41,9 +42,9 @@
       (input)="onInputEvent($event)"
       (focus)="onFocus()"
     />
-  </label>
+    </label>
 
-  <button
+    <button
     *ngIf="!isServiceVariant"
     type="button"
     class="app-search-bar__filter"
@@ -55,18 +56,19 @@
       <strong>{{ filterLabel }}</strong>
       <small *ngIf="filterValueLabel">{{ filterValueLabel }}</small>
     </span>
-  </button>
+    </button>
 
-  <button
+    <button
     *ngIf="isServiceVariant"
     type="button"
     class="app-search-bar__submit"
     aria-label="Filtrer par ville ou position"
     (click)="onServiceSubmitClick()"
   >
-    <lucide-icon name="sliders-horizontal" size="17" [strokeWidth]="2.5"></lucide-icon>
+    <lucide-icon name="search" size="20" [strokeWidth]="2.5"></lucide-icon>
     <span>Chercher</span>
-  </button>
+    </button>
+  </div>
 
   <div
     *ngIf="isServiceVariant && modeOptions.length > 0"

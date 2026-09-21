@@ -1343,40 +1343,381 @@
   box-sizing: border-box;
   background: transparent;
   display: grid;
-  gap: clamp(30px, 4vw, 54px);
-  grid-template-columns: minmax(0, 1.85fr) minmax(250px, 0.9fr);
-  height: clamp(520px, 52vw, 640px);
-  min-height: 520px;
+  gap: 16px;
+  grid-template-columns: minmax(0, 2.25fr) minmax(310px, 1fr);
+  height: auto;
+  margin: 24px auto;
+  max-width: 1260px;
+  min-height: 0;
   overflow: visible;
   padding: 0;
+  width: min(100%, 1260px);
+}
+
+.appointment-detail__teleconsultation-active-profile {
+  grid-column: 1;
   width: 100%;
+}
+
+.appointment-detail__teleconsultation-active-badge {
+  align-items: center;
+  background: #e8f7ef;
+  border: 1px solid #b9e3cd;
+  border-radius: 999px;
+  color: #20794b;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.appointment-detail__teleconsultation-active-badge i {
+  background: #2eb66f;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.appointment-detail__teleconsultation-waiting {
+  display: grid;
+  gap: 16px;
+  margin: 24px auto;
+  max-width: 570px;
+  width: min(100%, 570px);
+}
+
+.appointment-detail__waiting-doctor-card,
+.appointment-detail__waiting-room-card {
+  background: #fff;
+  border: 1px solid #e8e3dd;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgb(42 35 29 / 10%),
+    0 10px 24px rgb(42 35 29 / 7%);
+  overflow: hidden;
+}
+
+.appointment-detail__waiting-room-card {
+  border-color: #eceff2;
+  box-shadow:
+    0 2px 4px rgb(31 41 55 / 8%),
+    0 14px 30px rgb(31 41 55 / 8%);
+}
+
+.appointment-detail__waiting-doctor-profile {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  padding: 20px 22px 18px;
+}
+
+.appointment-detail__waiting-doctor-avatar {
+  flex: 0 0 56px;
+  height: 56px;
+  position: relative;
+}
+
+.appointment-detail__waiting-doctor-avatar img,
+.appointment-detail__waiting-doctor-avatar > span {
+  align-items: center;
+  background: #9b6429;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  font-size: 17px;
+  font-weight: 800;
+  height: 100%;
+  justify-content: center;
+  object-fit: cover;
+  width: 100%;
+}
+
+.appointment-detail__waiting-doctor-avatar > i {
+  background: #2eb66f;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  bottom: 0;
+  height: 13px;
+  position: absolute;
+  right: 0;
+  width: 13px;
+}
+
+.appointment-detail__waiting-doctor-avatar > i.is-offline {
+  background: #9a9691;
+}
+
+.appointment-detail__waiting-doctor-identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.appointment-detail__waiting-doctor-identity h2,
+.appointment-detail__waiting-doctor-identity p {
+  margin: 0;
+}
+
+.appointment-detail__waiting-doctor-identity h2 {
+  color: #28231f;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.appointment-detail__waiting-doctor-identity p {
+  color: #7e7770;
+  font-size: 12px;
+}
+
+.appointment-detail__waiting-presence {
+  align-items: center;
+  background: #e8f7ef;
+  border-radius: 999px;
+  color: #20794b;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.appointment-detail__waiting-presence i {
+  background: #2eb66f;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.appointment-detail__waiting-presence--offline {
+  background: #f1f1f1;
+  color: #6f6b67;
+}
+
+.appointment-detail__waiting-presence--offline i {
+  background: #9a9691;
+}
+
+.appointment-detail__waiting-details {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  padding: 0 20px 20px;
+}
+
+.appointment-detail__waiting-details > div {
+  align-items: center;
+  background: #f5f2ef;
+  border: 1px solid #f1ede9;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 14px;
+}
+
+.appointment-detail__waiting-details > div > span {
+  align-items: center;
+  background: #ebe3da;
+  border: 1px solid #e2d7cb;
+  border-radius: 9px;
+  color: #9b6429;
+  display: flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+}
+
+.appointment-detail__waiting-details p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  min-width: 0;
+}
+
+.appointment-detail__waiting-details small,
+.appointment-detail__waiting-countdown small {
+  color: #99918a;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+}
+
+.appointment-detail__waiting-details strong {
+  color: #35302c;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.appointment-detail__waiting-preview {
+  align-items: center;
+  background: #edeae6;
+  color: #746e68;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-height: 285px;
+  position: relative;
+}
+
+.appointment-detail__waiting-preview > span {
+  align-items: center;
+  background: #e3e6eb;
+  border: 1px solid #dfe3e8;
+  border-radius: 50%;
+  display: flex;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
+}
+
+.appointment-detail__waiting-preview > strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.appointment-detail__waiting-preview > em {
+  align-items: center;
+  background: rgb(255 255 255 / 88%);
+  border: 1px solid #e4e7eb;
+  border-radius: 999px;
+  bottom: 14px;
+  color: #625c56;
+  display: inline-flex;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  gap: 6px;
+  left: 16px;
+  padding: 7px 10px;
+  position: absolute;
+}
+
+.appointment-detail__waiting-preview > em i {
+  background: #d49437;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.appointment-detail__waiting-preview--camera-on {
+  background: linear-gradient(145deg, #e7dfd5, #d9d1c8);
+  color: #51463c;
+}
+
+.appointment-detail__waiting-controls {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto 1fr;
+  padding: 17px 20px 20px;
+}
+
+.appointment-detail__waiting-countdown {
+  display: grid;
+  gap: 2px;
+}
+
+.appointment-detail__waiting-countdown strong {
+  color: #29241f;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  min-width: 74px;
+}
+
+.appointment-detail__waiting-device-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.appointment-detail__waiting-device-controls button {
+  align-items: center;
+  background: #f3f1ef;
+  border: 1px solid #e4e6ea;
+  border-radius: 50%;
+  color: #5f5852;
+  cursor: pointer;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+  width: 38px;
+}
+
+.appointment-detail__waiting-device-controls button:hover {
+  transform: translateY(-1px);
+}
+
+.appointment-detail__waiting-device-controls button.is-active {
+  background: #3d3834;
+  border-color: #3d3834;
+  color: #fff;
+}
+
+.appointment-detail__waiting-enter {
+  align-items: center;
+  background: #9b6429;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 9px;
+  grid-column: 1 / -1;
+  justify-content: center;
+  min-height: 46px;
+  padding: 11px 18px;
+  width: 100%;
+}
+
+.appointment-detail__waiting-enter:hover:not(:disabled) {
+  background: #7f4f20;
+}
+
+.appointment-detail__waiting-enter:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .appointment-detail__teleconsultation-stage {
   align-items: center;
   align-self: stretch;
-  aspect-ratio: 1.2;
+  aspect-ratio: auto;
   background: #fcf9f4;
   border: 1px solid #e8e2d9;
   border-radius: 18px;
   box-shadow: 0 2px 8px rgb(39 29 18 / 8%);
   contain: layout paint;
   display: flex;
-  height: 100%;
+  height: 500px;
   justify-content: center;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
   position: relative;
   width: 100%;
+  grid-column: 1;
 }
 
 .appointment-detail__teleconsultation-viewport {
   align-items: center;
   background: #ddd4c8;
-  border-radius: 9px;
+  border-radius: 16px 16px 0 0;
   display: flex;
-  inset: 54px 16px 58px;
+  inset: 0 0 86px;
   justify-content: center;
   min-height: 0;
   overflow: hidden;
@@ -1620,35 +1961,36 @@
 
 .appointment-detail__teleconsultation-controls {
   align-items: center;
-  background: transparent;
+  background: #fff;
   bottom: 0;
   display: flex;
-  gap: 20px;
-  height: 58px;
-  justify-content: flex-start;
-  left: 38px;
+  gap: 12px;
+  height: 86px;
+  justify-content: center;
+  left: 0;
+  padding: 0 22px;
   position: absolute;
-  right: 38px;
+  right: 0;
   z-index: 3;
 }
 
 .appointment-detail__teleconsultation-controls button {
   align-items: center;
   background: #eee5d9;
-  border: 0;
+  border: 1px solid #e4e6ea;
   border-radius: 999px;
   color: #49392c;
   cursor: pointer;
   display: flex;
-  height: 34px;
+  height: 42px;
   justify-content: center;
-  width: 34px;
+  width: 42px;
 }
 
 .appointment-detail__teleconsultation-controls
   .appointment-detail__teleconsultation-device-control {
-  gap: 8px;
-  width: 66px;
+  gap: 5px;
+  width: 62px;
 }
 
 .appointment-detail__teleconsultation-controls
@@ -1667,58 +2009,14 @@
 }
 
 .appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-incoming-control {
-  gap: 7px;
-  padding: 0 15px;
-  width: auto;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-incoming-control--reject {
-  background: #e63731;
-  color: #fff;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-incoming-control--accept {
-  background: #239447;
-  color: #fff;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-incoming-control--reject:hover {
-  background: #c92d28;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-incoming-control--accept:hover {
-  background: #1b7738;
-}
-
-.appointment-detail__teleconsultation-controls
   .appointment-detail__teleconsultation-primary-control {
   background: #e63731;
   border-radius: 999px;
-  height: 34px;
-  margin-left: auto;
+  height: 42px;
+  margin-left: 8px;
   opacity: 1;
   order: 3;
-  width: 56px;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-primary-control--start {
-  background: #239447;
-  border-color: #239447;
-  gap: 7px;
-  padding: 0 16px;
-  width: auto;
-}
-
-.appointment-detail__teleconsultation-controls
-  .appointment-detail__teleconsultation-primary-control--start:hover:not(:disabled) {
-  background: #1b7738;
-  border-color: #1b7738;
+  width: 62px;
 }
 
 .appointment-detail__live-map--fullscreen .appointment-detail__teleconsultation {
@@ -1738,83 +2036,397 @@
   display: none;
 }
 
+.appointment-detail__live-map--fullscreen .appointment-detail__teleconsultation-active-profile {
+  display: none;
+}
+
 .appointment-detail__teleconsultation-summary {
-  /* Keep the summary heading aligned with the top edge of the video frame. */
   align-self: start;
   background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: 14px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   max-width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
   padding: 0;
 }
 
-.appointment-detail__teleconsultation h2 {
-  color: #090909;
-  font-size: clamp(28px, 3vw, 43px);
-  letter-spacing: -0.045em;
-  line-height: 1;
-  margin: 0 0 18px;
-  white-space: nowrap;
+.appointment-detail__teleconsultation-discussion,
+.appointment-detail__teleconsultation-documents {
+  background: #fff;
+  border: 1px solid #e8e3dd;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgb(42 35 29 / 7%);
+  overflow: hidden;
 }
-.appointment-detail__teleconsultation p {
-  color: #667085;
-  font-size: 14px;
-  line-height: 1.65;
-  margin: 0;
-}
-.appointment-detail__teleconsultation-message {
+
+.appointment-detail__teleconsultation-discussion > header,
+.appointment-detail__teleconsultation-documents > header {
   align-items: center;
-  background: #9b6429;
-  border: 0;
-  border-radius: 10px;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 750;
-  gap: 7px;
-  margin: 16px auto 0;
-  padding: 11px 18px;
-}
-.appointment-detail__teleconsultation-message:hover {
-  background: #7f4f20;
-}
-.appointment-detail__teleconsultation-doctor {
-  align-items: center;
-  border-top: 1px solid #eee;
   display: flex;
-  gap: 12px;
-  margin-top: 22px;
-  padding-top: 22px;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 16px;
 }
-.appointment-detail__teleconsultation-doctor > img,
-.appointment-detail__teleconsultation-doctor > span {
+
+.appointment-detail__teleconsultation-discussion > header {
+  border-bottom: 1px solid #eeeae5;
+}
+
+.appointment-detail__teleconsultation-discussion > header strong,
+.appointment-detail__teleconsultation-documents > header strong {
+  color: #28231f;
+  font-size: 14px;
+}
+
+.appointment-detail__teleconsultation-discussion > header span {
+  align-items: center;
+  color: #9299a5;
+  display: flex;
+  font-size: 11px;
+  gap: 5px;
+}
+
+.appointment-detail__teleconsultation-discussion > header i {
+  background: #2eb66f;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.appointment-detail__teleconsultation-discussion-body {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  min-height: 220px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.appointment-detail__teleconsultation-discussion-empty,
+.appointment-detail__teleconsultation-documents-empty {
+  align-self: center;
+  color: #99918a;
+  font-size: 11px;
+  margin: 0;
+  text-align: center;
+}
+
+.appointment-detail__teleconsultation-discussion-message {
+  align-items: flex-start;
+  display: flex;
+  gap: 9px;
+}
+
+.appointment-detail__teleconsultation-discussion-message > span {
   align-items: center;
   background: #9b6429;
   border-radius: 50%;
   color: #fff;
   display: flex;
-  height: 42px;
+  flex: 0 0 30px;
+  height: 30px;
   justify-content: center;
+  overflow: hidden;
+}
+
+.appointment-detail__teleconsultation-discussion-message img {
+  height: 100%;
   object-fit: cover;
-  width: 42px;
+  width: 100%;
 }
-.appointment-detail__teleconsultation-doctor div {
+
+.appointment-detail__teleconsultation-discussion-message b {
+  font-size: 9px;
+}
+
+.appointment-detail__teleconsultation-discussion-message p {
+  background: #9b6429;
+  border-radius: 12px 12px 12px 3px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.appointment-detail__teleconsultation-discussion-message--own {
+  flex-direction: row-reverse;
+}
+
+.appointment-detail__teleconsultation-discussion-message--own p {
+  background: #f0e7dc;
+  border-radius: 12px 12px 3px;
+  color: #49392c;
+}
+
+.appointment-detail__teleconsultation-composer {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e3e5e8;
+  border-radius: 999px;
+  color: #a0a5ad;
+  display: flex;
+  font: inherit;
+  justify-content: space-between;
+  margin: 0 12px 12px;
+  min-height: 44px;
+  padding: 4px 5px 4px 14px;
+  width: calc(100% - 24px);
+}
+
+.appointment-detail__teleconsultation-composer input {
+  background: transparent;
+  border: 0;
+  color: #35302c;
+  font: inherit;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.appointment-detail__teleconsultation-composer button {
+  align-items: center;
+  background: #9b6429;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.appointment-detail__teleconsultation-composer button:disabled,
+.appointment-detail__teleconsultation-documents > header button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.appointment-detail__teleconsultation-documents {
+  padding-bottom: 12px;
+}
+
+.appointment-detail__teleconsultation-documents > header button {
+  background: transparent;
+  border: 0;
+  color: #9b6429;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.appointment-detail__teleconsultation-document {
+  align-items: center;
+  background: #f5f2ef;
+  border: 1px solid #f0ebe6;
+  border-radius: 11px;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  margin: 0 12px 8px;
+  padding: 10px;
+  text-align: left;
+  width: calc(100% - 24px);
+}
+
+.appointment-detail__teleconsultation-document > span {
+  align-items: center;
+  background: #eee4d9;
+  border-radius: 8px;
+  color: #9b6429;
+  display: flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+}
+
+.appointment-detail__teleconsultation-document p {
   display: grid;
+  gap: 2px;
+  margin: 0;
 }
-.appointment-detail__teleconsultation-doctor small {
-  color: #98a2b3;
+
+.appointment-detail__teleconsultation-document > lucide-icon:last-child {
+  color: #9b6429;
+  margin-left: auto;
 }
-.appointment-detail__teleconsultation-doctor b {
-  color: #98a2b3;
-  font-weight: 600;
+
+.appointment-detail__teleconsultation-document strong {
+  color: #35302c;
+  font-size: 11px;
 }
-.appointment-detail__teleconsultation-security {
-  background: #f7f7f8;
-  border-radius: 14px;
-  margin-top: 20px;
-  padding: 17px;
+
+.appointment-detail__teleconsultation-document small {
+  color: #99918a;
+  font-size: 9px;
+}
+
+.appointment-detail__document-preview-backdrop {
+  background: rgb(24 24 24 / 62%);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  position: fixed;
+  z-index: 1200;
+}
+
+.appointment-detail__document-preview {
+  background: #f8fafb;
+  box-shadow: -18px 0 50px rgb(0 0 0 / 18%);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100%;
+  max-width: 680px;
+  width: min(680px, 100%);
+}
+
+.appointment-detail__document-preview > header {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #eeeae5;
+  display: flex;
+  gap: 10px;
+  min-height: 72px;
+  padding: 10px 18px;
+}
+
+.appointment-detail__document-preview > header > span {
+  align-items: center;
+  background: #f1e9df;
+  border-radius: 10px;
+  color: #9b6429;
+  display: flex;
+  flex: 0 0 40px;
+  height: 40px;
+  justify-content: center;
+}
+
+.appointment-detail__document-preview > header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.appointment-detail__document-preview > header strong {
+  color: #29241f;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment-detail__document-preview > header small {
+  color: #99918a;
+  font-size: 10px;
+}
+
+.appointment-detail__document-preview nav {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.appointment-detail__document-preview nav button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e3e5e8;
+  border-radius: 8px;
+  color: #69707c;
+  cursor: pointer;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0 9px;
+}
+
+.appointment-detail__document-preview nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.appointment-detail__document-preview nav output {
+  color: #7c838e;
+  font-size: 11px;
+  min-width: 38px;
+  text-align: center;
+}
+
+.appointment-detail__document-preview nav .appointment-detail__document-preview-download {
+  background: #9b6429;
+  border-color: #9b6429;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 6px;
+}
+
+.appointment-detail__document-preview-caption {
+  align-items: center;
+  background: #f7f3ee;
+  border-bottom: 1px solid #e9e3dc;
+  color: #9b6429;
+  display: flex;
+  font-size: 11px;
+  gap: 18px;
+  min-height: 38px;
+  padding: 0 20px;
+}
+
+.appointment-detail__document-preview-caption span {
+  color: #9b948d;
+}
+
+.appointment-detail__document-preview-canvas {
+  align-items: flex-start;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  padding: 22px;
+}
+
+.appointment-detail__document-preview-canvas iframe {
+  background: #fff;
+  border: 1px solid #dde2e7;
+  box-shadow: 0 3px 12px rgb(31 41 55 / 8%);
+  flex: 0 0 auto;
+  height: 100%;
+  min-height: 620px;
+}
+
+.appointment-detail__document-preview-canvas img {
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(31 41 55 / 10%);
+  flex: 0 0 auto;
+  height: auto;
+  max-width: none;
+}
+
+.appointment-detail__document-preview-unsupported {
+  align-items: center;
+  align-self: center;
+  color: #7c838e;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+}
+
+.appointment-detail__document-preview-unsupported button {
+  background: #9b6429;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 750;
+  padding: 10px 15px;
 }
 .appointment-detail__teleconsultation-finish {
   align-items: center;
@@ -1836,98 +2448,138 @@
   cursor: wait;
   opacity: 0.65;
 }
-.appointment-detail__teleconsultation-security > small {
-  color: #98a2b3;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-.appointment-detail__teleconsultation ul {
-  display: grid;
-  gap: 12px;
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-}
-.appointment-detail__teleconsultation li {
-  align-items: center;
-  display: flex;
-  gap: 9px;
-}
-.appointment-detail__teleconsultation li lucide-icon {
-  align-items: center;
-  background: #9b6429;
-  border-radius: 5px;
-  color: #fff;
-  display: flex;
-  height: 22px;
-  justify-content: center;
-  min-width: 22px;
-}
 
 @media (max-width: 900px) {
   .appointment-detail__teleconsultation {
-    gap: 28px;
-    grid-template-columns: minmax(0, 1.8fr) minmax(200px, 1fr);
-    height: clamp(480px, 64vw, 580px);
-    min-height: 480px;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
     padding: 0;
   }
-  .appointment-detail__teleconsultation h2 {
-    font-size: clamp(26px, 4vw, 34px);
+  .appointment-detail__teleconsultation-summary {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
   }
 }
 
 @media (max-width: 680px) {
+  .appointment-detail__document-preview > header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .appointment-detail__document-preview > header > div {
+    max-width: calc(100% - 54px);
+  }
+  .appointment-detail__document-preview nav {
+    justify-content: flex-end;
+    margin-left: 0;
+    width: 100%;
+  }
+  .appointment-detail__document-preview-caption {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 14px;
+  }
+  .appointment-detail__document-preview-canvas {
+    padding: 12px;
+  }
+  .appointment-detail__teleconsultation-waiting {
+    margin: 12px auto;
+  }
+  .appointment-detail__waiting-doctor-profile {
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .appointment-detail__waiting-presence {
+    padding: 5px 8px;
+  }
+  .appointment-detail__waiting-details {
+    grid-template-columns: 1fr;
+    padding: 0 16px 16px;
+  }
+  .appointment-detail__waiting-details > div {
+    padding: 13px 16px;
+  }
+  .appointment-detail__waiting-preview {
+    min-height: 250px;
+  }
+  .appointment-detail__waiting-controls {
+    padding: 15px 16px 17px;
+  }
   .appointment-detail__teleconsultation {
-    gap: 0;
+    gap: 14px;
     grid-template-columns: 1fr;
     height: auto;
-    margin-top: 0;
+    margin: 12px auto;
     min-height: 0;
   }
   .appointment-detail__teleconsultation-stage {
-    aspect-ratio: 0.95;
+    aspect-ratio: auto;
     border-radius: 18px;
-    height: auto;
-    min-height: 380px;
+    height: 460px;
+    min-height: 0;
   }
   .appointment-detail__teleconsultation-viewport {
-    inset: 48px 12px 56px;
+    inset: 0 0 82px;
   }
   .appointment-detail__teleconsultation-fullscreen {
     right: 10px;
     top: 5px;
   }
   .appointment-detail__teleconsultation-controls {
-    gap: 12px;
-    left: 24px;
-    right: 24px;
+    gap: 10px;
+    height: 82px;
+    left: 0;
+    right: 0;
   }
   .appointment-detail__teleconsultation-summary {
     align-self: stretch;
-    padding: 28px 20px;
+    padding: 0;
   }
 }
 
 @media (max-width: 480px) {
+  .appointment-detail__waiting-doctor-avatar {
+    flex-basis: 48px;
+    height: 48px;
+  }
+  .appointment-detail__waiting-doctor-identity h2 {
+    font-size: 15px;
+  }
+  .appointment-detail__waiting-device-controls {
+    gap: 5px;
+  }
+  .appointment-detail__waiting-device-controls button {
+    height: 34px;
+    width: 34px;
+  }
+  .appointment-detail__waiting-countdown strong {
+    font-size: 21px;
+  }
   .appointment-detail__teleconsultation {
-    gap: 0;
+    gap: 12px;
     min-height: 0;
     padding: 0;
   }
   .appointment-detail__teleconsultation-stage {
-    aspect-ratio: 0.82;
+    aspect-ratio: auto;
     border-radius: 16px;
-    min-height: 390px;
+    height: 430px;
+    min-height: 0;
   }
   .appointment-detail__teleconsultation-viewport {
-    inset: 46px 10px 56px;
+    inset: 0 0 78px;
   }
   .appointment-detail__teleconsultation-controls {
     gap: 8px;
-    left: 18px;
-    right: 18px;
+    height: 78px;
+    left: 0;
+    padding: 0 12px;
+    right: 0;
   }
   .appointment-detail__teleconsultation-controls
     .appointment-detail__teleconsultation-device-control {
@@ -1945,8 +2597,5 @@
     height: 82px;
     right: 10px;
     width: 96px;
-  }
-  .appointment-detail__teleconsultation h2 {
-    font-size: 28px;
   }
 }

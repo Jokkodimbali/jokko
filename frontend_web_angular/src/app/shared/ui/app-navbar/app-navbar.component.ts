@@ -29,6 +29,7 @@ import { SessionPresenceService } from '../../../core/presence/session-presence.
 import {
   findFeaturedNotification,
   formatNotificationTitle,
+  isWalletNotification,
   notificationIcon,
   notificationAvatarUrl,
   notificationSubtitle,
@@ -599,6 +600,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     reservationId?: string;
   } {
     const metadata = notification.data || notification.donnees || {};
+    if (isWalletNotification(notification)) {
+      const walletSpace = this.currentUser()?.role === 'MEDECIN'
+        ? '/medecine/espace'
+        : '/prestataire/espace';
+      return { commands: [walletSpace], queryParams: { section: 'wallet' } };
+    }
     const explicitRoute = this.readMetadataString(metadata, 'route');
     if (explicitRoute?.startsWith('/')) return { commands: [explicitRoute] };
 

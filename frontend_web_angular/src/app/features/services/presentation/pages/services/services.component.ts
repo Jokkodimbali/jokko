@@ -94,7 +94,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly catalogRealtime = inject(CatalogRealtimeService);
   private readonly navbarPresentation = inject(AppNavbarPresentationService);
 
-  protected readonly heroIllustration = '/image%20haut.png';
 
   sections = signal<ServiceSection[]>([]);
   protected readonly nearbyExpanded = signal(false);

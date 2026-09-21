@@ -13,6 +13,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RemoteTrack } from 'livekit-client';
@@ -39,6 +40,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import { ConversationMessage } from '../../../../messages/domain/models/messages.models';
 import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
 import { PharmacyOrderEntryComponent } from '../../../../pharmacy-orders/presentation/components/pharmacy-order-entry/pharmacy-order-entry.component';
@@ -98,6 +100,14 @@ type RouteRequestInput = {
   origin: { latitude: number; longitude: number };
   destination: { latitude: number; longitude: number };
   alternatives?: boolean;
+};
+type TeleconsultationDocumentPreview = {
+  message: ConversationMessage;
+  fileName: string;
+  url: string;
+  safeUrl: SafeResourceUrl;
+  revokeAfterUse: boolean;
+  kind: 'pdf' | 'image' | 'unsupported';
 };
 
 const COMMON_MEDICAL_ACTS = [
@@ -220,6 +230,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly messagesService = inject(MessagesService);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly pharmacyOrders = inject(PharmacyOrdersService);
   private readonly materialOrders = inject(MaterialOrdersService);
   private readonly feedback = inject(AppFeedbackService);
@@ -312,6 +323,70 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly teleconsultationCallEnded = signal(false);
   protected readonly isTeleconsultationEndConfirmationOpen = signal(false);
   protected readonly isPreparingTeleconsultationCall = signal(false);
+  private readonly isAutoAcceptingTeleconsultationCall = signal(false);
+  private readonly autoAcceptTeleconsultationCallEffect = effect(() => {
+    const appointment = this.appointment();
+    const call = this.calls.call();
+    if (
+      appointment?.consultationType !== 'TELECONSULTATION' ||
+      call?.phase !== 'INCOMING' ||
+      this.isAutoAcceptingTeleconsultationCall()
+    ) {
+      return;
+    }
+
+    this.isAutoAcceptingTeleconsultationCall.set(true);
+    void this.calls.accept().finally(() => this.isAutoAcceptingTeleconsultationCall.set(false));
+  });
+  private autoStartedTeleconsultationId: string | null = null;
+  private readonly autoStartTeleconsultationCallEffect = effect(() => {
+    const appointment = this.appointment();
+    if (
+      !appointment ||
+      appointment.consultationType !== 'TELECONSULTATION' ||
+      appointment.status !== 'EN_COURS' ||
+      !this.isDoctorViewer() ||
+      this.teleconsultationCompleted() ||
+      this.calls.call() ||
+      this.autoStartedTeleconsultationId === appointment.id
+    ) {
+      return;
+    }
+
+    this.autoStartedTeleconsultationId = appointment.id;
+    this.startTeleconsultation(appointment);
+  });
+  protected readonly teleconsultationMessages = signal<ConversationMessage[]>([]);
+  protected readonly teleconsultationChatDraft = signal('');
+  protected readonly isSendingTeleconsultationMessage = signal(false);
+  protected readonly isUploadingTeleconsultationDocument = signal(false);
+  protected readonly teleconsultationDocumentPreview = signal<TeleconsultationDocumentPreview | null>(null);
+  protected readonly teleconsultationDocumentZoom = signal(100);
+  protected readonly teleconsultationDocuments = computed(() =>
+    this.teleconsultationMessages().filter((message) => !!message.mediaUrl),
+  );
+  private readonly teleconsultationMessagesEffect = effect((onCleanup) => {
+    const appointment = this.appointment();
+    if (
+      !appointment?.conversationId ||
+      appointment.consultationType !== 'TELECONSULTATION' ||
+      appointment.status !== 'EN_COURS'
+    ) {
+      this.teleconsultationMessages.set([]);
+      return;
+    }
+
+    const subscription = timer(0, 2500)
+      .pipe(
+        switchMap(() =>
+          this.messagesService
+            .listMessages(appointment.conversationId!, 50, 0)
+            .pipe(catchError(() => of(this.teleconsultationMessages()))),
+        ),
+      )
+      .subscribe((messages) => this.teleconsultationMessages.set(messages));
+    onCleanup(() => subscription.unsubscribe());
+  });
   private readonly teleconsultationRealtimeEndEffect = effect(() => {
     const endedCall = this.calls.lastEndedVideoCall();
     const appointment = this.appointment();
@@ -346,6 +421,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     'active',
   );
   protected readonly nowMs = signal(Date.now());
+  protected readonly waitingRoomMicrophoneEnabled = signal(false);
+  protected readonly waitingRoomCameraEnabled = signal(false);
   protected readonly isHandlingPriceAdjustment = signal(false);
   protected readonly isRescheduleModalOpen = signal(false);
   protected readonly isPriceAdjustmentModalOpen = signal(false);
@@ -1533,6 +1610,23 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (days === 1) return 'Demain';
     return `Dans ${days} jours`;
   });
+  protected readonly teleconsultationWaitingCountdownLabel = computed(() => {
+    const appointment = this.appointment();
+    if (!appointment) return '--:--';
+
+    const scheduledAtMs = new Date(appointment.scheduledAt).getTime();
+    if (!Number.isFinite(scheduledAtMs)) return '--:--';
+
+    const totalSeconds = Math.max(0, Math.ceil((scheduledAtMs - this.nowMs()) / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const minuteSeconds = `${minutes.toString().padStart(2, '0')}:${seconds
+      .toString()
+      .padStart(2, '0')}`;
+
+    return hours > 0 ? `${hours.toString().padStart(2, '0')}:${minuteSeconds}` : minuteSeconds;
+  });
   protected readonly upcomingPreparationProgress = computed(() => {
     const appointment = this.appointment();
     if (!appointment) return 20;
@@ -1605,6 +1699,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   ngOnDestroy(): void {
     this.componentDestroyed = true;
+    this.closeTeleconsultationDocumentPreview();
     this.clearRouteJoiningTimer();
     window.removeEventListener('focus', this.refreshParcelCheckpoints);
     window.removeEventListener('storage', this.refreshParcelCheckpoints);
@@ -2815,20 +2910,147 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
-  protected toggleTeleconsultation(appointment: AppointmentView): void {
-    if (this.calls.call()) {
-      if (this.isDoctorViewer() && this.calls.call()?.phase === 'ACTIVE') {
-        this.isTeleconsultationEndConfirmationOpen.set(true);
-        return;
-      }
-      void this.endTeleconsultationCall();
+  protected toggleTeleconsultation(): void {
+    if (!this.calls.call()) return;
+    if (this.isDoctorViewer() && this.calls.call()?.phase === 'ACTIVE') {
+      this.isTeleconsultationEndConfirmationOpen.set(true);
       return;
     }
-    if (!this.isDoctorViewer()) {
-      this.feedback.info("En attente de l'appel du médecin.");
+    void this.endTeleconsultationCall();
+  }
+
+  protected setWaitingRoomMicrophone(enabled: boolean): void {
+    this.waitingRoomMicrophoneEnabled.set(enabled);
+  }
+
+  protected setWaitingRoomCamera(enabled: boolean): void {
+    this.waitingRoomCameraEnabled.set(enabled);
+  }
+
+  protected sendTeleconsultationChatMessage(appointment: AppointmentView): void {
+    const conversationId = appointment.conversationId;
+    const content = this.teleconsultationChatDraft().trim();
+    if (!conversationId || !content || this.isSendingTeleconsultationMessage()) return;
+
+    this.isSendingTeleconsultationMessage.set(true);
+    this.messagesService
+      .sendMessage(conversationId, content)
+      .pipe(finalize(() => this.isSendingTeleconsultationMessage.set(false)))
+      .subscribe({
+        next: (message) => {
+          this.teleconsultationMessages.update((messages) => [...messages, message]);
+          this.teleconsultationChatDraft.set('');
+        },
+        error: () => this.feedback.error("Le message n'a pas pu être envoyé."),
+      });
+  }
+
+  protected uploadTeleconsultationDocument(event: Event, appointment: AppointmentView): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const conversationId = appointment.conversationId;
+    input.value = '';
+    if (!file || !conversationId || this.isUploadingTeleconsultationDocument()) return;
+
+    this.isUploadingTeleconsultationDocument.set(true);
+    this.messagesService
+      .uploadMedia(file)
+      .pipe(
+        switchMap(({ mediaUrl }) =>
+          this.messagesService.sendMessage(conversationId, `Document partagé : ${file.name}`, mediaUrl),
+        ),
+        finalize(() => this.isUploadingTeleconsultationDocument.set(false)),
+      )
+      .subscribe({
+        next: (message) =>
+          this.teleconsultationMessages.update((messages) => [...messages, message]),
+        error: () => this.feedback.error("Le document n'a pas pu être envoyé."),
+      });
+  }
+
+  protected downloadTeleconsultationDocument(message: ConversationMessage): void {
+    if (!message.mediaUrl) return;
+    this.messagesService.resolveMediaDownloadTarget(message.mediaUrl).subscribe({
+      next: (target) => {
+        const link = document.createElement('a');
+        link.href = target.url;
+        link.download = target.fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        if (target.revokeAfterUse) window.setTimeout(() => URL.revokeObjectURL(target.url), 1000);
+      },
+      error: () => this.feedback.error("Le document n'a pas pu être téléchargé."),
+    });
+  }
+
+  protected openTeleconsultationDocument(message: ConversationMessage): void {
+    if (!message.mediaUrl) return;
+    this.closeTeleconsultationDocumentPreview();
+    this.messagesService.resolveMediaDownloadTarget(message.mediaUrl).subscribe({
+      next: (target) => {
+        const fileName = this.teleconsultationDocumentName(message);
+        const extension = fileName.split('.').pop()?.toLocaleLowerCase('fr-FR') ?? '';
+        const kind: TeleconsultationDocumentPreview['kind'] =
+          extension === 'pdf'
+            ? 'pdf'
+            : ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)
+              ? 'image'
+              : 'unsupported';
+        this.teleconsultationDocumentZoom.set(100);
+        this.teleconsultationDocumentPreview.set({
+          message,
+          fileName,
+          url: target.url,
+          safeUrl: this.sanitizer.bypassSecurityTrustResourceUrl(
+            kind === 'pdf' ? `${target.url}#toolbar=0&navpanes=0&view=FitH` : target.url,
+          ),
+          revokeAfterUse: target.revokeAfterUse,
+          kind,
+        });
+      },
+      error: () => this.feedback.error("Le document n'a pas pu être ouvert."),
+    });
+  }
+
+  protected closeTeleconsultationDocumentPreview(): void {
+    const preview = this.teleconsultationDocumentPreview();
+    if (preview?.revokeAfterUse) URL.revokeObjectURL(preview.url);
+    this.teleconsultationDocumentPreview.set(null);
+    this.teleconsultationDocumentZoom.set(100);
+  }
+
+  protected changeTeleconsultationDocumentZoom(delta: number): void {
+    this.teleconsultationDocumentZoom.update((zoom) =>
+      Math.min(200, Math.max(50, zoom + delta)),
+    );
+  }
+
+  protected teleconsultationDocumentName(message: ConversationMessage): string {
+    const content = message.content?.replace(/^Document partagé\s*:\s*/i, '').trim();
+    if (content) return content;
+    const mediaUrl = message.mediaUrl ?? '';
+    const cleanUrl = mediaUrl.split('?')[0].split('#')[0];
+    return decodeURIComponent(cleanUrl.split('/').pop() || 'Document partagé');
+  }
+
+  protected isOwnTeleconsultationMessage(message: ConversationMessage): boolean {
+    return message.senderId === this.currentUser()?.id;
+  }
+
+  protected enterTeleconsultationWaitingRoom(appointment: AppointmentView): void {
+    if (this.isDoctorViewer()) {
+      this.runProviderPrimaryAction(appointment);
       return;
     }
-    this.startTeleconsultation(appointment);
+
+    if (this.calls.call()?.phase === 'INCOMING') {
+      void this.calls.accept();
+      return;
+    }
+
+    this.feedback.info("Vous êtes dans la salle d'attente. Le médecin démarrera l'appel.");
   }
 
   private async endTeleconsultationCall(): Promise<void> {
@@ -2863,14 +3085,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
   }
 
-  protected acceptTeleconsultationCall(): void {
-    void this.calls.accept();
-  }
-
-  protected rejectTeleconsultationCall(): void {
-    void this.calls.reject();
-  }
-
   protected confirmTeleconsultationCompleted(appointment: AppointmentView): void {
     if (!this.isDoctorViewer() || this.isUpdatingStatus()) return;
     this.isUpdatingStatus.set(true);
@@ -2892,14 +3106,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     });
   }
 
-  protected openTeleconsultationMessages(appointment: AppointmentView): void {
-    void this.router.navigate(['/messages'], {
-      queryParams: appointment.conversationId
-        ? { conversationId: appointment.conversationId }
-        : undefined,
-    });
-  }
-
   protected teleconsultationDurationLabel(): string {
     const duration = this.calls.durationSeconds();
     const minutes = Math.floor(duration / 60);
@@ -2911,18 +3117,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.isProviderViewer() ? appointment.clientName : appointment.doctorName;
   }
 
-  protected teleconsultationMainAvatar(appointment: AppointmentView): string | null | undefined {
-    return this.isProviderViewer() ? appointment.clientAvatarUrl : appointment.avatarUrl;
-  }
-
   protected teleconsultationLocalAvatar(appointment: AppointmentView): string | null | undefined {
     return this.isProviderViewer() ? appointment.avatarUrl : appointment.clientAvatarUrl;
-  }
-
-  protected teleconsultationMainInitials(appointment: AppointmentView): string {
-    return this.isProviderViewer()
-      ? this.clientInitials(appointment)
-      : this.avatarInitials(appointment);
   }
 
   protected teleconsultationLocalInitials(appointment: AppointmentView): string {
@@ -2943,20 +3139,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         (track) =>
           track.kind === 'video' && !track.isMuted && (!track.sid || !muted.has(track.sid)),
       );
-  }
-
-  protected teleconsultationConnectionLabel(): string {
-    switch (this.calls.networkState()) {
-      case 'CONNECTED':
-        return this.calls.call()?.phase === 'ACTIVE'
-          ? 'Connexion stable · HD'
-          : 'Prêt à se connecter';
-      case 'SIGNAL_RECONNECTING':
-      case 'RECONNECTING':
-        return 'Reconnexion en cours…';
-      case 'COUNTERPART_DISCONNECTED':
-        return 'Participant momentanément déconnecté';
-    }
   }
 
   private watchTeleconsultationCompletion(appointment: AppointmentView): void {
@@ -3178,6 +3360,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     this.appointmentsService.getAppointmentById(appointmentId).subscribe({
       next: (appointment) => {
+        this.medicalPrescriptionDraftDirty = false;
+        this.medicalPrescriptionSaveVersion = 0;
         this.appointment.set(appointment);
         this.startPaymentStatusRefresh(appointmentId);
         this.watchTeleconsultationCompletion(appointment);
@@ -5599,6 +5783,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       serviceDescription: current.serviceDescription,
       serviceCategoryName: current.serviceCategoryName,
       professionalSubCategoryName: current.professionalSubCategoryName,
+      consultationType: updated.consultationType ?? current.consultationType,
+      conversationId: updated.conversationId ?? current.conversationId,
     };
     this.hydrateMedicalPrescriptionFromAppointment(merged);
     return merged;
@@ -5669,7 +5855,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           );
           return;
         }
-        this.medicalPrescriptionDraftDirty = false;
+        // Le brouillon local reste prioritaire pendant toute la session d'édition.
+        // Un événement temps réel reçu juste après cette réponse peut encore contenir
+        // l'ancienne ordonnance et ne doit pas effacer l'ajout qui vient d'être validé.
         this.appointment.update((current) =>
           current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
         );

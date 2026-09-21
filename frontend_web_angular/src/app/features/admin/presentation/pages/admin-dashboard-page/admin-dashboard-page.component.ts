@@ -77,8 +77,8 @@ interface DeliveryPricingSettings {
   courierCommissionRate: number;
 }
 
-const APP_BANNER_WIDTH = 936;
-const APP_BANNER_HEIGHT = 220;
+const APP_BANNER_WIDTH = 950;
+const APP_BANNER_HEIGHT = 500;
 const APP_BANNER_RATIO = APP_BANNER_WIDTH / APP_BANNER_HEIGHT;
 const APP_BANNER_MAX_FILE_SIZE = 2 * 1024 * 1024;
 const APP_BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -452,7 +452,7 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
     this.setAppBannerDimensions(index, dimensions.width, dimensions.height);
     if (!this.hasRecommendedBannerFormat(dimensions.width, dimensions.height)) {
       this.feedback.info(
-        `Image ${dimensions.width} × ${dimensions.height} px : utilisez 936 × 220 px pour éviter de couper du texte.`,
+        `Image ${dimensions.width} × ${dimensions.height} px : utilisez 950 × 500 px pour éviter de couper du texte.`,
       );
     }
 
@@ -479,15 +479,15 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
   protected appBannerFormatMessage(banner: EditableAppBanner): string {
     const { imageWidth: width, imageHeight: height } = banner;
-    if (!width || !height) return 'Format attendu : 936 × 220 px (ratio 4,25:1).';
+    if (!width || !height) return 'Format attendu : 950 × 500 px (ratio 1,9:1).';
     if (this.hasRecommendedBannerFormat(width, height)) {
-      return 'Format conforme : 936 × 220 px.';
+      return 'Format conforme : 950 × 500 px.';
     }
     const ratioMatches = Math.abs(width / height - APP_BANNER_RATIO) / APP_BANNER_RATIO <= 0.005;
     if (ratioMatches) {
-      return `Dimensions détectées : ${width} × ${height} px. Le ratio est correct, mais 936 × 220 px est recommandé.`;
+      return `Dimensions détectées : ${width} × ${height} px. Le ratio est correct, mais 950 × 500 px est recommandé.`;
     }
-    return `Dimensions détectées : ${width} × ${height} px. Ratio non conforme : l image sera recadrée. Utilisez 936 × 220 px et gardez le texte important au centre.`;
+    return `Dimensions détectées : ${width} × ${height} px. Ratio non conforme : l image sera recadrée. Utilisez 950 × 500 px et gardez le texte important au centre.`;
   }
 
   protected saveAppBanners(): void {

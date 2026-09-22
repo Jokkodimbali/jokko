@@ -694,6 +694,7 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
   async confirmArrival(input: {
     reservationId: string;
     professionalId: string;
+    updateProfessionalPresence: boolean;
   }): Promise<ReservationTrackingView | null> {
     const record = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.sessionTrackingReservation.findUnique({
@@ -711,10 +712,12 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       }
 
       const now = new Date();
-      await tx.presenceProfessionnel.updateMany({
-        where: { profilProfessionnelId: input.professionalId },
-        data: { statut: 'EN_LIGNE', dernierVueLe: now },
-      });
+      if (input.updateProfessionalPresence) {
+        await tx.presenceProfessionnel.updateMany({
+          where: { profilProfessionnelId: input.professionalId },
+          data: { statut: 'EN_LIGNE', dernierVueLe: now },
+        });
+      }
       return tx.sessionTrackingReservation.update({
         where: { id: existing.id },
         data: { statut: 'TERMINEE', termineLe: now },

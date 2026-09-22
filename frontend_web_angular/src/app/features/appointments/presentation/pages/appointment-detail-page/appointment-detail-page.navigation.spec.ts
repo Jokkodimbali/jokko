@@ -5,6 +5,69 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     vi.useRealTimers();
   });
 
+  it.each(['prestation', 'consultation'])(
+    'restaure une arrivee %s confirmee apres rechargement',
+    () => {
+      const component = bareComponent();
+      component['routeSessionStartedAtMs'] = 0;
+      component['isParcelDropoffNavigationActive'] = () => false;
+
+      expect(
+        component['trackingIndicatesArrival']({
+          trackingStatus: 'TERMINEE',
+          startedAt: '2026-09-22T10:00:00.000Z',
+          endedAt: '2026-09-22T10:15:00.000Z',
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it('replace les avatars au lieu de prestation apres rechargement', () => {
+    const component = bareComponent();
+    component['isParcelDeliveryFlow'] = () => false;
+    component['pinnedArrivalPoint'] = () => ({ lat: 14.7, lng: -17.5 });
+    const destination = { lat: 14.72, lng: -17.46 };
+
+    expect(
+      component['resolveArrivalPoint'](destination, {
+        lastLatitude: 14.7,
+        lastLongitude: -17.5,
+      }),
+    ).toEqual(destination);
+  });
+
+  it.each(['colis simple', 'medicaments', 'materiel'])(
+    "restaure l'arrivee chez le destinataire pour une livraison de %s",
+    () => {
+      const component = bareComponent();
+      component['routeSessionStartedAtMs'] = 0;
+      component['isParcelDropoffNavigationActive'] = () => true;
+      component['parcelDropoffRouteObserved'] = false;
+      component['isPersistedParcelDropoffArrival'] = () => true;
+
+      expect(
+        component['trackingIndicatesArrival']({
+          trackingStatus: 'TERMINEE',
+          startedAt: '2026-09-22T11:00:00.000Z',
+          endedAt: '2026-09-22T11:30:00.000Z',
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it('replace le livreur et le destinataire au point de depot apres rechargement', () => {
+    const component = bareComponent();
+    component['pinnedArrivalPoint'] = () => ({ lat: 14.69, lng: -17.48 });
+    const dropoff = { lat: 14.73, lng: -17.44 };
+
+    expect(
+      component['resolveArrivalPoint'](dropoff, {
+        lastLatitude: 14.69,
+        lastLongitude: -17.48,
+      }),
+    ).toEqual(dropoff);
+  });
+
   it('starts the autonomous timer when a valid fast reroute is installed', () => {
     vi.useFakeTimers();
     const component = joiningComponent();

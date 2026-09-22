@@ -451,6 +451,7 @@ export class LiveTrackingCommandService {
     const tracking = await this.liveTrackingRepository.confirmArrival({
       reservationId,
       professionalId: context.professionalId,
+      updateProfessionalPresence: context.travelMode !== 'CLIENT_SE_DEPLACE',
     });
     if (!tracking)
       throw appHttpException('LIVE_TRACKING_ACTIVE_SESSION_REQUIRED');

@@ -2180,6 +2180,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       })
       .subscribe({
         next: (conversation) => {
+          const isExpectedConversation =
+            !conversation.counterpart.isAdmin &&
+            conversation.reservationId === appointment.id &&
+            conversation.clientUserId === appointment.clientId &&
+            conversation.professionalProfileId === appointment.professionalId;
+          if (!isExpectedConversation) {
+            const counterpart = this.isProviderViewer() ? 'ce client' : 'ce prestataire';
+            this.feedback.error(`Impossible d'ouvrir la discussion avec ${counterpart}.`);
+            return;
+          }
           this.router.navigate(['/messages'], {
             queryParams: {
               conversationId: conversation.id,

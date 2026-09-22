@@ -2,6 +2,35 @@ import { MessagingRepository } from './messaging.repository';
 import { type PrismaService } from '../../../prisma/prisma.service';
 
 describe('conversation history', () => {
+  it('matches a reservation conversation only when both participants are correct', async () => {
+    const prisma = {
+      conversation: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+    const repository = new MessagingRepository(
+      prisma as unknown as PrismaService,
+    );
+
+    await repository.findConversationByReservationId({
+      reservationId: 'reservation',
+      currentUserId: 'client',
+      clientUserId: 'client',
+      professionalUserId: 'doctor',
+    });
+
+    expect(prisma.conversation.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          reservationId: 'reservation',
+          clientId: 'client',
+          prestataireId: 'doctor',
+          OR: [{ clientId: 'client' }, { prestataireId: 'client' }],
+        },
+      }),
+    );
+  });
+
   it('only loads messages belonging to the selected private conversation', async () => {
     const sender = {
       id: 'admin',

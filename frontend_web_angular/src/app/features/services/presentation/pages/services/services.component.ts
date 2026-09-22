@@ -83,6 +83,8 @@ const SERVICE_CARD_COVER_URL =
 export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('serviceFilters')
   private readonly serviceFilterRefs?: QueryList<ElementRef<HTMLElement>>;
+  @ViewChildren('favoriteList')
+  private readonly favoriteListRefs?: QueryList<ElementRef<HTMLElement>>;
 
   private readonly servicesService = inject(ServicesService);
   private readonly favoritesService = inject(FavoritesService);
@@ -310,6 +312,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly locationLabelCache = new Map<string, string>();
   private serviceFilterWheelCleanups: Array<() => void> = [];
   private serviceFilterRefsChangesSubscription?: Subscription;
+  private favoriteListRefsChangesSubscription?: Subscription;
   private catalogRealtimeSubscription?: Subscription;
   private catalogProfileSubscription?: Subscription;
   private bannerRotationTimer?: ReturnType<typeof setInterval>;
@@ -359,6 +362,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.suggestionsRequestSubscription?.unsubscribe();
     this.clearServiceFilterWheelListeners();
     this.serviceFilterRefsChangesSubscription?.unsubscribe();
+    this.favoriteListRefsChangesSubscription?.unsubscribe();
     this.catalogRealtimeSubscription?.unsubscribe();
     this.catalogProfileSubscription?.unsubscribe();
     this.stopBannerRotation();
@@ -384,6 +388,59 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.serviceFilterRefsChangesSubscription = this.serviceFilterRefs?.changes.subscribe(() => {
       this.bindServiceFilterWheelListeners();
     });
+    this.refreshFavoriteScrollbars();
+    this.favoriteListRefsChangesSubscription = this.favoriteListRefs?.changes.subscribe(() => {
+      this.refreshFavoriteScrollbars();
+    });
+  }
+
+  private refreshFavoriteScrollbars(): void {
+    setTimeout(() => {
+      this.favoriteListRefs?.forEach((reference) =>
+        this.syncFavoriteScrollbar(reference.nativeElement),
+      );
+    });
+  }
+
+  protected syncFavoriteScrollbar(list: HTMLElement): void {
+    const shell = list.parentElement;
+    if (!shell) return;
+    const viewport = list.clientHeight;
+    const scrollRange = Math.max(0, list.scrollHeight - viewport);
+    const thumbHeight = scrollRange === 0 ? viewport : Math.max(28, (viewport / list.scrollHeight) * viewport);
+    const thumbRange = Math.max(0, viewport - thumbHeight);
+    const thumbTop = scrollRange === 0 ? 0 : (list.scrollTop / scrollRange) * thumbRange;
+    shell.style.setProperty('--favorite-thumb-height', `${thumbHeight}px`);
+    shell.style.setProperty('--favorite-thumb-top', `${thumbTop}px`);
+    shell.style.setProperty('--favorite-scrollbar-opacity', scrollRange > 0 ? '1' : '0');
+  }
+
+  protected moveFavoriteScrollbar(event: PointerEvent, list: HTMLElement): void {
+    event.preventDefault();
+    const rail = event.currentTarget as HTMLElement;
+    const updatePosition = (clientY: number): void => {
+      const railRect = rail.getBoundingClientRect();
+      const viewport = list.clientHeight;
+      const scrollRange = Math.max(0, list.scrollHeight - viewport);
+      if (scrollRange === 0) return;
+      const thumbHeight = Math.max(28, (viewport / list.scrollHeight) * viewport);
+      const thumbRange = Math.max(1, railRect.height - thumbHeight);
+      const thumbTop = Math.min(thumbRange, Math.max(0, clientY - railRect.top - thumbHeight / 2));
+      list.scrollTop = (thumbTop / thumbRange) * scrollRange;
+      this.syncFavoriteScrollbar(list);
+    };
+
+    updatePosition(event.clientY);
+    rail.setPointerCapture(event.pointerId);
+    const move = (moveEvent: PointerEvent): void => updatePosition(moveEvent.clientY);
+    const stop = (): void => {
+      rail.removeEventListener('pointermove', move);
+      rail.removeEventListener('pointerup', stop);
+      rail.removeEventListener('pointercancel', stop);
+    };
+    rail.addEventListener('pointermove', move);
+    rail.addEventListener('pointerup', stop);
+    rail.addEventListener('pointercancel', stop);
   }
 
   onSearchTermChange(value: string): void {

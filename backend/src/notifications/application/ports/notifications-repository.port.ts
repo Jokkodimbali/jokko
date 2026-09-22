@@ -23,10 +23,18 @@ export type ListUserNotificationsQuery = {
   offset: number;
 };
 
+export type ReservationNotificationServiceContext = {
+  sourceServiceName: string;
+  displayServiceName: string;
+};
+
 export interface NotificationsRepositoryPort {
   listDeliveryOffers(userId: string): Promise<DeliveryOfferView[]>;
   declineDeliveryOffer(userId: string, notificationId: string): Promise<boolean>;
   resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string): Promise<string[]>;
+  resolveReservationNotificationServiceContext(
+    reservationId: string,
+  ): Promise<ReservationNotificationServiceContext | null>;
   create(input: CreateNotificationInput): Promise<NotificationView>;
   createMany(inputs: CreateNotificationInput[]): Promise<NotificationView[]>;
   listByUser(query: ListUserNotificationsQuery): Promise<NotificationView[]>;

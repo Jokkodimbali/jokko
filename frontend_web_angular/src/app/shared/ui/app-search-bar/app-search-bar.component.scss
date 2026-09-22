@@ -190,11 +190,11 @@
   border-radius: 12px;
   box-shadow: none;
   color: #9a5a21;
-  gap: 8px;
+  gap: 6px;
   height: 50px;
   justify-content: flex-start;
   margin: 0 0 0 8px;
-  padding: 0 15px;
+  padding: 0 10px;
   position: relative;
   z-index: 1;
 }
@@ -211,8 +211,8 @@
 .app-search-bar--service .app-search-bar__location span {
   color: #8b4f1c;
   display: flex;
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.08;
   min-width: 0;
   overflow: hidden;
@@ -916,34 +916,72 @@
   }
 
   .app-search-bar--service .app-search-bar__main {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    display: grid;
-    gap: 12px;
-    grid-template-columns: minmax(0, 1fr) 52px;
-    height: 50px;
-    overflow: visible;
-  }
-
-  .app-search-bar--service .app-search-bar__field {
     background: #fff;
     border: 1px solid #e8cdb8;
     border-radius: 999px;
+    box-shadow: 0 8px 22px rgba(92, 54, 25, 0.1);
+    display: grid;
+    gap: 0;
+    grid-template-columns: 100px minmax(0, 1fr);
+    height: 50px;
+    overflow: hidden;
+  }
+
+  .app-search-bar--service.app-search-bar--panel-open .app-search-bar__main {
+    border-radius: 999px;
+  }
+
+  .app-search-bar--service .app-search-bar__location {
+    align-self: center;
+    display: grid;
+    gap: 4px;
+    grid-column: 1;
+    grid-template-columns: 14px minmax(0, 1fr) 14px;
+    grid-row: 1;
+    height: 40px;
+    justify-content: center;
+    margin: 5px;
+    padding: 0 7px;
+    width: calc(100% - 10px);
+  }
+
+  .app-search-bar--service .app-search-bar__location span {
+    flex: 0 1 auto;
+    font-size: 10px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .app-search-bar--service .app-search-bar__location > lucide-icon {
+    justify-self: center;
+  }
+
+  .app-search-bar--service .app-search-bar__chevron {
+    margin-left: 0;
+  }
+
+  .app-search-bar--service .app-search-bar__field {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: center;
     min-height: 50px;
-    padding: 0 18px;
+    padding: 0 14px;
+  }
+
+  .app-search-bar--service .app-search-bar__field > lucide-icon {
+    display: none;
   }
 
   .app-search-bar--service .app-search-bar__field input {
-    font-size: 16px;
+    font-size: clamp(12px, 3.5vw, 15px);
+    text-align: center;
   }
 
   .app-search-bar--service .app-search-bar__submit {
-    border-radius: 50%;
-    height: 52px;
-    margin: 0;
-    width: 52px;
+    display: none;
   }
 
   .app-search-bar--service .app-search-bar__modes {
@@ -951,12 +989,48 @@
     grid-column: 1 / -1;
     grid-row: 2;
     gap: 8px;
-    overflow: visible;
-    padding: 0 7px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 14px 2px 2px;
   }
 
   .app-search-bar--service .app-search-bar__suggestions {
     top: 50px;
+  }
+
+  .app-search-bar--service .app-search-bar__location-menu {
+    left: 0;
+    border-radius: 14px;
+    padding: 10px 8px;
+    top: 56px;
+    width: min(200px, calc(100vw - 24px));
+  }
+
+  .app-search-bar--service .app-search-bar__location-menu p {
+    font-size: 9px;
+    margin-bottom: 7px;
+    text-align: center;
+  }
+
+  .app-search-bar--service .app-search-bar__current-location,
+  .app-search-bar--service .app-search-bar__city {
+    border-radius: 9px;
+    font-size: 11px;
+    height: 34px;
+    padding: 0 9px;
+  }
+
+  .app-search-bar--service .app-search-bar__current-location {
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .app-search-bar--service .app-search-bar__city span {
+    gap: 6px;
+  }
+
+  .app-search-bar--service .app-search-bar__city small {
+    font-size: 9px;
   }
 
   .app-search-bar--service .app-search-bar__modes > span {
@@ -977,18 +1051,33 @@
   }
 
   .app-search-bar--service .app-search-bar__main {
-    gap: 12px;
-    grid-template-columns: minmax(0, 1fr) 46px;
+    border-radius: 999px;
+    gap: 0;
+    grid-template-columns: 90px minmax(0, 1fr);
     height: 46px;
+  }
+
+  .app-search-bar--service .app-search-bar__location {
+    height: 36px;
+    margin: 5px;
+    padding: 0 6px;
+  }
+
+  .app-search-bar--service .app-search-bar__location span {
+    font-size: 9px;
+  }
+
+  .app-search-bar--service .app-search-bar__chevron {
+    margin-left: 0;
   }
 
   .app-search-bar--service .app-search-bar__field {
     min-height: 46px;
-    padding: 0 15px;
+    padding: 0 8px;
   }
 
   .app-search-bar--service .app-search-bar__field input {
-    font-size: 14px;
+    font-size: clamp(11px, 3.4vw, 13px);
   }
 
   .app-search-bar--service .app-search-bar__submit {
@@ -998,11 +1087,16 @@
 
   .app-search-bar--service .app-search-bar__modes {
     overflow-x: auto;
-    padding: 0;
+    padding: 13px 0 2px;
   }
 
   .app-search-bar--service .app-search-bar__suggestions {
     top: 46px;
+  }
+
+  .app-search-bar--service .app-search-bar__location-menu {
+    top: 52px;
+    width: min(188px, calc(100vw - 20px));
   }
 
   .app-search-bar--service .app-search-bar__mode {

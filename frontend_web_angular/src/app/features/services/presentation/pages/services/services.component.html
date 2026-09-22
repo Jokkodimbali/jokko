@@ -61,34 +61,48 @@
         </div>
       </div>
 
-      <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list">
-        <a
-          *ngFor="let provider of favoriteProviders(); trackBy: trackByProviderId"
-          class="favorite-row"
-          [routerLink]="provider.route"
+      <div *ngIf="favoriteProviders().length > 0; else emptyFavorites" class="favorite-list-shell">
+        <div
+          #favoriteList
+          class="favorite-list"
+          (scroll)="syncFavoriteScrollbar(favoriteList)"
+          (mouseenter)="syncFavoriteScrollbar(favoriteList)"
         >
-          <div class="favorite-avatar">
-            <img
-              *ngIf="resolveProviderAvatar(provider) as avatar; else favoriteInitials"
-              [src]="avatar"
-              [alt]="provider.nom"
-              (error)="handleImageError(avatar)"
-            />
-            <ng-template #favoriteInitials>
-              <span class="favorite-avatar__initials">{{ providerInitials(provider.nom) }}</span>
-            </ng-template>
-            <app-presence-dot
-              class="favorite-avatar__dot"
-              [userId]="provider.userId"
-              [professionalId]="provider.id"
-              [initialOnline]="provider.isOnline"
-            />
-          </div>
-          <span class="favorite-row__info">
-            <strong>{{ provider.nom }}</strong>
-            <small>{{ provider.speciality }}</small>
-          </span>
-        </a>
+          <a
+            *ngFor="let provider of favoriteProviders(); trackBy: trackByProviderId"
+            class="favorite-row"
+            [routerLink]="provider.route"
+          >
+            <div class="favorite-avatar">
+              <img
+                *ngIf="resolveProviderAvatar(provider) as avatar; else favoriteInitials"
+                [src]="avatar"
+                [alt]="provider.nom"
+                (error)="handleImageError(avatar)"
+              />
+              <ng-template #favoriteInitials>
+                <span class="favorite-avatar__initials">{{ providerInitials(provider.nom) }}</span>
+              </ng-template>
+              <app-presence-dot
+                class="favorite-avatar__dot"
+                [userId]="provider.userId"
+                [professionalId]="provider.id"
+                [initialOnline]="provider.isOnline"
+              />
+            </div>
+            <span class="favorite-row__info">
+              <strong>{{ provider.nom }}</strong>
+              <small>{{ provider.speciality }}</small>
+            </span>
+          </a>
+        </div>
+        <div
+          class="favorite-scrollbar"
+          aria-hidden="true"
+          (pointerdown)="moveFavoriteScrollbar($event, favoriteList)"
+        >
+          <span class="favorite-scrollbar__thumb"></span>
+        </div>
       </div>
 
       <ng-template #emptyFavorites>

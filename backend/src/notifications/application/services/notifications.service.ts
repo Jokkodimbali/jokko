@@ -88,14 +88,28 @@ export class NotificationsService {
   }
 
   async declineDeliveryOffer(userId: string, notificationId: string) {
-    if (!await this.notificationsRepository.declineDeliveryOffer(userId, notificationId)) {
+    if (
+      !(await this.notificationsRepository.declineDeliveryOffer(
+        userId,
+        notificationId,
+      ))
+    ) {
       throw appHttpException('NOTIFICATIONS_NOT_FOUND');
     }
-    this.realtimeEvents.emit('delivery-offer.resolved', { userId, notificationId });
+    this.realtimeEvents.emit('delivery-offer.resolved', {
+      userId,
+      notificationId,
+    });
   }
 
-  async resolveDeliveryOffers(orderKey: 'pharmacyOrderId' | 'materialOrderId', orderId: string) {
-    const recipients = await this.notificationsRepository.resolveDeliveryOffers(orderKey, orderId);
+  async resolveDeliveryOffers(
+    orderKey: 'pharmacyOrderId' | 'materialOrderId',
+    orderId: string,
+  ) {
+    const recipients = await this.notificationsRepository.resolveDeliveryOffers(
+      orderKey,
+      orderId,
+    );
     for (const userId of recipients) {
       this.realtimeEvents.emit('delivery-offer.resolved', { userId, orderId });
     }
@@ -103,7 +117,7 @@ export class NotificationsService {
 
   async createInAppNotification(input: CreateNotificationInput) {
     const notification = await this.notificationsRepository.create(
-      this.normalizeNotificationInput(input),
+      await this.normalizeNotificationInput(input),
     );
     this.realtimeEvents.emit('notification.created', { notification });
     await this.deliveryService.sendPushForNotification(notification);
@@ -117,8 +131,18 @@ export class NotificationsService {
       return;
     }
 
+    const serviceContextByReservation = new Map<
+      string,
+      ReturnType<
+        NotificationsRepositoryPort['resolveReservationNotificationServiceContext']
+      >
+    >();
     const notifications = await this.notificationsRepository.createMany(
-      inputs.map((input) => this.normalizeNotificationInput(input)),
+      await Promise.all(
+        inputs.map((input) =>
+          this.normalizeNotificationInput(input, serviceContextByReservation),
+        ),
+      ),
     );
     for (const notification of notifications) {
       this.realtimeEvents.emit('notification.created', { notification });
@@ -208,14 +232,72 @@ export class NotificationsService {
     return offset;
   }
 
-  private normalizeNotificationInput(
+  private async normalizeNotificationInput(
     input: CreateNotificationInput,
-  ): CreateNotificationInput {
+    serviceContextByReservation?: Map<
+      string,
+      ReturnType<
+        NotificationsRepositoryPort['resolveReservationNotificationServiceContext']
+      >
+    >,
+  ): Promise<CreateNotificationInput> {
+    const reservationId = this.metadataString(input.data, 'reservationId');
+    let title = input.title;
+    let body = input.body;
+    let data = input.data;
+
+    if (reservationId) {
+      let serviceContextPromise =
+        serviceContextByReservation?.get(reservationId);
+      if (!serviceContextPromise) {
+        serviceContextPromise =
+          this.notificationsRepository.resolveReservationNotificationServiceContext(
+            reservationId,
+          );
+        serviceContextByReservation?.set(reservationId, serviceContextPromise);
+      }
+      const serviceContext = await serviceContextPromise;
+      if (serviceContext) {
+        title = this.replaceServiceName(title, serviceContext);
+        body = this.replaceServiceName(body, serviceContext);
+        data = {
+          ...input.data,
+          serviceName: serviceContext.displayServiceName,
+        };
+      }
+    }
+
     return {
       ...input,
-      title: this.normalizeNotificationText(input.title, true),
-      body: this.normalizeNotificationText(input.body, false),
+      title: this.normalizeNotificationText(title, true),
+      body: this.normalizeNotificationText(body, false),
+      data,
     };
+  }
+
+  private replaceServiceName(
+    text: string,
+    context: { sourceServiceName: string; displayServiceName: string },
+  ): string {
+    if (!context.sourceServiceName.trim()) {
+      return text;
+    }
+    const escapedName = context.sourceServiceName.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&',
+    );
+    return text.replace(
+      new RegExp(escapedName, 'gi'),
+      context.displayServiceName,
+    );
+  }
+
+  private metadataString(
+    data: CreateNotificationInput['data'],
+    key: string,
+  ): string | null {
+    const value = data?.[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
 
   private normalizeNotificationText(text: string, isTitle: boolean): string {

@@ -298,6 +298,15 @@
     scrollbar-width: none;
   }
 
+  :host .favorite-list-shell {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  :host .favorite-scrollbar {
+    display: none;
+  }
+
   :host .favorite-list::-webkit-scrollbar {
     display: none;
   }

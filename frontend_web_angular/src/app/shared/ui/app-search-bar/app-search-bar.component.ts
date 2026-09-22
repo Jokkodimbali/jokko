@@ -126,11 +126,6 @@ export class AppSearchBarComponent {
   }
 
   onServiceSubmitClick(): void {
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      this.locationClick.emit();
-      return;
-    }
-
     this.onSubmit();
   }
 

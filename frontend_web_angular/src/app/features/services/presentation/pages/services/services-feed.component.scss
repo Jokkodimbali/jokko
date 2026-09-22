@@ -70,15 +70,53 @@
   margin-top: 2px;
 }
 
+:host .favorite-list-shell {
+  --favorite-scrollbar-opacity: 0;
+  --favorite-thumb-height: 28px;
+  --favorite-thumb-top: 0px;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
 :host .favorite-list {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
   max-height: none;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 0;
+  padding-right: 13px;
+  scrollbar-width: none;
+}
+
+:host .favorite-list::-webkit-scrollbar {
+  display: none;
+}
+
+:host .favorite-scrollbar {
+  background: #fff;
+  border-radius: 999px;
+  bottom: 0;
+  cursor: pointer;
+  opacity: var(--favorite-scrollbar-opacity);
+  position: absolute;
+  right: 0;
+  top: 0;
+  touch-action: none;
+  transition: opacity 160ms ease;
+  width: 7px;
+}
+
+:host .favorite-scrollbar__thumb {
+  background: #955d24;
+  border: 1px solid #fff;
+  border-radius: 999px;
+  display: block;
+  height: var(--favorite-thumb-height);
+  transform: translateY(var(--favorite-thumb-top));
+  width: 100%;
 }
 
 :host .favorite-row {

@@ -126,6 +126,7 @@ export interface LiveTrackingRepositoryPort {
   confirmArrival(input: {
     reservationId: string;
     professionalId: string;
+    updateProfessionalPresence: boolean;
   }): Promise<ReservationTrackingView | null>;
   startReservationFromArrival(input: {
     reservationId: string;

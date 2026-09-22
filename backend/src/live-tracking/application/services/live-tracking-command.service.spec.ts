@@ -59,6 +59,8 @@ describe('LiveTrackingCommandService realtime payload contracts', () => {
         reservationStatus: 'PAYEE_SEQUESTRE',
         travelMode: 'CLIENT_SE_DEPLACE',
         serviceName: 'Consultation',
+        clientName: 'Client Test',
+        professionalName: 'Docteur Test',
       }),
       startOrResumeTravelerTracking: jest.fn().mockResolvedValue(tracking),
     };
@@ -86,6 +88,8 @@ describe('LiveTrackingCommandService realtime payload contracts', () => {
       recipientUserId: 'professional-user',
       serviceName: 'Consultation',
       travellerRole: 'CLIENT',
+      travellerName: 'Client Test',
+      targetName: 'Docteur Test',
       tripStatus: 'EN_ROUTE',
     });
     expect(notifications.notifyTripStatus).toHaveBeenCalledWith({
@@ -93,9 +97,89 @@ describe('LiveTrackingCommandService realtime payload contracts', () => {
       recipientUserId: 'client',
       serviceName: 'Consultation',
       travellerRole: 'CLIENT',
+      travellerName: 'Client Test',
+      targetName: 'Docteur Test',
       recipientIsTraveller: true,
       tripStatus: 'EN_ROUTE',
     });
+  });
+
+  it("confirme l'arrivee du client sans modifier la presence du professionnel", async () => {
+    const tracking = { ...trackingView(), trackingStatus: 'TERMINEE' as const };
+    const repository = {
+      findReservationContext: jest.fn().mockResolvedValue({
+        reservationId: 'reservation',
+        clientUserId: 'client',
+        professionalId: 'professional',
+        professionalUserId: 'professional-user',
+        reservationStatus: 'PAYEE_SEQUESTRE',
+        travelMode: 'CLIENT_SE_DEPLACE',
+        serviceName: 'Consultation',
+        clientName: 'Client Test',
+        professionalName: 'Docteur Test',
+      }),
+      confirmArrival: jest.fn().mockResolvedValue(tracking),
+    };
+    const notifications = {
+      notifyReservationArrival: jest.fn().mockResolvedValue(undefined),
+    };
+    const clientTravelService = new LiveTrackingCommandService(
+      repository as never,
+      {} as never,
+      { publier: jest.fn().mockResolvedValue(undefined) } as never,
+      { emit: jest.fn() } as never,
+      notifications as never,
+      {} as never,
+    );
+
+    await clientTravelService.confirmArrival(
+      { sub: 'client', role: 'CLIENT' } as never,
+      'reservation',
+    );
+
+    expect(repository.confirmArrival).toHaveBeenCalledWith({
+      reservationId: 'reservation',
+      professionalId: 'professional',
+      updateProfessionalPresence: false,
+    });
+    expect(notifications.notifyReservationArrival).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'professional-user',
+        travellerRole: 'CLIENT',
+      }),
+    );
+  });
+
+  it('interdit a un autre utilisateur de piloter le trajet du client', async () => {
+    const repository = {
+      findReservationContext: jest.fn().mockResolvedValue({
+        reservationId: 'reservation',
+        clientUserId: 'client',
+        professionalId: 'professional',
+        professionalUserId: 'professional-user',
+        reservationStatus: 'PAYEE_SEQUESTRE',
+        travelMode: 'CLIENT_SE_DEPLACE',
+        serviceName: 'Consultation',
+      }),
+      startOrResumeTravelerTracking: jest.fn(),
+    };
+    const clientTravelService = new LiveTrackingCommandService(
+      repository as never,
+      {} as never,
+      {} as never,
+      { emit: jest.fn() } as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      clientTravelService.markOnTheWay(
+        { sub: 'another-user', role: 'CLIENT' } as never,
+        'reservation',
+        { latitude: 14.72, longitude: -17.46 } as never,
+      ),
+    ).rejects.toMatchObject({ code: 'RESERVATIONS_UNAUTHORIZED' });
+    expect(repository.startOrResumeTravelerTracking).not.toHaveBeenCalled();
   });
 
   it('refuse un second trajet actif pour le meme professionnel', async () => {

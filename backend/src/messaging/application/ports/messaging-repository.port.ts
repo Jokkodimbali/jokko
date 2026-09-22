@@ -97,10 +97,12 @@ export interface MessagingRepositoryPort {
     conversationId: string,
     currentUserId: string,
   ): Promise<ConversationView | null>;
-  findConversationByReservationId(
-    reservationId: string,
-    currentUserId: string,
-  ): Promise<ConversationView | null>;
+  findConversationByReservationId(params: {
+    reservationId: string;
+    currentUserId: string;
+    clientUserId?: string;
+    professionalUserId?: string;
+  }): Promise<ConversationView | null>;
   findDirectConversationByParticipants(params: {
     clientUserId: string;
     professionalUserId: string;

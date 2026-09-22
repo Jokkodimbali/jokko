@@ -776,10 +776,6 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   }
 
   private confirmCheckpointValidation(message: string): void {
-    const key = this.validationStorageKey();
-    if (key) {
-      globalThis.localStorage?.setItem(key, 'validated');
-    }
     this.stopCamera();
     this.validationMessage.set(message);
     this.validationError.set(null);
@@ -789,6 +785,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private advanceReservationAfterScan(message: string): void {
     const appointment = this.appointment();
     if (!appointment || !this.scanMode() || !this.isDeliveryPersonView() || this.isFinalizingScan) {
+      if (!this.isFinalizingScan) {
+        this.persistCheckpointValidation();
+      }
       this.scheduleAutoReturnAfterScan();
       return;
     }
@@ -801,6 +800,9 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
 
     request.subscribe({
       next: (updated) => {
+        // Le marqueur local est seulement un cache d'interface. L'etat
+        // partage entre les appareils reste celui confirme par le backend.
+        this.persistCheckpointValidation();
         this.appointment.set(updated);
         if (this.checkpoint() === 'RETRAIT') {
           // La page de suivi est rouverte juste apres le scan. Conserver ce
@@ -816,6 +818,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
       },
       error: () => {
         this.isFinalizingScan = false;
+        this.validationMessage.set(null);
         this.validationError.set(
           this.checkpoint() === 'RETRAIT'
             ? "QR valide, mais impossible d'activer le trajet vers le destinataire. Verifiez que le livreur est bien sur place."
@@ -823,6 +826,13 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         );
       },
     });
+  }
+
+  private persistCheckpointValidation(): void {
+    const key = this.validationStorageKey();
+    if (key) {
+      globalThis.localStorage?.setItem(key, 'validated');
+    }
   }
 
   private activateDropoffTrackingAfterPickup(appointment: AppointmentView, message: string): void {

@@ -11,6 +11,7 @@ import {
   type DeliveryOfferView,
   type ListUserNotificationsQuery,
   type NotificationsRepositoryPort,
+  type ReservationNotificationServiceContext,
 } from '../../application/ports/notifications-repository.port';
 
 const PRISMA_NOTIFICATION_TYPE_BY_DOMAIN: Record<
@@ -87,6 +88,36 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     });
 
     return notifications.map((notification) => this.toView(notification));
+  }
+
+  async resolveReservationNotificationServiceContext(
+    reservationId: string,
+  ): Promise<ReservationNotificationServiceContext | null> {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        service: { select: { nom: true } },
+        commandePharmacieLivraison: { select: { id: true } },
+        commandeMaterielLivraison: { select: { id: true } },
+      },
+    });
+
+    if (!reservation) {
+      return null;
+    }
+    if (reservation.commandePharmacieLivraison) {
+      return {
+        sourceServiceName: reservation.service.nom,
+        displayServiceName: 'Livraison de médicaments',
+      };
+    }
+    if (reservation.commandeMaterielLivraison) {
+      return {
+        sourceServiceName: reservation.service.nom,
+        displayServiceName: 'Livraison de matériel',
+      };
+    }
+    return null;
   }
 
   async markAllAsReadForUser(userId: string): Promise<number> {
@@ -199,6 +230,9 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
                   utilisateur: { select: { nom: true, urlAvatar: true } },
                 },
               },
+              service: { select: { nom: true } },
+              commandePharmacieLivraison: { select: { id: true } },
+              commandeMaterielLivraison: { select: { id: true } },
             },
           })
         : [];
@@ -281,10 +315,11 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
             ? negotiation.professionnel.utilisateur
             : negotiation.client
           : sender;
-      if (!actor) return this.toView(notification);
-
       const metadata = this.toMetadata(notification.donnees) ?? {};
-      return this.toView(notification, {
+      const serviceContext = reservation
+        ? this.reservationNotificationServiceContext(reservation)
+        : null;
+      const normalizedMetadata = {
         ...metadata,
         ...(negotiation
           ? {
@@ -293,9 +328,23 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
             }
           : {}),
         ...(reservation ? { reservationStatus: reservation.statut } : {}),
-        actorName: actor.nom,
-        avatarUrl: actor.urlAvatar,
-      });
+        ...(serviceContext
+          ? { serviceName: serviceContext.displayServiceName }
+          : {}),
+        ...(actor ? { actorName: actor.nom, avatarUrl: actor.urlAvatar } : {}),
+      };
+
+      if (!serviceContext) {
+        return this.toView(notification, normalizedMetadata);
+      }
+      return this.toView(
+        {
+          ...notification,
+          titre: this.replaceServiceName(notification.titre, serviceContext),
+          corps: this.replaceServiceName(notification.corps, serviceContext),
+        },
+        normalizedMetadata,
+      );
     });
   }
 
@@ -369,5 +418,39 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     const metadata = this.toMetadata(data);
     const value = metadata?.[key];
     return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private reservationNotificationServiceContext(reservation: {
+    service: { nom: string };
+    commandePharmacieLivraison: { id: string } | null;
+    commandeMaterielLivraison: { id: string } | null;
+  }): ReservationNotificationServiceContext | null {
+    if (reservation.commandePharmacieLivraison) {
+      return {
+        sourceServiceName: reservation.service.nom,
+        displayServiceName: 'Livraison de médicaments',
+      };
+    }
+    if (reservation.commandeMaterielLivraison) {
+      return {
+        sourceServiceName: reservation.service.nom,
+        displayServiceName: 'Livraison de matériel',
+      };
+    }
+    return null;
+  }
+
+  private replaceServiceName(
+    text: string,
+    context: ReservationNotificationServiceContext,
+  ): string {
+    const escapedName = context.sourceServiceName.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&',
+    );
+    return text.replace(
+      new RegExp(escapedName, 'gi'),
+      context.displayServiceName,
+    );
   }
 }

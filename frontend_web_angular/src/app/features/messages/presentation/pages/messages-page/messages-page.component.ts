@@ -1589,14 +1589,17 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
         const requestedReservationId = this.requestedReservationId();
         const requestedNegotiationId = this.requestedNegotiationId();
         const requestedDirectConversation = this.findDirectConversation(sortedConversations);
-        const requestedReservationConversation = sortedConversations.find(
-          (conversation) => conversation.reservationId === requestedReservationId,
+        const requestedConversation = sortedConversations.find(
+          (conversation) => conversation.id === requestedConversationId,
+        );
+        const requestedReservationConversation = sortedConversations.find((conversation) =>
+          this.isRequestedReservationConversation(conversation),
         );
         const requestedProposalConversation = this.findProposalConversation(sortedConversations);
         if (
           requestedReservationId &&
           !requestedReservationConversation &&
-          !requestedConversationId
+          !this.isRequestedReservationConversation(requestedConversation)
         ) {
           this.openReservationConversation(requestedReservationId);
           return;
@@ -1614,8 +1617,11 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
           return;
         }
         const selectedId =
-          sortedConversations.find((conversation) => conversation.id === requestedConversationId)
-            ?.id ??
+          (requestedReservationId
+            ? this.isRequestedReservationConversation(requestedConversation)
+              ? requestedConversation?.id
+              : null
+            : requestedConversation?.id) ??
           requestedReservationConversation?.id ??
           requestedProposalConversation?.id ??
           requestedDirectConversation?.id ??
@@ -1716,6 +1722,13 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
   private openReservationConversation(reservationId: string): void {
     this.messagesService.createConversation({ reservationId }).subscribe({
       next: (conversation) => {
+        if (!this.isRequestedReservationConversation(conversation)) {
+          this.errorMessage.set(
+            "La discussion privée liée à cette réservation est introuvable.",
+          );
+          this.isLoadingConversations.set(false);
+          return;
+        }
         this.conversations.set(this.sortConversations([conversation, ...this.conversations()]));
         this.selectedConversationId.set(conversation.id);
         this.requestedConversationId.set(conversation.id);
@@ -2031,6 +2044,22 @@ export class MessagesPageComponent implements OnInit, OnDestroy {
             (conversation.professionalUserId === professionalUserId ||
               conversation.counterpart.userId === professionalUserId)),
       ) ?? null
+    );
+  }
+
+  private isRequestedReservationConversation(
+    conversation: Conversation | null | undefined,
+  ): conversation is Conversation {
+    const reservationId = this.requestedReservationId();
+    if (!conversation || !reservationId || conversation.counterpart.isAdmin) {
+      return false;
+    }
+
+    const professionalProfileId = this.requestedDirectProfessionalId();
+    return (
+      conversation.reservationId === reservationId &&
+      (!professionalProfileId ||
+        conversation.professionalProfileId === professionalProfileId)
     );
   }
 

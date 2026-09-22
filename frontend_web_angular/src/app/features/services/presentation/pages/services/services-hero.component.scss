@@ -186,6 +186,36 @@
   }
 
   :host .hero-banner {
-    display: none;
+    bottom: auto;
+    display: flex;
+    left: auto;
+    margin: 22px auto 0;
+    max-width: 420px;
+    position: relative;
+    right: auto;
+    top: auto;
+    width: calc(100% - 28px);
+  }
+
+  :host .hero-banner > .services-promo {
+    aspect-ratio: 1.9 / 1;
+    border-radius: 14px;
+    margin: 0;
+    max-height: none;
+    width: 100%;
+  }
+
+  :host .hero-banner > .services-promo--dynamic {
+    height: auto;
+    min-height: 0;
+  }
+
+  :host .hero-banner .services-promo__control {
+    height: 26px;
+    width: 26px;
+  }
+
+  :host .hero-banner .services-promo__indicators {
+    bottom: 8px;
   }
 }

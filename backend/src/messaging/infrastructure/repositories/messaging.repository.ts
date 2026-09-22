@@ -157,20 +157,29 @@ export class MessagingRepository implements MessagingRepositoryPort {
       : null;
   }
 
-  async findConversationByReservationId(
-    reservationId: string,
-    currentUserId: string,
-  ): Promise<ConversationView | null> {
+  async findConversationByReservationId(params: {
+    reservationId: string;
+    currentUserId: string;
+    clientUserId?: string;
+    professionalUserId?: string;
+  }): Promise<ConversationView | null> {
     const conversation = await this.prisma.conversation.findFirst({
       where: {
-        reservationId,
-        OR: [{ clientId: currentUserId }, { prestataireId: currentUserId }],
+        reservationId: params.reservationId,
+        ...(params.clientUserId ? { clientId: params.clientUserId } : {}),
+        ...(params.professionalUserId
+          ? { prestataireId: params.professionalUserId }
+          : {}),
+        OR: [
+          { clientId: params.currentUserId },
+          { prestataireId: params.currentUserId },
+        ],
       },
-      select: this.buildConversationSelect(currentUserId),
+      select: this.buildConversationSelect(params.currentUserId),
     });
 
     return conversation
-      ? this.mapConversation(conversation, currentUserId)
+      ? this.mapConversation(conversation, params.currentUserId)
       : null;
   }
 
@@ -202,13 +211,31 @@ export class MessagingRepository implements MessagingRepositoryPort {
     currentUserId: string,
   ): Promise<CreateConversationResult> {
     const existingByReservation = input.reservationId
-      ? await this.findConversationByReservationId(
-          input.reservationId,
+      ? await this.findConversationByReservationId({
+          reservationId: input.reservationId,
           currentUserId,
-        )
+          clientUserId: input.clientUserId,
+          professionalUserId: input.professionalUserId,
+        })
       : null;
     if (existingByReservation) {
       return { conversation: existingByReservation, wasCreated: false };
+    }
+
+    if (input.reservationId) {
+      // Older support threads could be linked to the booking. Preserve their
+      // messages, but remove the invalid booking link before opening the
+      // private client/professional thread.
+      await this.prisma.conversation.updateMany({
+        where: {
+          reservationId: input.reservationId,
+          NOT: {
+            clientId: input.clientUserId,
+            prestataireId: input.professionalUserId,
+          },
+        },
+        data: { reservationId: null },
+      });
     }
 
     const existingByParticipants =
@@ -265,10 +292,12 @@ export class MessagingRepository implements MessagingRepositoryPort {
         error.code === 'P2002'
       ) {
         const conflictConversation = input.reservationId
-          ? await this.findConversationByReservationId(
-              input.reservationId,
+          ? await this.findConversationByReservationId({
+              reservationId: input.reservationId,
               currentUserId,
-            )
+              clientUserId: input.clientUserId,
+              professionalUserId: input.professionalUserId,
+            })
           : await this.findDirectConversationByParticipants({
               clientUserId: input.clientUserId,
               professionalUserId: input.professionalUserId,

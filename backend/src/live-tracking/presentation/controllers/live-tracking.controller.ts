@@ -181,7 +181,19 @@ export class LiveTrackingController {
     const result =
       await this.liveTrackingFacade.getProfessionalPresence(professionalId);
     return createApiResponse(
-      result,
+      {
+        ...result,
+        // Cette route alimente les cartes publiques et ne doit exposer que
+        // la disponibilite. Les coordonnees restent accessibles uniquement
+        // aux participants via /reservations/:id/live-tracking.
+        lastLatitude: null,
+        lastLongitude: null,
+        lastAccuracyMeters: null,
+        lastHeadingDegrees: null,
+        lastSpeedKmh: null,
+        lastLocationLabel: null,
+        lastPositionAt: null,
+      },
       appMessage('LIVE_TRACKING_PRESENCE_RETRIEVED').message,
     );
   }

@@ -24,6 +24,7 @@ import {
   catchError,
   distinctUntilChanged,
   finalize,
+  firstValueFrom,
   from,
   merge,
   of,
@@ -354,7 +355,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.autoStartedTeleconsultationId = appointment.id;
-    this.startTeleconsultation(appointment);
+    void this.resumeOrStartTeleconsultation(appointment);
   });
   protected readonly teleconsultationMessages = signal<ConversationMessage[]>([]);
   protected readonly teleconsultationChatDraft = signal('');
@@ -669,8 +670,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return false;
     }
 
-    const tracking = this.tracking();
-    return tracking?.presence.status === 'EN_PRESTATION' || appointment.status === 'EN_COURS';
+    // La presence est globale au professionnel et peut concerner une autre
+    // mission. Seul le statut de cette reservation peut declarer son debut.
+    return appointment.status === 'EN_COURS';
   });
   protected readonly isProviderOnTheWay = computed(() => {
     const appointment = this.appointment();
@@ -2180,6 +2182,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       })
       .subscribe({
         next: (conversation) => {
+          const isExpectedConversation =
+            !conversation.counterpart.isAdmin &&
+            conversation.reservationId === appointment.id &&
+            conversation.clientUserId === appointment.clientId &&
+            conversation.professionalProfileId === appointment.professionalId;
+          if (!isExpectedConversation) {
+            const counterpart = this.isProviderViewer() ? 'ce client' : 'ce prestataire';
+            this.feedback.error(`Impossible d'ouvrir la discussion avec ${counterpart}.`);
+            return;
+          }
           this.router.navigate(['/messages'], {
             queryParams: {
               conversationId: conversation.id,
@@ -2908,6 +2920,34 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       counterpartName,
       counterpartAvatar || null,
     );
+  }
+
+  private async resumeOrStartTeleconsultation(appointment: AppointmentView): Promise<void> {
+    try {
+      // Au rechargement, CallFacade restaure l'appel depuis le backend. Lire
+      // d'abord cette meme source evite de creer un second appel pendant la
+      // courte fenetre de reconnexion du socket.
+      const activeCall = await firstValueFrom(this.callsApi.getActiveCall());
+      const current = this.appointment();
+      if (
+        !current ||
+        current.id !== appointment.id ||
+        current.status !== 'EN_COURS' ||
+        this.teleconsultationCompleted()
+      ) {
+        return;
+      }
+
+      if (activeCall) {
+        return;
+      }
+
+      this.startTeleconsultation(current);
+    } catch {
+      // Ne pas demarrer un nouvel appel quand l'etat serveur est inconnu :
+      // une reconnexion ulterieure relancera la verification sans doublon.
+      this.autoStartedTeleconsultationId = null;
+    }
   }
 
   protected toggleTeleconsultation(): void {
@@ -4004,8 +4044,15 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     if (tracking?.trackingStatus !== 'TERMINEE') return false;
     // Pendant la phase depot, le premier TERMINEE encore visible appartient
     // au trajet vers l'expediteur. Il ne devient une arrivee destinataire
-    // qu'apres observation de la nouvelle session EN_ROUTE.
-    if (this.isParcelDropoffNavigationActive() && !this.parcelDropoffRouteObserved) {
+    // qu'apres observation de la nouvelle session EN_ROUTE. Apres un
+    // rechargement cette observation memoire est perdue : la reservation en
+    // cours et le retrait persiste permettent alors d'identifier sans ambiguite
+    // l'arrivee du trajet vers le destinataire.
+    if (
+      this.isParcelDropoffNavigationActive() &&
+      !this.parcelDropoffRouteObserved &&
+      !this.isPersistedParcelDropoffArrival(tracking)
+    ) {
       return false;
     }
     if (this.routeSessionStartedAtMs === 0) return true;
@@ -4015,6 +4062,28 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return (
       Number.isFinite(startedAtMs) &&
       startedAtMs >= this.routeSessionStartedAtMs &&
+      Number.isFinite(endedAtMs) &&
+      endedAtMs >= startedAtMs
+    );
+  }
+
+  private isPersistedParcelDropoffArrival(
+    tracking: AppointmentTrackingView,
+  ): boolean {
+    const appointment = this.appointment();
+    if (
+      !appointment ||
+      appointment.status !== 'EN_COURS' ||
+      !this.isParcelTransportAppointment(appointment) ||
+      !this.isParcelPickupValidated()
+    ) {
+      return false;
+    }
+
+    const startedAtMs = Date.parse(tracking.startedAt ?? '');
+    const endedAtMs = Date.parse(tracking.endedAt ?? '');
+    return (
+      Number.isFinite(startedAtMs) &&
       Number.isFinite(endedAtMs) &&
       endedAtMs >= startedAtMs
     );
@@ -4096,13 +4165,12 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     destination: MapCoordinate | null,
     tracking?: AppointmentTrackingView | null,
   ): MapCoordinate | null {
-    // Pour un colis, le checkpoint resolu est toujours la position d'arrivee
-    // de reference. Une derniere mesure GPS ou un ancien point epingle ne doit
-    // pas laisser le vehicule a quelques metres du lieu de scan.
-    if (this.isParcelDeliveryFlow() && destination) return destination;
+    // Une arrivee confirmee est rattachee au lieu de la prestation. Apres un
+    // rechargement, une ancienne mesure GPS peut encore correspondre au depart
+    // du trajet : la destination persistante doit donc rester prioritaire.
+    if (destination) return destination;
     const pinned = this.pinnedArrivalPoint();
     if (pinned) return pinned;
-    if (destination) return destination;
     if (typeof tracking?.lastLatitude === 'number' && typeof tracking.lastLongitude === 'number') {
       return { lat: tracking.lastLatitude, lng: tracking.lastLongitude };
     }

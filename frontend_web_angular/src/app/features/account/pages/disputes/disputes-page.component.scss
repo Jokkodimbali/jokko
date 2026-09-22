@@ -235,17 +235,29 @@
 
 .disputes-page__status--dispute {
   background: #b45246;
-  color: #ffffff;
+  color: #ffffff !important;
   text-transform: uppercase;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.disputes-page__status--dispute * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .disputes-page__status--report {
   background: #16a34a;
-  color: #ffffff;
+  color: #ffffff !important;
   font-size: 12px;
   min-height: 24px;
   padding: 0 10px;
   text-transform: uppercase;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.disputes-page__status--report * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .disputes-page__status--neutral {

@@ -98,8 +98,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
 
   sections = signal<ServiceSection[]>([]);
-  protected readonly nearbyExpanded = signal(false);
-  categoryPagination = signal<PaginationMeta | undefined>(undefined);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   searchTerm = signal<string>('');
@@ -170,30 +168,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
       })),
   );
   protected readonly nearbyProviders = computed(() => this.sections()[0]?.providers ?? []);
-  protected readonly visibleNearbyProviders = computed(() =>
-    this.nearbyExpanded() ? this.nearbyProviders() : this.nearbyProviders().slice(0, 4),
-  );
-  protected readonly categorySections = computed(() => {
-    const groups = new Map<string, Professional[]>();
-
-    for (const provider of this.nearbyProviders()) {
-      const categoryName = provider.categoryName?.trim() || 'Autres services';
-      groups.set(categoryName, [...(groups.get(categoryName) ?? []), provider]);
-    }
-
-    return [...groups.entries()]
-      .map(([title, providers]) => ({
-        id: `category-${this.normalizeLabel(title)}`,
-        title,
-        providers,
-        countLabel: `${providers.length} ${providers.length > 1 ? 'prestataires' : 'prestataire'}`,
-      }))
-      .filter((section) => section.providers.length > 0)
-      .sort(
-        (left, right) =>
-          right.providers.length - left.providers.length || left.title.localeCompare(right.title, 'fr'),
-      );
-  });
   protected readonly filters: Array<{
     value: ProfessionalFilter;
     label: string;
@@ -787,24 +761,20 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     filtersElement?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   }
 
-  onViewAll(section: ServiceSection): void {
-    const nextPage = (section.pagination?.page || 1) + 1;
-    if (section.pagination && nextPage > section.pagination.totalPages) {
+  protected goToProvidersPage(page: number, pagination: PaginationMeta): void {
+    if (
+      this.isLoading() ||
+      page < 1 ||
+      page > Math.max(1, pagination.totalPages) ||
+      page === pagination.page
+    ) {
       return;
     }
 
-    this.loadProfessionals(nextPage, section);
-  }
-
-  protected showMoreNearby(section: ServiceSection): void {
-    if (!this.nearbyExpanded()) {
-      this.nearbyExpanded.set(true);
-      return;
-    }
-
-    if (section.pagination?.hasNext) {
-      this.onViewAll(section);
-    }
+    this.loadProfessionals(page);
+    document
+      .querySelector<HTMLElement>('.service-section .section-heading')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   loadHomeData(page: number = 1): void {
@@ -815,30 +785,18 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadProfessionals(page);
   }
 
-  loadMoreCategories(): void {
-    const section = this.sections()[0];
-    if (!section) {
-      return;
-    }
-
-    this.onViewAll(section);
-  }
-
   private effectiveCityFilter(): string | undefined {
     if (this.currentSearchLocation()) return undefined;
     const city = this.selectedCity().trim();
     return city && city !== 'Toutes villes' && city !== 'Ma position actuelle' ? city : undefined;
   }
 
-  private loadProfessionals(page: number = 1, appendToSection?: ServiceSection): void {
+  private loadProfessionals(page: number = 1): void {
     const query = this.searchTerm().trim();
     const requestId = ++this.requestVersion;
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    if (page === 1 && !appendToSection) {
-      this.nearbyExpanded.set(false);
-    }
     this.professionalsRequestSubscription?.unsubscribe();
     this.professionalsRequestSubscription = this.fetchProfessionals(query, page).subscribe({
       next: (result) => {
@@ -854,25 +812,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         const section = this.buildSection(result, query);
-        if (appendToSection || page > 1) {
-          this.sections.update((sections) =>
-            sections.map((current) =>
-              current.id === (appendToSection?.id ?? section.id)
-                ? {
-                    ...current,
-                    providers: [...current.providers, ...section.providers],
-                    pagination: section.pagination,
-                    countLabel: section.countLabel,
-                  }
-                : current,
-            ),
-          );
-          this.resolveProviderLocationLabels(section.providers);
-        } else {
-          this.sections.set([section]);
-          this.resolveProviderLocationLabels(section.providers);
-        }
-        this.categoryPagination.set(result.meta);
+        this.sections.set([section]);
+        this.resolveProviderLocationLabels(section.providers);
         this.isLoading.set(false);
       },
       error: () => {
@@ -1118,7 +1059,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         ? snapshot.providers
         : snapshot.providers.filter((provider) => provider.serviceTravelMode === mode);
     this.sections.set([this.buildSection({ providers }, this.searchTerm().trim())]);
-    this.categoryPagination.set(undefined);
   }
 
   private travelModeContextKey(): string {

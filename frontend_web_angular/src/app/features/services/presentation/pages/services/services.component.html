@@ -53,7 +53,12 @@
     <aside class="favorites" aria-label="Vos favoris">
       <div class="favorites-header">
         <span class="favorites-header__icon" aria-hidden="true">
-          <lucide-icon name="heart" size="24" [strokeWidth]="2"></lucide-icon>
+          <lucide-icon
+            name="bookmark"
+            size="19"
+            [strokeWidth]="2.5"
+            fill="currentColor"
+          ></lucide-icon>
         </span>
         <div class="favorites-header__text">
           <h2>Vos favoris</h2>
@@ -219,14 +224,14 @@
 
         <div class="section-heading">
           <div class="section-title-group">
-            <h2>{{ currentSearchLocation() ? 'Prestataires à proximité' : section.title }}</h2>
+            <h2>{{ currentSearchLocation() ? 'Prestataires à proximité' : 'Tous les prestataires' }}</h2>
             <p>{{ section.countLabel }}</p>
           </div>
         </div>
 
         <div class="provider-row">
           <app-provider-card
-            *ngFor="let provider of visibleNearbyProviders(); trackBy: trackByProviderId"
+            *ngFor="let provider of nearbyProviders(); trackBy: trackByProviderId"
             [provider]="providerCardView(provider)"
             [isFavorite]="isProviderFavorite(provider.id)"
             (favoriteToggle)="toggleProviderFavorite(provider.id)"
@@ -235,14 +240,32 @@
           ></app-provider-card>
         </div>
 
-        <button
-          *ngIf="section.providers.length > 4 || section.pagination?.hasNext"
-          type="button"
-          class="see-all"
-          (click)="showMoreNearby(section)"
+        <footer
+          *ngIf="section.pagination as pagination"
+          class="services-pagination"
+          aria-label="Pagination des prestataires"
         >
-          Voir plus
-        </button>
+          <span>{{ pagination.total }} professionnel(s)</span>
+          <nav aria-label="Pages des prestataires">
+            <button
+              type="button"
+              aria-label="Page précédente"
+              [disabled]="isLoading() || !pagination.hasPrevious"
+              (click)="goToProvidersPage(pagination.page - 1, pagination)"
+            >
+              <lucide-icon name="arrow-left" size="16"></lucide-icon>
+            </button>
+            <strong>Page {{ pagination.page }} / {{ pagination.totalPages || 1 }}</strong>
+            <button
+              type="button"
+              aria-label="Page suivante"
+              [disabled]="isLoading() || !pagination.hasNext"
+              (click)="goToProvidersPage(pagination.page + 1, pagination)"
+            >
+              <lucide-icon name="arrow-right" size="16"></lucide-icon>
+            </button>
+          </nav>
+        </footer>
       </section>
 
       <ng-template #promoContent>
@@ -315,49 +338,6 @@
         </ng-template>
       </ng-template>
 
-      <section
-        *ngIf="categorySections().length > 0"
-        class="category-services"
-        aria-label="Services par catégorie"
-      >
-        <section
-          *ngFor="let category of categorySections(); trackBy: trackById"
-          class="category-services__section"
-          [id]="category.id"
-        >
-          <div class="category-services__section-heading">
-            <div>
-              <h3>{{ category.title }}</h3>
-              <p>{{ category.countLabel }}</p>
-            </div>
-          </div>
-
-          <div class="provider-row">
-            <app-provider-card
-              *ngFor="let provider of category.providers; trackBy: trackByProviderId"
-              [provider]="providerCardView(provider)"
-              [isFavorite]="isProviderFavorite(provider.id)"
-              (favoriteToggle)="toggleProviderFavorite(provider.id)"
-              (primaryAction)="providerPrimaryAction(provider)"
-              (imageError)="handleImageError($event)"
-            ></app-provider-card>
-          </div>
-        </section>
-      </section>
-
-      <div class="load-more-sections" *ngIf="categoryPagination()?.hasNext">
-        <button
-          type="button"
-          (click)="loadMoreCategories()"
-          [disabled]="isLoading()"
-          class="load-more-btn"
-        >
-          {{ isLoading() ? 'Chargement...' : 'Charger plus de prestataires' }}
-          <svg *ngIf="!isLoading()" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
-          </svg>
-        </button>
-      </div>
     </div>
   </section>
 

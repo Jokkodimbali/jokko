@@ -757,8 +757,16 @@
                 [disabled]="!calls.call()"
                 (click)="calls.toggleMute()"
               >
-                <lucide-icon [name]="calls.isMuted() ? 'mic-off' : 'mic'" size="18" />
-                <lucide-icon name="chevron-down" size="16" aria-hidden="true" />
+                <lucide-icon [name]="calls.isMuted() ? 'mic-off' : 'mic'" size="23" />
+              </button>
+              <button
+                *ngIf="calls.call()"
+                type="button"
+                class="appointment-detail__teleconsultation-primary-control"
+                aria-label="Terminer la téléconsultation"
+                (click)="toggleTeleconsultation()"
+              >
+                <lucide-icon name="phone-off" size="32" />
               </button>
               <button
                 type="button"
@@ -769,17 +777,7 @@
                 [disabled]="!calls.call()"
                 (click)="calls.toggleCamera()"
               >
-                <lucide-icon [name]="calls.isCameraEnabled() ? 'video' : 'video-off'" size="18" />
-                <lucide-icon name="chevron-down" size="16" aria-hidden="true" />
-              </button>
-              <button
-                *ngIf="calls.call()"
-                type="button"
-                class="appointment-detail__teleconsultation-primary-control"
-                aria-label="Terminer la téléconsultation"
-                (click)="toggleTeleconsultation()"
-              >
-                <lucide-icon name="phone-off" size="20" />
+                <lucide-icon [name]="calls.isCameraEnabled() ? 'video' : 'video-off'" size="23" />
               </button>
             </div>
 

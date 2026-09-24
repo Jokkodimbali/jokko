@@ -7,12 +7,6 @@
   --call-green: #3f8d55;
 }
 
-@property --call-ring-angle {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .call-overlay {
   position: fixed;
   z-index: 10000;
@@ -36,44 +30,6 @@
 
 .call-overlay--embedded {
   display: none;
-}
-
-.call-overlay--ringing::before {
-  position: absolute;
-  z-index: 30;
-  inset: 0;
-  padding: 4px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from var(--call-ring-angle),
-    transparent 0deg 35deg,
-    #9b642f 80deg,
-    #e6bd88 125deg,
-    transparent 175deg 360deg
-  );
-  content: '';
-  pointer-events: none;
-  animation: call-ringing-border 1.8s linear infinite;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-}
-
-@keyframes call-ringing-border {
-  to {
-    --call-ring-angle: 360deg;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .call-overlay--ringing::before {
-    animation-duration: 4s;
-  }
 }
 
 .call-overlay--minimized {
@@ -1065,10 +1021,6 @@
   transform: translate(-50%, -50%);
 }
 
-.call-overlay--incoming-video.call-overlay--ringing {
-  box-shadow: none;
-}
-
 .call-overlay--incoming-video.call-overlay--incoming-dragged,
 .call-overlay--incoming-voice.call-overlay--incoming-dragged {
   inset: auto;
@@ -1093,10 +1045,6 @@
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(36, 25, 16, 0.3);
   transform: translate(-50%, -50%);
-}
-
-.call-overlay--incoming-voice.call-overlay--ringing {
-  box-shadow: none;
 }
 
 .call-overlay--incoming-voice .call-overlay__voice-identity {

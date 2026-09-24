@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TypeEspaceProfessionnel } from '@prisma/client';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -9,6 +9,8 @@ type CreateCategoryInput = {
   iconUrl?: string | null;
   sortOrder?: number;
   commissionRate?: number;
+  priceType?: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType?: TypeEspaceProfessionnel;
 };
 
 type CreateServiceSubCategoryInput = {
@@ -51,6 +53,8 @@ type ServiceSubCategoryView = {
   description: string | null;
   sortOrder: number;
   isActive: boolean;
+  professionalSpaceType: TypeEspaceProfessionnel | null;
+  registeredUsers: number;
 };
 
 @Injectable()
@@ -104,6 +108,8 @@ export class AdminServiceStructureService {
         iconUrl: category.iconUrl?.trim() || null,
         sortOrder: category.sortOrder ?? 0,
         commissionRate: category.commissionRate ?? 10,
+        priceType: category.priceType ?? 'NEGOCIABLE',
+        professionalSpaceType: category.professionalSpaceType ?? 'PRESTATAIRE',
       })),
     );
 
@@ -137,6 +143,8 @@ export class AdminServiceStructureService {
           urlIcone: item.iconUrl,
           ordreTri: item.sortOrder,
           tauxCommission: new Prisma.Decimal(item.commissionRate),
+          typePrix: item.priceType,
+          typeEspace: item.professionalSpaceType,
         },
         select: this.categorySummarySelect(),
       });
@@ -281,6 +289,58 @@ export class AdminServiceStructureService {
     return this.mapCategory(refreshed);
   }
 
+  async applyCategorySpace(
+    requestUser: AuthUser,
+    categoryId: string,
+    professionalSpaceType: TypeEspaceProfessionnel,
+  ) {
+    this.assertAdmin(requestUser);
+    const category = await this.prisma.categorie.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!category) {
+      throw appHttpException('CATEGORIES_CATEGORY_NOT_FOUND');
+    }
+
+    const updated = await this.prisma.sousCategorieService.updateMany({
+      where: { categories: { some: { categorieId: categoryId } } },
+      data: { typeEspace: professionalSpaceType },
+    });
+
+    return {
+      categoryId,
+      professionalSpaceType,
+      updatedSubCategories: updated.count,
+    };
+  }
+
+  async updateSubCategory(
+    requestUser: AuthUser,
+    subCategoryId: string,
+    professionalSpaceType: TypeEspaceProfessionnel | null,
+  ) {
+    this.assertAdmin(requestUser);
+    try {
+      const updated = await this.prisma.sousCategorieService.update({
+        where: { id: subCategoryId },
+        data: { typeEspace: professionalSpaceType },
+        select: {
+          id: true,
+          nom: true,
+          description: true,
+          ordreTri: true,
+          estActive: true,
+          typeEspace: true,
+          _count: { select: { specialitesProfessionnelles: true } },
+        },
+      });
+      return this.mapSubCategory(updated);
+    } catch {
+      throw appHttpException('ADMIN_SERVICE_SUBCATEGORY_NOT_FOUND');
+    }
+  }
+
   async deleteEmptyCategory(requestUser: AuthUser, categoryId: string) {
     this.assertAdmin(requestUser);
 
@@ -339,6 +399,8 @@ export class AdminServiceStructureService {
         urlIcone: true,
         ordreTri: true,
         tauxCommission: true,
+        typePrix: true,
+        typeEspace: true,
         estActive: true,
         services: {
           orderBy: [{ nom: 'asc' }, { creeLe: 'desc' }],
@@ -363,6 +425,8 @@ export class AdminServiceStructureService {
                 description: true,
                 ordreTri: true,
                 estActive: true,
+                typeEspace: true,
+                _count: { select: { specialitesProfessionnelles: true } },
               },
             },
           },
@@ -380,6 +444,8 @@ export class AdminServiceStructureService {
         urlIcone: true,
         ordreTri: true,
         tauxCommission: true,
+        typePrix: true,
+        typeEspace: true,
         estActive: true,
         services: {
           orderBy: [{ nom: 'asc' }, { creeLe: 'desc' }],
@@ -404,6 +470,8 @@ export class AdminServiceStructureService {
                 description: true,
                 ordreTri: true,
                 estActive: true,
+                typeEspace: true,
+                _count: { select: { specialitesProfessionnelles: true } },
               },
             },
           },
@@ -429,6 +497,8 @@ export class AdminServiceStructureService {
       iconUrl: category.urlIcone,
       sortOrder: category.ordreTri,
       commissionRate: Number(category.tauxCommission),
+      priceType: category.typePrix ?? 'NEGOCIABLE',
+      professionalSpaceType: category.typeEspace ?? 'PRESTATAIRE',
       isActive: category.estActive,
       declaredServices: category.services.length,
       availableServices: availableServices.length,
@@ -439,6 +509,8 @@ export class AdminServiceStructureService {
         description: assignment.sousCategorie.description,
         sortOrder: assignment.ordreTri,
         isActive: assignment.sousCategorie.estActive,
+        professionalSpaceType: assignment.sousCategorie.typeEspace,
+        registeredUsers: assignment.sousCategorie._count?.specialitesProfessionnelles ?? 0,
       })),
       branches: [
         ...category.sousCategories.map((assignment) =>
@@ -581,6 +653,8 @@ export class AdminServiceStructureService {
     description: string | null;
     ordreTri: number;
     estActive: boolean;
+    typeEspace?: TypeEspaceProfessionnel | null;
+    _count?: { specialitesProfessionnelles: number };
   }): ServiceSubCategoryView {
     return {
       id: subCategory.id,
@@ -588,6 +662,8 @@ export class AdminServiceStructureService {
       description: subCategory.description,
       sortOrder: subCategory.ordreTri,
       isActive: subCategory.estActive,
+      professionalSpaceType: subCategory.typeEspace ?? null,
+      registeredUsers: subCategory._count?.specialitesProfessionnelles ?? 0,
     };
   }
 
@@ -598,6 +674,8 @@ export class AdminServiceStructureService {
       urlIcone: true,
       ordreTri: true,
       tauxCommission: true,
+      typePrix: true,
+      typeEspace: true,
       estActive: true,
     } satisfies Prisma.CategorieSelect;
   }
@@ -608,6 +686,8 @@ export class AdminServiceStructureService {
     urlIcone: string | null;
     ordreTri: number;
     tauxCommission: Prisma.Decimal;
+    typePrix: 'FIXE' | 'NEGOCIABLE';
+    typeEspace: TypeEspaceProfessionnel;
     estActive: boolean;
   }) {
     return {
@@ -616,6 +696,8 @@ export class AdminServiceStructureService {
       iconUrl: category.urlIcone,
       sortOrder: category.ordreTri,
       commissionRate: Number(category.tauxCommission),
+      priceType: category.typePrix ?? 'NEGOCIABLE',
+      professionalSpaceType: category.typeEspace ?? 'PRESTATAIRE',
       isActive: category.estActive,
     };
   }

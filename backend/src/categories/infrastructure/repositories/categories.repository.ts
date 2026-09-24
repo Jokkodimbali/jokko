@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TypeEspaceProfessionnel, TypePrix } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CategoriesRepositoryPort,
@@ -19,6 +19,8 @@ const CATEGORY_SELECT = {
   urlIcone: true,
   ordreTri: true,
   tauxCommission: true,
+  typePrix: true,
+  typeEspace: true,
   estActive: true,
 } as const;
 
@@ -28,6 +30,8 @@ type RawCategory = {
   urlIcone: string | null;
   ordreTri: number;
   tauxCommission: Prisma.Decimal;
+  typePrix: TypePrix;
+  typeEspace: TypeEspaceProfessionnel;
   estActive: boolean;
 };
 
@@ -49,6 +53,8 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           c.icon_url AS "urlIcone",
           c.sort_order AS "ordreTri",
           c.commission_rate AS "tauxCommission",
+          c.price_type AS "typePrix",
+          c.professional_space_type AS "typeEspace",
           c.is_active AS "estActive"
         FROM categories c
         LEFT JOIN services s
@@ -156,6 +162,8 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           urlIcone: input.iconUrl,
           ordreTri: input.sortOrder,
           tauxCommission: input.commissionRate,
+          typePrix: input.priceType,
+          typeEspace: input.professionalSpaceType,
         },
         select: CATEGORY_SELECT,
       });
@@ -171,15 +179,75 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
 
   async update(input: UpdateCategoryInput): Promise<UpdateCategoryResult> {
     try {
-      const category = await this.prisma.categorie.update({
-        where: { id: input.categoryId },
-        data: {
-          nom: input.name,
-          urlIcone: input.iconUrl,
-          ordreTri: input.sortOrder,
-          tauxCommission: input.commissionRate,
-        },
-        select: CATEGORY_SELECT,
+      const category = await this.prisma.$transaction(async (tx) => {
+        const updatedCategory = await tx.categorie.update({
+          where: { id: input.categoryId },
+          data: {
+            nom: input.name,
+            urlIcone: input.iconUrl,
+            ordreTri: input.sortOrder,
+            tauxCommission: input.commissionRate,
+            typePrix: input.priceType,
+            typeEspace: input.professionalSpaceType,
+          },
+          select: CATEGORY_SELECT,
+        });
+
+        // La catégorie est la source de vérité pour les données existantes.
+        await tx.service.updateMany({
+          where: { categorieId: input.categoryId },
+          data: { typePrix: input.priceType },
+        });
+        await tx.sousCategorieService.updateMany({
+          where: { categories: { some: { categorieId: input.categoryId } } },
+          data: { typeEspace: input.professionalSpaceType },
+        });
+
+        const affectedProfiles = await tx.profilProfessionnel.findMany({
+          where: {
+            OR: [
+              { services: { some: { categorieId: input.categoryId } } },
+              { specialites: { some: { categorieId: input.categoryId } } },
+            ],
+          },
+          select: {
+            id: true,
+            utilisateurId: true,
+            services: {
+              select: { categorie: { select: { typeEspace: true } } },
+            },
+            specialites: {
+              select: { categorie: { select: { typeEspace: true } } },
+            },
+          },
+        });
+
+        for (const profile of affectedProfiles) {
+          const spaces = new Set<TypeEspaceProfessionnel>([
+            ...profile.services.map((service) => service.categorie.typeEspace),
+            ...profile.specialites.map(
+              (specialty) => specialty.categorie.typeEspace,
+            ),
+          ]);
+          const isOnlyMedical =
+            spaces.size === 1 && spaces.has(TypeEspaceProfessionnel.MEDECIN);
+
+          await tx.profilProfessionnel.update({
+            where: { id: profile.id },
+            data: {
+              estPharmacie: spaces.has(TypeEspaceProfessionnel.PHARMACIE),
+              estQuincaillerie: spaces.has(
+                TypeEspaceProfessionnel.QUINCAILLERIE,
+              ),
+            },
+          });
+          await tx.utilisateur.update({
+            where: { id: profile.utilisateurId },
+            data: { role: isOnlyMedical ? 'MEDECIN' : 'PRESTATAIRE' },
+          });
+        }
+
+        return updatedCategory;
       });
 
       return { status: 'updated', category: this.mapCategory(category) };
@@ -239,6 +307,8 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
       urlIcone: category.urlIcone,
       ordreTri: category.ordreTri,
       tauxCommission: Number(category.tauxCommission),
+      typePrix: category.typePrix,
+      typeEspace: category.typeEspace,
       estActive: category.estActive,
     };
   }

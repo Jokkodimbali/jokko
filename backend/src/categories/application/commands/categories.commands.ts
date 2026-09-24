@@ -3,6 +3,12 @@ export type CreateCategoryCommand = {
   iconUrl?: string | null;
   sortOrder?: number;
   commissionRate?: number;
+  priceType?: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType?:
+    | 'PRESTATAIRE'
+    | 'MEDECIN'
+    | 'QUINCAILLERIE'
+    | 'PHARMACIE';
 };
 
 export type UpdateCategoryCommand = {
@@ -10,4 +16,10 @@ export type UpdateCategoryCommand = {
   iconUrl?: string | null;
   sortOrder?: number;
   commissionRate?: number;
+  priceType?: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType?:
+    | 'PRESTATAIRE'
+    | 'MEDECIN'
+    | 'QUINCAILLERIE'
+    | 'PHARMACIE';
 };

@@ -15,6 +15,7 @@ import {
   AdminRevenueReport,
   AdminServiceSubCategory,
   AdminServiceStructureCategory,
+  AdminProfessionalSpaceType,
   AdminServiceStructureReport,
   AdminSubCategoryPayload,
 } from './admin.models';
@@ -30,28 +31,56 @@ export class AdminDashboardService {
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  getAppBanners(): Observable<Array<{ id: string; imageUrl: string; redirectUrl: string | null; isActive: boolean }>> {
-    return this.http.get<ApiResponse<Array<{ id: string; imageUrl: string; lien: string | null; estActive: boolean }>>>(`${environment.apiUrl}/admin/app-settings/banners`)
-      .pipe(map((response) => unwrapApiResponse(response).map((item) => ({ id: item.id, imageUrl: item.imageUrl, redirectUrl: item.lien, isActive: item.estActive }))));
+  getAppBanners(): Observable<
+    Array<{ id: string; imageUrl: string; redirectUrl: string | null; isActive: boolean }>
+  > {
+    return this.http
+      .get<
+        ApiResponse<
+          Array<{ id: string; imageUrl: string; lien: string | null; estActive: boolean }>
+        >
+      >(`${environment.apiUrl}/admin/app-settings/banners`)
+      .pipe(
+        map((response) =>
+          unwrapApiResponse(response).map((item) => ({
+            id: item.id,
+            imageUrl: item.imageUrl,
+            redirectUrl: item.lien,
+            isActive: item.estActive,
+          })),
+        ),
+      );
   }
 
   getDeliveryPricing(): Observable<{ pricePerKm: number; courierCommissionRate: number }> {
-    return this.http.get<ApiResponse<{ pricePerKm: number; courierCommissionRate: number }>>(`${environment.apiUrl}/admin/app-settings/delivery-pricing`)
+    return this.http
+      .get<ApiResponse<{ pricePerKm: number; courierCommissionRate: number }>>(
+        `${environment.apiUrl}/admin/app-settings/delivery-pricing`,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  saveDeliveryPricing(input: { pricePerKm: number; courierCommissionRate: number }): Observable<unknown> {
-    return this.http.put<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/delivery-pricing`, input)
+  saveDeliveryPricing(input: {
+    pricePerKm: number;
+    courierCommissionRate: number;
+  }): Observable<unknown> {
+    return this.http
+      .put<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/delivery-pricing`, input)
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
-  saveAppBanners(banners: Array<{ imageUrl: string; redirectUrl: string | null; isActive: boolean }>): Observable<unknown> {
+  saveAppBanners(
+    banners: Array<{ imageUrl: string; redirectUrl: string | null; isActive: boolean }>,
+  ): Observable<unknown> {
     const payload = banners.map(({ imageUrl, redirectUrl, isActive }) => ({
       imageUrl,
       redirectUrl: redirectUrl || undefined,
       isActive,
     }));
-    return this.http.post<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/banners`, { banners: payload })
+    return this.http
+      .post<ApiResponse<unknown>>(`${environment.apiUrl}/admin/app-settings/banners`, {
+        banners: payload,
+      })
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -82,17 +111,18 @@ export class AdminDashboardService {
 
   getServiceStructure(): Observable<AdminServiceStructureReport> {
     return this.http
-      .get<
-        ApiResponse<AdminServiceStructureReport>
-      >(`${environment.apiUrl}/admin/service-structure`)
+      .get<ApiResponse<AdminServiceStructureReport>>(
+        `${environment.apiUrl}/admin/service-structure`,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   createCategory(payload: AdminCategoryPayload): Observable<AdminServiceStructureCategory> {
     return this.http
-      .post<
-        ApiResponse<AdminServiceStructureCategory>
-      >(`${environment.apiUrl}/admin/categories`, payload)
+      .post<ApiResponse<AdminServiceStructureCategory>>(
+        `${environment.apiUrl}/admin/categories`,
+        payload,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -100,9 +130,10 @@ export class AdminDashboardService {
     payload: AdminCategoryPayload[],
   ): Observable<AdminBulkImportResult<AdminServiceStructureCategory>> {
     return this.http
-      .post<
-        ApiResponse<AdminBulkImportResult<AdminServiceStructureCategory>>
-      >(`${environment.apiUrl}/admin/service-structure/categories/bulk`, { categories: payload })
+      .post<ApiResponse<AdminBulkImportResult<AdminServiceStructureCategory>>>(
+        `${environment.apiUrl}/admin/service-structure/categories/bulk`,
+        { categories: payload },
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -111,41 +142,45 @@ export class AdminDashboardService {
     payload: AdminCategoryPayload,
   ): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<
-        ApiResponse<AdminServiceStructureCategory>
-      >(`${environment.apiUrl}/admin/categories/${categoryId}`, payload)
+      .patch<ApiResponse<AdminServiceStructureCategory>>(
+        `${environment.apiUrl}/admin/categories/${categoryId}`,
+        payload,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   disableCategory(categoryId: string): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<
-        ApiResponse<AdminServiceStructureCategory>
-      >(`${environment.apiUrl}/admin/categories/${categoryId}/disable`, {})
+      .patch<ApiResponse<AdminServiceStructureCategory>>(
+        `${environment.apiUrl}/admin/categories/${categoryId}/disable`,
+        {},
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   activateCategory(categoryId: string): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<
-        ApiResponse<AdminServiceStructureCategory>
-      >(`${environment.apiUrl}/admin/categories/${categoryId}/activate`, {})
+      .patch<ApiResponse<AdminServiceStructureCategory>>(
+        `${environment.apiUrl}/admin/categories/${categoryId}/activate`,
+        {},
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   deleteEmptyCategory(categoryId: string): Observable<{ id: string }> {
     return this.http
-      .delete<
-        ApiResponse<{ id: string }>
-      >(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}`)
+      .delete<ApiResponse<{ id: string }>>(
+        `${environment.apiUrl}/admin/service-structure/categories/${categoryId}`,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   createSubCategory(payload: AdminSubCategoryPayload): Observable<AdminServiceSubCategory> {
     return this.http
-      .post<
-        ApiResponse<AdminServiceSubCategory>
-      >(`${environment.apiUrl}/admin/service-structure/subcategories`, payload)
+      .post<ApiResponse<AdminServiceSubCategory>>(
+        `${environment.apiUrl}/admin/service-structure/subcategories`,
+        payload,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -153,9 +188,10 @@ export class AdminDashboardService {
     payload: AdminSubCategoryPayload[],
   ): Observable<AdminBulkImportResult<AdminServiceSubCategory>> {
     return this.http
-      .post<
-        ApiResponse<AdminBulkImportResult<AdminServiceSubCategory>>
-      >(`${environment.apiUrl}/admin/service-structure/subcategories/bulk`, { subCategories: payload })
+      .post<ApiResponse<AdminBulkImportResult<AdminServiceSubCategory>>>(
+        `${environment.apiUrl}/admin/service-structure/subcategories/bulk`,
+        { subCategories: payload },
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -164,17 +200,30 @@ export class AdminDashboardService {
     subCategoryIds: string[],
   ): Observable<AdminServiceStructureCategory> {
     return this.http
-      .patch<
-        ApiResponse<AdminServiceStructureCategory>
-      >(`${environment.apiUrl}/admin/service-structure/categories/${categoryId}/subcategories`, { subCategoryIds })
+      .patch<ApiResponse<AdminServiceStructureCategory>>(
+        `${environment.apiUrl}/admin/service-structure/categories/${categoryId}/subcategories`,
+        { subCategoryIds },
+      )
+      .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  updateSubCategorySpace(
+    subCategoryId: string,
+    professionalSpaceType: AdminProfessionalSpaceType | null,
+  ): Observable<AdminServiceSubCategory> {
+    return this.http
+      .patch<ApiResponse<AdminServiceSubCategory>>(
+        `${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`,
+        { professionalSpaceType },
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
   deleteUnusedSubCategory(subCategoryId: string): Observable<{ id: string }> {
     return this.http
-      .delete<
-        ApiResponse<{ id: string }>
-      >(`${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`)
+      .delete<ApiResponse<{ id: string }>>(
+        `${environment.apiUrl}/admin/service-structure/subcategories/${subCategoryId}`,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 
@@ -182,9 +231,10 @@ export class AdminDashboardService {
     const formData = new FormData();
     formData.append('image', file);
     return this.http
-      .post<
-        ApiResponse<{ imageUrl: string }>
-      >(`${environment.apiUrl}/admin/service-structure/images`, formData)
+      .post<ApiResponse<{ imageUrl: string }>>(
+        `${environment.apiUrl}/admin/service-structure/images`,
+        formData,
+      )
       .pipe(map((response) => unwrapApiResponse(response)));
   }
 

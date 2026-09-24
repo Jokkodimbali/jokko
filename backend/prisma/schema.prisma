@@ -32,6 +32,13 @@ enum TypePrix {
   NEGOCIABLE
 }
 
+enum TypeEspaceProfessionnel {
+  PRESTATAIRE
+  MEDECIN
+  QUINCAILLERIE
+  PHARMACIE
+}
+
 enum ModeDeplacementService {
   PRESTATAIRE_SE_DEPLACE
   CLIENT_SE_DEPLACE
@@ -493,8 +500,10 @@ model Categorie {
   nom            String  @unique @map("name") @db.VarChar(100)
   urlIcone       String? @map("icon_url") @db.VarChar(500)
   ordreTri       Int     @default(0) @map("sort_order") @db.SmallInt
-  tauxCommission Decimal @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
-  estActive      Boolean @default(true) @map("is_active")
+  tauxCommission Decimal                  @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
+  typePrix       TypePrix                 @default(NEGOCIABLE) @map("price_type")
+  typeEspace     TypeEspaceProfessionnel  @default(PRESTATAIRE) @map("professional_space_type")
+  estActive      Boolean                  @default(true) @map("is_active")
 
   services                    Service[]
   sousCategories              CategorieSousCategorie[]
@@ -508,7 +517,8 @@ model SousCategorieService {
   nom         String   @unique @map("name") @db.VarChar(120)
   description String?  @db.Text
   ordreTri    Int      @default(0) @map("sort_order") @db.SmallInt
-  estActive   Boolean  @default(true) @map("is_active")
+  estActive   Boolean                   @default(true) @map("is_active")
+  typeEspace  TypeEspaceProfessionnel?    @map("professional_space_type")
   creeLe      DateTime @default(now()) @map("created_at")
   misAJourLe  DateTime @updatedAt @map("updated_at")
 

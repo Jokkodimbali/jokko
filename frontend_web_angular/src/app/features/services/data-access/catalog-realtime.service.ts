@@ -11,6 +11,13 @@ export interface CatalogAccountStatusChangedEvent {
   changedAt: string;
 }
 
+export interface CatalogCategoryRulesChangedEvent {
+  categoryId: string;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType: 'PRESTATAIRE' | 'MEDECIN' | 'QUINCAILLERIE' | 'PHARMACIE';
+  changedAt: string;
+}
+
 export interface CatalogProfileChangedEvent {
   userId: string;
   professionalId: string;
@@ -25,6 +32,7 @@ export class CatalogRealtimeService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly changes = new Subject<CatalogAccountStatusChangedEvent>();
   private readonly profileChanges = new Subject<CatalogProfileChangedEvent>();
+  private readonly categoryRuleChanges = new Subject<CatalogCategoryRulesChangedEvent>();
   private socket: Socket | null = null;
 
   watchAccountStatuses(): Observable<CatalogAccountStatusChangedEvent> {
@@ -35,6 +43,11 @@ export class CatalogRealtimeService {
   watchProfiles(): Observable<CatalogProfileChangedEvent> {
     this.connect();
     return this.profileChanges.asObservable();
+  }
+
+  watchCategoryRules(): Observable<CatalogCategoryRulesChangedEvent> {
+    this.connect();
+    return this.categoryRuleChanges.asObservable();
   }
 
   private connect(): void {
@@ -54,6 +67,9 @@ export class CatalogRealtimeService {
     this.socket.on('catalog.profile.changed', (event: CatalogProfileChangedEvent) => {
       this.profileChanges.next(event);
     });
+    this.socket.on('catalog.category-rules.changed', (event: CatalogCategoryRulesChangedEvent) =>
+      this.categoryRuleChanges.next(event),
+    );
   }
 
   private socketUrl(): string {

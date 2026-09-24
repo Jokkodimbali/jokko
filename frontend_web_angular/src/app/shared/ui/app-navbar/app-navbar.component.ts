@@ -1,5 +1,8 @@
 import { NotificationFitTextDirective } from '../notification-fit-text.directive';
-import { NotificationAnchorDirective, NotificationAnchorService } from '../notification-anchor.directive';
+import {
+  NotificationAnchorDirective,
+  NotificationAnchorService,
+} from '../notification-anchor.directive';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -67,7 +70,13 @@ interface AppInfoNavItem {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, NotificationAnchorDirective, NotificationFitTextDirective],
+  imports: [
+    CommonModule,
+    RouterLink,
+    LucideAngularModule,
+    NotificationAnchorDirective,
+    NotificationFitTextDirective,
+  ],
   templateUrl: './app-navbar.component.html',
   styleUrl: './app-navbar.component.scss',
 })
@@ -489,12 +498,17 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
         }),
       )
       .subscribe((profile) => {
-        if (profile) {
+        if (!profile) return;
+
+        // Le cache HTTP peut répondre de façon synchrone pendant le premier
+        // contrôle Angular. Appliquer le profil au tour suivant stabilise les
+        // blocs conditionnels du navbar et leurs routerLink.
+        queueMicrotask(() => {
           if (profile.urlAvatar !== this.failedProfileAvatarUrl()) {
             this.failedProfileAvatarUrl.set(null);
           }
           this.authSession.saveUserProfile(profile);
-        }
+        });
       });
   }
 
@@ -601,9 +615,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   } {
     const metadata = notification.data || notification.donnees || {};
     if (isWalletNotification(notification)) {
-      const walletSpace = this.currentUser()?.role === 'MEDECIN'
-        ? '/medecine/espace'
-        : '/prestataire/espace';
+      const walletSpace =
+        this.currentUser()?.role === 'MEDECIN' ? '/medecine/espace' : '/prestataire/espace';
       return { commands: [walletSpace], queryParams: { section: 'wallet' } };
     }
     const explicitRoute = this.readMetadataString(metadata, 'route');

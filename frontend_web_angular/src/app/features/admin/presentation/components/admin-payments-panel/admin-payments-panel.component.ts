@@ -76,6 +76,13 @@ export class AdminPaymentsPanelComponent implements OnInit {
     this.load();
   }
 
+  protected clearFilters(): void {
+    this.status = '';
+    this.method = '';
+    this.page.set(1);
+    this.load();
+  }
+
   protected previousPage(): void {
     if (this.page() <= 1 || this.isLoading()) return;
     this.page.update((page) => page - 1);
@@ -165,6 +172,54 @@ export class AdminPaymentsPanelComponent implements OnInit {
         this.confirmEscrow = false;
         this.action.set(null);
       });
+  }
+
+  protected canRefund(payment: AdminPayment): boolean {
+    return payment.status === 'SUCCESS' && payment.escrowStatus !== 'REFUNDED';
+  }
+
+  protected statusLabel(status: string): string {
+    return {
+      SUCCESS: 'Succes',
+      PENDING: 'En attente',
+      PROCESSING: 'En traitement',
+      FAILED: 'Echec',
+      CANCELLED: 'Annule',
+      REFUNDED: 'Rembourse',
+    }[status] ?? status;
+  }
+
+  protected statusTone(status: string): string {
+    if (status === 'SUCCESS') return 'success';
+    if (status === 'PENDING' || status === 'PROCESSING') return 'warning';
+    if (status === 'FAILED' || status === 'CANCELLED') return 'danger';
+    if (status === 'REFUNDED') return 'info';
+    return 'neutral';
+  }
+
+  protected escrowLabel(status?: string): string {
+    return {
+      LOCKED: 'Bloque',
+      RELEASED: 'Libere',
+      DISPUTED: 'En litige',
+      REFUNDED: 'Rembourse',
+    }[status ?? ''] ?? 'Non defini';
+  }
+
+  protected escrowTone(status?: string): string {
+    if (status === 'RELEASED') return 'success';
+    if (status === 'LOCKED') return 'warning';
+    if (status === 'DISPUTED') return 'danger';
+    if (status === 'REFUNDED') return 'info';
+    return 'neutral';
+  }
+
+  protected methodLabel(method: string): string {
+    return {
+      WAVE: 'Wave',
+      ORANGE_MONEY: 'Orange Money',
+      CARD: 'Carte bancaire',
+    }[method] ?? method;
   }
 
   protected money(value: number): string {

@@ -3,10 +3,10 @@
     <header class="admin-providers-heading">
       <div>
         <lucide-icon name="users" size="38" [strokeWidth]="2.2"></lucide-icon>
-        <h1>Prestataires et médecins</h1>
+        <h1>Utilisateurs</h1>
       </div>
       <p>
-        Liste opérationnelle des prestataires et médecins. Chaque ligne ouvre le dossier complet du
+        Liste opérationnelle des utilisateurs professionnels. Chaque ligne ouvre le dossier complet du
         profil sélectionné.
       </p>
     </header>
@@ -174,7 +174,7 @@
     <header class="admin-provider-detail-heading">
       <button type="button" (click)="backToList()">
         <lucide-icon name="arrow-left" size="18" [strokeWidth]="2.4"></lucide-icon>
-        Retour aux prestataires
+        Retour aux utilisateurs
       </button>
       <div>
         <h1>{{ detailProvider() ? displayName(detailProvider()!) : 'Dossier prestataire' }}</h1>

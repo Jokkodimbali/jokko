@@ -6,6 +6,8 @@ export type CategoryView = {
   urlIcone: string | null;
   ordreTri: number;
   tauxCommission: number;
+  typePrix: 'FIXE' | 'NEGOCIABLE';
+  typeEspace: 'PRESTATAIRE' | 'MEDECIN' | 'QUINCAILLERIE' | 'PHARMACIE';
   estActive: boolean;
 };
 
@@ -14,6 +16,12 @@ export type CreateCategoryInput = {
   iconUrl: string | null;
   sortOrder: number;
   commissionRate: number;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType:
+    | 'PRESTATAIRE'
+    | 'MEDECIN'
+    | 'QUINCAILLERIE'
+    | 'PHARMACIE';
 };
 
 export type CategoryWithSubCategoriesView = CategoryView & {
@@ -32,6 +40,12 @@ export type UpdateCategoryInput = {
   iconUrl: string | null;
   sortOrder: number;
   commissionRate: number;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType:
+    | 'PRESTATAIRE'
+    | 'MEDECIN'
+    | 'QUINCAILLERIE'
+    | 'PHARMACIE';
 };
 
 export type CreateCategoryResult =

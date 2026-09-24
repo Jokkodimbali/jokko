@@ -185,14 +185,54 @@
           </span>
           <span>
             <strong>{{ category.name }}</strong>
-            <small
-              >{{ filteredSubCategoryCount(category) }} /
-              {{ subCategoryCount(category) }} sous-categories</small
-            >
+            <small>
+              {{ filteredSubCategoryCount(category) }} / {{ subCategoryCount(category) }}
+              sous-categories · {{ category.priceType === 'FIXE' ? 'Prix fixe' : 'Negociation' }}
+              · {{ professionalSpaceLabel(category.professionalSpaceType) }}
+            </small>
           </span>
         </button>
 
         <div class="service-category-actions">
+          <label
+            class="service-category-action--price"
+            [class.service-category-action--fixed]="category.priceType === 'FIXE'"
+            title="Choisir le mode tarifaire de cette categorie"
+          >
+            <lucide-icon
+              [name]="category.priceType === 'FIXE' ? 'badge-dollar-sign' : 'handshake'"
+              size="16"
+              [strokeWidth]="2.2"
+            ></lucide-icon>
+            <select
+              aria-label="Mode tarifaire de la categorie"
+              [value]="category.priceType"
+              [disabled]="actionId === category.id"
+              (click)="$event.stopPropagation()"
+              (change)="setCategoryPriceType(category, $any($event.target).value, $event)"
+            >
+              <option value="NEGOCIABLE">Negociation</option>
+              <option value="FIXE">Prix fixe</option>
+            </select>
+          </label>
+          <label
+            class="service-category-action--space"
+            title="Choisir le type d'espace de tous les elements de cette categorie"
+          >
+            <lucide-icon name="users-round" size="16" [strokeWidth]="2.2"></lucide-icon>
+            <select
+              aria-label="Type d'espace a appliquer a toutes les sous-categories"
+              [disabled]="actionId === category.id || category.subCategories.length === 0"
+              (click)="$event.stopPropagation()"
+              (change)="applySpaceTypeToCategory(category, $any($event.target).value, $event)"
+            >
+              <option value="">Espace pour tous</option>
+              <option value="PRESTATAIRE">Prestataire</option>
+              <option value="MEDECIN">Medecin</option>
+              <option value="QUINCAILLERIE">Quincaillerie</option>
+              <option value="PHARMACIE">Pharmacie</option>
+            </select>
+          </label>
           <button
             type="button"
             title="Modifier la categorie"
@@ -262,7 +302,20 @@
                 [strokeWidth]="2.2"
               ></lucide-icon>
               {{ subCategory.name }}
-              <small>Sous-categorie</small>
+              <small>{{ subCategory.registeredUsers }} utilisateur(s) inscrit(s)</small>
+              <select
+                [ngModel]="subCategory.professionalSpaceType || 'HERITER'"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="changeSubCategorySpaceType(subCategory, $event)"
+                (click)="$event.stopPropagation()"
+                aria-label="Type d'espace de la sous-categorie"
+              >
+                <option value="HERITER">Heriter de la categorie</option>
+                <option value="PRESTATAIRE">Espace prestataire</option>
+                <option value="MEDECIN">Espace medecin</option>
+                <option value="QUINCAILLERIE">Espace quincaillerie</option>
+                <option value="PHARMACIE">Espace pharmacie</option>
+              </select>
             </h3>
 
             <p *ngIf="subCategory.description">{{ subCategory.description }}</p>
@@ -418,6 +471,22 @@
         </div>
 
         <div class="service-structure-form-grid">
+          <label>
+            <span>Mode tarifaire</span>
+            <select name="categoryPriceType" [(ngModel)]="form.priceType">
+              <option value="NEGOCIABLE">Negociation</option>
+              <option value="FIXE">Prix fixe</option>
+            </select>
+          </label>
+          <label>
+            <span>Type d'espace</span>
+            <select name="categoryProfessionalSpaceType" [(ngModel)]="form.professionalSpaceType">
+              <option value="PRESTATAIRE">Prestataire</option>
+              <option value="MEDECIN">Medecin</option>
+              <option value="QUINCAILLERIE">Quincaillerie</option>
+              <option value="PHARMACIE">Pharmacie</option>
+            </select>
+          </label>
           <label>
             <span>Ordre d'affichage</span>
             <input

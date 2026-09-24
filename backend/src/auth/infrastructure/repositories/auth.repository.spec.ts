@@ -1,8 +1,15 @@
-import { RoleUtilisateur } from '@prisma/client';
+import {
+  RoleUtilisateur,
+  TypeEspaceProfessionnel,
+  TypePrix,
+} from '@prisma/client';
 import { AuthRepository } from './auth.repository';
 
 describe('AuthRepository professional specialties', () => {
-  const createRepository = () => {
+  const createRepository = (
+    typeEspace: TypeEspaceProfessionnel = TypeEspaceProfessionnel.PRESTATAIRE,
+    typePrix: TypePrix = TypePrix.NEGOCIABLE,
+  ) => {
     const tx = {
       utilisateur: {
         create: jest.fn().mockResolvedValue({ id: 'user-id' }),
@@ -16,6 +23,8 @@ describe('AuthRepository professional specialties', () => {
           {
             id: 'category-id',
             nom: 'Sante',
+            typeEspace,
+            typePrix,
             sousCategories: [
               {
                 sousCategorieId: 'subcategory-id',
@@ -76,7 +85,10 @@ describe('AuthRepository professional specialties', () => {
   });
 
   it('creates fixed-price generated services for doctors', async () => {
-    const { repository, tx } = createRepository();
+    const { repository, tx } = createRepository(
+      TypeEspaceProfessionnel.MEDECIN,
+      TypePrix.FIXE,
+    );
 
     await repository.createClientWithPassword({
       phoneNumber: '+221771234568',
@@ -101,10 +113,9 @@ describe('AuthRepository professional specialties', () => {
   });
 
   it('marks a provider profile as a pharmacy when Pharmacien is selected', async () => {
-    const { repository, tx } = createRepository();
-    tx.sousCategorieService.findMany.mockResolvedValue([
-      { id: 'subcategory-id', nom: 'Pharmacien' },
-    ]);
+    const { repository, tx } = createRepository(
+      TypeEspaceProfessionnel.PHARMACIE,
+    );
 
     await repository.createClientWithPassword({
       phoneNumber: '+221771234569',
@@ -124,10 +135,9 @@ describe('AuthRepository professional specialties', () => {
   });
 
   it('marks a provider profile as a hardware store when Quincaillerie is selected', async () => {
-    const { repository, tx } = createRepository();
-    tx.sousCategorieService.findMany.mockResolvedValue([
-      { id: 'subcategory-id', nom: 'Quincaillerie' },
-    ]);
+    const { repository, tx } = createRepository(
+      TypeEspaceProfessionnel.QUINCAILLERIE,
+    );
 
     await repository.createClientWithPassword({
       phoneNumber: '+221771234568',

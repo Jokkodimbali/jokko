@@ -102,6 +102,30 @@ describe('AdminServiceStructureService', () => {
     });
   });
 
+  it('applies the category professional space type to all assigned subcategories', async () => {
+    const prisma = {
+      categorie: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'cat-sante' }),
+      },
+      sousCategorieService: {
+        updateMany: jest.fn().mockResolvedValue({ count: 3 }),
+      },
+    };
+    const service = new AdminServiceStructureService(prisma as never);
+
+    await expect(
+      service.applyCategorySpace(adminUser, 'cat-sante', 'MEDECIN'),
+    ).resolves.toEqual({
+      categoryId: 'cat-sante',
+      professionalSpaceType: 'MEDECIN',
+      updatedSubCategories: 3,
+    });
+    expect(prisma.sousCategorieService.updateMany).toHaveBeenCalledWith({
+      where: { categories: { some: { categorieId: 'cat-sante' } } },
+      data: { typeEspace: 'MEDECIN' },
+    });
+  });
+
   it('rejects non-admin users', async () => {
     const service = new AdminServiceStructureService(prismaMock([]));
 

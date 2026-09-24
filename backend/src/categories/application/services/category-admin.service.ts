@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
@@ -11,6 +12,10 @@ import type {
   CreateCategoryCommand,
   UpdateCategoryCommand,
 } from '../commands/categories.commands';
+import {
+  CATEGORIES_REPOSITORY_PORT,
+  type CategoriesRepositoryPort,
+} from '../ports/categories-repository.port';
 import { CategoryAppService } from './category-app-service.base';
 
 const normalizeCommissionRate = (commissionRate?: number): number => {
@@ -31,6 +36,14 @@ const normalizeCommissionRate = (commissionRate?: number): number => {
 
 @Injectable()
 export class CategoryAdminService extends CategoryAppService {
+  constructor(
+    @Inject(CATEGORIES_REPOSITORY_PORT)
+    categoriesRepository: CategoriesRepositoryPort,
+    private readonly eventEmitter: EventEmitter2,
+  ) {
+    super(categoriesRepository);
+  }
+
   async createCategory(requestUser: AuthUser, command: CreateCategoryCommand) {
     this.assertAdminRole(requestUser.role);
 
@@ -55,6 +68,8 @@ export class CategoryAdminService extends CategoryAppService {
       iconUrl,
       sortOrder,
       commissionRate,
+      priceType: command.priceType ?? 'NEGOCIABLE',
+      professionalSpaceType: command.professionalSpaceType ?? 'PRESTATAIRE',
     });
 
     if (result.status === 'name_conflict') {
@@ -125,6 +140,9 @@ export class CategoryAdminService extends CategoryAppService {
       iconUrl: category.iconUrl,
       sortOrder: category.sortOrder,
       commissionRate: category.commissionRate,
+      priceType: command.priceType ?? existingCategory.typePrix,
+      professionalSpaceType:
+        command.professionalSpaceType ?? existingCategory.typeEspace,
     });
 
     if (result.status === 'not_found') {
@@ -134,6 +152,13 @@ export class CategoryAdminService extends CategoryAppService {
     if (result.status === 'name_conflict') {
       throw appHttpException('CATEGORIES_NAME_ALREADY_USED');
     }
+
+    this.eventEmitter.emit('catalog.category-rules.changed', {
+      categoryId: result.category.id,
+      priceType: result.category.typePrix,
+      professionalSpaceType: result.category.typeEspace,
+      changedAt: new Date().toISOString(),
+    });
 
     return result.category;
   }

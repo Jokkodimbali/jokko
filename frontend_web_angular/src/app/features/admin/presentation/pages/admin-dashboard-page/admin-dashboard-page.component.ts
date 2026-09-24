@@ -37,7 +37,6 @@ import { AdminRegionsPanelComponent } from '../../components/admin-regions-panel
 import { AdminRevenuePanelComponent } from '../../components/admin-revenue-panel/admin-revenue-panel.component';
 import { AdminServiceStructurePanelComponent } from '../../components/admin-service-structure-panel/admin-service-structure-panel.component';
 import { AdminTrafficAnalyticsPanelComponent } from '../../components/admin-traffic-analytics-panel/admin-traffic-analytics-panel.component';
-import { AdminUsersPanelComponent } from '../../components/admin-users-panel/admin-users-panel.component';
 import { AdminReservationsPanelComponent } from '../../components/admin-reservations-panel/admin-reservations-panel.component';
 import { AdminPaymentsPanelComponent } from '../../components/admin-payments-panel/admin-payments-panel.component';
 import { AdminNotificationsPanelComponent } from '../../components/admin-notifications-panel/admin-notifications-panel.component';
@@ -55,7 +54,6 @@ type AdminSection =
   | 'regions'
   | 'archives'
   | 'structure'
-  | 'users'
   | 'reservations'
   | 'payments'
   | 'notifications'
@@ -101,7 +99,6 @@ const APP_BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
     AdminRevenuePanelComponent,
     AdminServiceStructurePanelComponent,
     AdminTrafficAnalyticsPanelComponent,
-    AdminUsersPanelComponent,
     AdminPaymentsPanelComponent,
     AdminNotificationsPanelComponent,
   ],
@@ -153,7 +150,10 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   protected readonly settingsSubPage = signal<SettingsSubPage>('banners');
   protected readonly appBanners = signal<EditableAppBanner[]>([]);
   protected readonly isAppBannersLoading = signal(false);
-  protected readonly deliveryPricing = signal<DeliveryPricingSettings>({ pricePerKm: 500, courierCommissionRate: 10 });
+  protected readonly deliveryPricing = signal<DeliveryPricingSettings>({
+    pricePerKm: 500,
+    courierCommissionRate: 10,
+  });
   protected readonly isDeliveryPricingLoading = signal(false);
   protected readonly adminSearchQuery = signal('');
   protected readonly user = this.authSession.currentUser;
@@ -206,13 +206,7 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
       badge: () => this.medicalCredentialProfiles().length,
     },
     { key: 'disputes', label: 'Litiges', icon: 'scale', badge: () => this.openDisputes() },
-    { key: 'providers', label: 'Prestataires', icon: 'users', badge: () => this.providerCount() },
-    {
-      key: 'users',
-      label: 'Utilisateurs',
-      icon: 'user-round-cog',
-      badge: () => this.dashboard()?.users.total ?? 0,
-    },
+    { key: 'providers', label: 'Utilisateurs', icon: 'users', badge: () => this.providerCount() },
     {
       key: 'reservations',
       label: 'Reservations',
@@ -360,38 +354,54 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
   protected loadDeliveryPricing(): void {
     this.isDeliveryPricingLoading.set(true);
-    this.adminDashboardService.getDeliveryPricing().pipe(catchError(() => of(null))).subscribe((pricing) => {
-      if (pricing) this.deliveryPricing.set(pricing);
-      this.isDeliveryPricingLoading.set(false);
-    });
+    this.adminDashboardService
+      .getDeliveryPricing()
+      .pipe(catchError(() => of(null)))
+      .subscribe((pricing) => {
+        if (pricing) this.deliveryPricing.set(pricing);
+        this.isDeliveryPricingLoading.set(false);
+      });
   }
 
   protected updateDeliveryPricing(field: keyof DeliveryPricingSettings, event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
-    if (Number.isFinite(value)) this.deliveryPricing.update((current) => ({ ...current, [field]: value }));
+    if (Number.isFinite(value))
+      this.deliveryPricing.update((current) => ({ ...current, [field]: value }));
   }
 
   protected saveDeliveryPricing(): void {
     const pricing = this.deliveryPricing();
-    if (pricing.pricePerKm < 0 || pricing.courierCommissionRate < 0 || pricing.courierCommissionRate > 100) {
-      this.feedback.error('Saisissez des tarifs positifs et une commission comprise entre 0 et 100 %.');
+    if (
+      pricing.pricePerKm < 0 ||
+      pricing.courierCommissionRate < 0 ||
+      pricing.courierCommissionRate > 100
+    ) {
+      this.feedback.error(
+        'Saisissez des tarifs positifs et une commission comprise entre 0 et 100 %.',
+      );
       return;
     }
     this.isDeliveryPricingLoading.set(true);
-    this.adminDashboardService.saveDeliveryPricing(pricing).pipe(catchError(() => of(null))).subscribe((result) => {
-      this.isDeliveryPricingLoading.set(false);
-      if (result !== null) this.feedback.success('Tarification des livraisons enregistrée.');
-    });
+    this.adminDashboardService
+      .saveDeliveryPricing(pricing)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => {
+        this.isDeliveryPricingLoading.set(false);
+        if (result !== null) this.feedback.success('Tarification des livraisons enregistrée.');
+      });
   }
 
   protected loadAppBanners(): void {
     this.isAppBannersLoading.set(true);
-    this.adminDashboardService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
-      this.appBanners.set(
-        banners.map((banner) => ({ ...banner, imageWidth: null, imageHeight: null })),
-      );
-      this.isAppBannersLoading.set(false);
-    });
+    this.adminDashboardService
+      .getAppBanners()
+      .pipe(catchError(() => of([])))
+      .subscribe((banners) => {
+        this.appBanners.set(
+          banners.map((banner) => ({ ...banner, imageWidth: null, imageHeight: null })),
+        );
+        this.isAppBannersLoading.set(false);
+      });
   }
 
   protected addAppBanner(): void {
@@ -409,7 +419,9 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
     ]);
   }
 
-  protected removeAppBanner(index: number): void { this.appBanners.update((items) => items.filter((_, itemIndex) => itemIndex !== index)); }
+  protected removeAppBanner(index: number): void {
+    this.appBanners.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+  }
 
   protected trackAppBannerById(_index: number, banner: EditableAppBanner): string {
     return banner.id;
@@ -457,15 +469,24 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
     }
 
     this.isAppBannersLoading.set(true);
-    this.adminDashboardService.uploadAppBannerImage(file).pipe(catchError(() => {
-      this.feedback.error('Impossible d envoyer cette image.');
-      return of(null);
-    })).subscribe((result) => {
-      this.isAppBannersLoading.set(false);
-      input.value = '';
-      if (!result) return;
-      this.appBanners.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrl: result.imageUrl } : item));
-    });
+    this.adminDashboardService
+      .uploadAppBannerImage(file)
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible d envoyer cette image.');
+          return of(null);
+        }),
+      )
+      .subscribe((result) => {
+        this.isAppBannersLoading.set(false);
+        input.value = '';
+        if (!result) return;
+        this.appBanners.update((items) =>
+          items.map((item, itemIndex) =>
+            itemIndex === index ? { ...item, imageUrl: result.imageUrl } : item,
+          ),
+        );
+      });
   }
 
   protected recordAppBannerImageDimensions(index: number, event: Event): void {
@@ -492,12 +513,23 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
   protected saveAppBanners(): void {
     const banners = this.appBanners();
-    if (banners.some((banner) => !banner.imageUrl)) { this.feedback.error('Chaque banniere doit avoir une image.'); return; }
+    if (banners.some((banner) => !banner.imageUrl)) {
+      this.feedback.error('Chaque banniere doit avoir une image.');
+      return;
+    }
     this.isAppBannersLoading.set(true);
-    this.adminDashboardService.saveAppBanners(banners).pipe(catchError(() => { this.feedback.error('Impossible d enregistrer les bannieres.'); return of(null); })).subscribe((result) => {
-      this.isAppBannersLoading.set(false);
-      if (result !== null) this.feedback.success('Bannieres enregistrees.');
-    });
+    this.adminDashboardService
+      .saveAppBanners(banners)
+      .pipe(
+        catchError(() => {
+          this.feedback.error('Impossible d enregistrer les bannieres.');
+          return of(null);
+        }),
+      )
+      .subscribe((result) => {
+        this.isAppBannersLoading.set(false);
+        if (result !== null) this.feedback.success('Bannieres enregistrees.');
+      });
   }
 
   private hasRecommendedBannerFormat(width: number | null, height: number | null): boolean {
@@ -606,6 +638,20 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
       .updateCategory(payload.categoryId, payload.payload)
       .pipe(catchError(() => of(null)))
       .subscribe((result) => this.afterCategoryMutation(!!result, 'Categorie mise a jour.'));
+  }
+
+  protected updateSubCategorySpace(payload: {
+    subCategoryId: string;
+    professionalSpaceType:
+      import('../../../data-access/admin.models').AdminProfessionalSpaceType | null;
+  }): void {
+    this.structureActionId.set(payload.subCategoryId);
+    this.adminDashboardService
+      .updateSubCategorySpace(payload.subCategoryId, payload.professionalSpaceType)
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) =>
+        this.afterCategoryMutation(!!result, 'Type d espace de la sous-categorie mis a jour.'),
+      );
   }
 
   protected disableCategory(categoryId: string): void {
@@ -952,8 +998,16 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
   private restoreSectionFromUrl(): void {
     const sectionParam = this.route.snapshot.queryParamMap.get('section');
-    const section = this.isAdminSection(sectionParam) ? sectionParam : 'overview';
+    const legacyUsersSection = sectionParam === 'users';
+    const section: AdminSection = legacyUsersSection
+      ? 'providers'
+      : this.isAdminSection(sectionParam)
+        ? sectionParam
+        : 'overview';
     const providerId = this.route.snapshot.queryParamMap.get('providerId');
+    if (legacyUsersSection) {
+      this.updateAdminUrl({ section: 'providers', providerId });
+    }
     this.activeSection.set(section);
 
     if (section === 'providers') {

@@ -367,6 +367,72 @@
   width: auto;
 }
 
+.service-category-actions .service-category-action--price {
+  align-items: center;
+  background: #fff7ed;
+  border: 1px solid #ead8c8;
+  border-radius: 12px;
+  color: #8b5428;
+  display: inline-flex;
+  gap: 5px;
+  height: 36px;
+  min-width: 112px;
+  padding: 0 6px 0 10px;
+}
+
+.service-category-action--price select {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  height: 100%;
+  outline: 0;
+}
+
+.service-category-action--price select:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.service-category-actions .service-category-action--space {
+  align-items: center;
+  background: #f6f1ed;
+  border: 1px solid #dfd0c4;
+  border-radius: 12px;
+  color: #65442c;
+  display: inline-flex;
+  gap: 5px;
+  height: 36px;
+  padding: 0 6px 0 10px;
+}
+
+.service-category-action--space select {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  height: 100%;
+  max-width: 138px;
+  outline: 0;
+}
+
+.service-category-action--space select:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.service-category-actions .service-category-action--price.service-category-action--fixed {
+  background: #edf8f2;
+  border-color: #b9e4c8;
+  color: #197448;
+}
+
 .service-category-actions .service-category-action--danger {
   background: #fff3f2;
   border-color: #f3c7c3;
@@ -731,7 +797,8 @@
   text-transform: uppercase;
 }
 
-.service-structure-modal input {
+.service-structure-modal input,
+.service-structure-modal select {
   border: 1px solid #eadfd6;
   border-radius: 10px;
   font: inherit;
@@ -829,7 +896,8 @@
   opacity: 0.5;
 }
 
-.service-structure-modal input:focus {
+.service-structure-modal input:focus,
+.service-structure-modal select:focus {
   border-color: #915a22;
   box-shadow: 0 0 0 4px rgba(145, 90, 34, 0.12);
 }
@@ -1077,5 +1145,29 @@
   .service-subcategory-delete {
     grid-column: 2;
     justify-self: start;
+  }
+}
+
+.service-branch h3 select {
+  background: #fff;
+  border: 1px solid #dcc9ba;
+  border-radius: 9px;
+  color: #5d4535;
+  font: inherit;
+  font-size: 11px;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 9px;
+}
+
+@media (max-width: 700px) {
+  .service-branch h3 {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .service-branch h3 select {
+    flex: 1 0 100%;
+    margin-top: 7px;
   }
 }

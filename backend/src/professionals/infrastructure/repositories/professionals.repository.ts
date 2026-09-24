@@ -502,6 +502,12 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     }
 
     try {
+      const category = await this.prisma.categorie.findUnique({
+        where: { id: input.categoryId },
+        select: { typePrix: true },
+      });
+      if (!category) return { status: 'category_not_found' };
+
       const service = await this.prisma.service.create({
         data: {
           profilProfessionnelId: profileId,
@@ -510,7 +516,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           description: input.description,
           urlImage: input.imageUrl ?? null,
           prix: input.price,
-          typePrix: input.priceType,
+          typePrix: category.typePrix,
           modeDeplacement: input.travelMode,
           dureeMinutes: input.durationMinutes,
           pauseMinutes: input.pauseMinutes,
@@ -536,6 +542,15 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
     }
 
     try {
+      const existingService = await this.prisma.service.findUnique({
+        where: {
+          id: input.serviceId,
+          profilProfessionnelId: profileId,
+        },
+        select: { categorie: { select: { typePrix: true } } },
+      });
+      if (!existingService) return { status: 'service_not_found' };
+
       const service = await this.prisma.service.update({
         where: {
           id: input.serviceId,
@@ -546,7 +561,7 @@ export class ProfessionalsRepository implements ProfessionalsRepositoryPort {
           description: input.description,
           urlImage: input.imageUrl,
           prix: input.price,
-          typePrix: input.priceType,
+          typePrix: existingService.categorie.typePrix,
           modeDeplacement: input.travelMode,
           dureeMinutes: input.durationMinutes,
           pauseMinutes: input.pauseMinutes,

@@ -264,18 +264,7 @@
           <strong
             >{{ provider.name }} <small>{{ provider.category }}</small></strong
           >
-          <span>
-            {{ provider.profession }}
-            <b>
-              <app-star-rating
-                [value]="provider.rating"
-                [reviews]="provider.totalReviews"
-                size="small"
-              />
-              {{ provider.rating | number: '1.1-1' }} ({{ provider.totalReviews }})
-            </b>
-            <em>{{ provider.location }}</em>
-          </span>
+          <span>{{ provider.location }}</span>
         </span>
         <span class="app-search-bar__provider-action">
           Voir

@@ -9,7 +9,6 @@ import {
   inject,
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { AppStarRatingComponent } from '../app-star-rating/app-star-rating.component';
 import { AppPresenceDotComponent } from '../app-presence-dot/app-presence-dot.component';
 
 export interface AppSearchCategorySuggestion {
@@ -56,7 +55,7 @@ export interface AppSearchModeOption {
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, AppStarRatingComponent, AppPresenceDotComponent],
+  imports: [CommonModule, LucideAngularModule, AppPresenceDotComponent],
   templateUrl: './app-search-bar.component.html',
   styleUrl: './app-search-bar.component.scss',
 })

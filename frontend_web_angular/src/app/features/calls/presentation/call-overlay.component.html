@@ -5,7 +5,6 @@
   [class.call-overlay--minimized]="!calls.isOverlayVisible()"
   [class.call-overlay--floating-video]="!calls.isOverlayVisible()"
   [class.call-overlay--video]="call.kind === 'VIDEO'"
-  [class.call-overlay--ringing]="call.phase === 'INCOMING'"
   [class.call-overlay--incoming-video]="call.kind === 'VIDEO' && call.phase === 'INCOMING'"
   [class.call-overlay--incoming-voice]="call.kind === 'VOICE' && call.phase === 'INCOMING'"
   [class.call-overlay--embedded]="

@@ -652,6 +652,7 @@ export class MaterialOrdersService {
     requestUser: AuthUser,
     orderId: string,
     deliveryRequested: boolean,
+    selectedDeliveryAddress?: string,
   ) {
     const order = await this.prisma.commandeMateriel.findFirst({
       where: { id: orderId, clientId: requestUser.sub },
@@ -680,7 +681,9 @@ export class MaterialOrdersService {
     if (deliveryRequested) {
       const pricing = await this.pricingSettings.get();
       const deliveryAddress =
-        order.client.adresse || order.reservationSource.adresseClient;
+        selectedDeliveryAddress?.trim() ||
+        order.client.adresse ||
+        order.reservationSource.adresseClient;
       if (!deliveryAddress) {
         throw new BadRequestException(
           'Ajoutez une adresse client avant de demander la livraison.',

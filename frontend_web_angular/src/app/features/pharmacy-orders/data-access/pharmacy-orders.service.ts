@@ -136,11 +136,15 @@ export class PharmacyOrdersService {
       .pipe(map(unwrapApiResponse));
   }
 
-  configureDelivery(orderId: string, deliveryRequested: boolean): Observable<PharmacyOrderView> {
+  configureDelivery(
+    orderId: string,
+    deliveryRequested: boolean,
+    deliveryAddress?: string,
+  ): Observable<PharmacyOrderView> {
     return this.http
       .patch<
         ApiResponse<PharmacyOrderView>
-      >(`${this.apiUrl}/${orderId}/delivery-option`, { deliveryRequested })
+      >(`${this.apiUrl}/${orderId}/delivery-option`, { deliveryRequested, deliveryAddress })
       .pipe(map(unwrapApiResponse));
   }
 

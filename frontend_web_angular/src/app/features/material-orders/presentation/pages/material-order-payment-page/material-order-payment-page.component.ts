@@ -4,6 +4,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { finalize } from 'rxjs';
+import {
+  ServiceProposalInteractiveMapComponent,
+  ServiceProposalMapAddressSelection,
+} from '../../../../services/presentation/components/service-proposal-interactive-map/service-proposal-interactive-map.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
@@ -21,7 +25,12 @@ type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'CARD';
 @Component({
   selector: 'app-material-order-payment-page',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, AppointmentTrackingStepperComponent],
+  imports: [
+    CommonModule,
+    LucideAngularModule,
+    AppointmentTrackingStepperComponent,
+    ServiceProposalInteractiveMapComponent,
+  ],
   templateUrl: './material-order-payment-page.component.html',
   styleUrl:
     '../../../../pharmacy-orders/presentation/pages/pharmacy-order-payment-page/pharmacy-order-payment-page.component.scss',
@@ -38,6 +47,8 @@ export class MaterialOrderPaymentPageComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly paying = signal(false);
   protected readonly updatingDelivery = signal(false);
+  protected readonly deliveryPickerOpen = signal(false);
+  protected readonly selectedDeliveryAddress = signal('');
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
   protected readonly steps: AppointmentTrackingStep[] = [
@@ -92,16 +103,51 @@ export class MaterialOrderPaymentPageComponent implements OnInit {
 
   protected toggleDelivery(order: MaterialOrderView, requested: boolean): void {
     if (this.updatingDelivery() || this.paying()) return;
+    if (requested) {
+      this.selectedDeliveryAddress.set(order.deliveryAddress ?? '');
+      this.deliveryPickerOpen.set(true);
+      return;
+    }
+    this.updateDelivery(order, false);
+  }
+
+  protected selectDeliveryAddress(selection: ServiceProposalMapAddressSelection): void {
+    this.selectedDeliveryAddress.set(selection.address);
+  }
+
+  protected confirmDeliveryAddress(order: MaterialOrderView): void {
+    const address = this.selectedDeliveryAddress().trim();
+    if (!address || this.updatingDelivery() || this.paying()) return;
+    this.updateDelivery(order, true, address);
+  }
+
+  protected closeDeliveryPicker(): void {
+    if (!this.updatingDelivery()) this.deliveryPickerOpen.set(false);
+  }
+
+  protected editDeliveryAddress(order: MaterialOrderView): void {
+    this.selectedDeliveryAddress.set(order.deliveryAddress ?? '');
+    this.deliveryPickerOpen.set(true);
+  }
+
+  private updateDelivery(
+    order: MaterialOrderView,
+    requested: boolean,
+    deliveryAddress?: string,
+  ): void {
     this.updatingDelivery.set(true);
     this.errorMessage.set(null);
     this.orders
-      .configureDelivery(order.id, requested)
+      .configureDelivery(order.id, requested, deliveryAddress)
       .pipe(finalize(() => this.updatingDelivery.set(false)))
       .subscribe({
-        next: (updated) => this.order.set(updated),
+        next: (updated) => {
+          this.order.set(updated);
+          this.deliveryPickerOpen.set(false);
+        },
         error: (error) =>
           this.errorMessage.set(
-            getHttpErrorMessage(error, 'Impossible de mettre à jour le choix de livraison.'),
+            getHttpErrorMessage(error, 'Impossible de calculer le tarif de livraison.'),
           ),
       });
   }

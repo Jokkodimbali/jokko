@@ -468,3 +468,172 @@
 }
 
 @include delivery-type.page;
+
+.pharmacy-payment__delivery-option > p {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.pharmacy-payment__delivery-option > p span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pharmacy-payment__delivery-option > p button {
+  background: transparent;
+  border: 0;
+  color: #955b22;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 3px 0 3px 8px;
+}
+
+.delivery-picker-backdrop {
+  align-items: center;
+  background: rgba(26, 19, 13, 0.56);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 1200;
+}
+
+.delivery-picker {
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(35, 24, 15, 0.28);
+  max-height: calc(100vh - 40px);
+  max-width: 720px;
+  overflow: auto;
+  padding: 22px;
+  width: 100%;
+}
+
+.delivery-picker > header {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.delivery-picker > header small {
+  color: #955b22;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.delivery-picker > header h2 {
+  color: #263142;
+  font-size: 20px;
+  margin: 4px 0;
+}
+
+.delivery-picker > header p {
+  color: #737b87;
+  font-size: 13px;
+  margin: 0;
+}
+
+.delivery-picker > header > button {
+  align-items: center;
+  background: #f5eee7;
+  border: 0;
+  border-radius: 50%;
+  color: #74461f;
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 36px;
+  height: 36px;
+  justify-content: center;
+}
+
+.delivery-picker__selection {
+  align-items: flex-start;
+  background: #fbf6f1;
+  border: 1px solid #ead9c8;
+  border-radius: 13px;
+  color: #955b22;
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 13px;
+}
+
+.delivery-picker__selection span {
+  display: grid;
+  gap: 2px;
+}
+
+.delivery-picker__selection small {
+  color: #8a7766;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.delivery-picker__selection strong {
+  color: #3d332b;
+  font-size: 13px;
+}
+
+.delivery-picker > footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.delivery-picker > footer button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d8d3ce;
+  border-radius: 13px;
+  color: #4d535d;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 7px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+}
+
+.delivery-picker > footer .delivery-picker__confirm {
+  background: #955b22;
+  border-color: #955b22;
+  color: #fff;
+}
+
+.delivery-picker > footer button:disabled,
+.delivery-picker > header > button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+  .delivery-picker-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .delivery-picker {
+    border-radius: 22px 22px 0 0;
+    max-height: 92vh;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .delivery-picker > footer {
+    display: grid;
+    grid-template-columns: 0.75fr 1.25fr;
+  }
+
+  .delivery-picker > footer button {
+    padding: 0 10px;
+  }
+}

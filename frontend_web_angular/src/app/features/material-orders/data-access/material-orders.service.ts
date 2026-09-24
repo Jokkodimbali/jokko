@@ -151,11 +151,15 @@ export class MaterialOrdersService {
       .pipe(map(unwrapApiResponse));
   }
 
-  configureDelivery(orderId: string, deliveryRequested: boolean): Observable<MaterialOrderView> {
+  configureDelivery(
+    orderId: string,
+    deliveryRequested: boolean,
+    deliveryAddress?: string,
+  ): Observable<MaterialOrderView> {
     return this.http
       .patch<
         ApiResponse<MaterialOrderView>
-      >(`${this.apiUrl}/${orderId}/delivery-option`, { deliveryRequested })
+      >(`${this.apiUrl}/${orderId}/delivery-option`, { deliveryRequested, deliveryAddress })
       .pipe(map(unwrapApiResponse));
   }
 

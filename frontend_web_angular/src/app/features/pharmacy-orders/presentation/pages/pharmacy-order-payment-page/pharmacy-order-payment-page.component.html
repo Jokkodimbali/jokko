@@ -108,9 +108,67 @@
         </label>
         <p *ngIf="current.deliveryRequested && current.deliveryDistanceKm !== null">
           <lucide-icon name="map-pin" size="14"></lucide-icon>
-          {{ current.deliveryAddress }} · {{ current.deliveryDistanceKm | number: '1.1-1' }} km
+          <span>{{ current.deliveryAddress }} · {{ current.deliveryDistanceKm | number: '1.1-1' }} km</span>
+          <button type="button" (click)="editDeliveryAddress(current)">Modifier</button>
         </p>
       </section>
+
+      <div
+        *ngIf="deliveryPickerOpen()"
+        class="delivery-picker-backdrop"
+        (click)="closeDeliveryPicker()"
+      >
+        <section
+          class="delivery-picker"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delivery-picker-title"
+          (click)="$event.stopPropagation()"
+        >
+          <header>
+            <div>
+              <small>ADRESSE DE LIVRAISON</small>
+              <h2 id="delivery-picker-title">Où souhaitez-vous être livré ?</h2>
+              <p>Recherchez une adresse ou cliquez directement sur la carte.</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Fermer la carte"
+              [disabled]="updatingDelivery()"
+              (click)="closeDeliveryPicker()"
+            >
+              <lucide-icon name="x" size="19"></lucide-icon>
+            </button>
+          </header>
+
+          <app-service-proposal-interactive-map
+            [address]="selectedDeliveryAddress()"
+            [expanded]="false"
+            (addressResolved)="selectDeliveryAddress($event)"
+          ></app-service-proposal-interactive-map>
+
+          <div class="delivery-picker__selection" *ngIf="selectedDeliveryAddress() as address">
+            <lucide-icon name="map-pinned" size="18"></lucide-icon>
+            <span><small>Point sélectionné</small><strong>{{ address }}</strong></span>
+          </div>
+
+          <footer>
+            <button type="button" [disabled]="updatingDelivery()" (click)="closeDeliveryPicker()">
+              Annuler
+            </button>
+            <button
+              type="button"
+              class="delivery-picker__confirm"
+              [disabled]="!selectedDeliveryAddress().trim() || updatingDelivery()"
+              (click)="confirmDeliveryAddress(current)"
+            >
+              <span *ngIf="updatingDelivery()" class="pharmacy-payment__spinner pharmacy-payment__spinner--button"></span>
+              <lucide-icon *ngIf="!updatingDelivery()" name="route" size="17"></lucide-icon>
+              {{ updatingDelivery() ? 'Calcul en cours...' : 'Calculer la livraison' }}
+            </button>
+          </footer>
+        </section>
+      </div>
 
       <div class="pharmacy-payment__options">
         <button

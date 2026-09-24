@@ -24,7 +24,11 @@ import {
   FavoriteStatus,
   FavoritesService,
 } from '../../../../../core/favorites/favorites.service';
-import { AppBanner, ProfessionalSearchLocation, ServicesService } from '../../../data-access/services.service';
+import {
+  AppBanner,
+  ProfessionalSearchLocation,
+  ServicesService,
+} from '../../../data-access/services.service';
 import {
   CatalogAccountStatusChangedEvent,
   CatalogProfileChangedEvent,
@@ -45,7 +49,9 @@ import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-d
 import {
   AppSearchBarComponent,
   AppSearchCategorySuggestion,
+  AppSearchLocationFilter,
   AppSearchProviderSuggestion,
+  AppSearchTextSuggestion,
 } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
@@ -81,8 +87,6 @@ const SERVICE_CARD_COVER_URL =
   ],
 })
 export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChildren('serviceFilters')
-  private readonly serviceFilterRefs?: QueryList<ElementRef<HTMLElement>>;
   @ViewChildren('favoriteList')
   private readonly favoriteListRefs?: QueryList<ElementRef<HTMLElement>>;
 
@@ -96,7 +100,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly catalogRealtime = inject(CatalogRealtimeService);
   private readonly navbarPresentation = inject(AppNavbarPresentationService);
 
-
   sections = signal<ServiceSection[]>([]);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
@@ -105,15 +108,17 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   activeCategoryId = signal<string | null>(null);
   activeSubCategoryId = signal<string | null>(null);
   activeTravelMode = signal<TravelModeFilter>('ALL');
+  locationSort = signal<'RATING' | 'DISTANCE'>('RATING');
   categories = signal<CategoryStructure[]>([]);
   failedImageUrls = signal<Set<string>>(new Set());
   selectedCity = signal<string>('Toutes villes');
   currentSearchLocation = signal<ProfessionalSearchLocation | null>(null);
   private readonly resolvedMobileLocationLabel = signal<string | null>(null);
-  protected readonly mobileLocationLabel = computed(() =>
-    this.compactMobileLocationLabel(this.authSession.currentUser()?.address ?? '') ??
-    this.resolvedMobileLocationLabel() ??
-    'Votre localisation',
+  protected readonly mobileLocationLabel = computed(
+    () =>
+      this.compactMobileLocationLabel(this.authSession.currentUser()?.address ?? '') ??
+      this.resolvedMobileLocationLabel() ??
+      'Votre localisation',
   );
   isLocating = signal<boolean>(false);
   showSearchSuggestions = signal<boolean>(false);
@@ -130,6 +135,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         : 'Résultats dans toutes les villes',
   );
   protected readonly searchCategorySuggestions = computed<AppSearchCategorySuggestion[]>(() => {
+    const query = this.normalizeLabel(this.searchTerm());
     const providerCounts = new Map<string, number>();
 
     for (const provider of this.suggestionProviders()) {
@@ -138,16 +144,81 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return this.categories()
+      .filter((category) => {
+        if (!query) return true;
+
+        return (
+          providerCounts.has(this.normalizeLabel(category.nom)) ||
+          this.normalizeLabel(category.nom).includes(query) ||
+          category.subCategories.some((subCategory) =>
+            this.normalizeLabel(subCategory.nom).includes(query),
+          )
+        );
+      })
       .map((category, index) => ({
         id: category.id,
         name: category.nom,
         count:
           providerCounts.get(this.normalizeLabel(category.nom)) ?? category.subCategories.length,
         icon: this.categoryIcon(category.nom),
-        priority: this.categorySuggestionPriority(category.nom, index),
+        emphasized: query.length > 0 && providerCounts.has(this.normalizeLabel(category.nom)),
+        priority: providerCounts.has(this.normalizeLabel(category.nom))
+          ? -2000 + index
+          : this.categorySuggestionPriority(category.nom, index),
       }))
       .sort((current, next) => current.priority - next.priority)
       .map(({ priority: _priority, ...category }) => category);
+  });
+  protected readonly searchTextSuggestions = computed<AppSearchTextSuggestion[]>(() => {
+    const query = this.normalizeLabel(this.searchTerm());
+    if (!query) return [];
+
+    const candidates: AppSearchTextSuggestion[] = [];
+
+    for (const category of this.categories()) {
+      candidates.push({ value: category.nom, context: 'Catégorie' });
+      for (const subCategory of category.subCategories) {
+        candidates.push({ value: subCategory.nom, context: category.nom });
+      }
+    }
+
+    for (const provider of this.suggestionProviders()) {
+      const context = provider.categoryName || 'Métier';
+      const providerTerms = [
+        provider.professionName,
+        provider.speciality,
+        provider.categoryName,
+        provider.subCategoryName,
+        ...(provider.subCategoryNames ?? []),
+        ...provider.services.flatMap((service) => [
+          service.name,
+          service.categoryName,
+          service.subCategoryName,
+          ...(service.subCategoryNames ?? []),
+        ]),
+      ];
+
+      for (const term of providerTerms) {
+        if (term?.trim()) {
+          candidates.push({ value: term.trim(), context });
+        }
+      }
+    }
+
+    const uniqueSuggestions = new Map<string, AppSearchTextSuggestion>();
+    for (const candidate of candidates) {
+      const normalizedValue = this.normalizeLabel(candidate.value);
+      if (!normalizedValue.includes(query) || uniqueSuggestions.has(normalizedValue)) continue;
+      uniqueSuggestions.set(normalizedValue, candidate);
+    }
+
+    return [...uniqueSuggestions.values()]
+      .sort((current, next) => {
+        const currentStartsWith = this.normalizeLabel(current.value).startsWith(query) ? 0 : 1;
+        const nextStartsWith = this.normalizeLabel(next.value).startsWith(query) ? 0 : 1;
+        return currentStartsWith - nextStartsWith || current.value.localeCompare(next.value, 'fr');
+      })
+      .slice(0, 6);
   });
   protected readonly searchProviderSuggestions = computed<AppSearchProviderSuggestion[]>(() =>
     this.suggestionProviders()
@@ -284,11 +355,14 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private suggestionsRequestSubscription?: Subscription;
   private allTravelModesSnapshot: { contextKey: string; providers: Professional[] } | null = null;
   private readonly locationLabelCache = new Map<string, string>();
-  private serviceFilterWheelCleanups: Array<() => void> = [];
-  private serviceFilterRefsChangesSubscription?: Subscription;
+  private readonly writtenLocationCache = new Map<
+    string,
+    { latitude: number; longitude: number; label: string }
+  >();
   private favoriteListRefsChangesSubscription?: Subscription;
   private catalogRealtimeSubscription?: Subscription;
   private catalogProfileSubscription?: Subscription;
+  private catalogCategoryRulesSubscription?: Subscription;
   private bannerRotationTimer?: ReturnType<typeof setInterval>;
   protected readonly appBanners = signal<AppBanner[]>([]);
   protected readonly activeBannerIndex = signal(0);
@@ -317,28 +391,38 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadAvailableCities();
     this.loadFavorites();
     this.loadDefaultProfessionals();
-    this.servicesService.getAppBanners().pipe(catchError(() => of([]))).subscribe((banners) => {
-      this.appBanners.set(banners);
-      this.activeBannerIndex.set(0);
-      this.startBannerRotation();
-    });
+    this.servicesService
+      .getAppBanners()
+      .pipe(catchError(() => of([])))
+      .subscribe((banners) => {
+        this.appBanners.set(banners);
+        this.activeBannerIndex.set(0);
+        this.startBannerRotation();
+      });
     this.catalogRealtimeSubscription = this.catalogRealtime
       .watchAccountStatuses()
       .subscribe((event) => this.applyCatalogAccountStatus(event));
     this.catalogProfileSubscription = this.catalogRealtime
       .watchProfiles()
       .subscribe((event) => this.applyCatalogProfile(event));
+    this.catalogCategoryRulesSubscription = this.catalogRealtime
+      .watchCategoryRules()
+      .subscribe(() => {
+        clearHttpResponseCache();
+        this.loadCategories();
+        this.loadHomeData();
+        this.loadSearchSuggestions();
+      });
   }
 
   ngOnDestroy(): void {
     this.clearSearchDebounce();
     this.professionalsRequestSubscription?.unsubscribe();
     this.suggestionsRequestSubscription?.unsubscribe();
-    this.clearServiceFilterWheelListeners();
-    this.serviceFilterRefsChangesSubscription?.unsubscribe();
     this.favoriteListRefsChangesSubscription?.unsubscribe();
     this.catalogRealtimeSubscription?.unsubscribe();
     this.catalogProfileSubscription?.unsubscribe();
+    this.catalogCategoryRulesSubscription?.unsubscribe();
     this.stopBannerRotation();
   }
 
@@ -358,10 +442,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.bindServiceFilterWheelListeners();
-    this.serviceFilterRefsChangesSubscription = this.serviceFilterRefs?.changes.subscribe(() => {
-      this.bindServiceFilterWheelListeners();
-    });
     this.refreshFavoriteScrollbars();
     this.favoriteListRefsChangesSubscription = this.favoriteListRefs?.changes.subscribe(() => {
       this.refreshFavoriteScrollbars();
@@ -381,7 +461,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!shell) return;
     const viewport = list.clientHeight;
     const scrollRange = Math.max(0, list.scrollHeight - viewport);
-    const thumbHeight = scrollRange === 0 ? viewport : Math.max(28, (viewport / list.scrollHeight) * viewport);
+    const thumbHeight =
+      scrollRange === 0 ? viewport : Math.max(28, (viewport / list.scrollHeight) * viewport);
     const thumbRange = Math.max(0, viewport - thumbHeight);
     const thumbTop = scrollRange === 0 ? 0 : (list.scrollTop / scrollRange) * thumbRange;
     shell.style.setProperty('--favorite-thumb-height', `${thumbHeight}px`);
@@ -422,10 +503,14 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.showSearchSuggestions.set(true);
     this.showLocationMenu.set(false);
     this.clearSearchDebounce();
+    this.loadSearchSuggestions();
     this.searchDebounce = setTimeout(() => {
       this.loadProfessionals(1);
-      this.loadSearchSuggestions();
-    }, 280);
+    }, 180);
+  }
+
+  selectSearchTextSuggestion(value: string): void {
+    this.submitSearch(value);
   }
 
   private applyCatalogAccountStatus(event: CatalogAccountStatusChangedEvent): void {
@@ -537,7 +622,11 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentSearchLocation.set(null);
     this.selectedCity.set(city);
     this.resolvedMobileLocationLabel.set(
-      city === 'Toutes villes' ? 'Sénégal' : city === 'Ma position actuelle' ? 'Votre localisation' : `${city}, Sénégal`,
+      city === 'Toutes villes'
+        ? 'Sénégal'
+        : city === 'Ma position actuelle'
+          ? 'Votre localisation'
+          : `${city}, Sénégal`,
     );
     this.showLocationMenu.set(false);
     this.loadProfessionals(1);
@@ -546,6 +635,85 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   useCurrentLocation(): void {
     this.locateCurrentClient(true);
+  }
+
+  applyLocationFilter(filter: AppSearchLocationFilter): void {
+    this.locationSort.set(filter.sortBy);
+    this.showLocationMenu.set(false);
+    this.sortVisibleProfessionals(filter.sortBy);
+
+    if (filter.source === 'GPS') {
+      this.locateCurrentClient(true);
+      return;
+    }
+
+    const address = filter.text.trim();
+    if (!address) {
+      this.selectSearchCity('Toutes villes');
+      return;
+    }
+
+    const cacheKey = this.normalizeLabel(address);
+    const cachedLocation = this.writtenLocationCache.get(cacheKey);
+    if (cachedLocation) {
+      this.applyWrittenLocation(cachedLocation);
+      return;
+    }
+
+    this.isLocating.set(true);
+    this.googleMaps.geocodeAddress(address + ', Sénégal').subscribe({
+      next: (result) => {
+        this.isLocating.set(false);
+        if (!result || !this.senegalGeolocation.isInSenegal(result.latitude, result.longitude)) {
+          this.feedback.error('Cette position n’a pas été trouvée au Sénégal.');
+          return;
+        }
+
+        const location = {
+          latitude: result.latitude,
+          longitude: result.longitude,
+          label: result.formattedAddress || address,
+        };
+        this.writtenLocationCache.set(cacheKey, location);
+        this.applyWrittenLocation(location);
+      },
+      error: () => {
+        this.isLocating.set(false);
+        this.feedback.error('La position écrite n’a pas pu être localisée. Vérifiez l’adresse.');
+      },
+    });
+  }
+
+  private applyWrittenLocation(location: {
+    latitude: number;
+    longitude: number;
+    label: string;
+  }): void {
+    this.currentSearchLocation.set({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radiusKm: 25,
+    });
+    this.selectedCity.set(location.label);
+    this.resolvedMobileLocationLabel.set(location.label);
+    this.loadProfessionals(1);
+    this.loadSearchSuggestions();
+  }
+
+  private sortVisibleProfessionals(sortBy: 'RATING' | 'DISTANCE'): void {
+    const compare = (current: Professional, next: Professional): number =>
+      sortBy === 'DISTANCE'
+        ? (current.distanceKm ?? Number.POSITIVE_INFINITY) -
+          (next.distanceKm ?? Number.POSITIVE_INFINITY)
+        : next.rating - current.rating || next.totalReviews - current.totalReviews;
+
+    this.sections.update((sections) =>
+      sections.map((section) => ({
+        ...section,
+        providers: [...section.providers].sort(compare),
+      })),
+    );
+    this.suggestionProviders.update((providers) => [...providers].sort(compare));
   }
 
   private loadDefaultProfessionals(): void {
@@ -571,14 +739,15 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isLocating.set(true);
     this.showLocationMenu.set(false);
     this.senegalGeolocation
-      .getCurrentPosition()
+      .getCurrentPosition(8_000, {
+        enableHighAccuracy: false,
+        maximumAgeMs: 5 * 60_000,
+      })
       .then((coords) => {
         this.currentSearchLocation.set({
           latitude: coords.latitude,
           longitude: coords.longitude,
-          // One geographically ordered request is faster and avoids a second
-          // request when the closest professional is just outside 25 km.
-          radiusKm: 100,
+          radiusKm: 25,
         });
         this.selectedCity.set('Ma position actuelle');
         this.resolvedMobileLocationLabel.set('Votre localisation');
@@ -658,55 +827,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         photos: this.providerPhotos(provider),
       },
     });
-  }
-
-  scrollFiltersWithWheel(event: WheelEvent, targetElement?: HTMLElement): void {
-    if (event.ctrlKey) {
-      return;
-    }
-
-    const container = targetElement ?? (event.currentTarget as HTMLElement | null);
-    if (!container) {
-      return;
-    }
-
-    const maxScrollLeft = container.scrollWidth - container.clientWidth;
-    if (maxScrollLeft <= 0) {
-      return;
-    }
-
-    const modeMultiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 18 : 1;
-    const rawDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
-    const delta = rawDelta * modeMultiplier;
-    if (delta === 0) {
-      return;
-    }
-
-    const nextScrollLeft = Math.max(0, Math.min(maxScrollLeft, container.scrollLeft + delta));
-    if (nextScrollLeft === container.scrollLeft) {
-      return;
-    }
-
-    event.preventDefault();
-    container.scrollLeft = nextScrollLeft;
-  }
-
-  private bindServiceFilterWheelListeners(): void {
-    this.clearServiceFilterWheelListeners();
-
-    this.serviceFilterRefs?.forEach((reference) => {
-      const element = reference.nativeElement;
-      const handleWheel = (event: WheelEvent) => this.scrollFiltersWithWheel(event, element);
-      element.addEventListener('wheel', handleWheel, { passive: false });
-      this.serviceFilterWheelCleanups.push(() => {
-        element.removeEventListener('wheel', handleWheel);
-      });
-    });
-  }
-
-  private clearServiceFilterWheelListeners(): void {
-    this.serviceFilterWheelCleanups.forEach((cleanup) => cleanup());
-    this.serviceFilterWheelCleanups = [];
   }
 
   selectFilter(filter: ProfessionalFilter): void {
@@ -811,7 +931,17 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
           };
         }
 
-        const section = this.buildSection(result, query);
+        const sortedProviders = [...result.providers].sort((current, next) => {
+          if (this.locationSort() === 'DISTANCE') {
+            return (
+              (current.distanceKm ?? Number.POSITIVE_INFINITY) -
+              (next.distanceKm ?? Number.POSITIVE_INFINITY)
+            );
+          }
+
+          return next.rating - current.rating || next.totalReviews - current.totalReviews;
+        });
+        const section = this.buildSection({ ...result, providers: sortedProviders }, query);
         this.sections.set([section]);
         this.resolveProviderLocationLabels(section.providers);
         this.isLoading.set(false);
@@ -993,7 +1123,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private loadAvailableCities(): void {
     this.servicesService.getAvailableCities().subscribe({
-      next: (cities) => this.cityOptions.set([...new Set(cities.map((city) => city.trim()).filter(Boolean))]),
+      next: (cities) =>
+        this.cityOptions.set([...new Set(cities.map((city) => city.trim()).filter(Boolean))]),
       error: () => this.cityOptions.set([]),
     });
   }

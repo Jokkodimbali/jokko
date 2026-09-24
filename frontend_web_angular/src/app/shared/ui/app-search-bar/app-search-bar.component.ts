@@ -17,6 +17,12 @@ export interface AppSearchCategorySuggestion {
   name: string;
   count: number;
   icon?: string;
+  emphasized?: boolean;
+}
+
+export interface AppSearchTextSuggestion {
+  value: string;
+  context?: string;
 }
 
 export interface AppSearchProviderSuggestion {
@@ -31,6 +37,12 @@ export interface AppSearchProviderSuggestion {
   isOnline: boolean;
   avatarUrl?: string | null;
   initials: string;
+}
+
+export interface AppSearchLocationFilter {
+  sortBy: 'RATING' | 'DISTANCE';
+  source: 'WRITTEN' | 'GPS';
+  text: string;
 }
 
 export interface AppSearchModeOption {
@@ -60,6 +72,7 @@ export class AppSearchBarComponent {
   @Input() filterValueLabel = '';
   @Input() locationOptions: string[] = [];
   @Input() categorySuggestions: AppSearchCategorySuggestion[] = [];
+  @Input() textSuggestions: AppSearchTextSuggestion[] = [];
   @Input() providerSuggestions: AppSearchProviderSuggestion[] = [];
   @Input() modeOptions: AppSearchModeOption[] = [];
   @Input() selectedMode = '';
@@ -69,6 +82,9 @@ export class AppSearchBarComponent {
 
   private searchValue = '';
   protected showAllCategories = false;
+  protected locationSort: 'RATING' | 'DISTANCE' = 'RATING';
+  protected locationSource: 'WRITTEN' | 'GPS' = 'WRITTEN';
+  protected writtenLocation = '';
   private readonly collapsedCategoryCount = 3;
 
   @Input()
@@ -87,7 +103,9 @@ export class AppSearchBarComponent {
   @Output() locationClick = new EventEmitter<void>();
   @Output() locationOptionSelect = new EventEmitter<string>();
   @Output() currentLocationSelect = new EventEmitter<void>();
+  @Output() locationFilterApply = new EventEmitter<AppSearchLocationFilter>();
   @Output() categorySelect = new EventEmitter<string>();
+  @Output() textSuggestionSelect = new EventEmitter<string>();
   @Output() providerSelect = new EventEmitter<string>();
   @Output() modeSelect = new EventEmitter<string>();
   @Output() suggestionsClose = new EventEmitter<void>();
@@ -129,12 +147,50 @@ export class AppSearchBarComponent {
     this.onSubmit();
   }
 
+  onTextSuggestionSelect(value: string): void {
+    this.searchValue = value;
+    this.textSuggestionSelect.emit(value);
+  }
+
+  suggestionPart(value: string, part: 'before' | 'match' | 'after'): string {
+    const query = this.searchValue.trim();
+    const matchIndex = value.toLocaleLowerCase('fr').indexOf(query.toLocaleLowerCase('fr'));
+    if (!query || matchIndex < 0) {
+      return part === 'before' ? value : '';
+    }
+
+    if (part === 'before') return value.slice(0, matchIndex);
+    if (part === 'match') return value.slice(matchIndex, matchIndex + query.length);
+    return value.slice(matchIndex + query.length);
+  }
+
   onFilterClick(): void {
     this.filterClick.emit();
   }
 
   onLocationClick(): void {
     this.locationClick.emit();
+  }
+
+  selectLocationSort(sortBy: 'RATING' | 'DISTANCE'): void {
+    this.locationSort = sortBy;
+  }
+
+  selectLocationSource(source: 'WRITTEN' | 'GPS'): void {
+    this.locationSource = source;
+  }
+
+  onWrittenLocationInput(event: Event): void {
+    this.writtenLocation = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.locationSource = 'WRITTEN';
+  }
+
+  applyLocationFilter(): void {
+    this.locationFilterApply.emit({
+      sortBy: this.locationSort,
+      source: this.locationSource,
+      text: this.writtenLocation.trim(),
+    });
   }
 
   onFocus(): void {

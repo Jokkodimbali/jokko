@@ -106,35 +106,105 @@
   </div>
 
   <div *ngIf="isServiceVariant && showLocationMenu" class="app-search-bar__location-menu">
-    <p>Choisir une ville</p>
-    <button
-      type="button"
-      class="app-search-bar__current-location"
-      (click)="currentLocationSelect.emit()"
-    >
-      <lucide-icon name="locate-fixed" size="15" [strokeWidth]="2.3"></lucide-icon>
-      Ma position actuelle
-    </button>
-    <button
-      *ngFor="let option of locationOptions"
-      type="button"
-      class="app-search-bar__city"
-      [class.app-search-bar__city--active]="option === locationValue"
-      (click)="locationOptionSelect.emit(option)"
-    >
-      <span>
-        <lucide-icon name="map-pin" size="14" [strokeWidth]="2"></lucide-icon>
-        {{ option }}
-      </span>
-      <small>S&eacute;n&eacute;gal</small>
+    <section class="app-search-bar__filter-group">
+      <p>TRIER PAR</p>
+      <div class="app-search-bar__sort-options">
+        <button
+          type="button"
+          [class.app-search-bar__filter-option--active]="locationSort === 'RATING'"
+          (click)="selectLocationSort('RATING')"
+        >
+          <lucide-icon name="star" size="15" [strokeWidth]="2.2"></lucide-icon>
+          Meilleures notes
+        </button>
+        <button
+          type="button"
+          [class.app-search-bar__filter-option--active]="locationSort === 'DISTANCE'"
+          (click)="selectLocationSort('DISTANCE')"
+        >
+          <lucide-icon name="map-pin" size="15" [strokeWidth]="2.2"></lucide-icon>
+          Plus proches
+        </button>
+      </div>
+    </section>
+
+    <section class="app-search-bar__filter-group">
+      <p>RECHERCHER PAR</p>
+      <label
+        class="app-search-bar__location-choice"
+        [class.app-search-bar__location-choice--active]="locationSource === 'WRITTEN'"
+      >
+        <input
+          type="radio"
+          name="location-source"
+          value="WRITTEN"
+          [checked]="locationSource === 'WRITTEN'"
+          (change)="selectLocationSource('WRITTEN')"
+        />
+        <span class="app-search-bar__radio"></span>
+        <span class="app-search-bar__location-choice-copy">
+          <strong>Position &eacute;crite</strong>
+          <small>Quartier, ville ou adresse</small>
+          <span class="app-search-bar__written-location">
+            <lucide-icon name="map-pin" size="14" [strokeWidth]="2.2"></lucide-icon>
+            <input
+              type="text"
+              [value]="writtenLocation"
+              placeholder="Ex: Plateau, Dakar..."
+              (input)="onWrittenLocationInput($event)"
+            />
+          </span>
+        </span>
+      </label>
+
+      <label
+        class="app-search-bar__location-choice"
+        [class.app-search-bar__location-choice--active]="locationSource === 'GPS'"
+      >
+        <input
+          type="radio"
+          name="location-source"
+          value="GPS"
+          [checked]="locationSource === 'GPS'"
+          (change)="selectLocationSource('GPS')"
+        />
+        <span class="app-search-bar__radio"></span>
+        <span class="app-search-bar__location-choice-copy">
+          <strong>Ma localisation GPS</strong>
+          <small>Utiliser ma position actuelle</small>
+        </span>
+      </label>
+    </section>
+
+    <button type="button" class="app-search-bar__apply-location" (click)="applyLocationFilter()">
+      Appliquer les filtres
     </button>
   </div>
 
   <div *ngIf="isServiceVariant && showSuggestions" class="app-search-bar__suggestions">
+    <section
+      *ngIf="textSuggestions.length > 0"
+      class="app-search-bar__suggestion-section app-search-bar__suggestion-section--terms"
+      aria-label="Suggestions de recherche"
+    >
+      <div class="app-search-bar__text-suggestions">
+        <button
+          *ngFor="let suggestion of textSuggestions"
+          type="button"
+          class="app-search-bar__text-suggestion"
+          (click)="onTextSuggestionSelect(suggestion.value)"
+        >
+          <span>{{ suggestionPart(suggestion.value, 'before') }}</span><strong>{{
+            suggestionPart(suggestion.value, 'match')
+          }}</strong><span>{{ suggestionPart(suggestion.value, 'after') }}</span>
+        </button>
+      </div>
+    </section>
+
     <section *ngIf="categorySuggestions.length > 0" class="app-search-bar__suggestion-section">
       <div class="app-search-bar__suggestion-heading">
         <span>
-          <lucide-icon name="bookmark" size="13" [strokeWidth]="2"></lucide-icon>
+          <lucide-icon name="layout-dashboard" size="13" [strokeWidth]="2"></lucide-icon>
           Cat&eacute;gories
         </span>
         <button *ngIf="hasHiddenCategories" type="button" (click)="toggleCategoryList()">
@@ -149,6 +219,7 @@
           *ngFor="let category of visibleCategorySuggestions"
           type="button"
           class="app-search-bar__category-chip"
+          [class.app-search-bar__category-chip--emphasized]="category.emphasized"
           (click)="categorySelect.emit(category.id)"
         >
           <lucide-icon
@@ -214,10 +285,14 @@
     </section>
 
     <p
-      *ngIf="categorySuggestions.length === 0 && providerSuggestions.length === 0"
+      *ngIf="
+        textSuggestions.length === 0 &&
+        categorySuggestions.length === 0 &&
+        providerSuggestions.length === 0
+      "
       class="app-search-bar__empty"
     >
-      Tapez un service ou un nom de prestataire pour commencer.
+      Aucune suggestion trouv&eacute;e pour &laquo;&nbsp;{{ value }}&nbsp;&raquo;.
     </p>
 
     <footer class="app-search-bar__suggestion-footer">

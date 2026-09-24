@@ -12,11 +12,15 @@ describe('CategoryAdminService', () => {
     disable: jest.fn(),
   };
 
+  const eventEmitter = { emit: jest.fn() };
   let service: CategoryAdminService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CategoryAdminService(categoriesRepository as never);
+    service = new CategoryAdminService(
+      categoriesRepository as never,
+      eventEmitter as never,
+    );
   });
 
   it('should create a category when payload is valid', async () => {
@@ -51,6 +55,8 @@ describe('CategoryAdminService', () => {
       iconUrl: 'https://cdn.jokko.sn/plomberie.png',
       sortOrder: 1,
       commissionRate: 10,
+      priceType: 'NEGOCIABLE',
+      professionalSpaceType: 'PRESTATAIRE',
     });
   });
 
@@ -87,6 +93,51 @@ describe('CategoryAdminService', () => {
     ).rejects.toMatchObject({
       message: appMessage('CATEGORIES_UPDATE_EMPTY').message,
     });
+  });
+
+  it('broadcasts category rule changes after an update', async () => {
+    categoriesRepository.findById.mockResolvedValue({
+      id: 'cat-1',
+      nom: 'Plomberie',
+      urlIcone: null,
+      ordreTri: 1,
+      tauxCommission: 10,
+      typePrix: 'NEGOCIABLE',
+      typeEspace: 'PRESTATAIRE',
+      estActive: true,
+    });
+    categoriesRepository.update.mockResolvedValue({
+      status: 'updated',
+      category: {
+        id: 'cat-1',
+        nom: 'Plomberie',
+        urlIcone: null,
+        ordreTri: 1,
+        tauxCommission: 10,
+        typePrix: 'FIXE',
+        typeEspace: 'MEDECIN',
+        estActive: true,
+      },
+    });
+
+    await service.updateCategory(
+      {
+        sub: 'admin-1',
+        role: RoleUtilisateur.ADMIN,
+        phoneNumber: '+221770000000',
+      },
+      'cat-1',
+      { priceType: 'FIXE', professionalSpaceType: 'MEDECIN' },
+    );
+
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      'catalog.category-rules.changed',
+      expect.objectContaining({
+        categoryId: 'cat-1',
+        priceType: 'FIXE',
+        professionalSpaceType: 'MEDECIN',
+      }),
+    );
   });
 
   it('should disable a category', async () => {

@@ -495,6 +495,7 @@ export class PharmacyOrdersService {
     requestUser: AuthUser,
     orderId: string,
     deliveryRequested: boolean,
+    selectedDeliveryAddress?: string,
   ) {
     if (requestUser.role !== 'CLIENT') {
       throw new ForbiddenException(
@@ -533,7 +534,9 @@ export class PharmacyOrdersService {
     };
     if (deliveryRequested) {
       const deliveryAddress =
-        order.client.adresse || order.reservationMedicale.adresseClient;
+        selectedDeliveryAddress?.trim() ||
+        order.client.adresse ||
+        order.reservationMedicale.adresseClient;
       if (!deliveryAddress) {
         throw new BadRequestException(
           'Ajoutez une adresse client avant de demander la livraison.',

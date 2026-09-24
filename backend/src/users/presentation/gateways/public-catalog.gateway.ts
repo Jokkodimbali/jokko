@@ -14,6 +14,14 @@ export interface CatalogAccountStatusChangedEvent {
   changedAt: string;
 }
 
+export interface CatalogCategoryRulesChangedEvent {
+  categoryId: string;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType:
+    'PRESTATAIRE' | 'MEDECIN' | 'QUINCAILLERIE' | 'PHARMACIE';
+  changedAt: string;
+}
+
 export interface CatalogPresenceChangedEvent {
   userId?: string;
   professionalId: string;
@@ -45,6 +53,11 @@ export class PublicCatalogGateway implements OnGatewayConnection {
   @OnEvent('catalog.account-status.changed')
   handleAccountStatusChanged(payload: CatalogAccountStatusChangedEvent): void {
     this.server.emit('catalog.account-status.changed', payload);
+  }
+
+  @OnEvent('catalog.category-rules.changed')
+  handleCategoryRulesChanged(payload: CatalogCategoryRulesChangedEvent): void {
+    this.server.emit('catalog.category-rules.changed', payload);
   }
 
   @OnEvent('catalog.profile.changed')

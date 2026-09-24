@@ -32,9 +32,11 @@ import { createApiResponse } from '../../../shared/dto/api-response.dto';
 import { CloudinaryMediaService } from '../../../shared/media/cloudinary-media.service';
 import { Roles, RolesGuard } from '../../../shared/guards/roles.guard';
 import { AdminServiceStructureService } from '../../application/services/admin-service-structure.service';
+import { ApplyCategorySpaceDto } from '../dto/apply-category-space.dto';
 import { AssignServiceSubCategoriesDto } from '../dto/assign-service-subcategories.dto';
 import { BulkCreateServiceCategoriesDto } from '../dto/bulk-create-service-categories.dto';
 import { BulkCreateServiceSubCategoriesDto } from '../dto/bulk-create-service-subcategories.dto';
+import { UpdateServiceSubCategoryDto } from '../dto/update-service-subcategory.dto';
 import { CreateServiceSubCategoryDto } from '../dto/create-service-subcategory.dto';
 
 type UploadedServiceImageFile = {
@@ -143,6 +145,26 @@ export class AdminServiceStructureController {
     );
   }
 
+  @Patch('categories/:categoryId/subcategories/space')
+  @Roles(RoleUtilisateur.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Appliquer le type d espace a toute une categorie' })
+  async applyCategorySpace(
+    @CurrentUser() user: AuthUser,
+    @Param('categoryId') categoryId: string,
+    @Body() dto: ApplyCategorySpaceDto,
+  ) {
+    const result = await this.serviceStructure.applyCategorySpace(
+      user,
+      categoryId,
+      dto.professionalSpaceType,
+    );
+    return createApiResponse(
+      result,
+      'Type d espace applique a toute la categorie.',
+    );
+  }
+
   @Delete('categories/:categoryId')
   @Roles(RoleUtilisateur.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -161,6 +183,23 @@ export class AdminServiceStructureController {
       result,
       appMessage('ADMIN_SERVICE_CATEGORY_DELETED').message,
     );
+  }
+
+  @Patch('subcategories/:subCategoryId')
+  @Roles(RoleUtilisateur.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Definir le type d espace d une sous-categorie' })
+  async updateSubCategory(
+    @CurrentUser() user: AuthUser,
+    @Param('subCategoryId') subCategoryId: string,
+    @Body() dto: UpdateServiceSubCategoryDto,
+  ) {
+    const result = await this.serviceStructure.updateSubCategory(
+      user,
+      subCategoryId,
+      dto.professionalSpaceType ?? null,
+    );
+    return createApiResponse(result, 'Sous-categorie mise a jour.');
   }
 
   @Delete('subcategories/:subCategoryId')

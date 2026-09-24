@@ -8,6 +8,11 @@ export type SenegalGeolocationResult = {
   speedKmh: number | null;
 };
 
+export type SenegalGeolocationOptions = {
+  enableHighAccuracy?: boolean;
+  maximumAgeMs?: number;
+};
+
 const SENEGAL_BOUNDS = {
   minLatitude: 12,
   maxLatitude: 17.2,
@@ -17,7 +22,10 @@ const SENEGAL_BOUNDS = {
 
 @Injectable({ providedIn: 'root' })
 export class SenegalGeolocationService {
-  getCurrentPosition(timeoutMs = 30_000): Promise<SenegalGeolocationResult> {
+  getCurrentPosition(
+    timeoutMs = 30_000,
+    options: SenegalGeolocationOptions = {},
+  ): Promise<SenegalGeolocationResult> {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       return Promise.reject(new Error('Geolocation unavailable'));
     }
@@ -77,7 +85,11 @@ export class SenegalGeolocationService {
           // Le délai global ci-dessus laisse au GPS le temps de fournir la suivante.
           if (error.code !== error.TIMEOUT) fail(new Error('Geolocation unavailable'));
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: Math.min(timeoutMs, 15_000) },
+        {
+          enableHighAccuracy: options.enableHighAccuracy ?? true,
+          maximumAge: options.maximumAgeMs ?? 0,
+          timeout: Math.min(timeoutMs, 15_000),
+        },
       );
     });
   }

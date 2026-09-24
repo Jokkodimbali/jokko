@@ -140,7 +140,6 @@
     gap: 6px;
     margin-bottom: 14px;
     padding: 1px 3px 5px;
-    scroll-padding-inline: 3px;
   }
 
   :host .service-filters__button {
@@ -158,12 +157,7 @@
   }
 
   :host .service-filters__button--all {
-    box-shadow: 7px 0 12px rgb(255 255 255 / 82%);
-  }
-
-  :host .service-filters__button--active:not(.service-filters__button--all) {
-    left: auto;
-    position: static;
+    box-shadow: 0 6px 12px rgb(149 93 36 / 10%);
   }
 
   :host .service-filters__button--sub {

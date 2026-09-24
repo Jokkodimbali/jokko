@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { Prisma, RoleUtilisateur } from '@prisma/client';
+import {
+  Prisma,
+  RoleUtilisateur,
+  TypeEspaceProfessionnel,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import type { AuthRepositoryPort } from '../../application/ports/auth-repository.port';
@@ -427,6 +431,8 @@ export class AuthRepository implements AuthRepositoryPort {
       select: {
         id: true,
         nom: true,
+        typePrix: true,
+        typeEspace: true,
         sousCategories: {
           where: { sousCategorie: { estActive: true } },
           select: {
@@ -441,9 +447,18 @@ export class AuthRepository implements AuthRepositoryPort {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
 
+    const allowedSpaces: TypeEspaceProfessionnel[] =
+      data.role === RoleUtilisateur.MEDECIN
+        ? [TypeEspaceProfessionnel.MEDECIN]
+        : [
+            TypeEspaceProfessionnel.PRESTATAIRE,
+            TypeEspaceProfessionnel.PHARMACIE,
+            TypeEspaceProfessionnel.QUINCAILLERIE,
+          ];
     if (
-      data.role === RoleUtilisateur.MEDECIN &&
-      categories.some((category) => !this.isMedicalCategoryName(category.nom))
+      categories.some(
+        (category) => !allowedSpaces.includes(category.typeEspace),
+      )
     ) {
       throw appHttpException('VALIDATION_REQUEST_INVALID');
     }
@@ -515,11 +530,12 @@ export class AuthRepository implements AuthRepositoryPort {
       ]),
     );
 
-    const isPharmacy = selectedSubCategoryNames.some((subCategory) =>
-      this.isPharmacySubCategoryName(subCategory.nom),
+    const isPharmacy = categories.some(
+      (category) => category.typeEspace === TypeEspaceProfessionnel.PHARMACIE,
     );
-    const isHardwareStore = selectedSubCategoryNames.some((subCategory) =>
-      this.isHardwareStoreSubCategoryName(subCategory.nom),
+    const isHardwareStore = categories.some(
+      (category) =>
+        category.typeEspace === TypeEspaceProfessionnel.QUINCAILLERIE,
     );
     if (
       data.role === RoleUtilisateur.PRESTATAIRE &&
@@ -548,8 +564,7 @@ export class AuthRepository implements AuthRepositoryPort {
             ? `Service ${category.nom}. Specialites: ${specialtyNames.join(', ')}.`
             : `Service ${category.nom}.`,
           prix: 0,
-          typePrix:
-            data.role === RoleUtilisateur.MEDECIN ? 'FIXE' : 'NEGOCIABLE',
+          typePrix: category.typePrix,
           dureeMinutes: 30,
           estObligatoire: false,
           estDisponible: true,
@@ -562,48 +577,5 @@ export class AuthRepository implements AuthRepositoryPort {
     return Array.from(
       new Set((ids ?? []).map((id) => id.trim()).filter(Boolean)),
     );
-  }
-
-  private isPharmacySubCategoryName(name: string): boolean {
-    const normalized = name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
-    return /\bpharmaci(?:en|e)\b/.test(normalized);
-  }
-
-  private isHardwareStoreSubCategoryName(name: string): boolean {
-    const normalized = name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
-    return /\bquincailler(?:ie|ier)?\b/.test(normalized);
-  }
-
-  private isMedicalCategoryName(name: string): boolean {
-    const normalized = name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-
-    return [
-      'medec',
-      'medical',
-      'sante',
-      'soin',
-      'clinique',
-      'hopital',
-      'pharma',
-      'dent',
-      'chirurg',
-      'gyneco',
-      'pediatr',
-      'cardio',
-      'doct',
-      'infirm',
-      'cabinet',
-    ].some((keyword) => normalized.includes(keyword));
   }
 }

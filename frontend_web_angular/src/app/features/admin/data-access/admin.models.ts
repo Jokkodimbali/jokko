@@ -494,12 +494,20 @@ export interface AdminServiceStructureBranch {
   options: AdminServiceStructureOption[];
 }
 
+export type AdminProfessionalSpaceType =
+  | 'PRESTATAIRE'
+  | 'MEDECIN'
+  | 'QUINCAILLERIE'
+  | 'PHARMACIE';
+
 export interface AdminServiceSubCategory {
   id: string;
   name: string;
   description: string | null;
   sortOrder: number;
   isActive: boolean;
+  professionalSpaceType: AdminProfessionalSpaceType | null;
+  registeredUsers: number;
 }
 
 export interface AdminServiceStructureCategory {
@@ -508,6 +516,8 @@ export interface AdminServiceStructureCategory {
   iconUrl: string | null;
   sortOrder: number;
   commissionRate: number;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType: AdminProfessionalSpaceType;
   isActive: boolean;
   declaredServices: number;
   availableServices: number;
@@ -535,6 +545,8 @@ export interface AdminCategoryPayload {
   iconUrl?: string | null;
   sortOrder?: number;
   commissionRate?: number;
+  priceType?: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType?: AdminProfessionalSpaceType;
 }
 
 export interface AdminSubCategoryPayload {
@@ -547,70 +559,6 @@ export interface AdminBulkImportResult<T> {
   created: T[];
   skippedExisting: string[];
   totalRequested: number;
-}
-
-export interface AdminUserProfile {
-  id: string;
-  numeroTelephone: string;
-  nom: string;
-  email: string | null;
-  adresse: string | null;
-  role: string;
-  urlAvatar: string | null;
-  estActif: boolean;
-  creeLe: string | Date;
-  profilProfessionnel: {
-    id: string;
-    nomEntreprise: string | null;
-    categories: string[];
-  } | null;
-}
-
-export interface AdminUserRow extends AdminUserProfile {
-  nombreReservationsClient: number;
-  nombreReservationsPrestataire: number;
-}
-
-export interface AdminUserQuery {
-  role?: string;
-  isActive?: boolean;
-  search?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface AdminUserHistoryReservation {
-  id: string;
-  statut: string;
-  dateHeure: string | Date;
-  notes: string | null;
-  creeLe: string | Date;
-  service: {
-    id: string;
-    nom: string;
-    prix: number;
-    typePrix: string;
-  };
-}
-
-export interface AdminUserHistory {
-  user: AdminUserProfile;
-  reservationsAsClient: AdminUserHistoryReservation[];
-  reservationsAsProfessional: AdminUserHistoryReservation[];
-  paymentsAsClient: Array<{
-    id: string;
-    bookingId: string;
-    amount: number;
-    status: string;
-    createdAt: string | Date;
-  }>;
-  withdrawalsAsProfessional: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    requestedAt: string | Date;
-  }>;
-  notificationsCount: number;
 }
 
 export interface AdminReservationDetail {

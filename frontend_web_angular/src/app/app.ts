@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
-import { filter, map, startWith } from 'rxjs';
+import { catchError, filter, map, of, startWith } from 'rxjs';
 import { AppFeedbackService } from './core/feedback/app-feedback.service';
 import { InlineFormValidationService } from './core/forms/inline-form-validation.service';
 import { SessionPresenceService } from './core/presence/session-presence.service';
@@ -15,6 +15,9 @@ import { AuthSessionService } from './core/auth/auth-session.service';
 import { MessagesRealtimeService } from './features/messages/data-access/messages-realtime.service';
 import { MessagesService } from './features/messages/data-access/messages.service';
 import { getHttpErrorMessage } from './core/http/api-response.utils';
+import { AuthService } from './features/auth/data-access/auth.service';
+import { clearHttpResponseCache } from './core/http/http-cache.interceptor';
+import { CatalogRealtimeService } from './features/services/data-access/catalog-realtime.service';
 
 @Component({
   selector: 'app-root',
@@ -34,9 +37,11 @@ export class App {
   private readonly inlineFormValidation = inject(InlineFormValidationService);
   private readonly sessionPresence = inject(SessionPresenceService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly authService = inject(AuthService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly messagesService = inject(MessagesService);
   private readonly router = inject(Router);
+  private readonly catalogRealtime = inject(CatalogRealtimeService);
   protected readonly navbarPresentation = inject(AppNavbarPresentationService);
   protected readonly isOpeningSupport = signal(false);
   protected readonly showSupportButton = computed(() => {
@@ -74,6 +79,17 @@ export class App {
 
   constructor() {
     this.inlineFormValidation.install();
+    this.catalogRealtime.watchCategoryRules().subscribe(() => {
+      clearHttpResponseCache();
+      if (!this.authSession.getAccessToken()) return;
+
+      this.authService
+        .myUserProfile()
+        .pipe(catchError(() => of(null)))
+        .subscribe((profile) => {
+          if (profile) this.authSession.saveUserProfile(profile);
+        });
+    });
     effect(() => {
       this.authSession.authVersion();
       if (this.authSession.getAccessToken()) {

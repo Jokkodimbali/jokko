@@ -1,6 +1,8 @@
+import { TypeEspaceProfessionnel, TypePrix } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsEnum,
   IsInt,
   IsNumber,
   IsNotEmpty,
@@ -71,6 +73,24 @@ export class CreateCategoryDto {
   @Min(0, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MIN })
   @Max(32767, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MAX })
   sortOrder?: number;
+
+  @ApiProperty({
+    enum: TypePrix,
+    required: false,
+    default: TypePrix.NEGOCIABLE,
+  })
+  @IsOptional()
+  @IsEnum(TypePrix)
+  priceType?: TypePrix;
+
+  @ApiProperty({
+    enum: TypeEspaceProfessionnel,
+    required: false,
+    default: TypeEspaceProfessionnel.PRESTATAIRE,
+  })
+  @IsOptional()
+  @IsEnum(TypeEspaceProfessionnel)
+  professionalSpaceType?: TypeEspaceProfessionnel;
 
   @ApiProperty({
     description: API_DOCS.categories.commissionRateField,

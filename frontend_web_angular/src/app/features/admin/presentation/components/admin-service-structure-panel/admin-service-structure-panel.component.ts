@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   AdminCategoryPayload,
+  AdminProfessionalSpaceType,
   AdminServiceSubCategory,
   AdminServiceStructureCategory,
   AdminServiceStructureReport,
@@ -16,6 +17,8 @@ type CategoryForm = {
   iconUrl: string;
   sortOrder: number;
   commissionRate: number;
+  priceType: 'FIXE' | 'NEGOCIABLE';
+  professionalSpaceType: AdminProfessionalSpaceType;
 };
 
 type IconOption = {
@@ -76,6 +79,14 @@ export class AdminServiceStructurePanelComponent {
     subCategoryIds: string[];
   }>();
   @Output() deleteSubCategoryPermanently = new EventEmitter<string>();
+  @Output() updateSubCategorySpace = new EventEmitter<{
+    subCategoryId: string;
+    professionalSpaceType: AdminProfessionalSpaceType | null;
+  }>();
+  @Output() applyCategorySpace = new EventEmitter<{
+    categoryId: string;
+    professionalSpaceType: AdminProfessionalSpaceType;
+  }>();
   @Output() clearSearch = new EventEmitter<void>();
 
   protected expandedCategoryId: string | null = null;
@@ -258,8 +269,60 @@ export class AdminServiceStructurePanelComponent {
       iconUrl: category.iconUrl ?? '',
       sortOrder: category.sortOrder,
       commissionRate: category.commissionRate,
+      priceType: category.priceType,
+      professionalSpaceType: category.professionalSpaceType,
     };
     this.modalMode = 'category';
+  }
+
+  protected applySpaceTypeToCategory(
+    category: AdminServiceStructureCategory,
+    professionalSpaceType: AdminProfessionalSpaceType | '',
+    event: Event,
+  ): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (
+      !professionalSpaceType ||
+      this.actionId === category.id ||
+      professionalSpaceType === category.professionalSpaceType
+    ) {
+      return;
+    }
+    this.updateCategory.emit({
+      categoryId: category.id,
+      payload: {
+        name: category.name,
+        iconUrl: category.iconUrl,
+        sortOrder: category.sortOrder,
+        commissionRate: category.commissionRate,
+        priceType: category.priceType,
+        professionalSpaceType,
+      },
+    });
+    (event.target as HTMLSelectElement).value = '';
+  }
+
+  protected setCategoryPriceType(
+    category: AdminServiceStructureCategory,
+    priceType: 'FIXE' | 'NEGOCIABLE',
+    event: Event,
+  ): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.actionId === category.id || priceType === category.priceType) return;
+
+    this.updateCategory.emit({
+      categoryId: category.id,
+      payload: {
+        name: category.name,
+        iconUrl: category.iconUrl,
+        sortOrder: category.sortOrder,
+        commissionRate: category.commissionRate,
+        priceType,
+        professionalSpaceType: category.professionalSpaceType,
+      },
+    });
   }
 
   protected openBulkCategoryForm(): void {
@@ -310,6 +373,8 @@ export class AdminServiceStructurePanelComponent {
       iconUrl: iconUrl.trim() || null,
       sortOrder: Number(this.form.sortOrder || 0),
       commissionRate: Number(this.form.commissionRate || 0),
+      priceType: this.form.priceType,
+      professionalSpaceType: this.form.professionalSpaceType,
     };
 
     if (!payload.name) return;
@@ -330,6 +395,8 @@ export class AdminServiceStructurePanelComponent {
       iconUrl: this.resolveIconTokenForName(line),
       sortOrder: index,
       commissionRate: 10,
+      priceType: 'NEGOCIABLE' as const,
+      professionalSpaceType: 'PRESTATAIRE' as const,
     }));
 
     if (payload.length === 0) return;
@@ -561,6 +628,25 @@ export class AdminServiceStructurePanelComponent {
     return category.id;
   }
 
+  protected changeSubCategorySpaceType(
+    subCategory: AdminServiceSubCategory,
+    value: AdminProfessionalSpaceType | 'HERITER',
+  ): void {
+    this.updateSubCategorySpace.emit({
+      subCategoryId: subCategory.id,
+      professionalSpaceType: value === 'HERITER' ? null : value,
+    });
+  }
+
+  protected professionalSpaceLabel(type: AdminProfessionalSpaceType): string {
+    return {
+      PRESTATAIRE: 'Prestataire',
+      MEDECIN: 'Medecin',
+      QUINCAILLERIE: 'Quincaillerie',
+      PHARMACIE: 'Pharmacie',
+    }[type];
+  }
+
   protected subCategoryTrackBy(_: number, subCategory: AdminServiceSubCategory): string {
     return subCategory.id;
   }
@@ -637,6 +723,8 @@ export class AdminServiceStructurePanelComponent {
       iconUrl: 'lucide:git-fork',
       sortOrder: 0,
       commissionRate: 10,
+      priceType: 'NEGOCIABLE',
+      professionalSpaceType: 'PRESTATAIRE',
     };
   }
 

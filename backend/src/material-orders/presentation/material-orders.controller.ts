@@ -75,7 +75,9 @@ export class MaterialOrdersController {
     @CurrentUser() user: AuthUser,
     @Param('reservationId') reservationId: string,
   ) {
-    return createApiResponse(await this.orders.getByDeliveryReservation(user, reservationId));
+    return createApiResponse(
+      await this.orders.getByDeliveryReservation(user, reservationId),
+    );
   }
 
   @Get(':id')
@@ -115,7 +117,12 @@ export class MaterialOrdersController {
     @Body() dto: ConfigureMaterialDeliveryDto,
   ) {
     return createApiResponse(
-      await this.orders.configureDelivery(user, id, dto.deliveryRequested),
+      await this.orders.configureDelivery(
+        user,
+        id,
+        dto.deliveryRequested,
+        dto.deliveryAddress,
+      ),
       dto.deliveryRequested
         ? 'Livraison ajoutee.'
         : 'Retrait en quincaillerie selectionne.',

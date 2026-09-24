@@ -94,6 +94,15 @@ export class ConfigureMaterialDeliveryDto {
   @ApiProperty()
   @IsBoolean()
   deliveryRequested!: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Adresse precise choisie par le client sur la carte.',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  deliveryAddress?: string;
 }
 
 export class InitiateMaterialOrderPaymentDto {

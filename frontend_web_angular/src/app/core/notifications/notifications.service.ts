@@ -18,6 +18,8 @@ export interface UserNotificationView {
   estLue?: boolean;
   createdAt?: string;
   creeLe?: string;
+  /** Client-side deadline used to preserve a transient widget across reloads. */
+  displayExpiresAt?: number;
 }
 
 export interface MarkAllNotificationsReadView {
@@ -52,9 +54,11 @@ export function notificationActorName(notification: UserNotificationView): strin
   if (typeof actorName === 'string') return actorName.trim();
   // Older call notifications stored the caller only in their message.
   if (/APPEL/i.test(notification.type)) {
-    return (notification.body || notification.corps || '').match(
-      /^(.+?) (?:a tent[ée] de vous joindre|vous appelle)[.!]?$/i,
-    )?.[1]?.trim() || null;
+    return (
+      (notification.body || notification.corps || '')
+        .match(/^(.+?) (?:a tent[ée] de vous joindre|vous appelle)[.!]?$/i)?.[1]
+        ?.trim() || null
+    );
   }
   return null;
 }
@@ -63,23 +67,33 @@ export function formatNotificationTitle(
   notification: UserNotificationView,
   fallbackTitle = 'Notification',
 ): string {
-  const title = (notification.title || notification.titre || fallbackTitle).trim().replace(/[.!]+$/, '');
+  const title = (notification.title || notification.titre || fallbackTitle)
+    .trim()
+    .replace(/[.!]+$/, '');
   const actor = notificationActorName(notification);
   const type = notification.type.toUpperCase();
   const metadata = notification.data || notification.donnees || {};
   const from = actor ? ` de ${actor}` : '';
   const withPerson = actor ? ` avec ${actor}` : '';
   const by = actor ? ` par ${actor}` : '';
+  const isDeliveryJourney =
+    metadata['deliveryStage'] === 'PICKUP' || metadata['deliveryStage'] === 'DROPOFF';
+  // Delivery notifications already contain the exact wording for the current
+  // pickup/drop-off phase. Keep it untouched on the first line; the service
+  // name remains exclusively on the subtitle line.
+  if (isDeliveryJourney) return title;
   if (type === 'APPEL_MANQUE') return `Appel manqué${from}`;
   if (type === 'APPEL_ENTRANT') return `Appel entrant${from}`;
   if (type.includes('MESSAGE')) return `Nouveau message${from}`;
   if (isOngoingNotification(notification)) return `La prestation est en cours${withPerson}`;
-  if (metadata['tripStatus'] === 'SUR_PLACE') return actor ? `${actor} est sur place` : 'Arrivé sur place';
+  if (metadata['tripStatus'] === 'SUR_PLACE')
+    return actor ? `${actor} est sur place` : 'Arrivé sur place';
   if (type === 'PRESTATAIRE_EN_ROUTE') {
     if (metadata['recipientIsTraveller'] === true && metadata['tripStatus'] === 'EN_ROUTE') {
-      const targetName = typeof metadata['targetName'] === 'string' && metadata['targetName'].trim()
-        ? metadata['targetName'].trim()
-        : 'votre destination';
+      const targetName =
+        typeof metadata['targetName'] === 'string' && metadata['targetName'].trim()
+          ? metadata['targetName'].trim()
+          : 'votre destination';
       return `Vous êtes en route vers ${targetName}`;
     }
     if (metadata['deliveryOfferResolved'] === true) return 'Livraison acceptée';
@@ -126,16 +140,27 @@ export function formatNotificationTitle(
   // Preserve hyphens within names and words; only replace separator dashes.
   const serviceName = notificationMetadataString(notification, 'serviceName');
   const titleWithoutServiceName = serviceName
-    ? title.replaceAll(serviceName, '').replace(/\s+(?:pour|de|du|des|d')\s*$/i, '').trim()
+    ? title
+        .replaceAll(serviceName, '')
+        .replace(/\s+(?:pour|de|du|des|d')\s*$/i, '')
+        .trim()
     : title;
   const wording = titleWithoutServiceName.replace(/\s+[—–-]\s+/g, ' concernant ');
   return actor && !wording.toLocaleLowerCase().includes(actor.toLocaleLowerCase())
-    ? `${wording}${withPerson}` : wording;
+    ? `${wording}${withPerson}`
+    : wording;
 }
 
 export function notificationAvatarUrl(notification: UserNotificationView): string | null {
   const metadata = notification.data || notification.donnees || {};
-  for (const key of ['avatarUrl', 'senderAvatarUrl', 'callerAvatarUrl', 'clientAvatarUrl', 'professionalAvatarUrl', 'providerAvatarUrl']) {
+  for (const key of [
+    'avatarUrl',
+    'senderAvatarUrl',
+    'callerAvatarUrl',
+    'clientAvatarUrl',
+    'professionalAvatarUrl',
+    'providerAvatarUrl',
+  ]) {
     const value = metadata[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
@@ -198,7 +223,9 @@ export function isWalletNotification(notification: UserNotificationView): boolea
   return /WALLET|PORTEFEUILLE|PAIEMENT_LIBERE|RETRAIT/.test(notification.type.toUpperCase());
 }
 
-export function sortNotificationsNewestFirst(notifications: UserNotificationView[]): UserNotificationView[] {
+export function sortNotificationsNewestFirst(
+  notifications: UserNotificationView[],
+): UserNotificationView[] {
   return [...notifications].sort((a, b) => notificationTimestamp(b) - notificationTimestamp(a));
 }
 
@@ -211,10 +238,12 @@ export function isOngoingNotification(notification: UserNotificationView): boole
     .join(' ')
     .toLocaleLowerCase('fr-FR');
 
-  return reservationStatus === 'EN_COURS' ||
+  return (
+    reservationStatus === 'EN_COURS' ||
     tripStatus === 'EN_COURS' ||
     notification.type === 'PRESTATION_EN_COURS' ||
-    /\bprestation\b.*\ben cours\b/.test(notificationText);
+    /\bprestation\b.*\ben cours\b/.test(notificationText)
+  );
 }
 
 /** Arrival and active work remain visible until the reservation is resolved. */
@@ -222,77 +251,103 @@ export function isPersistentServiceNotification(notification: UserNotificationVi
   const metadata = notification.data || notification.donnees || {};
   const reservationStatus = String(metadata['reservationStatus'] ?? '').toUpperCase();
   const tripStatus = String(metadata['tripStatus'] ?? '').toUpperCase();
-  if (['TERMINEE', 'ANNULEE'].includes(reservationStatus) ||
-      ['TERMINEE', 'ANNULEE'].includes(tripStatus)) {
+  if (
+    ['TERMINEE', 'ANNULEE'].includes(reservationStatus) ||
+    ['TERMINEE', 'ANNULEE'].includes(tripStatus)
+  ) {
     return false;
   }
-  return isOngoingNotification(notification) ||
+  return (
+    isOngoingNotification(notification) ||
     tripStatus === 'SUR_PLACE' ||
     (metadata['persistentUntilTerminal'] === true &&
       typeof metadata['reservationId'] === 'string' &&
-      metadata['reservationId'].trim().length > 0);
+      metadata['reservationId'].trim().length > 0)
+  );
 }
 
 export function findFeaturedNotification(
   notifications: UserNotificationView[],
   dismissed: (id: string) => boolean = () => false,
 ): UserNotificationView | null {
-  const sorted = sortNotificationsNewestFirst(notifications).filter(notification => {
+  const sorted = sortNotificationsNewestFirst(notifications).filter((notification) => {
     const data = notification.data || notification.donnees || {};
-    return data['persistentDeliveryOffer'] !== true &&
-      !(typeof data['route'] === 'string' && data['route'].endsWith('/delivery-offer'));
+    return (
+      data['persistentDeliveryOffer'] !== true &&
+      !(typeof data['route'] === 'string' && data['route'].endsWith('/delivery-offer'))
+    );
   });
   const latest = sorted[0];
-  if (latest && !isPersistentServiceNotification(latest) && !dismissed(latest.id) && !(latest.isRead ?? latest.estLue)) return latest;
-  return sorted.find((notification) => {
-    if (!isPersistentServiceNotification(notification)) return false;
-    const reservationId = notificationMetadataString(notification, 'reservationId');
-    return !!reservationId && !sorted.some((candidate) =>
-      ['RESERVATION_FINALISEE', 'RESERVATION_ANNULEE'].includes(candidate.type) &&
-      notificationMetadataString(candidate, 'reservationId') === reservationId &&
-      notificationTimestamp(candidate) >= notificationTimestamp(notification),
-    );
-  }) ?? null;
+  if (
+    latest &&
+    !isPersistentServiceNotification(latest) &&
+    !dismissed(latest.id) &&
+    !(latest.isRead ?? latest.estLue)
+  )
+    return latest;
+  return (
+    sorted.find((notification) => {
+      if (!isPersistentServiceNotification(notification)) return false;
+      const reservationId = notificationMetadataString(notification, 'reservationId');
+      return (
+        !!reservationId &&
+        !sorted.some(
+          (candidate) =>
+            ['RESERVATION_FINALISEE', 'RESERVATION_ANNULEE'].includes(candidate.type) &&
+            notificationMetadataString(candidate, 'reservationId') === reservationId &&
+            notificationTimestamp(candidate) >= notificationTimestamp(notification),
+        )
+      );
+    }) ?? null
+  );
 }
 
 export function notificationIcon(notification: UserNotificationView): string {
-    const metadata = {
-      ...(notification.donnees ?? {}),
-      ...(notification.data ?? {}),
-    };
-    const type = notification.type.toUpperCase();
-    const title = (notification.title || notification.titre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-    if (/APPEL.*MANQUE/.test(type)) return 'phone-missed';
-    if (/APPEL/.test(type)) return 'phone-incoming';
-    if (isOngoingNotification(notification)) return 'hourglass';
-    if (metadata['tripStatus'] === 'SUR_PLACE') return 'pin';
-    if (/AJUSTEMENT/.test(type)) {
-      if (/REFUS|REJET/.test(type + title)) return 'circle-x';
-      if (/ACCEPT/.test(type + title)) return 'circle-check';
-      const direction = priceAdjustmentDirection(metadata, notification.body || notification.corps || '');
-      if (direction === 'DOWN') return 'move-down';
-      if (direction === 'UP') return 'move-up';
-      return 'banknote';
-    }
-    if (/MESSAGE/.test(type)) return 'message-circle';
-    if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE|RETRAIT/.test(type)) return 'wallet-cards';
-    if (/PAYMENT|PAIEMENT/.test(type)) return 'hand-coins';
-    if (/LITIGE/.test(type)) return /RESOLU/.test(type + title) ? 'handshake' : 'scale';
-    if (/KYC|PROFIL/.test(type)) return /REFUS|REJET/.test(type + title) ? 'frown' : 'party-popper';
-    if (/ORDONNANCE/.test(type)) return 'siren';
-    if (/ANNONCE/.test(type)) return 'rss';
-    if (/EN_ROUTE/.test(type)) return 'route';
-    if (/ANNULEE/.test(type)) return 'calendar-x';
-    if (/FINALISEE/.test(type)) return 'check';
-    if (/RESERVATION/.test(type)) return 'calendar-check';
-    return 'bell';
+  const metadata = {
+    ...(notification.donnees ?? {}),
+    ...(notification.data ?? {}),
+  };
+  const type = notification.type.toUpperCase();
+  const title = (notification.title || notification.titre || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+  if (/APPEL.*MANQUE/.test(type)) return 'phone-missed';
+  if (/APPEL/.test(type)) return 'phone-incoming';
+  if (isOngoingNotification(notification)) return 'hourglass';
+  if (metadata['tripStatus'] === 'SUR_PLACE') return 'pin';
+  if (/AJUSTEMENT/.test(type)) {
+    if (/REFUS|REJET/.test(type + title)) return 'circle-x';
+    if (/ACCEPT/.test(type + title)) return 'circle-check';
+    const direction = priceAdjustmentDirection(
+      metadata,
+      notification.body || notification.corps || '',
+    );
+    if (direction === 'DOWN') return 'move-down';
+    if (direction === 'UP') return 'move-up';
+    return 'banknote';
   }
+  if (/MESSAGE/.test(type)) return 'message-circle';
+  if (/WALLET|PORTEFEUILLE|PAIEMENT_LIBERE|RETRAIT/.test(type)) return 'wallet-cards';
+  if (/PAYMENT|PAIEMENT/.test(type)) return 'hand-coins';
+  if (/LITIGE/.test(type)) return /RESOLU/.test(type + title) ? 'handshake' : 'scale';
+  if (/KYC|PROFIL/.test(type)) return /REFUS|REJET/.test(type + title) ? 'frown' : 'party-popper';
+  if (/ORDONNANCE/.test(type)) return 'siren';
+  if (/ANNONCE/.test(type)) return 'rss';
+  if (/EN_ROUTE/.test(type)) return 'route';
+  if (/ANNULEE/.test(type)) return 'calendar-x';
+  if (/FINALISEE/.test(type)) return 'check';
+  if (/RESERVATION/.test(type)) return 'calendar-check';
+  return 'bell';
+}
 
 function priceAdjustmentDirection(
   metadata: Record<string, unknown>,
   body: string,
 ): 'UP' | 'DOWN' | null {
-  const explicit = String(metadata['priceDirection'] ?? metadata['adjustmentDirection'] ?? '').toUpperCase();
+  const explicit = String(
+    metadata['priceDirection'] ?? metadata['adjustmentDirection'] ?? '',
+  ).toUpperCase();
   if (['UP', 'INCREASE', 'AUGMENTATION', 'HAUSSE'].includes(explicit)) return 'UP';
   if (['DOWN', 'DECREASE', 'DIMINUTION', 'BAISSE'].includes(explicit)) return 'DOWN';
 
@@ -301,8 +356,8 @@ function priceAdjustmentDirection(
       metadata['currentAmount'] ??
       metadata['oldPrice'] ??
       metadata['oldAmount'] ??
-    metadata['previousPrice'] ??
-    metadata['previousAmount'] ??
+      metadata['previousPrice'] ??
+      metadata['previousAmount'] ??
       metadata['initialPrice'] ??
       metadata['initialAmount'] ??
       metadata['referencePrice'] ??
@@ -329,7 +384,10 @@ function priceAdjustmentDirection(
     return proposed > current ? 'UP' : 'DOWN';
   }
 
-  const normalizedBody = body.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const normalizedBody = body
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
   const legacyCurrent = notificationAmount(
     normalizedBody.match(/(?:ancien|precedent)\s*(?:prix|montant)\s*:\s*([\d\s.,]+)/i)?.[1],
   );
@@ -351,7 +409,10 @@ function priceAdjustmentDirection(
 function notificationAmount(value: unknown): number {
   if (typeof value === 'number') return value;
   if (typeof value !== 'string') return Number.NaN;
-  const normalized = value.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const normalized = value
+    .replace(/\s/g, '')
+    .replace(',', '.')
+    .replace(/[^\d.-]/g, '');
   return normalized ? Number(normalized) : Number.NaN;
 }
 

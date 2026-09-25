@@ -28,6 +28,10 @@ export class MessagesRealtimeService {
   private readonly connectedSubject = new Subject<void>();
   readonly connected$ = this.connectedSubject.asObservable();
   private readonly messageCreatedSubject = new Subject<ConversationMessage>();
+  private readonly messageDeletedSubject = new Subject<{
+    conversationId: string;
+    messageId: string;
+  }>();
   private readonly disputeMediationMessageCreatedSubject =
     new Subject<DisputeMediationRealtimeMessage>();
   private readonly notificationCreatedSubject = new Subject<UserNotificationView>();
@@ -41,6 +45,7 @@ export class MessagesRealtimeService {
 
   readonly messageCreated$: Observable<ConversationMessage> =
     this.messageCreatedSubject.asObservable();
+  readonly messageDeleted$ = this.messageDeletedSubject.asObservable();
   readonly disputeMediationMessageCreated$: Observable<DisputeMediationRealtimeMessage> =
     this.disputeMediationMessageCreatedSubject.asObservable();
   readonly notificationCreated$: Observable<UserNotificationView> =
@@ -81,6 +86,11 @@ export class MessagesRealtimeService {
     this.socket.on('conversation.message.created', (message: ConversationMessage) => {
       this.messageCreatedSubject.next(message);
     });
+    this.socket.on(
+      'conversation.message.deleted',
+      (event: { conversationId: string; messageId: string }) =>
+        this.messageDeletedSubject.next(event),
+    );
 
     this.socket.on(
       'dispute.mediation.message.created',

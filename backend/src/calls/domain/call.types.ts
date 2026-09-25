@@ -9,4 +9,5 @@ export type CallSignal = {
   callerName: string;
   callerAvatarUrl: string | null;
   occurredAt: string;
+  embeddedTeleconsultation?: boolean;
 };

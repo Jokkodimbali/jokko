@@ -2,14 +2,14 @@ import { signal } from '@angular/core';
 import { isPersistentServiceNotification, UserNotificationView } from './notifications.service';
 
 export const NOTIFICATION_DISPLAY_MS = 15_000;
-export const NOTIFICATION_TRANSITION_MS = 350;
-export const NAVBAR_NOTIFICATION_TRANSITION_MS = 3000;
+export const NOTIFICATION_TRANSITION_MS = 160;
+export const NAVBAR_NOTIFICATION_TRANSITION_MS = 160;
 
-/** Retains the rendered notification until its exit animation finishes. */
+/** Displays notifications immediately and serializes simultaneous arrivals. */
 export class AnimatedNotificationDisplay<T extends { id: string }> {
   readonly notification = signal<T | null>(null);
   readonly phase = signal<'entering' | 'visible' | 'leaving'>('visible');
-  private pending: T | null = null;
+  private readonly queue: T[] = [];
   private transitionTimer: ReturnType<typeof setTimeout> | null = null;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -17,61 +17,112 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
     private readonly dismiss: (id: string) => void,
     private readonly isPersistent: (notification: T) => boolean,
     private readonly transitionMs = NOTIFICATION_TRANSITION_MS,
+    private readonly expiresIn: (notification: T) => number = () => NOTIFICATION_DISPLAY_MS,
   ) {}
 
   update(notification: T | null): void {
-    this.pending = notification;
-    if (this.phase() === 'leaving') return;
     const current = this.notification();
     if (current?.id === notification?.id) {
       this.notification.set(notification);
-      return; // Polling must not restart the animation or the expiry timer.
+      return;
     }
-    if (current) this.leave();
-    else this.showPending();
+
+    if (!notification) {
+      this.queue.length = 0;
+      if (current && this.isPersistent(current)) this.leave();
+      return;
+    }
+
+    this.enqueue(notification);
+    if (!current) {
+      this.showNext(false);
+      return;
+    }
+
+    // Active trip states have no timeout. Replace them immediately when the
+    // next persisted state arrives (en route -> on site -> completed).
+    if (this.isPersistent(current)) {
+      this.clearTimers();
+      this.showNext(true);
+    }
+    // A transient item keeps its full deadline. Concurrent notifications stay
+    // queued and are mounted one by one, never on top of each other.
   }
 
   destroy(): void {
-    if (this.transitionTimer) clearTimeout(this.transitionTimer);
-    if (this.expiryTimer) clearTimeout(this.expiryTimer);
-    this.transitionTimer = null;
-    this.expiryTimer = null;
+    this.clearTimers();
+    this.queue.length = 0;
   }
 
-  private showPending(): void {
-    const notification = this.pending;
+  private enqueue(notification: T): void {
+    const index = this.queue.findIndex((queued) => queued.id === notification.id);
+    if (index >= 0) {
+      this.queue[index] = notification;
+      return;
+    }
+    this.queue.push(notification);
+  }
+
+  private showNext(animateReplacement: boolean): void {
+    const notification = this.queue.shift() ?? null;
     this.notification.set(notification);
     if (!notification) {
       this.phase.set('visible');
       return;
     }
-    this.phase.set('entering');
-    this.transitionTimer = setTimeout(() => {
-      this.transitionTimer = null;
-      this.phase.set('visible');
-      if (!this.isPersistent(notification)) {
-        this.expiryTimer = setTimeout(() => {
-          this.expiryTimer = null;
-          this.pending = null;
-          this.leave();
-          this.dismiss(notification.id);
-        }, NOTIFICATION_DISPLAY_MS);
+
+    // The node is mounted synchronously. The short animation only polishes a
+    // replacement and never delays access to its content.
+    this.phase.set(animateReplacement ? 'entering' : 'visible');
+    if (animateReplacement) {
+      this.transitionTimer = setTimeout(() => {
+        this.transitionTimer = null;
+        this.phase.set('visible');
+      }, this.transitionMs);
+    }
+
+    if (this.isPersistent(notification)) return;
+    const remainingMs = Math.max(0, this.expiresIn(notification));
+    this.expiryTimer = setTimeout(() => {
+      this.expiryTimer = null;
+      this.dismiss(notification.id);
+      if (this.queue.length > 0) {
+        this.clearTimers();
+        this.showNext(true);
+      } else {
+        this.leave();
       }
-    }, this.transitionMs);
+    }, remainingMs);
   }
 
   private leave(): void {
-    this.destroy();
+    this.clearTimers();
     this.phase.set('leaving');
     this.transitionTimer = setTimeout(() => {
       this.transitionTimer = null;
-      this.showPending();
+      this.notification.set(null);
+      this.phase.set('visible');
     }, this.transitionMs);
+  }
+
+  private clearTimers(): void {
+    if (this.transitionTimer) clearTimeout(this.transitionTimer);
+    if (this.expiryTimer) clearTimeout(this.expiryTimer);
+    this.transitionTimer = null;
+    this.expiryTimer = null;
   }
 }
 
 export class NotificationDisplay extends AnimatedNotificationDisplay<UserNotificationView> {
   constructor(dismiss: (id: string) => void) {
-    super(dismiss, isPersistentServiceNotification, NAVBAR_NOTIFICATION_TRANSITION_MS);
+    super(
+      dismiss,
+      isPersistentServiceNotification,
+      NAVBAR_NOTIFICATION_TRANSITION_MS,
+      (notification) =>
+        notification.displayExpiresAt
+          ? notification.displayExpiresAt - Date.now()
+          : NOTIFICATION_DISPLAY_MS,
+    );
   }
 }

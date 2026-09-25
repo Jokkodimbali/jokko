@@ -126,6 +126,21 @@ export class CloudinaryMediaService {
     };
   }
 
+  async deleteByUrl(secureUrl: string): Promise<void> {
+    const config = this.readConfig();
+    this.configureSdk(config);
+    const parsed = this.parseDeliveryUrl(secureUrl, config.cloudName);
+    const result = await cloudinary.uploader.destroy(parsed.publicId, {
+      resource_type: parsed.resourceType,
+      type: parsed.deliveryType,
+      invalidate: true,
+    });
+
+    if (!['ok', 'not found'].includes(result.result)) {
+      throw new Error(`CLOUDINARY_DELETE_FAILED: ${result.result}`);
+    }
+  }
+
   private readConfig(): CloudinaryConfig {
     const cloudinaryUrl = this.readEnv('CLOUDINARY_URL');
     if (cloudinaryUrl) {
@@ -176,6 +191,9 @@ export class CloudinaryMediaService {
     const url = new URL(secureUrl);
     const parts = url.pathname.split('/').filter(Boolean);
     const cloudNameIndex = parts.indexOf(expectedCloudName);
+    if (cloudNameIndex < 0) {
+      throw new Error('CLOUDINARY_DELIVERY_URL_INVALID');
+    }
     const resourceType = parts[cloudNameIndex + 1];
     const deliveryType = parts[cloudNameIndex + 2];
     const uploadSegments = parts.slice(cloudNameIndex + 3);

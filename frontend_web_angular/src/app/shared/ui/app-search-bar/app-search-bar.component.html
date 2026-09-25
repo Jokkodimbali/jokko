@@ -10,6 +10,7 @@
     <button
       type="button"
       class="app-search-bar__location"
+      [class.app-search-bar__location--default]="isServiceVariant && locationValue === 'Filtre'"
       [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
       (click)="onLocationClick()"
     >
@@ -261,9 +262,14 @@
           />
         </span>
         <span class="app-search-bar__provider-info">
-          <strong
-            >{{ provider.name }} <small>{{ provider.category }}</small></strong
-          >
+          <strong>
+            {{ provider.name }}
+            <small>
+              <span>{{ suggestionPart(provider.speciality, 'before') }}</span><b>{{
+                suggestionPart(provider.speciality, 'match')
+              }}</b><span>{{ suggestionPart(provider.speciality, 'after') }}</span>
+            </small>
+          </strong>
           <span>{{ provider.location }}</span>
         </span>
         <span class="app-search-bar__provider-action">

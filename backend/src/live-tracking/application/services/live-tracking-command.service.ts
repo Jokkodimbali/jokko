@@ -129,23 +129,33 @@ export class LiveTrackingCommandService {
       tracking.presence,
     );
 
-    await this.reservationClientNotificationService.notifyProfessionalOnTheWay({
-      reservationId: context.reservationId,
-      clientId: context.clientUserId,
-      serviceName: notificationServiceName,
-      professionalName: context.professionalName,
-      dateHeure: context.dateHeure,
-      adresseClient: context.adresseClient,
-    });
-    await this.reservationClientNotificationService.notifyTripStatus({
-      reservationId: context.reservationId,
-      recipientUserId: context.professionalUserId,
-      serviceName: notificationServiceName,
-      travellerRole: 'PROFESSIONNEL',
-      travellerName: context.professionalName,
-      targetName: context.clientName,
-      tripStatus: 'EN_ROUTE',
-    });
+    const delivery = this.deliveryNotificationDetails(context);
+    if (delivery) {
+      await this.notifyDeliveryTripToBothRecipients(context, {
+        ...delivery,
+        tripStatus: 'EN_ROUTE',
+      });
+    } else {
+      await this.reservationClientNotificationService.notifyProfessionalOnTheWay(
+        {
+          reservationId: context.reservationId,
+          clientId: context.clientUserId,
+          serviceName: notificationServiceName,
+          professionalName: context.professionalName,
+          dateHeure: context.dateHeure,
+          adresseClient: context.adresseClient,
+        },
+      );
+      await this.reservationClientNotificationService.notifyTripStatus({
+        reservationId: context.reservationId,
+        recipientUserId: context.professionalUserId,
+        serviceName: notificationServiceName,
+        travellerRole: 'PROFESSIONNEL',
+        travellerName: context.professionalName,
+        targetName: context.clientName,
+        tripStatus: 'EN_ROUTE',
+      });
+    }
 
     return enrichedTracking;
   }
@@ -462,20 +472,43 @@ export class LiveTrackingCommandService {
         professionalId: context.professionalId,
       }),
     );
-    await this.reservationClientNotificationService.notifyReservationArrival({
-      reservationId: context.reservationId,
-      recipientUserId:
-        context.travelMode === 'CLIENT_SE_DEPLACE'
-          ? context.professionalUserId
-          : context.clientUserId,
-      travellerName:
-        context.travelMode === 'CLIENT_SE_DEPLACE'
-          ? 'Le client'
-          : context.professionalName,
-      serviceName: this.notificationServiceName(context),
-      travellerRole:
-        context.travelMode === 'CLIENT_SE_DEPLACE' ? 'CLIENT' : 'PROFESSIONNEL',
-    });
+    const delivery = this.deliveryNotificationDetails(context);
+    if (delivery) {
+      for (const recipient of [
+        { userId: context.clientUserId, isTraveller: false },
+        { userId: context.professionalUserId, isTraveller: true },
+      ]) {
+        await this.reservationClientNotificationService.notifyReservationArrival(
+          {
+            reservationId: context.reservationId,
+            recipientUserId: recipient.userId,
+            travellerName: context.professionalName,
+            serviceName: this.notificationServiceName(context),
+            travellerRole: 'PROFESSIONNEL',
+            recipientIsTraveller: recipient.isTraveller,
+            deliveryStage: delivery.deliveryStage,
+            deliveryItemLabel: delivery.deliveryItemLabel,
+          },
+        );
+      }
+    } else {
+      await this.reservationClientNotificationService.notifyReservationArrival({
+        reservationId: context.reservationId,
+        recipientUserId:
+          context.travelMode === 'CLIENT_SE_DEPLACE'
+            ? context.professionalUserId
+            : context.clientUserId,
+        travellerName:
+          context.travelMode === 'CLIENT_SE_DEPLACE'
+            ? 'Le client'
+            : context.professionalName,
+        serviceName: this.notificationServiceName(context),
+        travellerRole:
+          context.travelMode === 'CLIENT_SE_DEPLACE'
+            ? 'CLIENT'
+            : 'PROFESSIONNEL',
+      });
+    }
     this.publishLocationRealtime(tracking);
     return tracking;
   }
@@ -523,7 +556,65 @@ export class LiveTrackingCommandService {
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
     this.publishLocationRealtime(enrichedTracking);
     this.publishRouteMetadataRealtime(enrichedTracking);
+
+    const delivery = this.deliveryNotificationDetails(context);
+    if (delivery) {
+      await this.notifyDeliveryTripToBothRecipients(context, {
+        ...delivery,
+        deliveryStage: 'DROPOFF',
+        tripStatus: 'EN_ROUTE',
+      });
+    }
     return enrichedTracking;
+  }
+
+  private deliveryNotificationDetails(context: ReservationTrackingContext): {
+    deliveryStage: 'PICKUP' | 'DROPOFF';
+    deliveryItemLabel: string;
+  } | null {
+    if (context.travelMode !== 'TRANSPORT_COLIS') return null;
+
+    const serviceName =
+      this.notificationServiceName(context).toLocaleLowerCase('fr');
+    const deliveryItemLabel = serviceName.includes('médicament')
+      ? 'les médicaments'
+      : serviceName.includes('matériel')
+        ? 'le matériel'
+        : 'le colis';
+
+    return {
+      deliveryStage:
+        context.reservationStatus === 'EN_COURS' ? 'DROPOFF' : 'PICKUP',
+      deliveryItemLabel,
+    };
+  }
+
+  private async notifyDeliveryTripToBothRecipients(
+    context: ReservationTrackingContext,
+    delivery: {
+      deliveryStage: 'PICKUP' | 'DROPOFF';
+      deliveryItemLabel: string;
+      tripStatus: 'EN_ROUTE' | 'TERMINEE';
+    },
+  ): Promise<void> {
+    const serviceName = this.notificationServiceName(context);
+    for (const recipient of [
+      { userId: context.clientUserId, isTraveller: false },
+      { userId: context.professionalUserId, isTraveller: true },
+    ]) {
+      await this.reservationClientNotificationService.notifyTripStatus({
+        reservationId: context.reservationId,
+        recipientUserId: recipient.userId,
+        serviceName,
+        travellerRole: 'PROFESSIONNEL',
+        travellerName: context.professionalName,
+        targetName: context.clientName,
+        recipientIsTraveller: recipient.isTraveller,
+        deliveryStage: delivery.deliveryStage,
+        deliveryItemLabel: delivery.deliveryItemLabel,
+        tripStatus: delivery.tripStatus,
+      });
+    }
   }
 
   async finalizeReservationTracking(input: {

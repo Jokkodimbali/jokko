@@ -15,6 +15,7 @@ export interface CallSignal {
   callerName: string;
   callerAvatarUrl: string | null;
   occurredAt: string;
+  embeddedTeleconsultation?: boolean;
 }
 
 export interface ActiveCall extends CallSignal {

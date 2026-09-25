@@ -66,6 +66,17 @@ export class MessagesService {
       .pipe(map(unwrapApiResponse));
   }
 
+  deleteTeleconsultationDocument(
+    conversationId: string,
+    messageId: string,
+  ): Observable<{ conversationId: string; messageId: string }> {
+    return this.http
+      .delete<ApiResponse<{ conversationId: string; messageId: string }>>(
+        `${this.apiUrl}/${conversationId}/messages/${messageId}`,
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
   uploadMedia(file: File): Observable<{ mediaUrl: string }> {
     const formData = new FormData();
     formData.append('media', file);

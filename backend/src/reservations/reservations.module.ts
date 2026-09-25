@@ -16,6 +16,7 @@ import { AdminReservationsController } from './presentation/controllers/admin-re
 import { ReservationAvailabilityController } from './presentation/controllers/reservation-availability.controller';
 import { ReservationsController } from './presentation/controllers/reservations.controller';
 import { ReservationsGateway } from './presentation/gateways/reservations.gateway';
+import { MediaModule } from '../shared/media/media.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ReservationsGateway } from './presentation/gateways/reservations.gatewa
     NegotiationsModule,
     DisputesModule,
     LiveTrackingModule,
+    MediaModule,
   ],
   controllers: [
     ReservationAvailabilityController,

@@ -42,6 +42,10 @@ export class SearchRepository implements SearchRepositoryPort {
       input.latitude !== undefined && input.longitude !== undefined;
 
     const queryText = input.query?.trim();
+    const normalizedQueryText = queryText
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
     const city = input.city?.trim();
     const normalizedCity = city
       ?.normalize('NFD')
@@ -96,9 +100,21 @@ export class SearchRepository implements SearchRepositoryPort {
               LEFT JOIN service_subcategories sc2 ON sc2.id = ps2.subcategory_id
               WHERE ps2.professional_id = pp.id
                 AND (
-                  c3.name ILIKE ${`%${queryText}%`}
-                  OR sc2.name ILIKE ${`%${queryText}%`}
-                  OR sc2.description ILIKE ${`%${queryText}%`}
+                  translate(
+                    lower(c3.name),
+                    'éèêëîïôöùûüàâäç',
+                    'eeeeiioouuuaaac'
+                  ) LIKE ${`%${normalizedQueryText}%`}
+                  OR translate(
+                    lower(COALESCE(sc2.name, '')),
+                    'éèêëîïôöùûüàâäç',
+                    'eeeeiioouuuaaac'
+                  ) LIKE ${`%${normalizedQueryText}%`}
+                  OR translate(
+                    lower(COALESCE(sc2.description, '')),
+                    'éèêëîïôöùûüàâäç',
+                    'eeeeiioouuuaaac'
+                  ) LIKE ${`%${normalizedQueryText}%`}
                 )
             )
           )

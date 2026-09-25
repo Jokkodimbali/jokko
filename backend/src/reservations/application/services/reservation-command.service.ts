@@ -45,6 +45,7 @@ import {
   ServiceStartedEvent,
 } from '../../domain/events/reservation-mission.events';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { TeleconsultationDocumentService } from '../../../shared/media/teleconsultation-document.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
@@ -62,6 +63,7 @@ export class ReservationCommandService extends ReservationAppService {
     private readonly disputesFacade: DisputesFacade,
     private readonly liveTrackingFacade: LiveTrackingFacade,
     private readonly prisma: PrismaService,
+    private readonly teleconsultationDocuments: TeleconsultationDocumentService,
   ) {
     super(reservationsRepository, professionalsRepository);
   }
@@ -508,26 +510,50 @@ export class ReservationCommandService extends ReservationAppService {
         updated.professionnelId,
       );
       const service = await this.getServiceOrThrow(updated.serviceId);
-      await this.reservationClientNotificationService.notifyReservationCompleted(
-        {
-          reservationId: updated.id,
-          clientId: updated.clientId,
-          serviceName: service.nom,
-          professionalName:
-            professional.nomEntreprise ||
-            professional.utilisateur.nom ||
-            'Le prestataire',
-          dateHeure: updated.dateHeure,
-          adresseClient: updated.adresseClient,
-        },
+      const professionalName =
+        professional.nomEntreprise ||
+        professional.utilisateur.nom ||
+        'Le prestataire';
+      const delivery = this.deliveryNotificationDetails(
+        updated.notes,
+        service.nom,
       );
-      await this.reservationClientNotificationService.notifyTripStatus({
-        reservationId: updated.id,
-        recipientUserId: professional.utilisateur.id,
-        serviceName: service.nom,
-        travellerRole: 'PROFESSIONNEL',
-        tripStatus: 'TERMINEE',
-      });
+      if (delivery) {
+        for (const recipient of [
+          { userId: updated.clientId, isTraveller: false },
+          { userId: professional.utilisateur.id, isTraveller: true },
+        ]) {
+          await this.reservationClientNotificationService.notifyTripStatus({
+            reservationId: updated.id,
+            recipientUserId: recipient.userId,
+            serviceName: delivery.serviceName,
+            travellerRole: 'PROFESSIONNEL',
+            travellerName: professionalName,
+            recipientIsTraveller: recipient.isTraveller,
+            deliveryStage: 'DROPOFF',
+            deliveryItemLabel: delivery.deliveryItemLabel,
+            tripStatus: 'TERMINEE',
+          });
+        }
+      } else {
+        await this.reservationClientNotificationService.notifyReservationCompleted(
+          {
+            reservationId: updated.id,
+            clientId: updated.clientId,
+            serviceName: service.nom,
+            professionalName,
+            dateHeure: updated.dateHeure,
+            adresseClient: updated.adresseClient,
+          },
+        );
+        await this.reservationClientNotificationService.notifyTripStatus({
+          reservationId: updated.id,
+          recipientUserId: professional.utilisateur.id,
+          serviceName: service.nom,
+          travellerRole: 'PROFESSIONNEL',
+          tripStatus: 'TERMINEE',
+        });
+      }
       await this.eventBus.publier(
         new ServiceCompletedEvent({
           reservationId: updated.id,
@@ -609,6 +635,10 @@ export class ReservationCommandService extends ReservationAppService {
         "L'appel video doit avoir ete accepte et termine avant de confirmer la fin de la teleconsultation.",
       );
     }
+
+    await this.teleconsultationDocuments.deleteAllForReservation(
+      reservation.id,
+    );
 
     const marker = ReservationCommandService.TELECONSULTATION_COMPLETED_MARKER;
     const notes = reservation.notes?.includes(marker)
@@ -854,18 +884,56 @@ export class ReservationCommandService extends ReservationAppService {
         updated.professionnelId,
       );
       const service = await this.getServiceOrThrow(updated.serviceId);
-      await this.reservationClientNotificationService.notifyReservationStarted({
-        reservationId: updated.id,
-        clientId: updated.clientId,
-        professionalUserId: professional.utilisateur.id,
-        professionalName: professional.utilisateur.nom,
-        serviceName: service.nom,
-      });
+      if (!isParcelTransport) {
+        await this.reservationClientNotificationService.notifyReservationStarted(
+          {
+            reservationId: updated.id,
+            clientId: updated.clientId,
+            professionalUserId: professional.utilisateur.id,
+            professionalName: professional.utilisateur.nom,
+            serviceName: service.nom,
+          },
+        );
+      }
       return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;
     }
+  }
+
+  private deliveryNotificationDetails(
+    notes: string | null,
+    fallbackServiceName: string,
+  ): { serviceName: string; deliveryItemLabel: string } | null {
+    if (!this.isParcelTransportReservation(notes)) return null;
+
+    const deliveryType = notes
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .match(/(?:^|\.\s*|\n)Type de livraison\s*:\s*([^.]*)/i)?.[1]
+      ?.trim()
+      .toLocaleLowerCase('fr');
+
+    if (deliveryType === 'medicaments' || deliveryType === 'medicament') {
+      return {
+        serviceName: 'Livraison de médicaments',
+        deliveryItemLabel: 'les médicaments',
+      };
+    }
+    if (
+      deliveryType === 'materiel' ||
+      deliveryType === 'materiel de prestation'
+    ) {
+      return {
+        serviceName: 'Livraison de matériel',
+        deliveryItemLabel: 'le matériel',
+      };
+    }
+    return {
+      serviceName: fallbackServiceName,
+      deliveryItemLabel: 'le colis',
+    };
   }
 
   private isParcelTransportReservation(notes: string | null): boolean {

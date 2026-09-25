@@ -190,6 +190,40 @@ export class MessagingGateway implements OnGatewayConnection {
       .emit('conversation.message.created', message);
   }
 
+  publishMessageDeleted(
+    payload: { conversationId: string; messageId: string },
+    recipientUserId: string,
+  ): void {
+    this.server
+      .to(this.buildConversationRoom(payload.conversationId))
+      .emit('conversation.message.deleted', payload);
+    this.server
+      .to(this.buildUserRoom(recipientUserId))
+      .emit('conversation.message.deleted', payload);
+  }
+
+  @OnEvent('conversation.message.deleted')
+  handleRealtimeMessageDeleted(payload: {
+    conversationId: string;
+    messageId: string;
+    recipientUserIds: string[];
+  }): void {
+    this.server
+      .to(this.buildConversationRoom(payload.conversationId))
+      .emit('conversation.message.deleted', {
+        conversationId: payload.conversationId,
+        messageId: payload.messageId,
+      });
+    for (const recipientUserId of payload.recipientUserIds) {
+      this.server
+        .to(this.buildUserRoom(recipientUserId))
+        .emit('conversation.message.deleted', {
+          conversationId: payload.conversationId,
+          messageId: payload.messageId,
+        });
+    }
+  }
+
   @OnEvent('conversation.message.created')
   handleRealtimeMessageCreated(payload: {
     message: ConversationMessageView;
@@ -219,17 +253,30 @@ export class MessagingGateway implements OnGatewayConnection {
   }
 
   @OnEvent('delivery-order.updated')
-  handleDeliveryOrderUpdated(event: { kind: 'PHARMACY' | 'MATERIAL'; orderId: string; userId: string }): void {
+  handleDeliveryOrderUpdated(event: {
+    kind: 'PHARMACY' | 'MATERIAL';
+    orderId: string;
+    userId: string;
+  }): void {
     const room = this.server.to(this.buildUserRoom(event.userId));
-    if (event.kind === 'PHARMACY') room.emit('pharmacy-order.updated', { pharmacyOrderId: event.orderId });
-    else room.emit('material-order.updated', { materialOrderId: event.orderId });
+    if (event.kind === 'PHARMACY')
+      room.emit('pharmacy-order.updated', { pharmacyOrderId: event.orderId });
+    else
+      room.emit('material-order.updated', { materialOrderId: event.orderId });
   }
 
   @OnEvent('delivery-offer.resolved')
-  handleDeliveryOfferResolved(payload: { userId: string; orderId?: string; notificationId?: string }): void {
-    this.server.to(this.buildUserRoom(payload.userId)).emit('delivery-offer.resolved', {
-      orderId: payload.orderId, notificationId: payload.notificationId,
-    });
+  handleDeliveryOfferResolved(payload: {
+    userId: string;
+    orderId?: string;
+    notificationId?: string;
+  }): void {
+    this.server
+      .to(this.buildUserRoom(payload.userId))
+      .emit('delivery-offer.resolved', {
+        orderId: payload.orderId,
+        notificationId: payload.notificationId,
+      });
   }
 
   @OnEvent('notification.created')

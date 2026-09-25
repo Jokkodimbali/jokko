@@ -19,6 +19,7 @@ import {
   type CallStatus,
 } from '../ports/calls-repository.port';
 import { NotificationsService } from '../../../notifications/application/services/notifications.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class CallsService {
@@ -29,6 +30,7 @@ export class CallsService {
     @Inject(CALLS_REPOSITORY_PORT)
     private readonly callsRepository: CallsRepositoryPort,
     private readonly notifications: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async initiate(
@@ -58,13 +60,21 @@ export class CallsService {
     if (creation === 'IDEMPOTENT') return signal;
     // L'appel vocal est déjà signalé en temps réel par l'overlay d'appel.
     // Il ne doit pas créer une notification qui reste dans le widget.
-    if (kind === 'VIDEO')
+    if (kind === 'VIDEO' && !signal.embeddedTeleconsultation)
       await this.notifications.createInAppNotification({
         userId: signal.recipientId,
         type: 'APPEL_ENTRANT',
         title: kind === 'VIDEO' ? 'Appel vidéo entrant' : 'Appel vocal entrant',
         body: `${signal.callerName} vous appelle.`,
-        data: { callId, conversationId, kind, senderId: signal.callerId, actorName: signal.callerName, callerAvatarUrl: signal.callerAvatarUrl, route: '/messages' },
+        data: {
+          callId,
+          conversationId,
+          kind,
+          senderId: signal.callerId,
+          actorName: signal.callerName,
+          callerAvatarUrl: signal.callerAvatarUrl,
+          route: '/messages',
+        },
       });
     return signal;
   }
@@ -117,7 +127,8 @@ export class CallsService {
       changed &&
       status === 'ENDED' &&
       call.status === 'RINGING' &&
-      user.sub === call.callerId
+      user.sub === call.callerId &&
+      !(await this.isTeleconsultationConversation(call.conversationId))
     ) {
       await this.notifications.createInAppNotification({
         userId: call.recipientId,
@@ -161,6 +172,9 @@ export class CallsService {
     const callerIdentity = await this.callsRepository.findUserIdentity(
       user.sub,
     );
+    const embeddedTeleconsultation =
+      kind === 'VIDEO' &&
+      (await this.isTeleconsultationConversation(conversationId));
     return {
       callId,
       conversationId,
@@ -170,6 +184,7 @@ export class CallsService {
       callerName: callerIdentity?.name || user.phoneNumber,
       callerAvatarUrl: callerIdentity?.avatarUrl ?? null,
       occurredAt: new Date().toISOString(),
+      embeddedTeleconsultation,
     };
   }
 
@@ -195,8 +210,12 @@ export class CallsService {
     const call = await this.callsRepository.findActiveForUser(user.sub);
     if (!call) return null;
     const signal = this.toSignal(call);
+    const embeddedTeleconsultation =
+      call.kind === 'VIDEO' &&
+      (await this.isTeleconsultationConversation(call.conversationId));
     return {
       ...signal,
+      embeddedTeleconsultation,
       status: call.status,
       counterpartName:
         call.callerId === user.sub ? call.recipientName : call.callerName,
@@ -223,6 +242,20 @@ export class CallsService {
       to: 'ENDED',
     });
     return changed ? this.toSignal(call) : null;
+  }
+
+  private async isTeleconsultationConversation(
+    conversationId: string,
+  ): Promise<boolean> {
+    return Boolean(
+      await this.prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          reservation: { typeConsultation: 'TELECONSULTATION' },
+        },
+        select: { id: true },
+      }),
+    );
   }
 
   private async requireCall(

@@ -126,7 +126,9 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   suggestionProviders = signal<Professional[]>([]);
   readonly cityOptions = signal<string[]>([]);
   protected readonly locationOptions = computed(() => ['Toutes villes', ...this.cityOptions()]);
-  protected readonly locationValue = computed(() => this.selectedCity());
+  protected readonly locationValue = computed(() =>
+    this.selectedCity() === 'Toutes villes' ? 'Filtre' : this.selectedCity(),
+  );
   protected readonly searchResultsNearLabel = computed(() =>
     this.currentSearchLocation()
       ? 'Résultats proches de votre position'
@@ -227,11 +229,8 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         id: provider.id,
         userId: provider.userId,
         name: provider.nom,
-        category: provider.categoryName || 'Service',
-        profession: this.providerProfessionLabel(provider),
+        speciality: this.providerSubCategoryLabel(provider),
         location: provider.location,
-        rating: provider.rating,
-        totalReviews: provider.totalReviews,
         vehicleType: provider.vehicleType,
         isOnline: provider.isOnline,
         avatarUrl: this.resolveProviderAvatar(provider),

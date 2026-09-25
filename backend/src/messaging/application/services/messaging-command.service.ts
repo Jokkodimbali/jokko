@@ -35,6 +35,7 @@ import {
 } from '../ports/messaging-repository.port';
 import { MessagingAppService } from './messaging-app-service.base';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { TeleconsultationDocumentService } from '../../../shared/media/teleconsultation-document.service';
 
 export type SentConversationMessage = {
   message: {
@@ -70,6 +71,7 @@ export class MessagingCommandService extends MessagingAppService {
     private readonly notificationDeliveryService: NotificationDeliveryService,
     private readonly realtimeEvents: EventEmitter2,
     private readonly prisma: PrismaService,
+    private readonly teleconsultationDocuments: TeleconsultationDocumentService,
   ) {
     super(
       messagingRepository,
@@ -349,6 +351,18 @@ export class MessagingCommandService extends MessagingAppService {
       message: createdMessage.message,
       recipientUserId,
     };
+  }
+
+  async deleteTeleconsultationDocument(
+    requestUser: AuthUser,
+    conversationId: string,
+    messageId: string,
+  ) {
+    return this.teleconsultationDocuments.deleteOwnedDocument(
+      requestUser.sub,
+      conversationId,
+      messageId,
+    );
   }
 
   private async resolveReservationConversationContext(

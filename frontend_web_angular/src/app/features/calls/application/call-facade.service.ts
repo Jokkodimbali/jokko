@@ -79,13 +79,14 @@ export class CallFacade {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ type, signal }) => {
         if (type === 'call.incoming' && !this.callState()) {
+          this.isEmbeddedVideoSession.set(!!signal.embeddedTeleconsultation);
           this.callState.set({
             ...signal,
             phase: 'INCOMING',
             counterpartName: signal.callerName,
             counterpartAvatarUrl: signal.callerAvatarUrl,
           });
-          this.callAudio.playIncoming();
+          if (!signal.embeddedTeleconsultation) this.callAudio.playIncoming();
         } else if (type === 'call.accepted' && this.matches(signal)) {
           this.callAudio.stop();
           void this.joinRoom();
@@ -131,6 +132,7 @@ export class CallFacade {
     };
     try {
       const confirmed = await this.realtime.emit('call.initiate', signal);
+      this.isEmbeddedVideoSession.set(!!confirmed.embeddedTeleconsultation);
       this.callState.set({
         ...confirmed,
         phase: 'OUTGOING',
@@ -139,7 +141,7 @@ export class CallFacade {
       });
       this.rememberOwnedCall(confirmed.callId);
       this.isOverlayVisible.set(true);
-      this.callAudio.playOutgoing();
+      if (!confirmed.embeddedTeleconsultation) this.callAudio.playOutgoing();
     } catch (error) {
       this.feedback.error(getHttpErrorMessage(error, "Impossible de demarrer l'appel."));
     }
@@ -546,6 +548,7 @@ export class CallFacade {
         return;
       }
       this.callAudio.stop();
+      this.isEmbeddedVideoSession.set(!!active.embeddedTeleconsultation);
       this.callState.set({
         ...active,
         phase:
@@ -557,8 +560,11 @@ export class CallFacade {
       });
       this.isOverlayVisible.set(true);
       if (active.status === 'ACCEPTED') await this.joinRoom();
-      else if (active.direction === 'INCOMING') this.callAudio.playIncoming();
-      else this.callAudio.playOutgoing();
+      else if (!active.embeddedTeleconsultation && active.direction === 'INCOMING') {
+        this.callAudio.playIncoming();
+      } else if (!active.embeddedTeleconsultation) {
+        this.callAudio.playOutgoing();
+      }
     } catch {
       // Une indisponibilite temporaire ne doit pas detruire un appel local valide.
     }

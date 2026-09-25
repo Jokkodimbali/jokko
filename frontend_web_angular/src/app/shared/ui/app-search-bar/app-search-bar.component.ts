@@ -28,11 +28,8 @@ export interface AppSearchProviderSuggestion {
   id: string;
   userId?: string;
   name: string;
-  category: string;
-  profession: string;
+  speciality: string;
   location: string;
-  rating: number;
-  totalReviews: number;
   isOnline: boolean;
   avatarUrl?: string | null;
   initials: string;
@@ -152,8 +149,9 @@ export class AppSearchBarComponent {
   }
 
   suggestionPart(value: string, part: 'before' | 'match' | 'after'): string {
-    const query = this.searchValue.trim();
-    const matchIndex = value.toLocaleLowerCase('fr').indexOf(query.toLocaleLowerCase('fr'));
+    const query = this.normalizeSearchText(this.searchValue.trim());
+    const normalizedValue = this.normalizeSearchText(value);
+    const matchIndex = normalizedValue.indexOf(query);
     if (!query || matchIndex < 0) {
       return part === 'before' ? value : '';
     }
@@ -161,6 +159,13 @@ export class AppSearchBarComponent {
     if (part === 'before') return value.slice(0, matchIndex);
     if (part === 'match') return value.slice(matchIndex, matchIndex + query.length);
     return value.slice(matchIndex + query.length);
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr');
   }
 
   onFilterClick(): void {

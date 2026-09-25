@@ -199,6 +199,21 @@
   z-index: 1;
 }
 
+.app-search-bar--service .app-search-bar__location--default {
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr) 17px;
+}
+
+.app-search-bar--service .app-search-bar__location--default span {
+  font-size: 14px;
+  justify-content: center;
+  text-align: center;
+}
+
+.app-search-bar--service .app-search-bar__location--default .app-search-bar__chevron {
+  margin-left: 0;
+}
+
 .app-search-bar--service .app-search-bar__location::after {
   background: #ead8ca;
   content: '';
@@ -587,11 +602,14 @@
 .app-search-bar__suggestions {
   border-top: 0;
   border-radius: 0 0 18px 18px;
-  left: -1px;
+  box-sizing: border-box;
+  left: 0;
+  max-width: 100%;
   overflow: hidden;
   padding-top: 12px;
-  right: -1px;
+  right: 0;
   top: 64px;
+  width: 100%;
 }
 
 .app-search-bar__suggestion-section {
@@ -794,8 +812,19 @@
 .app-search-bar__provider-info strong small {
   color: #c2a58f;
   font-size: 10px;
+  font-weight: 500;
   margin-left: 4px;
   text-transform: uppercase;
+}
+
+.app-search-bar__provider-info strong small b {
+  color: #9a5a21;
+  font-weight: 900;
+}
+
+.app-search-bar__provider-info strong small span {
+  color: inherit;
+  font-size: inherit;
 }
 
 .app-search-bar__provider-info span {
@@ -899,7 +928,22 @@
     display: none;
   }
 
-  .app-search-bar--service .app-search-bar__location::after {
+  .app-search-bar--service .app-search-bar__location--default {
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr) 17px;
+}
+
+.app-search-bar--service .app-search-bar__location--default span {
+  font-size: 14px;
+  justify-content: center;
+  text-align: center;
+}
+
+.app-search-bar--service .app-search-bar__location--default .app-search-bar__chevron {
+  margin-left: 0;
+}
+
+.app-search-bar--service .app-search-bar__location::after {
     display: none;
   }
 
@@ -1323,3 +1367,8 @@
 }
 
 /* Desktop: >1024px - unchanged */
+
+/* Le libellé par défaut reste lisible après toutes les règles responsives. */
+.app-search-bar--service .app-search-bar__location.app-search-bar__location--default span {
+  font-size: 16px;
+}

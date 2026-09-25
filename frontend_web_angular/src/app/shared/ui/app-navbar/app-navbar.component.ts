@@ -134,6 +134,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const notification = this.nextFeaturedNotification();
     untracked(() => this.notificationDisplay.update(notification));
   });
+  private readonly persistDisplayedNotification = effect(() => {
+    const notification = this.featuredNotification();
+    const userId = this.currentUser()?.id;
+    if (!notification || !userId) return;
+    untracked(() => this.featuredNotificationCache.sync(userId, [notification]));
+  });
   protected readonly failedProfileAvatarUrl = signal<string | null>(null);
   protected readonly isAuthenticated = computed(() => !!this.currentUser());
   protected readonly profileAvatarUrl = computed(() => {
@@ -479,9 +485,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       }),
     );
     this.subscriptions.add(
-      this.messagesRealtime.notificationCreated$.subscribe(() => {
-        // The socket only informs the intended authenticated user. Reloading
-        // enriches the notification with its sender avatar before rendering.
+      this.messagesRealtime.notificationCreated$.subscribe((notification) => {
+        // Render the socket payload in the same cycle. The background refresh
+        // only enriches it (for example with an avatar) and never gates display.
+        this.applyRealtimeNotification(notification);
         this.loadUnreadNotificationsCount();
         this.loadNotificationPreview(false);
       }),
@@ -543,6 +550,18 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       .subscribe((notifications) => this.unreadNotificationsCount.set(notifications.length));
   }
 
+  private applyRealtimeNotification(notification: UserNotificationView): void {
+    const history = sortNotificationsNewestFirst(
+      this.mergeNotificationHistory([
+        notification,
+        ...this.notificationHistory().filter((item) => item.id !== notification.id),
+      ]),
+    );
+    this.notificationHistory.set(history);
+    this.notificationPreview.set(history.slice(0, 6));
+    this.syncFeaturedNotificationCache(history);
+  }
+
   private loadNotificationPreview(showLoading: boolean = true): void {
     this.notificationPreviewRequest?.unsubscribe();
     if (showLoading) this.isNotificationsLoading.set(true);
@@ -579,7 +598,11 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   }
 
   private syncFeaturedNotificationCache(notifications: UserNotificationView[]): void {
-    this.featuredNotificationCache.sync(this.currentUser()?.id, notifications);
+    const displayed = this.featuredNotification();
+    this.featuredNotificationCache.sync(
+      this.currentUser()?.id,
+      displayed ? [displayed] : notifications,
+    );
   }
 
   private startUnreadMessagesRefresh(): void {

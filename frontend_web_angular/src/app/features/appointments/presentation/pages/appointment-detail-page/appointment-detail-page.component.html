@@ -880,19 +880,43 @@
               >
                 Aucun document partagé.
               </p>
-              <button
+              <article
                 *ngFor="let document of teleconsultationDocuments()"
-                type="button"
                 class="appointment-detail__teleconsultation-document"
-                (click)="openTeleconsultationDocument(document)"
               >
-                <span><lucide-icon name="file-text" size="18" /></span>
-                <p>
-                  <strong>{{ teleconsultationDocumentName(document) }}</strong>
-                  <small>Partagé par {{ document.sender.name }}</small>
-                </p>
-                <lucide-icon name="download" size="16" />
-              </button>
+                <button
+                  type="button"
+                  class="appointment-detail__teleconsultation-document-open"
+                  (click)="openTeleconsultationDocument(document)"
+                >
+                  <span><lucide-icon name="file-text" size="18" /></span>
+                  <p>
+                    <strong>{{ teleconsultationDocumentName(document) }}</strong>
+                    <small>Partagé par {{ document.sender.name }}</small>
+                  </p>
+                </button>
+                <div class="appointment-detail__teleconsultation-document-actions">
+                  <button
+                    type="button"
+                    aria-label="Télécharger le document"
+                    title="Télécharger"
+                    (click)="downloadTeleconsultationDocument(document)"
+                  >
+                    <lucide-icon name="download" size="16" />
+                  </button>
+                  <button
+                    *ngIf="isOwnTeleconsultationMessage(document)"
+                    type="button"
+                    class="appointment-detail__teleconsultation-document-delete"
+                    aria-label="Supprimer le document partagé"
+                    title="Supprimer"
+                    [disabled]="deletingTeleconsultationDocumentIds().has(document.id)"
+                    (click)="deleteTeleconsultationDocument($event, document)"
+                  >
+                    <lucide-icon name="trash-2" size="16" />
+                  </button>
+                </div>
+              </article>
             </section>
 
             <button
@@ -950,6 +974,16 @@
                   (click)="downloadTeleconsultationDocument(preview.message)"
                 >
                   <lucide-icon name="download" size="15" /> Télécharger
+                </button>
+                <button
+                  *ngIf="isOwnTeleconsultationMessage(preview.message)"
+                  type="button"
+                  class="appointment-detail__document-preview-delete"
+                  aria-label="Supprimer le document partagé"
+                  [disabled]="deletingTeleconsultationDocumentIds().has(preview.message.id)"
+                  (click)="deleteTeleconsultationDocument($event, preview.message)"
+                >
+                  <lucide-icon name="trash-2" size="16" /> Supprimer
                 </button>
                 <button
                   type="button"

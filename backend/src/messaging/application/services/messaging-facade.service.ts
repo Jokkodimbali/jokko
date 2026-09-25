@@ -64,6 +64,18 @@ export class MessagingFacade {
     );
   }
 
+  async deleteTeleconsultationDocument(
+    requestUser: AuthUser,
+    conversationId: string,
+    messageId: string,
+  ) {
+    return this.messagingCommandService.deleteTeleconsultationDocument(
+      requestUser,
+      conversationId,
+      messageId,
+    );
+  }
+
   async sendMessage(
     requestUser: AuthUser,
     conversationId: string,

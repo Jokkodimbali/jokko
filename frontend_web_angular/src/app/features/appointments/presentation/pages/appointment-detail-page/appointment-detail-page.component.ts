@@ -41,6 +41,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesService } from '../../../../messages/data-access/messages.service';
+import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 import { ConversationMessage } from '../../../../messages/domain/models/messages.models';
 import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
@@ -111,27 +112,7 @@ type TeleconsultationDocumentPreview = {
   kind: 'pdf' | 'image' | 'unsupported';
 };
 
-const COMMON_MEDICAL_ACTS = [
-  'Consultation de medecine generale',
-  'Auscultation cardiopulmonaire',
-  'Prise de tension et saturation',
-  'Electrocardiogramme (ECG)',
-  'Test de depistage grippe/covid',
-  'Suture de plaie simple',
-] as const;
-const COMMON_VACCINES = [
-  'Vaxigrip Tetra (Grippe)',
-  'Repevax (DTP-Coq)',
-  'Comirnaty (Covid-19)',
-  'Engerix B (Hepatite B)',
-] as const;
-const COMMON_TREATMENTS = [
-  'Paracetamol 1g - 1 comprime toutes les 6 heures si fievre, maximum 4g par jour',
-  'Ibuprofene 400mg - 1 comprime toutes les 8 heures au milieu des repas',
-  'Amoxicilline 1g - 1 comprime matin et soir pendant 6 jours',
-  'Sirop antitussif - 1 cuillere a soupe 3 fois par jour',
-  'Repos strict a domicile pendant 5 jours',
-] as const;
+
 const ARRIVAL_DISTANCE_THRESHOLD_METERS = 120;
 const TRACKING_FALLBACK_POLL_INTERVAL_MS = 2500;
 const APPOINTMENT_STATE_FALLBACK_INITIAL_DELAY_MS = 400;
@@ -231,6 +212,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
   private readonly messagesService = inject(MessagesService);
+  private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly pharmacyOrders = inject(PharmacyOrdersService);
   private readonly materialOrders = inject(MaterialOrdersService);
@@ -264,6 +246,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private paymentStatusRefreshSubscription?: Subscription;
   private teleconsultationStatusSubscription?: Subscription;
   private reservationRealtimeSubscription?: Subscription;
+  private teleconsultationMessageCreatedSubscription?: Subscription;
+  private teleconsultationMessageDeletedSubscription?: Subscription;
   private providerLocationSubscription?: Subscription;
   private locationRecoveryTimeoutId?: number;
   private locationUpdateInFlight = false;
@@ -361,6 +345,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly teleconsultationChatDraft = signal('');
   protected readonly isSendingTeleconsultationMessage = signal(false);
   protected readonly isUploadingTeleconsultationDocument = signal(false);
+  protected readonly deletingTeleconsultationDocumentIds = signal<ReadonlySet<string>>(new Set());
   protected readonly teleconsultationDocumentPreview = signal<TeleconsultationDocumentPreview | null>(null);
   protected readonly teleconsultationDocumentZoom = signal(100);
   protected readonly teleconsultationDocuments = computed(() =>
@@ -377,6 +362,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
+    this.messagesRealtime.joinConversation(appointment.conversationId);
     const subscription = timer(0, 2500)
       .pipe(
         switchMap(() =>
@@ -463,9 +449,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly medicalPrescriptionPreviewItems = computed(() =>
     this.documentBuilder.medicalPrescriptionItems(this.currentMedicalPrescriptionPayload()),
   );
-  protected readonly commonMedicalActs = COMMON_MEDICAL_ACTS;
-  protected readonly commonVaccines = COMMON_VACCINES;
-  protected readonly commonTreatments = COMMON_TREATMENTS;
   protected readonly destinationStatus = signal<'idle' | 'resolving' | 'ready' | 'unavailable'>(
     'idle',
   );
@@ -1678,6 +1661,21 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
+    this.teleconsultationMessageCreatedSubscription = this.messagesRealtime.messageCreated$.subscribe(
+      (message) => {
+        if (message.conversationId !== this.appointment()?.conversationId) return;
+        this.teleconsultationMessages.update((messages) =>
+          messages.some(({ id }) => id === message.id) ? messages : [...messages, message],
+        );
+      },
+    );
+    this.teleconsultationMessageDeletedSubscription = this.messagesRealtime.messageDeleted$.subscribe(
+      ({ conversationId, messageId }) => {
+        if (conversationId !== this.appointment()?.conversationId) return;
+        this.removeTeleconsultationDocumentLocally(messageId);
+      },
+    );
+
     this.loadAppointment(appointmentId);
     const reservationScope = ['PRESTATAIRE', 'MEDECIN'].includes(
       this.currentUser()?.role ?? '',
@@ -1715,9 +1713,18 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.clearLocationRecovery();
     this.teleconsultationStatusSubscription?.unsubscribe();
     this.reservationRealtimeSubscription?.unsubscribe();
+    this.teleconsultationMessageCreatedSubscription?.unsubscribe();
+    this.teleconsultationMessageDeletedSubscription?.unsubscribe();
     this.paymentStatusRefreshSubscription?.unsubscribe();
     this.reservationsRealtime.stopWatching(this.isProviderViewer() ? 'PRESTATAIRE' : 'CLIENT');
-    (this.calls as CallFacade | undefined)?.isEmbeddedVideoSession.set(false);
+    const activeCall = this.calls.call();
+    if (
+      activeCall?.kind === 'VIDEO' &&
+      (activeCall.embeddedTeleconsultation || this.calls.isEmbeddedVideoSession())
+    ) {
+      this.calls.minimizeOverlay();
+    }
+    this.calls.isEmbeddedVideoSession.set(false);
     this.trackingStore.reset();
   }
 
@@ -3008,6 +3015,47 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       });
   }
 
+  protected deleteTeleconsultationDocument(
+    event: Event | null,
+    message: ConversationMessage,
+  ): void {
+    event?.stopPropagation();
+    if (!this.isOwnTeleconsultationMessage(message)) return;
+    if (this.deletingTeleconsultationDocumentIds().has(message.id)) return;
+
+    this.deletingTeleconsultationDocumentIds.update((ids) => new Set(ids).add(message.id));
+    this.messagesService
+      .deleteTeleconsultationDocument(message.conversationId, message.id)
+      .pipe(
+        finalize(() =>
+          this.deletingTeleconsultationDocumentIds.update((ids) => {
+            const next = new Set(ids);
+            next.delete(message.id);
+            return next;
+          }),
+        ),
+      )
+      .subscribe({
+        next: () => {
+          this.removeTeleconsultationDocumentLocally(message.id);
+          this.feedback.success('Document supprimé.');
+        },
+        error: (error) =>
+          this.feedback.error(
+            getHttpErrorMessage(error, "Le document n'a pas pu être supprimé."),
+          ),
+      });
+  }
+
+  private removeTeleconsultationDocumentLocally(messageId: string): void {
+    this.teleconsultationMessages.update((messages) =>
+      messages.filter(({ id }) => id !== messageId),
+    );
+    if (this.teleconsultationDocumentPreview()?.message.id === messageId) {
+      this.closeTeleconsultationDocumentPreview();
+    }
+  }
+
   protected downloadTeleconsultationDocument(message: ConversationMessage): void {
     if (!message.mediaUrl) return;
     this.messagesService.resolveMediaDownloadTarget(message.mediaUrl).subscribe({
@@ -3134,6 +3182,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.mergeAppointment(current ?? appointment, updated),
         );
         this.teleconsultationCompleted.set(true);
+        this.teleconsultationMessages.set([]);
+        this.closeTeleconsultationDocumentPreview();
         this.isUpdatingStatus.set(false);
         this.feedback.success('Téléconsultation terminée. Vous pouvez maintenant prescrire.');
       },

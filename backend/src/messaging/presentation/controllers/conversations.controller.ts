@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -268,6 +269,31 @@ export class ConversationsController {
       result,
       appMessage('MESSAGING_MESSAGES_RETRIEVED').message,
     );
+  }
+
+  @Delete(':conversationId/messages/:messageId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Supprimer un document partagé en téléconsultation',
+  })
+  async deleteTeleconsultationDocument(
+    @CurrentUser() user: AuthUser,
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    const deleted = await this.messagingFacade.deleteTeleconsultationDocument(
+      user,
+      conversationId,
+      messageId,
+    );
+    this.messagingGateway.publishMessageDeleted(
+      deleted,
+      deleted.recipientUserId,
+    );
+    return createApiResponse({
+      conversationId: deleted.conversationId,
+      messageId: deleted.messageId,
+    });
   }
 
   @Post(':conversationId/messages')

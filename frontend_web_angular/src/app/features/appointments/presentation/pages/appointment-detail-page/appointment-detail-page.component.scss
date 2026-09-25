@@ -2241,15 +2241,27 @@
   border: 1px solid #f0ebe6;
   border-radius: 11px;
   display: flex;
-  font: inherit;
-  gap: 10px;
+  gap: 6px;
   margin: 0 12px 8px;
-  padding: 10px;
-  text-align: left;
-  width: calc(100% - 24px);
+  min-width: 0;
+  padding: 6px;
 }
 
-.appointment-detail__teleconsultation-document > span {
+.appointment-detail__teleconsultation-document-open {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  font: inherit;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px;
+  text-align: left;
+}
+
+.appointment-detail__teleconsultation-document-open > span {
   align-items: center;
   background: #eee4d9;
   border-radius: 8px;
@@ -2266,9 +2278,36 @@
   margin: 0;
 }
 
-.appointment-detail__teleconsultation-document > lucide-icon:last-child {
+.appointment-detail__teleconsultation-document-actions {
+  align-items: center;
+  display: flex;
+  gap: 3px;
+}
+
+.appointment-detail__teleconsultation-document-actions button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
   color: #9b6429;
-  margin-left: auto;
+  cursor: pointer;
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.appointment-detail__teleconsultation-document-actions button:hover {
+  background: #eee4d9;
+}
+
+.appointment-detail__teleconsultation-document-actions .appointment-detail__teleconsultation-document-delete {
+  color: #b84040;
+}
+
+.appointment-detail__teleconsultation-document-actions button:disabled {
+  cursor: wait;
+  opacity: 0.45;
 }
 
 .appointment-detail__teleconsultation-document strong {
@@ -2615,4 +2654,11 @@
     right: 10px;
     width: 96px;
   }
+}
+
+
+.appointment-detail__document-preview nav .appointment-detail__document-preview-delete {
+  border-color: #f0cccc;
+  color: #b84040;
+  gap: 5px;
 }

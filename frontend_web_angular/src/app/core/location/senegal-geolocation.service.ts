@@ -11,6 +11,8 @@ export type SenegalGeolocationResult = {
 export type SenegalGeolocationOptions = {
   enableHighAccuracy?: boolean;
   maximumAgeMs?: number;
+  desiredAccuracyMeters?: number;
+  accuracyWaitMs?: number;
 };
 
 const SENEGAL_BOUNDS = {
@@ -34,10 +36,19 @@ export class SenegalGeolocationService {
       let watchId: number | null = null;
       let completed = false;
       let outsideSenegalReceived = false;
+      let bestPosition: SenegalGeolocationResult | null = null;
+      let accuracyTimeoutId: number | null = null;
 
       const cleanup = (): void => {
         window.clearTimeout(timeoutId);
+        if (accuracyTimeoutId !== null) window.clearTimeout(accuracyTimeoutId);
         if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      };
+      const finish = (position: SenegalGeolocationResult): void => {
+        if (completed) return;
+        completed = true;
+        cleanup();
+        resolve(position);
       };
       const fail = (error: Error): void => {
         if (completed) return;
@@ -47,11 +58,9 @@ export class SenegalGeolocationService {
       };
       const timeoutId = window.setTimeout(
         () =>
-          fail(
-            new Error(
-              outsideSenegalReceived ? 'Geolocation outside Senegal' : 'Geolocation timeout',
-            ),
-          ),
+          bestPosition
+            ? finish(bestPosition)
+            : fail(new Error(outsideSenegalReceived ? 'Geolocation outside Senegal' : 'Geolocation timeout')),
         timeoutMs,
       );
 
@@ -63,9 +72,7 @@ export class SenegalGeolocationService {
             return;
           }
           if (completed) return;
-          completed = true;
-          cleanup();
-          resolve({
+          const currentPosition: SenegalGeolocationResult = {
             latitude,
             longitude,
             accuracyMeters: this.finiteOrNull(position.coords.accuracy),
@@ -74,7 +81,20 @@ export class SenegalGeolocationService {
               typeof position.coords.speed === 'number' && Number.isFinite(position.coords.speed)
                 ? position.coords.speed * 3.6
                 : null,
-          });
+          };
+          const currentAccuracy = currentPosition.accuracyMeters ?? Number.POSITIVE_INFINITY;
+          const bestAccuracy = bestPosition?.accuracyMeters ?? Number.POSITIVE_INFINITY;
+          if (!bestPosition || currentAccuracy < bestAccuracy) bestPosition = currentPosition;
+          if (!options.desiredAccuracyMeters || currentAccuracy <= options.desiredAccuracyMeters) {
+            finish(currentPosition);
+            return;
+          }
+          if (accuracyTimeoutId === null) {
+            accuracyTimeoutId = window.setTimeout(
+              () => bestPosition && finish(bestPosition),
+              Math.min(options.accuracyWaitMs ?? 8_000, timeoutMs),
+            );
+          }
         },
         (error) => {
           if (error.code === error.PERMISSION_DENIED) {

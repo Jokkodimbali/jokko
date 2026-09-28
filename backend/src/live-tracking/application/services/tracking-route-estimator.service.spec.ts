@@ -71,6 +71,32 @@ describe('TrackingRouteEstimatorService', () => {
     expect(result.route?.estimatedArrivalAt).toBeTruthy();
   });
 
+  it('uses the persisted actor polyline for the client even when Google estimates another route', async () => {
+    const geocode = { execute: jest.fn().mockResolvedValue({ latitude: 14.8, longitude: -17.3 }) } as unknown as jest.Mocked<GeocodeAddressUseCase>;
+    const routes = { execute: jest.fn().mockResolvedValue([{
+      distanceMeters: 4200,
+      durationSeconds: 720,
+      encodedPolyline: 'different-server-route',
+      coordinates: [{ latitude: 14.7, longitude: -17.4 }, { latitude: 14.8, longitude: -17.3 }],
+      navigationSteps: [],
+    }]) } as unknown as jest.Mocked<ComputeRoutesUseCase>;
+    const selectedRoute = {
+      reservationId: tracking.reservationId,
+      sessionStartedAt: tracking.startedAt!.toISOString(),
+      routeId: 'route-1',
+      coordinates: [{ lat: 14.7, lng: -17.4 }, { lat: 14.75, lng: -17.35 }, { lat: 14.8, lng: -17.3 }],
+      distanceKm: 5,
+      durationMinutes: 12,
+      navigationSteps: [],
+      selectedAt: new Date().toISOString(),
+    };
+    const service = new TrackingRouteEstimatorService(geocode, routes);
+    const result = await service.enrich({ ...tracking, selectedRoute }, 'Dakar Plateau');
+    expect(result.route?.selectedRouteId).toBe('route-1');
+    expect(result.route?.coordinates).toEqual(selectedRoute.coordinates.map(({ lat, lng }) => ({ latitude: lat, longitude: lng })));
+    expect(result.route?.encodedPolyline).toBe('');
+  });
+
   it('reuses a recent estimate for a nearby position', async () => {
     const geocode = {
       execute: jest.fn().mockResolvedValue({

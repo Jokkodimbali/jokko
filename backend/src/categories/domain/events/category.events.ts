@@ -5,7 +5,6 @@ export class CategoryCreated extends DomainEvent {
     aggregateId: string,
     public readonly name: string,
     public readonly iconUrl: string | null,
-    public readonly sortOrder: number,
   ) {
     super(aggregateId);
   }
@@ -16,7 +15,6 @@ export class CategoryUpdated extends DomainEvent {
     aggregateId: string,
     public readonly name: string,
     public readonly iconUrl: string | null,
-    public readonly sortOrder: number,
   ) {
     super(aggregateId);
   }

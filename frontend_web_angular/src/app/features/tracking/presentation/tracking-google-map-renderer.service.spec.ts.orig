@@ -53,48 +53,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
     vi.useRealTimers();
   });
 
-  it('drops the old marker when a new trip starts so the next GPS creates it at its own position', () => {
-    const oldMarker = { map: {} as object, position: { lat: 14.7, lng: -17.4 } };
-    internals['providerMarker'] = oldMarker;
-    internals['markerMotionMarker'] = oldMarker;
-    internals['renderedRouteProgressMeters'] = 120;
-    internals['lastRenderedProviderPosition'] = oldMarker.position;
-
-    renderer.resetRoute();
-
-    expect(oldMarker.map).toBeNull();
-    expect(internals['providerMarker']).toBeUndefined();
-    expect(internals['markerMotionMarker']).toBeUndefined();
-    expect(internals['renderedRouteProgressMeters']).toBeNull();
-    expect(internals['lastRenderedProviderPosition']).toBeNull();
-  });
-
-  it('visually connects an off-route GPS marker without changing the shared route', () => {
-    const created: Array<{ options: Record<string, unknown>; setMap: ReturnType<typeof vi.fn> }> = [];
-    class ConnectorPolyline {
-      options: Record<string, unknown>;
-      setMap = vi.fn();
-      setOptions = vi.fn();
-      setPath = vi.fn();
-      constructor(options: Record<string, unknown>) {
-        this.options = options;
-        created.push(this);
-      }
-    }
-    internals['google'] = { maps: { Polyline: ConnectorPolyline } };
-    internals['routeMap'] = {};
-    internals['lastRenderedState'] = BASE_STATE;
-    const originalRoute = [...STRAIGHT_ROUTE];
-    const connect = (internals['renderTravelerConnector'] as (point: GoogleMapsPoint) => void)
-      .bind(renderer);
-    connect({ lat: 0.0004, lng: 0.004 });
-    expect(created).toHaveLength(1);
-    expect((created[0].options['path'] as GoogleMapsPoint[])[0]).toEqual({ lat: 0.0004, lng: 0.004 });
-    expect(STRAIGHT_ROUTE).toEqual(originalRoute);
-    connect({ lat: 0, lng: 0.004 });
-    expect(created[0].setMap).toHaveBeenCalledWith(null);
-  });
-
   describe('road matching and metric progression', () => {
     it('creates a visible camera frame when the arrival markers share the same point', () => {
       const points: GoogleMapsPoint[] = [];
@@ -137,14 +95,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
 
       expect(displayed).toEqual(raw);
       expect(internals['mapMatchConfidence']).toBe(0);
-    });
-
-    it('does not pull an inaccurate GPS position dozens of metres onto the route', () => {
-      const snap = (internals['snapTravelerMarkerToSelectedRoute'] as (
-        point: GoogleMapsPoint, state: TrackingMapRenderState,
-      ) => GoogleMapsPoint).bind(renderer);
-      const raw = { lat: 0.00035, lng: 0.004 };
-      expect(snap(raw, { ...BASE_STATE, accuracyMeters: 70 })).toEqual(raw);
     });
 
     it('follows raw GPS instead of the obsolete route while REROUTING', () => {
@@ -231,51 +181,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
 
       expect(matched?.segmentIndex).toBe(0);
       expect(matched?.distanceAlongRouteMeters).toBeGreaterThanOrEqual(80);
-    });
-
-    it('does not freeze a real GPS displacement when browser speed stays at zero', () => {
-      const hold = (internals['shouldHoldMarkerPosition'] as (
-        distanceMeters: number, speedKmh: number, accuracyMeters: number,
-      ) => boolean).bind(renderer);
-      expect(hold(30, 0, 8)).toBe(false);
-      expect(hold(2, 0, 8)).toBe(true);
-    });
-
-    it('does not advance past the latest GPS target or lock a corrected position behind it', () => {
-      vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
-      const marker = { position: { lat: 0, lng: 0.0008 }, content: document.createElement('div') };
-      internals['markerMotionMarker'] = marker;
-      internals['markerRouteCoordinates'] = STRAIGHT_ROUTE;
-      internals['renderedRouteProgressMeters'] = 80;
-      internals['targetRouteProgressMeters'] = 80;
-      internals['lastMarkerFrameTimestamp'] = 0;
-      (internals['runContinuousMarkerFrame'] as (timestamp: number) => void).call(renderer, 50);
-      expect(internals['renderedRouteProgressMeters']).toBe(80);
-
-      internals['targetRouteProgressMeters'] = 60;
-      (internals['runContinuousMarkerFrame'] as (timestamp: number) => void).call(renderer, 100);
-      expect(internals['renderedRouteProgressMeters'] as number).toBeLessThan(80);
-      expect(internals['renderedRouteProgressMeters'] as number).toBeGreaterThanOrEqual(60);
-    });
-
-    it('holds the marker when a far GPS point has poor accuracy', () => {
-      vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
-      const current = { lat: 0, lng: 0.004 };
-      const marker = { position: current, content: document.createElement('div') };
-      (internals['animateMarker'] as Function).call(renderer, marker,
-        { lat: 0.0006, lng: 0.0041 }, 90, 0, 90, 2_000,
-        { id: 'main', selected: true, coordinates: STRAIGHT_ROUTE });
-      expect(internals['markerFreeTarget']).toEqual(current);
-    });
-
-    it('follows raw GPS instead of an unrelated route segment when the traveler is off-route', () => {
-      vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
-      const marker = { position: { lat: 0, lng: 0.004 }, content: document.createElement('div') };
-      const rawGps = { lat: 0.0005, lng: 0.0041 };
-      (internals['animateMarker'] as Function).call(renderer, marker, rawGps, 90, 30, 8, 2_000,
-        { id: 'main', selected: true, coordinates: STRAIGHT_ROUTE });
-      expect(internals['markerRouteCoordinates']).toEqual([]);
-      expect(internals['markerFreeTarget']).toEqual(rawGps);
     });
 
     it('remaps onto a new polyline without resetting current visual velocity', () => {
@@ -383,7 +288,7 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
 
   describe('stationary GPS and prediction', () => {
     it.each([
-      [18, 0, 12, false],
+      [18, 0, 12, true],
       [5, null, 10, true],
       [20, 20, 12, false],
       [60, null, 80, true],
@@ -553,16 +458,15 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       expect(anchors).toEqual([rendered]);
     });
 
-    it('keeps the complete route visible and inside OVERVIEW bounds', () => {
+    it('keeps OVERVIEW bounds on the complete route while the visible route is trimmed', () => {
       const rendered = { lat: 0, lng: 0.004 };
       const fittedRoutes: TrackingMapRenderState['routes'][] = [];
-      const drawnRoutes: TrackingMapRenderState['routes'][] = [];
       internals['google'] = {};
       internals['routeMap'] = { setOptions: () => undefined };
       internals['topViewEnabled'] = true;
       internals['upsertProviderMarker'] = () => ({ position: rendered });
       internals['upsertDestinationMarker'] = () => undefined;
-      internals['renderRoutes'] = (routes: TrackingMapRenderState['routes']) => drawnRoutes.push(routes);
+      internals['renderRoutes'] = () => undefined;
       internals['fitRoute'] = (
         _provider: GoogleMapsPoint,
         _destination: GoogleMapsPoint,
@@ -574,79 +478,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
 
       expect(fittedRoutes).toHaveLength(1);
       expect(fittedRoutes[0]?.[0]?.coordinates).toEqual(STRAIGHT_ROUTE);
-      expect(drawnRoutes[0]?.[0]?.coordinates).toEqual(STRAIGHT_ROUTE);
-    });
-
-    it('releases navigation zoom before fitting every point of the global route', () => {
-      const operations: string[] = [];
-      const fittedPoints: GoogleMapsPoint[] = [];
-      class Bounds {
-        extend(point: GoogleMapsPoint): void { fittedPoints.push(point); }
-      }
-      internals['google'] = { maps: { LatLngBounds: Bounds } };
-      internals['topViewEnabled'] = true;
-      internals['routeMap'] = {
-        setOptions: (options: { minZoom: number }) => {
-          expect(options.minZoom).toBe(3);
-          operations.push('release-zoom');
-        },
-        fitBounds: () => operations.push('fit-route'),
-        setHeading: vi.fn(),
-        setTilt: vi.fn(),
-      };
-      internals['upsertProviderMarker'] = () => ({ position: STRAIGHT_ROUTE[0] });
-      internals['upsertDestinationMarker'] = () => undefined;
-      internals['renderRoutes'] = () => undefined;
-      internals['refreshRenderedTravelerMarker'] = () => undefined;
-      const detour = { lat: 0.004, lng: 0.005 };
-      renderer.render({
-        ...BASE_STATE,
-        routes: [{ ...BASE_STATE.routes[0], coordinates: [STRAIGHT_ROUTE[0], detour, STRAIGHT_ROUTE[1]] }],
-      });
-
-      expect(operations).toEqual(['release-zoom', 'fit-route']);
-      expect(fittedPoints).toContainEqual(detour);
-      expect(fittedPoints).toContainEqual(STRAIGHT_ROUTE[0]);
-      expect(fittedPoints).toContainEqual(STRAIGHT_ROUTE[1]);
-    });
-
-    it('restores OVERVIEW when the map is recreated with the same top-view preference', () => {
-      internals['topViewEnabled'] = true;
-      internals['cameraMode'] = 'FREE';
-      internals['lastBoundsKey'] = 'old-map-bounds';
-      internals['userCameraZoom'] = 18;
-
-      renderer.setTopView(true);
-
-      expect(renderer.getCameraMode()).toBe('OVERVIEW');
-      expect(internals['lastBoundsKey']).toBe('');
-      expect(internals['userCameraZoom']).toBeNull();
-    });
-
-    it('faces the selected route immediately when leaving OVERVIEW', () => {
-      internals['topViewEnabled'] = true;
-      internals['cameraMode'] = 'OVERVIEW';
-      internals['lastRenderedState'] = BASE_STATE;
-
-      renderer.setTopView(false);
-
-      expect(renderer.getCameraMode()).toBe('RECENTERING');
-      expect(internals['currentCameraHeading']).toBeCloseTo(90, 0);
-      expect(internals['cameraTargetHeading']).toBeCloseTo(90, 0);
-    });
-
-    it('does not trim the global route as the marker advances', () => {
-      const routeSetPath = vi.fn();
-      internals['markerRouteCoordinates'] = STRAIGHT_ROUTE;
-      internals['selectedRoutePolylineIndex'] = 0;
-      internals['routePolylines'] = [{ setPath: routeSetPath }];
-      internals['topViewEnabled'] = true;
-
-      (internals['synchronizeRouteAndCameraWithMarker'] as (
-        point: GoogleMapsPoint, progress: number,
-      ) => void).call(renderer, { lat: 0, lng: 0.005 }, 500);
-
-      expect(routeSetPath).not.toHaveBeenCalled();
     });
 
     it('erases the traveled route at exactly the marker metric progress', () => {
@@ -656,7 +487,7 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       internals['selectedRoutePolylineIndex'] = 0;
       internals['routeOutlinePolylines'] = [{ setPath: outlineSetPath }];
       internals['routePolylines'] = [{ setPath: routeSetPath }];
-      internals['topViewEnabled'] = false;
+      internals['topViewEnabled'] = true;
       const distance = (internals['distanceMeters'] as (
         from: GoogleMapsPoint,
         to: GoogleMapsPoint,
@@ -856,30 +687,6 @@ describe('TrackingGoogleMapRendererService - deterministic navigation contracts'
       internals['userCameraZoom'] = 16.25;
       const zoom = (internals['cameraZoom'] as () => number).bind(renderer);
       expect(zoom()).toBe(16.25);
-    });
-
-    it('places the driver camera before raising the navigation minimum zoom', () => {
-      const operations: string[] = [];
-      vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
-      internals['google'] = {};
-      internals['cameraMode'] = 'RECENTERING';
-      internals['routeMap'] = {
-        moveCamera: (camera: { center?: GoogleMapsPoint; heading?: number; tilt?: number }) => {
-          expect(camera.center).toBeDefined();
-          expect(camera.heading).toBeCloseTo(90, 0);
-          expect(camera.tilt).toBeGreaterThan(0);
-          operations.push('camera');
-        },
-        setOptions: () => operations.push('min-zoom'),
-      };
-      internals['upsertProviderMarker'] = () => ({ position: STRAIGHT_ROUTE[0] });
-      internals['upsertDestinationMarker'] = () => undefined;
-      internals['renderRoutes'] = () => undefined;
-      internals['refreshRenderedTravelerMarker'] = () => undefined;
-
-      renderer.render(BASE_STATE);
-
-      expect(operations).toEqual(['camera', 'min-zoom']);
     });
 
     it('drops the global bounds center before entering driver view', () => {

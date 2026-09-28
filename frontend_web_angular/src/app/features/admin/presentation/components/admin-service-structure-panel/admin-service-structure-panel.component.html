@@ -488,16 +488,6 @@
             </select>
           </label>
           <label>
-            <span>Ordre d'affichage</span>
-            <input
-              name="categorySortOrder"
-              type="number"
-              min="0"
-              max="32767"
-              [(ngModel)]="form.sortOrder"
-            />
-          </label>
-          <label>
             <span>Commission (%)</span>
             <input
               name="categoryCommissionRate"
@@ -512,7 +502,7 @@
       </ng-container>
 
       <ng-container *ngIf="modalMode === 'bulk-categories'">
-        <p>Indique une categorie par ligne. L'ordre sera applique automatiquement.</p>
+        <p>Indique une categorie par ligne. Elles seront affichees par ordre alphabetique.</p>
         <textarea
           name="bulkCategories"
           [(ngModel)]="bulkCategoriesText"
@@ -538,16 +528,6 @@
             [(ngModel)]="subCategoryForm.description"
             maxlength="500"
             placeholder="Optionnel"
-          />
-        </label>
-        <label>
-          <span>Ordre d'affichage</span>
-          <input
-            name="subCategorySortOrder"
-            type="number"
-            min="0"
-            max="32767"
-            [(ngModel)]="subCategoryForm.sortOrder"
           />
         </label>
       </ng-container>

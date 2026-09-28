@@ -36,7 +36,6 @@ describe('CategoriesModule (e2e)', () => {
     id?: string;
     nom?: string;
     urlIcone?: string | null;
-    ordreTri?: number;
     tauxCommission?: number;
     estActive?: boolean;
   };
@@ -145,7 +144,6 @@ describe('CategoriesModule (e2e)', () => {
       .set('Authorization', `Bearer ${clientAccessToken}`)
       .send({
         name: categoryName,
-        sortOrder: 1,
       })
       .expect(403);
 
@@ -160,7 +158,6 @@ describe('CategoriesModule (e2e)', () => {
       .send({
         name: categoryName,
         iconUrl: 'https://cdn.jokko.sn/icons/plomberie.png',
-        sortOrder: 1,
         commissionRate: 12.5,
       })
       .expect(201);
@@ -182,7 +179,6 @@ describe('CategoriesModule (e2e)', () => {
       .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({
         name: categoryName.toLowerCase(),
-        sortOrder: 2,
       })
       .expect(409);
 
@@ -208,7 +204,6 @@ describe('CategoriesModule (e2e)', () => {
       .send({
         name: updatedCategoryName,
         iconUrl: 'https://cdn.jokko.sn/icons/plomberie-v2.png',
-        sortOrder: 3,
         commissionRate: 15,
       })
       .expect(200);
@@ -218,7 +213,6 @@ describe('CategoriesModule (e2e)', () => {
     expect(body.success).toBe(true);
     expect(body.message).toBe('Categorie mise a jour avec succes.');
     expect(data.nom).toBe(updatedCategoryName);
-    expect(data.ordreTri).toBe(3);
     expect(data.tauxCommission).toBe(15);
   });
 

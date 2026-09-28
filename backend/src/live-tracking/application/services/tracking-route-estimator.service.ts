@@ -50,7 +50,10 @@ export class TrackingRouteEstimatorService {
         tracking.lastLongitude,
       )
     ) {
-      return { ...tracking, route: await recent.value };
+      return {
+        ...tracking,
+        route: this.applySelectedRoute(tracking, await recent.value),
+      };
     }
 
     const routePromise = this.estimateRoute(
@@ -67,7 +70,50 @@ export class TrackingRouteEstimatorService {
     });
     const route = await routePromise;
     this.pruneRecentRoutes();
-    return { ...tracking, route };
+    return { ...tracking, route: this.applySelectedRoute(tracking, route) };
+  }
+
+  private applySelectedRoute(
+    tracking: ReservationTrackingView,
+    estimate: ReservationTrackingView['route'],
+  ): ReservationTrackingView['route'] {
+    const selected = tracking.selectedRoute;
+    if (
+      !selected ||
+      selected.sessionStartedAt !== tracking.startedAt?.toISOString()
+    )
+      return estimate;
+    const durationRemainingSeconds =
+      estimate?.durationRemainingSeconds ??
+      Math.round((selected.durationMinutes ?? 0) * 60);
+    return {
+      selectedRouteId: selected.routeId,
+      distanceRemainingMeters:
+        estimate?.distanceRemainingMeters ??
+        Math.round((selected.distanceKm ?? 0) * 1000),
+      durationRemainingSeconds,
+      estimatedArrivalAt:
+        estimate?.estimatedArrivalAt ??
+        new Date(Date.now() + durationRemainingSeconds * 1000).toISOString(),
+      positionTimestamp:
+        estimate?.positionTimestamp ??
+        (tracking.lastPositionAt ?? new Date()).toISOString(),
+      encodedPolyline: '',
+      coordinates: selected.coordinates.map(({ lat, lng }) => ({
+        latitude: lat,
+        longitude: lng,
+      })),
+      navigationSteps: selected.navigationSteps.map((step) => ({
+        ...step,
+        durationSeconds: null,
+        start: step.start
+          ? { latitude: step.start.lat, longitude: step.start.lng }
+          : null,
+        end: step.end
+          ? { latitude: step.end.lat, longitude: step.end.lng }
+          : null,
+      })),
+    };
   }
 
   private async estimateRoute(

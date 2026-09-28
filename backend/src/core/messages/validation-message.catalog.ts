@@ -44,12 +44,6 @@ export const VALIDATION_MESSAGE_CATALOG = {
   CATEGORY_NAME_MAX:
     'Le nom de la categorie ne doit pas depasser 100 caracteres.',
   CATEGORY_ICON_URL_INVALID: "L'URL de l'icone de categorie est invalide.",
-  CATEGORY_SORT_ORDER_INTEGER:
-    "L'ordre de tri de la categorie doit etre un nombre entier.",
-  CATEGORY_SORT_ORDER_MIN:
-    "L'ordre de tri de la categorie ne peut pas etre negatif.",
-  CATEGORY_SORT_ORDER_MAX:
-    "L'ordre de tri de la categorie ne doit pas depasser 32767.",
   CATEGORY_COMMISSION_RATE_INVALID:
     'Le taux de commission de la categorie doit etre un nombre decimal valide.',
   CATEGORY_COMMISSION_RATE_MIN:

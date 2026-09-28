@@ -504,7 +504,6 @@ export interface AdminServiceSubCategory {
   id: string;
   name: string;
   description: string | null;
-  sortOrder: number;
   isActive: boolean;
   professionalSpaceType: AdminProfessionalSpaceType | null;
   registeredUsers: number;
@@ -514,7 +513,6 @@ export interface AdminServiceStructureCategory {
   id: string;
   name: string;
   iconUrl: string | null;
-  sortOrder: number;
   commissionRate: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType: AdminProfessionalSpaceType;
@@ -543,7 +541,6 @@ export interface AdminServiceStructureReport {
 export interface AdminCategoryPayload {
   name: string;
   iconUrl?: string | null;
-  sortOrder?: number;
   commissionRate?: number;
   priceType?: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType?: AdminProfessionalSpaceType;
@@ -552,7 +549,6 @@ export interface AdminCategoryPayload {
 export interface AdminSubCategoryPayload {
   name: string;
   description?: string | null;
-  sortOrder?: number;
 }
 
 export interface AdminBulkImportResult<T> {

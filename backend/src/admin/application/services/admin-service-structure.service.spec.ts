@@ -4,16 +4,13 @@ type CategoryFixture = {
   id: string;
   nom: string;
   urlIcone: string | null;
-  ordreTri: number;
   tauxCommission: ReturnType<typeof decimal>;
   estActive: boolean;
   sousCategories: Array<{
-    ordreTri: number;
     sousCategorie: {
       id: string;
       nom: string;
       description: string | null;
-      ordreTri: number;
       estActive: boolean;
     };
   }>;
@@ -39,17 +36,14 @@ describe('AdminServiceStructureService', () => {
           id: 'cat-plomberie',
           nom: 'Plomberie & Sanitaires',
           urlIcone: null,
-          ordreTri: 1,
           tauxCommission: decimal(10),
           estActive: true,
           sousCategories: [
             {
-              ordreTri: 0,
               sousCategorie: {
                 id: 'sub-reparation',
                 nom: 'Reparation et depannage',
                 description: 'Demandes urgentes',
-                ordreTri: 0,
                 estActive: true,
               },
             },
@@ -148,7 +142,6 @@ function prismaMock(categories: CategoryFixture[]) {
           id: 'sub-reparation',
           nom: 'Reparation et depannage',
           description: 'Demandes urgentes',
-          ordreTri: 0,
           estActive: true,
         },
       ]),

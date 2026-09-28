@@ -23,6 +23,7 @@ import {
   LIVE_TRACKING_REPOSITORY_PORT,
   type ReservationTrackingContext,
   type ReservationTrackingView,
+  type TrackingRouteSelection,
   type LiveTrackingRepositoryPort,
 } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
@@ -42,6 +43,31 @@ export class LiveTrackingCommandService {
     private readonly reservationClientNotificationService: ReservationClientNotificationService,
     private readonly routeEstimator: TrackingRouteEstimatorService,
   ) {}
+
+  async selectRoute(
+    user: AuthUser,
+    selection: TrackingRouteSelection,
+  ): Promise<boolean> {
+    const context = await this.liveTrackingRepository.findReservationContext(
+      selection.reservationId,
+    );
+    if (!context) return false;
+    const actorUserId =
+      context.travelMode === 'CLIENT_SE_DEPLACE'
+        ? context.clientUserId
+        : context.professionalUserId;
+    if (user.sub !== actorUserId) return false;
+    const tracking =
+      await this.liveTrackingRepository.findTrackingByReservationId(
+        selection.reservationId,
+      );
+    if (
+      tracking?.trackingStatus !== 'EN_ROUTE' ||
+      tracking.startedAt?.toISOString() !== selection.sessionStartedAt
+    )
+      return false;
+    return this.liveTrackingRepository.saveSelectedRoute(selection);
+  }
 
   async markOnTheWay(
     user: AuthUser,

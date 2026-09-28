@@ -55,6 +55,31 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     },
   );
 
+  it('ne confond pas l arrivee au retrait avec celle au depot juste apres le scan', () => {
+    const component = bareComponent();
+    component['routeSessionStartedAtMs'] = 0;
+    component['isParcelDropoffNavigationActive'] = () => true;
+    component['parcelDropoffRouteObserved'] = false;
+    component['appointment'] = () => ({
+      id: 'colis-1',
+      status: 'EN_COURS',
+      updatedAt: '2026-09-22T10:16:00.000Z',
+    });
+    component['isParcelTransportAppointment'] = () => true;
+    component['isParcelPickupValidated'] = () => true;
+
+    expect(component['trackingIndicatesArrival']({
+      trackingStatus: 'TERMINEE',
+      startedAt: '2026-09-22T10:00:00.000Z',
+      endedAt: '2026-09-22T10:15:00.000Z',
+    })).toBe(false);
+    expect(component['trackingIndicatesArrival']({
+      trackingStatus: 'TERMINEE',
+      startedAt: '2026-09-22T10:17:00.000Z',
+      endedAt: '2026-09-22T10:30:00.000Z',
+    })).toBe(true);
+  });
+
   it('replace le livreur et le destinataire au point de depot apres rechargement', () => {
     const component = bareComponent();
     component['pinnedArrivalPoint'] = () => ({ lat: 14.69, lng: -17.48 });
@@ -66,6 +91,43 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
         lastLongitude: -17.48,
       }),
     ).toEqual(dropoff);
+  });
+
+  it('affiche la route serveur au client sans attendre la selection du livreur', () => {
+    const component = bareComponent();
+    component['isParcelDropoffNavigationActive'] = () => false;
+    component['isRouteActorViewer'] = () => false;
+    component['trackingStore'] = { setRouteMetadata: () => true };
+    component['routeDistanceKm'] = writableValue<number | null>(null);
+    component['routeDurationMinutes'] = writableValue<number | null>(null);
+    component['routeOptions'] = [];
+    component['routeStatus'] = writableValue<'idle' | 'ready'>('idle');
+    component['selectedRouteId'] = writableValue('route-0');
+    component['routeService'] = {
+      mapTrackingRoute: (_route: unknown, coordinates: Array<[number, number]>) => ({
+        id: 'route-0', coordinates, navigationSteps: [], distanceKm: 2, durationMinutes: 5,
+      }),
+    };
+    component['updateGoogleMaps'] = vi.fn();
+
+    component['applyRealtimeRouteMetadata']({
+      reservationId: 'colis-1',
+      positionTimestamp: '2026-09-22T10:17:00.000Z',
+      route: {
+        distanceRemainingMeters: 2_000,
+        durationRemainingSeconds: 300,
+        estimatedArrivalAt: '2026-09-22T10:22:00.000Z',
+        encodedPolyline: '',
+        coordinates: [
+          { latitude: 14.7, longitude: -17.5 },
+          { latitude: 14.72, longitude: -17.46 },
+        ],
+      },
+    });
+
+    expect(component['routeOptions']).toHaveLength(1);
+    expect(component['routeStatus']()).toBe('ready');
+    expect(component['updateGoogleMaps']).toHaveBeenCalled();
   });
 
   it('starts the autonomous timer when a valid fast reroute is installed', () => {

@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   QueryList,
   ViewChildren,
   computed,
@@ -107,9 +108,15 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   activeFilter = signal<ProfessionalFilter>('ALL');
   activeCategoryId = signal<string | null>(null);
   activeSubCategoryId = signal<string | null>(null);
+  protected readonly expandedCategoryId = signal<string | null>(null);
   activeTravelMode = signal<TravelModeFilter>('ALL');
   locationSort = signal<'RATING' | 'DISTANCE'>('RATING');
   categories = signal<CategoryStructure[]>([]);
+  protected readonly filterCategories = computed(() =>
+    this.categories().filter((category) =>
+      !['pharmacie', 'quincailleries'].includes(this.normalizeLabel(category.nom)),
+    ),
+  );
   failedImageUrls = signal<Set<string>>(new Set());
   selectedCity = signal<string>('Toutes villes');
   currentSearchLocation = signal<ProfessionalSearchLocation | null>(null);
@@ -247,7 +254,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     { value: 'MEDECIN', label: 'Medecins', countLabel: 'medecins disponibles' },
     { value: 'PRESTATAIRE', label: 'Prestataires', countLabel: 'prestataires disponibles' },
   ];
-  protected readonly typeFilters = this.filters.filter((filter) => filter.value !== 'ALL');
   protected readonly travelModeFilters = [
     { value: 'ALL', label: 'Tout', tone: 'all' as const },
     {
@@ -323,12 +329,6 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return 'Toutes categories';
-  });
-  protected readonly activeSubCategories = computed(() => {
-    const activeCategory = this.categories().find(
-      (category) => category.id === this.activeCategoryId(),
-    );
-    return this.visibleSubCategories(activeCategory?.subCategories ?? []);
   });
   protected readonly activeSubCategory = computed(() => {
     const subCategoryId = this.activeSubCategoryId();
@@ -846,6 +846,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectCategory(categoryId: string | null): void {
+    this.expandedCategoryId.set(null);
     if (
       this.activeFilter() === 'ALL' &&
       this.activeCategoryId() === categoryId &&
@@ -861,6 +862,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectSubCategory(categoryId: string, subCategoryId: string): void {
+    this.expandedCategoryId.set(null);
     if (
       this.activeFilter() === 'ALL' &&
       this.activeCategoryId() === categoryId &&
@@ -873,6 +875,21 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.activeCategoryId.set(categoryId);
     this.activeSubCategoryId.set(subCategoryId);
     this.loadProfessionals(1);
+  }
+
+  protected toggleCategoryDropdown(categoryId: string): void {
+    this.expandedCategoryId.update((current) => current === categoryId ? null : categoryId);
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected closeCategoryDropdownOutside(event: MouseEvent): void {
+    if (event.target instanceof Element && event.target.closest('.service-filters__category')) return;
+    this.expandedCategoryId.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeCategoryDropdownOnEscape(): void {
+    this.expandedCategoryId.set(null);
   }
 
   cycleFilter(): void {
@@ -1111,7 +1128,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
               ...category,
               subCategories: this.visibleSubCategories(category.subCategories),
             }))
-            .sort((a, b) => a.ordreTri - b.ordreTri || a.nom.localeCompare(b.nom)),
+            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' })),
         );
       },
       error: () => {
@@ -1139,7 +1156,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         seen.add(subCategory.id);
         return true;
       })
-      .sort((a, b) => a.ordreTri - b.ordreTri || a.nom.localeCompare(b.nom));
+      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
   }
 
   private loadFavorites(): void {

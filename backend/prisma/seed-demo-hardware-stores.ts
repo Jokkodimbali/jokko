@@ -74,7 +74,6 @@ async function ensureCatalog() {
     update: { estActive: true },
     create: {
       nom: 'Quincaillerie et materiaux',
-      ordreTri: 35,
       tauxCommission: 10,
       estActive: true,
     },
@@ -85,7 +84,6 @@ async function ensureCatalog() {
     create: {
       nom: 'Quincaillerie',
       description: 'Vente de materiaux, fournitures, pieces et outillage.',
-      ordreTri: 1,
       estActive: true,
     },
   });
@@ -96,11 +94,9 @@ async function ensureCatalog() {
         sousCategorieId: subcategory.id,
       },
     },
-    update: { ordreTri: 1 },
     create: {
       categorieId: category.id,
       sousCategorieId: subcategory.id,
-      ordreTri: 1,
     },
   });
   return { category, subcategory };

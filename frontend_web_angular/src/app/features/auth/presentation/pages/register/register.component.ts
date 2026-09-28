@@ -174,7 +174,7 @@ export class RegisterComponent implements OnInit {
       .filter((subCategory) => !selected.has(subCategory.id))
       .sort(
         (first, second) =>
-          first.ordreTri - second.ordreTri || first.nom.localeCompare(second.nom, 'fr'),
+          first.nom.localeCompare(second.nom, 'fr'),
       );
   }
 

@@ -194,6 +194,7 @@ export interface AppointmentTrackingView {
   updatedAt: string | null;
   presence: AppointmentPresenceView;
   route?: {
+    selectedRouteId?: string;
     distanceRemainingMeters: number;
     durationRemainingSeconds: number;
     estimatedArrivalAt: string;

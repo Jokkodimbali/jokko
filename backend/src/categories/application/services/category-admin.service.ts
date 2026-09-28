@@ -6,7 +6,6 @@ import {
   Category,
   CategoryIconUrl,
   CategoryName,
-  CategorySortOrder,
 } from '../../domain';
 import type {
   CreateCategoryCommand,
@@ -53,8 +52,6 @@ export class CategoryAdminService extends CategoryAppService {
     }
 
     const iconUrl = CategoryIconUrl.create(command.iconUrl)?.getValue() ?? null;
-    const sortOrder =
-      CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0;
     const commissionRate = normalizeCommissionRate(command.commissionRate);
 
     const existingCategory =
@@ -66,7 +63,6 @@ export class CategoryAdminService extends CategoryAppService {
     const result = await this.categoriesRepository.create({
       name: categoryName,
       iconUrl,
-      sortOrder,
       commissionRate,
       priceType: command.priceType ?? 'NEGOCIABLE',
       professionalSpaceType: command.professionalSpaceType ?? 'PRESTATAIRE',
@@ -97,7 +93,6 @@ export class CategoryAdminService extends CategoryAppService {
       id: existingCategory.id,
       name: existingCategory.nom,
       iconUrl: existingCategory.urlIcone,
-      sortOrder: existingCategory.ordreTri,
       commissionRate: existingCategory.tauxCommission,
       isActive: existingCategory.estActive,
     });
@@ -107,10 +102,6 @@ export class CategoryAdminService extends CategoryAppService {
       command.iconUrl === undefined
         ? undefined
         : (CategoryIconUrl.create(command.iconUrl)?.getValue() ?? null);
-    const nextSortOrder =
-      command.sortOrder === undefined
-        ? undefined
-        : (CategorySortOrder.create(command.sortOrder)?.getValue() ?? 0);
     const nextCommissionRate =
       command.commissionRate === undefined
         ? undefined
@@ -130,7 +121,6 @@ export class CategoryAdminService extends CategoryAppService {
     category.updateDetails({
       name: nextName,
       iconUrl: nextIconUrl,
-      sortOrder: nextSortOrder,
       commissionRate: nextCommissionRate,
     });
 
@@ -138,7 +128,6 @@ export class CategoryAdminService extends CategoryAppService {
       categoryId,
       name: category.name,
       iconUrl: category.iconUrl,
-      sortOrder: category.sortOrder,
       commissionRate: category.commissionRate,
       priceType: command.priceType ?? existingCategory.typePrix,
       professionalSpaceType:
@@ -176,7 +165,6 @@ export class CategoryAdminService extends CategoryAppService {
       id: existingCategory.id,
       name: existingCategory.nom,
       iconUrl: existingCategory.urlIcone,
-      sortOrder: existingCategory.ordreTri,
       commissionRate: existingCategory.tauxCommission,
       isActive: existingCategory.estActive,
     });
@@ -203,7 +191,6 @@ export class CategoryAdminService extends CategoryAppService {
       id: existingCategory.id,
       name: existingCategory.nom,
       iconUrl: existingCategory.urlIcone,
-      sortOrder: existingCategory.ordreTri,
       commissionRate: existingCategory.tauxCommission,
       isActive: existingCategory.estActive,
     });

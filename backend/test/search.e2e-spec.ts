@@ -43,7 +43,6 @@ describe('SearchModule (e2e)', () => {
       await prisma.categorie.create({
         data: {
           nom: `Plomberie Search ${timestamp}`,
-          ordreTri: 1,
         },
       })
     ).id;
@@ -52,7 +51,6 @@ describe('SearchModule (e2e)', () => {
       await prisma.categorie.create({
         data: {
           nom: `Electricite Search ${timestamp}`,
-          ordreTri: 2,
         },
       })
     ).id;

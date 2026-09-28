@@ -14,6 +14,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { LiveTrackingFacade } from '../../application/services/live-tracking-facade.service';
+import type { TrackingRouteSelection } from '../../application/ports/live-tracking-repository.port';
 import type { TrackingLocationDto } from '../dto/tracking-location.dto';
 import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
@@ -28,16 +29,6 @@ type TrackingLocationAcknowledgement = {
   tracking?: Awaited<ReturnType<LiveTrackingFacade['updateLocation']>>;
 };
 
-type TrackingRouteSelection = {
-  reservationId: string;
-  routeId: string;
-  coordinates: Array<{ lat: number; lng: number }>;
-  distanceKm: number | null;
-  durationMinutes: number | null;
-  navigationSteps: unknown[];
-  selectedAt: string;
-};
-
 @WebSocketGateway({
   namespace: '/socket',
   cors: buildSocketCorsOptionsFromProcessEnv(),
@@ -50,7 +41,6 @@ export class LiveTrackingGateway
 
   private readonly socketUsers = new Map<string, AuthUser>();
   private readonly userSockets = new Map<string, Set<string>>();
-  private readonly selectedRoutes = new Map<string, TrackingRouteSelection>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -146,9 +136,8 @@ export class LiveTrackingGateway
     );
     await client.join(this.buildReservationRoom(payload.reservationId));
     client.emit('tracking.snapshot', tracking);
-    const selectedRoute = this.selectedRoutes.get(payload.reservationId);
-    if (selectedRoute) {
-      client.emit('tracking.route.selected', selectedRoute);
+    if (tracking.selectedRoute) {
+      client.emit('tracking.route.selected', tracking.selectedRoute);
     }
 
     return {
@@ -267,23 +256,26 @@ export class LiveTrackingGateway
   async handleRouteSelection(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: TrackingRouteSelection,
+    @Ack() acknowledge?: (response: { accepted: boolean }) => void,
   ): Promise<void> {
     const user = this.getSocketUser(client);
-    if (!user || !this.isValidRouteSelection(payload)) return;
+    if (!user || !this.isValidRouteSelection(payload)) {
+      acknowledge?.({ accepted: false });
+      return;
+    }
 
-    // getReservationTracking verifies that the emitter belongs to this
-    // reservation before anything is broadcast to the tracking room.
     try {
-      await this.liveTrackingFacade.getReservationTracking(
-        user,
-        payload.reservationId,
-      );
-      this.selectedRoutes.set(payload.reservationId, payload);
-      client
+      const accepted = await this.liveTrackingFacade.selectRoute(user, payload);
+      if (!accepted) {
+        acknowledge?.({ accepted: false });
+        return;
+      }
+      this.server
         .to(this.buildReservationRoom(payload.reservationId))
         .emit('tracking.route.selected', payload);
+      acknowledge?.({ accepted: true });
     } catch {
-      return;
+      acknowledge?.({ accepted: false });
     }
   }
 
@@ -445,6 +437,10 @@ export class LiveTrackingGateway
       !payload ||
       !this.isValidIdentifier(payload.reservationId) ||
       !this.isValidIdentifier(payload.routeId) ||
+      !this.isValidIdentifier(payload.sessionStartedAt) ||
+      !Number.isFinite(Date.parse(payload.sessionStartedAt)) ||
+      !Number.isFinite(Date.parse(payload.selectedAt)) ||
+      !Array.isArray(payload.navigationSteps) ||
       !Array.isArray(payload.coordinates) ||
       payload.coordinates.length < 2 ||
       payload.coordinates.length > 10_000

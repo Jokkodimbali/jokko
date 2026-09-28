@@ -31,7 +31,6 @@ describe('CategoryAdminService', () => {
         id: 'cat-1',
         nom: 'Plomberie',
         urlIcone: 'https://cdn.jokko.sn/plomberie.png',
-        ordreTri: 1,
         estActive: true,
       },
     });
@@ -45,7 +44,6 @@ describe('CategoryAdminService', () => {
       {
         name: ' Plomberie ',
         iconUrl: 'https://cdn.jokko.sn/plomberie.png',
-        sortOrder: 1,
       },
     );
 
@@ -53,7 +51,6 @@ describe('CategoryAdminService', () => {
     expect(categoriesRepository.create).toHaveBeenCalledWith({
       name: 'Plomberie',
       iconUrl: 'https://cdn.jokko.sn/plomberie.png',
-      sortOrder: 1,
       commissionRate: 10,
       priceType: 'NEGOCIABLE',
       professionalSpaceType: 'PRESTATAIRE',
@@ -100,7 +97,6 @@ describe('CategoryAdminService', () => {
       id: 'cat-1',
       nom: 'Plomberie',
       urlIcone: null,
-      ordreTri: 1,
       tauxCommission: 10,
       typePrix: 'NEGOCIABLE',
       typeEspace: 'PRESTATAIRE',
@@ -112,7 +108,6 @@ describe('CategoryAdminService', () => {
         id: 'cat-1',
         nom: 'Plomberie',
         urlIcone: null,
-        ordreTri: 1,
         tauxCommission: 10,
         typePrix: 'FIXE',
         typeEspace: 'MEDECIN',
@@ -145,7 +140,6 @@ describe('CategoryAdminService', () => {
       id: 'cat-1',
       nom: 'Plomberie',
       urlIcone: null,
-      ordreTri: 1,
       estActive: true,
     });
     categoriesRepository.disable.mockResolvedValue({
@@ -154,7 +148,6 @@ describe('CategoryAdminService', () => {
         id: 'cat-1',
         nom: 'Plomberie',
         urlIcone: null,
-        ordreTri: 1,
         estActive: false,
       },
     });

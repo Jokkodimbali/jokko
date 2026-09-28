@@ -41,7 +41,8 @@ export class TrackingStore {
       return true;
     }
 
-    if (this.isTerminalUpdateFromOlderSession(current, tracking)) {
+    if (this.isTerminalUpdateFromOlderSession(current, tracking) ||
+        this.isUpdateFromOlderRouteSession(current, tracking)) {
       return false;
     }
 
@@ -118,6 +119,17 @@ export class TrackingStore {
     if (!Number.isFinite(incomingStartedAt)) return false;
     if (!Number.isFinite(currentStartedAt)) return true;
     return incomingStartedAt > currentStartedAt;
+  }
+
+  private isUpdateFromOlderRouteSession(
+    current: AppointmentTrackingView,
+    incoming: AppointmentTrackingView,
+  ): boolean {
+    if (current.trackingStatus !== 'EN_ROUTE') return false;
+    const currentStartedAt = Date.parse(current.startedAt ?? '');
+    const incomingStartedAt = Date.parse(incoming.startedAt ?? '');
+    return Number.isFinite(currentStartedAt) && Number.isFinite(incomingStartedAt) &&
+      incomingStartedAt < currentStartedAt;
   }
 
   private isTerminalUpdateFromOlderSession(

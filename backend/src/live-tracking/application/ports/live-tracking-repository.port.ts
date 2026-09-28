@@ -27,9 +27,29 @@ export type ReservationTrackingContext = {
     | 'TRANSPORT_COLIS';
 };
 
+export type TrackingRouteSelection = {
+  reservationId: string;
+  sessionStartedAt: string;
+  routeId: string;
+  coordinates: Array<{ lat: number; lng: number }>;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+  navigationSteps: Array<{
+    id: string;
+    instruction: string;
+    maneuver: string | null;
+    distanceMeters: number | null;
+    start: { lat: number; lng: number } | null;
+    end: { lat: number; lng: number } | null;
+  }>;
+  selectedAt: string;
+};
+
 export type ReservationTrackingView = ReservationTrackingSession & {
   presence: ProfessionalPresence;
+  selectedRoute?: TrackingRouteSelection | null;
   route?: {
+    selectedRouteId?: string;
     distanceRemainingMeters: number;
     durationRemainingSeconds: number;
     estimatedArrivalAt: string;
@@ -74,6 +94,7 @@ export type TrackingRouteMetadataRealtimePayload = {
 };
 
 export interface LiveTrackingRepositoryPort {
+  saveSelectedRoute(selection: TrackingRouteSelection): Promise<boolean>;
   findReservationContext(
     reservationId: string,
   ): Promise<ReservationTrackingContext | null>;

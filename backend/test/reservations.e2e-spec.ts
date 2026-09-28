@@ -270,7 +270,6 @@ describe('ReservationsModule (e2e)', () => {
       data: {
         id: categoryId,
         nom: `Plomberie Test ${emailSuffix}`,
-        ordreTri: 1,
       },
     });
 

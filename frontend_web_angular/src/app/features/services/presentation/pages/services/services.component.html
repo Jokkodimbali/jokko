@@ -67,56 +67,60 @@
         "
         (click)="selectCategory(null)"
       >
-        <lucide-icon name="layout-dashboard" size="16" [strokeWidth]="2.4"></lucide-icon>
         Toutes categories
       </button>
-      <button
-        *ngFor="let filter of typeFilters"
-        type="button"
-        class="service-filters__button"
-        [class.service-filters__button--active]="activeFilter() === filter.value"
-        (click)="selectFilter(filter.value)"
+      <div
+        *ngFor="let category of filterCategories()"
+        class="service-filters__category"
+        [class.service-filters__category--expanded]="expandedCategoryId() === category.id"
+        [class.service-filters__category--active]="activeCategoryId() === category.id"
       >
-        <lucide-icon
-          *ngIf="filter.value === 'MEDECIN'"
-          name="stethoscope"
-          size="16"
-          [strokeWidth]="2.4"
-        ></lucide-icon>
-        <lucide-icon
-          *ngIf="filter.value === 'PRESTATAIRE'"
-          name="briefcase-business"
-          size="16"
-          [strokeWidth]="2.4"
-        ></lucide-icon>
-        {{ filter.label }}
-      </button>
-      <ng-container *ngFor="let category of categories()">
-        <button
-          type="button"
-          class="service-filters__button"
-          [class.service-filters__button--active]="
-            activeCategoryId() === category.id && activeSubCategoryId() === null
-          "
-          [class.service-filters__button--parent]="
-            activeCategoryId() === category.id && activeSubCategoryId() !== null
-          "
-          (click)="selectCategory(category.id)"
-        >
-          {{ category.nom }}
-        </button>
-        <ng-container *ngIf="activeCategoryId() === category.id">
+        <div class="service-filters__category-pill">
           <button
-            *ngFor="let subCategory of activeSubCategories()"
             type="button"
-            class="service-filters__button service-filters__button--sub"
-            [class.service-filters__button--active]="activeSubCategoryId() === subCategory.id"
+            class="service-filters__button service-filters__button--category"
+            [class.service-filters__button--active]="activeCategoryId() === category.id"
+            (click)="selectCategory(category.id)"
+          >
+            {{ category.nom }}
+          </button>
+          <button
+            *ngIf="category.subCategories.length > 0"
+            type="button"
+            class="service-filters__dropdown-toggle"
+            [class.service-filters__dropdown-toggle--active]="activeCategoryId() === category.id"
+            [attr.aria-label]="'Afficher les sous-categories de ' + category.nom"
+            [attr.aria-expanded]="expandedCategoryId() === category.id"
+            [attr.aria-controls]="'service-subcategories-' + category.id"
+            (click)="toggleCategoryDropdown(category.id)"
+          >
+            <lucide-icon name="chevron-down" size="15" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+        </div>
+        <div
+          *ngIf="expandedCategoryId() === category.id"
+          class="service-filters__dropdown"
+          [id]="'service-subcategories-' + category.id"
+        >
+          <button
+            type="button"
+            class="service-filters__dropdown-item"
+            [class.service-filters__dropdown-item--active]="activeCategoryId() === category.id && activeSubCategoryId() === null"
+            (click)="selectCategory(category.id)"
+          >
+            Toute la categorie
+          </button>
+          <button
+            *ngFor="let subCategory of category.subCategories"
+            type="button"
+            class="service-filters__dropdown-item"
+            [class.service-filters__dropdown-item--active]="activeSubCategoryId() === subCategory.id"
             (click)="selectSubCategory(category.id, subCategory.id)"
           >
             {{ subCategory.nom }}
           </button>
-        </ng-container>
-      </ng-container>
+        </div>
+      </div>
     </div>
 
     <aside class="favorites" aria-label="Vos favoris">

@@ -17,7 +17,6 @@ const CATEGORY_SELECT = {
   id: true,
   nom: true,
   urlIcone: true,
-  ordreTri: true,
   tauxCommission: true,
   typePrix: true,
   typeEspace: true,
@@ -28,7 +27,6 @@ type RawCategory = {
   id: string;
   nom: string;
   urlIcone: string | null;
-  ordreTri: number;
   tauxCommission: Prisma.Decimal;
   typePrix: TypePrix;
   typeEspace: TypeEspaceProfessionnel;
@@ -51,7 +49,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           c.id,
           c.name AS nom,
           c.icon_url AS "urlIcone",
-          c.sort_order AS "ordreTri",
           c.commission_rate AS "tauxCommission",
           c.price_type AS "typePrix",
           c.professional_space_type AS "typeEspace",
@@ -81,7 +78,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
         ORDER BY
           COUNT(DISTINCT service_u.id) DESC,
           COUNT(DISTINCT specialty_u.id) DESC,
-          c.sort_order ASC,
           c.name ASC
         OFFSET ${skip}
         LIMIT ${limit}
@@ -109,11 +105,11 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
   > {
     const categories = await this.prisma.categorie.findMany({
       where: { estActive: true },
-      orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
+      orderBy: { nom: 'asc' },
       select: {
         ...CATEGORY_SELECT,
         sousCategories: {
-          orderBy: [{ ordreTri: 'asc' }, { sousCategorie: { nom: 'asc' } }],
+          orderBy: { sousCategorie: { nom: 'asc' } },
           where: { sousCategorie: { estActive: true } },
           select: {
             sousCategorie: {
@@ -121,7 +117,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
                 id: true,
                 nom: true,
                 description: true,
-                ordreTri: true,
                 estActive: true,
               },
             },
@@ -136,7 +131,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
         id: assignment.sousCategorie.id,
         nom: assignment.sousCategorie.nom,
         description: assignment.sousCategorie.description,
-        ordreTri: assignment.sousCategorie.ordreTri,
         estActive: assignment.sousCategorie.estActive,
       })),
     }));
@@ -160,7 +154,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
         data: {
           nom: input.name,
           urlIcone: input.iconUrl,
-          ordreTri: input.sortOrder,
           tauxCommission: input.commissionRate,
           typePrix: input.priceType,
           typeEspace: input.professionalSpaceType,
@@ -185,7 +178,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
           data: {
             nom: input.name,
             urlIcone: input.iconUrl,
-            ordreTri: input.sortOrder,
             tauxCommission: input.commissionRate,
             typePrix: input.priceType,
             typeEspace: input.professionalSpaceType,
@@ -305,7 +297,6 @@ export class CategoriesRepository implements CategoriesRepositoryPort {
       id: category.id,
       nom: category.nom,
       urlIcone: category.urlIcone,
-      ordreTri: category.ordreTri,
       tauxCommission: Number(category.tauxCommission),
       typePrix: category.typePrix,
       typeEspace: category.typeEspace,

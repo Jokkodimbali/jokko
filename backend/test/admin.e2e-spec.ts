@@ -324,7 +324,6 @@ describe('Admin governance (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: `Electricite-${timestamp}`,
-        sortOrder: 1,
         commissionRate: 15,
       })
       .expect(201);
@@ -482,7 +481,6 @@ describe('Admin governance (e2e)', () => {
         categories: [
           {
             name: `Structure-${timestamp}`,
-            sortOrder: 9,
             commissionRate: 10,
           },
         ],

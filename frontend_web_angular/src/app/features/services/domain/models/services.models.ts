@@ -2,7 +2,6 @@ export interface Category {
   id: string;
   nom: string;
   urlIcone: string | null;
-  ordreTri: number;
   tauxCommission: number;
   estActive: boolean;
 }
@@ -11,7 +10,6 @@ export interface ServiceSubCategory {
   id: string;
   nom: string;
   description: string | null;
-  ordreTri: number;
   estActive: boolean;
 }
 

@@ -7,7 +7,6 @@ import { PrismaService } from '../../../prisma/prisma.service';
 type CreateCategoryInput = {
   name: string;
   iconUrl?: string | null;
-  sortOrder?: number;
   commissionRate?: number;
   priceType?: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType?: TypeEspaceProfessionnel;
@@ -16,7 +15,6 @@ type CreateCategoryInput = {
 type CreateServiceSubCategoryInput = {
   name: string;
   description?: string | null;
-  sortOrder?: number;
 };
 
 type AssignServiceSubCategoriesInput = {
@@ -51,7 +49,6 @@ type ServiceSubCategoryView = {
   id: string;
   name: string;
   description: string | null;
-  sortOrder: number;
   isActive: boolean;
   professionalSpaceType: TypeEspaceProfessionnel | null;
   registeredUsers: number;
@@ -106,8 +103,7 @@ export class AdminServiceStructureService {
       categories.map((category) => ({
         name: this.normalizeRequiredName(category.name),
         iconUrl: category.iconUrl?.trim() || null,
-        sortOrder: category.sortOrder ?? 0,
-        commissionRate: category.commissionRate ?? 10,
+          commissionRate: category.commissionRate ?? 10,
         priceType: category.priceType ?? 'NEGOCIABLE',
         professionalSpaceType: category.professionalSpaceType ?? 'PRESTATAIRE',
       })),
@@ -117,7 +113,6 @@ export class AdminServiceStructureService {
       id: string;
       name: string;
       iconUrl: string | null;
-      sortOrder: number;
       commissionRate: number;
       isActive: boolean;
     }> = {
@@ -141,7 +136,6 @@ export class AdminServiceStructureService {
         data: {
           nom: item.name,
           urlIcone: item.iconUrl,
-          ordreTri: item.sortOrder,
           tauxCommission: new Prisma.Decimal(item.commissionRate),
           typePrix: item.priceType,
           typeEspace: item.professionalSpaceType,
@@ -173,7 +167,6 @@ export class AdminServiceStructureService {
       data: {
         nom: name,
         description: input.description?.trim() || null,
-        ordreTri: input.sortOrder ?? 0,
       },
     });
 
@@ -195,8 +188,7 @@ export class AdminServiceStructureService {
       subCategories.map((subCategory) => ({
         name: this.normalizeRequiredName(subCategory.name),
         description: subCategory.description?.trim() || null,
-        sortOrder: subCategory.sortOrder ?? 0,
-      })),
+        })),
     );
 
     for (const item of normalizedItems) {
@@ -214,7 +206,6 @@ export class AdminServiceStructureService {
         data: {
           nom: item.name,
           description: item.description,
-          ordreTri: item.sortOrder,
         },
       });
       result.created.push(this.mapSubCategory(created));
@@ -272,10 +263,9 @@ export class AdminServiceStructureService {
       }
 
       await tx.categorieSousCategorie.createMany({
-        data: uniqueIds.map((subCategoryId, index) => ({
+        data: uniqueIds.map((subCategoryId) => ({
           categorieId: categoryId,
           sousCategorieId: subCategoryId,
-          ordreTri: index,
         })),
         skipDuplicates: true,
       });
@@ -329,7 +319,6 @@ export class AdminServiceStructureService {
           id: true,
           nom: true,
           description: true,
-          ordreTri: true,
           estActive: true,
           typeEspace: true,
           _count: { select: { specialitesProfessionnelles: true } },
@@ -392,12 +381,11 @@ export class AdminServiceStructureService {
 
   private findCategories() {
     return this.prisma.categorie.findMany({
-      orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
+      orderBy: { nom: 'asc' },
       select: {
         id: true,
         nom: true,
         urlIcone: true,
-        ordreTri: true,
         tauxCommission: true,
         typePrix: true,
         typeEspace: true,
@@ -415,15 +403,13 @@ export class AdminServiceStructureService {
           },
         },
         sousCategories: {
-          orderBy: [{ ordreTri: 'asc' }, { sousCategorie: { nom: 'asc' } }],
+          orderBy: { sousCategorie: { nom: 'asc' } },
           select: {
-            ordreTri: true,
             sousCategorie: {
               select: {
                 id: true,
                 nom: true,
                 description: true,
-                ordreTri: true,
                 estActive: true,
                 typeEspace: true,
                 _count: { select: { specialitesProfessionnelles: true } },
@@ -442,7 +428,6 @@ export class AdminServiceStructureService {
         id: true,
         nom: true,
         urlIcone: true,
-        ordreTri: true,
         tauxCommission: true,
         typePrix: true,
         typeEspace: true,
@@ -460,15 +445,13 @@ export class AdminServiceStructureService {
           },
         },
         sousCategories: {
-          orderBy: [{ ordreTri: 'asc' }, { sousCategorie: { nom: 'asc' } }],
+          orderBy: { sousCategorie: { nom: 'asc' } },
           select: {
-            ordreTri: true,
             sousCategorie: {
               select: {
                 id: true,
                 nom: true,
                 description: true,
-                ordreTri: true,
                 estActive: true,
                 typeEspace: true,
                 _count: { select: { specialitesProfessionnelles: true } },
@@ -495,7 +478,6 @@ export class AdminServiceStructureService {
       id: category.id,
       name: category.nom,
       iconUrl: category.urlIcone,
-      sortOrder: category.ordreTri,
       commissionRate: Number(category.tauxCommission),
       priceType: category.typePrix ?? 'NEGOCIABLE',
       professionalSpaceType: category.typeEspace ?? 'PRESTATAIRE',
@@ -507,7 +489,6 @@ export class AdminServiceStructureService {
         id: assignment.sousCategorie.id,
         name: assignment.sousCategorie.nom,
         description: assignment.sousCategorie.description,
-        sortOrder: assignment.ordreTri,
         isActive: assignment.sousCategorie.estActive,
         professionalSpaceType: assignment.sousCategorie.typeEspace,
         registeredUsers: assignment.sousCategorie._count?.specialitesProfessionnelles ?? 0,
@@ -615,7 +596,7 @@ export class AdminServiceStructureService {
   private async listAvailableSubCategories() {
     const subCategories = await this.prisma.sousCategorieService.findMany({
       where: { estActive: true, categories: { none: {} } },
-      orderBy: [{ ordreTri: 'asc' }, { nom: 'asc' }],
+      orderBy: { nom: 'asc' },
     });
 
     return subCategories.map((subCategory) => this.mapSubCategory(subCategory));
@@ -651,7 +632,6 @@ export class AdminServiceStructureService {
     id: string;
     nom: string;
     description: string | null;
-    ordreTri: number;
     estActive: boolean;
     typeEspace?: TypeEspaceProfessionnel | null;
     _count?: { specialitesProfessionnelles: number };
@@ -660,7 +640,6 @@ export class AdminServiceStructureService {
       id: subCategory.id,
       name: subCategory.nom,
       description: subCategory.description,
-      sortOrder: subCategory.ordreTri,
       isActive: subCategory.estActive,
       professionalSpaceType: subCategory.typeEspace ?? null,
       registeredUsers: subCategory._count?.specialitesProfessionnelles ?? 0,
@@ -672,7 +651,6 @@ export class AdminServiceStructureService {
       id: true,
       nom: true,
       urlIcone: true,
-      ordreTri: true,
       tauxCommission: true,
       typePrix: true,
       typeEspace: true,
@@ -684,7 +662,6 @@ export class AdminServiceStructureService {
     id: string;
     nom: string;
     urlIcone: string | null;
-    ordreTri: number;
     tauxCommission: Prisma.Decimal;
     typePrix: 'FIXE' | 'NEGOCIABLE';
     typeEspace: TypeEspaceProfessionnel;
@@ -694,7 +671,6 @@ export class AdminServiceStructureService {
       id: category.id,
       name: category.nom,
       iconUrl: category.urlIcone,
-      sortOrder: category.ordreTri,
       commissionRate: Number(category.tauxCommission),
       priceType: category.typePrix ?? 'NEGOCIABLE',
       professionalSpaceType: category.typeEspace ?? 'PRESTATAIRE',

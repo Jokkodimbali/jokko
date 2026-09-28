@@ -55,6 +55,7 @@ export type TrackingRouteMetadataEvent = {
 
 export type TrackingRouteSelection = {
   reservationId: string;
+  sessionStartedAt: string;
   routeId: string;
   coordinates: Array<{ lat: number; lng: number }>;
   distanceKm: number | null;
@@ -146,14 +147,20 @@ export class TrackingRealtimeService {
   }
 
   publishRouteSelection(selection: TrackingRouteSelection): void {
+    // Keep the latest route until the server confirms that it is persisted.
+    this.pendingRouteSelections.set(selection.reservationId, selection);
     this.connect();
-    if (this.socket?.connected) {
-      this.socket.emit('tracking.route.select', selection);
-      this.pendingRouteSelections.delete(selection.reservationId);
-    } else {
-      // Latest-only: a reconnect publishes only the most recent selection.
-      this.pendingRouteSelections.set(selection.reservationId, selection);
-    }
+    this.sendRouteSelection(selection);
+  }
+
+  private sendRouteSelection(selection: TrackingRouteSelection): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('tracking.route.select', selection, (response?: { accepted: boolean }) => {
+      if (response?.accepted &&
+          this.pendingRouteSelections.get(selection.reservationId)?.selectedAt === selection.selectedAt) {
+        this.pendingRouteSelections.delete(selection.reservationId);
+      }
+    });
   }
 
   disconnect(): void {
@@ -188,10 +195,7 @@ export class TrackingRealtimeService {
     this.socket.on('connect', () => {
       this.connectionState.next('connected');
       this.reservationIds.forEach((reservationId) => this.subscribeToReservation(reservationId));
-      this.pendingRouteSelections.forEach((selection) =>
-        this.socket?.emit('tracking.route.select', selection),
-      );
-      this.pendingRouteSelections.clear();
+      this.pendingRouteSelections.forEach((selection) => this.sendRouteSelection(selection));
     });
     this.socket.on('disconnect', () => {
       this.connectionState.next('disconnected');

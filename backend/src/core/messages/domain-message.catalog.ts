@@ -14,8 +14,6 @@ export const DOMAIN_MESSAGE_CATALOG = {
     `Le nom de categorie doit contenir entre 2 et 100 caracteres. Longueur recue: ${length}.`,
   INVALID_CATEGORY_ICON_URL: ({ url }: { url: string }) =>
     `L'URL d'icone de categorie est invalide: ${url}.`,
-  INVALID_CATEGORY_SORT_ORDER: ({ value }: { value: number }) =>
-    `L'ordre de tri doit etre un entier entre 0 et 32767. Valeur recue: ${value}.`,
   INVALID_BIO_LENGTH: ({ length }: { length: number }) =>
     `Bio length must be between 1 and 1000 characters. Got: ${length}`,
   INVALID_COMPANY_NAME_LENGTH: ({ length }: { length: number }) =>

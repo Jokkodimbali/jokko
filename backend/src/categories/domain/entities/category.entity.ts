@@ -12,7 +12,6 @@ export class Category {
     private readonly _id: string,
     private _name: string,
     private _iconUrl: string | null,
-    private _sortOrder: number,
     private _commissionRate: number,
     private _isActive: boolean,
     private readonly domainEvents: (
@@ -35,10 +34,6 @@ export class Category {
     return this._iconUrl;
   }
 
-  get sortOrder(): number {
-    return this._sortOrder;
-  }
-
   get isActive(): boolean {
     return this._isActive;
   }
@@ -51,14 +46,12 @@ export class Category {
     id: string;
     name: string;
     iconUrl: string | null;
-    sortOrder: number;
     commissionRate: number;
   }): Category {
     const category = new Category(
       data.id,
       data.name,
       data.iconUrl,
-      data.sortOrder,
       data.commissionRate,
       true,
     );
@@ -68,7 +61,6 @@ export class Category {
         category.id,
         category.name,
         category.iconUrl,
-        category.sortOrder,
       ),
     );
 
@@ -79,7 +71,6 @@ export class Category {
     id: string;
     name: string;
     iconUrl: string | null;
-    sortOrder: number;
     commissionRate: number;
     isActive: boolean;
   }): Category {
@@ -87,7 +78,6 @@ export class Category {
       data.id,
       data.name,
       data.iconUrl,
-      data.sortOrder,
       data.commissionRate,
       data.isActive,
     );
@@ -96,7 +86,6 @@ export class Category {
   updateDetails(data: {
     name?: string;
     iconUrl?: string | null;
-    sortOrder?: number;
     commissionRate?: number;
   }): void {
     if (data.name !== undefined) {
@@ -107,16 +96,12 @@ export class Category {
       this._iconUrl = data.iconUrl;
     }
 
-    if (data.sortOrder !== undefined) {
-      this._sortOrder = data.sortOrder;
-    }
-
     if (data.commissionRate !== undefined) {
       this._commissionRate = data.commissionRate;
     }
 
     this.domainEvents.push(
-      new CategoryUpdated(this._id, this._name, this._iconUrl, this._sortOrder),
+      new CategoryUpdated(this._id, this._name, this._iconUrl),
     );
   }
 

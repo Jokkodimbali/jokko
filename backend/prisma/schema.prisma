@@ -499,7 +499,6 @@ model Categorie {
   id             String  @id @default(uuid()) @db.Uuid
   nom            String  @unique @map("name") @db.VarChar(100)
   urlIcone       String? @map("icon_url") @db.VarChar(500)
-  ordreTri       Int     @default(0) @map("sort_order") @db.SmallInt
   tauxCommission Decimal                  @default(10.00) @map("commission_rate") @db.Decimal(5, 2)
   typePrix       TypePrix                 @default(NEGOCIABLE) @map("price_type")
   typeEspace     TypeEspaceProfessionnel  @default(PRESTATAIRE) @map("professional_space_type")
@@ -516,7 +515,6 @@ model SousCategorieService {
   id          String   @id @default(uuid()) @db.Uuid
   nom         String   @unique @map("name") @db.VarChar(120)
   description String?  @db.Text
-  ordreTri    Int      @default(0) @map("sort_order") @db.SmallInt
   estActive   Boolean                   @default(true) @map("is_active")
   typeEspace  TypeEspaceProfessionnel?    @map("professional_space_type")
   creeLe      DateTime @default(now()) @map("created_at")
@@ -532,7 +530,6 @@ model CategorieSousCategorie {
   id              String   @id @default(uuid()) @db.Uuid
   categorieId     String   @map("category_id") @db.Uuid
   sousCategorieId String   @map("subcategory_id") @db.Uuid
-  ordreTri        Int      @default(0) @map("sort_order") @db.SmallInt
   creeLe          DateTime @default(now()) @map("created_at")
 
   categorie     Categorie            @relation(fields: [categorieId], references: [id], onDelete: Cascade)
@@ -1052,6 +1049,7 @@ model SessionTrackingReservation {
   dernierLibelleLocalisation String?                          @map("last_location_label") @db.VarChar(255)
   dernierePositionLe         DateTime?                        @map("last_position_at")
   demarreLe                  DateTime                         @default(now()) @map("started_at")
+  routeSelection             Json?                            @map("route_selection")
   termineLe                  DateTime?                        @map("ended_at")
   creeLe                     DateTime                         @default(now()) @map("created_at")
   misAJourLe                 DateTime                         @updatedAt @map("updated_at")

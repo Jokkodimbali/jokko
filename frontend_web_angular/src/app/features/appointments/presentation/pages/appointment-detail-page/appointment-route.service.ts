@@ -77,7 +77,7 @@ export class AppointmentRouteService {
     coordinates: Array<[number, number]>,
   ): AppointmentRouteOption {
     return {
-      id: 'route-0',
+      id: route.selectedRouteId ?? 'route-0',
       coordinates,
       distanceKm: route.distanceRemainingMeters / 1000,
       durationMinutes: Math.max(1, Math.round(route.durationRemainingSeconds / 60)),

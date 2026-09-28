@@ -40,7 +40,7 @@ export class ProviderLocationService {
     }
   }
 
-  watch(intervalMilliseconds = 1000): Observable<ProviderGpsPosition> {
+  watch(intervalMilliseconds = 1000, initialPosition: ProviderGpsPosition | null = null): Observable<ProviderGpsPosition> {
     return new Observable((subscriber) => {
       if (typeof navigator === 'undefined' || !navigator.geolocation) {
         subscriber.error(new Error('GEOLOCATION_UNAVAILABLE'));
@@ -49,7 +49,7 @@ export class ProviderLocationService {
 
       let lastGpsEmissionAt = 0;
       let lastOrientationEmissionAt = 0;
-      let filteredPosition: ProviderGpsPosition | null = null;
+      let filteredPosition: ProviderGpsPosition | null = initialPosition;
       let relocationCandidate: GpsRelocationCandidate | null = null;
       let stableHeading: number | null = null;
       let compassHeading: number | null = null;
@@ -207,17 +207,27 @@ export class ProviderLocationService {
     const impossibleJump =
       inferredSpeedKmh > MAX_PLAUSIBLE_VEHICLE_SPEED_KMH && rawDistance > plausibleDistance;
     const stationaryRadius = Math.max(MIN_MOVEMENT_METERS, Math.min(12, raw.accuracyMeters * 0.5));
+    const reportedSpeed = raw.speedKmh ?? previous.speedKmh;
+    const reportedStationary = reportedSpeed === null || reportedSpeed < STATIONARY_SPEED_KMH;
+    const stationaryUncertainty = Math.max(
+      stationaryRadius,
+      Math.min(35, (raw.accuracyMeters + previous.accuracyMeters) * 1.1),
+    );
     const moving = effectiveSpeedKmh >= STATIONARY_SPEED_KMH && rawDistance >= 1.2;
     const poorAccuracyJump =
       raw.accuracyMeters > MAX_ACCEPTED_ACCURACY_METERS && rawDistance < raw.accuracyMeters * 1.5;
+    const unconfirmedStationaryJump = reportedStationary &&
+      rawDistance > stationaryUncertainty && rawDistance > 18;
 
-    if (impossibleJump) {
+    if (impossibleJump || unconfirmedStationaryJump) {
       const candidateDistance = relocationCandidate
         ? this.distanceMeters(relocationCandidate.position, raw)
         : Number.POSITIVE_INFINITY;
       const confirmationRadius = Math.max(25, raw.accuracyMeters * 1.5);
+      const extendsMovement = !unconfirmedStationaryJump || !relocationCandidate ||
+        rawDistance >= this.distanceMeters(previous, relocationCandidate.position) + 3;
       const nextCandidate =
-        candidateDistance <= confirmationRadius
+        candidateDistance <= confirmationRadius && extendsMovement
           ? { position: raw, confirmations: relocationCandidate!.confirmations + 1 }
           : { position: raw, confirmations: 1 };
       if (nextCandidate.confirmations >= GPS_RELOCATION_CONFIRMATIONS) {
@@ -241,7 +251,10 @@ export class ProviderLocationService {
       };
     }
 
-    if ((!moving && rawDistance <= stationaryRadius) || poorAccuracyJump) {
+    // Une mesure isolée dans la marge d'erreur du capteur ne déplace pas le
+    // point de départ, même si le déplacement apparent induit une vitesse élevée.
+    if ((reportedStationary && rawDistance <= stationaryUncertainty) ||
+        (!moving && rawDistance <= stationaryRadius) || poorAccuracyJump) {
       return {
         position: {
           ...raw,

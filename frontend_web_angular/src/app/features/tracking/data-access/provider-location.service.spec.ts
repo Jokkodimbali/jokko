@@ -1,3 +1,5 @@
+import { TestBed } from '@angular/core/testing';
+import { SenegalGeolocationService } from '../../../core/location/senegal-geolocation.service';
 import { ProviderGpsPosition, ProviderLocationService } from './provider-location.service';
 
 describe('ProviderLocationService - real GPS filtering contracts', () => {
@@ -11,6 +13,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
     failure = undefined;
     options = undefined;
     clearWatch = vi.fn();
+    TestBed.configureTestingModule({ providers: [ProviderLocationService, SenegalGeolocationService] });
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
@@ -36,7 +39,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
   });
 
   it('requests fresh high-accuracy GPS and releases the watcher', () => {
-    const subscription = new ProviderLocationService().watch(0).subscribe();
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe();
     expect(options).toEqual({ enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     subscription.unsubscribe();
     expect(clearWatch).toHaveBeenCalledWith(42);
@@ -44,7 +47,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('converts meters per second to km/h and preserves measurement time', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 7, 90, 10, 1_234));
     subscription.unsubscribe();
     expect(received[0]?.speedKmh).toBe(36);
@@ -53,7 +56,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('rejects duplicate and regressive measurement timestamps', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 7, 90, 10, 2_000));
     success?.(position(14.7167, -17.4677, 7, 90, 10, 2_000));
     success?.(position(14.7168, -17.4677, 7, 90, 10, 1_900));
@@ -63,7 +66,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('keeps a stationary phone fixed despite coordinate and heading drift', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 8, 15, 0, 1_000));
     success?.(position(14.716715, -17.46769, 12, 240, 0, 2_000));
     subscription.unsubscribe();
@@ -73,9 +76,61 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
     expect(received[1]?.speedKmh).toBe(0);
   });
 
+  it('keeps the trip origin fixed when the first watcher GPS drifts within its accuracy', () => {
+    const origin: ProviderGpsPosition = {
+      latitude: 14.7167, longitude: -17.4677, accuracyMeters: 12,
+      headingDegrees: null, speedKmh: 0, recordedAt: 1_000,
+    };
+    const received: ProviderGpsPosition[] = [];
+    const subscription = TestBed.inject(ProviderLocationService).watch(0, origin)
+      .subscribe((gps) => received.push(gps));
+    success?.(position(14.7168, -17.4677, 12, 240, 0, 2_000));
+    success?.(position(14.71686, -17.4677, 12, 240, 0, 3_000));
+    subscription.unsubscribe();
+    expect(received[0]?.latitude).toBe(origin.latitude);
+    expect(received[1]?.latitude).toBe(origin.latitude);
+    expect(received[1]?.speedKmh).toBe(0);
+  });
+
+  it('does not move the origin for an isolated stationary GPS jump', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = TestBed.inject(ProviderLocationService).watch(0)
+      .subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 8, null, 0, 1_000));
+    success?.(position(14.7171, -17.4677, 8, null, 0, 2_000));
+    subscription.unsubscribe();
+    expect(received[1]?.latitude).toBe(received[0]?.latitude);
+  });
+
+  it('does not adopt a repeated displaced GPS cluster while the phone is stationary', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = TestBed.inject(ProviderLocationService).watch(0)
+      .subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 8, null, 0, 1_000));
+    success?.(position(14.7171, -17.4677, 8, null, 0, 2_000));
+    success?.(position(14.71711, -17.4677, 8, null, 0, 3_000));
+    success?.(position(14.71710, -17.4677, 8, null, 0, 4_000));
+    subscription.unsubscribe();
+    expect(received.every((gps) => gps.latitude === 14.7167)).toBe(true);
+  });
+
+  it('accepts confirmed forward movement even when browser speed is stuck at zero', () => {
+    const received: ProviderGpsPosition[] = [];
+    const subscription = TestBed.inject(ProviderLocationService).watch(0)
+      .subscribe((gps) => received.push(gps));
+    success?.(position(14.7167, -17.4677, 8, null, 0, 1_000));
+    success?.(position(14.7170, -17.4677, 8, null, 0, 2_000));
+    success?.(position(14.7171, -17.4677, 8, null, 0, 3_000));
+    success?.(position(14.7172, -17.4677, 8, null, 0, 4_000));
+    subscription.unsubscribe();
+    expect(received[1]?.latitude).toBe(14.7167);
+    expect(received[2]?.latitude).toBe(14.7167);
+    expect(received[3]?.latitude).toBeCloseTo(14.7172, 6);
+  });
+
   it('ignores an isolated non-zero speed when coordinates only drift', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 8, 90, 0, 1_000));
     success?.(position(14.716706, -17.467696, 10, 90, 15, 2_000));
     subscription.unsubscribe();
@@ -91,7 +146,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
     [130, 36.11],
   ])('accepts coherent movement at %i km/h', (speedKmh, meters) => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 6, 0, speedKmh / 3.6, 1_000));
     success?.(position(14.7167 + meters / 111_111, -17.4677, 6, 0, speedKmh / 3.6, 2_000));
     subscription.unsubscribe();
@@ -100,7 +155,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('smooths heading through 359 to 1 without taking the long path', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 6, 359, 20, 1_000));
     success?.(position(14.71673, -17.4677, 6, 1, 20, 2_000));
     subscription.unsubscribe();
@@ -110,7 +165,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('rejects an impossible isolated jump but accepts three coherent relocation samples', () => {
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 6, 90, 25, 1_000));
     success?.(position(14.8067, -17.3677, 6, 90, 25, 2_000));
     success?.(position(14.80671, -17.36769, 6, 90, 25, 3_000));
@@ -125,7 +180,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     const received: ProviderGpsPosition[] = [];
-    const subscription = new ProviderLocationService().watch(1_000).subscribe((gps) => received.push(gps));
+    const subscription = TestBed.inject(ProviderLocationService).watch(1_000).subscribe((gps) => received.push(gps));
     success?.(position(14.7167, -17.4677, 6, 90, 10, 1_000));
     vi.advanceTimersByTime(900);
     success?.(position(14.71671, -17.4677, 6, 90, 10, 1_900));
@@ -137,7 +192,7 @@ describe('ProviderLocationService - real GPS filtering contracts', () => {
 
   it('forwards native geolocation errors', () => {
     const errors: unknown[] = [];
-    const subscription = new ProviderLocationService().watch(0).subscribe({ error: (error) => errors.push(error) });
+    const subscription = TestBed.inject(ProviderLocationService).watch(0).subscribe({ error: (error) => errors.push(error) });
     const denied = { code: 1, message: 'denied' } as GeolocationPositionError;
     failure?.(denied);
     subscription.unsubscribe();

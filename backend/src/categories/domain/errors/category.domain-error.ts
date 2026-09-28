@@ -20,10 +20,5 @@ export class CategoryDomainError extends ValidationError {
     );
   }
 
-  static invalidSortOrder(value: number): CategoryDomainError {
-    return new CategoryDomainError(
-      'INVALID_CATEGORY_SORT_ORDER',
-      domainMessage('INVALID_CATEGORY_SORT_ORDER', { value }),
-    );
-  }
+
 }

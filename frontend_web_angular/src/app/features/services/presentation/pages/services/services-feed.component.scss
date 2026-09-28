@@ -337,6 +337,112 @@
     transform 0.16s ease;
 }
 
+:host .service-filters__category {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+:host .service-filters__category--expanded {
+  z-index: 20;
+}
+
+:host .service-filters__category-pill {
+  align-items: stretch;
+  background: #f8efe5;
+  border: 1px solid #e3c8af;
+  border-radius: 999px;
+  display: flex;
+  min-height: 38px;
+  overflow: hidden;
+}
+
+:host .service-filters__category--active .service-filters__category-pill {
+  background: #955d24;
+  border-color: #955d24;
+  box-shadow: 0 10px 22px rgb(149 93 36 / 18%);
+}
+
+:host .service-filters__button--category {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 36px;
+  padding: 8px 10px 8px 14px;
+}
+
+:host .service-filters__button--category.service-filters__button--active {
+  background: transparent;
+  box-shadow: none;
+}
+
+:host .service-filters__dropdown-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #7f4b1d;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-width: 31px;
+  padding: 0 9px 0 2px;
+}
+
+:host .service-filters__dropdown-toggle--active {
+  color: #fff;
+}
+
+:host .service-filters__dropdown-toggle lucide-icon {
+  transition: transform 0.18s ease;
+}
+
+:host .service-filters__category--expanded .service-filters__dropdown-toggle lucide-icon {
+  transform: rotate(180deg);
+}
+
+:host .service-filters__dropdown-toggle:focus-visible,
+:host .service-filters__dropdown-item:focus-visible {
+  outline: 2px solid #955d24;
+  outline-offset: 2px;
+}
+
+:host .service-filters__dropdown {
+  background: #fff;
+  border: 1px solid #e3c8af;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgb(49 31 16 / 18%);
+  display: grid;
+  min-width: max(100%, 200px);
+  max-width: min(280px, calc(100vw - 24px));
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 7px);
+  z-index: 30;
+}
+
+:host .service-filters__dropdown-item {
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: #4e3827;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: normal;
+}
+
+:host .service-filters__dropdown-item:hover,
+:host .service-filters__dropdown-item--active {
+  background: #f8efe5;
+  color: #7f4b1d;
+}
+
 :host .service-filters__button--all {
   box-shadow: 0 8px 18px rgb(149 93 36 / 10%);
 }

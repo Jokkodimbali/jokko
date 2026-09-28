@@ -205,7 +205,6 @@ describe('LiveTrackingModule (e2e)', () => {
       data: {
         id: categoryId,
         nom: `Categorie Tracking ${uniqueSeed.slice(0, 8)}`,
-        ordreTri: 1,
       },
     });
 

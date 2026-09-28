@@ -5,6 +5,7 @@ import type {
   LiveTrackingRepositoryPort,
   ReservationTrackingContext,
   ReservationTrackingView,
+  TrackingRouteSelection,
 } from '../../application/ports/live-tracking-repository.port';
 import type { ProfessionalPresence } from '../../domain/entities/professional-presence.entity';
 import type { ReservationTrackingSession } from '../../domain/entities/reservation-tracking-session.entity';
@@ -30,6 +31,18 @@ type TrackingRecord = Prisma.SessionTrackingReservationGetPayload<{
 @Injectable()
 export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
+
+  async saveSelectedRoute(selection: TrackingRouteSelection): Promise<boolean> {
+    const result = await this.prisma.sessionTrackingReservation.updateMany({
+      where: {
+        reservationId: selection.reservationId,
+        statut: 'EN_ROUTE',
+        demarreLe: new Date(selection.sessionStartedAt),
+      },
+      data: { routeSelection: selection as unknown as Prisma.InputJsonValue },
+    });
+    return result.count === 1;
+  }
 
   async findReservationContext(
     reservationId: string,
@@ -785,6 +798,10 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
       lastLocationLabel: record.dernierLibelleLocalisation,
       lastPositionAt: record.dernierePositionLe,
       updatedAt: record.misAJourLe,
+      selectedRoute: this.mapSelectedRoute(
+        record.routeSelection,
+        record.demarreLe,
+      ),
       presence: record.professionnel.presence
         ? this.mapPresence(record.professionnel.presence)
         : {
@@ -802,6 +819,21 @@ export class LiveTrackingRepository implements LiveTrackingRepositoryPort {
             updatedAt: record.misAJourLe,
           },
     };
+  }
+
+  private mapSelectedRoute(
+    value: Prisma.JsonValue | null,
+    startedAt: Date,
+  ): TrackingRouteSelection | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return null;
+    const route = value as Record<string, unknown>;
+    if (
+      route.sessionStartedAt !== startedAt.toISOString() ||
+      !Array.isArray(route.coordinates)
+    )
+      return null;
+    return route as TrackingRouteSelection;
   }
 
   private mapPresence(record: {

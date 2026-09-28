@@ -104,7 +104,7 @@ export class AdminDashboardService {
             select: { id: true },
           },
         },
-        orderBy: { ordreTri: 'asc' },
+        orderBy: { nom: 'asc' },
       }),
       this.prisma.sessionAuthentification.findMany({
         where: { creeLe: { gte: sevenDaysAgo } },

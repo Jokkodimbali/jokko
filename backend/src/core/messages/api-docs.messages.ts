@@ -156,7 +156,6 @@ export const API_DOCS = {
     listSuccess: 'Liste des categories actives recuperee avec succes',
     nameField: 'Nom de la categorie',
     iconUrlField: "URL publique de l'icone",
-    sortOrderField: 'Ordre de tri de la categorie',
     commissionRateField:
       'Taux de commission preleve par la plateforme sur cette categorie',
   },

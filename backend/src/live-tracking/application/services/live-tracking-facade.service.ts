@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
+import type { TrackingRouteSelection } from '../ports/live-tracking-repository.port';
 import type { TrackingLocationCommand } from '../commands/tracking-location.command';
 import { LiveTrackingCommandService } from './live-tracking-command.service';
 import { LiveTrackingQueryService } from './live-tracking-query.service';
@@ -61,6 +62,10 @@ export class LiveTrackingFacade {
     nextPresenceStatus: 'EN_LIGNE' | 'EN_PRESTATION' | 'HORS_LIGNE';
   }) {
     return this.commandService.finalizeReservationTracking(input);
+  }
+
+  selectRoute(user: AuthUser, selection: TrackingRouteSelection) {
+    return this.commandService.selectRoute(user, selection);
   }
 
   getReservationTracking(user: AuthUser, reservationId: string) {

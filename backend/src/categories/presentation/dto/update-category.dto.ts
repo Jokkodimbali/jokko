@@ -3,14 +3,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   Matches,
   Max,
-  MaxLength,
   Min,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../../core/http/message-catalog';
@@ -56,22 +55,6 @@ export class UpdateCategoryDto {
     message: VALIDATION_MESSAGES.CATEGORY_ICON_URL_INVALID,
   })
   iconUrl?: string | null;
-
-  @ApiProperty({
-    description: API_DOCS.categories.sortOrderField,
-    example: 2,
-    required: false,
-    minimum: 0,
-    maximum: 32767,
-  })
-  @Transform(({ value }: { value: unknown }) =>
-    value === undefined ? value : Number(value),
-  )
-  @IsOptional()
-  @IsInt({ message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_INTEGER })
-  @Min(0, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MIN })
-  @Max(32767, { message: VALIDATION_MESSAGES.CATEGORY_SORT_ORDER_MAX })
-  sortOrder?: number;
 
   @ApiProperty({
     enum: TypePrix,

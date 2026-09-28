@@ -70,6 +70,19 @@ describe('TrackingStore - ordering and session contracts', () => {
     expect(store.tracking()?.trackingStatus).toBe('EN_ROUTE');
   });
 
+  it('rejects a delayed EN_ROUTE snapshot from the previous trip even with a newer GPS timestamp', () => {
+    const store = new TrackingStore();
+    const newTrip = trackingAt('2026-08-13T10:05:00.000Z', 14.73, null);
+    newTrip.trackingStatus = 'EN_ROUTE';
+    newTrip.startedAt = '2026-08-13T10:04:59.000Z';
+    const oldTrip = trackingAt('2026-08-13T10:05:01.000Z', 14.7, null);
+    oldTrip.trackingStatus = 'EN_ROUTE';
+    oldTrip.startedAt = '2026-08-13T09:30:00.000Z';
+    store.setTracking(newTrip);
+    expect(store.setTracking(oldTrip)).toBe(false);
+    expect(store.tracking()?.lastLatitude).toBe(14.73);
+  });
+
   it('rejects a late terminal event from a previous parcel leg', () => {
     const store = new TrackingStore();
     const dropoff = trackingAt('2026-08-13T10:05:00.000Z', 14.73, null);

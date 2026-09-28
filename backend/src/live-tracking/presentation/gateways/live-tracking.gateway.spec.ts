@@ -1,6 +1,38 @@
 import { LiveTrackingGateway } from './live-tracking.gateway';
 
 describe('LiveTrackingGateway route synchronization', () => {
+  it('broadcasts a selected route only after the actor selection is persisted', async () => {
+    const emit = jest.fn();
+    const to = jest.fn().mockReturnValue({ emit });
+    const selectRoute = jest.fn().mockResolvedValue(true);
+    const gateway = new LiveTrackingGateway(
+      {} as never,
+      {} as never,
+      { selectRoute } as never,
+      {} as never,
+    );
+    gateway.server = { to } as never;
+    const client = { id: 'socket-1' } as never;
+    (gateway as any).socketUsers.set('socket-1', { sub: 'actor-1' });
+    const selection = {
+      reservationId: 'reservation-1',
+      sessionStartedAt: '2026-09-28T10:00:00.000Z',
+      routeId: 'route-1',
+      coordinates: [{ lat: 14.7, lng: -17.4 }, { lat: 14.8, lng: -17.3 }],
+      distanceKm: 10,
+      durationMinutes: 15,
+      navigationSteps: [],
+      selectedAt: '2026-09-28T10:01:00.000Z',
+    };
+    await gateway.handleRouteSelection(client, selection);
+    expect(selectRoute).toHaveBeenCalledWith(expect.objectContaining({ sub: 'actor-1' }), selection);
+    expect(emit).toHaveBeenCalledWith('tracking.route.selected', selection);
+    selectRoute.mockResolvedValue(false);
+    emit.mockClear();
+    await gateway.handleRouteSelection(client, selection);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
   it('sends the recalculated route to the reservation, client and courier', () => {
     const emit = jest.fn();
     const to = jest.fn().mockReturnValue({ emit });

@@ -15,7 +15,6 @@ import jsQR from 'jsqr';
 import { LucideAngularModule } from 'lucide-angular';
 import QRCode from 'qrcode';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
-import { SenegalGeolocationService } from '../../../../../core/location/senegal-geolocation.service';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentView } from '../../../domain/appointments.models';
@@ -69,7 +68,6 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
   private readonly backNavigation = inject(BackNavigationService);
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly authSession = inject(AuthSessionService);
-  private readonly geolocation = inject(SenegalGeolocationService);
   private cameraVideo?: HTMLVideoElement;
   private cameraStream?: MediaStream;
   private cameraScanIntervalId?: number;
@@ -805,11 +803,7 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
         this.persistCheckpointValidation();
         this.appointment.set(updated);
         if (this.checkpoint() === 'RETRAIT') {
-          // La page de suivi est rouverte juste apres le scan. Conserver ce
-          // marqueur transitoire lui permet d'ignorer l'ancien itineraire vers
-          // l'expediteur et de reconstruire celui du destinataire.
-          this.markPickupReturnForRouteRefresh(updated.id);
-          this.activateDropoffTrackingAfterPickup(updated, message);
+          this.activateDropoffTrackingAfterPickup(message);
           return;
         }
 
@@ -835,48 +829,11 @@ export class AppointmentQrCodePageComponent implements AfterViewInit, OnDestroy,
     }
   }
 
-  private activateDropoffTrackingAfterPickup(appointment: AppointmentView, message: string): void {
-    // Le retour vers la carte ne doit pas arriver avant la publication du
-    // premier point de la nouvelle session. Sinon la page de suivi peut lire
-    // l'ancienne route vers la pharmacie/quincaillerie au lieu de celle du
-    // destinataire, selon le délai réseau.
+  private activateDropoffTrackingAfterPickup(message: string): void {
+    // Le serveur relance deja le suivi au retrait. La page de rendez-vous
+    // reprend ensuite le GPS en continu sans attendre une seconde acquisition.
     this.validationMessage.set(`${message} Trajet vers le destinataire active.`);
-
-    this.resolveCurrentLocationForTracking()
-      .then((location) => {
-        this.appointmentsService
-          .updateProviderTrackingLocation(appointment.id, {
-            ...location,
-            locationLabel: 'Livreur en route vers le destinataire',
-          })
-          .subscribe({
-            next: () => this.scheduleAutoReturnAfterScan(0),
-            // La session est déjà relancée par le scan côté serveur. En cas
-            // de refus de géolocalisation ou de perte réseau, retourner tout
-            // de même vers la carte qui reconstruira l'itinéraire avec le
-            // dernier point connu.
-            error: () => this.scheduleAutoReturnAfterScan(0),
-          });
-      })
-      .catch(() => this.scheduleAutoReturnAfterScan(0));
-  }
-
-  private resolveCurrentLocationForTracking(): Promise<{
-    latitude: number;
-    longitude: number;
-    accuracyMeters: number | null;
-    headingDegrees: number | null;
-    speedKmh: number | null;
-  }> {
-    return this.geolocation.getCurrentPosition(45_000);
-  }
-
-  private markPickupReturnForRouteRefresh(reservationId: string): void {
-    if (typeof globalThis.sessionStorage === 'undefined') return;
-    globalThis.sessionStorage.setItem(
-      `jokko:parcel:${reservationId}:refresh-dropoff-route`,
-      'pending',
-    );
+    this.scheduleAutoReturnAfterScan(0);
   }
 
   private sanitizeOptionalNumber(

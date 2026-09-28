@@ -130,6 +130,7 @@ const ROUTE_JOIN_TIMEOUT_MS = 8_000;
 const ROUTE_JOIN_MIN_HEADING_SPEED_KMH = 5;
 const ROUTE_JOIN_MAX_HEADING_DIFFERENCE_DEGREES = 70;
 const ROUTE_RETRY_LIMIT = 3;
+const MAP_PERSPECTIVE_STORAGE_KEY = 'jokko-appointment-map-perspective';
 const PARCEL_VEHICLE_MARKERS: Record<AppointmentVehicleType, { imageUrl: string; label: string }> =
   {
     MOTO_SCOOTER: {
@@ -431,7 +432,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly routeStatus = signal<'idle' | 'calculating' | 'ready' | 'unavailable'>('idle');
   protected readonly isSatelliteMapEnabled = signal(false);
   protected readonly isMapFullscreen = signal(false);
-  protected readonly isMapTopView = signal(true);
+  protected readonly isMapTopView = signal(false);
   protected readonly isNavigationVoiceEnabled = signal(true);
   protected readonly mapHeadingDegrees = signal(0);
   protected readonly selectedRouteId = signal('route-0');
@@ -798,10 +799,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return status === 'ANNULEE' ? 'Rendez-vous annule' : 'Prestation prevus';
   });
   protected readonly trackingLatitude = computed(
-    () => this.tracking()?.lastLatitude ?? null,
+    () => this.tracking()?.lastLatitude ?? this.tracking()?.presence.lastLatitude ?? null,
   );
   protected readonly trackingLongitude = computed(
-    () => this.tracking()?.lastLongitude ?? null,
+    () => this.tracking()?.lastLongitude ?? this.tracking()?.presence.lastLongitude ?? null,
   );
   protected readonly hasTrackingCoordinates = computed(() => {
     const latitude = this.trackingLatitude();
@@ -1349,9 +1350,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly routeRemainingBadgeLabel = computed(() => {
     if (this.hasTravelerArrivedAtDestination()) return 'Sur place';
-    if (this.isParcelDropoffNavigationActive() && this.routeCoordinates.length < 2) {
-      return 'Itineraire en preparation';
-    }
     if (this.isProviderWorking() && !this.isParcelDropoffNavigationActive()) return 'Arrive';
     const distance = this.routeDistanceKm();
     const minutes = this.routeDurationMinutes();
@@ -1375,9 +1373,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly routeMapStatusLabel = computed(() => {
     if (this.hasTravelerArrivedAtDestination()) return 'Sur place';
-    if (this.isParcelDropoffNavigationActive() && this.routeCoordinates.length < 2) {
-      return 'Preparation du trajet vers le destinataire...';
-    }
     if (!this.hasTrackingCoordinates()) return 'Position GPS prestataire en attente';
     if (this.destinationStatus() === 'resolving') return "Localisation de l'adresse...";
     if (this.destinationStatus() === 'unavailable') return 'Adresse introuvable sur la carte';
@@ -1654,7 +1649,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
 
   ngOnInit(): void {
-    this.isMapTopView.set(true);
+    this.restoreMapPerspective();
     this.elapsedClockInterval = window.setInterval(() => {
       this.nowMs.set(Date.now());
     }, 1000);
@@ -2809,7 +2804,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected toggleMapPerspective(): void {
     if (!this.isRouteActorViewer()) return;
 
-
     if (!this.isMapTopView() && this.mapRenderer.getCameraMode() === 'FREE') {
       this.mapRenderer.recenterNavigationCamera();
       window.setTimeout(() => this.updateGoogleMaps(), 60);
@@ -2817,8 +2811,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.isMapTopView.update((enabled) => !enabled);
+    this.persistMapPerspective();
     this.mapRenderer.setTopView(this.isMapTopView());
     window.setTimeout(() => this.updateGoogleMaps(), 60);
+  }
+
+  private restoreMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    this.isMapTopView.set(window.localStorage.getItem(MAP_PERSPECTIVE_STORAGE_KEY) === 'top');
+  }
+
+  private persistMapPerspective(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      MAP_PERSPECTIVE_STORAGE_KEY,
+      this.isMapTopView() ? 'top' : 'driver',
+    );
   }
 
   private effectiveMapTopView(): boolean {
@@ -2867,11 +2875,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.refreshRouteAlternatives();
     this.updateGoogleMaps();
     const reservationId = this.appointment()?.id;
-    const sessionStartedAt = this.tracking()?.startedAt;
-    if (reservationId && sessionStartedAt) {
+    if (reservationId) {
       this.trackingRealtime.publishRouteSelection({
         reservationId,
-        sessionStartedAt,
         routeId: route.id,
         coordinates: route.coordinates.map(([lat, lng]) => ({ lat, lng })),
         distanceKm: route.distanceKm,
@@ -3515,6 +3521,22 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         window.setTimeout(() => void this.initializeGoogleMaps(), 0);
       }
 
+      if (this.consumeParcelPickupRouteRefresh(appointment)) {
+        // Le dernier snapshot peut encore contenir la polyline du trajet vers
+        // l'expediteur. Une seconde lecture apres le retour du QR garantit que
+        // la carte repart de la position courante vers le destinataire.
+        window.setTimeout(() => {
+          const current = this.appointment();
+          if (!current || current.id !== appointment.id || !this.isParcelPickupValidated()) {
+            return;
+          }
+
+          this.parcelDropoffTrackingPrepared = false;
+          this.prepareParcelDropoffNavigationAfterPickup(current);
+          this.refreshAppointmentState(current.id);
+          this.refreshTracking(current.id);
+        }, 250);
+      }
     };
 
     if (appointment.status !== 'PAYEE_SEQUESTRE' && appointment.status !== 'EN_COURS') {
@@ -3535,6 +3557,20 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private safeReturnUrl(): string | null {
     return safeInternalUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
+  }
+
+  private consumeParcelPickupRouteRefresh(appointment: AppointmentView): boolean {
+    if (
+      !this.isParcelTransportAppointment(appointment) ||
+      typeof globalThis.sessionStorage === 'undefined'
+    ) {
+      return false;
+    }
+
+    const key = `jokko:parcel:${appointment.id}:refresh-dropoff-route`;
+    if (globalThis.sessionStorage.getItem(key) !== 'pending') return false;
+    globalThis.sessionStorage.removeItem(key);
+    return true;
   }
 
   private startTrackingPolling(appointmentId: string): void {
@@ -3611,8 +3647,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       },
     );
     this.routeSelectionSubscription = this.trackingRealtime.routeSelected$.subscribe((event) => {
-      if (event.reservationId !== appointmentId || this.isRouteActorViewer() ||
-          event.sessionStartedAt !== this.tracking()?.startedAt) return;
+      if (event.reservationId !== appointmentId || this.isRouteActorViewer()) return;
       const coordinates = event.coordinates.map(({ lat, lng }) => [lat, lng] as [number, number]);
       if (coordinates.length < 2) return;
 
@@ -4082,17 +4117,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
-  private isCurrentParcelDropoffTrackingSession(
-    tracking: AppointmentTrackingView | null | undefined,
-  ): boolean {
-    const pickupValidatedAtMs = Date.parse(this.appointment()?.updatedAt ?? '');
-    const startedAtMs = Date.parse(tracking?.startedAt ?? '');
-    return tracking?.trackingStatus === 'EN_ROUTE' &&
-      Number.isFinite(pickupValidatedAtMs) &&
-      Number.isFinite(startedAtMs) &&
-      startedAtMs > pickupValidatedAtMs;
-  }
-
   private isPersistedParcelDropoffArrival(
     tracking: AppointmentTrackingView,
   ): boolean {
@@ -4106,15 +4130,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return false;
     }
 
-    // Le statut EN_COURS est publie avant le redemarrage du suivi. Une session
-    // terminee avant ce changement de statut est l'arrivee au retrait, pas au depot.
-    const pickupValidatedAtMs = Date.parse(appointment.updatedAt ?? '');
     const startedAtMs = Date.parse(tracking.startedAt ?? '');
     const endedAtMs = Date.parse(tracking.endedAt ?? '');
     return (
-      Number.isFinite(pickupValidatedAtMs) &&
       Number.isFinite(startedAtMs) &&
-      startedAtMs > pickupValidatedAtMs &&
       Number.isFinite(endedAtMs) &&
       endedAtMs >= startedAtMs
     );
@@ -4253,8 +4272,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   private applyRealtimeRouteMetadata(event: TrackingRouteMetadataEvent): void {
-    if (this.isParcelDropoffNavigationActive() &&
-        !this.isCurrentParcelDropoffTrackingSession(this.tracking())) return;
     if (!this.trackingStore.setRouteMetadata(event.route, event.positionTimestamp)) return;
     this.routeDistanceKm.set(event.route.distanceRemainingMeters / 1000);
     this.routeDurationMinutes.set(
@@ -4262,11 +4279,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
     // Les metriques ne repassent jamais dans setTrackingSafely : elles ne
     // relancent donc ni filtrage GPS, ni matching, ni detection hors-route.
-    // Avant la selection d'une alternative, la route calculee par le serveur
-    // est deja le trace commun et doit etre visible par le client.
-    if (this.isRouteActorViewer() ||
-        (this.isParcelDropoffNavigationActive() &&
-         !this.isCurrentParcelDropoffTrackingSession(this.tracking()))) return;
+    if (this.isRouteActorViewer()) return;
     const serverCoordinates = event.route.coordinates.map(
       ({ latitude, longitude }) => [latitude, longitude] as [number, number],
     );
@@ -4282,18 +4295,10 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   private setTrackingSafely(tracking: NonNullable<ReturnType<typeof this.tracking>>): void {
     this.registerActiveRouteSession(tracking);
-    const previousTracking = this.tracking();
     const normalizedTracking = this.normalizeArrivedTravelerTracking(tracking);
     if (!this.trackingStore.setTracking(normalizedTracking)) return;
     const acceptedTracking = this.tracking();
     if (!acceptedTracking) return;
-    const previousSessionAt = Date.parse(previousTracking?.startedAt ?? '');
-    const currentSessionAt = Date.parse(acceptedTracking.startedAt ?? '');
-    if (previousTracking && acceptedTracking.trackingStatus === 'EN_ROUTE' &&
-        Number.isFinite(currentSessionAt) &&
-        (!Number.isFinite(previousSessionAt) || currentSessionAt > previousSessionAt)) {
-      this.mapRenderer.resetTravelerMarker();
-    }
     this.syncAppointmentStatusFromTracking(acceptedTracking);
     const appointment = this.appointment();
     if (appointment) {
@@ -4338,16 +4343,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       const serverCoordinates = serverRoute.coordinates.map(
         (coordinate) => [coordinate.latitude, coordinate.longitude] as [number, number],
       );
-      // La route persistée est commune aux deux écrans. L'acteur conserve
-      // toutefois ses alternatives locales tant qu'il n'a pas rechargé.
-      const shouldRestoreSelected = !!serverRoute.selectedRouteId &&
-        (this.routeOptions.length === 0 || this.selectedRouteId() !== serverRoute.selectedRouteId);
-      if (serverCoordinates.length > 1 &&
-          (!this.isRouteActorViewer() || (serverRoute.selectedRouteId && shouldRestoreSelected)) &&
-          (!this.isParcelDropoffNavigationActive() ||
-           this.isCurrentParcelDropoffTrackingSession(acceptedTracking))) {
+      // Pour l'acteur, la route Google locale est l'unique polyline de
+      // navigation. Le backend ne fournit ici que distance, duree et ETA.
+      if (!this.isRouteActorViewer() && this.routeOptions.length < 2) {
         this.routeCoordinates = serverCoordinates;
-        const currentRoute = this.routeService.mapTrackingRoute(serverRoute, serverCoordinates);
+      }
+      if (
+        !this.isRouteActorViewer() &&
+        this.routeOptions.length < 2 &&
+        (serverRoute.navigationSteps?.length || this.routeCoordinates.length > 1)
+      ) {
+        const currentRoute = this.routeService.mapTrackingRoute(serverRoute, this.routeCoordinates);
         this.routeOptions = [currentRoute];
         this.selectedRouteId.set(currentRoute.id);
       }
@@ -4428,21 +4434,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
 
     this.clearLocationRecovery();
-    const tracking = this.tracking();
-    const initialGps = tracking?.trackingStatus === 'EN_ROUTE' &&
-      typeof tracking.lastLatitude === 'number' && typeof tracking.lastLongitude === 'number'
-      ? {
-          latitude: tracking.lastLatitude,
-          longitude: tracking.lastLongitude,
-          accuracyMeters: tracking.lastAccuracyMeters ?? 20,
-          headingDegrees: tracking.lastHeadingDegrees ?? null,
-          speedKmh: tracking.lastSpeedKmh ?? null,
-          recordedAt: Math.min(Date.now() - 1_000,
-            Date.parse(tracking.lastPositionAt ?? '') || Date.now() - 1_000),
-        }
-      : null;
     this.providerLocationSubscription = this.providerLocation
-      .watch(LIVE_LOCATION_UPDATE_INTERVAL_MS, initialGps)
+      .watch(LIVE_LOCATION_UPDATE_INTERVAL_MS)
       .subscribe({
         next: (position) => {
           this.locationSharingState.set('active');
@@ -4736,11 +4729,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
           this.trackingMapElement,
           this.isSatelliteMapEnabled(),
           (routeId) => this.selectRouteAlternative(routeId),
-          this.hasTrackingCoordinates()
-            ? { lat: this.trackingLatitude() as number, lng: this.trackingLongitude() as number }
-            : (this.destinationCoordinates() ?? undefined),
         );
         this.mapRenderer.setTopView(this.effectiveMapTopView());
+        this.mapRenderer.setHeading(this.mapHeadingDegrees());
       }
       this.updateGoogleMaps();
     } catch {
@@ -4784,7 +4775,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.isRouteActorViewer() && this.routeOptions.length === 0;
     if (
       destination &&
-      this.isRouteActorViewer() &&
       (!this.isProviderWorking() || this.isParcelDropoffNavigationActive()) &&
       !this.hasTravelerArrivalConfirmation() &&
       !this.hasTravelerArrivedAtDestination() &&
@@ -5071,8 +5061,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     trackedProvider: [number, number],
     destination: MapCoordinate,
   ): boolean {
-    // Seul l'acteur peut modifier le trace; le spectateur suit la route partagee.
-    if (!this.isRouteActorViewer()) return false;
     const positionTimestampMs = this.trackingPositionTimestampMs(this.tracking());
     if (
       positionTimestampMs !== null &&
@@ -5551,8 +5539,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     preserveCurrentRoute = false,
     fastReroute = false,
   ): void {
-    // Un spectateur ne calcule jamais une autre polyline dans son navigateur.
-    if (!this.isRouteActorViewer()) return;
     const key = `${this.geo.routePointKey(provider)}|${this.geo.routePointKey(destinationPoint)}`;
     if (this.routeCoordinatesKey === key) return;
     this.routeCoordinatesKey = key;
@@ -5627,40 +5613,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    const installedRoutes = routes.map((candidate, index) => {
-      const firstPoint = candidate.coordinates[0];
-      const origin = { lat: context.provider[0], lng: context.provider[1] };
-      const gapMeters = firstPoint
-        ? this.geo.distanceMetersBetweenPoints(origin, { lat: firstPoint[0], lng: firstPoint[1] })
-        : 0;
-      return {
-        ...candidate,
-        id: `route-${index}`,
-        // Google peut commencer sa route au milieu de la rue. Conserver le
-        // point GPS de départ dans la géométrie partagée par les deux écrans.
-        coordinates: gapMeters > 2 ? [context.provider, ...candidate.coordinates] : candidate.coordinates,
-      };
-    });
+    const installedRoutes = routes.map((candidate, index) => ({
+      ...candidate,
+      id: `route-${index}`,
+    }));
     // Installation atomique : route active, options et metriques changent
     // ensemble. Le renderer remappe sa position visible sans redemarrer ses RAF.
     this.routeOptions = installedRoutes;
     this.routeDestinationKey = this.geo.routePointKey(context.destination);
     this.selectedRouteId.set('route-0');
     this.applySelectedRoute(installedRoutes[0]);
-    const reservationId = this.appointment()?.id;
-    const sessionStartedAt = this.tracking()?.startedAt;
-    if (this.isRouteActorViewer() && reservationId && sessionStartedAt) {
-      this.trackingRealtime.publishRouteSelection({
-        reservationId,
-        sessionStartedAt,
-        routeId: installedRoutes[0].id,
-        coordinates: installedRoutes[0].coordinates.map(([lat, lng]) => ({ lat, lng })),
-        distanceKm: installedRoutes[0].distanceKm,
-        durationMinutes: installedRoutes[0].durationMinutes,
-        navigationSteps: installedRoutes[0].navigationSteps,
-        selectedAt: new Date().toISOString(),
-      });
-    }
     this.routeMatchMode = context.fastReroute ? 'JOINING_ROUTE' : 'MATCHED';
     if (context.fastReroute) {
       this.resetRouteJoiningConfirmation();
@@ -6056,7 +6018,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     speedKmh?: number | null;
     locationLabel?: string | null;
   }> {
-    return this.senegalGeolocation.getCurrentPosition(20_000, { desiredAccuracyMeters: 50, accuracyWaitMs: 4_000 }).then((position) => ({
+    return this.senegalGeolocation.getCurrentPosition(45_000).then((position) => ({
       ...position,
       locationLabel,
     }));

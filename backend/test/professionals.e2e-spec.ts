@@ -259,7 +259,6 @@ describe('ProfessionalsModule (e2e)', () => {
       await prisma.categorie.create({
         data: {
           nom: `Plomberie-${timestamp}`,
-          ordreTri: 1,
         },
       })
     ).id;

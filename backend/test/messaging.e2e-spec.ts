@@ -289,7 +289,6 @@ describe('MessagingModule (e2e)', () => {
       data: {
         id: categoryId,
         nom: `Categorie Messaging ${uniqueSeed.slice(0, 8)}`,
-        ordreTri: 1,
       },
     });
 

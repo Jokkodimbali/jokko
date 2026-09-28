@@ -4,7 +4,6 @@ export type CategoryView = {
   id: string;
   nom: string;
   urlIcone: string | null;
-  ordreTri: number;
   tauxCommission: number;
   typePrix: 'FIXE' | 'NEGOCIABLE';
   typeEspace: 'PRESTATAIRE' | 'MEDECIN' | 'QUINCAILLERIE' | 'PHARMACIE';
@@ -14,7 +13,6 @@ export type CategoryView = {
 export type CreateCategoryInput = {
   name: string;
   iconUrl: string | null;
-  sortOrder: number;
   commissionRate: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType:
@@ -29,7 +27,6 @@ export type CategoryWithSubCategoriesView = CategoryView & {
     id: string;
     nom: string;
     description: string | null;
-    ordreTri: number;
     estActive: boolean;
   }>;
 };
@@ -38,7 +35,6 @@ export type UpdateCategoryInput = {
   categoryId: string;
   name: string;
   iconUrl: string | null;
-  sortOrder: number;
   commissionRate: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType:

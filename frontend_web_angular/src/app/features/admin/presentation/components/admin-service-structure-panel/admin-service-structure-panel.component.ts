@@ -15,7 +15,6 @@ type CategoryForm = {
   id: string | null;
   name: string;
   iconUrl: string;
-  sortOrder: number;
   commissionRate: number;
   priceType: 'FIXE' | 'NEGOCIABLE';
   professionalSpaceType: AdminProfessionalSpaceType;
@@ -267,7 +266,6 @@ export class AdminServiceStructurePanelComponent {
       id: category.id,
       name: category.name,
       iconUrl: category.iconUrl ?? '',
-      sortOrder: category.sortOrder,
       commissionRate: category.commissionRate,
       priceType: category.priceType,
       professionalSpaceType: category.professionalSpaceType,
@@ -294,7 +292,6 @@ export class AdminServiceStructurePanelComponent {
       payload: {
         name: category.name,
         iconUrl: category.iconUrl,
-        sortOrder: category.sortOrder,
         commissionRate: category.commissionRate,
         priceType: category.priceType,
         professionalSpaceType,
@@ -317,7 +314,6 @@ export class AdminServiceStructurePanelComponent {
       payload: {
         name: category.name,
         iconUrl: category.iconUrl,
-        sortOrder: category.sortOrder,
         commissionRate: category.commissionRate,
         priceType,
         professionalSpaceType: category.professionalSpaceType,
@@ -371,7 +367,6 @@ export class AdminServiceStructurePanelComponent {
     const payload: AdminCategoryPayload = {
       name: this.form.name.trim(),
       iconUrl: iconUrl.trim() || null,
-      sortOrder: Number(this.form.sortOrder || 0),
       commissionRate: Number(this.form.commissionRate || 0),
       priceType: this.form.priceType,
       professionalSpaceType: this.form.professionalSpaceType,
@@ -385,15 +380,15 @@ export class AdminServiceStructurePanelComponent {
       return;
     }
 
+    this.clearFilters();
     this.createCategory.emit(payload);
     this.closeModal();
   }
 
   protected submitBulkCategories(): void {
-    const payload = this.parseLines(this.bulkCategoriesText).map((line, index) => ({
+    const payload = this.parseLines(this.bulkCategoriesText).map((line) => ({
       name: line,
       iconUrl: this.resolveIconTokenForName(line),
-      sortOrder: index,
       commissionRate: 10,
       priceType: 'NEGOCIABLE' as const,
       professionalSpaceType: 'PRESTATAIRE' as const,
@@ -408,7 +403,6 @@ export class AdminServiceStructurePanelComponent {
     const payload: AdminSubCategoryPayload = {
       name: this.subCategoryForm.name.trim(),
       description: this.subCategoryForm.description?.trim() || null,
-      sortOrder: Number(this.subCategoryForm.sortOrder || 0),
     };
 
     if (!payload.name) return;
@@ -418,12 +412,11 @@ export class AdminServiceStructurePanelComponent {
 
   protected submitBulkSubCategories(): void {
     const payload = this.parseLines(this.bulkSubCategoriesText)
-      .map((line, index) => {
+      .map((line) => {
         const [name, description] = line.split('|').map((part) => part.trim());
         return {
           name,
           description: description || null,
-          sortOrder: index,
         };
       })
       .filter((item) => item.name.length > 0);
@@ -463,8 +456,7 @@ export class AdminServiceStructurePanelComponent {
     });
 
     return Array.from(byId.values()).sort((first, second) => {
-      const sortDelta = first.sortOrder - second.sortOrder;
-      return sortDelta !== 0 ? sortDelta : first.name.localeCompare(second.name, 'fr');
+      return first.name.localeCompare(second.name, 'fr');
     });
   }
 
@@ -673,7 +665,6 @@ export class AdminServiceStructurePanelComponent {
     const directValues = [
       category.name,
       String(category.commissionRate),
-      String(category.sortOrder),
       category.isActive ? 'active actif disponible' : 'inactive inactif desactive',
     ];
 
@@ -713,7 +704,8 @@ export class AdminServiceStructurePanelComponent {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .trim();
+      .trim()
+      .replace(/\s+/g, ' ');
   }
 
   private emptyForm(): CategoryForm {
@@ -721,7 +713,6 @@ export class AdminServiceStructurePanelComponent {
       id: null,
       name: '',
       iconUrl: 'lucide:git-fork',
-      sortOrder: 0,
       commissionRate: 10,
       priceType: 'NEGOCIABLE',
       professionalSpaceType: 'PRESTATAIRE',
@@ -752,7 +743,6 @@ export class AdminServiceStructurePanelComponent {
     return {
       name: '',
       description: null,
-      sortOrder: 0,
     };
   }
 
